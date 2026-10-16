@@ -71,7 +71,9 @@
         "MR mozku 14. 9. 2026: solitární sytící se nodulus v pravé hemisféře mozečku do 3 mm, suspekce na metastázu, jiná sytící se ložiska nejsou",
         "ECOG PS 1"
       ],
-      "kind": "brain_metastasis"
+      "kind": "brain_metastasis",
+      "type": "recommendation",
+      "evidence_cs": "silné doporučení (dle abstraktu; kvalita důkazů v plném znění neověřena)"
     },
     {
       "id": "us-astro-defer-cns-active",
@@ -87,23 +89,45 @@
         "Na cílený dotaz neguje závratě či poruchy rovnováhy, někdy během dne mžitky před očima",
         "MR mozku 14. 9. 2026: solitární ložisko do 3 mm v pravé hemisféře mozečku, suspekce na metastázu"
       ],
-      "kind": "brain_metastasis"
+      "kind": "brain_metastasis",
+      "type": "recommendation",
+      "evidence_cs": "podmíněné doporučení (dle abstraktu; kvalita důkazů v plném znění neověřena)"
     },
     {
-      "id": "us-asco-local-symptomatic",
+      "id": "us-asco-symptomatic",
       "guideline_id": "us-asco-sno-astro-2022-bm",
       "section": "Abstract - Recommendations (PMC record of the Neuro-Oncology co-publication; full text not retrieved)",
       "pdf_page": null,
       "printed_page": 331,
-      "quote": "Patients with symptomatic brain metastases should receive local therapy regardless of the systemic therapy used. For patients with asymptomatic brain metastases, local therapy should not be deferred unless deferral is specifically recommended in this guideline. The decision to defer local therapy should be based on a multidisciplinary discussion of the potential benefits and harms that the patient may experience.",
+      "quote": "Patients with symptomatic brain metastases should receive local therapy regardless of the systemic therapy used.",
       "evidence": "Strength and evidence quality are not stated in the abstract; they are in the full text, which was not retrieved",
-      "applies_because_cs": "Ložisko v mozečku je suspektní z metastázy a pacient je současně na systémové léčbě everolimem, otázka odložení lokální léčby je tedy otevřená. Dokumentace neuvádí neurologické příznaky přisuzované ložisku (neguje závratě a poruchy rovnováhy, občasné mžitky před očima). Citace je ze souhrnu, ne z plného znění.",
+      "applies_because_cs": "Ložisko v mozečku je suspektní z metastázy a pacient je na systémové léčbě (everolimus). Onkolog zapsal ‚bez klin. známek mozkových mts‘; pacient neguje závratě a poruchy rovnováhy a uvádí občasné mžitky před očima, jejich souvislost s ložiskem dokumentace nehodnotí. Citace je ze souhrnu, ne z plného znění.",
       "patient_facts": [
         "MR mozku 14. 9. 2026: solitární sytící se nodulus v pravé hemisféře mozečku do 3 mm, suspekce na metastázu",
         "Everolimus 5 mg od 3. 9. 2026",
         "Na cílený dotaz neguje závratě či poruchy rovnováhy, někdy během dne mžitky před očima"
       ],
-      "kind": "brain_metastasis"
+      "kind": "brain_metastasis",
+      "type": "recommendation",
+      "evidence_cs": "doporučení (dle abstraktu; síla a kvalita důkazů v plném znění neověřeny)"
+    },
+    {
+      "id": "us-asco-asymptomatic",
+      "guideline_id": "us-asco-sno-astro-2022-bm",
+      "section": "Abstract - Recommendations (PMC record of the Neuro-Oncology co-publication; full text not retrieved)",
+      "pdf_page": null,
+      "printed_page": 331,
+      "quote": "For patients with asymptomatic brain metastases, local therapy should not be deferred unless deferral is specifically recommended in this guideline. The decision to defer local therapy should be based on a multidisciplinary discussion of the potential benefits and harms that the patient may experience.",
+      "evidence": "Strength and evidence quality are not stated in the abstract; they are in the full text, which was not retrieved",
+      "applies_because_cs": "Ložisko je suspektní z metastázy a pacient je na systémové léčbě, otázka odložení lokální léčby je tedy otevřená. Souhrn jmenuje systémové režimy jen pro nemalobuněčný karcinom plic, karcinom prsu a melanom, ne pro karcinom ledviny. Onkolog zapsal ‚bez klin. známek mozkových mts‘; souvislost občasných mžitek před očima s ložiskem dokumentace nehodnotí. Citace je ze souhrnu, ne z plného znění.",
+      "patient_facts": [
+        "MR mozku 14. 9. 2026: solitární sytící se nodulus v pravé hemisféře mozečku do 3 mm, suspekce na metastázu",
+        "Everolimus 5 mg od 3. 9. 2026",
+        "Na cílený dotaz neguje závratě či poruchy rovnováhy, někdy během dne mžitky před očima"
+      ],
+      "kind": "brain_metastasis",
+      "type": "recommendation",
+      "evidence_cs": "doporučení (dle abstraktu; síla a kvalita důkazů v plném znění neověřeny)"
     },
     {
       "id": "im-easl-hbvr-assess",
@@ -111,16 +135,18 @@
       "section": "Prophylaxis of HBV reactivation - How should individuals at risk of HBV reactivation be managed? - Recommendations",
       "pdf_page": 40,
       "printed_page": 40,
-      "quote": "HBV reactivation risk assessment and the indication for prophylaxis is based on HBV markers (HBsAg, anti-HBc and HBV DNA status), the planned immunosuppressive regimen and the underlying disease requiring immunosuppression (Table 14).",
+      "quote": "HBV reactivation risk assessment and the indication for prophylaxis is based on HBV markers (HBsAg, anti-HBc and HBV DNA status), the planned immunosuppressive regimen and the underlying disease requiring immunosuppression (Table 14). Thus, HBsAg and anti-HBc antibody status should be assessed before starting immunosuppressive therapy. HBsAg-positive individuals starting immunosuppressive therapy should undergo the same clinical evaluation recommended for all HBsAg-positive individuals.",
       "evidence": "LoE 1, strong recommendation, strong consensus",
-      "applies_because_cs": "Pacient je HBsAg pozitivní a dostává everolimus (inhibitor mTOR), dříve sunitinib (inhibitor tyrozinkináz) a nivolumab s ipilimumabem (inhibitory kontrolních bodů). Tabulka 14 na str. 42 řadí u HBsAg-pozitivních inhibitory mTOR do středního rizika reaktivace (1-10 %), inhibitory tyrozinkináz do vysokého (>10 %) a inhibitory kontrolních bodů do nízkého (<1 %); jde o čtení tabulky asistentem, ověřte v dokumentu. HBV DNA, anti-HBc a hepatologické vyšetření: neuvedeno v dostupné dokumentaci.",
+      "applies_because_cs": "Pacient je HBsAg pozitivní a od 3. 9. 2026 užívá everolimus (inhibitor mTOR); Tabulka 14 (str. 42) uvádí u HBsAg-pozitivních inhibitory mTOR ve skupině středního rizika reaktivace (1-10 %). Sunitinib (do 8/2026) a nivolumab s ipilimumabem (do 12/2025) již skončily. Zařazení sunitinibu do řádku tabulky ‚Tyrosine kinase inhibitors‘ (vysoké riziko) je čtení asistenta, nejisté. HBV DNA, anti-HBc a hepatologické vyšetření: neuvedeno v dostupné dokumentaci.",
       "patient_facts": [
         "HBsAg pozit. pac. (anamnéza v dokumentaci)",
-        "Everolimus 5 mg od 3. 9. 2026",
-        "Sunitinib 1-8/2026",
-        "Nivolumab + ipilimumab, udržovací nivolumab do 12/2025"
+        "Everolimus 5 mg od 3. 9. 2026 (aktuální léčba)",
+        "Sunitinib 1-8/2026 (ukončen)",
+        "Nivolumab + ipilimumab, udržovací nivolumab do 12/2025 (ukončeno)"
       ],
-      "kind": "comorbidity"
+      "kind": "comorbidity",
+      "type": "recommendation",
+      "evidence_cs": "LoE 1, silné doporučení"
     },
     {
       "id": "im-easl-hbvr-prophylaxis",
@@ -130,12 +156,14 @@
       "printed_page": 40,
       "quote": "HBsAg-positive individuals at high and moderate risk of reactivation should receive prophylactic antiviral therapy with NAs (LoE 1, strong recommendation, strong consensus).",
       "evidence": "LoE 1, strong recommendation, strong consensus",
-      "applies_because_cs": "Pacient je HBsAg pozitivní a je na everolimu; Tabulka 14 (str. 42) řadí inhibitory mTOR u HBsAg-pozitivních do středního rizika reaktivace (čtení tabulky asistentem). NA = nukleos(t)idová analoga. Antivirová léčba nebo profylaxe HBV: neuvedeno v dostupné dokumentaci (v chronické medikaci ji nevidíme).",
+      "applies_because_cs": "Pacient je HBsAg pozitivní a užívá everolimus; Tabulka 14 (str. 42) uvádí u HBsAg-pozitivních inhibitory mTOR ve skupině středního rizika reaktivace (1-10 %). NA = nukleos(t)idová analoga. Antivirová léčba nebo profylaxe HBV: neuvedeno v dostupné dokumentaci (v chronické medikaci není).",
       "patient_facts": [
         "HBsAg pozitivní",
         "Everolimus 5 mg od 3. 9. 2026, plánováno zvýšení na 10 mg"
       ],
-      "kind": "comorbidity"
+      "kind": "comorbidity",
+      "type": "recommendation",
+      "evidence_cs": "LoE 1, silné doporučení"
     },
     {
       "id": "im-easl-hbvr-agent",
@@ -150,24 +178,66 @@
         "HBsAg pozitivní",
         "Everolimus od 3. 9. 2026"
       ],
-      "kind": "comorbidity"
+      "kind": "comorbidity",
+      "type": "recommendation",
+      "evidence_cs": "LoE 3, silné doporučení"
     },
     {
-      "id": "im-esc-anticancer-htn",
+      "id": "im-esc-anticancer-vegf",
       "guideline_id": "im-esc-htn-2024",
       "section": "9.14.6.1. Anticancer drug-induced hypertension",
       "pdf_page": 72,
       "printed_page": 3983,
-      "quote": "Tyrosine kinase inhibitors and proteasome inhibitors also increase BP, as do adjuvant therapies (corticosteroids, calcineurin inhibitors, non-steroidal anti-inflammatory drugs, and anti-androgen hormone therapy). Hypertension caused by anticancer drugs is often dose limiting and may be reversible after therapy interruption or discontinuation. Evidence-based clinical trials specifically addressing patients who develop hypertension due to cancer therapy are lacking. It is recommended that management of hypertension in these patients follows that for the general population.",
+      "quote": "This is especially evident in patients treated with vascular endothelial growth factor inhibitors, in whom BP increases in 80%–90%.",
       "evidence": "Text of the guideline, not a numbered recommendation (no class or level of evidence)",
-      "applies_because_cs": "Pacient má hypertenzi (TK 174/92 při interním vyšetření 10. 2. 2026, během léčby sunitinibem, inhibitorem tyrozinkináz; později 155/70). Zda hypertenzi způsobila protinádorová léčba, dokumentace neuvádí; jde o pozorování asistenta podle časové souvislosti.",
+      "applies_because_cs": "Pacient dostával sunitinib (inhibitor tyrozinkináz receptorů VEGF) 1-8/2026; při interním vyšetření 10. 2. 2026 TK 174/92. Hypertenze je uvedena v osobní anamnéze s chronickou medikací Kapidin; souvislost s protinádorovou léčbou dokumentace neuvádí.",
       "patient_facts": [
-        "Arteriální hypertenze",
-        "TK 174/92 při interním vyšetření 10. 2. 2026",
+        "Arteriální hypertenze v osobní anamnéze, chronická medikace Kapidin 20 mg 1-0-0",
+        "TK 174/92 při interním vyšetření 10. 2. 2026 (během léčby sunitinibem)",
         "TK 155/70 později",
         "Sunitinib 1-8/2026"
       ],
-      "kind": "comorbidity"
+      "kind": "comorbidity",
+      "type": "guideline_text",
+      "evidence_cs": "text kapitoly, bez stupně"
+    },
+    {
+      "id": "im-esc-anticancer-tki",
+      "guideline_id": "im-esc-htn-2024",
+      "section": "9.14.6.1. Anticancer drug-induced hypertension",
+      "pdf_page": 72,
+      "printed_page": 3983,
+      "quote": "Tyrosine kinase inhibitors and proteasome inhibitors also increase BP, as do adjuvant therapies (corticosteroids, calcineurin inhibitors, non-steroidal anti-inflammatory drugs, and anti-androgen hormone therapy).",
+      "evidence": "Text of the guideline, not a numbered recommendation (no class or level of evidence)",
+      "applies_because_cs": "Pacient dostával sunitinib (inhibitor tyrozinkináz) 1-8/2026; při interním vyšetření 10. 2. 2026 TK 174/92, později 155/70. Hypertenze je uvedena v osobní anamnéze s chronickou medikací Kapidin; souvislost s protinádorovou léčbou dokumentace neuvádí.",
+      "patient_facts": [
+        "Arteriální hypertenze v osobní anamnéze, chronická medikace Kapidin 20 mg 1-0-0",
+        "TK 174/92 při interním vyšetření 10. 2. 2026 (během léčby sunitinibem)",
+        "TK 155/70 později",
+        "Sunitinib 1-8/2026"
+      ],
+      "kind": "comorbidity",
+      "type": "guideline_text",
+      "evidence_cs": "text kapitoly, bez stupně"
+    },
+    {
+      "id": "im-esc-anticancer-management",
+      "guideline_id": "im-esc-htn-2024",
+      "section": "9.14.6.1. Anticancer drug-induced hypertension",
+      "pdf_page": 72,
+      "printed_page": 3983,
+      "quote": "It is recommended that management of hypertension in these patients follows that for the general population.",
+      "evidence": "Text of the guideline, not a numbered recommendation (no class or level of evidence)",
+      "applies_because_cs": "Platí pro hypertenzi způsobenou protinádorovou léčbou. Hypertenze je uvedena v osobní anamnéze s chronickou medikací Kapidin; souvislost s protinádorovou léčbou dokumentace neuvádí.",
+      "patient_facts": [
+        "Arteriální hypertenze v osobní anamnéze, chronická medikace Kapidin 20 mg 1-0-0",
+        "TK 174/92 při interním vyšetření 10. 2. 2026 (během léčby sunitinibem)",
+        "TK 155/70 později",
+        "Sunitinib 1-8/2026"
+      ],
+      "kind": "comorbidity",
+      "type": "guideline_text",
+      "evidence_cs": "text kapitoly, bez stupně"
     },
     {
       "id": "im-esc-target",
@@ -177,14 +247,17 @@
       "printed_page": 3966,
       "quote": "To reduce CVD risk, it is recommended that treated systolic BP values in most adults be targeted to 120–129 mmHg, provided the treatment is well tolerated.",
       "evidence": "Class I, Level A",
-      "applies_because_cs": "Pacient má hypertenzi léčenou v chronické medikaci (Kapidin 20 mg 1-0-0) a zaznamenané hodnoty TK 174/92 a 155/70 jsou nad uvedeným cílovým rozmezím systolického tlaku. Dokumentace uvádí, že ACE-inhibitory jsou kontraindikovány pro zvýšené riziko anafylaxe (pacient je na everolimu). Snášenlivost léčby a měření TK mimo ordinaci: neuvedeno v dostupné dokumentaci.",
+      "applies_because_cs": "Pacient má hypertenzi s chronickou medikací Kapidin 20 mg 1-0-0; od 10. 2. 2026 přidán Orcal 10 mg ½-0-0. Při interním vyšetření 10. 2. 2026 TK 174/92, dle pacienta doma prav. TK kolem 150; později v ordinaci 155/70 (doma tehdy neměřil, byl na dovolené). Tyto hodnoty jsou nad cílovým rozmezím systolického tlaku. Dokumentace uvádí, že ACE-inhibitory jsou kontraindikovány pro zvýšené riziko anafylaxe (pacient je na everolimu). Snášenlivost léčby: neuvedeno v dostupné dokumentaci.",
       "patient_facts": [
-        "TK 174/92 při interním vyšetření 10. 2. 2026",
-        "TK 155/70 později",
+        "TK 174/92 při interním vyšetření 10. 2. 2026, dle pacienta doma prav. TK kolem 150",
+        "Od 10. 2. 2026 nově Orcal 10 mg ½-0-0, poučen o domácím měření TK",
         "Chronická medikace: Kapidin 20 mg 1-0-0",
+        "TK 155/70 později; doma tehdy TK neměřil (dovolená)",
         "Kontraindikovány jsou ACEi pro zvýšené riziko anafylaxe"
       ],
-      "kind": "comorbidity"
+      "kind": "comorbidity",
+      "type": "recommendation",
+      "evidence_cs": "třída I, úroveň A"
     },
     {
       "id": "im-esc-lenient-target",
@@ -199,77 +272,74 @@
         "Metastatický světlobuněčný karcinom ledviny, progrese po 1. a 2. linii, od 3. 9. 2026 everolimus",
         "ECOG PS 1"
       ],
-      "kind": "comorbidity"
+      "kind": "comorbidity",
+      "type": "recommendation",
+      "evidence_cs": "třída IIb, úroveň C"
     }
   ],
   "not_retrieved": [
     {
-      "name": "NCCN Clinical Practice Guidelines in Oncology: Central Nervous System Cancers (brain metastases) and Kidney Cancer",
+      "name": "NCCN Clinical Practice Guidelines in Oncology: Central Nervous System Cancers a Kidney Cancer",
       "society": "NCCN",
       "region": "US",
-      "reason": "Not retrieved: download needs a free NCCN login. Not quoted."
+      "reason": "Nenačteno: stažení vyžaduje bezplatné přihlášení k NCCN. Necitujeme."
     },
     {
-      "name": "Radiation Therapy for Brain Metastases: An ASTRO Clinical Practice Guideline (full text)",
+      "name": "Radiation Therapy for Brain Metastases: An ASTRO Clinical Practice Guideline (plné znění)",
       "society": "ASTRO",
       "region": "US",
-      "reason": "Full text not retrieved: publisher (practicalradonc.org) and astro.org block scripted downloads (403 / host not resolvable), no PMC or repository copy found. Only the PubMed abstract is quoted; individual recommendations with evidence quality, dose and fractionation tables are not."
+      "reason": "Plné znění nenačteno: vydavatel (practicalradonc.org) i astro.org blokují automatické stažení, kopie v PMC ani v repozitáři neexistuje. Citujeme jen abstrakt z PubMed; jednotlivá doporučení s kvalitou důkazů a tabulky dávek nejsou ověřena."
     },
     {
-      "name": "Treatment for Brain Metastases: ASCO-SNO-ASTRO Guideline (full text)",
+      "name": "Treatment for Brain Metastases: ASCO-SNO-ASTRO Guideline (plné znění)",
       "society": "ASCO, SNO, ASTRO",
       "region": "US",
-      "reason": "Full text not retrieved: PMC (PMC8917399) answers scripted requests with a reCAPTCHA page, PMC does not release the full-text XML for this article, ascopubs.org and academic.oup.com return 403, the Erasmus repository copy is behind a Cloudflare challenge. Only the abstract is quoted; the full text has RCC-relevant systemic therapy and SRS recommendations that we could not check."
+      "reason": "Plné znění neověřeno: PMC (PMC8917399) odpovídá automatickým dotazům stránkou reCAPTCHA a plný text v XML neuvolňuje, ascopubs.org a academic.oup.com vracejí 403, kopie v repozitáři Erasmus je za ochranou Cloudflare. Citujeme jen abstrakt."
     },
     {
-      "name": "Radiation Therapy for Brain Metastases: ASCO Guideline Endorsement of ASTRO Guideline (Schiff D et al., J Clin Oncol 2022)",
+      "name": "Radiation Therapy for Brain Metastases: ASCO Guideline Endorsement of ASTRO Guideline (Schiff D a kol., J Clin Oncol 2022)",
       "society": "ASCO",
       "region": "US",
-      "reason": "Not retrieved: the only free copy (pure.eur.nl) is behind a Cloudflare challenge. Not quoted."
+      "reason": "Nenačteno: jediná volná kopie (pure.eur.nl) je za ochranou Cloudflare. Necitujeme."
     },
     {
-      "name": "ESTRO / ESTRO-ACROP guidance on stereotactic radiosurgery for brain metastases",
+      "name": "ESTRO / ESTRO-ACROP doporučení ke stereotaktické radiochirurgii mozkových metastáz",
       "society": "ESTRO",
       "region": "EU",
-      "reason": "Not searched in depth within the time box; EANO-ESMO (covered by the other agent) is the European guideline for this question. Not quoted."
+      "reason": "V časovém limitu podrobně nehledáno; evropským doporučením k této otázce je EANO-ESMO. Necitujeme."
     },
     {
-      "name": "Guideline statement on everolimus-specific metabolic monitoring (glucose, lipids)",
+      "name": "Doporučení k metabolickému sledování při léčbě everolimem (glykémie, lipidy)",
       "society": null,
       "region": null,
-      "reason": "No guideline text found within the time box; the ESC hypertension and EASL HBV guidelines do not address it. Usually stated in the everolimus SmPC (a drug label, not a guideline). Not quoted."
+      "reason": "V časovém limitu jsme v doporučeních text nenašli; doporučení ESC k hypertenzi ani EASL k HBV to neřeší. Obvykle to uvádí SPC everolimu (příbalová informace, ne doporučený postup). Necitujeme."
     }
   ],
   "pages": [
     {
       "guideline_id": "us-astro-2022-bm",
       "pdf_page": null,
-      "text": "PURPOSE: This guideline provides updated evidence-based recommendations \naddressing recent developments in the management of patients with brain \nmetastases, including advanced radiation therapy techniques such as stereotactic \nradiosurgery (SRS) and hippocampal avoidance whole brain radiation therapy and \nthe emergence of systemic therapies with central nervous system activity.\nMETHODS: The American Society for Radiation Oncology convened a task force to \naddress 4 key questions focused on the radiotherapeutic management of intact and \nresected brain metastases from nonhematologic solid tumors. The guideline is \nbased on a systematic review provided by the Agency for Healthcare Research and \nQuality. Recommendations were created using a predefined consensus-building \nmethodology and system for grading evidence quality and recommendation strength.\nRESULTS: Strong recommendations are made for SRS for patients with limited brain \nmetastases and Eastern Cooperative Oncology Group performance status 0 to 2. \nMultidisciplinary discussion with neurosurgery is conditionally recommended to \nconsider surgical resection for all tumors causing mass effect and/or that are \ngreater than 4 cm. For patients with symptomatic brain metastases, upfront local \ntherapy is strongly recommended. For patients with asymptomatic brain metastases \neligible for central nervous system-active systemic therapy, multidisciplinary \nand patient-centered decision-making to determine whether local therapy may be \nsafely deferred is conditionally recommended. For patients with resected brain \nmetastases, SRS is strongly recommended to improve local control. For patients \nwith favorable prognosis and brain metastases receiving whole brain radiation \ntherapy, hippocampal avoidance and memantine are strongly recommended. For \npatients with poor prognosis, early introduction of palliative care for symptom \nmanagement and caregiver support are strongly recommended.\nCONCLUSIONS: The task force has proposed recommendations to inform best clinical \npractices on the use of radiation therapy for brain metastases with strong \nemphasis on multidisciplinary care."
+      "text": "RESULTS: Strong recommendations are made for SRS for patients with limited brain metastases and Eastern Cooperative Oncology Group performance status 0 to 2. […] For patients with asymptomatic brain metastases eligible for central nervous system-active systemic therapy, multidisciplinary and patient-centered decision-making to determine whether local therapy may be safely deferred is conditionally recommended."
     },
     {
       "guideline_id": "us-asco-sno-astro-2022-bm",
       "pdf_page": null,
-      "text": "Abstract\n\nPurpose\nTo provide guidance to clinicians regarding therapy for patients with brain metastases from solid tumors.\nMethods\nASCO convened an Expert Panel and conducted a systematic review of the literature.\nResults\nThirty-two randomized trials published in 2008 or later met eligibility criteria and form the primary evidentiary base.\nRecommendations\nSurgery is a reasonable option for patients with brain metastases. Patients with large tumors with mass effect are more likely to benefit than those with multiple brain metastases and/or uncontrolled systemic disease. Patients with symptomatic brain metastases should receive local therapy regardless of the systemic therapy used. For patients with asymptomatic brain metastases, local therapy should not be deferred unless deferral is specifically recommended in this guideline. The decision to defer local therapy should be based on a multidisciplinary discussion of the potential benefits and harms that the patient may experience. Several regimens were recommended for non–small-cell lung cancer, breast cancer, and melanoma. For patients with asymptomatic brain metastases and no systemic therapy options, stereotactic radiosurgery (SRS) alone should be offered to patients with one to four unresected brain metastases, excluding small-cell lung carcinoma. SRS alone to the surgical cavity should be offered to patients with one to two resected brain metastases. SRS, whole brain radiation therapy, or their combination are reasonable options for other patients. Memantine and hippocampal avoidance should be offered to patients who receive whole brain radiation therapy and have no hippocampal lesions and 4 months or more expected survival. Patients with asymptomatic brain metastases with either Karnofsky Performance Status ≤ 50 or Karnofsky Performance Status < 70 with no systemic therapy options do not derive benefit from radiation therapy. Additional information is available at www.asco.org/neurooncology-guidelines."
+      "text": "Patients with symptomatic brain metastases should receive local therapy regardless of the systemic therapy used. For patients with asymptomatic brain metastases, local therapy should not be deferred unless deferral is specifically recommended in this guideline. The decision to defer local therapy should be based on a multidisciplinary discussion of the potential benefits and harms that the patient may experience."
     },
     {
       "guideline_id": "im-easl-hbv-2025",
       "pdf_page": 40,
-      "text": "What antiviral treatments are available for children\nand adolescents?\n\nStatement\n\u0002 Antiviral treatments approved for children and adolescents\ninclude (strong consensus):\nIFNa-2b: approved by both the FDA and EMA for children\naged 1 year and older.\nB PEG-IFNa-2a: approved for children aged 3 years and\nolder.\nB Lamivudine: approved for children aged 3 years and older.\nB Entecavir: approved for children aged 2 years and older.\nB Tenofovir disoproxil fumarate: approved by the EMA for\nchildren aged 2 years and older, and by the FDA for those\n12 years and older.\nB Tenofovir alafenamide: EMA approved for children aged\n12 years and older or those weighing more than 35 kg,\nregardless of age.\nB\n\nNote: adefovir is not listed as it cannot be recommended anymore. For the\ntreatment of children and adolescents with chronic HBV infection, it is\nimportant to consult specialists experienced in managing this age group to\ndetermine the most appropriate treatment based on the individual’s age\nand health status. This guideline does not provide further details specific to\nthis population.\n\nProphylaxis of HBV reactivation\nHow should individuals at risk of HBV reactivation\nbe managed?\n\nRecommendations\n\u0002 HBV reactivation risk assessment and the indication for\nprophylaxis is based on HBV markers (HBsAg, anti-HBc\nand HBV DNA status), the planned immunosuppressive\nregimen and the underlying disease requiring immunosuppression (Table 14). Thus, HBsAg and anti-HBc\nantibody status should be assessed before starting\nimmunosuppressive therapy. HBsAg-positive individuals\nstarting immunosuppressive therapy should undergo the\nsame clinical evaluation recommended for all HBsAgpositive individuals. HBsAg-negative and anti-HBcpositive individuals should be tested for HBV DNA\nbefore starting immunosuppressive therapy (LoE 1,\nstrong recommendation, strong consensus).\nThe following section is intended for HBsAg-positive individuals for whom there is otherwise no indication for antiviral\ntherapy. The term prophylaxis is therefore used for NA\ntherapy.\n\u0002 HBsAg-positive individuals at high and moderate risk of\nreactivation should receive prophylactic antiviral therapy\nwith NAs (LoE 1, strong recommendation, strong\nconsensus).\n\n40\n\nJournal of Hepatology, -\n\n\u0002 HBsAg-positive individuals at low risk of reactivation do not\nneed to be treated if HBV DNA monitoring is performed at least\nevery 3 months. If there are concerns about feasibility of HBV\nDNA monitoring, prophylactic NA therapy should be initiated\n(LoE 2, strong recommendation, strong consensus).\nThe following section is intended for HBsAg-negative/anti-HBcpositive individuals. The term prophylaxis is therefore used for\nNA therapy.\n\u0002 HBsAg-negative, anti-HBc-positive and HBV DNA-positive\nindividuals should be managed in the same way as\nHBsAg-positive individuals (LoE 2, strong recommendation, strong consensus).\n\u0002 HBsAg-negative, anti-HBc-positive, HBV DNA-negative individuals should receive prophylactic NA therapy if immunosuppressive therapy associated with a high risk of HBV\nreactivation is planned (LoE 2, strong recommendation,\nstrong consensus).\n\u0002 HBsAg-negative, anti-HBc-positive, HBV DNA-negative individuals who will receive an immunosuppressive regimen\nwith moderate or low risk of reactivation do not need to be\ntreated and should be monitored closely (HBsAg and/or HBV\nDNA every 3 months). If there are concerns about feasibility\nof HBV monitoring, prophylactic NA therapy should be\ninitiated (LoE 3, strong recommendation, consensus).\nThe following section is intended for all individuals who require\nprophylactic NA therapy\n\u0002 ETV or tenofovir (TAF or TDF) should be used for the prophylaxis\nof HBV reactivation. The duration of NA prophylaxis is not welldefined. NA therapy should be administered for at least 6-12\nmonths after completing immunosuppressive therapy. In highrisk settings, such as with B cell-depleting therapies, it should\nbe continued for at least 18 months after completing immunosuppressive therapy. Ideally, NA discontinuation should\nfollow established criteria for NA withdrawal, particularly if HBV\nDNA was positive before starting NA therapy (LoE 3, strong\nrecommendation, strong consensus).\n\nRisk of reactivation\nHBVr refers to a sudden increase in HBV replication in HBsAgpositive individuals with an inactive profile (HBeAg-negative\nchronic infection) or HBsAg-negative individuals with resolved\nhepatitis B (HBsAg-negative, anti-HBc-positive), typically due\nto natural or iatrogenic loss of immune control.576 It is\ncommonly defined by either the reappearance of HBV DNA\n(>100 IU/ml) or HBsAg (HBsAg seroreversion) in individuals with\npreviously undetectable levels, or by at least a 10-fold increase\nin HBV DNA levels from baseline.\nHBVr is a potentially life-threatening complication of\nchemotherapy or immunosuppressive therapies. The incidence\nof HBVr during or after such treatments can range from 15-50%\nin HBsAg-positive individuals and exceed 75% following stem\ncell transplantation. Without timely recognition and management, reactivation can lead to a severe, potentially fatal\noutcome.577 In HBsAg-negative/anti-HBc-positive individuals,\nHBVr is less common but can still exceed 10% in certain\n\n--- 2025. vol. - j 1–82"
+      "text": "Recommendations \u0002 HBV reactivation risk assessment and the indication for prophylaxis is based on HBV markers (HBsAg, anti-HBc and HBV DNA status), the planned immunosuppressive regimen and the underlying disease requiring immunosuppression (Table 14). Thus, HBsAg and anti-HBc antibody status should be assessed before starting immunosuppressive therapy. HBsAg-positive individuals starting immunosuppressive therapy should undergo the same clinical evaluation recommended for all HBsAg-positive individuals. […] The term prophylaxis is therefore used for NA therapy. \u0002 HBsAg-positive individuals at high and moderate risk of reactivation should receive prophylactic antiviral therapy with NAs (LoE 1, strong recommendation, strong consensus). […] The following section is intended for all individuals who require prophylactic NA therapy \u0002 ETV or tenofovir (TAF or TDF) should be used for the prophylaxis of HBV reactivation."
     },
     {
       "guideline_id": "im-esc-htn-2024",
       "pdf_page": 72,
-      "text": "ESC Guidelines\n\nIn patients with an indication to renal artery\nrevascularization and technically unfeasible, or failed,\nrenal artery angioplasty and stenting, open surgical\nrevascularization may be considered.\nRenal artery angioplasty is not recommended in\npatients without confirmed haemodynamically\n\nIIb\n\nC\n\nIII\n\nA\n\nsignificant renal artery stenosis.c 938,939\nCKD, chronic kidney disease.\na\nClass of recommendation.\nb\nLevel of evidence.\nc\nA haemodynamically relevant stenosis is usually defined by a luminal narrowing of >70% or\n50%–70% with post-stenotic dilatation.\n\n9.14.4. Phaeochromocytoma/paraganglioma\nPhaeochromocytomas are rare adrenal tumours that secrete catecholamines and are present in <0.2% of patients with hypertension. A small\npercentage (<10%) of catecholamine-producing tumours are extraadrenal and are derived from sympathetic and non-sympathetic nerves.\nMore than 35% of the non-syndromic PPGLs are due to germline mutations.338 These mutations should be screened for because, when\nfound, they can drive management of the proband and the family and\nalso inform the choice of functional imaging. Moreover, some germline\nmutations, such as those involving succinate dehydrogenase B, carry a\nrisk of malignant adrenal tumours.301,336\nSympathetic PPGLs are usually secreting and present with chronic, episodic, or labile hypertension. Adrenergic crises cause hypertensive emergencies and should be treated with an intravenous\n(i.v.) alpha-1-blocker, such as phentolamine, doxazosin or terazosin,\nor labetalol. When given i.v. (1–2 mg/kg) twice weekly as a bolus over\n1 min followed by a continuous infusion, labetalol also has alphablocker properties and has the advantage of allowing titration of\nthe infusion based on the BP response, and avoids tachycardia via\nbeta-blockade.\nIdentifying a single tumour mandates surgical excision after adequate pharmacological preparation, because secreting PPGLs can\ncause fatal events with no warning. Administering doxazosin or terazosin, followed by a beta-blocker, usually controls BP and adrenergic crises. As PPGLs are associated with a redistribution of volume\nfrom the periphery to the cardiopulmonary system,944 patients\nwith PPGLs have peripheral hypovolaemia that exposes them to\nthe risk of profound hypotension, particularly right after tumour excision. Therefore, adequate fluid administration should be carefully\nmanaged.\n\n9.14.5. Obstructive sleep apnoea syndrome\nThe management of this prevalent condition should be driven by the\nresult of a polysomnography study, which should provide the value\nof the AHI (the average number of episodes per hour) and the sleep\nposition in which apnoeic–hypopnoeic episodes occur. For mild\nOSAS (AHI < 15), weight loss and advice on sleep hygiene are usually sufficient. For moderate (AHI of 15–30) and severe (AHI > 30)\nOSAS, continuous positive airway pressure (CPAP) is indicated\nand usually improves BP control and helps to resolve resistant\nhypertension. If CPAP is not tolerated, the site of upper airway obstruction should be determined by an Ear, Nose, and Throat evaluation with drug-induced sleep endoscopy as a potential step to\ncorrective surgery.\n\n© ESC 2024\n\n3983\n9.14.6. Drug-induced hypertension\nOver-the-counter medications, prescribed drugs, and drug abuse (recreational substances and misuse of drugs) can cause hypertension\n(Supplementary data online, Table S4).\n\n9.14.6.1. Anticancer drug-induced hypertension\n\n9.14.7. Other forms of secondary hypertension\nOther forms of secondary hypertension, such as genetic causes of\nhypertension (Liddle’s syndrome, glucocorticoid-remediable aldosteronism), excess liquorice, Cushing’s syndrome, thyroid disease, hyperparathyroidism, aortic coarctation, and acromegaly are rare. Affected\npatients should be referred to specialized centres for treatment.\n\n10. Acute and short-term lowering\nof blood pressure\n10.1. Acute blood pressure management in\nhypertensive emergencies\n10.1.1. Definition and characteristics of hypertensive\nemergencies\nHypertensive emergency is defined as BP of ≥180/110 mmHg (see\nFigure 10) associated with acute HMOD, often in the presence of\nsymptoms. Hypertensive emergencies are potentially life-threatening\nand require immediate and careful intervention to reduce BP, often\nwith i.v. therapy.\nSymptoms of hypertensive emergency depend on the organs affected\nbut may include headache, visual disturbances, chest pain, shortness of\nbreath, dizziness, and other neurological deficits. In patients with hypertensive encephalopathy, somnolence, lethargy, tonic–clonic seizures, and\ncortical blindness may precede a loss of consciousness; however, focal\nneurological lesions are rare and should raise the suspicion of stroke.\nAs outlined in Section 7, we define HMOD among patients with\nchronically elevated BP or hypertension as the presence of specific cardiac, vascular, and renal alterations.31,159 However, in the setting of\nhypertensive emergency, more acute manifestations of organ damage\nare relevant for management.\nAcute manifestations of organ damage include:\n• Patients with severe acute hypertension associated with other clinical\nconditions likely to require urgent reduction in BP, e.g. acute onset of\naortic dissection, myocardial ischaemia, eclampsia, or heart failure.\n\nDownloaded from https://academic.oup.com/eurheartj/article/45/38/3912/7741010 by Fundacion Centro Nacional user on 02 December 2024\n\nGrowing evidence indicates that, while contemporary anticancer and\nanti-angiogenic drugs improve cancer survival, they can also cause hypertension (Supplementary data online, Table S4). This is especially evident\nin patients treated with vascular endothelial growth factor inhibitors, in\nwhom BP increases in 80%–90%.945 Tyrosine kinase inhibitors and proteasome inhibitors also increase BP, as do adjuvant therapies (corticosteroids, calcineurin inhibitors, non-steroidal anti-inflammatory drugs, and\nanti-androgen hormone therapy). Hypertension caused by anticancer\ndrugs is often dose limiting and may be reversible after therapy interruption or discontinuation. Evidence-based clinical trials specifically addressing patients who develop hypertension due to cancer therapy are\nlacking. It is recommended that management of hypertension in these patients follows that for the general population.945,946 Managing these complex patients requires multidisciplinary healthcare involving oncologists,\nhypertension specialists, cardiologists, and nephrologists,945,946 as highlighted in the 2022 ESC Guidelines on cardio-oncology.946"
+      "text": "This is especially evident in patients treated with vascular endothelial growth factor inhibitors, in whom BP increases in 80%–90%.945 Tyrosine kinase inhibitors and proteasome inhibitors also increase BP, as do adjuvant therapies (corticosteroids, calcineurin inhibitors, non-steroidal anti-inflammatory drugs, and anti-androgen hormone therapy). […] It is recommended that management of hypertension in these patients follows that for the general population.945,946 Managing these complex patients requires multidisciplinary healthcare involving oncologists, hypertension specialists, cardiologists, and nephrologists,945,946 as highlighted in the 2022 ESC Guidelines on cardio-oncology.946"
     },
     {
       "guideline_id": "im-esc-htn-2024",
       "pdf_page": 55,
-      "text": "3966\n\nRecommendation Table 18 — Recomm\nblood pressure targets with treatment\nTable 34)\nRecommendations\nTo reduce CVD risk, it is recommended that treated\nsystolic BP values in most adults be targeted to 120–129 mmHg, provided the treatment is well\ntolerated.22,122,131,523,541\nIn cases where BP-lowering treatment is poorly\ntolerated and achieving a systolic of 120–129 mmHg\nis not possible, it is recommended to target a systolic\nBP level that is ‘as low as reasonably achievable’\n(ALARA principle).22,122,131,523,541\nBecause the CVD benefit of an on-treatment systolic\nBP target of 120–129 mmHg may not generalize to\nthe following specific settings, personalized and more\nlenient BP targets (e.g. <140 mmHg) should be\nconsidered among patients meeting the following\ncriteria: pre-treatment symptomatic orthostatic\nhypotension, and/or age ≥85 years.131\nBecause the CVD benefit of an on-treatment systolic\nBP target of 120–129 mmHg may not generalize to\nthe following specific settings, personalized and more\nlenient BP targets (e.g. <140/90 mmHg) may be\nconsidered among patients meeting the following\ncriteria: clinically significant moderate-to-severe\nfrailty at any age, and/or limited predicted lifespan\n(<3 years).\nIn cases where on-treatment systolic BP is at or below\ntarget (120–129 mmHg) but diastolic BP is not at\ntarget (≥80 mmHg), intensifying BP-lowering\ntreatment to achieve an on-treatment diastolic BP of\n70–79 mmHg may be considered to reduce CVD risk.\n\nALARA, as low as reasonably achievable; BP, blood pressure; CVD\na\nClass of recommendation.\nb\nLevel of evidence.\n\nClassa\n\nLevelb\n\nI\n\nA\n\nI\n\nA\n\nIIa\n\nC\n\nIIb\n\nC\n\nIIb\n\nC\n\nD, cardiovascular disease.\n\n© ESC 2024\n\nmendations for\n(see Evidence\n\ncan be identified, and medication initiation can be tailored to preexisting conditions, such as diabetes mellitus, CKD, AF, postmyocardial infarction, heart failure, metabolic syndrome, and proteinuria/albuminuria (Section 9). History of previous side effects\nand possible and compelling indications also need to be considered\nwhen selecting treatment (see Supplementary data online, Tables S9\nand S10). Cardioselective beta-blockers may be used in low dose in\nchronic asthma,553,554 in line with their use in patients with heart\nfailure with chronic asthma.\nFor considerations of BP-lowering treatment among specific patient populations of interest, including different racial/ethnic populations, see Section 9.\n\n8.5.4. Duration and monitoring of drug therapy\nBP-lowering treatment is usually chronic, often lifelong. This raises\nthe question of long-term efficiency, long-term side effects, adherence, and persistence with therapy. While BP-lowering therapies\ntypically provide an overall durable effect, some attenuation of\n\nESC Guidelines\n\neffect may be seen over time.66,530 First-line BP-lowering medication classes appear to be safe for long-term use.555–557 Once BP is\ncontrolled, at least a yearly follow-up is advised. Because of the\nknown temporal variability in BP558,559 and medication efficacy in\nthe long term,530 medication changes may be necessary over\ntime (see Supplementary data online).\n\nClassa\n\nLevelb\n\nIIa\n\nC\n\nOnce BP is controlled and stable under BP-lowering\ntherapy, at least a yearly follow-up for BP and other\nCVD risk factors should be considered.\nBP, blood pressure; CVD, cardiovascular disease.\na\nClass of recommendation.\nb\nLevel of evidence.\n\n8.6. Device-based blood pressure lowering\nSeveral device-based therapies designed to lower BP have been investigated.560,561 To date, the best evidence exists for catheter-based renal\ndenervation.\n\n8.6.1. Catheter-based renal denervation\nSympathetic nervous system overactivity contributes to the development and progression of hypertension.562 Renal denervation aims to\ninterrupt afferent and efferent sympathetic nerves in the adventitia\nand perivascular tissue of the renal arteries.563 The 2018 ESC/ESH\nGuidelines on the management of arterial hypertension did not recommend the use of device-based therapies for routine treatment of hypertension, unless in the context of clinical studies and RCTs.1 This was\nbased on negative data using first-generation radiofrequency catheters\n(see Supplementary data online).\nMore recent data from sham-controlled trials investigating secondgeneration radiofrequency and ultrasound catheters demonstrated a\nBP-lowering efficacy in a broad range of patients, with and without concomitant BP-lowering medications, including those with resistant\nhypertension.564–568 Long-term, non-randomized, follow-up data\nfrom the Global Symplicity Registry,569 Symplicity HTN-3 trial,570\nSpyral HTN-ON MED pilot trial,571 and A Study of the Recor\nMedical Paradise System in Clinical Hypertension (RADIANCE-HTN)\nSOLO trial572 indicate a sustained BP-lowering effect for up to 3 years.\nA single-centre open-label study suggested sustained BP reductions up\nto 10 years.573 These data also highlight a potentially important advantage of renal denervation, namely that the BP-lowering effect of this\nintervention might be ‘always on’, making this approach attractive for\npatients with suboptimal medication adherence.254 Some patients\nmay prefer a one-off procedure rather than taking daily medications\nchronically and may request renal denervation.\nOf significance, there are no reported procedure-related serious\nsafety signals in the first- and second-generation trials beyond the usual\nrisk of femoral arterial access procedures (noting that most trials to\ndate were not powered for safety outcomes and that the task force\ncould find no published meta-analysis data on exact rates of major\nbleeding and major femoral artery vascular access complications after\nrenal denervation procedures). However, the rate of major bleeding\n\n© ESC 2024\n\nRecommendation\n\nDownloaded from https://academic.oup.com/eurheartj/article/45/38/3912/7741010 by Fundacion Centro Nacional user on 02 December 2024\n\nRecommendation Table 19 — Recommendations for\nfollow-up in patients with treated hypertension (see\nEvidence Table 33)"
-    },
-    {
-      "guideline_id": "im-easl-hbv-2025",
-      "pdf_page": 42,
-      "text": "The risk classification for HBsAg-positive individuals is\nincreasingly influenced by the widespread use of prophylactic\nNA therapy, which has become standard practice. A systematic\nreview and meta-analysis examining HBVr in patients with\nrheumatoid arthritis treated with anti-IL-6 therapy reported an\noverall HBVr risk of 6.7% among HBsAg-positive individuals.\nHowever, this risk increased significantly to 37% in patients\nwho did not receive antiviral prophylaxis.594\nAs prophylactic NA therapy is now routinely recommended\nfor HBsAg-positive individuals undergoing immunosuppressive\ntreatments, HBVr risk classification is increasingly relevant for\nHBsAg-negative/anti-HBc-positive individuals. This group\ngenerally has a lower reactivation risk, and not all require prophylactic NA therapy. However, variability in data complicates\nthe clear categorisation of therapies into high, moderate, or low\nrisk. For instance, while some studies report HBVr rates of\napproximately 11% for B cell-depleting therapies,595,596 others\nindicate rates below 10%, highlighting the challenge in defining\nconsistent risk thresholds.590,597\nTo prioritise patient safety, therapies have been classified as\nhigher risk in cases of uncertainty. However, this cautious\napproach may lead to overtreatment, particularly if NA prophylaxis is recommended for intermediate-risk therapies in\nHBsAg-negative/anti-HBc-positive individuals. Most therapies\nin this group are associated with an HBVr risk of approximately 1%.\nNA prophylaxis is recommended only for HBsAg-negative/\nanti-HBc-positive individuals with a high risk of HBVr, while\nclose monitoring is advised for those at moderate or low risk.\n\nTable 14. Risk of HBV reactivation in individuals undergoing immunosuppress\nRisk of reactivation\n\nHBsAg-positive or HBsAg-negative/anti-HBc-positive\npositive\n\nHigh >10%\n\n\u0002\n\u0002\n\u0002\n\u0002\n\u0002\n\u0002\n\u0002\n\u0002\n\u0002\n\u0002\n\u0002\n\u0002\n\u0002\n\nImmunosuppression in the context of stem cell transp\nHigh-dose combination chemotherapy (e.g. R–CHOP)\nB cell-depleting therapies606\nCAR-T cell immunotherapy targeting B cells (BCMA, C\nHCC therapies (TACE, radiotherapy, resection, ab\ntherapies)598\nAnthracyclines607\nAnti-TNF therapies586\nCorticosteroids (>4 weeks, >20 mg/day)608\nCyclophosphamide609\nJAK inhibitors610\nIL-6 receptor antagonists594\nAnti-IL-17610–612\nTyrosine kinase inhibitors593,613\n\nModerate or\nintermediate (1-10%)\n\n\u0002 Anti-IL-12/23 (e.g. ustekinumab)586\n\u0002 T cell activation blocking therapies (ex. abatacept, be\n\u0002 mTOR inhibitors617\n\nLow (<1%)\n\n\u0002\n\u0002\n\u0002\n\u0002\n\u0002\n\nAzathioprine588\nMethotrexate588\nMycophenolate mofetil588\nCorticosteroids (low-dose <10 mg/day)608\nImmune checkpoint inhibitors588\n\nHBsAg, hepatitis B surface antigen; HBV, hepatitis B virus; HCC, hepatocellular carcinom\n*The classification of moderate/high risk in HBsAg-negative/anti-HBc-positive patients in\nbalanced against risk assessment.\n\n42\n\nJournal of Hepatology, -\n\nHowever, if reliable monitoring cannot be guaranteed, NA\nprophylaxis should be initiated. It is important to note that\nimmunomodulatory therapies are often managed by nonhepatology specialties, where awareness of HBVr risks may\nbe limited. This increases the likelihood of missed monitoring\nintervals or incorrect assessments of HBVr parameters.\nImplementing NA prophylaxis not only ensures expert consultation with HBV specialists but may also enhance adherence to\nboth prophylaxis and proper monitoring protocols.\nSpecial topic: HCC therapy\nCurrent locoregional treatment modalities for HCC appear\nto pose a particular risk of HBVr. A systematic review\nshowed that untreated HBsAg-positive patients with HCC are\nat high or intermediate risk of HBVr depending on the type of\nHCC therapy employed.598 Retrospective analyses from\nAsian cohorts suggest that TACE (especially in combination\nwith radiotherapy or repeated cycles) poses a significant\n(>10%) risk of HBVr in HBsAg-negative/anti HBc-positive individuals.599,600 In these retrospective analyses, patients with\nHCC who received antiviral therapy with NAs showed fewer\nreactivations, fewer decompensation events and, in some\ncases, improved survival.598,599,601–603\nHBsAg-positive patients with HCC should always receive\nlong-term antiviral therapy. HBsAg-negative/anti-HBc-positive\npatients with HCC should receive NA prophylaxis based on\nthe type of HCC treatment, particularly if TACE, radiotherapy,\nor combination therapies are used Table 14.\n\nsive therapies.\n\ne but HBV DNA-\n\nHBsAg-negative/anti-HBc-positive (HBV DNA-negative)*\n\nplantation604\n)605\n\n\u0002 Immunosuppression in the context of stem cell\ntransplantation614\n\u0002 High-dose combination chemotherapy (e.g. R–CHOP)605\n\u0002 B cell-depleting therapies595,596\n\u0002 HCC therapies (TACE)599,600\n\u0002 Anthracyclines588\n\u0002 T cell-depleting therapy belatacept – 17% in the setting of\ntransplantation615\n\nCD19)577\nblation, systemic\n\nelatacept)616\n\n\u0002\n\u0002\n\u0002\n\u0002\n\u0002\n\u0002\n\u0002\n\u0002\n\u0002\n\nT cell-depleting therapies (e.g. abatacept577)\nCAR-T cell immunotherapy\nCorticosteroids (>40 mg)585\nAnti-TNF therapies586\nAnti-IL-12/23586,610\nAnti-IL-17610\nJAK inhibitors590,610\nTyrosine kinase inhibitors (e.g. ibrutinib)\nCyclophosphamide524\n\n\u0002\n\u0002\n\u0002\n\u0002\n\u0002\n\nAzathioprine588\nMethotrexate588\nMycophenolate mofetil588\nmTOR inhibitors617\n585\nCorticosteroids (<40 mg/day) for <\n−1 week)\n\nma; TACE, transarterial chemoembolisation.\nn some cases is based on low-certainty evidence, with safety and prophylaxis decisions\n\n--- 2025. vol. - j 1–82"
+      "text": "3966 Recommendation Table 18 — Recommendations for blood pressure targets with treatment (see Evidence Table 34) Recommendations To reduce CVD risk, it is recommended that treated systolic BP values in most adults be targeted to 120–129 mmHg, provided the treatment is well tolerated. […] Because the CVD benefit of an on-treatment systolic BP target of 120–129 mmHg may not generalize to the following specific settings, personalized and more lenient BP targets (e.g. <140/90 mmHg) may be considered among patients meeting the following criteria: clinically significant moderate-to-severe frailty at any age, and/or limited predicted lifespan (<3 years)."
     }
   ]
 }
