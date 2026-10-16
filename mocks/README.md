@@ -13,7 +13,7 @@ All patient data is FNO's fictitious challenge data.
 | `v1.html` | First simple mock (one patient workspace) | https://claude.ai/artifact/KraDQ9X7diVo93QzXtse6t |
 | `v2.html` | Full mock after feedback round 1 (database, calendar, patient detail, presentation, protocol, tasks) | https://claude.ai/artifact/6F5AbN6vEAHJQgXP1fkUdc |
 | `v3.html` | Mock after feedback round 2 (Excel-style filters, month navigation, 10-minute slots, brief first, diagnosis headline, current state, lab chart, doctor edits, back/forward) | https://claude.ai/artifact/6JwakCBuGZr9STKnfRUz8T |
-| `v4.html` | The latest mock v3 (through Soňa's summary model) split into an in-page server and a client; the source view shows the rendered page image with the cited passage highlighted, the transcription in a second tab, "ověřit" marks, and the locally redacted page on request | not published yet; needs the `pages/` folder next to it |
+| `v4.html` | The latest mock v3 (through Soňa's summary model) split into an in-page server and a client; the source view shows the rendered page image with the cited passage highlighted, the transcription in a second tab, "ověřit" marks, and the locally redacted page on request | https://claude.ai/artifact/KuNwC9Un9dxPkzeWqoABGv (published with the `pages/` folder) |
 
 The published copies are private claude.ai artifacts owned by Juro; ask him
 to share them. To view a mock locally, open the `.html` file in a browser.
