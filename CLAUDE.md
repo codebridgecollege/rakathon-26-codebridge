@@ -349,6 +349,7 @@ Pick **one** location. All of these are in git, so the whole team sees them.
 | How patient data is protected (OCR, LLMs, redaction) | [`/docs/design/DATA-PROTECTION.md`](docs/design/DATA-PROTECTION.md) |
 | Hackathon logistics, infrastructure, judging, contacts, decisions with organizers | [`/docs/agent/HACKATHON.md`](docs/agent/HACKATHON.md) |
 | What FNO asks us to deliver, as a checklist | [`/docs/agent/REQUIREMENTS.md`](docs/agent/REQUIREMENTS.md) |
+| Agreed larger work items, in order (backlog) | [`/docs/design/BACKLOG.md`](docs/design/BACKLOG.md) |
 | Open question, unanswered or pending a decision | [`/docs/agent/OPEN_QUESTIONS.md`](docs/agent/OPEN_QUESTIONS.md); when answered, move the answer to its home above and delete the question |
 | Fact local to one package or folder | that folder's `AGENTS.md` (create when needed) |
 | Research, exploration, meeting notes, open findings | [`/docs/research/`](docs/research/), one file per topic |
