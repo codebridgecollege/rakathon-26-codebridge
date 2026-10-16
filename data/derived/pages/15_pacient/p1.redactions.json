@@ -1,0 +1,74 @@
+[
+ {
+  "reason": "hodnota identifikačního pole",
+  "box": [
+   144,
+   80,
+   95,
+   22
+  ]
+ },
+ {
+  "reason": "hodnota identifikačního pole",
+  "box": [
+   249,
+   84,
+   3,
+   13
+  ]
+ },
+ {
+  "reason": "jméno pacienta",
+  "box": [
+   373,
+   78,
+   68,
+   18
+  ]
+ },
+ {
+  "reason": "jméno pacienta",
+  "box": [
+   448,
+   78,
+   116,
+   22
+  ]
+ },
+ {
+  "reason": "hodnota identifikačního pole",
+  "box": [
+   140,
+   108,
+   54,
+   18
+  ]
+ },
+ {
+  "reason": "hodnota identifikačního pole",
+  "box": [
+   203,
+   112,
+   4,
+   13
+  ]
+ },
+ {
+  "reason": "hodnota identifikačního pole",
+  "box": [
+   374,
+   135,
+   34,
+   18
+  ]
+ },
+ {
+  "reason": "hodnota identifikačního pole",
+  "box": [
+   149,
+   170,
+   4,
+   12
+  ]
+ }
+]

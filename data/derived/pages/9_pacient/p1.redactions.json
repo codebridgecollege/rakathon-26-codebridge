@@ -1,0 +1,47 @@
+[
+ {
+  "reason": "jméno pacienta",
+  "box": [
+   79,
+   178,
+   92,
+   20
+  ]
+ },
+ {
+  "reason": "jméno pacienta",
+  "box": [
+   178,
+   180,
+   64,
+   18
+  ]
+ },
+ {
+  "reason": "hodnota identifikačního pole",
+  "box": [
+   700,
+   184,
+   112,
+   14
+  ]
+ },
+ {
+  "reason": "hodnota identifikačního pole",
+  "box": [
+   846,
+   184,
+   94,
+   16
+  ]
+ },
+ {
+  "reason": "hodnota identifikačního pole",
+  "box": [
+   145,
+   208,
+   56,
+   14
+  ]
+ }
+]

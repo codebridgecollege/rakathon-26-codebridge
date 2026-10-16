@@ -1,0 +1,38 @@
+[
+ {
+  "reason": "jméno pacienta",
+  "box": [
+   62,
+   400,
+   69,
+   16
+  ]
+ },
+ {
+  "reason": "jméno pacienta",
+  "box": [
+   140,
+   399,
+   96,
+   16
+  ]
+ },
+ {
+  "reason": "hodnota identifikačního pole",
+  "box": [
+   62,
+   427,
+   68,
+   20
+  ]
+ },
+ {
+  "reason": "jméno lékaře",
+  "box": [
+   168,
+   1204,
+   87,
+   16
+  ]
+ }
+]
