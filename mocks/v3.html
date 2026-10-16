@@ -116,6 +116,14 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: 13.5px; }
 .cal .cell.sem { background: var(--surface); }
 .slotbtn { width: 100%; height: 100%; border: 1px solid transparent; border-radius: 5px; background: none; cursor: pointer; font-size: 12.5px; text-align: left; padding: 0 6px; display: flex; align-items: center; gap: 6px; }
 .slotbtn.free { color: var(--faint); }
+.slotbtn.drop { border-color: var(--accent); background: var(--accent-soft, #e3efec); color: var(--accent-ink); }
+.slotbtn.taken[draggable="true"], [data-drag] { cursor: grab; }
+.dragrow { padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); }
+.dragrow:hover { border-color: var(--line-strong); }
+.dragrow.dragging { opacity: .5; }
+.tbl th { position: relative; }
+.colrs { position: absolute; top: 0; right: -3px; width: 7px; height: 100%; cursor: col-resize; z-index: 1; touch-action: none; }
+.colrs:hover, .colrs.on { background: linear-gradient(var(--accent), var(--accent)) center / 2px 100% no-repeat; }
 .slotbtn.free:hover, .slotbtn.target { border-color: var(--accent); color: var(--accent-ink); background: #fff; }
 .slotbtn.taken { background: var(--surface); border-color: var(--line-strong); font-weight: 700; }
 .slotbtn.taken .dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
@@ -6454,6 +6462,7 @@ const DCOLS = [
 /* One filter mechanism for every table: [key, title, getter] plus the rows it filters. */
 const colDef = key => { const c = COLS.find(x => x[0] === key); if (c) return { get: c[2], items: S.patients }; const dc = DCOLS.find(x => x[0] === key); return { get: dc[2], items: EXTRA.documents || [] }; };
 const passes = (defs, row) => defs.every(([k, , get]) => !S.colf[k] || S.colf[k].includes(get(row)));
+const RS = `<span class="colrs" aria-hidden="true" title="Táhnutím změníte šířku sloupce"></span>`;
 function colHead(key, title) {
   const col = colDef(key), f = S.colf[key];
   const values = [...new Set(col.items.map(col.get))].sort((a, b) => String(a).localeCompare(String(b), "cs"));
@@ -6461,7 +6470,7 @@ function colHead(key, title) {
       <label><input type="checkbox" data-colall="${key}" ${!f ? "checked" : ""}> <b>(Vše)</b></label>
       ${values.map(v => `<label><input type="checkbox" data-colv="${key}" value="${esc(v)}" ${!f || f.includes(v) ? "checked" : ""}> ${esc(v)}</label>`).join("")}
       <div class="row" style="justify-content:flex-end;margin-top:6px"><button class="btn small" data-colclose="1">Hotovo</button></div></div>` : "";
-  return `<th class="th-wrap"><button class="th-f ${f ? "on" : ""}" data-colopen="${key}" aria-expanded="${S.colOpen === key}">${title}<span class="fi" aria-hidden="true">▼</span></button>${pop}</th>`;
+  return `<th class="th-wrap"><button class="th-f ${f ? "on" : ""}" data-colopen="${key}" aria-expanded="${S.colOpen === key}">${title}<span class="fi" aria-hidden="true">▼</span></button>${pop}${COLS.some(c => c[0] === key) ? RS : ""}</th>`;
 }
 function viewPatients() {
   const all = S.patients.filter(p => passes(COLS, p)
@@ -6482,8 +6491,9 @@ function viewPatients() {
       <span class="muted small">${all.length} z ${S.patients.length}</span>
       ${active ? `<button class="linkbtn small" data-act="clearcolf">Zrušit filtry (${active})</button>` : ""}
     </div>
-    <div class="card" style="padding:0"><div class="scroll" style="min-height:${S.colOpen ? 360 : 0}px"><table class="tbl dense">
-      <thead><tr><th>ID</th><th>Pacient</th><th>RČ</th><th>Věk</th><th>Diagnóza</th>${colHead("owner", "Vlastník")}${colHead("dept", "Odesílající pracoviště")}${colHead("slot", "Příští MDT")}<th>Předchozí MDT</th>${colHead("status", "Stav")}<th>Podáno</th></tr></thead>
+    <div class="card" style="padding:0"><div class="scroll" style="min-height:${S.colOpen ? 360 : 0}px"><table class="tbl dense rsz" ${S.colW ? `style="table-layout:fixed;width:${S.colW.reduce((a, b) => a + b, 0)}px"` : ""}>
+      ${S.colW ? `<colgroup>${S.colW.map(w => `<col style="width:${w}px">`).join("")}</colgroup>` : ""}
+      <thead><tr><th>ID${RS}</th><th>Pacient${RS}</th><th>RČ${RS}</th><th>Věk${RS}</th><th>Diagnóza${RS}</th>${colHead("owner", "Vlastník")}${colHead("dept", "Odesílající pracoviště")}${colHead("slot", "Příští MDT")}${colHead("status", "Stav")}<th>Podáno${RS}</th></tr></thead>
       <tbody>${rows.map(p => `<tr class="click" data-open="${esc(p.file)}">
         <td class="id">${p.id}</td><td><b>${esc(surnameFirst(p))}</b>${p.warn ? ' <span class="tag ocr">ověřit identitu</span>' : ""}</td>
         <td class="num ${p.rc ? "" : "muted"}" title="${p.rc ? "" : "Rodné číslo " + GAP}">${esc(rcText(p))}</td><td class="num ${ageNum(p) ? "" : "muted"}" ${!p.age && p.birth ? 'title="vypočteno z data narození"' : ""}>${esc(ageNum(p) || "-")}</td>
@@ -6491,7 +6501,6 @@ function viewPatients() {
         <td>${esc(p.owner)}</td>
         <td>${esc(p.dept)}</td>
         <td class="num">${p.slot ? esc(slotText(p)) : `<button class="linkbtn" data-sched="${esc(p.file)}">Naplánovat</button>`}</td>
-        <td class="num ${lastMdt(p) ? "" : "muted"}" title="${lastMdt(p) ? "" : "Předchozí MDT " + GAP}">${esc(lastMdt(p) || "-")}</td>
         <td>${statusChip(p)}</td><td class="num">${fmtDate(p.submitted)}</td></tr>`).join("") || `<tr><td colspan="12" class="muted">Žádný pacient neodpovídá filtru.</td></tr>`}</tbody>
     </table></div>
     <div class="row spread" style="padding:10px 14px;border-top:1px solid var(--line)"><span class="muted small">${S.dbAll ? `Zobrazeno všech ${all.length}` : `Zobrazeno ${all.length ? S.dbPage * PER + 1 : 0}-${Math.min(all.length, S.dbPage * PER + PER)} z ${all.length}`}</span>
@@ -6515,8 +6524,7 @@ function miniMonth() {
   return `<div class="card"><div class="row spread" style="margin-bottom:8px"><button class="btn small" data-mm="-1" aria-label="Předchozí měsíc">‹</button>
       <span class="row"><b>${MONTHS[m - 1]}</b><select class="input" id="mmyear" style="width:auto;padding:3px 6px" aria-label="Rok">${years.map(v => `<option ${v === y ? "selected" : ""}>${v}</option>`).join("")}</select></span>
       <button class="btn small" data-mm="1" aria-label="Další měsíc">›</button></div>
-    <div class="mini">${cells}</div>
-    <p class="muted small" style="margin:8px 0 0">Tečka = den semináře. Kliknutím na den přejdete na jeho týden.</p></div>`;
+    <div class="mini">${cells}</div></div>`;
 }
 function viewCalendar() {
   const days = [0, 1, 2, 3, 4].map(i => addDays(S.week, i));
@@ -6531,7 +6539,7 @@ function viewCalendar() {
       const sem = inSem(d, t);
       let inner = "";
       /* Soňa wants the real name in the slot, not just the case ID: the calendar is used by the MDT team itself. */
-      if (p) inner = `<button class="slotbtn taken" data-slot="${d} ${t}" data-dbl="${esc(p.file)}" title="Dvojklik otevře případ" aria-label="${esc(surnameFirst(p))}, RČ ${esc(rcText(p))}, ${t}" aria-pressed="${S.calPop === p.file}"><span class="dot" style="background:var(--${{ new: "muted", scheduled: "change", attention: "missing", ready: "ok", done: "accent" }[p.status]})"></span><span class="cid">${esc(surnameFirst(p))}</span><span class="nm">RČ ${esc(rcText(p))}</span></button>`;
+      if (p) inner = `<button class="slotbtn taken" draggable="true" data-drag="${esc(p.file)}" data-slot="${d} ${t}" data-dbl="${esc(p.file)}" title="Dvojklik otevře případ" aria-label="${esc(surnameFirst(p))}, RČ ${esc(rcText(p))}, ${t}" aria-pressed="${S.calPop === p.file}"><span class="dot" style="background:var(--${{ new: "muted", scheduled: "change", attention: "missing", ready: "ok", done: "accent" }[p.status]})"></span><span class="cid">${esc(surnameFirst(p))}</span><span class="nm">RČ ${esc(rcText(p))}</span></button>`;
       else if (sem) inner = `<button class="slotbtn free ${S.schedPick ? "target" : ""}" data-free="${d} ${t}" aria-label="Volný termín ${t}"><span class="tt2">${t}-${slotEnd(t)}</span>${S.schedPick ? " · Naplánovat sem" : ""}</button>`;
       cells += `<div class="cell ${sem ? "sem" : ""}">${inner}</div>`;
     }
@@ -6547,18 +6555,18 @@ function viewCalendar() {
       <div class="row"><button class="btn primary" data-open="${esc(pop.file)}">Otevřít případ</button><button class="btn" data-pick="${esc(pop.file)}">Změnit termín</button><button class="btn" data-unsched="${esc(pop.file)}">Uvolnit termín</button><button class="btn small" data-calclose="1" aria-label="Zavřít kartu">✕</button></div></div>` : "";
   const end = addDays(S.week, 4);
   return `<div class="page">
-    <div class="pagehead"><div><h1>Kalendář MDT</h1><div class="muted small">${dObj(S.week).getUTCDate()}. ${dObj(S.week).getUTCMonth() + 1}. až ${dObj(end).getUTCDate()}. ${dObj(end).getUTCMonth() + 1}. ${end.slice(0, 4)} · sloty po ${SLOT_MIN} minutách · rozpis seminářů je ukázkový</div></div>
+    <div class="pagehead"><div><h1>Kalendář MDT</h1><div class="muted small">${dObj(S.week).getUTCDate()}. ${dObj(S.week).getUTCMonth() + 1}. až ${dObj(end).getUTCDate()}. ${dObj(end).getUTCMonth() + 1}. ${end.slice(0, 4)}</div></div>
       <div class="row"><button class="btn small" data-wk="-1">‹ Předchozí týden</button><button class="btn small" data-act="today">Dnes</button><button class="btn small" data-wk="1">Další týden ›</button></div></div>
     <div class="calwrap3">
       <div class="scroll"><div class="cal">${cells}</div></div>
       <div class="stack">
-        ${card}
         ${miniMonth()}
         <div class="card"><div class="head"><h2>Nenaplánovaní (${unscheduled.length})</h2></div>
-          ${S.schedPick ? `<p class="small" style="margin:0 0 8px">Vyberte volný slot pro <b>${esc(surnameFirst(P(S.schedPick)))}</b> v kalendáři. <button class="linkbtn" data-act="cancelsched">Zrušit</button></p>` : `<p class="muted small" style="margin:0 0 8px">Vyberte pacienta a pak volný slot semináře.</p>`}
-          <div class="tasklist">${unscheduled.map(p => `<div class="row spread"><span><b>${esc(surnameFirst(p))}</b> <span class="muted small">RČ ${esc(rcText(p))} · ${esc(p.diagnosis)}</span></span>
+          ${S.schedPick ? `<p class="small" style="margin:0 0 8px">Vyberte volný slot pro <b>${esc(surnameFirst(P(S.schedPick)))}</b> v kalendáři. <button class="linkbtn" data-act="cancelsched">Zrušit</button></p>` : `<p class="muted small" style="margin:0 0 8px">Přetáhněte pacienta do volného slotu.</p>`}
+          <div class="tasklist">${unscheduled.map(p => `<div class="row spread dragrow" draggable="true" data-drag="${esc(p.file)}"><span><b>${esc(surnameFirst(p))}</b> <span class="muted small">RČ ${esc(rcText(p))} · ${esc(p.diagnosis)}</span></span>
             <button class="btn small ${S.schedPick === p.file ? "primary" : ""}" data-pick="${esc(p.file)}">${S.schedPick === p.file ? "Vybráno" : p.slot ? "Přesunout" : "Naplánovat"}</button></div>`).join("") || `<span class="muted small">Všichni pacienti mají termín.</span>`}</div>
         </div>
+        ${card}
       </div>
     </div>
   </div>`;
@@ -7359,6 +7367,7 @@ document.addEventListener("focusin", e => { const el = e.target.closest(TIP_SEL)
 document.addEventListener("focusout", hideTip);
 window.addEventListener("scroll", hideTip, true);
 document.addEventListener("click", e => {
+  if (S.resizedAt && Date.now() - S.resizedAt < 300) { e.stopPropagation(); return; }
   const mk = e.target.closest(TIP_SEL);
   if (mk && !mk.closest("[data-src],[data-edit],[data-act],[data-tab],[data-open]")) { e.preventDefault(); showTip(mk); return; }
   hideTip();
@@ -7405,9 +7414,7 @@ document.addEventListener("click", e => {
   else if (d.pick) { S.schedPick = S.schedPick === d.pick ? null : d.pick; render(); }
   else if (d.free) {
     if (!S.schedPick) { toast("Nejdřív vyberte pacienta vpravo."); return; }
-    const [day, time] = d.free.split(" "), p = P(S.schedPick);
-    p.slot = { day, time }; if (p.status === "new") p.status = "scheduled";
-    toast(`${surnameFirst(p)} naplánován(a) na ${slotText(p)}`); S.schedPick = null; S.calPop = p.file; render();
+    scheduleAt(S.schedPick, d.free);
   }
   else if (d.slot) {
     /* The first click re-renders the calendar, so the browser's dblclick never fires; detect the second click ourselves. */
@@ -7502,6 +7509,40 @@ document.addEventListener("input", e => {
     else refreshReport();
   }
 });
+function scheduleAt(file, slot) {
+  const [day, time] = slot.split(" "), p = P(file);
+  p.slot = { day, time }; if (p.status === "new") p.status = "scheduled";
+  toast(`${surnameFirst(p)} naplánován(a) na ${slotText(p)}`); S.schedPick = null; S.calPop = p.file; render();
+}
+/* Drag and drop in the calendar (round 16): a patient from the unscheduled list, or a booked slot, onto a free slot.
+   Clicking a patient and then a slot still works for keyboards and touch screens. */
+document.addEventListener("dragstart", e => {
+  const el = e.target.closest?.("[data-drag]"); if (!el) return;
+  e.dataTransfer.setData("text/plain", el.dataset.drag); e.dataTransfer.effectAllowed = "move"; S.dragFile = el.dataset.drag;
+  requestAnimationFrame(() => el.classList.add("dragging"));
+});
+document.addEventListener("dragend", e => { e.target.closest?.("[data-drag]")?.classList.remove("dragging"); document.querySelectorAll(".slotbtn.drop").forEach(x => x.classList.remove("drop")); S.dragFile = null; });
+document.addEventListener("dragover", e => { const f = e.target.closest?.("[data-free]"); if (f && S.dragFile) { e.preventDefault(); e.dataTransfer.dropEffect = "move"; f.classList.add("drop"); } });
+document.addEventListener("dragleave", e => { const f = e.target.closest?.("[data-free]"); if (f && !f.contains(e.relatedTarget)) f.classList.remove("drop"); });
+document.addEventListener("drop", e => {
+  const f = e.target.closest?.("[data-free]"); if (!f) return;
+  e.preventDefault(); const file = e.dataTransfer.getData("text/plain") || S.dragFile; S.dragFile = null;
+  if (file && P(file)) scheduleAt(file, f.dataset.free);
+});
+/* Column resizing in the patients table (round 16): the first drag freezes the current widths, then only the
+   dragged column changes; widths live in S.colW for the session. */
+document.addEventListener("pointerdown", e => {
+  const h = e.target.closest(".colrs"); if (!h) return;
+  e.preventDefault(); e.stopPropagation();
+  const table = h.closest("table"), ths = [...table.querySelectorAll("thead th")];
+  if (!S.colW) S.colW = ths.map(th => Math.round(th.getBoundingClientRect().width));
+  const i = ths.indexOf(h.closest("th")), x0 = e.clientX, w0 = S.colW[i];
+  if (!table.querySelector("colgroup")) { table.insertAdjacentHTML("afterbegin", `<colgroup>${S.colW.map(w => `<col style="width:${w}px">`).join("")}</colgroup>`); table.style.tableLayout = "fixed"; }
+  const col = table.querySelectorAll("col")[i]; h.classList.add("on");
+  const move = ev => { S.colW[i] = Math.max(48, w0 + ev.clientX - x0); col.style.width = S.colW[i] + "px"; table.style.width = S.colW.reduce((a, b) => a + b, 0) + "px"; };
+  const up = () => { h.classList.remove("on"); S.resizedAt = Date.now(); document.removeEventListener("pointermove", move); document.removeEventListener("pointerup", up); };
+  document.addEventListener("pointermove", move); document.addEventListener("pointerup", up);
+}, true);
 document.addEventListener("change", e => {
   const t = e.target;
   if (t.id === "user") { S.user = t.value; if (S.view === "admin" && t.value !== ADMIN) S.view = "patients"; render(); }
