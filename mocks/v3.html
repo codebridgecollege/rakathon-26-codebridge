@@ -294,6 +294,7 @@ details.more > summary { cursor: pointer; color: var(--muted); font-size: 12.5px
 .orow { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 4px 14px; padding: 6px 0; border-top: 1px solid var(--line); font-size: 14.5px; }
 .orow .dt { color: var(--muted); font-variant-numeric: tabular-nums; }
 .orow b { font-weight: 700; }
+.orow b.kind-visit { color: var(--fg); }
 details.srcs { margin-top: 10px; border-top: 1px solid var(--line); padding-top: 8px; }
 details.srcs > summary { cursor: pointer; color: var(--muted); font-size: 12.5px; }
 details.srcs .refs { border-top: 0; margin-top: 4px; padding-top: 0; }
@@ -5871,13 +5872,15 @@ function initialPatients() {
   return [p10, ...others].map((p, i) => ({
     ...p, id: caseId(p.file),
     owner: p.referrer || ownerFor(i), ownerExample: !p.referrer,
+    /* Date the case was submitted to the MDT; the documents do not state it, so it is an example value. */
+    submitted: addDays("2026-10-15", -[1, 3, 5, 8, 12, 15, 19, 26, 33, 40][i % 10]), submittedExample: true,
     dept: p.dept || ["Nemocnice Havířov, neurologie", "Slezská nemocnice v Opavě, onkologie", "Nemocnice Karviná-Ráj, neurochirurgie", "FN Ostrava, Klinika onkologická"][i % 4], deptExample: !p.dept,
   }));
 }
 
 const S = {
   view: "patients", pid: CASE.file, tab: "overview", brief: "brief", user: USERS[0],
-  patients: initialPatients(), q: "", colf: {}, colOpen: null, editLog: [],
+  patients: initialPatients(), q: "", colf: {}, colOpen: null, editLog: [], subFrom: "", subTo: "", dbPage: 0, dbAll: false,
   week: mondayOf("2026-10-22"), miniMonth: "2026-10", labMode: "doc", guideOn: true, labSel: null, edits: {},
   selTl: null, picked: new Set(["summary", "imaging", "histology", "past_treatment"]),
   acks: {}, access: [], decisions: [], tasks: [
@@ -5999,19 +6002,26 @@ function colHead(key, title) {
   return `<th class="th-wrap"><button class="th-f ${f ? "on" : ""}" data-colopen="${key}" aria-expanded="${S.colOpen === key}">${title}<span class="fi" aria-hidden="true">▼</span></button>${pop}</th>`;
 }
 function viewPatients() {
-  const rows = S.patients.filter(p => passes(COLS, p)
-    && (!S.q || `${p.id} ${p.name} ${p.diagnosis} ${p.mkn10 || ""}`.toLowerCase().includes(S.q.toLowerCase())));
+  const all = S.patients.filter(p => passes(COLS, p)
+    && (!S.subFrom || p.submitted >= S.subFrom) && (!S.subTo || p.submitted <= S.subTo)
+    && (!S.q || `${p.id} ${p.name} ${p.diagnosis} ${p.mkn10 || ""}`.toLowerCase().includes(S.q.toLowerCase())))
+    .sort((a, b) => b.submitted.localeCompare(a.submitted));
+  /* Pages of 8 (round 9): a real database holds hundreds of cases; "Zobrazit vše" shows the rest at once. */
+  const PER = 8, pages = Math.max(1, Math.ceil(all.length / PER)); if (S.dbPage >= pages) S.dbPage = pages - 1;
+  const rows = S.dbAll ? all : all.slice(S.dbPage * PER, S.dbPage * PER + PER);
   const active = Object.keys(S.colf).filter(k => COLS.some(c => c[0] === k)).length;
   return `<div class="page">
     <div class="pagehead"><div><h1>Databáze pacientů</h1><div class="muted small">Pacienti odeslaní k projednání na neuroonkologickém MDT</div></div>
       <button class="btn primary" data-act="newpatient">+ Nový pacient</button></div>
     <div class="toolbar">
       <input class="search" id="q" placeholder="Hledat ID, jméno, diagnózu" value="${esc(S.q)}" aria-label="Hledat">
-      <span class="muted small">${rows.length} z ${S.patients.length} · filtr otevřete kliknutím na záhlaví sloupce ▼</span>
+      <label class="small muted row" style="gap:6px">Podáno od <input class="input" type="date" id="subfrom" value="${esc(S.subFrom)}" style="width:auto"></label>
+      <label class="small muted row" style="gap:6px">do <input class="input" type="date" id="subto" value="${esc(S.subTo)}" style="width:auto"></label>
+      <span class="muted small">${all.length} z ${S.patients.length} · filtr otevřete kliknutím na záhlaví sloupce ▼</span>
       ${active ? `<button class="linkbtn small" data-act="clearcolf">Zrušit filtry (${active})</button>` : ""}
     </div>
     <div class="card" style="padding:0"><div class="scroll" style="min-height:${S.colOpen ? 360 : 0}px"><table class="tbl">
-      <thead><tr><th>ID</th><th>Pacient</th><th>RČ</th><th>Věk</th><th>Diagnóza</th>${colHead("owner", "Vlastník")}${colHead("dept", "Odesílající pracoviště")}${colHead("slot", "Příští MDT")}<th>Předchozí MDT</th>${colHead("status", "Stav")}<th>Aktualizace</th></tr></thead>
+      <thead><tr><th>ID</th><th>Pacient</th><th>RČ</th><th>Věk</th><th>Diagnóza</th>${colHead("owner", "Vlastník")}${colHead("dept", "Odesílající pracoviště")}${colHead("slot", "Příští MDT")}<th>Předchozí MDT</th>${colHead("status", "Stav")}<th>Podáno</th></tr></thead>
       <tbody>${rows.map(p => `<tr class="click" data-open="${esc(p.file)}">
         <td class="id">${p.id}</td><td><b>${esc(surnameFirst(p))}</b>${p.warn ? ' <span class="tag ocr">ověřit identitu</span>' : ""}</td>
         <td class="num ${p.rc ? "" : "muted"}" title="${p.rc ? "" : "Rodné číslo " + GAP}">${esc(rcText(p))}</td><td class="num ${ageNum(p) ? "" : "muted"}" ${!p.age && p.birth ? 'title="vypočteno z data narození"' : ""}>${esc(ageNum(p) || "-")}</td>
@@ -6020,8 +6030,10 @@ function viewPatients() {
         <td>${esc(p.dept)}${p.deptExample ? '<span class="ex">ukázka</span>' : ""}</td>
         <td class="num">${p.slot ? esc(slotText(p)) : `<button class="linkbtn" data-sched="${esc(p.file)}">Naplánovat</button>`}</td>
         <td class="num ${lastMdt(p) ? "" : "muted"}" title="${lastMdt(p) ? "" : "Předchozí MDT " + GAP}">${esc(lastMdt(p) || "neuvedeno")}</td>
-        <td>${statusChip(p)}</td><td class="num muted">${fmtDate(p.updated)}</td></tr>`).join("") || `<tr><td colspan="9" class="muted">Žádný pacient neodpovídá filtru.</td></tr>`}</tbody>
-    </table></div></div>
+        <td>${statusChip(p)}</td><td class="num">${fmtDate(p.submitted)}${p.submittedExample ? '<span class="ex">ukázka</span>' : ""}</td></tr>`).join("") || `<tr><td colspan="12" class="muted">Žádný pacient neodpovídá filtru.</td></tr>`}</tbody>
+    </table></div>
+    <div class="row spread" style="padding:10px 14px;border-top:1px solid var(--line)"><span class="muted small">${S.dbAll ? `Zobrazeno všech ${all.length}` : `Zobrazeno ${all.length ? S.dbPage * PER + 1 : 0}-${Math.min(all.length, S.dbPage * PER + PER)} z ${all.length}`}</span>
+      <span class="row">${S.dbAll ? `<button class="btn small" data-act="dbpaged">Stránkovat</button>` : `<button class="btn small" data-dbpage="${S.dbPage - 1}" ${S.dbPage ? "" : "disabled"}>‹ Předchozí</button>${Array.from({ length: pages }, (_, i) => `<button class="btn small ${i === S.dbPage ? "primary" : ""}" data-dbpage="${i}">${i + 1}</button>`).join("")}<button class="btn small" data-dbpage="${S.dbPage + 1}" ${S.dbPage < pages - 1 ? "" : "disabled"}>Další ›</button>${all.length > PER ? `<button class="btn small" data-act="dball">Zobrazit vše (+${all.length - rows.length})</button>` : ""}`}</span></div></div>
     <p class="muted small">Vlastník případu je odesílající lékař. Hodnoty označené „ukázka“ (vlastník, pracoviště, termín) v dokumentech nejsou a slouží jen pro maketu. „neuvedeno“ u RČ a „-“ u věku: ${GAP}; žádný dokument v datech výzvy rodné číslo neobsahuje.</p>
   </div>`;
 }
@@ -6193,7 +6205,7 @@ function gapsBox() {
 }
 function briefBlock(p) {
   const reg = refRegistry();
-  return `<section class="card blk"><div class="head" style="margin:0"><h2>Onkologický souhrn</h2><span class="row"><span class="muted small">Sestaveno asistentem z dokumentů · typ MDT: recidiva / progrese</span>${gapsToggle()}</span></div>${S.gapsOpen ? gapsBox() : ""}
+  return `<section class="card blk"><div class="head" style="margin:0"><h2>MDT brief</h2><span class="row"><span class="muted small">Sestaveno asistentem z dokumentů · typ MDT: recidiva / progrese</span>${gapsToggle()}</span></div>${S.gapsOpen ? gapsBox() : ""}
     <p class="prose">${briefHtml(reg)}</p>
     ${reasonQuestionBox(p, reg)}
     ${timelineCard(true)}
@@ -6204,30 +6216,37 @@ function briefBlock(p) {
 function detailedCard(reg, inPresent) {
   const d = DXH();
   const rows = EXTRA.onco_detailed_v3 || [];
-  const head = d ? `<p class="dxh">${ed("dx", [d.histology_cs, d.grade_cs, d.tnm_cs].filter(Boolean).join(", "))}${marks(d, "dx")}${(d.refs || []).map(i => reg.n(R3(i))).join("")}</p>
-    <p class="dxs">${esc(d.mkn_cs || "")}${d.date_cs ? ` · ${esc(d.date_label_cs || "diagnostikováno")} ${esc(d.date_cs)}` : ""}${d.tnm_context_cs ? `<br>${esc(d.tnm_context_cs)}` : ""}</p>` : "";
-  return `<section class="card"><div class="head"><h2>Podrobný onkologický přehled</h2>
+  const head = d ? `<p class="dxh">${ed("dx", [d.histology_cs, d.grade_cs, d.tnm_cs].filter(Boolean).join(", "))}${d.histology_date_cs ? ` <span class="muted" style="font-size:13px;font-weight:600" title="${esc(d.tnm_context_cs || "")}">(pTNM ${esc(d.histology_date_cs.replace(/^\d+\./, ""))})</span>` : ""}${marks(d, "dx")}${(d.refs || []).map(i => reg.n(R3(i))).join("")}</p>
+    <p class="dxs">${esc(d.mkn_cs || "")}</p>` : "";
+  return `<section class="card"><div class="head"><h2>Onkologický souhrn</h2>
       ${inPresent ? `<label class="small muted"><input type="checkbox" data-pickrep="summary" ${S.picked.has("summary") ? "checked" : ""}> do reportu</label>` : ""}</div>
     ${head}
-    ${rows.map((r, i) => `<div class="orow"><span class="dt">${esc(r.date_cs || r.date_label_cs || "")}</span><span><b>${ed(`od:${i}:e`, r.event_cs)}</b>${r.comment_cs ? `: ${ed(`od:${i}:c`, r.comment_cs)}` : ""}${marks(r, edOf(`od:${i}:e`) ? `od:${i}:e` : `od:${i}:c`)}${(r.refs || []).map(j => reg.n(R3(j))).join("")}</span></div>`).join("")}
+    ${kindLegend()}
+    ${rows.map((r, i) => `<div class="orow"><span class="dt">${esc(r.date_cs || r.date_label_cs || "")}</span><span><span class="kind-${rowKind(r)}" title="${KIND_CS[rowKind(r)] || ""}" style="display:inline-grid;width:16px;height:16px;vertical-align:-3px;margin-right:6px">${icon(rowKind(r))}</span><b class="kind-${rowKind(r)}">${ed(`od:${i}:e`, r.event_cs)}</b>${r.comment_cs ? `: ${ed(`od:${i}:c`, r.comment_cs)}` : ""}${marks(r, edOf(`od:${i}:e`) ? `od:${i}:e` : `od:${i}:c`)}${(r.refs || []).map(j => reg.n(R3(j))).join("")}</span></div>`).join("")}
     ${srcList(reg)}</section>`;
 }
+/* Category of an oncology row for its icon and colour (round 9); from the row's own words, display only. */
+const rowKind = r => { const t = `${r.event_cs} ${r.comment_cs || ""}`; return /^(CT|MR|PET|Vstupní CT|UZ|ultrazvuk)|CT |MR /.test(r.event_cs) ? "imaging" : /ektomi|Exstirpace|Excize|Implantace|resekc|operac/i.test(r.event_cs) ? "surgery" : /linie|nivolumab|sunitinib|everolimus|chemoterap|imunoterap/i.test(r.event_cs) ? "systemic" : /radioterap|ozáření/i.test(t) ? "radiotherapy" : "visit"; };
+const kindLegend = () => `<div class="row small muted" style="gap:4px 14px;margin:0 0 6px">${["imaging", "surgery", "systemic", "visit"].map(k => `<span class="row" style="gap:4px"><span class="kind-${k}" style="display:inline-grid;width:16px;height:16px">${icon(k)}</span>${{ imaging: "Zobrazení", surgery: "Výkon", systemic: "Systémová léčba", visit: "Ostatní" }[k]}</span>`).join("")}</div>`;
 /* Current state of the patient from the most recent exam (Soňa, round 2: "status praesens"). */
 function statusCard() {
   const sp = EXTRA.status_praesens; if (!sp) return "";
   const reg = refRegistry();
   const items = (sp.items || []).map((it, i) => ({ ...it, i }));
-  const KEY = ["ECOG PS", "Mobilita a soběstačnost", "Vědomí a orientace", "Mozkové metastázy klinicky", "Celkově", "Vitální funkce"];
-  const dd = it => `${ed(`sp:${it.i}`, it.text_cs)}${marks(it, `sp:${it.i}`)}${(it.refs || []).map(j => reg.n(R3(j))).join("")}`;
-  const key = items.filter(it => KEY.includes(it.label_cs)).sort((a, b) => KEY.indexOf(a.label_cs) - KEY.indexOf(b.label_cs));
+  const refsOf = it => (it.refs || []).map(j => reg.n(R3(j))).join("");
   const subj = items.filter(it => it.group === "subjective");
-  const obj = items.filter(it => it.group === "objective" && !KEY.includes(it.label_cs));
-  return `<section class="card"><div class="head"><h2>Aktuální stav pacienta</h2><span class="muted small">${esc(sp.exam_title_cs || "")}${sp.exam_title_ocr_note_cs ? `<span class="mk ocr" title="${esc(sp.exam_title_ocr_note_cs)}">!</span>` : ""} · ${esc(sp.exam_date_cs || "datum " + GAP)}</span></div>
-    ${sp.exam_date_note_cs ? `<p class="muted small" style="margin:0 0 8px">${esc(sp.exam_date_note_cs)}</p>` : ""}
-    <dl class="sp">${key.map(it => `<dt>${esc(it.label_cs)}</dt><dd>${dd(it)}</dd>`).join("")}
-      ${subj.length ? `<dt>Subjektivně</dt><dd>${subj.map(dd).join(" ")}</dd>` : ""}
-      ${(sp.missing_cs || []).map(l => `<dt>${esc(l)}</dt><dd class="gapq">${GAP}</dd>`).join("")}</dl>
-    ${obj.length ? `<details class="srcs"><summary>Objektivní nález podle oblastí (${obj.length})</summary><dl class="sp" style="margin-top:6px">${obj.map(it => `<dt>${esc(it.label_cs)}</dt><dd>${dd(it)}</dd>`).join("")}</dl></details>` : ""}
+  const vit = items.find(it => it.label_cs === "Vitální funkce");
+  const ecog = items.find(it => it.label_cs === "ECOG PS");
+  const brain = items.find(it => it.label_cs === "Mozkové metastázy klinicky");
+  const objRest = items.filter(it => it.group === "objective" && it !== vit);
+  /* Soňa's objective line: TK/P, TT, PS (ECOG); values copied from the vitals text, a missing one is said to be missing. */
+  const vt = vit ? vit.text_cs : "";
+  const tk = (vt.match(/krevní tlak ([\d/]+ ?mmHg)/) || [])[1], pulse = (vt.match(/pulz ([\d]+\/min)/) || [])[1], tt = (vt.match(/teplota ([\d,.]+ ?°C)/) || [])[1];
+  const objLine = `TK/P ${tk ? esc(tk) : "neuvedeno"} / ${pulse ? esc(pulse) : "neuvedeno"}${vit ? refsOf(vit) : ""} · TT ${tt ? esc(tt) : `<span class="gapq">neuvedeno</span>`} · PS (ECOG) ${ecog ? esc(ecog.text_cs) + refsOf(ecog) : `<span class="gapq">neuvedeno</span>`}${brain ? `; ${esc(brain.text_cs)}${marks(brain)}${refsOf(brain)}` : ""}`;
+  return `<section class="card"><div class="head"><h2>Aktuální stav pacienta</h2><span class="muted small">${esc(sp.exam_title_cs || "")} · ${esc(sp.exam_date_cs || "datum neuvedeno")}</span></div>
+    <dl class="sp"><dt>Subjektivně</dt><dd>${subj.map(it => `${ed(`sp:${it.i}`, it.text_cs)}${marks(it)}${refsOf(it)}`).join(" ")}</dd>
+      <dt>Objektivně</dt><dd>${objLine}</dd></dl>
+    ${objRest.length ? `<details class="srcs"><summary>Celý objektivní nález (${objRest.length})</summary><dl class="sp" style="margin-top:6px">${objRest.map(it => `<dt>${esc(it.label_cs)}</dt><dd>${ed(`sp:${it.i}`, it.text_cs)}${marks(it)}${refsOf(it)}</dd>`).join("")}</dl></details>` : ""}
     ${srcList(reg)}</section>`;
 }
 function alertsStrip() {
@@ -6392,7 +6411,7 @@ const FIND = [["clinical_finding", "Klinický nález"], ["imaging", "Zobrazovac�
 /* Presentation keeps the brief/detailed switch: the brief for the room, the detail on demand. */
 function presentSummary(reg) {
   const seg = `<span class="seg" role="group" aria-label="Úroveň detailu"><button data-brief="brief" aria-pressed="${S.brief === "brief"}">MDT brief</button><button data-brief="detailed" aria-pressed="${S.brief === "detailed"}">Detailní</button></span>`;
-  if (S.brief === "detailed") return detailedCard(reg, true).replace('<div class="head"><h2>Podrobný onkologický přehled</h2>', `<div class="head"><h2>Podrobný onkologický přehled</h2>${seg}`);
+  if (S.brief === "detailed") return detailedCard(reg, true).replace('<div class="head"><h2>Onkologický souhrn</h2>', `<div class="head"><h2>Onkologický souhrn</h2>${seg}`);
   return `<section class="card"><div class="head"><h2>Shrnutí (30 až 60 s)</h2><label class="small muted"><input type="checkbox" data-pickrep="summary" ${S.picked.has("summary") ? "checked" : ""}> do reportu</label>${seg}</div>
     <p class="prose">${briefHtml(reg)}</p>${srcList(reg)}</section>`;
 }
@@ -6654,7 +6673,7 @@ document.addEventListener("click", e => {
   /* Touch screens never show title tooltips, so a tap on a certainty icon shows its detail as a toast. */
   const mk = e.target.closest(".mk[title], .edtag[title], .chip[title]"); if (mk) { toast(mk.getAttribute("title")); return; }
   if (S.colOpen && !e.target.closest(".fpop,[data-colopen]")) { S.colOpen = null; render(); return; }
-  const t = e.target.closest("[data-guide],[data-colopen],[data-colclose],[data-colall],[data-wk],[data-jump],[data-mm],[data-calclose],[data-labmode],[data-labsel],[data-edit],[data-scope],[data-addatt],[data-nav],[data-open],[data-tab],[data-brief],[data-src],[data-close],[data-page],[data-tl],[data-ack],[data-go],[data-present],[data-sched],[data-pick],[data-free],[data-slot],[data-unsched],[data-act],[data-mode],[data-delstep],[data-done]");
+  const t = e.target.closest("[data-dbpage],[data-guide],[data-colopen],[data-colclose],[data-colall],[data-wk],[data-jump],[data-mm],[data-calclose],[data-labmode],[data-labsel],[data-edit],[data-scope],[data-addatt],[data-nav],[data-open],[data-tab],[data-brief],[data-src],[data-close],[data-page],[data-tl],[data-ack],[data-go],[data-present],[data-sched],[data-pick],[data-free],[data-slot],[data-unsched],[data-act],[data-mode],[data-delstep],[data-done]");
   if (!t) return;
   const d = t.dataset;
   if (d.colopen) { S.colOpen = S.colOpen === d.colopen ? null : d.colopen; render(); }
@@ -6666,6 +6685,7 @@ document.addEventListener("click", e => {
   else if (d.calclose) { S.calPop = null; render(); }
   else if (d.labmode) { S.labMode = d.labmode; render(); }
   else if (d.labsel) { S.labSel = d.labsel; render(); }
+  else if (d.dbpage !== undefined) { S.dbPage = +d.dbpage; render(); }
   else if (d.guide) { S.overlay = { kind: "guide", id: d.guide }; logAccess(S.pid, "otevřel(a) doporučení"); renderOverlay(); }
   else if (d.edit) { S.overlay = { kind: "edit", key: d.edit, orig: d.orig }; renderOverlay(); }
   else if (d.scope) { S.taskScope = d.scope; render(); }
@@ -6721,6 +6741,8 @@ function action(a) {
     S.overlay = null; S.view = "patients"; S.colf = {}; toast(`Pacient NO-${String(n).padStart(3, "0")} přidán do databáze`); render();
   }
   else if (a === "cancelsched") { S.schedPick = null; render(); }
+  else if (a === "dball") { S.dbAll = true; render(); }
+  else if (a === "dbpaged") { S.dbAll = false; S.dbPage = 0; render(); }
   else if (a === "clearcolf") { COLS.forEach(c => delete S.colf[c[0]]); render(); }
   else if (a === "cleardcolf") { DCOLS.forEach(c => delete S.colf[c[0]]); S.dq = ""; render(); }
   else if (a === "gaps") { S.gapsOpen = !S.gapsOpen; render(); }
@@ -6775,6 +6797,7 @@ document.addEventListener("change", e => {
   if (t.id === "user") { S.user = t.value; if (S.view === "admin" && t.value !== ADMIN) S.view = "patients"; render(); }
   else if (t.dataset.actToggle === "guide") { S.guideOn = t.checked; render(); }
   else if (t.dataset.dev) { const pr = curProto(); pr.dev = pr.dev || {}; pr.dev[t.dataset.dev] = { ...(pr.dev[t.dataset.dev] || {}), s: t.value }; render(); }
+  else if (t.id === "subfrom" || t.id === "subto") { S[t.id === "subfrom" ? "subFrom" : "subTo"] = t.value; S.dbPage = 0; render(); }
   else if (t.id === "mmyear") { S.miniMonth = `${t.value}-${S.miniMonth.slice(5)}`; S.week = mondayOf(`${S.miniMonth}-15`); render(); }
   else if (t.dataset.colall) { if (t.checked) delete S.colf[t.dataset.colall]; else S.colf[t.dataset.colall] = []; render(); }
   else if (t.dataset.colv) {
