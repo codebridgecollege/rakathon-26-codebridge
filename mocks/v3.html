@@ -121,7 +121,8 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: 13.5px; }
 .cal .cell { background: #eceeeb; }
 .cal .cell.sem { background: var(--surface); }
 .slotbtn { width: 100%; height: 100%; border: 1px solid transparent; border-radius: 5px; background: none; cursor: pointer; font-size: 12.5px; text-align: left; padding: 0 6px; display: flex; align-items: center; gap: 6px; }
-.slotbtn.free { color: var(--faint); }
+.slotbtn.free { color: var(--faint); white-space: nowrap; overflow: hidden; }
+.slotbtn.free .tt2 { flex: none; }
 .slotbtn.drop { border-color: var(--accent); background: var(--accent-soft, #e3efec); color: var(--accent-ink); }
 .slotbtn.taken[draggable="true"], [data-drag] { cursor: grab; }
 .dragrow { padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); }
@@ -298,6 +299,11 @@ details.mdtcard[open] > summary::before { transform: rotate(90deg); }
 .mini button { border: 0; background: none; border-radius: 6px; padding: 5px 0; cursor: pointer; font-variant-numeric: tabular-nums; }
 .mini button:hover { background: var(--sunk); }
 .mini button.out { color: var(--faint); }
+/* Today: a filled circle in the month grid, a tinted column with an accent top edge in the week grid. */
+.mini button.today.today { background: var(--accent); color: #fff; font-weight: 800; }
+.cal .dh.today { background: var(--accent-soft); color: var(--accent-ink); box-shadow: inset 0 3px 0 var(--accent); }
+.cal .cell.today { background: #e2ebe7; }
+.cal .cell.sem.today { background: #f2f8f5; }
 .mini button.wk { background: var(--accent-soft); color: var(--accent-ink); font-weight: 700; }
 .mini button.sem::after { content: ""; display: block; width: 4px; height: 4px; border-radius: 50%; background: var(--accent); margin: 1px auto 0; }
 .cal .tm { height: 30px; line-height: 30px; }
@@ -6580,7 +6586,7 @@ function miniMonth() {
   for (let i = 0; i < 42; i++) {
     const iso = addDays(start, i), d = dObj(iso);
     if (i >= 35 && d.getUTCMonth() + 1 !== m) break;
-    cells += `<button data-jump="${iso}" class="${d.getUTCMonth() + 1 !== m ? "out" : ""} ${iso >= S.week && iso <= weekEnd ? "wk" : ""} ${seminarOn(iso) ? "sem" : ""}" aria-label="${iso}">${d.getUTCDate()}</button>`;
+    cells += `<button data-jump="${iso}" class="${d.getUTCMonth() + 1 !== m ? "out" : ""} ${iso >= S.week && iso <= weekEnd ? "wk" : ""} ${seminarOn(iso) ? "sem" : ""} ${iso === TODAY ? "today" : ""}" aria-label="${iso}${iso === TODAY ? ", dnes" : ""}" ${iso === TODAY ? 'aria-current="date"' : ""}>${d.getUTCDate()}</button>`;
   }
   const years = [2024, 2025, 2026, 2027, 2028];
   return `<div class="card"><div class="row spread" style="margin-bottom:8px"><button class="btn small" data-mm="-1" aria-label="Předchozí měsíc">‹</button>
@@ -6598,7 +6604,7 @@ function viewCalendar() {
   const inSem = (day, t) => { const s = seminarOn(day); return s && t >= s[0] && t < s[1]; };
   /* On a seminar day every slot outside the seminar hours can be booked too (sessions may run longer, round 19). */
   const isOot = (day, t) => !!seminarOn(day) && !inSem(day, t);
-  let cells = `<div></div>${days.map(d => `<div class="dh">${dayLabel(d)}${d === TODAY ? " · dnes" : ""}<small>${seminarOn(d) ? esc(seminarOn(d)[2]) + " " + seminarOn(d)[0] + "-" + seminarOn(d)[1] : "&nbsp;"}</small>${dayAgenda(d).length ? `<button class="btn small primary startmdt" data-startday="${d}">Zahájit MDT ▸</button>` : ""}</div>`).join("")}`;
+  let cells = `<div></div>${days.map(d => `<div class="dh ${d === TODAY ? "today" : ""}">${dayLabel(d)}${d === TODAY ? " · dnes" : ""}<small>${seminarOn(d) ? esc(seminarOn(d)[2]) + " " + seminarOn(d)[0] + "-" + seminarOn(d)[1] : "&nbsp;"}</small>${dayAgenda(d).length ? `<button class="btn small primary startmdt" data-startday="${d}">Zahájit MDT ▸</button>` : ""}</div>`).join("")}`;
   /* By default the grid shows the seminar hours from 30 minutes before to an hour after, so the first seminar row
      is in view and an overrun has room; "Zobrazit celý den" shows every slot. A week without a seminar, or a
      booking outside that range, always shows the whole day so no booked slot is hidden. */
@@ -6618,9 +6624,9 @@ function viewCalendar() {
       /* A missing birth number is left out of the slot text (a bare "RČ -" is noise there) but stays in the label. */
       /* A discussed case ("done") keeps its slot as part of the MDT record, so it cannot be dragged away. */
       if (p) inner = `<button class="slotbtn taken" ${slotLocked(p) ? `draggable="false"` : `draggable="true" data-drag="${esc(p.file)}"`} data-slot="${d} ${t}" data-dbl="${esc(p.file)}" title="${esc(surnameFirst(p))}, RČ ${esc(p.rc || GAP)}. Dvojklik otevře případ" aria-label="${esc(surnameFirst(p))}, RČ ${esc(p.rc || GAP)}, ${t}" aria-pressed="${S.calPop === p.file}"><span class="dot" style="background:var(--${{ new: "muted", scheduled: "change", attention: "missing", ready: "ok", done: "accent" }[p.status]})"></span>${oot ? `<span class="ootm" title="Mimo čas semináře" aria-label="mimo čas semináře">mimo</span>` : ""}<span class="cid">${esc(surnameFirst(p))}</span>${p.rc ? `<span class="nm">RČ ${esc(p.rc)}</span>` : ""}</button>`;
-      else if (sem) inner = `<button class="slotbtn free ${S.schedPick ? "target" : ""}" data-free="${d} ${t}" aria-label="Volný termín ${t}"><span class="tt2">${t}-${slotEnd(t)}</span>${S.schedPick ? " · Naplánovat sem" : ""}</button>`;
+      else if (sem) inner = `<button class="slotbtn free ${S.schedPick ? "target" : ""}" data-free="${d} ${t}" aria-label="Volný termín ${t}"><span class="tt2">${S.schedPick ? t : `${t}-${slotEnd(t)}`}</span>${S.schedPick ? `<span class="nm">Naplánovat sem</span>` : ""}</button>`;
       else if (oot) inner = `<button class="slotbtn free oot ${S.schedPick ? "target" : ""}" data-free="${d} ${t}" title="Mimo čas semináře" aria-label="Volný termín ${t}, mimo čas semináře"><span class="tt2">${t} · mimo čas semináře</span></button>`;
-      cells += `<div class="cell ${sem ? "sem" : oot ? "oot" : ""}">${inner}</div>`;
+      cells += `<div class="cell ${sem ? "sem" : oot ? "oot" : ""} ${d === TODAY ? "today" : ""}">${inner}</div>`;
     }
   }
   const pop = S.calPop && P(S.calPop);
@@ -7505,7 +7511,9 @@ function sourceHtml(o) {
     }
   }
   const engine = d.engine === "vision" ? "Přepis: jazykový model, kontrola: Tesseract" : "Přepis: Tesseract";
-  const conf = d.mean_conf != null ? ` · průměrná jistota Tesseractu ${String(d.mean_conf).replace(".", ",")} %` : "";
+  const conf = d.mean_conf != null ? `, průměrná jistota Tesseractu ${String(d.mean_conf).replace(".", ",")} %` : "";
+  /* How the page was read is technical detail, so it sits behind an info icon instead of in the bar. */
+  const engineTip = engine + conf;
   const nv = d.verify.length;
   const empty = d.empty ? `<p class="synth" style="margin:0 0 12px">Prázdná stránka: na stránce není žádný text.</p>` : "";
   /* The legend says what a mark means and what its absence does not mean. */
@@ -7529,9 +7537,9 @@ function sourceHtml(o) {
       <button class="btn small" data-close="1">Zavřít</button></header>
     <div class="pages">${(o.doc?.pages || []).map(p => `<button data-page="${p.n}" aria-pressed="${p.n === d.n}" title="${p.empty ? "prázdná stránka" : ""}">s. ${p.n}${p.empty ? " (prázdná)" : ""}</button>`).join("")}</div>
     <div class="vbar">${red ? "" : `<span class="seg" role="tablist" aria-label="Zobrazení"><button role="tab" data-vtab="image" aria-pressed="${tab !== "text"}">Stránka</button><button role="tab" data-vtab="text" aria-pressed="${tab === "text"}">Přepis stránky</button></span>`}
-      ${tab !== "text" && d.redacted ? `<label class="small" style="display:inline-flex;gap:6px;align-items:center"><input type="checkbox" data-redact="1" ${red ? "checked" : ""}> Co by odešlo do cloudu (začerněno)</label>` : ""}
+      ${tab !== "text" && d.redacted ? `<label class="small" style="display:inline-flex;gap:6px;align-items:center"><input type="checkbox" data-redact="1" ${red ? "checked" : ""}> Cenzurovat (demo)</label>` : ""}
       ${tab !== "text" && !red && imgHit ? `<button class="btn small" data-zoomhit="1">Přiblížit na citaci</button>` : ""}
-      <span class="muted small vengine">${engine}${conf}${nv ? ` · ${plural(nv, "místo", "místa", "míst")} k ověření` : ""}</span></div>
+      <span class="muted small vengine row" style="gap:6px">${nv ? `${plural(nv, "místo", "místa", "míst")} k ověření` : ""}<button class="info" title="${esc(engineTip)}" aria-label="${esc(engineTip)}">i</button></span></div>
     ${note}
     <div class="vwrap">${tab !== "text" ? zoomCtl(o) : ""}<div class="vbody" id="vbody">${body}</div></div></aside>`;
 }
