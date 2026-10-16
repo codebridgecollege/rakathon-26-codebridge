@@ -2935,7 +2935,7 @@
   }
  ],
  "document_history_note_cs": "Ukázková data: kdy a kdo dokumenty nahrál a kdy byly zpracovány. Všech 13 dokumentů pochází z jednoho PDF (10_pacient.pdf), proto mají stejný čas.",
- "onco_summary_v3_cs": "Pacient s metastatickým světlobuněčným renálním karcinomem G2, stav po pravostranné nefrektomii s retroperitoneální lymfadenektomií 6/2022 [1] (pT2a pN1, 3 z 5 lymfatických uzlin pozitivní, M0 dle vstupní dokumentace) [2]. Následně histologicky potvrzeno metastatické postižení paraaortální lymfatické uzliny [3] a kůže [4], radiologicky též mediastinálních a hilových lymfatických uzlin [5]. V 1. paliativní linii léčen nivolumabem s ipilimumabem [6] s následnou udržovací léčbou nivolumabem do 12/2025 [7], ve 2. linii sunitinibem do 8/2026 [9], obě linie ukončeny pro progresi [8] [10]. Od 9/2026 ve 3. paliativní linii everolimus [11].\nNa MR mozku 14.9.2026 nově solitární suspektně metastatické ložisko pravé mozečkové hemisféry do 3 mm, jiná sytící se ložiska nejsou [12]. Při poslední dokumentované kontrole ECOG PS 1 [13], bez závratí či poruch rovnováhy, udává občasné mžitky před očima [14].",
+ "onco_summary_v3_cs": "Pacient s metastatickým světlobuněčným renálním karcinomem G2, stav po pravostranné nefrektomii s retroperitoneální lymfadenektomií 6/2022 [1] (pT2a pN1, 3 z 5 lymfatických uzlin pozitivní, M0 dle vstupní dokumentace) [2]. Následně histologicky potvrzeno metastatické postižení paraaortální lymfatické uzliny vlevo [3] a kůže brady vlevo [4], radiologicky též mediastinálních a plicních hilových lymfatických uzlin [5]. V 1. paliativní linii léčen nivolumabem s ipilimumabem [6] s následnou udržovací léčbou nivolumabem do 12/2025 [7] (progrese dle iRECIST: nepotvrzená 11/2025, potvrzená 1/2026 [8]); ve 2. linii sunitinib od 1/2026 [9], ukončen pro progresi dle CT 8/2026 [10]. Od 9/2026 ve 3. paliativní linii everolimus [11].\nNa MR mozku 14.9.2026 solitární sytící se ložisko pravé mozečkové hemisféry do 3 mm, suspektní z metastázy; jiná sytící se ložiska intrakraniálně nejsou [12]. Při poslední dokumentované kontrole ECOG PS 1, bez klinických známek mozkových metastáz [13]; na cílený dotaz neguje závratě či poruchy rovnováhy, udává občasné mžitky před očima [14]. Nález MR zadán ošetřujícím lékařem k projednání na neurochirurgickém semináři [15].",
  "onco_summary_v3_refs": [
   {
    "file": "10_pacient.pdf",
@@ -2975,7 +2975,7 @@
   {
    "file": "10_pacient.pdf",
    "page": 1,
-   "quote": "1/2026 iCPD"
+   "quote": "11/2025 dle iRECIST iUPD - nově patol. LU v levém plic hilu - 1/2026 iCPD"
   },
   {
    "file": "10_pacient.pdf",
@@ -3013,7 +3013,7 @@
    "quote": "Nález při MR vyš. mozku zadávám k projednáni na NCH semináři."
   }
  ],
- "mdt_reason_v3_cs": "Nově zjištěné solitární suspektně metastatické ložisko mozečku [1] při probíhající systémové léčbě everolimem [2]; nález MR zadán ošetřujícím lékařem k projednání na neurochirurgickém semináři [3].",
+ "mdt_reason_v3_cs": "Solitární sytící se ložisko pravé mozečkové hemisféry do 3 mm, suspektní z metastázy (MR mozku 14.9.2026) [1], při probíhající léčbě everolimem [2]; nález zadán ošetřujícím lékařem k projednání na neurochirurgickém semináři [3].",
  "mdt_reason_v3_refs": [
   {
    "file": "10_pacient.pdf",
@@ -3083,6 +3083,17 @@
      "file": "10_pacient.pdf",
      "page": 4,
      "quote": "Statuspraesens:ECOG PS: 1, bez klin. známek mozkových mts"
+    }
+   ]
+  },
+  {
+   "kind": "contradiction",
+   "text_cs": "Vstupní CT s lymfadenopatií datováno 6.3.2023, souhrn na str. 2 uvádí „3/2022“ (před diagnózou).",
+   "refs": [
+    {
+     "file": "10_pacient.pdf",
+     "page": 1,
+     "quote": "baseline CT s KL 6.3.2023 patol. mediastinálni a pl. hilová lymfadenopatie - jsou hypervaskularizované mts charakteru"
     }
    ]
   }
