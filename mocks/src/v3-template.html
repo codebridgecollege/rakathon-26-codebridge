@@ -514,6 +514,8 @@ function marks(f) {
   if (f.certainty === "unclear_ocr" || f.ocr_note_cs) h += `<span class="mk ocr" title="Ověřit čtení: ${esc(f.ocr_note_cs || f.note || "text mohl být špatně přečten")}">!</span>`;
   if (f.certainty === "inferred") h += `<span class="mk obs" title="Pozorování asistenta, v dokumentu výslovně není">i</span>`;
   if (f.certainty === "planned" || f.change_status === "planned_unconfirmed" || /plánováno/i.test(f.change_cs || "")) h += `<span class="mk plan" title="Plánováno, dokument neuvádí, že se stalo${f.note_cs ? ": " + esc(f.note_cs) : ""}">?</span>`;
+  /* Any other assistant note (source discrepancy, unclear exam) stays reachable as an icon, not as row text (round 5). */
+  if (f.note_cs && f.certainty !== "conflicting" && f.change_status !== "planned_unconfirmed" && f.certainty !== "planned") h += `<span class="mk obs" title="Poznámka asistenta: ${esc(f.note_cs)}">i</span>`;
   if (f.certainty === "conflicting") h += `<span class="mk ocr" style="background:var(--conflict-soft);color:var(--conflict)" title="Rozpor mezi dokumenty${f.note_cs ? ": " + esc(f.note_cs) : ""}">≠</span>`;
   return h;
 }
