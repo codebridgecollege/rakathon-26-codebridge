@@ -6204,8 +6204,8 @@ function reasonHtml(reg) {
 }
 function proposalBox(p) {
   const e = edOf("proposal", p.file);
-  return `<div class="concl"><span class="label">Navrhovaný postup</span>
-    <p style="font-size:14px">${e ? `${esc(e.text)}<span class="edtag" title="Zapsal(a) ${esc(e.by)}, ${esc(e.when)}">návrh lékaře, ne rozhodnutí MDT</span>` : `<span class="muted">${GAP}. Vyplňuje odesílající lékař; asistent postup nenavrhuje.</span>`}
+  return `<div class="concl"><span class="label">Navrhovaný další postup</span>
+    <p style="font-size:14px">${e ? `${esc(e.text)}<span class="edtag" title="Zapsal(a) ${esc(e.by)}, ${esc(e.when)}">návrh lékaře, ne rozhodnutí MDT</span>` : `<span class="muted">${GAP}. Co dál navrhuje odesílající lékař k rozhodnutí na tomto MDT; asistent postup nenavrhuje.</span>`}
     ${isDoctor(S.user) ? `<button class="edbtn" style="opacity:1" data-edit="${esc(EK("proposal", p.file))}" data-orig="">✎ ${e ? "" : "doplnit"}</button>` : ""}</p>
     ${p.full ? guideBox() : ""}</div>`;
 }
@@ -6233,7 +6233,7 @@ function guideBox() {
   const groups = [["CZ", "Česko"], ["EU", "Evropa"], ["US", "USA"], ["INT", "Mezinárodní"]].map(([r, t], i) => grp(t, onc.filter(x => (GL(x.guideline_id).region || "EU") === r), i === 0)).join("");
   const important = (GUIDE.not_retrieved || []).filter(n => n.important);
   const lit = GUIDE.literature || [];
-  return `<details class="gl" ${S.guideOpen ? "open" : ""} data-guideopen="1"><summary style="cursor:pointer"><b>Citace z doporučených postupů (${st.length})</b>${lit.length ? ` · literatura (${lit.length})` : ""} <span class="muted small">· pozorování asistenta, rozhoduje MDT</span></summary>${head}
+  return `<details class="gl" ${S.guideOpen ? "open" : ""} data-guideopen="1"><summary style="cursor:pointer"><b>Doporučené postupy k dalšímu postupu: citace (${st.length})</b>${lit.length ? ` · literatura (${lit.length})` : ""} <span class="muted small">· pozorování asistenta, rozhoduje MDT</span></summary>${head}
     ${important.map(n => `<div class="synth" style="margin:8px 0">${esc(n.note_cs || n.name)}</div>`).join("")}
     ${groups}
     ${grp("Další obory (přidružená onemocnění)", other, false)}
