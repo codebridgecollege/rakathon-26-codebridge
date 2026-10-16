@@ -493,540 +493,169 @@ details.donegrp > summary { cursor: pointer; color: var(--muted); font-size: 13p
 <script id="guide-data" type="application/json">/*GUIDE*/</script>
 <script>
 "use strict";
-/* =====================================================================================
-   SERVER: an in-page stand-in for the backend.
-
-   This block is the only code that reads the embedded JSON above, and it owns every record
-   that can change: patients and their slots, doctor edits, MDT decisions, protocols,
-   attendance, tasks, e-mails, alert acknowledgements and the audit log. The client reaches
-   it only through `api` (get, post, put, patch, del) with REST-shaped routes, listed in
-   mocks/README.md. Requests and responses are deep-copied with structuredClone, so the
-   client can never change a record by mutating what it got back, exactly as over HTTP.
-
-   Login is stubbed: the client sends the current user in an "X-User" header, the way a real
-   client would send a session token. The server checks roles and writes the audit log
-   itself from that header; the client never writes audit entries.
-   ===================================================================================== */
-const api = (() => {
-  const read = id => JSON.parse(document.getElementById(id).textContent || "{}");
-  const CASE = read("case-data"), OTHERS = read("list-data"), EXTRA = read("extra-data"), PAGES = read("page-data");
-  /* Guideline layer (F-27): verbatim guideline statements, guideline page excerpts and PubMed literature for
-     the structured case, merged by mocks/build.py from mocks/src/data/guidelines-*.json and literature-*.json. */
-  const GUIDANCE = read("guide-data");
-  const TODAY = "2026-10-16";
-
-  /* Fictional staff, configured per department (Soňa's attendance design). */
-  const DEPTS = [
-    ["Neurochirurgie", ["MUDr. Novák", "MUDr. Dvořák"]],
-    ["Klinická onkologie", ["MUDr. Svobodová", "MUDr. Malá"]],
-    ["Radiační onkologie", ["MUDr. Černý", "MUDr. Horáková"]],
-    ["Radiologie", ["MUDr. Procházka", "MUDr. Veselá"]],
-    ["Neurologie", ["MUDr. Beneš", "MUDr. Pokorná"]],
-    ["Patologie", ["MUDr. Králová", "MUDr. Němcová"]],
-  ];
-  const COORD = "Bc. Marková (koordinátorka MDT)";
-  const ADMIN = "Ing. Kovář (správce systému)";
-  const USERS = ["MUDr. Svobodová", "MUDr. Novák", "MUDr. Procházka", COORD, ADMIN]
-    .map(name => ({ name, role: name === COORD ? "coordinator" : name === ADMIN ? "admin" : "doctor" }));
-  /* Every staff member can sign attendance, so roles are known for all of them, not only the picker's five. */
-  const roleOf = u => USERS.find(x => x.name === u)?.role || (DEPTS.some(([, docs]) => docs.includes(u)) ? "doctor" : null);
-  /* One neuro-oncology MDT a week (example: Thursday 14:00-16:00) in 10-minute slots (Soňa, rounds 2 and 3). */
-  const SCHEDULE = { weekly: { 4: { from: "14:00", to: "16:00", title: "Neuroonkologický seminář" } }, slot_minutes: 10, grid: ["12:00", "17:00"] };
-  const weekday = iso => new Date(iso + "T12:00:00Z").getUTCDay();
-  const addDays = (iso, n) => { const d = new Date(iso + "T12:00:00Z"); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
-
-  /* ---------- records ---------- */
-  const nr = file => String(file).replace("_pacient.pdf", "");
-  const caseId = file => `NO-${nr(file).padStart(3, "0")}`;
-  const ownerFor = i => DEPTS[i % 2 === 0 ? 1 : 0][1][i % 2];
-  const extraOthers = Object.fromEntries((EXTRA.others || []).map(o => [o.file, o]));
-  /* Patients: identity from the documents; owner, department and slot are example values where the documents are silent. */
-  function initialPatients() {
-    const p10 = {
-      file: CASE.file, name: CASE.patient.name, nameAsWritten: CASE.patient.name_as_written, rc: CASE.patient.birth_number || null, birth: CASE.patient.birth_date || null, age: CASE.patient.age || null,
-      /* Database format (Soňa, round 3): histology and TNM; the second line says the TNM is from diagnosis and why the case is here now. */
-      diagnosis: EXTRA.diagnosis_headline ? `${EXTRA.diagnosis_headline.histology_cs}, ${EXTRA.diagnosis_headline.tnm_cs.replace("(", " (")}` : "Světlobuněčný karcinom ledviny",
-      diagnosisNote: "pTNM při diagnóze 6/2022 · nyní susp. MTS v mozečku", mkn10: CASE.diagnosis?.code || null,
-      question: CASE.mdt_question.text_cs, purpose: CASE.mdt_question.closest_source?.quote, explicit: !!CASE.mdt_question.text_cs,
-      pages: PAGES[CASE.file]?.pages.length || CASE.page_count,
-      status: "ready", slot: { day: "2026-10-22", time: "14:00" }, updated: "2026-10-16", full: true,
-    };
-    const slots = [["2026-10-22", "14:10"], ["2026-10-22", "14:20"], ["2026-10-22", "14:30"], ["2026-10-22", "14:40"], null, ["2026-10-22", "14:50"], null, ["2026-10-22", "15:00"], null];
-    const others = OTHERS.map((o, i) => {
-      const ex = extraOthers[o.file] || {};
-      const slot = slots[i] ? { day: slots[i][0], time: slots[i][1] } : null;
-      const hasQ = o.mdt_question_cs && o.mdt_question_explicit !== false;
-      return {
-        file: o.file, name: o.name,
-        birth: /\d{1,2}\.\d{1,2}\.\d{4}/.test(o.age_or_birth || "") ? o.age_or_birth.replace(/^nar\.\s*/, "") : null,
-        age: /let/.test(o.age_or_birth || "") ? o.age_or_birth : null,
-        warn: /ověřit identitu|prohozen/i.test(o.note || "") ? o.note : null,
-        diagnosis: ex.diagnosis_cs || o.main_problem_cs, mkn10: ex.mkn10 || null,
-        question: hasQ ? o.mdt_question_cs : null, purpose: o.mdt_question_cs, explicit: !!hasQ,
-        summary: o.one_line_summary_cs, pages: PAGES[o.file]?.pages.length || o.page_count,
-        referrer: ex.referring_doctor || null, dept: ex.referring_department || null,
-        status: !slot ? "new" : /ověřit identitu|useknut/i.test(o.note || "") ? "attention" : "scheduled", slot, updated: "2026-10-15",
-      };
-    });
-    return [p10, ...others].map((p, i) => ({
-      ...p, id: caseId(p.file), rid: nr(p.file),
-      owner: p.referrer || ownerFor(i), ownerExample: !p.referrer,
-      /* Date the case was submitted to the MDT; the documents do not state it, so it is an example value. */
-      submitted: addDays("2026-10-15", -[1, 3, 5, 8, 12, 15, 19, 26, 33, 40][i % 10]), submittedExample: true,
-      dept: p.dept || ["Nemocnice Havířov, neurologie", "Slezská nemocnice v Opavě, onkologie", "Nemocnice Karviná-Ráj, neurochirurgie", "FN Ostrava, Klinika onkologická"][i % 4], deptExample: !p.dept,
-    }));
+/* The template has no <html> tag of its own (the publisher wraps it), so the language is set here: Czech date
+   inputs and screen readers read the page as Czech. */
+document.documentElement.lang = "cs";
+const CASE =JSON.parse(document.getElementById("case-data").textContent);
+const OTHERS = JSON.parse(document.getElementById("list-data").textContent);
+const EXTRA = JSON.parse(document.getElementById("extra-data").textContent || "{}");
+/* Guideline layer (F-27, team decision 2026-10-16): verbatim statements with full citation; never invented. */
+/* What the server would hold. The page never reads it directly: it goes through api.guidance(), so swapping
+   the stub for fetch(`/api/cases/${id}/guidance`) is the only change a real backend needs. */
+const SERVER_GUIDANCE = JSON.parse(document.getElementById("guide-data").textContent || "{}");
+const api = {
+  async guidance(caseId) {
+    await new Promise(r => setTimeout(r, 350));
+    return caseId === "NO-010" ? SERVER_GUIDANCE : { guidelines: [], statements: [], pages: [], literature: [], queries: [], not_retrieved: [] };
+  },
+};
+/* ---------- source documents: what the server would return for the source view ----------
+   The page index (data/derived/page-index.json) holds, per page, the image path and size, the vision
+   model's transcription, Tesseract's words with their boxes, and the tokens to verify. Only the functions
+   below read it, so a real backend replaces them with GET /api/documents/:file, GET .../pages/:n and
+   POST .../pages/:n/locate, as mock v4 shows. */
+const SERVER_PAGES = JSON.parse(document.getElementById("page-data").textContent || "{}");
+const isEmptyPage = text => /^\s*\[prázdná stránka\]\s*$/.test(text);
+/* ---------- quote matching for the source view ----------
+   Source references carry a quote from the PDF's old text layer, with its OCR errors ("MO" for "M0",
+   "lmg/kg", "1112023"). The page now shows the vision transcription and Tesseract's words, so the quote
+   is matched tolerantly: tokens compared without case, accents or punctuation, with the usual
+   O/0 and l/1/i confusions folded together. An exact run of tokens wins; otherwise the best window by a
+   weighted in-order alignment, accepted when it covers at least 60 % of the quote. */
+const canon = t => t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]/g, "").replace(/o/g, "0").replace(/[il]/g, "1");
+function lev(a, b) {
+  let prev = Array.from({ length: b.length + 1 }, (_, j) => j);
+  for (let i = 1; i <= a.length; i++) {
+    const cur = [i];
+    for (let j = 1; j <= b.length; j++) cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+    prev = cur;
   }
-  const db = {
-    patients: initialPatients(),
-    edits: {},      // pid -> key -> { text, by, when, orig }
-    editLog: {},    // pid -> [entries], only grows
-    decisions: [],  // append-only MDT conclusions
-    protos: {},     // pid -> protocol (draft or approved)
-    attendance: {}, // seminar day -> department -> [doctor]
-    acks: {},       // pid -> alert index -> { by, when }
-    tasks: [
-      { id: 1, pid: "2_pacient.pdf", text: "doplnit pooperační MR do podkladů", who: COORD, due: "2026-10-21", done: false },
-      { id: 2, pid: "13_pacient.pdf", text: "vyžádat snímky MR 8/2025 ke srovnání", who: COORD, due: "2026-10-21", done: true },
-    ],
-    mails: [],
-    audit: [],
-  };
-
-  /* ---------- helpers ---------- */
-  const fail = (status, error) => { throw { status, error }; };
-  const clock = () => new Date().toLocaleString("cs-CZ");
-  const byRid = rid => db.patients.find(p => p.rid === rid) || fail(404, "Pacient nenalezen");
-  const byFile = file => db.patients.find(p => p.file === file) || null;
-  const mustDoctor = u => roleOf(u) === "doctor" || fail(403, "Tuto akci smí provést jen lékař.");
-  /* Attendance is per seminar day (Soňa, round 2); a patient without a slot gets attendance of their own. */
-  const attDay = p => p.slot ? p.slot.day : `bez-terminu-${p.rid}`;
-  /* The previous MDT is the date of the last approved conclusion (round 5: shown in the database and header). */
-  const lastMdt = p => { const d = db.decisions.filter(x => x.pid === p.file); return d.length ? d[d.length - 1].when.split(",")[0] : null; };
-  const pub = p => ({ ...p, att_day: attDay(p), last_mdt: lastMdt(p) });
-  /* The audit log is written here, by the server, for every read of patient data and every change; it never
-     depends on what the client says it is showing. The mock audits in its route handlers; a real backend
-     should audit at the data-access layer, so no new route can read patient data without leaving a trace,
-     and should not rely on GET semantics. Repeated identical reads within a minute are merged into one
-     entry, so a screen that reloads after each change does not flood the log. */
-  const MERGE_MS = 60000;
-  function audit(who, pid, what, merge = false) {
-    const p = pid && byFile(pid), now = Date.now();
-    const last = db.audit.find(a => a.who === who && a.pid === (pid || null) && a.what === what);
-    if (merge && last && now - last.at < MERGE_MS) { last.at = now; last.count = (last.count || 1) + 1; return; }
-    db.audit.unshift({ at: now, when: new Date(now).toLocaleTimeString("cs-CZ", { hour: "2-digit", minute: "2-digit", second: "2-digit" }), who, pid: pid || null, case_id: p ? p.id : null, what });
+  return prev[b.length];
+}
+/* Partial credit for a token misread by one or two characters ("vyš" read as "wš", "CT" as "CI"),
+   or cut short by the OCR ("pánev" read as "pá"). */
+function sim(a, b) {
+  if (a === b) return 1;
+  const short = Math.min(a.length, b.length), [s, l] = a.length <= b.length ? [a, b] : [b, a];
+  if (short < 2) return 0;
+  if (Math.abs(a.length - b.length) <= 2) {
+    const d = lev(a, b);
+    if (short >= 3 && d <= 1) return .7;
+    if ((short >= 5 && d <= 2) || (short === 2 && d <= 1)) return .5;
+    if (short >= 4 && d <= 2) return .4;
   }
-  const audited = (user, p, what) => (audit(user, p.file, what, true), p);
-  function proto(pid) {
-    if (!db.protos[pid]) db.protos[pid] = { pid, mode: "manual", notes: "", concl: "", steps: [], state: "draft", version: 0 };
-    return db.protos[pid];
+  return s.length / l.length >= .4 && (l.startsWith(s) || l.endsWith(s)) ? .4 : 0;
+}
+const MIN_OVERLAP = .6;
+function align(q, toks, i, L) {
+  /* Weighted longest common subsequence of the quote and the text window toks[i, i+L). */
+  const m = q.length, W = Math.min(L, toks.length - i);
+  const dp = Array.from({ length: m + 1 }, () => new Float64Array(W + 1));
+  const sm = Array.from({ length: m }, () => new Float64Array(W));
+  for (let k = 1; k <= m; k++) for (let x = 1; x <= W; x++) {
+    const s = sm[k - 1][x - 1] = sim(q[k - 1], toks[i + x - 1].c);
+    dp[k][x] = Math.max(dp[k - 1][x], dp[k][x - 1], s ? dp[k - 1][x - 1] + s : 0);
   }
-  function attendance(day) {
-    if (!db.attendance[day]) db.attendance[day] = Object.fromEntries(DEPTS.map(([d]) => [d, [""]]));
-    return db.attendance[day];
+  let k = m, x = W, first = -1, last = -1;
+  while (k > 0 && x > 0) {
+    const s = sm[k - 1][x - 1];
+    if (s && Math.abs(dp[k][x] - (dp[k - 1][x - 1] + s)) < 1e-9) {
+      if (last < 0) last = i + x - 1;
+      first = i + x - 1; k--; x--;
+    } else if (dp[k - 1][x] >= dp[k][x - 1]) k--; else x--;
   }
-  const presentOn = day => Object.values(attendance(day)).flat().filter(Boolean);
-  const editsOf = pid => ({ current: db.edits[pid] || {}, log: db.editLog[pid] || [] });
-  const docTitle = (file, n) => file === CASE.file ? ((EXTRA.documents || []).find(d => (d.pages || []).includes(n))?.title_cs || null) : null;
-
-  /* ---------- quote matching for the source view ----------
-     Source references carry a quote from the PDF's old text layer, with its OCR errors ("MO" for "M0",
-     "lmg/kg", "1112023"). The page now shows the vision transcription and Tesseract's words, so the quote
-     is matched tolerantly: tokens compared without case, accents or punctuation, with the usual
-     O/0 and l/1/i confusions folded together. An exact run of tokens wins; otherwise the best window by a
-     weighted in-order alignment, accepted when it covers at least 60 % of the quote. */
-  const canon = t => t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]/g, "").replace(/o/g, "0").replace(/[il]/g, "1");
-  function lev(a, b) {
-    let prev = Array.from({ length: b.length + 1 }, (_, j) => j);
-    for (let i = 1; i <= a.length; i++) {
-      const cur = [i];
-      for (let j = 1; j <= b.length; j++) cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
-      prev = cur;
-    }
-    return prev[b.length];
+  return first < 0 ? null : { score: dp[m][W] / m, from: first, to: last };
+}
+function bestWindow(q, toks) {
+  const m = q.length, n = toks.length;
+  if (!m || !n) return null;
+  const exact = [];
+  for (let i = 0; i + m <= n; i++) {
+    let k = 0; while (k < m && toks[i + k].c === q[k]) k++;
+    if (k === m) exact.push(i);
   }
-  /* Partial credit for a token misread by one or two characters ("vyš" read as "wš", "CT" as "CI"),
-     or cut short by the OCR ("pánev" read as "pá"). */
-  function sim(a, b) {
-    if (a === b) return 1;
-    const short = Math.min(a.length, b.length), [s, l] = a.length <= b.length ? [a, b] : [b, a];
-    if (short < 2) return 0;
-    if (Math.abs(a.length - b.length) <= 2) {
-      const d = lev(a, b);
-      if (short >= 3 && d <= 1) return .7;
-      if ((short >= 5 && d <= 2) || (short === 2 && d <= 1)) return .5;
-      if (short >= 4 && d <= 2) return .4;
-    }
-    return s.length / l.length >= .4 && (l.startsWith(s) || l.endsWith(s)) ? .4 : 0;
+  /* A repeated quote is highlighted at its first place, and the doctor is told it occurs more than once. */
+  if (exact.length) return { from: exact[0], to: exact[0] + m - 1, score: 1, method: "exact", ambiguous: exact.length > 1 };
+  /* Among windows, prefer the one that contains the quote's numbers: lab rows share words ("[0 ... 0.7]",
+     "ukat/l") and differ only in the test name and the value. */
+  const qd = q.filter(t => /\d/.test(t));
+  const cands = [];
+  for (let i = 0; i < n; i++) {
+    const a = align(q, toks, i, m + 4);
+    if (!a) continue;
+    const span = toks.slice(a.from, a.to + 1).map(t => t.c);
+    a.rank = a.score + .1 * (qd.length ? qd.filter(d => span.includes(d)).length / qd.length : 1);
+    cands.push(a);
   }
-  const MIN_OVERLAP = .6;
-  function align(q, toks, i, L) {
-    /* Weighted longest common subsequence of the quote and the text window toks[i, i+L). */
-    const m = q.length, W = Math.min(L, toks.length - i);
-    const dp = Array.from({ length: m + 1 }, () => new Float64Array(W + 1));
-    const sm = Array.from({ length: m }, () => new Float64Array(W));
-    for (let k = 1; k <= m; k++) for (let x = 1; x <= W; x++) {
-      const s = sm[k - 1][x - 1] = sim(q[k - 1], toks[i + x - 1].c);
-      dp[k][x] = Math.max(dp[k - 1][x], dp[k][x - 1], s ? dp[k - 1][x - 1] + s : 0);
-    }
-    let k = m, x = W, first = -1, last = -1;
-    while (k > 0 && x > 0) {
-      const s = sm[k - 1][x - 1];
-      if (s && Math.abs(dp[k][x] - (dp[k - 1][x - 1] + s)) < 1e-9) {
-        if (last < 0) last = i + x - 1;
-        first = i + x - 1; k--; x--;
-      } else if (dp[k - 1][x] >= dp[k][x - 1]) k--; else x--;
-    }
-    return first < 0 ? null : { score: dp[m][W] / m, from: first, to: last };
+  cands.sort((x, y) => y.rank - x.rank || (x.to - x.from) - (y.to - y.from));
+  const best = cands[0];
+  if (!best || best.score < MIN_OVERLAP) return null;
+  const rival = cands.find(c => c.score >= MIN_OVERLAP && (c.to < best.from || c.from > best.to) && best.rank - c.rank < .05);
+  return { from: best.from, to: best.to, score: Math.round(best.score * 100) / 100, method: "overlap", ambiguous: !!rival };
+}
+const quoteTokens = quote => String(quote).split(/\s+/).map(canon).filter(Boolean);
+function lineBoxes(words) {
+  /* One box per printed line, so a highlight spanning two lines does not cover the space between them. */
+  const out = [];
+  for (const w of words) {
+    const [x, y, bw, bh] = w.b, cur = out[out.length - 1];
+    if (cur && x >= cur.x - 4 && Math.abs((y + bh / 2) - (cur.y + cur.h / 2)) < Math.max(bh, cur.h) * .6) {
+      const r = Math.max(cur.x + cur.w, x + bw), b = Math.max(cur.y + cur.h, y + bh);
+      cur.y = Math.min(cur.y, y); cur.w = r - cur.x; cur.h = b - cur.y;
+    } else out.push({ x, y, w: bw, h: bh });
   }
-  function bestWindow(q, toks) {
-    const m = q.length, n = toks.length;
-    if (!m || !n) return null;
-    const exact = [];
-    for (let i = 0; i + m <= n; i++) {
-      let k = 0; while (k < m && toks[i + k].c === q[k]) k++;
-      if (k === m) exact.push(i);
-    }
-    /* A repeated quote is highlighted at its first place, and the doctor is told it occurs more than once. */
-    if (exact.length) return { from: exact[0], to: exact[0] + m - 1, score: 1, method: "exact", ambiguous: exact.length > 1 };
-    /* Among windows, prefer the one that contains the quote's numbers: lab rows share words ("[0 ... 0.7]",
-       "ukat/l") and differ only in the test name and the value. */
-    const qd = q.filter(t => /\d/.test(t));
-    const cands = [];
-    for (let i = 0; i < n; i++) {
-      const a = align(q, toks, i, m + 4);
-      if (!a) continue;
-      const span = toks.slice(a.from, a.to + 1).map(t => t.c);
-      a.rank = a.score + .1 * (qd.length ? qd.filter(d => span.includes(d)).length / qd.length : 1);
-      cands.push(a);
-    }
-    cands.sort((x, y) => y.rank - x.rank || (x.to - x.from) - (y.to - y.from));
-    const best = cands[0];
-    if (!best || best.score < MIN_OVERLAP) return null;
-    const rival = cands.find(c => c.score >= MIN_OVERLAP && (c.to < best.from || c.from > best.to) && best.rank - c.rank < .05);
-    return { from: best.from, to: best.to, score: Math.round(best.score * 100) / 100, method: "overlap", ambiguous: !!rival };
-  }
-  const quoteTokens = quote => String(quote).split(/\s+/).map(canon).filter(Boolean);
-  function lineBoxes(words) {
-    /* One box per printed line, so a highlight spanning two lines does not cover the space between them. */
-    const out = [];
-    for (const w of words) {
-      const [x, y, bw, bh] = w.b, cur = out[out.length - 1];
-      if (cur && x >= cur.x - 4 && Math.abs((y + bh / 2) - (cur.y + cur.h / 2)) < Math.max(bh, cur.h) * .6) {
-        const r = Math.max(cur.x + cur.w, x + bw), b = Math.max(cur.y + cur.h, y + bh);
-        cur.y = Math.min(cur.y, y); cur.w = r - cur.x; cur.h = b - cur.y;
-      } else out.push({ x, y, w: bw, h: bh });
-    }
-    return out.map(r => [r.x - 3, r.y - 2, r.w + 6, r.h + 4]);
-  }
-  function matchImage(quote, words) {
-    const toks = words.map((w, i) => ({ c: canon(w.t), i })).filter(t => t.c);
-    const win = bestWindow(quoteTokens(quote), toks);
-    if (!win) return null;
-    const a = toks[win.from].i, b = toks[win.to].i;
-    return { method: win.method, score: win.score, ambiguous: win.ambiguous, words: [a, b], boxes: lineBoxes(words.slice(a, b + 1)) };
-  }
-  function matchText(quote, text) {
-    const toks = [...String(text).matchAll(/\S+/g)].map(m => ({ c: canon(m[0]), s: m.index, e: m.index + m[0].length })).filter(t => t.c);
-    const win = bestWindow(quoteTokens(quote), toks);
-    return win ? { method: win.method, score: win.score, ambiguous: win.ambiguous, range: [toks[win.from].s, toks[win.to].e] } : null;
-  }
-  /* Each "ověřit" item carries its character offsets in the vision text from scripts/build_page_index.py,
-     which aligned the two readings word by word; the text tab marks exactly that place. */
-  const verifyOf = page => (page.verify || []).map(v => ({ ...v, at: Number.isInteger(v.start) ? [v.start, v.end] : null }));
-
-  /* ---------- routes ---------- */
-  const routes = [];
-  const route = (method, pattern, fn) => routes.push({ method, parts: pattern.split("/"), fn });
-
-  route("GET", "/api/config", () => ({ today: TODAY, departments: DEPTS, users: USERS, coordinator: COORD, admin: ADMIN, schedule: SCHEDULE }));
-
-  route("GET", "/api/patients", ({ user }) => { audit(user, null, "zobrazil(a) seznam pacientů", true); return db.patients.map(pub); });
-  route("POST", "/api/patients", ({ user }) => {
-    const n = db.patients.length + 11, file = `${n}_novy`;
-    const p = { file, rid: file, id: `NO-${String(n).padStart(3, "0")}`, name: "Nový pacient", birth: null, diagnosis: "Čeká na kontrolu lékařem", mkn10: null, question: null, purpose: null, explicit: false, status: "new", slot: null, updated: TODAY, owner: user, dept: "Klinická onkologie", summary: "Ukázkový záznam vytvořený v maketě.", pages: 0 };
-    db.patients.push(p);
-    audit(user, file, "založil(a) pacienta");
-    return pub(p);
-  });
-  /* Reading one patient record is logged as opening the case. X-View only adds which screen the client says it
-     shows; whether patient data was read is decided by the content routes below, which log themselves. */
-  const VIEW_CS = { patient: "otevřel(a) případ", present: "otevřel(a) prezentaci", protocol: "otevřel(a) protokol", calendar: "zobrazil(a) detail termínu", start: "zahájil(a) MDT" };
-  route("GET", "/api/patients/:id", ({ params, headers, user }) => {
-    const p = byRid(params.id);
-    audit(user, p.file, `${VIEW_CS[headers["X-View"]] || "načetl(a) záznam pacienta"}${headers["X-Via"] === "link" ? " (odkazem nebo historií prohlížeče)" : ""}`);
-    return pub(p);
-  });
-  route("PUT", "/api/patients/:id/slot", ({ params, body, user }) => {
-    const p = byRid(params.id), { day, time } = body || {};
-    const sem = day && SCHEDULE.weekly[weekday(day)];
-    if (!sem || !(time >= sem.from && time < sem.to)) fail(422, "Termín není ve slotu semináře.");
-    const other = db.patients.find(x => x !== p && x.slot && x.slot.day === day && x.slot.time === time);
-    if (other) fail(409, "Termín je obsazený.");
-    p.slot = { day, time }; if (p.status === "new") p.status = "scheduled";
-    audit(user, p.file, `naplánoval(a) termín ${day} ${time}`);
-    return pub(p);
-  });
-  route("DELETE", "/api/patients/:id/slot", ({ params, user }) => {
-    const p = byRid(params.id);
-    p.slot = null; if (p.status === "scheduled") p.status = "new";
-    audit(user, p.file, "uvolnil(a) termín");
-    return pub(p);
-  });
-  /* The case content. Only patient 10 is fully structured in the mock; the others get their summary,
-     the sources behind it, and their document pages. Other patients' data never rides along. */
-  route("GET", "/api/patients/:id/case", ({ params, user }) => {
-    const p = audited(user, byRid(params.id), "četl(a) obsah případu");
-    if (p.full) {
-      const { full_text_by_page, ...cs } = CASE;
-      const { others, ...extra } = EXTRA;
-      return { full: true, file: p.file, case: cs, extra };
-    }
-    const ex = extraOthers[p.file] || {};
-    const sources = [["Diagnóza", ex.diagnosis_cs, ex.diagnosis_source], ["Kontext", ex.context_note_cs, ex.context_source]]
-      .filter(s => s[1] && s[2]).map(([label_cs, text_cs, ref]) => ({ label_cs, text_cs, ref }));
-    return { full: false, file: p.file, summary: p.summary || "", sources, page_count: PAGES[p.file]?.pages.length || 0 };
-  });
-  /* The guideline layer as a server call (F-27): statements quoted verbatim with full citation, guideline page
-     excerpts for the viewer, statements next to past decisions, and PubMed literature (searched with medical
-     terms only, never patient data). Guideline PDFs are not served; the client links to the publisher's copy. */
-  route("GET", "/api/patients/:id/guidance", ({ params, user }) => {
-    const p = audited(user, byRid(params.id), "četl(a) doporučené postupy k případu");
-    const empty = { guidelines: [], statements: [], past_statements: [], pages: [], literature: [], queries: [], not_retrieved: [] };
-    return p.full ? { ...empty, ...GUIDANCE } : empty;
-  });
-  route("GET", "/api/patients/:id/alerts", ({ params, user }) => {
-    const p = audited(user, byRid(params.id), "četl(a) upozornění");
-    if (!p.full) return [];
-    return CASE.flags.map((f, i) => ({ ...f, i, ack: db.acks[p.file]?.[i] || null }));
-  });
-  route("POST", "/api/patients/:id/alerts/:i/ack", ({ params, user }) => {
-    const p = byRid(params.id), i = +params.i;
-    if (!p.full || !CASE.flags[i]) fail(404, "Upozornění nenalezeno");
-    (db.acks[p.file] ||= {})[i] = { by: user, when: clock() };
-    audit(user, p.file, "vzal(a) upozornění na vědomí");
-    return { ok: true };
-  });
-  /* Doctor edits (F-38): stored next to the original with who and when; the source never changes. */
-  route("GET", "/api/patients/:id/edits", ({ params, user }) => editsOf(audited(user, byRid(params.id), "četl(a) úpravy lékařů").file));
-  route("POST", "/api/patients/:id/edits", ({ params, body, user }) => {
-    const p = byRid(params.id); mustDoctor(user);
-    const key = String(body?.key || ""), text = String(body?.text || "").trim();
-    if (!key || !text) fail(422, "Chybí klíč nebo text úpravy.");
-    const when = clock(), orig = body.orig ?? "";
-    (db.edits[p.file] ||= {})[key] = { text, by: user, when, orig };
-    (db.editLog[p.file] ||= []).push({ key, orig, text, by: user, when });
-    audit(user, p.file, `upravil(a) údaj (${key})`);
-    return editsOf(p.file);
-  });
-  route("DELETE", "/api/patients/:id/edits/:key", ({ params, user }) => {
-    const p = byRid(params.id); mustDoctor(user);
-    const cur = db.edits[p.file]?.[params.key];
-    if (!cur) fail(404, "Úprava nenalezena");
-    /* The log only grows: a revert is a new entry, the earlier edit stays visible in the edit log. */
-    (db.editLog[p.file] ||= []).push({ key: params.key, orig: cur.orig, text: cur.orig, by: user, when: clock(), reverted: true });
-    delete db.edits[p.file][params.key];
-    audit(user, p.file, `vrátil(a) původní údaj (${params.key})`);
-    return editsOf(p.file);
-  });
-  route("GET", "/api/patients/:id/protocol", ({ params, user }) => proto(audited(user, byRid(params.id), "četl(a) protokol").file));
-  /* Saves carry the version they were based on; a save based on an older version is refused, so a late
-     request can never overwrite newer text (requests over a network can arrive out of order). */
-  route("PUT", "/api/patients/:id/protocol", ({ params, body, user }) => {
-    const p = byRid(params.id), pr = proto(p.file);
-    if (pr.state === "approved") fail(409, "Protokol je schválen; změna vyžaduje nový závěr.");
-    if (body.version !== pr.version) fail(409, "Protokol mezitím změnil někdo jiný; načtěte ho znovu.");
-    /* Notes and steps are shared work (the coordinator writes tasks too); the conclusion is written by a doctor. */
-    if (typeof body.concl === "string" && body.concl !== pr.concl) mustDoctor(user);
-    pr.version++;
-    if (body.mode === "manual" || body.mode === "ai") pr.mode = body.mode;
-    if (typeof body.notes === "string") pr.notes = body.notes;
-    if (typeof body.concl === "string") pr.concl = body.concl;
-    if (Array.isArray(body.steps)) pr.steps = body.steps.map(s => ({ text: String(s.text || ""), who: String(s.who || COORD), due: String(s.due || "") }));
-    if (body.dev && typeof body.dev === "object") pr.dev = cleanDev(body.dev);
-    /* Saves come every few keystrokes, so repeated saves within a minute are one audit entry. */
-    audit(user, p.file, "upravil(a) koncept protokolu", true);
-    return pr;
-  });
-  /* A new conclusion supersedes the approved one; the old one stays in the decision history (decision 3). */
-  route("POST", "/api/patients/:id/protocol/new-version", ({ params, user }) => {
-    const p = byRid(params.id);
-    /* Only an approved conclusion can be superseded; a draft in progress is never wiped by this route. */
-    if (db.protos[p.file]?.state !== "approved") fail(409, "Není schválený závěr, který by nový závěr nahradil.");
-    db.protos[p.file] = { pid: p.file, mode: "manual", notes: "", concl: "", steps: [], state: "draft", version: (db.protos[p.file]?.version || 0) + 1 };
-    p.status = "scheduled";
-    audit(user, p.file, "založil(a) nový závěr");
-    return db.protos[p.file];
-  });
-  route("GET", "/api/patients/:id/decisions", ({ params, user }) => { const p = audited(user, byRid(params.id), "četl(a) závěry MDT"); return db.decisions.filter(d => d.pid === p.file); });
-  /* Approval: a named doctor, marked present, confirms the conclusion. The request carries the text, the steps
-     and the protocol version the doctor saw, so the decision is exactly what was on screen. The server freezes
-     a structured snapshot (patient record, attendance, edits, ticked report fields), creates the coordinator's
-     tasks and the e-mail, and appends the decision; nothing is overwritten. The client renders the frozen report
-     from that snapshot with escaping; no client HTML is stored. */
-  /* Deviations from the quoted guideline recommendations, recorded by the MDT per statement (F-27). */
-  const DEV_STATES = ["", "follows", "deviates", "na"];
-  const cleanDev = dev => Object.fromEntries(Object.entries(dev || {})
-    .filter(([id, d]) => (GUIDANCE.statements || []).some(st => st.id === id) && DEV_STATES.includes(d?.s || ""))
-    .map(([id, d]) => [id, { s: d.s || "", why: String(d.why || "") }]));
-  const REPORT_FIELDS = ["summary", "clinical_finding", "imaging", "histology", "past_treatment", "current_state"];
-  /* The citation as the client prints it (name, society, year, version; section; page). The approval snapshot stores
-     each recorded deviation with its quote and citation, so the approved report shows them even when the guideline
-     layer is switched off later or the guideline data changes. */
-  const citeOf = st => { const g = (GUIDANCE.guidelines || []).find(x => x.id === st.guideline_id) || {}; return `${g.name || ""}, ${g.society || ""} ${g.year || ""}${g.version ? ", " + g.version : ""}; ${st.section || ""}; ${st.pdf_page ? "s. " + (st.printed_page || st.pdf_page) : "abstrakt"}`; };
-  const devRows = dev => (GUIDANCE.statements || []).filter(st => dev[st.id]?.s).map(st => ({ id: st.id, quote: st.quote, cite: citeOf(st), s: dev[st.id].s, why: dev[st.id].why }));
-  route("POST", "/api/patients/:id/decisions", ({ params, body, user }) => {
-    const p = byRid(params.id), pr = proto(p.file);
-    if (pr.state === "approved") fail(409, "Závěr je už schválen; nejdřív založte nový závěr.");
-    mustDoctor(user);
-    if (body.version !== pr.version) fail(409, "Protokol se mezitím změnil; zkontrolujte ho a schvalte znovu.");
-    const text = String(body?.text ?? "").trim();
-    if (!text) fail(422, "Chybí text závěru.");
-    const steps = (Array.isArray(body.steps) ? body.steps : []).map(s => ({ text: String(s.text || "").trim(), who: String(s.who || COORD), due: String(s.due || "") })).filter(s => s.text);
-    const present = presentOn(attDay(p));
-    if (!present.includes(user)) fail(403, "Závěr schvaluje lékař označený jako přítomný.");
-    const when = clock();
-    const snap = {
-      patient: pub(p), present, concl: text, steps, approver: user, when,
-      edits: structuredClone(db.edits[p.file] || {}),
-      picked: (Array.isArray(body.picked) ? body.picked : []).filter(k => REPORT_FIELDS.includes(k)),
-      dev: cleanDev(body.dev),
-      /* Whether the deviations section was in the report the doctor approved (the guideline layer was on). */
-      guide_on: body.guide_on !== false && !!p.full && (GUIDANCE.statements || []).length > 0,
-    };
-    snap.dev_rows = devRows(snap.dev);
-    Object.assign(pr, { concl: text, steps, dev: snap.dev, state: "approved", approver: user, when, attSnap: present, snap, version: pr.version + 1 });
-    p.status = "done"; p.updated = TODAY;
-    const dec = { pid: p.file, n: db.decisions.filter(d => d.pid === p.file).length + 1, text, by: user, when, attSnap: present, snap };
-    db.decisions.push(dec);
-    let id = Math.max(0, ...db.tasks.map(x => x.id));
-    steps.forEach(s => db.tasks.push({ id: ++id, pid: p.file, text: s.text, who: s.who, due: s.due, done: false }));
-    /* The e-mail carries only the case ID, the count and a link, never medical data. */
-    if (steps.length) db.mails.unshift({ pid: p.file, id: p.id, n: steps.length, to: COORD });
-    audit(user, p.file, "schválil(a) závěr MDT");
-    return { decision: dec, protocol: pr, tasks_created: steps.length };
-  });
-  route("GET", "/api/seminars/:day/attendance", ({ params }) => attendance(params.day));
-  route("PUT", "/api/seminars/:day/attendance", ({ params, body, user }) => {
-    const next = {};
-    for (const [d, docs] of DEPTS) {
-      const list = Array.isArray(body?.[d]) ? body[d].map(String) : [""];
-      if (list.some(x => x && !docs.includes(x))) fail(422, `Neznámý lékař v oddělení ${d}`);
-      next[d] = list.length ? list : [""];
-    }
-    db.attendance[params.day] = next;
-    audit(user, null, `upravil(a) přítomnost na semináři ${params.day}`);
-    return next;
-  });
-  /* Tasks: ?assignee= gives the tasks assigned to that person; &owner= adds the tasks on cases they own. */
-  route("GET", "/api/tasks", ({ query }) => {
-    const a = query.get("assignee"), o = query.get("owner");
-    return db.tasks.filter(t => (!a && !o) || t.who === a || (o && byFile(t.pid)?.owner === o)).map(t => ({ ...t, case_id: byFile(t.pid)?.id || t.pid }));
-  });
-  route("PATCH", "/api/tasks/:id", ({ params, body, user }) => {
-    const t = db.tasks.find(x => x.id === +params.id) || fail(404, "Úloha nenalezena");
-    if (typeof body?.done === "boolean") t.done = body.done;
-    audit(user, t.pid, `označil(a) úlohu jako ${t.done ? "hotovou" : "nehotovou"}`);
-    return { ...t, case_id: byFile(t.pid)?.id || t.pid };
-  });
-  route("GET", "/api/mails", () => db.mails);
-  /* Doctors' edits across all cases, for the administrator (round 4: the edit log moved to Administrace). */
-  route("GET", "/api/edits", ({ user }) => roleOf(user) === "admin"
-    ? Object.entries(db.editLog).flatMap(([pid, log]) => log.map(e => ({ ...e, pid, case_id: byFile(pid)?.id || pid })))
-    : fail(403, "Záznam úprav vidí jen správce systému."));
-  route("GET", "/api/audit", ({ user }) => roleOf(user) === "admin" ? db.audit : fail(403, "Záznam přístupů vidí jen správce systému."));
-  route("GET", "/api/documents/:file", ({ params }) => {
-    const doc = PAGES[params.file] || fail(404, "Dokument nenalezen");
-    return { file: params.file, case_id: byFile(params.file)?.id || null, pages: doc.pages.map(p => ({ n: p.n, empty: /^\s*\[prázdná stránka\]\s*$/.test(p.text) })) };
-  });
-  const pageOf = params => {
-    const doc = PAGES[params.file] || fail(404, "Dokument nenalezen");
-    return [doc, doc.pages.find(p => p.n === +params.n) || fail(404, "Strana nenalezena")];
-  };
-  /* Where a quote sits on the page image (word boxes) and in the vision text (character range). The quote
-     travels in the request body, not the URL: quotes can contain names, and URLs end up in logs. */
-  route("POST", "/api/documents/:file/pages/:n/locate", ({ params, body }) => {
-    const [, pg] = pageOf(params), quote = String(body?.quote || "");
-    if (!quote) fail(422, "Chybí citace.");
-    return { image: matchImage(quote, pg.words), text: matchText(quote, pg.text) };
-  });
-  /* One page for the source view: the image, the vision text, Tesseract's words and the "ověřit" items. */
-  route("GET", "/api/documents/:file/pages/:n", ({ params, user }) => {
-    const [doc, pg] = pageOf(params);
-    const owner = byFile(params.file);
-    audit(user, owner ? owner.file : null, `zobrazil(a) zdroj s. ${pg.n}`);
-    return {
-      file: params.file, n: pg.n, of: doc.pages.length, doc_title: docTitle(params.file, pg.n),
-      image: pg.image, size: pg.size, text: pg.text, engine: pg.engine,
-      empty: /^\s*\[prázdná stránka\]\s*$/.test(pg.text),
+  return out.map(r => [r.x - 3, r.y - 2, r.w + 6, r.h + 4]);
+}
+function matchImage(quote, words) {
+  const toks = words.map((w, i) => ({ c: canon(w.t), i })).filter(t => t.c);
+  const win = bestWindow(quoteTokens(quote), toks);
+  if (!win) return null;
+  const a = toks[win.from].i, b = toks[win.to].i;
+  return { method: win.method, score: win.score, ambiguous: win.ambiguous, words: [a, b], boxes: lineBoxes(words.slice(a, b + 1)) };
+}
+function matchText(quote, text) {
+  const toks = [...String(text).matchAll(/\S+/g)].map(m => ({ c: canon(m[0]), s: m.index, e: m.index + m[0].length })).filter(t => t.c);
+  const win = bestWindow(quoteTokens(quote), toks);
+  return win ? { method: win.method, score: win.score, ambiguous: win.ambiguous, range: [toks[win.from].s, toks[win.to].e] } : null;
+}
+/* Each "ověřit" item carries its character offsets in the vision text from scripts/build_page_index.py,
+   which aligned the two readings word by word; the text tab marks exactly that place. */
+const verifyOf = page => (page.verify || []).map(v => ({ ...v, at: Number.isInteger(v.start) ? [v.start, v.end] : null }));
+const srcApi = {
+  /* The page list of one document; null when the file has no page images. */
+  document(file) {
+    const doc = SERVER_PAGES[file];
+    if (!doc) return null;
+    return { file, case_id: P(file)?.id || null, pages: doc.pages.map(p => ({ n: p.n, empty: isEmptyPage(p.text) })) };
+  },
+  /* One page: the image, the vision text, Tesseract's words and the "ověřit" items. */
+  page(file, n) {
+    const doc = SERVER_PAGES[file], pg = doc?.pages.find(p => p.n === n);
+    if (!pg) return null;
+    const title = file === CASE.file ? ((EXTRA.documents || []).find(d => (d.pages || []).includes(n))?.title_cs || null) : null;
+    return structuredClone({
+      file, n: pg.n, of: doc.pages.length, doc_title: title,
+      image: pg.image, size: pg.size, text: pg.text, engine: pg.engine, empty: isEmptyPage(pg.text),
       mean_conf: pg.mean_conf, low_conf_words: pg.low_conf_words,
       words: pg.words, verify: verifyOf(pg),
       /* Local redaction demo (DATA-PROTECTION.md, option B): the image that would go to a cloud model. */
       redacted: pg.redacted || null,
-    };
-  });
-
-  function dispatch(method, url, body, headers) {
-    const [path, qs = ""] = url.split("?");
-    const parts = path.split("/");
-    for (const r of routes) {
-      if (r.method !== method || r.parts.length !== parts.length) continue;
-      const params = {};
-      const hit = r.parts.every((seg, i) => seg.startsWith(":") ? ((params[seg.slice(1)] = decodeURIComponent(parts[i])), true) : seg === parts[i]);
-      if (!hit) continue;
-      const user = headers["X-User"] || null;
-      if (path !== "/api/config" && !roleOf(user)) fail(401, "Neznámý uživatel (hlavička X-User)");
-      return r.fn({ params, query: new URLSearchParams(qs), body: body || {}, headers, user });
-    }
-    fail(404, `Neznámá cesta ${method} ${path}`);
-  }
-  /* Every call resolves asynchronously, as a network call would. With ?latency=<ms> in the page URL each request
-     waits a random 0 to <ms> milliseconds before the server handles it, so requests can overtake each other as
-     over a real network; the test uses it to check the client copes. */
-  const LATENCY = Math.max(0, +new URLSearchParams(location.search).get("latency") || 0);
-  const later = fn => LATENCY ? setTimeout(fn, Math.random() * LATENCY) : queueMicrotask(fn);
-  /* The body is copied when the request is made, as fetch() serializes it then; later changes do not travel. */
-  const call = (method, path, body, headers = {}) => { const sent = body === undefined ? undefined : structuredClone(body); return new Promise((resolve, reject) => later(() => {
-    try { resolve(structuredClone(dispatch(method, path, sent, { ...headers }) ?? null)); }
-    catch (err) {
-      if (err && err.status) reject({ status: err.status, error: err.error });
-      else { console.error(err); reject({ status: 500, error: String(err?.message || err) }); }
-    }
-  })); };
-  return {
-    get: (path, headers) => call("GET", path, undefined, headers),
-    post: (path, body, headers) => call("POST", path, body, headers),
-    put: (path, body, headers) => call("PUT", path, body, headers),
-    patch: (path, body, headers) => call("PATCH", path, body, headers),
-    del: (path, headers) => call("DELETE", path, undefined, headers),
-  };
-})();
-</script>
-
-<script>
-"use strict";
-/* =====================================================================================
-   CLIENT: screens, UI state and a cache of server responses.
-
-   The client never reads the embedded JSON or the server's records. Each screen change runs
-   load(), which awaits the api calls the screen needs and keeps the responses in C; render()
-   then draws synchronously from C. A change goes to the server (post, put, patch, del), the
-   cache is dropped, and the screen loads and renders again.
-
-   To move to a real backend, replace the `api` object of the server block with fetch() calls
-   to the same routes, for example:
-     const api = {
-       get: (p, h) => fetch(p, { headers: h }).then(r => r.ok ? r.json() : r.json().then(e => Promise.reject({ status: r.status, ...e }))),
-       post: (p, b, h) => fetch(p, { method: "POST", headers: { "Content-Type": "application/json", ...h }, body: JSON.stringify(b) }).then(...),
-       ...
-     };
-   and send a session token instead of the X-User header. Nothing below needs to change.
-   ===================================================================================== */
-/* The template has no <html> tag of its own (the publisher wraps it), so the language is set here: Czech date
-   inputs and screen readers read the page as Czech. */
-document.documentElement.lang = "cs";
-/* Guideline layer (F-27, team decision 2026-10-16): verbatim statements with full citation; never invented.
-   GUIDE is the cached GET /api/patients/:id/guidance response of the case on screen, bound in load(). */
+    });
+  },
+  /* Where a quote sits on the page image (word boxes) and in the vision text (character range). A real
+     backend takes the quote in a POST body, not the URL: quotes can contain names, and URLs end up in logs. */
+  locate(file, n, quote) {
+    const pg = SERVER_PAGES[file]?.pages.find(p => p.n === n);
+    return pg && quote ? { image: matchImage(quote, pg.words), text: matchText(quote, pg.text) } : { image: null, text: null };
+  },
+};
 let GUIDE = {};
+async function loadGuidance(p) {
+  if (S.guideFor === p.id) return;
+  S.guideFor = p.id; GUIDE = { loading: true };
+  const res = await api.guidance(p.id);
+  if (S.guideFor === p.id) { GUIDE = res; render(); }
+}
 const GL = id => (GUIDE.guidelines || []).find(g => g.id === id) || {};
 const STMTS = () => GUIDE.statements || [];
 const PAST = () => GUIDE.past_statements || [];
@@ -1046,8 +675,19 @@ const plural = (n, one, few, many) => `${n} ${n === 1 ? one : n >= 2 && n <= 4 ?
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const fmtDate = iso => { if (!iso) return GAP; const [y, m, d] = iso.split("-"); return `${+d}. ${+m}. ${y}`; };
 
-/* Staff, roles and the seminar schedule are server data (GET /api/config), set once at start-up. */
-let DEPTS = [], COORD = "", ADMIN = "", USERS = [], ROLES = {};
+/* Fictional staff, configured per department (Soňa's attendance design). */
+const DEPTS = [
+  ["Neurochirurgie", ["MUDr. Novák", "MUDr. Dvořák"]],
+  ["Klinická onkologie", ["MUDr. Svobodová", "MUDr. Malá"]],
+  ["Radiační onkologie", ["MUDr. Černý", "MUDr. Horáková"]],
+  ["Radiologie", ["MUDr. Procházka", "MUDr. Veselá"]],
+  ["Neurologie", ["MUDr. Beneš", "MUDr. Pokorná"]],
+  ["Patologie", ["MUDr. Králová", "MUDr. Němcová"]],
+];
+const COORD = "Bc. Marková (koordinátorka MDT)";
+const ADMIN = "Ing. Kovář (správce systému)";
+const USERS = ["MUDr. Svobodová", "MUDr. Novák", "MUDr. Procházka", COORD, ADMIN];
+
 const STATUS = {
   new: ["Nový", "st-new"], scheduled: ["Naplánován", "st-scheduled"], attention: ["Vyžaduje pozornost", "st-attention"],
   ready: ["Připraven", "st-ready"], done: ["Projednán", "st-done"],
@@ -1058,106 +698,76 @@ const ALERT = { missing: ["Chybí", "k-missing"], contradiction: ["Rozpor", "k-c
    Dates are handled as ISO strings at noon UTC so no time zone can shift a day. */
 const WD = ["Ne", "Po", "Út", "St", "Čt", "Pá", "So"];
 const MONTHS = ["leden", "únor", "březen", "duben", "květen", "červen", "červenec", "srpen", "září", "říjen", "listopad", "prosinec"];
+/* One neuro-oncology MDT a week (example: Thursday 14:00-16:00); every other slot is greyed out (Soňa, round 3). */
+const SEM_BY_WEEKDAY = { 4: ["14:00", "16:00", "Neuroonkologický seminář"] };
 const dObj = iso => new Date(iso + "T12:00:00Z");
 const isoOf = d => d.toISOString().slice(0, 10);
 const addDays = (iso, n) => { const d = dObj(iso); d.setUTCDate(d.getUTCDate() + n); return isoOf(d); };
 const mondayOf = iso => { const d = dObj(iso); return addDays(iso, -((d.getUTCDay() + 6) % 7)); };
 const dayLabel = iso => { const d = dObj(iso); return `${WD[d.getUTCDay()]} ${d.getUTCDate()}. ${d.getUTCMonth() + 1}.`; };
-/* One neuro-oncology MDT a week (example: Thursday 14:00-16:00) in 10-minute slots; every other slot is greyed
-   out (Soňa, round 3). The schedule comes from GET /api/config at start-up. */
-let TODAY = "2026-10-16", SLOT_MIN = 10, TIMES = [];
-const seminarOn = iso => { const s = C.cfg.schedule.weekly[dObj(iso).getUTCDay()]; return s ? [s.from, s.to, s.title] : null; };
+const seminarOn = iso => SEM_BY_WEEKDAY[dObj(iso).getUTCDay()] || null;
+const TODAY = "2026-10-16";
+const TIMES = []; for (let h = 12; h < 17; h++) for (let m = 0; m < 60; m += 10) TIMES.push(`${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`);
+const SLOT_MIN = 10;
 const slotEnd = t => { const [h, m] = t.split(":").map(Number), x = h * 60 + m + SLOT_MIN; return `${String(Math.floor(x / 60)).padStart(2, "0")}:${String(x % 60).padStart(2, "0")}`; };
 
-/* UI state only: what is shown, filters, selection, open panels. Records live on the server. */
-const S = {
-  view: "patients", pid: null, tab: "overview", brief: "brief", user: null,
-  q: "", colf: {}, colOpen: null, subFrom: "", subTo: "", dbPage: 0, dbAll: false,
-  week: mondayOf("2026-10-22"), miniMonth: "2026-10", labMode: "doc", guideOn: true, labSel: null,
-  selTl: null, picked: new Set(["summary", "imaging", "histology", "past_treatment"]),
-  schedPick: null, calPop: null, overlay: null, tlScroll: 0, openFind: new Set(), taskScope: "mine", srcTab: "image",
-};
+/* Patients: identity from the documents; owner, department and slot are example values where the documents are silent. */
+const extraOthers = Object.fromEntries((EXTRA.others || []).map(o => [o.file, o]));
+const nr = file => String(file).replace("_pacient.pdf", "");
+const caseId = file => `NO-${nr(file).padStart(3, "0")}`;
+const ownerFor = i => DEPTS[i % 2 === 0 ? 1 : 0][1][i % 2];
+function initialPatients() {
+  const p10 = {
+    file: CASE.file, name: CASE.patient.name, nameAsWritten: CASE.patient.name_as_written, rc: CASE.patient.birth_number || null, birth: CASE.patient.birth_date || null, age: CASE.patient.age || null,
+    /* Database format (Soňa, round 3): histology and TNM; the second line says the TNM is from diagnosis and why the case is here now. */
+    diagnosis: EXTRA.diagnosis_headline ? `${EXTRA.diagnosis_headline.histology_cs}, ${EXTRA.diagnosis_headline.tnm_cs.replace("(", " (")}` : "Světlobuněčný karcinom ledviny",
+    diagnosisNote: "pTNM při diagnóze 6/2022 · nyní susp. MTS v mozečku", mkn10: CASE.diagnosis?.code || null,
+    question: CASE.mdt_question.text_cs, purpose: CASE.mdt_question.closest_source?.quote, explicit: !!CASE.mdt_question.text_cs,
+    status: "ready", slot: { day: "2026-10-22", time: "14:00" }, updated: "2026-10-16", full: true,
+  };
+  const slots = [["2026-10-22", "14:10"], ["2026-10-22", "14:20"], ["2026-10-22", "14:30"], ["2026-10-22", "14:40"], null, ["2026-10-22", "14:50"], null, ["2026-10-22", "15:00"], null];
+  const others = OTHERS.map((o, i) => {
+    const ex = extraOthers[o.file] || {};
+    const slot = slots[i] ? { day: slots[i][0], time: slots[i][1] } : null;
+    const hasQ = o.mdt_question_cs && o.mdt_question_explicit !== false;
+    return {
+      file: o.file, name: o.name,
+      birth: /\d{1,2}\.\d{1,2}\.\d{4}/.test(o.age_or_birth || "") ? o.age_or_birth.replace(/^nar\.\s*/, "") : null,
+      age: /let/.test(o.age_or_birth || "") ? o.age_or_birth : null,
+      warn: /ověřit identitu|prohozen/i.test(o.note || "") ? o.note : null,
+      diagnosis: ex.diagnosis_cs || o.main_problem_cs, mkn10: ex.mkn10 || null,
+      question: hasQ ? o.mdt_question_cs : null, purpose: o.mdt_question_cs, explicit: !!hasQ,
+      summary: o.one_line_summary_cs, pages: o.page_count,
+      referrer: ex.referring_doctor || null, dept: ex.referring_department || null,
+      status: !slot ? "new" : /ověřit identitu|useknut/i.test(o.note || "") ? "attention" : "scheduled", slot, updated: "2026-10-15",
+    };
+  });
+  return [p10, ...others].map((p, i) => ({
+    ...p, id: caseId(p.file),
+    owner: p.referrer || ownerFor(i), ownerExample: !p.referrer,
+    /* Date the case was submitted to the MDT; the documents do not state it, so it is an example value. */
+    submitted: addDays("2026-10-15", -[1, 3, 5, 8, 12, 15, 19, 26, 33, 40][i % 10]), submittedExample: true,
+    dept: p.dept || ["Nemocnice Havířov, neurologie", "Slezská nemocnice v Opavě, onkologie", "Nemocnice Karviná-Ráj, neurochirurgie", "FN Ostrava, Klinika onkologická"][i % 4], deptExample: !p.dept,
+  }));
+}
 
-/* ---------- api access and the response cache ---------- */
-/* The stubbed login: every request names the current user, as a session token would. */
-const enc = encodeURIComponent;
-const withUser = (h = {}) => ({ "X-User": S.user, ...h });
-const http = {
-  get: (p, h) => api.get(p, withUser(h)),
-  post: (p, b, h) => api.post(p, b, withUser(h)),
-  put: (p, b, h) => api.put(p, b, withUser(h)),
-  patch: (p, b, h) => api.patch(p, b, withUser(h)),
-  del: (p, h) => api.del(p, withUser(h)),
+const S = {
+  view: "patients", pid: CASE.file, tab: "overview", brief: "brief", user: USERS[0],
+  patients: initialPatients(), q: "", colf: {}, colOpen: null, editLog: [], subFrom: "", subTo: "", dbPage: 0, dbAll: false,
+  week: mondayOf("2026-10-22"), miniMonth: "2026-10", labMode: "doc", guideOn: true, labSel: null, edits: {},
+  selTl: null, picked: new Set(["summary", "imaging", "histology", "past_treatment"]),
+  acks: {}, access: [], decisions: [], tasks: [
+    { id: 1, pid: "2_pacient.pdf", text: "doplnit pooperační MR do podkladů", who: COORD, due: "2026-10-21", done: false },
+    { id: 2, pid: "13_pacient.pdf", text: "vyžádat snímky MR 8/2025 ke srovnání", who: COORD, due: "2026-10-21", done: true },
+  ],
+  mails: [], protos: {}, attByDay: {}, schedPick: null, calPop: null, overlay: null, tlScroll: 0, openFind: new Set(), taskScope: "mine", srcTab: "image",
 };
-/* Stale entries are refetched on the next load but stay readable until the reply arrives, so an event that
-   fires mid-reload (a keystroke while a request is under way) still finds the data it needs. */
-const C = { cfg: null, r: {}, stale: new Set() };
-async function need(path) {
-  if (!(path in C.r) || C.stale.has(path)) { const v = await http.get(path); C.r[path] = v; C.stale.delete(path); }
-  return C.r[path];
-}
-const got = path => C.r[path];
-/* After any change, drop everything that can change; the case content, the guidance and the document
-   pages never change in the mock, so they stay cached. */
-function dropMutable() {
-  for (const k of Object.keys(C.r)) {
-    if (/\/case$|\/guidance$|^\/api\/documents\//.test(k)) continue;
-    /* A protocol draft is the doctor's typing in progress (UI state); a reload must not replace it with an older
-       server copy. Approval, a new version and a refused save drop it explicitly (dropProto). */
-    if (/\/protocol$/.test(k) && C.r[k]?.state === "draft") continue;
-    C.stale.add(k);
-  }
-}
-const dropProto = pid => { C.stale.add(`${PT(pid)}/protocol`); };
-const pats = () => got("/api/patients") || [];
-const P = file => pats().find(p => p.file === file);
-const PT = file => `/api/patients/${enc(P(file)?.rid ?? String(file).replace("_pacient.pdf", ""))}`;
-const role = u => ROLES[u] || (DEPTS.some(([, d]) => d.includes(u)) ? "doctor" : null);
-const isDoctor = u => role(u) === "doctor";
-/* "Moje" tasks: assigned to the user, or (for a doctor) on a case they own. The nav badge and the task list
-   use the same request, so the badge counts exactly what the list shows. */
-const myTasksPath = () => role(S.user) === "coordinator" ? `/api/tasks?assignee=${enc(S.user)}` : `/api/tasks?assignee=${enc(S.user)}&owner=${enc(S.user)}`;
-const taskListPath = () => S.taskScope === "all" ? "/api/tasks" : myTasksPath();
-const editsOf = (pid = S.pid) => got(`${PT(pid)}/edits`) || { current: {}, log: [] };
-const decs = (pid = S.pid) => got(`${PT(pid)}/decisions`) || [];
-const alertsOf = (pid = S.pid) => got(`${PT(pid)}/alerts`) || [];
-/* The render functions read the case on screen through CASE and EXTRA; load() points them at the cached
-   GET /api/patients/:id/case response of the patient being shown. */
-let CASE = null, EXTRA = {}, BRIEF_CS = null, BRIEF_REFS = null;
-async function load() {
-  await need("/api/patients");
-  await need(myTasksPath());
-  const focus = S.view === "calendar" ? S.calPop : ["patient", "present", "protocol"].includes(S.view) ? S.pid : null;
-  if (focus && P(focus)) {
-    const cs = await need(`${PT(focus)}/case`);
-    /* The conclusion draft is written in the patient overview and the attendance counts on every case screen,
-       so the protocol and the seminar attendance load with the case. */
-    const caseScreen = S.view !== "calendar";
-    await Promise.all([need(`${PT(focus)}/edits`), need(`${PT(focus)}/decisions`), cs.full ? need(`${PT(focus)}/alerts`) : null,
-      caseScreen ? need(`${PT(focus)}/protocol`) : null, caseScreen ? need(attPath(P(focus).att_day)) : null, caseScreen ? need("/api/mails") : null]);
-    /* The guideline layer is a separate server call, made only while the layer is switched on. */
-    const guide = cs.full && S.guideOn ? await need(`${PT(focus)}/guidance`) : null;
-    CASE = cs.full ? cs.case : null; EXTRA = cs.full ? cs.extra : {}; GUIDE = guide || {};
-  } else { CASE = null; EXTRA = {}; GUIDE = {}; }
-  /* v3 brief in the clinicians' own compact style, staging first (round 4); v2 keeps its own brief. */
-  BRIEF_CS = EXTRA.onco_summary_v3_cs || EXTRA.onco_brief_v3_cs || EXTRA.onco_brief_cs;
-  BRIEF_REFS = EXTRA.onco_summary_v3_refs || EXTRA.onco_brief_v3_refs || EXTRA.onco_brief_refs;
-  if (S.overlay?.kind === "start") await need(attPath(S.overlay.day));
-  if (S.view === "tasks") await Promise.all([need(taskListPath()), need("/api/mails")]);
-  /* The audit log grows with every request, so the admin screen always reads it fresh. */
-  if (S.view === "admin") {
-    const admin = role(S.user) === "admin";
-    C.r["/api/audit"] = admin ? await http.get("/api/audit").catch(e => ({ error: e.error })) : null;
-    C.r["/api/edits"] = admin ? await http.get("/api/edits").catch(() => []) : null;
-  }
-}
-async function show() { await flushProto(); await load(); render(); }
-async function mutated() { await flushProto(); dropMutable(); await show(); }
-const fail = err => { console.warn(err); toast(err?.error || "Požadavek se nezdařil"); };
+const P = id => S.patients.find(p => p.file === id);
 
 /* ---------- small UI helpers ---------- */
 /* Identity as the MDT team reads it (Soňa, round 3): surname first, then the birth number. No FNO document
    in the challenge data contains a birth number, so it shows as not stated; never invented. */
+const lastMdt = p => { const d = S.decisions.filter(x => x.pid === p.file); return d.length ? d[d.length - 1].when.split(",")[0] : null; };
 const surnameFirst = p => p.nameAsWritten || (p.name.includes(" ") ? p.name.split(" ").slice(-1)[0] + " " + p.name.split(" ").slice(0, -1).join(" ") : p.name);
 const rcText = p => p.rc || "-";
 /* Age as a bare number (round 4); from a stated age, or computed from a stated birth date. */
@@ -1167,14 +777,10 @@ const statusChip = p => `<span class="chip ${STATUS[p.status][1]}">${STATUS[p.st
 const slotText = p => p.slot ? `${dayLabel(p.slot.day)} ${p.slot.day.slice(0, 4)} · ${p.slot.time}-${slotEnd(p.slot.time)}` : "nenaplánováno";
 
 /* Doctor edits (Soňa: "everything editable"). An edit never changes the source document or the
-   extracted value; the server stores it next to it with who and when, and the UI marks it as edited. */
+   extracted value; it is stored next to it with who and when, and the UI marks it as edited. */
 /* Edits are keyed per patient, so one patient's correction can never show up on another's case. */
 const EK = (key, pid = S.pid) => `${pid}|${key}`;
-/* While a frozen report is rendered, edits come from the approval snapshot, so later edits never change it. */
-let SNAP = null;
-const edOf = (key, pid = S.pid) => SNAP && SNAP.patient.file === pid ? SNAP.edits[key] : editsOf(pid).current[key];
-/* The edit dialog carries the full key "<patient file>|<field key>". */
-const splitKey = k => { const [pid, ...rest] = k.split("|"); return [pid, rest.join("|")]; };
+const edOf = (key, pid = S.pid) => S.edits[EK(key, pid)];
 function ed(key, orig, opts = {}) {
   const e = edOf(key);
   const text = e ? e.text : orig;
@@ -1206,6 +812,7 @@ function marks(f) {
   return h;
 }
 function toast(msg) { const t = document.createElement("div"); t.className = "toast"; t.textContent = msg; document.body.appendChild(t); setTimeout(() => t.remove(), 2600); }
+function logAccess(pid, what) { S.access.unshift({ pid, what, who: S.user, when: new Date().toLocaleTimeString("cs-CZ", { hour: "2-digit", minute: "2-digit", second: "2-digit" }) }); }
 
 /* Paper-style references: each view numbers its sources [1], [2] in order of first use. */
 function refRegistry() {
@@ -1256,11 +863,14 @@ const letterOf = c => c.kind === "imaging" ? ((String(c.title_cs).match(/\b(CT|M
 const TL_HELP = "Posuňte vodorovně, kliknutím na událost otevřete zdrojový dokument. Písmena: D diagnóza, Ch chirurgický výkon, CT/MR/UZ zobrazovací vyšetření, F farmakoterapie, RT radioterapie, H histologie, K kontrola.";
 
 /* ---------- navigation ---------- */
+/* "Moje" tasks: assigned to the user, or (for a doctor) on a case they own. The nav badge and the task list
+   share this rule so the badge counts exactly what the list shows. */
+const myTasks = () => S.tasks.filter(t => t.who === S.user || (S.user !== COORD && P(t.pid)?.owner === S.user));
 function renderNav() {
-  const open = (got(myTasksPath()) || []).filter(t => !t.done).length;
+  const open = myTasks().filter(t => !t.done).length;
   const items = [["patients", "Databáze pacientů"], ["calendar", "Kalendář MDT"], ["tasks", `Moje úlohy<span class="count">${open}</span>`]];
   /* The audit log is for administrators only (Soňa and Juro, round 2); doctors do not see it. */
-  if (role(S.user) === "admin") items.push(["admin", "Administrace"]);
+  if (S.user === ADMIN) items.push(["admin", "Administrace"]);
   document.getElementById("nav").innerHTML = items.map(([k, t]) => `<button data-nav="${k}" aria-current="${S.view === k || (k === "patients" && ["patient", "present", "protocol"].includes(S.view))}">${t}</button>`).join("");
   document.getElementById("user").innerHTML = USERS.map(u => `<option ${u === S.user ? "selected" : ""}>${esc(u)}</option>`).join("");
 }
@@ -1280,7 +890,7 @@ const DCOLS = [
   ["dread", "Čitelnost", d => READ_CS[d.readability] || d.readability],
 ];
 /* One filter mechanism for every table: [key, title, getter] plus the rows it filters. */
-const colDef = key => { const c = COLS.find(x => x[0] === key); if (c) return { get: c[2], items: pats() }; const dc = DCOLS.find(x => x[0] === key); return { get: dc[2], items: EXTRA.documents || [] }; };
+const colDef = key => { const c = COLS.find(x => x[0] === key); if (c) return { get: c[2], items: S.patients }; const dc = DCOLS.find(x => x[0] === key); return { get: dc[2], items: EXTRA.documents || [] }; };
 const passes = (defs, row) => defs.every(([k, , get]) => !S.colf[k] || S.colf[k].includes(get(row)));
 const RS = `<span class="colrs" aria-hidden="true" title="Táhnutím změníte šířku sloupce"></span>`;
 function colHead(key, title) {
@@ -1293,7 +903,7 @@ function colHead(key, title) {
   return `<th class="th-wrap"><button class="th-f ${f ? "on" : ""}" data-colopen="${key}" aria-expanded="${S.colOpen === key}">${title}<span class="fi" aria-hidden="true">▼</span></button>${pop}${COLS.some(c => c[0] === key) ? RS : ""}</th>`;
 }
 function viewPatients() {
-  const all = pats().filter(p => passes(COLS, p)
+  const all = S.patients.filter(p => passes(COLS, p)
     && (!S.subFrom || p.submitted >= S.subFrom) && (!S.subTo || p.submitted <= S.subTo)
     && (!S.q || `${p.id} ${p.name} ${p.diagnosis} ${p.mkn10 || ""}`.toLowerCase().includes(S.q.toLowerCase())))
     .sort((a, b) => b.submitted.localeCompare(a.submitted));
@@ -1308,7 +918,7 @@ function viewPatients() {
       <input class="search" id="q" placeholder="Hledat ID, jméno, diagnózu" value="${esc(S.q)}" aria-label="Hledat">
       <label class="small muted row" style="gap:6px">Podáno od <input class="input" type="date" id="subfrom" value="${esc(S.subFrom)}" style="width:auto"></label>
       <label class="small muted row" style="gap:6px">do <input class="input" type="date" id="subto" value="${esc(S.subTo)}" style="width:auto"></label>
-      <span class="muted small">${all.length} z ${pats().length}</span>
+      <span class="muted small">${all.length} z ${S.patients.length}</span>
       ${active ? `<button class="linkbtn small" data-act="clearcolf">Zrušit filtry (${active})</button>` : ""}
     </div>
     <div class="card" style="padding:0"><div class="scroll" style="min-height:${S.colOpen ? 360 : 0}px"><table class="tbl dense rsz" ${S.colW ? `style="table-layout:fixed;width:${S.colW.reduce((a, b) => a + b, 0)}px"` : ""}>
@@ -1346,11 +956,11 @@ function miniMonth() {
       <button class="btn small" data-mm="1" aria-label="Další měsíc">›</button></div>
     <div class="mini">${cells}</div></div>`;
 }
-const dayAgenda = day => pats().filter(x => x.slot && x.slot.day === day).sort((a, b) => a.slot.time.localeCompare(b.slot.time));
+const dayAgenda = day => S.patients.filter(x => x.slot && x.slot.day === day).sort((a, b) => a.slot.time.localeCompare(b.slot.time));
 function viewCalendar() {
   const days = [0, 1, 2, 3, 4].map(i => addDays(S.week, i));
-  const unscheduled = pats().filter(p => !p.slot || p.file === S.schedPick);
-  const byslot = {}; pats().forEach(p => { if (p.slot) byslot[`${p.slot.day} ${p.slot.time}`] = p; });
+  const unscheduled = S.patients.filter(p => !p.slot || p.file === S.schedPick);
+  const byslot = {}; S.patients.forEach(p => { if (p.slot) byslot[`${p.slot.day} ${p.slot.time}`] = p; });
   const inSem = (day, t) => { const s = seminarOn(day); return s && t >= s[0] && t < s[1]; };
   let cells = `<div></div>${days.map(d => `<div class="dh">${dayLabel(d)}${d === TODAY ? " · dnes" : ""}<small>${seminarOn(d) ? esc(seminarOn(d)[2]) + " " + seminarOn(d)[0] + "-" + seminarOn(d)[1] : "&nbsp;"}</small>${dayAgenda(d).length ? `<button class="btn small primary startmdt" data-startday="${d}">Zahájit MDT ▸</button>` : ""}</div>`).join("")}`;
   /* By default the grid shows seminar hours with 30 minutes either side, so the first seminar row is in view
@@ -1405,6 +1015,9 @@ function viewCalendar() {
 
 /* ---------- 3. Patient detail ---------- */
 const R3 = i => (EXTRA.refs || [])[i];
+/* v3 brief in the clinicians' own compact style, staging first (round 4); v2 keeps its own brief. */
+const BRIEF_CS = EXTRA.onco_summary_v3_cs || EXTRA.onco_brief_v3_cs || EXTRA.onco_brief_cs;
+const BRIEF_REFS = EXTRA.onco_summary_v3_refs || EXTRA.onco_brief_v3_refs || EXTRA.onco_brief_refs;
 const DXH = () => EXTRA.diagnosis_headline || null;
 /* Soňa: the first line is histology + grade + staging; the MKN code is for reporting and goes below. */
 /* The TNM is the stage at diagnosis; every place that shows the headline says so, and keeps the OCR flag. */
@@ -1459,17 +1072,16 @@ function questionBox(p) {
     ${isDoctor(S.user) ? `<button class="edbtn" data-edit="${esc(EK("q", p.file))}" data-orig="${esc(p.explicit ? p.question : "")}" title="${filled ? "Upravit otázku" : "Doplnit otázku"}">✎ ${filled ? "" : "doplnit"}</button>` : ""}</p></div>`;
 }
 function conclusionBox(p) {
-  const dec = decs(p.file);
+  const dec = S.decisions.filter(d => d.pid === p.file);
   const last = dec[dec.length - 1];
-  const pr = protoOf(p), draftable = isDoctor(S.user) && pr.state !== "approved";
+  const pr = ensureProto(p), draftable = isDoctor(S.user) && pr.state !== "approved";
   return `<div class="concl ${last ? "valid" : ""}"><span class="bh">Závěr MDT</span>
     ${draftable ? `<textarea class="input" id="concl" placeholder="Závěr a další postup, píše lékař (koncept, schvaluje se v protokolu MDT)" style="min-height:70px">${esc(pr.concl)}</textarea>${pr.concl.trim() ? `<p class="muted small" style="margin:4px 0 0">Koncept, zatím neschváleno. <button class="linkbtn small" data-go="protocol">Schválit v protokolu MDT</button></p>` : ""}` : ""}
-    ${last ? `<p>${esc(last.text)}</p><div class="muted small">Platný závěr č. ${dec.length} · schválil(a) ${esc(last.by)}, ${esc(last.when)}</div>${dec.length > 1 ? `<details class="srcs"><summary>Předchozí závěry (${dec.length - 1})</summary><ul class="hist" style="margin-top:6px">${dec.slice(0, -1).reverse().map((x, i) => `<li class="old small"><b>Závěr č. ${dec.length - 1 - i}</b> · nahrazen · ${esc(x.when)} · ${esc(x.by)}<br>${esc(x.text)}${x.snap ? `<details class="srcs"><summary>Schválený protokol</summary><div style="margin-top:6px">${frozenReport(x.snap)}</div></details>` : ""}</li>`).join("")}</ul></details>` : ""}`
+    ${last ? `<p>${esc(last.text)}</p><div class="muted small">Platný závěr č. ${dec.length} · schválil(a) ${esc(last.by)}, ${esc(last.when)}</div>${dec.length > 1 ? `<details class="srcs"><summary>Předchozí závěry (${dec.length - 1})</summary><ul class="hist" style="margin-top:6px">${dec.slice(0, -1).reverse().map((x, i) => `<li class="old small"><b>Závěr č. ${dec.length - 1 - i}</b> · nahrazen · ${esc(x.when)} · ${esc(x.by)}<br>${esc(x.text)}${x.reportSnap ? `<details class="srcs"><summary>Schválený protokol</summary><div style="margin-top:6px">${x.reportSnap}</div></details>` : ""}</li>`).join("")}</ul></details>` : ""}`
       : draftable ? "" : `<p class="muted" style="font-size:14px">Zatím neprojednáno.</p>`}</div>`;
 }
 function topAlerts() {
-  /* The server returns each alert with its index and its acknowledgement (who, when). */
-  const all = alertsOf();
+  const all = CASE.flags.map((f, i) => ({ ...f, i }));
   return { top: all.filter(f => f.relevant), all };
 }
 function briefHtml(reg) {
@@ -1505,6 +1117,7 @@ function guideBox() {
   const head = `<div class="row spread"><span class="label">Citace z doporučených postupů a literatura · pozorování asistenta, pořadí neznamená preferenci</span>
     <label class="small muted" style="display:flex;gap:6px;align-items:center"><input type="checkbox" data-act-toggle="guide" ${S.guideOn ? "checked" : ""}> vrstva doporučení</label></div>`;
   if (!S.guideOn) return `<div class="gl">${head}<p class="muted small" style="margin:6px 0 0">Vypnuto.</p></div>`;
+  if (GUIDE.loading) return `<div class="gl">${head}<p class="muted small" style="margin:6px 0 0">Načítám doporučení ze serveru…</p></div>`;
   const st = STMTS();
   if (!st.length && !(GUIDE.literature || []).length) return "";
   const onc = st.filter(x => /oncology/.test(fieldOf(x)));
@@ -1609,7 +1222,7 @@ function statusCard() {
 }
 function alertsStrip() {
   const { top, all } = topAlerts();
-  const open = top.filter(f => !f.ack);
+  const open = top.filter(f => !S.acks[f.i]);
   return `<section class="card"><div class="head"><h2>Upozornění k dotazu na MDT</h2>
       <button class="linkbtn" data-tab="alerts">Všechna upozornění (${all.length})</button></div>
     <div class="alerts">${top.map(f => alertRow(f, true)).join("")}</div>
@@ -1617,13 +1230,13 @@ function alertsStrip() {
     <div class="disclaim">Pozorování asistenta, ne klinický závěr. Upozornění neblokují projednání.</div></section>`;
 }
 function alertRow(f, compact) {
-  const ack = f.ack;
+  const ack = S.acks[f.i];
   /* Every alert list sits under a header saying the alerts are the assistant's observations, so the note's own
      "Pozorování asistenta." prefix is dropped per row; the rest of the note stays. */
   const note = String(f.note || "").replace(/^Pozorování asistenta[.:;,]?\s*/i, "").replace(/^./, c => c.toUpperCase());
   return `<div class="alert ${ack ? "ack" : ""}"><span class="chip plain ${ALERT[f.kind][1]}">${ALERT[f.kind][0]}</span>
     <span>${esc(f.text_cs)} ${srcLinks(f.based_on)}
-      ${!compact && note ? `<span class="why">${esc(note)}</span>` : ""}${ack ? `<span class="why">Vzal(a) na vědomí ${esc(ack.by)}, ${esc(ack.when)}</span>` : ""}</span>
+      ${!compact && note ? `<span class="why">${esc(note)}</span>` : ""}${ack ? `<span class="why">Vzal(a) na vědomí ${esc(ack)}</span>` : ""}</span>
     ${ack ? "" : `<button class="btn small ackbtn" data-ack="${f.i}">Vzít na vědomí</button>`}</div>`;
 }
 function timelineCard(inline) {
@@ -1646,6 +1259,8 @@ function timelineCard(inline) {
       <div><button class="btn small" data-src='${esc(JSON.stringify(sel.source))}'>Otevřít původní dokument</button></div></div>` : ""}</section>`;
 }
 function tabOverview() {
+  const p = P(S.pid);
+  if (p.full) loadGuidance(p);
   const reg = refRegistry();
   return `<div class="grid2"><div class="stack">${detailedCard(reg)}</div><div class="stack">${statusCard()}</div></div>`;
 }
@@ -1758,17 +1373,17 @@ function tabAlerts() {
     ${groups.map(g => { const items = rest.filter(f => f.kind === g); return items.length ? `<h4 style="margin:10px 0 6px;font-size:13px">${ALERT[g][0]}, další (${items.length})</h4><div class="alerts">${items.map(f => alertRow(f, false)).join("")}</div>` : ""; }).join("")}</section>`;
 }
 function viewAdmin() {
-  const log = got("/api/audit"), edits = got("/api/edits") || [];
-  if (role(S.user) !== "admin" || !Array.isArray(log)) return `<div class="page"><p class="muted">Administrace je jen pro správce systému.${log?.error ? ` (${esc(log.error)})` : ""}</p></div>`;
-  return `<div class="page"><div class="pagehead"><div><h1>Administrace</h1><div class="muted small">Záznam přístupů ke všem případům · jen pro správce systému · zapisuje server</div></div></div>
+  if (S.user !== ADMIN) return `<div class="page"><p class="muted">Administrace je jen pro správce systému.</p></div>`;
+  return `<div class="page"><div class="pagehead"><div><h1>Administrace</h1><div class="muted small">Záznam přístupů ke všem případům · jen pro správce systému</div></div></div>
     <section class="card" style="padding:0"><div class="scroll"><table class="tbl"><thead><tr><th>Čas</th><th>Uživatel</th><th>Případ</th><th>Akce</th></tr></thead>
-    <tbody>${log.map(a => `<tr><td class="num">${esc(a.when)}</td><td>${esc(a.who)}</td><td class="id">${esc(a.case_id || "-")}</td><td>${esc(a.what)}${a.count > 1 ? ` <span class="muted small">(${a.count}× během minuty)</span>` : ""}</td></tr>`).join("") || `<tr><td colspan="4" class="muted">Zatím žádné přístupy v této relaci. Záznam vznikne otevřením případu, prezentace, protokolu nebo zdrojového dokumentu.</td></tr>`}</tbody></table></div></section>
-    <section class="card"><div class="head"><h2>Úpravy lékařů (${edits.length})</h2><span class="muted small">Původní hodnota zůstává; seznam se jen doplňuje</span></div>
-      <ul class="hist">${edits.slice().reverse().map(e => `<li class="small"><b>${esc(e.case_id)}</b> · ${esc(e.by)} · ${esc(e.when)}${e.reverted ? " · <b>vráceno na původní</b>" : ""}<br>Původně: <span class="muted">${esc(e.orig || GAP)}</span>${e.reverted ? "" : `<br>Nově: ${esc(e.text)}`}</li>`).join("") || `<li class="muted small">Zatím žádné úpravy. Záznam vznikne, když lékař v případu pacienta opraví údaj tužkou ✎.</li>`}</ul></section>
-    <p class="muted small">Role správce zde slouží jen k náhledu záznamu; v reálné aplikaci by správce neměl přístup ke klinickému obsahu případů. Záznam zapisuje server při každém otevření případu, zobrazení zdroje a změně; v maketě se drží jen v paměti stránky. V reálné aplikaci by byl na serveru nemocnice, neměnný a s dobou uchování podle předpisů FNO.</p></div>`;
+    <tbody>${S.access.map(a => `<tr><td class="num">${esc(a.when)}</td><td>${esc(a.who)}</td><td class="id">${esc(P(a.pid)?.id || a.pid)}</td><td>${esc(a.what)}</td></tr>`).join("") || `<tr><td colspan="4" class="muted">Zatím žádné přístupy v této relaci. Záznam vznikne otevřením případu, prezentace, protokolu nebo zdrojového dokumentu.</td></tr>`}</tbody></table></div></section>
+    <section class="card"><div class="head"><h2>Úpravy lékařů (${S.editLog.length})</h2><span class="muted small">Původní hodnota zůstává; seznam se jen doplňuje</span></div>
+      <ul class="hist">${S.editLog.slice().reverse().map(e => `<li class="small"><b>${esc(P(e.pid)?.id || e.pid)}</b> · ${esc(e.by)} · ${esc(e.when)}${e.reverted ? " · <b>vráceno na původní</b>" : ""}<br>Původně: <span class="muted">${esc(e.orig || GAP)}</span>${e.reverted ? "" : `<br>Nově: ${esc(e.text)}`}</li>`).join("") || `<li class="muted small">Zatím žádné úpravy. Záznam vznikne, když lékař v případu pacienta opraví údaj tužkou ✎.</li>`}</ul></section>
+    <p class="muted small">Role správce zde slouží jen k náhledu záznamu; v reálné aplikaci by správce neměl přístup ke klinickému obsahu případů. Záznam se v maketě drží jen v paměti prohlížeče. V reálné aplikaci by byl na serveru nemocnice, neměnný a s dobou uchování podle předpisů FNO.</p></div>`;
 }
 function viewPatient() {
   const p = P(S.pid);
+  if (p.full) loadGuidance(p);
   if (!p.full) return viewPatientLite(p);
   const tabs = [["overview", "Přehled"], ["anamnesis", "Anamnéza"], ["documents", "Dokumenty"], ["labs", "Laboratoř"], ["alerts", `Upozornění<span class="n">${alertLabel()}</span>`], ["next", "Navrhovaný postup"], ["dev", "Odchylky od doporučení"]];
   if (!tabs.some(t => t[0] === S.tab)) S.tab = "overview";
@@ -1792,27 +1407,15 @@ function tabNext() {
       <p class="muted small" style="margin:0">Pozorování asistenta: pasáž z aktuálního vydání doporučení k tématu rozhodnutí. Nehodnotí, zda rozhodnutí doporučení odpovídalo; vydání platné v době rozhodnutí nemusí pasáž obsahovat.</p></details>` : ""}</section>`;
 }
 function tabDev() {
-  const p = P(S.pid), pr = protoOf(p);
+  const p = P(S.pid), pr = ensureProto(p);
   return S.guideOn && STMTS().length ? devTable(p, pr, pr.state === "approved") : `<section class="card"><p class="muted">Vrstva doporučení je vypnutá nebo bez citací.</p></section>`;
 }
-/* Patients not structured in the mock still get their sources and their document pages, so a doctor can
-   always open the original. */
-const caseOf = pid => got(`${PT(pid)}/case`);
-function liteDocs(p) {
-  const n = (caseOf(p.file) || {}).page_count || 0;
-  return `<section class="card"><div class="head"><h2>Dokument</h2><span class="muted small">${esc(p.file)} · ${plural(n, "strana", "strany", "stran")}</span></div>
-    ${n ? `<div class="doclist">${Array.from({ length: n }, (_, i) => `<button class="btn small" data-src='${esc(JSON.stringify({ file: p.file, page: i + 1 }))}'>Strana ${i + 1}</button>`).join("")}</div>
-      <p class="muted small" style="margin:8px 0 0">Stránka se otevře jako obrázek s přepisem.</p>` : `<p class="muted small" style="margin:0">V maketě nejsou k tomuto záznamu nahrány žádné stránky.</p>`}</section>`;
-}
 function viewPatientLite(p) {
-  const cs = caseOf(p.file) || {};
   return `<div class="page"><div class="row"><button class="linkbtn" data-nav="patients">‹ Databáze pacientů</button></div>
     ${patientHeader(p, `<button class="btn" data-sched="${esc(p.file)}">${p.slot ? "Změnit termín" : "Naplánovat"}</button>`, true)}
     <section class="card"><div class="head"><h2>Stručný přehled</h2><span class="chip plain st-new">V maketě nezpracováno</span></div>
       <p class="prose">${esc(p.summary || "")}</p>
-      ${(cs.sources || []).length ? `<dl class="sp" style="margin-top:10px">${cs.sources.map(x => `<dt>${esc(x.label_cs)}</dt><dd>${esc(x.text_cs)} <button class="linkbtn small" data-src='${esc(JSON.stringify(x.ref))}'>zdroj</button></dd>`).join("")}</dl>` : ""}
-      <p class="muted small">Plně zpracovaný je v maketě případ NO-010. Zdroj: ${esc(p.file)}, ${p.pages || "?"} s.</p></section>
-    ${liteDocs(p)}</div>`;
+      <p class="muted small">Plně zpracovaný je v maketě případ NO-010. Zdroj: ${esc(p.file)}, ${p.pages || "?"} s.</p></section></div>`;
 }
 
 /* ---------- 4. MDT presentation (projector) ---------- */
@@ -1826,9 +1429,9 @@ function presentSummary(reg) {
 }
 function viewPresent() {
   const p = P(S.pid);
-  const agenda = pats().filter(x => x.slot && x.slot.day === (p.slot?.day || "2026-10-22")).sort((a, b) => a.slot.time.localeCompare(b.slot.time));
+  const agenda = S.patients.filter(x => x.slot && x.slot.day === (p.slot?.day || "2026-10-22")).sort((a, b) => a.slot.time.localeCompare(b.slot.time));
   const reg = refRegistry();
-  const finds = !p.full ? "" : FIND.map(([k, t]) => { const items = CASE.sections[k] || []; return `<details class="find" data-find="${k}" ${S.openFind.has(k) ? "open" : ""}><summary><span class="ttl">${t}</span><span class="cnt">${items.length || GAP}</span>
+  const finds = FIND.map(([k, t]) => { const items = CASE.sections[k] || []; return `<details class="find" data-find="${k}" ${S.openFind.has(k) ? "open" : ""}><summary><span class="ttl">${t}</span><span class="cnt">${items.length || GAP}</span>
       <label class="pick" onclick="event.stopPropagation()"><input type="checkbox" data-pickrep="${k}" ${S.picked.has(k) ? "checked" : ""}> do reportu</label></summary>
       <ul>${items.map(f => `<li><span class="dt">${esc(f.date || "")}</span>${esc(f.text_cs)}${tags(f)}${reg.n(f.source)}${f.certainty !== "documented" && f.note ? `<span class="note">${esc(f.note)}</span>` : ""}</li>`).join("")}</ul></details>`; }).join("");
   return `<div class="present"><div class="page">
@@ -1837,66 +1440,38 @@ function viewPresent() {
     ${p.full ? `${patientHeader(p, "", true)}
     <div class="grid2"><div class="stack">${presentSummary(reg)}</div>
       <div class="stack">${finds}</div></div>
-    ${timelineCard()}` : `${patientHeader(p, "", true)}<section class="card"><p class="prose">${esc(p.summary || "")}</p><p class="muted small">V maketě nezpracováno.</p></section>${liteDocs(p)}`}
+    ${timelineCard()}` : `${patientHeader(p, "", true)}<section class="card"><p class="prose">${esc(p.summary || "")}</p><p class="muted small">V maketě nezpracováno.</p></section>`}
   </div></div>`;
 }
 
 /* ---------- 5. MDT protocol ---------- */
-/* One protocol per patient, kept on the server; attendance belongs to the whole seminar day, so it is entered once. */
-const protoOf = p => got(`${PT(p.file)}/protocol`);
-const curProto = () => protoOf(P(S.pid));
-/* Attendance is entered once per seminar day and applies to every case that day (Soňa, rounds 1 and 2); the
-   server names the day of a patient without a slot, whose attendance is their own. */
-const attDay = () => P(S.pid)?.att_day;
-const attPath = (day = attDay()) => `/api/seminars/${enc(day)}/attendance`;
-const attFor = (day = attDay()) => got(attPath(day)) || {};
-/* Typing changes the cached draft at once; the server gets it after a short pause (debounced), one save at a
-   time (serialized), each carrying the version it is based on. Over a real network requests can arrive out of
-   order; serializing keeps a late save from overwriting newer text, and the version lets the server refuse a
-   stale one. flushProto() sends what is pending and waits, before approval or any reload. */
-const SAVE_MS = 400;
-const saving = { timer: null, chain: Promise.resolve(), pid: null };
-function sendProto(pid) {
-  saving.chain = saving.chain.then(async () => {
-    const pr = protoOf(P(pid));
-    if (!pr || pr.state === "approved") return;
-    const res = await http.put(`${PT(pid)}/protocol`, { version: pr.version, mode: pr.mode, notes: pr.notes, concl: pr.concl, steps: pr.steps, dev: pr.dev || {} });
-    /* Only the version is taken from the reply; the text on screen may already be newer than what was sent. */
-    const cur = protoOf(P(pid)); if (cur) cur.version = res.version;
-  }).catch(err => {
-    fail(err);
-    /* A refused (stale) save means the server has a newer protocol: show that one instead of retrying. */
-    if (err?.status === 409) { dropProto(pid); show().catch(fail); }
-  });
-  return saving.chain;
+/* One protocol per patient; attendance belongs to the whole seminar, so it is entered once. */
+function ensureProto(p) {
+  if (!S.protos[p.file]) S.protos[p.file] = { pid: p.file, mode: "manual", notes: "", concl: "", steps: [], state: "draft" };
+  return S.protos[p.file];
 }
-function saveProto() {
-  /* A pending save for another patient goes first, so switching cases never drops typing. */
-  if (saving.timer && saving.pid !== S.pid) { clearTimeout(saving.timer); sendProto(saving.pid); }
-  clearTimeout(saving.timer); saving.pid = S.pid;
-  saving.timer = setTimeout(() => { saving.timer = null; sendProto(saving.pid); }, SAVE_MS);
-}
-async function flushProto() {
-  if (saving.timer) { clearTimeout(saving.timer); saving.timer = null; sendProto(saving.pid); }
-  await saving.chain;
-}
+/* Attendance is entered once per seminar day and applies to every case that day (Soňa, rounds 1 and 2). */
+const attDay = () => P(S.pid)?.slot?.day || `bez termínu: ${S.pid}`;
+function attFor(day = attDay()) { if (!S.attByDay[day]) S.attByDay[day] = Object.fromEntries(DEPTS.map(([d]) => [d, [""]])); return S.attByDay[day]; }
 /* Attendance selects for one seminar day; the same grid sits in the protocol and in the "Zahájit MDT" dialog. */
 function attGrid(day) {
   const a = attFor(day);
-  return `<div class="att">${DEPTS.map(([d, docs]) => (a[d] || [""]).map((v, k) => `<span class="dept">${k === 0 ? d : ""}</span>
-    <select class="input" data-att="${esc(d)}" data-day="${esc(day)}" data-k="${k}" aria-label="${esc(d)}"><option value="">${k === 0 ? "vyberte…" : "odebrat"}</option>${docs.map(x => `<option ${v === x ? "selected" : ""} ${(a[d] || []).includes(x) && v !== x ? "disabled" : ""}>${esc(x)}</option>`).join("")}</select>
-    ${k === 0 ? `<button class="btn small" data-addatt="${esc(d)}" data-day="${esc(day)}" ${(a[d] || []).length >= docs.length ? "disabled" : ""}>+ další</button>` : "<span></span>"}`).join("")).join("")}</div>`;
+  return `<div class="att">${DEPTS.map(([d, docs]) => a[d].map((v, k) => `<span class="dept">${k === 0 ? d : ""}</span>
+    <select class="input" data-att="${esc(d)}" data-day="${esc(day)}" data-k="${k}" aria-label="${esc(d)}"><option value="">${k === 0 ? "vyberte…" : "odebrat"}</option>${docs.map(x => `<option ${v === x ? "selected" : ""} ${a[d].includes(x) && v !== x ? "disabled" : ""}>${esc(x)}</option>`).join("")}</select>
+    ${k === 0 ? `<button class="btn small" data-addatt="${esc(d)}" data-day="${esc(day)}" ${a[d].length >= docs.length ? "disabled" : ""}>+ další</button>` : "<span></span>"}`).join("")).join("")}</div>`;
 }
 const presentList = () => Object.values(attFor()).flat().filter(Boolean);
+const isDoctor = u => u.startsWith("MUDr.");
 function viewProtocol() {
-  const p = P(S.pid), pr = protoOf(p);
+  if (P(S.pid).full) loadGuidance(P(S.pid));
+  const p = P(S.pid), pr = ensureProto(p);
   const present = presentList();
   const locked = pr.state === "approved";
   const named = pr.steps.filter(x => x.text.trim());
   const stepsDone = [!!pr.concl.trim(), named.length > 0, locked];
   const assignees = [COORD, p.owner, ...present].filter((v, i, a) => a.indexOf(v) === i);
   const canApprove = isDoctor(S.user) && present.includes(S.user);
-  const versions = decs(p.file).length;
+  const versions = S.decisions.filter(d => d.pid === p.file).length;
   return `<div class="page">
     <div class="row spread"><button class="linkbtn" data-go="patient">‹ ${esc(p.id)} · ${esc(p.name)}</button>
       <span class="chip ${locked ? "st-done" : "st-scheduled"}">${locked ? "Schváleno" : versions ? `Koncept nového závěru (předchozí: č. ${versions})` : "Probíhá · koncept"}</span></div>
@@ -1931,9 +1506,9 @@ function viewProtocol() {
         <button class="btn primary" data-act="approve" style="width:100%" ${stepsDone[0] && canApprove ? "" : "disabled"}>Schválit závěr jako ${esc(S.user)}</button>
         <p class="muted small" style="margin:8px 0 0">${!stepsDone[0] ? "Nejdřív zapište závěr v přehledu pacienta. " : ""}${!isDoctor(S.user) ? "Závěr schvaluje lékař; koordinátorka schvalovat nemůže. " : !present.includes(S.user) ? "Označte se jako přítomný(á) v seznamu přítomných. " : ""}</p>`}
       </section>
-      ${locked ? `<section class="card"><div class="head"><h2>Odeslané upozornění</h2></div>${(got("/api/mails") || []).filter(m => m.pid === p.file).map(mailHtml).join("") || `<p class="muted small">Bez úloh, upozornění se neodesílá.</p>`}</section>` : ""}
+      ${locked ? `<section class="card"><div class="head"><h2>Odeslané upozornění</h2></div>${S.mails.filter(m => m.pid === p.file).map(mailHtml).join("") || `<p class="muted small">Bez úloh, upozornění se neodesílá.</p>`}</section>` : ""}
       <section class="card"><div class="head"><h2>Report (PDF)</h2></div><p style="margin:0"><button class="btn primary" data-act="download">Stáhnout report (PDF)</button></p>
-      <details class="srcs"><summary>Náhled reportu</summary><div id="report">${locked && pr.snap ? frozenReport(pr.snap) : reportHtml(p, pr, present)}</div></details>${locked ? `<p class="muted small" style="margin:8px 0 0">Report je uzamčen ve stavu při schválení. Pozdější úpravy se do něj nepromítnou; změna vyžaduje nový závěr.</p>` : ""}</section>
+      <details class="srcs"><summary>Náhled reportu</summary><div id="report">${locked && pr.reportSnap ? pr.reportSnap : reportHtml(p, pr, present)}</div></details>${locked ? `<p class="muted small" style="margin:8px 0 0">Report je uzamčen ve stavu při schválení. Pozdější úpravy se do něj nepromítnou; změna vyžaduje nový závěr.</p>` : ""}</section>
     </div></div></div>`;
 }
 /* The conclusion is written in the patient overview (doctors' decision, kept); the protocol shows it read-only so
@@ -1941,7 +1516,7 @@ function viewProtocol() {
 function protoConclCard(p, pr, locked) {
   const txt = pr.concl.trim();
   return `<section class="card"><div class="head"><h2>Závěr MDT</h2>${locked ? `<span class="chip st-done">Schváleno</span>` : txt ? `<span class="chip st-attention">Koncept, neschváleno</span>` : ""}</div>
-    ${(() => { const prev = decs(p.file); const last = prev[prev.length - 1]; return !locked && last ? `<div class="synth" style="margin:0 0 10px;border-style:solid"><span class="label">Platný závěr č. ${prev.length} · schválil(a) ${esc(last.by)}, ${esc(last.when)}</span><p style="margin:4px 0 0;white-space:pre-wrap">${esc(last.text)}</p></div>` : ""; })()}
+    ${(() => { const prev = S.decisions.filter(d => d.pid === p.file); const last = prev[prev.length - 1]; return !locked && last ? `<div class="synth" style="margin:0 0 10px;border-style:solid"><span class="label">Platný závěr č. ${prev.length} · schválil(a) ${esc(last.by)}, ${esc(last.when)}</span><p style="margin:4px 0 0;white-space:pre-wrap">${esc(last.text)}</p></div>` : ""; })()}
     ${txt ? `<p style="margin:0;white-space:pre-wrap">${esc(pr.concl)}</p>` : `<p class="muted" style="margin:0">Zatím nezapsán. Závěr píše lékař v přehledu pacienta; asistent závěr nenavrhuje.</p>`}
     ${locked ? "" : isDoctor(S.user) ? `<p style="margin:10px 0 0"><button class="btn small" data-act="editconcl">${txt ? "Upravit závěr" : "Zapsat závěr"}</button></p>` : `<p class="muted small" style="margin:8px 0 0">Závěr zapisuje a schvaluje lékař.</p>`}</section>`;
 }
@@ -1961,7 +1536,7 @@ function mailHtml(m) {
     <p style="margin:6px 0 0">Odkaz: <span class="num">https://mdt.fno.local/pripad/${esc(m.id)}</span> <span class="muted small">(ukázková interní adresa)</span></p>
     <p class="muted small" style="margin:6px 0 0">E-mail obsahuje jen ID případu a odkaz, žádné zdravotní údaje.</p></div>`;
 }
-function reportHtml(p, pr, present, picked = S.picked) {
+function reportHtml(p, pr, present) {
   const reg = refRegistry();
   const refTxt = r => r ? ` [${reg.n(r).replace(/<[^>]+>/g, "").replace(/[\[\]]/g, "")}]` : "";
   const line = f => `<li>${f.date ? esc(f.date) + ": " : ""}${esc(f.text_cs)}${esc(tagsText(f))}<span class="src">${refTxt(f.source)}</span></li>`;
@@ -1976,50 +1551,37 @@ function reportHtml(p, pr, present, picked = S.picked) {
     : `${f.term_cs ? `<b>${esc(edRep(`${k}:${i}:t`, f.term_cs, p.file))}</b>` : ""}${f.comment_cs ? `${f.term_cs ? ", " : ""}${esc(edRep(`${k}:${i}:c`, f.comment_cs, p.file))}` : ""}${esc(mt(f))}${rf(f)}`;
   /* Every section is listed; an empty one prints the gap wording (allergies must never just vanish). */
   const anamLines = ANAM.map(([k, t]) => `<li><span style="text-decoration:underline">${t}:</span> ${(A[k] || []).length ? A[k].map((f, i) => anamItem(k, f, i)).join("; ") : GAP}${k === "FA" && (A.FA_warnings || []).length ? `<br><b>Pozor:</b> ${A.FA_warnings.map((f, i) => anamItem("faw", f, i)).join("; ")}` : ""}</li>`).join("");
-  /* Only the structured case has case content; another patient's report never prints it. */
-  const brief = !CASE ? esc(p.summary || "") : edOf("brief", p.file) ? esc(briefPlain()) + " [upraveno lékařem]" : BRIEF_CS ? esc(BRIEF_CS).replace(/\[(\d+)\]/g, (m, n) => `<span class="src">${refTxt((BRIEF_REFS || [])[n - 1])}</span>`) : esc(CASE.summary.map(x => x.text_cs).join(" "));
-  /* Deviations: a frozen report takes them from the approval snapshot (quote and citation as approved); a draft
-     builds them from the guideline layer on screen. */
-  const devShown = pr.devRows ? pr.devShown : p.full && S.guideOn && STMTS().length > 0;
-  const devRows = pr.devRows || STMTS().filter(st => (pr.dev || {})[st.id]?.s).map(st => ({ quote: st.quote, cite: citeOf(st), s: pr.dev[st.id].s, why: pr.dev[st.id].why }));
+  const brief = edOf("brief", p.file) ? esc(briefPlain()) + " [upraveno lékařem]" : BRIEF_CS ? esc(BRIEF_CS).replace(/\[(\d+)\]/g, (m, n) => `<span class="src">${refTxt((BRIEF_REFS || [])[n - 1])}</span>`) : esc(CASE.summary.map(x => x.text_cs).join(" "));
   return `<article class="sheet">
     <div class="hdr"><div><b>Fakultní nemocnice Ostrava</b><br>Protokol neuroonkologického MDT (maketa)</div><div>${esc(slotText(p))}</div></div>
     <h4>Pacient</h4><p>${esc(surnameFirst(p))} · RČ: ${esc(p.rc || GAP)} · věk: ${esc(ageNum(p) || GAP)} · ID ${esc(p.id)}</p>
     <h4>Anamnéza</h4>${anamLines ? `<ul>${anamLines}</ul>` : `<p>${GAP}</p>`}
-    ${picked.has("summary") ? `<h4>Onkologický souhrn (sestavil asistent)</h4><p>${brief}</p>` : ""}
-    ${!CASE ? "" : FIND.filter(([k]) => picked.has(k)).map(([k, t]) => `<h4>${t}</h4><ul>${(CASE.sections[k] || []).map(line).join("") || `<li>${GAP}</li>`}</ul>`).join("")}
+    ${S.picked.has("summary") ? `<h4>Onkologický souhrn (sestavil asistent)</h4><p>${brief}</p>` : ""}
+    ${FIND.filter(([k]) => S.picked.has(k)).map(([k, t]) => `<h4>${t}</h4><ul>${(CASE.sections[k] || []).map(line).join("") || `<li>${GAP}</li>`}</ul>`).join("")}
     <h4>Přítomní</h4><p>${esc(present.join(", ") || "nezadáno")}</p>
-    <h4>Diagnóza</h4><p><b>${esc(p.full && CASE ? dxHeadlineText(true) : p.diagnosis)}</b>${p.full && DXH()?.mkn_cs ? `<br>${esc(DXH().mkn_cs)}` : ""}</p>
+    <h4>Diagnóza</h4><p><b>${esc(p.full ? dxHeadlineText(true) : p.diagnosis)}</b>${p.full && DXH()?.mkn_cs ? `<br>${esc(DXH().mkn_cs)}` : ""}</p>
     <h4>Dotaz</h4><p>${esc(edOf("q", p.file) ? questionText(p) + (p.explicit ? " [upraveno lékařem]" : " [doplněno lékařem]") : p.explicit ? p.question : `Výslovná otázka ${GAP_F}. Účel dle dokumentu: ${p.purpose || ""}`)}</p>
     <h4>Závěr</h4><p id="rep-concl">${esc(pr.concl || "Zatím nezapsán.")}</p>
     <h4>Další kroky</h4>${pr.steps.filter(x => x.text.trim()).length ? `<ul>${pr.steps.filter(x => x.text.trim()).map(x => `<li>${esc(x.text)} · ${esc(x.who)} · do ${esc(fmtDate(x.due))}</li>`).join("")}</ul>` : "<p>Žádné.</p>"}
-    ${devShown ? `<h4>Odchylky od doporučení</h4>${devRows.length ? `<ul>${devRows.map(d => `<li>${esc(d.quote)} <span class="src">(${esc(d.cite)})</span>: <b>${DEV[d.s]}</b>${d.s === "deviates" ? `, důvod: ${esc(d.why || "neuveden")}` : ""}</li>`).join("")}</ul>` : "<p>Nevyplněno.</p>"}` : ""}
+    ${p.full && S.guideOn && STMTS().length ? `<h4>Odchylky od doporučení</h4>${STMTS().filter(st => (pr.dev || {})[st.id]?.s).length ? `<ul>${STMTS().filter(st => (pr.dev || {})[st.id]?.s).map(st => { const d = pr.dev[st.id]; return `<li>${esc(st.quote)} <span class="src">(${esc(citeOf(st))})</span>: <b>${DEV[d.s]}</b>${d.s === "deviates" ? `, důvod: ${esc(d.why || "neuveden")}` : ""}</li>`; }).join("")}</ul>` : "<p>Nevyplněno.</p>"}` : ""}
     <h4>Schválení</h4><p>${pr.state === "approved" ? `${esc(pr.approver)}, ${esc(pr.when)}` : "Koncept, zatím neschváleno."}</p>
     ${reg.list.length ? `<h4>Zdroje</h4><ol class="src">${reg.list.map(r => `<li>${esc(docTitle(r))}, s. ${esc(r.page)}${r.quote ? `: „${esc(r.quote.length > 70 ? r.quote.slice(0, 70) + "…" : r.quote)}“` : ""}</li>`).join("")}</ol>` : ""}
     <p class="src" style="margin-top:14px">Údaje sestavil asistent z uvedených dokumentů; čísla v hranatých závorkách odkazují na zdroje. [zápor v dokumentu] = zápor zapsaný lékařem; [ověřit čtení] = text, který mohl být špatně přečten; [pozorování asistenta] = odvozeno asistentem, v dokumentu výslovně není; [upraveno lékařem] = hodnotu změnil lékař, zdroj ji v této podobě neuvádí.</p></article>`;
 }
-/* The approved report, rendered (with escaping) from the server's structured snapshot of the decision:
-   the patient record, attendance, conclusion, steps, edits, deviations and ticked fields as they were at approval. */
-function frozenReport(snap) {
-  if (!snap) return "";
-  SNAP = snap;
-  try { return reportHtml(snap.patient, { concl: snap.concl, steps: snap.steps, dev: snap.dev || {}, devRows: snap.dev_rows || [], devShown: !!snap.guide_on, state: "approved", approver: snap.approver, when: snap.when }, snap.present, new Set(snap.picked)); }
-  finally { SNAP = null; }
-}
 function refreshReport() {
   const el = document.getElementById("report"); if (!el) return;
-  const p = P(S.pid), pr = protoOf(p);
+  const p = P(S.pid), pr = ensureProto(p);
   if (pr.state === "approved") return;
   el.innerHTML = reportHtml(p, pr, presentList());
 }
 
 /* ---------- 6. My tasks (coordinator) ---------- */
 function viewTasks() {
-  const list = got(taskListPath()) || [];
+  const list = S.taskScope === "all" ? S.tasks : myTasks();
   const open = list.filter(t => !t.done), done = list.filter(t => t.done);
-  const row = t => `<div class="trow ${t.done ? "done" : ""}"><input type="checkbox" data-done="${t.id}" ${t.done ? "checked" : ""} aria-label="Hotovo">
-        <div><div class="tt"><b>${esc(t.text)}</b></div><div class="muted small">${esc(t.case_id)} · ${esc(t.who)} · do ${esc(fmtDate(t.due))}</div></div>
-        <button class="btn small" data-open="${esc(t.pid)}">Otevřít případ</button></div>`;
+  const row = t => { const p = P(t.pid); return `<div class="trow ${t.done ? "done" : ""}"><input type="checkbox" data-done="${t.id}" ${t.done ? "checked" : ""} aria-label="Hotovo">
+        <div><div class="tt"><b>${esc(t.text)}</b></div><div class="muted small">${esc(p.id)} · ${esc(t.who)} · do ${esc(fmtDate(t.due))}</div></div>
+        <button class="btn small" data-open="${esc(t.pid)}">Otevřít případ</button></div>`; };
   /* Empty state says what fills the list and how, so an empty view is not read as a fault. */
   const empty = `<p class="muted">${S.taskScope === "mine" ? `Pro uživatele ${esc(S.user)} zatím žádné úlohy. ` : "Zatím žádné úlohy. "}Úlohy vzniknou po schválení závěru v protokolu MDT.${S.taskScope === "mine" ? " Úlohy ostatních ukáže přepínač „Všechny“." : ""}</p>`;
   return `<div class="page"><div class="pagehead"><div><h1>Moje úlohy</h1><div class="muted small">Úlohy ze schválených závěrů MDT napříč pacienty · uživatel ${esc(S.user)}</div></div>
@@ -2027,33 +1589,30 @@ function viewTasks() {
     <div class="grid2"><section class="card"><div class="head"><h2>Úlohy</h2><span class="muted small">${plural(open.length, "otevřená", "otevřené", "otevřených")}</span></div>
       ${list.length ? open.map(row).join("") || `<p class="muted small" style="margin:0">Žádné otevřené úlohy.</p>` : empty}
       ${done.length ? `<details class="donegrp" ${S.doneOpen ? "open" : ""} data-doneopen="1"><summary>Hotovo (${done.length})</summary>${done.map(row).join("")}</details>` : ""}</section>
-      <section class="card"><div class="head"><h2>Upozornění e-mailem</h2></div>${(got("/api/mails") || []).map(mailHtml).join("") || `<p class="muted small">Po schválení závěru MDT se koordinátorce odešle e-mail jen s ID případu a odkazem.</p>`}</section></div></div>`;
+      <section class="card"><div class="head"><h2>Upozornění e-mailem</h2></div>${S.mails.map(mailHtml).join("") || `<p class="muted small">Po schválení závěru MDT se koordinátorce odešle e-mail jen s ID případu a odkazem.</p>`}</section></div></div>`;
 }
 
 /* ---------- overlays: source view and new-patient modal ---------- */
 /* ---------- source view: the page image, with the transcription in a second tab ----------
    Team decision (2026-10-16): show the actual page; the extracted text sits in a separate tab, so a
-   source link still points at a text passage. The server finds the quote on the image (Tesseract's word
-   boxes) and in the vision text, and lists the tokens the two engines read differently ("ověřit"). */
-async function openSource(r) {
-  const o = { kind: "source", cite: r, file: r.file || CASE?.file || S.pid, page: +r.page || 1, tab: S.srcTab, zoom: "fit", data: null, doc: null };
-  S.overlay = o;
-  /* A document or page the server does not have is reported, never replaced by another page: a different page
-     shown without a word would look like the cited source. */
-  try { await loadSourcePage(); }
-  catch (err) { if (S.overlay === o) S.overlay = null; toast(err?.status === 404 ? "Původní dokument nebo strana není v maketě k dispozici." : err?.error || "Požadavek se nezdařil"); return; }
-  if (S.overlay === o) renderOverlay();
+   source link still points at a text passage. The local document functions find the quote on the image
+   (Tesseract's word boxes) and in the vision text, and list the tokens the two engines read differently
+   ("ověřit"). */
+function openSource(r) {
+  const o = { kind: "source", cite: r, file: r.file || CASE.file, page: +r.page || 1, tab: S.srcTab, zoom: "fit", data: null, doc: null };
+  /* A document without page images cannot be shown; say so instead of opening an empty viewer. */
+  if (!srcApi.document(o.file)) { toast("Původní dokument není v maketě k dispozici."); return; }
+  S.overlay = o; loadSourcePage(); renderOverlay();
 }
-async function loadSourcePage() {
-  const o = S.overlay, f = enc(o.file);
-  o.doc = await need(`/api/documents/${f}`);
-  /* The server logs every viewed page as an access to patient data. */
-  const data = await http.get(`/api/documents/${f}/pages/${o.page}`);
-  /* The quote belongs to the cited page; on another page of the same document nothing is highlighted.
-     It is sent in the request body, never in the URL, because quotes can contain names. */
-  data.match = o.cite.quote && +o.cite.page === o.page
-    ? { quote: o.cite.quote, ...(await http.post(`/api/documents/${f}/pages/${o.page}/locate`, { quote: o.cite.quote })) } : null;
-  o.data = data;
+function loadSourcePage() {
+  const o = S.overlay;
+  o.doc = srcApi.document(o.file);
+  o.data = srcApi.page(o.file, o.page);
+  if (!o.data) { o.page = o.doc.pages[0].n; o.data = srcApi.page(o.file, o.page); }
+  /* Every viewed page is an access to patient data, so each one goes to the access log. */
+  logAccess(o.file, `zobrazil(a) zdroj s. ${o.page}`);
+  /* The quote belongs to the cited page; on another page of the same document nothing is highlighted. */
+  o.data.match = o.cite.quote && +o.cite.page === o.page ? { quote: o.cite.quote, ...srcApi.locate(o.file, o.page, o.cite.quote) } : null;
 }
 const pct = (b, W, H) => `left:${(b[0] / W * 100).toFixed(3)}%;top:${(b[1] / H * 100).toFixed(3)}%;width:${(b[2] / W * 100).toFixed(3)}%;height:${(b[3] / H * 100).toFixed(3)}%`;
 const verifyTitle = v => v.reason === "only_vision" ? "Četl jen jazykový model; Tesseract zde nic nepřečetl, ověřit"
@@ -2223,9 +1782,9 @@ function renderOverlay() {
     el.innerHTML = `<div class="scrim" data-close="1"></div><div class="modal" role="dialog" aria-label="Upravit údaj">
       <div class="row spread"><h2>${o.key.endsWith("|q") ? "Otázka pro MDT" : "Upravit údaj"}</h2><button class="btn small" data-close="1">Zavřít</button></div>
       ${o.orig ? `<div class="small"><span class="label">Původně (z dokumentu nebo od asistenta)</span><p style="margin:2px 0 0">${esc(o.orig)}</p></div>` : ""}
-      <textarea class="input" id="edtext">${esc(edOf(splitKey(o.key)[1], splitKey(o.key)[0])?.text ?? o.orig)}</textarea>
+      <textarea class="input" id="edtext">${esc(S.edits[o.key]?.text ?? o.orig)}</textarea>
       <p class="muted small" style="margin:0">Úprava se uloží jako změna od ${esc(S.user)} s časem. Původní dokument se nemění a původní hodnota zůstane v historii případu.</p>
-      <div class="row" style="justify-content:flex-end">${edOf(splitKey(o.key)[1], splitKey(o.key)[0]) ? `<button class="btn" data-act="revertedit">Vrátit původní</button>` : ""}<button class="btn primary" data-act="saveedit">Uložit</button></div></div>`;
+      <div class="row" style="justify-content:flex-end">${S.edits[o.key] ? `<button class="btn" data-act="revertedit">Vrátit původní</button>` : ""}<button class="btn primary" data-act="saveedit">Uložit</button></div></div>`;
     document.getElementById("edtext").focus();
   } else if (o.kind === "new") {
     const step = o.step;
@@ -2252,55 +1811,37 @@ function renderOverlay() {
 }
 
 /* ---------- render and events ---------- */
-/* A reply can arrive and re-render while the doctor types, so the focused field and its caret are restored. */
-function focusKey(el) {
-  if (!el || !el.closest?.("#app")) return null;
-  if (el.id) return `#${el.id}`;
-  if (el.dataset.step !== undefined) return `[data-step="${el.dataset.step}"][data-f="${el.dataset.f}"]`;
-  return null;
-}
 function render() {
-  const fk = focusKey(document.activeElement), fe = document.activeElement;
-  const sel = fk && typeof fe.selectionStart === "number" ? [fe.selectionStart, fe.selectionEnd] : null;
   const bar = document.querySelector(".tlbar"); if (bar) S.tlScroll = bar.scrollLeft;
   renderNav();
   const v = { patients: viewPatients, calendar: viewCalendar, patient: viewPatient, present: viewPresent, protocol: viewProtocol, tasks: viewTasks, admin: viewAdmin }[S.view];
   document.getElementById("app").innerHTML = v();
   const nb = document.querySelector(".tlbar"); if (nb) nb.scrollLeft = S.tlScroll || 0;
-  const back = fk && document.querySelector(fk);
-  if (back) { back.focus(); if (sel) try { back.setSelectionRange(...sel); } catch (e) { /* not a text field */ } }
   renderOverlay();
   writeHash();
 }
 /* Hash-based history so the browser's back and forward buttons work inside the single-file mock (round 2). */
-const hashOf = () => "#" + [S.view, ["patient", "present", "protocol"].includes(S.view) ? (P(S.pid)?.rid || "") : S.view === "calendar" ? S.week : "", S.view === "patient" ? S.tab : ""].filter(Boolean).join("/");
+const hashOf = () => "#" + [S.view, ["patient", "present", "protocol"].includes(S.view) ? nr(S.pid) : S.view === "calendar" ? S.week : "", S.view === "patient" ? S.tab : ""].filter(Boolean).join("/");
 function writeHash() { const h = hashOf(); if (location.hash !== h) { S.hashSet = h; location.hash = h; } }
-/* Reading the patient record is how the server learns a case was opened, and from which screen. */
-const openedOn = (file, view, via) => http.get(PT(file), { "X-View": view, ...(via ? { "X-Via": via } : {}) });
-async function readHash() {
+function readHash() {
   const [view, id, tab] = location.hash.slice(1).split("/");
   if (!view || !{ patients: 1, calendar: 1, patient: 1, present: 1, protocol: 1, tasks: 1, admin: 1 }[view]) return false;
   const before = S.pid + S.view;
   S.view = view;
   if (view === "calendar" && /^\d{4}-\d\d-\d\d$/.test(id || "")) { S.week = mondayOf(id); S.miniMonth = id.slice(0, 7); }
-  else if (id) { const f = pats().find(p => p.rid === id)?.file; if (f && f !== S.pid) { S.pid = f; S.selTl = null; S.tlScroll = 0; } }
+  else if (id) { const f = S.patients.find(p => nr(p.file) === id)?.file; if (f && f !== S.pid) { S.pid = f; S.selTl = null; S.tlScroll = 0; } }
   /* Opening a case by link or by back/forward is an access too and goes to the log. */
-  if (["patient", "present", "protocol"].includes(view) && before !== S.pid + view && P(S.pid)) await openedOn(S.pid, view, "link");
+  if (["patient", "present", "protocol"].includes(view) && before !== S.pid + view) logAccess(S.pid, `otevřel(a) ${{ patient: "případ", present: "prezentaci", protocol: "protokol" }[view]} (odkazem nebo historií prohlížeče)`);
   if (tab) S.tab = tab;
   S.overlay = null; S.colOpen = null;
   return true;
 }
 /* hashSet marks the one hashchange event that our own writeHash caused; it is cleared on first use so later back/forward to the same hash still works. */
-window.addEventListener("hashchange", async () => {
-  if (S.hashSet && location.hash === S.hashSet) { S.hashSet = null; return; }
-  S.hashSet = null;
-  try { if (await readHash()) await show(); } catch (err) { fail(err); }
-});
-/* `how` names the screen for the access log; "start" is opening the first case from "Zahájit MDT". */
-async function openPatient(file, view = "patient", how = view) {
+window.addEventListener("hashchange", () => { if (S.hashSet && location.hash === S.hashSet) { S.hashSet = null; return; } S.hashSet = null; if (readHash()) render(); });
+function openPatient(file, view = "patient") {
   S.pid = file; S.view = view; S.tab = "overview"; S.selTl = null; S.calPop = null; S.tlScroll = 0; S.openFind = new Set();
-  await openedOn(file, how);
-  await show(); window.scrollTo(0, 0);
+  logAccess(file, view === "present" ? "otevřel(a) prezentaci" : "otevřel(a) případ");
+  render(); window.scrollTo(0, 0);
 }
 
 /* A page image that fails to load says so, instead of leaving an empty frame. */
@@ -2332,9 +1873,6 @@ document.addEventListener("click", e => {
   const mk = e.target.closest(TIP_SEL);
   if (mk && !mk.closest("[data-src],[data-edit],[data-act],[data-tab],[data-open]")) { e.preventDefault(); showTip(mk); return; }
   hideTip();
-  onClick(e).catch(fail);
-});
-async function onClick(e) {
   if (S.colOpen && !e.target.closest(".fpop,[data-colopen]")) { S.colOpen = null; render(); return; }
   const t = e.target.closest("[data-dbpage],[data-guide],[data-colopen],[data-colclose],[data-colall],[data-wk],[data-jump],[data-mm],[data-calclose],[data-labmode],[data-labsel],[data-edit],[data-scope],[data-addatt],[data-startday],[data-startgo],[data-nav],[data-open],[data-tab],[data-brief],[data-src],[data-close],[data-page],[data-vtab],[data-zoom],[data-zoomstep],[data-zoomhit],[data-tl],[data-ack],[data-go],[data-present],[data-sched],[data-pick],[data-free],[data-slot],[data-unsched],[data-act],[data-mode],[data-delstep],[data-done]");
   if (!t) return;
@@ -2345,24 +1883,23 @@ async function onClick(e) {
   else if (d.wk) { const nw = addDays(S.week, 7 * +d.wk); if (nw < "2024-01-01" || nw > "2028-12-25") return; S.week = nw; S.miniMonth = addDays(S.week, 3).slice(0, 7); render(); }
   else if (d.jump) { S.week = mondayOf(d.jump); S.miniMonth = d.jump.slice(0, 7); render(); }
   else if (d.mm) { const [y, m] = S.miniMonth.split("-").map(Number), x = new Date(Date.UTC(y, m - 1 + +d.mm, 15)), iso = isoOf(x); if (iso < "2024-01" || iso > "2028-12-31") return; S.miniMonth = iso.slice(0, 7); render(); }
-  else if (d.calclose) { S.calPop = null; await show(); }
+  else if (d.calclose) { S.calPop = null; render(); }
   else if (d.labmode) { S.labMode = d.labmode; render(); }
   else if (d.labsel) { S.labSel = d.labsel; render(); }
   else if (d.dbpage !== undefined) { S.dbPage = +d.dbpage; render(); }
-  /* The statement and its page excerpt are already in the guidance response; opening one needs no new request. */
-  else if (d.guide) { S.overlay = { kind: "guide", id: d.guide }; renderOverlay(); }
+  else if (d.guide) { S.overlay = { kind: "guide", id: d.guide }; logAccess(S.pid, "otevřel(a) doporučení"); renderOverlay(); }
   else if (d.edit) { S.overlay = { kind: "edit", key: d.edit, orig: d.orig }; renderOverlay(); }
-  else if (d.scope) { S.taskScope = d.scope; await show(); }
-  else if (d.addatt) { const day = d.day || attDay(), att = attFor(day); (att[d.addatt] ||= [""]).push(""); await http.put(attPath(day), att); await mutated(); }
-  else if (d.startday) { S.overlay = { kind: "start", day: d.startday }; await need(attPath(d.startday)); renderOverlay(); }
-  else if (d.startgo) { const first = dayAgenda(d.startgo)[0]; S.overlay = null; renderOverlay(); if (first) await openPatient(first.file, "present", "start"); }
-  else if (d.nav) { S.view = d.nav; S.schedPick = null; await show(); }
-  else if (d.open) { await openPatient(d.open); }
+  else if (d.scope) { S.taskScope = d.scope; render(); }
+  else if (d.addatt) { attFor(d.day || attDay())[d.addatt].push(""); render(); if (S.overlay?.kind === "start") renderOverlay(); }
+  else if (d.startday) { S.overlay = { kind: "start", day: d.startday }; renderOverlay(); }
+  else if (d.startgo) { const first = dayAgenda(d.startgo)[0]; S.overlay = null; renderOverlay(); if (first) { logAccess(first.file, "zahájil(a) MDT"); openPatient(first.file, "present"); } }
+  else if (d.nav) { S.view = d.nav; S.schedPick = null; render(); }
+  else if (d.open) { openPatient(d.open); }
   else if (d.tab) { S.tab = d.tab.replace(/<.*$/, ""); render(); }
   else if (d.brief) { S.brief = d.brief; render(); }
-  else if (d.src) { e.preventDefault(); await openSource(JSON.parse(d.src)); }
+  else if (d.src) { e.preventDefault(); openSource(JSON.parse(d.src)); }
   else if (d.close) { S.overlay = null; renderOverlay(); }
-  else if (d.page) { const o = S.overlay; o.page = +d.page; await loadSourcePage(); if (S.overlay === o) renderOverlay(); }
+  else if (d.page) { S.overlay.page = +d.page; loadSourcePage(); renderOverlay(); }
   /* The chosen tab is remembered for the next source the doctor opens. */
   else if (d.vtab) { S.overlay.tab = S.srcTab = d.vtab; renderOverlay(); }
   else if (d.zoomstep) { zoomStep(S.overlay, +d.zoomstep); }
@@ -2372,49 +1909,47 @@ async function onClick(e) {
   else if (d.tl !== undefined) {
     /* One click straight to the full source text (Soňa, round 13); no detail panel in between. */
     const cards = EXTRA.timeline_cards_v3 || EXTRA.timeline_cards || []; const c = cards[+d.tl];
-    S.selTl = +d.tl; render(); if (c && c.source) await openSource(c.source);
+    S.selTl = +d.tl; render(); if (c && c.source) openSource(c.source);
   }
-  else if (d.ack !== undefined) { await http.post(`${PT(S.pid)}/alerts/${d.ack}/ack`, {}); await mutated(); }
-  /* Every case screen except the overview the doctor is already on is an opening, logged by the server. */
-  else if (d.go) { S.view = d.go; if (d.go !== "patient") await openedOn(S.pid, d.go); await show(); window.scrollTo(0, 0); }
-  else if (d.present) { await openPatient(d.present, "present"); }
-  else if (d.sched) { S.view = "calendar"; S.schedPick = d.sched; S.calPop = null; await show(); }
+  else if (d.ack !== undefined) { S.acks[d.ack] = S.user; logAccess(S.pid, "vzal(a) upozornění na vědomí"); render(); }
+  else if (d.go) { if (d.go === "present") logAccess(S.pid, "otevřel(a) prezentaci"); S.view = d.go; render(); window.scrollTo(0, 0); }
+  else if (d.present) { openPatient(d.present, "present"); }
+  else if (d.sched) { S.view = "calendar"; S.schedPick = d.sched; S.calPop = null; render(); }
   else if (d.pick) { S.schedPick = S.schedPick === d.pick ? null : d.pick; render(); }
   else if (d.free) {
     if (!S.schedPick) { toast("Nejdřív vyberte pacienta vpravo."); return; }
-    await scheduleAt(S.schedPick, d.free);
+    scheduleAt(S.schedPick, d.free);
   }
   else if (d.slot) {
     /* The first click re-renders the calendar, so the browser's dblclick never fires; detect the second click ourselves. */
-    const now = Date.now(); if (S.lastSlot === d.slot && now - S.lastSlotAt < 450) { S.lastSlot = null; await openPatient(d.dbl); return; }
+    const now = Date.now(); if (S.lastSlot === d.slot && now - S.lastSlotAt < 450) { S.lastSlot = null; openPatient(d.dbl); return; }
     S.lastSlot = d.slot; S.lastSlotAt = now;
-    const [day, time] = d.slot.split(" "); S.calPop = pats().find(p => p.slot && p.slot.day === day && p.slot.time === time)?.file;
-    if (S.calPop) await openedOn(S.calPop, "calendar");
-    await show(); document.getElementById("minicard")?.scrollIntoView({ block: "nearest", behavior: "smooth" }); }
-  else if (d.unsched) { await http.del(`${PT(d.unsched)}/slot`); S.calPop = null; await mutated(); }
-  else if (d.mode) { curProto().mode = d.mode; saveProto(); render(); }
-  else if (d.delstep !== undefined) { curProto().steps.splice(+d.delstep, 1); saveProto(); render(); }
-  else if (d.done) { const done = t.checked; await http.patch(`/api/tasks/${d.done}`, { done }); await mutated(); }
-  else if (d.act) await action(d.act);
-}
+    const [day, time] = d.slot.split(" "); S.calPop = S.patients.find(p => p.slot && p.slot.day === day && p.slot.time === time)?.file; if (S.calPop) logAccess(S.calPop, "zobrazil(a) detail termínu"); render(); document.getElementById("minicard")?.scrollIntoView({ block: "nearest", behavior: "smooth" }); }
+  else if (d.unsched) { const p = P(d.unsched); p.slot = null; if (p.status === "scheduled") p.status = "new"; S.calPop = null; render(); }
+  else if (d.mode) { curProto().mode = d.mode; render(); }
+  else if (d.delstep !== undefined) { curProto().steps.splice(+d.delstep, 1); render(); }
+  else if (d.done) { const task = S.tasks.find(x => x.id === +d.done); task.done = t.checked; renderNav(); render(); }
+  else if (d.act) action(d.act);
+});
+const curProto = () => ensureProto(P(S.pid));
 async function copyText(text, what) {
   try { await navigator.clipboard.writeText(text); toast(`${what} zkopírováno`); } catch (e) { toast("Kopírování není v tomto prohlížeči dostupné"); }
 }
-async function action(a) {
+function action(a) {
   const pr = S.view === "protocol" ? curProto() : null;
   if (a === "newpatient") { S.overlay = { kind: "new", step: 0, uploaded: false, progress: 0 }; renderOverlay(); }
   else if (a === "newnext") {
     const o = S.overlay;
     if (o.step === 0 && !document.getElementById("nfg").checked) { toast("Potvrďte souhlas se zpracováním údajů."); return; }
     o.step++; renderOverlay();
-    /* The processing steps are an animation only; nothing is processed in the mock. It stops when the dialog closes. */
-    if (o.step === 2) { const tick = () => { if (S.overlay !== o) return; o.progress++; renderOverlay(); if (o.progress < 4) setTimeout(tick, 550); }; setTimeout(tick, 450); }
+    if (o.step === 2) { const tick = () => { o.progress++; renderOverlay(); if (o.progress < 4) setTimeout(tick, 550); }; setTimeout(tick, 450); }
   }
   else if (a === "newback") { S.overlay.step--; renderOverlay(); }
   else if (a === "fakeupload") { S.overlay.uploaded = true; renderOverlay(); }
   else if (a === "newdone") {
-    const p = await http.post("/api/patients", {});
-    S.overlay = null; S.view = "patients"; S.colf = {}; toast(`Pacient ${p.id} přidán do databáze`); await mutated();
+    const n = S.patients.length + 11;
+    S.patients.push({ file: `${n}_novy`, id: `NO-${String(n).padStart(3, "0")}`, name: "Nový pacient", birth: null, diagnosis: "Čeká na kontrolu lékařem", mkn10: null, question: null, purpose: null, explicit: false, status: "new", slot: null, updated: "2026-10-16", owner: S.user, dept: "Klinická onkologie", summary: "Ukázkový záznam vytvořený v maketě.", pages: 2 });
+    S.overlay = null; S.view = "patients"; S.colf = {}; toast(`Pacient NO-${String(n).padStart(3, "0")} přidán do databáze`); render();
   }
   else if (a === "cancelsched") { S.schedPick = null; render(); }
   else if (a === "dball") { S.dbAll = true; render(); }
@@ -2425,8 +1960,8 @@ async function action(a) {
   else if (a === "kebab") { S.kebab = !S.kebab; render(); }
   else if (a === "download") {
     /* The browser's print dialog saves the report as PDF; no PDF library is needed in the mock. */
-    S.kebab = false; const p = P(S.pid), pr = protoOf(p);
-    const html = pr.state === "approved" && pr.snap ? frozenReport(pr.snap) : reportHtml(p, pr, presentList());
+    S.kebab = false; const p = P(S.pid), pr = ensureProto(p);
+    const html = pr.state === "approved" && pr.reportSnap ? pr.reportSnap : reportHtml(p, pr, presentList());
     const w = window.open("", "_blank");
     if (w) { w.document.write(`<!doctype html><meta charset="utf-8"><title>Protokol MDT ${p.id}</title><style>body{font:13px/1.5 system-ui,sans-serif;margin:30px}h4{margin:16px 0 4px;text-transform:uppercase;font-size:12px;border-bottom:1px solid #ccc}.src{color:#666;font-size:11px}</style>${html}`); w.document.close(); w.focus(); w.print(); }
     else toast("Prohlížeč zablokoval nové okno");
@@ -2435,7 +1970,7 @@ async function action(a) {
   else if (a === "calfull") { S.calFullDay = !S.calFullDay; render(); }
   else if (a === "editconcl") {
     /* The conclusion is written in the patient overview (doctors' decision); jump there and put the cursor in it. */
-    S.view = "patient"; S.tab = "overview"; await show();
+    S.view = "patient"; S.tab = "overview"; render();
     const c = document.getElementById("concl"); if (c) { c.scrollIntoView({ block: "center" }); c.focus(); }
   }
   else if (a === "today") { S.week = mondayOf(TODAY); S.miniMonth = TODAY.slice(0, 7); render(); }
@@ -2443,48 +1978,51 @@ async function action(a) {
   else if (a === "fakeupload2") { S.overlay.done = true; renderOverlay(); }
   else if (a === "saveedit" || a === "revertedit") {
     const o = S.overlay, txt = document.getElementById("edtext")?.value.trim();
-    const [pid, key] = splitKey(o.key);
-    /* Saving the original text, or nothing, is a revert: the server keeps both in the edit log, which only grows. */
-    const revert = a === "revertedit" || !txt || txt === o.orig;
-    if (revert) { if (edOf(key, pid)) await http.del(`${PT(pid)}/edits/${enc(key)}`); }
-    else await http.post(`${PT(pid)}/edits`, { key, text: txt, orig: o.orig });
-    S.overlay = null; await mutated(); toast(revert ? "Vrácen původní údaj" : "Úprava uložena");
+    const when = new Date().toLocaleString("cs-CZ"), pid = o.key.split("|")[0];
+    /* The edit log only grows: a revert is a new entry, the earlier edit stays visible in the case history. */
+    if (a === "revertedit" || !txt || txt === o.orig) { if (S.edits[o.key]) S.editLog.push({ pid, key: o.key, orig: o.orig, text: o.orig || GAP, by: S.user, when, reverted: true }); delete S.edits[o.key]; }
+    else { S.edits[o.key] = { text: txt, by: S.user, when, orig: o.orig }; S.editLog.push({ pid, key: o.key, orig: o.orig, text: txt, by: S.user, when }); }
+    logAccess(pid, a === "saveedit" ? `upravil(a) údaj (${o.key.split("|")[1]})` : `vrátil(a) původní údaj (${o.key.split("|")[1]})`);
+    S.overlay = null; render(); toast(a === "saveedit" ? "Úprava uložena" : "Vrácen původní údaj");
   }
-  else if (a === "addstep") { pr.steps.push({ text: "", who: COORD, due: "2026-10-30" }); saveProto(); render(); }
+  else if (a === "addstep") { pr.steps.push({ text: "", who: COORD, due: "2026-10-30" }); render(); }
   else if (a === "copyatt") { copyText((pr?.state === "approved" ? pr.attSnap : presentList()).join(", ") || "nezadáno", "Seznam přítomných"); }
   else if (a === "copytasks") { copyText(pr.steps.filter(x => x.text.trim()).map(x => `${x.text} (${x.who}, do ${fmtDate(x.due)})`).join("\n"), "Úlohy"); }
-  else if (a === "newversion") { await http.post(`${PT(S.pid)}/protocol/new-version`, {}); dropProto(S.pid); await mutated(); }
+  else if (a === "newversion") { S.protos[pr.pid] = { pid: pr.pid, mode: "manual", notes: "", concl: "", steps: [], state: "draft" }; P(pr.pid).status = "scheduled"; render(); }
   else if (a === "approve") {
     if (!pr.concl.trim() || !isDoctor(S.user) || !presentList().includes(S.user)) return;
-    /* Pending saves go first; the approval then sends exactly what is on screen, with the version it is based on.
-       The server freezes a structured snapshot, so later attendance changes or edits never alter the approved report. */
-    await flushProto();
-    const cur = curProto();
-    const res = await http.post(`${PT(S.pid)}/decisions`, { version: cur.version, text: cur.concl, steps: cur.steps, picked: [...S.picked], dev: cur.dev || {}, guide_on: S.guideOn });
-    dropProto(S.pid);
-    const n = res.tasks_created;
-    toast(`Závěr schválen${n ? `, koordinátorce ${n === 1 ? "odeslána 1 úloha" : n <= 4 ? `odeslány ${n} úlohy` : `odesláno ${n} úloh`}` : ""}`);
-    await mutated();
+    pr.approver = S.user;
+    pr.state = "approved"; pr.when = new Date().toLocaleString("cs-CZ");
+    /* Freeze what the doctor confirmed: later attendance changes or edits must not alter an approved protocol. */
+    pr.attSnap = presentList().slice();
+    pr.reportSnap = reportHtml(P(pr.pid), pr, pr.attSnap);
+    const p = P(pr.pid); p.status = "done"; p.updated = "2026-10-16";
+    S.decisions.push({ pid: p.file, text: pr.concl, by: pr.approver, when: pr.when, reportSnap: pr.reportSnap, attSnap: pr.attSnap });
+    let id = Math.max(0, ...S.tasks.map(x => x.id));
+    pr.steps.filter(s => s.text.trim()).forEach(s => S.tasks.push({ id: ++id, pid: p.file, text: s.text, who: s.who, due: s.due, done: false }));
+    const n = pr.steps.filter(s => s.text.trim()).length;
+    if (n) S.mails.unshift({ pid: p.file, id: p.id, n });
+    logAccess(p.file, "schválil(a) závěr MDT");
+    toast(`Závěr schválen${n ? `, koordinátorce ${n === 1 ? "odeslána 1 úloha" : n <= 4 ? `odeslány ${n} úlohy` : `odesláno ${n} úloh`}` : ""}`); render();
   }
 }
 document.addEventListener("input", e => {
   const t = e.target;
   if (t.id === "dq") { S.dq = t.value; const pos = t.selectionStart; render(); const q = document.getElementById("dq"); q.focus(); q.setSelectionRange(pos, pos); }
   else if (t.id === "q") { S.q = t.value; const pos = t.selectionStart; render(); const q = document.getElementById("q"); q.focus(); q.setSelectionRange(pos, pos); }
-  else if (t.dataset.step !== undefined) { curProto().steps[+t.dataset.step][t.dataset.f] = t.value; saveProto(); refreshReport(); }
-  else if (t.dataset.devwhy) { const pr = curProto(); pr.dev[t.dataset.devwhy].why = t.value; saveProto(); refreshReport(); }
-  else if (t.id === "notes") { curProto().notes = t.value; saveProto(); }
+  else if (t.dataset.step !== undefined) { curProto().steps[+t.dataset.step][t.dataset.f] = t.value; refreshReport(); }
+  else if (t.dataset.devwhy) { const pr = curProto(); pr.dev[t.dataset.devwhy].why = t.value; refreshReport(); }
+  else if (t.id === "notes") curProto().notes = t.value;
   else if (t.id === "concl") {
-    const pr = curProto(), had = !!pr.concl.trim(); pr.concl = t.value; saveProto();
+    const pr = curProto(), had = !!pr.concl.trim(); pr.concl = t.value;
     if (had !== !!t.value.trim()) { const pos = t.selectionStart; render(); const c = document.getElementById("concl"); c.focus(); c.setSelectionRange(pos, pos); }
     else refreshReport();
   }
 });
-/* The server books the slot; it refuses one outside a seminar (422) or already taken (409). */
-async function scheduleAt(file, slot) {
-  const [day, time] = slot.split(" ");
-  const p = await http.put(`${PT(file)}/slot`, { day, time });
-  toast(`${surnameFirst(p)} naplánován(a) na ${slotText(p)}`); S.schedPick = null; S.calPop = p.file; await mutated();
+function scheduleAt(file, slot) {
+  const [day, time] = slot.split(" "), p = P(file);
+  p.slot = { day, time }; if (p.status === "new") p.status = "scheduled";
+  toast(`${surnameFirst(p)} naplánován(a) na ${slotText(p)}`); S.schedPick = null; S.calPop = p.file; render();
 }
 /* Drag and drop in the calendar (round 16): a patient from the unscheduled list, or a booked slot, onto a free slot.
    Clicking a patient and then a slot still works for keyboards and touch screens. */
@@ -2501,7 +2039,7 @@ document.addEventListener("dragleave", e => { const f = e.target.closest?.("[dat
 document.addEventListener("drop", e => {
   const f = e.target.closest?.("[data-free]"); if (!f) return;
   e.preventDefault(); const file = e.dataTransfer.getData("text/plain") || S.dragFile; S.dragFile = null;
-  if (file && P(file)) scheduleAt(file, f.dataset.free).catch(fail);
+  if (file && P(file)) scheduleAt(file, f.dataset.free);
 });
 /* Column resizing in the patients table (round 16): the first drag freezes the current widths, then only the
    dragged column changes; widths live in S.colW for the session. */
@@ -2517,12 +2055,11 @@ document.addEventListener("pointerdown", e => {
   const up = () => { h.classList.remove("on"); S.resizedAt = Date.now(); document.removeEventListener("pointermove", move); document.removeEventListener("pointerup", up); };
   document.addEventListener("pointermove", move); document.addEventListener("pointerup", up);
 }, true);
-document.addEventListener("change", e => { onChange(e).catch(fail); });
-async function onChange(e) {
+document.addEventListener("change", e => {
   const t = e.target;
-  if (t.id === "user") { S.user = t.value; if (S.view === "admin" && role(t.value) !== "admin") S.view = "patients"; await mutated(); }
-  else if (t.dataset.actToggle === "guide") { S.guideOn = t.checked; await show(); }
-  else if (t.dataset.dev) { const pr = curProto(); pr.dev = pr.dev || {}; pr.dev[t.dataset.dev] = { ...(pr.dev[t.dataset.dev] || {}), s: t.value }; saveProto(); render(); }
+  if (t.id === "user") { S.user = t.value; if (S.view === "admin" && t.value !== ADMIN) S.view = "patients"; render(); }
+  else if (t.dataset.actToggle === "guide") { S.guideOn = t.checked; render(); }
+  else if (t.dataset.dev) { const pr = curProto(); pr.dev = pr.dev || {}; pr.dev[t.dataset.dev] = { ...(pr.dev[t.dataset.dev] || {}), s: t.value }; render(); }
   else if (t.id === "subfrom" || t.id === "subto") { S[t.id === "subfrom" ? "subFrom" : "subTo"] = t.value; S.dbPage = 0; render(); }
   else if (t.id === "mmyear") { S.miniMonth = `${t.value}-${S.miniMonth.slice(5)}`; S.week = mondayOf(`${S.miniMonth}-15`); render(); }
   else if (t.dataset.colall) { if (t.checked) delete S.colf[t.dataset.colall]; else S.colf[t.dataset.colall] = []; render(); }
@@ -2534,17 +2071,11 @@ async function onChange(e) {
     if (cur.length === all.length) delete S.colf[k]; else S.colf[k] = cur;
     render();
   }
-  else if (t.dataset.att) {
-    const day = t.dataset.day || attDay(), att = attFor(day), arr = (att[t.dataset.att] ||= [""]), k = +t.dataset.k;
-    if (!t.value && k > 0) arr.splice(k, 1); else arr[k] = t.value;
-    await http.put(attPath(day), att); await mutated();
-  }
+  else if (t.dataset.att) { const arr = attFor(t.dataset.day || attDay())[t.dataset.att], k = +t.dataset.k; if (!t.value && k > 0) arr.splice(k, 1); else arr[k] = t.value; render(); if (S.overlay?.kind === "start") renderOverlay(); }
   else if (t.dataset.redact) { S.overlay.redacted = t.checked; renderOverlay(); }
   else if (t.dataset.pickrep) { t.checked ? S.picked.add(t.dataset.pickrep) : S.picked.delete(t.dataset.pickrep); }
-  /* A typed step was saved on input already; re-rendering on blur would swallow the click that caused the blur
-     (for example on "Schválit"). Only the assignee and the date need a fresh render. */
-  else if (t.dataset.step !== undefined && t.dataset.f !== "text") { curProto().steps[+t.dataset.step][t.dataset.f] = t.value; saveProto(); render(); }
-}
+  else if (t.dataset.step !== undefined) { curProto().steps[+t.dataset.step][t.dataset.f] = t.value; render(); }
+});
 document.addEventListener("toggle", e => { if (e.target.dataset?.guideopen) S.guideOpen = e.target.open; if (e.target.dataset?.doneopen) S.doneOpen = e.target.open; }, true);
 document.addEventListener("toggle", e => { const d = e.target.dataset?.find; if (d) e.target.open ? S.openFind.add(d) : S.openFind.delete(d); }, true);
 /* Zoom keys as in common PDF viewers; only on the page image, and never while typing. */
@@ -2558,18 +2089,6 @@ document.addEventListener("keydown", e => {
 });
 document.addEventListener("keydown", e => { if (e.key === "Escape" && S.overlay) { S.overlay = null; renderOverlay(); } else if (e.key === "Escape" && S.colOpen) { S.colOpen = null; render(); } });
 
-/* Start-up: configuration and the patient list first, then the screen the URL names. */
-(async () => {
-  C.cfg = await api.get("/api/config");
-  TODAY = C.cfg.today; SLOT_MIN = C.cfg.schedule.slot_minutes;
-  const [from, to] = C.cfg.schedule.grid.map(t => { const [h, m] = t.split(":").map(Number); return h * 60 + m; });
-  for (let x = from; x < to; x += SLOT_MIN) TIMES.push(`${String(Math.floor(x / 60)).padStart(2, "0")}:${String(x % 60).padStart(2, "0")}`);
-  DEPTS = C.cfg.departments; COORD = C.cfg.coordinator; ADMIN = C.cfg.admin;
-  USERS = C.cfg.users.map(u => u.name); ROLES = Object.fromEntries(C.cfg.users.map(u => [u.name, u.role]));
-  S.user = USERS[0];
-  await need("/api/patients");
-  S.pid = pats().find(p => p.full)?.file || pats()[0]?.file;
-  await readHash();
-  await show();
-})().catch(err => { console.error(err); document.getElementById("app").innerHTML = `<div class="page"><p>Maketu se nepodařilo načíst: ${esc(err?.error || err?.message || err)}</p></div>`; });
+readHash();
+render();
 </script>
