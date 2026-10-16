@@ -41,6 +41,35 @@ source.
 | Vision LLM | used for development (Claude Sonnet); planned for the product | Primary transcription of the rendered page: Czech medical print, tables kept as tables, stamps and blacked-out areas marked | It was correct at every problem spot in the evaluation, including the iRECIST table | Cloud unless run locally; see [data protection](DATA-PROTECTION.md) |
 | pypdf 5.1.0 | used, superseded for reading | First text extraction for the mock data; still useful for metadata | | Local |
 | `scripts/ocr_pages.py` | used | Our pipeline: render, OCR with Tesseract, write images, text, and word boxes to `data/derived/pages/` | | Local |
+| `scripts/build_page_index.py` | used | Merge the vision text, Tesseract words, and disagreements into `data/derived/page-index.json` for the app | | Local |
+| `scripts/redact_pages.py` with Pillow 10.4.0 | used (prototype) | Black out direct identifiers on page images before any cloud call (option B in [data protection](DATA-PROTECTION.md)) | Rules plus Tesseract word boxes; runs locally; tested on all 20 pages, known gaps listed in the data-protection doc | Local |
+
+### Why the demo uses a cloud vision model (decided 2026-10-16)
+
+If asked at the demo, the short answer:
+
+> For the demo we first tried reading the pages locally with Tesseract.
+> It was too weak for clinical use: it misread digits and stages (11 as
+> "l", L5 as "LS", M0 as "MO", q3w as "g3w"). The vision model read every
+> problem spot correctly, including the iRECIST table. FNO's challenge
+> data is fictitious, so sending it to a cloud model is allowed. We still
+> run Tesseract next to it: its confidences and the places where the two
+> readings disagree become the "ověřit" (verify) marks for the doctor.
+
+For a real deployment at FNO we recommend:
+
+1. **Default: a local vision model on FNO's own server**, with Tesseract
+   alongside it. No page leaves the hospital.
+2. **Cloud only through an FNO-approved EU endpoint**, with a data
+   processing agreement and an impact assessment, and **only after local
+   redaction** of direct identifiers (name, birth number, insurer number,
+   contacts, names in the text, header blocks).
+
+The code reads pages through one interchangeable "page reader", so the
+engine is a configuration choice, and every page records which engine
+read it and whether it was redacted. Evidence:
+[OCR evaluation](../research/2026-10-16-ocr-evaluation.md); reasoning:
+[data protection](DATA-PROTECTION.md).
 
 ## Understanding documents (planned for the product)
 

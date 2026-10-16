@@ -72,15 +72,44 @@ plus whole header blocks where identities usually sit, because a missed
 name in a header is the typical failure. The black boxes are kept in the
 page record, so the app can show where text was removed.
 
+### The prototype (`scripts/redact_pages.py`)
+
+Built on 2026-10-16 and run on all 20 pages; it writes `p<n>.redacted.png`
+and a list of boxes with reasons (never the removed values) next to each
+page in `data/derived/pages/`. It covers the form fields, patterns (birth
+number, phone, e-mail, a value glued to its label such as
+"nar.:13.10.1961"), known patient names, and doctors' names after
+"MUDr.". It found 52 identifiers on 10 pages.
+
+What testing on FNO's pages taught us, useful for questions:
+
+- **Missed first:** Tesseract read "Dat. nar.: 13.10.1961" as one token
+  "nar.:13.40.1961" (a misread digit, too) and "Kód poj.: 111" as
+  "Kódpoj:111", so label rules missed them. Fixed by matching label and
+  value in one token. Lesson: redaction inherits OCR errors.
+- **Over-redacted next:** "v místě bydliště. Proto vyhledána ..." in free
+  text was taken for the "Bydliště:" form field and medical words were
+  blacked out. Fixed by treating a word as a label only at the start of a
+  line or before a colon. Lesson: every rule needs a check on both sides.
+- **Not built yet:** a Czech name recognizer for names in free text
+  (relatives, other doctors without "MUDr."), and blacking out whole
+  header blocks. Until then, option B is a demonstration, not a
+  guarantee, which is one more reason the pilot defaults to option A.
+
 What option B cannot remove without hurting the medical content: dates of
 examinations, diagnoses, rare findings, hospital names. These are
 quasi-identifiers, which is why the data stays personal data.
 
 ## Recommendation
 
-- **Hackathon demo:** FNO's data is fictitious, so the cloud vision model
-  is allowed (`docs/agent/HACKATHON.md`). We still show the redaction step,
-  because the jury will ask, and the source view shows the original page.
+- **Hackathon demo:** we first tried local Tesseract alone; it was too
+  weak (misread digits and stages, see the
+  [OCR evaluation](../research/2026-10-16-ocr-evaluation.md)). FNO's data
+  is fictitious, so the demo reads pages with a cloud vision model
+  (`docs/agent/HACKATHON.md`) and keeps Tesseract alongside for the
+  "verify" marks. We still show the redaction step, because the jury will
+  ask, and the source view shows the original page. The short answer for
+  the demo is in [Technologies](TECHNOLOGIES.md#why-the-demo-uses-a-cloud-vision-model-decided-2026-10-16).
 - **Pilot at FNO:** option A by default, with Tesseract plus a local vision
   model on the hospital's server. Option B only where FNO approves an EU
   enterprise endpoint, with a processing agreement and an impact
