@@ -93,7 +93,7 @@ What testing on FNO's pages taught us, useful for questions:
   text was taken for the "Bydliště:" form field and medical words were
   blacked out. Fixed by treating a word as a label only at the start of a
   line or before a colon. Lesson: every rule needs a check on both sides.
-- **Missed again (review of mock v4):** "MUDr.Hofrová" came out of
+- **Missed again (review of the mock's redacted page view):** "MUDr.Hofrová" came out of
   Tesseract as one token, so the rule "the word after MUDr." missed it.
   Fixed by matching a title glued to the name. Widening the title list to
   "prim." then blacked out "přim. konfigurace" ("přiměřené"), so "prim."

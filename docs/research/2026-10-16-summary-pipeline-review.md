@@ -15,7 +15,7 @@ Terms used below:
 - **Vision transcription**: a vision language model's transcription of the
   rendered page, in `data/derived/pages/10_pacient/p<n>.vision.md`. It is
   the better reading of the page.
-- **Brief / summary block**: the text above the tabs in mock v3 and v4
+- **Brief / summary block**: the text above the tabs in mock v3
   (`onco_summary_v3_cs` and its neighbours), plus the older brief keys.
 - **Soňa's summary model**: the six fields she asked for (oncological
   summary, reason for the MDT, question, proposed management, MDT
@@ -101,7 +101,7 @@ pipeline output.
 - All 402 `{file, page, quote}` objects in both JSON files (383 for
   patient 10, 234 distinct overall) are exact substrings of the text
   layer after whitespace folding (checked on 2026-10-16, after commit
-  `48da8b7`). The v4 source view finds every one in the vision
+  `48da8b7`). The mock v3 source view finds every one in the vision
   transcription with tolerant matching (`mocks/README.md`).
 - `mock-case-10.json` gives every fact `date`, `certainty`
   (`documented`, `unclear_ocr`, `inferred`) and `negated`. Inferences use
@@ -138,7 +138,7 @@ pipeline output.
    writes "GIT toxicity" and "IPP"); `onco_summary_v3_cs` turns iUPD/iCPD
    into "nepotvrzená/potvrzená" progression (a correct reading, but the
    assistant's); the summary block header hard-codes "typ MDT: recidiva /
-   progrese" (`mocks/src/v3-template.html` and `v4-template.html`, the "Onkologický souhrn" card), a classification no document
+   progrese" (`mocks/src/v3-template.html`, the "Onkologický souhrn" card), a classification no document
    states.
 5. **No confirmation state** on facts in the data. Doctor edits exist
    only in the mock's server as overrides.
@@ -207,7 +207,7 @@ Other findings:
 | Intervals as facts | Met | No verdicts found |
 | The assistant prepares, the doctor decides | Met | Proposal and conclusion are doctor fields; question left empty (`PRODUCT.md` round 6) |
 | A draft is never shown as approved | Met in the UI | `návrh lékaře, ne rozhodnutí MDT` tag |
-| Check readability before use | Not met for the mock data | The mock data was built from the text layer that the OCR evaluation later rejected; v4 adds verify marks from Tesseract and vision disagreement, but the facts were not re-read |
+| Check readability before use | Not met for the mock data | The mock data was built from the text layer that the OCR evaluation later rejected; mock v3 adds verify marks from Tesseract and vision disagreement, but the facts were not re-read |
 | Prompts in the repo, pinned model, fixed temperature | Not met | None exist for extraction or transcription |
 | Test against the known failure cases, `samples/` | Not met | `samples/` does not exist |
 
@@ -475,7 +475,7 @@ Summary sentences (stage 12):
 
 - Overrides attach to the fact key (document hash, spans, kind) or to a
   summary field. The mock stores edits per display field as
-  `{key, text, orig}` (`/api/patients/:id/edits` in mock v4), which is
+  `{key, text, orig}` (`/api/patients/:id/edits` in mock v3), which is
   enough for a demo but cannot survive re-extraction; the production
   store keys them on facts.
 - The log is append-only, with who, when, the original value and the
