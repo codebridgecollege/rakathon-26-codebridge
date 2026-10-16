@@ -580,7 +580,7 @@ This table says which feature each rule touches and what is still open.
 | Retry button (F-35) | Reproducible outputs, cached demo outputs | Later; keep both versions with sources. |
 | Prompts written per department (Vision) | Prompts live in the repository | Vision only. |
 | "PET should have been done instead of CT" alerts [design-1 00:36:13] | Intervals and facts, not verdicts | Phrase as "checklist item has no matching document". |
-| "FHIR later if time" [design-1 00:30:35] | Decide FHIR early | Open; a team question in `OPEN_QUESTIONS.md`. |
+| "FHIR later if time" [design-1 00:30:35] | Decide FHIR early | Decided 2026-10-17: the demo exports a validated FHIR R4 Bundle (`fhir/README.md`); see `docs/agent/HACKATHON.md`, "Team decisions". |
 | Juro: "privacy can wait until the visual demo" [design-2 00:13:10] | "Patient data and privacy - non-negotiable" | Resolved: the mock uses synthetic data and follows the privacy rules from the start. |
 
 ## Sources and speaker mapping

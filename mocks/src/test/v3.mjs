@@ -32,6 +32,12 @@ for (const width of [1280, 400]) {
   // URL access is logged
   await go("#patient/10/overview"); await over("overview");
   ok(await page.evaluate(() => S.access.some(a => a.pid === "10_pacient.pdf")), `${width} opening by URL is logged`);
+  // FHIR export: a Bundle where every fact and observation of the assistant has a Provenance, and the export is logged
+  await c('[data-act="fhirdlg"]');
+  ok(await page.evaluate(() => { const b = S.overlay.bundle, t = new Set(b.entry.filter(e => e.resource.resourceType === "Provenance").flatMap(e => e.resource.target.map(x => x.reference)));
+    return b.resourceType === "Bundle" && b.entry.filter(e => ["Observation", "Procedure", "MedicationStatement", "Condition", "DetectedIssue", "Flag", "Patient"].includes(e.resource.resourceType)).every(e => t.has(e.fullUrl)); }), `${width} FHIR export: every fact has a Provenance`);
+  ok(await page.evaluate(() => S.access.some(a => a.what.includes("FHIR"))), `${width} FHIR export is logged`);
+  await c('[data-close="1"] >> nth=-1');
   for (const t of ["anamnesis", "documents", "labs", "alerts"]) { await c(`[data-tab="${t}"]`); await over(t); }
   await c('[data-tab="documents"]'); await c('[data-colopen="dread"]'); await page.locator('[data-colv="dread"][value="Špatně čitelné"]').uncheck(); await c('[data-colclose]');
   ok((await page.locator("main tbody tr").count()) < 13, `${width} documents filter by readability`); await c('[data-act="cleardcolf"]');

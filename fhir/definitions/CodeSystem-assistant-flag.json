@@ -1,0 +1,31 @@
+{
+  "resourceType": "CodeSystem",
+  "id": "assistant-flag",
+  "url": "https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/assistant-flag",
+  "version": "0.1.0",
+  "name": "Assistantflag",
+  "title": "Assistant flag",
+  "status": "draft",
+  "description": "Kinds of observation the assistant reports about a case.",
+  "caseSensitive": true,
+  "content": "complete",
+  "concept": [
+    {
+      "code": "missing",
+      "display": "A document or fact that is expected but not found"
+    },
+    {
+      "code": "contradiction",
+      "display": "Two values of the same kind for the same time that disagree"
+    },
+    {
+      "code": "change",
+      "display": "A significant change over time"
+    },
+    {
+      "code": "unclear",
+      "display": "A passage that could not be read reliably"
+    }
+  ],
+  "count": 4
+}

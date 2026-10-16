@@ -146,9 +146,6 @@ experience.
 ## Decide as a team
 
 - [ ] **Which tech stack and which LLM deployment do we use?**
-- [ ] **Do we read or produce FHIR, and do we aim for the InterSystems
-  prize?** Partner tools are not part of the challenge judging, but FHIR
-  cannot be added late. (FHIR/PHOENIX, rec2 01:07:58, 02:04:31)
 - [ ] Before the repository goes public: remove or anonymize other
   participants' names in the Zoom chat exports and research notes.
   (`HACKATHON.md`)

@@ -1,0 +1,53 @@
+{
+  "resourceType": "StructureDefinition",
+  "id": "source-quote",
+  "url": "https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/StructureDefinition/source-quote",
+  "version": "0.1.0",
+  "name": "Sourcequote",
+  "title": "Source quote",
+  "status": "draft",
+  "description": "The passage in the source document that the fact rests on, as written there, including any misread characters.",
+  "fhirVersion": "4.0.1",
+  "kind": "complex-type",
+  "abstract": false,
+  "context": [
+    {
+      "type": "element",
+      "expression": "Provenance.entity"
+    }
+  ],
+  "type": "Extension",
+  "baseDefinition": "http://hl7.org/fhir/StructureDefinition/Extension",
+  "derivation": "constraint",
+  "differential": {
+    "element": [
+      {
+        "id": "Extension",
+        "path": "Extension",
+        "short": "Source quote",
+        "definition": "The passage in the source document that the fact rests on, as written there, including any misread characters.",
+        "max": "1"
+      },
+      {
+        "id": "Extension.extension",
+        "path": "Extension.extension",
+        "max": "0"
+      },
+      {
+        "id": "Extension.url",
+        "path": "Extension.url",
+        "fixedUri": "https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/StructureDefinition/source-quote"
+      },
+      {
+        "id": "Extension.value[x]",
+        "path": "Extension.value[x]",
+        "min": 1,
+        "type": [
+          {
+            "code": "string"
+          }
+        ]
+      }
+    ]
+  }
+}
