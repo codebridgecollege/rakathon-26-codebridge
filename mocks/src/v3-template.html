@@ -882,11 +882,11 @@ function pastBlock(i) {
   if (!S.guideOn) return "";
   const xs = PAST().filter(x => x.row_index === i);
   if (!xs.length) return "";
-  return `<details class="pastgl" style="float:right;margin:0 0 4px 8px"><summary class="small" style="cursor:pointer;color:var(--unclear)">Doporučení (${xs.length})</summary>
+  return `<details class="pastgl" style="float:right;margin:0 0 4px 8px"><summary class="small muted" style="cursor:pointer">Pasáže z doporučení (${xs.length})</summary>
     <div class="gl" style="float:none;clear:both;margin-top:6px;max-width:520px">${xs.map(x => `<div style="margin-bottom:8px"><span class="cite">${esc(x.decision_cs || "")}</span><q>${esc(x.quote)}</q> ${typeChip(x)}
       <span class="cite">${esc(shortCite(x))} · <button class="linkbtn small" data-guide="${esc(x.id)}" title="${esc(citeOf(x))}">otevřít</button></span>
       <span class="cite">${esc(x.relation_cs || "")}</span><span class="cite" style="color:var(--missing)">${esc(x.edition_note_cs || "")}</span></div>`).join("")}
-      <p class="muted small" style="margin:0">Pozorování asistenta: pasáž vedle rozhodnutí, bez hodnocení. Zda šlo o záměrnou odchylku, posoudí lékař.</p></div></details>`;
+      <p class="muted small" style="margin:0">Pozorování asistenta: pasáž z aktuálního vydání doporučení k tématu rozhodnutí. Nehodnotí, zda rozhodnutí doporučení odpovídalo; vydání platné v době rozhodnutí nemusí pasáž obsahovat.</p></div></details>`;
 }
 /* Category of an oncology row for its icon and colour (round 9); from the row's own words, display only. */
 const rowKind = r => { const t = `${r.event_cs} ${r.comment_cs || ""}`; return /^(CT|MR|PET|Vstupní CT|UZ|ultrazvuk)|CT |MR /.test(r.event_cs) ? "imaging" : /ektomi|Exstirpace|Excize|Implantace|resekc|operac/i.test(r.event_cs) ? "surgery" : /linie|nivolumab|sunitinib|everolimus|chemoterap|imunoterap/i.test(r.event_cs) ? "systemic" : /radioterap|ozáření/i.test(t) ? "radiotherapy" : "visit"; };
@@ -1261,7 +1261,7 @@ function renderOverlay() {
         <div class="muted small">${esc(g.version || "")} · ${esc(st.section || "")} · ${st.pdf_page ? `strana PDF ${esc(st.pdf_page)}${st.printed_page && st.printed_page !== st.pdf_page ? ` (tištěná ${esc(st.printed_page)})` : ""}` : "jen abstrakt, plný text nebyl dostupný"}</div></div>
         <button class="btn small" data-close="1">Zavřít</button></header>
       <div class="pages">${g.pdf_url ? `<a class="btn small" href="${esc(g.pdf_url)}${st.pdf_page && /\.pdf($|\?)/i.test(g.pdf_url) ? "#page=" + esc(st.pdf_page) : ""}" target="_blank" rel="noopener">Otevřít PDF online${st.pdf_page ? ` (str. ${esc(st.pdf_page)})` : ""}</a>` : ""}${g.url ? ` <a class="btn small" href="${esc(g.url)}" target="_blank" rel="noopener">Zdroj vydavatele</a>` : ""}</div>
-      <div class="synth" style="margin:10px 20px 0;border-style:solid">${st.evidence ? `Síla doporučení: ${esc(st.evidence)}<br>` : ""}Platí, protože: ${esc(st.applies_because_cs || "")}<br><span style="font-weight:500">${esc(citeOf(st))}</span></div>
+      <div class="synth" style="margin:10px 20px 0;border-style:solid">${st.evidence ? `Síla doporučení: ${esc(st.evidence)}<br>` : ""}${st.relation_cs ? `Vztah k záznamu: ${esc(st.relation_cs)}${st.edition_note_cs ? `<br>${esc(st.edition_note_cs)}` : ""}` : `Platí, protože: ${esc(st.applies_because_cs || "")}`}<br><span style="font-weight:500">${esc(citeOf(st))}</span></div>
       <div class="text">${text}</div></aside>`;
     document.getElementById("hit")?.scrollIntoView({ block: "center" });
   } else if (o.kind === "upload") {

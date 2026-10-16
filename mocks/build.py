@@ -94,6 +94,12 @@ def guidance() -> str:
         out["guidelines"] += [g for g in part.get("guidelines", []) if g["id"] not in known]
         out["past_statements"] = part.get("statements", [])
         out["pages"] += part.get("pages", [])
+    # Several files may cite the same page; join their excerpts so the viewer finds every quote on it.
+    merged = {}
+    for pg in out["pages"]:
+        key = (pg["guideline_id"], pg["pdf_page"])
+        merged[key] = f"{merged[key]} […] {pg['text']}" if key in merged and pg["text"] not in merged[key] else merged.get(key, pg["text"])
+    out["pages"] = [{"guideline_id": g, "pdf_page": n, "text": t} for (g, n), t in merged.items()]
     lit = DATA / "literature-case-10.json"
     if lit.exists():
         part = json.loads(lit.read_text())

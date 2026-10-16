@@ -21,13 +21,13 @@
    "section": "21.1 Léčba lokalizovaného onemocnění (stádium I, II a operabilní III. stádium)",
    "pdf_page": 215,
    "printed_page": 215,
-   "quote": "Základem je léčba chirurgická. Pokud je to možné, pak by u všech T1 tumorů měl být proveden ledvinu šetřící výkon, ve všech ostatních případech je provedena radikální nefrektomie.",
+   "quote": "Základem je léčba chirurgická. Pokud je to možné, pak by u všech T1 tumorů měl být proveden ledvinu šetřící výkon, ve všech ostatních případech je provedena radikální nefrektomie. Ledvinu šetřící výkon by měl být zvážen i u T2 tumorů, pokud je technicky možný.",
    "evidence": "bez stupně",
    "evidence_cs": "text kapitoly, bez stupně",
    "type": "guideline_text",
    "row_index": 0,
    "decision_cs": "Nefrektomie vpravo 2.6.2022",
-   "relation_cs": "Pasáž popisuje volbu chirurgického výkonu podle kategorie T; pacient měl dle histologie pT2a pN1 M0.",
+   "relation_cs": "Pasáž popisuje volbu chirurgického výkonu podle kategorie T; zpráva uvádí pT2a pN1 M0 (v textu „MO“).",
    "edition_note_cs": "Aktuální vydání 2026, ne vydání platné v době rozhodnutí (2022)."
   },
   {
@@ -46,21 +46,6 @@
    "edition_note_cs": "Aktuální vydání 2026, ne vydání platné v době rozhodnutí (2022)."
   },
   {
-   "id": "past-adjuvant-after-nephrectomy",
-   "guideline_id": "cos-mk-2026",
-   "section": "21.1 Léčba lokalizovaného onemocnění (stádium I, II a operabilní III. stádium)",
-   "pdf_page": 215,
-   "printed_page": 215,
-   "quote": "Adjuvantní léčba pembrolizumabem může být zvažovaná u pacientů s operabilním světlobuněčným RCC se středním nebo vysokým rizikem (střední riziko: pT2, grade 4 nebo sarkomatoidní složka, N0M0 nebo pT3, jakýkoliv grade, N0M0; vysoké riziko: pT4, jakýkoliv grade, N0 M0 nebo jakékoliv pT jakýkoliv grade, N1M0) konzultaci s pacientem s ohledem na potenciální dlouhodobé nežádoucí účinky (úroveň důkazů 1).",
-   "evidence": "ČOS 1",
-   "evidence_cs": "ČOS úroveň důkazů 1",
-   "type": "recommendation",
-   "row_index": 0,
-   "decision_cs": "Adjuvantní léčba po nefrektomii (6/2022)",
-   "relation_cs": "Pasáž popisuje adjuvantní pembrolizumab u světlobuněčného RCC se středním nebo vysokým rizikem; pacient měl dle histologie světlobuněčný RCC pT2a pN1 M0. Adjuvantní léčba: neuvedeno v dostupné dokumentaci.",
-   "edition_note_cs": "Aktuální vydání 2026, ne vydání platné v době rozhodnutí (2022)."
-  },
-  {
    "id": "past-metastasectomy-node",
    "guideline_id": "cos-mk-2026",
    "section": "21.2.1 Chirurgická léčba metastatického karcinomu ledviny",
@@ -72,22 +57,7 @@
    "type": "recommendation",
    "row_index": 2,
    "decision_cs": "Exstirpace paraaortální uzliny 25.10.2022",
-   "relation_cs": "Pasáž popisuje chirurgickou léčbu metastáz RCC; u pacienta histologie uvádí metastázu světlobuněčného RCC v paraaortální uzlině, R0.",
-   "edition_note_cs": "Aktuální vydání 2026, ne vydání platné v době rozhodnutí (2022)."
-  },
-  {
-   "id": "past-adjuvant-after-metastasectomy",
-   "guideline_id": "cos-mk-2026",
-   "section": "21.1 Léčba lokalizovaného onemocnění (stádium I, II a operabilní III. stádium)",
-   "pdf_page": 215,
-   "printed_page": 215,
-   "quote": "U pacientů po metastasektomii (dle registrační studie optimálně do jednoho roku od nefrektomie) pro oligometastatické onemocnění lze nabídnout adjuvantní pembrolizumab po kompletní resekci (stupeň doporučení 1)..",
-   "evidence": "ČOS 1",
-   "evidence_cs": "ČOS stupeň doporučení 1",
-   "type": "recommendation",
-   "row_index": 2,
-   "decision_cs": "Léčba po exstirpaci uzliny (10/2022)",
-   "relation_cs": "Pasáž popisuje adjuvantní pembrolizumab po kompletní metastasektomii; u pacienta exstirpace R0 25.10.2022, asi 5 měsíců po nefrektomii. Adjuvantní léčba: neuvedeno v dostupné dokumentaci.",
+   "relation_cs": "Pasáž popisuje chirurgickou léčbu metastáz RCC; histologie uvádí „MTS světlobuněčného renálního karcinomu G2, R0“ v paraaortální uzlině vlevo.",
    "edition_note_cs": "Aktuální vydání 2026, ne vydání platné v době rozhodnutí (2022)."
   },
   {
@@ -115,9 +85,9 @@
    "evidence": "bez stupně",
    "evidence_cs": "řádek tabulky režimů, bez stupně",
    "type": "guideline_text",
-   "row_index": 6,
+   "row_index": 5,
    "decision_cs": "Udržovací nivolumab 6/2023-12/2025",
-   "relation_cs": "Řádek tabulky popisuje dávkování nivolumabu s ipilimumabem a následnou fázi nivolumabu; pacient dostal dle dokumentace 2 ze 4 indikovaných cyklů kombinace a poté nivolumab 240 mg každé 2 týdny. Délku udržovací léčby pasáž neuvádí.",
+   "relation_cs": "Řádek tabulky popisuje dávkování nivolumabu s ipilimumabem a následnou fázi nivolumabu; dle dokumentace podány 2 cykly (27.3. a 17.4.2023), poté gastrointestinální a plicní toxicita; dále nivolumab 240 mg každé 2 týdny.",
    "edition_note_cs": "Aktuální vydání 2026, ne vydání platné v době rozhodnutí (2023)."
   },
   {
@@ -170,7 +140,7 @@
   {
    "guideline_id": "cos-mk-2026",
    "pdf_page": 215,
-   "text": "Základem je léčba chirurgická. Pokud je to možné, pak by u všech T1 tumorů měl být proveden ledvinu šetřící výkon, ve všech ostatních případech je provedena radikální nefrektomie. […] Regionální lymfadenektomie je možná u vysoce rizikových tumorů nebo v případě radiograficky patrné lymfadenopatie z důvodů zpřesnění stagingu a prognózy, i když její onkologický benefit nebyl jednoznačně prokázaný. […] Adjuvantní léčba pembrolizumabem může být zvažovaná u pacientů s operabilním světlobuněčným RCC se středním nebo vysokým rizikem (střední riziko: pT2, grade 4 nebo sarkomatoidní složka, N0M0 nebo pT3, jakýkoliv grade, N0M0; vysoké riziko: pT4, jakýkoliv grade, N0 M0 nebo jakékoliv pT jakýkoliv grade, N1M0) konzultaci s pacientem s ohledem na potenciální dlouhodobé nežádoucí účinky (úroveň důkazů 1). […] U pacientů po metastasektomii (dle registrační studie optimálně do jednoho roku od nefrektomie) pro oligometastatické onemocnění lze nabídnout adjuvantní pembrolizumab po kompletní resekci (stupeň doporučení 1).."
+   "text": "Základem je léčba chirurgická. Pokud je to možné, pak by u všech T1 tumorů měl být proveden ledvinu šetřící výkon, ve všech ostatních případech je provedena radikální nefrektomie. Ledvinu šetřící výkon by měl být zvážen i u T2 tumorů, pokud je technicky možný. […] Regionální lymfadenektomie je možná u vysoce rizikových tumorů nebo v případě radiograficky patrné lymfadenopatie z důvodů zpřesnění stagingu a prognózy, i když její onkologický benefit nebyl jednoznačně prokázaný. […] Adjuvantní léčba pembrolizumabem může být zvažovaná u pacientů s operabilním světlobuněčným RCC se středním nebo vysokým rizikem (střední riziko: pT2, grade 4 nebo sarkomatoidní složka, N0M0 nebo pT3, jakýkoliv grade, N0M0; vysoké riziko: pT4, jakýkoliv grade, N0 M0 nebo jakékoliv pT jakýkoliv grade, N1M0) konzultaci s pacientem s ohledem na potenciální dlouhodobé nežádoucí účinky (úroveň důkazů 1). […] U pacientů po metastasektomii (dle registrační studie optimálně do jednoho roku od nefrektomie) pro oligometastatické onemocnění lze nabídnout adjuvantní pembrolizumab po kompletní resekci (stupeň doporučení 1).."
   },
   {
    "guideline_id": "cos-mk-2026",
