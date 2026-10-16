@@ -359,6 +359,13 @@ details.srcs .refs { border-top: 0; margin-top: 4px; padding-top: 0; }
 .devt select, .devt input { width: 100%; }
 /* Round 14: the text itself opens its source (no [n] markers); a dotted underline shows on hover. */
 .srcl { cursor: pointer; }
+/* Own tooltip (round 15): native title tooltips do not show inside the artifact frame or on touch screens. */
+.tip { position: fixed; z-index: 60; max-width: 340px; background: var(--fg); color: #fff; padding: 7px 10px; border-radius: 6px; font: 400 12.5px/1.45 var(--font-body); box-shadow: 0 6px 20px rgba(0,0,0,.2); pointer-events: none; }
+.edl { cursor: pointer; text-decoration: underline; text-decoration-color: var(--line-strong); text-underline-offset: 3px; }
+.edl:hover { text-decoration-color: var(--accent-ink); }
+.tbl.dense { font-size: 12.5px; }
+.tbl.dense td { padding: 5px 8px; }
+.tbl.dense th { padding: 6px 8px; font-size: 11px; }
 .srcl:hover { text-decoration: underline dotted; text-underline-offset: 3px; }
 .refs { display: block; }
 .refs li { margin: 3px 0; }
@@ -563,6 +570,11 @@ function ed(key, orig, opts = {}) {
   const btn = isDoctor(S.user) ? `<button class="edbtn" data-edit="${esc(EK(key))}" data-orig="${esc(orig ?? "")}" aria-label="Upravit" title="Upravit">✎</button>` : "";
   return `<span class="${e ? "edited" : ""}">${shown}</span>${tag}${btn}`;
 }
+function edLink(key, orig) {
+  const e = edOf(key), text = esc(e ? e.text : orig ?? "");
+  const tag = e ? `<span class="edtag" title="Upravil(a) ${esc(e.by)}, ${esc(e.when)}. Původně: ${esc(orig || GAP)}">upraveno</span>` : "";
+  return (isDoctor(S.user) ? `<span class="edl ${e ? "edited" : ""}" data-edit="${esc(EK(key))}" data-orig="${esc(orig ?? "")}" title="Upravit">${text}</span>` : `<span class="${e ? "edited" : ""}">${text}</span>`) + tag;
+}
 const edText = (key, orig, pid = S.pid) => edOf(key, pid) ? edOf(key, pid).text : orig;
 /* In the report an edited value is marked, so it is never read as if the cited source said it. */
 const edRep = (key, orig, pid = S.pid) => edOf(key, pid) ? `${edOf(key, pid).text} [upraveno lékařem]` : orig;
@@ -591,6 +603,8 @@ function refRegistry() {
     list,
     /* No [n] markers in the text (Soňa, round 14): sources are registered for the list, and the text opens them. */
     n(r) { if (!r) return ""; if (list.findIndex(x => key(x) === key(r)) < 0) list.push(r); return ""; },
+    /* Numbered marker for blocks where the text itself opens the edit dialog (round 15). */
+    mark(r) { if (!r) return ""; this.n(r); const k = list.findIndex(x => key(x) === key(r)) + 1; return `<button class="ref" data-src='${esc(JSON.stringify(r))}' title="Otevřít zdroj">[${k}]</button>`; },
     wrap(html, r) { if (!r) return html; this.n(r); return `<span class="srcl" data-src='${esc(JSON.stringify(r))}' title="Otevřít zdroj">${html}</span>`; },
     html() { return list.length ? `<ol class="refs">${list.map(r => `<li><button data-src='${esc(JSON.stringify(r))}'>${esc(docTitle(r))}, s. ${esc(r.page)}: „${esc(r.quote.length > 90 ? r.quote.slice(0, 90) + "…" : r.quote)}“</button></li>`).join("")}</ol>` : ""; },
   };
@@ -681,15 +695,15 @@ function viewPatients() {
       <input class="search" id="q" placeholder="Hledat ID, jméno, diagnózu" value="${esc(S.q)}" aria-label="Hledat">
       <label class="small muted row" style="gap:6px">Podáno od <input class="input" type="date" id="subfrom" value="${esc(S.subFrom)}" style="width:auto"></label>
       <label class="small muted row" style="gap:6px">do <input class="input" type="date" id="subto" value="${esc(S.subTo)}" style="width:auto"></label>
-      <span class="muted small">${all.length} z ${S.patients.length} · filtr otevřete kliknutím na záhlaví sloupce ▼</span>
+      <span class="muted small">${all.length} z ${S.patients.length}</span>
       ${active ? `<button class="linkbtn small" data-act="clearcolf">Zrušit filtry (${active})</button>` : ""}
     </div>
-    <div class="card" style="padding:0"><div class="scroll" style="min-height:${S.colOpen ? 360 : 0}px"><table class="tbl">
+    <div class="card" style="padding:0"><div class="scroll" style="min-height:${S.colOpen ? 360 : 0}px"><table class="tbl dense">
       <thead><tr><th>ID</th><th>Pacient</th><th>RČ</th><th>Věk</th><th>Diagnóza</th>${colHead("owner", "Vlastník")}${colHead("dept", "Odesílající pracoviště")}${colHead("slot", "Příští MDT")}<th>Předchozí MDT</th>${colHead("status", "Stav")}<th>Podáno</th></tr></thead>
       <tbody>${rows.map(p => `<tr class="click" data-open="${esc(p.file)}">
         <td class="id">${p.id}</td><td><b>${esc(surnameFirst(p))}</b>${p.warn ? ' <span class="tag ocr">ověřit identitu</span>' : ""}</td>
         <td class="num ${p.rc ? "" : "muted"}" title="${p.rc ? "" : "Rodné číslo " + GAP}">${esc(rcText(p))}</td><td class="num ${ageNum(p) ? "" : "muted"}" ${!p.age && p.birth ? 'title="vypočteno z data narození"' : ""}>${esc(ageNum(p) || "-")}</td>
-        <td><b style="font-weight:600">${esc(p.diagnosis)}</b>${p.diagnosisNote || p.mkn10 ? `<div class="muted small">${esc([p.diagnosisNote, p.mkn10].filter(Boolean).join(" · "))}</div>` : ""}</td>
+        <td><b style="font-weight:600">${esc(p.diagnosis)}</b></td>
         <td>${esc(p.owner)}</td>
         <td>${esc(p.dept)}</td>
         <td class="num">${p.slot ? esc(slotText(p)) : `<button class="linkbtn" data-sched="${esc(p.file)}">Naplánovat</button>`}</td>
@@ -698,7 +712,6 @@ function viewPatients() {
     </table></div>
     <div class="row spread" style="padding:10px 14px;border-top:1px solid var(--line)"><span class="muted small">${S.dbAll ? `Zobrazeno všech ${all.length}` : `Zobrazeno ${all.length ? S.dbPage * PER + 1 : 0}-${Math.min(all.length, S.dbPage * PER + PER)} z ${all.length}`}</span>
       <span class="row">${S.dbAll ? `<button class="btn small" data-act="dbpaged">Stránkovat</button>` : `<button class="btn small" data-dbpage="${S.dbPage - 1}" ${S.dbPage ? "" : "disabled"}>‹ Předchozí</button>${Array.from({ length: pages }, (_, i) => `<button class="btn small ${i === S.dbPage ? "primary" : ""}" data-dbpage="${i}">${i + 1}</button>`).join("")}<button class="btn small" data-dbpage="${S.dbPage + 1}" ${S.dbPage < pages - 1 ? "" : "disabled"}>Další ›</button>${all.length > PER ? `<button class="btn small" data-act="dball">Zobrazit vše (+${all.length - rows.length})</button>` : ""}`}</span></div></div>
-    <p class="muted small">Vlastník případu je odesílající lékař. „-“ znamená, že údaj v dostupné dokumentaci není.</p>
   </div>`;
 }
 
@@ -904,7 +917,7 @@ function briefBlock(p) {
 function detailedCard(reg, inPresent) {
   const d = DXH();
   const rows = EXTRA.onco_detailed_v3 || [];
-  const head = d ? `<p class="dxh">${reg.wrap(ed("dx", [d.histology_cs, d.grade_cs, d.tnm_cs].filter(Boolean).join(", ")), R3((d.refs || [])[0]))}${d.histology_date_cs ? ` <span class="muted" style="font-size:13px;font-weight:600" title="${esc(d.tnm_context_cs || "")}">(pTNM ${esc(d.histology_date_cs.replace(/^\d+\./, ""))})</span>` : ""}${marks(d, "dx")}${(d.refs || []).map(i => reg.n(R3(i))).join("")}</p>
+  const head = d ? `<p class="dxh">${reg.wrap(ed("dx", [d.histology_cs, d.grade_cs, d.tnm_cs].filter(Boolean).join(", ")), R3((d.refs || [])[0]))}${d.histology_date_cs ? ` <span class="muted" style="font-size:13px;font-weight:600" title="${esc(d.tnm_context_cs || "")}">(pTNM při diagnóze, ${esc(d.histology_date_cs.replace(/^\d+\./, "").replace(".", "/"))})</span>` : ""}${marks(d, "dx")}${(d.refs || []).map(i => reg.n(R3(i))).join("")}</p>
     <p class="dxs">${esc(d.mkn_cs || "")}</p>` : "";
   return `<section class="card"><div class="head"><h2>Onkologický souhrn</h2>
       ${inPresent ? `<label class="small muted"><input type="checkbox" data-pickrep="summary" ${S.picked.has("summary") ? "checked" : ""}> do reportu</label>` : ""}</div>
@@ -917,7 +930,7 @@ function detailedCard(reg, inPresent) {
    "V plánu" for what is planned, then "Další diagnózy"; each line opens its first source. */
 function compactRows(reg) {
   const c = EXTRA.onco_compact_v3;
-  const line = (l, i) => `<div class="orow cat cat-${l.kind === "plan" ? "visit" : l.kind}" style="grid-template-columns:minmax(0,1fr)"><span>${reg.wrap(ed(`oc:${i}`, l.text_cs), R3((l.refs || [])[0]))}${(l.refs || []).slice(1).map(j => reg.n(R3(j))).join("")}${marks(l)}</span></div>`;
+  const line = (l, i) => `<div class="orow cat cat-${l.kind === "plan" ? "visit" : l.kind}"><span class="dt">${l.date_sort ? fmtDate(l.date_sort) : ""}</span><span>${reg.wrap(ed(`oc:${i}`, l.text_cs), R3((l.refs || [])[0]))}${(l.refs || []).slice(1).map(j => reg.n(R3(j))).join("")}${marks(l)}</span></div>`;
   return `${c.lines.map(line).join("")}
     ${c.other_dx_cs ? `<p style="margin:10px 0 0;font-size:14px">${reg.wrap(esc(c.other_dx_cs), R3((c.other_dx_refs || [])[0]))}</p>` : ""}`;
 }
@@ -941,7 +954,7 @@ function statusCard() {
   const sp = EXTRA.status_praesens; if (!sp) return "";
   const reg = refRegistry();
   const items = (sp.items || []).map((it, i) => ({ ...it, i }));
-  const link = it => reg.wrap(ed(`sp:${it.i}`, String(it.text_cs).replace(/[.,;]\s*$/, "")), R3((it.refs || [])[0])) + marks(it);
+  const link = it => edLink(`sp:${it.i}`, String(it.text_cs).replace(/[.,;]\s*$/, "")) + marks(it) + reg.mark(R3((it.refs || [])[0]));
   const subj = items.filter(it => it.group === "subjective");
   const vit = items.find(it => it.label_cs === "Vitální funkce");
   const ecog = items.find(it => it.label_cs === "ECOG PS");
@@ -949,12 +962,14 @@ function statusCard() {
   /* Objective line (Soňa, rounds 9 and 14): TK/P, TT, PS (ECOG) first, then the remaining findings as values only;
      regions the record marks as not examined are left out. */
   const rest = items.filter(it => it.group === "objective" && it !== vit && !/^nevyšetřen/i.test(String(it.text_cs).trim()));
+  /* Subjective first, so the [n] numbers run in reading order. */
+  const subjHtml = subj.map(link).join(", ");
   const vt = vit ? vit.text_cs : "";
   const tk = (vt.match(/krevní tlak ([\d/]+ ?mmHg)/) || [])[1], pulse = (vt.match(/pulz ([\d]+\/min)/) || [])[1], tt = (vt.match(/teplota ([\d,.]+ ?°C)/) || [])[1];
-  const lead = `${reg.wrap(`TK/P ${tk ? esc(tk) : "-"} / ${pulse ? esc(pulse) : "-"}`, vit && R3((vit.refs || [])[0]))}, TT ${tt ? esc(tt) : DASH}, PS (ECOG) ${ecog ? reg.wrap(esc(ecog.text_cs), R3((ecog.refs || [])[0])) : DASH}`;
+  const lead = `TK/P ${tk ? esc(tk) : "-"} / ${pulse ? esc(pulse) : "-"}${vit ? reg.mark(R3((vit.refs || [])[0])) : ""}, TT ${tt ? esc(tt) : DASH}, PS (ECOG) ${ecog ? edLink(`sp:${ecog.i}`, ecog.text_cs) + reg.mark(R3((ecog.refs || [])[0])) : DASH}`;
   const exam = `${sp.exam_title_cs || ""} · ${sp.exam_date_cs || "datum neuvedeno"}${sp.exam_date_note_cs ? ". " + sp.exam_date_note_cs : ""}`;
   return `<section class="card"><div class="head"><h2>Aktuální stav pacienta <button class="info" title="${esc(exam)}" aria-label="${esc(exam)}">i</button></h2></div>
-    <div class="stc"><p><b>Subjektivně:</b> ${subj.map(link).join(", ")}.</p>
+    <div class="stc"><p><b>Subjektivně:</b> ${subjHtml}.</p>
       <p><b>Objektivně:</b> ${[lead, brain ? link(brain) : "", ...rest.map(link)].filter(Boolean).join("; ")}.</p></div>
     ${srcList(reg)}</section>`;
 }
@@ -1036,7 +1051,7 @@ function tabDocuments() {
   const R = { good: ["Dobře čitelné", "st-ready"], fair: ["Částečně čitelné", "st-attention"], poor: ["Špatně čitelné", "k-contradiction"] };
   return `<section class="card"><div class="head"><h2>Dokumenty (${docs.length === all.length ? all.length : `${docs.length} z ${all.length}`})</h2><span class="row"><span class="muted small">Zdroj: ${esc(CASE.file)}, ${CASE.page_count} stran</span><button class="btn primary small" data-act="upload">+ Nahrát dokument</button></span></div>
     ${EXTRA.documents_note_cs ? `<div class="question missing" style="margin-bottom:10px"><span class="label">Chybí originály</span><p style="font-size:14px">${esc(EXTRA.documents_note_cs)}</p></div>` : ""}
-    <div class="toolbar" style="margin-bottom:10px"><input class="search" id="dq" placeholder="Hledat v dokumentech" value="${esc(S.dq || "")}" aria-label="Hledat v dokumentech"><span class="muted small">filtr otevřete kliknutím na záhlaví sloupce ▼</span>${active ? `<button class="linkbtn small" data-act="cleardcolf">Zrušit filtry (${active})</button>` : ""}</div>
+    <div class="toolbar" style="margin-bottom:10px"><input class="search" id="dq" placeholder="Hledat v dokumentech" value="${esc(S.dq || "")}" aria-label="Hledat v dokumentech">${active ? `<button class="linkbtn small" data-act="cleardcolf">Zrušit filtry (${active})</button>` : ""}</div>
     <div class="scroll" style="min-height:${DCOLS.some(c => c[0] === S.colOpen) ? 300 : 0}px"><table class="tbl"><thead><tr><th>Dokument</th>${colHead("dtype", "Typ")}<th>Datum</th><th>Strany</th>${colHead("dread", "Čitelnost")}${colHead("dyear", "Rok")}<th></th></tr></thead>
     <tbody>${docs.map(d => `<tr><td><b>${esc(d.title_cs)}</b>${d.embedded_in_cs ? `<span class="note">Jen citováno v: ${esc(d.embedded_in_cs)}; originál nenahrán</span>` : ""}</td><td>${esc(d.type)}</td><td class="num">${esc(d.date || "-")}</td><td class="num">${esc((d.pages || []).join(", "))}</td>
       <td><span class="chip ${R[d.readability]?.[1] || "st-new"}" title="${esc(d.reason_cs || "")}">${R[d.readability]?.[0] || d.readability}</span></td><td class="num">${esc(DCOLS[1][2](d))}</td>
@@ -1397,9 +1412,28 @@ function openPatient(file, view = "patient") {
   render(); window.scrollTo(0, 0);
 }
 
+/* Tooltips for info and certainty icons: the title moves to data-tip so the browser does not show a second one. */
+const TIP_SEL = ".info, .mk, .edtag, .gapq, .chip[title], .chip[data-tip]";
+let tipEl = null;
+function showTip(el) {
+  if (el.title) { el.dataset.tip = el.title; el.removeAttribute("title"); }
+  if (!el.dataset.tip) return;
+  hideTip(); tipEl = document.createElement("div"); tipEl.className = "tip"; tipEl.textContent = el.dataset.tip; document.body.appendChild(tipEl);
+  const r = el.getBoundingClientRect(), w = tipEl.offsetWidth, h = tipEl.offsetHeight;
+  const left = Math.max(8, Math.min(window.innerWidth - w - 8, r.left + r.width / 2 - w / 2));
+  const top = r.bottom + 6 + h > window.innerHeight ? r.top - h - 6 : r.bottom + 6;
+  tipEl.style.left = left + "px"; tipEl.style.top = top + "px"; tipEl.dataset.for = el.dataset.tip;
+}
+function hideTip() { if (tipEl) { tipEl.remove(); tipEl = null; } }
+document.addEventListener("mouseover", e => { const el = e.target.closest(TIP_SEL); if (el) showTip(el); });
+document.addEventListener("mouseout", e => { const el = e.target.closest(TIP_SEL); if (el && !el.contains(e.relatedTarget)) hideTip(); });
+document.addEventListener("focusin", e => { const el = e.target.closest(TIP_SEL); if (el) showTip(el); });
+document.addEventListener("focusout", hideTip);
+window.addEventListener("scroll", hideTip, true);
 document.addEventListener("click", e => {
-  /* Touch screens never show title tooltips, so a tap on a certainty icon shows its detail as a toast. */
-  const mk = e.target.closest(".mk[title], .edtag[title], .chip[title]"); if (mk) { toast(mk.getAttribute("title")); return; }
+  const mk = e.target.closest(TIP_SEL);
+  if (mk && !mk.closest("[data-src],[data-edit],[data-act],[data-tab],[data-open]")) { e.preventDefault(); showTip(mk); return; }
+  hideTip();
   if (S.colOpen && !e.target.closest(".fpop,[data-colopen]")) { S.colOpen = null; render(); return; }
   const t = e.target.closest("[data-dbpage],[data-guide],[data-colopen],[data-colclose],[data-colall],[data-wk],[data-jump],[data-mm],[data-calclose],[data-labmode],[data-labsel],[data-edit],[data-scope],[data-addatt],[data-nav],[data-open],[data-tab],[data-brief],[data-src],[data-close],[data-page],[data-tl],[data-ack],[data-go],[data-present],[data-sched],[data-pick],[data-free],[data-slot],[data-unsched],[data-act],[data-mode],[data-delstep],[data-done]");
   if (!t) return;
