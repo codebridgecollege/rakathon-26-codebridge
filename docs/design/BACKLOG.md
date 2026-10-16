@@ -24,6 +24,9 @@ was built correctly and whether it can be made compliant.
 - Done when: a short write-up of the current method, its gaps, and the
   design of the production pipeline (extraction, summary, checks), with
   the decisions recorded.
+- Status 2026-10-16: write-up done and reviewed,
+  [`docs/research/2026-10-16-summary-pipeline-review.md`](../research/2026-10-16-summary-pipeline-review.md);
+  waiting for the team's answers to its "Decisions needed" list.
 
 ## 2. Integrating the app into a real hospital
 
