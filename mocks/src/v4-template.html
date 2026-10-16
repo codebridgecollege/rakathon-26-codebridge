@@ -301,7 +301,8 @@ details.srcs .refs { border-top: 0; margin-top: 4px; padding-top: 0; }
 .sp { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 6px 14px; margin: 0; font-size: 14.5px; }
 .sp dt { font-weight: 700; }
 .sp dd { margin: 0; }
-.blk { display: grid; gap: 12px; }
+.blk { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+.blk > * { min-width: 0; }
 .blk .question { margin: 0; }
 .concl { border-left: 3px solid var(--line-strong); background: var(--sunk); border-radius: 0 var(--r) var(--r) 0; padding: 10px 14px; }
 .concl.valid { border-left-color: var(--ok); background: var(--ok-soft); }
@@ -1287,6 +1288,19 @@ function reasonHtml(reg) {
   return ed("reason", EXTRA.mdt_reason_v3_cs.replace(/\s*\[\d+\]/g, ""), { html: edOf("reason") ? null : html });
 }
 /* The proposed management is written by the referring doctor; the assistant does not propose treatment. */
+/* Reason (why now) and the question in one box (Soňa, round 7). */
+function reasonQuestionBox(p, reg) {
+  const e = edOf("q", p.file), filled = p.explicit || e;
+  return `<div class="question ${filled ? "" : "missing"}"><span class="label">Důvod a otázka pro MDT</span>
+    ${EXTRA.mdt_reason_v3_cs ? `<p style="font-size:15px">${reasonHtml(reg)}</p>` : ""}
+    <p style="font-size:15px;margin-top:6px"><b>Otázka:</b> ${e ? `${esc(e.text)}<span class="edtag" title="Doplnil(a) ${esc(e.by)}, ${esc(e.when)}">doplněno lékařem</span>` : p.explicit ? esc(p.question) : `<span class="muted">${GAP_F[0].toUpperCase() + GAP_F.slice(1)}.</span>`}
+    ${isDoctor(S.user) ? `<button class="edbtn" style="opacity:1" data-edit="${esc(EK("q", p.file))}" data-orig="${esc(p.explicit ? p.question : "")}" title="${filled ? "Upravit otázku" : "Doplnit otázku"}">✎ ${filled ? "" : "doplnit"}</button>` : ""}</p></div>`;
+}
+/* Missing and unclear data: present but not shouting; a count on a toggle, details on demand (round 7). */
+function gapsToggle() {
+  const n = (EXTRA.data_gaps_v3 || []).length;
+  return n ? `<button class="btn small" data-act="gaps" aria-expanded="${!!S.gapsOpen}" style="border-color:var(--missing);color:var(--missing)">⚠ Chybějící a nejasné údaje (${n}) ${S.gapsOpen ? "▴" : "▾"}</button>` : "";
+}
 function proposalBox(p) {
   const e = edOf("proposal", p.file);
   return `<div class="concl"><span class="label">Navrhovaný postup</span>
@@ -1296,17 +1310,16 @@ function proposalBox(p) {
 function gapsBox() {
   const g = EXTRA.data_gaps_v3 || [];
   if (!g.length) return "";
-  return `<div><span class="label">Chybějící a nejasné údaje</span><div class="alerts" style="margin-top:6px">${g.map(x => `<div class="alert" style="grid-template-columns:auto minmax(0,1fr)"><span class="chip plain ${ALERT[x.kind][1]}">${ALERT[x.kind][0]}</span><span>${esc(x.text_cs)} ${(x.refs || []).slice(0, 1).map(r => `<button class="linkbtn small" data-src='${esc(JSON.stringify(r))}'>zdroj</button>`).join("")}</span></div>`).join("")}</div></div>`;
+  return `<div style="border:1px solid var(--line);border-radius:var(--r);padding:10px 12px;margin-top:10px"><span class="label">Chybějící a nejasné údaje</span><div class="alerts" style="margin-top:6px">${g.map(x => `<div class="alert" style="grid-template-columns:auto minmax(0,1fr)"><span class="chip plain ${ALERT[x.kind][1]}">${ALERT[x.kind][0]}</span><span>${esc(x.text_cs)} ${(x.refs || []).slice(0, 1).map(r => `<button class="linkbtn small" data-src='${esc(JSON.stringify(r))}'>zdroj</button>`).join("")}</span></div>`).join("")}</div></div>`;
 }
 function briefBlock(p) {
   const reg = refRegistry();
-  return `<section class="card blk"><div class="head" style="margin:0"><h2>Onkologický souhrn</h2><span class="muted small">Sestaveno asistentem z dokumentů · typ MDT: recidiva / progrese</span></div>
+  return `<section class="card blk"><div class="head" style="margin:0"><h2>Onkologický souhrn</h2><span class="row"><span class="muted small">Sestaveno asistentem z dokumentů · typ MDT: recidiva / progrese</span>${gapsToggle()}</span></div>${S.gapsOpen ? gapsBox() : ""}
     <p class="prose">${briefHtml(reg)}</p>
-    ${EXTRA.mdt_reason_v3_cs ? `<div class="question"><span class="label">Důvod prezentace na MDT</span><p style="font-size:15px">${reasonHtml(reg)}</p></div>` : ""}
-    ${questionBox(p)}
+    ${reasonQuestionBox(p, reg)}
+    ${timelineCard(true)}
     ${proposalBox(p)}
     ${conclusionBox(p)}
-    ${gapsBox()}
     ${srcList(reg)}</section>`;
 }
 function detailedCard(reg, inPresent) {
@@ -1354,8 +1367,8 @@ function alertRow(f, compact) {
       ${!compact && f.note ? `<span class="why">${esc(f.note)}</span>` : ""}${ack ? `<span class="why">Vzal(a) na vědomí ${esc(ack.by)}</span>` : ""}</span>
     ${ack ? "" : `<button class="btn small" data-ack="${f.i}">Vzít na vědomí</button>`}</div>`;
 }
-function timelineCard() {
-  const cards = (EXTRA.timeline_cards || CASE.timeline.filter(e => e.date_sort).map(e => ({ date: e.date, date_sort: e.date_sort, kind: e.type === "histology" ? "pathology" : e.type, title_cs: e.label_cs.slice(0, 40), text_cs: e.label_cs, detail_cs: e.label_cs, status: e.status || "done", source: e.source })))
+function timelineCard(inline) {
+  const cards = (EXTRA.timeline_cards_v3 || EXTRA.timeline_cards || CASE.timeline.filter(e => e.date_sort).map(e => ({ date: e.date, date_sort: e.date_sort, kind: e.type === "histology" ? "pathology" : e.type, title_cs: e.label_cs.slice(0, 40), text_cs: e.label_cs, detail_cs: e.label_cs, status: e.status || "done", source: e.source })))
     .map((c, i) => ({ ...c, i })).sort((a, b) => (a.date_sort ? 0 : 1) - (b.date_sort ? 0 : 1) || String(a.date_sort).localeCompare(String(b.date_sort)));
   let lastYear = null, html = "";
   for (const c of cards) {
@@ -1363,19 +1376,19 @@ function timelineCard() {
     if (y !== lastYear) { html += `<div class="tlyear"><span>${y}</span></div>`; lastYear = y; }
     html += `<button class="ev kind-${esc(c.kind)} ${c.status === "planned" ? "planned" : ""}" data-tl="${c.i}" aria-pressed="${S.selTl === c.i}">
       <span class="date">${esc(c.date || "datum " + GAP)}${c.status === "planned" ? " · plán" : ""}</span><span class="pin">${icon(c.kind)}</span>
-      <span class="t">${esc(c.title_cs)}</span><span class="d">${esc(c.text_cs)}</span></button>`;
+      <span class="t">${esc(c.title_cs)}${c.note_cs || c.ocr_note_cs ? ' <span class="mk obs" aria-hidden="true">i</span>' : ""}</span><span class="d">${esc(c.text_cs)}</span></button>`;
   }
   const sel = cards.find(c => c.i === S.selTl);
-  return `<section class="card"><div class="head"><h2>Průběh onemocnění</h2><span class="muted small">Posuňte vodorovně · klikněte na událost pro detail</span></div>
+  return `<section class="${inline ? "" : "card"}"><div class="head"><h2 style="${inline ? "font-size:14px" : ""}">Průběh onemocnění</h2><span class="muted small">Posuňte vodorovně · klikněte na událost pro detail</span></div>
     <div class="tlbar"><div class="tltrack">${html}</div></div>
     ${sel ? `<div class="evdetail"><div class="row"><span class="chip plain kind-${esc(sel.kind)}" style="background:var(--sunk)">${KIND_CS[sel.kind] || sel.kind}</span><b>${esc(sel.date || "datum " + GAP)} · ${esc(sel.title_cs)}</b>${sel.status === "planned" ? '<span class="tag k-unclear">plánováno</span>' : ""}</div>
-      <p style="margin:4px 0">${esc(sel.detail_cs || sel.text_cs)}</p>
+      <p style="margin:4px 0">${esc(sel.detail_cs || sel.text_cs)}${marks(sel)}</p>${sel.note_cs ? `<p class="muted small" style="margin:0">Poznámka asistenta: ${esc(sel.note_cs)}</p>` : ""}
       <div><button class="btn small" data-src='${esc(JSON.stringify(sel.source))}'>Otevřít původní dokument</button></div></div>` : ""}</section>`;
 }
 function tabOverview() {
   const p = P(S.pid);
   const reg = refRegistry();
-  return `<div class="grid2"><div class="stack">${detailedCard(reg)}</div><div class="stack">${statusCard()}${alertsStrip()}</div></div>${timelineCard()}`;
+  return `<div class="grid2"><div class="stack">${detailedCard(reg)}</div><div class="stack">${statusCard()}${alertsStrip()}</div></div>`;
 }
 const ANAM = [["OA", "Osobní anamnéza"], ["RA", "Rodinná anamnéza"], ["PA", "Pracovní anamnéza"], ["SA", "Sociální anamnéza"], ["FA", "Farmakologická anamnéza"], ["AA", "Alergologická anamnéza"], ["abusus", "Abúzus"], ["EA", "Epidemiologická anamnéza"], ["preventive", "Preventivní vyšetření"]];
 const A3 = () => EXTRA.anamnesis_v3 || {};
@@ -1987,6 +2000,7 @@ async function action(a) {
     const p = await http.post("/api/patients", {});
     S.overlay = null; S.view = "patients"; S.colf = {}; toast(`Pacient ${p.id} přidán do databáze`); await mutated();
   }
+  else if (a === "gaps") { S.gapsOpen = !S.gapsOpen; render(); }
   else if (a === "cancelsched") { S.schedPick = null; render(); }
   else if (a === "clearcolf") { COLS.forEach(c => delete S.colf[c[0]]); render(); }
   else if (a === "cleardcolf") { DCOLS.forEach(c => delete S.colf[c[0]]); S.dq = ""; render(); }
