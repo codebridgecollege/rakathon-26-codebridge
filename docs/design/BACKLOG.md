@@ -81,3 +81,30 @@ import more data.
 - Done when: a note in `docs/research/` on which sets we used and what we
   learned, at least one larger set loaded into the app, and the gaps
   turned into fixes or open questions.
+
+## 4. Design proper file upload and text extraction
+
+Juro, 2026-10-16. In the mocks, documents are prepared ahead of time:
+`scripts/ocr_pages.py` renders and reads the PDFs, a vision model's
+transcription is added by hand, and `scripts/build_page_index.py` merges
+both into a JSON the page embeds. Design what a real upload takes.
+
+- Upload: which formats (PDF, scans, photos, DOCX), size limits, checks
+  that the file is what it claims, duplicate detection, and which patient
+  a document belongs to (never guessed, see `CLAUDE.md`).
+- Storage: blob or object storage inside the hospital (or an
+  FNO-approved EU cloud), encryption at rest, the original kept
+  unchanged and findable, retention and deletion, access logged.
+- Extraction on upload: a job queue that renders pages, runs the vision
+  model and Tesseract, builds the verify marks, and judges reading
+  certainty; retries, progress shown to the user, and a warning with a
+  request for a better copy when a document reads poorly. Where the
+  vision model runs follows [`DATA-PROTECTION.md`](DATA-PROTECTION.md).
+- Versioning: a re-uploaded or corrected document, re-running extraction
+  after a model change, and what happens to facts a doctor already
+  confirmed (they never change silently).
+- Documents that arrive through the hospital systems instead of upload
+  (FHIR, IHE MHD), which ties in with item 2.
+- Done when: a design note in `docs/research/` (flow, components,
+  storage, job pipeline, privacy and retention) and, if time allows, a
+  thin working upload path in the demo.
