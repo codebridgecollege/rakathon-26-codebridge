@@ -6151,10 +6151,10 @@ const briefPlain = () => edText("brief", (BRIEF_CS || "").replace(/\s*\[\d+\]/g,
 function patientHeader(p, extraActions = "", withQuestion = false) {
   return `<div class="card"><div class="phead">
       <div><div class="row"><span class="label">${p.id}</span>${statusChip(p)}</div>
-        <h1 style="margin-top:4px">${esc(surnameFirst(p))}</h1>
+        <h1 style="margin-top:4px">${esc(surnameFirst(p))} <span style="font-weight:600">· RČ ${p.rc ? esc(p.rc) : `<span class="muted" title="${GAP}" style="font-weight:500">neuvedeno</span>`} · Věk ${ageNum(p) ? esc(ageNum(p)) : `<span class="muted" title="${GAP}" style="font-weight:500">neuvedeno</span>`}</span></h1>
         ${p.warn ? `<div class="question missing" style="margin:8px 0 0;padding:6px 10px"><b>Ověřit identitu:</b> ${esc(p.warn)}</div>` : ""}
-        <div class="facts"><span>RČ: <b>${esc(p.rc || GAP)}</b></span><span>Věk: <b>${esc(ageNum(p) || GAP)}</b></span>
-          <span>Vlastník: <b>${esc(p.owner)}</b>${p.ownerExample ? '<span class="ex">ukázka</span>' : ""}</span><span>Pracoviště: <b>${esc(p.dept)}</b>${p.deptExample ? '<span class="ex">ukázka</span>' : ""}</span><span>Příští MDT: <b>${esc(slotText(p))}</b></span><span>Předchozí MDT: <b>${esc(lastMdt(p) || GAP)}</b></span></div></div>
+        <div class="facts">
+          <span>Vlastník: <b>${esc(p.owner)}</b>${p.ownerExample ? '<span class="ex">ukázka</span>' : ""}</span><span>Pracoviště: <b>${esc(p.dept)}</b>${p.deptExample ? '<span class="ex">ukázka</span>' : ""}</span><span>Příští MDT: <b>${esc(slotText(p))}</b></span></div></div>
       <div class="row">${extraActions}</div>
     </div>
     ${withQuestion ? questionBox(p) : ""}
@@ -6336,7 +6336,8 @@ function timelineCard(inline) {
       <span class="date">${esc(c.date || "datum " + GAP)}${c.status === "planned" ? " · plán" : ""}</span><span class="pin">${icon(c.kind)}</span>
       <span class="t">${esc(c.title_cs)}${c.note_cs || c.ocr_note_cs ? ' <span class="mk obs" aria-hidden="true">i</span>' : ""}</span><span class="d">${esc(c.text_cs)}</span></button>`;
   }
-  const sel = cards.find(c => c.i === S.selTl);
+  /* The event opens its source directly, so no detail panel is shown under the timeline (round 13). */
+  const sel = null;
   return `<section class="${inline ? "" : "card"}"><div class="head"><h2 style="${inline ? "font-size:14px" : ""}">Průběh onemocnění</h2><span class="muted small">Posuňte vodorovně · klikněte na událost pro detail</span></div>
     <div class="tlbar"><div class="tltrack">${html}</div></div>
     ${sel ? `<div class="evdetail"><div class="row"><span class="chip plain kind-${esc(sel.kind)}" style="background:var(--sunk)">${KIND_CS[sel.kind] || sel.kind}</span><b>${esc(sel.date || "datum " + GAP)} · ${esc(sel.title_cs)}</b>${sel.status === "planned" ? '<span class="tag k-unclear">plánováno</span>' : ""}</div>
@@ -6760,7 +6761,11 @@ document.addEventListener("click", e => {
   else if (d.src) { e.preventDefault(); openSource(JSON.parse(d.src)); }
   else if (d.close) { S.overlay = null; renderOverlay(); }
   else if (d.page) { openSource({ file: CASE.file, page: +d.page }); }
-  else if (d.tl !== undefined) { S.selTl = S.selTl === +d.tl ? null : +d.tl; render(); }
+  else if (d.tl !== undefined) {
+    /* One click straight to the full source text (Soňa, round 13); no detail panel in between. */
+    const cards = EXTRA.timeline_cards_v3 || EXTRA.timeline_cards || []; const c = cards[+d.tl];
+    S.selTl = +d.tl; render(); if (c && c.source) openSource(c.source);
+  }
   else if (d.ack !== undefined) { S.acks[d.ack] = S.user; logAccess(S.pid, "vzal(a) upozornění na vědomí"); render(); }
   else if (d.go) { if (d.go === "present") logAccess(S.pid, "otevřel(a) prezentaci"); S.view = d.go; render(); window.scrollTo(0, 0); }
   else if (d.present) { openPatient(d.present, "present"); }
