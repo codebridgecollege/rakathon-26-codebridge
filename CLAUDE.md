@@ -146,7 +146,9 @@ data (slide 21 notes).
   document. Show the alerts that matter for the question to the MDT
   first (when there is no explicit question, for the most recent
   finding), so the doctor is not buried in warnings. Missing-document alerts
-  are always on; they are not part of the switchable guideline layer.
+  are always on (not switchable, and not part of the guideline layer) and
+  always signalled on the brief; the list itself may sit one click away
+  (team decision 2026-10-17).
 - **"Not documented" is not "absent".** "No metastases" in a report is a
   finding; silence is a gap. Keep them apart, and watch for negations,
   which models and OCR misread.

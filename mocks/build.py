@@ -19,7 +19,8 @@ to the generated HTML. It also copies `p<n>.redacted.png` (written by
 be sent to a cloud model after local redaction. Publishing v3 means
 publishing that folder with it. Mock v3's guideline layer reads the merged
 guideline and literature files through an API stub and opens each guideline
-PDF online at the cited page.
+PDF online at the cited page. Retrospective deviations quote the guideline
+edition valid on each decision's date (`guidelines-case-10-past-historic.json`).
 """
 
 import json
@@ -78,22 +79,60 @@ def guidance() -> str:
     mock embeds it because it is a single HTML file. PDFs are not bundled: the viewer opens each guideline
     online at the cited page.
     """
-    out = {"guidelines": [], "statements": [], "pages": [], "not_retrieved": [], "literature": [], "queries": [], "past_statements": []}
+    out = {"guidelines": [], "statements": [], "pages": [], "not_retrieved": [], "literature": [], "queries": [], "past_statements": [], "fact_refs": {}}
     for name in ("guidelines-case-10.json", "guidelines-case-10-more.json"):
         f = DATA / name
         if f.exists():
             part = json.loads(f.read_text())
             for key in ("guidelines", "statements", "pages", "not_retrieved"):
                 out[key] += part.get(key, [])
-    # Statements about past decisions sit next to the oncology summary rows, not under the proposed management.
-    out["past_statements"] = []
+    # Past decisions for the retrospective deviations. guidelines-case-10-past.json gives each decision's place in the
+    # documentation (decision_cs, row_index, decision_ref); the guideline passage comes only from
+    # guidelines-case-10-past-historic.json, which quotes the edition valid on the decision date. The past file's own
+    # quotes cite the 2026 edition and are not used, so a past decision is never measured against a later edition.
     past = DATA / "guidelines-case-10-past.json"
+    historic = DATA / "guidelines-case-10-past-historic.json"
     if past.exists():
-        part = json.loads(past.read_text())
+        hist = json.loads(historic.read_text()) if historic.exists() else {"items": [], "editions": []}
+        by_id = {it["id"]: it for it in hist.get("items", [])}
         known = {g["id"] for g in out["guidelines"]}
-        out["guidelines"] += [g for g in part.get("guidelines", []) if g["id"] not in known]
-        out["past_statements"] = part.get("statements", [])
-        out["pages"] += part.get("pages", [])
+        for ed in hist.get("editions", []):
+            if ed["id"] not in known:
+                # Older editions of a guideline we already list share its type label (same publication, another year).
+                same = next((g for g in out["guidelines"] if g["name"] == ed["name"]), {})
+                out["guidelines"].append({**{k: ed[k] for k in ("id", "name", "society", "year", "version", "url", "pdf_url")}, "type_cs": same.get("type_cs", "")})
+                known.add(ed["id"])
+        for st in json.loads(past.read_text()).get("statements", []):
+            row = {k: st[k] for k in ("id", "decision_cs", "row_index", "decision_ref") if k in st}
+            it = by_id.get(st["id"])
+            if not it:
+                # No passage was looked up in the edition valid at the time: the item shows the decision without a quote.
+                row["status"] = "not_checked"
+            else:
+                ed = it["edition"]
+                row.update({
+                    "guideline_id": ed["id"],
+                    "edition": {k: ed.get(k) for k in ("name", "society", "year", "version", "valid_from", "valid_to", "url", "pdf_url")},
+                    "decision_date": it.get("decision_date"),
+                    "status": it.get("status", "found") if it.get("quote") else "not_found",
+                    "quote": it.get("quote", ""),
+                    "pdf_page": it.get("pdf_page"),
+                    "printed_page": it.get("printed_page"),
+                    "section": it.get("section", ""),
+                    "evidence": it.get("evidence", ""),
+                    "relation_cs": it.get("relation_cs", ""),
+                    "additional_passages": it.get("additional_passages", []),
+                })
+                # The viewer highlights the quote in the page text; only the verified excerpts are kept, never whole pages.
+                for q in [it] + it.get("additional_passages", []):
+                    if q.get("quote") and q.get("pdf_page"):
+                        out["pages"].append({"guideline_id": ed["id"], "pdf_page": q["pdf_page"], "text": q["quote"]})
+            out["past_statements"].append(row)
+    # Each patient fact a statement rests on gets its source passages (indexes into the case's refs), so the doctor
+    # can open the documentation behind the "Proč" part of an entry.
+    fact_refs = DATA / "guideline-fact-refs-case-10.json"
+    if fact_refs.exists():
+        out["fact_refs"] = json.loads(fact_refs.read_text()).get("facts", {})
     # Several files may cite the same page; join their excerpts so the viewer finds every quote on it.
     merged = {}
     for pg in out["pages"]:

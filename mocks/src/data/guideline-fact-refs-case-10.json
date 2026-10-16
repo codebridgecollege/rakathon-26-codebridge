@@ -1,0 +1,136 @@
+{
+  "description": "Sources for the patient facts that the guideline statements of synthetic patient 10 rest on (the 'Proč' part of an entry in the Navrhovaný postup tab). Keyed by the fact text exactly as in guidelines-case-10.json and guidelines-case-10-more.json; each value lists indexes into refs of mock-case-10-extra.json, picked by hand so that the quoted source text states the fact. A fact without an entry shows without a source link.",
+  "generated": "2026-10-16",
+  "facts": {
+    "MR mozku 14. 9. 2026: solitární sytící se ložisko v pravé hemisféře mozečku do 3 mm, susp. metastáza": [
+      70,
+      36
+    ],
+    "ECOG PS 1, bez klinických známek mozkových metastáz (občasné mžitky před očima)": [
+      40,
+      99
+    ],
+    "od 9/2026 3. linie everolimus 5 mg": [
+      32,
+      67
+    ],
+    "světlobuněčný renální karcinom G2, nefrektomie vpravo 6/2022, pT2a pN1 M0": [
+      1,
+      2
+    ],
+    "1. linie nivolumab + ipilimumab, progrese (iRECIST potvrzena 1/2026)": [
+      10,
+      52,
+      23
+    ],
+    "2. linie sunitinib 1-8/2026, progrese": [
+      54,
+      65,
+      31
+    ],
+    "histologicky ověřené metastázy (paraaortální uzlina, kůže)": [
+      4,
+      48
+    ],
+    "možná drobná osteoplastická ložiska Th/L (nejasné)": [
+      28
+    ],
+    "ECOG PS 1": [
+      102
+    ],
+    "MR mozku 14. 9. 2026: solitární sytící se nodulus v pravé hemisféře mozečku do 3 mm, suspekce na solitérní metastázu": [
+      70,
+      36
+    ],
+    "Histologie primárního nádoru: světlobuněčný renální adenokarcinom G2": [
+      2
+    ],
+    "MR mozku 14. 9. 2026: solitární sytící se nodulus v pravé hemisféře mozečku do 3 mm, suspekce na metastázu, jiná sytící se ložiska nejsou": [
+      70,
+      71
+    ],
+    "Everolimus 5 mg od 3. 9. 2026 (3. linie), plánováno zvýšení na 10 mg": [
+      32,
+      68
+    ],
+    "Na cílený dotaz neguje závratě či poruchy rovnováhy, někdy během dne mžitky před očima": [
+      39,
+      99
+    ],
+    "MR mozku 14. 9. 2026: solitární ložisko do 3 mm v pravé hemisféře mozečku, suspekce na metastázu": [
+      70,
+      36
+    ],
+    "MR mozku 14. 9. 2026: solitární sytící se nodulus v pravé hemisféře mozečku do 3 mm, suspekce na metastázu": [
+      70,
+      36
+    ],
+    "Everolimus 5 mg od 3. 9. 2026": [
+      32,
+      67
+    ],
+    "HBsAg pozit. pac. (anamnéza v dokumentaci)": [
+      83
+    ],
+    "Everolimus 5 mg od 3. 9. 2026 (aktuální léčba)": [
+      32,
+      67
+    ],
+    "Sunitinib 1-8/2026 (ukončen)": [
+      54,
+      31
+    ],
+    "Nivolumab + ipilimumab, udržovací nivolumab do 12/2025 (ukončeno)": [
+      10,
+      13
+    ],
+    "HBsAg pozitivní": [
+      83
+    ],
+    "Everolimus 5 mg od 3. 9. 2026, plánováno zvýšení na 10 mg": [
+      32,
+      68
+    ],
+    "Everolimus od 3. 9. 2026": [
+      32
+    ],
+    "Arteriální hypertenze v osobní anamnéze, chronická medikace Kapidin 20 mg 1-0-0": [
+      72,
+      85
+    ],
+    "TK 174/92 při interním vyšetření 10. 2. 2026 (během léčby sunitinibem)": [
+      76,
+      78
+    ],
+    "TK 155/70 později": [
+      101
+    ],
+    "Sunitinib 1-8/2026": [
+      54,
+      31
+    ],
+    "TK 174/92 při interním vyšetření 10. 2. 2026, dle pacienta doma prav. TK kolem 150": [
+      76,
+      78
+    ],
+    "Od 10. 2. 2026 nově Orcal 10 mg ½-0-0, poučen o domácím měření TK": [
+      94
+    ],
+    "Chronická medikace: Kapidin 20 mg 1-0-0": [
+      85
+    ],
+    "TK 155/70 později; doma tehdy TK neměřil (dovolená)": [
+      101,
+      100
+    ],
+    "Kontraindikovány jsou ACEi pro zvýšené riziko anafylaxe": [
+      95
+    ],
+    "Metastatický světlobuněčný karcinom ledviny, progrese po 1. a 2. linii, od 3. 9. 2026 everolimus": [
+      2,
+      23,
+      65,
+      32
+    ]
+  }
+}

@@ -416,9 +416,23 @@ details.srcs .refs { border-top: 0; margin-top: 4px; padding-top: 0; }
 .gl .chip { white-space: normal; }
 .gl .cite { display: block; font-size: 12px; color: var(--muted); }
 .devt td, .devt th { vertical-align: top; }
-.misslist { margin: 4px 0 4px; padding-left: 18px; font-size: 13.5px; color: var(--missing); overflow-wrap: anywhere; }
-.misslist li { margin: 2px 0; }
-.ordernote { margin: 10px 0; font-size: 14px; }
+.ordernote { margin: 8px 0; font-size: 14px; }
+/* Round 21: guideline entries are a headline (quote + tier chip) that opens to the reason, sources and citation. */
+.gll { list-style: none; margin: 6px 0 0 !important; padding: 0 !important; gap: 6px !important; }
+.gle details { border: 1px solid var(--line); border-radius: var(--r); background: var(--surface); }
+.gle summary { cursor: pointer; display: flex; flex-wrap: wrap; align-items: flex-start; gap: 4px 10px; padding: 8px 10px; list-style: none; }
+.gle summary::-webkit-details-marker { display: none; }
+.gle summary::before { content: "▸"; color: var(--muted); flex: none; }
+.gle details[open] summary::before { content: "▾"; }
+.gle .glq { flex: 1 1 260px; min-width: 0; font-size: 14px; }
+.gle details:not([open]) .glq { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.gle summary .chip { flex: none; }
+.glbody { padding: 0 12px 10px 28px; }
+.glwhy { margin: 0; font-size: 13.5px; }
+.glfacts { margin: 4px 0 0; padding-left: 18px; font-size: 13px; }
+.glmeta { margin: 6px 0 0; font-size: 12px; font-style: italic; color: var(--muted); }
+.glmeta .linkbtn, .glmeta a { font-style: normal; }
+.glh { margin: 14px 0 4px; font-size: 14px; }
 .rhist { margin-top: 4px; padding-top: 4px; }
 .rhist ol { margin: 4px 0 0; padding-left: 18px; }
 .orow .dt[data-tip] { cursor: help; }
@@ -532,7 +546,9 @@ details.srcs .refs { border-top: 0; margin-top: 4px; padding-top: 0; }
 .labscroll .tbl th { position: sticky; top: 0; z-index: 1; background: var(--surface); }
 .mini button.sem { font-weight: 700; color: var(--accent-ink); }
 .tbl td.nw { white-space: nowrap; }
-.gapsbtn { white-space: normal; text-align: left; }
+.gapsbtn { white-space: normal; text-align: left; border-color: var(--missing); color: var(--missing); }
+/* Missing documents or data: the button itself is the always-on signal (round 21), filled amber. */
+.gapsbtn.warn { background: var(--missing); color: #fff; }
 details.donegrp > summary { cursor: pointer; color: var(--muted); font-size: 13px; padding: 10px 0 4px; }
 </style>
 
@@ -1254,10 +1270,13 @@ function reasonQuestionBox(p, reg) {
     <p style="margin-top:6px"><b>Otázka:</b> ${e ? `${esc(e.text)}<span class="edtag" title="Doplnil(a) ${esc(e.by)}, ${esc(e.when)}">doplněno lékařem</span>` : p.explicit ? esc(p.question) : DASH}
     ${isDoctor(S.user) ? `<button class="edbtn" style="opacity:1" data-edit="${esc(EK("q", p.file))}" data-orig="${esc(p.explicit ? p.question : "")}" title="${filled ? "Upravit otázku" : "Doplnit otázku"}">✎ ${filled ? "" : "doplnit"}</button>` : ""}</p></div>`;
 }
-/* Missing and unclear data: present but not shouting; a toggle, details on demand (round 7). The toggle and the tab
-   carry no counts (round 19): the numbers read as a score and drew the eye away from the brief. */
+/* Missing and unclear data: a toggle, details on demand (round 7), no counts (round 19): numbers read as a score.
+   Missing-document alerts are always on (CLAUDE.md), so when any document or datum is missing the button itself is
+   the signal, filled amber with "chybí podklady"; the list sits one click away (round 21, team decision 2026-10-17). */
+const hasMissing = () => CASE.flags.some(f => f.kind === "missing") || (EXTRA.data_gaps_v3 || []).some(x => x.kind === "missing");
 function gapsToggle() {
-  return `<button class="btn small gapsbtn" data-act="gaps" aria-expanded="${!!S.gapsOpen}" style="border-color:var(--missing);color:var(--missing)">⚠ Upozornění ${S.gapsOpen ? "▴" : "▾"}</button>`;
+  const warn = hasMissing();
+  return `<button class="btn small gapsbtn ${warn ? "warn" : ""}" data-act="gaps" aria-expanded="${!!S.gapsOpen}">⚠ Upozornění${warn ? " · chybí podklady" : ""} ${S.gapsOpen ? "▴" : "▾"}</button>`;
 }
 function questionBox(p) {
   const e = edOf("q", p.file);
@@ -1305,18 +1324,15 @@ function proposalBox(p) {
     </div>`;
 }
 const fieldOf = st => GL(st.guideline_id).field || "oncology";
-/* Compact line per statement (round 10): quote, short source, a link; the full citation and the reason sit in the viewer. */
-const shortCite = st => { const g = GL(st.guideline_id); return `${(g.society || "").replace(/\s*\(.*?\)/g, "")} ${g.year || ""}, ${st.pdf_page ? "s. " + (st.printed_page || st.pdf_page) : "abstrakt"}`; };
 /* A quote is never cut: a shortened guideline sentence can say the opposite (review of the layer). */
-const typeChip = x => x.type === "guideline_text" ? `<span class="chip plain st-new">text kapitoly, bez stupně</span>` : `<span class="chip plain st-ready">${esc(x.evidence_cs || "doporučení")}</span>`;
 /* Strength of a recommendation on one common scale (round 19), so statements from different grading systems can be
    listed strongest first. Read only from the statement's own `evidence` text; the original label is always shown next
    to the tier. Mapping (also in docs/design/PRODUCT.md, "Feedback round 19"):
    - ESMO and EANO (level I-V, grade A-E): grade A = silné, B = střední, C = slabé. D and E (evidence against) do not
      occur in our data and fall to "neuvedeno" rather than being guessed.
    - Modrá kniha ČOS and NCCN categories (1, 2A, 2B, 3) state the level of evidence and the panel's consensus, not
-     the strength of the recommendation, so they map to "neuvedeno" for sorting; the chip names the category
-     instead ("kategorie 2A (důkazy a shoda)").
+     the strength of the recommendation, so they map to "neuvedeno" for sorting and the chip says "neuvedeno";
+     the opened entry names the category and what it means.
    - GRADE wording (ASTRO, EASL): "strong recommendation" = silné, "conditional" or "weak recommendation" = slabé.
      The level of evidence (EASL "LoE") is not the strength and is ignored.
    - ESC classes: I = silné, IIa = střední, IIb = slabé, III (not recommended) = silné, because III is a firm
@@ -1339,40 +1355,57 @@ const categoriesOf = st => { const cos = String(st.evidence || "").match(/(?:ČO
 const tierLabel = st => { const t = tiersOf(st); return t.length > 1 ? `${TIER[t[0]]} až ${TIER[t[t.length - 1]]}` : TIER[t[0]]; };
 /* Strongest first; a range sorts after a single tier of the same strength, then the data's order. */
 const byTier = xs => xs.map((x, i) => ({ x, i, t: tiersOf(x) })).sort((a, b) => a.t[0] - b.t[0] || a.t[a.t.length - 1] - b.t[b.t.length - 1] || a.i - b.i).map(o => o.x);
-const tierChip = st => { const t = tiersOf(st), cat = categoriesOf(st);
-  if (t.length === 1 && t[0] === 3 && cat.length) return `<span class="chip plain tier tier-3" title="Kategorie ČOS a NCCN vyjadřují úroveň důkazů a míru shody odborníků, ne sílu doporučení; v pořadí podle síly jsou proto mezi „neuvedeno“">kategorie ${esc(cat.join(", "))} (důkazy a shoda)</span>`;
-  return `<span class="chip plain tier tier-${t[0]}" title="Síla doporučení převedená na společnou škálu z vlastního stupně doporučení">síla: ${esc(tierLabel(st))}</span>`; };
+/* One chip per entry with the common tier only (round 21); the guideline's own grade is in the opened entry. */
+const tierChip = st => `<span class="chip plain tier tier-${tiersOf(st)[0]}" title="Síla doporučení na společné škále, převedená z vlastního stupně doporučení; původní označení je v rozbaleném záznamu">síla: ${esc(tierLabel(st))}</span>`;
+/* One entry per statement (round 21): the headline is the verbatim quote and one strength chip; a click opens
+   "Proč" (the documented facts with their sources) and, in small italics, the full citation with the original grade.
+   The headline clamps long quotes to three lines only on screen; the open entry shows the whole quote, and the text
+   is never shortened in the data or anywhere it is copied. */
+const factRefs = f => ((GUIDE.fact_refs || {})[f] || []).map(R3).filter(Boolean);
+const factsHtml = fs => (fs || []).length ? `<ul class="glfacts">${fs.map(f => `<li>${esc(f)} ${factRefs(f).length ? srcLinks(factRefs(f)) : `<span class="muted small">(zdroj nedohledán)</span>`}</li>`).join("")}</ul>` : "";
+const pageOf = x => x.pdf_page ? `s. ${esc(x.printed_page || x.pdf_page)}` : "jen abstrakt";
+/* What the guideline itself printed as its grade; ČOS and NCCN categories get their meaning spelled out, because the
+   chip shows them as "neuvedeno". */
+const origGrade = x => { const cat = categoriesOf(x);
+  return x.type === "guideline_text" ? "text kapitoly, bez stupně" : `${esc(x.evidence || "neuvedeno")}${cat.length ? ` (kategorie ${esc(cat.join(", "))}: důkazy a shoda odborníků, ne síla doporučení)` : ""}`; };
+const gleOpen = id => !!(S.gleOpen || {})[id];
 function stmtHtml(x) {
-  return `<li data-tier="${tiersOf(x)[0]}">${x.section ? `<span class="cite">${esc(String(x.section).split(/[;:]/).slice(-1)[0].trim())}</span>` : ""}<q>${esc(x.quote)}</q> ${tierChip(x)} ${typeChip(x)}
-    <span class="cite">${esc(shortCite(x))} · <button class="linkbtn small" data-guide="${esc(x.id)}" title="${esc(citeOf(x))}">otevřít</button></span>
-    <span class="cite">Vztah k pacientovi: ${esc(x.applies_because_cs || "")}</span></li>`;
+  const g = GL(x.guideline_id), t = tiersOf(x);
+  return `<li class="gle" data-tier="${t[0]}"><details data-gle="${esc(x.id)}" ${gleOpen(x.id) ? "open" : ""}><summary><q class="glq">${esc(x.quote)}</q>${tierChip(x)}</summary>
+    <div class="glbody"><p class="glwhy"><b>Proč:</b> ${esc(x.applies_because_cs || "")}</p>${factsHtml(x.patient_facts)}
+    <p class="glmeta">${esc(g.name || "")}, ${esc(g.society || "")} ${esc(g.year || "")}${g.type_cs ? ` · ${esc(g.type_cs)}` : ""} · ${esc(x.section || "")} · ${pageOf(x)} · původní označení: ${origGrade(x)} · <button class="linkbtn small" data-guide="${esc(x.id)}" title="${esc(citeOf(x))}">otevřít v doporučení</button></p></div></details></li>`;
+}
+/* Literature uses the same entry, labelled as literature: a verbatim abstract sentence as the headline, never a
+   recommendation. */
+function litHtml(a) {
+  const id = "lit:" + a.pmid, qs = a.quotes || [];
+  return `<li class="gle"><details data-gle="${esc(id)}" ${gleOpen(id) ? "open" : ""}><summary><q class="glq">${esc(qs[0] || a.title)}</q><span class="chip plain k-unclear">literatura, ne doporučení</span></summary>
+    <div class="glbody"><p class="glwhy"><b>Proč:</b> ${esc(a.why_relevant_cs || "")}</p>${qs.length > 1 ? `<ul class="glfacts">${qs.slice(1).map(q => `<li><q>${esc(q)}</q></li>`).join("")}</ul>` : ""}
+    <p class="glmeta">${esc(a.title)} · ${esc((a.first_author || "").replace(/\s*et al\.?$/, ""))} et al., ${esc(a.journal || "")} ${esc(a.year || "")} · ${esc([].concat(a.pub_type || []).join(", "))} · <a href="${esc(a.url)}" target="_blank" rel="noopener">PMID ${esc(a.pmid)}</a></p></div></details></li>`;
 }
 function guideBox() {
-  const head = `<div class="row spread"><span class="label">Citace z doporučených postupů a literatura · pozorování asistenta</span>
+  const head = `<div class="row spread"><h3 style="margin:0">Doporučené postupy k dalšímu postupu</h3>
     <label class="small muted" style="display:flex;gap:6px;align-items:center"><input type="checkbox" data-act-toggle="guide" ${S.guideOn ? "checked" : ""}> vrstva doporučení</label></div>`;
   if (!S.guideOn) return `<div class="gl">${head}<p class="muted small" style="margin:6px 0 0">Vypnuto.</p></div>`;
   if (GUIDE.loading) return `<div class="gl">${head}<p class="muted small" style="margin:6px 0 0">Načítám doporučení ze serveru…</p></div>`;
   const st = STMTS();
   if (!st.length && !(GUIDE.literature || []).length) return "";
-  /* One list per field, sorted by the strength of the recommendation, not grouped by country (round 19). */
+  /* One list per field, sorted by the strength of the recommendation, not grouped by country (round 19). Open
+     directly, without an outer toggle (round 21); each entry opens on its own. */
   const onc = byTier(st.filter(x => /oncology/.test(fieldOf(x))));
   const other = byTier(st.filter(x => !/oncology/.test(fieldOf(x))));
-  const socs = xs => [...new Set(xs.map(x => (GL(x.guideline_id).society || "").replace(/\s*\(.*?\)/g, "").split(/[,;]/)[0].trim()).filter(Boolean))].join(", ");
-  const grp = (t, xs, open, cls = "") => xs.length ? `<details class="srcs ${cls}" ${open ? "open" : ""}><summary><b>${t}</b> (${xs.length}) <span class="muted small">${esc(socs(xs))}</span></summary><ol>${xs.map(stmtHtml).join("")}</ol></details>` : "";
-  const groups = grp("Onkologie", onc, true, "stmts-onc");
+  const grp = (t, xs, cls) => xs.length ? `<h4 class="glh">${t}</h4><ol class="gll ${cls}">${xs.map(stmtHtml).join("")}</ol>` : "";
   const important = (GUIDE.not_retrieved || []).filter(n => n.important);
   const lit = GUIDE.literature || [];
-  return `<details class="gl" ${S.guideOpen ? "open" : ""} data-guideopen="1"><summary style="cursor:pointer"><b>Doporučené postupy k dalšímu postupu: citace (${st.length})</b>${lit.length ? ` · literatura (${lit.length})` : ""} <span class="muted small">· pozorování asistenta, rozhoduje MDT</span></summary>${head}
+  return `<div class="gl">${head}
+    <p class="ordernote">Seřazeno podle síly, kterou uvádí samo doporučení, ne pořadí možností pro tohoto pacienta.</p>
     ${important.map(n => `<div class="synth" style="margin:8px 0">${esc(n.note_cs || n.name)}</div>`).join("")}
-    <p class="ordernote">Pořadí je stupeň síly, který uvádí samo doporučení (silné, střední, slabé, neuvedeno), ne pořadí možností pro tohoto pacienta. Asistent možnosti pro pacienta neřadí a postup nenavrhuje; rozhoduje MDT.</p>
-    ${groups}
-    ${grp("Další obory (přidružená onemocnění)", other, false, "stmts-other")}
-    ${lit.length ? `<details class="srcs" style="margin-top:12px"><summary>Literatura z PubMed (${lit.length}) · pro situace, kde doporučení nestačí</summary>
-      <ol>${lit.map(a => `<li><b>${esc(a.title)}</b><span class="cite">${esc((a.first_author || "").replace(/\s*et al\.?$/, ""))} et al. ${esc(a.journal || "")} ${esc(a.year || "")} · ${esc(a.pub_type || "")} · <a href="${esc(a.url)}" target="_blank" rel="noopener">PMID ${esc(a.pmid)}</a></span>
-        ${(a.quotes || []).slice(0, 1).map(q => `<q>${esc(q)}</q>`).join("")}<span class="small">Proč: ${esc(a.why_relevant_cs || "")}</span></li>`).join("")}</ol>
-      <p class="muted small" style="margin:6px 0 0">Literatura není doporučení. Hledání v PubMed používá jen odborné pojmy, nikdy údaje o pacientovi${(GUIDE.queries || []).length ? `; dotazy: ${(GUIDE.queries || []).map(q => `„${esc(q.query)}“`).join(", ")}` : ""}.</p></details>` : ""}
-    ${(GUIDE.not_retrieved || []).length ? `<details class="srcs"><summary class="muted">Nenačtené zdroje (${GUIDE.not_retrieved.length})</summary><ul class="small muted">${GUIDE.not_retrieved.map(n => `<li>${esc(n.name)}: ${esc(n.reason)}</li>`).join("")}</ul></details>` : ""}
-    <p class="muted small" style="margin:8px 0 0">Citace doslovně z uvedených doporučení; původní stupeň je u každé citace. Kategorie ČOS a NCCN (1, 2A, 2B, 3) vyjadřují úroveň důkazů a shodu odborníků, ne sílu doporučení, proto se řadí mezi „neuvedeno“. Odchylky se zapisují v záložce Odchylky od doporučení.</p></details>`;
+    ${grp("Onkologie", onc, "stmts-onc")}
+    ${grp("Další obory (přidružená onemocnění)", other, "stmts-other")}
+    <p class="muted small" style="margin:8px 0 0">Pozorování asistenta, rozhoduje MDT. Citace doslovně z uvedených doporučení; kliknutím se rozbalí důvod, zdroje a původní stupeň.</p>
+    ${lit.length ? `<h4 class="glh">Literatura z PubMed · není doporučení</h4><p class="muted small" style="margin:0">Pro situace, kde doporučení nestačí. Hledání v PubMed používá jen odborné pojmy, nikdy údaje o pacientovi${(GUIDE.queries || []).length ? `; dotazy: ${(GUIDE.queries || []).map(q => `„${esc(q.query)}“`).join(", ")}` : ""}.</p>
+      <ol class="gll lit">${lit.map(litHtml).join("")}</ol>` : ""}
+    ${(GUIDE.not_retrieved || []).length ? `<details class="srcs"><summary class="muted">Nenačtené zdroje (${GUIDE.not_retrieved.length})</summary><ul class="small muted">${GUIDE.not_retrieved.map(n => `<li>${esc(n.name)}: ${esc(n.reason)}</li>`).join("")}</ul></details>` : ""}</div>`;
 }
 /* Source links named by page ("s. 2"), as in the labs table, so several links in one row are told apart. */
 const srcLinks = refs => { const xs = refs || [], seen = {}; return xs.map(r => { const same = xs.filter(x => x.page === r.page).length, k = (seen[r.page] = (seen[r.page] || 0) + 1);
@@ -1388,19 +1421,9 @@ function gapsBox() {
     ${g.length ? `<span class="label" style="display:block;margin-top:12px">Chybějící a nejasné údaje v briefu</span><div class="alerts" style="margin-top:6px">${g.map(x => `<div class="alert" style="grid-template-columns:auto minmax(0,1fr)"><span class="chip plain ${ALERT[x.kind][1]}">${ALERT[x.kind][0]}</span><span>${esc(x.text_cs)} ${srcLinks(x.refs)}</span></div>`).join("")}</div>` : ""}
     <div class="disclaim">Pozorování asistenta, ne klinický závěr. Upozornění neblokují projednání.</div></div>`;
 }
-/* Missing-document alerts are always on (CLAUDE.md), so they show under the toggle without a click: the ones relevant
-   to the MDT question in one compact line each, no counts (round 19). When the toggle is open the same rows sit in
-   the box above, so they are not repeated. Without a relevant one, a label still says that documents are missing. */
-function missingStrip() {
-  const { top, all } = topAlerts(), rel = top.filter(f => f.kind === "missing");
-  if (!all.some(f => f.kind === "missing")) return "";
-  return `<div class="missstrip" style="margin-top:8px"><span class="label" style="color:var(--missing)">⚠ Chybí dokumenty a údaje</span>
-    ${rel.length ? `<ul class="misslist">${rel.map(f => `<li>${esc(f.text_cs)} ${srcLinks(f.based_on)}</li>`).join("")}</ul>` : ""}
-    <button class="linkbtn small" data-tab="alerts">Všechna upozornění</button></div>`;
-}
 function briefBlock(p) {
   const reg = refRegistry();
-  return `<section class="card blk"><div class="head" style="margin:0"><h2>MDT brief</h2><span class="row">${gapsToggle()}</span></div>${S.gapsOpen ? gapsBox() : missingStrip()}
+  return `<section class="card blk"><div class="head" style="margin:0"><h2>MDT brief</h2><span class="row">${gapsToggle()}</span></div>${S.gapsOpen ? gapsBox() : ""}
     <p class="prose">${briefHtml(reg)}</p>
     ${reasonQuestionBox(p, reg)}
     ${timelineCard(true)}
@@ -1621,7 +1644,7 @@ function viewPatient() {
   const p = P(S.pid);
   if (p.full) loadGuidance(p);
   if (!p.full) return viewPatientLite(p);
-  const tabs = [["overview", "Přehled"], ["anamnesis", "Anamnéza"], ["documents", "Dokumenty"], ["labs", "Laboratoř"], ["alerts", "Upozornění"], ["next", "Navrhovaný postup"], ["dev", "Odchylky od doporučení"]];
+  const tabs = [["overview", "Přehled"], ["anamnesis", "Anamnéza"], ["documents", "Dokumenty"], ["labs", "Laboratoř"], ["alerts", "Upozornění"], ["next", "Navrhovaný postup"], ["dev", "Retrospektivní odchylky"]];
   if (!tabs.some(t => t[0] === S.tab)) S.tab = "overview";
   const body = { overview: tabOverview, anamnesis: tabAnamnesis, documents: tabDocuments, labs: tabLabs, alerts: tabAlerts, next: tabNext, dev: tabDev }[S.tab]();
   return `<div class="page">
@@ -1632,17 +1655,15 @@ function viewPatient() {
     <div class="tabs" role="tablist">${tabs.map(([k, t]) => `<button class="tab" role="tab" data-tab="${k}" aria-selected="${S.tab === k}">${t}</button>`).join("")}</div>
     ${body}</div>`;
 }
-/* Proposed management and the guideline layer in their own tab (round 14); passages about past decisions moved to
-   the retrospective deviations in the "Odchylky od doporučení" tab (round 19). */
+/* Proposed management, the guideline layer and the MDT's deviations table in one tab (round 21): the table compares
+   the plan with the statements quoted just above it. Past decisions live in the "Retrospektivní odchylky" tab. */
 function tabNext() {
-  const p = P(S.pid);
-  return `<section class="card blk">${proposalBox(p)}${guideBox()}</section>`;
+  const p = P(S.pid), pr = ensureProto(p);
+  return `<section class="card blk">${proposalBox(p)}${guideBox()}</section>${S.guideOn && STMTS().length ? devTable(p, pr, pr.state === "approved") : ""}`;
 }
 function tabDev() {
-  const p = P(S.pid), pr = ensureProto(p);
   if (!S.guideOn) return `<section class="card"><p class="muted">Vrstva doporučení je vypnutá.</p></section>`;
-  const retro = retroList(p), pros = STMTS().length ? devTable(p, pr, pr.state === "approved") : "";
-  return retro || pros ? retro + pros : `<section class="card"><p class="muted">Vrstva doporučení je bez citací.</p></section>`;
+  return retroList(P(S.pid)) || `<section class="card"><p class="muted">K minulým rozhodnutím nejsou pasáže z doporučení.</p></section>`;
 }
 /* Retrospective deviations (round 19, team decision 2026-10-17): each past decision from the documentation next to a
    guideline passage on the same topic. The assistant only puts the two quotes side by side; severity and assessment
@@ -1654,6 +1675,21 @@ const ASSESS = { "": "-", justified: "odůvodněná", unjustified: "neodůvodně
 const retroOf = pid => (S.retro[pid] = S.retro[pid] || {});
 /* The decision's own words: the reference the statement names, else the first source of its oncology row. */
 const decisionRef = x => R3(Number.isInteger(x.decision_ref) ? x.decision_ref : ((EXTRA.onco_detailed_v3 || [])[x.row_index]?.refs || [])[0]);
+/* The guideline side of a past decision quotes only the edition valid on the decision date (round 21), never a later
+   one; the PDF of that edition opens online at the page. Without a passage in that edition the item says so. */
+const edRange = e => `platné od ${fmtDate(e.valid_from)} do ${e.valid_to ? fmtDate(e.valid_to) : "dosud"}`;
+const pdfAt = (e, n) => e.pdf_url ? `<a class="linkbtn small" href="${esc(e.pdf_url)}${n ? "#page=" + esc(n) : ""}" target="_blank" rel="noopener">otevřít PDF vydání ${esc(e.year)}${n ? `, s. ${esc(n)}` : ""}</a>` : "";
+function pastPassage(x) {
+  const e = x.edition;
+  if (!e || x.status === "not_checked") return `<span class="label">Doporučení platné v době rozhodnutí</span><p class="rq muted">Pasáž z vydání platného v době rozhodnutí nebyla dohledána; citace z pozdějšího vydání se nezobrazuje.</p>`;
+  const head = `<span class="label">Doporučení platné v době rozhodnutí · ${esc(e.name)}, vydání ${esc(e.year)}</span>`;
+  const meta = `<span class="cite edition">${esc(e.society)} · ${esc(e.version || "")} · ${edRange(e)}${x.decision_date ? ` · vydání vybráno k datu ${fmtDate(x.decision_date)} (výkon nebo zahájení léčby dle dokumentace)` : ""}</span>`;
+  if (x.status === "not_found" || !x.quote) return `${head}<p class="rq">vydání platné v době rozhodnutí pasáž neobsahuje</p>${meta}${pdfAt(e)}`;
+  const more = x.additional_passages || [];
+  return `${head}<p class="rq"><q class="pastq">${esc(x.quote)}</q></p>${meta}
+    <span class="cite">${esc(x.section || "")} · ${pageOf(x)} · původní označení: ${esc(x.evidence || "neuvedeno")} · ${pdfAt(e, x.pdf_page)}</span>
+    ${more.length ? `<details class="srcs"><summary class="small">Další pasáž z téhož vydání (${more.length})</summary>${more.map(m => `<p class="rq"><q>${esc(m.quote)}</q></p><span class="cite">${esc(m.section || "")} · s. ${esc(m.pdf_page)} · ${pdfAt(e, m.pdf_page)}</span>${m.relation_cs ? `<span class="cite">${esc(m.relation_cs)}</span>` : ""}`).join("")}</details>` : ""}`;
+}
 function retroList(p) {
   const xs = PAST(); if (!xs.length) return "";
   const rs = retroOf(p.file), doc = isDoctor(S.user);
@@ -1666,21 +1702,18 @@ function retroList(p) {
       : `<div class="small"><span class="label">${esc(label)}</span><div>${esc(opts[v] || "-")}</div>${who}${older}</div>`;
   };
   const item = x => {
-    const g = GL(x.guideline_id), dr = decisionRef(x), sev = (rs[x.id] || {}).sev || "";
+    const dr = decisionRef(x), sev = (rs[x.id] || {}).sev || "";
     return `<li class="retro ${sev ? "sev-" + sev : ""}" data-retroitem="${esc(x.id)}">
       <span class="chip plain k-unclear">Pozorování asistenta: pasáž z doporučení k minulému rozhodnutí</span>
       <div class="retrogrid"><div><span class="label">Rozhodnutí v dokumentaci · ${esc(x.decision_cs || "")}</span>
           ${dr ? `<p class="rq"><q>${esc(dr.quote)}</q> <button class="linkbtn small" data-src='${esc(JSON.stringify(dr))}'>zdroj, s. ${esc(dr.page)}</button></p>` : `<p class="rq">${DASH}</p>`}</div>
-        <div><span class="label">Doporučení · ${esc(g.name || "")}, vydání ${esc(g.year || "")}</span>
-          <p class="rq"><q>${esc(x.quote)}</q> ${typeChip(x)}</p>
-          <span class="cite">${esc(shortCite(x))}${x.section ? ` · ${esc(x.section)}` : ""} · <button class="linkbtn small" data-guide="${esc(x.id)}" title="${esc(citeOf(x))}">otevřít doporučení u pasáže</button></span></div></div>
+        <div>${pastPassage(x)}</div></div>
       ${x.relation_cs ? `<span class="cite">${esc(x.relation_cs)}</span>` : ""}
-      <span class="cite" style="color:var(--missing)">${esc(x.edition_note_cs || "Aktuální vydání; vydání platné v době rozhodnutí se může lišit.")}</span>
       <div class="row" style="gap:8px 16px;margin-top:6px;align-items:flex-start">${pick(x, "sev", SEV, "Závažnost")}${pick(x, "assess", ASSESS, "Posouzení")}</div></li>`;
   };
-  return `<section class="card"><div class="head"><h2>Retrospektivní odchylky</h2><span class="muted small">Minulá rozhodnutí vedle pasáží z doporučení; závažnost a posouzení vyplňuje lékař</span></div>
+  return `<section class="card"><div class="head"><h2>Retrospektivní odchylky</h2><span class="muted small">Minulá rozhodnutí vedle pasáží z vydání doporučení platného v době rozhodnutí; závažnost a posouzení vyplňuje lékař</span></div>
     <ol class="retrolist">${xs.map(item).join("")}</ol>
-    <p class="muted small" style="margin:8px 0 0">Asistent jen staví vedle sebe citaci z dokumentace a citaci z aktuálního vydání doporučení; nehodnotí, zda rozhodnutí doporučení odpovídalo. Vydání platné v době rozhodnutí mohlo pasáž znít jinak nebo ji neobsahovat. ${doc ? "" : "Závažnost a posouzení může nastavit jen lékař."}</p></section>`;
+    <p class="muted small" style="margin:8px 0 0">Ke každému rozhodnutí se cituje vydání doporučení platné v době rozhodnutí, nikdy pozdější. Asistent jen staví vedle sebe citaci z dokumentace a z doporučení; nehodnotí, zda rozhodnutí doporučení odpovídalo. Online novelizace vydání v průběhu roku nejsou archivovány a nebyly ověřeny. ${doc ? "" : "Závažnost a posouzení může nastavit jen lékař."}</p></section>`;
 }
 /* Cases the mock has not processed still get the same view: header, short overview, conclusion and the MDT
    discussion card, so a session can run through every case on the agenda. */
@@ -2161,7 +2194,7 @@ function renderOverlay() {
         <div class="muted small">${esc(g.version || "")} · ${esc(st.section || "")} · ${st.pdf_page ? `strana PDF ${esc(st.pdf_page)}${st.printed_page && st.printed_page !== st.pdf_page ? ` (tištěná ${esc(st.printed_page)})` : ""}` : "jen abstrakt, plný text nebyl dostupný"}</div></div>
         <button class="btn small" data-close="1">Zavřít</button></header>
       <div class="pages">${g.pdf_url ? `<a class="btn small" href="${esc(g.pdf_url)}${st.pdf_page && /\.pdf($|\?)/i.test(g.pdf_url) ? "#page=" + esc(st.pdf_page) : ""}" target="_blank" rel="noopener">Otevřít PDF online${st.pdf_page ? ` (str. ${esc(st.pdf_page)})` : ""}</a>` : ""}${g.url ? ` <a class="btn small" href="${esc(g.url)}" target="_blank" rel="noopener">Zdroj vydavatele</a>` : ""}</div>
-      <div class="synth" style="margin:10px 20px 0;border-style:solid">${st.evidence ? `Síla doporučení: ${esc(st.evidence)}<br>` : ""}${st.relation_cs ? `Vztah k záznamu: ${esc(st.relation_cs)}${st.edition_note_cs ? `<br>${esc(st.edition_note_cs)}` : ""}` : `Platí, protože: ${esc(st.applies_because_cs || "")}`}<br><span style="font-weight:500">${esc(citeOf(st))}</span></div>
+      <div class="synth" style="margin:10px 20px 0;border-style:solid">${st.evidence ? `Původní označení: ${esc(st.evidence)}<br>` : ""}${st.relation_cs ? `Vztah k záznamu: ${esc(st.relation_cs)}${st.edition ? `<br>Vydání ${esc(st.edition.year)}, ${edRange(st.edition)}` : ""}` : `Platí, protože: ${esc(st.applies_because_cs || "")}`}<br><span style="font-weight:500">${esc(citeOf(st))}</span></div>
       <div class="text">${text}</div></aside>`;
     document.getElementById("hit")?.scrollIntoView({ block: "center" });
   } else if (o.kind === "start") {
@@ -2636,7 +2669,7 @@ document.addEventListener("change", e => {
     if (x && x.state === "draft" && canConfirmSugg()) { x[t.dataset.f] = t.value; if (t.dataset.f === "due") { x.dueSrc = t.value ? "manual" : "none"; x.dueBy = S.user; } render(); }
   }
 });
-document.addEventListener("toggle", e => { if (e.target.dataset?.guideopen) S.guideOpen = e.target.open; if (e.target.dataset?.doneopen) S.doneOpen = e.target.open; }, true);
+document.addEventListener("toggle", e => { if (e.target.dataset?.gle) { S.gleOpen = S.gleOpen || {}; S.gleOpen[e.target.dataset.gle] = e.target.open; } if (e.target.dataset?.doneopen) S.doneOpen = e.target.open; }, true);
 document.addEventListener("toggle", e => { const f = e.target.dataset?.mdtopen; if (f) S.mdtOpen[f] = e.target.open; if (e.target.dataset?.repopen) S.repOpen = e.target.open; }, true);
 /* Zoom keys as in common PDF viewers; only on the page image, and never while typing. */
 document.addEventListener("keydown", e => {

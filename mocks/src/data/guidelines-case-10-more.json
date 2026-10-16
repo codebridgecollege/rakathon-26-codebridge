@@ -12,7 +12,8 @@
       "pdf_url": "https://www.practicalradonc.org/article/S1879850022000546/pdf",
       "file": "docs/sources/guidelines/us-astro-2022-abstract.txt",
       "license": "Copyright 2022 American Society for Radiation Oncology, published by Elsevier Inc. (copyright line of the PubMed record). Free to read on the publisher site (Semantic Scholar/OpenAlex: bronze open access, no licence); not openly licensed. Our local file holds only the PubMed abstract. pdf_url is the publisher PDF link reported by Semantic Scholar; it could not be opened from our network (publisher blocks bots), so check it in a browser.",
-      "republish_ok": false
+      "republish_ok": false,
+      "type_cs": "klinický doporučený postup odborné společnosti (Clinical Practice Guideline)"
     },
     {
       "id": "us-asco-sno-astro-2022-bm",
@@ -26,7 +27,8 @@
       "pdf_url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC8917399/pdf/noab262.pdf",
       "file": "docs/sources/guidelines/us-asco-sno-astro-2022-abstract.txt",
       "license": "Copyright 2021 American Society of Clinical Oncology, 'All rights reserved' (PMC copyright statement); the Neuro-Oncology copy is distributed under the Oxford University Press Standard Journals Publication Model (free to read, not openly licensed). PMC marks the JCO and Neuro-Oncology versions as identical except for minor stylistic and spelling differences. PMC blocks scripted downloads (reCAPTCHA), so the PDF link was not opened from our network.",
-      "republish_ok": false
+      "republish_ok": false,
+      "type_cs": "společný doporučený postup odborných společností (Guideline)"
     },
     {
       "id": "im-easl-hbv-2025",
@@ -40,7 +42,8 @@
       "pdf_url": "https://www.hepb.org/assets/Uploads/EASL-guidelines-May-2025.pdf",
       "file": "docs/sources/guidelines/im-easl-hbv-2025.pdf",
       "license": "'© 2025 European Association for the Study of the Liver. Published by Elsevier B.V. All rights are reserved, including those for text and data mining, AI training, and similar technologies.' (page 1). Free to read on the journal site (OpenAlex: bronze). pdf_url is a copy hosted by the Hepatitis B Foundation (hepb.org) whose pages match ours; the publisher PDF is https://www.journal-of-hepatology.eu/action/showPdf?pii=S0168827825001746 (blocked for bots, pagination may differ).",
-      "republish_ok": false
+      "republish_ok": false,
+      "type_cs": "klinické doporučené postupy evropské společnosti (Clinical Practice Guidelines)"
     },
     {
       "id": "im-esc-htn-2024",
@@ -54,7 +57,8 @@
       "pdf_url": "https://repisalud.isciii.es/bitstreams/4fe1933e-3844-454d-9cef-4a64b5debafe/download",
       "file": "docs/sources/guidelines/im-esc-hypertension-2024.pdf",
       "license": "'© The European Society of Cardiology 2024. All rights reserved.' The content 'has been published for personal and educational use only. No commercial use is authorized. No part of the ESC Guidelines may be translated or reproduced in any form without written permission from the ESC.' (page 1). pdf_url is the version of record deposited in the ISCIII repository (repisalud.isciii.es); the publisher page is https://academic.oup.com/eurheartj/article/45/38/3912/7741010.",
-      "republish_ok": false
+      "republish_ok": false,
+      "type_cs": "doporučené postupy evropské společnosti (ESC Guidelines)"
     }
   ],
   "statements": [

@@ -1,6 +1,7 @@
 // Clicks through mock v3 in Chromium and checks the behaviour the reviews asked for.
 // Usage: node mocks/src/test/v3.mjs  (needs the global playwright package and its Chromium)
 import { createRequire } from "module";
+import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 const require = createRequire(import.meta.url);
@@ -163,9 +164,41 @@ for (const width of [1280, 400]) {
   await c('[data-tab="next"]'); await over("next");
   const tiers = await page.evaluate(() => [".stmts-onc", ".stmts-other"].map(sel => [...document.querySelectorAll(`${sel} li[data-tier]`)].map(li => +li.dataset.tier)));
   ok(tiers[0].length > 3 && tiers.every(t => t.every((v, i) => !i || t[i - 1] <= v)) && !(await page.locator("main").textContent()).includes("Evropa ("), `${width} prospective statements sorted by strength tier, not by country`);
+  // round 21: the layer is open without an outer toggle; entries show quote + one tier chip and open to Proč, sources, citation
+  const nst = await page.evaluate(() => STMTS().length);
+  ok(await page.locator("details.gl, [data-guideopen]").count() === 0 && await page.locator(".gll:not(.lit) > li.gle").count() === nst
+    && await page.locator(".gll:not(.lit) .gle details[open]").count() === 0
+    && await page.locator(".gll:not(.lit) .gle summary").evaluateAll(xs => xs.every(x => x.querySelectorAll(".chip").length === 1 && x.querySelector(".chip.tier") && x.querySelector("q.glq"))),
+    `${width} guideline entries collapsed, headline is the quote with one tier chip, no outer toggle`);
+  ok(await page.locator(".gl > .ordernote").count() === 1 && (await text(".ordernote")).includes("ne pořadí možností pro tohoto pacienta")
+    && await page.locator(".ordernote").evaluate(el => el.getBoundingClientRect().top < document.querySelector(".gll").getBoundingClientRect().top), `${width} ordering sentence visible above the entries`);
+  await c(".stmts-onc .gle summary"); await over("next entry open");
+  const ent = page.locator(".stmts-onc .gle details[open]").first();
+  ok(await ent.count() === 1 && (await ent.locator(".glwhy").textContent()).startsWith("Proč:") && await ent.locator(".glfacts [data-src]").count() >= 1
+    && await ent.locator(".glmeta").evaluate(el => getComputedStyle(el).fontStyle === "italic" && /původní označení/.test(el.textContent) && /s\. \d+|abstrakt/.test(el.textContent))
+    && await ent.locator('.glmeta [data-guide]').textContent() === "otevřít v doporučení", `${width} opened entry shows Proč with clickable sources and an italic citation with the original grade`);
+  await ent.locator(".glfacts [data-src]").first().click(); await page.waitForTimeout(150);
+  ok(await page.locator(".drawer, #overlay .scrim").count() >= 1, `${width} a fact source opens the documentation`);
+  await page.keyboard.press("Escape"); await page.evaluate(() => { S.overlay = null; renderOverlay(); });
+  ok(await page.locator(".stmts-onc .gle details[open]").count() === 1, `${width} opened entry stays open after re-render`);
+  ok(await page.locator(".gll.lit > li.gle").count() === await page.evaluate(() => (GUIDE.literature || []).length) && (await text(".gll.lit")).includes("literatura, ne doporučení")
+    && (await page.locator("h4.glh").allTextContents()).some(t => t.includes("Literatura z PubMed · není doporučení")), `${width} literature is its own section, same entries, labelled not a recommendation`);
+  // the MDT's deviations table now sits in this tab, below the recommendations
+  ok(await page.locator(".devt").count() === 1 && await page.evaluate(() => document.querySelector(".devt").getBoundingClientRect().top > document.querySelector(".gl").getBoundingClientRect().bottom), `${width} deviations table in Navrhovaný postup below the recommendations`);
   // retrospective deviations: severity and assessment only for doctors, never prefilled, stored with who and when
   await c('[data-tab="dev"]'); await over("dev");
   const nr = await page.locator("[data-retroitem]").count();
+  // round 21: only the retrospective list; each quote is the historic edition's text, from the edition valid at the decision
+  ok((await text('[data-tab="dev"]')) === "Retrospektivní odchylky" && await page.locator(".devt").count() === 0, `${width} retrospective tab holds no prospective table`);
+  const hist = await page.evaluate(() => PAST().map(x => ({ id: x.id, quote: x.quote, year: x.edition?.year, from: x.edition?.valid_from, to: x.edition?.valid_to, url: x.edition?.pdf_url, page: x.pdf_page, date: x.decision_date })));
+  const histFile = JSON.parse(fs.readFileSync(path.resolve(here, "../data/guidelines-case-10-past-historic.json"), "utf8")).items;
+  const shown = await page.locator("[data-retroitem]").evaluateAll(els => els.map(el => ({ id: el.dataset.retroitem, q: el.querySelector("q.pastq")?.textContent, t: el.textContent, href: el.querySelector("a[href*='#page=']")?.getAttribute("href") })));
+  ok(histFile.length === nr && histFile.every(it => { const h = hist.find(x => x.id === it.id), d = shown.find(x => x.id === it.id);
+    return h && d && d.q === it.quote && h.year === it.edition.year && it.edition.valid_from <= it.decision_date && (!it.edition.valid_to || it.decision_date <= it.edition.valid_to)
+      && d.t.includes(`vydání ${it.edition.year}`) && d.t.includes("platné od ") && d.href === `${it.edition.pdf_url}#page=${it.pdf_page}`; }),
+    `${width} retrospective quotes equal the historic file, show the valid edition's year and range, and open its PDF at the page`);
+  ok(!(await text("main")).includes("aktuálního vydání") && !(await text("main")).includes("platilo i v době") && (await text("main")).includes("nebyly ověřeny"), `${width} edition note says the edition valid at the time is used, amendments caveat shown`);
+  ok(await page.evaluate(() => { const x = { ...PAST()[0], status: "not_found", quote: "" }; return pastPassage(x).includes("vydání platné v době rozhodnutí pasáž neobsahuje") && !pastPassage({ id: "x", status: "not_checked" }).includes("<q"); }), `${width} no passage in the valid edition is said so, never filled from a later edition`);
   ok(nr === 8 && await page.locator('select[data-retro][data-rf="sev"]').count() === nr && await page.locator(".retro[class*=sev-]").count() === 0
     && (await page.locator("select[data-retro]").evaluateAll(xs => xs.every(x => x.value === ""))), `${width} retrospective deviations listed, severity empty until a doctor picks it`);
   const rid = await page.locator("[data-retroitem]").first().getAttribute("data-retroitem");
@@ -224,13 +257,15 @@ for (const width of [1280, 400]) {
   ok(await page.evaluate(() => !!P("10_pacient.pdf").slot), `${width} unschedule guard keeps a discussed case's slot`);
   // brief: missing-document alerts visible without a click, no counts
   await go("#patient/10/overview");
-  ok(await page.locator(".missstrip li").count() >= 1 && !/\d/.test(await text(".missstrip .label")) && await page.locator('[data-act="gaps"][aria-expanded="false"]').count() === 1, `${width} missing-document alerts shown in the brief without a click`);
+  ok(await page.locator(".missstrip, .misslist").count() === 0 && await page.locator('[data-act="gaps"][aria-expanded="false"].warn').count() === 1
+    && (await text(".gapsbtn")).includes("chybí podklady") && !/\d/.test(await text(".gapsbtn"))
+    && await page.locator(".gapsbtn").evaluate(el => getComputedStyle(el).backgroundColor !== getComputedStyle(document.body).backgroundColor && getComputedStyle(el).backgroundColor !== "rgba(0, 0, 0, 0)"), `${width} no inline missing list; the Upozornění button is a filled warning when documents are missing`);
   // oncology summary: nivolumab row says 2 cycles, therapy dates say "zahájení léčby", the CT note says time without date
   ok((await text("main")).includes("2 cykly (2. cyklus 17.4.2023)") && await page.locator('.orow.cpt .dt[data-tip="zahájení léčby"]').count() >= 3
     && await page.evaluate(() => EXTRA.onco_compact_v3.lines.some(l => /čas \(9\.20 hod\.\), datum ne/.test(l.note_cs || ""))), `${width} oncology summary: cycle count, therapy start tooltip, CT time note`);
   // guideline layer: ČOS categories sort as "neuvedeno" and are labelled as evidence and consensus; order note visible
   await c('[data-tab="next"]');
-  ok(await page.evaluate(() => STMTS().filter(x => /ČOS/.test(x.evidence)).every(x => tiersOf(x).join() === "3")) && (await text(".stmts-onc")).includes("(důkazy a shoda)")
+  ok(await page.evaluate(() => STMTS().filter(x => /ČOS/.test(x.evidence)).every(x => tiersOf(x).join() === "3" && origGrade(x).includes("důkazy a shoda")))
     && await page.locator(".ordernote").evaluate(el => parseFloat(getComputedStyle(el).fontSize) >= 14 && el.textContent.includes("ne pořadí možností pro tohoto pacienta")), `${width} ČOS categories not read as strength, order note in normal text`);
   // ---- feedback round 20 ----
   // new patient form: only name, surname, birth number and consent required; inline Czech messages

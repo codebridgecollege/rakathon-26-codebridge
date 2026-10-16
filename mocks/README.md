@@ -9,7 +9,7 @@ All patient data is FNO's fictitious challenge data.
 |---|---|---|
 | `v1.html` | First simple mock (one patient workspace) | https://claude.ai/artifact/KraDQ9X7diVo93QzXtse6t |
 | `v2.html` | Full mock after feedback round 1 (database, calendar, patient detail, presentation, protocol, tasks) | https://claude.ai/artifact/6F5AbN6vEAHJQgXP1fkUdc |
-| `v3.html` | Mock after feedback round 2 (Excel-style filters, month navigation, 10-minute slots, brief first, diagnosis headline, current state, lab chart, doctor edits, back/forward), with one patient view for the whole MDT: a session bar with the day's cases and a "Projednání na MDT" card for notes, next steps and approval; its source view shows the rendered page image with the cited passage highlighted, so publishing it also needs the `pages/` folder. Round 19 added task drafts from approved conclusions with a coordinator view and a digest e-mail, out-of-hours booking, retrospective deviations with doctor-set severity, and strength-sorted guideline quotes. Round 20 added a status menu with history and "Uzavřít případ", one-button approval for the team, the report picks in a dialog behind "Stáhnout report (PDF)", and a lighter new patient form | https://claude.ai/artifact/6JwakCBuGZr9STKnfRUz8T |
+| `v3.html` | Mock after feedback round 2 (Excel-style filters, month navigation, 10-minute slots, brief first, diagnosis headline, current state, lab chart, doctor edits, back/forward), with one patient view for the whole MDT: a session bar with the day's cases and a "Projednání na MDT" card for notes, next steps and approval; its source view shows the rendered page image with the cited passage highlighted, so publishing it also needs the `pages/` folder. Round 19 added task drafts from approved conclusions with a coordinator view and a digest e-mail, out-of-hours booking, retrospective deviations with doctor-set severity, and strength-sorted guideline quotes. Round 20 added a status menu with history and "Uzavřít případ", one-button approval for the team, the report picks in a dialog behind "Stáhnout report (PDF)", and a lighter new patient form. Round 21 made guideline statements collapsed entries (quote and tier chip, opening to the reason with sources and the full citation), moved the MDT deviations table under them in "Navrhovaný postup", quoted the guideline edition valid at each past decision in "Retrospektivní odchylky", and replaced the inline missing list with a warning-styled "Upozornění" button | https://claude.ai/artifact/6JwakCBuGZr9STKnfRUz8T |
 
 The published copies are private claude.ai artifacts owned by Juro; ask him
 to share them. To view a mock locally, open the `.html` file in a browser.
@@ -105,7 +105,11 @@ Lucide 0.468.0 paths are embedded in the template, with the ISC notice in
   summary dates, alert labels, strength order, retrospective severity,
   coordinator tasks, digest e-mail; round 20: required fields in the new
   patient form, the report dialog, approval with automatic attendance, status
-  menu, history and closing) and reports JS errors and horizontal overflow
+  menu, history and closing; round 21: guideline entries collapsed and
+  opening to Proč with sources, the ordering sentence, the deviations table in
+  "Navrhovaný postup", retrospective quotes equal to the historic-edition
+  file with the edition year and PDF page, and the warning-styled
+  "Upozornění" button) and reports JS errors and horizontal overflow
   (`node mocks/src/test/v3.mjs`).
 - `src/test/smoke.mjs`: clicks through every screen of v2 in jsdom and reports JS
   errors (`npm i jsdom@24.1.0` in a scratch folder, then

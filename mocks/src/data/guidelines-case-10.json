@@ -11,7 +11,8 @@
       "pdf_url": "https://www.annalsofoncology.org/article/S0923753421022146/pdf",
       "file": "docs/sources/guidelines/eano-esmo-2021-brain-metastases.pdf",
       "license": "© 2021 European Society for Medical Oncology, published by Elsevier Ltd, 'All rights reserved' (printed on page 1). Free to read (Elsevier open access user license 1.0, http://www.elsevier.com/open-access/userlicense/1.0/, per the Elsevier API record), which allows reading and personal use, not redistribution. Our copy is the publisher PDF from the Sapienza IRIS repository (hdl.handle.net/11573/1676379); OpenAlex tags that repository copy cc-by-nc-nd, which conflicts with the 'All rights reserved' line in the PDF.",
-      "republish_ok": false
+      "republish_ok": false,
+      "type_cs": "klinické doporučené postupy evropských společností (Clinical Practice Guidelines)"
     },
     {
       "id": "cos-mk-2026",
@@ -24,7 +25,8 @@
       "pdf_url": "https://www.linkos.cz/files/modra-kniha/26.pdf",
       "file": "docs/sources/guidelines/cos-modra-kniha-2026.pdf",
       "license": "© Masarykův onkologický ústav, 2026 (imprint, PDF page 3). Published free online on linkos.cz; no licence for redistribution found on linkos.cz or in the PDF. Short quotations with source are allowed under the Czech copyright citation exception; republishing the whole PDF is not granted.",
-      "republish_ok": false
+      "republish_ok": false,
+      "type_cs": "národní doporučené postupy odborné společnosti (Modrá kniha, roční vydání)"
     }
   ],
   "statements": [
