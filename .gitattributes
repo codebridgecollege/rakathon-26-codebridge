@@ -1,0 +1,3 @@
+# Keep text files on LF on every platform, so a Windows checkout sees the
+# same bytes the author committed.
+* text=auto eol=lf

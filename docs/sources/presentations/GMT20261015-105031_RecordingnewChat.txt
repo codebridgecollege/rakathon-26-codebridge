@@ -1,0 +1,25 @@
+00:18:14	Bruno Duhar:	Přijmete prosím mého Fireflies notetakera. Čeká vo waiting room 🥺
+00:31:34	JakubLorenc:	Je součástí nabízených MS technologií i Azure DevOps a Entra ID, nebo vyloženě jenom Azure Portal?
+00:34:00	Lenny Kranjec:	Je možné použít předem připravený obecný boilerplate a UI komponenty, pokud transparentně uvedeme, co vzniklo před Rakathonem a co během něj?
+00:43:57	Oliver Stroch:	Projekt pro prezentování prezentujeme v prod prostředí, tedy v Azure? Nebo stačí na lokále?
+00:48:12	Lada Vasicek, MSFT:	Projekt pro prezentování prezentujeme v prod prostředí, tedy v Azure? Nebo stačí na lokále?
+Dobrý den, kdekoliv - stačí lokál, pokud by vám Azure nevyhovoval.
+00:49:11	Drking262:	Takze na ty LLM nebudou nejake extra velke limity, jsem ready na 1 pormpt rozpalit tak 20 subagentu :D?
+00:49:16	Drking262:	*prompt
+00:54:49	Drking262:	Dekuji za odpoved :)
+00:55:32	Lada Vasicek, MSFT:	Reacted to "Dekuji za odpoved ..." with 👍
+01:01:14	Alex Yudzin:	Reacted to "Projekt pro prezento..." with 👍
+01:05:10	Daniil Khmelnytskyi:	Chtěl bych se zeptat, jaká oprávnění budeme mít v rámci přidělené Azure Resource Group. Budeme mít pouze roli Contributor, nebo budeme moci také přiřazovat RBAC role?Ptám se hlavně kvůli nasazování aplikací, nastavení Managed Identities a přístupu ke Key Vaultu, kde může být potřeba přiřadit další role.
+01:06:55	Daniil Khmelnytskyi:	Jasně, spojím se s Vámi na Slacku. Děkuji!
+01:07:02	Michal (MSFT):	Reacted to "Jasně, spojím se..." with 👍
+01:07:40	Alex Yudzin:	No chance to get csv data file today?  )))
+01:07:40	JakubLorenc:	Má vliv na hodnocení výzev použití Azure, např. protože je přijatelnější pro nemocnice, než SaaS jako Heroku, Railway atd.?
+01:53:34	JakubLorenc:	NIS
+01:53:45	Alex Yudzin:	explainability
+02:34:34	JakubLorenc:	V jupyterech jsem myslím viděl OpenAI libku. S ohledem na práci ze zdravotnickými (byť teď fejkovými nebo anonymizovanými) daty, je vhodné/povolené použít na RAG, chatboty atd. přímo v aplikacích cloudové LLM, nebo jsou pak potřeba lokální modely?
+02:34:40	Stan Nagy:	Co přesvědčilo porotu u vašich minulých vítězů?
+02:38:15	Veronika Sedlářová:	Podařilo se všem týmům minulý rok zprovoznit jejich řešení?
+03:13:10	luc chatty:	phoenix@hl7europe.org
+03:13:35	luc chatty:	EUSurvey - Survey
+03:14:29	luc chatty:	Synthetic Data Examples – Realistic – using AI (SYNDERAI)
+03:14:38	luc chatty:	Home - HL7 Europe Common Cancer Model v1.0.0-ballot

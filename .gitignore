@@ -1,0 +1,59 @@
+# Patient data never enters git. Real or hospital-provided documents live
+# here or outside the repo; synthetic samples go in samples/ instead.
+data/*
+!data/.gitkeep
+*.local.*
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Per-user agent settings
+CLAUDE.local.md
+.claude/settings.local.json
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+*.egg-info/
+build/
+dist/
+
+# Node
+node_modules/
+.next/
+.nuxt/
+.output/
+.vite/
+*.tsbuildinfo
+npm-debug.log*
+pnpm-debug.log*
+yarn-error.log*
+
+# Logs, which may contain prompts or document text
+logs/
+*.log
+
+# OS and editors
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+
+# API keys kept as files
+.elevenlabs-key
+*.key
+
+# Recordings exceed GitHub's 100 MB file limit; the transcripts are committed instead
+docs/sources/**/*.m4a
+docs/sources/**/*.mp4

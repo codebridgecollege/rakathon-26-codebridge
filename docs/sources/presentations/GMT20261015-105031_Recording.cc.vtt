@@ -1,0 +1,2645 @@
+WEBVTT
+
+00:23:42.000 --> 00:23:47.000
+Yeah, I know.
+
+00:23:47.000 --> 00:24:02.000
+Šílená nejpozději. Potom zítřejším, zítřejším úvodním dopoledním bloku a budou ten budou nasdílena do kanálu na sleku. konkrétních výzev.
+
+00:24:02.000 --> 00:24:13.000
+Takže určitě vím, že jste všichni netrpěliví, ale data se objeví, Jakmile nejpozději, začne, začne hackování.
+
+00:24:13.000 --> 00:24:25.000
+Perfektní. Děkuju za doplnění, samozřejmě. Předpokládám, že v rámci těch výzev budete moct používat Vlastně, jakýkoli data Jsou veřejně dostupný, že jo? To znamená, asi tam se meze řekněme.
+
+00:24:25.000 --> 00:24:37.000
+Ňáký, jako invenci nekladou ale. Samozřejmě ta který, sou poskytovaný těma danejma autorama těch výzev tak, jsou samozřejmě super důležitý pro to, abyste mohli v té ránci té výzvy něco udělat.
+
+00:24:37.000 --> 00:24:55.000
+To, co je důležitý v rámci. Pokud neznáte, tak Asher je Vlastně je jakoby Public Cloud. ty prostředky, který V něm jsou. To znamená služby, který v něm případně budete používat. Tak, tak musej dycky patřit do ňáký resorty skupiny prostředků pokud, byste měli.
+
+00:24:55.000 --> 00:24:59.000
+Protáhl v češtině a každý tým má vlastní resort.
+
+00:24:59.000 --> 00:25:14.000
+Práva má omezenou tak, aby tam mohl dělat v zásadě cokoli. Ale samozřejmě nemůže do Resoci Group jiných Jakoby týmů. Jo, neměli byste je ani vidět. Pokud jo, tak, Tak se stala někde chyba. Já v rámci setup u. Já věřím, že ne, Ale kdyby to tak bylo, tak.
+
+00:25:14.000 --> 00:25:30.000
+Buďte ohleduplní k ostatním týmům a případně jiným týmům. Samozřejmě do toho prostředí nezasahujte. Ty, to, co můžete v rámci vlastně vytáčet. Jaké služby vlastně používat, Tak nejsou tam žádný zásadní omezení. Až až na.
+
+00:25:30.000 --> 00:25:48.000
+A až na samozřejmě, jakoby stroje, který jsou, který, řekněme, konzumují, hodně prostředků takže. Viděl, jsem nějaký dotazy z ohledně ňákých, Initialgpinitial Strojů a tak tady jsou řekněme by. The fold Jakoby Zakázaný Pokud by. Nějaký tým potřeboval vyloženě měl nějakou
+
+00:25:48.000 --> 00:26:03.000
+Specifickou potřebu v Rámci tohodle toho vzteku tak. Zkuste se nás kontaktovat na na sleku a zkusíme zjistit co, se V tomhle tom případě dá jakoby udělat případně, jak vás jakoby blokovat.
+
+00:26:03.000 --> 00:26:15.000
+to by bylo. Řekněme. Casheru Ten. Světem spolu toho co, je tam dneska připraveného a. Možná než, se vrhneme Na tak jenom vlastně v rychlosti ukážete. Ukážu tu stránku, který jsem shodou mluvil. Ten portál.
+
+00:26:15.000 --> 00:26:30.000
+To znamená, až se dostanete svým týmovým account. Em do na tu stránku. A kams Rakatomě? Tisíc dvacet, šest. Tak Uvidíte. Zhruba Ňákej takovýhle. Velmi jednoduchý portál hnedka. Jako první vás tady uvítá váš a piklíč k těm modelům.
+
+00:26:30.000 --> 00:26:46.000
+To znamená, Vidíte, tady ňákej klíš. Že, si můžete zkopírovat a použít případně volání toho toho modelu jako, takovýho vyloženě Jenom Hello. World Sample, abyste zjistili, jestli něco funguje. A tady vlastně máte k dispozici tu adresu toho vlastního Endpoint, u který můžete používat.
+
+00:26:46.000 --> 00:27:04.000
+zároveň se tady vlastně ukázka těch nazelených modelů. uvidíme, jestli nějaký ještě nepřibye. Do tý doby tenhle. Ten Svět Je velmi, jako rychlej. Nicméně, pokud bych chtěl pracovat s ňákym modelem třeba, si vezmu tady ten model tak, asi si rozbalim tu kartu. A vidím tady ten konkrétní.
+
+00:27:04.000 --> 00:27:22.000
+Název toho deployment, u kterej potřeba použít v Rámci tý toho apivolání vidím konkrétní vlastně. End, Point Toho Modelu a Klíč mám někde schovanej tady. Vlastně v tom, v tomhle tom místě. říkal jsem, že tam jsou nějaký data. To znamená tady, můžete vědět, který data tam jsou. Můžete si je stáhnout a pracovat s nima.
+
+00:27:22.000 --> 00:27:24.000
+Podle podle potřeby.
+
+00:27:24.000 --> 00:27:40.000
+V tom by asi problém být neměl. jako další po mě bude mluvit kolega, který nabízí velmi zajímavou, možnost, jak pracovat s. Řekněme. V tomhletom medicínském oboru s daty.
+
+00:27:40.000 --> 00:27:55.000
+A Ta která nabízí vlastně k tomu image, který má v souběžně dopřebný. Tak zase máte tady možnost si vyrazit image vydeplyovat v rámci velmi jednoduchým jako jedním příkazem. A můžete vlastně pracovat v rámci toho image e případně benefitovat z těch,
+
+00:27:55.000 --> 00:28:05.000
+Z toho z těch nástrojů a softwaru, který v tomhle tom image je. Víc tomu říkat nebudu protože, Předpokládám že, po mě. Ta sešna vám řekne o tom mnohem mnohem víc.
+
+00:28:05.000 --> 00:28:23.000
+Git Hapku. Pilot, který vlastně budu popisovat, co a jak, Tak jenom, jak se k němu dostanete, to zase Z tohodle portálu. To znamená. Je tady nějaký. Je tady ňákej qrinitial kód Kterej si, Naskenujete tak vás, Dostane vlastně na na login page Kde se vlastně zaregistrujete? Můžete.
+
+00:28:23.000 --> 00:28:41.000
+Můžete veselé vlastně vy vyzkoušet. Co tahle ta technologie umí? No, abysme si dali do toho ňáký hód protože, většinou, To je tak, že, moc moc. Lidi jakoby kromě Enterprise vlastně neznají. Slyšíme dost často. Já nevím, Cloud. Kód.
+
+00:28:41.000 --> 00:28:46.000
+Kodex, že jo? Kurzor? Podobné nástroje. Igapco. Pilot.
+
+00:28:46.000 --> 00:29:02.000
+Je vesměs velmi podobný nástroj Těm těm, co jsem teďka jmenoval spolu toho, že to je nějakej, řekněme, parťák pro vývoj. A nejenom vývoj aplikací. To znamená, umí pracovat s kódem.
+
+00:29:02.000 --> 00:29:17.000
+Vysvětlovat. Navrhovat Řešení může doplňovat pomáhá. Test pomáhá, řešit Testování řekněme těch jednotlivejch. Částí pomáhá opravovat ty testy no a Samozřejmě, asi dneska. Už jako by Default mood je.
+
+00:29:17.000 --> 00:29:29.000
+Použití vlastně agenta kódovacího agenta, kterej vám pomůže a dělá toho parťáka, kterej skutečně vám na základě nějakýho požadavku dokáže Velkou část práce. Vlastně odbavit sám.
+
+00:29:29.000 --> 00:29:48.000
+Tak to je. To je vlastně k dispozici. V tom nástroji taky. A samozřejmě existujou. Spousta technik, který nebudou zabíhat do detailů. Ale jak se tyhlety Dá se daj využívat. Doporučuju kouknout třeba na ňáký skilly Ať, už sou to skilly Od Antropiku Nebo Prostě Skilly od různejch. Řekněme.
+
+00:29:48.000 --> 00:30:03.000
+znalců v tomhle tom oboru, který vám pomůžou velmi dobře a velmi kvalitně. Vlastně navrhovat řešení ale. Pak je vlastně zároveň i implementovat. Ať už to děláte v zásadě kdekoliv. Jestli to děláte na lokálu nebo děláte někde v cloudu.
+
+00:30:03.000 --> 00:30:10.000
+Tak ty, Skilly Většinou velmi dobře umí jako poradit a pomoct vlastně. S tím vývojem jako. Takovým.
+
+00:30:10.000 --> 00:30:26.000
+Takže toho z toho se nebojte. copilot vlastně umí pracovat i s cloud. Kód s kilama. Jednak jedný. Takže Vlastně, ta je. To je přepoužitelný. Pokud jste zvyklý pracovat někde jinde, to bych asi. To bych. To bych doporučoval vyzkou.
+
+00:30:26.000 --> 00:30:28.000
+Co se týká.
+
+00:30:28.000 --> 00:30:45.000
+Toho prostředí. Tak, kdy nám koupil Jako takovej Umí žít? Vlastně to znamená v nějakým idéčku. Nevím, jestli někdo z vás tenhle ten nástroj používá. Je to zase Open Source. nástroj pro, řekněme. Tradiční vývoj softwaru.
+
+00:30:45.000 --> 00:31:04.000
+V rámci, kterýho sigup můžete vlastně spustit taky. Je to tady ta pravá strana. Jakoby kde, víte, nějaký chat ňáký Sešny který s tím kupil, Tam vedete. Je Potřeba se zase jenom přihlásit tím účtem který, si vlastně založíte po řekněme naskenování toho qrinitial kódu a vyplnění ňákejch pár. Údaj.
+
+00:31:04.000 --> 00:31:20.000
+Před tímhle, Tím účtem, na kterym si aktivujete tu kupi od licenci, kterou pro vás máme. Tak vlastně, můžete se tady přihlásit. A tím pádem za asi aktivujete, jakoby to prostředí a bude používat tuhle tu licenci a uvidí vlastně to prostředí z tohodle toho účtu. Té Jakoby to je. To. Je to důležitý.
+
+00:31:20.000 --> 00:31:32.000
+A pak už jenom na vás. Co budete vlastně v rámci aplikace dělat? Samozřejmě, pokuď, že jo? Někdo je zvyklej. Třeba za poslední měsíce používat.
+
+00:31:32.000 --> 00:31:47.000
+Používat síla. To znamená interface. Tak koupil, že i v Commandlině. To znamená jakejkoli terminál. spustit copilot. Langenglishinitialclainitial. Nejdřív Jsou nainstalovat, pak spustit. A vlastně zase po nějakým přihlášení zalogování.
+
+00:31:47.000 --> 00:32:04.000
+S tím účtem, který kterýho který si vytvoříte respektive, na který si aplikujete tu licenci, tak vlastně můžete používat, Kopal jakýhokoliv terminálu, kterej máte zrovna po ruce. Ať už jste na na Windows Linux u nebo makeup.
+
+00:32:04.000 --> 00:32:17.000
+a jako relativně nový nástroj. Když se nám už tady jako pár měsíců, tak je respektive už skoro rok Tak je vlastně pilot apka, Což je takovej Ten novej přístup, kterej můžete dneska vidět.
+
+00:32:17.000 --> 00:32:32.000
+Trošku odklonut. Toho řeším jenom kód ale, v zásadě příklon k tomu už vlastně řeším spíš tu. Práci s těma agentama, který pro mě pracujou. Který já vlastně řídím práce. Na těch projektech. A. To je teďka.
+
+00:32:32.000 --> 00:32:49.000
+Ten ten svět, kterej řekněme Se v tom v tom vývoji dost Jako razí to. Znamená kód samozřejmě, nutný vidět Občas taky, ale řekněme v tom základu je to práce asi. S tou s tím s tím agentem odbavování. Těch tásků řešení issuz, a Podobný věci to znamená.
+
+00:32:49.000 --> 00:32:54.000
+Koupil tabku v jako vřele. Doporučuju. Ta hapka se velmi rychle vyvíjí.
+
+00:32:54.000 --> 00:33:13.000
+Spousta zajímavejch. Jakoby věcí. Pokud by vás to samozřejmě zajímalo, dejte vědět. Může se o tom bavit, ale v zásadě Je to prostě. Řekněme. Dneska ten nástroj za, kterým bych šel za ňáký ňáký prostředí který mi dovoluje, pracovat s více sešnama více agentama v prostředí, který je relativně jako příjemný pro ten vývoj. A vlastně jsem schopen v něm.
+
+00:33:13.000 --> 00:33:29.000
+Velmi rychle, velmi, Jakoby kvalitně odbavovat ty, ty. Ty danýtásky, který jsou zase do tý kope taky. Je potřeba Se přihlásit s tím správným účtem to. Znamená s tím účtem který, svážete z toho kidapku od licencí a v tu chvíli už Čerpáte tu licenci od tamtuď a.
+
+00:33:29.000 --> 00:33:33.000
+Máte tam tyto Keny a ty modely, který sou připravený jakoby pro vás.
+
+00:33:33.000 --> 00:33:47.000
+Michale může jenom vyrušit. Máme tady dotaz na chatu, jestli je součástí nabízených Microsoft technologií, Develops a Initialntra Langenglishinitialidinitiallangenglish nebo vyloženě jenom Azure Portal.
+
+00:33:47.000 --> 00:34:04.000
+je to Asher. Portál Respektive. Do portálu se dostanete přes, samozřejmě, což je nástroj pro identity. Nicméně k té identitě. Nemáte přístup, Protože jdeme v Tenantu. Initialvzpinitial. Takže tam, samozřejmě se vám ty práva nedávaly. To znamená je to čistě.
+
+00:34:04.000 --> 00:34:20.000
+Portál Ashru, Git, hapkou pilot. A se taky nedáváme. Jakoby nebo respektive. Máte k tomu zase v tom Github máte I. Takže. Takže jakoby můžete pracovat na tom smyslu.
+
+00:34:20.000 --> 00:34:22.000
+Super.
+
+00:34:22.000 --> 00:34:31.000
+Jsou tam ještě? Je tam ňákej další dotaz možná. Nevím můžeme, Dát potom za chvíli čas Eště na další dotazy A pak je možná projít, nebo jak. Jak chceš mít.
+
+00:34:31.000 --> 00:34:41.000
+Pojďme klidně odbolat ty dotazy. Tak jak jsou? Já jsem to asi přepnul. Teďka na ty dotazy v chat U, A nevím.
+
+00:34:41.000 --> 00:34:57.000
+Jestli je tam něco, co sem eště neříkal. Vidím tady deops a portál a vidím tady eště, jestli je možné použít předem připravený obecný a uiinitial komponenty. Pokud transparentně uvedeme, co vzniklo před rákatolem. A co během ně.
+
+00:34:57.000 --> 00:35:11.000
+To asi není otázka na mě. Za mě můžete použít relativně cokoli. Možná to je otázka. Spíš na Tomáše. Jako organizátora, Jestli nejsou ňáký specifický jakoby, doporučení nebo pravidla Pro to co, lze a co nelze použít v rámci chování.
+
+00:35:11.000 --> 00:35:27.000
+Jo, no, za sebe, Je je možný použít něco, co jste měli předtím, ale je třeba to uvízt konkrétně. A i v tý, i potom, když, samozřejmě, to budete prezentovat těm mentorům.
+
+00:35:27.000 --> 00:35:39.000
+Tak, je třeba todle transparentně říct, Protože samozřejmě se bere v potaz, co jste postavili během rakatonu nikoliv? Co, jste postavili předtím.
+
+00:35:39.000 --> 00:36:00.000
+Takže je nutný pak oddělit tu část, která se postavila tady a jako určitě potom i pro všechny Je dobrý uvést nástroje. Případně už ňáký datový zdroje sady ale. K tomu se dostanem ještě zítra na úvod ale. Je to možný když, něco je předtím, Ale musí se to Samozřejmě.
+
+00:36:00.000 --> 00:36:12.000
+Otevřeně hackersky deklarovat. Protože všechny i ty submissions taky budou vypublikovaný pro nás tady pro všechny.
+
+00:36:12.000 --> 00:36:18.000
+Perfekt, děkuju. Žádnej dotaz nevidím. Tak asi můžeme.
+
+00:36:18.000 --> 00:36:27.000
+Můžeme jít dál, ale samozřejmě, Ptejte se pokud bude něco nejasný. Ra, rádi zkusíme zodpovědět, přiblížit, nebo se na ten dotaz někdy.
+
+00:36:27.000 --> 00:36:32.000
+Odpojili na ten dotaz někdy pozdějc.
+
+00:36:32.000 --> 00:36:47.000
+Jak už jsem říkal, ten přístup do toho Id, hubu a licence Gid upilotu získáte vlastně v speciální speciální initialurlinitial, která kterou si můžete naskenovat na tom portále. Kam dostanete přístup? Vlastně v rámci za začátku.
+
+00:36:47.000 --> 00:36:49.000
+Hackatonu.
+
+00:36:49.000 --> 00:37:05.000
+Objeví se vám zhruba takovádle stránka, která vás vlastně při Join uje do takzvané organizace. Ta organizace už existuje. A Tady možná jenom poznámka pod čarou. Pokud byste už někdo koupil placený, měl na svém account u.
+
+00:37:05.000 --> 00:37:25.000
+Ať už je to soukromej nebo nedej. Bože, pracovní. Tak radši si vytvořte ňáký nový účet na, který můžete aplikovat Tenhle tu licenci Protože by. Vám tahle ta organizace vlastně, nahradila to vaše současné, Vaše současnou licenci, kterou máte třeba placenou odněkud jinak.
+
+00:37:25.000 --> 00:37:35.000
+A museli byste to tak znova obnovovat, že jo? A tak. Takže jakoby jenom říkám, to je vlastnost toho, že Vlastně přicházíte o nějaký. Nemáte ten před nabitý jakoby kredit a.
+
+00:37:35.000 --> 00:37:54.000
+a tím pádem, jakoby je tam ňáký omezení tohodle toho typu ale. Jinak pokuď nemáte jakoby. Odplacený tak, Se Toho určitě nemusíte bát. Je tam přednesitej kredit, Kterej vlastně potom? Vypršení toho Hakatonu nebo vypočerpání toho kreditu. Samozřejmě se uřízne.
+
+00:37:54.000 --> 00:38:00.000
+Takže, nemusíte se bát nějakýho dalšího. Řekněme. Nějaký další více nákladů na vaší straně.
+
+00:38:00.000 --> 00:38:16.000
+Tendle Ten, účet, který se budete přihlašovat, který budete aplikovat tu pilot licenci, Tak, není ten týmový, který Dostáváte jakoby přístup k tomu portálu a přístup do Agru tak schválně? Protože vlastně tydle ty účty.
+
+00:38:16.000 --> 00:38:31.000
+Bereme, že jsou pro každýho hackera. To znamená vlastně každý hacker má možnost se tady při přilogovat, přihlásit a dostat Tudle tu licenci na svůj účet. Takže když budete pět lidí v týmu, tak vlastně můžete mít pět licencí.
+
+00:38:31.000 --> 00:38:35.000
+Tady toho, tadydle Toho, kde jako pilota.
+
+00:38:35.000 --> 00:38:47.000
+To by problém mít neměl. Zase jenom připomínám. Kdyby s tím byl nějaký problém, tak určitě dejte vědět, Ať už Asi nejlépe přes lék A zkusíme pomoct. Jak to jenom pude?
+
+00:38:47.000 --> 00:39:03.000
+samozřejmě, že, Já nebudu za sebe dávat nějaký. Řekněme. Doporučení jak, postupovat kam, se vydat tam Čekám Že, Máte nápadu asi víc než já. Možná i zkušenosti tady v tý oblasti.
+
+00:39:03.000 --> 00:39:23.000
+Každopádně v rámci existujou ňáký řekněme běžný paterny, které je, dobrý třeba využít. Jo pro. Zrychlení, případně pro. Nějaký snazší nasazení nebo něco takovýho. To znamená už v některý komponenty tam jsou přednastavený už některý komponenty Vlastně je možný využít a benefitovat z toho.
+
+00:39:23.000 --> 00:39:29.000
+Ne, všechno musí být jakoby výjimkou, že jo? Jsou Ňáký služby který, vám dovolujou třeba.
+
+00:39:29.000 --> 00:39:45.000
+Vystavit. Jako v tomhle tom případě, co mám tady na na tý úrazovce třeba jednoduchou webovou stránku. Pokuď máte statickou webovou stránku. Takže existuje služba statik Web Apps, která právě přesně pro to slouží. To znamená cokoliv, co na tý stránce.
+
+00:39:45.000 --> 00:40:00.000
+Zobrazí. Hostuje tu stránku. Má to i nějaký frýtýr? Případně Má to. Je to statická stránka. Nicméně můžete třeba přes Jednoduchý api. Provolávat zase Ňáký třeba. Server les, komponenty, a podobný věci detail. K tomu zase najdete.
+
+00:40:00.000 --> 00:40:12.000
+V rámci toho portálu, kde ňáký odkaz řekněme na dokumentaci od, microsoft u Kde Je. Třeba ukázka jak takovou aplikaci postavit i na tom portálu. Tuším sem dal ňákej příklad velmi rychle jak. Třeba.
+
+00:40:12.000 --> 00:40:22.000
+Velmi 1 jednoduchou. Takovouhle Singl Page aplikaci. Postavíte dostatky. A máte vlastně řešení který, nežije na vašem lokále ale. Ale, Je možný k němu přistupovat.
+
+00:40:22.000 --> 00:40:32.000
+samozřejmě. Pozor na sdílení citlivejch, citlivejch údajů, jako jsou a piklíče. Ty, samozřejmě do toho respektive do toho položiče vůbec nepatří.
+
+00:40:32.000 --> 00:40:49.000
+Další příklad. To je typicky třeba nějaký formulářový data. Pokuď máte, že jo? V rámci toho řešení třeba. Nějaký formuláře Pro nějaký řekněme odbavování nějaký nebo triáž ňákejch případů a podobný věci tak zase. Úplně ideální jako varianta.
+
+00:40:49.000 --> 00:40:57.000
+Přesně Ňáký jednoduchý, databáze typu seekl Post Gra
+
+00:40:57.000 --> 00:41:03.000
+Horizon líbí Cosmos líbí cokoli, co vlastně vám jako přijde pod ruku. A můžete vlastně.
+
+00:41:03.000 --> 00:41:19.000
+Takhle ten svůj web čistě propojit. Vlastně s nějakou jako databází, kterou si musíte samozřejmě v tom žerou postavit v té své resort, že jo? Takže ka každá Tadle, ta komponenta má nějaký význam. Ten moderní. Řekněme, Vývoj a cloud Native Aplikace.
+
+00:41:19.000 --> 00:41:31.000
+Jdou Tím směrem řekněme nějakejch Mikro servis a propojování různejch řekněme pasovejch služeb. Takže zase Pokud, byste. Tady to chtěli benefitovat z těhle těch jakoby nástrojů a a služeb. Tak.
+
+00:41:31.000 --> 00:41:47.000
+Jsou tam vlastně pro vás připravený. Ty, které jsou z grupy. To znamená to místo, kam můžete prostředky depojovat a Případně pak do nich depojovat ten vlastní kontent, Pokud byste chtěli. Předpokládám, že to není součástí, řekněme, ňákých, jako pravidel pro jak by, měl končit ten váš. Jakoby.
+
+00:41:47.000 --> 00:42:01.000
+Ve smyslu toho, ale zase tady jenom dávám, že je možnost případně použít ty technologie tak, abyste velmi jednoduše hostovali Ňáký. Takový Řešení Dobu toho akatonu.
+
+00:42:01.000 --> 00:42:17.000
+To se pokuď budete používat ňáký. Řekněme up. Y Ňákej bekendíček jako takovej kterej vlastně třeba, dokáže spravovat něco Jako server Less, že Jo, Můžu si představit, že tam můžou bejt Challenge, který.
+
+00:42:17.000 --> 00:42:29.000
+Řekněme Vyžadovat zpracování nějakýho požadavku v ňákym work flow U Když. Se. Něco stane tak se, něco stane jinýho a Podobně, že jo? Tak zase, že technologie.
+
+00:42:29.000 --> 00:42:46.000
+Určitě Určitě zajímavá. Jakoby služba, kterou bych doporučil třeba vyzkoušet. ale samozřejmě vaši. Jako fantasy jsem se nekladou, pokud byste šli cestou ňákýho backhand u respektive pokud, Byste Potřebovali zpracování který si, uchovává někde state.
+
+00:42:46.000 --> 00:43:03.000
+To znamená, už to není. Řekněme. Beze stavový tak. Zase samozřejmě nějaká. Varianta který, říkáme double Functions A. Tam vlastně Můžete ukládat ten stej. Můžete dělat ňáký revine z toho zpracování a podobně takže. Pokud byste chtěl opravdu řešení, který zpracovává, v nějakým ňák jako statefle.
+
+00:43:03.000 --> 00:43:17.000
+Stavu. Řekněme, sady dokumentů dat Nebo, nějakých požadavků nebo něco takovýdleho tak, Samozřejmě doporučuju třeba vy vycházet z takovýdleho paternu přes.
+
+00:43:17.000 --> 00:43:38.000
+Se podíváte, zahledáte jakýmkoli prohlížeči, tak vlastně na vás napadne spousta příkladů. Možná když už jsme u toho hledání těch, Jakoby Řešení doporučuju. Se i radit a. Samozřejmě asi, víte víte, sami dobře. Jakoby, s nějakým tím já jako pomocníkem git. Hapko Pilot, Určitě V tomhle tom taky může bejt, dobrá varianta.
+
+00:43:38.000 --> 00:43:50.000
+To znamená, můžete se s ním podělit O ty vlastně myšlenky. Přístup k tomu řešení existuje. Spousta zajímavých jakoby, skill ů Který, nám pomůže třeba s architekturou k tomu danýmu problému dokáže. Vám pomoct s.
+
+00:43:50.000 --> 00:44:09.000
+Na plánování těch aktivit a tak. Nebudu samozřejmě nic jmenovat. A to všichni možná najdete. Najdete někde na Youtube u na internetu. A vlastně můžete takhle velmi elegantně si nechat vlastně poradit při tom, když Třeba si nejste úplně jistý, jakou komponentu využít jak je jak.
+
+00:44:09.000 --> 00:44:14.000
+Třeba dát dohromady. Jak je zaintegrovat, že jo? Jak je pouštět a podobný věci? Doporučuju.
+
+00:44:14.000 --> 00:44:18.000
+Doporučuju tady. Ty tady ty přístupy.
+
+00:44:18.000 --> 00:44:35.000
+Pokud byste chtěli, vzniká nějaká aplikace, která má klasickej bekend, že jo? Tak zase, typicky backhand. Bývá nějakej kontejner ňákej Dokr kter, kterej, je potřeba někde hostovat pokud neběžíte. Všechno jakoby na, lokálu na to. Ideální služba v rámci.
+
+00:44:35.000 --> 00:44:39.000
+Už to velmi jednoduchá. Vlastně kontejnerizace.
+
+00:44:39.000 --> 00:44:56.000
+Ať už to je ňáký backhem nebo nějaká jiná aplikace jsou, Tam různý varianty řekněme toho. Takže zase, doporučuju. S nějakým kopilotem nebo já, je pomocníkem si nechat poradit, Co vlastně, co vlastně je potřeba případně? Ňákou? Variantu si nechat doporučit ale pokuď, už Ten backhand používá jakejkoliv frame work.
+
+00:44:56.000 --> 00:45:12.000
+Protože všechno jede nějaký image v ňákym dukru Pokud. Jste na fasta V pythonu Nebo jedete přes třeba initialaspinitial dot net nebo nebo jakejkoli jinej backhand typu. Třeba nějakej javascript nebo něco. Tak samozřejmě. To je. To je ta volba, kterou můžete zvolit.
+
+00:45:12.000 --> 00:45:28.000
+Tydle ty apky. Většinou drapky maj většinou nastavuje. Nějaký škálování to znamená. Můžou škálovat s tím třeba kterej kterej, v, Rámci toho budete potřebovat ale. Zase asi předpokládám že, v rámci hacatonu To bude spíš o nějakým jakoby.
+
+00:45:28.000 --> 00:45:38.000
+Malým, Proof u nad relativně malým množstvím dat. Tak tady spíš jenom dopravovat doplnění těch patern, který je vhodný v rámci toho svýho řešení využívat.
+
+00:45:38.000 --> 00:45:55.000
+Jenom možná zase, zase nějaké. Jakoby připomínka. Spousta těch služeb má i svoje free tea. To znamená, že v zásadě nic neplatíte. Nicméně ty Free Tea Y jsou většinou sdílený na úrovni té subskripce to. Znamená to, Je ta.
+
+00:45:55.000 --> 00:46:13.000
+To je to místo v Agheru. Kam se vlastně všichni připojujete? Máte všichni svoje svoje Resus Groupy? To znamená, může se stát v tom průběhu, že? Třeba někdo jiný. Už ten Free Tea v uvozovkách potřeboval tak. Jenom se toho nelekněte a a zvolte Prostě jiný týr, kterej vám pomůže. Případně v tom v tom řešení jako jít dál.
+
+00:46:13.000 --> 00:46:32.000
+samozřejmě to prostředí má nějaké svoje limity. my vlastně to prostředí připravujeme v rámci spolupráce s initialvzpinitial. Takže Jako takový připravujem i nějakou. Řekněme kontrolu nad tím prostředí to. Znamená.
+
+00:46:32.000 --> 00:46:48.000
+Je. Jsou tam nastavený ňáký limity A, Řekněme, budget y který Když, se, pře když se, přehoupnou tak vlastně, se se může stát, že některý ty služby použil nebo dostupný nebo přestanou fungovat zase tady. Jenom říkám, pokud by se to stalo.
+
+00:46:48.000 --> 00:46:51.000
+Dejte nám vědět,
+
+00:46:51.000 --> 00:47:07.000
+Můžete operovat. Ty limity nejsou. Řekněme. Nějak daný napevno ale, Můžete opravovat nějakou částkou řekněme 100. Dvě stě. Dolarů v Rámci útraty v Asheru by mělo být na tým poměrně na ten dobu toho Hakatonu jako stačit. Většina. Těch služeb se používá jako módu.
+
+00:47:07.000 --> 00:47:19.000
+Takže Pokud byste měli nějaký problémy s tím, že třeba něco už nejde vytočit nebo něco takovýdleho, tak zase dejte v rámci třeba sleku vědět a zkusíme. Zkusíme se na to podívat.
+
+00:47:19.000 --> 00:47:35.000
+pokuď byste měli problémy. Třeba s voláním toho initiallle modelu, Protože všichni budete používat vlastně stejný end point. Akorát se budete dělit o ty. O ty přístupy. Tak samozřejmě, ty modely mají v sobě nějakej rate limiting. To znamená, pokuď se vám vrací třeba chyba. Ty.
+
+00:47:35.000 --> 00:47:52.000
+Chyba, Chyba typu Čtyři 100. Dvacet devět. Něco jako kvóta Exeedit. Tak aplikačně Musíte vyřešit, že třeba ten požadavek se Zopakuje s ňákou S, nějakým třeba exponential back off a podobněma paternama Předpokládám. Že, ti co a po nějaký aplikace už já je Vyvíjí nebo vyvíjí. Tak, tak.
+
+00:47:52.000 --> 00:48:01.000
+Samozřejmě, s tímhle tím jsou znalý. Tady to jenom říkám pro úplnost, abyste věděli, že něco takovýho může nastat. Je to standardní normální chování.
+
+00:48:01.000 --> 00:48:15.000
+Jakoby toho tak, tak zase. Pokud by. To bylo pro vás nějakým způsobem problém, tak dejte vědět. Zkusíme s tím něco udělat. Ty rozpočty máme na starosti respektive. Organizátoři mají na starosti. To znamená, pokuď by zase s tímhle tím byl nějakej problém.
+
+00:48:15.000 --> 00:48:24.000
+Tak dejte vědět. Zkusíme to nějakým způsobem vyřešit. Případně informovat o tom, co. Jak. Jaký je detail.
+
+00:48:24.000 --> 00:48:28.000
+Já koukám, že přibyly nějaký otázky v chat u. Tak zkusím.
+
+00:48:28.000 --> 00:48:34.000
+Zkusím zareagovat.
+
+00:48:34.000 --> 00:48:42.000
+Nevidím. Tak, Tomáši, kdybys tam něco při přistál novýho, tak když. Tak, tak Když tak dej vědět. Koukám tady.
+
+00:48:42.000 --> 00:48:44.000
+Protože Láďa už tady odpovídal na nějakej dotaz.
+
+00:48:44.000 --> 00:48:47.000
+Jo, perfektní, perfektní. Tak.
+
+00:48:47.000 --> 00:48:51.000
+Tak je to dobrý, tak je to dobrý.
+
+00:48:51.000 --> 00:49:07.000
+Tak pokud budete s náma chtít komunikovat jako s koučema spolu jako technologie, tak, určitě jsme tady proto, aby se vám případně odblokovali. To znamená, pokuď byste s náma na sleku komunikovali. Tak určitě dycky řekněte.
+
+00:49:07.000 --> 00:49:24.000
+o jakej tým se jedná? Případně? Jakej End Point se jedná? Nebo Depointment. Kdy k tomu došlo? A podobně, Abysme se dokázali případně podívat do nějakýho logu, jestli tam není skutečně nějaká chyba a podobně. samozřejmě, pokud byste, čelili ňákej.
+
+00:49:24.000 --> 00:49:28.000
+Autorizačním problémům typu, že? Třeba.
+
+00:49:28.000 --> 00:49:45.000
+Dostanete čtyři 100. 1, čtyři 100, tři. Něco takovýho. To znamená, že vás někdo revookuje. Ten ten přístup. Tak dejte vědět. Podívám se na to, proč to tak je. Možná se prostě jenom hejtl ňákej limit nebo něco takovýdle Tak Zkusíme zkusíme tady s tím, tady s tím něco udělat.
+
+00:49:45.000 --> 00:50:00.000
+Z pohledu, řekněme, toho co, jak jak sdílet s náma ty informace protože. Všechno. Jsme ve slepicky může. K tomu Samozřejmě víc lidí. Tak určitě nikdy nes. Ne, nesdílejte svůj tap. To je ten. To. Je to vlastně to heslo. Ten tempo, Jak se.
+
+00:50:00.000 --> 00:50:10.000
+Pas. Vlastně, který máte pro přístup do té do té subskripce. A aby nedošlo ke kompromitaci. A samozřejmě, nestříhejte s náma ani a piklíč. Ten vědět nepotřebujem.
+
+00:50:10.000 --> 00:50:17.000
+Většinou většina Věcí Se obejde jakoby bez toho.
+
+00:50:17.000 --> 00:50:33.000
+Jinak, z pohledu, tý aplikace. Protože vám ještě jakoby dost času, tak možná jenom chci vlastně nasdílet pár věcí, na který třeba se můžete kouknout, pokud byste chtěli. Pokud plánujete třeba využít tý nabídky, mít vlastně předplatný.
+
+00:50:33.000 --> 00:50:50.000
+Gida k pilotu Jakožto vlastně, bodyho, nebo jak to říct pro pro vývoj aplikací. Tak když byste si Nainstalovali appku. Tak to vypadá zhruba. Takhle to znamená v rámci, svého nastavení si můžete vlastně kouknout na.
+
+00:50:50.000 --> 00:51:06.000
+Er na svůj účet. Tady se při tady se přihlásíte svým účtem a získáte tu licenci. Ti ověříte, že všechno Je správně. A pakliže pudete do svého ňákého projektu ať, Už to je nějaký githaprepo Nebo adresář na svém na lokálním disku na počítač.
+
+00:51:06.000 --> 00:51:16.000
+Tak vlastně, při každý tý sašině, která začíná, tak můžete pár věcí nastavit. Je dobrý o tom vědět. Je dobrý Případně vědět, co se s tím dá dělat nebo nedá dělat.
+
+00:51:16.000 --> 00:51:37.000
+Budete určitě s chtít experimentovat s výběrem modelu. Tak tady vlastně vidíte jakoby modely, který budete mít přístupný. Nevím, jestli Ten seznam bude vypadat úplně přesně stejně tady jako u mě. Každopádně přesilot. Máte přístup Nejenom k úplně antropic. Je tam, Je tam Google, že jo? Je tam mixeriáj.
+
+00:51:37.000 --> 00:51:45.000
+Případně další, jakoby hráči. A můžete asi zvolit ten vhodný model pro tu danou úlohu. Jo, dneska vlastně.
+
+00:51:45.000 --> 00:52:01.000
+Ten novej trend v tý řekněme a vývoji je samozřejmě. Co nejvíc využívat vlastnosti danýho modelu pro tu danou úlohu To znamená, všechno nemusí urvat, opustit Pětka nebo Astra.
+
+00:52:01.000 --> 00:52:17.000
+Ale můžete samozřejmě říct tomu agentovi, ať na určitý lásky třeba zvolí vhodnější typ modelu a podobně případně dost často se používá, že třeba můžete kontrolovat to, co se dělo jiným typem modelů, tak, abyste měli jistotu, že vlastně to vaše řešení je dostatečně jakoby.
+
+00:52:17.000 --> 00:52:35.000
+Precizní, dobrý a podobně. To znamená. Zvolíte si typ modelu? Zvolíte si nějaký Reasoning Effort? Vidíte, že všechny ty modely Už sou dneska jakoby reasoning. To znamená. Máte možnost ovlivňovat, jak moc vlastně ten model o tom Danym tasku přemýšlí, ať už z pohledu Já nevím, nějaký rychlosti nebo naopak. Jakoby.
+
+00:52:35.000 --> 00:52:50.000
+Řešení nějakýho složitýho případu takže. Doporučuju s tím třeba trošku zaexperimentovat samozřejmě. Ty, levly nad háj řekněme jsou. opravdu O tom, že jakoby ten model stráví poměrně hodně času na to.
+
+00:52:50.000 --> 00:53:06.000
+Aby s takovým daným táskem nějakým způsobem pomohl. Koukne to z dvou 100 pohledů. To znamená pro složitý tásky, řízení. Architektury. Případně plánování. Vlastně toho Development Life Cycle a podobnejch věcí. Tak určitě se vyplatí.
+
+00:53:06.000 --> 00:53:16.000
+Ten leasing použít větší ale. Zase samozřejmě na to kódování samotný když, už dneska vám nakóduje všechno i. Jako malej model, že jo? Když to tak řeknu, tak tam snad ten leasing Nemáš? Takovou.
+
+00:53:16.000 --> 00:53:39.000
+Takovou hranici. Kontext Window je, který modely můžou mít i větší kontext s window Pokuď, jste s tím zvyklí pracovat, tak zase máte možnost tady s tím nějakým způsobem nastavit.
+
+00:53:39.000 --> 00:53:40.000
+Michal.
+
+00:53:40.000 --> 00:53:41.000
+Někdo naopak nemá rád třeba velkej kontext. Tak samozřejmě, může tady s tím nějak operovat a a případně případně měnit v rámci tý jedný.
+
+00:53:41.000 --> 00:53:42.000
+Ano.
+
+00:53:42.000 --> 00:53:58.000
+Na, na tohle dotaz, prosím tě. Tady se ptá na ty llmka. Jestli budou nějaké extra velké limity, může tady 1 dotaz míří, že na 1 promp to dokážou rozpálit až dvacet. Agent.
+
+00:53:58.000 --> 00:54:00.000
+Jak bys tady tohle řešil.
+
+00:54:00.000 --> 00:54:12.000
+Jo, jo, samozřejmě, Tak v rámci myslím toho předplatnýho. Je tam zhruba 100 dolarů jakoby per. Ten 1 účet, Kterej vlastně má Giga Copilot.
+
+00:54:12.000 --> 00:54:31.000
+To znamená, v rámci týdletý částky je možně experimentovat ze zkušenosti. Vím, že samozřejmě, ta za tu částku se dá udělat poměrně hodně, Ale není to na to, abyste vyřešili prostě na věr stokes Jakoby. To asi není jakoby, ani tas tady na tuhle tu úlohu. Takže samozřejmě musíte být ňákym způsobem.
+
+00:54:31.000 --> 00:54:41.000
+Pokuď už jdete do světa, kde budete pálit dvacet sub agentů. Tak jenom si vědět toho, že by se ty, že ty agenti taky něco potřebujou jakoby. Na to aby, tu sešnu vyřešili.
+
+00:54:41.000 --> 00:54:52.000
+Takže třeba speciál speciálně vybírat pro ty sub agenty, slabší modely nebo respektive menší modely, který maj menší food print, Jakoby do tý částky a podobně. To kdyby vás zajímalo jako spolu. Toho, co.
+
+00:54:52.000 --> 00:55:07.000
+Si vybrat. Tak vlastně, když tady půjdete k tomu malýmu modelu, tak tady vlastně vidíte vpravo Initialaiinitial kredit. Berte to tak Rudolf tam, že? Vlastně i kredit 1 kredit znamená 1 cent.
+
+00:55:07.000 --> 00:55:12.000
+To znamená, když máte 100 dolarů, tak máte vlastně možnost spotřebovat Až.
+
+00:55:12.000 --> 00:55:16.000
+100 tisíc. Říkám to dobře, A já kreditu.
+
+00:55:16.000 --> 00:55:32.000
+Jo, do deset tisíc. Teď nevím ten řád ale, každopádně takhle si vlastně můžete zjistit který, ty modely jak. Vlastně moc žerou, když to tak řeknu. Jo, Víte, že třeba tady Cloud Op plus pět, pět má opud. Vlastně dva tisíce.
+
+00:55:32.000 --> 00:55:48.000
+dva tisíce junit za milion tokenu a podobně. Takže určitě je, jakoby není to neomezený. Určitě se vyplatí o tom trošku jakoby přemejšlet. A jako pravidlo palce jmenovat všechno jakoby astrou, která samozřejmě.
+
+00:55:48.000 --> 00:55:57.000
+Super velký model. To je super, Vlastně velkým ríslingem. Ale samotný kódování zvládne klidně i levnější model. A samozřejmě, pokuď kredity dojdou.
+
+00:55:57.000 --> 00:56:09.000
+Tak dycky máte možnost využít nějaký vaše, Třeba jakoby předplatný. Pokud máte někam jinam. Tady asi to není nutný. Prostě Dvát. Všechno jedním. Můžete vlastně kombinovat tydle Ty věci, jo, Takže.
+
+00:56:09.000 --> 00:56:24.000
+Ještě mezi se nekladou s tím, že to je, co se týče video ku pilotu, Potom, pokud byste se ptali Na nějaký limity, který jsou v rámci v rámci toho, tak tam samozřejmě taky. Nějaký limity jsou loni. Jsou docela pohyblivý z toho pohledu, Jakoby. A jak budem vědět, jak se ty týmy rozprostřovat, co budou Využí.
+
+00:56:24.000 --> 00:56:27.000
+Takže tam to není. Tak Řekněme.
+
+00:56:27.000 --> 00:56:49.000
+Striktní a zase jako pravidlo. Palce bych tady bral, že pokud budete plánovat ňákou větší akci tak zhruba, počítejte 100 Dvě stě dolarů. Prostě na zhruba ten, ten den samozřejmě. Není to garantovaný. Může se stát, že některý prostě týmy dřív se dostanou k té tý částce. Ale. Ale jakoby, když si vezmete, kolik týmů tam může být, tak tak ono se to nějak rozprostře.
+
+00:56:49.000 --> 00:56:51.000
+V čase.
+
+00:56:51.000 --> 00:57:02.000
+Co je eště tady asi důležitý v tý apce Respektive. I kdybyste pracovali ve Feclíčku, v případě v tom vieskóru. Ten vlastně, ten. Ty možnosti jsou dneska všude relativně stejný.
+
+00:57:02.000 --> 00:57:16.000
+Tak jenom věřte že, máte. Dycky vidět tady ňáký projekt ve kterym pracujete protože samozřejmě, To Je, ten adresář Případně to je ten, To je to repozitory, ve kterým se vlastně.
+
+00:57:16.000 --> 00:57:34.000
+Ten Github copil pracuje, vlastně z toho, jak je nastavenej ten tahárness od Od Grabu. Tak vlastně typicky. Ten Agent vidí jenom tenhle ten projekt, pokud mu řekne něco jinýho takže. Si můžete být jistý že, asi pracuje v tom svojim jakoby. Chlívečku Pokuď samozřejmě ne. Dáte jenom informaci.
+
+00:57:34.000 --> 00:57:44.000
+nevím, jestli tahleta varianta bude pro vás jako něco zajímavýho v rámci toho hackathonu, ale ty agenti můžou běžet Jak u vás, Tak samozřejmě v cloudu.
+
+00:57:44.000 --> 00:58:00.000
+To znamená, můžete pouštět i agenta, kterej běží. Vlastně v. Samozřejmě, pak ta konzumace je jakoby stejná. Jestli to používáte Lokálně nebo nebo na počítači? Může pro někoho zajímavý Korov. Třeba v noci, když sem počítač uspí, vybije nebo něco takovýho, tak vlastně přehodit na ňákýho korovýho agenta a. Ten.
+
+00:58:00.000 --> 00:58:03.000
+Agent může pokračovat v tom, jakoby dál.
+
+00:58:03.000 --> 00:58:20.000
+No a, nevím, jestli jste zvyklí nebo nejste zvyklý. Když pracujete s nějakým Git repository, tak buď to můžete pracovat v té své vlastní, Jakoby větvi kterou, máte staženou nebo na počítači nebo. Můžete pro každou sešnu vyrábět takzvaný burklish Což, je vlastně kopie toho repozitory.
+
+00:58:20.000 --> 00:58:31.000
+Je to dobrej, řekněme, Patern pro tu když, chcete pracovat na více Věcech jakoby, najednou danym Jako repozitory protože. Jestli Znáte Egypt? Tak samozřejmě Víte, že když si čeká, udáte ňákou branž, tak.
+
+00:58:31.000 --> 00:58:46.000
+Tak tak máte na disku akorát tu branž a nic jinýho nevidíte. Takže nemůžete dělat Vlastně, navíc brenčík najednou. Takže To je vlastně jako věc, která je dobrá si rozmyslet. Někde třeba na začátku Neuperta sešna. Jestli se vyplatí pracovat work reas nebo ne.
+
+00:58:46.000 --> 00:58:52.000
+Tak to je z pohledu. Řekněme. Tý aplikace jako takový.
+
+00:58:52.000 --> 00:58:55.000
+Ano, to je. No.
+
+00:58:55.000 --> 00:59:15.000
+To co, to, co vlastně uvidíte? Jak v, jak v té aplikaci? Tak v tom tak v tom slíčku. Tak je to na tohle to nastavení. pokuď by něco nešlo. Eště do zdůrazňuji. Tak mi na chat u Sme schopný vám s tím snad nějak pomoct? Dejte prostě vědět. Dejte vědět, z jakýho jste týmu.
+
+00:59:15.000 --> 00:59:24.000
+Případně Githuby. Jakej je třeba, Login. A my se zkusím podívat, jestli tam není něco, s čím bysme mohli s. Čím. Bysme mohli pomoct.
+
+00:59:24.000 --> 00:59:36.000
+Z pohledu jinýho prostředí nebo respektive toho, co na vás může, jak na vás může koukat Asher, Tak já možná Ukážu vlastně jednu tady. Stránku za všechny.
+
+00:59:36.000 --> 00:59:54.000
+V rámci. To je vlastně portal. To znamená portal. Tečka. Com když se tam přihlásíte tím svým týmem, Tak vlastně Uvidíte svojí resort grupu je samozřejmě víc, protože já mám přístup jakoby na všechny. Ale měli byste vědět, Prostě právě pomlčka.
+
+00:59:54.000 --> 01:00:09.000
+Název vašeho týmu. Respektive to ten tým, který máme přidělený v rámci tý kartičky, kterou dostanete. A víte, že tady V rámci tohodle toho prostředí můžete vytvářet prostředky. Je prázdný. Prostě jenom na vás. Jak budete s tímhle tím prostředím zacházet?
+
+01:00:09.000 --> 01:00:24.000
+pokud jste nový v Asher u nebo obecně v cloudu, tak doporučuju používat třeba i toho. Řekněme, Pomocníka initialejainitial i tady. Pokud byste chtěli něco vysvětlit, zjistit, jaký jsou ňáký jak, Se třeba k něčemu zach.
+
+01:00:24.000 --> 01:00:36.000
+Doporučuju tady Egypt copilot. pardon, ale Agko pilot. A případně, pokud byste chtěli s deploymentem, tak já vám to Přímo tady, i jakoby novej. Řekněme. Takovej agentík kterej, umí vám.
+
+01:00:36.000 --> 01:00:45.000
+Na na základě požadavků třeba vyspěnovat. Já nevím, výjimku z konkrétníma parametrama, nebo prostě nějak obchodné zónou a půl a podobně. Já se vám provede. Vás. Tím.
+
+01:00:45.000 --> 01:01:00.000
+Tím, jakoby agent nikoliv nějak, jakoby formulář. Takže možná jenom pro pro informaci, pokud byste chtěli pracovat i vru a Třeba nějakou část toho výpočtu nebo naopak hostování. Třeba nějaký tý výsadní aplikace nebo něco takovýho. Chtěl Řešit faser u.
+
+01:01:00.000 --> 01:01:18.000
+Tak kromě toho, že můžete samozřejmě standardně hledat někde po internetu tak, doporučuju použít i ty agenty případně. Gitapku pilot. Který vám samozřejmě s tím pomůže s nasazením takové věci přímo jakoby do prostředí. Do prostředí.
+
+01:01:18.000 --> 01:01:27.000
+Kouknu ještě, jestli není nějaký nový dotaz.
+
+01:01:27.000 --> 01:01:28.000
+Zatím nevy.
+
+01:01:28.000 --> 01:01:32.000
+Nevypadá paráda, paráda.
+
+01:01:32.000 --> 01:01:50.000
+No, z tohodle pohledu za mě je ten úvod do toho prostředí. Možná ještě zopakuju. Co jsem chtěl Vlastně, abyste si odnesli, po týdletý sešně. máte k dispozici, Pokud budete chtít. A ten tým si myslí, že to využije, tak máte možnost dostat přístupy do Agru.
+
+01:01:50.000 --> 01:02:02.000
+Kde máte vlastně přístupnou Resort Group? U, ve který můžete vytvářet svoje prostředky, hostovat aplikace, běžet nějaký job Y a Prostě využít komputer jako takovej.
+
+01:02:02.000 --> 01:02:20.000
+Er, máte v Ashru k dispozici i ty modely? Ať už je to open. Je tam Deepseek. Je tam tušim Xiainitial model. Nějakej, že jo? Nějakej grog. A. A případně od Microsoft U, přes 1 klíč, kterej máte nasdílený v tom portále.
+
+01:02:20.000 --> 01:02:36.000
+máte k dispozici. Pokud budete chtít využívat jako pilot, tak vlastně pomocí toho přihlášení a nasměrování na svůj účet, Můžete vlastně aktivovat licenci, která je na těch zhruba 100 dolarů, jakoby, což si myslím, že je poměrně.
+
+01:02:36.000 --> 01:02:40.000
+Dost na to minimálně pomoc ňákym. Začátkem v Rámci tohodle toho.
+
+01:02:40.000 --> 01:02:58.000
+Jakoby hackatonu. A to jsou dvě důležitý věci. Třetí Důležitá věc je, že máte k dispozici nás, jakožto, řekněme technický kouše. Možná, řekl bych nejenom na na Asher, jako takovej ale samozřejmě na nějaký aplikační vývoj architektury obecně.
+
+01:02:58.000 --> 01:03:09.000
+Pokud byste chtěli něco s náma řešit tak, určitě na sleku můžete budem. K dispozici jak na sleku tak, někteří z nás i on, Side. Řekněme. V těch jednotlivejch jakoby lokacích.
+
+01:03:09.000 --> 01:03:26.000
+A poslední věc jenom zopakuju Brána do tohodle toho řekněme světa je ten portálek do, kterýho když se zalogujete tak, Vlastně byste mi vědět všechny tyhle ty informace, které jsem ukazoval vlastně pohromadě, aby klíče, modely, případně data. Pokud se rozhodnete jít přes initialwzpinitial.
+
+01:03:26.000 --> 01:03:41.000
+Výzvy, případně ukázky. Jakoby jednotlivejch volání. Třeba. Nebo nebo postavení jednotlivejch služeb v rámci. Takže tolik za mě Ještě jednou děkuju. Za.
+
+01:03:41.000 --> 01:03:51.000
+Pozvání. A jsem rád, že vlastně tenhle ten hackaton pomůže s takovou důležitou věcí, jako je třeba Nějakým způsobem. Říkám Boj proti rakovině. Ale spíš vylepšení. Třeba toho.
+
+01:03:51.000 --> 01:03:59.000
+toho stavu z pohledu toho, jak to ten pacient vlastně jakoby cítí. A. A prožívá.
+
+01:03:59.000 --> 01:04:00.000
+Tak.
+
+01:04:00.000 --> 01:04:01.000
+To ne, zpátky. Slovo.
+
+01:04:01.000 --> 01:04:02.000
+Do režimu.
+
+01:04:02.000 --> 01:04:19.000
+Já. Já ti děkuji za za prezentaci. Vlastně já si z toho vodnáším, že takový ty linky, přístupy, Všechno teda dostaneme zítra. Ehm, bude to pro každý tým. To znamená, až budete mít vytvořený.
+
+01:04:19.000 --> 01:04:34.000
+Na slecu. Týmový channels. s názvem týmu a tak dále. Podle instrukcí, co budeme ještě opakovat i zejtra, tak Doporučuju, ehm. Buď to bude k dispozici fyzicky.
+
+01:04:34.000 --> 01:04:52.000
+Ty kartičky. Takový s tím. Langenglishinitialqrinitiallangenglish kódem. Nebo se to potom nasdílí přímo týmům do sleku. Ehm, jestli to správně Říkám a podpora. Když budete cokoliv potřebovat po mentorech tak, máme channel Na slecu texaport.
+
+01:04:52.000 --> 01:05:01.000
+Takže určitě, určitě tam to bude k dispozici. Plus, ještě tuším. Já se podívám, že máme možná mentorskej kanál. Taky.
+
+01:05:01.000 --> 01:05:12.000
+Hledá mentora. Tak když budete hledat mentora tak, můžete potom postovat i sem ale. Sem rád že, budeme mít i pokrytí taky na místě.
+
+01:05:12.000 --> 01:05:17.000
+Tady je dotaz, kterej teda se můžeme přečíst.
+
+01:05:17.000 --> 01:05:28.000
+Jaká oprávnění bude mít v rámci přidělené resort Guru, Budeme mít pouze roli kontributor, nebo budeme moci také přiřazovat.
+
+01:05:28.000 --> 01:05:30.000
+R. Bac role, Tak.
+
+01:05:30.000 --> 01:05:50.000
+Jo, jo, jo, no, to chápu. No, to chápu. A rád opravím. Jste v tudle chvíli jenom kontributoři? Protože Ten tenant je vlastně hlídaný z boku pokuď. By tam byla ňáká takovádle jako. Potřeba. Tak pojďme to. Rozebrat asi jakoby bokem. V rámci Nějakýho toho chat u na sleku. Spojme se.
+
+01:05:50.000 --> 01:06:03.000
+Uvidíme, co je možný. Případně pomůžeme. Já jsem rád, že uvádíte věci, jako je medicin, identita a podobně, což samozřejmě Je supr. A řekněme moderní přístup jak, vyvíjet jako cloudny ty. Věci.
+
+01:06:03.000 --> 01:06:13.000
+Bohužel, tady jsme, řekněme. Tím entera Langenglishinitialidinitiallangenglish. Spolu toho tenantu ve kterym jakoby, jsme a. Máme ten přístup díky. Za to ještě jednou. Díky, že vůbec todle. To je jako možný udělat.
+
+01:06:13.000 --> 01:06:31.000
+Tak je tohle to trošku omezený právě proto, abysme udrželi. Řekněme. ten, pod, kontrolu řekněme to. Prostředí jako takový. Takže, dejme si pak vědět separátně a zjistíme, jak to případně, jak to případně vyřešit.
+
+01:06:31.000 --> 01:06:43.000
+Tak pak si ještě říkám, jestli má cenu sdílet tu prezentaci i pro ty, co třeba tady nebyli Nevím, jestli to k něčemu bude. Možná bysme mohli. Nebo.
+
+01:06:43.000 --> 01:06:44.000
+Co Mysl.
+
+01:06:44.000 --> 01:06:51.000
+Určitě ta prezentace určitě není tajná. Dokonce exis. To není prezentace. Ale je to vlastně Gida Pages. Tak já pošlu Link. Možná tady do chat. U třeba až až.
+
+01:06:51.000 --> 01:07:10.000
+Tak, nejlepší by to bylo poslat asi do sleku rovnou. Poslal bych to na do toho.
+
+01:07:10.000 --> 01:07:11.000
+Perfekt.
+
+01:07:11.000 --> 01:07:14.000
+Oznámení. A potom třeba i do Texaport. Protože jakmile někdo půjde do texaport, tak ať na to narazí. Tak buď Tady do těch dvou. Klidně to tam můžou vypoustovat. Já, když mi to pošle. Nebo, ehm, nebo do slechu. Takže.
+
+01:07:14.000 --> 01:07:18.000
+Nasdílím, nasdílím, Kdy třeba ňákej problém tak. Určitě dám vědět.
+
+01:07:18.000 --> 01:07:20.000
+Super.
+
+01:07:20.000 --> 01:07:24.000
+Tak určitě máme prostor. Ještě na dotazy.
+
+01:07:24.000 --> 01:07:30.000
+Takže můžete využít, využít tady náš.
+
+01:07:30.000 --> 01:07:38.000
+chat. Anebo Rovnou se zeptat.
+
+01:07:38.000 --> 01:07:41.000
+Tak vypadá, že.
+
+01:07:41.000 --> 01:07:51.000
+Tady má vliv na hodnocení výzev použití. Ne, nemá.
+
+01:07:51.000 --> 01:07:52.000
+Je to je to.
+
+01:07:52.000 --> 01:07:57.000
+Určitě za mě je to doporu. Je to. Je to jenom možnost, jak ty věci případně dělat. Nikoliv.
+
+01:07:57.000 --> 01:08:19.000
+Je to, je to samozřejmě něco, co ty nástroje. Ať už Microsoft Intersystem, všichni ostatní jsou jako doporučený. Dostanete K tomu nebo doporučený. Prostě pro tu realizaci urychlí, vám. Pak Dejme tomu implementaci do reálnýho světa. Někdy v budoucnu, kdyby to vaše řešení se na tom pracovalo dál.
+
+01:08:19.000 --> 01:08:36.000
+Ale Cílem je vytvořit opravdu nějakej průkov koncept prototyp. Kde, to není povinný ale, Samozřejmě budete, mít tady k dispozici velkou mentorskou podporu. Technickou.
+
+01:08:36.000 --> 01:08:44.000
+takže je to něco, co doporučuju velmi silně zvážit. protože, samozřejmě. Ty.
+
+01:08:44.000 --> 01:08:53.000
+nemocnice Initialvzpinitial i další nemocnice. Když to bude v těch co nejotevřenějších nej.
+
+01:08:53.000 --> 01:09:12.000
+Nejinteroperabilnějších protokolech. Tak potom to usnadňuje do budoucna ňákou implementaci a budoucnost toho řešení ale není, to není to povinný A nebude to součástí její hodnocení. Samozřejmě, pokud budete chtít vyhrát třeba cenu Inter Systems, nebo možná i cena Microsoft. Nějaká bude ještě.
+
+01:09:12.000 --> 01:09:23.000
+Tak Těžko dostanete když, když, nepoužijete tyto Tyto, technologie.
+
+01:09:23.000 --> 01:09:25.000
+Tak.
+
+01:09:25.000 --> 01:09:31.000
+Další dotaz. Jestli ještě poprosím.
+
+01:09:31.000 --> 01:09:39.000
+Jinak, vlastně, mentoři budou na slechu k dispozici.
+
+01:09:39.000 --> 01:09:45.000
+Určitě, Takže zase Kdybyste pak něco chtěli řešit následně tak,
+
+01:09:45.000 --> 01:09:49.000
+Můžete najít na slevu individuálně nebo.
+
+01:09:49.000 --> 01:09:53.000
+Využít. Hledá mentora. Případně tech support taky. Channel.
+
+01:09:53.000 --> 01:10:04.000
+Kde budou k dispozici? Nejsem si jistej, jestli dneska už úplně stoprocentně, ale určitě vod zítřka. Jakmile začne.
+
+01:10:04.000 --> 01:10:07.000
+Hack Ování po dopoledním
+
+01:10:07.000 --> 01:10:10.000
+Dopolední parádě.
+
+01:10:10.000 --> 01:10:15.000
+představení, výzev a tak dále. Tak.
+
+01:10:15.000 --> 01:10:18.000
+Plně k dispozici.
+
+01:10:18.000 --> 01:10:32.000
+Tak já, To asi tedy ukončím. Poděkuju Michalovi za Hodinové. Velmi pregnantní představení toho, s čím budete moci počítat Teďka máme půl hodiny Pauzu.
+
+01:10:32.000 --> 01:10:44.000
+A ve čtrnáct třicet nás čeká představení nástrojů a podpory, kterou vám dá k dispozici hlavní technologickej partner a katonu Intersystems.
+
+01:10:44.000 --> 01:11:00.000
+Ehm, takže doporučuju opět aspoň jednoho člena týmu vyslat na toto představení. Jinak je to nahrávané. Bude to k dispozici. Slide taky dostanete. Ale myslím si, že je dobrý, abyste to.
+
+01:11:00.000 --> 01:11:06.000
+slyšeli. Viděli naživo a mohli se hlavně zeptat na to, co vás nějak napadne.
+
+01:11:06.000 --> 01:11:09.000
+Tak já jim to děkuju. A.
+
+01:11:09.000 --> 01:11:10.000
+Ráda děkuju, štěstí.
+
+01:11:10.000 --> 01:11:16.000
+Uvidíme se za půl hodiny.
+
+01:11:16.000 --> 01:11:17.000
+Tak já vás vítám. Ehm.
+
+01:11:17.000 --> 01:11:18.000
+Na.
+
+01:11:18.000 --> 01:11:31.000
+další přednášce, která vám pomůže hackovat, představí nástroje, který hlavní technologický partner Rakatonu, Společnost Intersystems.
+
+01:11:31.000 --> 01:11:41.000
+Nám všem nabízí. A já jsem rád, že se zrovna připojil. Ondřej hoferek, který nás.
+
+01:11:41.000 --> 01:11:57.000
+Tímto workshopem nebo představením. Nástroj, nástrojů provede. Já ještě chvíli budu pouštět pouštět příchozí. Ale potom, až spustíš, až Budeš chtít spustit. Slide. Ondro.
+
+01:11:57.000 --> 01:11:59.000
+Tak já ti předám.
+
+01:11:59.000 --> 01:12:02.000
+Postování.
+
+01:12:02.000 --> 01:12:05.000
+Tady nás. Poprosím tě, jestli bys. Pak,
+
+01:12:05.000 --> 01:12:09.000
+Pouštěl nově příchozí.
+
+01:12:09.000 --> 01:12:11.000
+Dobrý den, ahoj, slyšíte mě? Dobře.
+
+01:12:11.000 --> 01:12:13.000
+Ano, slyšíme perfektně. Vidíme.
+
+01:12:13.000 --> 01:12:23.000
+Výborně, pak asi chvilku počkáme. Nedáme tomu asi úplně čtvrt hodinku. Leda se tomu minutku a.
+
+01:12:23.000 --> 01:12:24.000
+Pak bych začal.
+
+01:12:24.000 --> 01:12:44.000
+Já zatím. Já zatím budu pouštět. Pořád ještě chodí. Tak možná, jestli bys chtěl něco něco začít, potom, co je Intersystem.
+
+01:12:44.000 --> 01:12:45.000
+Ehm.
+
+01:12:45.000 --> 01:12:46.000
+Protože ne všichni, jako třeba 1 člověk, si tipnu v chat u úplně nezná do detailu Intersystems a produkty. A čím Pomáhá a. Co to je za hráče ve světovém.
+
+01:12:46.000 --> 01:12:48.000
+Zdravotnictví. Tak možná.
+
+01:12:48.000 --> 01:12:49.000
+Ehm.
+
+01:12:49.000 --> 01:12:53.000
+Mohu dělat malý intro. A pak, až přijdou na řadu slide tak, já to na tebe přehodím.
+
+01:12:53.000 --> 01:13:13.000
+Jasně, vlastně Intersystems je, co se týče z pohledu zpracování dat ve zdravotnictví celosvětovým lídrem, na naší technologii jsou vystavěný. Vlastně nejpoužívanější systémy na světě. Ať už se jedná o nemocniční informační systémy, jako je například Epic.
+
+01:13:13.000 --> 01:13:22.000
+který je rozšířený po celým světě nebo intelikér, Což je vyloženě náš nemocniční informační systém a systém, vlastně, kterej.
+
+01:13:22.000 --> 01:13:39.000
+Je první svýho druhu, které je postavené úplně kolem Initialiinitial. To znamená to základní work flow toho lékaře od vlastně Pořizování dokumentace přes nějaký následný kroky. Doporučování toho, co se má dít. Předgenerovávání, žádanek a podobně.
+
+01:13:39.000 --> 01:13:45.000
+To celý vlastně už dneska probíhá.
+
+01:13:45.000 --> 01:13:55.000
+Na základě doporučení a nějakejch vlastně předgenerovávání a zároveň jako první. Takovej Nice má pro všechny tyhle funkce i certifikaci. Langenglishinitialmdrinitiallangenglish.
+
+01:13:55.000 --> 01:14:11.000
+V Evropě, typu dvě. A to znamená v tomhle. Tom Intersystem slučuje celosvětovej lídr. Druhej druhej silnej moment ve Zdravotnictví, kterej máme, kterej je zajímavej, tak je, vlastně, že stojíme za.
+
+01:14:11.000 --> 01:14:30.000
+Největšíma sítěma výměny informací. Například část Change ve Spojenejch Státech. Několik výměn v několika celejch státech v Initialusainitial, regionální A národní výměny na Blízkým východě v Austrálii. V Anglii.
+
+01:14:30.000 --> 01:14:42.000
+Vlastně, v Itálii. Dneska už máme i některý tohle řešení nasazený v čechách Primárně. Na malejch úrovních v jednotlivejch místních nemocnicích.
+
+01:14:42.000 --> 01:14:44.000
+A.
+
+01:14:44.000 --> 01:14:48.000
+To je asi druhá noha, na který v těch zdravotnictví stojíme. A potom.
+
+01:14:48.000 --> 01:15:06.000
+Je To vlastně obecně použití tý technologie. I když ne nutně velkejma firmama, který vyvíjej ňákej software ale, Můžou to být třeba i samotný nemocnice. Když se podívám do Čech, tak třeba v Initial Ikemu, že jo? Syna vyvinuli vlastní klinické informační systém, zlatokop.
+
+01:15:06.000 --> 01:15:15.000
+Kterej dneska už se částečně používá i v motele. A to je koneckonců 1 z těch důvodů, proč jsme i Dneska tady, vedle toho.
+
+01:15:15.000 --> 01:15:31.000
+Hodně často se ta technologie používá k nějakým vlastně integracím a řešení interoperability mezi těma zdravotnickejma systémama protože, To je Problematická oblast a právě další z nemocnic. 1, která tuhle technologii pro tyhle účely používá, tak je právě třeba fakultka.
+
+01:15:31.000 --> 01:15:42.000
+V ostravě, což je další vlastně zázemí našeho Rakatonu. Takže se to vlastně celý potkává s tím, co děláme, V Čechách i v zahraničí. Tahle akce.
+
+01:15:42.000 --> 01:15:58.000
+Dlouhodobě taky. Vlastně ve spolupráci. Tady vidím logo Celestinus svítit. Tak právě ve spolupráci I s Tomášem vedeme inkubátor pro Zdravotnický startupy, kterej se jmenuje Celé Stínus. Pomáhá jim z různejch ohledů.
+
+01:15:58.000 --> 01:16:15.000
+Vlastně překonávat strasti, který ty, který to uvádění na trh těch novejch řešení inovativních a produktů přináší takže. Určitě. To Je něco, co může bejt pro vás taky zajímavý. Pokud se vám povede vytvořit něco, o co bude z tý druhý strany.
+
+01:16:15.000 --> 01:16:30.000
+Těch zadavatelů výzev zájem, tak určitě 1 z těch dalších kroků. Jak pokračovat může být právě účast v tomhle tom zdravotnickým heltech inkubátoru. Tak a tímhle. Tím. Já jsem se krásně vypovídal. pět minutek.
+
+01:16:30.000 --> 01:16:36.000
+A možná, že bysme mohli přistoupit k tomu, že teda vezmu to ovládání.
+
+01:16:36.000 --> 01:16:37.000
+A.
+
+01:16:37.000 --> 01:16:47.000
+Tak já ti. To. Já ti to přehodím. Ještě poprosim všechny a ostatní aby se zamítovali. Případně budou násilným způsobem.
+
+01:16:47.000 --> 01:16:50.000
+Umlčení.
+
+01:16:50.000 --> 01:16:56.000
+Koukám, že pár ještě chodí o pozdilců. Takže, Ondro. Potom tě poprosím, jestli bys moh poukat na ty.
+
+01:16:56.000 --> 01:16:57.000
+Zkusím.
+
+01:16:57.000 --> 01:17:01.000
+A když tak je pustit, přehodím Make House.
+
+01:17:01.000 --> 01:17:05.000
+Jasně, zkusím tady čas od času mrknout.
+
+01:17:05.000 --> 01:17:10.000
+Dobře, takže už jsem houst. Tím pádem můžu.
+
+01:17:10.000 --> 01:17:19.000
+sdílet.
+
+01:17:19.000 --> 01:17:23.000
+Chviličku.
+
+01:17:23.000 --> 01:17:29.000
+Tak.
+
+01:17:29.000 --> 01:17:31.000
+Ale ne.
+
+01:17:31.000 --> 01:17:38.000
+Tomáši. Musím povolit nastavení. Tak já asi budu muset opustit ten meeting a znovu se připojit.
+
+01:17:38.000 --> 01:17:41.000
+Uvidíme, jak se nám to.
+
+01:17:41.000 --> 01:17:44.000
+Vím, jak se nám to povede.
+
+01:17:44.000 --> 01:17:46.000
+Ano,
+
+01:17:46.000 --> 01:17:50.000
+Takže jestli můžeš, můžu ti zase předat to hostování.
+
+01:17:50.000 --> 01:17:52.000
+Jo, jo, už to mám. Takže.
+
+01:17:52.000 --> 01:17:57.000
+Jo, už už to máš. Takže já se. Já se vodpojím a za chvilku sem tady, jo?
+
+01:17:57.000 --> 01:18:09.000
+Dobře, takže, využijeme této této pauzy na případné dotazy, které teďka můžete.
+
+01:18:09.000 --> 01:18:12.000
+Můžete mít ještě třeba ohledně.
+
+01:18:12.000 --> 01:18:19.000
+Nebo navážu na to. To je. To je hezký. Navážu na to, co říkal Ondra.
+
+01:18:19.000 --> 01:18:31.000
+Což znamená, co je ten Celestinus inkubátor, který právě s podporou Intersystem s celosvětově děláme, Když budete chtít pokračovat.
+
+01:18:31.000 --> 01:18:33.000
+Ve vašem hacku. A třeba.
+
+01:18:33.000 --> 01:18:37.000
+Se budete chtít založit startup a rozjet.
+
+01:18:37.000 --> 01:18:42.000
+Rozjet, se do světa.
+
+01:18:42.000 --> 01:18:50.000
+S vaším řešením tak, to je určitě něco co, ehm. Co, v Celé stínu s? Čím, Vám pomůžem a.
+
+01:18:50.000 --> 01:18:56.000
+Určitě oceníme. Ehm, 1.
+
+01:18:56.000 --> 01:19:05.000
+1 z týmů, možná i víc. Uvidíme, že je pozveme na takzvanou divokou kartu do příštího běhu.
+
+01:19:05.000 --> 01:19:11.000
+Celestýnu. Je to asi tříměsíční inkubační program. Čistě online. Žádný Now Strings.
+
+01:19:11.000 --> 01:19:16.000
+A umožní vám to zvalidovat.
+
+01:19:16.000 --> 01:19:30.000
+To, co tady třeba vymyslíte? Trošku, jak se říká za pivotovat a potvrdit si product Market Fit. Nejenom tady v Česku. My jsme malej trh, ale především na velkejch světovejch trzích. Ať už v Americe.
+
+01:19:30.000 --> 01:19:33.000
+Fázi nebo v Evropský Unii.
+
+01:19:33.000 --> 01:19:45.000
+Aby to, co postavíte, tak bylo zapojitelný díky interoperabilitě. A tomu, že to chytře postavíte. Tímhle Alancujou zase další.
+
+01:19:45.000 --> 01:19:56.000
+Přednášku Lika Šaty ho, která bude následovat tak, aby se to dal z toho světa já se zeptám Andrei, jestli už je. Jestli už je Ready.
+
+01:19:56.000 --> 01:19:57.000
+Tak pojďme na to.
+
+01:19:57.000 --> 01:20:04.000
+Já doufám, že jo. Tak pojďme to zkusit. A,
+
+01:20:04.000 --> 01:20:05.000
+Tak už můžeš.
+
+01:20:05.000 --> 01:20:21.000
+Ehm.
+
+01:20:21.000 --> 01:20:24.000
+Všechno je dobře vidět. Super.
+
+01:20:24.000 --> 01:20:33.000
+Skvělý, tak já se ještě jenom omlouvám za komplikace. A snad to byla naše poslední komplikace. Teďka výborně. Takže,
+
+01:20:33.000 --> 01:20:46.000
+Tímto jsme zahájili příjemnou diskuzí technický workshop o Fire U. Vlastně k použití fire u a umělý inteligence na platformou Intersystem. Cyris,
+
+01:20:46.000 --> 01:20:52.000
+1 z těch důvodů, proč to pro vás může bejt zajímavý a rovnou ho jako na první dobrou představím. Je.
+
+01:20:52.000 --> 01:21:07.000
+Výzva intersystém, s kterou máme pro tenhle Rakaton, Která spíčová v tom, že vlastně, když tu technologii nějakým způsobem využijete V tom vašem řešení ať, Už pro ty interoprabilní úlohy nebo nebo, jako vlastně tu platformu ve, který budete držet ty data a nějakým způsobem.
+
+01:21:07.000 --> 01:21:24.000
+Nad nima zajímavě pracovat. Ať už prostřednictvím agentů nebo nebo kombinací všeho tohohle, tak vlastně můžeme vás vybrat jako vítěze naší výzvy. A můžete zase vyhrát zajímavou cenu, která myslím. V tomhle případě je patnáct 100 €.
+
+01:21:24.000 --> 01:21:38.000
+k týhle vlastně výzvě naší máme k dispozici i nějakou stránku. Ten popisuje co od vás očekáváme, Pokud byste si to chtěli ještě přečíst. A je tam taky odkaz na nějaký repozitář.
+
+01:21:38.000 --> 01:21:52.000
+Kterej vám pomůže se s tou platformou odpíchnout? Já se k tomu dostanu ke všemu. Jo, začal bych asi tím, co je ta motivace? Pro to jako buďto jako použití Intersystem Series jako datový platformy.
+
+01:21:52.000 --> 01:22:10.000
+Která Je někde za Eja nebo pro interoperabilitu. Tak, jak už to tady by bylo? I v souvislosti s těma předchozíma prezentacema. Hlavně Microsoft. U Tak je vidět, že prostě. Bude to hodně o tom pustit, prostě a já na data, a to Je Něco, co i my v těch našich řešeních nebo.
+
+01:22:10.000 --> 01:22:26.000
+V návaznosti na ně. Když už ty data sbíráme v těch celonárodních výměnnejch sítích, děláme, nebo umožňujeme právě těm startupům dělat že v těch datech, který jsou uložený na tý naší platformě. Oni k nim přistupují pomocí agentur nebo vektorových vektorový pro ty Uscase Y.
+
+01:22:26.000 --> 01:22:36.000
+Pro kterej dává ta, která ona možnost smysl a přináší právě tu inovaci, kterou tím realizují. asi.
+
+01:22:36.000 --> 01:22:52.000
+Nebudu tady zbytečně dlouho trávit čas na tom, abych popisoval, jak funguje retragmenty Generation. To znamená rek. Je to vlastně využití Vector Search. To znamená, abych ten kontext, kterej předávám těm jazykovým modelům, nebyl příliš velikej.
+
+01:22:52.000 --> 01:23:09.000
+Tak to, co je relevantní pro ten můj prond. Pro to, co právě dělám, si najdu v databázi pomocí podobnostního Vyhledávání takzvanýho Vector Search a Intersystem Series je 1 z databází, který mají v sobě ten Vacter Search, zabudovanej Přímo v Sql Dotaze.
+
+01:23:09.000 --> 01:23:14.000
+Data má případně. Můžete si i vyindexovat data, který který v nich jsou.
+
+01:23:14.000 --> 01:23:31.000
+Takže to je 1 možnost, jak k těm datům takhle přistupovat, Jo, funguje to klasicky. texty nebo jiný? Jakýkoliv jiný data. Nějakým způsobem pomocí zapůzovacího modelu si zakóduju do vektorů. Ty uložím.
+
+01:23:31.000 --> 01:23:36.000
+vlastně, v mojí, databázi. V tomhle případě Iris.
+
+01:23:36.000 --> 01:23:55.000
+A, následně jakmile mám nějakej promp nebo něco, s čím mu je model má, pracovat tak pomocí toho zase stejnýho modelu za kódu. I tenhle. Ten dotaz do vektoru. A najdu to, co je v tý databázi podobný, abych to předal jako kontext A celý to funguje tak, že na začátku já teda ty data.
+
+01:23:55.000 --> 01:24:13.000
+Předám do vektorový databáze později. Ten user nebo někdo, kdo využívá tu appku. Může to bejt i agent, že jo? Tak ten promp, nebo to to použití. Zase se zakóduje do nějakým způsobem do toho lektoru. Udělá se podobnostní vyhledávání a ty dokumenty, který Jsou tím identifikovaný se. Dodaj.
+
+01:24:13.000 --> 01:24:28.000
+Následně tomu elalemku jako jako kontext. Tak já tady pustím další kolegy. Další co? Na co budem určitě koukat, Jestli Nějakým způsobem máte data v Iris a máte nad nima nadefinovaný ňáký.
+
+01:24:28.000 --> 01:24:46.000
+Tůly, který využívaj vaši agenti, se kterýma pracujete. Jenom celkem 1, jestli. Jestli prostě budete přistupovat k datům, který takhle Budete mít v Iris jako v Sql, nebo jestli si tam budete definovat nějaký vlastní apíčka. Nebo jestli využijte přímo fire server.
+
+01:24:46.000 --> 01:25:02.000
+Kterej v Iris je k tomu co a jak ten server v Iris Funguje. Se ještě dostanu. Nebo jestli budete Třeba Hledat jako podobný zase dokumenty a Nějakej další kontext s pomocí vactor Surge V. Tom tool U zase kombinace toho všeho může bejt Zajímavá proto, jakým způsobem budeme vyhodnocovat.
+
+01:25:02.000 --> 01:25:05.000
+Ten to vaše řešení.
+
+01:25:05.000 --> 01:25:21.000
+Tak, tady klasicky. mám nějaký. Nebo je nějakej jinej způsob toho, jak jak ty agenti sou koordinovaný, že Jo, a to vyhodnocuje. Jaký nástroje? Nebo ten agent vyhodnocuje? Jaký nástroje má k dispozici?
+
+01:25:21.000 --> 01:25:30.000
+Může volat ty nástroje tituly tak, aby přistupoval k těm datům, se kterejma chce pracovat a který potřebuje vyhodnocovat.
+
+01:25:30.000 --> 01:25:45.000
+Tak, ale vedle toho, že já už teda udělám něco strašně strašně chytrýho. S použitím jazykovejch modelů a nějakým chytrým přístupem k těm datům tak, abych si nevyplejtval všechny tokeny. Předávám jenom relevantní kontext a podobně.
+
+01:25:45.000 --> 01:25:50.000
+Co si myslíte, že bejvá jednou z největších technickejch překážek?
+
+01:25:50.000 --> 01:25:59.000
+Právě potom implementace těhle těch projektů v praxi.
+
+01:25:59.000 --> 01:26:00.000
+A teď mluvím.
+
+01:26:00.000 --> 01:26:16.000
+Technických Nis. Ano, správně, Je to tak, že ten Nis typicky že jo? Má kontrolu nad těma nad těma Datama Explainibility? Jo, ano, je. To je explainability. Je ale něco, co vy můžete v tom vašem řešení.
+
+01:26:16.000 --> 01:26:32.000
+Ovlivnit. Je to něco, s čím vy vlastně můžete dobře pracovat ale, Právě ta na návaznost na. Ty další klinický Systémy na ty systémy, který v těch nemocnicích už se používají. Často bejvá komplikace, která na začátku třeba není úplně jasná. Není úplně vidět.
+
+01:26:32.000 --> 01:26:40.000
+A v praxi vám může hrozně moc brzdit. Právě tu možnost toho nasazení toho řešení v praxi protože.
+
+01:26:40.000 --> 01:26:56.000
+Ve spoustě těch výzev, který my jsme tady, kterýma se dneska zabýváme. Tak vidíte, že potřebujete. Nějakým způsobem se integrovat. Potřebujete dostávat vstupy často? Ty vstupy jsou uložený v datech právě těch klinickejch informačních systémů. Ať už Nisu nebo nebo i jinej.
+
+01:26:56.000 --> 01:27:08.000
+A dost často zase ty výstupy potřebujete předávat zpátky. Takže ta interoperabilita může být problém. Dneska, když se podívám na situaci v Český Republice. Co se týče interoperability.
+
+01:27:08.000 --> 01:27:18.000
+Máme tady nějakej lokální standard pro přístup k datům. Ten se jmenuje Dasta. Zmiňoval ho. Myslim. I hynek Růžík dneska. Během Tý ranní ranní prezentace ale. To.
+
+01:27:18.000 --> 01:27:19.000
+Jsou.
+
+01:27:19.000 --> 01:27:34.000
+Se dá považovat za Defacto Standard právě pro tu interoperabilitu. Pro jak pro dnešek a pro budoucí čas a ten budoucím časem. Hlavně myslím už i Čechy. Protože už i největší Vendoři Nisu v Čechách.
+
+01:27:34.000 --> 01:27:43.000
+Začínají tuhle tu problematiku ve svých systémech řešit tak. Je právě h Sedm. Fire Já. Bych tady chtěl.
+
+01:27:43.000 --> 01:27:44.000
+Rychle.
+
+01:27:44.000 --> 01:28:06.000
+Představit ještě vlastně náš pohled na to, nebo proč si myslíme, jak vidíme to tu motivaci. Proč ten far vzniknul? Vlastně, při zavádění systému, vy se potřebujete napojit na ty data, který v těch klinickejch systémech vznikaj, nebo který ňákým způsobem vám ta Nemocnice má zprostředkovat Zase ty vaše aplikace můžou poskytovat ňáký výstupy.
+
+01:28:06.000 --> 01:28:27.000
+Jak už jsem říkal, tohle může být brzda. Ale když si představíte, že by ta nemocnice měla zavedený ňáký unifikovaný, Sdílení dat prostřednictvím nějakýho standardního datovýho modelu a formátu. A nedej, Bože, dokonce Apy. Tak potom vlastně ten klinickej systém, ve kterým pracují, pokud Všechna ta data by do toho unifikovanýho sdílení dat proudila.
+
+01:28:27.000 --> 01:28:40.000
+Tak by velice jednoduše můžete vytvářet navazující aplikace, který ty samý data budou využívat. Dokonce do toho data se tu Můžu stejným způsobem přispívat. A pokud ten zase ten klinickej systém je tím samým způsobem.
+
+01:28:40.000 --> 01:28:52.000
+Schopnej ty data číst tak. Je to celý vlastně interoperabilní celá. Ta idea toho fairu Vlastně je postavená na tom že vznikla při tom, kdy bylo jasný, že web ový technologie.
+
+01:28:52.000 --> 01:29:08.000
+Vlastně jsou nejrozšířenější způsob, jakým vytvářet aplikace a initialhlinitial. Sedmička si představovala, že vlastně budou vznikat app story aplikací, který Vy budete schopný instalovat v prostředí těch nemocnic. Pokud oni budou ty data.
+
+01:29:08.000 --> 01:29:12.000
+Vlastně vystavovat. Případně schopný bejt konzumovat ve Fairu.
+
+01:29:12.000 --> 01:29:27.000
+Tak, tolik můj pohled na Fair. Co ty ten Farr vlastně je? On už o tom dneska jinak mluvil. Já tam vidím jako tři zásadní části a začnu tady odzadu. Je to vlastně standard. Ještě jednou, Je to vlastně nějakej.
+
+01:29:27.000 --> 01:29:38.000
+Standardní data, model a zároveň aplikační rozhraní, který je založený na restu přístupu, který vám umožňuje s těma Datama pracovat.
+
+01:29:38.000 --> 01:29:55.000
+Pokry. Snaží se ten far vlastně pokrýt nějakejch osmdesát procent typickejch dat, se kterýma se v tom zdravotnickym prostředí pracuje Zároveň nabízí velmi dobrý mechanismy, který jsou zdrojově čitelný a snadno použitelný pro rozšíření tohodle datovýho modelu.
+
+01:29:55.000 --> 01:30:10.000
+Jo, to znamená. Far vám říká, jakým způsobem? Ideálně data v tom klinickým prostředí reprezentovat. A nemusí se tady jednat Jenom o data vyloženě klinický. Ať už to jsou data přímo jako pacientský nebo nějaký medikace.
+
+01:30:10.000 --> 01:30:15.000
+Nebo nějaký pozorování, Případně záznamy o vyšetření. Ale můžu to bejt i data typu.
+
+01:30:15.000 --> 01:30:31.000
+dotazníky. Dotazníky, který vy těm pacientům v těch svých řešeních zasíláte oni naopak odpovědi, na ty dotazníky případně. Plánování Nějaký péče vytváření různejch plánů nějakejch navazujících kroků v tý léčbě který, mají vzniknout.
+
+01:30:31.000 --> 01:30:47.000
+Tohle všechno už dneska ve Fairu je. A dá se v tom reprezentovat. Takže plány péče můžou vznikat v jedný Apce v Nisu. Vy můžete zjistit, kterej krok v tom konkrétním plánu je teďka otevřenej. A vlastně tomu zdravotníkovi říct.
+
+01:30:47.000 --> 01:30:58.000
+Co má, dělat, Nebo že teďka eště čeká na ňákej krok kterej, v tom plánu probíhá jo. A, tohle všechno Už dneska umí Fajer reprezentovat.
+
+01:30:58.000 --> 01:31:06.000
+Co bylo velice relevantní. A může pro vás bejt pořád užitečný. I když si myslím, že dneska už jako váš hlavní.
+
+01:31:06.000 --> 01:31:22.000
+Způsob pro to, jak fareb poznávat, bude právě nějaká práce s ňákejma asistentama případně, rovnou Si, nechat poradit i kódovacím asistentem a rovnou na to generovat. To znamená, Fire má skvělou dokumentaci na webu. Já si tady přepnu do mýho browser u.
+
+01:31:22.000 --> 01:31:42.000
+já tady mám. Jo, vidím, že Fire má tady rozcestník na všechny věci, který se ho týkaj. Je tady Ta presources, přes kterej já se prokliknu. Ty Resource Y jsou ty jednotlivý datový entity v tom datovym Modelu Fire u Vidím, že je tady nějakej pacient. Patient Practiconer. To je Resource, kterým se popisuje léka.
+
+01:31:42.000 --> 01:31:58.000
+Potom různý klinický resource. Právě jak už jsme zmiňovali nějaký pozorování. Klinický. Nějaké nějaká condition? To jsou typicky diagnózy nebo Problémy, který ten pacient má různý medikace. Carplan. Jak už jsem zmiňoval a podobně a vedle toho, potom.
+
+01:31:58.000 --> 01:32:10.000
+Vlastně i popis nějakýho Appiinitial Restovýho Up Y. Jak k těm resourcům přistupovat? Vidím, že tady je přesně popsaný a Standardizovaný. Jak se ty Resources y.
+
+01:32:10.000 --> 01:32:18.000
+Čtou. Jak se modifikujou? Updatujou, jak se vytvářej, jak se nad nima vyhledává. Tohle všechno je v tom standardu popsaný.
+
+01:32:18.000 --> 01:32:35.000
+A tím, že je to tam popsaný, tak samozřejmě, velmi dobře. To dneska uměj, jazykový modely a uměj vám velmi dobře poradit, jak s tím, jak s tím standardem pracovat, Případně i uměj různý App y jak přímo to zabudovat už do tý vaší appky. Já se vrátím k prezentaci.
+
+01:32:35.000 --> 01:32:53.000
+Proč je teda Fire velmi důležitej pro použití při práci se zdravotnickýma datama. Jednak vám velice usnadní. Právě opakovaný nasazování Inovací v různým prostředí u různejch poskytovatelů. Vlastně tu replekabilitu, kterou vy potřebujete. Pro to.
+
+01:32:53.000 --> 01:32:58.000
+Abyste to řešení uvedli v praxi aji. To generovalo ňáký ňáký peníze. Že jo.
+
+01:32:58.000 --> 01:33:09.000
+A, ehm, dále. To, že vy sice můžete s pomocí dneska už kódovacích agentů i překlenout to, že třeba tu Integraci Na tom konkrétním míste uděláte velmi rychle.
+
+01:33:09.000 --> 01:33:25.000
+Ale může se třeba stát, že nějakým způsobem ty data v těch jednotlivejch rozhraní můžou bejt dezinpret dezinterpretovaný, kdežto v Tom Fire U. Jo, když to zmiňoval i Hynek, Každej ten prvek se nese jako jednoznačnej, semantickej význam.
+
+01:33:25.000 --> 01:33:45.000
+A tahleta šance, že vlastně se semanticky to očekávání, Co v těch datech dostanete, versus to, co ten systém doopravdy poskytne. Tak to riziko. To, že se tohle to nepotká, je daleko menší. Jo, a takhle bych mohl pokračovat pořád dokola A co je důležitý. Zmínit je a hned topět. Dneska zmiňoval, že vlastně.
+
+01:33:45.000 --> 01:33:57.000
+Informace tak, jak by se měly sdílet, Který Evropský Unii. A dneska na tom vlastně i český prostředí zakládá vlastně strategii celýho. A to, jak se ty data tady budou sdílet a vyměňovat.
+
+01:33:57.000 --> 01:34:07.000
+Tak je to, že ty data budou reprezentovaný ve Fire U. Takže když připravíte vaše řešení na to že, bude schopný ty data právě načítat. Třeba z fajru.
+
+01:34:07.000 --> 01:34:17.000
+Nedej Bože, výsledky ve féru publikovat. Tak máte dost velkou šanci, že v nějaký blízký budoucnosti na základě toho, co Ty systémy budou povinně produkovat.
+
+01:34:17.000 --> 01:34:22.000
+si ty potřebný data přečtete.
+
+01:34:22.000 --> 01:34:27.000
+Tak co bych doporučil pro vlastně tady.
+
+01:34:27.000 --> 01:34:45.000
+Ten Hacaton je to, že my vám dáme právě 1 takovej fair server. Kam si budete moct Fajerovský data ukládat. Budete je moct číst vyhledávat, nad nima my. Ho vám dáme k dispozici berte. To Jako místo který, vám umožní vlastně symbolovat to že, Ten váš systém, to vaše řešení ten. Pilot.
+
+01:34:45.000 --> 01:35:01.000
+Je připravenej na tu interoperabilitu? Jo, berte to tak, že pokud budete schopný načítat data z Fairu, tak vám to dá větší šanci že, když pak přijdete do nějaký nemocnice dneska, primárně v zahraniční v budoucnu doufejme. Už i v čechách I, když už Dneska máme i v Čechách nemocnice. Který data.
+
+01:35:01.000 --> 01:35:19.000
+Publikuju prostřednictvím. Tak budete schopný, Budete jim to mít Jednodušší se na ty data napojit, případně potom nějakým způsobem dávat výsledky. Co pro vás ten Farr může udělat dál, když budete vlastně mít ňákej vlastní datovej model než, abyste něco vymysleli vymýšleli. Na kol.
+
+01:35:19.000 --> 01:35:37.000
+Mě. Tak vlastně tenhle. Ten fár epoř může sloužit i jako úložiště těch vašich. Těch vašich dat Ať už to Budou dotazníky. Ať už to budou klinický informace. Ten datamodel už tam vlastně máte připravený? Stačí využívat to restový Apě nad nim a kódovací Agent Vám nad tím velmi dobře postaví. Funkční.
+
+01:35:37.000 --> 01:35:39.000
+Aplikační kód.
+
+01:35:39.000 --> 01:35:57.000
+Tak to byl takovej úvod k tomu, co si myslím, že je důležitý, právě vědět o Fireu k tomu, Abyste ho ňákým způsobem mohli rozumně využít a. Teďka nějakej úvod do toho co, vám teda nabízíme nabízíme? Vám vlastně datovou platformu intersystems. Iris.
+
+01:35:57.000 --> 01:36:09.000
+Což je kombinace, několika nošností, s níž pro nás stěžejní Budou to, že je to vlastně databáze.
+
+01:36:09.000 --> 01:36:24.000
+Mimo jiné Initialsqinitial databáze Zároveň je to databáze, kde jste schopní ukládat dokumenty, Kam jste schopný ukládat kýveli hodnoty? Je To multimodelová databáze. Včetně Initialsquiti přístupu. Je to databáze, která má do sebe zaintegrovanej Vector Search.
+
+01:36:24.000 --> 01:36:38.000
+A zároveň v tý datový platformě můžete velice jednoduše v podstatě na 1 volání skriptů nebo dvoje zakliknutí v uživatelským prostředí zprovoznit Fairpozitář. A teď se pojďme podívat, jak konkrétně si to můžete rozchodit.
+
+01:36:38.000 --> 01:36:43.000
+Během Racatonu A v těch vašich projektech.
+
+01:36:43.000 --> 01:36:47.000
+Tak.
+
+01:36:47.000 --> 01:37:02.000
+Výborně, Když se podívám vlastně na stránku Rakatonu, tak když se doscrolluju tady na seznam těch výzev, tak vidíte, Je tady popis pro ty výzvy, který jsou společný pro Prahobranu i ostravu. Tak poslední z nich vedle těch výzev od Initialvzpinitial.
+
+01:37:02.000 --> 01:37:20.000
+Je výzva Intersystem právě pro použití Intersystems Iris v oblasti Initialaiinitial nebo právě interoperability prostřednictvím fire u A tady na konci toho textu je vlastně odkaz na stránku výzvy Intersystems. kde je přesně popsaný? Teda,
+
+01:37:20.000 --> 01:37:35.000
+To, co se vám tady snažím, vysvětlit, co to Iris je? Jak ho použít v těch vašich řešeních jaký, Budou k dispozici datasety. K tomu se ještě dostanem. Jak to budeme hodnotit? Jaká bude cena a tak dále.
+
+01:37:35.000 --> 01:37:55.000
+Co je tady ještě taky Důležitý? Je odkaz na Firei Hageton Kit, Což není nic jinýho než šablona na Git Hub U, Kterou, kterej, když si naklonujete, je tady? To samozřejmě vlídný popsaný. Co máte udělat, kterou Když si naklonujete k sobě místně, Tak si tam můžete velmi jednoduše v dokru pustit právě intersystem z Iris.
+
+01:37:55.000 --> 01:38:11.000
+Kde bude předvytvořenej nějakej Ferr depozitář můžete Iris rovnou využívat k tomu, že do něj bude ukládat skvělá data. Budete dokumenty vytvářet embeding y pomocí, kterých budete vyhledávat pomocí vektorovýho vyhledávání.
+
+01:38:11.000 --> 01:38:27.000
+A zároveň můžete teda použít pro simulaci tý interoperability. Jo, v rámci rakatonu. Vy nebudete mít přístup pro to, abyste Nějakým způsobem mohli demonstrovat interoperabilitu s nějakým testovacím nebo reálným prostředím.
+
+01:38:27.000 --> 01:38:33.000
+Ale to, jaký můžete demonstrovat, je právě to, že využijete ten fér depozitář v rámci Iris u.
+
+01:38:33.000 --> 01:38:50.000
+Jo, a to budeme brát určitě jako důležitej bod při vyhodnocování minimálně tý naší výzvy. Může to bejt zajímavý i Pro ty hodnotitele těch výzev jako něco, kde vidí. Vlastně to, že to vaše řešení bude snadněji z použitelný v praxi ne, pro každou Tu výzvu to bude dávat smysl.
+
+01:38:50.000 --> 01:39:04.000
+Ale to už ostatně můžeme rozebrat, Jak se zadavatelama přímo těch jednotlivých výzev, Tak s náma, když se s náma Potkáte, na ha, hackathonu Jako takovým.
+
+01:39:04.000 --> 01:39:21.000
+Když bych se posunul tady dál, tak vlastně v tom rýdmí. Já vidím, že teda mám nějaký predekvizity proto, abych si to pustil potřebuju. Mít nainstalovanej do kr Ty, příklady vlastně V tý šabloně není jen samotný spuštění irisů Ale, jsou tam i nějaký příklady v sek.
+
+01:39:21.000 --> 01:39:39.000
+Tutorials, který já. Když si tady otevřu, tak vidím, že je tady jako nějakej hrubší popis toho, jak Iris nasetupovat, Jaký je tam třeba uživatelský prostředí a podobně. A pak jsou tam, Jupiter, Notebook Y, který vám ukazujou, jak právě s Ires pracovat, tak abyste byli schopní.
+
+01:39:39.000 --> 01:39:51.000
+Jednoduše a rychle nějakým způsobem odboardovat to, jak fungovat. Takže třeba hnedka první notebook, na kterej se můžu podívat, tak Ten mi ukazuje, jakým způsobem se spitnu. Šanity, Notebook Y jsou teda.
+
+01:39:51.000 --> 01:40:03.000
+Je To je to v Pythonu. Nicméně, kódovací agent vám umožní se zorientovat i velice dobře, jak přistupovat z prostředí do jiných jazyků. Věřím, že s tím nebudete mít problém.
+
+01:40:03.000 --> 01:40:10.000
+I tady s Pythonu se koneckonců připojujeme v týhle tý chvíli jako ke standardní databázi.
+
+01:40:10.000 --> 01:40:20.000
+Všechny ty parametry jsou nastavený tak, aby odpovídaly tomu vašemu lokálnímu kontejneru, kterej si tady rozběhnete po tom stažení tý šablony.
+
+01:40:20.000 --> 01:40:33.000
+Vidím, že je tady příklad na vytvoření tabulky, které já už jsem tady spustil po několikátý, takže jsem dostal chybu. Že tabulka už existuje, Protože jsem nepoužil v tom mým skriptu. If Not exist.
+
+01:40:33.000 --> 01:40:50.000
+mám tady příklad na to, jak inzertovat. A tato lesů standardní pythonovský věci. Takže já nad tím nebudu úplně ztrácet čas. Máte tady příklad na tom, jak když si s Initialcsvinitial čka, načtete přes Panda data 100 data. Jak můžete odvodit typy sloupečků? Jak.
+
+01:40:50.000 --> 01:41:03.000
+Jak to namapovat? Právě na typy v Iris. Jakým způsobem? Na základě toho initialcspinitial Čka automatizovaně. Třeba vytvořit v Iris tabulku. A jak do něj načíst ty data? Jakmile máte data v Iris načtený, můžete využít třeba.
+
+01:41:03.000 --> 01:41:22.000
+prostředí. Management portálu Iris. To je nějaký uživatelský administrátorský prostředí Iris, který, když se tady rozkliknu, tak vidím, že jsem se dostal přímo už do toho, co mi tady lokálně běží. Podívám se, jaký tady mám tabulky. Vidím, že tady mám právě nějakej sample person Můžu dragend dropnout?
+
+01:41:22.000 --> 01:41:31.000
+Jednoduchej dotaz. Můžu zkontrolovat, že ty data, který jsem nahrál, jsou tady k dispozici.
+
+01:41:31.000 --> 01:41:51.000
+Vedle toho v tom prvním příkladu máte k dispozici i nějakou class, kterou rovnou můžete použít jako ňáký app Y pro nahrání dat z Cvček. Protože víme, že některý ty data se ty, některý ty data budou v initialcswinitial čkách k dispozici, tak jsme vám tenhle ten krok tady připravili, abyste byli schopný. Teda tady, rychle.
+
+01:41:51.000 --> 01:41:53.000
+Do Iris, Naloudovat.
+
+01:41:53.000 --> 01:42:08.000
+Další notebook, kterej vlastně jsme připravili. Pro vás je o tom já. Když už teda ta v databázi mám, jak Je se nad nima. Můžu dotazovat zase primárně v pythonu. přes základní přes klasický apíčko.
+
+01:42:08.000 --> 01:42:18.000
+Prochází. Vlastně, tý data. Na tom není moc co řešit co, si myslím nicméně. Že, velice zajímavý tak. To je Právě práce s těma Fire Datama.
+
+01:42:18.000 --> 01:42:27.000
+Fire Data. Víme, že někteří zadavatelé přímo už dodávají k dispozici, takže budete schopní
+
+01:42:27.000 --> 01:42:39.000
+Po stažení těch dat si ty data uploadovat. Do toho, Fire serveru. Nebudete muset nějakým způsobem měnit Na druhou stranu Pořád někteří zadavatelé výzev mají data, vy exportovaná v různých formátech.
+
+01:42:39.000 --> 01:42:55.000
+Je na vás, jestli nějakým způsobem s pomocí kódovacích agentur ty data na Fair převerte. Myslím si, že ve většině případů by to mělo bejt možný a příhodný to tak udělat. Takže tady máte rovnou příklad toho, jakým způsobem, nahrát.
+
+01:42:55.000 --> 01:43:02.000
+Data do Iris, který máte ve Fairu. A to tady primárně pomocí nějakýho restovýho Up Y.
+
+01:43:02.000 --> 01:43:19.000
+Už jsme si řekli, ten fajrovskej depozitář je vlastně nějakej resto server, takže vidím, že se k němu připojuju. Přes Nějaký úl Zadám klasicky jméno heslo, což jsou výchozí údaje, který pro ten váš fire server pro ten lokální. Tady jednoduchej. Budete mít nastavený.
+
+01:43:19.000 --> 01:43:32.000
+Pokud budete mít Farsu body v nějakým adresáři, tak je 1 po druhym Pomocí tohodle kódu na Poustujete na ten Fire server, což vytvoří ty jednotlivý resource y.
+
+01:43:32.000 --> 01:43:51.000
+Vidím, že ve Fairu pro ty jednotlivý resource. Každej má vlastně tu cestu v Initialurlinitial, přes kterou já jsem schopnej se dotazovat na to, jaký resort si tohohle typu existujou. Takže když k tomu základnímu takzvanýmu base u role, přidám třeba patient, zeptám se, Jaký pacienti existují pomocí get? Metody.
+
+01:43:51.000 --> 01:44:06.000
+V restu Dostanu vlastně seznam všech pacientů tady v Jason U, Protože to je default vlastně datovej formát, ve kterým Jsou ty data ve Fairu reprezentovaný.
+
+01:44:06.000 --> 01:44:27.000
+Zároveň je tady Api pro Palcloud. Pokud byste měli nějaký velký datový soubory. což se pro některý výzvy může stát. Ty data byly ve Fairu. Tak můžete použít potom, co ty data nakopírujete přímo do nebo teda do kontejneru nebo nějakým způsobem je tam nasdílíte přesdílený stožky.
+
+01:44:27.000 --> 01:44:40.000
+Tak můžete pomocí tohodle skriptu to naimportovat i mimo přímo nějakým načítáním. Loká z lokálního souboru, což bude samozřejmě rychlejší, Pokud byste měli gigabyte dat.
+
+01:44:40.000 --> 01:44:42.000
+Tak.
+
+01:44:42.000 --> 01:44:59.000
+Další notebook, kterej tady pro ten far máme, se týká toho, jakým způsobem. Můžu se nad těma fér datama dotazovat. Zase vidím, že použiju nejdřív tady ty příklady. Máme dva využití základního request. Vlastně třídy v pří.
+
+01:44:59.000 --> 01:45:16.000
+Pythonu. Zase mám nějaký base. Url, tohle. Je to base Url pro ten server, který máte nastavený. Připojím se pomocí Nějaký uživatelskýho jména a hesla. A vidím, že se budu dotazovat nad pacientama. To znamená base initialurlinitial. Pacienti se nám základní hadry a základní autentizaci.
+
+01:45:16.000 --> 01:45:29.000
+Dostávám výsledek. Jaký pacient existujou? Fire je skvělej v tom, že ho Můžeme definovat nad velkou množinu těch vlastností, který Jsou v něm definovaný vyhledávací parametry.
+
+01:45:29.000 --> 01:45:46.000
+Dokonce vám umožňuje definovat i vyhledávací parametry nový pomocí profilů. To už je nicméně ňákej detail do, kterýho je otázka Jestli se tady během čtyřiadvaceti hodinovýho pouštět každopádně. Kdybyste, chtěli najít všechny pacienty kterých, se jmenujou tyš stačí, To přidat do vyhledávacího parametru.
+
+01:45:46.000 --> 01:45:53.000
+A takhle můžete pokračovat se spoustou dalších těch vlastností, který ty fajrový resource y maj.
+
+01:45:53.000 --> 01:45:55.000
+Tak,
+
+01:45:55.000 --> 01:46:11.000
+Tady. Vidím, že můžu to zároveň omezit. Tady pořád nevyhledávám pacienty, který maj ňáký jedničko nebo gender ale. Tady můžu Třeba omezit. Který ty elementy se mi vrací. Vidím, že tady se mi z toho fajru vypsali celý Jasony.
+
+01:46:11.000 --> 01:46:17.000
+Který ty záznamy těch těch pacientů, Včetně všech identifikátorů. Jméno.
+
+01:46:17.000 --> 01:46:34.000
+Telekom, telefon, pohlaví. datum narození, adresa. Ale přitom mě zajímá jenom vlastně pohlaví. A langenglishinitialidinitiallangenglish čko. A vidím, že Můžu omezit to vyhledávání i tak, aby ty odpovědi byly menší, abych v nich mělo míň dát. A to dělám třeba pomocí tady toho.
+
+01:46:34.000 --> 01:46:45.000
+Seč parametrů Elements. To znamená. Ty parametry v tom urole nejsou jenom nutně. Jako filtrovací. Můžou složit i nějakým způsobem k modifikaci toho výslednýho.
+
+01:46:45.000 --> 01:46:46.000
+Datasetu.
+
+01:46:46.000 --> 01:46:50.000
+Tak,
+
+01:46:50.000 --> 01:47:05.000
+Je tady několik dalších příkladů, který slouží k nějakýmu sofistikovanějšímu vyhledávání. Já nicméně přejdu k tomu, jak se dá vyhledávat Přímo s knihovnou od Pythonu, která pracuje přímo, s Fire Em Aji vše jakousi nad stavbou.
+
+01:47:05.000 --> 01:47:21.000
+Nad tím restem. Zase příklad, Jakým způsobem já vytvořím klienta pro nějakej End point, jakou použiju autentizaci. A už tady Můžu přes jednodušší api fečovat. Právě třeba všechny všechny pacienty.
+
+01:47:21.000 --> 01:47:40.000
+Přidávat dvě řetězy vyhledávací, Parametry a podobně jo. Je, to ňáký jednodušší je. To. Nějaký jednodušší api než jen, přistupovat Přímo na dřeň tím restem. Ale samozřejmě pro určitý případy. Obzvlášť třeba když byste chtěli rovnou napojovat na to ňákou jednoduchou, webovou apku.
+
+01:47:40.000 --> 01:47:46.000
+Tak přímo to restují. Ten restový přístup může bejt to, co hledáte.
+
+01:47:46.000 --> 01:48:02.000
+Tak My jsme tady pracovali primárně s pacientem. Jak už jsme zmiňovali, Far definuje celou řadu těch resourců a. Tady Vřele doporučuju. Kdybyste přemejšleli jak ty data zase namapovat na Fire, se kterejma pracujete. Jestli třeba výsledek toho.
+
+01:48:02.000 --> 01:48:16.000
+Co tvoříte by, neměl bejt reprezentovanej ve fairu Doporučuju. Konzultovat s asistentama skorovacíma agentama věřím. Že, ve většinu případů najdou shodu. A pokud ty vaše výsledky zase do Fairu budete promítat, tak.
+
+01:48:16.000 --> 01:48:23.000
+Tak tu budeme brát jako určitě plus a pozitivum pro to, jak jste tu vaši výzvu řešili.
+
+01:48:23.000 --> 01:48:32.000
+Tak, tady jenom další příklady toho, jak se vlastně nad firem dá vyhledávat.
+
+01:48:32.000 --> 01:48:50.000
+To nechám pro vaše domácí nastudování. Co je ještě určitě zajímavý je, jak se ty resourcesy 1 po druhým vytvářej. Před chvílí jsme si představovali nějaký Apě pomocí, kterýho se loudovalo, ludovali ty data ze souborů tady jak vyloženě můžete.
+
+01:48:50.000 --> 01:49:06.000
+Vytvářet Resours Y jako jednoduchý Jason objekty. Takhle pomocí týhletý syntaxe už té zvalidovat. Tím pádem vytvoříte ňákej objekt kterej, Potom už vyloženě naloudujete nebo nahrajete pomocí toho fajrovýho App y.
+
+01:49:06.000 --> 01:49:19.000
+Do tý databáze. Takže zase nějaký zjednodušení toho, jak s ním pracovat? Věřím zase tady. Kódovací agent. Pomůže s tím, Jak třeba ty vaše výstupy nebo něco, co vytváříte v tý vaší apce do tý databáze?
+
+01:49:19.000 --> 01:49:22.000
+Pokládat.
+
+01:49:22.000 --> 01:49:37.000
+data. Ukládáte buďto po jednotlivejch resourcech, že tam nahrajete jednoho Pacienta. Jednu observation, jednu 1 záznam o nějaký condition Což je vlastně ten příklad tady v tom notebook. U tady v tý tři celý tři.
+
+01:49:37.000 --> 01:49:56.000
+Popisujeme i jak Vlastně se pak můžete podívat, že ty data tam skutečně existují. Kdybyste bádali nebo chtěli se podívat nad tím, jestli ty data, který tam zapisujete. Jestli tam opravdu sou, tak doporučuju zase využít, nějakým způsobem grafický rozhraní.
+
+01:49:56.000 --> 01:50:14.000
+Airis ideálně nebo asi nejjednodušeji tady z toho prostředí těch tutoriálů. Kdy vlastně ten první setup setup? Iris and Fire. Tak tady máte různý odkazy, přes který můžete přistoupit na to, jak se na teda tak koukáte? 1 z nich je.
+
+01:50:14.000 --> 01:50:20.000
+Šéfér tím, že je to restový api. Tak máte v tom serveru, kterej tady si stáhnete k dispozici.
+
+01:50:20.000 --> 01:50:22.000
+Takže můžete mrknout.
+
+01:50:22.000 --> 01:50:33.000
+Na to, jaký resorty jsou k dispozici. Můžete si vyzkoušet jejich volání. Ukáže vám to i jaký parametry jsou k dispozici. Můžete si tady s tím trošku hrát. Já si tady třeba zkusím najít.
+
+01:50:33.000 --> 01:50:38.000
+Pacienta. Proč mi ho nenachází? Nevím, ale tady.
+
+01:50:38.000 --> 01:50:45.000
+Takže se můžu třeba podívat na to Get, Jaký pacienti existujou vy? Vyzkouším a vidím, že v tom.
+
+01:50:45.000 --> 01:50:48.000
+Serverů.
+
+01:50:48.000 --> 01:50:49.000
+Ups.
+
+01:50:49.000 --> 01:51:01.000
+Mám Ňákej problém tak. Tohle je klasickej klasickej generálskej komplex kdy. Se mi nepovedlo kde? Mi to přestalo fungovat nevadí? Asi, Mi vypršelo autentizace.
+
+01:51:01.000 --> 01:51:07.000
+Bych si tak myslel, že se tváří, jako že nemá data, aby neprozradil.
+
+01:51:07.000 --> 01:51:10.000
+Prozradil. Kde se stala chyba.
+
+01:51:10.000 --> 01:51:20.000
+Nevadí další způsob, jak si na ty data můžete podívat, je přes. Vlastně, já se omlouvám, že tady skáču. Je Přes manažerský prostředí toho portálu.
+
+01:51:20.000 --> 01:51:37.000
+Kdy Když se otevřu Fire Management Page, tak jednak tady vidím, jakej Fir je nadefinovanej pro ten far server. Vidím, že ten, kterej vám předvytvoříme, tak jsou tam přeloudovaný ňáký resources y To. Sou vygenerovaný resource y Nejsou to. Data který by, vám poskytl Kdokoliv z těch zadavatelů z těch výzev.
+
+01:51:37.000 --> 01:51:44.000
+Pokud byste si chtěli vytvořit, nový server, tak buďto to tady uděláte pomocí jednoduchýho průvodce.
+
+01:51:44.000 --> 01:51:50.000
+Berete nějaký? Vyberu třeba Fertes. Nazvu si ten server. Fire Test.
+
+01:51:50.000 --> 01:52:05.000
+Můžete si vybrat verzi fireů Nejpoužívanější i teďka. Pro ty evropský výměny je právě verze Far R, čtyři. Nicméně už Mluví i novější. Far R. Pět. Pokud byste z nějakýho důvodu chtěli používat tu R pětku, můžete je. Zůstanu u R. Čtyřky.
+
+01:52:05.000 --> 01:52:10.000
+modifikuju initialurlinitial a vytvořím server.
+
+01:52:10.000 --> 01:52:19.000
+Na pozadí se mi ten server začne vytvářet tady. Když jsem v tomhletom správcovskym rozhraní pro Fire, tak je zajímavej. Ten poslední link.
+
+01:52:19.000 --> 01:52:24.000
+Kterej je far Exporer. Kde já si můžu zadat Právě.
+
+01:52:24.000 --> 01:52:31.000
+Úrlinitial nějakýho serveru, ke kterýmu se chci připojit tady. V tom případě toho mýho lokálního serveru kterej sem si rozchodil.
+
+01:52:31.000 --> 01:52:36.000
+A on je down. Nevím, proč je dám teďka. V tuhle chvíli.
+
+01:52:36.000 --> 01:52:41.000
+Nevadí, tady. Přesto byste měli bejt schopní ten server vyskavnout.
+
+01:52:41.000 --> 01:52:46.000
+A připojit se k těm datům, který v něm jsou k dispozici.
+
+01:52:46.000 --> 01:52:49.000
+Tak.
+
+01:52:49.000 --> 01:52:53.000
+A ještě můžu zkusit udělat jednu věc.
+
+01:52:53.000 --> 01:52:56.000
+Protože si ten dukr restartuju.
+
+01:52:56.000 --> 01:53:00.000
+Ale počkám s tím, až se mi vytvoří.
+
+01:53:00.000 --> 01:53:04.000
+Ten už jsem je vytvořil. Takže já můžu zkusit, jestli pomůže.
+
+01:53:04.000 --> 01:53:24.000
+Restart.
+
+01:53:24.000 --> 01:53:28.000
+Počkáme, až se to rozběhne. Já se nicméně vrátím.
+
+01:53:28.000 --> 01:53:44.000
+Tady, tady sem a podívám se, protože vedle toho, že vy můžete poustovat jednotlivý nebo nahrávat jednotlivý resources y Na Fair server U. Tak to, s čím se taky v praxi velice často setkáte je že, budete nahrávat celý transakce.
+
+01:53:44.000 --> 01:54:02.000
+Těch resourců to znamená. Vy budete chtít v jednu chvíli nahrát informaci o tom, že bylo zdokumentovaný nějaký vyšetření. Budete chtít založit dokument, kterej o tom vyšetření vzniknul. Budete chtít zároveň.
+
+01:54:02.000 --> 01:54:08.000
+Budete chtít zároveň? vlastně.
+
+01:54:08.000 --> 01:54:25.000
+Nahrát i nějaký strukturovaný informace o tom, co se při tom vyšetření zjistilo, Jaký pozorování? Jakej tlak byl naměřenej. Jaký Objednávky byly vytvořený žádanky. Jaký další laboratorní vyšetření požadujete? A podobně To všechno můžete schovat do jedný transakce.
+
+01:54:25.000 --> 01:54:38.000
+A tady ten notebook. Tři, celý čtyři vám ukazuje, jak vlastně vytvořit bundl, což je nějakej nějaká entita nebo resource ve Fairu, kterej vám umožňuje zvlukovat víc jednotlivejch resourců.
+
+01:54:38.000 --> 01:54:43.000
+Dohromady. Jak s ním pracovat? Jo, tady vidím, že vytvořím En Counter.
+
+01:54:43.000 --> 01:54:50.000
+Resort. Vytvořím Observation Resource o pozorování. Vlastně měření nějakýho srdečního rytmu.
+
+01:54:50.000 --> 01:55:07.000
+zároveň využiju api pro vytvoření bandlů. Řeknu, co se v těch jednotlivejch entríz toho bundlu má dělat. Použiju tady Ten resource, kterej jsem vytvořil. A řeknu, že ten resource se má pousnout. To znamená vytvořit novej resource a ňákym end Point U.
+
+01:55:07.000 --> 01:55:22.000
+Takhle, když jsem vytvořil ten můj bandl, tak vidím, že ten bandl má ty transaction. Má pole entries. Kde jsou Teda jednotlivý resources y Zde Encounter, který se mi odkazuje na nějakýho pacienta. Vím, že ten Encounter mám postovat. Čili vytvořit.
+
+01:55:22.000 --> 01:55:38.000
+A další resort V tom bundlu V tý transakci je nějaká observation právě pro to měření toho srdečního rytmu. A Zase vidím, že tu observation mám vytvořit na tom serveru. Takže tohle je zase ňákej příklad já. To říkám hodně z rychlíku jenom.
+
+01:55:38.000 --> 01:55:47.000
+Abyste věděli, co v tom v těch notebook ích máte k dispozici a. Potom víceméně nechám na vás abyste, si Ty notebook Y přišli v klidu.
+
+01:55:47.000 --> 01:56:04.000
+Až potom, co ten ta naše session společná skončí, Tak je tady takovej bonus. Data, který máte v Iris uložený ve Fairu. Tak můžete využít zase v tom uživatelskym rozhraní. Půl kerej vám umožňuje nadefinovat mapování do Sql.
+
+01:56:04.000 --> 01:56:19.000
+Takže když máte teda uložený, můžete zároveň si vytvořit takhle pomocí grafickýho nějakýho Wizardu tabulku, do kterýho se vám promítnou Ty jednotlivý vlastnosti, který v tom Fire u existujou. Tady je popsaný. Jak to uděláte.
+
+01:56:19.000 --> 01:56:34.000
+A do tý tabulky, va? Vy pak můžete přistupovat k jakýkoliv jiný tabulce v Iris. Ať už v tom uživatelským správcovským rozhraní, nebo zase přes připojení. Spike mu Nebo jakýhokoli jinýho jazyku, ze kterýho přes tu Sql ko.
+
+01:56:34.000 --> 01:56:36.000
+Pracujete.
+
+01:56:36.000 --> 01:57:01.000
+Tak, přejdu ještě k posledním Tady, Rychle, notebook ům ať. Se vejdem do tý hodinky ať, máme čas prolika A projdu. Co je v těch posledních třech notebookcích, který pro vás máme prvním? Je vlastně popsaný. Jak Můžete pracovat, jak můžete využívat právě Vector Search Viris, že můžete vytvořit tabulku, která má vyloženě datovej typ nebo 1 stoupeček vnímá vyloženě. Datovej typ Factor.
+
+01:57:01.000 --> 01:57:16.000
+Jak potom vytvářet jednoduše v Pythonu Embeding Y. Celý ty příklady využívaj. Vlastně open Jáj jednoduchý modely. Takže buďto já Nevím teďka, jestli jsou v tom Ashhru, který budete mít k dispozici k dispozici. Každopádně.
+
+01:57:16.000 --> 01:57:39.000
+můžete využít nebo jednoduše ty příklady změnit, aby využívali i jiný modely tady tady. To volání by nemělo jakoby vám spotřebovat víc než nějaký centry z vašich kreditů, pokud využíváte úplnej jáj. Takže je tady představený jak pomocí těch úpnej já je jednoduchejch malejch modelů vytvářet embeding. Y Jak.
+
+01:57:39.000 --> 01:57:51.000
+Vlastně ukrádat do databáze, jak následně nad těma vyhledávat a tím pádem získávat vlastně informaci o tom, který ty data Pro ty vaše konkrétní prompty.
+
+01:57:51.000 --> 01:57:55.000
+Jsou relevantní. Jo.
+
+01:57:55.000 --> 01:58:13.000
+Tak Pokud je tady ukázaný i příklad na to, Když pracujete s dalšíma textomatu, určitě dobře znáte, jak je dělit na čanky. Jak ty. Jak ty čunky jednotlivý, zase indexovat pomocí těch vektorů a podobně. Takže můžete se odpíchnout i pro tyhlety Uscase Y.
+
+01:58:13.000 --> 01:58:31.000
+a poslední dva notebook y který jsou tady k dispozici, jsou o tom, jak jednoduše vytvořit v Pythonu agenta. Teda Tool. Jak jednoduše vytvořit pythonu. Tool, ke kterým budete přistupovat třeba k datům v Iris. Prostřednictvím Initialsql Jednoduchej sql. Nějakej nějakej.
+
+01:58:31.000 --> 01:58:43.000
+Tůl, kterej je nám. Vyčte tady všechny super hrdiny. Jak udělat tůl, kterej přistupuje k Waxter Search, Jak udělat stůl, kterej přistupuje k Fare datum. A jak ho potom využívat?
+
+01:58:43.000 --> 01:58:46.000
+Právě přivolání nějakýho agenta.
+
+01:58:46.000 --> 01:59:05.000
+Poslední notebook. Potom nám popisuje, jakým způsobem je to příklad zase využívající Fast Langenglishinitialmcpinitiallangenglish. To je, že jo? Knihovna Pythnovská, která vlastně nemá nic společnýho. Jak vytvoříte initialmcpinitiallangenglish Tool zase Pomocí tady nějakýho připojení do Irisu zprostředkováním dat.
+
+01:59:05.000 --> 01:59:22.000
+Který v Irisu jsou k dispozici. Co je důležitý eště zmínit? A co jsem zatím neřekl, je, že já tady Teďka pracuju s tím mým lokálním kontejnerem, Kdy jsem si naklonoval ten tu git hub šablonu? Využil jsem do krkompouz, kterej v ní je.
+
+01:59:22.000 --> 01:59:24.000
+Tam je automaticky vytvořila.
+
+01:59:24.000 --> 01:59:42.000
+Já si můžu vytvořit teda fára, depozitář i novej, ale zároveň jak už ukazovali kolegové z Microsoft u I. Vlastně v tom vašem prostředí. Vy si můžete rozběhnout kontejner v Iris a potom tady je k dispozici skr.
+
+01:59:42.000 --> 01:59:46.000
+A já si musím najít, je to v tutoriálech.
+
+01:59:46.000 --> 01:59:52.000
+Je to v tutoriálech. Je to v části fire. A je to část tři. Celá nula se ta fire server.
+
+01:59:52.000 --> 02:00:07.000
+Je tady vlastně k dispozici skript, kde máte, kterej můžete využít k tomu, abyste vlastně během toho skriptu na ňákym vzdálenym serveru musíte změnit vlastně initialipí čko nebo voast Name toho serveru, na kterým chcete ten fare Server vytvořit.
+
+02:00:07.000 --> 02:00:16.000
+Port, na kterým tam Iris poslouchá Eventuálně přihlašovací údaje do Iris. Můžete tady taky,
+
+02:00:16.000 --> 02:00:31.000
+Změnit. Vlastně, jak se ten Fare server nazývá? A na jakym Endpoint u v rámci Airis bude k dispozici. Ale Tímhle tím skriptem by vlastně jednoduše na 1 příkaz vytvo. Vytvoříte ten fér server v nějaký instanci, která třeba neběží u vás.
+
+02:00:31.000 --> 02:00:47.000
+Kdybyste nechtěli používat tu metodu. System far, server. Nakonfigurujete v tom uživatelskym rozhraní Zase kódovací asistenti nebo i asistenti. Pomůžou S tím, jak ten farr server eventuálně vytvořit online. Pokud budete mít dotazy, budeme mít na místě k dispozici.
+
+02:00:47.000 --> 02:00:52.000
+Mentory. Jak už jsem říkal, tím se vrátím ke svým.
+
+02:00:52.000 --> 02:00:54.000
+Ligům.
+
+02:00:54.000 --> 02:00:58.000
+Takže abysme si to shrnuli,
+
+02:00:58.000 --> 02:01:13.000
+Kdybyste využívali, chtěli využívat pro vaši aplikaci a řešení byl. Zajímavý použití vector. Search Tak. Můžete i rys využít protože, do ní jako do databáze. Budete právě ukládat, y, který vytvoříte z těch vstupních dat.
+
+02:01:13.000 --> 02:01:27.000
+Potom vlastně ten váš program bude chtít vektor době vyhledávat. Zase vektorový vyhledávání je zabudovaný přímo v Irisu, kterej dostanete k dispozici to vyhodnocení samotný už je pak mimo Iris. Jo, budem jenom hodnotit.
+
+02:01:27.000 --> 02:01:35.000
+Jak vlastně, jestli jste využili ten potenciál, kterej Aj. V tom vektorovým vyhledávání případně přístupu přes tůly.
+
+02:01:35.000 --> 02:01:51.000
+použila. Co se týče toho vektorovýho vyhledávání, tak v těch příkladech jste viděli použití Intersystem se Sql. Nicméně k Iris. Můžete využít i přístup nebo implementaci Regul prostřednictvím Lang Chain u případně Lama index.
+
+02:01:51.000 --> 02:02:06.000
+Tady to samý v bledě Modrym pro ten agentní přístup a ve finále. Možná, co taky považujeme za eště jako Důležitější demonstrování interoperability Pomocí toho dostupnýho fire serveru. Kterej teda máte? Spousta.
+
+02:02:06.000 --> 02:02:25.000
+Spuštěnej. Když si stáhnete tu gida v šablonu, rozběhnete do krkompouz. kontejner. Fire Server tam bude rozchozenej a vy ho můžete využít pro to, abyste tam nahráli ty data. Pokud už ve Firu jsou nebo upravili ty data, který dostanete, tak, abyste demonstrovali, že jste schopní. Je v Fire u přečíst případně.
+
+02:02:25.000 --> 02:02:43.000
+Můžete pracovat i s Fire serverem jako vlastně interním repozitářem pro data, který vy vytváříte případně pro nějaký výstupy, který byste chtěli potom integrovat do nějakejch následnejch systémů, Co je důležitý si uvědomit ty data, který sou teďka v tom Fair Server u Nahran.
+
+02:02:43.000 --> 02:02:48.000
+Nejsou data, který jsou poskytnutý pro výzvy. Nic vám nebrání.
+
+02:02:48.000 --> 02:02:53.000
+Jednoduše velice ty data Smazat uživatelským prostředí toho fair serveru.
+
+02:02:53.000 --> 02:03:03.000
+Případně si vytvořit tvar server nový. Ať už pomocí toho skriptu nebo pomocí toho uživatelskýho prostředí.
+
+02:03:03.000 --> 02:03:07.000
+jak už jsem říkal.
+
+02:03:07.000 --> 02:03:21.000
+Pokud vám to dává smysl. Pokud vlastně ty hlavní datový prvky, se kterýma budete pracovat, mají nějakou rozumnou projekci Ve Flyru může dávat smysl i využít fire server jako primární databázi, ke který budete přistupovat pomocí toho restovýho rozhraní.
+
+02:03:21.000 --> 02:03:32.000
+A co je důležitý? Určitě, pokud se teda rozhodnete, jakým způsobem, jakýmkoli způsobem Iris využít neváhejte. Poraďte se s náma. Samozřejmě.
+
+02:03:32.000 --> 02:03:47.000
+Bodovací asistenti už vám dneska pomůžu Taky velice dobře, Ale my zase můžeme pomoct tou architektonickou diskuzí je třeba v Ve spolupráci s přímo se zadavateli jednotlivých výzev nebo i s kolegama z Microsoft. U.
+
+02:03:47.000 --> 02:04:07.000
+Bysme si dali dohromady ňákej větší obrázek přímo pro to vaše řešení když nás kontaktujete. A velice rychle, třeba si Ověříte ten váš nápad? Máte Větší možnost že, se vyhnete nějakým slepejm uličkám a. určitě, pokud. Byste začali řešit ňáký technický problémy dneska teda.
+
+02:04:07.000 --> 02:04:15.000
+Agenti už vám s nima velice dobře Nebo asistenti. Už vám s nima velice dobře pomůžou. Pokud si nebudete vědět Rady. Hnedka nám zavolejte. Budeme k dispozici.
+
+02:04:15.000 --> 02:04:21.000
+Onsyt i online, abysme vám s tím pomohli.
+
+02:04:21.000 --> 02:04:30.000
+A velký doporučení. Máte k tomu i tady zdroje od Microsoft U. Používejte rozhodně asistenty. Na co můžete tak.
+
+02:04:30.000 --> 02:04:41.000
+Úskalí, který jsme vypozorovali vlastně z předchozích nějakejchatonů, který jsme se z Iris zúčastnili. Kde jsme, kde jsme vlastně se Bavili o tom, jak využít Fire.
+
+02:04:41.000 --> 02:05:00.000
+Týmy občas si říkají je. To jako najstuhé pojďme. To nechat na později když, tohle uděláte a. Obzvlášť když na To máte čtyři a dvacet hodin. tak už se vám nepodaří pozdějc to na to řešení napasovat pokud, Vám to dává smysl pokud, Chcete, aby to řešení bylo interaprobilní zkuste? Se hnedka na začátku zamyslet.
+
+02:05:00.000 --> 02:05:14.000
+jak to udělat? Nechat si to navrhnout od asistentů. A začněte s tím fajerem už hnedka na začátku. Nesnažte se vyřešit úplně každej detail, kterej vám ten Fire umožňuje jakoby dělat.
+
+02:05:14.000 --> 02:05:26.000
+Zaměřte se na to, co je důležitý. Odprezentovat v rámci toho čtyřiadvaceti hodinovýho pilotu. Protože vobčas jsme zažili, že lidi Začali najednou řešit třeba autentizaci nebo autorizaci v praze.
+
+02:05:26.000 --> 02:05:40.000
+Pomocí outu, což je určitě skvělý. A potom při nadsazení do praxe, Je to příhodný. Je otázka, jestli tohle je Něco, Čím, jako je potřeba abyste se, zabývali teďka když máte. Něco vytvořit během čtyři a dvaceti hodin takže za nás. Keep. It simple.
+
+02:05:40.000 --> 02:05:47.000
+A určitě, nás vyhledejte na jednotlivejch místech.
+
+02:05:47.000 --> 02:06:04.000
+Kde se Rakatom pořádá? V Praze budu já a kolega Gabriel. V ostravě bude kolega Dan Kutáč a v Brně budou kolegovat A Daniel Drozdov. Takže budeme mít na místě zastoupení. Nicméně, na rozdíl asi od vás si dovolíme odskočit i vyspat.
+
+02:06:04.000 --> 02:06:21.000
+Na noc budou k dispozici na pokrytí. Vlastně dvacet čtyři, sedm online. Mentoři v ňákym rozpisu takže. Budeme se na Vás těšit určitě ne. Najděte nás podle fotek a obličejů přímo na místě. Případně nám napište na sleku.
+
+02:06:21.000 --> 02:06:26.000
+Kde s technickejma problémama jsme schopný radit, na tom.
+
+02:06:26.000 --> 02:06:33.000
+Kanálů Tech Help Desk. Případně je tady přímo i kanál pro tu naši Challenge, kde se můžeme bavit O tom.
+
+02:06:33.000 --> 02:06:42.000
+Jak k tý výzvě přistoupit? A jak v ní třeba bejt úspěšný, Tak já vám děkuju za pozornost.
+
+02:06:42.000 --> 02:06:48.000
+Časem téměř vyčerpal a zeptám se, jestli náhodou někdo nemá nějaké dotazy.
+
+02:06:48.000 --> 02:07:04.000
+Tak pojďme, pojďme na dotazy. Máme čtyři minuty. Asi.
+
+02:07:04.000 --> 02:07:05.000
+Tak by teda.
+
+02:07:05.000 --> 02:07:07.000
+Co přesvědčilo porotu u vašich minulých vítězů?
+
+02:07:07.000 --> 02:07:24.000
+Přesvědčilo nás to, jestli právě jako využili. Jestli se zamysleli nad tím, jak to uchopit? Jestli. Jestli prostě byli. Jestli vyčerpali ty možnosti toho, jak s těmi daty pracovat.
+
+02:07:24.000 --> 02:07:45.000
+Jakým způsobem, je reprezentovat právě v tom Fireu. Co všechno může bejt ohledně tý jejich aplikace interoperabilní. Jak se nad tím zamysleli, jak to pojmuli. I to, jakým způsobem to eventuálně dotáhli. Nicméně, ty hakatony, který jsme se v minulosti zúčastnili, byly delší než dvacet čtyři hodin, Takže i. Určitě na to budeme muset brát.
+
+02:07:45.000 --> 02:08:02.000
+Tentokrát ohled. A samozřejmě, přesvědčoval nás ten celkovej dotaz. dopad. Teda toho řešení i. To jak, jste během toho byli schopni vyřešit tu výzvu. Co jste třeba přinesli navíc, Co třeba možná v tom zadání ani nejdřív nebylo, kde jste byli inovativní, kde jste získ?
+
+02:08:02.000 --> 02:08:14.000
+Udělali ten krok napřed. Kde jste k tomu třeba využili ty interoperabilní funkce? Nebo právě funkci tý práce s těma Datama. Toho zpřístupnění těch dat těm agentům nebo těm jazykovejm modelům.
+
+02:08:14.000 --> 02:08:19.000
+Teď ještě tady je. Kdyžtak napište. Jestli se vám takhle odpověděl.
+
+02:08:19.000 --> 02:08:38.000
+A ještě se tady pokusím zareagovat na dotaz, že jsme tady viděli úplnej ajlipku práce, ale potřebovat ty lokální modely Je to tak, že každá ta výzva má k dispozici nějaká vstupní data. A záleží na tom, s jakými daty ty pracujete. Pokud budete mít potvrzený.
+
+02:08:38.000 --> 02:08:56.000
+Od Vlastně zadavatele výzvy, že ty data jsou anonymní, a že je můžete posílat do těch kloudových modelů. Tak v tu chvíli je v pořádku, samozřejmě. Po posílat do cloud ového modelu. Pokud ne, pak by byl příhodnej nějakej lokální model, kterej teda se přiznám, že nenabízíme.
+
+02:08:56.000 --> 02:09:01.000
+Jo, ale je to na ověření se zadavateli těch výzev. Pokud vím.
+
+02:09:01.000 --> 02:09:18.000
+Tak Většina se snažila mít teda ta buďto syntetický nebo anonymní tak, aby, se mohli do těch cloud ovejch modelů posílat. Nicméně doporučuju. Vždycky se zadavatelem tý výzvy případně s technickým týmem. Tý konkrétní nemocnice nebo ten podpůrným technickým týmem toho zadavatele.
+
+02:09:18.000 --> 02:09:32.000
+Zkonzultovat, co je možný. Jo, bude taky pro některý ty data. Budete si potřebovat vlastně vyžádat to jak, vám je Zprostředkujeme, jak vám je zašlem. A Během toho procesu toho zasílání těch dat nejspíš.
+
+02:09:32.000 --> 02:09:39.000
+Tohle. To ověření bude k diskuzi. A nějakým způsobem si vzájemně potvrdíme. Co je s nima možný dělat?
+
+02:09:39.000 --> 02:09:43.000
+Tak.
+
+02:09:43.000 --> 02:09:49.000
+Tak jo, já teda. Ondro, ti poděkuju za.
+
+02:09:49.000 --> 02:09:56.000
+Za úžasnou prezentaci máme prostor. Možná eště na poslední poslední dotaz. Kdyby byl, než.
+
+02:09:56.000 --> 02:10:02.000
+Se posuneme na poslední bor bod. Prý Hack Day.
+
+02:10:02.000 --> 02:10:05.000
+A.
+
+02:10:05.000 --> 02:10:23.000
+dotaz se neobjevuje. Já bych tě jenom poprosil. Ondro, Jestli bysme mohl vypostovat prezentaci do patřičných kanálů. Máme tam Jak ten kanál vaší výzvy. Pak je tam ten Health desk. Plus možná i.
+
+02:10:23.000 --> 02:10:27.000
+Ehm.
+
+02:10:27.000 --> 02:10:28.000
+Dobře.
+
+02:10:28.000 --> 02:10:39.000
+Kopy do oznámení. Třeba ať zasáhneme maximum hacker ů a. Jsem rád že, teda ta podpora to zafungovalo i na minulejch akatonech, že? I v noci, kdykoli ta podpora, která bude online globálně jako velmi dobře funguje.
+
+02:10:39.000 --> 02:10:41.000
+Ehm.
+
+02:10:41.000 --> 02:10:42.000
+Jo.
+
+02:10:42.000 --> 02:10:46.000
+Ještě máme teda poslední dotaz. Jestli se to všem týmům zprovoznit, jejich řešení.
+
+02:10:46.000 --> 02:10:47.000
+To nevím.
+
+02:10:47.000 --> 02:10:54.000
+obecně obecně i byly týmy, kteří používali, naši platformu. A kterým se to.
+
+02:10:54.000 --> 02:11:07.000
+Povedlo a byly týmy, který používali naši platformu, kterým se to nepovedlo a byly týmy, kteří ji nepoužívali a povedlo se jim to. A byly, který některý lidi nepoužívali a nepovedlo se jim to. Takže jako dycky, dycky je to tak, že někomu se to povede někomu, ne?
+
+02:11:07.000 --> 02:11:10.000
+Je pak na tom vyhodnotit. Vlastně.
+
+02:11:10.000 --> 02:11:26.000
+Jak moc ten koncept byl i složitej? Jaká byla inovativnost, Co byl ten problém, kterej vám umožnil vlastně to rozchodit Přímo Během toho vacatonu a. Jak říkám tenhle, ten, hacaton Bude dost specifickej tím že, trvá jenom dvacet čtyři hodin takže, určitě bude i pro nás zajímavý sledovat.
+
+02:11:26.000 --> 02:11:30.000
+Jak se to, komu povede dotáhnout ty jednotlivý úlohy?
+
+02:11:30.000 --> 02:11:54.000
+No a já na to navážu, protože, samozřejmě, jak se jde dopředu tak práce, které trvalo v minulosti léta. A Myslím si, že samozřejmě do budoucna pro hakatony. Je to jednak možnost. Je dělat velmi jako flash hackatony.
+
+02:11:54.000 --> 02:11:55.000
+Hm.
+
+02:11:55.000 --> 02:12:01.000
+A nebo samozřejmě, časem budete určitě posílat do Hackatonu i vaše agenty. Tak já tímto Ondrovi děkuju. Těšim se zejtra Potom, i na prezentaci.
+
+02:12:01.000 --> 02:12:06.000
+Inter Systém s. Myslim. Že.
+
+02:12:06.000 --> 02:12:10.000
+Je něco na úvod, Nám řekneš zejtra takže. To se budeme těšit.
+
+02:12:10.000 --> 02:12:11.000
+Uvidíme se.
+
+02:12:11.000 --> 02:12:18.000
+Uvidíme se a já bych tímto se posunul. Je patnáct. Třicet na poslední bod.
+
+02:12:18.000 --> 02:12:34.000
+Což je workshop nebo takové půlhodinové představení od Luka Šatiho, Jak stavět onkologické řešení které, pracuje mimo jednu nemocnici er. Takže, přepnu do angličtiny.
+
+02:12:34.000 --> 02:12:51.000
+A a presentation by Luke. Chaty.
+
+02:12:51.000 --> 02:13:00.000
+Spyond one hospital, Fire and Phoenix. So this.
+
+02:13:00.000 --> 02:13:05.000
+Mysterious jsou. Are you are can.
+
+02:13:05.000 --> 02:13:09.000
+Ne pojede. Ehm.
+
+02:13:09.000 --> 02:13:15.000
+To give these stok. Ehm.
+
+02:13:15.000 --> 02:13:28.000
+Europe. Un different Initiatives or Projects.
+
+02:13:28.000 --> 02:13:39.000
+Europe. Initiative More about that.
+
+02:13:39.000 --> 02:13:46.000
+A jako jsou but cancer.
+
+02:13:46.000 --> 02:13:57.000
+Trainings for, ehm, European have data space.
+
+02:13:57.000 --> 02:13:59.000
+Ehm.
+
+02:13:59.000 --> 02:14:01.000
+Jsou, ehm.
+
+02:14:01.000 --> 02:14:11.000
+Ehm.
+
+02:14:11.000 --> 02:14:21.000
+In the previews, the Gates. It was a.
+
+02:14:21.000 --> 02:14:30.000
+Bych vás volil. Ehm, if we just its very easy to go good pro today. Ehm.
+
+02:14:30.000 --> 02:14:40.000
+Kdyby, technical two was are amazing we can do ai We, can do smart
+
+02:14:40.000 --> 02:14:50.000
+You can had it. Wow, effect.
+
+02:14:50.000 --> 02:14:56.000
+Ehm, Ten. You start in the first hospital.
+
+02:14:56.000 --> 02:15:09.000
+Everything at that was er.
+
+02:15:09.000 --> 02:15:20.000
+Upsody systems and.
+
+02:15:20.000 --> 02:15:30.000
+To make it work in this first source beton.
+
+02:15:30.000 --> 02:15:36.000
+Like the first One.
+
+02:15:36.000 --> 02:15:50.000
+Ehm, and then you, ehm. How can I create a software that, s ehm, can be deployed in s a hospital?
+
+02:15:50.000 --> 02:15:54.000
+Everyday, Ehm.
+
+02:15:54.000 --> 02:16:02.000
+Jsou, Fire is.
+
+02:16:02.000 --> 02:16:17.000
+Through the internets. So it was made for developers. So that be quite finity. Make elf go to.
+
+02:16:17.000 --> 02:16:22.000
+Centery and.
+
+02:16:22.000 --> 02:16:31.000
+Thats standard.
+
+02:16:31.000 --> 02:16:40.000
+We can be fine.
+
+02:16:40.000 --> 02:16:50.000
+Experiment, order.
+
+02:16:50.000 --> 02:16:57.000
+Than.
+
+02:16:57.000 --> 02:17:08.000
+Ehm, can, Ehm.
+
+02:17:08.000 --> 02:17:14.000
+Aha, Fay Warehouse Jsou Basically database. Which.
+
+02:17:14.000 --> 02:17:19.000
+Specification in Demented.
+
+02:17:19.000 --> 02:17:23.000
+Depending on the Projects.
+
+02:17:23.000 --> 02:17:30.000
+Pojištění Because privacy. The Hospital.
+
+02:17:30.000 --> 02:17:42.000
+You were sanding the information to the one You new would need is.
+
+02:17:42.000 --> 02:17:52.000
+Jsou, shift from the security point of you. Because you don t know who is going to be asking for the information.
+
+02:17:52.000 --> 02:18:04.000
+se mění Unie požadač, Information in the standardiz Way.
+
+02:18:04.000 --> 02:18:10.000
+Ehm, that issue of wall.
+
+02:18:10.000 --> 02:18:21.000
+So you have you on think a work? Froz.
+
+02:18:21.000 --> 02:18:26.000
+Ten minorities to that specific. Ehm, Medical Field.
+
+02:18:26.000 --> 02:18:27.000
+Co.
+
+02:18:27.000 --> 02:18:31.000
+fire provide. Toolbox.
+
+02:18:31.000 --> 02:18:36.000
+That S where you need to have.
+
+02:18:36.000 --> 02:18:46.000
+Actors.
+
+02:18:46.000 --> 02:19:01.000
+Srbace Community of Hercare. Providers.
+
+02:19:01.000 --> 02:19:10.000
+Thats beyon the technology would discuss the strategies that implementing fair. How to mutuze use case? How to, ehm.
+
+02:19:10.000 --> 02:19:15.000
+When you go from the specification to actually demontation.
+
+02:19:15.000 --> 02:19:28.000
+Honestly.
+
+02:19:28.000 --> 02:19:33.000
+Er. If you go be on, the communications.
+
+02:19:33.000 --> 02:19:46.000
+Face that can? Ee.
+
+02:19:46.000 --> 02:19:52.000
+That s? Where is interesting to life?
+
+02:19:52.000 --> 02:20:08.000
+To trade. So I this. You know that.
+
+02:20:08.000 --> 02:20:20.000
+On se jmenoval. Byl on this map are interested into doing some but fair So, ehm.
+
+02:20:20.000 --> 02:20:37.000
+Ehm, hospital at this infrance is one hundred and fifty different applications.
+
+02:20:37.000 --> 02:20:41.000
+Better, deploid that on database.
+
+02:20:41.000 --> 02:20:45.000
+There on maintenance and there on that format.
+
+02:20:45.000 --> 02:20:51.000
+Jsou that informations.
+
+02:20:51.000 --> 02:21:03.000
+For innovative solution for ai even for advanced medical used for research for example.
+
+02:21:03.000 --> 02:21:19.000
+Go from one hundred and fifty database.
+
+02:21:19.000 --> 02:21:21.000
+Ehm.
+
+02:21:21.000 --> 02:21:27.000
+Dil Zeit and the innovationside.
+
+02:21:27.000 --> 02:21:37.000
+Beyounded and.
+
+02:21:37.000 --> 02:21:43.000
+A to si ber for now. I would say hospital it system.
+
+02:21:43.000 --> 02:21:50.000
+Hned by.
+
+02:21:50.000 --> 02:22:03.000
+Which are all connected together? Hold we managed thats.
+
+02:22:03.000 --> 02:22:10.000
+vyzvednout by se spíš. vy, ehm.
+
+02:22:10.000 --> 02:22:15.000
+Sajdan whole aware War of.
+
+02:22:15.000 --> 02:22:20.000
+je vždy je zow about.
+
+02:22:20.000 --> 02:22:25.000
+Having a Europe informace for Data on different Domaines.
+
+02:22:25.000 --> 02:22:33.000
+You have dispensation of medication.
+
+02:22:33.000 --> 02:22:40.000
+You have Lady Port? You have imaging reports and you have reports.
+
+02:22:40.000 --> 02:22:49.000
+Into years implemented and exchange.
+
+02:22:49.000 --> 02:23:02.000
+Application to create.
+
+02:23:02.000 --> 02:23:07.000
+One fishing summary face.
+
+02:23:07.000 --> 02:23:10.000
+This is a generally formatch.
+
+02:23:10.000 --> 02:23:18.000
+when you walking oncrogy? Which is very complex medical. Field.
+
+02:23:18.000 --> 02:23:31.000
+Specialized. Ee.
+
+02:23:31.000 --> 02:23:40.000
+Ehm, Ds and.
+
+02:23:40.000 --> 02:23:47.000
+Oncurody.
+
+02:23:47.000 --> 02:24:01.000
+If during, you are hagatan. You actually need some thising samplos from initialhds. We have at hge seven Europe Some to especially. We have.
+
+02:24:01.000 --> 02:24:06.000
+A je to ještě my screen.
+
+02:24:06.000 --> 02:24:14.000
+Library of.
+
+02:24:14.000 --> 02:24:23.000
+Ehm, examples for example. Ports.
+
+02:24:23.000 --> 02:24:25.000
+Vždycku.
+
+02:24:25.000 --> 02:24:34.000
+Two. Hundred thirty seven Centet.
+
+02:24:34.000 --> 02:24:41.000
+Ports.
+
+02:24:41.000 --> 02:24:55.000
+From different European countries for example.
+
+02:24:55.000 --> 02:24:59.000
+sou i teď.
+
+02:24:59.000 --> 02:25:05.000
+You Two days tam jezdit a to used.
+
+02:25:05.000 --> 02:25:11.000
+no, when you start want to wither Ice cancer.
+
+02:25:11.000 --> 02:25:16.000
+Ehm, s complicated. Because.
+
+02:25:16.000 --> 02:25:20.000
+Cancer is not just about one pathority.
+
+02:25:20.000 --> 02:25:32.000
+jítkem Different responses to different treatments.
+
+02:25:32.000 --> 02:25:39.000
+Had beforeign.
+
+02:25:39.000 --> 02:25:43.000
+Ehm, you have differ two Different the main that are. You.
+
+02:25:43.000 --> 02:25:52.000
+Basic each other. You have primary care. So this. You making.
+
+02:25:52.000 --> 02:26:03.000
+Puding medical, Notage.
+
+02:26:03.000 --> 02:26:08.000
+Automatic.
+
+02:26:08.000 --> 02:26:24.000
+Definity something that can being value.
+
+02:26:24.000 --> 02:26:28.000
+patients.
+
+02:26:28.000 --> 02:26:41.000
+How can I get more that out?
+
+02:26:41.000 --> 02:26:49.000
+you do very expensive experiments on them samples.
+
+02:26:49.000 --> 02:26:56.000
+And you have very detail reuze of thats information. Because since that er. Is that very standardized.
+
+02:26:56.000 --> 02:26:59.000
+Ehm, samozřejmě, jazz.
+
+02:26:59.000 --> 02:27:06.000
+Expensive. Just to region. Exist.
+
+02:27:06.000 --> 02:27:09.000
+Co, ehm.
+
+02:27:09.000 --> 02:27:26.000
+So why did we create phoenix this a europe initiative.
+
+02:27:26.000 --> 02:27:33.000
+Every protects is be defining their own modal.
+
+02:27:33.000 --> 02:27:39.000
+Another, so, ehm.
+
+02:27:39.000 --> 02:27:46.000
+From Vanders. Ehm.
+
+02:27:46.000 --> 02:27:53.000
+Dám. Jsou, From Hospital.
+
+02:27:53.000 --> 02:27:59.000
+Common. Language about this.
+
+02:27:59.000 --> 02:28:07.000
+Thats into the hospitality system.
+
+02:28:07.000 --> 02:28:11.000
+Because we know thats.
+
+02:28:11.000 --> 02:28:30.000
+We will still have to. Ehm.
+
+02:28:30.000 --> 02:28:47.000
+Ehm, visions and requirements. Because everyone want document vision but everyone one seeds as match a line with on.
+
+02:28:47.000 --> 02:28:58.000
+We have european cancer, institutes, So,
+
+02:28:58.000 --> 02:29:04.000
+France Belgium. Germany.
+
+02:29:04.000 --> 02:29:14.000
+Countries. We have country institute. We have providers. We have vendors. so.
+
+02:29:14.000 --> 02:29:25.000
+Implementable and useful for the holical system.
+
+02:29:25.000 --> 02:29:30.000
+Jsou.
+
+02:29:30.000 --> 02:29:41.000
+basically world Surfing on the you. This wave thing. What this is the time. But we can have European country started.
+
+02:29:41.000 --> 02:29:53.000
+Jsou the job started. to us ago. But in much And we study working and defining comment that a model.
+
+02:29:53.000 --> 02:30:08.000
+Co before going to the counter. What the declinition? What s? The clinical meaning. Ehm, what sapen? What s Delive Safle of Patient in Counter.
+
+02:30:08.000 --> 02:30:17.000
+Representation of a country.
+
+02:30:17.000 --> 02:30:23.000
+Ehm, jsou specification.
+
+02:30:23.000 --> 02:30:50.000
+Počin Information Little. Ehm.
+
+02:30:50.000 --> 02:31:03.000
+Thats you have this information to this implementation. Guide about.
+
+02:31:03.000 --> 02:31:10.000
+All The way that has been done bay research care doctors.
+
+02:31:10.000 --> 02:31:20.000
+That s a What s? Define.
+
+02:31:20.000 --> 02:31:31.000
+Vůbec, se lidi vůbec fajn volt. Specification. And you can ha fine also the logico models. Which is.
+
+02:31:31.000 --> 02:31:45.000
+Anything.
+
+02:31:45.000 --> 02:31:50.000
+Se Jim. Wow, Country condition Netis.
+
+02:31:50.000 --> 02:32:01.000
+That all the different items. Ehm, of the.
+
+02:32:01.000 --> 02:32:16.000
+A jdeme do Technical Way before we Goo to different representation which. Is working progress quanty.
+
+02:32:16.000 --> 02:32:24.000
+Jsou in in the context. the cancer, prototive.
+
+02:32:24.000 --> 02:32:37.000
+Specification is. Quides.
+
+02:32:37.000 --> 02:32:45.000
+of course? You can always have a m code. Which is the American Little.
+
+02:32:45.000 --> 02:32:48.000
+thats.
+
+02:32:48.000 --> 02:32:54.000
+One of the one main sources. We are using for the motilization.
+
+02:32:54.000 --> 02:32:58.000
+Co,
+
+02:32:58.000 --> 02:33:06.000
+On up, so.
+
+02:33:06.000 --> 02:33:08.000
+Ehm, jo.
+
+02:33:08.000 --> 02:33:11.000
+Perz er.
+
+02:33:11.000 --> 02:33:18.000
+Community. Wow, er.
+
+02:33:18.000 --> 02:33:23.000
+We need to world together all the people interested into.
+
+02:33:23.000 --> 02:33:29.000
+Standards. Ehm.
+
+02:33:29.000 --> 02:33:42.000
+Co Phoenix is not going to be define by a national autority. This not going to be define by The European commission.
+
+02:33:42.000 --> 02:33:43.000
+Bez.
+
+02:33:43.000 --> 02:34:03.000
+Jo and.
+
+02:34:03.000 --> 02:34:06.000
+New Members.
+
+02:34:06.000 --> 02:34:12.000
+Jsou, na újezd. Befie. Sedač.
+
+02:34:12.000 --> 02:34:18.000
+Fairo is nice is nice, but, ehm.
+
+02:34:18.000 --> 02:34:23.000
+In Europe. We are leging into interpelability. Skills.
+
+02:34:23.000 --> 02:34:26.000
+Co, ehm.
+
+02:34:26.000 --> 02:34:36.000
+Europe. And now we need to learn. doing it. So ee.
+
+02:34:36.000 --> 02:34:41.000
+Jo.
+
+02:34:41.000 --> 02:34:56.000
+For, ehm, the.
+
+02:34:56.000 --> 02:35:04.000
+good here manage.
+
+02:35:04.000 --> 02:35:11.000
+Ne, pokud Small.
+
+02:35:11.000 --> 02:35:31.000
+Of course its net. Fainal its working progress. But we are training to, ehm.
+
+02:35:31.000 --> 02:35:42.000
+To Wars Architecture and integration.
+
+02:35:42.000 --> 02:35:57.000
+Two Years Two have. View of all the difference on decision domain it. It.
+
+02:35:57.000 --> 02:36:01.000
+Dát, develop.
+
+02:36:01.000 --> 02:36:11.000
+Skills to does on.
+
+02:36:11.000 --> 02:36:17.000
+Jsou, nějak,
+
+02:36:17.000 --> 02:36:25.000
+That free actually train aero one.
+
+02:36:25.000 --> 02:36:28.000
+se,
+
+02:36:28.000 --> 02:36:31.000
+Wait Ways it that because.
+
+02:36:31.000 --> 02:36:44.000
+Point to them.
+
+02:36:44.000 --> 02:36:50.000
+Together One Application.
+
+02:36:50.000 --> 02:37:03.000
+Ehm, to probable.
+
+02:37:03.000 --> 02:37:05.000
+Co.
+
+02:37:05.000 --> 02:37:10.000
+basically all of them. All this initiative.
+
+02:37:10.000 --> 02:37:13.000
+Jsou mikrofon. Bio needs from flessible.
+
+02:37:13.000 --> 02:37:23.000
+We diffy financial language So we are lunching phoenix about cancer. We hope to do somewhers about other topics and.
+
+02:37:23.000 --> 02:37:40.000
+And Then we want to actually provide training missesory. So that s a system can actually implement the standard based And real eats co? Ehm.
+
+02:37:40.000 --> 02:37:51.000
+Co je, Summit Weiss? context. And what is.
+
+02:37:51.000 --> 02:38:00.000
+Choose together, some for the same one. Between all the different groups.
+
+02:38:00.000 --> 02:38:10.000
+Dont Tudes. text.
+
+02:38:10.000 --> 02:38:13.000
+To understand. Semantics.
+
+02:38:13.000 --> 02:38:22.000
+Security Access.
+
+02:38:22.000 --> 02:38:32.000
+specification Go fine. Some.
+
+02:38:32.000 --> 02:38:37.000
+To see high actually goes.
+
+02:38:37.000 --> 02:38:42.000
+When you model is, Putem despress.
+
+02:38:42.000 --> 02:38:46.000
+A Specifyning Information. Jo.
+
+02:38:46.000 --> 02:38:49.000
+Co.
+
+02:38:49.000 --> 02:38:56.000
+lik we have. We have four minutes to go. So.
+
+02:38:56.000 --> 02:38:57.000
+Trend.
+
+02:38:57.000 --> 02:39:01.000
+Jo, I všech Or anything.
+
+02:39:01.000 --> 02:39:04.000
+Přesně minut.
+
+02:39:04.000 --> 02:39:15.000
+Ehm, ehm.
+
+02:39:15.000 --> 02:39:26.000
+Its Phoenix is a new world. I have not.
+
+02:39:26.000 --> 02:39:39.000
+Been where of this animo er being the future of politology data. And the way information floss mount Hospital.
+
+02:39:39.000 --> 02:39:50.000
+Jsou its now. We still have some minutes for question so. Anyone please, just. I deposed you question to chat.
+
+02:39:50.000 --> 02:39:52.000
+O.
+
+02:39:52.000 --> 02:40:03.000
+Straight to way.
+
+02:40:03.000 --> 02:40:09.000
+like maybe before. We gets somebrave.
+
+02:40:09.000 --> 02:40:10.000
+Hm.
+
+02:40:10.000 --> 02:40:15.000
+People with questions my questionies. If i. Start working on.
+
+02:40:15.000 --> 02:40:34.000
+Onem neuvě. Ehm, it might get classified as medical device and nine. I will need to go through the hall system. So how many years to using. I.
+
+02:40:34.000 --> 02:40:54.000
+Anybody in Europe.
+
+02:40:54.000 --> 02:41:00.000
+Take to develop certified. Solution.
+
+02:41:00.000 --> 02:41:13.000
+Legal aspect, But.
+
+02:41:13.000 --> 02:41:21.000
+Ehm, what they, ehm, face.
+
+02:41:21.000 --> 02:41:29.000
+Proč bude ten famour with is, walk mass of them Get thirty fight.
+
+02:41:29.000 --> 02:41:30.000
+Jo.
+
+02:41:30.000 --> 02:41:33.000
+Nothing is probable.
+
+02:41:33.000 --> 02:41:54.000
+So they should really be building for.
+
+02:41:54.000 --> 02:41:55.000
+Sem.
+
+02:41:55.000 --> 02:42:12.000
+The state of the world in five years time at least why is important to be a where? What s coming. Where is moving Because whoever will have the most pluggable plug and play whatever solution.
+
+02:42:12.000 --> 02:42:13.000
+Jo.
+
+02:42:13.000 --> 02:42:16.000
+Cand den after the certification we can really get some speed and scale faster than competites.
+
+02:42:16.000 --> 02:42:21.000
+Would give is.
+
+02:42:21.000 --> 02:42:34.000
+We have the chance of having the eargsinitial regulation. So you know predamet for sure that s also tour. We have the obligation years to expose that format.
+
+02:42:34.000 --> 02:42:51.000
+And which had a good chance. Because the final text is out in watch.
+
+02:42:51.000 --> 02:43:01.000
+Sure that in five years. This is the formide. That would be super to be deployed everywhere.
+
+02:43:01.000 --> 02:43:09.000
+Jo, a also sure thats its not going into you. Can that bas you whole strategy on that.
+
+02:43:09.000 --> 02:43:16.000
+Bill, My software.
+
+02:43:16.000 --> 02:43:24.000
+Co by jestli, But at the same time how whether my strategies.
+
+02:43:24.000 --> 02:43:30.000
+For what s? The fall back. If the hospital for example. I just good pdfs.
+
+02:43:30.000 --> 02:43:37.000
+Work on,
+
+02:43:37.000 --> 02:43:49.000
+Because thats that s with you award that s the hot, the word people been text and writing and your A breading So far to way.
+
+02:43:49.000 --> 02:43:52.000
+And then you, ehm.
+
+02:43:52.000 --> 02:43:57.000
+Co I I favorite Us and image.
+
+02:43:57.000 --> 02:44:03.000
+Steam power. You guys are doing electronics.
+
+02:44:03.000 --> 02:44:09.000
+And fair is electricity, But the transition is going to take sometime.
+
+02:44:09.000 --> 02:44:17.000
+And you need to be ready. Even as a server developer. Even creating you own software.
+
+02:44:17.000 --> 02:44:22.000
+Ehm.
+
+02:44:22.000 --> 02:44:32.000
+To the way.
+
+02:44:32.000 --> 02:44:44.000
+Deal, so.
+
+02:44:44.000 --> 02:44:45.000
+Jo.
+
+02:44:45.000 --> 02:44:55.000
+Co mají být very last question if? There is one in the audience i. Know everybody is tired because we have been on the call since nine in the morning. So I can imagine.
+
+02:44:55.000 --> 02:45:00.000
+Mostly.
+
+02:45:00.000 --> 02:45:05.000
+downloading information. Regarding tomorrow. What.
+
+02:45:05.000 --> 02:45:19.000
+the real on.
+
+02:45:19.000 --> 02:45:20.000
+Dě.
+
+02:45:20.000 --> 02:45:21.000
+Can People Send.
+
+02:45:21.000 --> 02:45:27.000
+About the Phoenix. Initiative.
+
+02:45:27.000 --> 02:45:40.000
+we haven know.
+
+02:45:40.000 --> 02:45:52.000
+Ehm, if you invest did intoing more about the learning aspects, so the.
+
+02:45:52.000 --> 02:45:56.000
+We have. You can join the comming of practice.
+
+02:45:56.000 --> 02:45:59.000
+Vší ambitiže?
+
+02:45:59.000 --> 02:46:06.000
+Hds and.
+
+02:46:06.000 --> 02:46:20.000
+You can just always which to me.
+
+02:46:20.000 --> 02:46:36.000
+Excelent sou. Thank you again for closing. The the pre hack day of rockethon. Its been pleasure to have you here and I hope we.
+
+02:46:36.000 --> 02:46:42.000
+We can talk more in the future to make sure that.
+
+02:46:42.000 --> 02:46:44.000
+Ehm.
+
+02:46:44.000 --> 02:46:45.000
+European.
+
+02:46:45.000 --> 02:46:58.000
+Helské inwell things also for the synthetic.
+
+02:46:58.000 --> 02:47:00.000
+To je ten examples.
+
+02:47:00.000 --> 02:47:03.000
+Majet Come and Handy.
+
+02:47:03.000 --> 02:47:05.000
+Ehm.
+
+02:47:05.000 --> 02:47:10.000
+To we.
+
+02:47:10.000 --> 02:47:14.000
+Finish, Finish The call.
+
+02:47:14.000 --> 02:47:25.000
+Jsou, Thanks to Everybody was been withous since nine in the morning the prehind. Let me wish you.
+
+02:47:25.000 --> 02:47:36.000
+Ehm, bez vlak. stát samoro and ostrava at the same time.
+
+02:47:36.000 --> 02:47:51.000
+In advanced, but.
+
+02:47:51.000 --> 02:47:58.000
+We will tell you everything tomoro morning before you start hacking.
+
+02:47:58.000 --> 02:48:05.000
+The National Oncology Centre. Ehm, in prund.
+
+02:48:05.000 --> 02:48:14.000
+Nice view.
+
+02:48:14.000 --> 02:48:17.000
+Jenže wanted to show you.
+
+02:48:17.000 --> 02:48:21.000
+Au how it looks.
+
+02:48:21.000 --> 02:48:22.000
+Ehm.
+
+02:48:22.000 --> 02:48:25.000
+Přeji.
+
+02:48:25.000 --> 02:48:26.000
+Well.
+
+02:48:26.000 --> 02:48:43.000
+No matter where you make it for the finals. Because teams from pra from.
+
+02:48:43.000 --> 02:48:56.000
+On Sunday. And you will actually vote. who the best hack is based Er.
+
+02:48:56.000 --> 02:49:01.000
+Based your on your judgement and opinion.
+
+02:49:01.000 --> 02:49:16.000
+Right sou. to je všechno, Jak říkáme, Hack and roll. A zítra se na vás budu těšit. Buď fyzicky V Praze v kampusu Plzeňska na druhé lékařské fakultě univerzity karlovy Motole.
+
+02:49:16.000 --> 02:49:32.000
+od odtamtud budeme Tak ty stream ovat. A na všechny ostatní ve všech dalších městech. se. Budu těšit, Že se třeba fyzicky uvidíme v neděli. A zítra minimálně 1.
+
+02:49:32.000 --> 02:49:43.000
+Jednosměrně se ufyčíme ráno na Na takový ty slavnostní vyhlášení, bez kterých by to nebylo tak matýnavý.
+
+02:49:43.000 --> 02:50:03.000
+Takže díky moc. Užijte si zbytek dne. Dobře se vyspěte. Připravte se duševně. Na ničem teďka nepracujte. Fakt to nemá cenu. je to. Znamená to očekávání, co dokážete udělat dramaticky zvýšilo za poslední rok, Protože můžete zapojit initialejainitial agenty a tak dále.
+
+02:50:03.000 --> 02:50:19.000
+Takže pozor na to, že porota pak čeká, že i ta kvalita těch výstupů bude. Bude vyšší než obecně. A co máme novýho? A poprosím vás, abyste byli shovívavý vůči nám organizátorům, že to děláme najednou ve třech městech.
+
+02:50:19.000 --> 02:50:41.000
+takže je to pro nás taky nový a náročný. A. A když bude nějakej problém, tak prostě nás hejtěte Nějak jemně a mile. My všechno vyřešíme. Klidně, když budete vidět, že někde jsme zoufalí a nevíme, tak vy jste zkušenější. Minimálně technologicky, tak Klidně, můžete si navzájem poradit. Budu rád, když.
+
+02:50:41.000 --> 02:50:47.000
+Zachováme tady toho ducha vzájemné pomoci. Co si myslím, že pořád odlišuje.
+
+02:50:47.000 --> 02:50:56.000
+nás tady v česku ve středu Evropy. Vod zbytku světa, že si pomáháme. Tak budu rád, když.
+
+02:50:56.000 --> 02:51:07.000
+Když to bude platit i o Rakatonu, díky moc A hack and roll. Zítra.
+

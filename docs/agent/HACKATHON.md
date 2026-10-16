@@ -1,0 +1,140 @@
+# Hackathon logistics - CodeBridge
+
+What the organizers told us about the event, the infrastructure, and the
+judging, plus decisions we agree with them. This changes during the event;
+update it when Slack or the organizers say something new, and date the
+entry. Sources are the research notes in [`docs/research/`](../research/),
+mostly [Azure and logistics](../research/2026-10-16-talk-azure-and-logistics.md)
+and [FHIR workshop and PHOENIX](../research/2026-10-16-talk-fhir-workshop-and-phoenix.md).
+
+## Timeline
+
+- **16 October 2026, 9:30:** opening in Prague, Brno, and Ostrava at the
+  same time: challenge introductions, mentors, the official rules, and the
+  judging criteria. Hacking starts after the morning programme. The
+  hackathon lasts 24 hours. The Prague venue is the Plzeňská campus of the
+  Second Faculty of Medicine, Charles University, in Motol.
+- **Sunday:** finals and the hacker prize, which participants vote for.
+- **To fill in from the opening:** submission deadline, judging criteria,
+  the official rules (check them against the cloud LLM rule below), and
+  which venue our team is at.
+
+## Data
+
+- Challenge data is posted in the challenge's Slack channel, at the latest
+  after the opening block on 16 October.
+- The Azure team portal holds data only for the challenges set by VZP (the
+  Czech general health insurance company), not ours.
+- Public data may be used too.
+
+## Infrastructure
+
+- **Azure is optional.** A local demo is enough, and using Azure does not
+  affect judging.
+- **Team portal:** `aka.ms/Rakathon2026`. It shows one API key for all
+  shared LLM deployments, their endpoints and exact deployment names, and
+  a hello-world call. Models include OpenAI, xAI Grok, DeepSeek, and
+  Microsoft models, called through the OpenAI API (Chat Completions and
+  Responses). Deployment names say whether a model runs in the EU or
+  globally. Read the names from the portal; the transcript garbled them.
+- **Access card:** a team sign-in name and a time-limited password, handed
+  out at the start. Never paste either into Slack.
+- **Azure permissions:** each team gets a resource group named
+  `RG-<team name>`. We can create and change resources in it but cannot
+  grant permissions to anything, cannot use Entra ID (Azure's sign-in and
+  identity service), and cannot start GPU machines. Ask the coaches on
+  Slack for anything beyond that.
+- **Budget:** roughly 100 to 200 USD of Azure per team; the presenter said
+  both "for the hackathon" and "for roughly the day". Ask the coaches.
+- **Rate limits:** the LLM endpoint is shared by about 70 teams; expect
+  HTTP 429 and retry with backoff. Report HTTP 401 or 403 to the coaches.
+- **GitHub Copilot:** each participant can activate a licence with about
+  100 USD of credit through the portal's QR code. Use a personal GitHub
+  account; if it already has paid Copilot, use a new account. The
+  Microsoft presenter advised large models for planning and smaller ones
+  for routine coding and sub-agents.
+- **InterSystems FHIR AI Hackathon Kit:** a GitHub template that starts
+  InterSystems IRIS with a FHIR R4 server in Docker, with Python notebooks
+  for loading data, FHIR search, transaction bundles, vector search, and an
+  MCP server (a way to offer data as tools to an AI agent). The URL is
+  linked from the InterSystems challenge on rakathon.cz. FNO already uses
+  InterSystems for integration. Pitfall: when the login expires, the FHIR
+  server returns empty results instead of an error, so check credentials
+  before debugging queries.
+
+## Judging and rules
+
+- The goal is a proof-of-concept prototype.
+- Only work done during the event counts. Declare reused code, tools, and
+  data sources (see the lists below). All submissions are published.
+- The jury expects higher quality than usual because teams use AI agents.
+- Partner tools are not part of the challenge judging, but sponsor prizes
+  need the sponsor's technology. InterSystems awards 1500 EUR for using
+  IRIS (FHIR server, SQL, vector search, agent tools). There may also be a
+  Microsoft prize.
+- What convinced past InterSystems juries: how the team works with the
+  data, how it represents it in FHIR, how far it got, impact, innovation,
+  and what it added beyond the brief.
+- The eHealth deck's "minimum for a credible MVP" (page 20, not presented
+  aloud): a clinical need and a responsible role; a source of truth and
+  identifiers; a concrete FHIR or IHE profile; access rules and audit;
+  synthetic data and a test of failure cases.
+- The HL7 deck's advice (slide 21 notes): pick a small set of important
+  information, explain its structure, and **verify its meaning with a
+  clinical mentor**. Book time with the FNO mentor early.
+- The Czech eHealth speaker's prize: entry to "Národní dialog pro
+  digitalizaci Vol. II" (19 October 2026, Prague) for the winning team.
+
+## Help channels and contacts
+
+- Slack: one channel per challenge (data appears there), team channels,
+  "Tech Support" or "Tech Helpdesk" (both names were used), "Hledám
+  mentora" (find a mentor), "Oznámení" (announcements), and an
+  InterSystems channel.
+- When asking for technical help, give the team name, the failing endpoint
+  or deployment, and the time.
+- InterSystems mentors on site: Prague (Ondřej Hoferek and Gabriel),
+  Ostrava (Dan Kutáč), Brno (Radek Zájem and Daniel Drozdov). Online
+  mentors cover the night.
+- Aleš Tichopád (ČVUT, oncology patient path) is at the Prague venue on
+  Friday; the organizers will post his phone number on Slack.
+- Michal Opatřil (Czech eHealth) offers consultations via LinkedIn.
+
+## Decisions agreed with the organizers
+
+Record each one with the date and who confirmed it.
+
+- *Cloud LLM use with FNO data: not yet confirmed.* Until FNO confirms the
+  data is anonymous or synthetic and may go to a cloud model (including
+  coding agents), use cloud models only with synthetic samples.
+- *Committing samples derived from FNO data: not yet confirmed.*
+- *FHIR input or output, and the InterSystems prize: not yet decided.*
+
+## Before the repository goes public
+
+All submissions are published, and the repository is private until then.
+Before publishing, check:
+
+- no patient data or FNO-derived samples without permission;
+- the Zoom chat exports and research notes name other participants;
+  remove or anonymize those names;
+- the organizer decks, recordings, and transcripts in `docs/sources/`:
+  ask the organizers whether they may be published, otherwise remove them.
+
+## What existed before the hackathon
+
+Declare this list to the jury and mentors.
+
+- The repository setup on 16 October 2026: agent rules (`CLAUDE.md`,
+  `AGENTS.md`, `docs/agent/`), the `fable-mode` skill and house-style hook
+  adapted from the maintainer's other project, `.github/`, `.editorconfig`,
+  and `.gitignore`.
+- `docs/sources/`: the organizers' pre-hack slides and recordings, with
+  transcripts made by `scripts/transcribe.py`.
+- `docs/research/`: notes on the pre-hack talks, written by AI agents.
+
+## Tools and data sources used
+
+- ElevenLabs Scribe, for transcribing the pre-hack talks.
+- Claude Code, for the research notes, the agent docs, and coding.
+- (Add the LLMs, libraries, and datasets as we adopt them.)

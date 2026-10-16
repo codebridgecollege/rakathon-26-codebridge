@@ -1,0 +1,41 @@
+00:14:47	Jiří Pölzer:	Dobrý den, bude záznam dostupný? Případně kde. Děkuji
+00:14:57	Aleksei Pashchenko:	Zatím ne
+00:15:08	Jiří Pölzer:	Ne nevidím
+00:15:33	Aleksei Pashchenko:	Už jo
+00:17:09	brunoduhar:	Prosím potvrďte mi tady můj FIreflies notetaker. Děkuji 🙂
+00:22:13	JakubLorenc:	Přestala se sdílet prezentace
+00:22:22	Simon - MSFT - Mentor:	@caelestinus kdyz si vezmes hosta tak vzdycky prestane sdileni
+00:23:00	Šárka Fajtlová NOC Brno:	Prezentace není vidět
+00:32:02	Juro Oravec:	znova nie je vidiet prezentaciu
+00:32:26	Šárka Fajtlová NOC Brno:	Opet zmizela
+00:52:31	Vojtech:	Ano
+01:01:42	Vít Tuček:	můžete pak ty slajdy někam nasdílet?
+01:02:14	caelestinus:	Slidy hodim do Slacku
+01:04:12	Stan Nagy:	Čím dřiv, tím líp ty slidy. Díky Tomáši.
+01:04:18	Stan Nagy:	Reacted to "Slidy hodim do Slack..." with 👍
+01:08:26	caelestinus:	Je to tam
+01:08:41	Stan Nagy:	DIky
+01:22:31	Fireflies.ai Notetaker Bruno:	Bruno Duhar invited Fireflies.ai here to record & take notes.  By continuing, you agree to https://fireflies.ai/privacy.
+
+Type:
+'/ff pause' - pause recording
+'/ff leave' - stop recording
+By continuing, you agree to https://fireflies.ai/privacy
+
+View Realtime notes here: https://app.fireflies.ai/live/01M4ZBK847XJXG6D0HDX1EH5HE?ref=live_chat
+01:28:35	Fireflies.ai Notetaker Oliver:	Oliver Stroch invited Fireflies.ai here to record & take notes.  By continuing, you agree to https://fireflies.ai/privacy.
+
+Type:
+'/ff pause' - pause recording
+'/ff leave' - stop recording
+By continuing, you agree to https://fireflies.ai/privacy
+
+View Realtime notes here: https://app.fireflies.ai/live/01M4ZC7978Y4M8JNVG4QPASQ0D?ref=live_chat
+01:34:26	caelestinus:	/ff leave
+01:34:59	caelestinus:	pls neposilejte sem nahravace, vsechno nahravame centralne, diky guys
+02:19:32	Alex Y:	Dobrý den, rád bych se dozvěděl, jak se můžeme dostat ke konkrétním datům pro náš hackathon – například pomocí FHIR tokenu pro přístup k testovacím datům, případně v jakémkoli jiném formátu.
+Jakým způsobem to můžeme udělat?
+02:25:59	Šárka Fajtlová NOC Brno:	Díky všem a připojuji se k přání úspěšného hackování. Za Národní onkologické centrum Brno Šárka Fajtlová
+02:26:13	JakubLorenc:	Reacted to "Díky všem a připojuji se k přání úspěšného hackování. Za Národní onkologické centrum Brno Šárka Fajtlová" with ❤️
+02:27:57	Juro Oravec:	Reacted to "Díky všem a připojuji se k přání úspěšného hackování. Za Národní onkologické centrum Brno Šárka Fajtlová" with ❤️
+02:28:04	Vít Provazník:	Mám dotaz jestli se více hodnotí nápad nebo technické provedení
