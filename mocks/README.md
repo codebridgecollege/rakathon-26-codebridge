@@ -12,7 +12,7 @@ All patient data is FNO's fictitious challenge data.
 |---|---|---|
 | `v1.html` | First simple mock (one patient workspace) | https://claude.ai/artifact/KraDQ9X7diVo93QzXtse6t |
 | `v2.html` | Full mock after feedback round 1 (database, calendar, patient detail, presentation, protocol, tasks) | https://claude.ai/artifact/6F5AbN6vEAHJQgXP1fkUdc |
-| `v3.html` | The current mock, after the feedback rounds with Soňa (Excel-style filters, month navigation, 10-minute slots, brief first, diagnosis headline, current state, lab chart, doctor edits, back/forward, guideline layer, "Zahájit MDT" with attendance). An in-page server holds the data behind REST-shaped routes; the source view shows the rendered page image with the cited passage highlighted, the transcription in a second tab, "ověřit" marks, and the locally redacted page on request. Publishing it also needs the `pages/` folder | https://claude.ai/artifact/6JwakCBuGZr9STKnfRUz8T |
+| `v3.html` | The current mock, after the feedback rounds with Soňa (Excel-style filters, month navigation, 10-minute slots, brief first, diagnosis headline, current state, lab chart, doctor edits, back/forward, guideline layer), with one patient view for the whole MDT: "Zahájit MDT" with attendance starts a session, a session bar lists the day's cases, and a "Projednání na MDT" card holds the notes, next steps, approval and the report. An in-page server holds the data behind REST-shaped routes; the source view shows the rendered page image with the cited passage highlighted, the transcription in a second tab, "ověřit" marks, and the locally redacted page on request. Publishing it also needs the `pages/` folder | https://claude.ai/artifact/6JwakCBuGZr9STKnfRUz8T |
 
 The published copies are private claude.ai artifacts owned by Juro; ask him
 to share them. To view a mock locally, open the `.html` file in a browser.
@@ -58,15 +58,16 @@ re-running the scripts would undo those fixes. Edit the JSON instead.
 
 - **Server** (the first block, commented "SERVER"): the only code that
   reads the embedded JSON, and the owner of every record that can change
-  (patients and slots, doctor edits, decisions, protocols, attendance,
-  tasks, e-mails, alert acknowledgements, the audit log). It exposes
+  (patients and slots, doctor edits, decisions, the per-case MDT
+  discussion records, attendance, the running MDT session, tasks,
+  e-mails, alert acknowledgements, the audit log). It exposes
   `api.get(path, headers)`, `api.post(path, body, headers)`, `api.put`,
   `api.patch` and `api.del`, which return Promises of copies
   (`structuredClone`) of JSON-safe data, and reject with
   `{ status, error }`. Login is stubbed: the client sends the current user
   in an `X-User` header; the server checks roles (doctor, coordinator,
   admin) and writes the audit log itself: every read of patient data
-  (case content, alerts, edits, protocol, decisions, the patient list,
+  (case content, alerts, edits, discussion record, decisions, the patient list,
   each viewed page) and every change, with identical reads within a
   minute merged into one entry. A real backend should audit at its
   data-access layer rather than in route handlers.
@@ -75,8 +76,9 @@ re-running the scripts would undo those fixes. Edit the JSON instead.
   each screen it runs `load()`, which awaits the calls the screen needs,
   then `render()` draws synchronously from the cache. After a change it
   marks the cache stale and loads again; stale entries stay readable
-  until the reply arrives. Typing in the protocol (the conclusion in the
-  patient overview, notes, steps, deviations) is a local draft, saved after
+  until the reply arrives. Typing in the discussion record (the conclusion
+  in the brief block, notes and steps in the "Projednání na MDT" card,
+  deviations in their tab) is a local draft, saved after
   a short pause, one save at a time, each with the version it is based on;
   every reload and the approval first send what is pending. Hash routing
   makes back and forward work.
@@ -94,7 +96,7 @@ client does not change. `:id` is the patient's number (`10` for
 | GET | `/api/config` | Today's date, departments and staff, users and roles, seminar schedule and slot length (no user needed) |
 | GET | `/api/patients` | All patients: identity, diagnosis line, owner, department, slot, previous MDT, status, page count |
 | POST | `/api/patients` | Creates an example patient (the new-patient dialog) |
-| GET | `/api/patients/:id` | One patient; logged as opening the case, with the screen the client names in `X-View` (`patient`, `present`, `protocol`, `calendar`, `start` for "Zahájit MDT") and `X-Via: link` for URL or back/forward |
+| GET | `/api/patients/:id` | One patient; logged as opening the case, with how the client opened it in `X-View` (`patient`, `calendar`, `start` for the first case of a started MDT, `session` for a case chosen in the session bar) and `X-Via: link` for URL or back/forward. Old `#present/:id` and `#protocol/:id` links open the patient view and are logged as opened by link |
 | PUT | `/api/patients/:id/slot` | Books `{day, time}`; 422 outside a seminar slot, 409 if taken |
 | DELETE | `/api/patients/:id/slot` | Frees the slot |
 | GET | `/api/patients/:id/case` | Case content: for the structured patient the case and its extra data (other patients' data left out); for the others the summary, its sources and the page count |
@@ -104,11 +106,15 @@ client does not change. `:id` is the patient's number (`10` for
 | GET | `/api/patients/:id/edits` | Current doctor edits by field key, and the append-only edit log |
 | POST | `/api/patients/:id/edits` | Saves `{key, text, orig}`; doctors only |
 | DELETE | `/api/patients/:id/edits/:key` | Reverts to the original; the log keeps both |
-| GET | `/api/patients/:id/protocol` | The protocol draft or the approved protocol |
+| GET | `/api/patients/:id/protocol` | The case's MDT discussion record (the "Projednání na MDT" card): mode, notes, conclusion draft, steps, deviations, and after approval the approver and the snapshot |
 | PUT | `/api/patients/:id/protocol` | Saves the draft (mode, notes, conclusion, steps, deviations from the quoted recommendations) with the `version` it is based on; 409 for a stale version or once approved; changing the conclusion text needs a doctor |
 | POST | `/api/patients/:id/protocol/new-version` | Starts a new conclusion that will supersede the approved one; 409 if there is no approved conclusion |
 | GET | `/api/patients/:id/decisions` | Approved MDT conclusions, oldest first (append-only) |
 | POST | `/api/patients/:id/decisions` | Approves `{version, text, steps, picked, dev, guide_on}`: checks the user is a doctor marked present and the version is current, stores a structured snapshot (patient record, attendance, edits, ticked report fields, deviations with their quote and citation), creates tasks and the e-mail. The client renders the frozen report from the snapshot with escaping; no HTML is stored, and switching the guideline layer off later does not change it |
+| POST | `/api/patients/:id/report-downloads` | Logs that the user printed or saved the report (draft or approved); the client renders it |
+| GET | `/api/session` | The running MDT session `{day, by, when}`, or `null` |
+| POST | `/api/seminars/:day/session` | Starts the MDT for that day (doctor or coordinator; 403 for the administrator, 422 without a seminar or without booked cases); starting another day ends the running one; logged |
+| DELETE | `/api/seminars/:day/session` | Ends the MDT ("Ukončit MDT"); 409 if that day's MDT is not running; logged |
 | GET | `/api/seminars/:day/attendance` | Who is present, per department, for a seminar day (or `bez-terminu-:id`) |
 | PUT | `/api/seminars/:day/attendance` | Saves the attendance; only staff of each department |
 | GET | `/api/tasks?assignee=&owner=` | Tasks assigned to a person, plus tasks on cases they own; all tasks without parameters |
@@ -130,8 +136,8 @@ block. The client gets them only from
 with the quote marked and a link to the publisher's PDF at the cited
 page; guideline PDFs are not bundled, so the page-image viewer is used
 only for the patient's own documents. Deviations recorded in the
-protocol are saved with the protocol and frozen in the approval
-snapshot.
+"Odchylky od doporučení" tab are saved with the discussion record and
+frozen in the approval snapshot.
 
 ### Source view and page images
 
@@ -173,12 +179,17 @@ redacted image is shown.
 - `src/test/v3.mjs`: clicks through mock v3 in Chromium with Playwright at
   1280 px and 400 px: filters, calendar and scheduling through the server,
   back/forward, edits, labs, the guideline layer, alert acknowledgement,
-  deviations, approval and the frozen report (after attendance changes,
-  edits and switching the guideline layer off), role and copy checks on the
+  deviations, the "Projednání na MDT" card (report picks, approval, the
+  frozen report after attendance changes, edits and switching the
+  guideline layer off, a new conclusion under the valid one), the MDT
+  session (start dialog, session bar, switching cases on the same tab,
+  attendance, ending it, starting from a case header, the redirect of old
+  presentation and protocol links), role and copy checks on the
   `api`, the server's audit log, the source view (image, highlight inside
   the image, verify marks, zoom, transcription tab, page switch, redacted
   page, missing quote, missing page, empty page, zoom to the passage),
-  every page of all ten documents, admin; then a run with `?latency=300`
+  every page of all ten documents, the audit entries for session navigation
+  and report downloads, admin; then a run with `?latency=300`
   that types a conclusion and a task and approves at once. It reports JS
   and console errors and horizontal overflow
   (`PLAYWRIGHT_PATH=<node_modules/playwright-core> node mocks/src/test/v3.mjs`).

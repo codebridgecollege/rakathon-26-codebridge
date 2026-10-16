@@ -76,7 +76,8 @@ for (const width of [1280, 400]) {
   await go("#patient/2"); await c('[data-edit$="|q"]'); await page.fill("#edtext", "Otázka pro pacienta 2"); await c('[data-act="saveedit"]');
   ok((await page.locator("main").textContent()).includes("Otázka pro pacienta 2"), `${width} edit saved through the server`);
   ok(await page.locator(".doclist [data-src]").count() >= 1, `${width} an unstructured patient lists its document pages`);
-  await go("#protocol/2"); ok(!(await text("#report")).includes("Everolimus"), `${width} another patient's report holds none of patient 10's case content`);
+  ok(!(await text("#report")).includes("Everolimus") && (await text("#report")).includes("není v maketě zpracovaná"), `${width} another patient's report holds none of patient 10's case content`);
+  ok(await page.locator("details.mdtcard").count() === 1 && await page.locator('.phead [data-act="download"]').count() === 1, `${width} an unstructured patient gets the same discussion card and report button`);
   await go("#patient/10/overview"); ok(!(await page.locator("main").textContent()).includes("Otázka pro pacienta 2"), `${width} edits stay with their patient`);
   // edit a drug, check marker in report, revert keeps history
   await c('[data-tab="anamnesis"]'); await page.evaluate(() => document.querySelector('[data-edit$="|fa:0:note"]').click());
@@ -87,27 +88,44 @@ for (const width of [1280, 400]) {
   const devId = await page.locator("table.devt [data-dev]").first().getAttribute("data-dev");
   await page.locator("table.devt [data-dev]").first().selectOption("deviates"); await page.waitForTimeout(30);
   await page.fill(`[data-devwhy="${devId}"]`, "Pacient odmítl");
-  await c('[data-go="protocol"]'); await over("protocol");
-  ok((await audit()).some(a => a.case_id === "NO-010" && a.what === "otevřel(a) protokol"), `${width} opening the protocol is logged`);
+  // the report preview sits in the "Projednání na MDT" card of the patient view, right after the conclusion
+  await c('[data-tab="overview"]');
+  ok(await page.locator("details.mdtcard:not([open])").count() === 1, `${width} discussion card collapsed outside a session without a draft`);
+  ok(await page.evaluate(() => { const c = document.querySelector(".concl"), m = document.querySelector("details.mdtcard"); return c && m && c.nextElementSibling === m; }), `${width} discussion card right after the conclusion box`);
+  ok(await page.locator("#concl").count() === 1, `${width} one conclusion field`);
+  ok(await page.locator('.phead [data-act="download"]').isVisible() && (await text('.phead [data-act="download"]')).includes("Stáhnout report (PDF)"), `${width} report download visible in the patient header`);
+  await c("details.mdtcard > summary"); await over("discussion card");
+  ok(await page.locator("details.mdtcard #report").count() === 1, `${width} report preview inside the MDT discussion card`);
+  ok((await audit()).some(a => a.case_id === "NO-010" && a.what === "četl(a) záznam projednání na MDT"), `${width} reading the discussion record is logged`);
   ok((await text("#report")).includes("navýšeno na 10 mg [upraveno lékařem]"), `${width} edit marked in report`);
   ok((await text("#report")).includes("Alergologická anamnéza: neuvedeno v dostupné dokumentaci"), `${width} empty allergy section printed`);
   ok((await text("#report")).includes("při diagnóze") || (await text("#report")).includes("ne aktuální"), `${width} TNM labelled as stage at diagnosis in report`);
-  // approve, then change attendance and edit again: approved report must not change
-  await page.selectOption('[data-att="Klinická onkologie"]', "MUDr. Svobodová"); await page.waitForTimeout(30);
+  ok(!(await page.locator("main").textContent()).includes("Shrnutí (30 až 60 s)"), `${width} no 30-60 s summary`);
+  await page.locator('[data-pickrep="clinical_finding"]').check(); ok((await text("#report")).includes("Klinický nález"), `${width} ticked field added to the report`);
+  await page.locator('[data-pickrep="clinical_finding"]').uncheck(); ok(!(await text("#report")).includes("Klinický nález"), `${width} unticked field left out of the report`);
+  // approval needs a written conclusion and the approver marked present; then the report is frozen
   await c('[data-act="addstep"]'); await page.fill('[data-step="0"][data-f="text"]', "Objednat MR mozku");
-  await go("#patient/10/overview"); await page.fill("#concl", "Test závěr"); await go("#protocol/10"); await c('[data-act="approve"]'); await page.waitForTimeout(50);
+  await page.fill("#concl", "Test závěr"); await page.waitForTimeout(80);
+  ok(await page.locator('[data-act="approve"]').isDisabled(), `${width} approve disabled until the doctor is marked present`);
+  await c('details.mdtcard [data-attonly]'); ok(await page.locator(".modal [data-startgo]").count() === 0, `${width} attendance dialog from the card only edits attendance`);
+  await page.selectOption('.modal [data-att="Klinická onkologie"]', "MUDr. Svobodová"); await page.waitForTimeout(30); await c('.modal [data-close]');
+  ok((await text("details.mdtcard")).includes("MUDr. Svobodová"), `${width} attendance shown compactly in the card`);
+  await c('[data-act="approve"]'); await page.waitForTimeout(50);
   const frozen = await text("#report");
   ok(frozen.includes("Test závěr") && frozen.includes("MUDr. Svobodová"), `${width} frozen report attached to the decision`);
+  ok((await text(".concl")).includes("Platný závěr č. 1") && (await text("#report")).includes("MUDr. Svobodová,"), `${width} approved conclusion shown as valid with approver`);
   ok((await page.evaluate(() => api.get("/api/tasks", { "X-User": "MUDr. Novák" }))).some(t => t.text === "Objednat MR mozku"), `${width} approval created the coordinator task on the server`);
   ok(await page.evaluate(async () => { const d = await api.get("/api/patients/10/decisions", { "X-User": "MUDr. Novák" }); return d.length === 1 && d[0].snap && d[0].snap.concl === "Test závěr" && !("reportSnap" in d[0]); }), `${width} decision stores a structured snapshot, no client HTML`);
   ok(await page.evaluate(async id => { const d = await api.get("/api/patients/10/decisions", { "X-User": "MUDr. Novák" }); return d[0].snap.dev?.[id]?.s === "deviates" && d[0].snap.dev[id].why === "Pacient odmítl"; }, devId) && frozen.includes("záměrná odchylka"), `${width} deviation and its reason frozen with the decision`);
-  await go("#patient/2"); await go("#protocol/2"); await page.selectOption('[data-att="Neurochirurgie"]', "MUDr. Novák"); await page.waitForTimeout(30);
-  await go("#protocol/10"); ok((await text("#report")) === frozen, `${width} approved report frozen after attendance change`);
+  // attendance change on another case of the same day must not change the approved report
+  await go("#patient/2"); await c("details.mdtcard > summary"); await c('details.mdtcard [data-attonly]');
+  await page.selectOption('.modal [data-att="Neurochirurgie"]', "MUDr. Novák"); await page.waitForTimeout(30); await c('.modal [data-close]');
+  await go("#patient/10/overview"); ok((await text("#report")) === frozen, `${width} approved report frozen after attendance change`);
   await go("#patient/10/anamnesis"); await page.evaluate(() => document.querySelector('[data-edit$="|fa:1:line"]').click()); await page.fill("#edtext", "ZMENA"); await c('[data-act="saveedit"]');
-  await go("#protocol/10"); ok(!(await text("#report")).includes("ZMENA"), `${width} approved report frozen after edit`);
+  ok(!(await text("#report")).includes("ZMENA"), `${width} approved report frozen after edit`);
   await go("#patient/10/next"); await page.locator('[data-act-toggle="guide"]').first().uncheck(); await page.waitForTimeout(40);
-  await go("#protocol/10"); ok((await text("#report")) === frozen, `${width} approved report frozen after the guideline layer is switched off`);
-  await go("#patient/10/next"); await page.locator('[data-act-toggle="guide"]').first().check(); await page.waitForTimeout(40);
+  ok((await text("#report")) === frozen, `${width} approved report frozen after the guideline layer is switched off`);
+  await page.locator('[data-act-toggle="guide"]').first().check(); await page.waitForTimeout(40);
   await go("#patient/10/anamnesis"); await page.evaluate(() => document.querySelector('[data-edit$="|fa:1:line"]').click()); await c('[data-act="revertedit"]');
   ok((await page.evaluate(u => api.get("/api/edits", { "X-User": u }), ADMIN)).some(e => e.reverted), `${width} revert kept in the server's edit log`);
   await c('[data-tab="overview"]');
@@ -211,7 +229,45 @@ for (const width of [1280, 400]) {
     await c('[data-vtab="image"]'); await c(".drawer [data-close]");
   }
 
-  await go("#patient/10/overview"); await c('[data-go="present"]'); await over("present"); await c('[data-brief="detailed"]'); await over("present detailed");
+  // MDT session: started from the calendar day, the session bar lists the day's cases, a pill switches the case
+  const linkOpens = async () => (await audit()).filter(a => a.case_id === "NO-010" && a.what === "otevřel(a) případ (odkazem nebo historií prohlížeče)").length;
+  await go("#patient/2"); const opens0 = await linkOpens();
+  await go("#protocol/10"); ok((await page.evaluate(() => location.hash)) === "#patient/10/overview", `${width} #protocol redirects to the patient view`);
+  ok(await linkOpens() === opens0 + 1, `${width} a redirected old link is logged as opening the case`);
+  await go("#patient/2"); await go("#present/10"); ok((await page.evaluate(() => location.hash)) === "#patient/10/overview", `${width} #present redirects to the patient view`);
+  ok(await page.locator('[data-go], [data-present], [data-brief]').count() === 0, `${width} no presentation or protocol buttons`);
+  ok(await page.evaluate(u => api.post("/api/seminars/2026-10-22/session", {}, { "X-User": u }).then(() => false, e => e.status === 403), ADMIN), `${width} administrator cannot start an MDT (403)`);
+  ok(await page.evaluate(() => api.post("/api/seminars/2026-10-21/session", {}, { "X-User": "MUDr. Novák" }).then(() => false, e => e.status === 422)), `${width} MDT on a day without a seminar refused (422)`);
+  await c('[data-nav="calendar"]'); await c('[data-startday="2026-10-22"]'); await over("start dialog");
+  ok(await page.locator(".modal [data-startgo]").count() === 1 && await page.locator(".modal [data-att]").count() >= 6 && await page.locator(".modal ol li").count() >= 5, `${width} start dialog with agenda and attendance`);
+  await c(".modal [data-startgo]"); await page.waitForTimeout(50); await over("session");
+  ok((await page.evaluate(() => api.get("/api/session", { "X-User": "MUDr. Novák" })))?.day === "2026-10-22", `${width} session started on the server`);
+  ok(await page.locator(".sesbar .agenda button").count() >= 5, `${width} session bar shows the day's patients`);
+  ok((await text('.sesbar [aria-current="true"]')).includes("14:00"), `${width} session opens the first case`);
+  ok((await text('.sesbar [aria-current="true"]')).includes("✓"), `${width} an approved case is ticked in the session bar`);
+  ok(await page.locator("details.mdtcard.live[open]").count() === 1, `${width} discussion card open and outlined in session`);
+  ok(await page.locator(".phead [data-startfrom]").count() === 0, `${width} no Zahájit MDT in the header while the session runs`);
+  // a new conclusion supersedes the approved one without erasing it
+  await c('[data-act="newversion"]');
+  ok((await text(".concl")).includes("Platný závěr č. 1") && await page.locator("#concl").count() === 1 && await page.evaluate(() => { const c = document.querySelector(".concl"); return c.textContent.indexOf("Platný závěr č. 1") < c.textContent.indexOf("Koncept nového závěru"); }), `${width} new draft shown below the valid conclusion`);
+  await c('[data-tab="labs"]');
+  await page.locator(".sesbar .agenda button").nth(1).click(); await page.waitForTimeout(80); await over("session switch");
+  ok((await text('.sesbar [aria-current="true"]')).includes("14:10") && !(await page.evaluate(() => location.hash)).startsWith("#patient/10"), `${width} pill switches patient`);
+  ok(await page.locator("details.mdtcard.live[open]").count() === 1, `${width} an unprocessed case in the session gets the open discussion card`);
+  await c('.sesbar [data-startday]'); ok(await page.locator('.modal [data-startgo]').count() === 0 && (await text(".modal")).includes("Hotovo"), `${width} attendance dialog in session shows Hotovo`); await c('.modal [data-close]');
+  await c('.sesbar [aria-label="Předchozí pacient"]'); await page.waitForTimeout(80);
+  ok((await page.evaluate(() => location.hash)) === "#patient/10/labs", `${width} previous goes back and switching keeps the tab`);
+  ok((await audit()).some(a => a.what === "zahájil(a) MDT 2026-10-22") && (await audit()).some(a => a.case_id === "NO-010" && a.what === "otevřel(a) první případ zahájeného MDT") && (await audit()).some(a => a.what === "otevřel(a) případ na MDT"), `${width} session start and navigation logged by the server`);
+  await c('[data-act="endsession"]'); await page.waitForTimeout(50);
+  ok(await page.locator(".sesbar").count() === 0 && (await page.evaluate(() => api.get("/api/session", { "X-User": "MUDr. Novák" }))) === null, `${width} Ukončit MDT ends the session on the server and hides the bar`);
+  ok((await audit()).some(a => a.what === "ukončil(a) MDT 2026-10-22"), `${width} session end logged`);
+  // started from a case header, the session opens on that case
+  await go("#patient/9/overview"); await c(".phead [data-startfrom]"); await c(".modal [data-startgo]"); await page.waitForTimeout(50);
+  ok((await page.evaluate(() => location.hash)).startsWith("#patient/9/") && (await text('.sesbar [aria-current="true"]')).includes("14:20") && await page.locator('.sesbar [aria-current="true"]').count() === 1, `${width} Zahájit MDT in the header opens the session on that case`);
+  await c('[data-act="endsession"]');
+  // the report download is logged by the server
+  await page.evaluate(() => { window.open = () => null; }); await c('.phead [data-act="download"]'); await page.waitForTimeout(30);
+  ok((await audit()).some(a => a.case_id === "NO-009" && /^stáhl\(a\) report/.test(a.what)), `${width} report download logged`);
   await page.selectOption("#user", ADMIN); await page.waitForTimeout(50); await c('[data-nav="admin"]'); await over("admin");
   ok(await page.locator("tbody tr").count() > 3, `${width} admin sees the access log`);
   ok((await page.locator("main").textContent()).includes("vráceno na původní"), `${width} admin sees the edit log`);
@@ -223,12 +279,14 @@ for (const width of [1280, 400]) {
 {
   const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
   page.on("pageerror", e => errs.push(`latency: ${e.message}`));
-  await page.goto(file + "?latency=300#protocol/10"); await page.waitForSelector('[data-att="Klinická onkologie"]', { timeout: 5000 });
-  await page.selectOption('[data-att="Klinická onkologie"]', "MUDr. Svobodová");
+  await page.goto(file + "?latency=300#patient/10/overview"); await page.waitForSelector("details.mdtcard > summary", { timeout: 5000 });
+  await page.click("details.mdtcard > summary"); await page.click("details.mdtcard [data-attonly]");
+  await page.waitForSelector('.modal [data-att="Klinická onkologie"]', { timeout: 5000 });
+  await page.selectOption('.modal [data-att="Klinická onkologie"]', "MUDr. Svobodová");
   await page.waitForFunction(() => presentList().includes("MUDr. Svobodová"), null, { timeout: 5000 });
+  await page.click(".modal [data-close]");
   await page.click('[data-act="editconcl"]'); await page.waitForSelector("#concl", { timeout: 5000 });
   await page.locator("#concl").pressSequentially("Kontrolní MR za 3 měsíce", { delay: 5 });
-  await page.click('[data-go="protocol"]'); await page.waitForSelector('[data-act="addstep"]', { timeout: 5000 });
   await page.click('[data-act="addstep"]'); await page.waitForSelector('[data-step="0"][data-f="text"]');
   await page.locator('[data-step="0"][data-f="text"]').pressSequentially("Objednat MR mozku", { delay: 5 });
   await page.click('[data-act="approve"]'); await page.waitForTimeout(2500);
@@ -238,7 +296,7 @@ for (const width of [1280, 400]) {
   const toasts = await page.locator(".toast").allTextContents();
   ok(decs.length === 1 && decs[0].text === "Kontrolní MR za 3 měsíce", `latency: approved conclusion is exactly what was typed (${decs[0]?.text})`);
   ok(tasks.some(t => t.text === "Objednat MR mozku") && !tasks.some(t => /^Objednat MR mozk?$|^Objednat MR m$/.test(t.text)), `latency: task stored complete`);
-  ok(!toasts.some(t => /Protokol|nezdařil/.test(t)), `latency: no error toasts (${toasts.join(" | ")})`);
+  ok(!toasts.some(t => /Protokol|Záznam projednání|nezdařil/.test(t)), `latency: no error toasts (${toasts.join(" | ")})`);
   await page.close();
 }
 await browser.close();
