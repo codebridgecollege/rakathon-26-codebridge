@@ -85,6 +85,21 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 .st-attention { background: var(--missing-soft); color: var(--missing); }
 .st-ready { background: var(--ok-soft); color: var(--ok); }
 .st-done { background: var(--accent-soft); color: var(--accent-ink); }
+/* A closed case is finished business: grey and dashed, so it recedes in every list (round 20). */
+.st-closed { background: var(--surface); color: var(--faint); border: 1px dashed var(--line-strong); }
+.tbl tr.closed td { color: var(--faint); }
+.tbl tr.closed td b { font-weight: 600; }
+/* The status chip in the case header is also the menu for changing the status (round 20). */
+.stwrap { position: relative; display: inline-flex; }
+button.chip { border: 0; cursor: pointer; font-family: inherit; }
+button.chip.st-closed { border: 1px dashed var(--line-strong); }
+.stpop { left: 0; top: 100%; min-width: 260px; max-width: min(340px, calc(100vw - 40px)); white-space: normal; }
+.stpop .btn { text-align: left; white-space: normal; }
+.stpop ol { margin: 2px 0 0; padding-left: 18px; font-size: 12.5px; color: var(--muted); display: grid; gap: 2px; }
+/* Inline form errors (round 20): said next to the field, in words, not only by colour. */
+.ferr { color: var(--conflict); font-size: 12.5px; font-weight: 600; }
+.input[aria-invalid="true"] { border-color: var(--conflict); box-shadow: 0 0 0 1px var(--conflict) inset; }
+.fhint { font-weight: 500; color: var(--muted); font-size: 12px; }
 .k-missing { background: var(--missing-soft); color: var(--missing); }
 .k-contradiction { background: var(--conflict-soft); color: var(--conflict); }
 .k-change { background: var(--change-soft); color: var(--change); }
@@ -282,7 +297,7 @@ details.mdtcard[open] > summary::before { transform: rotate(90deg); }
 .stepper span.on { background: var(--accent); color: #fff; }
 .formgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 14px; }
 .formgrid .full { grid-column: 1 / -1; }
-.formgrid label { display: grid; gap: 4px; font-size: 13px; font-weight: 600; }
+.formgrid label { display: grid; gap: 4px; font-size: 13px; font-weight: 600; align-content: start; }
 .toast { position: fixed; z-index: 40; left: 50%; bottom: max(20px, env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--fg); color: #fff; padding: 9px 16px; border-radius: 8px; font-size: 13.5px; box-shadow: 0 6px 20px rgba(0,0,0,.2); }
 
 /* v3: Excel-style column filters */
@@ -6321,7 +6336,7 @@ const USERS = ["MUDr. Svobodová", "MUDr. Novák", "MUDr. Procházka", COORD, AD
 
 const STATUS = {
   new: ["Nový", "st-new"], scheduled: ["Naplánován", "st-scheduled"], attention: ["Vyžaduje pozornost", "st-attention"],
-  ready: ["Připraven", "st-ready"], done: ["Projednán", "st-done"],
+  ready: ["Připraven", "st-ready"], done: ["Projednán", "st-done"], closed: ["Uzavřen", "st-closed"],
 };
 const ALERT = { missing: ["Chybí", "k-missing"], contradiction: ["Rozpor", "k-contradiction"], change: ["Změna", "k-change"], unclear: ["Nejasné", "k-unclear"] };
 
@@ -6412,6 +6427,44 @@ const rcText = p => p.rc || "-";
 const ageNum = p => { const t = ageText(p); return t ? t.replace(/\s*let$/, "") : null; };
 const ageText = p => p.age ? p.age : p.birth ? (() => { const [d, m, y] = p.birth.split(".").map(Number); const t = dObj(TODAY); let a = t.getUTCFullYear() - y; if (t.getUTCMonth() + 1 < m || (t.getUTCMonth() + 1 === m && t.getUTCDate() < d)) a--; return `${a} let`; })() : null;
 const statusChip = p => `<span class="chip ${STATUS[p.status][1]}">${STATUS[p.status][0]}</span>`;
+/* Case lifecycle (round 20): Nový -> Naplánován (booking a slot) -> Připraven -> Projednán (approving the MDT
+   conclusion) -> Uzavřen (a person closes the case). "Vyžaduje pozornost" is a side state for a problem that needs
+   action. Every change, automatic or by hand, is appended to the case's status history and to the access log, so
+   nobody can change a status without a trace. */
+function setStatus(p, to, how) {
+  if (!p || p.status === to) return;
+  const from = p.status;
+  (p.statusHist = p.statusHist || []).push({ from, to, by: S.user, when: new Date().toLocaleString("cs-CZ"), how });
+  p.status = to;
+  logAccess(p.file, `změnil(a) stav případu: ${STATUS[from][0]} -> ${STATUS[to][0]} (${how})`);
+}
+/* Doctors and the coordinator run the cases; the administrator only reads (no clinical role). */
+const canSetStatus = () => isDoctor(S.user) || S.user === COORD;
+/* Manual moves. "Naplánován" and "Projednán" are never picked by hand: they say a slot is booked and a conclusion
+   is approved, so only those events set them. A step back from "Připraven" or "Vyžaduje pozornost" returns to what
+   the slot says. "Projednán" can only be closed; reopening a closed case returns to the status it was closed from. */
+function manualMoves(p) {
+  const base = p.slot ? "scheduled" : "new";
+  if (p.status === "closed") { const h = (p.statusHist || []).filter(x => x.to === "closed").at(-1); return [h?.from || base]; }
+  const m = { new: ["ready", "attention", "closed"], scheduled: ["ready", "attention", "closed"], attention: [base, "ready", "closed"], ready: [base, "attention", "closed"], done: ["closed"] }[p.status] || [];
+  return m.filter((v, i, a) => v !== p.status && a.indexOf(v) === i);
+}
+const stHistItem = h => `<li>${esc(STATUS[h.from][0])} -> <b>${esc(STATUS[h.to][0])}</b> · ${esc(h.by)}, ${esc(h.when)} · ${esc(h.how)}</li>`;
+/* The header chip opens a small menu: the allowed moves for doctors and the coordinator, and the history for everyone. */
+function statusMenu(p) {
+  const hist = p.statusHist || [], last = hist.at(-1), open = S.stOpen === p.file, moves = canSetStatus() ? manualMoves(p) : [];
+  const draft = ensureProto(p).state !== "approved" && !!ensureProto(p).concl.trim();
+  const pop = open ? `<div class="fpop stpop" role="dialog" aria-label="Stav případu">
+      <span class="label">Stav případu</span>
+      ${moves.length ? moves.map(k => `<button class="btn small" data-setst="${k}">${p.status === "closed" ? `Znovu otevřít (${STATUS[k][0]})` : k === "closed" ? "Uzavřít případ" : k === "new" || k === "scheduled" ? `Vrátit na: ${STATUS[k][0]}` : `Změnit na: ${STATUS[k][0]}`}</button>`).join("") : ""}
+      ${moves.includes("closed") && draft ? `<span class="small" style="color:var(--missing)">Případ má neschválený koncept závěru.</span>` : ""}
+      <span class="muted small">${canSetStatus() ? "Naplánován nastaví rezervace termínu, Projednán schválení závěru MDT." : "Stav mění lékař nebo koordinátorka; správce jen čte."}</span>
+      <span class="label" style="margin-top:4px">Historie stavu</span>
+      ${hist.length ? `<ol reversed>${hist.slice().reverse().map(stHistItem).join("")}</ol>` : `<span class="muted small">V této relaci beze změn.</span>`}
+      <div class="row" style="justify-content:flex-end"><button class="btn small" data-stmenu="${esc(p.file)}">Zavřít</button></div></div>` : "";
+  const tip = last ? `Naposledy změnil(a) ${last.by}, ${last.when}. Kliknutím zobrazíte historii.` : "Kliknutím zobrazíte stav a historii.";
+  return `<span class="stwrap"><button class="chip ${STATUS[p.status][1]}" data-stmenu="${esc(p.file)}" aria-expanded="${open}" aria-haspopup="dialog" ${open ? "" : `title="${esc(tip)}"`}>${STATUS[p.status][0]} ▾</button>${pop}</span>`;
+}
 const slotText = p => p.slot ? `${dayLabel(p.slot.day)} ${p.slot.day.slice(0, 4)} · ${p.slot.time}-${slotEnd(p.slot.time)}` : "nenaplánováno";
 
 /* Doctor edits (Soňa: "everything editable"). An edit never changes the source document or the
@@ -6460,6 +6513,8 @@ function refRegistry() {
     list,
     /* No [n] markers in the text (Soňa, round 14): sources are registered for the list, and the text opens them. */
     n(r) { if (!r) return ""; if (list.findIndex(x => key(x) === key(r)) < 0) list.push(r); return ""; },
+    /* The source's number in this view's list, for plain-text outputs such as the report. */
+    num(r) { if (!r) return 0; this.n(r); return list.findIndex(x => key(x) === key(r)) + 1; },
     /* Numbered marker for blocks where the text itself opens the edit dialog (round 15). */
     mark(r) { if (!r) return ""; this.n(r); const k = list.findIndex(x => key(x) === key(r)) + 1; return `<button class="ref" data-src='${esc(JSON.stringify(r))}' title="Otevřít zdroj">[${k}]</button>`; },
     wrap(html, r) { if (!r) return html; this.n(r); return `<span class="srcl" role="button" tabindex="0" data-src='${esc(JSON.stringify(r))}' title="Otevřít zdroj">${html}</span>`; },
@@ -6562,7 +6617,7 @@ function viewPatients() {
     <div class="card" style="padding:0"><div class="scroll" style="min-height:${S.colOpen ? 360 : 0}px"><table class="tbl dense rsz" ${S.colW ? `style="table-layout:fixed;width:${S.colW.reduce((a, b) => a + b, 0)}px"` : ""}>
       ${S.colW ? `<colgroup>${S.colW.map(w => `<col style="width:${w}px">`).join("")}</colgroup>` : ""}
       <thead><tr><th>ID${RS}</th><th>Pacient${RS}</th><th>RČ${RS}</th><th>Věk${RS}</th><th>Diagnóza${RS}</th>${colHead("owner", "Vlastník")}${colHead("dept", "Odesílající pracoviště")}${colHead("slot", "Příští MDT")}${colHead("status", "Stav")}<th>Podáno${RS}</th></tr></thead>
-      <tbody>${rows.map(p => `<tr class="click" data-open="${esc(p.file)}">
+      <tbody>${rows.map(p => `<tr class="click ${p.status === "closed" ? "closed" : ""}" data-open="${esc(p.file)}">
         <td class="id nw">${p.id}</td><td><b>${esc(surnameFirst(p))}</b>${p.warn ? ' <span class="tag ocr">ověřit identitu</span>' : ""}</td>
         <td class="num ${p.rc ? "" : "muted"}" title="${p.rc ? "" : "Rodné číslo " + GAP}">${esc(rcText(p))}</td><td class="num ${ageNum(p) ? "" : "muted"}" ${!p.age && p.birth ? 'title="vypočteno z data narození"' : ""}>${esc(ageNum(p) || "-")}</td>
         <td><b style="font-weight:600">${esc(p.diagnosis)}</b></td>
@@ -6596,10 +6651,12 @@ function miniMonth() {
 }
 const dayAgenda = day => S.patients.filter(x => x.slot && x.slot.day === day).sort((a, b) => a.slot.time.localeCompare(b.slot.time));
 const LOCK_WHY = "Případ je na tomto termínu projednán; termín patří k záznamu MDT, nelze ho uvolnit ani přesunout.";
-const slotLocked = p => !!p?.slot && p.status === "done";
+/* A slot stays locked once a conclusion was approved on it, also after the case is closed. */
+const slotLocked = p => !!p?.slot && (p.status === "done" || (p.status === "closed" && S.decisions.some(d => d.pid === p.file)));
 function viewCalendar() {
   const days = [0, 1, 2, 3, 4].map(i => addDays(S.week, i));
-  const unscheduled = S.patients.filter(p => !p.slot || p.file === S.schedPick);
+  /* A closed case needs no slot, so it does not wait in "Nenaplánovaní" (round 20). */
+  const unscheduled = S.patients.filter(p => (!p.slot && p.status !== "closed") || p.file === S.schedPick);
   const byslot = {}; S.patients.forEach(p => { if (p.slot) byslot[`${p.slot.day} ${p.slot.time}`] = p; });
   const inSem = (day, t) => { const s = seminarOn(day); return s && t >= s[0] && t < s[1]; };
   /* On a seminar day every slot outside the seminar hours can be booked too (sessions may run longer, round 19). */
@@ -6623,7 +6680,7 @@ function viewCalendar() {
       /* Soňa wants the real name in the slot, not just the case ID: the calendar is used by the MDT team itself. */
       /* A missing birth number is left out of the slot text (a bare "RČ -" is noise there) but stays in the label. */
       /* A discussed case ("done") keeps its slot as part of the MDT record, so it cannot be dragged away. */
-      if (p) inner = `<button class="slotbtn taken" ${slotLocked(p) ? `draggable="false"` : `draggable="true" data-drag="${esc(p.file)}"`} data-slot="${d} ${t}" data-dbl="${esc(p.file)}" title="${esc(surnameFirst(p))}, RČ ${esc(p.rc || GAP)}. Dvojklik otevře případ" aria-label="${esc(surnameFirst(p))}, RČ ${esc(p.rc || GAP)}, ${t}" aria-pressed="${S.calPop === p.file}"><span class="dot" style="background:var(--${{ new: "muted", scheduled: "change", attention: "missing", ready: "ok", done: "accent" }[p.status]})"></span>${oot ? `<span class="ootm" title="Mimo čas semináře" aria-label="mimo čas semináře">mimo</span>` : ""}<span class="cid">${esc(surnameFirst(p))}</span>${p.rc ? `<span class="nm">RČ ${esc(p.rc)}</span>` : ""}</button>`;
+      if (p) inner = `<button class="slotbtn taken" ${slotLocked(p) ? `draggable="false"` : `draggable="true" data-drag="${esc(p.file)}"`} data-slot="${d} ${t}" data-dbl="${esc(p.file)}" title="${esc(surnameFirst(p))}, RČ ${esc(p.rc || GAP)}. Dvojklik otevře případ" aria-label="${esc(surnameFirst(p))}, RČ ${esc(p.rc || GAP)}, ${t}" aria-pressed="${S.calPop === p.file}"><span class="dot" style="background:var(--${{ new: "muted", scheduled: "change", attention: "missing", ready: "ok", done: "accent", closed: "faint" }[p.status]})"></span>${oot ? `<span class="ootm" title="Mimo čas semináře" aria-label="mimo čas semináře">mimo</span>` : ""}<span class="cid">${esc(surnameFirst(p))}</span>${p.rc ? `<span class="nm">RČ ${esc(p.rc)}</span>` : ""}</button>`;
       else if (sem) inner = `<button class="slotbtn free ${S.schedPick ? "target" : ""}" data-free="${d} ${t}" aria-label="Volný termín ${t}"><span class="tt2">${S.schedPick ? t : `${t}-${slotEnd(t)}`}</span>${S.schedPick ? `<span class="nm">Naplánovat sem</span>` : ""}</button>`;
       else if (oot) inner = `<button class="slotbtn free oot ${S.schedPick ? "target" : ""}" data-free="${d} ${t}" title="Mimo čas semináře" aria-label="Volný termín ${t}, mimo čas semináře"><span class="tt2">${t} · mimo čas semináře</span></button>`;
       cells += `<div class="cell ${sem ? "sem" : oot ? "oot" : ""} ${d === TODAY ? "today" : ""}">${inner}</div>`;
@@ -6680,7 +6737,7 @@ function questionText(p) {
 const briefPlain = () => edText("brief", (BRIEF_CS || "").replace(/\s*\[\d+\]/g, ""), CASE.file);
 function patientHeader(p, extraActions = "", withQuestion = false) {
   return `<div class="card"><div class="phead">
-      <div><div class="row"><span class="label">${p.id}</span>${statusChip(p)}</div>
+      <div><div class="row"><span class="label">${p.id}</span>${statusMenu(p)}</div>
         <h1 style="margin-top:4px">${esc(surnameFirst(p))}<span class="idp">RČ: ${p.rc ? esc(p.rc) : DASH}</span><span class="idp">Věk: ${ageNum(p) ? esc(ageNum(p)) : DASH}</span></h1>
         ${p.warn ? `<div class="question missing" style="margin:8px 0 0;padding:6px 10px"><b>Ověřit identitu:</b> ${esc(p.warn)}</div>` : ""}
         <div class="facts">
@@ -6872,7 +6929,7 @@ function compactRows(reg) {
   /* A systemic-therapy row is dated by its start; the tooltip says so, because the row text spans a whole course. */
   const line = (l, i) => `<div class="orow cpt"><span class="dt"${l.kind === "systemic" ? ` data-tip="zahájení léčby" tabindex="0"` : ""}>${l.date_sort ? fmtDate(l.date_sort) : ""}${rowPin(l)}</span><span>${reg.wrap(ed(`oc:${i}`, l.text_cs), R3((l.refs || [])[0]))}${(l.refs || []).slice(1).map(j => reg.n(R3(j))).join("")}${marks(l)}</span></div>`;
   return `${c.lines.map(line).join("")}
-    ${c.other_dx_cs ? `<p style="margin:10px 0 0;font-size:14px">${reg.wrap(esc(c.other_dx_cs), R3((c.other_dx_refs || [])[0]))}</p>` : ""}`;
+    ${c.other_dx_cs ? `<p class="otherdx" style="margin:10px 0 0;font-size:14px;font-style:italic">${reg.wrap(esc(c.other_dx_cs), R3((c.other_dx_refs || [])[0]))}</p>` : ""}`;
 }
 /* Category of an oncology row (round 9); from the row's own words, display only. */
 const rowKind = r => { const t = `${r.event_cs} ${r.comment_cs || ""}`; return /^(CT|MR|PET|Vstupní CT|UZ|ultrazvuk)|CT |MR /.test(r.event_cs) ? "imaging" : /ektomi|Exstirpace|Excize|Implantace|resekc|operac/i.test(r.event_cs) ? "surgery" : /linie|nivolumab|sunitinib|everolimus|chemoterap|imunoterap/i.test(r.event_cs) ? "systemic" : /radioterap|ozáření/i.test(t) ? "radiotherapy" : "visit"; };
@@ -7128,10 +7185,11 @@ function viewPatientLite(p) {
       ${mdtCard(p)}</section></div>`;
 }
 /* Header actions: scheduling, starting the MDT for this case's day, and the report. The report button is the
-   only place it is offered, so there is no second copy in a menu. */
+   only place it is offered: it opens a small dialog with the fields for the report, the preview and the download
+   (round 20), so the discussion card stays about the discussion. */
 function headerActions(p) {
   const live = S.session && p.slot && S.session.day === p.slot.day;
-  return `<button class="btn" data-sched="${esc(p.file)}">${p.slot ? "Změnit termín" : "Naplánovat"}</button>${p.slot && !live ? `<button class="btn" data-startday="${esc(p.slot.day)}" data-startfrom="${esc(p.file)}">Zahájit MDT</button>` : ""}<button class="btn primary" data-act="download">Stáhnout report (PDF)</button>`;
+  return `<button class="btn" data-sched="${esc(p.file)}">${p.slot ? "Změnit termín" : "Naplánovat"}</button>${p.slot && !live ? `<button class="btn" data-startday="${esc(p.slot.day)}" data-startfrom="${esc(p.file)}">Zahájit MDT</button>` : ""}<button class="btn primary" data-act="reportdlg">Stáhnout report (PDF)</button>`;
 }
 
 /* Parts the doctor can tick for the report (FNO spec): the assistant's summary and these finding groups.
@@ -7174,7 +7232,7 @@ function attGrid(day) {
 }
 const presentList = (day = attDay()) => Object.values(attFor(day)).flat().filter(Boolean);
 const isDoctor = u => u.startsWith("MUDr.");
-/* "Projednání na MDT": attendance, discussion notes, next steps, approval and the report preview, in the patient
+/* "Projednání na MDT": attendance, discussion notes, next steps and approval, in the patient
    view itself. Outside a session it is collapsed unless a draft exists; in a session it is open and outlined. */
 function mdtCard(p) {
   const pr = ensureProto(p), day = attDay(p);
@@ -7183,7 +7241,8 @@ function mdtCard(p) {
   const named = pr.steps.filter(x => x.text.trim());
   const hasConcl = !!pr.concl.trim();
   const assignees = [COORD, p.owner, ...present].filter((v, i, a) => a.indexOf(v) === i);
-  const canApprove = isDoctor(S.user) && present.includes(S.user);
+  /* Any doctor may approve for the team; the name is recorded, and approving adds them to the attendance. */
+  const canApprove = isDoctor(S.user);
   const versions = S.decisions.filter(d => d.pid === p.file).length;
   const live = inSession(p);
   /* The doctor's own open/closed choice wins; otherwise open when the case is discussed or has a draft. */
@@ -7209,17 +7268,18 @@ function mdtCard(p) {
         <p style="margin:0">${esc(shown.join(", ") || "nezadáno")}</p>
         <p class="muted small" style="margin:6px 0 0">${locked ? `Uzamčeno schválením závěru ${esc(pr.when)}.` : p.slot ? `Platí pro celý seminář (${esc(dayLabel(p.slot.day) + " " + p.slot.day.slice(0, 4))}). Jména jsou smyšlená.` : "Pacient nemá termín; přítomnost platí jen pro tento případ. Jména jsou smyšlená."}</p></div>
       <div class="sub"><div class="head"><h3>Schválení závěru</h3></div>
-        ${locked ? `<p class="small" style="margin:0">Schválil(a) <b>${esc(pr.approver)}</b> · ${esc(pr.when)}</p>
+        ${locked ? `<p class="small" style="margin:0">Schválil(a) za tým <b>${esc(pr.approver)}</b> · ${esc(pr.when)}</p>
+          ${p.status === "done" && canSetStatus() ? `<div style="margin:10px 0 0"><button class="btn primary closecase" data-act="closecase">Uzavřít případ</button>
+            <p class="muted small" style="margin:6px 0 0">Po vyřízení úloh. Uzavřený případ zmizí z Nenaplánovaných; znovu ho otevře menu stavu v záhlaví.</p></div>` : ""}
+          ${p.status === "closed" ? `<p class="small" style="margin:8px 0 0"><span class="chip st-closed">Uzavřen</span> ${(() => { const h = (p.statusHist || []).filter(x => x.to === "closed").at(-1); return h ? `${esc(h.by)}, ${esc(h.when)}` : ""; })()}</p>` : ""}
           <p style="margin:10px 0 0"><button class="btn small" data-act="newversion">Nový závěr (nahradí platný)</button></p>
           <p class="muted small" style="margin:6px 0 0">Platný závěr zůstane v historii; nový začne jako koncept.</p>`
         : `<p class="small" style="margin:0 0 6px">${hasConcl ? "Schvaluje se koncept v poli Závěr MDT výše." : `Závěr zatím nezapsán. Píše ho lékař v poli Závěr MDT výše; asistent závěr nenavrhuje.${isDoctor(S.user) ? ` <button class="linkbtn small" data-act="editconcl">Zapsat závěr</button>` : ""}`}</p>
-          <button class="btn primary" data-act="approve" style="width:100%" ${hasConcl && canApprove ? "" : "disabled"}>Schválit závěr jako ${esc(S.user)}</button>
-          <p class="muted small" style="margin:8px 0 0">Schvaluje lékař označený jako přítomný. ${!isDoctor(S.user) ? "Koordinátorka schvalovat nemůže. " : !present.includes(S.user) ? "Označte se jako přítomný(á) v seznamu přítomných. " : ""}Úlohy a report vzniknou až schválením.</p>`}</div>
+          <button class="btn primary" data-act="approve" style="width:100%" ${hasConcl && canApprove ? "" : "disabled"}>Schválit závěr MDT</button>
+          <p class="small approver" style="margin:6px 0 0">${isDoctor(S.user) ? `schvaluje za tým: <b>${esc(S.user)}</b>` : "schvaluje lékař"}</p>
+          <p class="muted small" style="margin:4px 0 0">${isDoctor(S.user) && !present.includes(S.user) ? "Schválením budete doplněn(a) mezi přítomné. " : ""}Úlohy a report vzniknou až schválením.</p>`}</div>
       ${suggHtml(p)}
       ${locked ? `<div class="sub"><div class="head"><h3>Odeslané upozornění</h3></div>${S.mails.filter(m => m.pid === p.file).map(mailHtml).join("") || `<p class="muted small" style="margin:0">Při schválení bez úloh, upozornění se neodesílá.</p>`}</div>` : ""}
-      <div class="sub"><div class="head"><h3>Report</h3></div>
-        ${p.full ? `<div class="row small" style="gap:4px 12px;margin-bottom:8px"><span class="muted">Do reportu:</span>${[["summary", "Onkologický souhrn"], ...FIND].map(([k, t]) => `<label class="row" style="gap:4px"><input type="checkbox" data-pickrep="${k}" ${S.picked.has(k) ? "checked" : ""} ${locked ? "disabled" : ""}> ${t}</label>`).join("")}</div>` : ""}
-        <details class="srcs" style="margin:0;border:0;padding:0"><summary>Náhled reportu</summary><div id="report" style="margin-top:8px">${locked && pr.reportSnap ? pr.reportSnap : reportHtml(p, pr, present)}</div></details>${locked ? `<p class="muted small" style="margin:8px 0 0">Report je uzamčen ve stavu při schválení. Pozdější úpravy se do něj nepromítnou; změna vyžaduje nový závěr.</p>` : ""}</div>
     </div></div></details>`;
 }
 /* Deviations from the quoted statements: the doctors record them; the assistant does not judge the plan (F-27). */
@@ -7244,7 +7304,7 @@ function mailHtml(m) {
 }
 function reportHtml(p, pr, present) {
   const reg = refRegistry();
-  const refTxt = r => r ? ` [${reg.n(r).replace(/<[^>]+>/g, "").replace(/[\[\]]/g, "")}]` : "";
+  const refTxt = r => r ? ` [${reg.num(r)}]` : "";
   const line = f => `<li>${f.date ? esc(f.date) + ": " : ""}${esc(f.text_cs)}${esc(tagsText(f))}<span class="src">${refTxt(f.source)}</span></li>`;
   /* Report anamnesis (Soňa, round 2): diagnoses stand out in bold, qualifiers stay plain text. */
   const A = A3();
@@ -7599,6 +7659,17 @@ function renderOverlay() {
       ${editOnly ? "" : `<div><span class="label">Pořadí (${ag.length})</span><ol style="margin:4px 0 0;padding-left:20px">${ag.map(a => `<li>${a.slot.time} ${esc(surnameFirst(a))}</li>`).join("")}</ol></div>`}
       <div><span class="label">Přítomní lékaři (${n})</span>${attGrid(o.day)}<p class="muted small" style="margin:6px 0 0">${isDay ? "Platí pro všechny případy tohoto dne; lze upravit i během MDT." : "Platí jen pro tento případ."}</p></div>
       <div class="row" style="justify-content:flex-end">${editOnly ? `<button class="btn primary" data-close="1">Hotovo</button>` : `<button class="btn primary" data-startgo="${esc(o.day)}" ${o.from ? `data-startfrom="${esc(o.from)}"` : ""} ${ag.length ? "" : "disabled"}>Zahájit MDT ▸</button>`}</div></div>`;
+  } else if (o.kind === "report") {
+    /* The fields for the report (FNO spec) live here. After approval the report is the frozen snapshot, and the ticks
+       show what was chosen at approval, disabled, so the dialog never suggests a change that would not print. */
+    const p = P(S.pid), pr = ensureProto(p), locked = pr.state === "approved";
+    const picked = locked && pr.pickSnap ? new Set(pr.pickSnap) : S.picked;
+    el.innerHTML = `<div class="scrim" data-close="1"></div><div class="modal" role="dialog" aria-label="Report MDT">
+      <div class="row spread"><h2>Report MDT · ${esc(p.id)}</h2><button class="btn small" data-close="1">Zavřít</button></div>
+      ${p.full ? `<div><span class="label">Do reportu</span><div class="row small" style="gap:4px 14px;margin-top:4px">${[["summary", "Onkologický souhrn"], ...FIND].map(([k, t]) => `<label class="row" style="gap:4px"><input type="checkbox" data-pickrep="${k}" ${picked.has(k) ? "checked" : ""} ${locked ? "disabled" : ""}> ${t}</label>`).join("")}</div></div>` : ""}
+      <details class="srcs" data-repopen="1" style="margin:0" ${S.repOpen ? "open" : ""}><summary>Náhled reportu</summary><div id="report" style="margin-top:8px">${locked && pr.reportSnap ? pr.reportSnap : reportHtml(p, pr, presentList(attDay(p)))}</div></details>
+      <p class="muted small" style="margin:0">${locked ? `Report je uzamčen ve stavu při schválení (${esc(pr.when)}). Pozdější úpravy se do něj nepromítnou; změna vyžaduje nový závěr.` : "Závěr zatím není schválený; report se stáhne jako koncept."}</p>
+      <div class="row" style="justify-content:flex-end"><button class="btn primary" data-act="download">Stáhnout</button></div></div>`;
   } else if (o.kind === "upload") {
     el.innerHTML = `<div class="scrim" data-close="1"></div><div class="modal" role="dialog" aria-label="Nahrát dokument">
       <div class="row spread"><h2>Nahrát dokument · ${esc(P(S.pid).id)}</h2><button class="btn small" data-close="1">Zavřít</button></div>
@@ -7614,16 +7685,21 @@ function renderOverlay() {
     document.getElementById("edtext").focus();
   } else if (o.kind === "new") {
     const step = o.step;
-    const fields = [["Jméno", "text"], ["Příjmení", "text"], ["Rodné číslo", "text"], ["Pojišťovna", "select"], ["Jméno lékaře (vlastník)", "text"], ["Odesílající pracoviště", "text"], ["Kontaktní e-mail", "email"], ["Kontaktní telefon", "text"]];
+    /* Round 20: only identity and the GDPR consent are required. The history comes from the uploaded documents and
+       the MDT question can be added later in the patient view, so neither blocks a referral. */
+    const fields = [["Jméno", "text", true], ["Příjmení", "text", true], ["Rodné číslo", "text", true], ["Pojišťovna", "select"], ["Jméno lékaře (vlastník)", "text"], ["Odesílající pracoviště", "text"], ["Kontaktní e-mail", "email"], ["Kontaktní telefon", "text"]];
     const pipe = ["Kontrola čitelnosti", "Pseudonymizace", "Extrakce údajů", "Kontrola úplnosti"];
+    const f = o.form || {}, er = o.errs || {};
+    const inv = id => er[id] ? `aria-invalid="true" aria-describedby="${id}-err"` : "";
+    const msg = id => er[id] ? `<span class="ferr" id="${id}-err">${esc(er[id])}</span>` : "";
     el.innerHTML = `<div class="scrim" data-close="1"></div><div class="modal" role="dialog" aria-label="Nový pacient">
       <div class="row spread"><h2>Nový pacient</h2><button class="btn small" data-close="1">Zavřít</button></div>
       <div class="stepper">${["Žádost o konzultaci", "Dokumenty", "Zpracování"].map((t, i) => `<span class="${i === step ? "on" : ""}">${i + 1}. ${t}</span>`).join("")}</div>
       ${step === 0 ? `<p class="muted small" style="margin:0">Pole podle formuláře FNO „Konzultace pacienta“. Povinná pole jsou označena *.</p>
-        <div class="formgrid">${fields.map(([l, t], i) => `<label>${l} *${t === "select" ? `<select class="input" id="nf${i}"><option>111</option><option>201</option><option>205</option><option>207</option><option>209</option><option>211</option><option>213</option></select>` : `<input class="input" id="nf${i}" type="${t}">`}</label>`).join("")}
-          <label class="full">Anamnéza *<textarea class="input" id="nfa"></textarea></label>
-          <label class="full">Otázka na NOCO (otázka pro MDT)<textarea class="input" id="nfq" style="min-height:60px"></textarea></label>
-          <label class="full" style="display:flex;gap:8px;align-items:center;font-weight:500"><input type="checkbox" id="nfg"> Souhlasím, aby FNO použila uvedené osobní údaje ke zpracování požadavku, dle GDPR.</label></div>
+        <div class="formgrid">${fields.map(([l, t, req], i) => `<label>${l}${req ? " *" : ""}${t === "select" ? `<select class="input" id="nf${i}"><option value="">nevybráno</option>${["111", "201", "205", "207", "209", "211", "213"].map(v => `<option ${f["nf" + i] === v ? "selected" : ""}>${v}</option>`).join("")}</select>` : `<input class="input" id="nf${i}" type="${t}" value="${esc(f["nf" + i] || "")}" ${req ? "required" : ""} ${inv("nf" + i)}>`}${msg("nf" + i)}</label>`).join("")}
+          <label class="full">Anamnéza <span class="fhint">nepovinné, asistent ji sestaví z dokumentace</span><textarea class="input" id="nfa">${esc(f.nfa || "")}</textarea></label>
+          <label class="full">Otázka na NOCO (otázka pro MDT) <span class="fhint">nepovinné, lze doplnit později v detailu pacienta</span><textarea class="input" id="nfq" style="min-height:60px">${esc(f.nfq || "")}</textarea></label>
+          <div class="full"><label style="display:flex;gap:8px;align-items:center;font-weight:500"><input type="checkbox" id="nfg" ${f.nfg ? "checked" : ""} ${inv("nfg")}> Souhlasím, aby FNO použila uvedené osobní údaje ke zpracování požadavku, dle GDPR. *</label>${msg("nfg")}</div></div>
         <div class="row" style="justify-content:flex-end"><button class="btn primary" data-act="newnext">Pokračovat</button></div>`
       : step === 1 ? `<div class="drop">Přetáhněte PDF, DOC/DOCX, XLS/XLSX, ODT nebo ZIP (nejvýše 20 MB)<br><button class="btn small" style="margin-top:8px" data-act="fakeupload">Vybrat soubory</button></div>
         ${o.uploaded ? `<p class="small" style="margin:0">Nahráno: <b>propousteci_zprava.pdf</b>, <b>MR_mozku_zaver.pdf</b></p>` : ""}
@@ -7677,7 +7753,7 @@ function readHash() {
 window.addEventListener("hashchange", () => { if (S.hashSet && location.hash === S.hashSet) { S.hashSet = null; return; } S.hashSet = null; if (readHash()) render(); });
 /* keepTab: moving between cases during an MDT keeps the tab the team is looking at. */
 function openPatient(file, keepTab = false, what = "otevřel(a) případ") {
-  S.pid = file; S.view = "patient"; if (!keepTab) S.tab = "overview"; S.selTl = null; S.calPop = null; S.tlScroll = 0;
+  S.pid = file; S.view = "patient"; if (!keepTab) S.tab = "overview"; S.selTl = null; S.calPop = null; S.tlScroll = 0; S.stOpen = null;
   logAccess(file, what);
   render(); window.scrollTo(0, 0);
 }
@@ -7709,13 +7785,21 @@ window.addEventListener("scroll", hideTip, true);
 document.addEventListener("click", e => {
   if (S.resizedAt && Date.now() - S.resizedAt < 300) { e.stopPropagation(); return; }
   const mk = e.target.closest(TIP_SEL);
-  if (mk && !mk.closest("[data-src],[data-edit],[data-act],[data-tab],[data-open]")) { e.preventDefault(); showTip(mk); return; }
+  if (mk && !mk.closest("[data-src],[data-edit],[data-act],[data-tab],[data-open],[data-stmenu]")) { e.preventDefault(); showTip(mk); return; }
   hideTip();
   if (S.colOpen && !e.target.closest(".fpop,[data-colopen]")) { S.colOpen = null; render(); return; }
-  const t = e.target.closest("[data-dbpage],[data-guide],[data-colopen],[data-colclose],[data-colall],[data-wk],[data-jump],[data-mm],[data-calclose],[data-labmode],[data-labsel],[data-edit],[data-scope],[data-addatt],[data-startday],[data-startgo],[data-sesgo],[data-nav],[data-open],[data-tab],[data-src],[data-close],[data-page],[data-vtab],[data-zoom],[data-zoomstep],[data-zoomhit],[data-tl],[data-ack],[data-sched],[data-pick],[data-free],[data-slot],[data-unsched],[data-act],[data-mode],[data-delstep],[data-done],[data-suggok],[data-suggno]");
+  if (S.stOpen && !e.target.closest(".stpop,[data-stmenu]")) { S.stOpen = null; render(); return; }
+  const t = e.target.closest("[data-stmenu],[data-setst],[data-dbpage],[data-guide],[data-colopen],[data-colclose],[data-colall],[data-wk],[data-jump],[data-mm],[data-calclose],[data-labmode],[data-labsel],[data-edit],[data-scope],[data-addatt],[data-startday],[data-startgo],[data-sesgo],[data-nav],[data-open],[data-tab],[data-src],[data-close],[data-page],[data-vtab],[data-zoom],[data-zoomstep],[data-zoomhit],[data-tl],[data-ack],[data-sched],[data-pick],[data-free],[data-slot],[data-unsched],[data-act],[data-mode],[data-delstep],[data-done],[data-suggok],[data-suggno]");
   if (!t) return;
   const d = t.dataset;
-  if (d.colopen) { S.colOpen = S.colOpen === d.colopen ? null : d.colopen; render(); }
+  if (d.stmenu) { S.stOpen = S.stOpen === d.stmenu ? null : d.stmenu; render(); }
+  else if (d.setst) {
+    /* The menu offers only the allowed moves; this guard repeats the rule for any other path to the handler. */
+    const p = P(S.pid); if (!canSetStatus() || !manualMoves(p).includes(d.setst)) return;
+    const reopen = p.status === "closed"; setStatus(p, d.setst, reopen ? "ručně, znovu otevřeno" : "ručně"); S.stOpen = null;
+    toast(reopen ? "Případ znovu otevřen" : `Stav změněn na ${STATUS[d.setst][0]}`); render();
+  }
+  else if (d.colopen) { S.colOpen = S.colOpen === d.colopen ? null : d.colopen; render(); }
   else if (d.colclose) { S.colOpen = null; render(); }
   else if (d.colall) { return; }
   else if (d.wk) { const nw = addDays(S.week, 7 * +d.wk); if (nw < "2024-01-01" || nw > "2028-12-25") return; S.week = nw; S.miniMonth = addDays(S.week, 3).slice(0, 7); render(); }
@@ -7789,10 +7873,24 @@ async function copyText(text, what) {
 }
 function action(a) {
   const pr = S.view === "patient" ? curProto() : null;
-  if (a === "newpatient") { S.overlay = { kind: "new", step: 0, uploaded: false, progress: 0 }; renderOverlay(); }
+  if (a === "reportdlg") { S.overlay = { kind: "report" }; renderOverlay(); }
+  else if (a === "newpatient") { S.overlay = { kind: "new", step: 0, uploaded: false, progress: 0 }; renderOverlay(); }
   else if (a === "newnext") {
     const o = S.overlay;
-    if (o.step === 0 && !document.getElementById("nfg").checked) { toast("Potvrďte souhlas se zpracováním údajů."); return; }
+    if (o.step === 0) {
+      /* Keep what was typed, so a re-render (validation, Zpět) never empties the form. */
+      const v = id => document.getElementById(id)?.value.trim() || "";
+      o.form = { nf0: v("nf0"), nf1: v("nf1"), nf2: v("nf2"), nf3: v("nf3"), nf4: v("nf4"), nf5: v("nf5"), nf6: v("nf6"), nf7: v("nf7"), nfa: v("nfa"), nfq: v("nfq"), nfg: document.getElementById("nfg").checked };
+      const e = {};
+      if (!o.form.nf0) e.nf0 = "Vyplňte jméno.";
+      if (!o.form.nf1) e.nf1 = "Vyplňte příjmení.";
+      /* Format only (9 or 10 digits, optional slash); the national register check is a stub in a real build. */
+      if (!o.form.nf2) e.nf2 = "Vyplňte rodné číslo.";
+      else if (!/^\d{6}\/?\d{3,4}$/.test(o.form.nf2)) e.nf2 = "Rodné číslo zadejte ve tvaru 123456/7890.";
+      if (!o.form.nfg) e.nfg = "Bez souhlasu se zpracováním údajů nelze žádost odeslat.";
+      o.errs = e;
+      if (Object.keys(e).length) { renderOverlay(); document.getElementById(Object.keys(e)[0])?.focus(); return; }
+    }
     o.step++; renderOverlay();
     if (o.step === 2) { const tick = () => { o.progress++; renderOverlay(); if (o.progress < 4) setTimeout(tick, 550); }; setTimeout(tick, 450); }
   }
@@ -7800,7 +7898,9 @@ function action(a) {
   else if (a === "fakeupload") { S.overlay.uploaded = true; renderOverlay(); }
   else if (a === "newdone") {
     const n = S.patients.length + 11;
-    S.patients.push({ file: `${n}_novy`, id: `NO-${String(n).padStart(3, "0")}`, name: "Nový pacient", birth: null, diagnosis: "Čeká na kontrolu lékařem", mkn10: null, question: null, purpose: null, explicit: false, status: "new", slot: null, updated: "2026-10-16", owner: S.user, dept: "Klinická onkologie", summary: "Ukázkový záznam vytvořený v maketě.", pages: 2 });
+    /* Identity and the optional question come from the form; everything else waits for the documents. */
+    const f = S.overlay.form || {};
+    S.patients.push({ file: `${n}_novy`, id: `NO-${String(n).padStart(3, "0")}`, name: [f.nf0, f.nf1].filter(Boolean).join(" ") || "Nový pacient", rc: f.nf2 || null, birth: null, diagnosis: "Čeká na kontrolu lékařem", mkn10: null, question: f.nfq || null, purpose: null, explicit: !!f.nfq, status: "new", slot: null, updated: "2026-10-16", submitted: TODAY, owner: f.nf4 || S.user, dept: f.nf5 || "Klinická onkologie", summary: "Ukázkový záznam vytvořený v maketě.", pages: 2 });
     S.overlay = null; S.view = "patients"; S.colf = {}; toast(`Pacient NO-${String(n).padStart(3, "0")} přidán do databáze`); render();
   }
   else if (a === "maildigest") {
@@ -7844,15 +7944,29 @@ function action(a) {
   else if (a === "addstep") { pr.steps.push({ text: "", who: COORD, due: "2026-10-30" }); render(); }
   else if (a === "copyatt") { copyText((pr?.state === "approved" ? pr.attSnap : presentList()).join(", ") || "nezadáno", "Seznam přítomných"); }
   else if (a === "copytasks") { copyText(pr.steps.filter(x => x.text.trim()).map(x => `${x.text} (${x.who}, do ${fmtDate(x.due)})`).join("\n"), "Úlohy"); }
-  else if (a === "newversion") { S.protos[pr.pid] = { pid: pr.pid, mode: "manual", notes: "", concl: "", steps: [], state: "draft" }; P(pr.pid).status = "scheduled"; render(); }
+  else if (a === "newversion") {
+    /* A new conclusion reopens the case: it goes back to what its slot says, logged like any status change. */
+    const np = P(pr.pid); S.protos[pr.pid] = { pid: pr.pid, mode: "manual", notes: "", concl: "", steps: [], state: "draft" };
+    setStatus(np, np.slot ? "scheduled" : "new", "automaticky při novém závěru"); render();
+  }
+  else if (a === "closecase") { const cp = P(S.pid); if (canSetStatus() && cp.status === "done") { setStatus(cp, "closed", "ručně"); toast("Případ uzavřen"); render(); } }
   else if (a === "approve") {
-    if (!pr.concl.trim() || !isDoctor(S.user) || !presentList().includes(S.user)) return;
+    if (!pr.concl.trim() || !isDoctor(S.user)) return;
+    /* The approving doctor was at the meeting, so approving adds them to the day's attendance instead of blocking
+       (round 20); the access log says so, and the attendance list in the card shows the name. */
+    const day = attDay(P(pr.pid));
+    if (!presentList(day).includes(S.user)) {
+      const a = attFor(day), dept = (DEPTS.find(([, docs]) => docs.includes(S.user)) || ["Ostatní"])[0];
+      a[dept] = a[dept] || [""];
+      const free = a[dept].indexOf(""); if (free >= 0) a[dept][free] = S.user; else a[dept].push(S.user);
+      logAccess(pr.pid, "doplněn(a) mezi přítomné při schválení závěru");
+    }
     pr.approver = S.user;
     pr.state = "approved"; pr.when = new Date().toLocaleString("cs-CZ");
     /* Freeze what the doctor confirmed: later attendance changes or edits must not alter an approved report. */
-    pr.attSnap = presentList().slice();
+    pr.attSnap = presentList(day).slice(); pr.pickSnap = [...S.picked];
     pr.reportSnap = reportHtml(P(pr.pid), pr, pr.attSnap);
-    const p = P(pr.pid); p.status = "done"; p.updated = "2026-10-16";
+    const p = P(pr.pid); setStatus(p, "done", "automaticky při schválení závěru"); p.updated = "2026-10-16";
     S.decisions.push({ pid: p.file, text: pr.concl, by: pr.approver, when: pr.when, reportSnap: pr.reportSnap, attSnap: pr.attSnap });
     let id = Math.max(0, ...S.tasks.map(x => x.id));
     pr.steps.filter(s => s.text.trim()).forEach(s => S.tasks.push({ id: ++id, pid: p.file, text: s.text, who: s.who, due: s.due, done: false }));
@@ -7884,14 +7998,14 @@ function unschedule(file) {
   const p = P(file); if (!p?.slot) return;
   if (slotLocked(p)) { toast(LOCK_WHY); return; }
   const was = slotText(p);
-  p.slot = null; if (p.status === "scheduled") p.status = "new"; S.calPop = null; S.schedPick = null;
+  p.slot = null; if (p.status === "scheduled") setStatus(p, "new", "automaticky po uvolnění termínu"); S.calPop = null; S.schedPick = null;
   logAccess(p.file, `uvolnil(a) termín MDT (${was})`);
   toast(`Termín pro ${surnameFirst(p)} uvolněn`); render();
 }
 function scheduleAt(file, slot) {
   const [day, time] = slot.split(" "), p = P(file);
   if (slotLocked(p)) { toast(LOCK_WHY); S.schedPick = null; render(); return; }
-  p.slot = { day, time }; if (p.status === "new") p.status = "scheduled";
+  p.slot = { day, time }; if (p.status === "new") setStatus(p, "scheduled", "automaticky při rezervaci termínu");
   logAccess(p.file, `naplánoval(a) na MDT (${slotText(p)})`);
   const sem = seminarOn(day), oot = sem && (time < sem[0] || time >= sem[1]);
   toast(`${surnameFirst(p)} naplánován(a) na ${slotText(p)}${oot ? " (mimo čas semináře)" : ""}`); S.schedPick = null; S.calPop = p.file; render();
@@ -7966,7 +8080,7 @@ document.addEventListener("change", e => {
   }
 });
 document.addEventListener("toggle", e => { if (e.target.dataset?.guideopen) S.guideOpen = e.target.open; if (e.target.dataset?.doneopen) S.doneOpen = e.target.open; }, true);
-document.addEventListener("toggle", e => { const f = e.target.dataset?.mdtopen; if (f) S.mdtOpen[f] = e.target.open; }, true);
+document.addEventListener("toggle", e => { const f = e.target.dataset?.mdtopen; if (f) S.mdtOpen[f] = e.target.open; if (e.target.dataset?.repopen) S.repOpen = e.target.open; }, true);
 /* Zoom keys as in common PDF viewers; only on the page image, and never while typing. */
 document.addEventListener("keydown", e => {
   const o = S.overlay;
@@ -7976,7 +8090,7 @@ document.addEventListener("keydown", e => {
     if (e.key === "0") { o.zoom = "fit"; renderOverlay(); e.preventDefault(); return; }
   }
 });
-document.addEventListener("keydown", e => { if (e.key === "Escape" && S.overlay) { S.overlay = null; renderOverlay(); } else if (e.key === "Escape" && S.colOpen) { S.colOpen = null; render(); } });
+document.addEventListener("keydown", e => { if (e.key === "Escape" && S.overlay) { S.overlay = null; renderOverlay(); } else if (e.key === "Escape" && S.colOpen) { S.colOpen = null; render(); } else if (e.key === "Escape" && S.stOpen) { S.stOpen = null; render(); } });
 
 readHash();
 render();

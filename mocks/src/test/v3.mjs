@@ -44,29 +44,44 @@ for (const width of [1280, 400]) {
   // edit a drug, check marker in report, revert keeps history
   await c('[data-tab="anamnesis"]'); await page.evaluate(() => document.querySelector('[data-edit$="|fa:0:note"]').click());
   await page.fill("#edtext", "navýšeno na 10 mg"); await c('[data-act="saveedit"]');
-  // the report preview sits in the "Projednání na MDT" card of the patient view
+  // round 20: the report picks and preview live in a dialog opened from the header button, not in the discussion card
+  const rep = async () => { await c('[data-act="reportdlg"]'); const t = await text(".modal #report"); await c(".modal [data-close]"); return t; };
   ok(await page.locator("details.mdtcard:not([open])").count() === 1, `${width} discussion card collapsed outside a session without a draft`);
   await c("details.mdtcard > summary");
-  ok(await page.locator("details.mdtcard #report").count() === 1, `${width} report preview inside the MDT discussion card`);
+  ok(await page.locator("details.mdtcard #report, details.mdtcard [data-pickrep]").count() === 0, `${width} no report section in the MDT discussion card`);
+  await c('[data-act="reportdlg"]'); await over("report dialog");
+  ok(await page.locator(".modal #report").count() === 1 && await page.locator(".modal [data-pickrep]").count() === 6 && await page.locator('.modal [data-act="download"]').count() === 1
+    && await page.locator(".modal details:not([open]) #report").count() === 1, `${width} header button opens the report dialog: picks, collapsed preview, Stáhnout`);
   ok((await text("#report")).includes("navýšeno na 10 mg [upraveno lékařem]"), `${width} edit marked in report`);
+  ok(!(await text("#report")).includes("[]") && (await text("#report")).includes("[1]"), `${width} report source markers carry numbers`);
   ok((await text("#report")).includes("Alergologická anamnéza: neuvedeno v dostupné dokumentaci"), `${width} empty allergy section printed`);
   ok((await text("#report")).includes("při diagnóze") || (await text("#report")).includes("ne aktuální"), `${width} TNM labelled as stage at diagnosis in report`);
   ok(!(await page.locator("main").textContent()).includes("Shrnutí (30 až 60 s)"), `${width} no 30-60 s summary`);
   await page.locator('[data-pickrep="clinical_finding"]').check(); ok((await text("#report")).includes("Klinický nález"), `${width} ticked field added to the report`);
   await page.locator('[data-pickrep="clinical_finding"]').uncheck(); ok(!(await text("#report")).includes("Klinický nález"), `${width} unticked field left out of the report`);
-  // approval needs a written conclusion and the approver marked present
+  await c(".modal [data-close]");
+  // approval: needs a written conclusion; one button, the approving doctor named; non-doctors see it disabled
+  ok(await page.locator('[data-act="approve"]').isDisabled(), `${width} approve disabled without a written conclusion`);
   await page.fill("#concl", "Test závěr"); await page.waitForTimeout(80);
-  ok(await page.locator('[data-act="approve"]').isDisabled(), `${width} approve disabled until the doctor is marked present`);
-  await c('details.mdtcard [data-attonly]'); await page.selectOption('.modal [data-att="Klinická onkologie"]', "MUDr. Svobodová"); await c('.modal [data-close]');
-  ok((await text("details.mdtcard")).includes("MUDr. Svobodová"), `${width} attendance shown compactly in the card`);
+  ok(!(await page.locator('[data-act="approve"]').isDisabled()) && (await text('[data-act="approve"]')).trim() === "Schválit závěr MDT" && (await text(".approver")).includes("schvaluje za tým: MUDr. Svobodová"), `${width} one approve button with "schvaluje za tým"`);
+  await page.selectOption("#user", "Bc. Marková (koordinátorka MDT)");
+  ok(await page.locator('[data-act="approve"]').isDisabled() && (await text(".approver")).includes("schvaluje lékař"), `${width} coordinator sees approve disabled, "schvaluje lékař"`);
+  await page.selectOption("#user", "MUDr. Svobodová");
+  // approving adds the approving doctor to the day's attendance instead of blocking
+  ok(!(await page.evaluate(() => presentList(attDay(P("10_pacient.pdf"))).includes("MUDr. Svobodová"))), `${width} approver not yet present`);
   await c('[data-act="approve"]');
-  ok((await text(".concl")).includes("Platný závěr č. 1") && (await text("#report")).includes("MUDr. Svobodová,"), `${width} approved conclusion shown as valid with approver`);
-  const frozen = await text("#report");
+  ok(await page.evaluate(() => presentList(attDay(P("10_pacient.pdf"))).includes("MUDr. Svobodová") && S.protos["10_pacient.pdf"].attSnap.includes("MUDr. Svobodová") && S.access.some(a => a.what.startsWith("doplněn(a) mezi přítomné"))), `${width} approval adds the approving doctor to attendance and logs it`);
+  ok((await text("details.mdtcard")).includes("MUDr. Svobodová") && (await text("details.mdtcard")).includes("Schválil(a) za tým"), `${width} attendance and approver shown in the card`);
+  ok((await text(".concl")).includes("Platný závěr č. 1") && (await rep()).includes("MUDr. Svobodová,"), `${width} approved conclusion shown as valid with approver`);
+  ok(await page.evaluate(() => P("10_pacient.pdf").status === "done" && P("10_pacient.pdf").statusHist.at(-1).how.includes("schválení")), `${width} approval sets Projednán automatically, in the status history`);
+  await c('[data-act="reportdlg"]');
+  ok(await page.locator(".modal [data-pickrep]:not([disabled])").count() === 0, `${width} report picks disabled after approval`); await c(".modal [data-close]");
+  const frozen = await rep();
   // attendance change on another case of the same day must not change the approved report
   await go("#patient/2"); await c("details.mdtcard > summary"); await c('details.mdtcard [data-attonly]'); await page.selectOption('.modal [data-att="Neurochirurgie"]', "MUDr. Novák"); await c('.modal [data-close]');
-  await go("#patient/10/overview"); ok((await text("#report")) === frozen, `${width} approved report frozen after attendance change`);
+  await go("#patient/10/overview"); ok((await rep()) === frozen, `${width} approved report frozen after attendance change`);
   await go("#patient/10/anamnesis"); await page.evaluate(() => document.querySelector('[data-edit$="|fa:1:line"]').click()); await page.fill("#edtext", "ZMENA"); await c('[data-act="saveedit"]');
-  ok(!(await text("#report")).includes("ZMENA"), `${width} approved report frozen after edit`);
+  ok(!(await rep()).includes("ZMENA"), `${width} approved report frozen after edit`);
   // a new conclusion supersedes the approved one without erasing it
   await c('[data-act="newversion"]');
   ok((await text(".concl")).includes("Platný závěr č. 1") && await page.locator("#concl").count() === 1, `${width} new draft shown below the valid conclusion`);
@@ -217,6 +232,44 @@ for (const width of [1280, 400]) {
   await c('[data-tab="next"]');
   ok(await page.evaluate(() => STMTS().filter(x => /ČOS/.test(x.evidence)).every(x => tiersOf(x).join() === "3")) && (await text(".stmts-onc")).includes("(důkazy a shoda)")
     && await page.locator(".ordernote").evaluate(el => parseFloat(getComputedStyle(el).fontSize) >= 14 && el.textContent.includes("ne pořadí možností pro tohoto pacienta")), `${width} ČOS categories not read as strength, order note in normal text`);
+  // ---- feedback round 20 ----
+  // new patient form: only name, surname, birth number and consent required; inline Czech messages
+  await page.selectOption("#user", "MUDr. Svobodová"); await go("#patients"); await c('[data-act="newpatient"]');
+  ok((await text(".modal")).includes("nepovinné, asistent ji sestaví z dokumentace") && !(await text(".modal")).includes("Anamnéza *"), `${width} anamnesis optional with hint`);
+  await page.fill("#nf5", "Nemocnice Test"); await c('[data-act="newnext"]'); await over("new patient errors");
+  ok(await page.locator(".modal .ferr").count() === 4 && (await text(".modal")).includes("Vyplňte jméno.") && (await text(".modal")).includes("Bez souhlasu") && await page.inputValue("#nf5") === "Nemocnice Test"
+    && await page.locator('#nf0[aria-invalid="true"]').count() === 1, `${width} empty required fields get inline messages, typed values kept`);
+  await page.fill("#nf0", "Jana"); await page.fill("#nf1", "Testová"); await page.fill("#nf2", "12345"); await page.check("#nfg"); await c('[data-act="newnext"]');
+  ok(await page.locator(".modal .ferr").count() === 1 && (await text(".modal .ferr")).includes("ve tvaru"), `${width} malformed birth number rejected`);
+  await page.fill("#nf2", "456123/7890"); await c('[data-act="newnext"]');
+  ok((await text(".stepper .on")).includes("Dokumenty"), `${width} optional fields left empty, form continues`);
+  await c(".modal [data-close]");
+  // status menu: allowed moves for doctors and the coordinator, history for everyone, admin read-only
+  const un = await page.evaluate(() => S.patients.find(p => !p.slot && p.status === "new").file);
+  await page.evaluate(f => openPatient(f), un); await c(".phead [data-stmenu]"); await over("status menu");
+  const moves = await page.locator(".stpop [data-setst]").evaluateAll(xs => xs.map(x => x.dataset.setst).join());
+  ok(moves === "ready,attention,closed", `${width} status menu offers Připraven, Vyžaduje pozornost, Uzavřít (got ${moves})`);
+  await c('.stpop [data-setst="closed"]');
+  ok(await page.evaluate(f => { const p = P(f); return p.status === "closed" && p.statusHist.at(-1).by === "MUDr. Svobodová" && p.statusHist.at(-1).how === "ručně" && S.access.some(a => a.pid === f && a.what.includes("Nový -> Uzavřen")); }, un), `${width} manual close stored with who and when, logged`);
+  await go("#calendar/2026-10-19");
+  ok(!(await text("[data-unschedzone]")).includes(await page.evaluate(f => surnameFirst(P(f)), un)), `${width} closed case not in Nenaplánovaní`);
+  await go("#patients"); await c('[data-act="dball"]');
+  ok(await page.locator(`tr.closed[data-open="${un}"]`).count() === 1, `${width} closed case greyed in the database`); await c('[data-act="dbpaged"]');
+  await page.selectOption("#user", "Ing. Kovář (správce systému)"); await page.evaluate(f => openPatient(f), un); await c(".phead [data-stmenu]");
+  ok(await page.locator(".stpop [data-setst]").count() === 0 && (await text(".stpop")).includes("Nový -> Uzavřen"), `${width} admin sees the status history read-only`);
+  await page.selectOption("#user", "Bc. Marková (koordinátorka MDT)"); if (!(await page.locator(".stpop").count())) await c(".phead [data-stmenu]");
+  await c('.stpop [data-setst="new"]');
+  ok(await page.evaluate(f => P(f).status === "new" && P(f).statusHist.length === 2, un), `${width} coordinator reopens a closed case to its previous status, history appended`);
+  // after approval the card offers "Uzavřít případ"; the discussed slot stays locked once closed
+  await page.selectOption("#user", "MUDr. Svobodová"); await go("#patient/10/overview");
+  ok(await page.locator(".phead [data-stmenu]").evaluate(el => el.textContent.includes("Projednán")), `${width} header shows Projednán`);
+  await c(".phead [data-stmenu]");
+  ok(await page.locator(".stpop [data-setst]").evaluateAll(xs => xs.map(x => x.dataset.setst).join()) === "closed", `${width} a discussed case can only be closed from the menu`); await c(".phead [data-stmenu]");
+  ok(await page.locator('details.mdtcard [data-act="closecase"]').count() === 1, `${width} card after approval shows Uzavřít případ`); await over("card approved");
+  await c('[data-act="closecase"]');
+  ok(await page.evaluate(() => P("10_pacient.pdf").status === "closed" && slotLocked(P("10_pacient.pdf"))) && await page.locator('[data-act="closecase"]').count() === 0, `${width} case closed from the card, slot stays locked`);
+  // "Další diagnózy" line is italic
+  ok(await page.locator(".otherdx").evaluate(el => getComputedStyle(el).fontStyle === "italic"), `${width} other diagnoses line italic`);
   await page.close();
 }
 await browser.close();
