@@ -1,0 +1,268 @@
+{
+  "guidelines": [
+    {
+      "id": "eano-esmo-2021-bm",
+      "name": "EANO-ESMO Clinical Practice Guidelines for diagnosis, treatment and follow-up of patients with brain metastasis from solid tumours",
+      "society": "EANO, ESMO",
+      "year": 2021,
+      "version": "Le Rhun E et al. Ann Oncol 2021;32(11):1332-1347, doi:10.1016/j.annonc.2021.07.016",
+      "region": "EU",
+      "url": "https://doi.org/10.1016/j.annonc.2021.07.016",
+      "pdf_url": "https://www.annalsofoncology.org/article/S0923753421022146/pdf",
+      "file": "docs/sources/guidelines/eano-esmo-2021-brain-metastases.pdf",
+      "license": "© 2021 European Society for Medical Oncology, published by Elsevier Ltd, 'All rights reserved' (printed on page 1). Free to read (Elsevier open access user license 1.0, http://www.elsevier.com/open-access/userlicense/1.0/, per the Elsevier API record), which allows reading and personal use, not redistribution. Our copy is the publisher PDF from the Sapienza IRIS repository (hdl.handle.net/11573/1676379); OpenAlex tags that repository copy cc-by-nc-nd, which conflicts with the 'All rights reserved' line in the PDF.",
+      "republish_ok": false
+    },
+    {
+      "id": "cos-mk-2026",
+      "name": "Modrá kniha České onkologické společnosti",
+      "society": "Česká onkologická společnost ČLS JEP",
+      "year": 2026,
+      "version": "32. aktualizace, platnost od 1. 3. 2026 (ISBN 978-80-86793-63-4)",
+      "region": "CZ",
+      "url": "https://www.linkos.cz/lekar-a-multidisciplinarni-tym/personalizovana-onkologie/modra-kniha-cos/aktualni-vydani-modre-knihy/",
+      "pdf_url": "https://www.linkos.cz/files/modra-kniha/26.pdf",
+      "file": "docs/sources/guidelines/cos-modra-kniha-2026.pdf",
+      "license": "© Masarykův onkologický ústav, 2026 (imprint, PDF page 3). Published free online on linkos.cz; no licence for redistribution found on linkos.cz or in the PDF. Short quotations with source are allowed under the Czech copyright citation exception; republishing the whole PDF is not granted.",
+      "republish_ok": false
+    }
+  ],
+  "statements": [
+    {
+      "id": "eano-srs-1-4",
+      "guideline_id": "eano-esmo-2021-bm",
+      "section": "Management - Recommendations - Radiotherapy",
+      "pdf_page": 7,
+      "printed_page": 1338,
+      "quote": "SRS is recommended for patients with a limited number (1-4) of BMs",
+      "evidence": "EANO: I, A; ESMO: I, A",
+      "applies_because_cs": "Jediné ložisko podezřelé z metastázy (počet 1, tedy v rozmezí 1-4). Metastáza zatím není potvrzena.",
+      "patient_facts": [
+        "MR mozku 14. 9. 2026: solitární sytící se ložisko v pravé hemisféře mozečku do 3 mm, susp. metastáza"
+      ],
+      "kind": "brain_metastasis"
+    },
+    {
+      "id": "eano-posterior-fossa",
+      "guideline_id": "eano-esmo-2021-bm",
+      "section": "Management - Surgery",
+      "pdf_page": 4,
+      "printed_page": 1335,
+      "quote": "Posterior fossa location often constitutes a surgical indication because of the risk of obstructive hydrocephalus.",
+      "evidence": "bez stupně (text kapitoly, ne doporučení)",
+      "applies_because_cs": "Ložisko je v mozečku (zadní jáma lební). Velikost do 3 mm; věta v textu se týká rizika obstrukčního hydrocefalu.",
+      "patient_facts": [
+        "MR mozku 14. 9. 2026: solitární sytící se ložisko v pravé hemisféře mozečku do 3 mm, susp. metastáza"
+      ],
+      "kind": "brain_metastasis"
+    },
+    {
+      "id": "eano-srs-vs-surgery-factors",
+      "guideline_id": "eano-esmo-2021-bm",
+      "section": "Integrated therapeutic approaches",
+      "pdf_page": 8,
+      "printed_page": 1339,
+      "quote": "Factors favouring SRS alone over surgery commonly followed by SRS or systemic therapy include a surgically less accessible location, increased surgical risk and preference for a noninvasive outpatient treatment.",
+      "evidence": "bez stupně (text kapitoly, ne doporučení)",
+      "applies_because_cs": "MDT volí mezi lokální léčbou a sledováním malého ložiska v mozečku.",
+      "patient_facts": [
+        "MR mozku 14. 9. 2026: solitární sytící se ložisko v pravé hemisféře mozečku do 3 mm, susp. metastáza",
+        "ECOG PS 1, bez klinických známek mozkových metastáz (občasné mžitky před očima)"
+      ],
+      "kind": "brain_metastasis"
+    },
+    {
+      "id": "eano-no-trials-timing",
+      "guideline_id": "eano-esmo-2021-bm",
+      "section": "Integrated therapeutic approaches",
+      "pdf_page": 8,
+      "printed_page": 1339,
+      "quote": "For patients with asymptomatic or oligosymptomatic BM, no prospective trials have addressed the question of optimal combined modality treatment with systemic therapy, including TKI or immune checkpoint inhibition, and surgery or SRS.",
+      "evidence": "bez stupně (text kapitoly, ne doporučení)",
+      "applies_because_cs": "Ložisko je bez klinických projevů a pacient je na systémové léčbě (everolimus); otázka načasování lokální léčby vůči systémové.",
+      "patient_facts": [
+        "MR mozku 14. 9. 2026: solitární sytící se ložisko v pravé hemisféře mozečku do 3 mm, susp. metastáza",
+        "ECOG PS 1, bez klinických známek mozkových metastáz (občasné mžitky před očima)",
+        "od 9/2026 3. linie everolimus 5 mg"
+      ],
+      "kind": "brain_metastasis"
+    },
+    {
+      "id": "eano-bm-board",
+      "guideline_id": "eano-esmo-2021-bm",
+      "section": "Integrated therapeutic approaches - Recommendations",
+      "pdf_page": 8,
+      "printed_page": 1339,
+      "quote": "Ideally, therapeutic decisions should be discussed at a dedicated BM board or at a disease-specific tumour board with participation of colleagues experienced in the management of CNS tumours",
+      "evidence": "EANO: IV, n/a; ESMO: V, B",
+      "applies_because_cs": "Pacient je projednáván na MDT kvůli podezření na metastázu v mozečku.",
+      "patient_facts": [
+        "MR mozku 14. 9. 2026: solitární sytící se ložisko v pravé hemisféře mozečku do 3 mm, susp. metastáza"
+      ],
+      "kind": "brain_metastasis"
+    },
+    {
+      "id": "eano-mri-2-3-months",
+      "guideline_id": "eano-esmo-2021-bm",
+      "section": "Monitoring and follow-up - Recommendations",
+      "pdf_page": 12,
+      "printed_page": 1343,
+      "quote": "Brain MRI should be carried out every 2-3 months or at any instance of suspected neurological progression [EANO: IV, C; ESMO: IV, B]",
+      "evidence": "EANO: IV, C; ESMO: IV, B",
+      "applies_because_cs": "Doporučení platí pro sledování pacientů s mozkovými metastázami; u pacienta je metastáza zatím jen suspektní (MR 14. 9. 2026).",
+      "patient_facts": [
+        "MR mozku 14. 9. 2026: solitární sytící se ložisko v pravé hemisféře mozečku do 3 mm, susp. metastáza",
+        "ECOG PS 1, bez klinických známek mozkových metastáz (občasné mžitky před očima)"
+      ],
+      "kind": "brain_metastasis"
+    },
+    {
+      "id": "eano-systemic-prev-treatment",
+      "guideline_id": "eano-esmo-2021-bm",
+      "section": "Management - Recommendations - Pharmacotherapy",
+      "pdf_page": 7,
+      "printed_page": 1338,
+      "quote": "Systemic pharmacotherapy based on histological and molecular characteristics of the primary tumour and previous treatment should be considered for most patients with BMs",
+      "evidence": "EANO: IV, n/a; ESMO: IV, B",
+      "applies_because_cs": "Primární nádor: světlobuněčný karcinom ledviny G2; tři předchozí linie systémové léčby.",
+      "patient_facts": [
+        "světlobuněčný renální karcinom G2, nefrektomie vpravo 6/2022, pT2a pN1 M0",
+        "1. linie nivolumab + ipilimumab, progrese (iRECIST potvrzena 1/2026)",
+        "2. linie sunitinib 1-8/2026, progrese",
+        "od 9/2026 3. linie everolimus 5 mg"
+      ],
+      "kind": "systemic_therapy"
+    },
+    {
+      "id": "eano-cns-extracns-activity",
+      "guideline_id": "eano-esmo-2021-bm",
+      "section": "Management - Pharmacotherapy",
+      "pdf_page": 5,
+      "printed_page": 1336,
+      "quote": "In the situations of multiple systemic treatment options, CNS and extra-CNS disease activity as well as toxicity profile of the respective treatment options should be considered in the decision-making process for the optimal systemic treatment strategy",
+      "evidence": "EANO: IV, A; ESMO: IV, B",
+      "applies_because_cs": "MDT se ptá i na pozdější systémové možnosti; vedle ložiska v mozečku je extrakraniální onemocnění (uzliny, kůže, nejasná ložiska Th/L).",
+      "patient_facts": [
+        "MR mozku 14. 9. 2026: solitární sytící se ložisko v pravé hemisféře mozečku do 3 mm, susp. metastáza",
+        "histologicky ověřené metastázy (paraaortální uzlina, kůže)",
+        "možná drobná osteoplastická ložiska Th/L (nejasné)"
+      ],
+      "kind": "systemic_therapy"
+    },
+    {
+      "id": "cos-3l-after-io-tki",
+      "guideline_id": "cos-mk-2026",
+      "section": "21.2.2 Systémová léčba metastatického karcinomu ledviny - Léčebný algoritmus - Léčba mRCC třetí linie - Předchozí léčba IO a inhibitorem VEGF-TKI",
+      "pdf_page": 217,
+      "printed_page": 217,
+      "quote": "Kabozantinib (2A) Everolimus (2A) Dosud nepoužitý VEGF-TKI (2B) Belzutifan (2B) Lenvatinib a everolimus (2B)",
+      "evidence": "stupeň ČOS u každého léku: 2A, 2A, 2B, 2B, 2B",
+      "applies_because_cs": "Pacient měl IO (nivolumab + ipilimumab) a VEGF-TKI (sunitinib); everolimus ze stejného boxu už dostává. Algoritmus nemá box pro 4. linii.",
+      "patient_facts": [
+        "1. linie nivolumab + ipilimumab, progrese (iRECIST potvrzena 1/2026)",
+        "2. linie sunitinib 1-8/2026, progrese",
+        "od 9/2026 3. linie everolimus 5 mg"
+      ],
+      "kind": "systemic_therapy"
+    },
+    {
+      "id": "cos-lines-not-limited",
+      "guideline_id": "cos-mk-2026",
+      "section": "21.2.2 Systémová léčba metastatického karcinomu ledviny - Komentář k léčebným schématům",
+      "pdf_page": 218,
+      "printed_page": 218,
+      "quote": "Počet linií léčby mRCC by neměl být limitován jinak než stavem nemocného a dostupností léků (2A).",
+      "evidence": "ČOS 2A",
+      "applies_because_cs": "Pacient je ve 3. linii; MDT se ptá na další systémové možnosti. ECOG PS 1.",
+      "patient_facts": [
+        "1. linie nivolumab + ipilimumab, progrese (iRECIST potvrzena 1/2026)",
+        "2. linie sunitinib 1-8/2026, progrese",
+        "od 9/2026 3. linie everolimus 5 mg",
+        "ECOG PS 1"
+      ],
+      "kind": "systemic_therapy"
+    },
+    {
+      "id": "cos-clinical-trial",
+      "guideline_id": "cos-mk-2026",
+      "section": "21.2.2 Systémová léčba metastatického karcinomu ledviny - Komentář k léčebným schématům",
+      "pdf_page": 218,
+      "printed_page": 218,
+      "quote": "U nemocných s mRCC by mělo být zvažováno zařazení do klinické studie.",
+      "evidence": "bez stupně",
+      "applies_because_cs": "Metastatický světlobuněčný RCC po vyčerpání IO a VEGF-TKI.",
+      "patient_facts": [
+        "1. linie nivolumab + ipilimumab, progrese (iRECIST potvrzena 1/2026)",
+        "2. linie sunitinib 1-8/2026, progrese",
+        "od 9/2026 3. linie everolimus 5 mg"
+      ],
+      "kind": "systemic_therapy"
+    },
+    {
+      "id": "cos-metastasectomy-sbrt",
+      "guideline_id": "cos-mk-2026",
+      "section": "21.2.1 Chirurgická léčba metastatického karcinomu ledviny",
+      "pdf_page": 216,
+      "printed_page": 216,
+      "quote": "Chirurgická léčba metastáz je doporučena v případě možnosti jejich kompletního odstranění a zvážení přínosu vs. operační zátěže (úroveň důkazů 2A), alternativou může být využití lokálně ablativních metod (např. SBRT).",
+      "evidence": "ČOS 2A",
+      "applies_because_cs": "Věta platí obecně pro metastázy RCC, mozek nejmenuje. MDT zvažuje lokální léčbu ložiska v mozečku.",
+      "patient_facts": [
+        "MR mozku 14. 9. 2026: solitární sytící se ložisko v pravé hemisféře mozečku do 3 mm, susp. metastáza"
+      ],
+      "kind": "brain_metastasis"
+    }
+  ],
+  "not_retrieved": [
+    {
+      "name": "ESMO Clinical Practice Guideline: Renal cell carcinoma (Powles T et al., Ann Oncol 2024;35(8):692-706) a ESMO Living Guideline RCC v1.1 (červen 2025)",
+      "society": "ESMO",
+      "region": "EU",
+      "url": "https://www.esmo.org/guidelines/esmo-clinical-practice-guideline-renal-cell-carcinoma",
+      "pdf_url": "https://www.annalsofoncology.org/action/showPdf?pii=S0923-7534%2824%2900676-8",
+      "reason": "PDF nelze stáhnout (vydavatel 403, není v PMC, kopie v repozitáři je neveřejná); sada snímků Living Guideline obsahuje jen obrázky bez textu, citace proto nelze ověřit"
+    }
+  ],
+  "pages": [
+    {
+      "guideline_id": "cos-mk-2026",
+      "pdf_page": 216,
+      "text": "riziku (především pak v přítomnosti jednoho rizikového faktoru). Navíc ve studii CARMENA byl hodnocen sunitinib, který\ndnes již nepředstavuje preferovanou možnost léčby první paliativní linie. Recentně publikovaná data ukazují, že klinické\nvýsledky jednotlivých podskupin pacientů podstupující léčbu moderní imunoterapií byly lepší, pokud podstoupili primární nebo odloženou (při efektu systémové terapie) cytoredukční nefrektomii. U pacientů v nepříznivé rizikové skupině je primárně indikovaná systémová léčba. U všech nemocných podstupujících primárně systémovou terapii (zejména\nimunoterapii) je možné zvážit, dle odpovědi na léčbu, odloženou nefrektomii, buď jako cytoredukci, nebo jako pokus\no kurativní léčbu po vymizení, dlouhodobé stabilizaci nebo adekvátním ošetření všech metastáz (úroveň důkazů 2A).\n• \u0007Chirurgická léčba metastáz je doporučena v případě možnosti jejich kompletního odstranění a zvážení přínosu vs. operační zátěže (úroveň důkazů 2A), alternativou může být využití lokálně ablativních metod (např. SBRT).\n\n21.2.2 Systémová léčba metastatického karcinomu ledviny\nPro léčbu v první linii cílené terapie multikinázovými inhibitory se používá skórovací systém dle MSKCC z roku 2002 (Motzer a kol. 2002) – tabulka 1 nebo dle IMDC (Heng a kol. 2009) – tabulka 2. Při použití kombinované terapie (TKI a checkpoint inhibitory, či nivolumabu a ipilimumabu) se používá skórování dle IMDC. Při stanovení prognostické kategorie je\nnutno dodržovat aktuální indikační omezení a způsob úhrady stanované SÚKL – úhrada může být vázána jen na MSKCC\nnebo jen na IMDC kritéria.\nTabulka 1: Skórovací systém dle MSKCC z roku 2002: platí pro léčbu TKI.\n• LDH > 1,5násobek horní hranice normy,\n• hemoglobin < dolní hranice normy,\n• korigované sérové kalcium > 2,5 mmol/l,\n• Karnofsky index ≤ 70 %,\n• interval < 1 rok od diagnózy do započetí systémové léčby.\nDobrá prognóza: žádný faktor\nStřední prognóza: 1 nebo 2 faktory\nŠpatná prognóza: 3 a více faktorů\nTabulka 2: Skórovací systém dle IMDC z roku 2009: platí pro léčbu TKI nebo kombinace TKI a imunoterapie či nivolumabu\na ipilimumabu\n• hemoglobin < dolní hranice normy,\n• korigované sérové kalcium > 2,5 mmol/l,\n• Karnofsky index ≤ 70 %,\n• interval < 1 rok od diagnózy do započetí systémové léčby,\n• neutrofily nad horní limit normy,\n• trombocyty nad horní limit normy.\nDobrá prognóza: žádný faktor\nStřední prognóza: 1 nebo 2 faktory\nŠpatná prognóza: 3 a více faktorů\n\n"
+    },
+    {
+      "guideline_id": "cos-mk-2026",
+      "pdf_page": 217,
+      "text": "Léčebný algoritmus u pokročilého karcinomu ledviny. Preferovanou léčbou je možnost s vyšší úrovní důkazů.\nPostup při progresi onemocnění během či po skončení adjuvantní léčby pembrolizumabem\nPacienti s mRCC a progresí během/po adjuvantní léčbě pembrolizumabem\n\nRecidiva během adjuvantní\nléčby pembrolizumabem\n\nRecidiva od ukončení adjuvantní\nléčby pembrolizumabem do 1 roku\n\nPo jednom roce a více od ukončení\nléčby pembrolizumabem\n\nMonoterapie VEGF-TKI (2A)\n\nMonoterapie VEGF-TKI\nči jako první linie léčby mRCC –\nindividuální posouzení (2B)\n\nJako první linie léčby mRCC (2A)\n\nPrvní linie léčby mRCC\nSvětlobuněčný karcinom\n\ndobrá prognóza\n\nstřední prognóza\n\nšpatná prognóza\n\nAxitinib+ pembrolizumab (1)\nKabozantinib + nivolumab (1)\nLenvatinib + pemrolizumab (1)\nPazopanib (2A)\nSunitinib (2A)\nAxitinib + avelumab (2A)\nNivolumab + ipilimumab (2A)\nTivozanib (2B)\n\nNivolumab + ipilimumab (1)\nAxitinib+ pembrolizumab (1)\nKabozantinib + nivolumab (1)\nLenvatinib + pemrolizumab (1)\nKabozantinib (2A)\nPazopanib (2A)\nSunitinib (2A)\nAxitinib + avelumab (2A)\nTivozanib (2B)\n\nNivolumab + ipilimumab (1)\nAxitinib+ pembrolizumab (1)\nKabozantinib + nivolumab (1)\nLenvatinib + pemrolizumab (1)\nKabozantinib (2A)\nPazopanib (2A)\nSunitinib (2A)\nAxitinib + avelumab (2A)\nTivozanib (2B)\n\nNesvětlobuněčný renální karcinom\nNesvětlobuněčný renální karcinom\n(kromě medulárního karcinomu)\n\nLenvatinib a pembrolizumab (2A)\nKabozantinib a nivolumab (2A)\nKabozantinib (2B)\nNivolumab + ipilimumab (2B)\nPembrolizumab (2B)\nSunitinib (2B)\nPazopanib (2B)\nLenvatinib a everolimus (2B)\n\nLéčba mRCC druhé linie\nPředchozí léčba VEGF-TKI\n(tyrozinkinázový inhibitor)\n\nPředchozí léčba moderní\nimunoterapií (IO)\n\nPředchozí léčba tyrozinkinázovým\ninhibitorem a IO\n\nNivolumab (1)\nKabozantinib (1)\nAxitinib (2A)\nEverolimus (2B)\nDosud nepoužitý VEGF-TKI (2B)\n\nKabozantinib (2A)\nPazopanib (2A)\nSunitinib (2A)\nAxitinib (2A)\nEverolimus (2B)\n\nDosud nepoužitý VEGF-TKI (2A)\nEverolimus (3)\nBelzutifan (2B)\nLenvatinib a everolimus (2B)\n\nLéčba mRCC třetí linie\nPředchozí léčba VEGF-TKI\na inhibitorem mTOR\n\nPředchozí léčba IO\na inhibitorem VEGF-TKI\n\nPředchozí léčba dvěma\ninhibitory VEGF-TKI\n\nSorafenib (2A)\nNivolumab (2A)\nKabozantinib (2A)\nDosud nepoužitý VEGF-TKI (2B)\n\nKabozantinib (2A)\nEverolimus (2A)\nDosud nepoužitý VEGF-TKI (2B)\nBelzutifan (2B)\nLenvatinib a everolimus (2B)\n\nNivolumab (1)\nKabozantinib (1)\nEverolimus (1)\nDosud nepoužitý VEGF-TKI (2B)\n\n"
+    },
+    {
+      "guideline_id": "cos-mk-2026",
+      "pdf_page": 218,
+      "text": "Poznámka:\nČerveně jsou označeny moderní léky, které nemají k 1. 3. 2026 stanovenu úhradu ze zdravotního pojištění. Ve\nvyšších liniích léčby nelze barevně odlišit hrazenou a nehrazenou léčbu pro různé znění úhrad u daných preparátů.\nIndikace moderních preparátů je podmíněna splněním pravidel úhrady dle SÚKL (www.sukl.cz).\n\nKomentář k léčebným schématům\n• \u0007Uvedená doporučení jsou založená na nejnovějších medicínských poznatcích a nemusí se vždy shodovat s pravidly úhrady léku od plátce péče.\n• \u0007Pokud se týká kombinačních režimů, jsou v první linii léčby pacientů s mRCC v dobré prognostické skupině ze\nzdravotního pojištění hrazena kombinace axitinibu a avelumabu, kabozantinibu a nivolumabu nebo lze podat\nsunitinib nebo pazopanib v monoterapii (je možno zvolit i strategii sledování – watch and wait). U pacientů se\nstřední a špatnou prognózou jsou v první linii léčby pacientů s mRCC doporučeny kombinované režimy s moderní imunoterapií (IO) (viz Léčebný algoritmus paliativní léčby I. linie). V případě kontraindikace či nevhodnosti\nimunoterapeutických kombinací lze podat u pacientů se střední prognózou kabozantinib, sunitinib nebo pazopanib v monoterapii, u pacientů se špatnou prognózou kabozantinib v monoterapii.\n• \u0007U nemocných s mRCC by mělo být zvažováno zařazení do klinické studie.\n• \u0007Doporučuje se zahajovat terapii plnou dávkou cíleného léku s redukcí dávky při limitující toxicitě (2A).\n• \u0007Několik studií ukázalo, že na základě PFS v první linii léčby nelze předpovídat PFS na 2. linii terapie.\n• \u0007U RCC se sarkomatoidní složkou je nutné preferovat především kombinovanou imunoterapii checkpoint inhibitory\nnebo kombinaci checkpoint inhibitorů s TKI, které výrazně zlepšují výsledky ve srovnánís monoterapií tyrozinkinázovámi inhibitory (1; nutno dodržovat úhradové omezení).\n• \u0007U nemocných s indolentním průběhem onemocnění (především v dobré prognostické skupině) je možné sledování bez\nsystémové protinádorové léčby (2A).\n• \u0007U pacientů s nesvětlobuněčným pokročilým renálním karcinomem by měla být léčba individualizována dle podtypu,\ndoporučené schéma v léčebném algoritmu je orientační a nelze aplikovat na všechny podtypy RCC. Pro vedení léčby\ndoporučujeme sledovat např. NCCN či ESMO guidelines. Naprosto výjimečný přístup vyžadují především medulární\nrenální karcinom a karcinom ze sběrných kanálků (léčba u karcinomu ze sběrných kanálků je založena především na\nchemoterapii).\n• \u0007Počet linií léčby mRCC by neměl být limitován jinak než stavem nemocného a dostupností léků (2A). Vyšší počet použitých linií pozitivně koreloval v retrospektivních studiích s celkovým přežitím pacientů.\n• \u0007Belzutifan je indikován v monoterapii k léčbě dospělých pacientů s von Hippelovou-Lindauovou chorobou (VHL),\nu nichž nejsou lokalizované procedury vhodné, a kteří vyžadují léčbu klinických projevů VHL:\n- lokalizovaného karcinomu ledvin (RCC),\n- hemangioblastomů nebo jiných lézí centrálního nervového systému (CNS) nebo oka,\n- neuroendokrinních nádorů pankreatu (pNET).\nDoporučení uvedená v Modré knize vychází z medicíny založené na důkazech. Postupně se budeme snažit k jednotlivým\ndoporučením přičlenit také určitý stupeň, který vyjadřuje míru důkazů a míru doporučení ČOS. Vycházíme z modifikovaného systému, který používá NCCN a ESMO.\nČOS: Stupně evidence a doporučení\nStupeň 1\nZaloženo na vysokém stupni důkazů, jednotné doporučení ČOS, že léčba je vhodná.\nStupeň 2A\nZaloženo na nižším stupni důkazů, jednotné doporučení ČOS, že léčba je vhodná.\nStupeň 2B\nZaloženo na nižším stupni důkazů, doporučení ČOS, že léčba je vhodná.\nStupeň 3\nZaloženo na jakémkoliv stupni důkazů, v rámci ČOS není shoda o vhodnosti léčby.\n\n"
+    },
+    {
+      "guideline_id": "eano-esmo-2021-bm",
+      "pdf_page": 4,
+      "text": "E. Le Rhun et al.\n\nsymptoms or signs of raised intracranial pressure, seizures and new neurological deficits [EANO III, B; ESMO\nIII, B].\n\u0001 The diagnostic work-up of patients with suspected BM\nshould include cranial MRI with pre- and post-contrast\nT1-weighted, T2-weighted and/or T2-FLAIR and\ndiffusion-weighted sequences [EANO: III, C; ESMO: IV, B].\n\u0001 Histopathological and immunohistochemical work-up of\nBM should follow local institutional algorithms [EANO:\nIV, n/a; ESMO: V, B].\n\u0001 In patients undergoing neurosurgical resection,\ntreatment-relevant predictive biomarkers detected in\nthe primary tumour or extra-central nervous system\n(CNS) metastasis should be reconfirmed in the BM\n[EANO: IV, n/a; ESMO: V, B].\n\u0001 Cell-free tumour DNA in the blood or cerebrospinal fluid\n(CSF) analyses should not be routinely requested for the\ncharacterisation or monitoring of BM [EANO: IV, n/a;\nESMO: IV, C].\n\u0001 CSF studies including cytology should be carried out to\nrule out leptomeningeal metastasis if suspected based\non clinical or neuroimaging findings [EANO: III, C;\nESMO: IV, B].\n\nTHERAPEUTIC STRATEGIES: GENERAL CONSIDERATIONS\nFor the majority of patients, the goal of treatment of BM is\nto prevent or delay neurological deterioration and to prolong survival with acceptable quality of life. A minority of\npatients, notably with small and few lesions, may experience long-term survival or even cure. Several tumourspecific approaches are commonly used in combination.\nSurgery\nDiagnostic considerations. Neurosurgical interventions with\ndiagnostic intention are required in several clinical scenarios, including patients where neuroimaging leaves doubt\nthat lesions represent BMs, where no primary tumour is\nknown, where more than one tumour is known, where the\nprimary tumour rarely generates BM or where changes in\nmolecular profile compared with the primary tumour may\nimpact clinical decision making [EANO: III, C; ESMO: IV, B].\nThe diagnostic value of biopsy to distinguish progression\nfrom therapy-induced changes after stereotactic radiotherapy (SRT) remains limited because active tumour- and\ntherapy-induced changes like necrosis may coexist, but not\nadequately be represented in the biopsy material.\nTherapeutic considerations. The therapeutic value of\nneurosurgical resection at least of single BMs in patients\nwith controlled systemic disease remains undisputed.\nExtent of resection is associated with local control of\nBM15,16 [EANO: I, A; ESMO: II, A]. En bloc resections may\nresult in lower recurrence rates and lower risk of leptomeningeal dissemination than piecemeal resections.17\nThe likelihood of gross total BM resection with low\nmorbidity can be increased using preoperative functional\nVolume 32 - Issue 11 - 2021\n\nAnnals of Oncology\nMRI, intraoperative neuronavigation, fluorescence-guided\nresection and cortical mapping.18-21 A post-operative MRI\nshould be carried out within 48 h after surgery to determine\nthe extent of resection.\nThe randomised clinical trials that demonstrated\nimproved survival when surgical resection was followed by\nwhole-brain radiotherapy (WBRT), compared with WBRT\nalone in patients with single BMs, were conducted decades\nago at a time when surgical and imaging techniques were\ndifferent and when no active systemic treatments were\navailable. These trials also commonly pooled patients with\nBMs from different primary tumours.22,23 Extrapolating\nthese data to modern neurosurgery has led to the\nassumption that similar improvements in outcome may be\nachieved with surgical interventions in patients with more\nthan one BM if a gross total resection is feasible.\nThere are specific scenarios where surgery should be\nconsidered for its immediate therapeutic effect in patients\nwith multiple BMs. This includes large BMs (>3 cm diameter) causing raised intracranial pressure or neurological\nimpairment when located in eloquent brain regions. Posterior fossa location often constitutes a surgical indication\nbecause of the risk of obstructive hydrocephalus. Cystic or\nnecrotic BMs are another indication since these may\nrespond less well to SRT than solid BMs. Prior cyst aspiration followed by radiosurgery may also be considered.24,25\nSurgical resection, more than any other intervention, allows rapid steroid tapering and optimises the therapeutic\nefficacy of ensuing therapy, notably immune checkpoint\ninhibition.26 Surgery is less often indicated for patients with\nrecurrent BM, although the above-mentioned individual\nconsiderations may apply, notably if further promising systemic treatment options are available.\nLaser interstitial thermal therapy is a novel intervention\nmostly for recurrent brain tumours as well as for radiation\nnecrosis, with encouraging local control data,27 but the\ndefinition of its role in the management of BM requires\nfurther study.28\nAll indications for surgical interventions in BM, except\nemergency situations, should be assessed for risk and\nbenefit in a multidisciplinary tumour board since the majority of BM patients die of systemic disease and not of BM.\nSpecifically, the role of surgery versus SRT needs to be\nweighted and it has to be determined which kind of molecular neuropathology work-up is required, to secure that\nan adequate amount and quality of tissue is obtained to\nmaximise benefit for the patients.\nRadiotherapy\nStereotactic radiosurgery. Whereas WBRT has been the\nhistorical mainstay of radiotherapy (RT) for treatment of\nBM, stereotactic radiosurgery (SRS) has today become the\nstandard of care in many clinical situations. In general, SRS\nis defined as the delivery of high doses of radiation via\nstereotactic or image guidance with w1 mm targeting accuracy to intracranial targets. It is commonly given as single\nfraction utilising doses between 15 and 24 Gy. Fractionated\nhttps://doi.org/10.1016/j.annonc.2021.07.016\n\n1335\n\n"
+    },
+    {
+      "guideline_id": "eano-esmo-2021-bm",
+      "pdf_page": 5,
+      "text": "E. Le Rhun et al.\n\nAnnals of Oncology\nSRS given in two to five fractions typically delivered with 27\nGy in three fractions or 30 Gy in five fractions29 is preferred\nin patients with larger lesions (>3 cm diameter) or lesions\nin proximity of structures at risk, e.g. the brain stem or in\npre-irradiated patients.\nSRS added to WBRT improves overall survival (OS) in\npatients with 1-3 BMs.30 SRS has been increasingly used in\npatients with >3 BMs. A prospective multicentre study\n(JLGK0901) of 1194 patients with 1-10 BMs who received\nSRS alone showed a similar survival of 10.8 months in patients with 2-4 versus 5-10 BMs.31 Treatment-related\ntoxicity was low, with neurocognitive function assessed by\nthe mini-mental state examination being similar between\ngroups when cumulative tumour volume was <15 ml.32\nBecause of high local recurrence rates after neurosurgical\nresection alone, two randomised trials evaluated SRS to the\nresection cavity after neurosurgical resection of BMs. Brown\net al. randomised 194 patients to post-operative WBRT or\nSRS.33 There was no difference in OS and the decline in\ncognitive function was more frequent after WBRT. Mahajan\net al. randomised 132 patients to either post-operative SRS\nor observation.34 Freedom from local recurrence was\nsignificantly improved by post-operative SRS. In case of\nlarger resection cavities, a risk-adapted fractionation is\nencouraged where the total dose is distributed over three\nto five fractions.\nWhole-brain radiotherapy. WBRT, typically 20-30 Gy in 5-10\nfractions, has been used either as a consolidating treatment\nafter local therapy or as the primary treatment modality\nprimarily for patients with multiple BMs. WBRT after\nneurosurgical resection or SRS of limited BMs improved\nlocal and distant brain control, but not OS, and was associated with a detrimental effect on neurocognitive function.35-37 In addition, no benefit for WBRT was\ndemonstrated in a randomised phase III trial in melanoma\npatients already locally treated for one to three BMs.37\nWhen used as initial treatment for patients with multiple\nBMs, WBRT is associated with a median survival of 3-6\nmonths, with 10%-15% of BM patients alive at 1 year.38 The\nQUARTZ trial, which randomised NSCLC patients not eligible\nfor surgery or SRT to receive optimal supportive care or\noptimal supportive care plus WBRT (20 Gy in five fractions),\nshowed similar median survival of w9 weeks in both\narms,39 with no significant reduction in quality of life for\npatients receiving supportive care only. Yet, WBRT may still\nhave a role for the management of patients with multiple\nlarge unresectable BMs in the context of a recent diagnosis\nof cancer, in younger patients and in patients in good\ngeneral performance status (PS).\nNew WBRT-based approaches have also been evaluated\nin patients with multiple BMs. The simultaneous integrated\nboost technique allows an additional focal dose escalation\nin macroscopic BMs compared with WBRT alone. Radiation\nTherapy Oncology Group (RTOG) 0614 showed a trend towards neurocognitive protection by memantine when\ncombined with WBRT.40 The NRG CC001 trial compared\nWBRT plus memantine with hippocampal avoiding (HA)1336\n\nhttps://doi.org/10.1016/j.annonc.2021.07.016\n\nWBRT plus memantine and reported significantly preserved\npatient-reported quality of life and prevention of cognitive\ndecline throughout the follow-up period.41 The implications\nof these data for the use of memantine remain unclear\nbecause memantine alone was not active when combined\nwith WBRT and whether it helped HA-WBRT to be active\ncannot be determined.\nProphylactic cranial irradiation. Prophylactic cranial irradiation (PCI) has been established as a standard of care in\nsmall-cell lung cancer (SCLC), both in limited42 and extensive disease.43 However, PCI is currently being challenged\ndue to its toxicity in extensive-stage SCLC by the introduction of serial MRI-based follow-up44,45 and immune checkpoint inhibition.46 A randomised phase III trial showed no\nlower probability of cognitive decline in patients treated\nwith PCI associated with hippocampal avoidance when\ncompared to standard PCI. No difference in incidence rate\nof BM at 2 years or in survival was observed either.47 Hippocampal sparing can thus not be considered standard of\ncare in this setting.\nPharmacotherapy\nMost BMs exhibit uptake of contrast on MRI or CT and are\nthus characterised by the lack of a functional bloodebrain\nbarrier. Intravenously (i.v.) administered drugs are predicted to distribute in the same way as i.v. administered\ncontrast agents for neuroimaging, suggesting that systemic\npharmacotherapy could be as efficient for contrastenhancing BMs as for other systemic tumour manifestations. However, to what extent uptake of a gadoliniumbased contrast agent truly allows prediction of adequate\npenetration of larger molecules (like monoclonal antibodies\nor antibodyedrug conjugates) remains uncertain. The\nchoice of agent is primarily determined by histological and\nmolecular tumour type and not by the metastasis location\nin the brain. If feasible, molecular genetic work-up of BMs\nrather than primary tumour should be considered for\nselecting targeted therapy and immunotherapy in a tumourspecific manner [EANO: IV, C; ESMO: IV, B]. Drugs with\nbetter bloodebrain barrier penetration are predicted to\nprovide superior tumour control, notably in tumour areas\nthat are partially protected by the bloodebrain barrier.\nPrevious lines of treatment should also be considered in the\ndecision making. In the situations of multiple systemic\ntreatment options, CNS and extra-CNS disease activity as\nwell as toxicity profile of the respective treatment options\nshould be considered in the decision-making process for the\noptimal systemic treatment strategy [EANO: IV, A; ESMO:\nIV, B].\nPreliminary evidence suggests that steroid use has a\nnegative impact on outcome of immunotherapy in BM\npatients.48\nBM from breast cancer. Systemic therapy plays an important role in the control of BM from breast cancer. Different\ndrugs have been used for the treatment of BM including\nclassical chemotherapy agents such as capecitabine,\nVolume 32 - Issue 11 - 2021\n\n"
+    },
+    {
+      "guideline_id": "eano-esmo-2021-bm",
+      "pdf_page": 7,
+      "text": "E. Le Rhun et al.\n\nAnnals of Oncology\nBM from melanoma. Systemic chemotherapy using classical\nagents such as temozolomide, dacarbazine or fotemustine\nhas only limited efficacy in melanoma patients with BM.68\nMonotherapy using the BRAF inhibitors vemurafenib or\ndabrafenib in BRAF-mutated patients with melanoma BM\nachieved intracranial response rates between 15% and\n40%;69-71 and improved intracranial response rates up to\n60% were observed with the combination of vemurafenib\nand dabrafenib in asymptomatic untreated BM, similar to the\nresponse rate in other organ sites with, however, overall\nshort duration of response.72 Anti-PD-1 monotherapy or\nipilimumab plus nivolumab has been investigated in patients\nwith BM: in patients with asymptomatic BM, current data\nfavour the combination with an overall response rate of\nw50%,73,74 reasonable response duration and PFS of >50%\nat 18 months. However, the inclusion criteria in these trials\nwere stringent resulting in asymptomatic or oligosymptomatic patient populations with low CNS tumour burden.\nBased on these data, ipilimumabenivolumab combination\ntherapy is the preferred first-line treatment also in BRAFmutated asymptomatic patients with BMs [EANO: II, B;\nESMO: II, B]. Importantly, efficacy of ipilimumabenivolumab\ncombination seems to be lower in patients with symptomatic\nBM requiring steroids with 21%74 intracranial response rates.\nRecommendations\nSurgery\n\u0001 Surgery should be considered when there is doubt on the\nneoplastic nature of a brain lesion, when no primary\ntumour is known, when more than one tumour is known,\nwhen the primary tumour rarely generates BM or when\nchanges in molecular profile compared with the primary\ntumour may impact clinical decision making [EANO: III,\nC; ESMO: IV, B].\n\u0001 Single BMs should be considered for surgical resection\n[EANO: I, A; ESMO: II, A].\n\u0001 Multiple resectable BMs may be considered for surgical\nresection [EANO: IV, C; ESMO: V, C].\n\u0001 Surgery may be considered for patients requiring steroids,\nwho are candidates for immune checkpoint inhibition\n[EANO: III, n/a; ESMO: IV, B].\n\u0001 Surgery should be considered when there are acute\nsymptoms of raised intracranial pressure [EANO: III, C;\nESMO: IV, B].\n\u0001 A post-operative MRI should be carried out within 48 h\nafter surgery to determine the extent of resection\n[EANO: IV, C; ESMO: V, C].\nRadiotherapy\n\u0001 SRS is recommended for patients with a limited number\n(1-4) of BMs [EANO: I, A; ESMO: I, A].\n\u0001 SRS may be considered for patients with a higher number\nof BMs (5-10) with a cumulative tumour volume <15 ml\n[EANO: II, B; ESMO: II, B].\n\u0001 SRS to the resection cavity is recommended after complete or incomplete resection of BMs [EANO: I, A;\nESMO: I, A].\n1338\n\nhttps://doi.org/10.1016/j.annonc.2021.07.016\n\n\u0001 Post-operative WBRT after neurosurgical resection or after SRS should be discouraged [EANO: I, A; ESMO: I, E].\n\u0001 WBRT should be considered for treatment of multiple\nBMs not amenable to SRS, depending on the presence\nof neurological symptoms, size, number and location of\nBMs and the choice and availability of CNS-active systemic therapy [EANO: III, B; ESMO: III, B].\n\u0001 Supportive care with omission of WBRT should be considered in patients with multiple BMs not eligible for SRS\nand poor PS [EANO: I, B; ESMO: I, B].\n\u0001 Despite scepticism, PCI is still recommended for patients\nwith limited and extensive-stage SCLC with complete\nresponse to chemoradiotherapy [EANO: I, A; ESMO: I, A].\nPharmacotherapy\n\u0001 Systemic pharmacotherapy based on histological and molecular characteristics of the primary tumour and previous treatment should be considered for most patients\nwith BMs [EANO: IV, n/a; ESMO: IV, B].\n\u0001 If feasible, molecular genetic work-up of BMs rather than\nprimary tumour should be considered for selecting targeted therapy and immunotherapy in a tumour-specific\nmanner [EANO: IV, C; ESMO: IV, B].\n\u0001 Systemic treatment of asymptomatic or oligosymptomatic BMs should be considered to delay WBRT in\nHER2-positive breast cancer patients with a preserved\ngeneral status [EANO: III, C; ESMO: III; B].\n\u0001 For HER2-negative breast cancer patients with progressive BM after local treatment, standard chemotherapy,\nsuch as capecitabine, eribulin or carboplatin and bevacizumab, may be considered [EANO: III, C; ESMO: III, B].\n\u0001 Patients with NSCLC without actionable oncogenic driver\nalterations with asymptomatic or oligosymptomatic BM\nshould be treated by upfront immune checkpoint inhibition alone (PD-L1 \u000350%) or systemic chemotherapy combined with immune checkpoint inhibition (PD-L1 <50%)\n[EANO: II, B; ESMO: III, B].\n\u0001 Patients with NSCLC with actionable oncogenic driver alterations such as EGFR or ALK or ROS1 rearrangement\nand asymptomatic or oligosymptomatic BM should be\ntreated by upfront systemic targeted therapy [EANO: II,\nB; ESMO: III, B].\n\u0001 Patients with SCLC should be treated by platinum-based\nchemotherapy without or with immune checkpoint inhibition [EANO: II, B; ESMO: II, B].\n\u0001 The combination of ipilimumab and nivolumab should be\nthe preferred first-line treatment option not only in BRAF\nwild-type, but also in BRAF-mutated asymptomatic patients [EANO: II, B; ESMO: II, B].\n\u0001 Patients with multiple symptomatic BRAF-mutated BMs\nor patients requiring 4 mg dexamethasone or more\neligible for further treatment should receive dabrafenib\nplus trametinib [EANO: IV, B; ESMO: IV, B].\nINTEGRATED THERAPEUTIC APPROACHES\nThe best combination of the different therapeutic approaches should be identified according to the general and\n\nVolume 32 - Issue 11 - 2021\n\n"
+    },
+    {
+      "guideline_id": "eano-esmo-2021-bm",
+      "pdf_page": 8,
+      "text": "E. Le Rhun et al.\n\nneurological status, comorbidities, neuroimaging findings,\nhistology and molecular status of the primary tumours (if\npossible updated) and previous treatments (Figure 2). The\nmultimodality treatment of BMs requires a careful individualised estimation of the different contributions from surgery, radiation oncology and medical oncology. Ideally,\ntherapeutic decisions should be discussed at a dedicated\nBM board or at a disease-specific tumour board with\nparticipation of colleagues experienced in the management\nof CNS tumours [EANO: IV, n/a; ESMO: V, B].\nTo obtain local control, surgery and SRT can be competitive as well as complementary approaches. The role of\nWBRT is declining, considering the modest benefiterisk\nratio and the development of SRS. The following factors\nfavour neurosurgical resection: unknown primary tumour,\nneuroradiologically uncertain lesion, large cystic or necrotic\nlesion, need for high-dose steroids, mass effect and need for\nmolecular profiling to guide clinical decision making. Factors\nfavouring SRS alone over surgery commonly followed by\nSRS or systemic therapy include a surgically less accessible\nlocation, increased surgical risk and preference for a noninvasive outpatient treatment.\nSystemic therapy should primarily follow the histology\nand molecular characteristics of the primary tumour and\nprior treatment.\nIn the specific case of BM from cancer of unknown primary tumour (BM-CUP), after extensive diagnostic work-up\nincluding notably PET, no data from controlled trials are\navailable. Surgical resection should be followed by RT of the\ncavity, but not by any tumour-agnostic systemic treatment\nin the absence of further tumour manifestations unless an\nactionable driver mutation is detected.\nWhen combining systemic pharmacotherapy and RT, the\nrisk of adverse events should be considered for each new\ndrug, e.g. BRAF inhibitors and WBRT cause severe dermatitis\nthat is usually managed by avoiding concomitant treatment.75\nFor patients with asymptomatic or oligosymptomatic BM,\nno prospective trials have addressed the question of\noptimal combined modality treatment with systemic therapy, including TKI or immune checkpoint inhibition, and\nsurgery or SRS. Such a trial would have to consider survival\nendpoints as well as quality of life including neurocognitive\nendpoints.\nIn breast cancer, no study has defined the best timing of\nsystemic treatment and RT combinations and most of the\ntrials focus on the role of systemic pharmacotherapy alone.\nIn NSCLC patients without activating driver mutations and\nlimited asymptomatic BM, systematic meta-analysis of\nmostly uncontrolled data suggests improved OS after early\ncombination of immune checkpoint inhibitors and SRS\ncompared with a sequential approach.76 For NSCLC with\nactivating EGFR mutations, several retrospective studies,\nincluding mainly studies on first-generation EGFR inhibitors\ncharacterised by a poor CNS tumour penetration, also\nsuggest that the best survival may be achieved with combined upfront TKI and SRT compared with a sequential\nstrategy.77-79 Adequately designed controlled clinical trials\nare required to determine whether novel, potent brainVolume 32 - Issue 11 - 2021\n\nAnnals of Oncology\npenetrant TKIs, including the third-generation TKI osimertinib, can obviate the need for early SRS. Fewer data are\navailable about optimal sequencing of TKI and local therapy\nin patients with ALK translocations where several potent\nCNS-penetrating compounds are available. However, there\nis widespread consensus that upfront WBRT should not be\ndelivered in patients with EGFR mutation or ALK translocation. In case of BM from SCLC, the decision to add SRS\nor WBRT and the timing of such interventions depend on\nsymptoms and disease burden. Replacement of WBRT by\nSRS appears to compromise time to progression in the CNS,\nbut not OS.80 Although melanoma is known as a radioresistant tumour, durable local control may be achieved\nafter SRS.81 The optimal timing of SRT in the multimodal\ntherapeutic approach to BM from melanoma remains to be\ndetermined, although data from uncontrolled cohort\nstudies also support early combination.82\nData from randomised trials to confirm the superiority of\ninitial combined modality treatment have not been published. To what extent patient selection introduced bias into\nthe published cohort studies suggesting superiority of\ncombined modality treatment remains controversial. For\npatients with symptomatic BM, systemic therapy is also\nconsidered, but commonly not as a single modality\ntreatment.\nOnce progression of BMs has been diagnosed using\nappropriate imaging examinations or tissue analysis, further\ntreatment options should ideally be discussed in a multidisciplinary board (Figure 2). On an individual case-by-case\nconsideration, surgery, (repeat) SRS, change of systemic\ntreatment and combinations thereof may be considered.\nRandomised trials in the BM population are needed to\nconfirm the optimal timing of the different interventions,\ne.g. surgery before immunotherapy, SRS at BM diagnosis\nconcomitant with systemic pharmacotherapy or at progression. Considering the high unmet need, enrolment into\ntrials should be considered whenever possible.\nRecommendations\n\u0001 The multimodality treatment of BMs should be based on\na careful individualised estimation of the different contributions from surgery, radiation oncology and medical\noncology [EANO: IV, n/a; ESMO: V, B].\n\u0001 Ideally, therapeutic decisions should be discussed at a dedicated BM board or at a disease-specific tumour board with\nparticipation of colleagues experienced in the management\nof CNS tumours [EANO: IV, n/a; ESMO: V, B].\n\u0001 Randomised trials in patients with asymptomatic or oligosymptomatic BM should be conducted to identify the\noptimal combined modality treatment of systemic therapy, including TKI or immune checkpoint inhibition,\nwith surgery or SRS [EANO: IV, n/a; ESMO: V, B].\n\nMONITORING AND FOLLOW-UP\nPatients with a history of BM should be followed up by\nneurological assessment and neuroimaging in 3-monthly\nhttps://doi.org/10.1016/j.annonc.2021.07.016\n\n1339\n\n"
+    },
+    {
+      "guideline_id": "eano-esmo-2021-bm",
+      "pdf_page": 12,
+      "text": "E. Le Rhun et al.\n\nintervals and whenever clinically indicated. The evaluation\nof response to treatment in clinical trials on BM is\nincreasingly based on RANO criteria, which consider\nchanges in target and non-target lesions on conventional\ncontrast-enhanced MRI, neurological status and steroid\nuse,83 and such criteria are also increasingly used in clinical\npractice.\nThe neurological status should be regularly documented\nusing a standardised procedure, e.g. the neurologic\nassessment in neuro-oncology scale.2 Cognitive function\nshould be assessed at baseline and in the course of disease\nand ability to consent should regularly be re-evaluated\n[EANO: IV, n/a; ESMO: V, B]. Brain MRI should be carried\nout every 2-3 months or at any instance of suspected\nneurological progression [EANO: IV, n/a; ESMO: V, B]. MRI is\nthe standard method for response assessment and followup.83 The MRI should be repeated on the same device or at\nleast a device with an identical field strength. However,\nconventional MRI may not always reliably distinguish between treatment-related abnormalities, notably pseudoprogression, radionecrosis and tumour progression.\nPerfusion MRI and MRI spectroscopy are increasingly used\nin this setting, but evidence for their ability to aid in differential diagnosis remains low.84-86\nAmino acid PET tracers such as [11C]-methyl-L-methionine, 3,4-dihydroxy-6-[18F]-fluoro-L-phenylalanine or O-(2[18F]fluoroethyl)-L-tyrosine (FET) have been most frequently\nevaluated for the differentiation of BM relapse from radiation injury following RT. Across all these amino acid PET\ntracers, both the sensitivity and specificity for correct differentiation are in the range of 80%-90%.87 Furthermore,\namino acid PET using FET is also of value for the diagnosis of\ntreatment-related changes following immunotherapy, using\nimmune checkpoint inhibitors or targeted therapy, with or\nwithout RT [EANO III, C; ESMO IV, C].88\nThe immunotherapy RANO criteria89 have been designed\nto assess delayed responses and prevent that progression is\nassumed too early in patients treated with immunotherapy,\nas long-term survival and tumour regression can occur\nfollowing initial progression in these patients. The rate of\npseudoprogression with immunotherapy alone appears to\nbe low. Further studies are required to determine how to\ndistinguish treatment-related changes from progression after SRT with or without systemic therapy.82 For BM patients,\nwhose primary tumour is still unknown after a first work-up\nat diagnosis, whole-body FDGePET in the follow-up may be\nuseful.\nLiquid biopsies assessing circulating tumour cells or cellfree DNA in blood or CSF have not yet been integrated\ninto the response assessment and follow-up of BM\npatients.90\nRecommendations\n\u0001 A detailed neurological examination should be carried\nout every 2-3 months or earlier when radiological progression is suspected and/or neurological symptoms or\nsigns develop [EANO: IV, n/a; ESMO: V, B].\nVolume 32 - Issue 11 - 2021\n\nAnnals of Oncology\n\u0001 Neurocognitive function and ability to consent should be\nregularly assessed [EANO: IV, n/a; ESMO: IV, B].\n\u0001 Brain MRI should be carried out every 2-3 months or at\nany instance of suspected neurological progression\n[EANO: IV, C; ESMO: IV, B].\n\u0001 Advanced MRI techniques, such as MRS and perfusion imaging and amino acid PET, should be considered for distinguishing treatment-related changes from tumour\nprogression [EANO: III, C; ESMO: IV, C].\nSUPPORTIVE CARE\nThis guideline does not aim to comprehensively describe\npalliative and supportive care for BM patients. Therefore,\ngeneral considerations for brain tumour patients apply.91\nWhen required clinically for control of raised intracranial\npressure, the lowest dose of steroids should be used for the\nshortest time possible [EANO: IV, n/a; ESMO: IV, B]. The risk\nof Pneumocystis jirovecii pneumonia is increased in patients\ntreated with steroids for more than a few weeks, and\nprophylaxis with trimethoprimesulfamethoxazole should\nbe considered in such circumstances if additional immunosuppressive systemic therapy is administered. Bevacizumab is probably the best agent for the treatment of\nradionecrosis after SRT.92 It exhibits superior activity\ncompared with steroids and does probably not interfere\nwith the efficacy of immunotherapy. Patients who experienced a seizure should receive secondary anticonvulsant\nprophylaxis, at least transiently. Primary prophylaxis is not\nrecommended because it has not been shown to be\neffective in preventing a first-ever seizure [EANO: I, A;\nESMO: I, A]. Seizures should be managed with anticonvulsant drugs that do not exhibit drugedrug interactions, e.g.\nlevetiracetam, lamotrigine and lacosamide are preferred\nover phenytoin, carbamazepine or valproic acid. Primary\nthromboprophylaxis should be considered in patients hospitalised for an acute illness or who are confined to bed.\nLow-molecular-weight heparin (LMWH) or unfractionated\nheparin is recommended for primary prophylaxis as well as\nfor the treatment of venous thromboembolism (VTE)\n[EANO: II, B; ESMO: II, C]. Risk factors for thromboembolic\nevents in BM patients include specific primary tumours,\nsteroid use, administration of chemotherapy, high body\nmass index and immobilisation. The risk of intracranial\nbleeding is probably not increased in BM patients in general\ntreated with therapeutic doses of LMWH. Other risk factors\nof bleeding should be considered. Data on direct oral anticoagulants in BM patients are lacking.\nRecommendations\n\u0001 Steroids should only be considered in symptomatic patients [EANO: IV, n/a; ESMO: IV, B].\n\u0001 Primary anticonvulsant prophylaxis should not be given\n[EANO: I, A; ESMO: I, A].\n\u0001 If indicated, LMWH should be considered as the first-line\ntreatment for primary or secondary thromboprophylaxis\nand for the therapeutic treatment of VTE in BM patients\n[EANO: II, B; ESMO: II, C].\nhttps://doi.org/10.1016/j.annonc.2021.07.016\n\n1343\n\n"
+    }
+  ]
+}
