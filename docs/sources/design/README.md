@@ -18,6 +18,9 @@ first-hand MDT experience; the product is based on her experience).
 - `Rakathon 4 - first UI feedback.elevenlabs.md`: transcript of Soňa's
   feedback on the first UI mock (about 7 minutes, same method and
   layout as recordings 1 to 3).
+- `Rakathon 5 - second UI feedback.elevenlabs.md`: transcript of Soňa's
+  feedback on mock v2 (about 23 minutes, same method; speaker_0 is Soňa,
+  speaker_1 is Juro). Transcribed on Juro's machine and uploaded.
 - `ui-screenshots/`: 11 screenshots of screen designs Soňa made with
   ChatGPT and shared during the feedback round (patient timeline, action
   items, MDT session, information flow, oncology summary toggle, patient

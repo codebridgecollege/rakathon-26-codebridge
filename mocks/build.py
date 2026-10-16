@@ -6,7 +6,7 @@
 Usage:
     uv run mocks/build.py
 
-Writes `mocks/v1.html` and `mocks/v2.html`. Each template has placeholders
+Writes `mocks/v1.html`, `mocks/v2.html` and `mocks/v3.html`. Each template has placeholders
 (`/*CASE*/`, `/*LIST*/`, `/*EXTRA*/`) that are replaced with the JSON files
 in `mocks/src/data/`, so the published page needs no server.
 """
@@ -29,7 +29,7 @@ def main() -> None:
         "/*LIST*/": embed((DATA / "mock-patient-list.json").read_text()),
         "/*EXTRA*/": embed((DATA / "mock-case-10-extra.json").read_text()),
     }
-    for version in ("v1", "v2"):
+    for version in ("v1", "v2", "v3"):
         page = (HERE / "src" / f"{version}-template.html").read_text()
         for key, value in parts.items():
             page = page.replace(key, value)

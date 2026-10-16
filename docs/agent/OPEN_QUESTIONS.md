@@ -78,13 +78,22 @@ experience.
   (design-3 00:02:18 to 00:03:01)
 - [ ] Is the same doctor on a patient's repeated MDTs, and how long does
   preparation take her today? (design-1 00:04:59; juro-notes)
-- [ ] Should the assistant's alerts move to a separate tab of the
-  Patient Detail? Juro suggested it; she has not decided. She found the
-  number of alerts in mock v1 overwhelming. (design-4 00:02:30 to
-  00:04:53)
-- [ ] Attendance: one dropdown per department (Juro's recollection of an
-  earlier discussion, design-4 00:06:55), or a tick per doctor as in her
-  ChatGPT design (ui-shot 17.06.15 (3))?
+- [ ] Alerts now have their own tab (mock v2 and v3), and the Overview
+  shows only those for the MDT question. In the second review Juro said
+  he was glad they are in a separate tab and Soňa did not object, but
+  she has not reviewed the alerts themselves yet. Is the split right?
+  (design-4 00:02:30 to 00:04:53; design-5 00:14:49)
+- [ ] Unknown values (for example pack-years): she wants the field left
+  empty; `CLAUDE.md` requires "neuvedeno v dostupné dokumentaci" so a
+  gap is not mistaken for "not extracted". Mock v3 keeps the wording in
+  a quiet style. Is that acceptable? (design-5 00:07:30)
+- [ ] Which screens may show patient names? She wants names in the
+  calendar (design-5 00:02:50); should a projected calendar or the
+  coordinator's view show initials instead?
+- [ ] How far should editing go (F-38)? Mock v3 lets a doctor change any
+  extracted or drafted value as a marked override. Should some values
+  (for example lab values or dates from a document) stay read-only?
+  (design-5 00:19:27 to 00:20:46)
 - [ ] What does "onkologické zaťaženie" in the upload checklist mean,
   family oncology history? (design-2 00:08:25)
 - [ ] How is a glass slide or photo brought to the meeting captured: typed

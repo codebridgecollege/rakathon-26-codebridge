@@ -9,15 +9,17 @@ All patient data is FNO's fictitious challenge data.
 |---|---|---|
 | `v1.html` | First simple mock (one patient workspace) | https://claude.ai/artifact/KraDQ9X7diVo93QzXtse6t |
 | `v2.html` | Full mock after feedback round 1 (database, calendar, patient detail, presentation, protocol, tasks) | https://claude.ai/artifact/6F5AbN6vEAHJQgXP1fkUdc |
+| `v3.html` | Mock after feedback round 2 (Excel-style filters, month navigation, 10-minute slots, brief first, diagnosis headline, current state, lab chart, doctor edits, back/forward) | (link added after publishing) |
 
 The published copies are private claude.ai artifacts owned by Juro; ask him
 to share them. To view a mock locally, open the `.html` file in a browser.
 
 ## How to change a mock
 
-Do not edit `v1.html` or `v2.html` directly; they are generated.
+Do not edit `v1.html`, `v2.html` or `v3.html` directly; they are generated.
 
-1. Edit the template in `src/` (`v1-template.html`, `v2-template.html`) or
+1. Edit the template in `src/` (`v1-template.html`, `v2-template.html`,
+   `v3-template.html`) or
    the data in `src/data/`.
 2. Run `uv run mocks/build.py`.
 3. Check it (below), then open the page in a browser.
@@ -31,7 +33,10 @@ Do not edit `v1.html` or `v2.html` directly; they are generated.
   source quote.
 - `mock-case-10-extra.json`: anamnesis, the MDT brief and detailed summary
   with numbered references, timeline cards, the documents inside the PDF,
-  and short facts about the other nine patients.
+  and short facts about the other nine patients. The keys ending in `_v3`,
+  plus `diagnosis_headline`, `status_praesens`, `labs_series_synthetic`
+  and `document_history`, feed mock v3. `labs_series_synthetic` and
+  `document_history` are invented example data and the UI labels them so.
 - `mock-patient-list.json`: one entry per other patient.
 - `ocr.json`: the raw OCR text of all ten patient PDFs.
 
