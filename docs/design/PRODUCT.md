@@ -91,27 +91,19 @@ All made by the team on 2026-10-16.
 
 ### During the MDT: present, discuss, record
 
-1. The coordinator or chair starts the MDT from the calendar day
-   ("Zahájit MDT"), or from the header of a case on that day, and sets
-   the attendance once for the session in the start dialog (F-22).
-2. The first case opens in the same patient view the team uses before
-   the meeting. The only addition is the session bar at the top: the
-   day's cases in order, previous and next, attendance and "Ukončit MDT"
-   (F-11, F-15). The brief shows first (F-16).
+1. The coordinator or chair sets the attendance once for the session
+   (F-22).
+2. The day agenda lists the cases in order (F-11). Opening a case shows
+   the brief first (F-16).
 3. The presenter expands items, the timeline, or a source as questions
    come (F-17 to F-20).
-4. The team decides; a doctor types the conclusion in the case's
-   "Závěr MDT" field, and the "Projednání na MDT" card below it holds the
-   discussion notes, the next steps and the approval, so the conclusion
-   is always tied to the patient on screen (F-23). A named doctor marked
-   present approves it (F-24).
-5. The status moves to Completed; a click on the next case in the session
-   bar opens it on the same tab.
+4. The team decides; someone types the conclusion for the explicitly
+   selected patient (F-23), and a named doctor confirms it (F-24).
+5. The status moves to Completed; the next case opens.
 
 ### After the MDT: report and tasks
 
-1. The doctor ticks the fields for the report in the "Projednání na MDT"
-   card and downloads the PDF from the case header (F-31).
+1. The doctor ticks the fields for the report and exports the PDF (F-31).
 2. Tasks for the coordinator are created from the confirmed conclusion
    (F-32).
 3. New documents re-run the checks without overwriting the confirmed
@@ -124,25 +116,23 @@ From Juro's sketches [paper-notes], Soňa's screens [chatgpt P 14:02,
 P 16:01], her ChatGPT designs [ui-shot], and the first feedback round
 (see [Feedback round 1](#feedback-round-1-2026-10-16)). The visual brief
 names three main screens, Patient Database, MDT Calendar, and Patient
-Workspace [chatgpt pt2]. The Patient Workspace is one patient view
-(S-3), used the same way before, during and after the meeting; during the
-meeting it gains the session bar (S-4), and its "Projednání na MDT" card
-(S-5) holds the discussion record.
+Workspace [chatgpt pt2]; the Patient Workspace is now split into Patient
+Detail, MDT Presentation, and MDT Protocol.
 
 Information flow [ui-shot 17.06.14 (3)]: Patient Database + MDT Calendar
-(owner, referring workplace, status, filters) -> Patient Detail (brief,
-question, conclusion, anamnesis, documents, oncology timeline, labs) ->
-during the MDT the same view with the session bar, and in it the
-discussion card (prítomní, záznam diskuse, další kroky, schválenie,
-report).
+(owner, referring workplace, status, filters) -> Patient Detail (full
+anamnesis, documents, oncology timeline, MRI comparison) -> MDT
+Presentation (30 to 60 second summary, clinical question, expandable
+findings) -> MDT Protocol (anamnéza, onkologický súhrn, prítomní, dotaz,
+záver, next steps, schválenie).
 
 | # | Screen | Content |
 |---|---|---|
 | S-1 | Patient Database | First item in the header, with an obvious "add patient" [design-4 00:01:36]. Columns: patient ID, name, birth date, diagnosis (MKN-10, the Czech ICD-10), owner, referring department, next MDT date and whether the patient is already scheduled [design-4 00:02:30], MDT status, last data update [ui-shot 17.06.15 (2)]; Excel-style filters in the column headers [design-5 00:00:03]. Round 3: name surname first, birth number (RČ) and age columns instead of birth date, diagnosis as histology plus TNM with a small second line (TNM at diagnosis, current reason, MKN-10) [juro-round3]. |
 | S-2 | MDT Calendar | Week view with 10-minute slots, each showing its time [design-5 00:01:28]; week arrows, "Dnes", and a month grid with a year picker [design-5 00:01:00]. A slot shows case ID and name [design-5 00:02:50]; clicking it opens a patient card in the right third [design-5 00:02:05]. Move to another slot or free it. |
 | S-3 | Patient Detail | Tabs. Overview: one block with the MDT brief, the question and the current conclusion; then the detailed oncology summary (diagnosis headline, dated rows), the current state of the patient, the alerts for the question, and the horizontal timeline [design-4 00:04:08; design-5 00:03:21, 00:17:06]. Other tabs: anamnesis, documents (upload via a dialog), labs (matrix and chart), all alerts, history (MDT conclusions, doctor edits, documents over time) [design-5]. |
-| S-4 | MDT session (in S-3) | Started with "Zahájit MDT" on a calendar day (start dialog: the day's order and the attendance) or from a case header. While it runs, every case on that day's agenda shows a session bar at the top of the patient view, sticky under the top bar on wide screens: the cases as pills (time and surname, the open one highlighted, approved ones ticked), previous and next, "Přítomní (n)" (the attendance dialog) and "Ukončit MDT". A pill opens that case on the same tab. Nothing else in the patient view changes. |
-| S-5 | Projednání na MDT (card in S-3) | Directly under the "Závěr MDT" field in the brief block: the attendance for the case's day as a list with "Upravit"; "Záznam diskuse" with "Ruční poznámky" and "AI záznam" (planned; the demo does not record) [ui-shot 17.06.14 (1), (2)]; "Další kroky" (tasks with assignee and due date, copy); "Schválení závěru" (a doctor marked present approves the written conclusion; after approval "Nový závěr (nahradí platný)"); "Report" with the fields ticked for it and a collapsed "Náhled reportu". Collapsed outside a session unless a draft or an approved conclusion exists; open and outlined in a session. The header's "Stáhnout report (PDF)" prints the same report. |
+| S-4 | MDT Presentation | For the shared screen: identity, the 30 to 60 second summary, the question for the MDT, expandable findings with numbered references [1], and the day's remaining cases in a collapsible side panel. |
+| S-5 | MDT Protocol | MDT Session with tabs "Manual notes" and "AI recording" (planned; the demo does not record) [ui-shot 17.06.14 (1), (2)]; attendance; after the discussion: draft conclusion, extract next steps and assign them, physician review and approval; then the ticked fields and the PDF report. |
 | S-7 | Administrace | The access log across all cases, visible only to the administrator user [design-5 00:16:26]. |
 | S-6 | My Tasks | The coordinator's open tasks across patients with assignee, due date, completed count, and copy [ui-shot 17.06.14, 17.07.06 (1)]. |
 
@@ -178,7 +168,7 @@ summary), prítomní (attendees), dotaz (question), záver (conclusion)
 expandable items [FNO spec]. Our proposal, to confirm with Soňa (see
 [`OPEN_QUESTIONS.md`](../agent/OPEN_QUESTIONS.md#ask-soňa)):
 
-| Element (Patient Detail and its MDT discussion card) | FNO spec | Soňa's section |
+| Element (Patient Detail, MDT Presentation, MDT Protocol) | FNO spec | Soňa's section |
 |---|---|---|
 | Identity header | patient identification | (database fields) |
 | MDT brief, two lines | short case summary | shortest level of the oncology summary |
@@ -271,7 +261,7 @@ Written feedback on mock v3 [juro-round3].
 | 1 | The mock data has no birth numbers, which is fine for a mock; in the real system the RČ is a must-have. | Recorded: RČ is required in the real patient identity (F-01, F-02). |
 | 2 | Age as a number only. | S-1, S-3: "65", no unit or marker; the tooltip says when it is computed from the birth date. |
 | 3 | The MDT brief block (brief, question, conclusion) sits directly under the name and identity; the tabs (Přehled, Anamnéza, ...) come below it. | S-3: the block is shown above the tabs on every tab. |
-| 4 | Remove the Historie tab. | S-3: tab removed. Earlier conclusions stay readable in the conclusion box ("Předchozí závěry", with each approved report), so the decision history is still append-only and visible; the doctors' edit log moved to Administrace. |
+| 4 | Remove the Historie tab. | S-3: tab removed. Earlier conclusions stay readable in the conclusion box ("Předchozí závěry", with each approved protocol), so the decision history is still append-only and visible; the doctors' edit log moved to Administrace. |
 | 5 | The brief should read like a clinician's summary (example: a dense paragraph with "st.p.", histology, TNM, receptors, treatment lines, current indication), with the staging in the first sentence. | F-16: the v3 brief is rewritten in that style, starting with histology, grade and TNM; every clause keeps its numbered source. |
 | 6 | The labs view is liked. | No change. |
 | 7 | The documents list should be filterable. | S-3: search plus Excel-style filters on type, readability and year. |
@@ -311,17 +301,6 @@ patient detail and recorded as the design for F-16.
   "doplnit" until a doctor writes it. Whether the assistant may draft a
   question or proposal is added to `OPEN_QUESTIONS.md`.
 
-## Feedback: one patient view (2026-10-16)
-
-The product owner's written feedback on mock v3.
-
-| # | Feedback | What changes |
-|---|---|---|
-| 1 | The view shown at the MDT should be the patient view the team opens from the database, not a different screen. | S-3 is the only patient view; S-4 is a session mode of it. |
-| 2 | The discussion record, next steps and approval belong in the patient view once the MDT starts, not on a separate page; the PDF export can sit in the header. | S-5: the "Projednání na MDT" card under the conclusion; "Stáhnout report (PDF)" in the case header. |
-| 3 | During the meeting only the header should change, showing the other patients so the team can click between them. | S-4: the session bar with the day's cases; a click keeps the tab. |
-| 4 | No separate 30 to 60 second summary. | The brief in S-3 is the summary at the meeting. |
-
 ## Features
 
 Tiers: **Demo** is in the working demo; **Pitch** is shown as a mock or a
@@ -357,19 +336,19 @@ everything else is Pitch or Later.
 
 | ID | Feature | What the doctor sees | Tier | FNO | Sources | Notes |
 |---|---|---|---|---|---|---|
-| F-15 | Navigation and layout | Header with Patient Database first, then MDT Calendar; during an MDT session, the day's cases sit in the session bar at the top of the patient view (S-4); panes close and expand. | Demo | Schematic, readable | [design-1 00:07:43, 00:18:16; design-2 00:17:42; paper-notes ui_scribbles; chatgpt P 16:01] | Juro's spoken left/right is mirrored; his sketch (list on the left) wins. Header order from [design-4 00:01:36]. |
-| F-16 | Case summary with levels | The Patient Detail overview shows the case summary with the timeline [design-4 00:04:08]. Round 2 [design-5 00:03:21 to 00:06:32, 00:17:06]: the Overview opens with the MDT brief, then the question, then the current conclusion; below it the detailed summary: a diagnosis headline (histology, grade, TNM labeled as the stage at diagnosis; MKN-10 code smaller below) and dated rows with the event in bold; then the current state of the patient. The same view is shown during the MDT [ui-shot 17.06.15, 17.06.15 (1)]. Relevant other diagnoses listed. | Demo | Short case summary | [design-1 00:01:52, 00:22:08, 00:25:52, 00:41:44; chatgpt P 14:33, R 14:33, P 16:01; juro-notes] | Keeps the documents' status (suspicion vs confirmed by histology). Age appears only when a document states it (3 of the 10 FNO patients); otherwise the brief leaves age out and the identity header shows "věk neuveden v dostupné dokumentaci". Unrelated visits and private data hidden [juro-notes]. |
-| F-17 | Expandable items | Anamnéza, clinical state, imaging, histology, past treatment, question for the MDT; each expands to detail with links. The summary and the finding groups are ticked for the report in the "Projednání na MDT" card. | Demo | Expandable items; wiki links; ticking | [FNO spec; chatgpt P 14:00; juro-notes] | See the reconciliation above. |
-| F-18 | Source view | Every fact carries a numbered reference [1], as in a paper; clicking it opens the passage in the original document. | Demo | Wiki-style links | [design-1 00:42:20; design-4 00:03:45 to 00:04:00; juro-notes; chatgpt R 01:17] | Mock v1's inline source chips in a monospace font disturbed reading [design-4 00:03:55, 00:04:00]. Round 2: the source list under each card is folded away by default [design-5 00:08:47]; unreadable OCR characters are marked in the source view [design-5 00:11:10]. Team decision 2026-10-16: the source view shows the actual page image with the passage highlighted, and the extracted text in a separate tab, so source links can point at the text passage; tokens the OCR engines read differently are marked "ověřit" (mock v4). |
+| F-15 | Navigation and layout | Header with Patient Database first, then MDT Calendar; in a case, the day's remaining cases sit in a collapsible side panel; panes close and expand. | Demo | Schematic, readable | [design-1 00:07:43, 00:18:16; design-2 00:17:42; paper-notes ui_scribbles; chatgpt P 16:01] | Juro's spoken left/right is mirrored; his sketch (list on the left) wins. Header order from [design-4 00:01:36]. |
+| F-16 | Case summary with levels | The Patient Detail overview shows the case summary with the timeline [design-4 00:04:08]; the MDT Presentation opens on the two-line brief. Round 2 [design-5 00:03:21 to 00:06:32, 00:17:06]: the Overview opens with the MDT brief, then the question, then the current conclusion; below it the detailed summary: a diagnosis headline (histology, grade, TNM labeled as the stage at diagnosis; MKN-10 code smaller below) and dated rows with the event in bold; then the current state of the patient. The brief/detailed switch stays in the MDT Presentation [ui-shot 17.06.15, 17.06.15 (1)]. Relevant other diagnoses listed. | Demo | Short case summary | [design-1 00:01:52, 00:22:08, 00:25:52, 00:41:44; chatgpt P 14:33, R 14:33, P 16:01; juro-notes] | Keeps the documents' status (suspicion vs confirmed by histology). Age appears only when a document states it (3 of the 10 FNO patients); otherwise the brief leaves age out and the identity header shows "věk neuveden v dostupné dokumentaci". Unrelated visits and private data hidden [juro-notes]. |
+| F-17 | Expandable items | Anamnéza, clinical state, imaging, histology, past treatment, question for the MDT; each expands to detail with links. Each can be ticked for the report. | Demo | Expandable items; wiki links; ticking | [FNO spec; chatgpt P 14:00; juro-notes] | See the reconciliation above. |
+| F-18 | Source view | Every fact carries a numbered reference [1], as in a paper; clicking it opens the passage in the original document. | Demo | Wiki-style links | [design-1 00:42:20; design-4 00:03:45 to 00:04:00; juro-notes; chatgpt R 01:17] | Mock v1's inline source chips in a monospace font disturbed reading [design-4 00:03:55, 00:04:00]. Round 2: the source list under each card is folded away by default [design-5 00:08:47]; unreadable OCR characters are marked in the source view [design-5 00:11:10]. Team decision 2026-10-16: the source view shows the actual page image with the passage highlighted, and the extracted text in a separate tab, so source links can point at the text passage; tokens the OCR engines read differently are marked "ověřit" (mock v3). |
 | F-19 | Timeline with tracks | A horizontal, scrollable timeline with parallel tracks per kind of event, like git branches. Bigger points carry their label (date, type, title) directly on the line; clicking one shows its detail and source. Oncology milestones highlighted. | Demo | Timeline view; SEŘADIT | [design-1 00:24:05, 00:42:05; design-2 00:15:58, 00:16:54; design-4 00:04:31, 00:05:16, 00:06:17; ui-shot 17.04.50; juro-notes; chatgpt P 14:33] | Horizontal, decided in feedback [design-4 00:06:17]. Soňa's ChatGPT design is vertical cards (icon, date, type, title, one line, expandable) [ui-shot 17.04.50]; its card content carries over. Not dots with a separate list and a years-only axis (mock v1). Long intervals shown as facts. Opening video or images is Later. |
 | F-20 | Compare current and previous exam | Two reports side by side (for example two MRI reports) with the differences listed as the assistant's observation. | Pitch (text); Later (images) | Significant changes; POROVNAT | [design-1 00:11:45, 00:43:21; paper-notes more_notes; chatgpt P 11:54, R 11:54] | Compare like with like; any computed change (ChatGPT's "34.4% decrease") is labeled. |
 | F-21 | Lab value trends | A matrix of tests (rows) by draw date and time (columns), original units and ranges; clicking a test shows its trend chart [design-5 00:13:43]. | Pitch | Lab value trends | [FNO spec; challenge] | Not discussed in the design sessions. The only lab values in the data are one undated set in patient 10's PDF, so a trend needs synthetic labs (open question with FNO). Mock v3 opens on the real undated values; a second view shows the matrix and chart on a synthetic series, labeled as such inside the chart. |
-| F-22 | Attendance | Specialties per department (neurochirurgie, klinická onkologie, radiační onkologie, radiologie, neurologie, patologie) with their doctors pre-filled; set who is present once per session; count present; copy; per-case exceptions. | Pitch | (report) | [design-1 00:14:16, 00:40:26, 00:41:13; chatgpt P 11:54, P 14:33, P 14:36] | Soňa: "jj super attendance" [chatgpt P 14:36]. Decided in round 2: one dropdown per department, filled in once per seminar day [design-5 00:21:35]. Set in the start dialog of a session and edited from the session bar or the discussion card. Approving a conclusion freezes the attendance in that report. |
-| F-23 | Conclusion entry | In the patient view: the conclusion in the brief's "Závěr MDT" field, and under it the "Projednání na MDT" card with "Ruční poznámky" and "AI záznam", next steps with assignees, and physician approval (S-5). A new draft sits under the valid conclusion until it is approved. | Demo (manual notes) | (report) | [design-1 00:44:31, 00:46:27; design-4 00:06:35; ui-shot 17.06.14 (1), (2); chatgpt P 12:16, P 14:51] | Replaces the mock v1 conclusion screen, which Soňa disliked [design-4 00:06:35]. Explicit patient selection prevents mixing patients. |
+| F-22 | Attendance | Specialties per department (neurochirurgie, klinická onkologie, radiační onkologie, radiologie, neurologie, patologie) with their doctors pre-filled; set who is present once per session; count present; copy; per-case exceptions. | Pitch | (report) | [design-1 00:14:16, 00:40:26, 00:41:13; chatgpt P 11:54, P 14:33, P 14:36] | Soňa: "jj super attendance" [chatgpt P 14:36]. Decided in round 2: one dropdown per department, filled in once per seminar day [design-5 00:21:35]. Approving a conclusion freezes the attendance in that protocol. |
+| F-23 | Conclusion entry | An MDT Session panel for the selected patient with tabs "Manual notes" (typed live notes and conclusion, edited into the final protocol) and "AI recording"; after the discussion: draft conclusion, extract next steps and assign them, physician review and approval. | Demo (manual notes) | (report) | [design-1 00:44:31, 00:46:27; design-4 00:06:35; ui-shot 17.06.14 (1), (2); chatgpt P 12:16, P 14:51] | Replaces the mock v1 conclusion screen, which Soňa disliked [design-4 00:06:35]. Explicit patient selection prevents mixing patients. |
 | F-24 | Decision history | Each conclusion is confirmed by a named doctor and stored; a later decision supersedes it, never erases it. | Demo | (report; timeline) | [juro-notes; chatgpt P 12:16, R 14:04] | Decision 3. |
 | F-25 | Live listening | Record the discussion per patient, transcribe it with names, draft the conclusion for the doctors to confirm. In the mock: the "AI recording" tab, labeled as a planned feature that needs participants' consent and does not record [ui-shot 17.06.14 (1)]. | Pitch (stretch Demo) | - | [design-1 00:46:27; juro-notes; paper-notes more_notes; chatgpt P 10:14, P 14:51] | Decision 2. Opt-in and consent; patient data. Voice enrolment for names is Later (biometric data). Raw transcript fixed, summary editable [design-1 00:43:31], undecided. |
 | F-26 | Query mode | Doctors ask the assistant questions about the case; answers cite sources or say "not found". | Pitch | - | [juro-notes] | |
-| F-27 | Guideline layer | Under the proposed management: guideline statements that apply to the documented facts, verbatim, with guideline name, society, year, version, section, page and evidence level, and the patient facts they rest on; a click opens the guideline PDF's page with the statement highlighted. In the "Odchylky od doporučení" tab: a deviations table, one row per quoted statement, where the doctors mark whether the MDT's plan follows it, departs from it on purpose (with the reason), or it does not apply. Also (a) review of the path so far for missing information. | Pitch | - (beyond the challenge) | [design-1 00:35:08, 00:46:00; design-2 00:00:36; chatgpt P 12:16, P 14:56, P 16:01, R 14:56, R 16:01; juro-notes] | Decision 1; the line was set on 2026-10-16 (quotes, highlighted source, deviations table; no ranking, never the conclusion). Sources (Juro, 2026-10-16): Czech Modrá kniha ČOS first, then ESMO, EANO, ESTRO, ASTRO, ASCO, NCCN, and guidelines of other fields for comorbidities (for example hepatology, cardiology); PubMed literature for rare situations. Architecture: the client asks the server for a case's guidance (`GET /api/cases/{id}/guidance`, sending the case ID, not patient text); the server keeps a curated, versioned library of guideline texts and returns only the matching statements; the guideline PDF opens from the publisher online at the cited page. In mock v3 an API stub returns data embedded in the HTML. Soňa wants it in ("ja to tam riadne chcem", chatgpt P 12:16), framed later as "možno by sme chceli" (P 14:56); the on/off switch was her idea (P 14:56). Part (a)'s missing-information check is F-07/F-08. Use a small curated, versioned guideline set [chatgpt R 14:56]. Kept apart from the MDT conclusion. |
+| F-27 | Guideline layer | Under the proposed management: guideline statements that apply to the documented facts, verbatim, with guideline name, society, year, version, section, page and evidence level, and the patient facts they rest on; a click opens the guideline PDF's page with the statement highlighted. In the protocol: a deviations table, one row per quoted statement, where the doctors mark whether the MDT's plan follows it, departs from it on purpose (with the reason), or it does not apply. Also (a) review of the path so far for missing information. | Pitch | - (beyond the challenge) | [design-1 00:35:08, 00:46:00; design-2 00:00:36; chatgpt P 12:16, P 14:56, P 16:01, R 14:56, R 16:01; juro-notes] | Decision 1; the line was set on 2026-10-16 (quotes, highlighted source, deviations table; no ranking, never the conclusion). Sources (Juro, 2026-10-16): Czech Modrá kniha ČOS first, then ESMO, EANO, ESTRO, ASTRO, ASCO, NCCN, and guidelines of other fields for comorbidities (for example hepatology, cardiology); PubMed literature for rare situations. Architecture: the client asks the server for a case's guidance (`GET /api/cases/{id}/guidance`, sending the case ID, not patient text); the server keeps a curated, versioned library of guideline texts and returns only the matching statements; the guideline PDF opens from the publisher online at the cited page. In mock v3 an API stub returns data embedded in the HTML. Soňa wants it in ("ja to tam riadne chcem", chatgpt P 12:16), framed later as "možno by sme chceli" (P 14:56); the on/off switch was her idea (P 14:56). Part (a)'s missing-information check is F-07/F-08. Use a small curated, versioned guideline set [chatgpt R 14:56]. Kept apart from the MDT conclusion. |
 | F-28 | AI engagement levels | Passive (summarize), on demand (when asked), proactive (an independent assessment formed before the discussion). | Later | - | [juro-notes; chatgpt P 10:14, P 10:27] | Soňa moved from on-demand to proactive because the doctors, as experts, would bias the AI [chatgpt P 10:14]. ChatGPT put it in the roadmap tier [chatgpt R 12:15]. |
 | F-29 | Rare-case support | A small warning that a case looks unusual from past MDTs; help finding guidelines and case reports beforehand. | Later | - | [design-3 00:00:52, 00:02:18] | Soňa's answer on flagging is unclear; open question. Literature support is our reading of her need. |
 | F-30 | Agenda priority | Facts that could order the agenda (for example days since biopsy). | Later | - | [juro-notes] | Facts only, no ranking verdict. |
@@ -467,7 +446,7 @@ This table says which feature each rule touches and what is still open.
 | Recording and transcribing the meeting (F-25) | "Meeting audio is patient data" | Covered by the rule. Needs explicit opt-in, participants' consent, and FNO clearance for any speech-to-text service; stretch goal. |
 | Voice enrolment to name speakers (F-25 notes) | "Meeting audio is patient data": no voiceprints in the prototype | Not in the prototype; Later at most. |
 | Login and the admin layer | "Skip login, OAuth, and scaling"; keep the simple access log | No login: a user picker stands in. Mock v3 has an Administrace screen (S-7) with the access log, shown only when the administrator user is picked; a real admin layer stays Vision. |
-| Patient Database and brief show name, birth number, age (F-01, F-02, F-16) | "Expose as little as possible, and protect what is exposed" | Mock v3 shows full names in the database and, at Soňa's request, in the calendar slots (see the calendar row below); the MDT session bar shows time and surname (shown on a shared screen, so the room sees the day's surnames; a case ID would expose less but is harder to recognize), and the coordinator email uses the case number. Identifiers never go to the AI (F-37; Soňa [design-4 00:00:03]); the MDT screens show identity because the team needs it [design-4 00:00:57]. Which other screens need name and birth number is still open. |
+| Patient Database and brief show name, birth number, age (F-01, F-02, F-16) | "Expose as little as possible, and protect what is exposed" | Mock v3 shows full names in the database and, at Soňa's request, in the calendar slots (see the calendar row below); case numbers are used in the presentation agenda and the coordinator email. Identifiers never go to the AI (F-37; Soňa [design-4 00:00:03]); the MDT screens show identity because the team needs it [design-4 00:00:57]. Which other screens need name and birth number is still open. |
 | Calendar slots show the patient's name and birth number (S-2) [design-5 00:02:50; juro-round3] | "Show identifiers only where the user needs them" | Mock v3 shows surname, first name and RČ in the slots, as asked: the calendar is used by the MDT team, who need to recognize the patient. The RČ is a strong identifier, so this exposes more than a case ID would. Trade-off: anyone who can open the calendar sees the names of the week's patients. Open: should the coordinator or a projected calendar show initials instead? |
 | Hiding "verify" and OCR comments (F-06) [design-5 00:07:30, 00:08:55] | "Show uncertainty wherever the extraction was not clear-cut" | Kept, but quiet: an icon with a tooltip instead of grey text. Removing the marker entirely would break the rule, because a misread dose or negation is exactly what the doctor must see. |
 | Unknown pack-years left blank (F-06) [design-5 00:07:30] | "Use fixed Czech wording for gaps" | Kept the wording "neuvedeno v dostupné dokumentaci" in a quiet small style; a blank cell would be indistinguishable from "not extracted". Open question for Soňa. |
