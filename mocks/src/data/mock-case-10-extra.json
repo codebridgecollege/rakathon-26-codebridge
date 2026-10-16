@@ -1676,7 +1676,7 @@
    }
   }
  ],
- "onco_brief_v3_cs": "Světlobuněčný renální adenokarcinom G2, nefrektomie vpravo 6/2022 [1]: pT2a pN1 (3+/5) M0 (v textu „MO“, ověřit čtení) [2], diagnostikováno 4/2022 [3]. Histologicky ověřené metastázy v paraaortální lymfatické uzlině (resekce R0) [4] a v kůži brady [5]. Na CT 8/2026 progrese uzlin v levém plicním hilu a paraaortálně vlevo [6], nyní everolimus ve 3. paliativní linii [7]. MR mozku 14.9.2026: solitérní sytící se uzlík v pravé mozečkové hemisféře do 3 mm, suspektní metastáza, jiná sytící se ložiska nejsou [8].",
+ "onco_brief_v3_cs": "Světlobuněčný renální adenokarcinom G2, nefrektomie vpravo 6/2022 [1]: pT2a pN1 (3+/5) M0 (v textu „MO“, ověřit čtení) [2], diagnostikováno 4/2022 [3]. Histologicky ověřené metastázy v paraaortální lymfatické uzlině (resekce R0) [4] a v kůži brady [5]. Na CT 8/2026 progrese uzlin v levém plicním hilu a paraaortálně vlevo [6], nyní everolimus ve 3. paliativní linii [7]. V dokumentaci dále drobná osteoplastická ložiska do 7 mm v přechodu hrudní a bederní páteře, z kterého vyšetření, nejisté [9]. MR mozku 14.9.2026: solitérní sytící se uzlík v pravé mozečkové hemisféře do 3 mm, suspektní metastáza, jiná sytící se ložiska nejsou [8].",
  "onco_brief_v3_refs": [
   {
    "file": "10_pacient.pdf",
@@ -1717,6 +1717,11 @@
    "file": "10_pacient.pdf",
    "page": 1,
    "quote": "MR yyš, mozku 14.9.2026 NNJ Závěr: Solitérní nodulus postkontrastně se sytící v pravé mozečkové hemisféře(do 3mm) - suspekce na solitérní MTS, postkontrastně bez jiných, sytících se lézí intrakraniálně."
+  },
+  {
+   "file": "10_pacient.pdf",
+   "page": 5,
+   "quote": "Drobné osteoplatické ložiska do průměru 7mm v přechodu th/L páteře."
   }
  ],
  "diagnosis_headline": {
@@ -1841,7 +1846,7 @@
   {
    "date_cs": "10.11.2025",
    "event_cs": "CT plic a břicha",
-   "comment_cs": "nově patologická lymfatická uzlina v levém plicním hilu, mírná progrese retroperitoneální lymfadenopatie oproti CT 6/2025, oproti vstupnímu CT 3/2023 trvá mírná částečná regrese; progrese, dle iRECIST nepotvrzená progrese",
+   "comment_cs": "nově patologická lymfatická uzlina v levém plicním hilu, mírná progrese retroperitoneální lymfadenopatie oproti CT 6/2025, oproti vstupnímu CT 3/2023 trvá mírná částečná regrese; dle iRECIST progrese (souhrn uvádí nepotvrzenou progresi)",
    "refs": [
     50,
     51,
@@ -1866,7 +1871,7 @@
   {
    "date_cs": "1-8/2026",
    "event_cs": "2. linie sunitinib",
-   "comment_cs": "50 mg denně v režimu 4/2 od 27.1.2026 (schváleno komisí komplexního onkologického centra); pro progresi renální insuficience, minerálovou dysbalanci a trombocytopenii stupně 2-3 redukce na 37,5 mg od 25.2.2026 (hepatopatie stupně 2) a na 25 mg od 26.3.2026; ukončen po CT 8/2026 pro progresi",
+   "comment_cs": "50 mg denně v režimu 4 týdny léčby a 2 týdny pauza od 27.1.2026 (schváleno komisí komplexního onkologického centra); při 50 mg progrese renální insuficience, minerálová dysbalance a trombocytopenie stupně 2-3; od 25.2.2026 redukce na 37,5 mg (hepatopatie stupně 2), od 26.3.2026 na 25 mg; ukončen po CT 8/2026 pro progresi",
    "refs": [
     54,
     55,
@@ -1881,14 +1886,14 @@
   {
    "date_cs": "10.2.2026",
    "event_cs": "CT angiografie plicnice",
-   "comment_cs": "bez plicní embolie",
+   "comment_cs": "bez plicní embolie; drobná osteoplastická ložiska do 7 mm v přechodu hrudní a bederní páteře (ke kterému vyšetření patří, nejisté)",
    "refs": [
     58,
     27,
     28
    ],
    "ocr_note_cs": "V OCR „cr Ag“, čteno jako CT angiografie; „osteoplatické“ čteno jako osteoplastické.",
-   "note_cs": "V textu je dále věta o drobných osteoplastických ložiscích do 7 mm v přechodu hrudní a bederní páteře; ke kterému vyšetření patří, nelze z OCR určit."
+   "note_cs": "Věta o osteoplastických ložiscích stojí v textu mezi tabulkou CT 16.1.2026 a závěrem CT angiografie; příslušnost k vyšetření nelze z textu určit."
   },
   {
    "date_cs": "28.4.2026",
@@ -1947,10 +1952,11 @@
   {
    "date_cs": null,
    "event_cs": "Poslední kontrola a plán",
-   "comment_cs": "everolimus toleruje výborně, závratě a poruchy rovnováhy neguje; ECOG PS 1, bez klinických známek mozkových metastáz. Nález MR zadán k projednání na neurochirurgickém semináři; kontrola 9.10.2026 s odběrem krevního obrazu a biochemie; plánováno kontrolní CT hrudníku, břicha a malé pánve",
+   "comment_cs": "everolimus toleruje výborně, závratě a poruchy rovnováhy neguje, jen někdy během dne mžitky před očima; ECOG PS 1, bez klinických známek mozkových metastáz. Nález MR zadán k projednání na neurochirurgickém semináři; kontrola 9.10.2026 s odběrem krevního obrazu a biochemie; plánováno kontrolní CT hrudníku, břicha a malé pánve",
    "refs": [
     38,
     39,
+    99,
     40,
     41,
     42,
@@ -2031,7 +2037,7 @@
    },
    {
     "term_cs": "Dušnost",
-    "comment_cs": "interní vyšetření 10.2.2026: k vyloučení kardiální etiologie; plicní embolie vyloučena, EKG bez ischemických změn, vysoce senzitivní troponin stabilní bez dynamiky; možno na vrub hypertenze; krevní tlak 174/92, doma kolem 150; nově Orcal",
+    "comment_cs": "interní vyšetření 10.2.2026: k vyloučení kardiální etiologie; plicní embolie vyloučena, EKG bez ischemických změn, vysoce senzitivní troponin stabilní bez dynamiky; možno na vrub nedostatečně kontrolované hypertenze (čtení slova nejisté); krevní tlak 174/92 mmHg, doma kolem 150; nově Orcal",
     "refs": [
      76,
      77,
@@ -2043,7 +2049,7 @@
    },
    {
     "term_cs": "Sklerotické změny tepen dolních končetin",
-    "comment_cs": "ultrazvuk 30.7.2026: středně silné, neangiitické; ne těžká stenóza v proximálním úseku tepen pravé dolní končetiny, doporučeno sledování",
+    "comment_cs": "ultrazvuk 30.7.2026: středně silné, neangiitické; zřetelná, i když ne těžká stenóza v proximálním úseku tepen pravé dolní končetiny, doporučeno sledování",
     "refs": [
      79,
      80
@@ -2216,7 +2222,7 @@
     "change_status": null,
     "indication_cs": "při nedostatečném efektu nebo zvracení",
     "comment_cs": null,
-    "comment_line_cs": "při nedostatečném efektu nebo zvracení",
+    "comment_line_cs": "při nedostatečném účinku Deganu nebo při zvracení",
     "refs": [
      91
     ],
@@ -2248,7 +2254,7 @@
     "change_status": null,
     "indication_cs": "při nedostatečném efektu",
     "comment_cs": null,
-    "comment_line_cs": "při nedostatečném efektu",
+    "comment_line_cs": "při nedostatečném účinku Imodia",
     "refs": [
      93
     ],
