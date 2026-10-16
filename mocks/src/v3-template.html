@@ -425,7 +425,9 @@ details.srcs .refs { border-top: 0; margin-top: 4px; padding-top: 0; }
 .gle summary::before { content: "▸"; color: var(--muted); flex: none; }
 .gle details[open] summary::before { content: "▾"; }
 .gle .glq { flex: 1 1 260px; min-width: 0; font-size: 14px; }
-.gle details:not([open]) .glq { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.gle details:not([open]) .glq.clamp { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.gle .clampnote { display: none; flex: 1 0 100%; font-size: 12px; color: var(--muted); }
+.gle details:not([open]) .glq.isclamped ~ .clampnote { display: block; }
 .gle summary .chip { flex: none; }
 .glbody { padding: 0 12px 10px 28px; }
 .glwhy { margin: 0; font-size: 13.5px; }
@@ -549,6 +551,7 @@ details.srcs .refs { border-top: 0; margin-top: 4px; padding-top: 0; }
 .gapsbtn { white-space: normal; text-align: left; border-color: var(--missing); color: var(--missing); }
 /* Missing documents or data: the button itself is the always-on signal (round 21), filled amber. */
 .gapsbtn.warn { background: var(--missing); color: #fff; }
+.unchecked { display: inline-block; white-space: normal; font-size: 13px; font-weight: 600; padding: 4px 10px; border-radius: var(--r); background: var(--missing); color: #fff; }
 details.donegrp > summary { cursor: pointer; color: var(--muted); font-size: 13px; padding: 10px 0 4px; }
 </style>
 
@@ -1273,9 +1276,16 @@ function reasonQuestionBox(p, reg) {
 /* Missing and unclear data: a toggle, details on demand (round 7), no counts (round 19): numbers read as a score.
    Missing-document alerts are always on (CLAUDE.md), so when any document or datum is missing the button itself is
    the signal, filled amber with "chybí podklady"; the list sits one click away (round 21, team decision 2026-10-17). */
-const hasMissing = () => CASE.flags.some(f => f.kind === "missing") || (EXTRA.data_gaps_v3 || []).some(x => x.kind === "missing");
-function gapsToggle() {
-  const warn = hasMissing();
+/* The extracted data of a case; only fully processed cases have any. An unprocessed case returns null, so callers say
+   the check was not done instead of reading another case's data or reporting "nothing missing". */
+const caseDataOf = p => p && p.full ? { flags: CASE.flags || [], gaps: EXTRA.data_gaps_v3 || [] } : null;
+/* true or false for a processed case; null when the missing-document check has not run for this case. */
+const hasMissing = p => { const d = caseDataOf(p); return d ? d.flags.some(f => f.kind === "missing") || d.gaps.some(x => x.kind === "missing") : null; };
+/* Unprocessed case: the missing-document check has not run, which is not the same as "nothing missing", so the place
+   of the Upozornění button carries an amber signal saying so (missing-document alerts are always on, CLAUDE.md). */
+const uncheckedSignal = () => `<span class="unchecked" role="status">⚠ Chybějící podklady nezkontrolovány (případ nezpracován)</span>`;
+function gapsToggle(p) {
+  const warn = hasMissing(p);
   return `<button class="btn small gapsbtn ${warn ? "warn" : ""}" data-act="gaps" aria-expanded="${!!S.gapsOpen}">⚠ Upozornění${warn ? " · chybí podklady" : ""} ${S.gapsOpen ? "▴" : "▾"}</button>`;
 }
 function questionBox(p) {
@@ -1361,9 +1371,18 @@ const tierChip = st => `<span class="chip plain tier tier-${tiersOf(st)[0]}" tit
    "Proč" (the documented facts with their sources) and, in small italics, the full citation with the original grade.
    The headline clamps long quotes to three lines only on screen; the open entry shows the whole quote, and the text
    is never shortened in the data or anywhere it is copied. */
+/* Only long quotes may be clamped, and never one with a condition word: cutting "... only if X" after the first
+   clause turns a conditional statement into an unconditional one. A clamped quote says so next to it. */
+const CLAMP_MIN = 160;
+const COND_RE = /(^|[^\p{L}])(provided|unless|if|except|pokud|při|kromě)(?![\p{L}])/iu;
+const clampable = q => String(q || "").length > CLAMP_MIN && !COND_RE.test(String(q || ""));
+const quoteHead = q => `<q class="glq ${clampable(q) ? "clamp" : ""}">${esc(q)}</q>`;
+const clampNote = q => clampable(q) ? `<span class="clampnote">(citace zkrácena, rozbalte)</span>` : "";
+/* The note shows only when the browser actually cut the quote at this width. */
+function markClamped() { document.querySelectorAll(".glq.clamp").forEach(q => q.classList.toggle("isclamped", q.scrollHeight > q.clientHeight + 1)); }
 const factRefs = f => ((GUIDE.fact_refs || {})[f] || []).map(R3).filter(Boolean);
 const factsHtml = fs => (fs || []).length ? `<ul class="glfacts">${fs.map(f => `<li>${esc(f)} ${factRefs(f).length ? srcLinks(factRefs(f)) : `<span class="muted small">(zdroj nedohledán)</span>`}</li>`).join("")}</ul>` : "";
-const pageOf = x => x.pdf_page ? `s. ${esc(x.printed_page || x.pdf_page)}` : "jen abstrakt";
+const pageOf = x => x.pdf_page ? pageLabel(x.pdf_page, x.printed_page) : "jen abstrakt";
 /* What the guideline itself printed as its grade; ČOS and NCCN categories get their meaning spelled out, because the
    chip shows them as "neuvedeno". */
 const origGrade = x => { const cat = categoriesOf(x);
@@ -1371,7 +1390,7 @@ const origGrade = x => { const cat = categoriesOf(x);
 const gleOpen = id => !!(S.gleOpen || {})[id];
 function stmtHtml(x) {
   const g = GL(x.guideline_id), t = tiersOf(x);
-  return `<li class="gle" data-tier="${t[0]}"><details data-gle="${esc(x.id)}" ${gleOpen(x.id) ? "open" : ""}><summary><q class="glq">${esc(x.quote)}</q>${tierChip(x)}</summary>
+  return `<li class="gle" data-tier="${t[0]}"><details data-gle="${esc(x.id)}" ${gleOpen(x.id) ? "open" : ""}><summary>${quoteHead(x.quote)}${tierChip(x)}${clampNote(x.quote)}</summary>
     <div class="glbody"><p class="glwhy"><b>Proč:</b> ${esc(x.applies_because_cs || "")}</p>${factsHtml(x.patient_facts)}
     <p class="glmeta">${esc(g.name || "")}, ${esc(g.society || "")} ${esc(g.year || "")}${g.type_cs ? ` · ${esc(g.type_cs)}` : ""} · ${esc(x.section || "")} · ${pageOf(x)} · původní označení: ${origGrade(x)} · <button class="linkbtn small" data-guide="${esc(x.id)}" title="${esc(citeOf(x))}">otevřít v doporučení</button></p></div></details></li>`;
 }
@@ -1379,7 +1398,7 @@ function stmtHtml(x) {
    recommendation. */
 function litHtml(a) {
   const id = "lit:" + a.pmid, qs = a.quotes || [];
-  return `<li class="gle"><details data-gle="${esc(id)}" ${gleOpen(id) ? "open" : ""}><summary><q class="glq">${esc(qs[0] || a.title)}</q><span class="chip plain k-unclear">literatura, ne doporučení</span></summary>
+  return `<li class="gle"><details data-gle="${esc(id)}" ${gleOpen(id) ? "open" : ""}><summary>${quoteHead(qs[0] || a.title)}<span class="chip plain k-unclear">literatura, ne doporučení</span>${clampNote(qs[0] || a.title)}</summary>
     <div class="glbody"><p class="glwhy"><b>Proč:</b> ${esc(a.why_relevant_cs || "")}</p>${qs.length > 1 ? `<ul class="glfacts">${qs.slice(1).map(q => `<li><q>${esc(q)}</q></li>`).join("")}</ul>` : ""}
     <p class="glmeta">${esc(a.title)} · ${esc((a.first_author || "").replace(/\s*et al\.?$/, ""))} et al., ${esc(a.journal || "")} ${esc(a.year || "")} · ${esc([].concat(a.pub_type || []).join(", "))} · <a href="${esc(a.url)}" target="_blank" rel="noopener">PMID ${esc(a.pmid)}</a></p></div></details></li>`;
 }
@@ -1423,7 +1442,7 @@ function gapsBox() {
 }
 function briefBlock(p) {
   const reg = refRegistry();
-  return `<section class="card blk"><div class="head" style="margin:0"><h2>MDT brief</h2><span class="row">${gapsToggle()}</span></div>${S.gapsOpen ? gapsBox() : ""}
+  return `<section class="card blk"><div class="head" style="margin:0"><h2>MDT brief</h2><span class="row">${gapsToggle(p)}</span></div>${S.gapsOpen ? gapsBox() : ""}
     <p class="prose">${briefHtml(reg)}</p>
     ${reasonQuestionBox(p, reg)}
     ${timelineCard(true)}
@@ -1678,7 +1697,10 @@ const decisionRef = x => R3(Number.isInteger(x.decision_ref) ? x.decision_ref : 
 /* The guideline side of a past decision quotes only the edition valid on the decision date (round 21), never a later
    one; the PDF of that edition opens online at the page. Without a passage in that edition the item says so. */
 const edRange = e => `platné od ${fmtDate(e.valid_from)} do ${e.valid_to ? fmtDate(e.valid_to) : "dosud"}`;
-const pdfAt = (e, n) => e.pdf_url ? `<a class="linkbtn small" href="${esc(e.pdf_url)}${n ? "#page=" + esc(n) : ""}" target="_blank" rel="noopener">otevřít PDF vydání ${esc(e.year)}${n ? `, s. ${esc(n)}` : ""}</a>` : "";
+/* The link opens the PDF at its file page n; the label names the page printed in the guideline when we know it, else
+   says it is the PDF's own page number, so a doctor looking for the printed page number is not misled. */
+const pageLabel = (n, printed) => printed ? `s. ${esc(printed)}` : `s. PDF ${esc(n)}`;
+const pdfAt = (e, n, printed) => e.pdf_url ? `<a class="linkbtn small" href="${esc(e.pdf_url)}${n ? "#page=" + esc(n) : ""}" target="_blank" rel="noopener">otevřít PDF vydání ${esc(e.year)}${n ? `, ${pageLabel(n, printed)}` : ""}</a>` : "";
 function pastPassage(x) {
   const e = x.edition;
   if (!e || x.status === "not_checked") return `<span class="label">Doporučení platné v době rozhodnutí</span><p class="rq muted">Pasáž z vydání platného v době rozhodnutí nebyla dohledána; citace z pozdějšího vydání se nezobrazuje.</p>`;
@@ -1687,8 +1709,8 @@ function pastPassage(x) {
   if (x.status === "not_found" || !x.quote) return `${head}<p class="rq">vydání platné v době rozhodnutí pasáž neobsahuje</p>${meta}${pdfAt(e)}`;
   const more = x.additional_passages || [];
   return `${head}<p class="rq"><q class="pastq">${esc(x.quote)}</q></p>${meta}
-    <span class="cite">${esc(x.section || "")} · ${pageOf(x)} · původní označení: ${esc(x.evidence || "neuvedeno")} · ${pdfAt(e, x.pdf_page)}</span>
-    ${more.length ? `<details class="srcs"><summary class="small">Další pasáž z téhož vydání (${more.length})</summary>${more.map(m => `<p class="rq"><q>${esc(m.quote)}</q></p><span class="cite">${esc(m.section || "")} · s. ${esc(m.pdf_page)} · ${pdfAt(e, m.pdf_page)}</span>${m.relation_cs ? `<span class="cite">${esc(m.relation_cs)}</span>` : ""}`).join("")}</details>` : ""}`;
+    <span class="cite">${esc(x.section || "")} · ${pageOf(x)} · původní označení: ${esc(x.evidence || "neuvedeno")} · ${pdfAt(e, x.pdf_page, x.printed_page)}</span>
+    ${more.length ? `<details class="srcs"><summary class="small">Další pasáž z téhož vydání (${more.length})</summary>${more.map(m => `<p class="rq"><q>${esc(m.quote)}</q></p><span class="cite">${esc(m.section || "")} · ${pageLabel(m.pdf_page, m.printed_page)} · ${pdfAt(e, m.pdf_page, m.printed_page)}</span>${m.relation_cs ? `<span class="cite">${esc(m.relation_cs)}</span>` : ""}`).join("")}</details>` : ""}`;
 }
 function retroList(p) {
   const xs = PAST(); if (!xs.length) return "";
@@ -1720,7 +1742,7 @@ function retroList(p) {
 function viewPatientLite(p) {
   return `<div class="page">${sessionBar(p)}<div class="row"><button class="linkbtn" data-nav="patients">‹ Databáze pacientů</button></div>
     ${patientHeader(p, headerActions(p), true)}
-    <section class="card blk"><div class="head" style="margin:0"><h2>Stručný přehled</h2><span class="chip plain st-new">V maketě nezpracováno</span></div>
+    <section class="card blk"><div class="head" style="margin:0"><h2>Stručný přehled</h2><span class="row"><span class="chip plain st-new">V maketě nezpracováno</span>${hasMissing(p) === null ? uncheckedSignal() : ""}</span></div>
       <p class="prose">${esc(p.summary || "")}</p>
       <p class="muted small" style="margin:0">Plně zpracovaný je v maketě případ NO-010. Zdroj: ${esc(p.file)}, ${p.pages || "?"} s.</p>
       ${conclusionBox(p)}
@@ -2273,7 +2295,7 @@ function render() {
   const v = { patients: viewPatients, calendar: viewCalendar, patient: viewPatient, tasks: viewTasks, admin: viewAdmin }[S.view];
   document.getElementById("app").innerHTML = v();
   const nb = document.querySelector(".tlbar"); if (nb) nb.scrollLeft = S.tlScroll || 0;
-  measureTop();
+  measureTop(); markClamped();
   /* The current case's pill is scrolled into the middle of the agenda, so it is visible on narrow screens. */
   const ag = document.querySelector(".sesbar .agenda"), cur = ag?.querySelector('[aria-current="true"]');
   if (cur) ag.scrollLeft = cur.offsetLeft - ag.offsetLeft - (ag.clientWidth - cur.offsetWidth) / 2;
@@ -2282,7 +2304,7 @@ function render() {
 }
 /* The session bar sticks under the top bar, whose height changes when it wraps on narrow screens. */
 function measureTop() { const t = document.querySelector(".top"); if (t) document.documentElement.style.setProperty("--toph", t.offsetHeight + "px"); }
-window.addEventListener("resize", measureTop);
+window.addEventListener("resize", () => { measureTop(); markClamped(); });
 /* Hash-based history so the browser's back and forward buttons work inside the single-file mock (round 2). */
 const hashOf = () => "#" + [S.view, S.view === "patient" ? nr(S.pid) : S.view === "calendar" ? S.week : "", S.view === "patient" ? S.tab : ""].filter(Boolean).join("/");
 function writeHash() { const h = hashOf(); if (location.hash !== h) { S.hashSet = h; location.hash = h; } }
@@ -2669,7 +2691,7 @@ document.addEventListener("change", e => {
     if (x && x.state === "draft" && canConfirmSugg()) { x[t.dataset.f] = t.value; if (t.dataset.f === "due") { x.dueSrc = t.value ? "manual" : "none"; x.dueBy = S.user; } render(); }
   }
 });
-document.addEventListener("toggle", e => { if (e.target.dataset?.gle) { S.gleOpen = S.gleOpen || {}; S.gleOpen[e.target.dataset.gle] = e.target.open; } if (e.target.dataset?.doneopen) S.doneOpen = e.target.open; }, true);
+document.addEventListener("toggle", e => { if (e.target.dataset?.gle) { S.gleOpen = S.gleOpen || {}; S.gleOpen[e.target.dataset.gle] = e.target.open; markClamped(); } if (e.target.dataset?.doneopen) S.doneOpen = e.target.open; }, true);
 document.addEventListener("toggle", e => { const f = e.target.dataset?.mdtopen; if (f) S.mdtOpen[f] = e.target.open; if (e.target.dataset?.repopen) S.repOpen = e.target.open; }, true);
 /* Zoom keys as in common PDF viewers; only on the page image, and never while typing. */
 document.addEventListener("keydown", e => {

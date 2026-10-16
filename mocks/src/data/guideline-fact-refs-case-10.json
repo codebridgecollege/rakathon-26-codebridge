@@ -10,9 +10,10 @@
       40,
       99
     ],
-    "od 9/2026 3. linie everolimus 5 mg": [
+    "Everolimus 5 mg denně od 3. 9. 2026 (3. linie); zpráva uvádí navýšení na 10 mg denně od 19. 9. 2026 (zda proběhlo, neuvedeno v dostupné dokumentaci)": [
       32,
-      67
+      67,
+      69
     ],
     "světlobuněčný renální karcinom G2, nefrektomie vpravo 6/2022, pT2a pN1 M0": [
       1,
@@ -32,7 +33,8 @@
       4,
       48
     ],
-    "možná drobná osteoplastická ložiska Th/L (nejasné)": [
+    "CT AG plicnice 10. 2. 2026: drobná osteoplastická ložiska do 7 mm v přechodu Th/L (povaha neuvedena)": [
+      58,
       28
     ],
     "ECOG PS 1": [
@@ -49,10 +51,6 @@
       70,
       71
     ],
-    "Everolimus 5 mg od 3. 9. 2026 (3. linie), plánováno zvýšení na 10 mg": [
-      32,
-      68
-    ],
     "Na cílený dotaz neguje závratě či poruchy rovnováhy, někdy během dne mžitky před očima": [
       39,
       99
@@ -65,16 +63,8 @@
       70,
       36
     ],
-    "Everolimus 5 mg od 3. 9. 2026": [
-      32,
-      67
-    ],
     "HBsAg pozit. pac. (anamnéza v dokumentaci)": [
       83
-    ],
-    "Everolimus 5 mg od 3. 9. 2026 (aktuální léčba)": [
-      32,
-      67
     ],
     "Sunitinib 1-8/2026 (ukončen)": [
       54,
@@ -86,10 +76,6 @@
     ],
     "HBsAg pozitivní": [
       83
-    ],
-    "Everolimus 5 mg od 3. 9. 2026, plánováno zvýšení na 10 mg": [
-      32,
-      68
     ],
     "Everolimus od 3. 9. 2026": [
       32
@@ -114,6 +100,7 @@
       78
     ],
     "Od 10. 2. 2026 nově Orcal 10 mg ½-0-0, poučen o domácím měření TK": [
+      76,
       94
     ],
     "Chronická medikace: Kapidin 20 mg 1-0-0": [
@@ -127,10 +114,17 @@
       95
     ],
     "Metastatický světlobuněčný karcinom ledviny, progrese po 1. a 2. linii, od 3. 9. 2026 everolimus": [
-      2,
+      4,
       23,
       65,
       32
+    ],
+    "CT 8/2026: velikostní progrese uzlin v levém plicním hilu a v retroperitoneu paraaortálně vlevo": [
+      65,
+      119
+    ],
+    "Nález MR mozku zadán k projednání na NCH semináři": [
+      41
     ]
   }
 }

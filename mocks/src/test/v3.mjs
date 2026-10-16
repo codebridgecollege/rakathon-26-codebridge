@@ -40,6 +40,11 @@ for (const width of [1280, 400]) {
   await c('[data-tab="labs"]'); ok((await text('[data-labmode][aria-pressed="true"]')).includes("z dokumentu"), `${width} labs open on document values`);
   await c('[data-labmode="series"]'); ok((await page.locator("svg.chart").textContent()).includes("syntetická data"), `${width} synthetic chart labelled inside the SVG`);
   // edit on patient 2 must not appear in patient 10's history
+  // unprocessed case: no Upozornění button; an amber signal says the missing-document check has not run
+  await go("#patient/2");
+  ok(await page.locator(".gapsbtn").count() === 0 && (await text(".unchecked")).includes("Chybějící podklady nezkontrolovány (případ nezpracován)")
+    && await page.locator(".unchecked").evaluate(el => getComputedStyle(el).backgroundColor === getComputedStyle(document.documentElement).getPropertyValue("--missing").trim() || getComputedStyle(el).backgroundColor !== "rgba(0, 0, 0, 0)")
+    && await page.evaluate(() => hasMissing(P("2_pacient.pdf")) === null && hasMissing(P("10_pacient.pdf")) === true), `${width} unprocessed case shows the amber "nezkontrolovány" signal; hasMissing reads the patient`);
   await go("#patient/2"); await c('[data-edit$="|q"]'); await page.fill("#edtext", "Otázka pro pacienta 2"); await c('[data-act="saveedit"]');
   await go("#patient/10/overview"); ok(!(await page.locator("main").textContent()).includes("Otázka pro pacienta 2"), `${width} edits stay with their patient`);
   // edit a drug, check marker in report, revert keeps history
@@ -185,6 +190,24 @@ for (const width of [1280, 400]) {
     && (await page.locator("h4.glh").allTextContents()).some(t => t.includes("Literatura z PubMed · není doporučení")), `${width} literature is its own section, same entries, labelled not a recommendation`);
   // the MDT's deviations table now sits in this tab, below the recommendations
   ok(await page.locator(".devt").count() === 1 && await page.evaluate(() => document.querySelector(".devt").getBoundingClientRect().top > document.querySelector(".gl").getBoundingClientRect().bottom), `${width} deviations table in Navrhovaný postup below the recommendations`);
+  // quote clamping: only long quotes without a condition word are clamped; a visually cut quote says so
+  const clamp = await page.locator(".gll .gle details:not([open]) q.glq").evaluateAll(qs => qs.map(q => ({ t: q.textContent, cls: q.classList.contains("clamp"),
+    cut: q.scrollHeight > q.clientHeight + 1, lc: getComputedStyle(q).webkitLineClamp, note: q.parentElement.querySelector(".clampnote") })).map(x => ({ ...x, noteShown: !!x.note && getComputedStyle(x.note).display !== "none" })));
+  ok(clamp.length > 0 && clamp.filter(x => x.cut).every(x => x.cls && x.noteShown) && clamp.filter(x => !x.cut).every(x => !x.noteShown)
+    && clamp.filter(x => /(^|[^\p{L}])(provided|unless|if|except|pokud|při|kromě)(?![\p{L}])/iu.test(x.t)).every(x => !x.cls && !x.cut && (x.lc === "none" || !x.lc))
+    && (width > 500 || clamp.some(x => x.cut)), `${width} only condition-free long quotes are clamped, and a cut quote shows "(citace zkrácena, rozbalte)"`);
+  ok(await page.evaluate(() => !clampable("Radiotherapy should be considered only if the patient has a good performance status and limited extracranial disease, " + "x".repeat(120))
+    && !clampable("Léčba je vhodná pokud ".padEnd(200, "a")) && clampable("Ideally, therapeutic decisions should be discussed at a dedicated board ".padEnd(200, "b"))
+    && !clampable("short quote")), `${width} clampable() rejects condition words (if, pokud) and short quotes`);
+  // prospective deviations: a choice and a reason survive a tab switch and print in the report
+  const dev0 = await page.locator(".devt [data-dev]").first().getAttribute("data-dev");
+  await page.locator(`.devt [data-dev="${dev0}"]`).selectOption("deviates"); await page.waitForTimeout(80);
+  await page.locator(`.devt [data-devwhy="${dev0}"]`).fill("Pacient odmítá ozáření"); await page.waitForTimeout(80);
+  await c('[data-tab="dev"]'); await c('[data-tab="next"]');
+  ok(await page.locator(`.devt [data-dev="${dev0}"]`).inputValue() === "deviates" && await page.locator(`.devt [data-devwhy="${dev0}"]`).inputValue() === "Pacient odmítá ozáření",
+    `${width} deviation choice and reason survive a tab switch`);
+  { const r = await rep(); ok(r.includes("Odchylky od doporučení") && r.includes("záměrná odchylka") && r.includes("Pacient odmítá ozáření"), `${width} filled deviation printed in the report`); }
+  await page.locator(`.devt [data-dev="${dev0}"]`).selectOption(""); await page.waitForTimeout(80);
   // retrospective deviations: severity and assessment only for doctors, never prefilled, stored with who and when
   await c('[data-tab="dev"]'); await over("dev");
   const nr = await page.locator("[data-retroitem]").count();

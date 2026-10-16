@@ -75,7 +75,7 @@
       "patient_facts": [
         "MR mozku 14. 9. 2026: solitární sytící se ložisko v pravé hemisféře mozečku do 3 mm, susp. metastáza",
         "ECOG PS 1, bez klinických známek mozkových metastáz (občasné mžitky před očima)",
-        "od 9/2026 3. linie everolimus 5 mg"
+        "Everolimus 5 mg denně od 3. 9. 2026 (3. linie); zpráva uvádí navýšení na 10 mg denně od 19. 9. 2026 (zda proběhlo, neuvedeno v dostupné dokumentaci)"
       ],
       "kind": "brain_metastasis",
       "type": "guideline_text",
@@ -89,9 +89,10 @@
       "printed_page": 1339,
       "quote": "Ideally, therapeutic decisions should be discussed at a dedicated BM board or at a disease-specific tumour board with participation of colleagues experienced in the management of CNS tumours [EANO: IV, n/a; ESMO: V, B].",
       "evidence": "EANO: IV, n/a; ESMO: V, B",
-      "applies_because_cs": "Pacient je projednáván na MDT kvůli podezření na metastázu v mozečku.",
+      "applies_because_cs": "MR mozku 14. 9. 2026 popisuje suspekci na solitérní metastázu v pravé hemisféře mozečku; ošetřující lékař ve zprávě píše: „Nález při MR vyš. mozku zadávám k projednáni na NCH semináři.“",
       "patient_facts": [
-        "MR mozku 14. 9. 2026: solitární sytící se ložisko v pravé hemisféře mozečku do 3 mm, susp. metastáza"
+        "MR mozku 14. 9. 2026: solitární sytící se ložisko v pravé hemisféře mozečku do 3 mm, susp. metastáza",
+        "Nález MR mozku zadán k projednání na NCH semináři"
       ],
       "kind": "brain_metastasis",
       "type": "recommendation",
@@ -127,7 +128,7 @@
         "světlobuněčný renální karcinom G2, nefrektomie vpravo 6/2022, pT2a pN1 M0",
         "1. linie nivolumab + ipilimumab, progrese (iRECIST potvrzena 1/2026)",
         "2. linie sunitinib 1-8/2026, progrese",
-        "od 9/2026 3. linie everolimus 5 mg"
+        "Everolimus 5 mg denně od 3. 9. 2026 (3. linie); zpráva uvádí navýšení na 10 mg denně od 19. 9. 2026 (zda proběhlo, neuvedeno v dostupné dokumentaci)"
       ],
       "kind": "systemic_therapy",
       "type": "recommendation",
@@ -141,11 +142,12 @@
       "printed_page": 1336,
       "quote": "In the situations of multiple systemic treatment options, CNS and extra-CNS disease activity as well as toxicity profile of the respective treatment options should be considered in the decision-making process for the optimal systemic treatment strategy [EANO: IV, A; ESMO: IV, B].",
       "evidence": "EANO: IV, A; ESMO: IV, B",
-      "applies_because_cs": "Vedle ložiska v mozečku (suspekce na metastázu) je v dokumentaci extrakraniální onemocnění (uzliny, kůže, nejasná ložiska Th/L); pacient je ve 3. linii systémové léčby (everolimus).",
+      "applies_because_cs": "Vedle ložiska v mozečku (suspekce na metastázu) uvádí dokumentace aktivní extrakraniální onemocnění: dle CT 8/2026 velikostní progrese uzlin v levém plicním hilu a v retroperitoneu paraaortálně vlevo. Histologicky ověřené metastázy v paraaortální uzlině (exstirpace 10/2022) a v kůži brady (excize 11/2023) byly v minulosti odstraněny. CT AG plicnice 10. 2. 2026 popisuje drobná osteoplastická ložiska v přechodu Th/L; jejich povahu dokumentace neuvádí. Pacient je ve 3. linii systémové léčby (everolimus).",
       "patient_facts": [
         "MR mozku 14. 9. 2026: solitární sytící se ložisko v pravé hemisféře mozečku do 3 mm, susp. metastáza",
+        "CT 8/2026: velikostní progrese uzlin v levém plicním hilu a v retroperitoneu paraaortálně vlevo",
         "histologicky ověřené metastázy (paraaortální uzlina, kůže)",
-        "možná drobná osteoplastická ložiska Th/L (nejasné)"
+        "CT AG plicnice 10. 2. 2026: drobná osteoplastická ložiska do 7 mm v přechodu Th/L (povaha neuvedena)"
       ],
       "kind": "systemic_therapy",
       "type": "recommendation",
@@ -163,7 +165,7 @@
       "patient_facts": [
         "1. linie nivolumab + ipilimumab, progrese (iRECIST potvrzena 1/2026)",
         "2. linie sunitinib 1-8/2026, progrese",
-        "od 9/2026 3. linie everolimus 5 mg"
+        "Everolimus 5 mg denně od 3. 9. 2026 (3. linie); zpráva uvádí navýšení na 10 mg denně od 19. 9. 2026 (zda proběhlo, neuvedeno v dostupné dokumentaci)"
       ],
       "kind": "systemic_therapy",
       "type": "recommendation",
@@ -181,7 +183,7 @@
       "patient_facts": [
         "1. linie nivolumab + ipilimumab, progrese (iRECIST potvrzena 1/2026)",
         "2. linie sunitinib 1-8/2026, progrese",
-        "od 9/2026 3. linie everolimus 5 mg",
+        "Everolimus 5 mg denně od 3. 9. 2026 (3. linie); zpráva uvádí navýšení na 10 mg denně od 19. 9. 2026 (zda proběhlo, neuvedeno v dostupné dokumentaci)",
         "ECOG PS 1"
       ],
       "kind": "systemic_therapy",
@@ -200,7 +202,7 @@
       "patient_facts": [
         "1. linie nivolumab + ipilimumab, progrese (iRECIST potvrzena 1/2026)",
         "2. linie sunitinib 1-8/2026, progrese",
-        "od 9/2026 3. linie everolimus 5 mg"
+        "Everolimus 5 mg denně od 3. 9. 2026 (3. linie); zpráva uvádí navýšení na 10 mg denně od 19. 9. 2026 (zda proběhlo, neuvedeno v dostupné dokumentaci)"
       ],
       "kind": "systemic_therapy",
       "type": "guideline_text",
