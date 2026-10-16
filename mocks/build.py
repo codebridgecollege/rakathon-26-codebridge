@@ -78,13 +78,22 @@ def guidance() -> str:
     mock embeds it because it is a single HTML file. PDFs are not bundled: the viewer opens each guideline
     online at the cited page.
     """
-    out = {"guidelines": [], "statements": [], "pages": [], "not_retrieved": [], "literature": [], "queries": []}
+    out = {"guidelines": [], "statements": [], "pages": [], "not_retrieved": [], "literature": [], "queries": [], "past_statements": []}
     for name in ("guidelines-case-10.json", "guidelines-case-10-more.json"):
         f = DATA / name
         if f.exists():
             part = json.loads(f.read_text())
             for key in ("guidelines", "statements", "pages", "not_retrieved"):
                 out[key] += part.get(key, [])
+    # Statements about past decisions sit next to the oncology summary rows, not under the proposed management.
+    out["past_statements"] = []
+    past = DATA / "guidelines-case-10-past.json"
+    if past.exists():
+        part = json.loads(past.read_text())
+        known = {g["id"] for g in out["guidelines"]}
+        out["guidelines"] += [g for g in part.get("guidelines", []) if g["id"] not in known]
+        out["past_statements"] = part.get("statements", [])
+        out["pages"] += part.get("pages", [])
     lit = DATA / "literature-case-10.json"
     if lit.exists():
         part = json.loads(lit.read_text())

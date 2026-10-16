@@ -415,6 +415,8 @@ async function loadGuidance(p) {
 }
 const GL = id => (GUIDE.guidelines || []).find(g => g.id === id) || {};
 const STMTS = () => GUIDE.statements || [];
+const PAST = () => GUIDE.past_statements || [];
+const anyStmt = id => STMTS().find(x => x.id === id) || PAST().find(x => x.id === id);
 const citeOf = st => { const g = GL(st.guideline_id); return `${g.name || ""}, ${g.society || ""} ${g.year || ""}${g.version ? ", " + g.version : ""}; ${st.section || ""}; ${st.pdf_page ? "s. " + (st.printed_page || st.pdf_page) : "abstrakt"}`; };
 
 const GAP = "neuvedeno v dostupné dokumentaci";
@@ -871,8 +873,20 @@ function detailedCard(reg, inPresent) {
       ${inPresent ? `<label class="small muted"><input type="checkbox" data-pickrep="summary" ${S.picked.has("summary") ? "checked" : ""}> do reportu</label>` : ""}</div>
     ${head}
     ${kindLegend()}
-    ${rows.map((r, i) => `<div class="orow cat cat-${rowKind(r)}" title="${KIND_CS[rowKind(r)] || ""}"><span class="dt">${esc(r.date_cs || r.date_label_cs || "")}</span><span><b>${ed(`od:${i}:e`, r.event_cs)}</b>${r.comment_cs ? `<br>${ed(`od:${i}:c`, r.comment_cs)}` : ""}${marks(r, edOf(`od:${i}:e`) ? `od:${i}:e` : `od:${i}:c`)}${(r.refs || []).map(j => reg.n(R3(j))).join("")}</span></div>`).join("")}
+    ${rows.map((r, i) => `<div class="orow cat cat-${rowKind(r)}" title="${KIND_CS[rowKind(r)] || ""}"><span class="dt">${esc(r.date_cs || r.date_label_cs || "")}</span><span>${pastBlock(i)}<b>${ed(`od:${i}:e`, r.event_cs)}</b>${r.comment_cs ? `<br>${ed(`od:${i}:c`, r.comment_cs)}` : ""}${marks(r, edOf(`od:${i}:e`) ? `od:${i}:e` : `od:${i}:c`)}${(r.refs || []).map(j => reg.n(R3(j))).join("")}</span></div>`).join("")}
     ${srcList(reg)}</section>`;
+}
+/* Guideline passages next to a past decision (Soňa, round 12): shown, never judged; the edition is today's,
+   not necessarily the one valid when the decision was made. */
+function pastBlock(i) {
+  if (!S.guideOn) return "";
+  const xs = PAST().filter(x => x.row_index === i);
+  if (!xs.length) return "";
+  return `<details class="pastgl" style="float:right;margin:0 0 4px 8px"><summary class="small" style="cursor:pointer;color:var(--unclear)">Doporučení (${xs.length})</summary>
+    <div class="gl" style="float:none;clear:both;margin-top:6px;max-width:520px">${xs.map(x => `<div style="margin-bottom:8px"><span class="cite">${esc(x.decision_cs || "")}</span><q>${esc(x.quote)}</q> ${typeChip(x)}
+      <span class="cite">${esc(shortCite(x))} · <button class="linkbtn small" data-guide="${esc(x.id)}" title="${esc(citeOf(x))}">otevřít</button></span>
+      <span class="cite">${esc(x.relation_cs || "")}</span><span class="cite" style="color:var(--missing)">${esc(x.edition_note_cs || "")}</span></div>`).join("")}
+      <p class="muted small" style="margin:0">Pozorování asistenta: pasáž vedle rozhodnutí, bez hodnocení. Zda šlo o záměrnou odchylku, posoudí lékař.</p></div></details>`;
 }
 /* Category of an oncology row for its icon and colour (round 9); from the row's own words, display only. */
 const rowKind = r => { const t = `${r.event_cs} ${r.comment_cs || ""}`; return /^(CT|MR|PET|Vstupní CT|UZ|ultrazvuk)|CT |MR /.test(r.event_cs) ? "imaging" : /ektomi|Exstirpace|Excize|Implantace|resekc|operac/i.test(r.event_cs) ? "surgery" : /linie|nivolumab|sunitinib|everolimus|chemoterap|imunoterap/i.test(r.event_cs) ? "systemic" : /radioterap|ozáření/i.test(t) ? "radiotherapy" : "visit"; };
@@ -934,6 +948,7 @@ function timelineCard(inline) {
 }
 function tabOverview() {
   const p = P(S.pid);
+  if (p.full) loadGuidance(p);
   const reg = refRegistry();
   return `<div class="grid2"><div class="stack">${detailedCard(reg)}</div><div class="stack">${statusCard()}${alertsStrip()}</div></div>`;
 }
@@ -1236,7 +1251,7 @@ function renderOverlay() {
       <div class="text">${text}</div></aside>`;
     document.getElementById("hit")?.scrollIntoView({ block: "center" });
   } else if (o.kind === "guide") {
-    const st = STMTS().find(x => x.id === o.id), g = GL(st.guideline_id);
+    const st = anyStmt(o.id), g = GL(st.guideline_id);
     const pg = (GUIDE.pages || []).find(x => x.guideline_id === st.guideline_id && x.pdf_page === st.pdf_page);
     let text = esc(pg ? pg.text : "Text strany není k dispozici.");
     const pat = st.quote.trim().split(/\s+/).map(w => esc(w).replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("\\s+");
