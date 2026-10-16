@@ -1,0 +1,86 @@
+# Technologies - CodeBridge
+
+Every technology the project uses or plans to use, what it does for us,
+and why we chose it. Use this to answer questions when presenting. The
+list we declare to the jury (tools and data sources used during the
+event) is in [`docs/agent/HACKATHON.md`](../agent/HACKATHON.md); keep the
+two in step.
+
+Status: **used** (in the repo now), **planned** (designed, not built),
+**dev only** (used to build the project, not part of the product).
+
+## Reading documents
+
+FNO's patient PDFs are not ordinary scans. Most pages hold a faded
+background image with the readable text drawn on top in fonts, and some
+fonts map glyphs to the wrong characters, so the text you can copy from
+the PDF differs from what the page shows ("Ambulantnf vyletfenf" for
+"Ambulantní vyšetření"). Evidence: [OCR evaluation](../research/2026-10-16-ocr-evaluation.md).
+
+### How each case is read
+
+| Case | How we read it | Why |
+|---|---|---|
+| Digital PDF (text in fonts, no page image), e.g. `20_pacient.pdf` | Planned: use the PDF's text, after checking it against a quick OCR of the rendered page | The text is exact when the font maps are correct; the check catches broken maps |
+| Edited or scanned page (image plus text, or image only), most FNO pages | Render the page as a viewer shows it, then read it with the vision LLM and with Tesseract | Neither the PDF's text layer nor its embedded image is reliable |
+| A token where the two engines disagree (a digit, a date, a stage) | Marked "ověřit" (verify) for the doctor | Each engine fails differently; disagreement finds the risky spots |
+| A Tesseract word below 60 % confidence | Marked "ověřit" | In the evaluation every Tesseract error was among these words |
+| A page too poor to read (low confidence across the page) | Readability warning and a request for a better copy (F-03) | A wrong value is worse than a missing one |
+| Photo of a paper report | Planned, same path as an image page | |
+| Word or Excel exports (FNO's samples) | Planned: read the cells directly | Structured already; no OCR needed |
+
+The PDF's own text layer is kept only for comparison, never shown as the
+source.
+
+### Tools
+
+| Technology | Status | What we use it for | Why this one | Privacy |
+|---|---|---|---|---|
+| PyMuPDF 1.24.10 | used | Render each PDF page to an image (150 dpi for display, 300 dpi for OCR); inspect fonts and images | Renders exactly what a viewer shows, fast, no external service | Local |
+| Tesseract 5 with the Czech model (`ces`) | used | Local OCR of the rendered page; per-word confidence and position | Free, runs on the hospital's own server, gives confidences and boxes for "verify" marks and for highlighting the quote on the page image | Local |
+| Vision LLM | used for development (Claude Sonnet); planned for the product | Primary transcription of the rendered page: Czech medical print, tables kept as tables, stamps and blacked-out areas marked | It was correct at every problem spot in the evaluation, including the iRECIST table | Cloud unless run locally; see [data protection](DATA-PROTECTION.md) |
+| pypdf 5.1.0 | used, superseded for reading | First text extraction for the mock data; still useful for metadata | | Local |
+| `scripts/ocr_pages.py` | used | Our pipeline: render, OCR with Tesseract, write images, text, and word boxes to `data/derived/pages/` | | Local |
+
+## Understanding documents (planned for the product)
+
+| Technology | Status | What we use it for | Notes |
+|---|---|---|---|
+| LLM for extraction | planned | Turn page text into structured facts (diagnosis, stage, treatment lines, labs, dates), each with its source quote and page | Model, endpoint, and key from configuration (`CLAUDE.md`, "Calling LLMs"); the hackathon's Azure endpoint offers OpenAI and other models, EU deployments preferred |
+| Pseudonymization step | planned | Replace name, birth number, and other direct identifiers with the case ID before any text or image leaves the hospital | See [data protection](DATA-PROTECTION.md) |
+| Rules and checklists | planned | Missing documents, contradictions (like with like), readability | Deterministic code, not the LLM, wherever a rule can decide |
+
+The mock's patient data was extracted by Claude sub-agents during
+development and corrected by hand after two reviews
+([`mocks/README.md`](../../mocks/README.md)).
+
+## User interface
+
+| Technology | Status | What we use it for | Why |
+|---|---|---|---|
+| Static HTML, CSS, plain JavaScript | used | The clickable mocks in `mocks/` | No build step; one file opens anywhere and can be published as a link |
+| Hash-based routing | used (v3) | Browser back and forward inside a single page | Soňa asked for back and forward; works without a server |
+| In-page "server" module | planned (next mock) | All data access goes through one async API module, so a real backend can replace it later without touching the screens | See `mocks/README.md` once built |
+| Google Fonts: Manrope, DM Sans | used | Headings and text | Soňa's visual brief (GLIDE-inspired clinical workspace) |
+| claude.ai artifacts | dev only | Publishing the mocks as private links for the team | Quick sharing and comments |
+
+## Standards and codes
+
+| Standard | Status | Use |
+|---|---|---|
+| HL7 FHIR R4 | planned | Where data enters or leaves (`CLAUDE.md`, "Standards and data model") |
+| MKN-10 | used in data | Diagnosis codes as written in the documents; shown below the histology, because doctors read the histology and stage first |
+| TNM, ECOG PS, iRECIST | used in data | Kept exactly as written; TNM labeled as stage at diagnosis |
+| NČLP | planned | Lab codes, kept as the source gives them |
+
+## Development tools (not part of the product)
+
+| Technology | What for |
+|---|---|
+| Claude Code (Claude Opus and Sonnet) | Coding, research notes, data extraction for the mocks, reviews |
+| ChatGPT | Soňa's brainstorming and UI sketches (`docs/sources/design/`) |
+| ElevenLabs Scribe v2 (`scripts/transcribe.py`) | Transcribing the organizers' talks and the team's design discussions; no patient data in the audio |
+| uv | Running the Python scripts with pinned dependencies |
+| Node.js, jsdom, Playwright with Chrome | Click-through and layout checks of the mocks (`mocks/src/test/`) |
+| python-pptx, macOS `textutil` | Reading the organizers' decks and FNO's Word documents |
+| GitHub | Repository, shared by the team |

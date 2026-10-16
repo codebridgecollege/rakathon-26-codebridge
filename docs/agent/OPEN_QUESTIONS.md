@@ -99,6 +99,12 @@ experience.
 - [ ] How is a glass slide or photo brought to the meeting captured: typed
   by someone, or heard from the comment? (design-1 00:42:35)
 
+- [ ] For a pilot, may page images or text go to a cloud vision model or
+  LLM at all? If yes, only an EU enterprise endpoint with a processing
+  agreement and after local redaction (option B), or must everything run
+  on FNO's servers (option A)? Does FNO have a GPU server for a local
+  vision model? (`docs/design/DATA-PROTECTION.md`)
+
 ## Ask the organizers (opening, Slack, coaches)
 
 - [ ] **What is the submission deadline, and what are the judging

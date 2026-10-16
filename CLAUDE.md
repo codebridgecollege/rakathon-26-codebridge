@@ -345,6 +345,8 @@ Pick **one** location. All of these are in git, so the whole team sees them.
 | Problem, data, domain, or architecture fact | [`/docs/agent/INDEX.md`](docs/agent/INDEX.md) |
 | Product design: users, flows, screens, features and their tiers | [`/docs/design/PRODUCT.md`](docs/design/PRODUCT.md) |
 | UI mocks and their data | [`/mocks/`](mocks/README.md) |
+| Technologies we use and why, per case (for presenting) | [`/docs/design/TECHNOLOGIES.md`](docs/design/TECHNOLOGIES.md) |
+| How patient data is protected (OCR, LLMs, redaction) | [`/docs/design/DATA-PROTECTION.md`](docs/design/DATA-PROTECTION.md) |
 | Hackathon logistics, infrastructure, judging, contacts, decisions with organizers | [`/docs/agent/HACKATHON.md`](docs/agent/HACKATHON.md) |
 | What FNO asks us to deliver, as a checklist | [`/docs/agent/REQUIREMENTS.md`](docs/agent/REQUIREMENTS.md) |
 | Open question, unanswered or pending a decision | [`/docs/agent/OPEN_QUESTIONS.md`](docs/agent/OPEN_QUESTIONS.md); when answered, move the answer to its home above and delete the question |

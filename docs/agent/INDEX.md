@@ -313,9 +313,13 @@ findings (glioblastoma, meningioma, brain metastases, spinal cord lesions,
 and non-oncological differentials such as vertigo or stroke).
 
 - `2_AI asistent MDT/<n>_pacient.pdf`, ten patients: referrals to the MDT,
-  one to five pages each. They are scans with an OCR text layer, so expect
-  OCR errors ("Ambulantnf vyletfenf"), mixed layouts, partial dates, and
-  free text. Five (11, 17, 18, 19, 20) are filled-in consultation
+  one to five pages each. Most pages are a faded background image with
+  the readable text drawn on top in fonts; some fonts have broken
+  character maps, so extracted text differs from what the page shows
+  ("Ambulantnf vyletfenf" for "Ambulantní vyšetření"). Read the rendered
+  page, not the text layer or the embedded image; see
+  [the OCR evaluation](../research/2026-10-16-ocr-evaluation.md). Expect
+  mixed layouts, tables, partial dates, and free text. Five (11, 17, 18, 19, 20) are filled-in consultation
   request forms (see the next item); the others are outpatient or
   radiology reports, presumably sent as the request's attachments.
 - `Struktura MDT protokolu_FNO.docx`: FNO's consultation request form,

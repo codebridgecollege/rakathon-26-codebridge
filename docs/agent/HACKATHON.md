@@ -162,5 +162,9 @@ Declare this list to the jury and mentors.
 - ChatGPT, used by Soňa for brainstorming and UI sketches
   (`docs/sources/design/`).
 - Claude artifacts (claude.ai), for publishing the UI mocks in `mocks/`.
+- PyMuPDF and Tesseract (Czech model), for rendering and reading the
+  patient PDFs (`scripts/ocr_pages.py`); Claude Sonnet as the vision
+  model for the fictitious data. Full list with reasons:
+  [`docs/design/TECHNOLOGIES.md`](../design/TECHNOLOGIES.md).
 - Claude Code, for the research notes, the agent docs, and coding.
 - (Add the LLMs, libraries, and datasets as we adopt them.)
