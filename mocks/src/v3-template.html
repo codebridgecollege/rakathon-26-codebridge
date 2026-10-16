@@ -110,6 +110,11 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: 13.5px; }
 .cal { display: grid; grid-template-columns: 56px repeat(5, minmax(120px, 1fr)); min-width: 720px; border: 1px solid var(--line); border-radius: var(--r); background: var(--surface); overflow: hidden; }
 .cal .dh { padding: 8px 10px; border-bottom: 1px solid var(--line-strong); border-left: 1px solid var(--line); font-weight: 600; font-size: 13px; }
 .cal .dh small { display: block; color: var(--muted); font-weight: 500; }
+.cal .dh .startmdt { margin-top: 6px; }
+/* Selected patient (round 17): the chosen slot and list row stand out, so the user sees what the card and actions refer to. */
+.slotbtn.taken[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft, #e3efec); box-shadow: 0 0 0 2px var(--accent) inset; font-weight: 700; }
+.dragrow.sel { border-color: var(--accent); background: var(--accent-soft, #e3efec); box-shadow: 0 0 0 1px var(--accent) inset; }
+.minicard .row .btn { padding: 4px 10px; font-size: 13px; }
 .cal .tm { font-size: 11.5px; color: var(--faint); padding: 0 6px; text-align: right; border-top: 1px solid var(--line); height: 34px; line-height: 34px; font-variant-numeric: tabular-nums; }
 .cal .cell { border-top: 1px solid var(--line); border-left: 1px solid var(--line); height: 34px; padding: 2px 4px; position: relative; }
 .cal .cell { background: #eceeeb; }
@@ -120,6 +125,11 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: 13.5px; }
 .slotbtn.taken[draggable="true"], [data-drag] { cursor: grab; }
 .dragrow { padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); }
 .dragrow:hover { border-color: var(--line-strong); }
+.dragrow { flex-wrap: nowrap; min-width: 0; max-width: 100%; }
+.tasklist { min-width: 0; }
+.tasklist > * { min-width: 0; }
+.dragrow > span:first-child { min-width: 0; flex: 1; }
+.dragrow > span:first-child > span[style*="block"] { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .dragrow.dragging { opacity: .5; }
 .tbl th { position: relative; }
 .colrs { position: absolute; top: 0; right: -3px; width: 7px; height: 100%; cursor: col-resize; z-index: 1; touch-action: none; }
@@ -369,7 +379,7 @@ details.srcs .refs { border-top: 0; margin-top: 4px; padding-top: 0; }
 .srcl { cursor: pointer; }
 /* Own tooltip (round 15): native title tooltips do not show inside the artifact frame or on touch screens. */
 .tip { position: fixed; z-index: 60; max-width: 340px; background: var(--fg); color: #fff; padding: 7px 10px; border-radius: 6px; font: 400 12.5px/1.45 var(--font-body); box-shadow: 0 6px 20px rgba(0,0,0,.2); pointer-events: none; }
-.edl { cursor: pointer; text-decoration: underline; text-decoration-color: var(--line-strong); text-underline-offset: 3px; }
+.edl { cursor: pointer; outline-offset: 2px; text-decoration: underline; text-decoration-color: var(--line-strong); text-underline-offset: 3px; }
 .edl:hover { text-decoration-color: var(--accent-ink); }
 .tbl.dense { font-size: 12.5px; }
 .tbl.dense td { padding: 5px 8px; }
@@ -814,7 +824,7 @@ function refRegistry() {
     n(r) { if (!r) return ""; if (list.findIndex(x => key(x) === key(r)) < 0) list.push(r); return ""; },
     /* Numbered marker for blocks where the text itself opens the edit dialog (round 15). */
     mark(r) { if (!r) return ""; this.n(r); const k = list.findIndex(x => key(x) === key(r)) + 1; return `<button class="ref" data-src='${esc(JSON.stringify(r))}' title="Otevřít zdroj">[${k}]</button>`; },
-    wrap(html, r) { if (!r) return html; this.n(r); return `<span class="srcl" data-src='${esc(JSON.stringify(r))}' title="Otevřít zdroj">${html}</span>`; },
+    wrap(html, r) { if (!r) return html; this.n(r); return `<span class="srcl" role="button" tabindex="0" data-src='${esc(JSON.stringify(r))}' title="Otevřít zdroj">${html}</span>`; },
     html() { return list.length ? `<ol class="refs">${list.map(r => `<li><button data-src='${esc(JSON.stringify(r))}'>${esc(docTitle(r))}, s. ${esc(r.page)}: „${esc(r.quote.length > 90 ? r.quote.slice(0, 90) + "…" : r.quote)}“</button></li>`).join("")}</ol>` : ""; },
   };
 }
@@ -946,12 +956,13 @@ function miniMonth() {
       <button class="btn small" data-mm="1" aria-label="Další měsíc">›</button></div>
     <div class="mini">${cells}</div></div>`;
 }
+const dayAgenda = day => S.patients.filter(x => x.slot && x.slot.day === day).sort((a, b) => a.slot.time.localeCompare(b.slot.time));
 function viewCalendar() {
   const days = [0, 1, 2, 3, 4].map(i => addDays(S.week, i));
   const unscheduled = S.patients.filter(p => !p.slot || p.file === S.schedPick);
   const byslot = {}; S.patients.forEach(p => { if (p.slot) byslot[`${p.slot.day} ${p.slot.time}`] = p; });
   const inSem = (day, t) => { const s = seminarOn(day); return s && t >= s[0] && t < s[1]; };
-  let cells = `<div></div>${days.map(d => `<div class="dh">${dayLabel(d)}${d === TODAY ? " · dnes" : ""}<small>${seminarOn(d) ? esc(seminarOn(d)[2]) + " " + seminarOn(d)[0] + "-" + seminarOn(d)[1] : "&nbsp;"}</small></div>`).join("")}`;
+  let cells = `<div></div>${days.map(d => `<div class="dh">${dayLabel(d)}${d === TODAY ? " · dnes" : ""}<small>${seminarOn(d) ? esc(seminarOn(d)[2]) + " " + seminarOn(d)[0] + "-" + seminarOn(d)[1] : "&nbsp;"}</small>${dayAgenda(d).length ? `<button class="btn small primary startmdt" data-startday="${d}">Zahájit MDT ▸</button>` : ""}</div>`).join("")}`;
   /* By default the grid shows seminar hours with 30 minutes either side, so the first seminar row is in view
      without scrolling; "Zobrazit celý den" shows every slot. A week without a seminar, or a booking outside
      that range, always shows the whole day so no booked slot is hidden. */
@@ -981,8 +992,7 @@ function viewCalendar() {
       <div><span class="label">Diagnóza</span><p style="margin:2px 0 0;font-weight:700">${esc(pop.full ? dxHeadlineText() : pop.diagnosis)}</p></div>
       <div class="question ${pop.explicit || edOf("q", pop.file) ? "" : "missing"}" style="padding:8px 12px"><span class="label">Otázka pro MDT</span><p style="font-size:14px">${esc(questionText(pop))}</p></div>
       ${pop.full ? `<p class="small" style="margin:0">${esc(briefPlain().slice(0, 260))}…${edOf("brief", CASE.file) ? " (upraveno lékařem)" : ""}</p>` : `<p class="small" style="margin:0">${esc(pop.summary || "")}</p>`}
-      <p class="muted small" style="margin:0">Tip: dvojklik na pacienta v kalendáři otevře případ přímo.</p>
-      <div class="row"><button class="btn primary" data-open="${esc(pop.file)}">Otevřít případ</button><button class="btn" data-pick="${esc(pop.file)}">Změnit termín</button><button class="btn" data-unsched="${esc(pop.file)}">Uvolnit termín</button><button class="btn small" data-calclose="1" aria-label="Zavřít kartu">✕</button></div></div>` : "";
+      <div class="row" style="gap:6px"><button class="btn primary" data-open="${esc(pop.file)}">Otevřít případ</button><button class="btn" data-pick="${esc(pop.file)}">Změnit termín</button><button class="btn" data-unsched="${esc(pop.file)}">Uvolnit termín</button><button class="btn" data-calclose="1" aria-label="Zavřít kartu" style="margin-left:auto">✕</button></div></div>` : "";
   const end = addDays(S.week, 4);
   return `<div class="page">
     <div class="pagehead"><div><h1>Kalendář MDT</h1><div class="muted small">${dObj(S.week).getUTCDate()}. ${dObj(S.week).getUTCMonth() + 1}. až ${dObj(end).getUTCDate()}. ${dObj(end).getUTCMonth() + 1}. ${end.slice(0, 4)}</div></div>
@@ -994,7 +1004,7 @@ function viewCalendar() {
         ${miniMonth()}
         <div class="card"><div class="head"><h2>Nenaplánovaní (${unscheduled.length})</h2></div>
           ${S.schedPick ? `<p class="small" style="margin:0 0 8px">Vyberte volný slot pro <b>${esc(surnameFirst(P(S.schedPick)))}</b> v kalendáři. <button class="linkbtn" data-act="cancelsched">Zrušit</button></p>` : `<p class="muted small" style="margin:0 0 8px">Přetáhněte pacienta do volného slotu.</p>`}
-          <div class="tasklist">${unscheduled.map(p => `<div class="row spread dragrow" draggable="true" data-drag="${esc(p.file)}"><span><b>${esc(surnameFirst(p))}</b> <span class="muted small">RČ: ${p.rc ? esc(p.rc) : DASH}</span><span class="muted small" style="display:block">${esc(p.diagnosis)}</span></span>
+          <div class="tasklist">${unscheduled.map(p => `<div class="row spread dragrow ${S.schedPick === p.file || S.calPop === p.file ? "sel" : ""}" draggable="true" data-drag="${esc(p.file)}" aria-selected="${S.schedPick === p.file}"><span><b>${esc(surnameFirst(p))}</b> <span class="muted small">RČ: ${p.rc ? esc(p.rc) : DASH}</span><span class="muted small" style="display:block">${esc(p.diagnosis)}</span></span>
             <button class="btn small ${S.schedPick === p.file ? "primary" : ""}" data-pick="${esc(p.file)}">${S.schedPick === p.file ? "Vybráno" : p.slot ? "Přesunout" : "Naplánovat"}</button></div>`).join("") || `<span class="muted small">Všichni pacienti mají termín.</span>`}</div>
         </div>
         ${card}
@@ -1129,7 +1139,8 @@ function guideBox() {
     <p class="muted small" style="margin:8px 0 0">Citace doslovně z uvedených doporučení. Asistent možnosti neřadí a postup nenavrhuje; rozhoduje MDT. Odchylky se zapisují v protokolu MDT.</p></details>`;
 }
 /* Source links named by page ("s. 2"), as in the labs table, so several links in one row are told apart. */
-const srcLinks = refs => (refs || []).map(r => `<button class="linkbtn small" data-src='${esc(JSON.stringify(r))}' aria-label="Otevřít zdroj, strana ${esc(r.page)}">s.&nbsp;${esc(r.page)}</button>`).join(" ");
+const srcLinks = refs => { const xs = refs || [], seen = {}; return xs.map(r => { const same = xs.filter(x => x.page === r.page).length, k = (seen[r.page] = (seen[r.page] || 0) + 1);
+  const q = String(r.quote || "").slice(0, 80); return `<button class="linkbtn small" data-src='${esc(JSON.stringify(r))}' title="„${esc(q)}“" aria-label="Otevřít zdroj, strana ${esc(r.page)}: ${esc(q)}">s.&nbsp;${esc(r.page)}${same > 1 ? ` (${k})` : ""}</button>`; }).join(" "); };
 /* The brief's toggle opens the alerts for the MDT question first (CLAUDE.md: question-relevant alerts first),
    then the brief's own data gaps; the full list stays in the "Upozornění" tab. */
 function gapsBox() {
@@ -1222,7 +1233,7 @@ function alertRow(f, compact) {
   const ack = S.acks[f.i];
   /* Every alert list sits under a header saying the alerts are the assistant's observations, so the note's own
      "Pozorování asistenta." prefix is dropped per row; the rest of the note stays. */
-  const note = String(f.note || "").replace(/^Pozorování asistenta[.:;,]?\s*/i, "");
+  const note = String(f.note || "").replace(/^Pozorování asistenta[.:;,]?\s*/i, "").replace(/^./, c => c.toUpperCase());
   return `<div class="alert ${ack ? "ack" : ""}"><span class="chip plain ${ALERT[f.kind][1]}">${ALERT[f.kind][0]}</span>
     <span>${esc(f.text_cs)} ${srcLinks(f.based_on)}
       ${!compact && note ? `<span class="why">${esc(note)}</span>` : ""}${ack ? `<span class="why">Vzal(a) na vědomí ${esc(ack)}</span>` : ""}</span>
@@ -1358,7 +1369,8 @@ function tabAlerts() {
   const { top } = topAlerts(), rest = all.filter(f => !f.relevant);
   return `<section class="card"><div class="head"><h2>Upozornění: ${alertLabel()}</h2><span class="muted small">Pozorování asistenta, ne klinický závěr. Upozornění neblokují projednání.</span></div>
     ${top.length ? `<h3 style="margin:14px 0 6px">K dotazu na MDT (${top.length})</h3><div class="alerts">${top.map(f => alertRow(f, false)).join("")}</div>` : ""}
-    ${groups.map(g => { const items = rest.filter(f => f.kind === g); return items.length ? `<h3 style="margin:14px 0 6px">${ALERT[g][0]} (${items.length})</h3><div class="alerts">${items.map(f => alertRow(f, false)).join("")}</div>` : ""; }).join("")}</section>`;
+    ${rest.length ? `<h3 style="margin:18px 0 0">Ostatní upozornění (${rest.length})</h3>` : ""}
+    ${groups.map(g => { const items = rest.filter(f => f.kind === g); return items.length ? `<h4 style="margin:10px 0 6px;font-size:13px">${ALERT[g][0]}, další (${items.length})</h4><div class="alerts">${items.map(f => alertRow(f, false)).join("")}</div>` : ""; }).join("")}</section>`;
 }
 function viewAdmin() {
   if (S.user !== ADMIN) return `<div class="page"><p class="muted">Administrace je jen pro správce systému.</p></div>`;
@@ -1424,7 +1436,7 @@ function viewPresent() {
       <ul>${items.map(f => `<li><span class="dt">${esc(f.date || "")}</span>${esc(f.text_cs)}${tags(f)}${reg.n(f.source)}${f.certainty !== "documented" && f.note ? `<span class="note">${esc(f.note)}</span>` : ""}</li>`).join("")}</ul></details>`; }).join("");
   return `<div class="present"><div class="page">
     <div class="row spread"><div class="agenda" aria-label="Pořadí na semináři">${agenda.map(a => `<button data-present="${esc(a.file)}" aria-current="${a.file === p.file}" aria-label="${a.slot.time} ${esc(surnameFirst(a))}, ${esc(a.id)}">${a.slot.time} ${esc(a.name.split(" ").slice(-1)[0])}</button>`).join("")}</div>
-      <div class="row"><button class="btn" data-go="patient">Zavřít prezentaci</button><button class="btn primary" data-go="protocol">Protokol MDT ›</button></div></div>
+      <div class="row">${p.slot ? `<button class="btn" data-startday="${esc(p.slot.day)}">Přítomní (${presentList().length})</button>` : ""}<button class="btn" data-go="patient">Zavřít prezentaci</button><button class="btn primary" data-go="protocol">Protokol MDT ›</button></div></div>
     ${p.full ? `${patientHeader(p, "", true)}
     <div class="grid2"><div class="stack">${presentSummary(reg)}</div>
       <div class="stack">${finds}</div></div>
@@ -1441,6 +1453,13 @@ function ensureProto(p) {
 /* Attendance is entered once per seminar day and applies to every case that day (Soňa, rounds 1 and 2). */
 const attDay = () => P(S.pid)?.slot?.day || `bez termínu: ${S.pid}`;
 function attFor(day = attDay()) { if (!S.attByDay[day]) S.attByDay[day] = Object.fromEntries(DEPTS.map(([d]) => [d, [""]])); return S.attByDay[day]; }
+/* Attendance selects for one seminar day; the same grid sits in the protocol and in the "Zahájit MDT" dialog. */
+function attGrid(day) {
+  const a = attFor(day);
+  return `<div class="att">${DEPTS.map(([d, docs]) => a[d].map((v, k) => `<span class="dept">${k === 0 ? d : ""}</span>
+    <select class="input" data-att="${esc(d)}" data-day="${esc(day)}" data-k="${k}" aria-label="${esc(d)}"><option value="">${k === 0 ? "vyberte…" : "odebrat"}</option>${docs.map(x => `<option ${v === x ? "selected" : ""} ${a[d].includes(x) && v !== x ? "disabled" : ""}>${esc(x)}</option>`).join("")}</select>
+    ${k === 0 ? `<button class="btn small" data-addatt="${esc(d)}" data-day="${esc(day)}" ${a[d].length >= docs.length ? "disabled" : ""}>+ další</button>` : "<span></span>"}`).join("")).join("")}</div>`;
+}
 const presentList = () => Object.values(attFor()).flat().filter(Boolean);
 const isDoctor = u => u.startsWith("MUDr.");
 function viewProtocol() {
@@ -1460,9 +1479,7 @@ function viewProtocol() {
       <div class="row"><button class="btn" data-go="present">‹ Zpět do prezentace</button>${locked ? `<button class="btn" data-act="newversion">Nový závěr (nahradí platný)</button>` : ""}</div></div>
     <div class="grid2"><div class="stack">
       <section class="card"><div class="head"><h2>Přítomní na semináři</h2><span class="row"><span class="muted small">${plural(locked ? (pr.attSnap || []).length : present.length, "lékař", "lékaři", "lékařů")}</span><button class="btn small" data-act="copyatt">Kopírovat</button></span></div>
-        ${locked ? `<p style="margin:0">${esc((pr.attSnap || []).join(", ") || "nezadáno")}</p><p class="muted small" style="margin:6px 0 0">Uzamčeno schválením závěru ${esc(pr.when)}.</p>` : `<div class="att">${DEPTS.map(([d, docs]) => attFor()[d].map((v, k) => `<span class="dept">${k === 0 ? d : ""}</span>
-          <select class="input" data-att="${esc(d)}" data-k="${k}" aria-label="${esc(d)}"><option value="">${k === 0 ? "vyberte…" : "odebrat"}</option>${docs.map(x => `<option ${v === x ? "selected" : ""} ${attFor()[d].includes(x) && v !== x ? "disabled" : ""}>${esc(x)}</option>`).join("")}</select>
-          ${k === 0 ? `<button class="btn small" data-addatt="${esc(d)}" ${attFor()[d].length >= docs.length ? "disabled" : ""}>+ další</button>` : "<span></span>"}`).join("")).join("")}</div>`}
+        ${locked ? `<p style="margin:0">${esc((pr.attSnap || []).join(", ") || "nezadáno")}</p><p class="muted small" style="margin:6px 0 0">Uzamčeno schválením závěru ${esc(pr.when)}.</p>` : attGrid(attDay())}
         <p class="muted small" style="margin:10px 0 0">${p.slot ? `Platí pro celý den (${esc(dayLabel(p.slot.day) + " " + p.slot.day.slice(0, 4))}), pro všechny případy semináře.` : "Pacient nemá termín; přítomnost platí jen pro tento případ."} Jména jsou smyšlená; v reálné aplikaci se personál spravuje v nastavení pracoviště.</p></section>
       <section class="card"><div class="head"><h2>Záznam diskuse</h2></div>
         <div class="seg2" role="group"><button data-mode="manual" aria-pressed="${pr.mode === "manual"}">Ruční poznámky</button><button data-mode="ai" aria-pressed="${pr.mode === "ai"}">AI záznam</button></div>
@@ -1481,7 +1498,7 @@ function viewProtocol() {
       ${protoConclCard(p, pr, locked)}
       <section class="card"><div class="head"><h2>Po diskusi</h2></div>
         <ol class="steps">
-          <li><span class="s ${stepsDone[0] ? "done" : ""}">1</span><span><b>Závěr MDT</b><br><span class="muted small">Zapisuje lékař v přehledu pacienta${locked ? "" : ` · <button class="linkbtn small" data-act="editconcl">${stepsDone[0] ? "Upravit závěr" : "Zapsat závěr"}</button>`}</span></span></li>
+          <li><span class="s ${stepsDone[0] ? "done" : ""}">1</span><span><b>Závěr MDT</b><br><span class="muted small">Zapisuje lékař v přehledu pacienta${locked || !isDoctor(S.user) ? "" : ` · <button class="linkbtn small" data-act="editconcl">${stepsDone[0] ? "Upravit závěr" : "Zapsat závěr"}</button>`}</span></span></li>
           <li><span class="s ${stepsDone[1] ? "done" : ""}">2</span><span><b>Další kroky a odpovědnosti</b><br><span class="muted small">Úlohy s odpovědnou osobou a termínem</span></span></li>
           <li><span class="s ${stepsDone[2] ? "done" : ""}">3</span><span><b>Kontrola a schválení lékařem</b><br><span class="muted small">Až po schválení vzniknou úlohy a report</span></span></li></ol>
         ${locked ? `<p class="small" style="margin:12px 0 0">Schválil(a) <b>${esc(pr.approver)}</b> · ${esc(pr.when)}</p>` : `
@@ -1499,6 +1516,7 @@ function viewProtocol() {
 function protoConclCard(p, pr, locked) {
   const txt = pr.concl.trim();
   return `<section class="card"><div class="head"><h2>Závěr MDT</h2>${locked ? `<span class="chip st-done">Schváleno</span>` : txt ? `<span class="chip st-attention">Koncept, neschváleno</span>` : ""}</div>
+    ${(() => { const prev = S.decisions.filter(d => d.pid === p.file); const last = prev[prev.length - 1]; return !locked && last ? `<div class="synth" style="margin:0 0 10px;border-style:solid"><span class="label">Platný závěr č. ${prev.length} · schválil(a) ${esc(last.by)}, ${esc(last.when)}</span><p style="margin:4px 0 0;white-space:pre-wrap">${esc(last.text)}</p></div>` : ""; })()}
     ${txt ? `<p style="margin:0;white-space:pre-wrap">${esc(pr.concl)}</p>` : `<p class="muted" style="margin:0">Zatím nezapsán. Závěr píše lékař v přehledu pacienta; asistent závěr nenavrhuje.</p>`}
     ${locked ? "" : isDoctor(S.user) ? `<p style="margin:10px 0 0"><button class="btn small" data-act="editconcl">${txt ? "Upravit závěr" : "Zapsat závěr"}</button></p>` : `<p class="muted small" style="margin:8px 0 0">Závěr zapisuje a schvaluje lékař.</p>`}</section>`;
 }
@@ -1748,6 +1766,13 @@ function renderOverlay() {
       <div class="synth" style="margin:10px 20px 0;border-style:solid">${st.evidence ? `Síla doporučení: ${esc(st.evidence)}<br>` : ""}${st.relation_cs ? `Vztah k záznamu: ${esc(st.relation_cs)}${st.edition_note_cs ? `<br>${esc(st.edition_note_cs)}` : ""}` : `Platí, protože: ${esc(st.applies_because_cs || "")}`}<br><span style="font-weight:500">${esc(citeOf(st))}</span></div>
       <div class="text">${text}</div></aside>`;
     document.getElementById("hit")?.scrollIntoView({ block: "center" });
+  } else if (o.kind === "start") {
+    const ag = dayAgenda(o.day), n = Object.values(attFor(o.day)).flat().filter(Boolean).length;
+    el.innerHTML = `<div class="scrim" data-close="1"></div><div class="modal" role="dialog" aria-label="Zahájit MDT">
+      <div class="row spread"><h2>Zahájit MDT · ${esc(dayLabel(o.day))}</h2><button class="btn small" data-close="1">Zavřít</button></div>
+      <div><span class="label">Pořadí (${ag.length})</span><ol style="margin:4px 0 0;padding-left:20px">${ag.map(a => `<li>${a.slot.time} ${esc(surnameFirst(a))}</li>`).join("")}</ol></div>
+      <div><span class="label">Přítomní lékaři (${n})</span>${attGrid(o.day)}<p class="muted small" style="margin:6px 0 0">Platí pro všechny případy tohoto dne; lze upravit i později v protokolu.</p></div>
+      <div class="row" style="justify-content:flex-end">${S.view === "present" ? `<button class="btn primary" data-close="1">Hotovo</button>` : `<button class="btn primary" data-startgo="${esc(o.day)}" ${ag.length ? "" : "disabled"}>Zahájit prezentaci ▸</button>`}</div></div>`;
   } else if (o.kind === "upload") {
     el.innerHTML = `<div class="scrim" data-close="1"></div><div class="modal" role="dialog" aria-label="Nahrát dokument">
       <div class="row spread"><h2>Nahrát dokument · ${esc(P(S.pid).id)}</h2><button class="btn small" data-close="1">Zavřít</button></div>
@@ -1849,7 +1874,7 @@ document.addEventListener("click", e => {
   if (mk && !mk.closest("[data-src],[data-edit],[data-act],[data-tab],[data-open]")) { e.preventDefault(); showTip(mk); return; }
   hideTip();
   if (S.colOpen && !e.target.closest(".fpop,[data-colopen]")) { S.colOpen = null; render(); return; }
-  const t = e.target.closest("[data-dbpage],[data-guide],[data-colopen],[data-colclose],[data-colall],[data-wk],[data-jump],[data-mm],[data-calclose],[data-labmode],[data-labsel],[data-edit],[data-scope],[data-addatt],[data-nav],[data-open],[data-tab],[data-brief],[data-src],[data-close],[data-page],[data-vtab],[data-zoom],[data-zoomstep],[data-zoomhit],[data-tl],[data-ack],[data-go],[data-present],[data-sched],[data-pick],[data-free],[data-slot],[data-unsched],[data-act],[data-mode],[data-delstep],[data-done]");
+  const t = e.target.closest("[data-dbpage],[data-guide],[data-colopen],[data-colclose],[data-colall],[data-wk],[data-jump],[data-mm],[data-calclose],[data-labmode],[data-labsel],[data-edit],[data-scope],[data-addatt],[data-startday],[data-startgo],[data-nav],[data-open],[data-tab],[data-brief],[data-src],[data-close],[data-page],[data-vtab],[data-zoom],[data-zoomstep],[data-zoomhit],[data-tl],[data-ack],[data-go],[data-present],[data-sched],[data-pick],[data-free],[data-slot],[data-unsched],[data-act],[data-mode],[data-delstep],[data-done]");
   if (!t) return;
   const d = t.dataset;
   if (d.colopen) { S.colOpen = S.colOpen === d.colopen ? null : d.colopen; render(); }
@@ -1865,7 +1890,9 @@ document.addEventListener("click", e => {
   else if (d.guide) { S.overlay = { kind: "guide", id: d.guide }; logAccess(S.pid, "otevřel(a) doporučení"); renderOverlay(); }
   else if (d.edit) { S.overlay = { kind: "edit", key: d.edit, orig: d.orig }; renderOverlay(); }
   else if (d.scope) { S.taskScope = d.scope; render(); }
-  else if (d.addatt) { attFor()[d.addatt].push(""); render(); }
+  else if (d.addatt) { attFor(d.day || attDay())[d.addatt].push(""); render(); if (S.overlay?.kind === "start") renderOverlay(); }
+  else if (d.startday) { S.overlay = { kind: "start", day: d.startday }; renderOverlay(); }
+  else if (d.startgo) { const first = dayAgenda(d.startgo)[0]; S.overlay = null; renderOverlay(); if (first) { logAccess(first.file, "zahájil(a) MDT"); openPatient(first.file, "present"); } }
   else if (d.nav) { S.view = d.nav; S.schedPick = null; render(); }
   else if (d.open) { openPatient(d.open); }
   else if (d.tab) { S.tab = d.tab.replace(/<.*$/, ""); render(); }
@@ -1999,6 +2026,8 @@ function scheduleAt(file, slot) {
 }
 /* Drag and drop in the calendar (round 16): a patient from the unscheduled list, or a booked slot, onto a free slot.
    Clicking a patient and then a slot still works for keyboards and touch screens. */
+/* Enter or Space on a text source link acts like a click, as on a button. */
+document.addEventListener("keydown", e => { const el = e.target.closest?.(".srcl[role=button], .edl"); if (el && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); el.click(); } });
 document.addEventListener("dragstart", e => {
   const el = e.target.closest?.("[data-drag]"); if (!el) return;
   e.dataTransfer.setData("text/plain", el.dataset.drag); e.dataTransfer.effectAllowed = "move"; S.dragFile = el.dataset.drag;
@@ -2042,7 +2071,7 @@ document.addEventListener("change", e => {
     if (cur.length === all.length) delete S.colf[k]; else S.colf[k] = cur;
     render();
   }
-  else if (t.dataset.att) { const arr = attFor()[t.dataset.att], k = +t.dataset.k; if (!t.value && k > 0) arr.splice(k, 1); else arr[k] = t.value; render(); }
+  else if (t.dataset.att) { const arr = attFor(t.dataset.day || attDay())[t.dataset.att], k = +t.dataset.k; if (!t.value && k > 0) arr.splice(k, 1); else arr[k] = t.value; render(); if (S.overlay?.kind === "start") renderOverlay(); }
   else if (t.dataset.redact) { S.overlay.redacted = t.checked; renderOverlay(); }
   else if (t.dataset.pickrep) { t.checked ? S.picked.add(t.dataset.pickrep) : S.picked.delete(t.dataset.pickrep); }
   else if (t.dataset.step !== undefined) { curProto().steps[+t.dataset.step][t.dataset.f] = t.value; render(); }
