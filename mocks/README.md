@@ -3,25 +3,26 @@
 Throwaway, clickable mocks of the MDT Workspace, used to check the design
 direction with the team (see [`docs/design/PRODUCT.md`](../docs/design/PRODUCT.md)).
 They are static HTML pages with the data embedded; there is no backend.
-Mock v3, the current mock, splits the page into an in-page "server" and a
+Mock v4 keeps that, but splits the page into an in-page "server" and a
 client, so a real backend can replace the server later (see
-[Architecture of mock v3](#architecture-of-mock-v3)).
+[Architecture of mock v4](#architecture-of-mock-v4)).
 All patient data is FNO's fictitious challenge data.
 
 | Page | What it is | Published copy |
 |---|---|---|
 | `v1.html` | First simple mock (one patient workspace) | https://claude.ai/artifact/KraDQ9X7diVo93QzXtse6t |
 | `v2.html` | Full mock after feedback round 1 (database, calendar, patient detail, presentation, protocol, tasks) | https://claude.ai/artifact/6F5AbN6vEAHJQgXP1fkUdc |
-| `v3.html` | The current mock, after the feedback rounds with Soňa (Excel-style filters, month navigation, 10-minute slots, brief first, diagnosis headline, current state, lab chart, doctor edits, back/forward, guideline layer, "Zahájit MDT" with attendance). An in-page server holds the data behind REST-shaped routes; the source view shows the rendered page image with the cited passage highlighted, the transcription in a second tab, "ověřit" marks, and the locally redacted page on request. Publishing it also needs the `pages/` folder | https://claude.ai/artifact/6JwakCBuGZr9STKnfRUz8T |
+| `v3.html` | Mock after feedback round 2 (Excel-style filters, month navigation, 10-minute slots, brief first, diagnosis headline, current state, lab chart, doctor edits, back/forward); its source view is the same page-image viewer as v4, run by local functions instead of the in-page server, so publishing it also needs the `pages/` folder | https://claude.ai/artifact/6JwakCBuGZr9STKnfRUz8T |
+| `v4.html` | The latest mock v3 (through the guideline layer and the passages next to past decisions) split into an in-page server and a client; the source view shows the rendered page image with the cited passage highlighted, the transcription in a second tab, "ověřit" marks, and the locally redacted page on request | https://claude.ai/artifact/KuNwC9Un9dxPkzeWqoABGv (published with the `pages/` folder) |
 
 The published copies are private claude.ai artifacts owned by Juro; ask him
 to share them. To view a mock locally, open the `.html` file in a browser.
 
 ## How to change a mock
 
-Do not edit `v1.html` to `v3.html` or `pages/` directly; they are generated.
+Do not edit `v1.html` to `v4.html` or `pages/` directly; they are generated.
 
-1. Edit the template in `src/` (`v1-template.html` to `v3-template.html`)
+1. Edit the template in `src/` (`v1-template.html` to `v4-template.html`)
    or the data in `src/data/`.
 2. Run `uv run mocks/build.py`.
 3. Check it (below), then open the page in a browser.
@@ -42,7 +43,7 @@ Do not edit `v1.html` to `v3.html` or `pages/` directly; they are generated.
 - `mock-patient-list.json`: one entry per other patient.
 - `ocr.json`: the raw OCR text of all ten patient PDFs.
 
-Mock v3 also embeds `data/derived/page-index.json` (built by
+Mocks v3 and v4 also embed `data/derived/page-index.json` (built by
 `scripts/build_page_index.py` from the OCR outputs in `data/derived/pages/`):
 per page the image path and size, the vision model's transcription,
 Tesseract's words with confidence and box, and the tokens to verify.
@@ -52,9 +53,9 @@ data from `data/rakathon-26/`. The JSON was corrected by hand after two
 reviews (OCR misreads, a planned dose shown as done, negation tags), so
 re-running the scripts would undo those fixes. Edit the JSON instead.
 
-## Architecture of mock v3
+## Architecture of mock v4
 
-`v3-template.html` has two script blocks.
+`v4-template.html` has two script blocks.
 
 - **Server** (the first block, commented "SERVER"): the only code that
   reads the embedded JSON, and the owner of every record that can change
@@ -75,11 +76,10 @@ re-running the scripts would undo those fixes. Edit the JSON instead.
   each screen it runs `load()`, which awaits the calls the screen needs,
   then `render()` draws synchronously from the cache. After a change it
   marks the cache stale and loads again; stale entries stay readable
-  until the reply arrives. Typing in the protocol (the conclusion in the
-  patient overview, notes, steps, deviations) is a local draft, saved after
-  a short pause, one save at a time, each with the version it is based on;
-  every reload and the approval first send what is pending. Hash routing
-  makes back and forward work.
+  until the reply arrives. Protocol typing is a local draft, saved after a
+  short pause, one save at a time, each with the version it is based on;
+  approval first sends what is pending. Hash routing and back/forward work
+  as in v3.
 
 Add `?latency=300` to the page URL to delay every request by a random 0
 to 300 ms, so requests overtake each other as over a network.
@@ -94,7 +94,7 @@ client does not change. `:id` is the patient's number (`10` for
 | GET | `/api/config` | Today's date, departments and staff, users and roles, seminar schedule and slot length (no user needed) |
 | GET | `/api/patients` | All patients: identity, diagnosis line, owner, department, slot, previous MDT, status, page count |
 | POST | `/api/patients` | Creates an example patient (the new-patient dialog) |
-| GET | `/api/patients/:id` | One patient; logged as opening the case, with the screen the client names in `X-View` (`patient`, `present`, `protocol`, `calendar`, `start` for "Zahájit MDT") and `X-Via: link` for URL or back/forward |
+| GET | `/api/patients/:id` | One patient; logged as opening the case, with the screen the client names in `X-View` (`patient`, `present`, `protocol`, `calendar`) and `X-Via: link` for URL or back/forward |
 | PUT | `/api/patients/:id/slot` | Books `{day, time}`; 422 outside a seminar slot, 409 if taken |
 | DELETE | `/api/patients/:id/slot` | Frees the slot |
 | GET | `/api/patients/:id/case` | Case content: for the structured patient the case and its extra data (other patients' data left out); for the others the summary, its sources and the page count |
@@ -105,10 +105,10 @@ client does not change. `:id` is the patient's number (`10` for
 | POST | `/api/patients/:id/edits` | Saves `{key, text, orig}`; doctors only |
 | DELETE | `/api/patients/:id/edits/:key` | Reverts to the original; the log keeps both |
 | GET | `/api/patients/:id/protocol` | The protocol draft or the approved protocol |
-| PUT | `/api/patients/:id/protocol` | Saves the draft (mode, notes, conclusion, steps, deviations from the quoted recommendations) with the `version` it is based on; 409 for a stale version or once approved; changing the conclusion text needs a doctor |
-| POST | `/api/patients/:id/protocol/new-version` | Starts a new conclusion that will supersede the approved one; 409 if there is no approved conclusion |
+| PUT | `/api/patients/:id/protocol` | Saves the draft (mode, notes, conclusion, steps, deviations from the quoted recommendations) with the `version` it is based on; 409 for a stale version or once approved |
+| POST | `/api/patients/:id/protocol/new-version` | Starts a new conclusion that will supersede the approved one |
 | GET | `/api/patients/:id/decisions` | Approved MDT conclusions, oldest first (append-only) |
-| POST | `/api/patients/:id/decisions` | Approves `{version, text, steps, picked, dev, guide_on}`: checks the user is a doctor marked present and the version is current, stores a structured snapshot (patient record, attendance, edits, ticked report fields, deviations with their quote and citation), creates tasks and the e-mail. The client renders the frozen report from the snapshot with escaping; no HTML is stored, and switching the guideline layer off later does not change it |
+| POST | `/api/patients/:id/decisions` | Approves `{version, text, steps, picked, dev}`: checks the user is a doctor marked present and the version is current, stores a structured snapshot (patient record, attendance, edits, ticked report fields), creates tasks and the e-mail. The client renders the frozen report from the snapshot with escaping; no HTML is stored |
 | GET | `/api/seminars/:day/attendance` | Who is present, per department, for a seminar day (or `bez-terminu-:id`) |
 | PUT | `/api/seminars/:day/attendance` | Saves the attendance; only staff of each department |
 | GET | `/api/tasks?assignee=&owner=` | Tasks assigned to a person, plus tasks on cases they own; all tasks without parameters |
@@ -124,8 +124,8 @@ client does not change. `:id` is the patient's number (`10` for
 
 The guideline statements, guideline page excerpts and PubMed literature
 come from `src/data/guidelines-case-10*.json` and
-`literature-case-10.json`, merged by `build.py` and embedded in the server
-block. The client gets them only from
+`literature-case-10.json`, merged by `build.py` (the same merge feeds
+mock v3) and embedded in the server block. The client gets them only from
 `GET /api/patients/:id/guidance`. A statement opens in a text drawer
 with the quote marked and a link to the publisher's PDF at the cited
 page; guideline PDFs are not bundled, so the page-image viewer is used
@@ -160,8 +160,8 @@ image decides.
 The images are not embedded. `build.py` copies
 `data/derived/pages/<stem>/p<n>.png` and `p<n>.redacted.png` to
 `mocks/pages/<stem>/`, and the page refers to them as
-`pages/<stem>/p<n>.png`. Open `v3.html` from the `mocks/` folder; to
-publish it, publish `pages/` with it. The redacted image (from
+`pages/<stem>/p<n>.png`. Open `v3.html` or `v4.html` from the `mocks/`
+folder; to publish either, publish `pages/` with it. The redacted image (from
 `scripts/redact_pages.py`) appears only when the doctor ticks "Co by
 odešlo do cloudu (začerněno)", labelled as a demonstration of local
 redaction; a page where the check found nothing says the check is
@@ -171,17 +171,19 @@ redacted image is shown.
 ## Checks
 
 - `src/test/v3.mjs`: clicks through mock v3 in Chromium with Playwright at
-  1280 px and 400 px: filters, calendar and scheduling through the server,
-  back/forward, edits, labs, the guideline layer, alert acknowledgement,
-  deviations, approval and the frozen report (after attendance changes,
-  edits and switching the guideline layer off), role and copy checks on the
-  `api`, the server's audit log, the source view (image, highlight inside
-  the image, verify marks, zoom, transcription tab, page switch, redacted
-  page, missing quote, missing page, empty page, zoom to the passage),
-  every page of all ten documents, admin; then a run with `?latency=300`
-  that types a conclusion and a task and approves at once. It reports JS
-  and console errors and horizontal overflow
-  (`PLAYWRIGHT_PATH=<node_modules/playwright-core> node mocks/src/test/v3.mjs`).
+  1280 px and 400 px (filters, calendar, back/forward, edits, labs,
+  approval, the source view: image, highlight, verify marks, zoom,
+  transcription tab, page switch, redacted page, access log, admin) and reports JS errors and horizontal overflow
+  (`node mocks/src/test/v3.mjs`).
+- `src/test/v4.mjs`: clicks through mock v4 at 1280 px and 400 px: the
+  v3 flows through the server, role and copy checks on the `api`, the
+  source view (image loads, highlight box inside the image, verify marks,
+  zoom, transcription tab, page switch, redacted page, missing quote,
+  empty page, verify marks on whole words, zoom to the passage), every
+  page of all ten documents, and a run with `?latency=300` that types a
+  conclusion and a task and approves at once
+  (`PLAYWRIGHT_PATH=<node_modules/playwright-core> node mocks/src/test/v4.mjs`;
+  uses Google Chrome if installed).
 - `src/test/smoke.mjs`: clicks through every screen of v2 in jsdom and reports JS
   errors (`npm i jsdom@24.1.0` in a scratch folder, then
   `node smoke.mjs <path to v2.html>`).
