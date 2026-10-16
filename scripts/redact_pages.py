@@ -20,7 +20,8 @@ What counts as a direct identifier here:
 - phone numbers and e-mail addresses;
 - the value after a form label such as "Jméno", "Příjmení", "Rodné číslo",
   "Pojišťovna", "Adresa", "Telefon";
-- doctors' names after "MUDr." (they identify the patient's care team).
+- doctors' names after "MUDr." and similar titles, also when the OCR glued
+  the title to the name ("MUDr.Hofrová"); they identify the care team.
 
 Not removed, on purpose: examination dates, diagnoses, findings. They are
 the medical content; they are also quasi-identifiers, which is why the
@@ -66,6 +67,11 @@ def read_lines(tsv: Path) -> list[list[dict]]:
     return list(lines.values())
 
 
+# "MUDr.Hofrová", "MUDr,Hofrová": OCR often glues the title to the name, so the name is in the same token.
+TITLE_GLUED = re.compile(r"^(mudr|mgr|bc|ing|doc|prof|phdr)[.,]+\w{2,}")
+# Not "prim.": it folds to the same text as "přim." (přiměřené), which is medical wording; "prim. MUDr. X"
+# is still caught through "MUDr.".
+TITLES = ("mudr", "mgr", "doc", "prof", "phdr")
 LABEL_GLUED = re.compile(r"^(nar|poj|kodpoj|rc)\W*\d")  # "nar.:13.10.1961", "Kódpoj:111": label and value in one token
 MAX_VALUE_TOKENS = 3  # a field value is a few words; beyond that the line has moved on
 MAX_GAP = 200  # px at 150 dpi; a token far to the right belongs to another column
@@ -89,7 +95,9 @@ def find(lines: list[list[dict]], names: set[str]) -> list[dict]:
                 reason = "telefon"
             elif EMAIL.search(w["t"]):
                 reason = "e-mail"
-            elif i > 0 and fold(line[i - 1]["t"]) == "mudr":
+            elif TITLE_GLUED.match(f):
+                reason = "jméno lékaře"
+            elif i > 0 and fold(line[i - 1]["t"]) in TITLES:
                 reason = "jméno lékaře"
             elif after_label > 0 and near and not f.endswith(":"):
                 reason = "hodnota identifikačního pole"

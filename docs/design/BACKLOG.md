@@ -54,3 +54,27 @@ hospitals, ideally in the EU and Czechia, then a design for FNO.
 - Done when: a research note in `docs/research/` with sources, and an
   integration design (architecture diagram, interfaces, identity and
   access model, deployment requirements) that the demo can point to.
+
+## 3. Test with more data, ideally open data sets
+
+Juro, 2026-10-16. FNO gave us ten fictitious patients, and only patient
+10 is worked through. To see how the pipeline and the screens hold up,
+import more data.
+
+- Find open or synthetic data sets that fit: synthetic EHDS documents
+  (SYNDERAI, see [`docs/agent/INDEX.md`](../agent/INDEX.md)), synthetic
+  FHIR patients (for example Synthea, or the InterSystems kit's
+  generated patients), public oncology and neuro-oncology case reports,
+  and anything shaped like the Common Cancer Model. Check each licence
+  and that it holds no real patient data.
+- Prefer Czech or Slovak documents and real-world layouts (scans,
+  tables, typos), because that is where reading fails.
+- Import through the same path a hospital would use (upload or FHIR),
+  run OCR, extraction, and summary on them, and see what breaks: dates,
+  stages, negations, contradictions, missing documents, many documents
+  per patient, many patients per seminar.
+- Keep the imported sets as test cases under `samples/` with expected
+  results where we can, so the failure cases in `CLAUDE.md` are covered.
+- Done when: a note in `docs/research/` on which sets we used and what we
+  learned, at least one larger set loaded into the app, and the gaps
+  turned into fixes or open questions.
