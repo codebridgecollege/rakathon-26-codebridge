@@ -5,7 +5,10 @@
 """Transcribe a recording with ElevenLabs Scribe and write a readable Markdown transcript.
 
 Usage:
-    uv run scripts/transcribe.py AUDIO [AUDIO ...]
+    uv run scripts/transcribe.py [--language CODE] AUDIO [AUDIO ...]
+
+CODE is an ISO 639-3 language code; the default is `ces` (Czech). Use
+`slk` for the team's own Slovak discussions.
 
 The API key is read from the ELEVENLABS_API_KEY environment variable, then
 from `.elevenlabs-key` in the repo root, then from
@@ -60,13 +63,13 @@ def read_api_key() -> str:
     sys.exit("No ElevenLabs API key found; set ELEVENLABS_API_KEY.")
 
 
-def transcribe(audio: Path, api_key: str) -> dict:
+def transcribe(audio: Path, api_key: str, language: str) -> dict:
     """Send one file and return the parsed response."""
     data = [
         ("model_id", MODEL_ID),
         # Setting the language stops the model from switching to English on
         # short or noisy passages, which is what ruined the Zoom captions.
-        ("language_code", "ces"),
+        ("language_code", language),
         # Speaker labels let us tell the presenter apart from audience questions.
         ("diarize", "true"),
         ("timestamps_granularity", "word"),
@@ -125,8 +128,14 @@ def to_markdown(result: dict, title: str) -> str:
 def main() -> None:
     if len(sys.argv) < 2:
         sys.exit(__doc__)
+    args = sys.argv[1:]
+    language = "ces"
+    if args[:1] == ["--language"]:
+        language, args = args[1], args[2:]
+    if not args:
+        sys.exit(__doc__)
     api_key = read_api_key()
-    for arg in sys.argv[1:]:
+    for arg in args:
         audio = Path(arg)
         json_path = audio.with_suffix(".elevenlabs.json")
         # Reuse an earlier response so re-running only rebuilds the Markdown.
@@ -135,7 +144,7 @@ def main() -> None:
             print(f"{audio.name}: reusing {json_path.name}")
         else:
             print(f"{audio.name}: transcribing...", flush=True)
-            result = transcribe(audio, api_key)
+            result = transcribe(audio, api_key, language)
             json_path.write_text(json.dumps(result, ensure_ascii=False, indent=1))
         md_path = audio.with_suffix(".elevenlabs.md")
         md_path.write_text(to_markdown(result, audio.stem))

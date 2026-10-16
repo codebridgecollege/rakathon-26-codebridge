@@ -1,0 +1,1319 @@
+{
+ "file": "10_pacient.pdf",
+ "generated_note_cs": "Mock data pro UI, vytvořeno ručně z OCR textu fiktivního pacienta; každá citace je doslovný úsek OCR textu (po sloučení mezer).",
+ "anamnesis": {
+  "OA": [
+   {
+    "text_cs": "Arteriální hypertenze (HN)",
+    "date": null,
+    "source": {
+     "file": "10_pacient.pdf",
+     "page": 2,
+     "quote": "OA: HN, CHOPN u fumátora (anamn. léčba přerušena pacientem), HLP na dietě,"
+    },
+    "negated": false,
+    "certainty": "documented"
+   },
+   {
+    "text_cs": "CHOPN u kuřáka, léčba dle anamnézy přerušena pacientem",
+    "date": null,
+    "source": {
+     "file": "10_pacient.pdf",
+     "page": 2,
+     "quote": "OA: HN, CHOPN u fumátora (anamn. léčba přerušena pacientem), HLP na dietě,"
+    },
+    "negated": false,
+    "certainty": "documented"
+   },
+   {
+    "text_cs": "Hyperlipoproteinémie (HLP) na dietě",
+    "date": null,
+    "source": {
+     "file": "10_pacient.pdf",
+     "page": 2,
+     "quote": "OA: HN, CHOPN u fumátora (anamn. léčba přerušena pacientem), HLP na dietě,"
+    },
+    "negated": false,
+    "certainty": "documented"
+   },
+   {
+    "text_cs": "Hyperglykémie nalačno (anamnesticky)",
+    "date": null,
+    "source": {
+     "file": "10_pacient.pdf",
+     "page": 2,
+     "quote": "hyperglykémie nalačno anam., korové cysty ledvin, cysta S2 jater"
+    },
+    "negated": false,
+    "certainty": "documented"
+   },
+   {
+    "text_cs": "Korové cysty ledvin",
+    "date": null,
+    "source": {
+     "file": "10_pacient.pdf",
+     "page": 2,
+     "quote": "hyperglykémie nalačno anam., korové cysty ledvin, cysta S2 jater"
+    },
+    "negated": false,
+    "certainty": "documented"
+   },
+   {
+    "text_cs": "Cysta S2 jater",
+    "date": null,
+    "source": {
+     "file": "10_pacient.pdf",
+     "page": 2,
+     "quote": "hyperglykémie nalačno anam., korové cysty ledvin, cysta S2 jater"
+    },
+    "negated": false,
+    "certainty": "documented"
+   },
+   {
+    "text_cs": "CHOPN II/B, spirometrie: lehká obstrukce; susp. intersticiální postižení, stav po kortikoterapii (plicní vyš., MUDr. Hofrová)",
+    "date": "22.5.2026",
+    "source": {
+     "file": "10_pacient.pdf",
+     "page": 5,
+     "quote": "Z: CHOPN II/B fumat., susp. interstic. post1zené, stp. kortikoterapii"
+    },
+    "negated": false,
+    "certainty": "unclear_ocr",
+    "note_cs": "OCR: 'post1zené' čteme jako 'postižení'; datum v OCR zapsáno '22,5,2026'."
+   },
+   {
+    "text_cs": "Dušnost: plicní embolie vyloučena, EKG bez ischemických změn; dle interního vyšetření možno na vrub hypertenze, nově Orcal",
+    "date": "10.2.2026",
+    "source": {
+     "file": "10_pacient.pdf",
+     "page": 5,
+     "quote": "plicní embolie vyloučena, EKG bez ischemických změn, hstroponin stabilní bez dynamiky- možno na vrub dekorigované HT"
+    },
+    "negated": false,
+    "certainty": "unclear_ocr",
+    "note_cs": "OCR: 'dekorigované HT' pravděpodobně 'dekompenzované HT', ověřit v originálu."
+   },
+   {
+    "text_cs": "UZ tepen DKK: středně silné sklerotické změny, vpravo stenóza v proximálním úseku PDK (ne těžká), doporučeno sledování",
+    "date": "30.7.2026",
+    "source": {
+     "file": "10_pacient.pdf",
+     "page": 5,
+     "quote": "Vpravo zřetelná, i když ne těžká stenosa v prox. úseku PDK. Sledování vhodné."
+    },
+    "negated": false,
+    "certainty": "documented"
+   },
+   {
+    "text_cs": "Hypokalcémie (léčena Calcichew)",
+    "date": null,
+    "source": {
+     "file": "10_pacient.pdf",
+     "page": 2,
+     "quote": "pro hypokalcémii Calcichew 1000/SOOIU 0-0-1"
+    },
+    "negated": false,
+    "certainty": "documented"
+   },
+   {
+    "text_cs": "Mírná hyperkalémie, dietní opatření, pacient poučen",
+    "date": null,
+    "source": {
+     "file": "10_pacient.pdf",
+     "page": 2,
+     "quote": "Pro mírnou hyperkalémii ve stravě omezit banány, meruňky, broskve"
+    },
+    "negated": false,
+    "certainty": "documented"
+   }
+  ],
+  "RA": [],
+  "PA": [],
+  "SA": [],
+  "FA": [
+   {
+    "text_cs": "Everolimus Sandoz 5 mg 1-0-0; navýšení na 2-0-0 (10 mg denně) od 19.9.2026 plánováno, ověřit, zda proběhlo; při netoleranci návrat k 1-0-0",
+    "date": "19.9.2026",
+    "source": {
+     "file": "10_pacient.pdf",
+     "page": 2,
+     "quote": "Everolimus sandoz 5mg 1-0-0 zyyšuji na 2-0-0 od 19.9.2026,"
+    },
+    "negated": false,
+    "certainty": "unclear_ocr",
+    "note_cs": "OCR: 'zyyšuji' = 'zvyšuji'. Na str. 3 je zároveň 'navyšuji' i 'Při dobré toleranci navýšime', ověřit, zda navýšení proběhlo."
+   },
+   {
+    "text_cs": "Kapidin 20 mg 1-0-0 (chronická medikace)",
+    "date": null,
+    "source": {
+     "file": "10_pacient.pdf",
+     "page": 2,
+     "quote": "Chron. medikace: Kapidin 20mg 1-0-0, Spiriva inhal. 1-0-1 + Ventolin N inhal. dlp."
+    },
+    "negated": false,
+    "certainty": "documented"
+   },
+   {
+    "text_cs": "Spiriva inhal. 1-0-1",
+    "date": null,
+    "source": {
+     "file": "10_pacient.pdf",
+     "page": 2,
+     "quote": "Chron. medikace: Kapidin 20mg 1-0-0, Spiriva inhal. 1-0-1 + Ventolin N inhal. dlp."
+    },
+    "negated": false,
+    "certainty": "documented",
+    "note_cs": "Plicní vyšetření (str. 4 a 5) uvádí Spiriva 2-0-0; dávkování se mezi částmi dokumentu liší."
+   },
+   {
+    "text_cs": "Ventolin N inhal. dle potřeby",
+    "date": null,
+    "source": {
+     "file": "10_pacient.pdf",
+     "page": 2,
+     "quote": "Chron. medikace: Kapidin 20mg 1-0-0, Spiriva inhal. 1-0-1 + Ventolin N inhal. dlp."
+    },
+    "negated": false,
+    "certainty": "documented"
+   },
+   {
+    "text_cs": "Neurol 0,25 mg dle potřeby při úzkosti, neklidu",
+    "date": null,
+    "source": {
+     "file": "10_pacient.pdf",
+     "page": 2,
+     "quote": "Při úzkosti, neklidu Neurol 0,25mg ltbl. dlp."
+    },
+    "negated": false,
+    "certainty": "unclear_ocr",
+    "note_cs": "OCR: 'ltbl.' pravděpodobně 'tbl.'."
+   },
+   {
+    "text_cs": "Natrii chloridi 1,0 g cps. 1-0-1",
+    "date": null,
+    "source": {
+     "file": "10_pacient.pdf",
+     "page": 2,
+     "quote": "Cps. Natrii chloridi l,Og 1-0-1"
+    },
+    "negated": false,
+    "certainty": "unclear_ocr",
+    "note_cs": "OCR: 'l,Og' čteme jako '1,0g'."
+   },
+   {
+    "text_cs": "Calcichew 1000/? IU 0-0-1 pro hypokalcémii",
+    "date": null,
+    "source": {
+     "file": "10_pacient.pdf",
+     "page": 2,
+     "quote": "pro hypokalcémii Calcichew 1000/SOOIU 0-0-1"
+    },
+    "negated": false,
+    "certainty": "unclear_ocr",
+    "note_cs": "Síla vitaminu D v OCR nečitelná ('SOOIU'), ověřit v originálu."
+   },
+   {
+    "text_cs": "Degan 10 mg 1-1-1 při nevolnosti, při nedostatečném efektu nebo zvracení Novetron 8 mg 1-0-1",
+    "date": null,
+    "source": {
+     "file": "10_pacient.pdf",
+     "page": 2,
+     "quote": "Při nevolnosti doma užívat Degan 10mg tbl. 1-1-1"
+    },
+    "negated": false,
+    "certainty": "documented"
+   },
+   {
+    "text_cs": "Imodium 2 mg při průjmu (max. 8 cps. denně), při nedostatečném efektu Smecta 1-1-1",
+    "date": null,
+    "source": {
+     "file": "10_pacient.pdf",
+     "page": 2,
+     "quote": "Při průjmu užívat Imodium 2mg cps., vstupně 2 cps., pak 1 cps. při každé další řídké stolici"
+    },
+    "negated": false,
+    "certainty": "documented"
+   },
+   {
+    "text_cs": "Orcal 10 mg 1/2-0-0, nově od interního vyšetření",
+    "date": "10.2.2026",
+    "source": {
+     "file": "10_pacient.pdf",
+     "page": 5,
+     "quote": "nově k medikaci Orcal 10 mg tbl 1/2-0-0"
+    },
+    "negated": false,
+    "certainty": "documented"
+   },
+   {
+    "text_cs": "Erdomed 300 mg 1-1-0 (doporučení plicního vyšetření)",
+    "date": "22.5.2026",
+    "source": {
+     "file": "10_pacient.pdf",
+     "page": 5,
+     "quote": "Erdomed 300mg 1-1-0"
+    },
+    "negated": false,
+    "certainty": "documented"
+   },
+   {
+    "text_cs": "Upozornění k everolimu: kontraindikovány ACEi pro zvýšené riziko anafylaxe",
+    "date": null,
+    "source": {
+     "file": "10_pacient.pdf",
+     "page": 2,
+     "quote": "Kontraindikovány jsou ACEi pro zyýšené riziko anafylace."
+    },
+    "negated": false,
+    "certainty": "unclear_ocr",
+    "note_cs": "Jde o lékovou interakci uvedenou v doporučení, ne o alergii."
+   }
+  ],
+  "AA": [],
+  "abusus": [
+   {
+    "text_cs": "Kuřák (fumátor), uvedeno u CHOPN; počet cigaret ani délka kouření uvedeny nejsou",
+    "date": null,
+    "source": {
+     "file": "10_pacient.pdf",
+     "page": 2,
+     "quote": "CHOPN u fumátora"
+    },
+    "negated": false,
+    "certainty": "documented",
+    "note_cs": "Stejně i v plicním vyšetření: 'CHOPN II/B fumat'. Zda jde o aktivního či bývalého kuřáka, neuvedeno.",
+    "pack_years": {
+     "value": null,
+     "computed": false,
+     "note_cs": "Nelze spočítat: v dokumentaci chybí počet cigaret denně i počet let kouření."
+    }
+   }
+  ],
+  "EA": [
+   {
+    "text_cs": "HBsAg pozitivní",
+    "date": null,
+    "source": {
+     "file": "10_pacient.pdf",
+     "page": 1,
+     "quote": "- HBsAg pozit. pac."
+    },
+    "negated": false,
+    "certainty": "documented"
+   }
+  ],
+  "preventive": [
+   {
+    "text_cs": "Kontrolní kolonoskopie plánována na rok 2028 (předchozí kolonoskopie v dokumentaci není)",
+    "date": "r.2028",
+    "source": {
+     "file": "10_pacient.pdf",
+     "page": 3,
+     "quote": "Kontrolni kolonoskopie bude r.2028."
+    },
+    "negated": false,
+    "certainty": "documented"
+   }
+  ]
+ },
+ "anamnesis_empty_text_cs": "neuvedeno v dostupné dokumentaci",
+ "onco_brief_cs": "Důvod projednání: MR mozku 14.9.2026 popisuje solitérní postkontrastně se sytící nodulus v pravé mozečkové hemisféře (do 3 mm), suspekce na solitérní MTS [1]; ošetřující lékař nález zadal k projednání na NCH semináři [2]. Diagnóza C64, renální karcinom diagnostikovaný 4/2022 [3], stav po nefrektomii vpravo 2.6.2022, histologicky světlobuněčný adenokarcinom G2, pT2a pN1 M0 (ověřit čtení) [4]. Metastatické postižení: paraaortální uzlina histologicky (exstirpace 25.10.2022, R0) [5], mediastinální a plicní hilová lymfadenopatie charakteru MTS na baseline CT 6.3.2023 [6] a kožní metastáza brady histologicky (excize 21.11.2023) [7]. Léčba: nivolumab s ipilimumabem od 27.3.2023 [8], udržovací nivolumab do 29.12.2025 [9], 2. linie sunitinib od 27.1.2026 [10], po progresi na CT 26.8.2026 [11] 3. linie everolimus od 3.9.2026 [12]. Při poslední zaznamenané kontrole (datum neuvedeno) ECOG PS 1, bez klinických známek mozkových metastáz [13].",
+ "onco_brief_refs": [
+  {
+   "file": "10_pacient.pdf",
+   "page": 1,
+   "quote": "MR yyš, mozku 14.9.2026 NNJ Závěr: Solitérní nodulus postkontrastně se sytící v pravé mozečkové hemisféře(do 3mm) - suspekce na solitérní MTS"
+  },
+  {
+   "file": "10_pacient.pdf",
+   "page": 3,
+   "quote": "Nález při MR vyš. mozku zadávám k projednáni na NCH semináři."
+  },
+  {
+   "file": "10_pacient.pdf",
+   "page": 1,
+   "quote": "C64 Zhoubný novotvar ledviny mimo pánvičku RCC lok. pokročilý diag. 4/2022"
+  },
+  {
+   "file": "10_pacient.pdf",
+   "page": 1,
+   "quote": "Histol. světlobuněčný renální adenokarcinom G2, pT2a pN1(3+/5) MO"
+  },
+  {
+   "file": "10_pacient.pdf",
+   "page": 1,
+   "quote": "st.p. exstirpaci paraaortálni LU vlevo 25.10.2022 Histol. MTS světlobuněčného renálního karcinomu G2, R0"
+  },
+  {
+   "file": "10_pacient.pdf",
+   "page": 1,
+   "quote": "baseline CT s KL 6.3.2023 patol. mediastinálni a pl. hilová lymfadenopatie - jsou hypervaskularizované mts charakteru"
+  },
+  {
+   "file": "10_pacient.pdf",
+   "page": 1,
+   "quote": "Histol. kožní metastáza světlebuněčného (konvenčního) karcinomu renálního origa v oblasti brady vlevo"
+  },
+  {
+   "file": "10_pacient.pdf",
+   "page": 1,
+   "quote": "27.3.2023 1. cyklus nivolumab 3mg/kg + ipilimumab lmg/kg q3w"
+  },
+  {
+   "file": "10_pacient.pdf",
+   "page": 1,
+   "quote": "udržovací léčba nivolumab od 27.6.2023 do 29.12.2025"
+  },
+  {
+   "file": "10_pacient.pdf",
+   "page": 1,
+   "quote": "2. pal, linie léčby sunitinib - start 27.1.2026"
+  },
+  {
+   "file": "10_pacient.pdf",
+   "page": 5,
+   "quote": "CT hrudník, břicho, malá pánev 26.8.2026 Závěr: Ve srovnáni s minulým CT z 4/2026 i s baseline CT z 1/2026 je patrná velikostní progrse"
+  },
+  {
+   "file": "10_pacient.pdf",
+   "page": 1,
+   "quote": "3, pal, linie léčby everolimus - start 3.9.2026"
+  },
+  {
+   "file": "10_pacient.pdf",
+   "page": 4,
+   "quote": "Statuspraesens:ECOG PS: 1, bez klin. známek mozkových mts"
+  }
+ ],
+ "onco_detailed": [
+  {
+   "label_cs": "Diagnóza",
+   "text_cs": "C64 Zhoubný novotvar ledviny mimo pánvičku; renální karcinom (RCC) lokálně pokročilý, diagnostikován 4/2022.",
+   "refs": [
+    0
+   ]
+  },
+  {
+   "label_cs": "2.6.2022",
+   "text_cs": "Transperitoneální nefrektomie vpravo s retroperitoneální lymfadenektomií; histologie: světlobuněčný renální adenokarcinom G2, pT2a pN1 (3+/5) M0 (ověřit čtení: v dokumentu OCR „MO“, čteno jako M0).",
+   "refs": [
+    1,
+    2
+   ]
+  },
+  {
+   "label_cs": "9-10/2022",
+   "text_cs": "CT 7.9.2022: susp. MTS paraaortální uzliny vlevo 20 mm; exstirpace 25.10.2022, histologie: MTS světlobuněčného renálního karcinomu G2, R0.",
+   "refs": [
+    3,
+    4
+   ]
+  },
+  {
+   "label_cs": "11/2022",
+   "text_cs": "CT 25.11.2022: spíše lymfokéla po lymfadenektomii (kolekce do 36 mm paraaortálně vlevo) než nová zvětšená uzlina.",
+   "refs": [
+    5
+   ]
+  },
+  {
+   "label_cs": "3/2023",
+   "text_cs": "Baseline CT 6.3.2023: patologická mediastinální a plicní hilová lymfadenopatie charakteru hypervaskularizovaných MTS; dle IMDC střední prognóza (1 faktor). Pozn.: souhrn na str. 2 uvádí tento restaging jako '3/2022', ověřit.",
+   "refs": [
+    6,
+    7,
+    8
+   ]
+  },
+  {
+   "label_cs": "3-7/2023",
+   "text_cs": "1. linie nivolumab 3 mg/kg + ipilimumab 1 mg/kg (ověřit čtení: OCR „lmg/kg“) q3w, indikovány 4 cykly (schváleno KOC komisí); podány cykly 27.3. a 17.4.2023. Po 2. cyklu GIT toxicita 1. st. a plicní toxicita (IPP) 1.-2. st., prednison od 28.4.2023, snižování od 12.5.2023, ukončen 26.7.2023.",
+   "refs": [
+    9,
+    10,
+    11
+   ]
+  },
+  {
+   "label_cs": "6/2023-12/2025",
+   "text_cs": "CT 6/2023 iPR; udržovací nivolumab 240 mg q2w od 27.6.2023 do 29.12.2025. Restagingová CT 11/2023 až 6/2025: trvá iPR. CT 9/2023: nový útvar 21x27 mm v mesogastriu, spíše cystický.",
+   "refs": [
+    12,
+    13,
+    14,
+    15
+   ]
+  },
+  {
+   "label_cs": "8/2023",
+   "text_cs": "Implantace venózního portu 21.8.2023 (Medcomp power-port).",
+   "refs": [
+    16
+   ]
+  },
+  {
+   "label_cs": "11/2023",
+   "text_cs": "Excize ložiska na bradě vlevo 21.11.2023: kožní metastáza světlobuněčného renálního karcinomu, grade 2 dle ISUP, odstraněna kompletně.",
+   "refs": [
+    17,
+    18
+   ]
+  },
+  {
+   "label_cs": "2/2025",
+   "text_cs": "Excize kožní léze glabely 11.2.2025: sebaceom, kompletně odstraněn, bez nádorových změn.",
+   "refs": [
+    19
+   ]
+  },
+  {
+   "label_cs": "11/2025",
+   "text_cs": "CT 10.11.2025: nově patologická LU v levém plicním hilu, mírná progrese retroperitoneální lymfadenopatie proti CT 6/2025; dle iRECIST PD (iUPD).",
+   "refs": [
+    20,
+    21
+   ]
+  },
+  {
+   "label_cs": "1/2026",
+   "text_cs": "CT 16.1.2026: progrese uzlin v levém hilu a jedné LU retroperitonea; dle iRECIST iCPD.",
+   "refs": [
+    22,
+    23
+   ]
+  },
+  {
+   "label_cs": "1-3/2026",
+   "text_cs": "2. linie sunitinib 50 mg denně v režimu 4/2 od 27.1.2026 (schváleno KOC komisí); pro progresi renální insuficience, minerálovou dysbalanci, trombocytopenii G2-3 a hepatopatii G2 redukce na 37,5 mg od 25.2.2026 a na 25 mg od 26.3.2026.",
+   "refs": [
+    24,
+    25,
+    26
+   ]
+  },
+  {
+   "label_cs": "2/2026",
+   "text_cs": "CT AG plicnice 10.2.2026: bez plicní embolie. V textu je dále věta o drobných osteoplastických ložiscích do 7 mm v přechodu Th/L páteře; ke kterému vyšetření patří, nelze z OCR jednoznačně určit.",
+   "refs": [
+    27,
+    28
+   ]
+  },
+  {
+   "label_cs": "4/2026",
+   "text_cs": "CT 28.4.2026: mírná regrese LU v levém hilu a v retroperitoneu, nová ložiska nepřibyla, regrese sledovaných lézí o cca 24 %; dle iRECIST iSD.",
+   "refs": [
+    29
+   ]
+  },
+  {
+   "label_cs": "8/2026",
+   "text_cs": "CT 26.8.2026: progrese LU v levém plicním hilu a retroperitoneu paraaortálně vlevo (PD); sunitinib ukončen.",
+   "refs": [
+    30,
+    31
+   ]
+  },
+  {
+   "label_cs": "9/2026",
+   "text_cs": "3. linie everolimus od 3.9.2026 (schváleno KOC komisí); cabozantinib (par. 16) ponechán do 4. linie. Navýšení dávky everolimu na 10 mg denně od 19.9.2026 plánováno; zda proběhlo, ověřit.",
+   "refs": [
+    32,
+    33,
+    34,
+    35
+   ]
+  },
+  {
+   "label_cs": "14.9.2026",
+   "text_cs": "MR mozku: solitérní postkontrastně se sytící nodulus v pravé mozečkové hemisféře do 3 mm, suspekce na solitérní MTS; jiné sytící se léze intrakraniálně nejsou; gliózy supratentoriálně Fazekas gr. III.",
+   "refs": [
+    36,
+    37
+   ]
+  },
+  {
+   "label_cs": "Aktuálně",
+   "text_cs": "Everolimus toleruje velmi dobře, závratě a poruchy rovnováhy neguje; ECOG PS 1, bez klinických známek mozkových MTS (datum kontroly neuvedeno). Nález MR zadán na NCH seminář; kontrola 9.10.2026 s odběrem KO a biochemie; kontrolní CT H+B+MP plánováno, datum v OCR chybí.",
+   "refs": [
+    38,
+    39,
+    40,
+    41,
+    42,
+    43
+   ]
+  }
+ ],
+ "refs": [
+  {
+   "file": "10_pacient.pdf",
+   "page": 1,
+   "quote": "C64 Zhoubný novotvar ledviny mimo pánvičku RCC lok. pokročilý diag. 4/2022"
+  },
+  {
+   "file": "10_pacient.pdf",
+   "page": 1,
+   "quote": "2.6.2022 - stp. transperitoneálni nefrektomii vpravo s retroperitoneálni lymfadenektomii"
+  },
+  {
+   "file": "10_pacient.pdf",
+   "page": 1,
+   "quote": "Histol. světlobuněčný renální adenokarcinom G2, pT2a pN1(3+/5) MO"
+  },
+  {
+   "file": "10_pacient.pdf",
+   "page": 1,
+   "quote": "CT hrudník + břicho s KL 7.9.2022 - susp. MTS paraaortálni uzlina vlevo 20mm"
+  },
+  {
+   "file": "10_pacient.pdf",
+   "page": 1,
+   "quote": "st.p. exstirpaci paraaortálni LU vlevo 25.10.2022 Histol. MTS světlobuněčného renálního karcinomu G2, R0"
+  },
+  {
+   "file": "10_pacient.pdf",
+   "page": 1,
+   "quote": "susp. lymfokéla po lymfadenektomii spíše ohraničená kolekce tekutiny do 36 mm vlevo paraaortálně"
+  },
+  {
+   "file": "10_pacient.pdf",
+   "page": 1,
+   "quote": "baseline CT s KL 6.3.2023 patol. mediastinálni a pl. hilová lymfadenopatie"
+  },
+  {
+   "file": "10_pacient.pdf",
+   "page": 1,
+   "quote": "Dle IMDC střední prognóza - 1 faktor"
+  },
+  {
+   "file": "10_pacient.pdf",
+   "page": 2,
+   "quote": "Další restaging. 3/2022, kde patol. mediastinální a plicní hilová lymfadenopatie"
+  },
+  {
+   "file": "10_pacient.pdf",
+   "page": 2,
+   "quote": "Je indikováno podání nivolumab 3mg/kg v kombinaci s ipilimumabem lmg/kg q3w 4 cykly - schváleno KOC komisi."
+  },
+  {
+   "file": "10_pacient.pdf",
+   "page": 1,
+   "quote": "27.3.2023 1. cyklus nivolumab 3mg/kg + ipilimumab lmg/kg q3w - 17.4.2023 2. cyklus"
+  },
+  {
+   "file": "10_pacient.pdf",
+   "page": 2,
+   "quote": "Proto od 12.5.2023 zahájeno postupné snižování dávky kortikoidu, ukončen 26.7.2023."
+  },
+  {
+   "file": "10_pacient.pdf",
+   "page": 2,
+   "quote": "Dle restaging. CT 6/2023 dosaženo iPR, proto pokračujeme v udržovací léčbě nivolumabem 240mg q2w."
+  },
+  {
+   "file": "10_pacient.pdf",
+   "page": 1,
+   "quote": "udržovací léčba nivolumab od 27.6.2023 do 29.12.2025"
+  },
+  {
+   "file": "10_pacient.pdf",
+   "page": 2,
+   "quote": "CT vyš. 11/2023 + 2/2024 + 6/2024 + 10/2024 + 2/2025 + 6/2025 - trvá iPR"
+  },
+  {
+   "file": "10_pacient.pdf",
+   "page": 2,
+   "quote": "Při CT vyš. 9/23 popisován nově útvar do 21x27 mm vlevo ventrálně v mesogastriu, etiologie je spíše cystická"
+  },
+  {
+   "file": "10_pacient.pdf",
+   "page": 1,
+   "quote": "Implantace venozn1ho portu 21.8.2023"
+  },
+  {
+   "file": "10_pacient.pdf",
+   "page": 1,
+   "quote": "21.11.2023 excize susp. iritovaného intraderm. névu brady vlevo"
+  },
+  {
+   "file": "10_pacient.pdf",
+   "page": 1,
+   "quote": "grade 2 dle ISUP, odstraněná kompletně"
+  },
+  {
+   "file": "10_pacient.pdf",
+   "page": 1,
+   "quote": "kožní leze v oblasti glabely - stp. excizi 11.2.2025, histol. sebaceom, kompletně odstraněn"
+  },
+  {
+   "file": "10_pacient.pdf",
+   "page": 4,
+   "quote": "navíc nově patol. LU v levém plicním hílu - dle iRECIST tedy PD (progressive disease)"
+  },
+  {
+   "file": "10_pacient.pdf",
+   "page": 1,
+   "quote": "11/2025 dle iRECIST iUPD - nově patol. LU v levém plic hilu"
+  },
+  {
+   "file": "10_pacient.pdf",
+   "page": 4,
+   "quote": "v levém hilu je velikostní progrese uzlin od baseline i ve srovnání s minulým CT"
+  },
+  {
+   "file": "10_pacient.pdf",
+   "page": 4,
+   "quote": "Dle iRECIST iCPD."
+  },
+  {
+   "file": "10_pacient.pdf",
+   "page": 2,
+   "quote": "Léčbu zahájil od 27.1.2026 v režimu 4/2."
+  },
+  {
+   "file": "10_pacient.pdf",
+   "page": 1,
+   "quote": "při dávce 50mg denně progrese renální insuf., minerálová dysbalance a trombocytopenie G2-3"
+  },
+  {
+   "file": "10_pacient.pdf",
+   "page": 1,
+   "quote": "od 26.3.2026 redukce o 2 stupně - dávka 25mg denně"
+  },
+  {
+   "file": "10_pacient.pdf",
+   "page": 5,
+   "quote": "Závěr: Bez plicní embolie, jen drobná cysta v HL vpravo."
+  },
+  {
+   "file": "10_pacient.pdf",
+   "page": 5,
+   "quote": "Drobné osteoplatické ložiska do průměru 7mm v přechodu th/L páteře."
+  },
+  {
+   "file": "10_pacient.pdf",
+   "page": 5,
+   "quote": "Velikostní regrese sledovaných lézi je o cca 24 %."
+  },
+  {
+   "file": "10_pacient.pdf",
+   "page": 5,
+   "quote": "je patrná velikostní progrse LU v levém pl. hilu a v retroperitonu paraaortálně vlevo."
+  },
+  {
+   "file": "10_pacient.pdf",
+   "page": 2,
+   "quote": "Proto léčbu sunitinibem ukončuji."
+  },
+  {
+   "file": "10_pacient.pdf",
+   "page": 1,
+   "quote": "3, pal, linie léčby everolimus - start 3.9.2026"
+  },
+  {
+   "file": "10_pacient.pdf",
+   "page": 2,
+   "quote": "Do 3. pal. linie léčby indikován everolimus - schváleno KOC komisi."
+  },
+  {
+   "file": "10_pacient.pdf",
+   "page": 3,
+   "quote": "par. 16 ponecháme do 4. linie."
+  },
+  {
+   "file": "10_pacient.pdf",
+   "page": 2,
+   "quote": "zyyšuji na 2-0-0 od 19.9.2026"
+  },
+  {
+   "file": "10_pacient.pdf",
+   "page": 1,
+   "quote": "Solitérní nodulus postkontrastně se sytící v pravé mozečkové hemisféře(do 3mm) - suspekce na solitérní MTS"
+  },
+  {
+   "file": "10_pacient.pdf",
+   "page": 1,
+   "quote": "Gliózy supratentoriálně Fazekas gr. III."
+  },
+  {
+   "file": "10_pacient.pdf",
+   "page": 4,
+   "quote": "nově předepsaný everolimus toleruje výbormně, nemá s ním žádný problém."
+  },
+  {
+   "file": "10_pacient.pdf",
+   "page": 4,
+   "quote": "Na cílený dotaz neguje závratě či poruchy rovnováhy"
+  },
+  {
+   "file": "10_pacient.pdf",
+   "page": 4,
+   "quote": "Statuspraesens:ECOG PS: 1, bez klin. známek mozkových mts"
+  },
+  {
+   "file": "10_pacient.pdf",
+   "page": 3,
+   "quote": "Nález při MR vyš. mozku zadávám k projednáni na NCH semináři."
+  },
+  {
+   "file": "10_pacient.pdf",
+   "page": 3,
+   "quote": "Kontrola zde 9.10.2026 s odběrem KO, biochemie."
+  },
+  {
+   "file": "10_pacient.pdf",
+   "page": 3,
+   "quote": "Kontrolní CT H+B+MP bude v 9.20hod. nalačno v NNJ."
+  }
+ ],
+ "timeline_cards": [
+  {
+   "date": "4/2022",
+   "date_sort": "2022-04",
+   "kind": "diagnosis",
+   "title_cs": "Diagnóza RCC (C64)",
+   "text_cs": "Renální karcinom lokálně pokročilý, diag. 4/2022.",
+   "detail_cs": "Dokument uvádí diagnózu C64 Zhoubný novotvar ledviny mimo pánvičku, RCC lokálně pokročilý, diagnostikovaný 4/2022. Přesný den ani vyšetření, kterým byla diagnóza stanovena, uvedeny nejsou.",
+   "status": "done",
+   "source": {
+    "file": "10_pacient.pdf",
+    "page": 1,
+    "quote": "RCC lok. pokročilý diag. 4/2022"
+   }
+  },
+  {
+   "date": "2.6.2022",
+   "date_sort": "2022-06-02",
+   "kind": "surgery",
+   "title_cs": "Nefrektomie vpravo",
+   "text_cs": "Nefrektomie vpravo s retroperitoneální lymfadenektomií; ccRCC G2, pT2a pN1 M0 (ověřit čtení).",
+   "detail_cs": "Transperitoneální nefrektomie vpravo s retroperitoneální lymfadenektomií. Histologie: světlobuněčný renální adenokarcinom G2, pT2a pN1 (3+/5) M0 (ověřit čtení: v dokumentu OCR „MO“, čteno jako M0). Původní histologická zpráva v PDF není, jen citace ve zprávě.",
+   "status": "done",
+   "source": {
+    "file": "10_pacient.pdf",
+    "page": 1,
+    "quote": "2.6.2022 - stp. transperitoneálni nefrektomii vpravo s retroperitoneálni lymfadenektomii"
+   }
+  },
+  {
+   "date": "25.10.2022",
+   "date_sort": "2022-10-25",
+   "kind": "surgery",
+   "title_cs": "Exstirpace paraaortální LU",
+   "text_cs": "Histologicky MTS ccRCC G2, R0.",
+   "detail_cs": "CT 7.9.2022 popsalo suspektní MTS paraaortální uzliny vlevo 20 mm. Uzlina exstirpována 25.10.2022, histologicky metastáza světlobuněčného renálního karcinomu G2, R0.",
+   "status": "done",
+   "source": {
+    "file": "10_pacient.pdf",
+    "page": 1,
+    "quote": "st.p. exstirpaci paraaortálni LU vlevo 25.10.2022 Histol. MTS světlobuněčného renálního karcinomu G2, R0"
+   }
+  },
+  {
+   "date": "6.3.2023",
+   "date_sort": "2023-03-06",
+   "kind": "imaging",
+   "title_cs": "Baseline CT: lymfadenopatie",
+   "text_cs": "Mediastinální a plicní hilová lymfadenopatie charakteru MTS.",
+   "detail_cs": "Baseline CT s KL popisuje patologickou mediastinální a plicní hilovou lymfadenopatii charakteru hypervaskularizovaných MTS. Dle IMDC střední prognóza (1 faktor). Souhrn na str. 2 uvádí tento restaging jako 3/2022, pravděpodobně překlep, ověřit.",
+   "status": "done",
+   "source": {
+    "file": "10_pacient.pdf",
+    "page": 1,
+    "quote": "baseline CT s KL 6.3.2023 patol. mediastinálni a pl. hilová lymfadenopatie"
+   }
+  },
+  {
+   "date": "27.3.2023",
+   "date_sort": "2023-03-27",
+   "kind": "systemic",
+   "title_cs": "1. linie: nivolumab + ipilimumab",
+   "text_cs": "Zahájen nivolumab 3 mg/kg + ipilimumab 1 mg/kg (ověřit čtení) q3w.",
+   "detail_cs": "Indikovány 4 cykly, schváleno KOC komisí; dokumentovány 2 cykly (27.3. a 17.4.2023). Po 2. cyklu GIT toxicita 1. st. a plicní toxicita (IPP) 1.-2. st., prednison od 28.4.2023 do 26.7.2023.",
+   "status": "done",
+   "source": {
+    "file": "10_pacient.pdf",
+    "page": 1,
+    "quote": "27.3.2023 1. cyklus nivolumab 3mg/kg + ipilimumab lmg/kg q3w"
+   }
+  },
+  {
+   "date": "27.6.2023",
+   "date_sort": "2023-06-27",
+   "kind": "systemic",
+   "title_cs": "Udržovací nivolumab",
+   "text_cs": "Nivolumab 240 mg q2w od 27.6.2023 do 29.12.2025.",
+   "detail_cs": "Dle CT 6/2023 dosaženo iPR, proto udržovací nivolumab. Restagingová CT 11/2023 až 6/2025 popisují trvající iPR. Léčba ukončena 29.12.2025.",
+   "status": "done",
+   "source": {
+    "file": "10_pacient.pdf",
+    "page": 1,
+    "quote": "udržovací léčba nivolumab od 27.6.2023 do 29.12.2025"
+   }
+  },
+  {
+   "date": "21.11.2023",
+   "date_sort": "2023-11-21",
+   "kind": "pathology",
+   "title_cs": "Kožní MTS na bradě",
+   "text_cs": "Excize ložiska brady vlevo: kožní MTS ccRCC, G2 ISUP.",
+   "detail_cs": "Excize suspektního névu brady vlevo. Histologie: kožní metastáza světlobuněčného (konvenčního) renálního karcinomu, grade 2 dle ISUP, odstraněna kompletně. Dle pacienta ložisko pozoroval cca od 6/2023.",
+   "status": "done",
+   "source": {
+    "file": "10_pacient.pdf",
+    "page": 1,
+    "quote": "21.11.2023 excize susp. iritovaného intraderm. névu brady vlevo"
+   }
+  },
+  {
+   "date": "10.11.2025",
+   "date_sort": "2025-11-10",
+   "kind": "imaging",
+   "title_cs": "CT: progrese (iUPD)",
+   "text_cs": "Nová patologická LU v levém plicním hilu.",
+   "detail_cs": "Proti baseline 3/2023 trvá mírná regrese retroperitoneální lymfadenopatie, proti CT 6/2025 však mírná progrese. Nově patologická LU v levém plicním hilu, dle iRECIST PD (iUPD).",
+   "status": "done",
+   "source": {
+    "file": "10_pacient.pdf",
+    "page": 4,
+    "quote": "navíc nově patol. LU v levém plicním hílu - dle iRECIST tedy PD (progressive disease)"
+   }
+  },
+  {
+   "date": "16.1.2026",
+   "date_sort": "2026-01-16",
+   "kind": "imaging",
+   "title_cs": "CT: potvrzená progrese (iCPD)",
+   "text_cs": "Progrese uzlin v levém hilu a LU retroperitonea.",
+   "detail_cs": "Regrese mediastinální a pravostranné hilové lymfadenopatie, ale velikostní progrese uzlin v levém hilu proti baseline i předchozímu CT a progrese jedné LU retroperitonea. Dle iRECIST iCPD.",
+   "status": "done",
+   "source": {
+    "file": "10_pacient.pdf",
+    "page": 4,
+    "quote": "Dle iRECIST iCPD."
+   }
+  },
+  {
+   "date": "27.1.2026",
+   "date_sort": "2026-01-27",
+   "kind": "systemic",
+   "title_cs": "2. linie: sunitinib",
+   "text_cs": "Sunitinib 50 mg denně v režimu 4/2.",
+   "detail_cs": "Schváleno KOC komisí. Pro toxicitu (renální insuficience, minerálová dysbalance, trombocytopenie G2-3, hepatopatie G2) redukce na 37,5 mg od 25.2.2026 a na 25 mg od 26.3.2026.",
+   "status": "done",
+   "source": {
+    "file": "10_pacient.pdf",
+    "page": 2,
+    "quote": "Léčbu zahájil od 27.1.2026 v režimu 4/2."
+   }
+  },
+  {
+   "date": "28.4.2026",
+   "date_sort": "2026-04-28",
+   "kind": "imaging",
+   "title_cs": "CT: stabilní nemoc (iSD)",
+   "text_cs": "Regrese sledovaných lézí o cca 24 %.",
+   "detail_cs": "Proti baseline 1/2026 mírná regrese LU v levém plicním hilu a parciální regrese LU v retroperitoneu, nová ložiska nepřibyla. Dle iRECIST iSD.",
+   "status": "done",
+   "source": {
+    "file": "10_pacient.pdf",
+    "page": 5,
+    "quote": "Velikostní regrese sledovaných lézi je o cca 24 %."
+   }
+  },
+  {
+   "date": "26.8.2026",
+   "date_sort": "2026-08-26",
+   "kind": "imaging",
+   "title_cs": "CT: progrese",
+   "text_cs": "Progrese LU v levém hilu a paraaortálně vlevo.",
+   "detail_cs": "Proti CT 4/2026 i baseline 1/2026 velikostní progrese LU v levém plicním hilu a v retroperitoneu paraaortálně vlevo. Na základě toho ukončen sunitinib.",
+   "status": "done",
+   "source": {
+    "file": "10_pacient.pdf",
+    "page": 5,
+    "quote": "je patrná velikostní progrse LU v levém pl. hilu a v retroperitonu paraaortálně vlevo."
+   }
+  },
+  {
+   "date": "3.9.2026",
+   "date_sort": "2026-09-03",
+   "kind": "systemic",
+   "title_cs": "3. linie: everolimus",
+   "text_cs": "Everolimus 5 mg denně; navýšení na 10 mg od 19.9.2026 plánováno, ověřit.",
+   "detail_cs": "Schváleno KOC komisí; cabozantinib ponechán do 4. linie. Dokument uvádí navýšení na 10 mg denně od 19.9.2026 a zároveň „Při dobré toleranci navýšíme“; zda navýšení proběhlo, ověřit.",
+   "status": "done",
+   "source": {
+    "file": "10_pacient.pdf",
+    "page": 1,
+    "quote": "3, pal, linie léčby everolimus - start 3.9.2026"
+   }
+  },
+  {
+   "date": "14.9.2026",
+   "date_sort": "2026-09-14",
+   "kind": "imaging",
+   "title_cs": "MR mozku: susp. MTS mozečku",
+   "text_cs": "Solitérní nodulus v pravé mozečkové hemisféře do 3 mm.",
+   "detail_cs": "Solitérní postkontrastně se sytící nodulus v pravé mozečkové hemisféře do 3 mm, suspekce na solitérní MTS; jiné sytící se léze intrakraniálně nejsou. Supratentoriálně gliózy Fazekas gr. III. Původní popis MR v PDF není, jen citace závěru.",
+   "status": "done",
+   "source": {
+    "file": "10_pacient.pdf",
+    "page": 1,
+    "quote": "Solitérní nodulus postkontrastně se sytící v pravé mozečkové hemisféře(do 3mm) - suspekce na solitérní MTS"
+   }
+  },
+  {
+   "date": null,
+   "date_sort": null,
+   "kind": "mdt",
+   "title_cs": "NCH seminář: nález MR mozku",
+   "text_cs": "Nález MR mozku zadán k projednání na NCH semináři.",
+   "detail_cs": "Ošetřující onkolog zadal nález MR mozku k projednání na neurochirurgickém semináři. Termín ani formulovaná otázka v dokumentu uvedeny nejsou.",
+   "status": "planned",
+   "source": {
+    "file": "10_pacient.pdf",
+    "page": 3,
+    "quote": "Nález při MR vyš. mozku zadávám k projednáni na NCH semináři."
+   },
+   "date_note_cs": "datum neuvedeno v dostupné dokumentaci"
+  },
+  {
+   "date": "9.10.2026",
+   "date_sort": "2026-10-09",
+   "kind": "visit",
+   "title_cs": "Kontrola na onkologii",
+   "text_cs": "Kontrola s odběrem KO a biochemie.",
+   "detail_cs": "Dokument plánuje kontrolu 9.10.2026 s odběrem krevního obrazu a biochemie a domácí měření TK. Zda kontrola na str. 4 je tato kontrola, dokument neuvádí.",
+   "status": "planned",
+   "source": {
+    "file": "10_pacient.pdf",
+    "page": 3,
+    "quote": "Kontrola zde 9.10.2026 s odběrem KO, biochemie."
+   }
+  }
+ ],
+ "documents": [
+  {
+   "title_cs": "Ambulantní vyšetření kontrolní (onkologie): onkologická anamnéza, doporučení, plán",
+   "type": "ambulantní zpráva",
+   "date": null,
+   "pages": [
+    1,
+    2,
+    3
+   ],
+   "date_note_cs": "Datum vyšetření neuvedeno; obsahuje MR 14.9.2026 a zvýšení everolimu od 19.9.2026.",
+   "readability": "fair",
+   "reason_cs": "Text je čitelný, ale OCR chyby v datech a zkratkách: 'cr' místo 'CT', '1112023' a '212024' místo '11/2023' a '2/2024', 'PO'/'PP' místo 'PD', 'lmg/kg', 'zyyšuji'. Chybí datum kontrolního CT."
+  },
+  {
+   "title_cs": "Laboratorní výsledky (biochemie, krevní obraz)",
+   "type": "jiné",
+   "date": null,
+   "pages": [
+    3
+   ],
+   "date_note_cs": "Datum odběru neuvedeno.",
+   "readability": "fair",
+   "reason_cs": "Hodnoty a referenční meze čitelné, ale jednotky a znaky zkomolené: 'mmol/1' místo 'mmol/l', '[O ... 5]' místo '[0 ... 5]', '10A9/l' místo '10^9/l'."
+  },
+  {
+   "title_cs": "Ambulantní vyšetření kontrolní: subjektivně, objektivní nález, přehled vyšetření",
+   "type": "ambulantní zpráva",
+   "date": null,
+   "pages": [
+    4,
+    5
+   ],
+   "date_note_cs": "Datum neuvedeno; pacient již užívá nově předepsaný everolimus.",
+   "readability": "poor",
+   "reason_cs": "Hlavička nečitelná ('Ambulantnf vyletfenf kontrolnf', znakový šum), tabulky iRECIST rozpadlé do sloupců bez přiřazení hodnot, 'CI'/'cr' místo 'CT', 'wš' místo 'vyš.', 'T-7éze'."
+  },
+  {
+   "title_cs": "MR mozku 14.9.2026 NNJ (citovaný závěr)",
+   "type": "radiologie",
+   "date": "14.9.2026",
+   "pages": [
+    1
+   ],
+   "embedded_in_cs": "citace v ambulantní zprávě, původní popis v PDF není",
+   "readability": "good",
+   "reason_cs": "Závěr čitelný, jen 'yyš,' místo 'vyš.'."
+  },
+  {
+   "title_cs": "CT plic + břicha 10.11.2025 (citovaný závěr)",
+   "type": "radiologie",
+   "date": "10.11.2025",
+   "pages": [
+    4
+   ],
+   "embedded_in_cs": "citace v ambulantní zprávě",
+   "readability": "fair",
+   "reason_cs": "Závěr čitelný, 'CI' místo 'CT', 'velí kosti'."
+  },
+  {
+   "title_cs": "CT hrudník, břicho 16.1.2026 (citovaný závěr a tabulka iRECIST)",
+   "type": "radiologie",
+   "date": "16.1.2026",
+   "pages": [
+    4
+   ],
+   "embedded_in_cs": "citace v ambulantní zprávě",
+   "readability": "poor",
+   "reason_cs": "Závěr čitelný, tabulka měření lézí rozpadlá, hodnoty nelze spolehlivě přiřadit k lézím."
+  },
+  {
+   "title_cs": "CT AG plicnice 10.2.2026 (citovaný závěr)",
+   "type": "radiologie",
+   "date": "10.2.2026",
+   "pages": [
+    5
+   ],
+   "embedded_in_cs": "citace v ambulantní zprávě",
+   "readability": "fair",
+   "reason_cs": "'cr Ag' místo 'CT AG'; věta o osteoplastických ložiskách stojí uvnitř rozpadlé tabulky a není jasné, ke kterému CT patří."
+  },
+  {
+   "title_cs": "Interní vyšetření 10.2.2026 NNJ (dušnost)",
+   "type": "ambulantní zpráva",
+   "date": "10.2.2026",
+   "pages": [
+    5
+   ],
+   "embedded_in_cs": "citace v ambulantní zprávě",
+   "readability": "fair",
+   "reason_cs": "'wš' místo 'vyš.', 'dekorigované HT' nejasné."
+  },
+  {
+   "title_cs": "ECHO 20.2.2026 NNJ",
+   "type": "jiné",
+   "date": "20.2.2026",
+   "pages": [
+    5
+   ],
+   "embedded_in_cs": "citace v ambulantní zprávě",
+   "readability": "good",
+   "reason_cs": "Text čitelný, drobné překlepy."
+  },
+  {
+   "title_cs": "CT hrudník, břicho 28.4.2026 (závěr a tabulka iRECIST)",
+   "type": "radiologie",
+   "date": "28.4.2026",
+   "pages": [
+    5
+   ],
+   "embedded_in_cs": "citace v ambulantní zprávě",
+   "readability": "fair",
+   "reason_cs": "Závěr čitelný, tabulka měření rozpadlá do sloupců, 'nep�ibyla'."
+  },
+  {
+   "title_cs": "Plicní vyšetření 22.5.2026 MUDr. Hofrová",
+   "type": "ambulantní zpráva",
+   "date": "22.5.2026",
+   "pages": [
+    5
+   ],
+   "embedded_in_cs": "citace v ambulantní zprávě",
+   "readability": "fair",
+   "reason_cs": "Datum zapsáno '22,5,2026', 'post1zené'."
+  },
+  {
+   "title_cs": "UZ tepen DKK 30.7.2026",
+   "type": "radiologie",
+   "date": "30.7.2026",
+   "pages": [
+    5
+   ],
+   "embedded_in_cs": "citace v ambulantní zprávě",
+   "readability": "good",
+   "reason_cs": "Text čitelný."
+  },
+  {
+   "title_cs": "CT hrudník, břicho, malá pánev 26.8.2026 (citovaný závěr)",
+   "type": "radiologie",
+   "date": "26.8.2026",
+   "pages": [
+    5
+   ],
+   "embedded_in_cs": "citace v ambulantní zprávě",
+   "readability": "fair",
+   "reason_cs": "Závěr čitelný ('progrse'), text na konci stránky useknutý ('J-')."
+  }
+ ],
+ "documents_note_cs": "PDF neobsahuje originální histologické zprávy (nefrektomie 2.6.2022, exstirpace LU 25.10.2022, excize 21.11.2023, excize 11.2.2025) ani originální popis MR mozku 14.9.2026; jsou jen citovány ve zprávách.",
+ "others": [
+  {
+   "file": "2_pacient.pdf",
+   "diagnosis_cs": "High grade gliový tumor temporálně vpravo (pooperační MR uvádí GBM), stav po resekci 7.8.2026",
+   "diagnosis_source": {
+    "file": "2_pacient.pdf",
+    "page": 1,
+    "quote": "Histologie - jde o struktury high grade glialniho tumoru"
+   },
+   "mkn10": null,
+   "referring_doctor": null,
+   "referring_department": null,
+   "context_note_cs": "Odesílající lékař ani pracoviště neuvedeny.",
+   "context_source": {
+    "file": "2_pacient.pdf",
+    "page": 1,
+    "quote": "Kotěrova Jaroslava, poj. 205"
+   }
+  },
+  {
+   "file": "9_pacient.pdf",
+   "diagnosis_cs": "Karcinom levého prsu (2023), generalizace do skeletu, patologická komprese Th2",
+   "diagnosis_source": {
+    "file": "9_pacient.pdf",
+    "page": 2,
+    "quote": "C509 ZN - prs NS C795 Sekundární ZN kosti a kostní dřeně"
+   },
+   "mkn10": "C509",
+   "referring_doctor": null,
+   "referring_department": null,
+   "mkn10_source": {
+    "file": "9_pacient.pdf",
+    "page": 2,
+    "quote": "C509 ZN - prs NS"
+   },
+   "mkn10_other": [
+    "C795"
+   ],
+   "context_note_cs": "Odesílající lékař ani pracoviště neuvedeny; jde o kontrolní ambulantní zprávu, léčba schválena KOC komisí.",
+   "context_source": {
+    "file": "9_pacient.pdf",
+    "page": 3,
+    "quote": "Nález na PET/CT vyš. bude prezentován na NCH semináři k posouzení indikace NCH intervence"
+   }
+  },
+  {
+   "file": "11_pacient.pdf",
+   "diagnosis_cs": "V.s. neurinom akustiku vlevo (schwannom n. VIII vlevo), drobný meningeom F parafalcinně vlevo",
+   "diagnosis_source": {
+    "file": "11_pacient.pdf",
+    "page": 2,
+    "quote": "v.s. neurinom akustiku vlevo- Koos I."
+   },
+   "mkn10": null,
+   "referring_doctor": null,
+   "referring_department": null,
+   "context_note_cs": "Odesílající lékař ani pracoviště neuvedeny; dokument zmiňuje příjem na neurologickou JIP.",
+   "context_source": {
+    "file": "11_pacient.pdf",
+    "page": 1,
+    "quote": "proto příjem na neurologickou JIP"
+   }
+  },
+  {
+   "file": "13_pacient.pdf",
+   "diagnosis_cs": "Kalcifikovaný meningeom parietálně vlevo 12 x 9 mm (žádost o konzultaci CT a srovnání s MRI)",
+   "diagnosis_source": {
+    "file": "13_pacient.pdf",
+    "page": 1,
+    "quote": "Parietálně vlevo pod calvou kalcifikovaný meningeom vel. 12 x 9 mm."
+   },
+   "mkn10": null,
+   "referring_doctor": null,
+   "referring_department": null,
+   "context_note_cs": "Odesílající lékař ani pracoviště neuvedeny. MUDr. Walach je uveden u CT vyšetření, MUDr. Cibulková jako 'Vidi', ani jeden výslovně jako odesílající.",
+   "context_source": {
+    "file": "13_pacient.pdf",
+    "page": 1,
+    "quote": "Vidi MUDr. Cibulková"
+   }
+  },
+  {
+   "file": "15_pacient.pdf",
+   "diagnosis_cs": "Stacionární obraz v.s. ependymomu či subependymomu postranní komory vpravo (MR mozku)",
+   "diagnosis_source": {
+    "file": "15_pacient.pdf",
+    "page": 1,
+    "quote": "Závěr: Stacionární obraz v.s. ependymomu či subependymomu postranní komory vpravo."
+   },
+   "mkn10": null,
+   "referring_doctor": null,
+   "referring_department": null,
+   "context_note_cs": "Dokument obsahuje jen popis MR; odesílající lékař ani pracoviště neuvedeny.",
+   "context_source": {
+    "file": "15_pacient.pdf",
+    "page": 1,
+    "quote": "MR mozku nativ+ aplikace k l. bez reakce."
+   }
+  },
+  {
+   "file": "17_pacient.pdf",
+   "diagnosis_cs": "Intraoseální ložisko frontálně vpravo s propagací intrakraniálně, dif. dg. intraoseální meningeom x meta; ca cekoascendens pT3 pN0 cM0 v anamnéze",
+   "diagnosis_source": {
+    "file": "17_pacient.pdf",
+    "page": 1,
+    "quote": "v diff.dg. intraoseální meningeom x meta ložisko v rámci zákl dg."
+   },
+   "mkn10": null,
+   "referring_doctor": null,
+   "referring_department": null,
+   "context_note_cs": "Odesílající lékař ani pracoviště výslovně neuvedeny; dokument zmiňuje hospitalizaci na ORL.",
+   "context_source": {
+    "file": "17_pacient.pdf",
+    "page": 1,
+    "quote": "Nyní za hospitalizace na ORL doplněno CT mozku"
+   }
+  },
+  {
+   "file": "18_pacient.pdf",
+   "diagnosis_cs": "Cystické rozšíření míchy Th4-Th12 (syringomyelie), v oblasti konu nelze vyloučit drobný ependymom",
+   "diagnosis_source": {
+    "file": "18_pacient.pdf",
+    "page": 1,
+    "quote": "drobný ependymom v terénu výrazné syringomyelie nevyloučím"
+   },
+   "mkn10": null,
+   "referring_doctor": null,
+   "referring_department": null,
+   "context_note_cs": "Odesílající lékař ani pracoviště neuvedeny; pole 'Popisující lékař' je prázdné. Dokument zmiňuje předchozí propuštění z neurologického oddělení.",
+   "context_source": {
+    "file": "18_pacient.pdf",
+    "page": 1,
+    "quote": "nedávno propuštěn z neu odd."
+   }
+  },
+  {
+   "file": "19_pacient.pdf",
+   "diagnosis_cs": "Dvě drobné výdutě ACI vlevo pod bazí lební (cca 2 a 3 mm); fraktura dens axis, monoparéza LHK v dif. dg. TIA/iCMP x epiparoxyzmus",
+   "diagnosis_source": {
+    "file": "19_pacient.pdf",
+    "page": 1,
+    "quote": "vlevo dvě sousedící výdutě stěny ACI o vel. cca 2 mm a 3 mm pod bazí lebky"
+   },
+   "mkn10": null,
+   "referring_doctor": null,
+   "referring_department": null,
+   "context_note_cs": "Odesílající lékař ani pracoviště neuvedeny.",
+   "context_source": {
+    "file": "19_pacient.pdf",
+    "page": 1,
+    "quote": "Jméno pacienta: Martina"
+   }
+  },
+  {
+   "file": "20_pacient.pdf",
+   "diagnosis_cs": "Infiltrace obratlových těl C6-Th1, dif. dg. spondylodiscitida x maligní infiltrace; ca prostaty v anamnéze",
+   "diagnosis_source": {
+    "file": "20_pacient.pdf",
+    "page": 1,
+    "quote": "Dif.dg.: susp. rozsáhlé zánětlivé změny (spondylodiscitis?) / maligní infiltrace? (CAVE pac. s CA prostaty v anamnéze)."
+   },
+   "mkn10": null,
+   "referring_doctor": null,
+   "referring_department": null,
+   "context_note_cs": "Odesílající lékař ani pracoviště výslovně neuvedeny; dokument zmiňuje přijetí na neurologické standardní oddělení.",
+   "context_source": {
+    "file": "20_pacient.pdf",
+    "page": 1,
+    "quote": "Přijat na neurologické standardní oddělení"
+   }
+  }
+ ]
+}

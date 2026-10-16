@@ -14,21 +14,27 @@ How to use this file:
 
 Source shorthand: "path", "eHealth", "HL7", "Azure", and "FHIR/PHOENIX"
 are the research notes listed at the top of [`INDEX.md`](INDEX.md).
+`[design-N ...]`, `[chatgpt ...]`, `[juro-notes]`, and `[paper-notes]`
+point into the team's design discussion; the citation forms are in
+[`PRODUCT.md`](../design/PRODUCT.md#sources-and-speaker-mapping).
 
 ## Ask FN Ostrava (the challenge owner)
 
-- [ ] **Blocking: may the challenge data go to cloud LLMs?** That includes
-  the coding agents (Claude Code, Copilot), which are cloud LLMs too. Is
-  the data anonymous or synthetic, and are only EU deployments acceptable?
-  Until this is answered, agents stay out of `data/` and cloud models see
-  only synthetic samples. (Azure, rec2 cc 02:08:38; `CLAUDE.md`)
-- [ ] **Blocking: what format is the documentation in?** PDFs, scans, text
-  exports, FHIR, CDA, DASTA, or CSV? This decides the whole input
-  pipeline. (HL7, slides 6 and 8 notes; FHIR/PHOENIX, rec2 01:40:28)
+- [ ] What is "NOCO" in the FNO consultation form ("Otázka na NOCO")?
+  Presumably the neuro-oncology centre or its MDT. (`Struktura MDT
+  protokolu_FNO.docx`)
+- [ ] The spreadsheets describe other patients (colorectal, breast cancer;
+  IDs PAC001 to PAC010) than the neuro-oncology PDFs. Are they meant to
+  be combined, or are they generic examples of FNO's export format?
+  Their README sheets also disagree with the data: IDs "23001 to 23010"
+  versus PAC001, and "9" versus 10 records. (`data/rakathon-26/samples/`)
+- [ ] Lab results and genetics are listed as inputs (FNO deck, slides 3
+  and 6) but are not in the challenge data; the only lab values are one
+  undated set in patient 10's PDF, which cannot show a trend. Is there
+  more data, or do we generate our own synthetic labs for the lab-trend
+  view? (`INDEX.md`; `PRODUCT.md` F-21)
 - [ ] Does the documentation include earlier MDT minutes? MDTs are often
   not recorded. (path, rec1 00:43:12)
-- [ ] Which diagnoses does the FNO MDT focus on? This decides the
-  "missing documents" checklist beyond lung cancer. (`INDEX.md`)
 - [ ] Which code lists appear in the documents: NČLP for labs, MKN-10 for
   diagnoses, any SNOMED CT? (HL7, rec1 01:54:48)
 - [ ] May we commit and publish samples derived from FNO data? All
@@ -37,6 +43,52 @@ are the research notes listed at the top of [`INDEX.md`](INDEX.md).
   The HL7 deck recommends it. (HL7, slide 21 notes)
 - [ ] Verify: FNO hosts a comprehensive oncology centre (KOC). This is
   background knowledge, not from the talks. (`INDEX.md`)
+- [ ] Is there an MDT protocol (minutes) template besides the
+  consultation request form? Soňa expected FNO to show "what the MDT
+  protocol should look like". (chatgpt P 12:14, R 12:14)
+- [ ] How does FNO's MDT work today: who prepares a patient and how long
+  it takes, whether preparation is one meeting or async (email, Teams),
+  what most often prevents a decision, and who records and follows up
+  after the meeting? (juro-notes; chatgpt R 10:29)
+- [ ] Can one patient's data sit in different systems than another's?
+  (juro-notes)
+
+## Ask Soňa
+
+Soňa is the oncologist on our team; the product is based on her
+experience.
+
+- [ ] How long does the MDT spend per patient? Her slots suggest about 5
+  minutes (design-1 00:05:41), Juro's recap and paper note say 10 to 15
+  (design-1 00:16:16; paper-notes more_notes), and design-3 00:00:00
+  says ten seconds for common cases and five minutes for complicated
+  ones. In the UI feedback she asked for calendar slots of about 15
+  minutes (design-4 00:01:36). Slot time and decision time may differ.
+- [ ] What frustrates her most about MDTs? ChatGPT asked; she did not
+  answer. (chatgpt R 10:29)
+- [ ] Does the proposed mapping of her five sections (anamnéza,
+  onkologický súhrn, prítomní, dotaz, záver) onto FNO's expandable items
+  work for her? (`PRODUCT.md`, "Reconciling Soňa's sections with FNO's
+  items")
+- [ ] Are ChatGPT's neuro-oncology items right (integrated WHO diagnosis,
+  IDH, 1p/19q, MGMT, RANO, no TNM for primary brain tumours)? Which
+  belong on the readiness checklist? (chatgpt R 12:14, R 15:52; `INDEX.md`)
+- [ ] Should the app flag rare or hard cases from past MDTs? Her answer
+  "to by som asi nechala na IHE" is unclear in the transcript.
+  (design-3 00:02:18 to 00:03:01)
+- [ ] Is the same doctor on a patient's repeated MDTs, and how long does
+  preparation take her today? (design-1 00:04:59; juro-notes)
+- [ ] Should the assistant's alerts move to a separate tab of the
+  Patient Detail? Juro suggested it; she has not decided. She found the
+  number of alerts in mock v1 overwhelming. (design-4 00:02:30 to
+  00:04:53)
+- [ ] Attendance: one dropdown per department (Juro's recollection of an
+  earlier discussion, design-4 00:06:55), or a tick per doctor as in her
+  ChatGPT design (ui-shot 17.06.15 (3))?
+- [ ] What does "onkologické zaťaženie" in the upload checklist mean,
+  family oncology history? (design-2 00:08:25)
+- [ ] How is a glass slide or photo brought to the meeting captured: typed
+  by someone, or heard from the comment? (design-1 00:42:35)
 
 ## Ask the organizers (opening, Slack, coaches)
 
@@ -62,14 +114,13 @@ are the research notes listed at the top of [`INDEX.md`](INDEX.md).
   environment? (FHIR/PHOENIX, rec2 01:56:30)
 - [ ] If we deploy to Azure: how do we read secrets without assigning
   Key Vault roles? (Azure, rec2 01:05:31)
-- [ ] What is the real name of the tech help Slack channel: "Tech Support"
-  or "Tech Helpdesk"? (Azure, rec2 02:04:31)
 - [ ] Is there a Microsoft prize? Who is the third technology partner,
   transcribed "SECA"? (Azure, rec2 00:09:54, 01:07:58)
 - [ ] Are "Výzva 1 to 4" in the oncology path deck official challenges?
   Its "Výzva 2" is not our challenge 2. (path, slides 44 to 48)
-- [ ] May the organizers' decks, recordings, and transcripts stay in our
-  repository once it is published? (`HACKATHON.md`)
+- [ ] May the organizers' decks, recordings, transcripts, and the
+  challenge data in `data/` stay in our repository once it is published?
+  (`HACKATHON.md`)
 
 ## Decide as a team
 
@@ -80,12 +131,29 @@ are the research notes listed at the top of [`INDEX.md`](INDEX.md).
 - [ ] Before the repository goes public: remove or anonymize other
   participants' names in the Zoom chat exports and research notes.
   (`HACKATHON.md`)
+- [ ] **Where does the guideline layer's line fall?** Options: show only
+  guideline passages that apply to documented facts; list
+  guideline-supported options with references and no ranking; also flag
+  where the MDT's plan departs from the guideline. Also: on or off by
+  default, and visible before the discussion, hidden, or a mix? The
+  layer is in scope by team decision (2026-10-16); `CLAUDE.md` forbids
+  treatment recommendations. Get Soňa's view first. (design-2 00:00:36;
+  chatgpt P 14:56, P 16:01, R 10:27; juro-notes)
+- [ ] Where does the AI model run? Juro said the interface would run on
+  the hospital's internal servers (design-4 00:01:17); Soňa wants no
+  patient names sent to the AI (design-4 00:00:03). Is the model local
+  too, or does pseudonymized text go to a cloud model?
+- [ ] How do we define "missing": from guidelines, from the MDT question,
+  or by reasoning back from possible diagnoses? (juro-notes)
+- [ ] Only if live listening is built: one recording per patient with an
+  explicit click, or one long recording split later? May the transcript
+  be edited, or only the summary? (design-1 00:43:31, 00:44:31)
 
 ## Check ourselves (docs and the web)
 
-- [ ] What are the URLs of the InterSystems "FHIR AI Hackathon Kit" and
-  its challenge page, and the kit's default FHIR credentials? Linked from
-  the InterSystems challenge on rakathon.cz. (FHIR/PHOENIX, rec2 01:36:27)
+- [ ] What are the URL of the InterSystems "FHIR AI Hackathon Kit" and the
+  kit's default FHIR credentials? Both should be on the challenge page in
+  `HACKATHON.md`. (FHIR/PHOENIX, rec2 01:36:27)
 - [ ] Which EHDS priority record types are there? The eHealth slide says
   "six" but lists five. Check the Ministry of Health wiki page in
   `INDEX.md`. (eHealth, page 6)
@@ -103,6 +171,9 @@ are the research notes listed at the top of [`INDEX.md`](INDEX.md).
   slide 23)
 - [ ] What do the EU guide acronyms on the HL7 slide mean (EU DR, EU MDR,
   EU PMD)? (HL7, slide 18)
+- [ ] What does the ECOG performance status scale say for each grade?
+  Soňa's paraphrase of grade 4 is loose. (design-1 00:03:42)
+- [ ] What are current best practices for MDTs? (juro-notes)
 
 ## Low priority: details in the sources
 
@@ -126,6 +197,10 @@ Settle these only if one becomes relevant.
   slide 38's MDT shares are read by eye; the title says January 2026 but
   notes cite later sources; speaker labels merge the moderator and the
   speaker in places. (path, slides 1, 30, 31, 38)
+- Juro's notes: "Ako veľmi sa summaries ..." breaks off (paper-notes
+  open_questions); "crazy scale" is listed as an edge case without
+  explanation (juro-notes); what "patient registration" means in
+  ChatGPT's list of MDT obstacles (design-2 00:07:36).
 - The "Národní dialog" prize venue: the slide says Hotel ILF, the speech
   says the postgraduate institute (ILF). Check if we win. (eHealth,
   page 21)

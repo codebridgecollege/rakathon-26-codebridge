@@ -1,0 +1,64 @@
+{
+  "title": "Konzultace pacienta",
+  "what_it_is": "FNO's request form for an MDT consultation: a referring doctor fills it in to ask the neuro-oncology MDT (NOCO) about a patient. The FNO challenge deck (slide 5) calls it 'VZOR FORMULÁŘE PRO MDT TÝM, pracovní návrh vycházející ze struktury MDT protokolu FNO' (a template form for the MDT, a working draft based on the structure of FNO's MDT protocol).",
+  "source": "data/rakathon-26/2_AI asistent MDT/Struktura MDT protokolu_FNO.docx",
+  "type_note": "Types come from the embedded HTML controls: text = single-line input, textarea = multi-line input, select = drop-down, checkbox. 'inferred' means the control was lost when the form was pasted into Word, so the type is read from the label.",
+  "sections": [
+    {
+      "id": "patient",
+      "label": "Identifikace pacienta",
+      "label_en": "Patient identification",
+      "fields": [
+        {"id": "first_name", "label": "Jméno", "label_en": "First name", "type": "text", "required": true},
+        {"id": "last_name", "label": "Příjmení", "label_en": "Last name", "type": "text", "required": true},
+        {"id": "birth_number", "label": "Rodné číslo", "label_en": "Birth number (Czech personal ID)", "type": "text", "required": true},
+        {"id": "insurer", "label": "Pojišťovna pacienta", "label_en": "Health insurer", "type": "select", "required": true, "note": "Options not preserved. The PDFs show insurer codes such as 111, 205, 211."}
+      ]
+    },
+    {
+      "id": "clinical",
+      "label": "(no heading in the form; the deck calls it 'Informace o pacientovi', the PDFs 'Zdravotní stav a diagnózy')",
+      "label_en": "Clinical information",
+      "fields": [
+        {"id": "history", "label": "Anamnéza", "label_en": "Medical history", "type": "textarea", "required": true},
+        {"id": "imaging", "label": "Zobrazovací vyšetření", "label_en": "Imaging", "type": "textarea", "required": true},
+        {"id": "current_state", "label": "Aktuální klinický stav", "label_en": "Current clinical state", "type": "textarea", "required": true}
+      ]
+    },
+    {
+      "id": "sender",
+      "label": "Odesílatel / Lékař",
+      "label_en": "Referring doctor",
+      "fields": [
+        {"id": "doctor_name", "label": "Jméno lékaře", "label_en": "Doctor's name", "type": "text", "required": true},
+        {"id": "department", "label": "Odesílající pracoviště", "label_en": "Referring department", "type": "text", "required": true},
+        {"id": "email", "label": "Kontaktní e-mail", "label_en": "Contact e-mail", "type": "email", "type_inferred": true, "required": true},
+        {"id": "phone", "label": "Kontaktní telefon", "label_en": "Contact phone", "type": "text", "required": true}
+      ]
+    },
+    {
+      "id": "attachment",
+      "label": "Příloha",
+      "label_en": "Attachment",
+      "fields": [
+        {"id": "attachments", "label": "Příloha", "label_en": "Attachment", "type": "file", "type_inferred": true, "required": false, "accept": [".pdf", ".docx", ".doc", ".zip", ".xls", ".xlsx", ".odt"], "max_size_mb": 20}
+      ]
+    },
+    {
+      "id": "question",
+      "label": "Otázka na NOCO",
+      "label_en": "Question for the MDT (NOCO)",
+      "fields": [
+        {"id": "mdt_question", "label": "Otázka na NOCO", "label_en": "Question for the MDT", "type": "textarea", "required": false, "note": "Not marked (*) in the form, but it is what the MDT is asked to answer."}
+      ]
+    },
+    {
+      "id": "consent",
+      "label": "Souhlas",
+      "label_en": "Consent",
+      "fields": [
+        {"id": "gdpr_consent", "label": "Souhlasím, aby FNO použila uvedené osobní údaje ke zpracování požadavku, dle GDPR.", "label_en": "I agree that FNO may use the personal data above to process the request, under GDPR.", "type": "checkbox", "required": false}
+      ]
+    }
+  ]
+}

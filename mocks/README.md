@@ -1,0 +1,50 @@
+# UI mocks
+
+Throwaway, clickable mocks of the MDT Workspace, used to check the design
+direction with the team (see [`docs/design/PRODUCT.md`](../docs/design/PRODUCT.md)).
+They are static HTML pages with the data embedded; there is no backend.
+All patient data is FNO's fictitious challenge data.
+
+| Page | What it is | Published copy |
+|---|---|---|
+| `v1.html` | First simple mock (one patient workspace) | https://claude.ai/artifact/KraDQ9X7diVo93QzXtse6t |
+| `v2.html` | Full mock after feedback round 1 (database, calendar, patient detail, presentation, protocol, tasks) | https://claude.ai/artifact/6F5AbN6vEAHJQgXP1fkUdc |
+
+The published copies are private claude.ai artifacts owned by Juro; ask him
+to share them. To view a mock locally, open the `.html` file in a browser.
+
+## How to change a mock
+
+Do not edit `v1.html` or `v2.html` directly; they are generated.
+
+1. Edit the template in `src/` (`v1-template.html`, `v2-template.html`) or
+   the data in `src/data/`.
+2. Run `uv run mocks/build.py`.
+3. Check it (below), then open the page in a browser.
+
+## Data
+
+`src/data/` is the source of truth for what the mocks show:
+
+- `mock-case-10.json`: patient `10_pacient.pdf` structured into sections,
+  timeline, labs, flags, and the OCR text of each page. Every fact has a
+  source quote.
+- `mock-case-10-extra.json`: anamnesis, the MDT brief and detailed summary
+  with numbered references, timeline cards, the documents inside the PDF,
+  and short facts about the other nine patients.
+- `mock-patient-list.json`: one entry per other patient.
+- `ocr.json`: the raw OCR text of all ten patient PDFs.
+
+`src/extract/` holds the scripts that produced the first version of this
+data from `data/rakathon-26/`. The JSON was corrected by hand after two
+reviews (OCR misreads, a planned dose shown as done, negation tags), so
+re-running the scripts would undo those fixes. Edit the JSON instead.
+
+## Checks
+
+- `src/test/smoke.mjs`: clicks through every screen in jsdom and reports JS
+  errors (`npm i jsdom@24.1.0` in a scratch folder, then
+  `node smoke.mjs <path to v2.html>`).
+- `src/test/w.mjs`: opens every screen in Chrome at 400 px width and prints
+  the page width, to catch horizontal overflow (`npm i playwright-core`,
+  needs Google Chrome installed).

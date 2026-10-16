@@ -32,10 +32,17 @@ setup and run instructions once it is.
 
 ## Patient data
 
-This repository never contains real patient data. Put any real or
-hospital-provided documents in `data/`, which git ignores. Only synthetic
-or anonymized samples are committed. See [`CLAUDE.md`](CLAUDE.md) for the
+This repository never contains real patient data. `data/` holds the
+synthetic challenge data from the organizers. Put anything real in
+`private/`, which git ignores and which AI agents are blocked from
+reading. See [`CLAUDE.md`](CLAUDE.md) for the
 full rules.
+
+## UI mocks
+
+Clickable mocks of the app are in [`mocks/`](mocks/README.md); open
+`mocks/v2.html` in a browser. The product design behind them is in
+[`docs/design/PRODUCT.md`](docs/design/PRODUCT.md).
 
 ## Working with AI agents
 

@@ -1,0 +1,4173 @@
+<title>MDT Workspace maketa</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@600;700;800&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap">
+<style>
+/* Soňa's brief: a GLIDE-inspired clinical workspace in a white version only.
+   Light ground, dark type, fine dividing lines, minimal shadow; colour only where it carries meaning.
+   Layout: a top bar with the three main areas (patients, calendar, tasks); each screen is a full-width working page. */
+:root {
+  --bg: #f7f7f5;
+  --surface: #ffffff;
+  --sunk: #f0f2ef;
+  --fg: #1c2726;
+  --muted: #5b6866;
+  --faint: #8a9593;
+  --line: #e1e4e0;
+  --line-strong: #cdd3cf;
+  --accent: #3d7a6f;
+  --accent-ink: #2c5c53;
+  --accent-soft: #e3ece8;
+  --missing: #8f5a06; --missing-soft: #fbf0dc;
+  --conflict: #a8323f; --conflict-soft: #fbe6e8;
+  --change: #2b5aa8; --change-soft: #e5ecf8;
+  --unclear: #6a5b8a; --unclear-soft: #eeeaf5;
+  --ok: #2d7650; --ok-soft: #e1f1e7;
+  --mark: #fff0a8;
+  --font-head: "Manrope", "DM Sans", system-ui, sans-serif;
+  --font-body: "DM Sans", "Segoe UI", system-ui, sans-serif;
+  --r: 8px;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body { margin: 0; background: var(--bg); color: var(--fg); font: 14.5px/1.55 var(--font-body); }
+button, input, select, textarea { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+h1, h2, h3 { font-family: var(--font-head); letter-spacing: -.005em; text-wrap: balance; }
+h1 { font-size: 22px; margin: 0; line-height: 1.25; }
+h2 { font-size: 16px; margin: 0; }
+h3 { font-size: 14px; margin: 0; }
+.muted { color: var(--muted); }
+.small { font-size: 12.5px; }
+.label { font-size: 11.5px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 600; }
+.num { font-variant-numeric: tabular-nums; }
+
+/* Top bar */
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--surface); }
+.top { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 20px; background: var(--surface); border-bottom: 1px solid var(--line);
+  padding-block: 10px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.brand { font: 800 15px/1 var(--font-head); display: flex; align-items: center; gap: 8px; }
+.brand i { width: 22px; height: 22px; border-radius: 6px; background: var(--accent); display: inline-grid; place-items: center; color: #fff; font-style: normal; font-size: 12px; }
+.nav { display: flex; gap: 2px; flex-wrap: wrap; }
+.nav button { background: none; border: 0; padding: 7px 12px; border-radius: 6px; cursor: pointer; color: var(--muted); font-weight: 600; }
+.nav button:hover { background: var(--sunk); }
+.nav button[aria-current="true"] { background: var(--accent-soft); color: var(--accent-ink); }
+.nav .count { font-size: 11px; background: var(--accent); color: #fff; border-radius: 99px; padding: 0 6px; margin-left: 4px; }
+.who { margin-left: auto; display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); }
+.who select { border: 1px solid var(--line-strong); border-radius: 6px; padding: 4px 6px; background: var(--surface); }
+.demo { font-size: 11.5px; font-weight: 600; color: var(--missing); background: var(--missing-soft); border-radius: 99px; padding: 2px 8px; }
+
+.page { padding-block: 22px 64px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); max-width: 1320px; margin: 0 auto; display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
+.pagehead { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 16px 18px; min-width: 0; }
+.card > .head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+.grid2 { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+.stack { display: grid; gap: 16px; min-width: 0; }
+.row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.spread { justify-content: space-between; }
+
+.btn { border: 1px solid var(--line-strong); background: var(--surface); border-radius: 6px; padding: 7px 13px; cursor: pointer; font-weight: 600; white-space: nowrap; }
+.btn:hover { background: var(--sunk); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.btn.primary:hover { background: var(--accent-ink); }
+.btn.small { padding: 4px 10px; font-size: 13px; }
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+.linkbtn { background: none; border: 0; padding: 0; color: var(--accent-ink); font-weight: 600; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
+
+.chip { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600; padding: 2px 9px; border-radius: 99px; white-space: nowrap; }
+.chip::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.chip.plain::before { display: none; }
+.st-new { background: var(--sunk); color: var(--muted); }
+.st-scheduled { background: var(--change-soft); color: var(--change); }
+.st-attention { background: var(--missing-soft); color: var(--missing); }
+.st-ready { background: var(--ok-soft); color: var(--ok); }
+.st-done { background: var(--accent-soft); color: var(--accent-ink); }
+.k-missing { background: var(--missing-soft); color: var(--missing); }
+.k-contradiction { background: var(--conflict-soft); color: var(--conflict); }
+.k-change { background: var(--change-soft); color: var(--change); }
+.k-unclear { background: var(--unclear-soft); color: var(--unclear); }
+
+/* Toolbar and tables */
+.toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.search { flex: 1 1 220px; max-width: 340px; border: 1px solid var(--line-strong); border-radius: 6px; padding: 7px 10px; background: var(--surface); }
+.filter { border: 1px solid var(--line); background: var(--surface); border-radius: 99px; padding: 4px 11px; cursor: pointer; font-size: 13px; }
+.filter[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); color: var(--accent-ink); font-weight: 600; }
+select.input, input.input, textarea.input { border: 1px solid var(--line-strong); border-radius: 6px; padding: 7px 9px; background: var(--surface); width: 100%; }
+textarea.input { min-height: 96px; resize: vertical; }
+.scroll { overflow-x: auto; }
+table.tbl { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+.tbl th { text-align: left; font-size: 11.5px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-weight: 600; padding: 9px 10px; border-bottom: 1px solid var(--line-strong); white-space: nowrap; }
+.tbl td { padding: 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.tbl tr.click { cursor: pointer; }
+.tbl tr.click:hover td { background: var(--sunk); }
+.tbl .id { font-weight: 700; font-variant-numeric: tabular-nums; }
+.ex { font-size: 10.5px; color: var(--faint); margin-left: 3px; vertical-align: super; }
+
+/* Calendar */
+.calwrap { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 16px; align-items: start; }
+.cal { display: grid; grid-template-columns: 56px repeat(5, minmax(120px, 1fr)); min-width: 720px; border: 1px solid var(--line); border-radius: var(--r); background: var(--surface); overflow: hidden; }
+.cal .dh { padding: 8px 10px; border-bottom: 1px solid var(--line-strong); border-left: 1px solid var(--line); font-weight: 600; font-size: 13px; }
+.cal .dh small { display: block; color: var(--muted); font-weight: 500; }
+.cal .tm { font-size: 11.5px; color: var(--faint); padding: 0 6px; text-align: right; border-top: 1px solid var(--line); height: 34px; line-height: 34px; font-variant-numeric: tabular-nums; }
+.cal .cell { border-top: 1px solid var(--line); border-left: 1px solid var(--line); height: 34px; padding: 2px 4px; position: relative; }
+.cal .cell.sem { background: #f3f8f6; }
+.slotbtn { width: 100%; height: 100%; border: 1px solid transparent; border-radius: 5px; background: none; cursor: pointer; font-size: 12.5px; text-align: left; padding: 0 6px; display: flex; align-items: center; gap: 6px; }
+.slotbtn.free { color: var(--faint); }
+.slotbtn.free:hover, .slotbtn.target { border-color: var(--accent); color: var(--accent-ink); background: #fff; }
+.slotbtn.taken { background: var(--surface); border-color: var(--line-strong); font-weight: 700; }
+.slotbtn.taken .dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+.popover { border: 1px solid var(--line-strong); border-radius: var(--r); background: var(--surface); padding: 14px 16px; box-shadow: 0 6px 24px rgba(28,39,38,.08); }
+
+/* Patient header */
+.phead { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px 24px; align-items: start; }
+.facts { display: flex; flex-wrap: wrap; gap: 4px 22px; font-size: 13px; color: var(--muted); margin-top: 6px; }
+.facts b { color: var(--fg); font-weight: 600; }
+.question { border-left: 3px solid var(--accent); background: var(--accent-soft); border-radius: 0 var(--r) var(--r) 0; padding: 10px 14px; }
+.question.missing { border-left-color: var(--missing); background: var(--missing-soft); }
+.question p { margin: 2px 0 0; font-size: 15.5px; }
+.tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--line); overflow-x: auto; }
+.tab { background: none; border: 0; padding: 9px 14px; cursor: pointer; color: var(--muted); font-weight: 600; border-bottom: 2px solid transparent; white-space: nowrap; }
+.tab[aria-selected="true"] { color: var(--accent-ink); border-bottom-color: var(--accent); }
+.tab .n { font-size: 11px; background: var(--sunk); border-radius: 99px; padding: 0 6px; margin-left: 4px; }
+
+/* Summary with paper-style references */
+.seg { display: inline-flex; border: 1px solid var(--line-strong); border-radius: 99px; padding: 2px; background: var(--sunk); }
+.seg button { border: 0; background: none; border-radius: 99px; padding: 3px 12px; font-size: 13px; cursor: pointer; color: var(--muted); font-weight: 600; }
+.seg button[aria-pressed="true"] { background: var(--surface); color: var(--fg); box-shadow: 0 1px 2px rgba(0,0,0,.08); }
+.prose { font-size: 15px; line-height: 1.65; max-width: 78ch; margin: 0; }
+.ref { font-size: 11px; vertical-align: super; line-height: 1; min-width: 18px; min-height: 18px; background: none; border: 0; padding: 0 1px; color: var(--accent-ink); cursor: pointer; font-weight: 700; }
+.ref:hover { text-decoration: underline; }
+.dl { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 6px 14px; margin: 0; font-size: 14.5px; max-width: 86ch; }
+.dl dt { font-weight: 700; font-variant-numeric: tabular-nums; }
+.dl dd { margin: 0; }
+.refs { margin: 12px 0 0; padding: 10px 0 0 22px; border-top: 1px solid var(--line); font-size: 12.5px; color: var(--muted); display: grid; gap: 2px; }
+.refs li { padding-left: 2px; }
+.refs button { background: none; border: 0; padding: 0; color: inherit; cursor: pointer; text-align: left; }
+.refs button:hover { color: var(--accent-ink); text-decoration: underline; }
+details.more > summary { cursor: pointer; color: var(--muted); font-size: 12.5px; margin-top: 10px; }
+.disclaim { font-size: 12px; color: var(--faint); margin-top: 8px; }
+
+/* Alerts strip */
+.alerts { display: grid; gap: 6px; }
+.alert { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 10px; align-items: start; padding: 8px 10px; border-radius: 6px; background: var(--sunk); }
+.alert.ack { opacity: .55; }
+.alert .why { display: block; color: var(--muted); font-size: 12.5px; }
+
+/* Horizontal labelled timeline */
+.tlbar { position: relative; overflow-x: auto; padding: 6px 2px 4px; }
+.tltrack { position: relative; display: flex; align-items: flex-start; gap: 0; min-width: max-content; padding: 0 8px; }
+.tltrack::before { content: ""; position: absolute; left: 0; right: 0; top: 39px; height: 2px; background: var(--line-strong); }
+.tlyear { position: relative; min-width: 56px; padding-inline: 4px; flex: none; text-align: center; padding-top: 30px; }
+.tlyear span { position: relative; display: inline-block; font: 700 12px/1 var(--font-head); color: var(--muted); background: var(--surface); padding: 4px 6px; border: 1px solid var(--line-strong); border-radius: 99px; }
+.ev { position: relative; flex: none; width: 196px; padding: 0 8px; background: none; border: 0; text-align: left; cursor: pointer; }
+.ev .date { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; height: 18px; display: block; white-space: nowrap; }
+.ev .pin { position: relative; z-index: 1; width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; background: var(--surface); border: 2px solid currentColor; margin: 4px 0 8px; }
+.ev .pin svg { width: 15px; height: 15px; }
+.ev.planned .pin { border-style: dashed; }
+.ev .t { display: block; font-weight: 700; font-size: 13.5px; line-height: 1.3; color: var(--fg); }
+.ev .d { display: block; font-size: 12.5px; color: var(--muted); line-height: 1.4; margin-top: 2px; }
+.ev[aria-pressed="true"] .pin { box-shadow: 0 0 0 4px var(--accent-soft); }
+.ev[aria-pressed="true"] .t { color: var(--accent-ink); }
+.evdetail { margin-top: 10px; border-top: 1px solid var(--line); padding-top: 12px; display: grid; gap: 4px; }
+.kind-diagnosis { color: #7a3f8f; } .kind-imaging { color: #2b5aa8; } .kind-surgery { color: #8f5a06; }
+.kind-pathology { color: #a8323f; } .kind-systemic { color: #2d7650; } .kind-radiotherapy { color: #b5521b; }
+.kind-mdt { color: #3d7a6f; } .kind-visit { color: #5b6866; }
+
+/* Anamnesis and documents */
+.anam { display: grid; grid-template-columns: 220px minmax(0, 1fr); border-top: 1px solid var(--line); }
+.anam > div { padding: 10px 0; border-bottom: 1px solid var(--line); }
+.anam > div:nth-child(odd) { font-weight: 600; padding-right: 12px; }
+.anam ul { margin: 0; padding-left: 18px; }
+.gap { color: var(--faint); font-style: italic; }
+.tag { font-size: 11px; font-weight: 600; padding: 0 6px; border-radius: 4px; margin-left: 4px; white-space: nowrap; }
+.tag.neg { background: var(--sunk); color: var(--fg); border: 1px solid var(--line-strong); }
+.tag.obs { background: var(--unclear-soft); color: var(--unclear); }
+.tag.ocr { background: var(--missing-soft); color: var(--missing); }
+.note { display: block; color: var(--muted); font-size: 12.5px; }
+.pipeline { display: flex; flex-wrap: wrap; gap: 6px; list-style: none; margin: 0; padding: 0; }
+.pipeline li { display: flex; align-items: center; gap: 6px; font-size: 13px; padding: 5px 10px; border-radius: 99px; background: var(--ok-soft); color: var(--ok); font-weight: 600; }
+.pipeline li.wait { background: var(--sunk); color: var(--muted); }
+.pipeline li.run { background: var(--change-soft); color: var(--change); }
+.drop { border: 1.5px dashed var(--line-strong); border-radius: var(--r); padding: 18px; text-align: center; color: var(--muted); background: var(--sunk); }
+
+/* Findings (presentation) */
+.find { border: 1px solid var(--line); border-radius: var(--r); background: var(--surface); }
+.find + .find { margin-top: 8px; }
+.find > summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 10px; padding: 12px 14px; }
+.find > summary::-webkit-details-marker { display: none; }
+.find > summary::before { content: "›"; font-size: 18px; color: var(--muted); transition: transform .15s; width: 10px; }
+.find[open] > summary::before { transform: rotate(90deg); }
+.find .ttl { font: 700 15px/1.3 var(--font-head); }
+.find .cnt { color: var(--muted); font-size: 12.5px; }
+.find .pick { margin-left: auto; display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--muted); }
+.find ul { margin: 0; padding: 0 16px 14px 36px; display: grid; gap: 6px; }
+.find li .dt { color: var(--muted); font-variant-numeric: tabular-nums; margin-right: 6px; }
+
+.present { background: var(--surface); }
+.present .page { max-width: 1400px; }
+.present .prose { font-size: 17px; }
+.present .question p { font-size: 18px; }
+.agenda { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; min-width: 0; flex: 1 1 320px; }
+.agenda button { border: 1px solid var(--line); background: var(--surface); border-radius: 6px; padding: 5px 10px; cursor: pointer; white-space: nowrap; font-size: 13px; }
+.agenda button[aria-current="true"] { border-color: var(--accent); background: var(--accent-soft); font-weight: 700; }
+
+/* Protocol */
+.att { display: grid; grid-template-columns: 170px minmax(0, 1fr) auto; gap: 8px 12px; align-items: center; }
+.att .dept { font-weight: 600; font-size: 13.5px; }
+.seg2 { display: grid; grid-template-columns: 1fr 1fr; background: var(--sunk); border-radius: 8px; padding: 3px; gap: 3px; }
+.seg2 button { border: 0; background: none; border-radius: 6px; padding: 7px; cursor: pointer; font-weight: 600; color: var(--muted); }
+.seg2 button[aria-pressed="true"] { background: var(--surface); color: var(--fg); box-shadow: 0 1px 2px rgba(0,0,0,.08); }
+.rec { text-align: center; padding: 18px 10px; display: grid; gap: 6px; justify-items: center; }
+.steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.steps li { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 8px; align-items: start; }
+.steps .s { width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid var(--line-strong); display: grid; place-items: center; font-size: 11px; font-weight: 700; color: var(--muted); }
+.steps .s.done { background: var(--ok); border-color: var(--ok); color: #fff; }
+.task { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) 150px auto; gap: 8px; align-items: center; }
+.tasklist { display: grid; gap: 8px; }
+.trow { display: grid; grid-template-columns: 24px minmax(0, 1fr) auto; gap: 10px; align-items: start; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.trow input { width: 18px; height: 18px; margin-top: 2px; accent-color: var(--accent); }
+.trow.done .tt { text-decoration: line-through; color: var(--muted); }
+.mail { border: 1px solid var(--line-strong); border-radius: var(--r); padding: 12px 14px; background: var(--surface); }
+.hist { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.hist li { border: 1px solid var(--line); border-radius: var(--r); padding: 12px 14px; }
+.hist li.old { opacity: .6; }
+
+/* Report sheet */
+.sheet { background: #fff; color: #111; max-width: 760px; margin: 0 auto; padding: 40px 46px; border: 1px solid var(--line); box-shadow: 0 2px 10px rgba(0,0,0,.06); font-size: 13px; line-height: 1.5; }
+.sheet h4 { font: 700 12px/1.3 var(--font-head); text-transform: uppercase; letter-spacing: .06em; margin: 18px 0 6px; border-bottom: 1px solid #ccc; padding-bottom: 3px; }
+.sheet p, .sheet li { margin: 2px 0; }
+.sheet .hdr { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; border-bottom: 2px solid #111; padding-bottom: 10px; }
+.sheet .src { color: #666; font-size: 11px; }
+
+/* Source drawer */
+.scrim { position: fixed; inset: 0; background: rgba(28,39,38,.25); z-index: 30; }
+.drawer { position: fixed; top: 0; right: 0; bottom: 0; width: min(560px, 100%); background: var(--surface); z-index: 31; box-shadow: -8px 0 30px rgba(0,0,0,.12); display: grid; grid-template-rows: auto auto minmax(0, 1fr);
+  padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); padding-right: env(safe-area-inset-right, 0px); }
+.drawer header { padding: 16px 20px 8px; display: flex; justify-content: space-between; gap: 10px; align-items: start; }
+.drawer .pages { display: flex; gap: 4px; flex-wrap: wrap; padding: 0 20px 10px; border-bottom: 1px solid var(--line); }
+.drawer .pages button { border: 1px solid var(--line); background: none; border-radius: 5px; padding: 2px 9px; cursor: pointer; font-size: 12.5px; }
+.drawer .pages button[aria-pressed="true"] { background: var(--accent); color: #fff; border-color: var(--accent); }
+.drawer .text { overflow: auto; padding: 16px 20px 40px; white-space: pre-wrap; word-break: break-word; font-size: 14px; line-height: 1.65; }
+.drawer mark { background: var(--mark); color: inherit; border-radius: 2px; padding: 0 1px; }
+
+/* Modal */
+.modal { position: fixed; z-index: 31; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(720px, calc(100% - 32px)); max-height: calc(100% - 48px); overflow: auto; background: var(--surface); border-radius: 12px; box-shadow: 0 20px 60px rgba(0,0,0,.18); padding: 22px 24px; display: grid; gap: 14px; }
+.stepper { display: flex; gap: 6px; flex-wrap: wrap; }
+.stepper span { font-size: 12.5px; padding: 3px 10px; border-radius: 99px; background: var(--sunk); color: var(--muted); font-weight: 600; }
+.stepper span.on { background: var(--accent); color: #fff; }
+.formgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 14px; }
+.formgrid .full { grid-column: 1 / -1; }
+.formgrid label { display: grid; gap: 4px; font-size: 13px; font-weight: 600; }
+.toast { position: fixed; z-index: 40; left: 50%; bottom: max(20px, env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--fg); color: #fff; padding: 9px 16px; border-radius: 8px; font-size: 13.5px; box-shadow: 0 6px 20px rgba(0,0,0,.2); }
+
+@media (max-width: 980px) {
+  .grid2, .calwrap { grid-template-columns: minmax(0, 1fr); }
+  .phead { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 640px) {
+  .anam { grid-template-columns: minmax(0, 1fr); }
+  .anam > div:nth-child(odd) { border-bottom: 0; padding-bottom: 0; }
+  .att { grid-template-columns: minmax(0, 1fr) auto; }
+  .att .dept { grid-column: 1 / -1; }
+  .task { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .formgrid { grid-template-columns: minmax(0, 1fr); }
+  .sheet { padding: 22px 16px; }
+  .who .lbl { display: none; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<header class="top">
+  <span class="brand"><i>M</i>MDT Workspace</span>
+  <nav class="nav" aria-label="Hlavní oblasti" id="nav"></nav>
+  <span class="who"><span class="demo">Maketa · fiktivní data</span><span class="lbl">Uživatel:</span>
+    <select id="user" aria-label="Aktuální uživatel (maketa bez přihlášení)"></select></span>
+</header>
+<main id="app"></main>
+<div id="overlay"></div>
+
+<script id="case-data" type="application/json">{
+ "file": "10_pacient.pdf",
+ "page_count": 5,
+ "patient": {
+  "name": "Daniel Poláček",
+  "name_as_written": "Poláček Daniel",
+  "birth_date": null,
+  "age": null,
+  "sex": "muž",
+  "sex_certainty": "inferred",
+  "sex_note": "Odvozeno z textu ('Pacient po nefrektomii'); pohlaví ani RČ není uvedeno.",
+  "birth_number": null,
+  "insurer": null,
+  "source": {
+   "file": "10_pacient.pdf",
+   "page": 1,
+   "quote": "Poláček Daniel"
+  },
+  "missing_note": "Datum narození, věk, rodné číslo a pojišťovna v dokumentu nejsou."
+ },
+ "mdt_question": {
+  "text_cs": null,
+  "status": "missing",
+  "note_cs": "Otázka pro MDT není výslovně formulována. Nejbližší text: nález MR mozku zadán k projednání na NCH semináři.",
+  "closest_source": {
+   "file": "10_pacient.pdf",
+   "page": 3,
+   "quote": "Nález při MR vyš. mozku zadávám k projednáni na NCH semináři."
+  }
+ },
+ "diagnosis": {
+  "code": "C64",
+  "code_system": "MKN-10 (dle dokumentu)",
+  "text_cs": "Zhoubný novotvar ledviny mimo pánvičku",
+  "source": {
+   "file": "10_pacient.pdf",
+   "page": 1,
+   "quote": "C64 Zhoubný novotvar ledviny mimo pánvičku"
+  }
+ },
+ "summary": [
+  {
+   "text_cs": "Pacient se světlobuněčným renálním karcinomem vpravo, diagnostikovaným 4/2022, po nefrektomii s lymfadenektomií 2.6.2022 (G2, pT2a pN1 M0).",
+   "sources": [
+    {
+     "file": "10_pacient.pdf",
+     "page": 1,
+     "quote": "RCC lok. pokročilý diag. 4/2022"
+    },
+    {
+     "file": "10_pacient.pdf",
+     "page": 1,
+     "quote": "Histol. světlobuněčný renální adenokarcinom G2, pT2a pN1(3+/5) MO"
+    }
+   ],
+   "level": 1
+  },
+  {
+   "text_cs": "Následně histologicky ověřené metastázy v paraaortální uzlině (10/2022) a v kůži brady (11/2023), od 3/2023 mediastinální a hilová lymfadenopatie charakteru MTS.",
+   "sources": [
+    {
+     "file": "10_pacient.pdf",
+     "page": 1,
+     "quote": "Histol. MTS světlobuněčného renálního karcinomu G2, R0"
+    },
+    {
+     "file": "10_pacient.pdf",
+     "page": 1,
+     "quote": "oblasti brady vlevo, grade 2 dle ISUP"
+    },
+    {
+     "file": "10_pacient.pdf",
+     "page": 1,
+     "quote": "baseline CT s KL 6.3.2023"
+    }
+   ],
+   "level": 3
+  },
+  {
+   "text_cs": "Léčen nivolumabem s ipilimumabem (2 cykly, imunitně podmíněná toxicita) a udržovacím nivolumabem do 29.12.2025 s iPR; po progresi sunitinib od 27.1.2026, při další progresi dle CT 26.8.2026 od 3.9.2026 everolimus.",
+   "sources": [
+    {
+     "file": "10_pacient.pdf",
+     "page": 1,
+     "quote": "27.3.2023 1. cyklus nivolumab"
+    },
+    {
+     "file": "10_pacient.pdf",
+     "page": 1,
+     "quote": "udržovací léčba nivolumab od 27.6.2023 do 29.12.2025"
+    },
+    {
+     "file": "10_pacient.pdf",
+     "page": 1,
+     "quote": "2. pal, linie léčby sunitinib - start 27.1.2026"
+    },
+    {
+     "file": "10_pacient.pdf",
+     "page": 1,
+     "quote": "3, pal, linie léčby everolimus - start 3.9.2026"
+    }
+   ],
+   "level": 2
+  },
+  {
+   "text_cs": "MR mozku 14.9.2026 popisuje solitární sytící se nodulus do 3 mm v pravé mozečkové hemisféře, suspekce na solitární MTS; nález je zadán k projednání na NCH semináři.",
+   "sources": [
+    {
+     "file": "10_pacient.pdf",
+     "page": 1,
+     "quote": "suspekce na solitérní MTS"
+    },
+    {
+     "file": "10_pacient.pdf",
+     "page": 3,
+     "quote": "Nález při MR vyš. mozku zadávám k projednáni na NCH semináři."
+    }
+   ],
+   "level": 1
+  },
+  {
+   "text_cs": "Klinicky ECOG PS 1, bez klinických známek mozkových metastáz; neguje závratě a poruchy rovnováhy, uvádí občasné mžitky před očima. Everolimus toleruje dobře.",
+   "sources": [
+    {
+     "file": "10_pacient.pdf",
+     "page": 4,
+     "quote": "ECOG PS: 1, bez klin. známek mozkových mts"
+    },
+    {
+     "file": "10_pacient.pdf",
+     "page": 4,
+     "quote": "everolimus toleruje výbormně"
+    },
+    {
+     "file": "10_pacient.pdf",
+     "page": 4,
+     "quote": "neguje závratě či poruchy rovnováhy, jenom jsou někdy během dne mžitky před očima"
+    }
+   ],
+   "level": 2
+  }
+ ],
+ "sections": {
+  "clinical_finding": [
+   {
+    "text_cs": "ECOG PS 1, bez klinických známek mozkových metastáz.",
+    "date": null,
+    "source": {
+     "file": "10_pacient.pdf",
+     "page": 4,
+     "quote": "ECOG PS: 1, bez klin. známek mozkových mts"
+    },
+    "certainty": "documented",
+    "negated": true,
+    "note": "Negace se týká klinického nálezu, ne zobrazení. MR mozku 14.9.2026 popisuje suspekci na MTS."
+   },
+   {
+    "text_cs": "Na cílený dotaz neguje závratě či poruchy rovnováhy; někdy během dne mžitky před očima.",
+    "date": null,
+    "source": {
+     "file": "10_pacient.pdf",
+     "page": 4,
+     "quote": "Na cílený dotaz neguje závratě či poruchy rovnováhy, jenom jsou někdy během dne mžitky před očima."
+    },
+    "certainty": "documented",
+    "negated": true
+   },
+   {
+    "text_cs": "TK 155/70 mmHg, pulz 68/min, hmotnost 87 kg, výška 183 cm, BMI 25.98.",
+    "date": null,
+    "source": {
+     "file": "10_pacient.pdf",
+     "page": 4,
+     "quote": "Tlak S/D [mmHg]: 155/70, Pulz [1/mín]: 68, Dech [1/min]: 14, Hmotnost [kg]: 87, Výška [cm]: 183, BMI: 25.98"
+    },
+    "certainty": "documented",
+    "negated": false
+   },
+   {
+    "text_cs": "Lucidní, orientace správná, eupnoe, bez cyanózy a ikteru.",
+    "date": null,
+    "source": {
+     "file": "10_pacient.pdf",
+     "page": 4,
+     "quote": "lucidní, orientace správná, spolupracuje, eupnoe, bez cyanózy, bez ikteru"
+    },
+    "certainty": "documented",
+    "negated": false
+   },
+   {
+    "text_cs": "Hrdlo zarudlé, hnisavý povlak.",
+    "date": null,
+    "source": {
+     "file": "10_pacient.pdf",
+     "page": 4,
+     "quote": "hrdlo zarudlé, hnisavý povlak"
+    },
+    "certainty": "documented",
+    "negated": false
+   },
+   {
+    "text_cs": "Krční, axilární, nadklíčkové a tříselné uzliny nehmatné.",
+    "date": null,
+    "source": {
+     "file": "10_pacient.pdf",
+     "page": 4,
+     "quote": "uzliny nehmatné"
+    },
+    "certainty": "documented",
+    "negated": true
+   },
+   {
+    "text_cs": "Jizvy pod pravým i levým obloukem žeberním klidné.",
+    "date": null,
+    "source": {
+     "file": "10_pacient.pdf",
+     "page": 4,
+     "quote": "j izvy pod pravým i levým obloukem žeberním klidné"
+    },
+    "certainty": "unclear_ocr",
+    "negated": false,
+    "note": "OCR rozdělilo slovo 'jizvy'."
+   }
+  ],
+  "imaging": [
+   {
+    "text_cs": "MR mozku (NNJ): solitární postkontrastně se sytící nodulus v pravé mozečkové hemisféře do 3 mm, suspekce na solitární MTS; jiné sytící se léze intrakraniálně nejsou.",
+    "date": "14.9.2026",
+    "source": {
+     "file": "10_pacient.pdf",
+     "page": 1,
+     "quote": "Solitérní nodulus postkontrastně se sytící v pravé mozečkové hemisféře(do 3mm) - suspekce na solitérní MTS, postkontrastně bez jiných, sytících se lézí intrakraniálně."
+    },
+    "certainty": "documented",
+    "negated": false
+   },
+   {
+    "text_cs": "MR mozku: gliózy supratentoriálně Fazekas gr. III.",
+    "date": "14.9.2026",
+    "source": {
+     "file": "10_pacient.pdf",
+     "page": 1,
+     "quote": "Gliózy supratentoriálně Fazekas gr. III."
+    },
+    "certainty": "documented",
+    "negated": false
+   },
+   {
+    "text_cs": "CT hrudníku a břicha: susp. MTS paraaortální uzliny vlevo 20 mm.",
+    "date": "7.9.2022",
+    "source": {
+     "file": "10_pacient.pdf",
+     "page": 1,
+     "quote": "CT hrudník + břicho s KL 7.9.2022 - susp. MTS paraaortálni uzlina vlevo 20mm"
+    },
+    "certainty": "documented",
+    "negated": false
+   },
+   {
+    "text_cs": "CT břicha a malé pánve: spíše lymfokéla po lymfadenektomii (kolekce tekutiny do 36 mm vlevo paraaortálně L2-3) než nová zvětšená uzlina.",
+    "date": "25.11.2022",
+    "source": {
+     "file": "10_pacient.pdf",
+     "page": 1,
+     "quote": "CT břicha, malé pánve nativně a kontrastně 25.11.2022 susp. lymfokéla po lymfadenektomii spíše ohraničená kolekce tekutiny do 36 mm vlevo paraaortálně v úrovni L2-3 než nová zvětšená uzlina."
+    },
+    "certainty": "documented",
+    "negated": false
+   },
+   {
+    "text_cs": "Baseline CT: patologická mediastinální a plicní hilová lymfadenopatie charakteru hypervaskularizovaných MTS.",
+    "date": "6.3.2023",
+    "source": {
+     "file": "10_pacient.pdf",
+     "page": 1,
+     "quote": "baseline CT s KL 6.3.2023 patol. mediastinálni a pl. hilová lymfadenopatie - jsou hypervaskularizované mts charakteru"
+    },
+    "certainty": "documented",
+    "negated": false
+   },
+   {
+    "text_cs": "Restaging CT 6/2023: dosaženo iPR.",
+    "date": "6/2023",
+    "source": {
+     "file": "10_pacient.pdf",
+     "page": 2,
+     "quote": "Dle restaging. CT 6/2023 dosaženo iPR"
+    },
+    "certainty": "documented",
+    "negated": false
+   },
+   {
+    "text_cs": "CT 9/2023: nový útvar do 21x27 mm vlevo ventrálně v mesogastriu, spíše cystický; bez lymfadenopatie, bez MTS.",
+    "date": "9/23",
+    "source": {
+     "file": "10_pacient.pdf",
+     "page": 2,
+     "quote": "Při CT vyš. 9/23 popisován nově útvar do 21x27 mm vlevo ventrálně v mesogastriu, etiologie je spíše cystická, jinak bez lymfadenopatie, bez mts"
+    },
+    "certainty": "documented",
+    "negated": false
+   },
+   {
+    "text_cs": "Restaging CT 11/2023, 2/2024, 6/2024, 10/2024, 2/2025, 6/2025: trvá iPR.",
+    "date": "11/2023 až 6/2025",
+    "source": {
+     "file": "10_pacient.pdf",
+     "page": 2,
+     "quote": "11/2023 + 2/2024 + 6/2024 + 10/2024 + 2/2025 + 6/2025 - trvá iPR"
+    },
+    "certainty": "documented",
+    "negated": false
+   },
+   {
+    "text_cs": "CT plic a břicha: proti baseline 3/2023 trvá mírná parciální regrese retroperitoneální lymfadenopatie vlevo, proti 6/2025 mírná progrese; nově patologická LU v levém plicním hilu; dle iRECIST PD.",
+    "date": "10.11.2025",
+    "source": {
+     "file": "10_pacient.pdf",
+     "page": 4,
+     "quote": "ve srovnání s base line CT z 03/2023 trvá mírná parc. regrese velikosti retroperitoneální lymfadenopatie vlevo ( ve srovnání s min. CT z 06/2025 je ale mírná progrese velí kosti), navíc nově patol. LU v levém plicním hílu - dle iRECIST tedy PD (progressive disease)."
+    },
+    "certainty": "documented",
+    "negated": false
+   },
+   {
+    "text_cs": "CT hrudníku a břicha: regrese mediastinální a pravostranné hilové lymfadenopatie, progrese uzlin v levém hilu, progrese jedné LU retroperitonea; dle iRECIST iCPD.",
+    "date": "16.1.2026",
+    "source": {
+     "file": "10_pacient.pdf",
+     "page": 4,
+     "quote": "Ve srovnání s baselíne CT došlo k regresí medíastinální a pravostranné hilové lymfadenopatie, v levém hilu je velikostní progrese uzlin od baseline i ve srovnání s minulým CT."
+    },
+    "certainty": "documented",
+    "negated": false
+   },
+   {
+    "text_cs": "CT AG plicnice: bez plicní embolie, jen drobná cysta v HL vpravo.",
+    "date": "10.2.2026",
+    "source": {
+     "file": "10_pacient.pdf",
+     "page": 5,
+     "quote": "Závěr: Bez plicní embolie, jen drobná cysta v HL vpravo."
+    },
+    "certainty": "documented",
+    "negated": true
+   },
+   {
+    "text_cs": "Drobná osteoplastická ložiska do 7 mm v přechodu Th/L páteře.",
+    "date": null,
+    "source": {
+     "file": "10_pacient.pdf",
+     "page": 5,
+     "quote": "Drobné osteoplatické ložiska do průměru 7mm v přechodu th/L páteře."
+    },
+    "certainty": "unclear_ocr",
+    "negated": false,
+    "note": "Ze sazby skenu není jasné, ke kterému vyšetření věta patří (stojí mezi tabulkou iRECIST z CT 16.1.2026 a CT AG 10.2.2026). Jinde v textu se nezmiňuje."
+   },
+   {
+    "text_cs": "ECHO: normální velikost oddílů, EF LK 60 %, bez hemodynamicky významné chlopenní vady.",
+    "date": "20.2.2026",
+    "source": {
+     "file": "10_pacient.pdf",
+     "page": 5,
+     "quote": "RES: dobrá systolická funkce obou komor, bez hemodynamicky významné chlop. vady"
+    },
+    "certainty": "documented",
+    "negated": false
+   },
+   {
+    "text_cs": "CT hrudníku a břicha: proti baseline 1/2026 mírná regrese LU v levém hilu, parciální regrese LU retroperitonea, bez nových ložisek; regrese sledovaných lézí o cca 24 %, dle iRECIST iSD.",
+    "date": "28.4.2026",
+    "source": {
+     "file": "10_pacient.pdf",
+     "page": 5,
+     "quote": "Velikostní regrese sledovaných lézi je o cca 24 %. Dle iRECIST • iSD."
+    },
+    "certainty": "documented",
+    "negated": false
+   },
+   {
+    "text_cs": "UZ tepen DKK: středně silné sklerotické změny; vpravo zřetelná, ne těžká stenóza v proximálním úseku PDK.",
+    "date": "30.7.2026",
+    "source": {
+     "file": "10_pacient.pdf",
+     "page": 5,
+     "quote": "Vpravo zřetelná, i když ne těžká stenosa v prox. úseku PDK."
+    },
+    "certainty": "documented",
+    "negated": false
+   },
+   {
+    "text_cs": "CT hrudníku, břicha a malé pánve: proti 4/2026 i baseline 1/2026 velikostní progrese LU v levém plicním hilu a retroperitoneu paraaortálně vlevo.",
+    "date": "26.8.2026",
+    "source": {
+     "file": "10_pacient.pdf",
+     "page": 5,
+     "quote": "Ve srovnáni s minulým CT z 4/2026 i s baseline CT z 1/2026 je patrná velikostní progrse LU v levém pl. hilu a v retroperitonu paraaortálně vlevo."
+    },
+    "certainty": "documented",
+    "negated": false,
+    "note": "Text stránky 5 končí za touto větou neúplně ('J-'); závěr může pokračovat na chybějící stránce."
+   }
+  ],
+  "histology": [
+   {
+    "text_cs": "Nefrektomie vpravo: světlobuněčný renální adenokarcinom G2, pT2a pN1 (3+/5) M0.",
+    "date": "2.6.2022",
+    "source": {
+     "file": "10_pacient.pdf",
+     "page": 1,
+     "quote": "Histol. světlobuněčný renální adenokarcinom G2, pT2a pN1(3+/5) MO"
+    },
+    "certainty": "unclear_ocr",
+    "negated": false,
+    "note": "Patologické TNM (pT, pN). Datum je datum operace; datum histologického nálezu neuvedeno. 'MO' v OCR čteno jako M0."
+   },
+   {
+    "text_cs": "Exstirpace paraaortální LU vlevo: MTS světlobuněčného renálního karcinomu G2, R0.",
+    "date": "25.10.2022",
+    "source": {
+     "file": "10_pacient.pdf",
+     "page": 1,
+     "quote": "Histol. MTS světlobuněčného renálního karcinomu G2, R0"
+    },
+    "certainty": "documented",
+    "negated": false
+   },
+   {
+    "text_cs": "Excize ložiska brady vlevo: kožní metastáza světlobuněčného (konvenčního) karcinomu renálního origa, ISUP grade 2, odstraněna kompletně.",
+    "date": "21.11.2023",
+    "source": {
+     "file": "10_pacient.pdf",
+     "page": 1,
+     "quote": "Histol. kožní metastáza světlebuněčného (konvenčního) karcinomu renálního origa v oblasti brady vlevo, grade 2 dle ISUP, odstraněná kompletně"
+    },
+    "certainty": "documented",
+    "negated": false
+   },
+   {
+    "text_cs": "Excize kožní léze glabely: sebaceom, kompletně odstraněn, bez nádorových změn.",
+    "date": "11.2.2025",
+    "source": {
+     "file": "10_pacient.pdf",
+     "page": 1,
+     "quote": "histol. sebaceom, kompletně odstraněn, kůže se solární elastózou, bez nádorových změn."
+    },
+    "certainty": "documented",
+    "negated": true
+   },
+   {
+    "text_cs": "Mozečkové ložisko (MR 14.9.2026) histologicky neověřeno; v dokumentaci jen suspekce.",
+    "date": null,
+    "source": {
+     "file": "10_pacient.pdf",
+     "page": 1,
+     "quote": "suspekce na solitérní MTS"
+    },
+    "certainty": "inferred",
+    "negated": false,
+    "note": "Pozorování asistenta: k ložisku v mozečku není v podkladech histologie."
+   }
+  ],
+  "past_treatment": [
+   {
+    "text_cs": "Transperitoneální nefrektomie vpravo s retroperitoneální lymfadenektomií.",
+    "date": "2.6.2022",
+    "source": {
+     "file": "10_pacient.pdf",
+     "page": 1,
+     "quote": "2.6.2022 - stp. transperitoneálni nefrektomii vpravo s retroperitoneálni lymfadenektomii"
+    },
+    "certainty": "documented",
+    "negated": false
+   },
+   {
+    "text_cs": "Exstirpace paraaortální LU vlevo.",
+    "date": "25.10.2022",
+    "source": {
+     "file": "10_pacient.pdf",
+     "page": 1,
+     "quote": "st.p. exstirpaci paraaortálni LU vlevo 25.10.2022"
+    },
+    "certainty": "documented",
+    "negated": false
+   },
+   {
+    "text_cs": "Nivolumab 3 mg/kg + ipilimumab 1 mg/kg q3w, 1. cyklus.",
+    "date": "27.3.2023",
+    "source": {
+     "file": "10_pacient.pdf",
+     "page": 1,
+     "quote": "27.3.2023 1. cyklus nivolumab 3mg/kg + ipilimumab lmg/kg q3w"
+    },
+    "certainty": "unclear_ocr",
+    "negated": false,
+    "note": "OCR čte '1mg/kg' jako 'lmg/kg'."
+   },
+   {
+    "text_cs": "2. cyklus nivolumab + ipilimumab.",
+    "date": "17.4.2023",
+    "source": {
+     "file": "10_pacient.pdf",
+     "page": 1,
+     "quote": "17.4.2023 2. cyklus -//-"
+    },
+    "certainty": "documented",
+    "negated": false
+   },
+   {
+    "text_cs": "Po 2. cyklu GIT toxicita 1. st. a plicní toxicita (IPP 1. až 2. st.); prednison 1 mg/kg/den od 28.4.2023 s rychlou regresí, ukončen 26.7.2023.",
+    "date": "28.4.2023",
+    "source": {
+     "file": "10_pacient.pdf",
+     "page": 2,
+     "quote": "Proto od 12.5.2023 zahájeno postupné snižování dávky kortikoidu, ukončen 26.7.2023."
+    },
+    "certainty": "documented",
+    "negated": false
+   },
+   {
+    "text_cs": "Udržovací nivolumab (240 mg q2w) od 27.6.2023 do 29.12.2025.",
+    "date": "27.6.2023",
+    "source": {
+     "file": "10_pacient.pdf",
+     "page": 1,
+     "quote": "udržovací léčba nivolumab od 27.6.2023 do 29.12.2025"
+    },
+    "certainty": "documented",
+    "negated": false
+   },
+   {
+    "text_cs": "Implantace venózního portu (Medcomp power-port).",
+    "date": "21.8.2023",
+    "source": {
+     "file": "10_pacient.pdf",
+     "page": 1,
+     "quote": "Implantace venozn1ho portu 21.8.2023"
+    },
+    "certainty": "documented",
+    "negated": false
+   },
+   {
+    "text_cs": "2. paliativní linie: sunitinib 50 mg denně, režim 4/2, start 27.1.2026.",
+    "date": "27.1.2026",
+    "source": {
+     "file": "10_pacient.pdf",
+     "page": 1,
+     "quote": "2. pal, linie léčby sunitinib - start 27.1.2026"
+    },
+    "certainty": "documented",
+    "negated": false
+   },
+   {
+    "text_cs": "Při 50 mg progrese renální insuficience, minerálová dysbalance a trombocytopenie G2-3.",
+    "date": null,
+    "source": {
+     "file": "10_pacient.pdf",
+     "page": 1,
+     "quote": "při dávce 50mg denně progrese renální insuf., minerálová dysbalance a trombocytopenie G2-3"
+    },
+    "certainty": "documented",
+    "negated": false
+   },
+   {
+    "text_cs": "Redukce sunitinibu o 1 stupeň na 37,5 mg (hepatopatie G2).",
+    "date": "25.2.2026",
+    "source": {
+     "file": "10_pacient.pdf",
+     "page": 1,
+     "quote": "od 25.2.2026 redukce o 1 stupeň - dávka 37,5mg denně - hepatopatie G2"
+    },
+    "certainty": "documented",
+    "negated": false
+   },
+   {
+    "text_cs": "Redukce sunitinibu o 2 stupně na 25 mg.",
+    "date": "26.3.2026",
+    "source": {
+     "file": "10_pacient.pdf",
+     "page": 1,
+     "quote": "od 26.3.2026 redukce o 2 stupně - dávka 25mg denně"
+    },
+    "certainty": "documented",
+    "negated": false
+   },
+   {
+    "text_cs": "Sunitinib ukončen pro PD dle CT 8/2026.",
+    "date": "8/2026",
+    "source": {
+     "file": "10_pacient.pdf",
+     "page": 2,
+     "quote": "Proto léčbu sunitinibem ukončuji."
+    },
+    "certainty": "documented",
+    "negated": false
+   },
+   {
+    "text_cs": "3. paliativní linie: everolimus, start 3.9.2026 (schváleno KOC komisí); cabozantinib ponechán do 4. linie.",
+    "date": "3.9.2026",
+    "source": {
+     "file": "10_pacient.pdf",
+     "page": 1,
+     "quote": "3, pal, linie léčby everolimus - start 3.9.2026"
+    },
+    "certainty": "documented",
+    "negated": false
+   }
+  ],
+  "current_state": [
+   {
+    "text_cs": "Everolimus toleruje výborně; nechutenství, nevolnost, zvracení ani průjem nemá.",
+    "date": null,
+    "source": {
+     "file": "10_pacient.pdf",
+     "page": 4,
+     "quote": "Subj. nově předepsaný everolimus toleruje výbormně, nemá s ním žádný problém."
+    },
+    "certainty": "documented",
+    "negated": false
+   },
+   {
+    "text_cs": "Tolerance léčby výborná, laboratoř bez zásadní patologie; everolimus navyšován na 10 mg denně.",
+    "date": null,
+    "source": {
+     "file": "10_pacient.pdf",
+     "page": 3,
+     "quote": "Tolerance léčby vývorná, lab., vyš. bez zásadni patologie, proto navyšuji Everolimus na 10mg denně."
+    },
+    "certainty": "documented",
+    "negated": false
+   },
+   {
+    "text_cs": "Nález MR mozku zadán k projednání na NCH semináři.",
+    "date": null,
+    "source": {
+     "file": "10_pacient.pdf",
+     "page": 3,
+     "quote": "Nález při MR vyš. mozku zadávám k projednáni na NCH semináři."
+    },
+    "certainty": "documented",
+    "negated": false
+   },
+   {
+    "text_cs": "Plán: kontrola 9.10.2026 s odběrem KO a biochemie; domácí měření TK; kontrola v plicní ambulanci; kontrolní CT H+B+MP (datum v textu chybí).",
+    "date": "9.10.2026",
+    "source": {
+     "file": "10_pacient.pdf",
+     "page": 3,
+     "quote": "Kontrola zde 9.10.2026 s odběrem KO, biochemie."
+    },
+    "certainty": "documented",
+    "negated": false
+   },
+   {
+    "text_cs": "Při odchodu ve stabilizovaném stavu.",
+    "date": null,
+    "source": {
+     "file": "10_pacient.pdf",
+     "page": 3,
+     "quote": "Při odchodu je pacient ve stabilizovaném ·stavu."
+    },
+    "certainty": "documented",
+    "negated": false
+   }
+  ],
+  "comorbidities": [
+   {
+    "text_cs": "Hypertenze, CHOPN u fumátora (léčba přerušena pacientem), HLP na dietě, anamnesticky hyperglykémie nalačno, korové cysty ledvin, cysta S2 jater.",
+    "date": null,
+    "source": {
+     "file": "10_pacient.pdf",
+     "page": 2,
+     "quote": "OA: HN, CHOPN u fumátora (anamn. léčba přerušena pacientem), HLP na dietě, hyperglykémie nalačno anam., korové cysty ledvin, cysta S2 jater"
+    },
+    "certainty": "documented",
+    "negated": false
+   },
+   {
+    "text_cs": "HBsAg pozitivní pacient.",
+    "date": null,
+    "source": {
+     "file": "10_pacient.pdf",
+     "page": 1,
+     "quote": "HBsAg pozit. pac."
+    },
+    "certainty": "documented",
+    "negated": false
+   },
+   {
+    "text_cs": "Interní vyšetření: plicní embolie vyloučena, EKG bez ischemie, dušnost možno na vrub dekorigované hypertenze; TK 174/92; nově Orcal 10 mg 1/2-0-0.",
+    "date": "10.2.2026",
+    "source": {
+     "file": "10_pacient.pdf",
+     "page": 5,
+     "quote": "plicní embolie vyloučena, EKG bez ischemických změn, hstroponin stabilní bez dynamiky- možno na vrub dekorigované HT"
+    },
+    "certainty": "documented",
+    "negated": false
+   },
+   {
+    "text_cs": "Plicní vyšetření: lehká obstrukce, CHOPN II/B fumátor, susp. intersticiální postižení, stp. kortikoterapii.",
+    "date": "22.5.2026",
+    "source": {
+     "file": "10_pacient.pdf",
+     "page": 5,
+     "quote": "Z: CHOPN II/B fumat., susp. interstic. post1zené, stp. kortikoterapii"
+    },
+    "certainty": "documented",
+    "negated": false
+   },
+   {
+    "text_cs": "Gliózy supratentoriálně Fazekas gr. III (MR mozku).",
+    "date": "14.9.2026",
+    "source": {
+     "file": "10_pacient.pdf",
+     "page": 1,
+     "quote": "Gliózy supratentoriálně Fazekas gr. III."
+    },
+    "certainty": "documented",
+    "negated": false
+   },
+   {
+    "text_cs": "Stenóza proximálního úseku PDK vpravo, ne těžká; sledování vhodné.",
+    "date": "30.7.2026",
+    "source": {
+     "file": "10_pacient.pdf",
+     "page": 5,
+     "quote": "Sledování vhodné."
+    },
+    "certainty": "documented",
+    "negated": false
+   }
+  ],
+  "medication": [
+   {
+    "text_cs": "Everolimus Sandoz 5 mg 1-0-0, zvyšováno na 2-0-0 od 19.9.2026 (při netoleranci zpět na 1-0-0).",
+    "date": "19.9.2026",
+    "source": {
+     "file": "10_pacient.pdf",
+     "page": 2,
+     "quote": "Everolimus sandoz 5mg 1-0-0 zyyšuji na 2-0-0 od 19.9.2026"
+    },
+    "certainty": "documented",
+    "negated": false
+   },
+   {
+    "text_cs": "Kapidin 20 mg 1-0-0, Spiriva inhal. 1-0-1, Ventolin N inhal. dle potřeby.",
+    "date": null,
+    "source": {
+     "file": "10_pacient.pdf",
+     "page": 2,
+     "quote": "Chron. medikace: Kapidin 20mg 1-0-0, Spiriva inhal. 1-0-1 + Ventolin N inhal. dlp."
+    },
+    "certainty": "documented",
+    "negated": false
+   },
+   {
+    "text_cs": "Neurol 0,25 mg dle potřeby při úzkosti.",
+    "date": null,
+    "source": {
+     "file": "10_pacient.pdf",
+     "page": 2,
+     "quote": "Při úzkosti, neklidu Neurol 0,25mg ltbl. dlp."
+    },
+    "certainty": "documented",
+    "negated": false
+   },
+   {
+    "text_cs": "Natrii chloridum 1,0 g 1-0-1; Calcichew 1000/800 IU 0-0-1 pro hypokalcémii.",
+    "date": null,
+    "source": {
+     "file": "10_pacient.pdf",
+     "page": 2,
+     "quote": "Cps. Natrii chloridi l,Og 1-0-1, pro hypokalcémii Calcichew 1000/SOOIU 0-0-1."
+    },
+    "certainty": "unclear_ocr",
+    "negated": false,
+    "note": "OCR: 'l,Og' = 1,0 g, 'SOOIU' pravděpodobně 800 IU."
+   },
+   {
+    "text_cs": "Při nevolnosti Degan 10 mg, případně Novetron 8 mg; při průjmu Imodium, případně Smecta.",
+    "date": null,
+    "source": {
+     "file": "10_pacient.pdf",
+     "page": 2,
+     "quote": "Při nevolnosti doma užívat Degan 10mg tbl. 1-1-1"
+    },
+    "certainty": "documented",
+    "negated": false
+   },
+   {
+    "text_cs": "Orcal 10 mg 1/2-0-0 (nasazeno na interně).",
+    "date": "10.2.2026",
+    "source": {
+     "file": "10_pacient.pdf",
+     "page": 5,
+     "quote": "nově k medikaci Orcal 10 mg tbl 1/2-0-0"
+    },
+    "certainty": "documented",
+    "negated": false
+   },
+   {
+    "text_cs": "Erdomed 300 mg 1-1-0 (doporučení plicní ambulance).",
+    "date": "22.5.2026",
+    "source": {
+     "file": "10_pacient.pdf",
+     "page": 5,
+     "quote": "Erdomed 300mg 1-1-0"
+    },
+    "certainty": "documented",
+    "negated": false
+   },
+   {
+    "text_cs": "ACE inhibitory kontraindikovány (riziko anafylaxe při everolimu).",
+    "date": null,
+    "source": {
+     "file": "10_pacient.pdf",
+     "page": 2,
+     "quote": "Kontraindikovány jsou ACEi pro zyýšené riziko anafylace."
+    },
+    "certainty": "documented",
+    "negated": false
+   },
+   {
+    "text_cs": "Spiriva: na str. 2 dávkování 1-0-1, na str. 4 a 5 '2-0-0'.",
+    "date": null,
+    "source": {
+     "file": "10_pacient.pdf",
+     "page": 4,
+     "quote": "Spiriva rest 2-0-0 + Ventolin dlp"
+    },
+    "certainty": "inferred",
+    "negated": false,
+    "note": "Pozorování asistenta: rozdílně zapsané dávkování téhož léku."
+   }
+  ]
+ },
+ "timeline": [
+  {
+   "date": "4/2022",
+   "date_sort": "2022-04",
+   "type": "diagnosis",
+   "label_cs": "Diagnóza RCC (C64), lokálně pokročilý",
+   "source": {
+    "file": "10_pacient.pdf",
+    "page": 1,
+    "quote": "RCC lok. pokročilý diag. 4/2022"
+   }
+  },
+  {
+   "date": "2.6.2022",
+   "date_sort": "2022-06-02",
+   "type": "surgery",
+   "label_cs": "Nefrektomie vpravo + retroperitoneální lymfadenektomie; histol. ccRCC G2, pT2a pN1 M0",
+   "source": {
+    "file": "10_pacient.pdf",
+    "page": 1,
+    "quote": "2.6.2022 - stp. transperitoneálni nefrektomii vpravo"
+   }
+  },
+  {
+   "date": "7.9.2022",
+   "date_sort": "2022-09-07",
+   "type": "imaging",
+   "label_cs": "CT: susp. MTS paraaortální uzliny vlevo 20 mm",
+   "source": {
+    "file": "10_pacient.pdf",
+    "page": 1,
+    "quote": "CT hrudník + břicho s KL 7.9.2022"
+   }
+  },
+  {
+   "date": "25.10.2022",
+   "date_sort": "2022-10-25",
+   "type": "surgery",
+   "label_cs": "Exstirpace paraaortální LU; histol. MTS ccRCC G2, R0",
+   "source": {
+    "file": "10_pacient.pdf",
+    "page": 1,
+    "quote": "st.p. exstirpaci paraaortálni LU vlevo 25.10.2022"
+   }
+  },
+  {
+   "date": "25.11.2022",
+   "date_sort": "2022-11-25",
+   "type": "imaging",
+   "label_cs": "CT: spíše lymfokéla než nová uzlina",
+   "source": {
+    "file": "10_pacient.pdf",
+    "page": 1,
+    "quote": "CT břicha, malé pánve nativně a kontrastně 25.11.2022"
+   }
+  },
+  {
+   "date": "6.3.2023",
+   "date_sort": "2023-03-06",
+   "type": "imaging",
+   "label_cs": "Baseline CT: mediastinální a hilová lymfadenopatie, hypervaskularizované MTS",
+   "source": {
+    "file": "10_pacient.pdf",
+    "page": 1,
+    "quote": "baseline CT s KL 6.3.2023"
+   }
+  },
+  {
+   "date": "27.3.2023",
+   "date_sort": "2023-03-27",
+   "type": "systemic",
+   "label_cs": "Nivolumab + ipilimumab, 1. cyklus",
+   "source": {
+    "file": "10_pacient.pdf",
+    "page": 1,
+    "quote": "27.3.2023 1. cyklus nivolumab"
+   }
+  },
+  {
+   "date": "17.4.2023",
+   "date_sort": "2023-04-17",
+   "type": "systemic",
+   "label_cs": "Nivolumab + ipilimumab, 2. cyklus",
+   "source": {
+    "file": "10_pacient.pdf",
+    "page": 1,
+    "quote": "17.4.2023 2. cyklus -//-"
+   }
+  },
+  {
+   "date": "28.4.2023",
+   "date_sort": "2023-04-28",
+   "type": "other",
+   "label_cs": "Imunitně podmíněná toxicita (GIT, plíce), prednison 1 mg/kg/den",
+   "source": {
+    "file": "10_pacient.pdf",
+    "page": 1,
+    "quote": "od 28.4.2023 kortikoterapie prednison lmg/kg/den"
+   }
+  },
+  {
+   "date": "6/2023",
+   "date_sort": "2023-06",
+   "type": "imaging",
+   "label_cs": "Restaging CT: iPR",
+   "source": {
+    "file": "10_pacient.pdf",
+    "page": 2,
+    "quote": "Dle restaging. CT 6/2023 dosaženo iPR"
+   }
+  },
+  {
+   "date": "27.6.2023",
+   "date_sort": "2023-06-27",
+   "type": "systemic",
+   "label_cs": "Start udržovacího nivolumabu",
+   "source": {
+    "file": "10_pacient.pdf",
+    "page": 1,
+    "quote": "udržovací léčba nivolumab od 27.6.2023"
+   }
+  },
+  {
+   "date": "26.7.2023",
+   "date_sort": "2023-07-26",
+   "type": "other",
+   "label_cs": "Kortikoterapie ukončena",
+   "source": {
+    "file": "10_pacient.pdf",
+    "page": 2,
+    "quote": "ukončen 26.7.2023"
+   }
+  },
+  {
+   "date": "21.8.2023",
+   "date_sort": "2023-08-21",
+   "type": "other",
+   "label_cs": "Implantace venózního portu",
+   "source": {
+    "file": "10_pacient.pdf",
+    "page": 1,
+    "quote": "Implantace venozn1ho portu 21.8.2023"
+   }
+  },
+  {
+   "date": "9/23",
+   "date_sort": "2023-09",
+   "type": "imaging",
+   "label_cs": "CT: nový spíše cystický útvar v mesogastriu, bez MTS",
+   "source": {
+    "file": "10_pacient.pdf",
+    "page": 2,
+    "quote": "Při CT vyš. 9/23 popisován nově útvar"
+   }
+  },
+  {
+   "date": "21.11.2023",
+   "date_sort": "2023-11-21",
+   "type": "histology",
+   "label_cs": "Excize ložiska brady: kožní metastáza ccRCC, ISUP 2",
+   "source": {
+    "file": "10_pacient.pdf",
+    "page": 1,
+    "quote": "21.11.2023 excize susp. iritovaného intraderm. névu brady vlevo"
+   }
+  },
+  {
+   "date": "11/2023 až 6/2025",
+   "date_sort": "2023-11",
+   "type": "imaging",
+   "label_cs": "Opakované restaging CT: trvá iPR",
+   "source": {
+    "file": "10_pacient.pdf",
+    "page": 2,
+    "quote": "11/2023 + 2/2024 + 6/2024 + 10/2024 + 2/2025 + 6/2025 - trvá iPR"
+   }
+  },
+  {
+   "date": "11.2.2025",
+   "date_sort": "2025-02-11",
+   "type": "histology",
+   "label_cs": "Excize léze glabely: sebaceom, bez nádorových změn",
+   "source": {
+    "file": "10_pacient.pdf",
+    "page": 1,
+    "quote": "kožní leze v oblasti glabely - stp. excizi 11.2.2025"
+   }
+  },
+  {
+   "date": "10.11.2025",
+   "date_sort": "2025-11-10",
+   "type": "imaging",
+   "label_cs": "CT: nová patologická LU v levém plicním hilu, iRECIST PD/iUPD",
+   "source": {
+    "file": "10_pacient.pdf",
+    "page": 4,
+    "quote": "CI plic+ břicha 10.11.2025"
+   }
+  },
+  {
+   "date": "29.12.2025",
+   "date_sort": "2025-12-29",
+   "type": "systemic",
+   "label_cs": "Konec udržovacího nivolumabu",
+   "source": {
+    "file": "10_pacient.pdf",
+    "page": 1,
+    "quote": "do 29.12.2025"
+   }
+  },
+  {
+   "date": "16.1.2026",
+   "date_sort": "2026-01-16",
+   "type": "imaging",
+   "label_cs": "CT: progrese v levém hilu a retroperitoneu, iRECIST iCPD",
+   "source": {
+    "file": "10_pacient.pdf",
+    "page": 4,
+    "quote": "CI hrudník, břicho 16.1.2026"
+   }
+  },
+  {
+   "date": "27.1.2026",
+   "date_sort": "2026-01-27",
+   "type": "systemic",
+   "label_cs": "2. linie: sunitinib 50 mg, režim 4/2",
+   "source": {
+    "file": "10_pacient.pdf",
+    "page": 1,
+    "quote": "2. pal, linie léčby sunitinib - start 27.1.2026"
+   }
+  },
+  {
+   "date": "10.2.2026",
+   "date_sort": "2026-02-10",
+   "type": "visit",
+   "label_cs": "Interní vyšetření pro dušnost; CT AG bez plicní embolie",
+   "source": {
+    "file": "10_pacient.pdf",
+    "page": 5,
+    "quote": "Interní wš, 10.2.2026 NNJ"
+   }
+  },
+  {
+   "date": "20.2.2026",
+   "date_sort": "2026-02-20",
+   "type": "imaging",
+   "label_cs": "ECHO: EF LK 60 %",
+   "source": {
+    "file": "10_pacient.pdf",
+    "page": 5,
+    "quote": "ECHO 20.2.2026 NNJ"
+   }
+  },
+  {
+   "date": "25.2.2026",
+   "date_sort": "2026-02-25",
+   "type": "systemic",
+   "label_cs": "Sunitinib redukován na 37,5 mg",
+   "source": {
+    "file": "10_pacient.pdf",
+    "page": 1,
+    "quote": "od 25.2.2026 redukce o 1 stupeň"
+   }
+  },
+  {
+   "date": "26.3.2026",
+   "date_sort": "2026-03-26",
+   "type": "systemic",
+   "label_cs": "Sunitinib redukován na 25 mg",
+   "source": {
+    "file": "10_pacient.pdf",
+    "page": 1,
+    "quote": "od 26.3.2026 redukce o 2 stupně"
+   }
+  },
+  {
+   "date": "28.4.2026",
+   "date_sort": "2026-04-28",
+   "type": "imaging",
+   "label_cs": "CT: iSD, regrese sledovaných lézí o cca 24 %",
+   "source": {
+    "file": "10_pacient.pdf",
+    "page": 5,
+    "quote": "CT hrudník, břicho 28.4.2026"
+   }
+  },
+  {
+   "date": "22.5.2026",
+   "date_sort": "2026-05-22",
+   "type": "visit",
+   "label_cs": "Plicní vyšetření: CHOPN II/B, lehká obstrukce",
+   "source": {
+    "file": "10_pacient.pdf",
+    "page": 5,
+    "quote": "Plicní wš, 22,5,2026 MUDr.Hofrová"
+   }
+  },
+  {
+   "date": "30.7.2026",
+   "date_sort": "2026-07-30",
+   "type": "imaging",
+   "label_cs": "UZ tepen DKK: stenóza PDK vpravo",
+   "source": {
+    "file": "10_pacient.pdf",
+    "page": 5,
+    "quote": "uz tepen DKK 30.7.2026"
+   }
+  },
+  {
+   "date": "26.8.2026",
+   "date_sort": "2026-08-26",
+   "type": "imaging",
+   "label_cs": "CT: progrese LU v levém hilu a retroperitoneu (PD)",
+   "source": {
+    "file": "10_pacient.pdf",
+    "page": 5,
+    "quote": "CT hrudník, břicho, malá pánev 26.8.2026"
+   }
+  },
+  {
+   "date": "3.9.2026",
+   "date_sort": "2026-09-03",
+   "type": "systemic",
+   "label_cs": "3. linie: everolimus",
+   "source": {
+    "file": "10_pacient.pdf",
+    "page": 1,
+    "quote": "3, pal, linie léčby everolimus - start 3.9.2026"
+   }
+  },
+  {
+   "date": "14.9.2026",
+   "date_sort": "2026-09-14",
+   "type": "imaging",
+   "label_cs": "MR mozku: solitární nodulus v pravé mozečkové hemisféře do 3 mm, susp. MTS",
+   "source": {
+    "file": "10_pacient.pdf",
+    "page": 1,
+    "quote": "MR yyš, mozku 14.9.2026 NNJ"
+   }
+  },
+  {
+   "date": "19.9.2026",
+   "date_sort": "2026-09-19",
+   "type": "systemic",
+   "label_cs": "Plánováno navýšení everolimu na 2-0-0 (10 mg)",
+   "source": {
+    "file": "10_pacient.pdf",
+    "page": 2,
+    "quote": "zyyšuji na 2-0-0 od 19.9.2026"
+   },
+   "status": "planned"
+  },
+  {
+   "date": "datum neuvedeno",
+   "date_sort": null,
+   "type": "mdt",
+   "label_cs": "Nález MR mozku zadán k projednání na NCH semináři",
+   "source": {
+    "file": "10_pacient.pdf",
+    "page": 3,
+    "quote": "Nález při MR vyš. mozku zadávám k projednáni na NCH semináři."
+   }
+  },
+  {
+   "date": "9.10.2026",
+   "date_sort": "2026-10-09",
+   "type": "visit",
+   "label_cs": "Plánovaná kontrola s odběrem KO a biochemie",
+   "source": {
+    "file": "10_pacient.pdf",
+    "page": 3,
+    "quote": "Kontrola zde 9.10.2026 s odběrem KO, biochemie."
+   }
+  }
+ ],
+ "labs": [
+  {
+   "code": "S_HSCRP",
+   "name_cs": "hsCRP",
+   "value": "9,5",
+   "unit": "mg/l",
+   "reference_range": "0 ... 5",
+   "out_of_range": "high",
+   "date": null,
+   "source": {
+    "file": "10_pacient.pdf",
+    "page": 3,
+    "quote": "S_HSCRP: 9,5 mg/1 [O ... 5]"
+   },
+   "certainty": "unclear_ocr",
+   "note": "OCR 'mg/1' = mg/l, 'O' = 0"
+  },
+  {
+   "code": "S_GLC",
+   "name_cs": "Glukóza",
+   "value": "6,7",
+   "unit": "mmol/l",
+   "reference_range": "3.9 ... 5.6",
+   "out_of_range": "high",
+   "date": null,
+   "source": {
+    "file": "10_pacient.pdf",
+    "page": 3,
+    "quote": "S_GLC: 6,7 mmol/l [3.9 ... 5.6]"
+   },
+   "certainty": "documented"
+  },
+  {
+   "code": "S_BIL",
+   "name_cs": "Bilirubin",
+   "value": "4,2",
+   "unit": "µmol/l",
+   "reference_range": "0 ... 21",
+   "out_of_range": null,
+   "date": null,
+   "source": {
+    "file": "10_pacient.pdf",
+    "page": 3,
+    "quote": "S_BIL: 4,2 µmol/l [O ... 21]"
+   },
+   "certainty": "unclear_ocr"
+  },
+  {
+   "code": "S_UREA",
+   "name_cs": "Urea",
+   "value": "7,0",
+   "unit": "mmol/l",
+   "reference_range": "2.9 ... 8.2",
+   "out_of_range": null,
+   "date": null,
+   "source": {
+    "file": "10_pacient.pdf",
+    "page": 3,
+    "quote": "S_UREA: 7,0 mmol/1 [2.9 ... 8.2]"
+   },
+   "certainty": "unclear_ocr"
+  },
+  {
+   "code": "S_CREAE",
+   "name_cs": "Kreatinin",
+   "value": "107",
+   "unit": "µmol/l",
+   "reference_range": "59 ... 104",
+   "out_of_range": "high",
+   "date": null,
+   "source": {
+    "file": "10_pacient.pdf",
+    "page": 3,
+    "quote": "S_CREAE: 107 µmol/1 [59 ... 104]"
+   },
+   "certainty": "unclear_ocr"
+  },
+  {
+   "code": "S_URAT",
+   "name_cs": "Kyselina močová",
+   "value": "301",
+   "unit": "µmol/l",
+   "reference_range": "202 ... 417",
+   "out_of_range": null,
+   "date": null,
+   "source": {
+    "file": "10_pacient.pdf",
+    "page": 3,
+    "quote": "S_URAT: 301 µmol/l [202 ... 417]"
+   },
+   "certainty": "documented"
+  },
+  {
+   "code": "S_ALT",
+   "name_cs": "ALT",
+   "value": "0,48",
+   "unit": "µkat/l",
+   "reference_range": "0.17 ... 0.84",
+   "out_of_range": null,
+   "date": null,
+   "source": {
+    "file": "10_pacient.pdf",
+    "page": 3,
+    "quote": "S_ALT: 0,48 µkat/l [0.17 ... 0.84]"
+   },
+   "certainty": "documented"
+  },
+  {
+   "code": "S_AST",
+   "name_cs": "AST",
+   "value": "0,58",
+   "unit": "µkat/l",
+   "reference_range": "0.17 ... 0.84",
+   "out_of_range": null,
+   "date": null,
+   "source": {
+    "file": "10_pacient.pdf",
+    "page": 3,
+    "quote": "S....AST: 0,58 µkat/1 [0.17 ... 0.84]"
+   },
+   "certainty": "unclear_ocr"
+  },
+  {
+   "code": "S_ALP",
+   "name_cs": "ALP",
+   "value": "1,30",
+   "unit": "µkat/l",
+   "reference_range": "0.67 ... 2.15",
+   "out_of_range": null,
+   "date": null,
+   "source": {
+    "file": "10_pacient.pdf",
+    "page": 3,
+    "quote": "S....ALP: 1,30 µkat/1 [0.67 ... 2.15]"
+   },
+   "certainty": "unclear_ocr"
+  },
+  {
+   "code": "S_GGT",
+   "name_cs": "GGT",
+   "value": "0,40",
+   "unit": "µkat/l",
+   "reference_range": "0.17 ... 1.19",
+   "out_of_range": null,
+   "date": null,
+   "source": {
+    "file": "10_pacient.pdf",
+    "page": 3,
+    "quote": "S_GGT: 0,40 µkat/1 [0.17 ... 1.19]"
+   },
+   "certainty": "unclear_ocr"
+  },
+  {
+   "code": "S_NA",
+   "name_cs": "Na",
+   "value": "140",
+   "unit": "mmol/l",
+   "reference_range": "136 ... 145",
+   "out_of_range": null,
+   "date": null,
+   "source": {
+    "file": "10_pacient.pdf",
+    "page": 3,
+    "quote": "S_NA: 140 mmol/l [136 ... 145]"
+   },
+   "certainty": "documented"
+  },
+  {
+   "code": "S_K",
+   "name_cs": "K",
+   "value": "4,97",
+   "unit": "mmol/l",
+   "reference_range": "3.5 ... 5.1",
+   "out_of_range": null,
+   "date": null,
+   "source": {
+    "file": "10_pacient.pdf",
+    "page": 3,
+    "quote": "S_K: 4,97 mmol/l [3.5 ... 5.1]"
+   },
+   "certainty": "documented"
+  },
+  {
+   "code": "S_CA",
+   "name_cs": "Ca",
+   "value": "2,24",
+   "unit": "mmol/l",
+   "reference_range": "2.2 ... 2.55",
+   "out_of_range": null,
+   "date": null,
+   "source": {
+    "file": "10_pacient.pdf",
+    "page": 3,
+    "quote": "S_CA: 2,24 mmol/l [2.2 ... 2.55]"
+   },
+   "certainty": "documented"
+  },
+  {
+   "code": "S_CL",
+   "name_cs": "Cl",
+   "value": "106",
+   "unit": "mmol/l",
+   "reference_range": "98 ... 107",
+   "out_of_range": null,
+   "date": null,
+   "source": {
+    "file": "10_pacient.pdf",
+    "page": 3,
+    "quote": "S_CL: 106 mmol/1 [98 ... 107]"
+   },
+   "certainty": "unclear_ocr"
+  },
+  {
+   "code": "S_OSMOLC",
+   "name_cs": "Osmolalita (vypočtená)",
+   "value": "294",
+   "unit": "mmol/kg",
+   "reference_range": "275 ... 295",
+   "out_of_range": null,
+   "date": null,
+   "source": {
+    "file": "10_pacient.pdf",
+    "page": 3,
+    "quote": "S_OSMOLC: 294 mmol/kg [275 ... 295]"
+   },
+   "certainty": "documented"
+  },
+  {
+   "code": "PT(KIDN)_EGFRCKDE",
+   "name_cs": "eGFR CKD-EPI",
+   "value": "1,01",
+   "unit": "ml/s/1,73 m2",
+   "reference_range": "1.5 ... 99",
+   "out_of_range": "low",
+   "date": null,
+   "source": {
+    "file": "10_pacient.pdf",
+    "page": 3,
+    "quote": "PT(KIDN)_EGFRCKDE: 1,01 ml/s/1,73 m2 [1.5 ... 99]"
+   },
+   "certainty": "documented"
+  },
+  {
+   "code": "B_LKC",
+   "name_cs": "Leukocyty",
+   "value": "6,58",
+   "unit": "10^9/l",
+   "reference_range": "4 ... 10",
+   "out_of_range": null,
+   "date": null,
+   "source": {
+    "file": "10_pacient.pdf",
+    "page": 3,
+    "quote": "B_LKC: 6,58 10A9/l [4 ... 10]"
+   },
+   "certainty": "unclear_ocr",
+   "note": "OCR '10A9' = 10^9"
+  },
+  {
+   "code": "B_ERC",
+   "name_cs": "Erytrocyty",
+   "value": "3,53",
+   "unit": "10^12/l",
+   "reference_range": "4 ... 5.8",
+   "out_of_range": "low",
+   "date": null,
+   "source": {
+    "file": "10_pacient.pdf",
+    "page": 3,
+    "quote": "B_ERC: 3,53 10Al2/l [4 ... 5.8]"
+   },
+   "certainty": "unclear_ocr",
+   "note": "OCR '10Al2' = 10^12"
+  },
+  {
+   "code": "B_HB",
+   "name_cs": "Hemoglobin",
+   "value": "123",
+   "unit": "g/l",
+   "reference_range": "135 ... 175",
+   "out_of_range": "low",
+   "date": null,
+   "source": {
+    "file": "10_pacient.pdf",
+    "page": 3,
+    "quote": "B_HB: 123 g/1 [135 ... 175]"
+   },
+   "certainty": "unclear_ocr"
+  },
+  {
+   "code": "B_HCT",
+   "name_cs": "Hematokrit",
+   "value": "0,363",
+   "unit": "1",
+   "reference_range": "0.4 ... 0.5",
+   "out_of_range": "low",
+   "date": null,
+   "source": {
+    "file": "10_pacient.pdf",
+    "page": 3,
+    "quote": "B_HCT: 0,363 1 [0.4 ... 0.5]"
+   },
+   "certainty": "documented"
+  },
+  {
+   "code": "ERC(B)_MCV",
+   "name_cs": "MCV",
+   "value": "102,8",
+   "unit": "fl",
+   "reference_range": "82 ... 98",
+   "out_of_range": "high",
+   "date": null,
+   "source": {
+    "file": "10_pacient.pdf",
+    "page": 3,
+    "quote": "ERC(B)_MCV: 102,8 fl [82 ... 98]"
+   },
+   "certainty": "documented"
+  },
+  {
+   "code": "ERC(B)_MCH",
+   "name_cs": "MCH",
+   "value": "34,8",
+   "unit": "pg",
+   "reference_range": "28 ... 34",
+   "out_of_range": "high",
+   "date": null,
+   "source": {
+    "file": "10_pacient.pdf",
+    "page": 3,
+    "quote": "ERC(B)_MCH: 34,8 pg [28 ... 34]"
+   },
+   "certainty": "documented"
+  },
+  {
+   "code": "B_PLT",
+   "name_cs": "Trombocyty",
+   "value": "156",
+   "unit": "10^9/l",
+   "reference_range": "150 ... 400",
+   "out_of_range": null,
+   "date": null,
+   "source": {
+    "file": "10_pacient.pdf",
+    "page": 3,
+    "quote": "B_PLT: 156 10A9/l [150 ... 400]"
+   },
+   "certainty": "unclear_ocr"
+  },
+  {
+   "code": "B_NEU",
+   "name_cs": "Neutrofily abs.",
+   "value": "4,130",
+   "unit": "10^9/l",
+   "reference_range": "2 ... 7",
+   "out_of_range": null,
+   "date": null,
+   "source": {
+    "file": "10_pacient.pdf",
+    "page": 3,
+    "quote": "B_NEU: 4,130 10A9/l [2 ... 7]"
+   },
+   "certainty": "unclear_ocr"
+  },
+  {
+   "code": "B_LYMFO",
+   "name_cs": "Lymfocyty abs.",
+   "value": "1,610",
+   "unit": "10^9/l",
+   "reference_range": "0.8 ... 4",
+   "out_of_range": null,
+   "date": null,
+   "source": {
+    "file": "10_pacient.pdf",
+    "page": 3,
+    "quote": "B_LYMFO: 1,610 10A9/l [0.8 ..."
+   },
+   "certainty": "unclear_ocr"
+  },
+  {
+   "code": "B_NLR",
+   "name_cs": "NLR",
+   "value": "2,6",
+   "unit": "1",
+   "reference_range": "0 ... 4",
+   "out_of_range": null,
+   "date": null,
+   "source": {
+    "file": "10_pacient.pdf",
+    "page": 3,
+    "quote": "B_NLR: 2,6 1 [O ... 4]"
+   },
+   "certainty": "unclear_ocr"
+  }
+ ],
+ "labs_note_cs": "Jediná sada hodnot na str. 3; datum odběru neuvedeno v dostupné dokumentaci, vývoj v čase proto nelze zobrazit. Hodnoty a jednotky jsou opsány z dokumentu; šipky (mimo rozmezí) doplnil asistent porovnáním s uvedeným rozmezím.",
+ "flags": [
+  {
+   "kind": "missing",
+   "text_cs": "Výslovná otázka pro MDT neuvedena v dostupné dokumentaci. Účel dle dokumentu: nález MR mozku zadán k projednání na NCH semináři. Konzultační formulář FNO v podkladech nenalezen.",
+   "based_on": [
+    {
+     "file": "10_pacient.pdf",
+     "page": 3,
+     "quote": "Nález při MR vyš. mozku zadávám k projednáni na NCH semináři."
+    }
+   ],
+   "note": "Pozorování asistenta. Formulář FNO má pole 'Otázka na NOCO'.",
+   "relevant": true
+  },
+  {
+   "kind": "missing",
+   "text_cs": "MR mozku 14.9.2026 je v podkladech jen jako závěr (z NNJ); plný popis a snímky nenalezeny. Předchozí MR mozku ke srovnání v podkladech nenalezeno.",
+   "based_on": [
+    {
+     "file": "10_pacient.pdf",
+     "page": 1,
+     "quote": "MR yyš, mozku 14.9.2026 NNJ"
+    }
+   ],
+   "note": "Pozorování asistenta.",
+   "relevant": true
+  },
+  {
+   "kind": "missing",
+   "text_cs": "Ložisko v mozečku (do 3 mm) je vedeno jako suspekce na MTS, histologické ani jiné ověření v podkladech není.",
+   "based_on": [
+    {
+     "file": "10_pacient.pdf",
+     "page": 1,
+     "quote": "suspekce na solitérní MTS"
+    }
+   ],
+   "note": "Suspekce, ne diagnóza.",
+   "relevant": true
+  },
+  {
+   "kind": "missing",
+   "text_cs": "Datum ambulantní zprávy (kontroly) není v OCR textu čitelné; laboratorní hodnoty nemají datum odběru.",
+   "based_on": [
+    {
+     "file": "10_pacient.pdf",
+     "page": 3,
+     "quote": "S_HSCRP: 9,5 mg/1 [O ... 5]"
+    }
+   ],
+   "note": "Záhlaví str. 4 je v OCR nečitelné. Datum lze jen odhadnout z kontextu (po 14.9.2026)."
+  },
+  {
+   "kind": "unclear",
+   "text_cs": "Text CT 26.8.2026 na str. 5 končí znaky „J-“; není jisté, zda je závěr úplný.",
+   "based_on": [
+    {
+     "file": "10_pacient.pdf",
+     "page": 5,
+     "quote": "progrse LU v levém pl. hilu a v retroperitonu paraaortálně vlevo. J-"
+    }
+   ],
+   "note": "Pozorování asistenta."
+  },
+  {
+   "kind": "contradiction",
+   "text_cs": "Datum restagingu s mediastinální a hilovou lymfadenopatií: str. 2 uvádí 3/2022, str. 1 uvádí baseline CT 6.3.2023.",
+   "based_on": [
+    {
+     "file": "10_pacient.pdf",
+     "page": 2,
+     "quote": "Další restaging. 3/2022, kde patol. mediastinální a plicní hilová lymfadenopatie"
+    },
+    {
+     "file": "10_pacient.pdf",
+     "page": 1,
+     "quote": "baseline CT s KL 6.3.2023 patol. mediastinálni a pl. hilová lymfadenopatie"
+    },
+    {
+     "file": "10_pacient.pdf",
+     "page": 4,
+     "quote": "base line CT z 03/2023"
+    }
+   ],
+   "note": "Pozorování asistenta. Str. 4 a 5 uvádějí baseline 3/2023, údaj 3/2022 je pravděpodobně překlep. Ověřit."
+  },
+  {
+   "kind": "unclear",
+   "text_cs": "Hodnocení CT 11/2025: jednou 'PD (progressive disease)', jinde 'iUPD' (nepotvrzená progrese dle iRECIST).",
+   "based_on": [
+    {
+     "file": "10_pacient.pdf",
+     "page": 1,
+     "quote": "11/2025 dle iRECIST iUPD - nově patol. LU v levém plic hilu"
+    },
+    {
+     "file": "10_pacient.pdf",
+     "page": 4,
+     "quote": "dle iRECIST tedy PD (progressive disease)."
+    }
+   ],
+   "note": "Pozorování asistenta. Nemusí jít o rozpor (první progrese dle iRECIST je iUPD), potvrzena 1/2026 jako iCPD."
+  },
+  {
+   "kind": "unclear",
+   "text_cs": "Nivolumab + ipilimumab indikován na 4 cykly, dokumentovány 2 cykly; výslovné ukončení kombinace v textu chybí.",
+   "based_on": [
+    {
+     "file": "10_pacient.pdf",
+     "page": 2,
+     "quote": "Je indikováno podání nivolumab 3mg/kg v kombinaci s ipilimumabem lmg/kg q3w 4 cykly"
+    },
+    {
+     "file": "10_pacient.pdf",
+     "page": 1,
+     "quote": "17.4.2023 2. cyklus -//-"
+    }
+   ],
+   "note": "Pozorování asistenta; z textu plyne přechod na udržovací nivolumab od 27.6.2023."
+  },
+  {
+   "kind": "unclear",
+   "text_cs": "Navýšení everolimu na 10 mg: str. 2 a 3 uvádí navýšení (od 19.9.2026), str. 3 zároveň podmíněně 'při dobré toleranci navýšíme'.",
+   "based_on": [
+    {
+     "file": "10_pacient.pdf",
+     "page": 2,
+     "quote": "Everolimus sandoz 5mg 1-0-0 zyyšuji na 2-0-0 od 19.9.2026"
+    },
+    {
+     "file": "10_pacient.pdf",
+     "page": 3,
+     "quote": "Při dobré toleranci navýšime everolimus na 10mg denně."
+    }
+   ],
+   "note": "Pozorování asistenta; možná text ze dvou různých kontrol. Aktuální dávku ověřit."
+  },
+  {
+   "kind": "unclear",
+   "text_cs": "Drobná osteoplastická ložiska do 7 mm v přechodu Th/L páteře: není jasné, ke kterému vyšetření patří, a dále se nezmiňují.",
+   "based_on": [
+    {
+     "file": "10_pacient.pdf",
+     "page": 5,
+     "quote": "Drobné osteoplatické ložiska do průměru 7mm v přechodu th/L páteře."
+    }
+   ],
+   "note": "Pozorování asistenta; OCR sazba stránky je promíchaná."
+  },
+  {
+   "kind": "change",
+   "text_cs": "Progrese na sunitinibu (CT 26.8.2026), od 3.9.2026 everolimus; 14.9.2026 nově suspekce na solitární MTS v mozečku.",
+   "based_on": [
+    {
+     "file": "10_pacient.pdf",
+     "page": 5,
+     "quote": "CT hrudník, břicho, malá pánev 26.8.2026"
+    },
+    {
+     "file": "10_pacient.pdf",
+     "page": 1,
+     "quote": "3, pal, linie léčby everolimus - start 3.9.2026"
+    },
+    {
+     "file": "10_pacient.pdf",
+     "page": 1,
+     "quote": "MR yyš, mozku 14.9.2026 NNJ"
+    }
+   ],
+   "note": "Pozorování asistenta, shrnuje dokumentované události.",
+   "relevant": true
+  },
+  {
+   "kind": "unclear",
+   "text_cs": "Laboratoř mimo uvedené rozmezí: kreatinin 107 µmol/l, eGFR 1,01 ml/s/1,73 m2, Hb 123 g/l (pod), MCV 102,8 fl (nad) a další. Datum odběru neuvedeno v dostupné dokumentaci.",
+   "based_on": [
+    {
+     "file": "10_pacient.pdf",
+     "page": 3,
+     "quote": "S_CREAE: 107 µmol/1 [59 ... 104]"
+    },
+    {
+     "file": "10_pacient.pdf",
+     "page": 3,
+     "quote": "B_HB: 123 g/1 [135 ... 175]"
+    },
+    {
+     "file": "10_pacient.pdf",
+     "page": 3,
+     "quote": "lab., vyš. bez zásadni patologie"
+    }
+   ],
+   "note": "Pozorování asistenta: hodnoty mimo referenční rozmezí, bez klinického hodnocení. Bez dřívějších hodnot nelze určit trend."
+  }
+ ],
+ "ocr_quality_note": "Stránky 1, 2, 3 a 5 mají dobrou OCR vrstvu s běžnými chybami (l/1, O/0, 'yyš', 'ver;f;kována'). Záhlaví str. 4 je nečitelné ('Ambulantnf vyletfenf kontrolnf'), tabulky iRECIST na str. 4 a 5 jsou rozsypané. Citace jsou s normalizovanými mezerami (zalomení řádků nahrazena mezerou).",
+ "full_text_by_page": [
+  {
+   "page": 1,
+   "text": "Poláček Daniel\nDiagnózy: \nZávěr: \nK\nAmbulantní vyšetření kontrolní \nMR yyš, mozku 14.9.2026 NNJ \nZávěr: \nSolitérní nodulus postkontrastně se sytící v pravé mozečkové hemisféře(do 3mm) -\nsuspekce na solitérní MTS, postkontrastně bez jiných, sytících se lézí \nintrakraniálně. \nGliózy supratentoriálně Fazekas gr. III. \nC64 Zhoubný novotvar ledviny mimo pánvičku \nRCC lok. pokročilý diag. 4/2022 \n- 2.6.2022 - stp. transperitoneálni nefrektomii vpravo s retroperitoneálni\nlymfadenektomii\nHistol. světlobuněčný renální adenokarcinom G2, pT2a pN1(3+/5) MO \n- HBsAg pozit. pac.\n- CT hrudník + břicho s KL 7.9.2022 - susp. MTS paraaortálni uzlina vlevo 20mm -\nst.p. exstirpaci paraaortálni LU vlevo 25.10.2022\nHistol. MTS světlobuněčného renálního karcinomu G2, R0\n- CT břicha, malé pánve nativně a kontrastně 25.11.2022 susp. lymfokéla po\nlymfadenektomii spíše ohraničená kolekce tekutiny do 36 mm vlevo paraaortálně\nv úrovni L2-3 než nová zvětšená uzlina.\n- baseline CT s KL 6.3.2023 patol. mediastinálni a pl. hilová lymfadenopatie - jsou\nhypervaskularizované mts charakteru\nDle IMDC střední prognóza - 1 faktor - interval méně než 1 rok od diagnózy do \nzapočetí syst. léčby. \n- 27.3.2023 1. cyklus nivolumab 3mg/kg + ipilimumab lmg/kg q3w\n- 17.4.2023 2. cyklus -//-\n= po 2. cyklu rozvoj GIT toxicity 1.st., plicní toxicita= IPP 1.až 2. stupně, od\n28.4.2023 kortikoterapie prednison lmg/kg/den s rychlou a výraznou regresi plicního\nnálezu\nRestaging, cr 6/2023 + 1112023 + 212024 + 6/2024 + 1012024 + 212025 + 6/2025 iPR \n11/2025 dle iRECIST PO (progressive disease) - nově patol. LU v levém plic hilu \na udržovací léčba nivolumab od 27.6.2023 do 29.12.2025 \n- 11/2025 dle iRECIST iUPD - nově patol. LU v levém plic hilu\n- 1/2026 iCPD - v levém hilu je velikostní progrese uzlin od baseline i ve srovnáni\ns minulým CT, další progrese jedné LU retroperitonea (na baseline neměla char. T­\nléze)\n- 2. pal, linie léčby sunitinib - start 27.1.2026\n- při dávce 50mg denně progrese renální insuf., minerálová dysbalance a\ntrombocytopenie G2-3\n- od 25.2.2026 redukce o 1 stupeň - dávka 37,5mg denně - hepatopatie G2\n- od 26.3.2026 redukce o 2 stupně - dávka 25mg denně\n- restaging. CT 4/2026 - SD\n- restaging. cr 8/2026 - PP\n- 3, pal, linie léčby everolimus - start 3.9.2026\nImplantace venozn1ho portu 21.8.2023\nTyp: Medcomp power-port, vysokoprůtokový (5ml/s) 6,6fr., kompatibilní s CT a MR. \n- 21.11.2023 excize susp. iritovaného intraderm. névu brady vlevo\nHistol. kožní metastáza světlebuněčného (konvenčního) karcinomu renálního origa v\noblasti brady vlevo, grade 2 dle ISUP, odstraněná kompletně\n- kožní leze v oblasti glabely - stp. excizi 11.2.2025,\nhistol. sebaceom, kompletně odstraněn, kůže se solární elastózou, bez nádorových\nzměn.\n3 "
+  },
+  {
+   "page": 2,
+   "text": "Ošetření, léčba: \nDoporučení: \nAmbulantní vyšetření kontrolní \nOA: HN, CHOPN u fumátora (anamn. léčba přerušena pacientem), HLP na dietě, \nhyperglykémie nalačno anam., korové cysty ledvin, cysta S2 jater \nEverolimus sandoz 5mg 1-0-0 zyyšuji na 2-0-0 od 19.9.2026, \npokud by tuto dávku netoleroval. vrátí se k pUvodnimu užívání 1-0-0 \nTablety uživat jednou denně, vždy ve stejnou denni dobu, důsledně bud vždy s \njidlem, nebo vždy bez jídla. Tablety se polykají celé a zapijeji se sklenicí vody. \nTablety se nesmí kousat nebo drtit. \nNesmi se současně jist grepy, pomelo, grepové džusy, preparáty s třezalkou. \nNené vhodné současné užívání antimykotik a antivirotik p.o. nebo i.v. (lokálni \naplikce nevadí), verapamilu, erytromycynu, klaritromycinu. \nKontraindikovány jsou ACEi pro zyýšené riziko anafylace. \nPři nevolnosti doma užívat Degan 10mg tbl. 1-1-1, při nedostatečném efektu nebo \nzvracení přidá Novetron 8mg tbl. 1-0-1 á 12hod. \nPři průjmu užívat Imodium 2mg cps., vstupně 2 cps., pak 1 cps. při každé další \nřídké stolici, maxim. 8 cps. denně. Při nedostatečném efektu přidá Smecta 1-1-1. \nChron. medikace: Kapidin 20mg 1-0-0, Spiriva inhal. 1-0-1 + Ventolin N inhal. dlp. \nPři úzkosti, neklidu Neurol 0,25mg ltbl. dlp. \nCps. Natrii chloridi l,Og 1-0-1, pro hypokalcémii Calcichew 1000/SOOIU 0-0-1. \nPro mírnou hyperkalémii ve stravě omezit banány, meruňky, broskve, sušené a \nkompotované ovoce, džusy, čokoládu, kakao, černý čaj - poučen. \nPacient po nefrektomii vpravo a retroperitoneální lymfadenektomii pro tumor 6/2022, \nhi stol. světlobuněčný renální adenoca G2, vstupně bez zn. generalizace. Při \nrestagingu 9/2022 zjištěna susp. paraaortální uzlina vlevo, stp. extirpaci 10/2022 \n- hi stol. mts světlobuněčného renálního ca. Další restaging. 3/2022, kde patol.\nmediastinální a plicní hilová lymfadenopatie charakteru hypervaskularizovaných mts.\nDle IMDC střední prognóza - 1 faktor - interval méně než 1 rok od diagnózy do\nzapočetí syst. léčby.\nJe indikováno podání nivolumab 3mg/kg v kombinaci s ipilimumabem lmg/kg q3w 4 cykly\n- schváleno KOC komisi.\nPo podání 2 cyklů léčby rozvoj GIT toxicity l.st., plicní toxicita= IPP 1.až 2.\nstupně, od 28.4.2023 kortikoterapie prednison lmg/kg/den s rychlou regresí plicního\nnálezu. Proto od 12.5.2023 zahájeno postupné snižování dávky kortikoidu, ukončen\n26.7.2023.\nDle restaging. CT 6/2023 dosaženo iPR, proto pokračujeme v udržovací léčbě\nnivolumabem 240mg q2w.\nPři CT vyš. 9/23 popisován nově útvar do 21x27 mm vlevo ventrálně v mesogastriu,\netiologie je spíše cystická, jinak bez lymfadenopatie, bez mts, restaging. CT vyš.\n11/2023 + 2/2024 + 6/2024 + 10/2024 + 2/2025 + 6/2025 - trvá iPR - pokračujeme v\nzavedené léčbě.\n11/2023 provedena excize susp. ložiska na bradě vlevo, histol. kožní metastáza \nsvětlebuněčného (konvenčního) karcinomu renálního origa, grade 2 - dle pacienta \npozoruje cca od 6/23, dle CT vyš. 11/23 iPR. \nOpakovaným CT vyš. 11/2025 a 1/2026 ver;f;kována progrese onkolog;ckého \nonemocněni. \nDo 2. linie léčby indikován sunitinib 50mg denně• schváleno KOC komisi. \nLéčbu zahájil od 27.1.2026 v režimu 4/2. \nDle restaging. CT 4/2026 SD - velikostni regrese sledovaných lézi je o cca 24 %. \nDle CT 8/2026 ale PD - velikostni progrese LU v levém pl. hilu a v retroperitonu \nparaaortálně vlevo. Proto léčbu sunitinibem ukončuji. \nDo 3. pal. linie léčby indikován everolimus - schváleno KOC komisi. Cabozantinib na"
+  },
+  {
+   "page": 3,
+   "text": "Poznámka: \nK\nAmbulantní vyšetření kontrolní \npar. 16 ponecháme do 4. linie. \nTolerance léčby vývorná, lab., vyš. bez zásadni patologie, proto navyšuji \nEverolimus na 10mg denně. \nNález při MR vyš. mozku zadávám k projednáni na NCH semináři. \nKontrola zde 9.10.2026 s odběrem KO, biochemie. \nProvádět domáci měřeni TK. Při dobré toleranci navýšime everolimus na 10mg denně. \nPři obtížích kontrola zde ihned, mimo ordinační hodiny na interni amb. NNJ. \nKontrola v plicní amb. \nKontrolní CT H+B+MP bude  v 9.20hod. nalačno v NNJ. \nKontrolni kolonoskopie bude r.2028. \nPacient/zákonný zástupce poučen o povaze onemocnění a léčbě, rozumí a souhlasí. \nPři odchodu je pacient ve stabilizovaném ·stavu. \nTuto zprávu a Vaši další dokumentaci ze zar,zení skupiny AGEL naleznete ve svém \nprofilu MůjAGEL na stráce muj.agel.cz - nemáte ještě profil? Požádejte o přístup \nsvého lékaře či sestru! \nStav materiálu: \nS_IDXLIPK: NEGAT -, S_IDXHEMK: NEGAT - S_IDXIKTK: NEGAT - UNSF_OTHER: sérum \nSérum, plazma - zánět: \nS_HSCRP: 9,5 mg/1 [O ... 5] \nSérum, plazma - sacharidy: \nS_GLC: 6,7 mmol/l [3.9 ... 5.6] \nSérum, plazma - další vyš.: \nS_BIL: 4,2 µmol/l [O ... 21] \nSérum, plazma - dusik.metab.: \nS_UREA: 7,0 mmol/1 [2.9 ... 8.2], S_CREAE: 107 µmol/1 [59 ... 104], S_URAT: 301 \nµmol/l [202 ... 417] \nSérum, plazma - enzymy: \nS_ALT: 0,48 µkat/l [0.17 ... 0.84], S....AST: 0,58 µkat/1 [0.17 ... 0.84], S....ALP: 1,30 \nµkat/1 [0.67 ... 2.15], S_GGT: 0,40 µkat/1 [0.17 ... 1.19] \nKrev - minerály, kovy: \nS_NA: 140 mmol/l [136 ... 145], S_K: 4,97 mmol/l [3.5 ... 5.1], S_CA: 2,24 mmol/l \n[2.2 ... 2.55], S_CL: 106 mmol/1 [98 ... 107], S_OSMOLC: 294 mmol/kg [275 ... 295] \nRenálni funkce: \nPT(KIDN)_EGFRCKDE: 1,01 ml/s/1,73 m2 [1.5 ... 99] \nKrevní obraz: \nB_LKC: 6,58 10A9/l [4 ... 10], B_ERC: 3,53 10Al2/l [4 ... 5.8], B_HB: 123 g/1 [135 \n... 175], B_HCT: 0,363 1 [0.4 ... 0.5], ERC(B)_MCV: 102,8 fl [82 ... 98], \nERC(B)_MCH: 34,8 pg [28 ... 34], ERC(B)_MCHC: 339 g/l [320 ... 360], B_RDW: 13,5 % \n[10 ... 15.2], B_PLT: 156 10A9/l [150 ... 400], B_PCDW: 0,0016 1 [0.0012 ... \n0.0035], PLT(B)_MPV: 10,3 fl [7.8 ... 12.8], B_PDWSD: 10,7 fl [9 ... 17], \nLKC(B)_NEU: 0,627 1 [0.45 ... 0.7], LKC(B)_LYMFO: 0,245 1 [0.2 ... 0.45], \nLKC(B)_MONO: 0,114 1 [0.02 ... 0.12], LKC(B)_EOS: 0,012 1 [O ... 0.05], LKC(B)_BAS: \n0,002 1 [O ... 0.02], B_NEU: 4,130 10A9/l [2 ... 7], B_LYMFO: 1,610 10A9/l [0.8 ... \n4], B_MONO: 0,750 10A9/l [0.08 ... 1.2], B_EOS: 0,080 10A9/l [O ... 0.5], B_BAS: \n0,010 10A9/l [O ... 0.2], B_NLR: 2,6 1 [O ... 4] \nPrimárni vzorek (druh): \nKREV: dodáno "
+  },
+  {
+   "page": 4,
+   "text": ".,.•\"\"\"'•,,, \n) \ufffdS'K. § \n\"'',,,. .,,,•;; Ambulantnf vyletfenf kontrolnf \n \nSubj. nově předepsaný everolimus toleruje výbormně, nemá s ním žádný problém. \nnechutenství není, nevolnoist také ne, nezvrací, průjem neguje. \nNa cílený dotaz neguje závratě či poruchy rovnováhy, jenom jsou někdy během dne \nmžitky před očima. \nnyní si TK neměřil, protože byl na dovolené. \nObjektivní ná/ez:Tlak S/D [mmHg]: 155/70, Pulz [1/mín]: 68, Dech [1/min]: 14, Hmotnost [kg]: 87, \nVýška [cm]: 183, BMI: 25.98, Plocha těla [m2]: 2.09 \nStatuspraesens:ECOG PS: 1, bez klin. známek mozkových mts \nProvedená \nvyšetření: \nlucidní, orientace správná, spolupracuje, eupnoe, bez cyanózy, bez ikteru, normální \nhydratace \nHLAVA: poklep nebolestivý, zornice izokorické, správně reagují na osvit, hrdlo \nzarudlé, hnisavý povlak, tonzily nezvětšené, jazyk vlhký, bez povlaku, plazí \nstředem \nKRK: souměrný, šíje bez opozice, štítnice nezvětšená, uzliny nehmatné, pulzace \nkarotid symetrická, bez šelestu, žíly bez kongesce. \nHRUDNÍK: souměrný, palpačně nebolestivý, prsy bez patologického nálezu, axily, \nnadklíčky volné, bez LU, páteř poklepově nebolestivá. \nPLÍCE: poklep plný, jasný, dýchání alveolární, bez vedlejších fenomenu. \nSRDCE: akce pravidelná, ozvy ohraničené, bez šelestu. \nBŘICHO: v niveau, měkké, prohmatné, palpačně nebolestivé, bez patologické \nrezistence, peristaltika přiměřená, játra v oblouku., slezina nenaráží, tapott \nbilaterálně negativní, \nZevní genitál: nevyšetřen \nVYŠETŘENÍ PER RECTUM: nevyšetřen \nKONČETINY: hybnost v normě, klouby bez deformit. \nDKK: třísla bez hmatných zvětšených LU, bez otoků, varixů a flebitid, pulzace \nhmatné symetricky do periferie. \nST. LOC . . : j izvy pod pravým i levým obloukem žeberním klidné. \nPlicni yyš,\nSpirometrie - lehká obsturce \nCHOPN II/B fumat, inhal teprie Spiriva rest 2-0-0 + Ventolin dlp, kontrola za 1/2 \nroku \nCI plic+ břicha 10.11.2025 \nZávěr: \nve srovnání s base line CT z 03/2023 trvá mírná parc. regrese velikosti \nretroperitoneální lymfadenopatie vlevo ( ve srovnání s min. CT z 06/2025 je ale \nmírná progrese velí kosti), navíc nově patol. LU v levém plicním hílu - dle iRECIST \ntedy PD (progressive disease). \nCI hrudník, břicho 16.1.2026 \nZávěr: \nVe srovnání s baselíne CT došlo k regresí medíastinální a pravostranné hilové \nlymfadenopatie, v levém hilu je velikostní progrese uzlin od baseline i ve srovnání \ns minulým CT. Další progrese jedné LU retroperítonea (na baseline neměla char. T­\nléze), jiná LU zas v regresi. Dle iRECIST iCPD. \nDle iRECIST \nT-léze\nLU pravého pl. hilu\nLU retroperitonea\nložisko před L ledvinou\nNové léze\nLU levého pl. hilu\nLU retroperitonea\nNon-T léze\ndnes \n6 \n11 \no \n15 (mi nule \n36 (minule \nbaseline 3/2023 \n22 \n33 \n20 \n10) 8\n34) 9"
+  },
+  {
+   "page": 5,
+   "text": " \nK\nAmbulantní vyšetření kontrolní \n  \nLU mediastina a hilů 10-15 mm ano v L hilu \ncr Ag plicnice 10.2.2026 \nZávěr: Bez plicní embolie, jen drobná cysta v HL vpravo. \nano \nDrobné osteoplatické ložiska do průměru 7mm v přechodu th/L páteře. \nInterní wš, 10.2.2026 NNJ \nZávěr: Dušnost k vyloučení kard. etiologie \nDoporučení: \n \n- plicní embolie vyloučena, EKG bez ischemických změn, hstroponin stabilní bez\ndynamiky- možno na vrub dekorigované HT\n- u nás kontrolní TK 174/92, dle pacienta doma prav. TK kolem 150\n- nově k medikaci Orcal 10 mg tbl 1/2-0-0, doma prav. měřit tenze -poučen,\nzapisovat a hodnoty donést ke shlédnutí k PL\nECHO 20.2.2026 NNJ \nZavěr: \nNormální velikosti srdečních oddílů. Normální systol. fce LK s EF 60%, bez hrubších \nregionálních poruch kinetiky při suboptm. přehlednosti, bez hypertrofie. Dobrá fce \nPK. \nAo chl: okrajově skleortická, 3-cp, dobře separuje, bez reg, PG 11 mmHg \nMi chl: jemná, dobře pohyblivé cípy, stop. reg \nTr chl: jemná, bez zřetelné reg \nPU chl: jemná, typ křivky II v RVOT, stop. reg \nperikard bpn, asc. ao bez dilatace \nRES: dobrá systolická funkce obou komor, bez hemodynamicky významné chlop. vady \nCT hrudník, břicho 28.4.2026 \nDle iRECIST \nT-7éze\nLU pravého pl. hilu \nložisko před L ledvinou \nLU levého pl. hilu \nLU retroperitonea \nNon-T léze \nLU mediastina a hilů 10-15 mm \nbaseline 1/26 \n6 \no \n15 \n36 \nano v L hilu \ndnes \n6 \no \n12 \n30 \nano \nZávěr: \nVe srovnáni s baseline CT 1/2026 došlo k mirné regresi velikosti LU v levém plicnim \nhilu, jinak v mediastinu a pravém hilu další LU stacionární. \nParc. regrese velikosti patologické LU v retroperitoneu. \nNová ložiska nep\ufffdibyla. \nVelikostní regrese sledovaných lézi je o cca 24 %. \nDle iRECIST • iSD. \nPlicní wš, 22,5,2026 MUDr.Hofrová \nSpirometrie - lehká obstrukce \nZ: CHOPN II/B fumat., susp. interstic. post1zené, stp. kortikoterapii \nDop. inhal Spiriva resp. 2-0-0 + Ventolin dlp., Erdomed 300mg 1-1-0, kontrola \n9/2026 + spirometrie \nuz tepen DKK 30.7.2026 \nRE: Na tepnách DKK středně silné sklerotické (ne angiitické) změny. \nDopplerometrický nález je vlevo negativní a velmi dobrý. Vpravo zřetelná, i když ne \ntěžká stenosa v prox. úseku PDK. Sledování vhodné. \nCT hrudník, břicho, malá pánev 26.8.2026 \nZávěr: \nVe srovnáni s minulým CT z 4/2026 i s baseline CT z 1/2026 je patrná velikostní \nprogrse LU v levém pl. hilu a v retroperitonu paraaortálně vlevo. \nJ-"
+  }
+ ]
+}</script>
+<script id="list-data" type="application/json">[
+ {
+  "file": "2_pacient.pdf",
+  "name": "Jaroslava Kotěrová",
+  "age_or_birth": null,
+  "insurer": "205",
+  "main_problem_cs": "Glioblastom (GBM) temporálně vpravo, stp. resekci",
+  "mdt_question_cs": "Vzhledem k rozsahu tumoru (propagace do thalamu a mesencephala) symptomatická terapie?",
+  "mdt_question_explicit": true,
+  "one_line_summary_cs": "Po kolapsu nalezena objemná expanze T vpravo s šířením do inzuly, thalamu a mesencefala; resekce 7.8.2026, histol. high grade gliový tumor (Ki67 až 70 %), pooperačně rozsáhlé reziduum; levostranná hemiparéza a neglect.",
+  "page_count": 1,
+  "note": "Jméno v dokumentu zapsáno 'Kotěrova Jaroslava'."
+ },
+ {
+  "file": "9_pacient.pdf",
+  "name": "Zdena Zábělská",
+  "age_or_birth": "nar. 13.10.1961",
+  "insurer": "111",
+  "main_problem_cs": "Karcinom levého prsu s generalizací do skeletu, komprese obratle Th2",
+  "mdt_question_cs": "Nález na PET/CT bude prezentován na NCH semináři k posouzení indikace NCH intervence.",
+  "mdt_question_explicit": false,
+  "one_line_summary_cs": "Ca levého prsu (2023, stp. mastektomii, RT, letrozol); 9/2026 progrese s mnohočetnými převážně osteolytickými MTS skeletu, patologická komprese Th2 až vertebra plana s měkkotkáňovou složkou do páteřního kanálu; od 7.9.2026 fulvestrant, od 22.9.2026 abemaciklib.",
+  "page_count": 4,
+  "note": "Str. 4 nemá textovou vrstvu (prázdná nebo jen obraz). Jako otázku uvádíme větu o NCH semináři, výslovná otázka chybí."
+ },
+ {
+  "file": "11_pacient.pdf",
+  "name": "Lenka Kabátová",
+  "age_or_birth": null,
+  "insurer": "205",
+  "main_problem_cs": "Vestibulární schwannom vlevo (Koos I), drobný meningeom F vlevo",
+  "mdt_question_cs": null,
+  "mdt_question_explicit": false,
+  "one_line_summary_cs": "Náhlé vertigo se zvracením a zhoršením sluchu vlevo; MR mozku s KL: intrameatální tumor do 7 mm charakteru schwannomu n. VIII vlevo a drobný parafalcinní meningeom F vlevo do 6 mm; Fazekas III, atrofie.",
+  "page_count": 2,
+  "note": "Formulář bez rodného čísla a bez otázky pro MDT."
+ },
+ {
+  "file": "13_pacient.pdf",
+  "name": "Patricie Moučková",
+  "age_or_birth": null,
+  "insurer": "211",
+  "main_problem_cs": "Kalcifikovaný meningeom parietálně vlevo",
+  "mdt_question_cs": "Prosím laskavě o konzultaci CT mozku a srovnání s MRI.",
+  "mdt_question_explicit": true,
+  "one_line_summary_cs": "CT mozku 19.8.2026 (při akutní závrati): kalcifikovaný meningeom parietálně vlevo 12 x 9 mm, bez průkazu MTS; MR 8/2025 ložisko 10x6 mm, stacionární proti 10/2023; v anamnéze ca prsu (2002 až 2004, t.č. remise).",
+  "page_count": 2,
+  "note": "Velikost ložiska se liší mezi CT 8/2026 (12 x 9 mm) a MR 8/2025 (10x6 mm); jde o různé modality, proto to samo o sobě není rozpor. Právě srovnání je předmětem dotazu."
+ },
+ {
+  "file": "15_pacient.pdf",
+  "name": "Luděk Zápotocký",
+  "age_or_birth": null,
+  "insurer": "111 (nejisté)",
+  "main_problem_cs": "Léze postranní komory vpravo, v.s. ependymom či subependymom",
+  "mdt_question_cs": null,
+  "mdt_question_explicit": false,
+  "one_line_summary_cs": "MR mozku: FLAIR hypersignální léze 7x6 mm na vnitřní stěně pravé postranní komory bez sycení, stacionární obraz v.s. ependymomu či subependymomu, bez poruchy cirkulace likvoru.",
+  "page_count": 1,
+  "note": "Jen radiologický popis, bez data vyšetření, anamnézy a otázky. Číslo '111' je v poli pro pojišťovnu nebo RČ, přiřazení nejisté."
+ },
+ {
+  "file": "17_pacient.pdf",
+  "name": "Otakar Jelen",
+  "age_or_birth": null,
+  "insurer": null,
+  "main_problem_cs": "Intraoseální ložisko kalvy frontálně vpravo, DD meningeom vs. MTS (ca cekoascendens)",
+  "mdt_question_cs": "Žádost o doporučení dalšího postupu: MDT doporučilo konzultaci NCH, MR mozku a scintigrafii skeletu, zatím nedoplněno, 'vyčkáme Vašeho doporučení'.",
+  "mdt_question_explicit": false,
+  "one_line_summary_cs": "Ca cekoascendens pT3 pN0 cM0, stp. pravostranné hemikolektomii, susp. Lynch syndrom; CT mozku 13.9.2026 při vestibulárním syndromu: intraoseální ložisko F vpravo s extraaxiální propagací 13x7 mm, DD intraoseální meningeom x MTS.",
+  "page_count": 1,
+  "note": "Ve formuláři je 'Jméno: Jelen', 'Příjmení: Otakar', pole jsou pravděpodobně prohozená. Ověřit identitu."
+ },
+ {
+  "file": "18_pacient.pdf",
+  "name": "Libor Opletal",
+  "age_or_birth": "53 let",
+  "insurer": null,
+  "main_problem_cs": "Syringomyelie Th4 až Th12, susp. drobný ependymom v oblasti konu",
+  "mdt_question_cs": null,
+  "mdt_question_explicit": false,
+  "one_line_summary_cs": "Opakované silné lumbalgie se zhoršením; MR Th páteře s KL: cystické okrsky míchy Th4 až Th12, rozšíření míchy max. v oblasti konu 15x17 mm se sytícími okrsky do 4,5x4 mm (drobný ependymom nelze vyloučit); protruze L3 až L5.",
+  "page_count": 2,
+  "note": "Formulář bez RČ, pojišťovny a otázky pro MDT; data vyšetření neuvedena."
+ },
+ {
+  "file": "19_pacient.pdf",
+  "name": "Martina Palajová",
+  "age_or_birth": null,
+  "insurer": null,
+  "main_problem_cs": "Regredující monoparéza LHK (DD iCMP/TIA vs. epiparoxyzmus), fraktura dens axis, aneuryzmata ACI",
+  "mdt_question_cs": null,
+  "mdt_question_explicit": false,
+  "one_line_summary_cs": "Přijata 29.9. pro odeznělou monoparézu LHK po vysazení antikoagulace; fraktura baze dens axis po pádu 27.9. (konzervativně dle NCH); CTAG 13.10.2026: vlevo dvě výdutě ACI 2 a 3 mm pod bazí lební.",
+  "page_count": 1,
+  "note": "OCR text je na pravém okraji useknutý (věty nedokončené). Formulář bez RČ, pojišťovny a otázky."
+ },
+ {
+  "file": "20_pacient.pdf",
+  "name": "Richard Potužný",
+  "age_or_birth": "69 let",
+  "insurer": null,
+  "main_problem_cs": "Infiltrace obratlů C6 až Th1, DD spondylodiscitida vs. maligní infiltrace (ca prostaty)",
+  "mdt_question_cs": null,
+  "mdt_question_explicit": false,
+  "one_line_summary_cs": "4 měsíce po TURP (ca prostaty 5/2026) a sepsi; MR Cp 14.9.26: infiltrace obratlových těl C6/C7/Th1 se stenózou kanálu bez komprese míchy; scintigrafie: osteolytická ložiska C páteře, susp. okrsky kalvy, Th6 a LS-S1; NCH doporučilo nahlásit na NOCO a doplnit CT hrudníku a břicha.",
+  "page_count": 1,
+  "note": "Výslovná otázka chybí; dokument uvádí jen doporučení NCH 'nahlásit na NOCO'. Formulář bez RČ a pojišťovny."
+ }
+]</script>
+<script id="extra-data" type="application/json">{
+ "file": "10_pacient.pdf",
+ "generated_note_cs": "Mock data pro UI, vytvořeno ručně z OCR textu fiktivního pacienta; každá citace je doslovný úsek OCR textu (po sloučení mezer).",
+ "anamnesis": {
+  "OA": [
+   {
+    "text_cs": "Arteriální hypertenze (HN)",
+    "date": null,
+    "source": {
+     "file": "10_pacient.pdf",
+     "page": 2,
+     "quote": "OA: HN, CHOPN u fumátora (anamn. léčba přerušena pacientem), HLP na dietě,"
+    },
+    "negated": false,
+    "certainty": "documented"
+   },
+   {
+    "text_cs": "CHOPN u kuřáka, léčba dle anamnézy přerušena pacientem",
+    "date": null,
+    "source": {
+     "file": "10_pacient.pdf",
+     "page": 2,
+     "quote": "OA: HN, CHOPN u fumátora (anamn. léčba přerušena pacientem), HLP na dietě,"
+    },
+    "negated": false,
+    "certainty": "documented"
+   },
+   {
+    "text_cs": "Hyperlipoproteinémie (HLP) na dietě",
+    "date": null,
+    "source": {
+     "file": "10_pacient.pdf",
+     "page": 2,
+     "quote": "OA: HN, CHOPN u fumátora (anamn. léčba přerušena pacientem), HLP na dietě,"
+    },
+    "negated": false,
+    "certainty": "documented"
+   },
+   {
+    "text_cs": "Hyperglykémie nalačno (anamnesticky)",
+    "date": null,
+    "source": {
+     "file": "10_pacient.pdf",
+     "page": 2,
+     "quote": "hyperglykémie nalačno anam., korové cysty ledvin, cysta S2 jater"
+    },
+    "negated": false,
+    "certainty": "documented"
+   },
+   {
+    "text_cs": "Korové cysty ledvin",
+    "date": null,
+    "source": {
+     "file": "10_pacient.pdf",
+     "page": 2,
+     "quote": "hyperglykémie nalačno anam., korové cysty ledvin, cysta S2 jater"
+    },
+    "negated": false,
+    "certainty": "documented"
+   },
+   {
+    "text_cs": "Cysta S2 jater",
+    "date": null,
+    "source": {
+     "file": "10_pacient.pdf",
+     "page": 2,
+     "quote": "hyperglykémie nalačno anam., korové cysty ledvin, cysta S2 jater"
+    },
+    "negated": false,
+    "certainty": "documented"
+   },
+   {
+    "text_cs": "CHOPN II/B, spirometrie: lehká obstrukce; susp. intersticiální postižení, stav po kortikoterapii (plicní vyš., MUDr. Hofrová)",
+    "date": "22.5.2026",
+    "source": {
+     "file": "10_pacient.pdf",
+     "page": 5,
+     "quote": "Z: CHOPN II/B fumat., susp. interstic. post1zené, stp. kortikoterapii"
+    },
+    "negated": false,
+    "certainty": "unclear_ocr",
+    "note_cs": "OCR: 'post1zené' čteme jako 'postižení'; datum v OCR zapsáno '22,5,2026'."
+   },
+   {
+    "text_cs": "Dušnost: plicní embolie vyloučena, EKG bez ischemických změn; dle interního vyšetření možno na vrub hypertenze, nově Orcal",
+    "date": "10.2.2026",
+    "source": {
+     "file": "10_pacient.pdf",
+     "page": 5,
+     "quote": "plicní embolie vyloučena, EKG bez ischemických změn, hstroponin stabilní bez dynamiky- možno na vrub dekorigované HT"
+    },
+    "negated": false,
+    "certainty": "unclear_ocr",
+    "note_cs": "OCR: 'dekorigované HT' pravděpodobně 'dekompenzované HT', ověřit v originálu."
+   },
+   {
+    "text_cs": "UZ tepen DKK: středně silné sklerotické změny, vpravo stenóza v proximálním úseku PDK (ne těžká), doporučeno sledování",
+    "date": "30.7.2026",
+    "source": {
+     "file": "10_pacient.pdf",
+     "page": 5,
+     "quote": "Vpravo zřetelná, i když ne těžká stenosa v prox. úseku PDK. Sledování vhodné."
+    },
+    "negated": false,
+    "certainty": "documented"
+   },
+   {
+    "text_cs": "Hypokalcémie (léčena Calcichew)",
+    "date": null,
+    "source": {
+     "file": "10_pacient.pdf",
+     "page": 2,
+     "quote": "pro hypokalcémii Calcichew 1000/SOOIU 0-0-1"
+    },
+    "negated": false,
+    "certainty": "documented"
+   },
+   {
+    "text_cs": "Mírná hyperkalémie, dietní opatření, pacient poučen",
+    "date": null,
+    "source": {
+     "file": "10_pacient.pdf",
+     "page": 2,
+     "quote": "Pro mírnou hyperkalémii ve stravě omezit banány, meruňky, broskve"
+    },
+    "negated": false,
+    "certainty": "documented"
+   }
+  ],
+  "RA": [],
+  "PA": [],
+  "SA": [],
+  "FA": [
+   {
+    "text_cs": "Everolimus Sandoz 5 mg 1-0-0; navýšení na 2-0-0 (10 mg denně) od 19.9.2026 plánováno, ověřit, zda proběhlo; při netoleranci návrat k 1-0-0",
+    "date": "19.9.2026",
+    "source": {
+     "file": "10_pacient.pdf",
+     "page": 2,
+     "quote": "Everolimus sandoz 5mg 1-0-0 zyyšuji na 2-0-0 od 19.9.2026,"
+    },
+    "negated": false,
+    "certainty": "unclear_ocr",
+    "note_cs": "OCR: 'zyyšuji' = 'zvyšuji'. Na str. 3 je zároveň 'navyšuji' i 'Při dobré toleranci navýšime', ověřit, zda navýšení proběhlo."
+   },
+   {
+    "text_cs": "Kapidin 20 mg 1-0-0 (chronická medikace)",
+    "date": null,
+    "source": {
+     "file": "10_pacient.pdf",
+     "page": 2,
+     "quote": "Chron. medikace: Kapidin 20mg 1-0-0, Spiriva inhal. 1-0-1 + Ventolin N inhal. dlp."
+    },
+    "negated": false,
+    "certainty": "documented"
+   },
+   {
+    "text_cs": "Spiriva inhal. 1-0-1",
+    "date": null,
+    "source": {
+     "file": "10_pacient.pdf",
+     "page": 2,
+     "quote": "Chron. medikace: Kapidin 20mg 1-0-0, Spiriva inhal. 1-0-1 + Ventolin N inhal. dlp."
+    },
+    "negated": false,
+    "certainty": "documented",
+    "note_cs": "Plicní vyšetření (str. 4 a 5) uvádí Spiriva 2-0-0; dávkování se mezi částmi dokumentu liší."
+   },
+   {
+    "text_cs": "Ventolin N inhal. dle potřeby",
+    "date": null,
+    "source": {
+     "file": "10_pacient.pdf",
+     "page": 2,
+     "quote": "Chron. medikace: Kapidin 20mg 1-0-0, Spiriva inhal. 1-0-1 + Ventolin N inhal. dlp."
+    },
+    "negated": false,
+    "certainty": "documented"
+   },
+   {
+    "text_cs": "Neurol 0,25 mg dle potřeby při úzkosti, neklidu",
+    "date": null,
+    "source": {
+     "file": "10_pacient.pdf",
+     "page": 2,
+     "quote": "Při úzkosti, neklidu Neurol 0,25mg ltbl. dlp."
+    },
+    "negated": false,
+    "certainty": "unclear_ocr",
+    "note_cs": "OCR: 'ltbl.' pravděpodobně 'tbl.'."
+   },
+   {
+    "text_cs": "Natrii chloridi 1,0 g cps. 1-0-1",
+    "date": null,
+    "source": {
+     "file": "10_pacient.pdf",
+     "page": 2,
+     "quote": "Cps. Natrii chloridi l,Og 1-0-1"
+    },
+    "negated": false,
+    "certainty": "unclear_ocr",
+    "note_cs": "OCR: 'l,Og' čteme jako '1,0g'."
+   },
+   {
+    "text_cs": "Calcichew 1000/? IU 0-0-1 pro hypokalcémii",
+    "date": null,
+    "source": {
+     "file": "10_pacient.pdf",
+     "page": 2,
+     "quote": "pro hypokalcémii Calcichew 1000/SOOIU 0-0-1"
+    },
+    "negated": false,
+    "certainty": "unclear_ocr",
+    "note_cs": "Síla vitaminu D v OCR nečitelná ('SOOIU'), ověřit v originálu."
+   },
+   {
+    "text_cs": "Degan 10 mg 1-1-1 při nevolnosti, při nedostatečném efektu nebo zvracení Novetron 8 mg 1-0-1",
+    "date": null,
+    "source": {
+     "file": "10_pacient.pdf",
+     "page": 2,
+     "quote": "Při nevolnosti doma užívat Degan 10mg tbl. 1-1-1"
+    },
+    "negated": false,
+    "certainty": "documented"
+   },
+   {
+    "text_cs": "Imodium 2 mg při průjmu (max. 8 cps. denně), při nedostatečném efektu Smecta 1-1-1",
+    "date": null,
+    "source": {
+     "file": "10_pacient.pdf",
+     "page": 2,
+     "quote": "Při průjmu užívat Imodium 2mg cps., vstupně 2 cps., pak 1 cps. při každé další řídké stolici"
+    },
+    "negated": false,
+    "certainty": "documented"
+   },
+   {
+    "text_cs": "Orcal 10 mg 1/2-0-0, nově od interního vyšetření",
+    "date": "10.2.2026",
+    "source": {
+     "file": "10_pacient.pdf",
+     "page": 5,
+     "quote": "nově k medikaci Orcal 10 mg tbl 1/2-0-0"
+    },
+    "negated": false,
+    "certainty": "documented"
+   },
+   {
+    "text_cs": "Erdomed 300 mg 1-1-0 (doporučení plicního vyšetření)",
+    "date": "22.5.2026",
+    "source": {
+     "file": "10_pacient.pdf",
+     "page": 5,
+     "quote": "Erdomed 300mg 1-1-0"
+    },
+    "negated": false,
+    "certainty": "documented"
+   },
+   {
+    "text_cs": "Upozornění k everolimu: kontraindikovány ACEi pro zvýšené riziko anafylaxe",
+    "date": null,
+    "source": {
+     "file": "10_pacient.pdf",
+     "page": 2,
+     "quote": "Kontraindikovány jsou ACEi pro zyýšené riziko anafylace."
+    },
+    "negated": false,
+    "certainty": "unclear_ocr",
+    "note_cs": "Jde o lékovou interakci uvedenou v doporučení, ne o alergii."
+   }
+  ],
+  "AA": [],
+  "abusus": [
+   {
+    "text_cs": "Kuřák (fumátor), uvedeno u CHOPN; počet cigaret ani délka kouření uvedeny nejsou",
+    "date": null,
+    "source": {
+     "file": "10_pacient.pdf",
+     "page": 2,
+     "quote": "CHOPN u fumátora"
+    },
+    "negated": false,
+    "certainty": "documented",
+    "note_cs": "Stejně i v plicním vyšetření: 'CHOPN II/B fumat'. Zda jde o aktivního či bývalého kuřáka, neuvedeno.",
+    "pack_years": {
+     "value": null,
+     "computed": false,
+     "note_cs": "Nelze spočítat: v dokumentaci chybí počet cigaret denně i počet let kouření."
+    }
+   }
+  ],
+  "EA": [
+   {
+    "text_cs": "HBsAg pozitivní",
+    "date": null,
+    "source": {
+     "file": "10_pacient.pdf",
+     "page": 1,
+     "quote": "- HBsAg pozit. pac."
+    },
+    "negated": false,
+    "certainty": "documented"
+   }
+  ],
+  "preventive": [
+   {
+    "text_cs": "Kontrolní kolonoskopie plánována na rok 2028 (předchozí kolonoskopie v dokumentaci není)",
+    "date": "r.2028",
+    "source": {
+     "file": "10_pacient.pdf",
+     "page": 3,
+     "quote": "Kontrolni kolonoskopie bude r.2028."
+    },
+    "negated": false,
+    "certainty": "documented"
+   }
+  ]
+ },
+ "anamnesis_empty_text_cs": "neuvedeno v dostupné dokumentaci",
+ "onco_brief_cs": "Důvod projednání: MR mozku 14.9.2026 popisuje solitérní postkontrastně se sytící nodulus v pravé mozečkové hemisféře (do 3 mm), suspekce na solitérní MTS [1]; ošetřující lékař nález zadal k projednání na NCH semináři [2]. Diagnóza C64, renální karcinom diagnostikovaný 4/2022 [3], stav po nefrektomii vpravo 2.6.2022, histologicky světlobuněčný adenokarcinom G2, pT2a pN1 M0 (ověřit čtení) [4]. Metastatické postižení: paraaortální uzlina histologicky (exstirpace 25.10.2022, R0) [5], mediastinální a plicní hilová lymfadenopatie charakteru MTS na baseline CT 6.3.2023 [6] a kožní metastáza brady histologicky (excize 21.11.2023) [7]. Léčba: nivolumab s ipilimumabem od 27.3.2023 [8], udržovací nivolumab do 29.12.2025 [9], 2. linie sunitinib od 27.1.2026 [10], po progresi na CT 26.8.2026 [11] 3. linie everolimus od 3.9.2026 [12]. Při poslední zaznamenané kontrole (datum neuvedeno) ECOG PS 1, bez klinických známek mozkových metastáz [13].",
+ "onco_brief_refs": [
+  {
+   "file": "10_pacient.pdf",
+   "page": 1,
+   "quote": "MR yyš, mozku 14.9.2026 NNJ Závěr: Solitérní nodulus postkontrastně se sytící v pravé mozečkové hemisféře(do 3mm) - suspekce na solitérní MTS"
+  },
+  {
+   "file": "10_pacient.pdf",
+   "page": 3,
+   "quote": "Nález při MR vyš. mozku zadávám k projednáni na NCH semináři."
+  },
+  {
+   "file": "10_pacient.pdf",
+   "page": 1,
+   "quote": "C64 Zhoubný novotvar ledviny mimo pánvičku RCC lok. pokročilý diag. 4/2022"
+  },
+  {
+   "file": "10_pacient.pdf",
+   "page": 1,
+   "quote": "Histol. světlobuněčný renální adenokarcinom G2, pT2a pN1(3+/5) MO"
+  },
+  {
+   "file": "10_pacient.pdf",
+   "page": 1,
+   "quote": "st.p. exstirpaci paraaortálni LU vlevo 25.10.2022 Histol. MTS světlobuněčného renálního karcinomu G2, R0"
+  },
+  {
+   "file": "10_pacient.pdf",
+   "page": 1,
+   "quote": "baseline CT s KL 6.3.2023 patol. mediastinálni a pl. hilová lymfadenopatie - jsou hypervaskularizované mts charakteru"
+  },
+  {
+   "file": "10_pacient.pdf",
+   "page": 1,
+   "quote": "Histol. kožní metastáza světlebuněčného (konvenčního) karcinomu renálního origa v oblasti brady vlevo"
+  },
+  {
+   "file": "10_pacient.pdf",
+   "page": 1,
+   "quote": "27.3.2023 1. cyklus nivolumab 3mg/kg + ipilimumab lmg/kg q3w"
+  },
+  {
+   "file": "10_pacient.pdf",
+   "page": 1,
+   "quote": "udržovací léčba nivolumab od 27.6.2023 do 29.12.2025"
+  },
+  {
+   "file": "10_pacient.pdf",
+   "page": 1,
+   "quote": "2. pal, linie léčby sunitinib - start 27.1.2026"
+  },
+  {
+   "file": "10_pacient.pdf",
+   "page": 5,
+   "quote": "CT hrudník, břicho, malá pánev 26.8.2026 Závěr: Ve srovnáni s minulým CT z 4/2026 i s baseline CT z 1/2026 je patrná velikostní progrse"
+  },
+  {
+   "file": "10_pacient.pdf",
+   "page": 1,
+   "quote": "3, pal, linie léčby everolimus - start 3.9.2026"
+  },
+  {
+   "file": "10_pacient.pdf",
+   "page": 4,
+   "quote": "Statuspraesens:ECOG PS: 1, bez klin. známek mozkových mts"
+  }
+ ],
+ "onco_detailed": [
+  {
+   "label_cs": "Diagnóza",
+   "text_cs": "C64 Zhoubný novotvar ledviny mimo pánvičku; renální karcinom (RCC) lokálně pokročilý, diagnostikován 4/2022.",
+   "refs": [
+    0
+   ]
+  },
+  {
+   "label_cs": "2.6.2022",
+   "text_cs": "Transperitoneální nefrektomie vpravo s retroperitoneální lymfadenektomií; histologie: světlobuněčný renální adenokarcinom G2, pT2a pN1 (3+/5) M0 (ověřit čtení: v dokumentu OCR „MO“, čteno jako M0).",
+   "refs": [
+    1,
+    2
+   ]
+  },
+  {
+   "label_cs": "9-10/2022",
+   "text_cs": "CT 7.9.2022: susp. MTS paraaortální uzliny vlevo 20 mm; exstirpace 25.10.2022, histologie: MTS světlobuněčného renálního karcinomu G2, R0.",
+   "refs": [
+    3,
+    4
+   ]
+  },
+  {
+   "label_cs": "11/2022",
+   "text_cs": "CT 25.11.2022: spíše lymfokéla po lymfadenektomii (kolekce do 36 mm paraaortálně vlevo) než nová zvětšená uzlina.",
+   "refs": [
+    5
+   ]
+  },
+  {
+   "label_cs": "3/2023",
+   "text_cs": "Baseline CT 6.3.2023: patologická mediastinální a plicní hilová lymfadenopatie charakteru hypervaskularizovaných MTS; dle IMDC střední prognóza (1 faktor). Pozn.: souhrn na str. 2 uvádí tento restaging jako '3/2022', ověřit.",
+   "refs": [
+    6,
+    7,
+    8
+   ]
+  },
+  {
+   "label_cs": "3-7/2023",
+   "text_cs": "1. linie nivolumab 3 mg/kg + ipilimumab 1 mg/kg (ověřit čtení: OCR „lmg/kg“) q3w, indikovány 4 cykly (schváleno KOC komisí); podány cykly 27.3. a 17.4.2023. Po 2. cyklu GIT toxicita 1. st. a plicní toxicita (IPP) 1.-2. st., prednison od 28.4.2023, snižování od 12.5.2023, ukončen 26.7.2023.",
+   "refs": [
+    9,
+    10,
+    11
+   ]
+  },
+  {
+   "label_cs": "6/2023-12/2025",
+   "text_cs": "CT 6/2023 iPR; udržovací nivolumab 240 mg q2w od 27.6.2023 do 29.12.2025. Restagingová CT 11/2023 až 6/2025: trvá iPR. CT 9/2023: nový útvar 21x27 mm v mesogastriu, spíše cystický.",
+   "refs": [
+    12,
+    13,
+    14,
+    15
+   ]
+  },
+  {
+   "label_cs": "8/2023",
+   "text_cs": "Implantace venózního portu 21.8.2023 (Medcomp power-port).",
+   "refs": [
+    16
+   ]
+  },
+  {
+   "label_cs": "11/2023",
+   "text_cs": "Excize ložiska na bradě vlevo 21.11.2023: kožní metastáza světlobuněčného renálního karcinomu, grade 2 dle ISUP, odstraněna kompletně.",
+   "refs": [
+    17,
+    18
+   ]
+  },
+  {
+   "label_cs": "2/2025",
+   "text_cs": "Excize kožní léze glabely 11.2.2025: sebaceom, kompletně odstraněn, bez nádorových změn.",
+   "refs": [
+    19
+   ]
+  },
+  {
+   "label_cs": "11/2025",
+   "text_cs": "CT 10.11.2025: nově patologická LU v levém plicním hilu, mírná progrese retroperitoneální lymfadenopatie proti CT 6/2025; dle iRECIST PD (iUPD).",
+   "refs": [
+    20,
+    21
+   ]
+  },
+  {
+   "label_cs": "1/2026",
+   "text_cs": "CT 16.1.2026: progrese uzlin v levém hilu a jedné LU retroperitonea; dle iRECIST iCPD.",
+   "refs": [
+    22,
+    23
+   ]
+  },
+  {
+   "label_cs": "1-3/2026",
+   "text_cs": "2. linie sunitinib 50 mg denně v režimu 4/2 od 27.1.2026 (schváleno KOC komisí); pro progresi renální insuficience, minerálovou dysbalanci, trombocytopenii G2-3 a hepatopatii G2 redukce na 37,5 mg od 25.2.2026 a na 25 mg od 26.3.2026.",
+   "refs": [
+    24,
+    25,
+    26
+   ]
+  },
+  {
+   "label_cs": "2/2026",
+   "text_cs": "CT AG plicnice 10.2.2026: bez plicní embolie. V textu je dále věta o drobných osteoplastických ložiscích do 7 mm v přechodu Th/L páteře; ke kterému vyšetření patří, nelze z OCR jednoznačně určit.",
+   "refs": [
+    27,
+    28
+   ]
+  },
+  {
+   "label_cs": "4/2026",
+   "text_cs": "CT 28.4.2026: mírná regrese LU v levém hilu a v retroperitoneu, nová ložiska nepřibyla, regrese sledovaných lézí o cca 24 %; dle iRECIST iSD.",
+   "refs": [
+    29
+   ]
+  },
+  {
+   "label_cs": "8/2026",
+   "text_cs": "CT 26.8.2026: progrese LU v levém plicním hilu a retroperitoneu paraaortálně vlevo (PD); sunitinib ukončen.",
+   "refs": [
+    30,
+    31
+   ]
+  },
+  {
+   "label_cs": "9/2026",
+   "text_cs": "3. linie everolimus od 3.9.2026 (schváleno KOC komisí); cabozantinib (par. 16) ponechán do 4. linie. Navýšení dávky everolimu na 10 mg denně od 19.9.2026 plánováno; zda proběhlo, ověřit.",
+   "refs": [
+    32,
+    33,
+    34,
+    35
+   ]
+  },
+  {
+   "label_cs": "14.9.2026",
+   "text_cs": "MR mozku: solitérní postkontrastně se sytící nodulus v pravé mozečkové hemisféře do 3 mm, suspekce na solitérní MTS; jiné sytící se léze intrakraniálně nejsou; gliózy supratentoriálně Fazekas gr. III.",
+   "refs": [
+    36,
+    37
+   ]
+  },
+  {
+   "label_cs": "Aktuálně",
+   "text_cs": "Everolimus toleruje velmi dobře, závratě a poruchy rovnováhy neguje; ECOG PS 1, bez klinických známek mozkových MTS (datum kontroly neuvedeno). Nález MR zadán na NCH seminář; kontrola 9.10.2026 s odběrem KO a biochemie; kontrolní CT H+B+MP plánováno, datum v OCR chybí.",
+   "refs": [
+    38,
+    39,
+    40,
+    41,
+    42,
+    43
+   ]
+  }
+ ],
+ "refs": [
+  {
+   "file": "10_pacient.pdf",
+   "page": 1,
+   "quote": "C64 Zhoubný novotvar ledviny mimo pánvičku RCC lok. pokročilý diag. 4/2022"
+  },
+  {
+   "file": "10_pacient.pdf",
+   "page": 1,
+   "quote": "2.6.2022 - stp. transperitoneálni nefrektomii vpravo s retroperitoneálni lymfadenektomii"
+  },
+  {
+   "file": "10_pacient.pdf",
+   "page": 1,
+   "quote": "Histol. světlobuněčný renální adenokarcinom G2, pT2a pN1(3+/5) MO"
+  },
+  {
+   "file": "10_pacient.pdf",
+   "page": 1,
+   "quote": "CT hrudník + břicho s KL 7.9.2022 - susp. MTS paraaortálni uzlina vlevo 20mm"
+  },
+  {
+   "file": "10_pacient.pdf",
+   "page": 1,
+   "quote": "st.p. exstirpaci paraaortálni LU vlevo 25.10.2022 Histol. MTS světlobuněčného renálního karcinomu G2, R0"
+  },
+  {
+   "file": "10_pacient.pdf",
+   "page": 1,
+   "quote": "susp. lymfokéla po lymfadenektomii spíše ohraničená kolekce tekutiny do 36 mm vlevo paraaortálně"
+  },
+  {
+   "file": "10_pacient.pdf",
+   "page": 1,
+   "quote": "baseline CT s KL 6.3.2023 patol. mediastinálni a pl. hilová lymfadenopatie"
+  },
+  {
+   "file": "10_pacient.pdf",
+   "page": 1,
+   "quote": "Dle IMDC střední prognóza - 1 faktor"
+  },
+  {
+   "file": "10_pacient.pdf",
+   "page": 2,
+   "quote": "Další restaging. 3/2022, kde patol. mediastinální a plicní hilová lymfadenopatie"
+  },
+  {
+   "file": "10_pacient.pdf",
+   "page": 2,
+   "quote": "Je indikováno podání nivolumab 3mg/kg v kombinaci s ipilimumabem lmg/kg q3w 4 cykly - schváleno KOC komisi."
+  },
+  {
+   "file": "10_pacient.pdf",
+   "page": 1,
+   "quote": "27.3.2023 1. cyklus nivolumab 3mg/kg + ipilimumab lmg/kg q3w - 17.4.2023 2. cyklus"
+  },
+  {
+   "file": "10_pacient.pdf",
+   "page": 2,
+   "quote": "Proto od 12.5.2023 zahájeno postupné snižování dávky kortikoidu, ukončen 26.7.2023."
+  },
+  {
+   "file": "10_pacient.pdf",
+   "page": 2,
+   "quote": "Dle restaging. CT 6/2023 dosaženo iPR, proto pokračujeme v udržovací léčbě nivolumabem 240mg q2w."
+  },
+  {
+   "file": "10_pacient.pdf",
+   "page": 1,
+   "quote": "udržovací léčba nivolumab od 27.6.2023 do 29.12.2025"
+  },
+  {
+   "file": "10_pacient.pdf",
+   "page": 2,
+   "quote": "CT vyš. 11/2023 + 2/2024 + 6/2024 + 10/2024 + 2/2025 + 6/2025 - trvá iPR"
+  },
+  {
+   "file": "10_pacient.pdf",
+   "page": 2,
+   "quote": "Při CT vyš. 9/23 popisován nově útvar do 21x27 mm vlevo ventrálně v mesogastriu, etiologie je spíše cystická"
+  },
+  {
+   "file": "10_pacient.pdf",
+   "page": 1,
+   "quote": "Implantace venozn1ho portu 21.8.2023"
+  },
+  {
+   "file": "10_pacient.pdf",
+   "page": 1,
+   "quote": "21.11.2023 excize susp. iritovaného intraderm. névu brady vlevo"
+  },
+  {
+   "file": "10_pacient.pdf",
+   "page": 1,
+   "quote": "grade 2 dle ISUP, odstraněná kompletně"
+  },
+  {
+   "file": "10_pacient.pdf",
+   "page": 1,
+   "quote": "kožní leze v oblasti glabely - stp. excizi 11.2.2025, histol. sebaceom, kompletně odstraněn"
+  },
+  {
+   "file": "10_pacient.pdf",
+   "page": 4,
+   "quote": "navíc nově patol. LU v levém plicním hílu - dle iRECIST tedy PD (progressive disease)"
+  },
+  {
+   "file": "10_pacient.pdf",
+   "page": 1,
+   "quote": "11/2025 dle iRECIST iUPD - nově patol. LU v levém plic hilu"
+  },
+  {
+   "file": "10_pacient.pdf",
+   "page": 4,
+   "quote": "v levém hilu je velikostní progrese uzlin od baseline i ve srovnání s minulým CT"
+  },
+  {
+   "file": "10_pacient.pdf",
+   "page": 4,
+   "quote": "Dle iRECIST iCPD."
+  },
+  {
+   "file": "10_pacient.pdf",
+   "page": 2,
+   "quote": "Léčbu zahájil od 27.1.2026 v režimu 4/2."
+  },
+  {
+   "file": "10_pacient.pdf",
+   "page": 1,
+   "quote": "při dávce 50mg denně progrese renální insuf., minerálová dysbalance a trombocytopenie G2-3"
+  },
+  {
+   "file": "10_pacient.pdf",
+   "page": 1,
+   "quote": "od 26.3.2026 redukce o 2 stupně - dávka 25mg denně"
+  },
+  {
+   "file": "10_pacient.pdf",
+   "page": 5,
+   "quote": "Závěr: Bez plicní embolie, jen drobná cysta v HL vpravo."
+  },
+  {
+   "file": "10_pacient.pdf",
+   "page": 5,
+   "quote": "Drobné osteoplatické ložiska do průměru 7mm v přechodu th/L páteře."
+  },
+  {
+   "file": "10_pacient.pdf",
+   "page": 5,
+   "quote": "Velikostní regrese sledovaných lézi je o cca 24 %."
+  },
+  {
+   "file": "10_pacient.pdf",
+   "page": 5,
+   "quote": "je patrná velikostní progrse LU v levém pl. hilu a v retroperitonu paraaortálně vlevo."
+  },
+  {
+   "file": "10_pacient.pdf",
+   "page": 2,
+   "quote": "Proto léčbu sunitinibem ukončuji."
+  },
+  {
+   "file": "10_pacient.pdf",
+   "page": 1,
+   "quote": "3, pal, linie léčby everolimus - start 3.9.2026"
+  },
+  {
+   "file": "10_pacient.pdf",
+   "page": 2,
+   "quote": "Do 3. pal. linie léčby indikován everolimus - schváleno KOC komisi."
+  },
+  {
+   "file": "10_pacient.pdf",
+   "page": 3,
+   "quote": "par. 16 ponecháme do 4. linie."
+  },
+  {
+   "file": "10_pacient.pdf",
+   "page": 2,
+   "quote": "zyyšuji na 2-0-0 od 19.9.2026"
+  },
+  {
+   "file": "10_pacient.pdf",
+   "page": 1,
+   "quote": "Solitérní nodulus postkontrastně se sytící v pravé mozečkové hemisféře(do 3mm) - suspekce na solitérní MTS"
+  },
+  {
+   "file": "10_pacient.pdf",
+   "page": 1,
+   "quote": "Gliózy supratentoriálně Fazekas gr. III."
+  },
+  {
+   "file": "10_pacient.pdf",
+   "page": 4,
+   "quote": "nově předepsaný everolimus toleruje výbormně, nemá s ním žádný problém."
+  },
+  {
+   "file": "10_pacient.pdf",
+   "page": 4,
+   "quote": "Na cílený dotaz neguje závratě či poruchy rovnováhy"
+  },
+  {
+   "file": "10_pacient.pdf",
+   "page": 4,
+   "quote": "Statuspraesens:ECOG PS: 1, bez klin. známek mozkových mts"
+  },
+  {
+   "file": "10_pacient.pdf",
+   "page": 3,
+   "quote": "Nález při MR vyš. mozku zadávám k projednáni na NCH semináři."
+  },
+  {
+   "file": "10_pacient.pdf",
+   "page": 3,
+   "quote": "Kontrola zde 9.10.2026 s odběrem KO, biochemie."
+  },
+  {
+   "file": "10_pacient.pdf",
+   "page": 3,
+   "quote": "Kontrolní CT H+B+MP bude v 9.20hod. nalačno v NNJ."
+  }
+ ],
+ "timeline_cards": [
+  {
+   "date": "4/2022",
+   "date_sort": "2022-04",
+   "kind": "diagnosis",
+   "title_cs": "Diagnóza RCC (C64)",
+   "text_cs": "Renální karcinom lokálně pokročilý, diag. 4/2022.",
+   "detail_cs": "Dokument uvádí diagnózu C64 Zhoubný novotvar ledviny mimo pánvičku, RCC lokálně pokročilý, diagnostikovaný 4/2022. Přesný den ani vyšetření, kterým byla diagnóza stanovena, uvedeny nejsou.",
+   "status": "done",
+   "source": {
+    "file": "10_pacient.pdf",
+    "page": 1,
+    "quote": "RCC lok. pokročilý diag. 4/2022"
+   }
+  },
+  {
+   "date": "2.6.2022",
+   "date_sort": "2022-06-02",
+   "kind": "surgery",
+   "title_cs": "Nefrektomie vpravo",
+   "text_cs": "Nefrektomie vpravo s retroperitoneální lymfadenektomií; ccRCC G2, pT2a pN1 M0 (ověřit čtení).",
+   "detail_cs": "Transperitoneální nefrektomie vpravo s retroperitoneální lymfadenektomií. Histologie: světlobuněčný renální adenokarcinom G2, pT2a pN1 (3+/5) M0 (ověřit čtení: v dokumentu OCR „MO“, čteno jako M0). Původní histologická zpráva v PDF není, jen citace ve zprávě.",
+   "status": "done",
+   "source": {
+    "file": "10_pacient.pdf",
+    "page": 1,
+    "quote": "2.6.2022 - stp. transperitoneálni nefrektomii vpravo s retroperitoneálni lymfadenektomii"
+   }
+  },
+  {
+   "date": "25.10.2022",
+   "date_sort": "2022-10-25",
+   "kind": "surgery",
+   "title_cs": "Exstirpace paraaortální LU",
+   "text_cs": "Histologicky MTS ccRCC G2, R0.",
+   "detail_cs": "CT 7.9.2022 popsalo suspektní MTS paraaortální uzliny vlevo 20 mm. Uzlina exstirpována 25.10.2022, histologicky metastáza světlobuněčného renálního karcinomu G2, R0.",
+   "status": "done",
+   "source": {
+    "file": "10_pacient.pdf",
+    "page": 1,
+    "quote": "st.p. exstirpaci paraaortálni LU vlevo 25.10.2022 Histol. MTS světlobuněčného renálního karcinomu G2, R0"
+   }
+  },
+  {
+   "date": "6.3.2023",
+   "date_sort": "2023-03-06",
+   "kind": "imaging",
+   "title_cs": "Baseline CT: lymfadenopatie",
+   "text_cs": "Mediastinální a plicní hilová lymfadenopatie charakteru MTS.",
+   "detail_cs": "Baseline CT s KL popisuje patologickou mediastinální a plicní hilovou lymfadenopatii charakteru hypervaskularizovaných MTS. Dle IMDC střední prognóza (1 faktor). Souhrn na str. 2 uvádí tento restaging jako 3/2022, pravděpodobně překlep, ověřit.",
+   "status": "done",
+   "source": {
+    "file": "10_pacient.pdf",
+    "page": 1,
+    "quote": "baseline CT s KL 6.3.2023 patol. mediastinálni a pl. hilová lymfadenopatie"
+   }
+  },
+  {
+   "date": "27.3.2023",
+   "date_sort": "2023-03-27",
+   "kind": "systemic",
+   "title_cs": "1. linie: nivolumab + ipilimumab",
+   "text_cs": "Zahájen nivolumab 3 mg/kg + ipilimumab 1 mg/kg (ověřit čtení) q3w.",
+   "detail_cs": "Indikovány 4 cykly, schváleno KOC komisí; dokumentovány 2 cykly (27.3. a 17.4.2023). Po 2. cyklu GIT toxicita 1. st. a plicní toxicita (IPP) 1.-2. st., prednison od 28.4.2023 do 26.7.2023.",
+   "status": "done",
+   "source": {
+    "file": "10_pacient.pdf",
+    "page": 1,
+    "quote": "27.3.2023 1. cyklus nivolumab 3mg/kg + ipilimumab lmg/kg q3w"
+   }
+  },
+  {
+   "date": "27.6.2023",
+   "date_sort": "2023-06-27",
+   "kind": "systemic",
+   "title_cs": "Udržovací nivolumab",
+   "text_cs": "Nivolumab 240 mg q2w od 27.6.2023 do 29.12.2025.",
+   "detail_cs": "Dle CT 6/2023 dosaženo iPR, proto udržovací nivolumab. Restagingová CT 11/2023 až 6/2025 popisují trvající iPR. Léčba ukončena 29.12.2025.",
+   "status": "done",
+   "source": {
+    "file": "10_pacient.pdf",
+    "page": 1,
+    "quote": "udržovací léčba nivolumab od 27.6.2023 do 29.12.2025"
+   }
+  },
+  {
+   "date": "21.11.2023",
+   "date_sort": "2023-11-21",
+   "kind": "pathology",
+   "title_cs": "Kožní MTS na bradě",
+   "text_cs": "Excize ložiska brady vlevo: kožní MTS ccRCC, G2 ISUP.",
+   "detail_cs": "Excize suspektního névu brady vlevo. Histologie: kožní metastáza světlobuněčného (konvenčního) renálního karcinomu, grade 2 dle ISUP, odstraněna kompletně. Dle pacienta ložisko pozoroval cca od 6/2023.",
+   "status": "done",
+   "source": {
+    "file": "10_pacient.pdf",
+    "page": 1,
+    "quote": "21.11.2023 excize susp. iritovaného intraderm. névu brady vlevo"
+   }
+  },
+  {
+   "date": "10.11.2025",
+   "date_sort": "2025-11-10",
+   "kind": "imaging",
+   "title_cs": "CT: progrese (iUPD)",
+   "text_cs": "Nová patologická LU v levém plicním hilu.",
+   "detail_cs": "Proti baseline 3/2023 trvá mírná regrese retroperitoneální lymfadenopatie, proti CT 6/2025 však mírná progrese. Nově patologická LU v levém plicním hilu, dle iRECIST PD (iUPD).",
+   "status": "done",
+   "source": {
+    "file": "10_pacient.pdf",
+    "page": 4,
+    "quote": "navíc nově patol. LU v levém plicním hílu - dle iRECIST tedy PD (progressive disease)"
+   }
+  },
+  {
+   "date": "16.1.2026",
+   "date_sort": "2026-01-16",
+   "kind": "imaging",
+   "title_cs": "CT: potvrzená progrese (iCPD)",
+   "text_cs": "Progrese uzlin v levém hilu a LU retroperitonea.",
+   "detail_cs": "Regrese mediastinální a pravostranné hilové lymfadenopatie, ale velikostní progrese uzlin v levém hilu proti baseline i předchozímu CT a progrese jedné LU retroperitonea. Dle iRECIST iCPD.",
+   "status": "done",
+   "source": {
+    "file": "10_pacient.pdf",
+    "page": 4,
+    "quote": "Dle iRECIST iCPD."
+   }
+  },
+  {
+   "date": "27.1.2026",
+   "date_sort": "2026-01-27",
+   "kind": "systemic",
+   "title_cs": "2. linie: sunitinib",
+   "text_cs": "Sunitinib 50 mg denně v režimu 4/2.",
+   "detail_cs": "Schváleno KOC komisí. Pro toxicitu (renální insuficience, minerálová dysbalance, trombocytopenie G2-3, hepatopatie G2) redukce na 37,5 mg od 25.2.2026 a na 25 mg od 26.3.2026.",
+   "status": "done",
+   "source": {
+    "file": "10_pacient.pdf",
+    "page": 2,
+    "quote": "Léčbu zahájil od 27.1.2026 v režimu 4/2."
+   }
+  },
+  {
+   "date": "28.4.2026",
+   "date_sort": "2026-04-28",
+   "kind": "imaging",
+   "title_cs": "CT: stabilní nemoc (iSD)",
+   "text_cs": "Regrese sledovaných lézí o cca 24 %.",
+   "detail_cs": "Proti baseline 1/2026 mírná regrese LU v levém plicním hilu a parciální regrese LU v retroperitoneu, nová ložiska nepřibyla. Dle iRECIST iSD.",
+   "status": "done",
+   "source": {
+    "file": "10_pacient.pdf",
+    "page": 5,
+    "quote": "Velikostní regrese sledovaných lézi je o cca 24 %."
+   }
+  },
+  {
+   "date": "26.8.2026",
+   "date_sort": "2026-08-26",
+   "kind": "imaging",
+   "title_cs": "CT: progrese",
+   "text_cs": "Progrese LU v levém hilu a paraaortálně vlevo.",
+   "detail_cs": "Proti CT 4/2026 i baseline 1/2026 velikostní progrese LU v levém plicním hilu a v retroperitoneu paraaortálně vlevo. Na základě toho ukončen sunitinib.",
+   "status": "done",
+   "source": {
+    "file": "10_pacient.pdf",
+    "page": 5,
+    "quote": "je patrná velikostní progrse LU v levém pl. hilu a v retroperitonu paraaortálně vlevo."
+   }
+  },
+  {
+   "date": "3.9.2026",
+   "date_sort": "2026-09-03",
+   "kind": "systemic",
+   "title_cs": "3. linie: everolimus",
+   "text_cs": "Everolimus 5 mg denně; navýšení na 10 mg od 19.9.2026 plánováno, ověřit.",
+   "detail_cs": "Schváleno KOC komisí; cabozantinib ponechán do 4. linie. Dokument uvádí navýšení na 10 mg denně od 19.9.2026 a zároveň „Při dobré toleranci navýšíme“; zda navýšení proběhlo, ověřit.",
+   "status": "done",
+   "source": {
+    "file": "10_pacient.pdf",
+    "page": 1,
+    "quote": "3, pal, linie léčby everolimus - start 3.9.2026"
+   }
+  },
+  {
+   "date": "14.9.2026",
+   "date_sort": "2026-09-14",
+   "kind": "imaging",
+   "title_cs": "MR mozku: susp. MTS mozečku",
+   "text_cs": "Solitérní nodulus v pravé mozečkové hemisféře do 3 mm.",
+   "detail_cs": "Solitérní postkontrastně se sytící nodulus v pravé mozečkové hemisféře do 3 mm, suspekce na solitérní MTS; jiné sytící se léze intrakraniálně nejsou. Supratentoriálně gliózy Fazekas gr. III. Původní popis MR v PDF není, jen citace závěru.",
+   "status": "done",
+   "source": {
+    "file": "10_pacient.pdf",
+    "page": 1,
+    "quote": "Solitérní nodulus postkontrastně se sytící v pravé mozečkové hemisféře(do 3mm) - suspekce na solitérní MTS"
+   }
+  },
+  {
+   "date": null,
+   "date_sort": null,
+   "kind": "mdt",
+   "title_cs": "NCH seminář: nález MR mozku",
+   "text_cs": "Nález MR mozku zadán k projednání na NCH semináři.",
+   "detail_cs": "Ošetřující onkolog zadal nález MR mozku k projednání na neurochirurgickém semináři. Termín ani formulovaná otázka v dokumentu uvedeny nejsou.",
+   "status": "planned",
+   "source": {
+    "file": "10_pacient.pdf",
+    "page": 3,
+    "quote": "Nález při MR vyš. mozku zadávám k projednáni na NCH semináři."
+   },
+   "date_note_cs": "datum neuvedeno v dostupné dokumentaci"
+  },
+  {
+   "date": "9.10.2026",
+   "date_sort": "2026-10-09",
+   "kind": "visit",
+   "title_cs": "Kontrola na onkologii",
+   "text_cs": "Kontrola s odběrem KO a biochemie.",
+   "detail_cs": "Dokument plánuje kontrolu 9.10.2026 s odběrem krevního obrazu a biochemie a domácí měření TK. Zda kontrola na str. 4 je tato kontrola, dokument neuvádí.",
+   "status": "planned",
+   "source": {
+    "file": "10_pacient.pdf",
+    "page": 3,
+    "quote": "Kontrola zde 9.10.2026 s odběrem KO, biochemie."
+   }
+  }
+ ],
+ "documents": [
+  {
+   "title_cs": "Ambulantní vyšetření kontrolní (onkologie): onkologická anamnéza, doporučení, plán",
+   "type": "ambulantní zpráva",
+   "date": null,
+   "pages": [
+    1,
+    2,
+    3
+   ],
+   "date_note_cs": "Datum vyšetření neuvedeno; obsahuje MR 14.9.2026 a zvýšení everolimu od 19.9.2026.",
+   "readability": "fair",
+   "reason_cs": "Text je čitelný, ale OCR chyby v datech a zkratkách: 'cr' místo 'CT', '1112023' a '212024' místo '11/2023' a '2/2024', 'PO'/'PP' místo 'PD', 'lmg/kg', 'zyyšuji'. Chybí datum kontrolního CT."
+  },
+  {
+   "title_cs": "Laboratorní výsledky (biochemie, krevní obraz)",
+   "type": "jiné",
+   "date": null,
+   "pages": [
+    3
+   ],
+   "date_note_cs": "Datum odběru neuvedeno.",
+   "readability": "fair",
+   "reason_cs": "Hodnoty a referenční meze čitelné, ale jednotky a znaky zkomolené: 'mmol/1' místo 'mmol/l', '[O ... 5]' místo '[0 ... 5]', '10A9/l' místo '10^9/l'."
+  },
+  {
+   "title_cs": "Ambulantní vyšetření kontrolní: subjektivně, objektivní nález, přehled vyšetření",
+   "type": "ambulantní zpráva",
+   "date": null,
+   "pages": [
+    4,
+    5
+   ],
+   "date_note_cs": "Datum neuvedeno; pacient již užívá nově předepsaný everolimus.",
+   "readability": "poor",
+   "reason_cs": "Hlavička nečitelná ('Ambulantnf vyletfenf kontrolnf', znakový šum), tabulky iRECIST rozpadlé do sloupců bez přiřazení hodnot, 'CI'/'cr' místo 'CT', 'wš' místo 'vyš.', 'T-7éze'."
+  },
+  {
+   "title_cs": "MR mozku 14.9.2026 NNJ (citovaný závěr)",
+   "type": "radiologie",
+   "date": "14.9.2026",
+   "pages": [
+    1
+   ],
+   "embedded_in_cs": "citace v ambulantní zprávě, původní popis v PDF není",
+   "readability": "good",
+   "reason_cs": "Závěr čitelný, jen 'yyš,' místo 'vyš.'."
+  },
+  {
+   "title_cs": "CT plic + břicha 10.11.2025 (citovaný závěr)",
+   "type": "radiologie",
+   "date": "10.11.2025",
+   "pages": [
+    4
+   ],
+   "embedded_in_cs": "citace v ambulantní zprávě",
+   "readability": "fair",
+   "reason_cs": "Závěr čitelný, 'CI' místo 'CT', 'velí kosti'."
+  },
+  {
+   "title_cs": "CT hrudník, břicho 16.1.2026 (citovaný závěr a tabulka iRECIST)",
+   "type": "radiologie",
+   "date": "16.1.2026",
+   "pages": [
+    4
+   ],
+   "embedded_in_cs": "citace v ambulantní zprávě",
+   "readability": "poor",
+   "reason_cs": "Závěr čitelný, tabulka měření lézí rozpadlá, hodnoty nelze spolehlivě přiřadit k lézím."
+  },
+  {
+   "title_cs": "CT AG plicnice 10.2.2026 (citovaný závěr)",
+   "type": "radiologie",
+   "date": "10.2.2026",
+   "pages": [
+    5
+   ],
+   "embedded_in_cs": "citace v ambulantní zprávě",
+   "readability": "fair",
+   "reason_cs": "'cr Ag' místo 'CT AG'; věta o osteoplastických ložiskách stojí uvnitř rozpadlé tabulky a není jasné, ke kterému CT patří."
+  },
+  {
+   "title_cs": "Interní vyšetření 10.2.2026 NNJ (dušnost)",
+   "type": "ambulantní zpráva",
+   "date": "10.2.2026",
+   "pages": [
+    5
+   ],
+   "embedded_in_cs": "citace v ambulantní zprávě",
+   "readability": "fair",
+   "reason_cs": "'wš' místo 'vyš.', 'dekorigované HT' nejasné."
+  },
+  {
+   "title_cs": "ECHO 20.2.2026 NNJ",
+   "type": "jiné",
+   "date": "20.2.2026",
+   "pages": [
+    5
+   ],
+   "embedded_in_cs": "citace v ambulantní zprávě",
+   "readability": "good",
+   "reason_cs": "Text čitelný, drobné překlepy."
+  },
+  {
+   "title_cs": "CT hrudník, břicho 28.4.2026 (závěr a tabulka iRECIST)",
+   "type": "radiologie",
+   "date": "28.4.2026",
+   "pages": [
+    5
+   ],
+   "embedded_in_cs": "citace v ambulantní zprávě",
+   "readability": "fair",
+   "reason_cs": "Závěr čitelný, tabulka měření rozpadlá do sloupců, 'nep\ufffdibyla'."
+  },
+  {
+   "title_cs": "Plicní vyšetření 22.5.2026 MUDr. Hofrová",
+   "type": "ambulantní zpráva",
+   "date": "22.5.2026",
+   "pages": [
+    5
+   ],
+   "embedded_in_cs": "citace v ambulantní zprávě",
+   "readability": "fair",
+   "reason_cs": "Datum zapsáno '22,5,2026', 'post1zené'."
+  },
+  {
+   "title_cs": "UZ tepen DKK 30.7.2026",
+   "type": "radiologie",
+   "date": "30.7.2026",
+   "pages": [
+    5
+   ],
+   "embedded_in_cs": "citace v ambulantní zprávě",
+   "readability": "good",
+   "reason_cs": "Text čitelný."
+  },
+  {
+   "title_cs": "CT hrudník, břicho, malá pánev 26.8.2026 (citovaný závěr)",
+   "type": "radiologie",
+   "date": "26.8.2026",
+   "pages": [
+    5
+   ],
+   "embedded_in_cs": "citace v ambulantní zprávě",
+   "readability": "fair",
+   "reason_cs": "Závěr čitelný ('progrse'), text na konci stránky useknutý ('J-')."
+  }
+ ],
+ "documents_note_cs": "PDF neobsahuje originální histologické zprávy (nefrektomie 2.6.2022, exstirpace LU 25.10.2022, excize 21.11.2023, excize 11.2.2025) ani originální popis MR mozku 14.9.2026; jsou jen citovány ve zprávách.",
+ "others": [
+  {
+   "file": "2_pacient.pdf",
+   "diagnosis_cs": "High grade gliový tumor temporálně vpravo (pooperační MR uvádí GBM), stav po resekci 7.8.2026",
+   "diagnosis_source": {
+    "file": "2_pacient.pdf",
+    "page": 1,
+    "quote": "Histologie - jde o struktury high grade glialniho tumoru"
+   },
+   "mkn10": null,
+   "referring_doctor": null,
+   "referring_department": null,
+   "context_note_cs": "Odesílající lékař ani pracoviště neuvedeny.",
+   "context_source": {
+    "file": "2_pacient.pdf",
+    "page": 1,
+    "quote": "Kotěrova Jaroslava, poj. 205"
+   }
+  },
+  {
+   "file": "9_pacient.pdf",
+   "diagnosis_cs": "Karcinom levého prsu (2023), generalizace do skeletu, patologická komprese Th2",
+   "diagnosis_source": {
+    "file": "9_pacient.pdf",
+    "page": 2,
+    "quote": "C509 ZN - prs NS C795 Sekundární ZN kosti a kostní dřeně"
+   },
+   "mkn10": "C509",
+   "referring_doctor": null,
+   "referring_department": null,
+   "mkn10_source": {
+    "file": "9_pacient.pdf",
+    "page": 2,
+    "quote": "C509 ZN - prs NS"
+   },
+   "mkn10_other": [
+    "C795"
+   ],
+   "context_note_cs": "Odesílající lékař ani pracoviště neuvedeny; jde o kontrolní ambulantní zprávu, léčba schválena KOC komisí.",
+   "context_source": {
+    "file": "9_pacient.pdf",
+    "page": 3,
+    "quote": "Nález na PET/CT vyš. bude prezentován na NCH semináři k posouzení indikace NCH intervence"
+   }
+  },
+  {
+   "file": "11_pacient.pdf",
+   "diagnosis_cs": "V.s. neurinom akustiku vlevo (schwannom n. VIII vlevo), drobný meningeom F parafalcinně vlevo",
+   "diagnosis_source": {
+    "file": "11_pacient.pdf",
+    "page": 2,
+    "quote": "v.s. neurinom akustiku vlevo- Koos I."
+   },
+   "mkn10": null,
+   "referring_doctor": null,
+   "referring_department": null,
+   "context_note_cs": "Odesílající lékař ani pracoviště neuvedeny; dokument zmiňuje příjem na neurologickou JIP.",
+   "context_source": {
+    "file": "11_pacient.pdf",
+    "page": 1,
+    "quote": "proto příjem na neurologickou JIP"
+   }
+  },
+  {
+   "file": "13_pacient.pdf",
+   "diagnosis_cs": "Kalcifikovaný meningeom parietálně vlevo 12 x 9 mm (žádost o konzultaci CT a srovnání s MRI)",
+   "diagnosis_source": {
+    "file": "13_pacient.pdf",
+    "page": 1,
+    "quote": "Parietálně vlevo pod calvou kalcifikovaný meningeom vel. 12 x 9 mm."
+   },
+   "mkn10": null,
+   "referring_doctor": null,
+   "referring_department": null,
+   "context_note_cs": "Odesílající lékař ani pracoviště neuvedeny. MUDr. Walach je uveden u CT vyšetření, MUDr. Cibulková jako 'Vidi', ani jeden výslovně jako odesílající.",
+   "context_source": {
+    "file": "13_pacient.pdf",
+    "page": 1,
+    "quote": "Vidi MUDr. Cibulková"
+   }
+  },
+  {
+   "file": "15_pacient.pdf",
+   "diagnosis_cs": "Stacionární obraz v.s. ependymomu či subependymomu postranní komory vpravo (MR mozku)",
+   "diagnosis_source": {
+    "file": "15_pacient.pdf",
+    "page": 1,
+    "quote": "Závěr: Stacionární obraz v.s. ependymomu či subependymomu postranní komory vpravo."
+   },
+   "mkn10": null,
+   "referring_doctor": null,
+   "referring_department": null,
+   "context_note_cs": "Dokument obsahuje jen popis MR; odesílající lékař ani pracoviště neuvedeny.",
+   "context_source": {
+    "file": "15_pacient.pdf",
+    "page": 1,
+    "quote": "MR mozku nativ+ aplikace k l. bez reakce."
+   }
+  },
+  {
+   "file": "17_pacient.pdf",
+   "diagnosis_cs": "Intraoseální ložisko frontálně vpravo s propagací intrakraniálně, dif. dg. intraoseální meningeom x meta; ca cekoascendens pT3 pN0 cM0 v anamnéze",
+   "diagnosis_source": {
+    "file": "17_pacient.pdf",
+    "page": 1,
+    "quote": "v diff.dg. intraoseální meningeom x meta ložisko v rámci zákl dg."
+   },
+   "mkn10": null,
+   "referring_doctor": null,
+   "referring_department": null,
+   "context_note_cs": "Odesílající lékař ani pracoviště výslovně neuvedeny; dokument zmiňuje hospitalizaci na ORL.",
+   "context_source": {
+    "file": "17_pacient.pdf",
+    "page": 1,
+    "quote": "Nyní za hospitalizace na ORL doplněno CT mozku"
+   }
+  },
+  {
+   "file": "18_pacient.pdf",
+   "diagnosis_cs": "Cystické rozšíření míchy Th4-Th12 (syringomyelie), v oblasti konu nelze vyloučit drobný ependymom",
+   "diagnosis_source": {
+    "file": "18_pacient.pdf",
+    "page": 1,
+    "quote": "drobný ependymom v terénu výrazné syringomyelie nevyloučím"
+   },
+   "mkn10": null,
+   "referring_doctor": null,
+   "referring_department": null,
+   "context_note_cs": "Odesílající lékař ani pracoviště neuvedeny; pole 'Popisující lékař' je prázdné. Dokument zmiňuje předchozí propuštění z neurologického oddělení.",
+   "context_source": {
+    "file": "18_pacient.pdf",
+    "page": 1,
+    "quote": "nedávno propuštěn z neu odd."
+   }
+  },
+  {
+   "file": "19_pacient.pdf",
+   "diagnosis_cs": "Dvě drobné výdutě ACI vlevo pod bazí lební (cca 2 a 3 mm); fraktura dens axis, monoparéza LHK v dif. dg. TIA/iCMP x epiparoxyzmus",
+   "diagnosis_source": {
+    "file": "19_pacient.pdf",
+    "page": 1,
+    "quote": "vlevo dvě sousedící výdutě stěny ACI o vel. cca 2 mm a 3 mm pod bazí lebky"
+   },
+   "mkn10": null,
+   "referring_doctor": null,
+   "referring_department": null,
+   "context_note_cs": "Odesílající lékař ani pracoviště neuvedeny.",
+   "context_source": {
+    "file": "19_pacient.pdf",
+    "page": 1,
+    "quote": "Jméno pacienta: Martina"
+   }
+  },
+  {
+   "file": "20_pacient.pdf",
+   "diagnosis_cs": "Infiltrace obratlových těl C6-Th1, dif. dg. spondylodiscitida x maligní infiltrace; ca prostaty v anamnéze",
+   "diagnosis_source": {
+    "file": "20_pacient.pdf",
+    "page": 1,
+    "quote": "Dif.dg.: susp. rozsáhlé zánětlivé změny (spondylodiscitis?) / maligní infiltrace? (CAVE pac. s CA prostaty v anamnéze)."
+   },
+   "mkn10": null,
+   "referring_doctor": null,
+   "referring_department": null,
+   "context_note_cs": "Odesílající lékař ani pracoviště výslovně neuvedeny; dokument zmiňuje přijetí na neurologické standardní oddělení.",
+   "context_source": {
+    "file": "20_pacient.pdf",
+    "page": 1,
+    "quote": "Přijat na neurologické standardní oddělení"
+   }
+  }
+ ]
+}</script>
+<script>
+"use strict";
+const CASE = JSON.parse(document.getElementById("case-data").textContent);
+const OTHERS = JSON.parse(document.getElementById("list-data").textContent);
+const EXTRA = JSON.parse(document.getElementById("extra-data").textContent || "{}");
+
+const GAP = "neuvedeno v dostupné dokumentaci";
+const GAP_F = "neuvedena v dostupné dokumentaci";
+/* Certainty labels used everywhere a fact is shown: a recorded negative, a value the OCR may have misread, an assistant inference. */
+const tags = f => (f.negated ? '<span class="tag neg">zápor v dokumentu</span>' : "")
+  + (f.certainty === "unclear_ocr" ? '<span class="tag ocr">ověřit čtení</span>' : "")
+  + (f.certainty === "inferred" ? '<span class="tag obs">pozorování asistenta</span>' : "");
+const tagsText = f => (f.negated ? " [zápor v dokumentu]" : "") + (f.certainty === "unclear_ocr" ? " [ověřit čtení]" : "") + (f.certainty === "inferred" ? " [pozorování asistenta]" : "");
+const plural = (n, one, few, many) => `${n} ${n === 1 ? one : n >= 2 && n <= 4 ? few : many}`;
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const fmtDate = iso => { if (!iso) return GAP; const [y, m, d] = iso.split("-"); return `${+d}. ${+m}. ${y}`; };
+
+/* Fictional staff, configured per department (Soňa's attendance design). */
+const DEPTS = [
+  ["Neurochirurgie", ["MUDr. Novák", "MUDr. Dvořák"]],
+  ["Klinická onkologie", ["MUDr. Svobodová", "MUDr. Malá"]],
+  ["Radiační onkologie", ["MUDr. Černý", "MUDr. Horáková"]],
+  ["Radiologie", ["MUDr. Procházka", "MUDr. Veselá"]],
+  ["Neurologie", ["MUDr. Beneš", "MUDr. Pokorná"]],
+  ["Patologie", ["MUDr. Králová", "MUDr. Němcová"]],
+];
+const COORD = "Bc. Marková (koordinátorka MDT)";
+const USERS = ["MUDr. Svobodová", "MUDr. Novák", "MUDr. Procházka", COORD];
+
+const STATUS = {
+  new: ["Nový", "st-new"], scheduled: ["Naplánován", "st-scheduled"], attention: ["Vyžaduje pozornost", "st-attention"],
+  ready: ["Připraven", "st-ready"], done: ["Projednán", "st-done"],
+};
+const ALERT = { missing: ["Chybí", "k-missing"], contradiction: ["Rozpor", "k-contradiction"], change: ["Změna", "k-change"], unclear: ["Nejasné", "k-unclear"] };
+
+/* Seminar days in the example week: 15-minute slots. */
+const DAYS = [["2026-10-19", "Po 19. 10."], ["2026-10-20", "Út 20. 10."], ["2026-10-21", "St 21. 10."], ["2026-10-22", "Čt 22. 10."], ["2026-10-23", "Pá 23. 10."]];
+const SEMINARS = { "2026-10-20": ["08:00", "09:00", "Neuroonkologický seminář"], "2026-10-22": ["08:00", "10:00", "Neuroonkologický seminář"] };
+const TIMES = []; for (let h = 7; h < 11; h++) for (const m of [0, 15, 30, 45]) TIMES.push(`${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`);
+
+/* Patients: identity from the documents; owner, department and slot are example values where the documents are silent. */
+const extraOthers = Object.fromEntries((EXTRA.others || []).map(o => [o.file, o]));
+const nr = file => String(file).replace("_pacient.pdf", "");
+const caseId = file => `NO-${nr(file).padStart(3, "0")}`;
+const ownerFor = i => DEPTS[i % 2 === 0 ? 1 : 0][1][i % 2];
+function initialPatients() {
+  const p10 = {
+    file: CASE.file, name: CASE.patient.name, birth: CASE.patient.birth_date || null, age: CASE.patient.age || null,
+    diagnosis: "Světlobuněčný karcinom ledviny, susp. MTS v mozečku", mkn10: CASE.diagnosis?.code || null,
+    question: CASE.mdt_question.text_cs, purpose: CASE.mdt_question.closest_source?.quote, explicit: !!CASE.mdt_question.text_cs,
+    status: "ready", slot: { day: "2026-10-22", time: "08:00" }, updated: "2026-10-16", full: true,
+  };
+  const slots = [["2026-10-22", "08:15"], ["2026-10-22", "08:30"], ["2026-10-20", "08:00"], ["2026-10-22", "08:45"], null, ["2026-10-20", "08:15"], null, ["2026-10-22", "09:00"], null];
+  const others = OTHERS.map((o, i) => {
+    const ex = extraOthers[o.file] || {};
+    const slot = slots[i] ? { day: slots[i][0], time: slots[i][1] } : null;
+    const hasQ = o.mdt_question_cs && o.mdt_question_explicit !== false;
+    return {
+      file: o.file, name: o.name,
+      birth: /\d{1,2}\.\d{1,2}\.\d{4}/.test(o.age_or_birth || "") ? o.age_or_birth.replace(/^nar\.\s*/, "") : null,
+      age: /let/.test(o.age_or_birth || "") ? o.age_or_birth : null,
+      warn: /ověřit identitu|prohozen/i.test(o.note || "") ? o.note : null,
+      diagnosis: ex.diagnosis_cs || o.main_problem_cs, mkn10: ex.mkn10 || null,
+      question: hasQ ? o.mdt_question_cs : null, purpose: o.mdt_question_cs, explicit: !!hasQ,
+      summary: o.one_line_summary_cs, pages: o.page_count,
+      referrer: ex.referring_doctor || null, dept: ex.referring_department || null,
+      status: !slot ? "new" : /ověřit identitu|useknut/i.test(o.note || "") ? "attention" : "scheduled", slot, updated: "2026-10-15",
+    };
+  });
+  return [p10, ...others].map((p, i) => ({
+    ...p, id: caseId(p.file),
+    owner: p.referrer || ownerFor(i), ownerExample: !p.referrer,
+    dept: p.dept || ["Klinická onkologie", "Neurologie", "Neurochirurgie"][i % 3], deptExample: !p.dept,
+  }));
+}
+
+const S = {
+  view: "patients", pid: CASE.file, tab: "overview", brief: "brief", user: USERS[0],
+  patients: initialPatients(), filter: "all", q: "", ownerFilter: "",
+  selTl: null, picked: new Set(["summary", "imaging", "histology", "past_treatment"]),
+  acks: {}, access: [], decisions: [], tasks: [
+    { id: 1, pid: "2_pacient.pdf", text: "Ukázková úloha: doplnit pooperační MR do podkladů", who: COORD, due: "2026-10-21", done: false },
+    { id: 2, pid: "13_pacient.pdf", text: "Ukázková úloha: vyžádat snímky MR 8/2025 ke srovnání", who: COORD, due: "2026-10-21", done: true },
+  ],
+  mails: [], protos: {}, att: Object.fromEntries(DEPTS.map(([d]) => [d, [""]])), schedPick: null, calPop: null, overlay: null, tlScroll: 0, openFind: new Set(), taskScope: "mine",
+};
+const P = id => S.patients.find(p => p.file === id);
+
+/* ---------- small UI helpers ---------- */
+const statusChip = p => `<span class="chip ${STATUS[p.status][1]}">${STATUS[p.status][0]}</span>`;
+const slotText = p => p.slot ? `${DAYS.find(d => d[0] === p.slot.day)?.[1] || p.slot.day} · ${p.slot.time}` : "nenaplánováno";
+function toast(msg) { const t = document.createElement("div"); t.className = "toast"; t.textContent = msg; document.body.appendChild(t); setTimeout(() => t.remove(), 2600); }
+function logAccess(pid, what) { S.access.unshift({ pid, what, who: S.user, when: new Date().toLocaleTimeString("cs-CZ", { hour: "2-digit", minute: "2-digit", second: "2-digit" }) }); }
+
+/* Paper-style references: each view numbers its sources [1], [2] in order of first use. */
+function refRegistry() {
+  const list = [];
+  const key = r => `${r.file}|${r.page}|${r.quote}`;
+  return {
+    list,
+    n(r) { if (!r) return ""; let i = list.findIndex(x => key(x) === key(r)); if (i < 0) { list.push(r); i = list.length - 1; } return `<button class="ref" data-src='${esc(JSON.stringify(r))}' aria-label="Zdroj ${i + 1}">[${i + 1}]</button>`; },
+    html() { return list.length ? `<ol class="refs">${list.map(r => `<li><button data-src='${esc(JSON.stringify(r))}'>${esc(docTitle(r))}, s. ${esc(r.page)}: „${esc(r.quote.length > 90 ? r.quote.slice(0, 90) + "…" : r.quote)}“</button></li>`).join("")}</ol>` : ""; },
+  };
+}
+function docTitle(r) {
+  const d = (EXTRA.documents || []).find(d => (d.pages || []).includes(r.page));
+  return d ? d.title_cs : r.file;
+}
+
+/* ---------- icons for timeline kinds ---------- */
+const ICON = {
+  imaging: '<path d="M2 5V2h3M11 2h3v3M14 11v3h-3M5 14H2v-3" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="8" cy="8" r="2.2" fill="currentColor"/>',
+  surgery: '<path d="M3 13 13 3M6 3l7 7" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>',
+  pathology: '<circle cx="8" cy="6" r="3" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8 9v4M4 14h8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>',
+  systemic: '<rect x="2.5" y="5.5" width="11" height="5" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8 5.5v5" stroke="currentColor" stroke-width="1.6"/>',
+  radiotherapy: '<circle cx="8" cy="8" r="2" fill="currentColor"/><path d="M8 1.5v2.5M8 12v2.5M1.5 8H4M12 8h2.5M3.4 3.4l1.8 1.8M10.8 10.8l1.8 1.8M3.4 12.6l1.8-1.8M10.8 5.2l1.8-1.8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>',
+  diagnosis: '<path d="M8 3v10M3 8h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
+  mdt: '<circle cx="5" cy="6" r="2" fill="currentColor"/><circle cx="11" cy="6" r="2" fill="currentColor"/><path d="M1.5 13c.5-2.5 2-3.5 3.5-3.5S8 10.5 8.5 13M7.5 13c.5-2.5 2-3.5 3.5-3.5s3 1 3.5 3.5" fill="none" stroke="currentColor" stroke-width="1.4"/>',
+  visit: '<rect x="2" y="3" width="12" height="11" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M2 6.5h12M5 1.5v3M11 1.5v3" stroke="currentColor" stroke-width="1.5"/>',
+};
+const KIND_CS = { diagnosis: "Diagnóza", imaging: "Zobrazení", surgery: "Operace", pathology: "Histologie", systemic: "Systémová léčba", radiotherapy: "Radioterapie", mdt: "MDT", visit: "Kontrola" };
+const icon = k => `<svg viewBox="0 0 16 16" aria-hidden="true">${ICON[k] || ICON.visit}</svg>`;
+
+/* ---------- navigation ---------- */
+function renderNav() {
+  const open = S.tasks.filter(t => !t.done && t.who === S.user).length;
+  const items = [["patients", "Databáze pacientů"], ["calendar", "Kalendář MDT"], ["tasks", `Moje úlohy<span class="count">${open}</span>`]];
+  document.getElementById("nav").innerHTML = items.map(([k, t]) => `<button data-nav="${k}" aria-current="${S.view === k || (k === "patients" && ["patient", "present", "protocol"].includes(S.view))}">${t}</button>`).join("");
+  document.getElementById("user").innerHTML = USERS.map(u => `<option ${u === S.user ? "selected" : ""}>${esc(u)}</option>`).join("");
+}
+
+/* ---------- 1. Patient database ---------- */
+function viewPatients() {
+  const counts = Object.fromEntries(Object.keys(STATUS).map(k => [k, S.patients.filter(p => p.status === k).length]));
+  const owners = [...new Set(S.patients.map(p => p.owner))];
+  const rows = S.patients.filter(p => (S.filter === "all" || p.status === S.filter) && (!S.ownerFilter || p.owner === S.ownerFilter)
+    && (!S.q || `${p.id} ${p.name} ${p.diagnosis} ${p.mkn10 || ""}`.toLowerCase().includes(S.q.toLowerCase())));
+  return `<div class="page">
+    <div class="pagehead"><div><h1>Databáze pacientů</h1><div class="muted small">Pacienti odeslaní k projednání na neuroonkologickém MDT</div></div>
+      <button class="btn primary" data-act="newpatient">+ Nový pacient</button></div>
+    <div class="toolbar">
+      <input class="search" id="q" placeholder="Hledat ID, jméno, diagnózu" value="${esc(S.q)}" aria-label="Hledat">
+      <button class="filter" data-filter="all" aria-pressed="${S.filter === "all"}">Vše ${S.patients.length}</button>
+      ${Object.entries(STATUS).map(([k, [t]]) => `<button class="filter" data-filter="${k}" aria-pressed="${S.filter === k}">${t} ${counts[k]}</button>`).join("")}
+      <select class="input" id="ownerf" style="width:auto" aria-label="Vlastník"><option value="">Všichni vlastníci</option>${owners.map(o => `<option ${o === S.ownerFilter ? "selected" : ""}>${esc(o)}</option>`).join("")}</select>
+    </div>
+    <div class="card" style="padding:0"><div class="scroll"><table class="tbl">
+      <thead><tr><th>ID</th><th>Pacient</th><th>Narozen / věk</th><th>Diagnóza</th><th>Vlastník</th><th>Odesílající pracoviště</th><th>Příští MDT</th><th>Stav</th><th>Aktualizace</th></tr></thead>
+      <tbody>${rows.map(p => `<tr class="click" data-open="${esc(p.file)}">
+        <td class="id">${p.id}</td><td><b>${esc(p.name)}</b>${p.warn ? ' <span class="tag ocr">ověřit identitu</span>' : ""}</td><td class="num">${esc(p.birth || (p.age ? "věk " + p.age : "–"))}</td>
+        <td>${esc(p.diagnosis)}${p.mkn10 ? ` <span class="muted small">${esc(p.mkn10)}</span>` : ""}</td>
+        <td>${esc(p.owner)}${p.ownerExample ? '<span class="ex">ukázka</span>' : ""}</td>
+        <td>${esc(p.dept)}${p.deptExample ? '<span class="ex">ukázka</span>' : ""}</td>
+        <td class="num">${p.slot ? esc(slotText(p)) : `<button class="linkbtn" data-sched="${esc(p.file)}">Naplánovat</button>`}</td>
+        <td>${statusChip(p)}</td><td class="num muted">${fmtDate(p.updated)}</td></tr>`).join("") || `<tr><td colspan="9" class="muted">Žádný pacient neodpovídá filtru.</td></tr>`}</tbody>
+    </table></div></div>
+    <p class="muted small">Vlastník případu je odesílající lékař. Hodnoty označené „ukázka“ (vlastník, pracoviště, termín) v dokumentech nejsou a slouží jen pro maketu. „–“ u data narození: ${GAP}.</p>
+  </div>`;
+}
+
+/* ---------- 2. MDT calendar ---------- */
+function viewCalendar() {
+  const unscheduled = S.patients.filter(p => !p.slot || p.file === S.schedPick);
+  const byslot = {}; S.patients.forEach(p => { if (p.slot) byslot[`${p.slot.day} ${p.slot.time}`] = p; });
+  const inSem = (day, t) => { const s = SEMINARS[day]; return s && t >= s[0] && t < s[1]; };
+  let cells = `<div></div>${DAYS.map(([d, l]) => `<div class="dh">${l}<small>${SEMINARS[d] ? esc(SEMINARS[d][2]) : "&nbsp;"}</small></div>`).join("")}`;
+  for (const t of TIMES) {
+    cells += `<div class="tm">${t.endsWith(":00") ? t : ""}</div>`;
+    for (const [d] of DAYS) {
+      const p = byslot[`${d} ${t}`];
+      const sem = inSem(d, t);
+      let inner = "";
+      if (p) inner = `<button class="slotbtn taken" data-slot="${d} ${t}" aria-label="${p.id}, ${t}"><span class="dot" style="background:var(--${{ new: "muted", scheduled: "change", attention: "missing", ready: "ok", done: "accent" }[p.status]})"></span>${p.id}</button>`;
+      else if (sem) inner = `<button class="slotbtn free ${S.schedPick ? "target" : ""}" data-free="${d} ${t}" aria-label="Volný termín ${t}">${S.schedPick ? "+ sem" : ""}</button>`;
+      cells += `<div class="cell ${sem ? "sem" : ""}">${inner}</div>`;
+    }
+  }
+  const pop = S.calPop && P(S.calPop);
+  return `<div class="page">
+    <div class="pagehead"><div><h1>Kalendář MDT</h1><div class="muted small">Týden 19. až 23. 10. 2026 (ukázkový) · sloty po 15 minutách · ve slotu jen ID případu</div></div>
+      <div class="row"><button class="btn small" disabled>‹ Předchozí týden</button><button class="btn small" disabled>Další týden ›</button></div></div>
+    <div class="calwrap">
+      <div class="scroll"><div class="cal">${cells}</div></div>
+      <div class="stack">
+        ${pop ? `<div class="popover"><div class="row spread"><span class="id" style="font-weight:800">${pop.id}</span>${statusChip(pop)}</div>
+          <h2 style="margin-top:6px">${esc(pop.name)}</h2><div class="muted small">${esc(slotText(pop))} · ${esc(pop.owner)}${pop.ownerExample ? " (ukázka)" : ""}</div>
+          <p class="small" style="margin:8px 0">${esc(pop.diagnosis)}</p>
+          <div class="row"><button class="btn primary small" data-open="${esc(pop.file)}">Otevřít případ</button><button class="btn small" data-unsched="${esc(pop.file)}">Uvolnit termín</button></div></div>` : ""}
+        <div class="card"><div class="head"><h2>Nenaplánovaní (${unscheduled.length})</h2></div>
+          ${S.schedPick ? `<p class="small" style="margin:0 0 8px">Vyberte volný slot pro <b>${esc(P(S.schedPick).id)}</b> v kalendáři. <button class="linkbtn" data-act="cancelsched">Zrušit</button></p>` : `<p class="muted small" style="margin:0 0 8px">Vyberte pacienta a pak volný slot semináře.</p>`}
+          <div class="tasklist">${unscheduled.map(p => `<div class="row spread"><span><b>${p.id}</b> <span class="muted small">${esc(p.diagnosis)}</span></span>
+            <button class="btn small ${S.schedPick === p.file ? "primary" : ""}" data-pick="${esc(p.file)}">${S.schedPick === p.file ? "Vybráno" : p.slot ? "Přesunout" : "Naplánovat"}</button></div>`).join("") || `<span class="muted small">Všichni pacienti mají termín.</span>`}</div>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+/* ---------- 3. Patient detail ---------- */
+function patientHeader(p, extraActions = "") {
+  return `<div class="card"><div class="phead">
+      <div><div class="row"><span class="label">${p.id}</span>${statusChip(p)}</div>
+        <h1 style="margin-top:4px">${esc(p.name)}</h1>
+        ${p.warn ? `<div class="question missing" style="margin:8px 0 0;padding:6px 10px"><b>Ověřit identitu:</b> ${esc(p.warn)}</div>` : ""}
+        <div class="facts"><span>${p.birth ? `Narozen: <b>${esc(p.birth)}</b>` : p.age ? `Věk: <b>${esc(p.age)}</b>` : `Narozen: <b>${GAP}</b>`}</span><span>Diagnóza: <b>${esc(p.diagnosis)}</b>${p.mkn10 ? ` (${esc(p.mkn10)})` : ""}</span>
+          <span>Vlastník: <b>${esc(p.owner)}</b>${p.ownerExample ? '<span class="ex">ukázka</span>' : ""}</span><span>Pracoviště: <b>${esc(p.dept)}</b>${p.deptExample ? '<span class="ex">ukázka</span>' : ""}</span><span>Příští MDT: <b>${esc(slotText(p))}</b></span></div></div>
+      <div class="row">${extraActions}</div>
+    </div>
+    <div class="question ${p.explicit ? "" : "missing"}" style="margin-top:14px"><span class="label">Otázka pro MDT</span>
+      <p>${p.explicit ? esc(p.question) : `<b>Výslovná otázka ${GAP_F}.</b> ${p.purpose ? `Účel dle dokumentu: „${esc(p.purpose)}“` : ""}`}</p></div>
+  </div>`;
+}
+function topAlerts() {
+  const all = CASE.flags.map((f, i) => ({ ...f, i }));
+  return { top: all.filter(f => f.relevant), all };
+}
+function summaryCard(reg, inPresent) {
+  const brief = EXTRA.onco_brief_cs
+    ? `<p class="prose">${esc(EXTRA.onco_brief_cs).replace(/\[(\d+)\]/g, (m, n) => reg.n((EXTRA.onco_brief_refs || [])[n - 1]))}</p>`
+    : `<p class="prose">${CASE.summary.filter(s => (s.level || 3) <= 2).map(s => esc(s.text_cs) + (s.sources || []).slice(0, 2).map(r => reg.n(r)).join("")).join(" ")}</p>`;
+  const detailed = EXTRA.onco_detailed
+    ? `<dl class="dl">${EXTRA.onco_detailed.map(l => `<dt>${esc(l.label_cs)}:</dt><dd>${esc(l.text_cs)}${(l.refs || []).map(i => reg.n((EXTRA.refs || [])[i])).join("")}</dd>`).join("")}</dl>`
+    : `<dl class="dl">${CASE.timeline.filter(e => e.date_sort).map(e => `<dt>${esc(e.date)}:</dt><dd>${esc(e.label_cs)}${reg.n(e.source)}</dd>`).join("")}</dl>`;
+  return `<section class="card"><div class="head"><h2>${inPresent ? "Shrnutí (30 až 60 s)" : "Onkologický souhrn"}</h2>
+      ${inPresent ? `<label class="small muted"><input type="checkbox" data-pickrep="summary" ${S.picked.has("summary") ? "checked" : ""}> do reportu</label>` : ""}
+      <span class="seg" role="group" aria-label="Úroveň detailu"><button data-brief="brief" aria-pressed="${S.brief === "brief"}">MDT brief</button><button data-brief="detailed" aria-pressed="${S.brief === "detailed"}">Detailní</button></span></div>
+    ${S.brief === "brief" ? brief : detailed}
+    ${reg.html()}
+    <div class="disclaim">Sestaveno asistentem jen z údajů v dokumentech; číslo v hranatých závorkách otevře původní text.</div></section>`;
+}
+function alertsStrip() {
+  const { top, all } = topAlerts();
+  const open = top.filter(f => !S.acks[f.i]);
+  return `<section class="card"><div class="head"><h2>Upozornění k dotazu na MDT</h2>
+      <button class="linkbtn" data-tab="alerts">Všechna upozornění (${all.length})</button></div>
+    <div class="alerts">${top.map(f => alertRow(f, true)).join("")}</div>
+    ${open.length === 0 ? `<p class="muted small" style="margin:8px 0 0">Vše vzato na vědomí.</p>` : ""}
+    <div class="disclaim">Pozorování asistenta, ne klinický závěr. Upozornění neblokují projednání.</div></section>`;
+}
+function alertRow(f, compact) {
+  const ack = S.acks[f.i];
+  return `<div class="alert ${ack ? "ack" : ""}"><span class="chip plain ${ALERT[f.kind][1]}">${ALERT[f.kind][0]}</span>
+    <span>${esc(f.text_cs)} ${(f.based_on || []).slice(0, 2).map(r => `<button class="linkbtn small" data-src='${esc(JSON.stringify(r))}'>zdroj</button>`).join(" ")}
+      ${!compact && f.note ? `<span class="why">${esc(f.note)}</span>` : ""}${ack ? `<span class="why">Vzal(a) na vědomí ${esc(ack)}</span>` : ""}</span>
+    ${ack ? "" : `<button class="btn small" data-ack="${f.i}">Vzít na vědomí</button>`}</div>`;
+}
+function timelineCard() {
+  const cards = (EXTRA.timeline_cards || CASE.timeline.filter(e => e.date_sort).map(e => ({ date: e.date, date_sort: e.date_sort, kind: e.type === "histology" ? "pathology" : e.type, title_cs: e.label_cs.slice(0, 40), text_cs: e.label_cs, detail_cs: e.label_cs, status: e.status || "done", source: e.source })))
+    .map((c, i) => ({ ...c, i })).sort((a, b) => (a.date_sort ? 0 : 1) - (b.date_sort ? 0 : 1) || String(a.date_sort).localeCompare(String(b.date_sort)));
+  let lastYear = null, html = "";
+  for (const c of cards) {
+    const y = c.date_sort ? String(c.date_sort).slice(0, 4) : "Bez data";
+    if (y !== lastYear) { html += `<div class="tlyear"><span>${y}</span></div>`; lastYear = y; }
+    html += `<button class="ev kind-${esc(c.kind)} ${c.status === "planned" ? "planned" : ""}" data-tl="${c.i}" aria-pressed="${S.selTl === c.i}">
+      <span class="date">${esc(c.date || "datum " + GAP)}${c.status === "planned" ? " · plán" : ""}</span><span class="pin">${icon(c.kind)}</span>
+      <span class="t">${esc(c.title_cs)}</span><span class="d">${esc(c.text_cs)}</span></button>`;
+  }
+  const sel = cards.find(c => c.i === S.selTl);
+  return `<section class="card"><div class="head"><h2>Průběh onemocnění</h2><span class="muted small">Posuňte vodorovně · klikněte na událost pro detail</span></div>
+    <div class="tlbar"><div class="tltrack">${html}</div></div>
+    ${sel ? `<div class="evdetail"><div class="row"><span class="chip plain kind-${esc(sel.kind)}" style="background:var(--sunk)">${KIND_CS[sel.kind] || sel.kind}</span><b>${esc(sel.date || "datum " + GAP)} · ${esc(sel.title_cs)}</b>${sel.status === "planned" ? '<span class="tag k-unclear">plánováno</span>' : ""}</div>
+      <p style="margin:4px 0">${esc(sel.detail_cs || sel.text_cs)}</p>
+      <div><button class="btn small" data-src='${esc(JSON.stringify(sel.source))}'>Otevřít původní dokument</button></div></div>` : ""}</section>`;
+}
+function tabOverview() {
+  const reg = refRegistry();
+  return `<div class="grid2"><div class="stack">${summaryCard(reg)}</div><div class="stack">${alertsStrip()}</div></div>${timelineCard()}`;
+}
+const ANAM = [["OA", "Osobní anamnéza"], ["RA", "Rodinná anamnéza"], ["PA", "Pracovní anamnéza"], ["SA", "Sociální anamnéza"], ["FA", "Farmakologická anamnéza"], ["AA", "Alergologická anamnéza"], ["abusus", "Abúzus"], ["EA", "Epidemiologická anamnéza"], ["preventive", "Preventivní vyšetření"]];
+function tabAnamnesis() {
+  const reg = refRegistry();
+  const A = EXTRA.anamnesis || { OA: CASE.sections.comorbidities, FA: CASE.sections.medication };
+  const item = f => `<li>${f.date ? `<span class="muted num">${esc(f.date)}:</span> ` : ""}${esc(f.text_cs)}${tags(f)}${reg.n(f.source)}${f.note_cs ? `<span class="note">${esc(f.note_cs)}</span>` : ""}</li>`;
+  const py = A.abusus && EXTRA.anamnesis?.abusus_pack_years;
+  return `<section class="card"><div class="head"><h2>Anamnéza</h2><span class="muted small">Strukturováno z volného textu; prázdné oddíly: ${GAP}</span></div>
+    <div class="anam">${ANAM.map(([k, t]) => `<div>${t} <span class="muted small">(${k === "abusus" ? "Ab" : k === "preventive" ? "Prev" : k})</span></div>
+      <div>${(A[k] || []).length ? `<ul>${A[k].map(item).join("")}</ul>` : `<span class="gap">${GAP}</span>`}
+      ${k === "abusus" ? packYears(A) : ""}</div>`).join("")}</div>
+    ${reg.html()}</section>`;
+}
+function packYears(A) {
+  const py = (A.abusus || []).find(x => x.pack_years)?.pack_years || EXTRA.anamnesis?.pack_years || A.pack_years;
+  if (!py) return `<div class="small muted" style="margin-top:6px">Balíčkoroky: nelze spočítat, ${GAP} (počet cigaret denně a délka kouření).</div>`;
+  return `<div class="small" style="margin-top:6px">Balíčkoroky: ${py.value != null ? `<b>${esc(py.value)}</b> ` : ""}<span class="muted">${esc(py.note_cs || "")}</span> <span class="muted">(cigarety denně / 20 × roky kouření; při změně intenzity po obdobích)</span></div>`;
+}
+function tabDocuments() {
+  const docs = EXTRA.documents || [{ title_cs: CASE.file, type: "jiné", date: null, pages: CASE.full_text_by_page.map(p => p.page), readability: "fair", reason_cs: "OCR text s chybami" }];
+  const R = { good: ["Dobře čitelné", "st-ready"], fair: ["Částečně čitelné", "st-attention"], poor: ["Špatně čitelné", "k-contradiction"] };
+  return `<div class="grid2"><section class="card"><div class="head"><h2>Dokumenty (${docs.length})</h2><span class="muted small">Zdroj: ${esc(CASE.file)}, ${CASE.page_count} stran</span></div>
+    ${EXTRA.documents_note_cs ? `<div class="question missing" style="margin-bottom:10px"><span class="label">Chybí originály</span><p style="font-size:14px">${esc(EXTRA.documents_note_cs)}</p></div>` : ""}
+    <div class="scroll"><table class="tbl"><thead><tr><th>Dokument</th><th>Typ</th><th>Datum</th><th>Strany</th><th>Čitelnost</th><th></th></tr></thead>
+    <tbody>${docs.map(d => `<tr><td><b>${esc(d.title_cs)}</b>${d.embedded_in_cs ? `<span class="note">Jen citováno v: ${esc(d.embedded_in_cs)}; originál nenahrán</span>` : ""}</td><td>${esc(d.type)}</td><td class="num">${esc(d.date || GAP)}${d.date_note_cs ? `<span class="note">${esc(d.date_note_cs)}</span>` : ""}</td><td class="num">${esc((d.pages || []).join(", "))}</td>
+      <td><span class="chip ${R[d.readability]?.[1] || "st-new"}">${R[d.readability]?.[0] || d.readability}</span><div class="muted small">${esc(d.reason_cs || "")}</div></td>
+      <td><button class="btn small" data-src='${esc(JSON.stringify({ file: CASE.file, page: (d.pages || [1])[0] }))}'>Otevřít</button></td></tr>`).join("")}</tbody></table></div></section>
+    <div class="stack"><section class="card"><div class="head"><h2>Zpracování</h2></div>
+      <ul class="pipeline"><li>✓ Nahráno</li><li>✓ Kontrola čitelnosti</li><li class="wait">Pseudonymizace (ukázka)</li><li>✓ Extrakce</li><li>✓ Kontrola úplnosti</li></ul>
+      <p class="small" style="margin:10px 0 0">Do jazykového modelu jde jen pseudonymizovaný text: jméno a rodné číslo nahradí ID <b>${esc(P(S.pid).id)}</b>, převodní tabulka zůstává na serveru nemocnice.</p></section>
+      <section class="card"><div class="head"><h2>Nahrát dokument</h2></div><div class="drop">Přetáhněte PDF, DOCX nebo fotografii zprávy<br><span class="small">Po nahrání proběhne kontrola čitelnosti; při špatné kvalitě aplikace požádá o lepší kopii.</span></div></section></div></div>`;
+}
+function tabLabs() {
+  return `<section class="card"><div class="head"><h2>Laboratoř</h2></div>
+    <p class="small" style="margin:0 0 10px">${esc(CASE.labs_note_cs)}</p>
+    <div class="scroll"><table class="tbl"><thead><tr><th>Parametr</th><th>Hodnota</th><th>Jednotka</th><th>Referenční mez</th><th>Datum odběru</th><th>Zdroj</th></tr></thead>
+    <tbody>${CASE.labs.map(l => `<tr><td>${esc(l.name_cs)} <span class="muted small">${esc(l.code || "")}</span>${tags(l)}</td>
+      <td class="num" style="${l.out_of_range ? `color:var(--${l.out_of_range === "high" ? "conflict" : "change"});font-weight:700` : ""}">${esc(l.value)} ${l.out_of_range === "high" ? "↑" : l.out_of_range === "low" ? "↓" : ""}</td>
+      <td>${esc(l.unit)}</td><td class="num">${esc(l.reference_range)}</td><td class="muted">${esc(l.date || GAP)}</td>
+      <td><button class="linkbtn small" data-src='${esc(JSON.stringify(l.source))}'>s. ${esc(l.source.page)}</button></td></tr>`).join("")}</tbody></table></div>
+    <p class="muted small" style="margin:10px 0 0">Graf vývoje se zobrazí, až budou k dispozici alespoň dvě datované sady.</p></section>`;
+}
+function tabAlerts() {
+  const { all } = topAlerts();
+  const groups = ["contradiction", "missing", "change", "unclear"];
+  return `<section class="card"><div class="head"><h2>Všechna upozornění (${all.length})</h2><span class="muted small">Pozorování asistenta, ne klinický závěr. Upozornění neblokují projednání.</span></div>
+    ${groups.map(g => { const items = all.filter(f => f.kind === g); return items.length ? `<h3 style="margin:14px 0 6px">${ALERT[g][0]} (${items.length})</h3><div class="alerts">${items.map(f => alertRow(f, false)).join("")}</div>` : ""; }).join("")}</section>`;
+}
+function tabCompare() {
+  return `<section class="card"><div class="head"><h2>Srovnání MR</h2><span class="chip plain st-new">Plánovaná funkce</span></div>
+    <div class="grid2" style="grid-template-columns:1fr 1fr">
+      <div class="drop" style="min-height:220px;display:grid;place-items:center"><div><b>MR mozku 14. 9. 2026</b><br><span class="small">K dispozici jen závěr, snímky nenahrány</span></div></div>
+      <div class="drop" style="min-height:220px;display:grid;place-items:center"><div><b>Předchozí MR mozku</b><br><span class="small">V podkladech nenalezeno</span></div></div></div>
+    <p class="muted small" style="margin:10px 0 0">Dvě vyšetření vedle sebe (vlevo aktuální, vpravo předchozí) s popisy a napojením na PACS. V maketě jen rozvržení.</p></section>`;
+}
+function tabHistory() {
+  const p = P(S.pid);
+  const dec = S.decisions.filter(d => d.pid === p.file);
+  return `<div class="grid2"><section class="card"><div class="head"><h2>Závěry MDT</h2><span class="muted small">Historie se jen doplňuje; nový závěr nahradí předchozí</span></div>
+    <ul class="hist">${dec.map((d, i) => `<li class="${i < dec.length - 1 ? "old" : ""}"><div class="row spread"><b>Závěr č. ${i + 1}</b><span class="chip ${i < dec.length - 1 ? "st-new" : "st-done"}">${i < dec.length - 1 ? `nahrazen č. ${i + 2}` : "platný"}</span></div>
+      <div class="muted small">${esc(d.when)} · schválil(a) ${esc(d.by)}</div><p style="margin:6px 0 0">${esc(d.text)}</p></li>`).reverse().join("") || `<li class="muted">Pacient zatím nebyl na MDT projednán. Předchozí závěry MDT v dostupné dokumentaci nenalezeny.</li>`}</ul></section>
+    <section class="card"><div class="head"><h2>Záznam přístupů</h2></div>
+      <ul class="hist">${S.access.filter(a => a.pid === p.file).slice(0, 12).map(a => `<li class="small"><b>${esc(a.who)}</b> · ${esc(a.what)} · <span class="muted">${esc(a.when)}</span></li>`).join("")}</ul></section></div>`;
+}
+function viewPatient() {
+  const p = P(S.pid);
+  if (!p.full) return viewPatientLite(p);
+  const tabs = [["overview", "Přehled"], ["anamnesis", "Anamnéza"], ["documents", "Dokumenty"], ["labs", "Laboratoř"], ["alerts", `Upozornění<span class="n">${CASE.flags.length}</span>`], ["compare", "Srovnání MR"], ["history", "Historie"]];
+  const body = { overview: tabOverview, anamnesis: tabAnamnesis, documents: tabDocuments, labs: tabLabs, alerts: tabAlerts, compare: tabCompare, history: tabHistory }[S.tab]();
+  return `<div class="page">
+    <div class="row"><button class="linkbtn" data-nav="patients">‹ Databáze pacientů</button></div>
+    ${patientHeader(p, `<button class="btn" data-sched="${esc(p.file)}">${p.slot ? "Změnit termín" : "Naplánovat"}</button><button class="btn" data-go="protocol">Protokol MDT</button><button class="btn primary" data-go="present">Prezentovat na MDT</button>`)}
+    <div class="tabs" role="tablist">${tabs.map(([k, t]) => `<button class="tab" role="tab" data-tab="${k}" aria-selected="${S.tab === k}">${t}</button>`).join("")}</div>
+    ${body}</div>`;
+}
+function viewPatientLite(p) {
+  return `<div class="page"><div class="row"><button class="linkbtn" data-nav="patients">‹ Databáze pacientů</button></div>
+    ${patientHeader(p, `<button class="btn" data-sched="${esc(p.file)}">${p.slot ? "Změnit termín" : "Naplánovat"}</button>`)}
+    <section class="card"><div class="head"><h2>Stručný přehled</h2><span class="chip plain st-new">V maketě nezpracováno</span></div>
+      <p class="prose">${esc(p.summary || "")}</p>
+      <p class="muted small">Plně zpracovaný je v maketě případ NO-010. Zdroj: ${esc(p.file)}, ${p.pages || "?"} s.</p></section></div>`;
+}
+
+/* ---------- 4. MDT presentation (projector) ---------- */
+const FIND = [["clinical_finding", "Klinický nález"], ["imaging", "Zobrazovací vyšetření"], ["histology", "Histologie"], ["past_treatment", "Prodělaná léčba"], ["current_state", "Aktuální stav"]];
+function viewPresent() {
+  const p = P(S.pid);
+  const agenda = S.patients.filter(x => x.slot && x.slot.day === (p.slot?.day || "2026-10-22")).sort((a, b) => a.slot.time.localeCompare(b.slot.time));
+  const reg = refRegistry();
+  const finds = FIND.map(([k, t]) => { const items = CASE.sections[k] || []; return `<details class="find" data-find="${k}" ${S.openFind.has(k) ? "open" : ""}><summary><span class="ttl">${t}</span><span class="cnt">${items.length || GAP}</span>
+      <label class="pick" onclick="event.stopPropagation()"><input type="checkbox" data-pickrep="${k}" ${S.picked.has(k) ? "checked" : ""}> do reportu</label></summary>
+      <ul>${items.map(f => `<li><span class="dt">${esc(f.date || "")}</span>${esc(f.text_cs)}${tags(f)}${reg.n(f.source)}${f.certainty !== "documented" && f.note ? `<span class="note">${esc(f.note)}</span>` : ""}</li>`).join("")}</ul></details>`; }).join("");
+  return `<div class="present"><div class="page">
+    <div class="row spread"><div class="agenda" aria-label="Pořadí na semináři">${agenda.map(a => `<button data-present="${esc(a.file)}" aria-current="${a.file === p.file}">${a.slot.time} · ${a.id}</button>`).join("")}</div>
+      <div class="row"><button class="btn" data-go="patient">Zavřít prezentaci</button><button class="btn primary" data-go="protocol">Protokol MDT ›</button></div></div>
+    ${p.full ? `${patientHeader(p)}
+    <div class="grid2"><div class="stack">${summaryCard(reg, true)}</div>
+      <div class="stack">${finds}</div></div>
+    ${timelineCard()}` : `${patientHeader(p)}<section class="card"><p class="prose">${esc(p.summary || "")}</p><p class="muted small">V maketě nezpracováno.</p></section>`}
+  </div></div>`;
+}
+
+/* ---------- 5. MDT protocol ---------- */
+/* One protocol per patient; attendance belongs to the whole seminar, so it is entered once. */
+function ensureProto(p) {
+  if (!S.protos[p.file]) S.protos[p.file] = { pid: p.file, mode: "manual", notes: "", concl: "", steps: [], state: "draft" };
+  return S.protos[p.file];
+}
+const presentList = () => Object.values(S.att).flat().filter(Boolean);
+const isDoctor = u => u.startsWith("MUDr.");
+function viewProtocol() {
+  const p = P(S.pid), pr = ensureProto(p);
+  const present = presentList();
+  const locked = pr.state === "approved";
+  const named = pr.steps.filter(x => x.text.trim());
+  const stepsDone = [!!pr.concl.trim(), named.length > 0, locked];
+  const assignees = [COORD, p.owner, ...present].filter((v, i, a) => a.indexOf(v) === i);
+  const canApprove = isDoctor(S.user) && present.includes(S.user);
+  const versions = S.decisions.filter(d => d.pid === p.file).length;
+  return `<div class="page">
+    <div class="row spread"><button class="linkbtn" data-go="patient">‹ ${esc(p.id)} · ${esc(p.name)}</button>
+      <span class="chip ${locked ? "st-done" : "st-scheduled"}">${locked ? "Schváleno" : versions ? `Koncept nového závěru (předchozí: č. ${versions})` : "Probíhá · koncept"}</span></div>
+    <div class="pagehead"><div><h1>Protokol MDT</h1><div class="muted small">${esc(slotText(p))} · Neuroonkologický seminář</div></div>
+      <div class="row"><button class="btn" data-go="present">‹ Zpět do prezentace</button>${locked ? `<button class="btn" data-act="newversion">Nový závěr (nahradí platný)</button>` : ""}</div></div>
+    <div class="grid2"><div class="stack">
+      <section class="card"><div class="head"><h2>Přítomní na semináři</h2><span class="row"><span class="muted small">${plural(present.length, "lékař", "lékaři", "lékařů")}</span><button class="btn small" data-act="copyatt">Kopírovat</button></span></div>
+        <div class="att">${DEPTS.map(([d, docs]) => S.att[d].map((v, k) => `<span class="dept">${k === 0 ? d : ""}</span>
+          <select class="input" data-att="${esc(d)}" data-k="${k}" aria-label="${esc(d)}"><option value="">${k === 0 ? "nepřítomen" : "odebrat"}</option>${docs.map(x => `<option ${v === x ? "selected" : ""} ${S.att[d].includes(x) && v !== x ? "disabled" : ""}>${esc(x)}</option>`).join("")}</select>
+          ${k === 0 ? `<button class="btn small" data-addatt="${esc(d)}" ${S.att[d].length >= docs.length ? "disabled" : ""}>+ další</button>` : "<span></span>"}`).join("")).join("")}</div>
+        <p class="muted small" style="margin:10px 0 0">Platí pro celý seminář. Jména jsou smyšlená; v reálné aplikaci se personál spravuje v nastavení pracoviště.</p></section>
+      <section class="card"><div class="head"><h2>Záznam diskuse</h2></div>
+        <div class="seg2" role="group"><button data-mode="manual" aria-pressed="${pr.mode === "manual"}">Ruční poznámky</button><button data-mode="ai" aria-pressed="${pr.mode === "ai"}">AI záznam</button></div>
+        ${pr.mode === "manual" ? `<label class="label" for="notes" style="display:block;margin:12px 0 6px">Průběžné poznámky</label>
+          <textarea class="input" id="notes" placeholder="Poznámky z diskuse" ${locked ? "disabled" : ""}>${esc(pr.notes)}</textarea>`
+        : `<div class="rec"><b>AI záznam diskuse</b><span class="small muted">Se souhlasem účastníků systém zaznamená zvuk a připraví návrh závěru a dalších kroků k potvrzení lékařem. Vyžaduje souhlas FNO se službou přepisu.</span>
+          <span class="chip plain st-new">Plánovaná funkce</span><span class="small muted">Tato ukázka zvuk nezaznamenává.</span></div>`}
+      </section>
+      <section class="card"><div class="head"><h2>Závěr MDT</h2><span class="muted small">Píše lékař; asistent závěr nenavrhuje</span></div>
+        <textarea class="input" id="concl" placeholder="Závěr a další postup" ${locked ? "disabled" : ""}>${esc(pr.concl)}</textarea></section>
+      <section class="card"><div class="head"><h2>Další kroky</h2><span class="row"><span class="muted small">${plural(named.length, "úloha", "úlohy", "úloh")}</span><button class="btn small" data-act="copytasks" ${named.length ? "" : "disabled"}>Kopírovat úlohy</button></span></div>
+        <div class="tasklist">${pr.steps.map((x, i) => `<div class="task"><input class="input" data-step="${i}" data-f="text" value="${esc(x.text)}" placeholder="Úloha" ${locked ? "disabled" : ""}>
+          <select class="input" data-step="${i}" data-f="who" ${locked ? "disabled" : ""}>${assignees.map(a => `<option ${x.who === a ? "selected" : ""}>${esc(a)}</option>`).join("")}</select>
+          <input class="input" type="date" data-step="${i}" data-f="due" value="${esc(x.due)}" ${locked ? "disabled" : ""}>
+          ${locked ? "" : `<button class="btn small" data-delstep="${i}" aria-label="Odebrat úlohu">✕</button>`}</div>`).join("")}</div>
+        ${locked ? "" : `<button class="btn small" data-act="addstep" style="margin-top:10px">+ Přidat úlohu</button>`}</section>
+    </div><div class="stack">
+      <section class="card"><div class="head"><h2>Po diskusi</h2></div>
+        <ol class="steps">
+          <li><span class="s ${stepsDone[0] ? "done" : ""}">1</span><span><b>Závěr MDT</b><br><span class="muted small">Zapsaný lékařem</span></span></li>
+          <li><span class="s ${stepsDone[1] ? "done" : ""}">2</span><span><b>Další kroky a odpovědnosti</b><br><span class="muted small">Úlohy s odpovědnou osobou a termínem</span></span></li>
+          <li><span class="s ${stepsDone[2] ? "done" : ""}">3</span><span><b>Kontrola a schválení lékařem</b><br><span class="muted small">Až po schválení vzniknou úlohy a report</span></span></li></ol>
+        ${locked ? `<p class="small" style="margin:12px 0 0">Schválil(a) <b>${esc(pr.approver)}</b> · ${esc(pr.when)}</p>` : `
+        <p class="small" style="margin:14px 0 6px">Schvaluje přihlášený lékař, který je označen jako přítomný: <b>${esc(S.user)}</b></p>
+        <button class="btn primary" data-act="approve" style="width:100%" ${stepsDone[0] && canApprove ? "" : "disabled"}>Schválit závěr jako ${esc(S.user)}</button>
+        <p class="muted small" style="margin:8px 0 0">${!stepsDone[0] ? "Nejdřív zapište závěr. " : ""}${!isDoctor(S.user) ? "Závěr schvaluje lékař; koordinátorka schvalovat nemůže. " : !present.includes(S.user) ? "Označte se jako přítomný(á) v seznamu přítomných. " : ""}</p>`}
+      </section>
+      ${locked ? `<section class="card"><div class="head"><h2>Odeslané upozornění</h2></div>${S.mails.filter(m => m.pid === p.file).map(mailHtml).join("") || `<p class="muted small">Bez úloh, upozornění se neodesílá.</p>`}</section>` : ""}
+      <section class="card"><div class="head"><h2>Report (PDF)</h2><button class="btn small" disabled title="V maketě není">Stáhnout PDF</button></div><div id="report">${reportHtml(p, pr, present)}</div></section>
+    </div></div></div>`;
+}
+function mailHtml(m) {
+  return `<div class="mail"><div class="row"><b>✉ MDT – nové úlohy ke zpracování</b></div><p class="small" style="margin:6px 0">Komu: ${esc(COORD)}</p>
+    <p style="margin:0">K případu ${esc(m.id)} ${m.n === 1 ? "byla přiřazena 1 nová úloha" : m.n <= 4 ? `byly přiřazeny ${m.n} nové úlohy` : `bylo přiřazeno ${m.n} nových úloh`}. Otevřete zabezpečenou aplikaci MDT Workspace a potvrďte převzetí.</p>
+    <p style="margin:6px 0 0">Odkaz: <span class="num">https://mdt.fno.local/pripad/${esc(m.id)}</span> <span class="muted small">(ukázková interní adresa)</span></p>
+    <p class="muted small" style="margin:6px 0 0">E-mail obsahuje jen ID případu a odkaz, žádné zdravotní údaje.</p></div>`;
+}
+function reportHtml(p, pr, present) {
+  const reg = refRegistry();
+  const refTxt = r => r ? ` [${reg.n(r).replace(/<[^>]+>/g, "").replace(/[\[\]]/g, "")}]` : "";
+  const line = f => `<li>${f.date ? esc(f.date) + ": " : ""}${esc(f.text_cs)}${esc(tagsText(f))}<span class="src">${refTxt(f.source)}</span></li>`;
+  const A = EXTRA.anamnesis || {};
+  const anamLines = ANAM.filter(([k]) => (A[k] || []).length).map(([k, t]) => `<li><b>${t}:</b> ${A[k].map(f => esc(f.text_cs) + esc(tagsText(f)) + `<span class="src">${refTxt(f.source)}</span>`).join("; ")}</li>`).join("");
+  const brief = EXTRA.onco_brief_cs ? esc(EXTRA.onco_brief_cs).replace(/\[(\d+)\]/g, (m, n) => `<span class="src">${refTxt((EXTRA.onco_brief_refs || [])[n - 1])}</span>`) : esc(CASE.summary.map(x => x.text_cs).join(" "));
+  return `<article class="sheet">
+    <div class="hdr"><div><b>Fakultní nemocnice Ostrava</b><br>Protokol neuroonkologického MDT (maketa)</div><div>${esc(slotText(p))}</div></div>
+    <h4>Pacient</h4><p>${esc(p.name)} · ${p.birth ? "narozen: " + esc(p.birth) : p.age ? "věk: " + esc(p.age) : "narozen: " + GAP} · ID ${esc(p.id)}</p>
+    <h4>Anamnéza</h4>${anamLines ? `<ul>${anamLines}</ul>` : `<p>${GAP}</p>`}
+    ${S.picked.has("summary") ? `<h4>Onkologický souhrn (sestavil asistent)</h4><p>${brief}</p>` : ""}
+    ${FIND.filter(([k]) => S.picked.has(k)).map(([k, t]) => `<h4>${t}</h4><ul>${(CASE.sections[k] || []).map(line).join("") || `<li>${GAP}</li>`}</ul>`).join("")}
+    <h4>Přítomní</h4><p>${esc(present.join(", ") || "nezadáno")}</p>
+    <h4>Dotaz</h4><p>${esc(p.explicit ? p.question : `Výslovná otázka ${GAP_F}. Účel dle dokumentu: ${p.purpose || ""}`)}</p>
+    <h4>Závěr</h4><p id="rep-concl">${esc(pr.concl || "Zatím nezapsán.")}</p>
+    <h4>Další kroky</h4>${pr.steps.filter(x => x.text.trim()).length ? `<ul>${pr.steps.filter(x => x.text.trim()).map(x => `<li>${esc(x.text)} · ${esc(x.who)} · do ${esc(fmtDate(x.due))}</li>`).join("")}</ul>` : "<p>Žádné.</p>"}
+    <h4>Schválení</h4><p>${pr.state === "approved" ? `${esc(pr.approver)}, ${esc(pr.when)}` : "Koncept, zatím neschváleno."}</p>
+    ${reg.list.length ? `<h4>Zdroje</h4><ol class="src">${reg.list.map(r => `<li>${esc(docTitle(r))}, s. ${esc(r.page)}</li>`).join("")}</ol>` : ""}
+    <p class="src" style="margin-top:14px">Údaje sestavil asistent z uvedených dokumentů; čísla v hranatých závorkách odkazují na zdroje. [zápor v dokumentu] = zápor zapsaný lékařem; [ověřit čtení] = text, který mohl být špatně přečten; [pozorování asistenta] = odvozeno asistentem, v dokumentu výslovně není.</p></article>`;
+}
+function refreshReport() {
+  const el = document.getElementById("report"); if (!el) return;
+  const p = P(S.pid); el.innerHTML = reportHtml(p, ensureProto(p), presentList());
+}
+
+/* ---------- 6. My tasks (coordinator) ---------- */
+function viewTasks() {
+  const list = S.tasks.filter(t => S.taskScope === "all" || t.who === S.user || (S.user !== COORD && P(t.pid).owner === S.user));
+  const open = list.filter(t => !t.done).length;
+  return `<div class="page"><div class="pagehead"><div><h1>Moje úlohy</h1><div class="muted small">Úlohy ze schválených závěrů MDT napříč pacienty · uživatel ${esc(S.user)}</div></div>
+      <span class="seg" role="group"><button data-scope="mine" aria-pressed="${S.taskScope === "mine"}">Moje</button><button data-scope="all" aria-pressed="${S.taskScope === "all"}">Všechny</button></span></div>
+    <div class="grid2"><section class="card"><div class="head"><h2>Úlohy</h2><span class="muted small">${list.length - open} / ${list.length} hotovo</span></div>
+      ${list.map(t => { const p = P(t.pid); return `<div class="trow ${t.done ? "done" : ""}"><input type="checkbox" data-done="${t.id}" ${t.done ? "checked" : ""} aria-label="Hotovo">
+        <div><div class="tt"><b>${esc(t.text)}</b></div><div class="muted small">${esc(p.id)} · ${esc(t.who)} · do ${esc(fmtDate(t.due))}</div></div>
+        <button class="btn small" data-open="${esc(t.pid)}">Otevřít případ</button></div>`; }).join("") || `<p class="muted">${S.taskScope === "mine" ? "Žádné úlohy pro tohoto uživatele. Přepněte na „Všechny“ nebo na koordinátorku." : "Žádné úlohy."}</p>`}</section>
+      <section class="card"><div class="head"><h2>Upozornění e-mailem</h2></div>${S.mails.map(mailHtml).join("") || `<p class="muted small">Po schválení závěru MDT se koordinátorce odešle e-mail jen s ID případu a odkazem.</p>`}</section></div></div>`;
+}
+
+/* ---------- overlays: source drawer and new-patient modal ---------- */
+function openSource(r) { S.overlay = { kind: "source", r }; logAccess(S.pid, `zobrazil(a) zdroj s. ${r.page}`); renderOverlay(); }
+function renderOverlay() {
+  const o = S.overlay, el = document.getElementById("overlay");
+  if (!o) { el.innerHTML = ""; return; }
+  if (o.kind === "source") {
+    const r = o.r, page = CASE.full_text_by_page.find(p => p.page === r.page);
+    let text = esc(page ? page.text : "Text stránky není k dispozici.");
+    if (r.quote && page) {
+      const pat = r.quote.trim().split(/\s+/).map(w => esc(w).replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("\\s+");
+      try { text = text.replace(new RegExp(pat), m => `<mark id="hit">${m}</mark>`); } catch (e) { /* quote with odd characters: show the page unmarked */ }
+    }
+    el.innerHTML = `<div class="scrim" data-close="1"></div><aside class="drawer" role="dialog" aria-label="Původní dokument">
+      <header><div><div class="label">Původní dokument · text z OCR</div><h2 style="margin-top:4px">${esc(docTitle(r))}</h2><div class="muted small">${esc(r.file)} · strana ${esc(r.page)} z ${CASE.page_count}</div></div>
+        <button class="btn small" data-close="1">Zavřít</button></header>
+      <div class="pages">${CASE.full_text_by_page.map(p => `<button data-page="${p.page}" aria-pressed="${p.page === r.page}">s. ${p.page}</button>`).join("")}</div>
+      <div class="text">${text}</div></aside>`;
+    document.getElementById("hit")?.scrollIntoView({ block: "center" });
+  } else if (o.kind === "new") {
+    const step = o.step;
+    const fields = [["Jméno", "text"], ["Příjmení", "text"], ["Rodné číslo", "text"], ["Pojišťovna", "select"], ["Jméno lékaře (vlastník)", "text"], ["Odesílající pracoviště", "text"], ["Kontaktní e-mail", "email"], ["Kontaktní telefon", "text"]];
+    const pipe = ["Kontrola čitelnosti", "Pseudonymizace", "Extrakce údajů", "Kontrola úplnosti"];
+    el.innerHTML = `<div class="scrim" data-close="1"></div><div class="modal" role="dialog" aria-label="Nový pacient">
+      <div class="row spread"><h2>Nový pacient</h2><button class="btn small" data-close="1">Zavřít</button></div>
+      <div class="stepper">${["Žádost o konzultaci", "Dokumenty", "Zpracování"].map((t, i) => `<span class="${i === step ? "on" : ""}">${i + 1}. ${t}</span>`).join("")}</div>
+      ${step === 0 ? `<p class="muted small" style="margin:0">Pole podle formuláře FNO „Konzultace pacienta“. Povinná pole jsou označena *.</p>
+        <div class="formgrid">${fields.map(([l, t], i) => `<label>${l} *${t === "select" ? `<select class="input" id="nf${i}"><option>111</option><option>201</option><option>205</option><option>207</option><option>209</option><option>211</option><option>213</option></select>` : `<input class="input" id="nf${i}" type="${t}">`}</label>`).join("")}
+          <label class="full">Anamnéza *<textarea class="input" id="nfa"></textarea></label>
+          <label class="full">Otázka na NOCO (otázka pro MDT)<textarea class="input" id="nfq" style="min-height:60px"></textarea></label>
+          <label class="full" style="display:flex;gap:8px;align-items:center;font-weight:500"><input type="checkbox" id="nfg"> Souhlasím, aby FNO použila uvedené osobní údaje ke zpracování požadavku, dle GDPR.</label></div>
+        <div class="row" style="justify-content:flex-end"><button class="btn primary" data-act="newnext">Pokračovat</button></div>`
+      : step === 1 ? `<div class="drop">Přetáhněte PDF, DOC/DOCX, XLS/XLSX, ODT nebo ZIP (nejvýše 20 MB)<br><button class="btn small" style="margin-top:8px" data-act="fakeupload">Vybrat soubory (ukázka)</button></div>
+        ${o.uploaded ? `<p class="small" style="margin:0">Nahráno: <b>propousteci_zprava.pdf</b>, <b>MR_mozku_zaver.pdf</b> (ukázka)</p>` : ""}
+        <div class="row" style="justify-content:flex-end"><button class="btn" data-act="newback">Zpět</button><button class="btn primary" data-act="newnext" ${o.uploaded ? "" : "disabled"}>Zpracovat</button></div>`
+      : `<ul class="pipeline">${pipe.map((t, i) => `<li class="${i < o.progress ? "" : i === o.progress ? "run" : "wait"}">${i < o.progress ? "✓" : i === o.progress ? "…" : "○"} ${t}</li>`).join("")}</ul>
+        <p class="small" style="margin:0">Před extrakcí se jméno a rodné číslo nahradí ID případu; jazykový model vidí jen pseudonymizovaný text. Převodní tabulka zůstává na serveru nemocnice.</p>
+        ${o.progress >= pipe.length ? `<p class="small" style="margin:0"><b>Hotovo (ukázka).</b> Jedna strana je špatně čitelná; aplikace by odesílajícího lékaře požádala o lepší kopii (v maketě se nic neodesílá).</p>
+          <div class="row" style="justify-content:flex-end"><button class="btn primary" data-act="newdone">Přidat do databáze</button></div>` : ""}`}
+    </div>`;
+  }
+}
+
+/* ---------- render and events ---------- */
+function render() {
+  const bar = document.querySelector(".tlbar"); if (bar) S.tlScroll = bar.scrollLeft;
+  renderNav();
+  const v = { patients: viewPatients, calendar: viewCalendar, patient: viewPatient, present: viewPresent, protocol: viewProtocol, tasks: viewTasks }[S.view];
+  document.getElementById("app").innerHTML = v();
+  const nb = document.querySelector(".tlbar"); if (nb) nb.scrollLeft = S.tlScroll || 0;
+  renderOverlay();
+}
+function openPatient(file, view = "patient") {
+  S.pid = file; S.view = view; S.tab = "overview"; S.selTl = null; S.calPop = null; S.tlScroll = 0; S.openFind = new Set();
+  logAccess(file, view === "present" ? "otevřel(a) prezentaci" : "otevřel(a) případ");
+  render(); window.scrollTo(0, 0);
+}
+
+document.addEventListener("click", e => {
+  const t = e.target.closest("[data-scope],[data-addatt],[data-nav],[data-open],[data-tab],[data-brief],[data-src],[data-close],[data-page],[data-tl],[data-ack],[data-go],[data-present],[data-sched],[data-pick],[data-free],[data-slot],[data-unsched],[data-filter],[data-act],[data-mode],[data-delstep],[data-done]");
+  if (!t) return;
+  const d = t.dataset;
+  if (d.scope) { S.taskScope = d.scope; render(); }
+  else if (d.addatt) { S.att[d.addatt].push(""); render(); }
+  else if (d.nav) { S.view = d.nav; S.schedPick = null; render(); }
+  else if (d.open) { openPatient(d.open); }
+  else if (d.tab) { S.tab = d.tab.replace(/<.*$/, ""); render(); }
+  else if (d.brief) { S.brief = d.brief; render(); }
+  else if (d.src) { e.preventDefault(); openSource(JSON.parse(d.src)); }
+  else if (d.close) { S.overlay = null; renderOverlay(); }
+  else if (d.page) { openSource({ file: CASE.file, page: +d.page }); }
+  else if (d.tl !== undefined) { S.selTl = S.selTl === +d.tl ? null : +d.tl; render(); }
+  else if (d.ack !== undefined) { S.acks[d.ack] = S.user; logAccess(S.pid, "vzal(a) upozornění na vědomí"); render(); }
+  else if (d.go) { if (d.go === "present") logAccess(S.pid, "otevřel(a) prezentaci"); S.view = d.go; render(); window.scrollTo(0, 0); }
+  else if (d.present) { openPatient(d.present, "present"); }
+  else if (d.sched) { S.view = "calendar"; S.schedPick = d.sched; S.calPop = null; render(); }
+  else if (d.pick) { S.schedPick = S.schedPick === d.pick ? null : d.pick; render(); }
+  else if (d.free) {
+    if (!S.schedPick) { toast("Nejdřív vyberte pacienta vpravo."); return; }
+    const [day, time] = d.free.split(" "), p = P(S.schedPick);
+    p.slot = { day, time }; if (p.status === "new") p.status = "scheduled";
+    toast(`${p.id} naplánován na ${slotText(p)}`); S.schedPick = null; S.calPop = p.file; render();
+  }
+  else if (d.slot) { const [day, time] = d.slot.split(" "); S.calPop = S.patients.find(p => p.slot && p.slot.day === day && p.slot.time === time)?.file; if (S.calPop) logAccess(S.calPop, "zobrazil(a) detail termínu"); render(); }
+  else if (d.unsched) { const p = P(d.unsched); p.slot = null; if (p.status === "scheduled") p.status = "new"; S.calPop = null; render(); }
+  else if (d.filter) { S.filter = d.filter; render(); }
+  else if (d.mode) { curProto().mode = d.mode; render(); }
+  else if (d.delstep !== undefined) { curProto().steps.splice(+d.delstep, 1); render(); }
+  else if (d.done) { const task = S.tasks.find(x => x.id === +d.done); task.done = t.checked; renderNav(); render(); }
+  else if (d.act) action(d.act);
+});
+const curProto = () => ensureProto(P(S.pid));
+async function copyText(text, what) {
+  try { await navigator.clipboard.writeText(text); toast(`${what} zkopírováno`); } catch (e) { toast("Kopírování není v tomto prohlížeči dostupné"); }
+}
+function action(a) {
+  const pr = S.view === "protocol" ? curProto() : null;
+  if (a === "newpatient") { S.overlay = { kind: "new", step: 0, uploaded: false, progress: 0 }; renderOverlay(); }
+  else if (a === "newnext") {
+    const o = S.overlay;
+    if (o.step === 0 && !document.getElementById("nfg").checked) { toast("Potvrďte souhlas se zpracováním údajů."); return; }
+    o.step++; renderOverlay();
+    if (o.step === 2) { const tick = () => { o.progress++; renderOverlay(); if (o.progress < 4) setTimeout(tick, 550); }; setTimeout(tick, 450); }
+  }
+  else if (a === "newback") { S.overlay.step--; renderOverlay(); }
+  else if (a === "fakeupload") { S.overlay.uploaded = true; renderOverlay(); }
+  else if (a === "newdone") {
+    const n = S.patients.length + 11;
+    S.patients.push({ file: `${n}_novy`, id: `NO-${String(n).padStart(3, "0")}`, name: "Nový pacient (ukázka)", birth: null, diagnosis: "Čeká na kontrolu lékařem", mkn10: null, question: null, purpose: null, explicit: false, status: "new", slot: null, updated: "2026-10-16", owner: S.user, dept: "Klinická onkologie", summary: "Ukázkový záznam vytvořený v maketě.", pages: 2 });
+    S.overlay = null; S.view = "patients"; S.filter = "all"; toast(`Pacient NO-${String(n).padStart(3, "0")} přidán do databáze`); render();
+  }
+  else if (a === "cancelsched") { S.schedPick = null; render(); }
+  else if (a === "addstep") { pr.steps.push({ text: "", who: COORD, due: "2026-10-30" }); render(); }
+  else if (a === "copyatt") { copyText(presentList().join(", ") || "nezadáno", "Seznam přítomných"); }
+  else if (a === "copytasks") { copyText(pr.steps.filter(x => x.text.trim()).map(x => `${x.text} (${x.who}, do ${fmtDate(x.due)})`).join("\n"), "Úlohy"); }
+  else if (a === "newversion") { S.protos[pr.pid] = { pid: pr.pid, mode: "manual", notes: "", concl: "", steps: [], state: "draft" }; render(); }
+  else if (a === "approve") {
+    if (!pr.concl.trim() || !isDoctor(S.user) || !presentList().includes(S.user)) return;
+    pr.approver = S.user;
+    pr.state = "approved"; pr.when = new Date().toLocaleString("cs-CZ");
+    const p = P(pr.pid); p.status = "done"; p.updated = "2026-10-16";
+    S.decisions.push({ pid: p.file, text: pr.concl, by: pr.approver, when: pr.when });
+    let id = Math.max(0, ...S.tasks.map(x => x.id));
+    pr.steps.filter(s => s.text.trim()).forEach(s => S.tasks.push({ id: ++id, pid: p.file, text: s.text, who: s.who, due: s.due, done: false }));
+    const n = pr.steps.filter(s => s.text.trim()).length;
+    if (n) S.mails.unshift({ pid: p.file, id: p.id, n });
+    logAccess(p.file, "schválil(a) závěr MDT");
+    toast(`Závěr schválen${n ? `, koordinátorce ${n === 1 ? "odeslána 1 úloha" : n <= 4 ? `odeslány ${n} úlohy` : `odesláno ${n} úloh`}` : ""}`); render();
+  }
+}
+document.addEventListener("input", e => {
+  const t = e.target;
+  if (t.id === "q") { S.q = t.value; const pos = t.selectionStart; render(); const q = document.getElementById("q"); q.focus(); q.setSelectionRange(pos, pos); }
+  else if (t.dataset.step !== undefined) { curProto().steps[+t.dataset.step][t.dataset.f] = t.value; refreshReport(); }
+  else if (t.id === "notes") curProto().notes = t.value;
+  else if (t.id === "concl") {
+    const pr = curProto(), had = !!pr.concl.trim(); pr.concl = t.value;
+    if (had !== !!t.value.trim()) { const pos = t.selectionStart; render(); const c = document.getElementById("concl"); c.focus(); c.setSelectionRange(pos, pos); }
+    else refreshReport();
+  }
+});
+document.addEventListener("change", e => {
+  const t = e.target;
+  if (t.id === "user") { S.user = t.value; render(); }
+  else if (t.id === "ownerf") { S.ownerFilter = t.value; render(); }
+  else if (t.dataset.att) { const arr = S.att[t.dataset.att], k = +t.dataset.k; if (!t.value && k > 0) arr.splice(k, 1); else arr[k] = t.value; render(); }
+  else if (t.dataset.pickrep) { t.checked ? S.picked.add(t.dataset.pickrep) : S.picked.delete(t.dataset.pickrep); }
+  else if (t.dataset.step !== undefined) { curProto().steps[+t.dataset.step][t.dataset.f] = t.value; render(); }
+});
+document.addEventListener("toggle", e => { const d = e.target.dataset?.find; if (d) e.target.open ? S.openFind.add(d) : S.openFind.delete(d); }, true);
+document.addEventListener("keydown", e => { if (e.key === "Escape" && S.overlay) { S.overlay = null; renderOverlay(); } });
+
+render();
+</script>

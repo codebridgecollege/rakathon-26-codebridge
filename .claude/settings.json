@@ -15,15 +15,15 @@
   },
   "permissions": {
     "deny": [
-      "Read(./data/**)",
-      "Edit(./data/**)",
-      "Grep(./data/**)",
-      "Glob(./data/**)",
-      "Bash(cat data/*)",
-      "Bash(head data/*)",
-      "Bash(tail data/*)",
-      "Bash(less data/*)",
-      "Bash(grep * data/*)"
+      "Read(./private/**)",
+      "Edit(./private/**)",
+      "Grep(./private/**)",
+      "Glob(./private/**)",
+      "Bash(cat private/*)",
+      "Bash(head private/*)",
+      "Bash(tail private/*)",
+      "Bash(less private/*)",
+      "Bash(grep * private/*)"
     ]
   }
 }

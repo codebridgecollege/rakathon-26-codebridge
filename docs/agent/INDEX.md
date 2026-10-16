@@ -76,6 +76,106 @@ one patient's condition, outlook, and next steps together (path, rec1
   patients reviewed at an MDT, and patients with an MDT survive longer
   (path, slide 38; the share is read by eye from a chart).
 
+### From Soňa's experience
+
+Soňa is the oncologist on our team; these facts come from the team's
+design discussion of 16 October 2026. Citations point into
+[`docs/sources/design/`](../sources/design/README.md): `[design-N
+hh:mm:ss]` is recording N, `[chatgpt P hh:mm]` is Soňa's prompt in her
+ChatGPT brainstorm. The speaker mapping is in
+[`PRODUCT.md`](../design/PRODUCT.md#sources-and-speaker-mapping). Items
+marked "Juro's recap" are Juro restating an unrecorded conversation with
+Soňa.
+
+- **What the MDT decides.** It synthesizes what each specialty brings,
+  then decides whether the patient can tolerate a treatment (surgery,
+  chemotherapy, immunotherapy given the comorbidities) and the intent:
+  radical (aim to cure) or palliative (relieve symptoms) [design-1
+  00:00:16].
+- **The diagnosis does not fix the treatment.** A frail patient with the
+  same diagnosis gets different treatment; decisions are case by case.
+  Some teams see the patient in person, most do not [design-1 00:03:03;
+  design-2 00:08:04].
+- **Performance status gates treatment.** Scored with Karnofsky or
+  performance status (0 fully fit, 4 bedridden): "we treat up to 2, and 3
+  with half-closed eyes" [design-1 00:03:42]. Check her description of
+  the grades against the ECOG definition before using it in UI text.
+- **Preparing a case today.** A new patient comes with about 12
+  documents (biopsy and histology, surgery, CT, ultrasound, PET). The
+  oncologist reads them and writes a condensed summary: diagnosis, TNM
+  stage, metastases, surgeries and why, other relevant diagnoses. This is
+  the time-consuming part [design-1 00:21:06, 00:22:33, 00:13:20].
+- **The "diagnosis" part of an oncology report is the running record.**
+  Oncologists keep adding exam results to it, and it is what matters for
+  the MDT; visit notes and the plan do not [design-1 00:23:40, 00:24:58].
+- **A case is introduced in about two lines** [design-1 00:25:19].
+- **Session size and time.** A session covers about 15 to 40 patients
+  [design-1 00:08:18]. Common cases are decided in about ten seconds, a
+  complicated one in about five minutes, and a small share of rare
+  diagnoses takes many times longer because someone must search the
+  literature (guidelines, cohort papers, case reports in PubMed) by hand;
+  a case owner should prepare that beforehand [design-3 00:00:00,
+  00:00:52, 00:01:58]. Time per patient is an open question (see
+  [`OPEN_QUESTIONS.md`](OPEN_QUESTIONS.md#ask-soňa)).
+- **When a patient returns.** On partial remission the oncologist goes on
+  treating; on progression a change of treatment needs MDT approval
+  [design-1 00:25:19]. The same patient can be presented many times.
+- **An MDT can run without every document**; sometimes the gap is the
+  question, and the outcome is "complete the exam and present again"
+  [chatgpt P 15:54]. Before an MDT only part of the path is known, unlike
+  a retrospective guideline audit where the whole path is known [chatgpt
+  P 09:24].
+- **Who attends.** Members mostly hold standing positions; some know all
+  patients, others only their own (Juro's recap) [design-1 00:14:16].
+  Each department has a set of specialties with known doctors [chatgpt
+  P 14:33]. The neuro-oncology MDT records at the start of the day who
+  represents neurosurgery and neuroanaesthesia [design-1 00:41:13].
+- **Case owner.** The referring doctor owns the case: Soňa says the owner
+  and the referring physician are the same person [design-1 00:38:30;
+  chatgpt P 14:36].
+- **Radiologist and pathologist.** Their findings are in their reports,
+  and they may add spoken comments [design-1 00:42:56]. A pathologist may
+  project the slide live from a microscope and brings the glass slides
+  [design-2 00:04:00].
+- **How the meeting runs** (Juro's recap): the lead doctor presents,
+  others comment, the team concludes, ideally books the next step, writes
+  the conclusion, moves on. Most attendees have a laptop, some take notes
+  on paper [design-1 00:16:16]. The room is quiet and focused [design-1
+  00:48:30].
+- **Where documents come from.** Results from other sites often arrive
+  by email as PDFs; the rest is downloaded from the NIS (hospital
+  information system); someone assembles and uploads them [design-1
+  00:30:26; design-2 00:07:19, 00:08:19]. Imaging lives in PACS (the
+  imaging archive) [design-1 00:20:52].
+- **After the meeting** a coordinator tells the patient where and when to
+  come, how to prepare, and which blood tests come first [design-1
+  00:33:10; chatgpt P 14:51].
+- **How Czech oncology summaries are written.** TNM and markers in the
+  heading line, one dated bullet per exam, abbreviations (st.p., SD, PR,
+  neoCHT, pCR), partial dates ("4/2025", "08/25"), and a condensed
+  one-paragraph form for the MDT. Anamnesis sections: osobní, rodinná,
+  pracovní, sociální, farmakologická, alergologická, abusus,
+  epidemiologická; "neguje" is the doctor's recorded negative [chatgpt
+  P 14:33]. Use this style for synthetic samples.
+
+Unverified, from ChatGPT only (confirm with Soňa or FNO before relying on
+them):
+
+- Neuro-oncology MDTs track the integrated WHO diagnosis with IDH,
+  1p/19q, and MGMT; MRI location, extent, enhancement, and edema;
+  extent of resection, radiotherapy, systemic treatment; KPS or ECOG,
+  neurological deficit, seizures, steroids, antiepileptics; response by
+  RANO criteria, and pseudoprogression versus progression [chatgpt
+  R 12:14, R 14:33]. There is no universal TNM requirement for primary
+  brain tumours [chatgpt R 15:52].
+- The newest document is not always the most relevant: an older
+  definitive histology may matter more than a newer outpatient note
+  [chatgpt R 11:54].
+- A list of MDT bottlenecks (late referrals, too little time, dominant
+  senior voices, decisions not turned into tasks) [chatgpt R 10:29]. Soňa
+  said this list came from ChatGPT, not her experience [design-2
+  00:11:34]; use it only to explain the problem.
+
 ## Why the record has gaps and contradictions
 
 These are normal, so the assistant reports them as facts, not errors.
@@ -201,10 +301,58 @@ https://mzcr.atlassian.net/wiki/spaces/EPZS/pages/203096069/Standardy+EHR+-+prio
   (research); an MDT assistant is primary use (eHealth, page 5; the
   classification is our inference).
 
-## Test data
+## The challenge data
 
-- Challenge data arrives in the challenge's Slack channel (see
-  [`HACKATHON.md`](HACKATHON.md)).
+FNO's archive, received 16 October 2026, is in `data/rakathon-26/`.
+FNO's challenge deck calls it "documentation of fictitious patients with
+sample oncology cases" (`docs/sources/presentations/2 - FN Ostrava – AI asistent multidisciplinárního týmu.pptx`, slide 8; see
+[`HACKATHON.md`](HACKATHON.md)). What FNO expects us to build is listed
+in [`REQUIREMENTS.md`](REQUIREMENTS.md). The MDT is
+**neuro-oncological**: the patient PDFs are about brain and spine
+findings (glioblastoma, meningioma, brain metastases, spinal cord lesions,
+and non-oncological differentials such as vertigo or stroke).
+
+- `2_AI asistent MDT/<n>_pacient.pdf`, ten patients: referrals to the MDT,
+  one to five pages each. They are scans with an OCR text layer, so expect
+  OCR errors ("Ambulantnf vyletfenf"), mixed layouts, partial dates, and
+  free text. Five (11, 17, 18, 19, 20) are filled-in consultation
+  request forms (see the next item); the others are outpatient or
+  radiology reports, presumably sent as the request's attachments.
+- `Struktura MDT protokolu_FNO.docx`: FNO's consultation request form,
+  which a referring doctor fills in to bring a patient to the MDT. It is
+  the input of a case, not a database schema. Readable copy, with field
+  types:
+  [`konzultace-pacienta-form.json`](../sources/fno/konzultace-pacienta-form.json).
+  Fields: patient identity (name, birth number, insurer), history
+  (anamnéza), imaging, current clinical state, the referring doctor and
+  department, attachments, and the question for the MDT ("Otázka na
+  NOCO").
+- `Upresneni vystupu AI asistenta pro MDT.docx`: FNO's description of the
+  expected output (renamed from a garbled file name; readable copy in
+  [`docs/sources/fno/`](../sources/fno/upresneni-vystupu-ai-asistenta.md)).
+  The output is **twofold**:
+  1. a **presentation app** used during the MDT: an interactive,
+     schematic, readable view with "wiki" style links, showing patient
+     identity, a short case summary, and expandable items (clinical
+     finding, imaging, histology, past treatment, the current question for
+     the MDT), ideally with a switchable timeline view; members click an
+     item to see detail when they have questions;
+  2. a **PDF report** for the medical record or for a request for further
+     examination or treatment, containing the patient identity and the
+     fields ticked in the presentation app.
+- `samples/*.xlsx`: four exports of ten fully synthetic general-oncology
+  patients (PAC001 to PAC010; colorectal and breast cancer among them):
+  outpatient reports, discharge reports, operation protocols, histology
+  findings (HTML in a cell). They show FNO's export column names. They are
+  different patients from the PDFs.
+- There are no separate lab result files; any lab values appear only
+  inside the PDF text.
+
+Where the data lives at FNO (deck slide 3): NIS (medical records), LIS
+(lab results), PACS (imaging), INTELIPAT (pathology), and the genetics
+lab. Today a doctor or coordinator searches them by hand.
+
+## Other test data
 - SYNDERAI (https://synderai.net/) has synthetic EHDS examples: lab
   reports, patient summaries, discharge reports; no imaging or medication
   reports, oncology content unknown (FHIR/PHOENIX, page 6).

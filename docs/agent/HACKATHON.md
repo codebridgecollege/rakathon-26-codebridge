@@ -22,6 +22,13 @@ and [FHIR workshop and PHOENIX](../research/2026-10-16-talk-fhir-workshop-and-ph
 
 - Challenge data is posted in the challenge's Slack channel, at the latest
   after the opening block on 16 October.
+- **16 October 2026:** we received `rakathon-26.zip`. It is committed as
+  `data/rakathon-26.zip` and extracted to `data/rakathon-26/`. What it
+  contains is described in [`INDEX.md`](INDEX.md#the-challenge-data).
+- In Ostrava, and for the Prague "MDT Copilot" challenge, the
+  InterSystems mentors hand out challenge data, in person or on Slack
+  (InterSystems deck, `6 - Rakathon 2026 InterSystems Challenge
+  Intro.pptx`, slides 6 and 8).
 - The Azure team portal holds data only for the challenges set by VZP (the
   Czech general health insurance company), not ours.
 - Public data may be used too.
@@ -55,8 +62,10 @@ and [FHIR workshop and PHOENIX](../research/2026-10-16-talk-fhir-workshop-and-ph
 - **InterSystems FHIR AI Hackathon Kit:** a GitHub template that starts
   InterSystems IRIS with a FHIR R4 server in Docker, with Python notebooks
   for loading data, FHIR search, transaction bundles, vector search, and an
-  MCP server (a way to offer data as tools to an AI agent). The URL is
-  linked from the InterSystems challenge on rakathon.cz. FNO already uses
+  MCP server (a way to offer data as tools to an AI agent). The challenge
+  description, template, and tutorials are at
+  https://developer.intersystems.com/intersystems-challenge-at-rakathon-2026/
+  (InterSystems deck, slide 2). FNO already uses
   InterSystems for integration. Pitfall: when the login expires, the FHIR
   server returns empty results instead of an error, so check credentials
   before debugging queries.
@@ -71,6 +80,14 @@ and [FHIR workshop and PHOENIX](../research/2026-10-16-talk-fhir-workshop-and-ph
   need the sponsor's technology. InterSystems awards 1500 EUR for using
   IRIS (FHIR server, SQL, vector search, agent tools). There may also be a
   Microsoft prize.
+- The InterSystems prize can be combined with any challenge. Its
+  criteria: innovation and real-world impact (a clear healthcare problem
+  and a path to an MVP), meaningful use of InterSystems technology with
+  AI and/or FHIR, and technical coherence (a sound data model and
+  architecture). Suggested patterns: RAG with IRIS vector search, an
+  agent with tools (SQL, API, FHIR, vector search), and the IRIS FHIR
+  server for exchange or as the storage layer (InterSystems deck,
+  slides 2 to 5).
 - What convinced past InterSystems juries: how the team works with the
   data, how it represents it in FHIR, how far it got, impact, innovation,
   and what it added beyond the brief.
@@ -87,14 +104,18 @@ and [FHIR workshop and PHOENIX](../research/2026-10-16-talk-fhir-workshop-and-ph
 ## Help channels and contacts
 
 - Slack: one channel per challenge (data appears there), team channels,
-  "Tech Support" or "Tech Helpdesk" (both names were used), "Hledám
-  mentora" (find a mentor), "Oznámení" (announcements), and an
-  InterSystems channel.
+  `#08-tech-helpdesk`, "Hledám mentora" (find a mentor), "Oznámení"
+  (announcements), and `#best-use-of-intersystems-technology-for-ai-and-fhir`
+  (InterSystems deck, slide 10).
 - When asking for technical help, give the team name, the failing endpoint
   or deployment, and the time.
-- InterSystems mentors on site: Prague (Ondřej Hoferek and Gabriel),
-  Ostrava (Dan Kutáč), Brno (Radek Zájem and Daniel Drozdov). Online
-  mentors cover the night.
+- InterSystems mentors on site: Prague (Ondřej Hoferek and Gabriel Ing),
+  Ostrava (Daniel Kutáč), Brno (Daniil Drozdov and Thomas Dyar); the
+  pre-hack talk also named Radek Zájem for Brno. Online mentors cover
+  Friday 20:00 to Saturday 8:00 (InterSystems deck, slide 9). There is
+  an InterSystems booth.
+- The FNO challenge owner is doc. MUDr. Ing. Jakub Cvek, Ph.D., MBA,
+  Klinika onkologická FNO (FNO deck, slide 1).
 - Aleš Tichopád (ČVUT, oncology patient path) is at the Prague venue on
   Friday; the organizers will post his phone number on Slack.
 - Michal Opatřil (Czech eHealth) offers consultations via LinkedIn.
@@ -104,15 +125,19 @@ and [FHIR workshop and PHOENIX](../research/2026-10-16-talk-fhir-workshop-and-ph
 Record each one with the date and who confirmed it. Questions still
 waiting for an answer are in [`OPEN_QUESTIONS.md`](OPEN_QUESTIONS.md).
 
-- None yet. Until FNO confirms its data may go to a cloud model
-  (including coding agents), cloud models see only synthetic samples.
+- **16 October 2026, reported by Juro and stated by FNO:** the challenge
+  data in `data/rakathon-26.zip` is fictitious, so it is committed and
+  agents and cloud models may read it. FNO's deck calls it "documentation
+  of fictitious patients" (`2 - FN Ostrava – AI asistent multidisciplinárního týmu.pptx`, slide 8), and the spreadsheets'
+  README sheets say "plně syntetických".
 
 ## Before the repository goes public
 
 All submissions are published, and the repository is private until then.
 Before publishing, check:
 
-- no patient data or FNO-derived samples without permission;
+- no patient data or FNO-derived samples without permission, and the
+  organizers' permission to publish the challenge data in `data/`;
 - the Zoom chat exports and research notes name other participants;
   remove or anonymize those names;
 - the organizer decks, recordings, and transcripts in `docs/sources/`:
@@ -132,6 +157,10 @@ Declare this list to the jury and mentors.
 
 ## Tools and data sources used
 
-- ElevenLabs Scribe, for transcribing the pre-hack talks.
+- ElevenLabs Scribe, for transcribing the pre-hack talks and the team's
+  design discussions.
+- ChatGPT, used by Soňa for brainstorming and UI sketches
+  (`docs/sources/design/`).
+- Claude artifacts (claude.ai), for publishing the UI mocks in `mocks/`.
 - Claude Code, for the research notes, the agent docs, and coding.
 - (Add the LLMs, libraries, and datasets as we adopt them.)

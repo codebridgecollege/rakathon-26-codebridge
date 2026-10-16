@@ -75,10 +75,11 @@ Logistics, infrastructure, judging, and contacts are in
 We work with medical documentation, which is health data under GDPR.
 
 - **Never commit patient data.** That includes real records, exports,
-  screenshots, logs, prompts, or model responses that contain them. Real or
-  hospital-provided data stays in `data/` (gitignored) or outside the repo.
-  Only synthetic samples go under `samples/` (create it when the first
-  sample lands). Samples derived from FNO data need FNO's written
+  screenshots, logs, prompts, or model responses that contain them. Real
+  data stays in `private/` (gitignored) or outside the repo. `data/` holds
+  the synthetic challenge data the organizers gave us, and it is committed.
+  Our own test cases go under `samples/` (create it when the first sample
+  lands). Samples derived from real FNO data need FNO's written
   permission, recorded in [`docs/agent/HACKATHON.md`](docs/agent/HACKATHON.md),
   because all submissions are published.
 - **Ask before sending data to an external service.** Sending documents to
@@ -86,16 +87,36 @@ We work with medical documentation, which is health data under GDPR.
   and the company may keep a copy. The InterSystems speaker's answer,
   pending the official rules: challenge data may go to a cloud LLM only
   after the challenge owner (FN Ostrava) confirms it is anonymous or
-  synthetic and may be sent there. Until that is recorded in
-  `docs/agent/HACKATHON.md`, use only synthetic samples with cloud models.
+  synthetic and may be sent there. The challenge data in `data/` is
+  synthetic (see `docs/agent/HACKATHON.md`); anything else that may be
+  real goes to cloud models only after the same confirmation.
   Prefer the EU deployments, and keep the code able to run with a local
   model.
+- **Meeting audio is patient data.** Record an MDT only when recording
+  is switched on explicitly, with the participants' consent and FNO's
+  clearance for any speech-to-text service; a typed conclusion is always
+  available instead. A recording is tied to the patient the doctor
+  selects, never split by guessing. Voiceprints for naming speakers are
+  biometric data; do not collect them in the prototype.
+- **Notifications carry a link, not medical data.** An email to the
+  coordinator says that tasks are waiting and links to the app.
 - **Coding agents are cloud LLMs too.** Claude Code, Copilot, and similar
   tools send every file they read to their provider. No agent opens files
-  in `data/` until FNO clearance is recorded; `.claude/settings.json`
-  blocks it for Claude Code. Develop against synthetic samples.
+  in `private/`; `.claude/settings.json` blocks it for Claude Code.
+  Develop against the synthetic data in `data/` and `samples/`.
 - **Send only what the task needs.** Pass the model the documents and
   fields a step uses, not the whole record.
+- **Expose as little as possible, and protect what is exposed.** Follow
+  data-protection best practice in every design, even with synthetic
+  data, so the prototype behaves as it would with real patients:
+  minimize the data each screen, step, log, and export holds;
+  pseudonymize before processing where the task allows (a case ID instead
+  of name and birth number, with the mapping kept separately); show
+  identifiers only where the user needs them; give each role access only
+  to what it needs; keep the access log; and state how long data is kept.
+  The demo has no login, so roles and the confirming doctor are a typed
+  name or a role picker, and the UI says so.
+  When a design choice trades privacy for convenience, say so.
 - **Do not log full documents or prompts by default.** Debug logging of
   patient text must be opt-in and must write to a gitignored location.
 - **Secrets go in `.env`** (gitignored), never in code. Keep `.env.example`
@@ -121,9 +142,21 @@ data (slide 21 notes).
   something, show it as missing. Do not let the model fill gaps with
   plausible values. Missing documents are one of the required outputs, so
   treat absence as data.
+- **Alerts inform, they never block.** An MDT can run without every
+  document. Show the alerts that matter for the question to the MDT
+  first (when there is no explicit question, for the most recent
+  finding), so the doctor is not buried in warnings. Missing-document alerts
+  are always on; they are not part of the switchable guideline layer.
 - **"Not documented" is not "absent".** "No metastases" in a report is a
   finding; silence is a gap. Keep them apart, and watch for negations,
   which models and OCR misread.
+- **Use fixed Czech wording for gaps.** When the documentation says
+  nothing, show "neuvedeno v dostupné dokumentaci" (not stated in the
+  available documentation). Never use "neguje" for silence: it is the
+  doctor's recorded negative and may only be quoted where the document
+  says it. Never turn a gap into "neprovedeno" (not performed): from
+  documents alone the assistant rarely knows whether an exam was done
+  elsewhere.
 - **Keep what the documents say separate from what the assistant
   infers.** A detected trend, change, or contradiction is labeled as the
   assistant's observation and lists the facts it is based on.
@@ -144,13 +177,42 @@ data (slide 21 notes).
   ("03/2024" stays a month, never a made-up day). Convert only for display.
 - **Show intervals as facts, not verdicts.** "38 days from biopsy to MDT"
   is fine; "too late" is a clinical judgement the assistant does not make.
-- **The assistant prepares, the doctor decides.** It must not recommend a
-  treatment or present a conclusion as a medical decision. Its output is a
-  view for the meeting, never written back into the hospital's record,
-  which legally belongs to the provider.
+- **The assistant prepares, the doctor decides.** It must not present a
+  conclusion as a medical decision, and its output is a view for the
+  meeting, never written back into the hospital's record, which legally
+  belongs to the provider. The one exception is the optional guideline
+  layer (F-27 in [`docs/design/PRODUCT.md`](docs/design/PRODUCT.md)),
+  which the team decided on 2026-10-16 to explore. Every item it shows
+  names the guideline (name, society, year, version, section) and the
+  patient documents it rests on; it is labeled as the assistant's
+  observation; it is stored apart from the MDT conclusion and never
+  becomes one. How far it may go (guideline passages only, options
+  without ranking, or flags on the MDT's plan) and whether it is on by
+  default are open questions in
+  [`docs/agent/OPEN_QUESTIONS.md`](docs/agent/OPEN_QUESTIONS.md). Until
+  the team decides, the layer shows only guideline passages tied to
+  documented facts, never treatment options, and it is not part of the
+  demo build. Outside that layer the assistant does not recommend a
+  treatment.
+- **A draft is never shown as approved.** A conclusion or task the
+  assistant drafts stays a draft until a named doctor confirms it. New
+  documents may update drafts but never silently change content a doctor
+  confirmed.
+- **MDT decisions are an append-only history.** A new decision supersedes
+  an earlier one and never erases or edits it; the same patient can come
+  to the MDT many times. Each decision records which doctor confirmed it
+  and when.
 - **Czech clinical text is the input.** Expect Czech, Latin terms,
   abbreviations, typos, scans, and inconsistent date formats. Test with
   such text, not with clean English examples.
+- **Check that a document is readable before using it.** Each uploaded
+  document gets a reading certainty, judged from the text itself, not
+  from whether a text layer exists: FNO's text layers are poor OCR
+  ("1112023" for 11/2023, "MO" for M0, "lmg/kg"). Watch for broken dates,
+  l/1 and O/0 swaps, and words that are not Czech or medical. A poorly
+  readable document gets an immediate warning and a request for a better
+  copy. Parts that cannot be read are marked as unreadable and
+  never filled in by guessing.
 
 ## Test against the known failure cases
 
@@ -163,7 +225,8 @@ synthetic cases for each of these:
 - a negated finding read as positive,
 - two patients mixed up,
 - an examination that happened but whose report is missing,
-- a referral with no result (a sent request is not a done exam).
+- a referral with no result (a sent request is not a done exam),
+- a poor scan whose misread characters change a value or a negation.
 
 Keep these cases under `samples/` with the expected output, so anyone can
 rerun them.
@@ -222,7 +285,8 @@ only the brief you write.
 
 - **Every brief tells the agent to read `CLAUDE.md` first**, plus
   [`docs/agent/INDEX.md`](docs/agent/INDEX.md) and any doc for the area it
-  touches. Name the files in the brief.
+  touches ([`docs/design/PRODUCT.md`](docs/design/PRODUCT.md) for
+  anything the user sees). Name the files in the brief.
 - **Coding subagents also work in the `fable-mode` skill.** Say so in the
   brief. A read-only research agent does not need it.
 - **Effort and model size follow the risk.** Use high effort and a large
@@ -279,7 +343,10 @@ Pick **one** location. All of these are in git, so the whole team sees them.
 |---|---|
 | Operating rule (applies to any task) | `/CLAUDE.md` (this file) |
 | Problem, data, domain, or architecture fact | [`/docs/agent/INDEX.md`](docs/agent/INDEX.md) |
+| Product design: users, flows, screens, features and their tiers | [`/docs/design/PRODUCT.md`](docs/design/PRODUCT.md) |
+| UI mocks and their data | [`/mocks/`](mocks/README.md) |
 | Hackathon logistics, infrastructure, judging, contacts, decisions with organizers | [`/docs/agent/HACKATHON.md`](docs/agent/HACKATHON.md) |
+| What FNO asks us to deliver, as a checklist | [`/docs/agent/REQUIREMENTS.md`](docs/agent/REQUIREMENTS.md) |
 | Open question, unanswered or pending a decision | [`/docs/agent/OPEN_QUESTIONS.md`](docs/agent/OPEN_QUESTIONS.md); when answered, move the answer to its home above and delete the question |
 | Fact local to one package or folder | that folder's `AGENTS.md` (create when needed) |
 | Research, exploration, meeting notes, open findings | [`/docs/research/`](docs/research/), one file per topic |
