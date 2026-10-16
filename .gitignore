@@ -62,3 +62,6 @@ Thumbs.db
 # Guideline PDFs are downloaded only to extract quotes; they are copyrighted and the app opens them online.
 docs/sources/guidelines/
 mocks/guidelines/
+
+# Temporary git worktrees that review agents use
+.claude/worktrees/
