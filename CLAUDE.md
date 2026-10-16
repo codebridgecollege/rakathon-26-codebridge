@@ -151,8 +151,10 @@ data (slide 21 notes).
   finding; silence is a gap. Keep them apart, and watch for negations,
   which models and OCR misread.
 - **Use fixed Czech wording for gaps.** When the documentation says
-  nothing, show "neuvedeno v dostupné dokumentaci" (not stated in the
-  available documentation). Never use "neguje" for silence: it is the
+  nothing, the wording is "neuvedeno v dostupné dokumentaci" (not stated
+  in the available documentation). On screen a missing value shows as "-"
+  with that wording in its tooltip (team decision 2026-10-16); printed
+  reports use the full wording. Never use "neguje" for silence: it is the
   doctor's recorded negative and may only be quoted where the document
   says it. Never turn a gap into "neprovedeno" (not performed): from
   documents alone the assistant rarely knows whether an exam was done
