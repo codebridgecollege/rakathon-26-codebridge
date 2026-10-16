@@ -1,0 +1,119 @@
+{
+  "resourceType": "CodeSystem",
+  "id": "fno-local-lab-code",
+  "url": "https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/fno-local-lab-code",
+  "version": "0.1.0",
+  "name": "FNOlocallabcode",
+  "title": "FNO local lab code",
+  "status": "draft",
+  "description": "FN Ostrava's own lab test codes, kept as the source gives them. The URI stands for FNO's code list until FNO names the real one; this fragment lists only the codes in the challenge data.",
+  "caseSensitive": true,
+  "content": "fragment",
+  "concept": [
+    {
+      "code": "B_ERC",
+      "display": "Erytrocyty"
+    },
+    {
+      "code": "B_HB",
+      "display": "Hemoglobin"
+    },
+    {
+      "code": "B_HCT",
+      "display": "Hematokrit"
+    },
+    {
+      "code": "B_LKC",
+      "display": "Leukocyty"
+    },
+    {
+      "code": "B_LYMFO",
+      "display": "Lymfocyty abs."
+    },
+    {
+      "code": "B_NEU",
+      "display": "Neutrofily abs."
+    },
+    {
+      "code": "B_NLR",
+      "display": "NLR"
+    },
+    {
+      "code": "B_PLT",
+      "display": "Trombocyty"
+    },
+    {
+      "code": "ERC(B)_MCH",
+      "display": "MCH"
+    },
+    {
+      "code": "ERC(B)_MCV",
+      "display": "MCV"
+    },
+    {
+      "code": "PT(KIDN)_EGFRCKDE",
+      "display": "eGFR CKD-EPI"
+    },
+    {
+      "code": "S_ALP",
+      "display": "ALP"
+    },
+    {
+      "code": "S_ALT",
+      "display": "ALT"
+    },
+    {
+      "code": "S_AST",
+      "display": "AST"
+    },
+    {
+      "code": "S_BIL",
+      "display": "Bilirubin"
+    },
+    {
+      "code": "S_CA",
+      "display": "Ca"
+    },
+    {
+      "code": "S_CL",
+      "display": "Cl"
+    },
+    {
+      "code": "S_CREAE",
+      "display": "Kreatinin"
+    },
+    {
+      "code": "S_GGT",
+      "display": "GGT"
+    },
+    {
+      "code": "S_GLC",
+      "display": "Glukóza"
+    },
+    {
+      "code": "S_HSCRP",
+      "display": "hsCRP"
+    },
+    {
+      "code": "S_K",
+      "display": "K"
+    },
+    {
+      "code": "S_NA",
+      "display": "Na"
+    },
+    {
+      "code": "S_OSMOLC",
+      "display": "Osmolalita (vypočtená)"
+    },
+    {
+      "code": "S_URAT",
+      "display": "Kyselina močová"
+    },
+    {
+      "code": "S_UREA",
+      "display": "Urea"
+    }
+  ],
+  "count": 26
+}

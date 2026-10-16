@@ -1,0 +1,53 @@
+{
+  "resourceType": "StructureDefinition",
+  "id": "source-page",
+  "url": "https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/StructureDefinition/source-page",
+  "version": "0.1.0",
+  "name": "Sourcepage",
+  "title": "Source page",
+  "status": "draft",
+  "description": "The page of the source document (1-based) where the fact was found.",
+  "fhirVersion": "4.0.1",
+  "kind": "complex-type",
+  "abstract": false,
+  "context": [
+    {
+      "type": "element",
+      "expression": "Provenance.entity"
+    }
+  ],
+  "type": "Extension",
+  "baseDefinition": "http://hl7.org/fhir/StructureDefinition/Extension",
+  "derivation": "constraint",
+  "differential": {
+    "element": [
+      {
+        "id": "Extension",
+        "path": "Extension",
+        "short": "Source page",
+        "definition": "The page of the source document (1-based) where the fact was found.",
+        "max": "1"
+      },
+      {
+        "id": "Extension.extension",
+        "path": "Extension.extension",
+        "max": "0"
+      },
+      {
+        "id": "Extension.url",
+        "path": "Extension.url",
+        "fixedUri": "https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/StructureDefinition/source-page"
+      },
+      {
+        "id": "Extension.value[x]",
+        "path": "Extension.value[x]",
+        "min": 1,
+        "type": [
+          {
+            "code": "integer"
+          }
+        ]
+      }
+    ]
+  }
+}

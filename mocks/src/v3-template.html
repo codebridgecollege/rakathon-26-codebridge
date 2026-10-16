@@ -1731,7 +1731,7 @@ function viewPatientLite(p) {
    (round 20), so the discussion card stays about the discussion. */
 function headerActions(p) {
   const live = S.session && p.slot && S.session.day === p.slot.day;
-  return `<button class="btn" data-sched="${esc(p.file)}">${p.slot ? "Změnit termín" : "Naplánovat"}</button>${p.slot && !live ? `<button class="btn" data-startday="${esc(p.slot.day)}" data-startfrom="${esc(p.file)}">Zahájit MDT</button>` : ""}<button class="btn primary" data-act="reportdlg">Stáhnout report (PDF)</button>`;
+  return `<button class="btn" data-sched="${esc(p.file)}">${p.slot ? "Změnit termín" : "Naplánovat"}</button>${p.slot && !live ? `<button class="btn" data-startday="${esc(p.slot.day)}" data-startfrom="${esc(p.file)}">Zahájit MDT</button>` : ""}${p.full ? `<button class="btn" data-act="fhirdlg">Export FHIR</button>` : ""}<button class="btn primary" data-act="reportdlg">Stáhnout report (PDF)</button>`;
 }
 
 /* Parts the doctor can tick for the report (FNO spec): the assistant's summary and these finding groups.
@@ -2176,9 +2176,136 @@ function zoomCtl(o) {
 }
 
 
+/* ---------- FHIR R4 export ----------
+   The case as a FHIR R4 Bundle (team decision 2026-10-17: produce FHIR, no server). It is built in the browser from
+   the same data the screens show, and fhir/validate.sh checks a saved copy with the official HL7 validator. Every
+   fact gets a Provenance that names the document, page and quote, so the export keeps the rule that each claim
+   points to its source. Mapping and profiles: fhir/README.md. In a pilot the same Bundle goes over the hospital's
+   FHIR API instead of a file (docs/design/INTEGRATION.md). */
+const FHIR_BASE = "https://github.com/codebridgecollege/rakathon-26-codebridge/fhir";
+const FHIR_SYS = {
+  mkn10: "https://uzis.cz/terminology/CodeSystem/mkn-10",
+  certainty: `${FHIR_BASE}/CodeSystem/extraction-certainty`,
+  flag: `${FHIR_BASE}/CodeSystem/assistant-flag`,
+  /* FNO's own lab codes (S_HSCRP, B_HB): kept as the source gives them; the URI stands for FNO's code list until
+     FNO names the real one. */
+  lab: `${FHIR_BASE}/CodeSystem/fno-local-lab-code`,
+  caseId: `${FHIR_BASE}/NamingSystem/case-id`,
+  obsCat: "http://terminology.hl7.org/CodeSystem/observation-category",
+  interp: "http://terminology.hl7.org/CodeSystem/v3-ObservationInterpretation",
+  condCat: "http://terminology.hl7.org/CodeSystem/condition-category",
+};
+/* Dates stay as precise as the document: "2.6.2022" -> 2022-06-02, "4/2022" -> 2022-04. Anything else ("9/23",
+   "11/2023 až 6/2025") is not converted; the original text goes into a note instead of a guessed date. */
+function fhirDate(s) {
+  if (!s) return null;
+  let m = String(s).trim().match(/^(\d{1,2})\.\s*(\d{1,2})\.\s*(\d{4})$/);
+  if (m) return `${m[3]}-${m[2].padStart(2, "0")}-${m[1].padStart(2, "0")}`;
+  m = String(s).trim().match(/^(\d{1,2})\/(\d{4})$/);
+  return m ? `${m[2]}-${m[1].padStart(2, "0")}` : null;
+}
+function fhirBundle(p) {
+  const c = CASE, now = new Date().toISOString(), entries = [];
+  const uid = () => "urn:uuid:" + crypto.randomUUID();
+  /* Each resource carries a one-line human-readable text, as FHIR recommends, so a reader without our app can see what it is. */
+  const add = (r, line) => { const fullUrl = uid(); if (line) r.text = { status: "generated", div: `<div xmlns="http://www.w3.org/1999/xhtml">${esc(line)}</div>` }; entries.push({ fullUrl, resource: r }); return fullUrl; };
+  const ref = u => ({ reference: u });
+  const tag = cert => ({ tag: [{ system: FHIR_SYS.certainty, code: cert || "documented" }] });
+  const dateNote = (d, iso) => d && !iso ? [{ text: `Datum v dokumentu: ${d}` }] : [];
+  const assistant = add({ resourceType: "Device", deviceName: [{ name: "CodeBridge MDT asistent (maketa)", type: "user-friendly-name" }], type: { text: "Software pro přípravu podkladů MDT" } }, "CodeBridge MDT asistent (maketa)");
+  /* The case ID is the identifier; the name is there because a FHIR Patient for exchange inside the hospital needs it.
+     Sex is left out unless the document states it: an inferred sex is a guess. */
+  const nm = (c.patient.name || "").trim().split(/\s+/);
+  const patient = add({ resourceType: "Patient", identifier: [{ system: FHIR_SYS.caseId, value: p.id }],
+    name: [{ text: c.patient.name, family: nm.slice(-1)[0], given: nm.slice(0, -1) }],
+    ...(c.patient.sex_certainty === "documented" && c.patient.sex === "muž" ? { gender: "male" } : c.patient.sex_certainty === "documented" && c.patient.sex === "žena" ? { gender: "female" } : {}),
+    ...(fhirDate(c.patient.birth_date) && /^\d{4}-\d\d-\d\d$/.test(fhirDate(c.patient.birth_date)) ? { birthDate: fhirDate(c.patient.birth_date) } : {}) }, `${c.patient.name}, ${p.id}`);
+  const docs = {};
+  const docRef = file => docs[file] || (docs[file] = add({ resourceType: "DocumentReference", status: "current", subject: ref(patient),
+    description: (EXTRA.documents || []).find(d => d.file === file)?.title_cs || file,
+    content: [{ attachment: { contentType: "application/pdf", url: file, title: file } }] }, `Dokument ${file}`));
+  const prov = (target, sources, activity) => {
+    const src = (sources || []).filter(Boolean);
+    if (!src.length) return;
+    add({ resourceType: "Provenance", target: [ref(target)], recorded: now,
+      activity: { coding: [{ system: "http://terminology.hl7.org/CodeSystem/v3-DataOperation", code: "CREATE" }], text: activity || "Vytěženo asistentem z dokumentu; neověřeno lékařem" },
+      agent: [{ type: { coding: [{ system: "http://terminology.hl7.org/CodeSystem/provenance-participant-type", code: "assembler" }] }, who: ref(assistant) }],
+      entity: src.map(s => ({ role: "source", what: ref(docRef(s.file)), extension: [
+        { url: `${FHIR_BASE}/StructureDefinition/source-page`, valueInteger: +s.page },
+        ...(s.quote ? [{ url: `${FHIR_BASE}/StructureDefinition/source-quote`, valueString: s.quote }] : [])] })) },
+      `Zdroj: ${src.map(s => `${s.file}, s. ${s.page}`).join("; ")}`);
+  };
+  docRef(c.file);
+  const dx = add({ resourceType: "Condition", meta: tag("documented"), subject: ref(patient), category: [{ coding: [{ system: FHIR_SYS.condCat, code: "encounter-diagnosis" }] }],
+    code: { coding: [{ system: FHIR_SYS.mkn10, code: c.diagnosis.code, display: c.diagnosis.text_cs }], text: c.diagnosis.text_cs } }, `${c.diagnosis.code} ${c.diagnosis.text_cs}`);
+  prov(dx, [c.diagnosis.source]);
+  /* Findings stay text: the documents state them as sentences, and turning them into coded values would add
+     meaning the source does not have. The section names the kind of finding. */
+  const OBS = { clinical_finding: ["exam", "Klinický nález"], current_state: ["exam", "Aktuální stav"], imaging: ["imaging", "Zobrazovací vyšetření"], histology: ["laboratory", "Histologie"] };
+  const ids = { observations: [], procedures: [], medications: [], conditions: [dx], labs: [], issues: [] };
+  for (const [sec, items] of Object.entries(c.sections || {})) for (const it of items) {
+    const iso = fhirDate(it.date), notes = [...(it.note ? [{ text: it.note }] : []), ...(it.negated ? [{ text: "Negace uvedená v dokumentu." }] : []), ...dateNote(it.date, iso)];
+    let u;
+    if (OBS[sec]) u = add({ resourceType: "Observation", meta: tag(it.certainty), status: "final", subject: ref(patient),
+      category: [{ coding: [{ system: FHIR_SYS.obsCat, code: OBS[sec][0] }] }], code: { text: OBS[sec][1] }, valueString: it.text_cs,
+      ...(iso ? { effectiveDateTime: iso } : {}), ...(notes.length ? { note: notes } : {}) }, `${it.date ? it.date + ": " : ""}${it.text_cs}`), ids.observations.push(u);
+    /* Status "unknown": from the documents alone the assistant cannot tell whether a treatment is completed. */
+    else if (sec === "past_treatment") u = add({ resourceType: "Procedure", meta: tag(it.certainty), status: "unknown", subject: ref(patient), code: { text: it.text_cs },
+      ...(iso ? { performedDateTime: iso } : {}), ...(notes.length ? { note: notes } : {}) }, `${it.date ? it.date + ": " : ""}${it.text_cs}`), ids.procedures.push(u);
+    else if (sec === "medication") u = add({ resourceType: "MedicationStatement", meta: tag(it.certainty), status: "unknown", subject: ref(patient), medicationCodeableConcept: { text: it.text_cs },
+      ...(iso ? { effectiveDateTime: iso } : {}), ...(notes.length ? { note: notes } : {}) }, `${it.date ? it.date + ": " : ""}${it.text_cs}`), ids.medications.push(u);
+    else if (sec === "comorbidities") u = add({ resourceType: "Condition", meta: tag(it.certainty), subject: ref(patient), category: [{ coding: [{ system: FHIR_SYS.condCat, code: "problem-list-item" }] }], code: { text: it.text_cs },
+      ...(iso ? { onsetDateTime: iso } : {}), ...(notes.length ? { note: notes } : {}) }, `${it.date ? it.date + ": " : ""}${it.text_cs}`), ids.conditions.push(u);
+    if (u) prov(u, [it.source]);
+  }
+  /* Lab values keep the original unit and reference range text; a decimal comma becomes a number only for the
+     quantity, and a value that is not a plain number stays a string. */
+  for (const l of c.labs || []) {
+    const num = /^-?\d+(,\d+)?$/.test(String(l.value).trim()) ? +String(l.value).replace(",", ".") : null, iso = fhirDate(l.date);
+    const u = add({ resourceType: "Observation", meta: tag(l.certainty), status: "final", subject: ref(patient),
+      category: [{ coding: [{ system: FHIR_SYS.obsCat, code: "laboratory" }] }],
+      code: { coding: l.code ? [{ system: FHIR_SYS.lab, code: l.code, display: l.name_cs }] : [], text: l.name_cs },
+      ...(num != null ? { valueQuantity: { value: num, unit: l.unit } } : { valueString: `${l.value}${l.unit ? " " + l.unit : ""}` }),
+      ...(l.reference_range ? { referenceRange: [{ text: l.reference_range }] } : {}),
+      ...(l.out_of_range === "high" || l.out_of_range === "low" ? { interpretation: [{ coding: [{ system: FHIR_SYS.interp, code: l.out_of_range === "high" ? "H" : "L" }] }] } : {}),
+      ...(iso ? { effectiveDateTime: iso } : {}), ...(l.note ? { note: [{ text: l.note }] } : {}) }, `${l.name_cs}: ${l.value} ${l.unit || ""} (ref. ${l.reference_range || "-"})`);
+    ids.labs.push(u); prov(u, [l.source]);
+  }
+  /* Missing documents, contradictions and changes are the assistant's observations, not facts from the record:
+     DetectedIssue with status preliminary, authored by the assistant. */
+  for (const f of c.flags || []) {
+    const u = add({ resourceType: "DetectedIssue", status: "preliminary", patient: ref(patient), author: ref(assistant),
+      code: { coding: [{ system: FHIR_SYS.flag, code: f.kind }] }, detail: f.text_cs }, `Pozorování asistenta: ${f.text_cs}`);
+    ids.issues.push(u); prov(u, f.based_on, "Pozorování asistenta; neověřeno lékařem");
+  }
+  /* The summary for the MDT: a preliminary Composition by the assistant whose sections point at the entries above. */
+  const li = arr => `<div xmlns="http://www.w3.org/1999/xhtml"><ul>${arr.map(x => `<li>${esc(x)}</li>`).join("")}</ul></div>`;
+  const sec = (title, list, text) => ({ title, ...(text ? { text: { status: "generated", div: text } } : {}), ...(list && list.length ? { entry: list.map(ref) } : { emptyReason: { coding: [{ system: "http://terminology.hl7.org/CodeSystem/list-empty-reason", code: "unavailable" }] }, text: { status: "generated", div: `<div xmlns="http://www.w3.org/1999/xhtml">Neuvedeno v dostupné dokumentaci.</div>` } }) });
+  const comp = { resourceType: "Composition", text: { status: "generated", div: `<div xmlns="http://www.w3.org/1999/xhtml">Podklady pro MDT, ${esc(p.id)}: návrh asistenta, neověřeno lékařem.</div>` }, status: "preliminary", type: { text: "Podklady pro multidisciplinární tým (MDT)" }, subject: ref(patient), date: now, author: [ref(assistant)],
+    title: `Podklady pro MDT, ${p.id} (návrh asistenta, neověřeno lékařem)`,
+    section: [
+      { title: "Shrnutí", text: { status: "generated", div: li((c.summary || []).map(s => s.text_cs)) } },
+      sec("Diagnóza a přidružená onemocnění", ids.conditions), sec("Nálezy", ids.observations), sec("Léčba", ids.procedures),
+      sec("Medikace", ids.medications), sec("Laboratoř", ids.labs), sec("Upozornění asistenta", ids.issues)] };
+  const compUrl = uid();
+  for (const s of c.summary || []) prov(compUrl, s.sources);
+  entries.unshift({ fullUrl: compUrl, resource: comp });
+  return { resourceType: "Bundle", type: "collection", timestamp: now, entry: entries };
+}
+function fhirHtml(o) {
+  const n = o.bundle.entry.length, counts = {};
+  o.bundle.entry.forEach(e => counts[e.resource.resourceType] = (counts[e.resource.resourceType] || 0) + 1);
+  return `<div class="scrim" data-close="1"></div><div class="modal" role="dialog" aria-label="Export FHIR">
+    <div class="row spread"><h2>Export FHIR R4 · ${esc(o.id)}</h2><button class="btn small" data-close="1">Zavřít</button></div>
+    <p class="muted small" style="margin:0">Případ jako balík FHIR R4 (Bundle, ${n} záznamů): ${Object.entries(counts).map(([k, v]) => `${esc(k)} ${v}`).join(", ")}. Každý údaj má záznam Provenance s dokumentem, stranou a citací. Vše je návrh asistenta, neověřený lékařem. Ověřeno oficiálním validátorem HL7 (fhir/README.md).</p>
+    <p class="synth" style="margin:0;border-style:solid">Export obsahuje identifikaci pacienta. V pilotu by šel přes FHIR rozhraní nemocnice, ne jako soubor.</p>
+    <div class="row"><button class="btn primary" data-act="fhirdl">Stáhnout JSON</button><button class="btn" data-act="fhircopy">Kopírovat</button></div>
+    <pre style="margin:0;max-height:46vh;overflow:auto;background:var(--sunk);border-radius:6px;padding:10px;font-size:12px;white-space:pre-wrap;overflow-wrap:anywhere">${esc(JSON.stringify(o.bundle, null, 2))}</pre></div>`;
+}
 function renderOverlay() {
   const o = S.overlay, el = document.getElementById("overlay");
   if (!o) { el.innerHTML = ""; return; }
+  if (o.kind === "fhir") { el.innerHTML = fhirHtml(o); return; }
   if (o.kind === "source") {
     if (!o.data) return;
     el.innerHTML = sourceHtml(o);
@@ -2437,6 +2564,13 @@ async function copyText(text, what) {
 function action(a) {
   const pr = S.view === "patient" ? curProto() : null;
   if (a === "reportdlg") { S.overlay = { kind: "report" }; renderOverlay(); }
+  else if (a === "fhirdlg") { const p = P(S.pid); S.overlay = { kind: "fhir", id: p.id, bundle: fhirBundle(p) }; logAccess(p.file, "exportoval(a) případ jako FHIR"); renderOverlay(); }
+  else if (a === "fhirdl" || a === "fhircopy") {
+    const o = S.overlay, json = JSON.stringify(o.bundle, null, 2);
+    /* Downloads can be blocked inside an embedded page (the published artifact), so copying is offered too. */
+    if (a === "fhircopy") navigator.clipboard?.writeText(json).then(() => toast("Zkopírováno do schránky"), () => toast("Kopírování se nepodařilo; označte text ručně"));
+    else { const u = URL.createObjectURL(new Blob([json], { type: "application/fhir+json" })), l = document.createElement("a"); l.href = u; l.download = `${o.id}-fhir-r4.json`; document.body.appendChild(l); l.click(); l.remove(); setTimeout(() => URL.revokeObjectURL(u), 1000); }
+  }
   else if (a === "newpatient") { S.overlay = { kind: "new", step: 0, uploaded: false, progress: 0 }; renderOverlay(); }
   else if (a === "newnext") {
     const o = S.overlay;

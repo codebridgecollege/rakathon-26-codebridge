@@ -233,6 +233,7 @@ What it does show, and what each stands for:
 | Different screens per role (Administrace only for the administrator) | Role checks in the backend |
 | Access log in Administrace | The audit log |
 | Fictitious PDFs read by Tesseract and a vision model | Documents from the NIS over FHIR, read by the local pipeline |
+| "Export FHIR" in the patient view: a validated FHIR R4 Bundle with a Provenance on every fact ([`fhir/README.md`](../../fhir/README.md)) | What CodeBridge sends to and reads from FNO's FHIR API |
 
 ## Questions for FNO
 

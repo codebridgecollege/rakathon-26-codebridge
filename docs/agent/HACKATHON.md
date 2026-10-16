@@ -131,6 +131,17 @@ waiting for an answer are in [`OPEN_QUESTIONS.md`](OPEN_QUESTIONS.md).
   of fictitious patients" (`2 - FN Ostrava – AI asistent multidisciplinárního týmu.pptx`, slide 8), and the spreadsheets'
   README sheets say "plně syntetických".
 
+## Team decisions
+
+- **17 October 2026, Juro for the team: FHIR.** The demo produces FHIR
+  and does not read it. The patient view has an "Export FHIR" button that
+  builds a FHIR R4 Bundle in the browser, with a Provenance (document,
+  page, quote) on every fact; a saved copy passes the official HL7
+  validator with no errors ([`fhir/README.md`](../../fhir/README.md)). No
+  FHIR server in the demo; the pilot reads FNO's FHIR API as in
+  [`docs/design/INTEGRATION.md`](../design/INTEGRATION.md). We do not aim
+  for the InterSystems prize unless someone has spare hours.
+
 ## Before the repository goes public
 
 All submissions are published, and the repository is private until then.

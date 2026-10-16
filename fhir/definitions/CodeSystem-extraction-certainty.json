@@ -1,0 +1,27 @@
+{
+  "resourceType": "CodeSystem",
+  "id": "extraction-certainty",
+  "url": "https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty",
+  "version": "0.1.0",
+  "name": "Extractioncertainty",
+  "title": "Extraction certainty",
+  "status": "draft",
+  "description": "How sure the assistant is that a fact was read correctly from the document.",
+  "caseSensitive": true,
+  "content": "complete",
+  "concept": [
+    {
+      "code": "documented",
+      "display": "Stated in the document and read clearly"
+    },
+    {
+      "code": "unclear_ocr",
+      "display": "Stated in the document, but the reading is uncertain; verify against the page"
+    },
+    {
+      "code": "inferred",
+      "display": "Not stated directly; inferred by the assistant"
+    }
+  ],
+  "count": 3
+}

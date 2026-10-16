@@ -97,7 +97,8 @@ development and corrected by hand after two reviews
 
 | Standard | Status | Use |
 |---|---|---|
-| HL7 FHIR R4 | planned | Where data enters or leaves (`CLAUDE.md`, "Standards and data model") |
+| HL7 FHIR R4 (4.0.1) | used (export) | Mock v3 exports a case as a FHIR R4 Bundle with a Provenance on every fact, built in the browser; reading FHIR from the hospital is planned ([`fhir/README.md`](../../fhir/README.md), [`INTEGRATION.md`](INTEGRATION.md)) |
+| HL7 Czech core guide (hl7.fhir.cz.core 1.0.0) | used (validation) | Loaded by the validator; the MKN-10 code system URI comes from it |
 | MKN-10 | used in data | Diagnosis codes as written in the documents; shown below the histology, because doctors read the histology and stage first |
 | TNM, ECOG PS, iRECIST | used in data | Kept exactly as written; TNM labeled as stage at diagnosis |
 | NČLP | planned | Lab codes, kept as the source gives them |
@@ -113,3 +114,4 @@ development and corrected by hand after two reviews
 | Node.js, jsdom, Playwright with Chrome | Click-through and layout checks of the mocks (`mocks/src/test/`) |
 | python-pptx, macOS `textutil` | Reading the organizers' decks and FNO's Word documents |
 | GitHub | Repository, shared by the team |
+| HL7 FHIR validator 7.0.2 with OpenJDK 21 (`fhir/validate.sh`) | Checking the FHIR export against FHIR R4 |
