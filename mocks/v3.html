@@ -6504,8 +6504,16 @@ function detailedCard(reg, inPresent) {
       ${inPresent ? `<label class="small muted"><input type="checkbox" data-pickrep="summary" ${S.picked.has("summary") ? "checked" : ""}> do reportu</label>` : ""}</div>
     ${head}
     ${kindLegend()}
-    ${rows.map((r, i) => `<div class="orow cat cat-${rowKind(r)}" title="${KIND_CS[rowKind(r)] || ""}"><span class="dt">${esc(r.date_cs || r.date_label_cs || "")}</span><span><b>${reg.wrap(ed(`od:${i}:e`, r.event_cs), R3((r.refs || [])[0]))}</b>${r.comment_cs ? `<br>${ed(`od:${i}:c`, r.comment_cs)}` : ""}${marks(r, edOf(`od:${i}:e`) ? `od:${i}:e` : `od:${i}:c`)}${(r.refs || []).map(j => reg.n(R3(j))).join("")}</span></div>`).join("")}
+    ${EXTRA.onco_compact_v3 ? compactRows(reg) : rows.map((r, i) => `<div class="orow cat cat-${rowKind(r)}" title="${KIND_CS[rowKind(r)] || ""}"><span class="dt">${esc(r.date_cs || r.date_label_cs || "")}</span><span><b>${reg.wrap(ed(`od:${i}:e`, r.event_cs), R3((r.refs || [])[0]))}</b>${r.comment_cs ? `<br>${ed(`od:${i}:c`, r.comment_cs)}` : ""}${marks(r, edOf(`od:${i}:e`) ? `od:${i}:e` : `od:${i}:c`)}${(r.refs || []).map(j => reg.n(R3(j))).join("")}</span></div>`).join("")}
     ${srcList(reg)}</section>`;
+}
+/* Compact clinician-style summary (Soňa, round 14): one short line per event, "St. p." for what was done,
+   "V plánu" for what is planned, then "Další diagnózy"; each line opens its first source. */
+function compactRows(reg) {
+  const c = EXTRA.onco_compact_v3;
+  const line = (l, i) => `<div class="orow cat cat-${l.kind === "plan" ? "visit" : l.kind}" style="grid-template-columns:minmax(0,1fr)"><span>${reg.wrap(ed(`oc:${i}`, l.text_cs), R3((l.refs || [])[0]))}${(l.refs || []).slice(1).map(j => reg.n(R3(j))).join("")}${marks(l)}</span></div>`;
+  return `${c.lines.map(line).join("")}
+    ${c.other_dx_cs ? `<p style="margin:10px 0 0;font-size:14px">${reg.wrap(esc(c.other_dx_cs), R3((c.other_dx_refs || [])[0]))}</p>` : ""}`;
 }
 /* Guideline passages next to a past decision (Soňa, round 12): shown, never judged; the edition is today's,
    not necessarily the one valid when the decision was made. */
