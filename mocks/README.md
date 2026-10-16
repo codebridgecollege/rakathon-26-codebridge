@@ -9,7 +9,7 @@ All patient data is FNO's fictitious challenge data.
 |---|---|---|
 | `v1.html` | First simple mock (one patient workspace) | https://claude.ai/artifact/KraDQ9X7diVo93QzXtse6t |
 | `v2.html` | Full mock after feedback round 1 (database, calendar, patient detail, presentation, protocol, tasks) | https://claude.ai/artifact/6F5AbN6vEAHJQgXP1fkUdc |
-| `v3.html` | Mock after feedback round 2 (Excel-style filters, month navigation, 10-minute slots, brief first, diagnosis headline, current state, lab chart, doctor edits, back/forward) | (link added after publishing) |
+| `v3.html` | Mock after feedback round 2 (Excel-style filters, month navigation, 10-minute slots, brief first, diagnosis headline, current state, lab chart, doctor edits, back/forward) | https://claude.ai/artifact/6JwakCBuGZr9STKnfRUz8T |
 
 The published copies are private claude.ai artifacts owned by Juro; ask him
 to share them. To view a mock locally, open the `.html` file in a browser.
@@ -47,7 +47,11 @@ re-running the scripts would undo those fixes. Edit the JSON instead.
 
 ## Checks
 
-- `src/test/smoke.mjs`: clicks through every screen in jsdom and reports JS
+- `src/test/v3.mjs`: clicks through mock v3 in Chromium with Playwright at
+  1280 px and 400 px (filters, calendar, back/forward, edits, labs,
+  approval, admin) and reports JS errors and horizontal overflow
+  (`node mocks/src/test/v3.mjs`).
+- `src/test/smoke.mjs`: clicks through every screen of v2 in jsdom and reports JS
   errors (`npm i jsdom@24.1.0` in a scratch folder, then
   `node smoke.mjs <path to v2.html>`).
 - `src/test/w.mjs`: opens every screen in Chrome at 400 px width and prints
