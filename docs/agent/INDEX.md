@@ -355,6 +355,8 @@ and non-oncological differentials such as vertigo or stroke).
 Where the data lives at FNO (deck slide 3): NIS (medical records), LIS
 (lab results), PACS (imaging), INTELIPAT (pathology), and the genetics
 lab. Today a doctor or coordinator searches them by hand.
+FNO's NIS supports FHIR (Juro, from the team, 2026-10-17), so a pilot can
+read patients, documents and staff from it over FHIR.
 
 ## Other test data
 - SYNDERAI (https://synderai.net/) has synthetic EHDS examples: lab

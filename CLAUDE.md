@@ -360,6 +360,7 @@ Pick **one** location. All of these are in git, so the whole team sees them.
 | UI mocks and their data | [`/mocks/`](mocks/README.md) |
 | Technologies we use and why, per case (for presenting) | [`/docs/design/TECHNOLOGIES.md`](docs/design/TECHNOLOGIES.md) |
 | How patient data is protected (OCR, LLMs, redaction) | [`/docs/design/DATA-PROTECTION.md`](docs/design/DATA-PROTECTION.md) |
+| How the app connects to the hospital (login, roles, FHIR, deployment) | [`/docs/design/INTEGRATION.md`](docs/design/INTEGRATION.md) |
 | Hackathon logistics, infrastructure, judging, contacts, decisions with organizers | [`/docs/agent/HACKATHON.md`](docs/agent/HACKATHON.md) |
 | What FNO asks us to deliver, as a checklist | [`/docs/agent/REQUIREMENTS.md`](docs/agent/REQUIREMENTS.md) |
 | Agreed larger work items, in order (backlog) | [`/docs/design/BACKLOG.md`](docs/design/BACKLOG.md) |

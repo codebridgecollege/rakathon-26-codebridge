@@ -84,7 +84,18 @@ redaction; a page where the check found nothing says the check is
 incomplete, and the quote and the transcription are hidden while the
 redacted image is shown.
 
+## Timeline categories
+
+Mock v3 uses the nine categories documented in
+[`PRODUCT.md`](../docs/design/PRODUCT.md#timeline-categories). The `category`
+field on each timeline card is display metadata; original dates, kinds,
+sources and plan status are preserved. The compact summary shares the icons.
+Lucide 0.468.0 paths are embedded in the template, with the ISC notice in
+`src/vendor/lucide-LICENSE`; no icon CDN is needed at runtime.
+
 ## Checks
+
+- `node mocks/src/test/timeline-categories.mjs`: category filters, preserved source indexes, partial and missing dates, planned status, and escaped labels.
 
 - `src/test/v3.mjs`: clicks through mock v3 in Chromium with Playwright at
   1280 px and 400 px (filters, calendar, back/forward, edits, labs,
@@ -102,3 +113,4 @@ redacted image is shown.
 - `src/test/w.mjs`: opens every screen in Chrome at 400 px width and prints
   the page width, to catch horizontal overflow (`npm i playwright-core`,
   needs Google Chrome installed).
+

@@ -340,7 +340,7 @@ The product owner's written feedback on mock v3, as built.
 | 3 | Drag a booked patient back to "Nenaplánovaní" to unschedule. | The card highlights as a drop target for a booked patient and frees the slot on drop. Booking and freeing a slot are written to the access log. A discussed case (status "done") keeps its slot: it cannot be dragged, moved, or freed, and its card says why. |
 | 4 | Sessions may run longer than the seminar hours. | On a seminar day every slot outside the seminar hours can be booked; such slots are hatched and say "mimo čas semináře", and a booked one shows a "mimo" marker. The default range runs from 30 minutes before to one hour after the seminar. |
 | 5 | The editable status text should not be underlined all the time. | The underline shows only on hover or keyboard focus. |
-| 6 | The oncology summary is too long, repeats each date, and uses too many colours. | The line text no longer repeats the date in the left column (dates of other events and ranges stay; the plan line keeps "kontrola 9.10.2026" because its row date belongs to that one item); no pastel bands or stripes, only fine dividers; the timeline's letter pin (Ch, CT, MR, F, K; dashed when planned) sits next to the date, and the date of a systemic-therapy row has the tooltip "zahájení léčby"; smaller rows. |
+| 6 | The oncology summary is too long, repeats each date, and uses too many colours. | The line text no longer repeats the date in the left column (dates of other events and ranges stay; the plan line keeps "kontrola 9.10.2026" because its row date belongs to that one item); no pastel bands or stripes, only fine dividers; the timeline's category icon (dashed when planned) sits next to the date, and the date of a systemic-therapy row has the tooltip "zahájení léčby"; smaller rows. |
 | 7 | No counts in the alert labels. | The toggle, the tab, and the headings say "Upozornění" without numbers. Missing-document alerts stay visible without a click: under the toggle the brief lists the missing items relevant to the MDT question, one line each, under "⚠ Chybí dokumenty a údaje". |
 | 8 | Show the guideline passages about past decisions as retrospective deviations. | The "Odchylky od doporučení" tab starts with "Retrospektivní odchylky": per past decision, the verbatim quote from the documentation (with its source), the verbatim guideline passage, the guideline's name and edition year, a link that opens the guideline at the passage, and the edition note. A doctor may set "Závažnost" (závažná red, středně závažná orange, méně závažná yellow) and "Posouzení" (odůvodněná, neodůvodněná, nejisté); both start empty, are never prefilled or suggested by the assistant, and the colour appears only after a doctor picks it. Every choice is kept in an append-only history with who and when; the latest shows, and "změněno N×" opens the earlier ones. Others see the values read-only. The team decided this on 2026-10-17. Whether the assistant may ever suggest a severity is open (`OPEN_QUESTIONS.md`). |
 | 9 | Order the recommendations by strength, not by country. | Statements under the proposed management are one list per field (oncology; other fields), strongest first, with a common tier next to the original grade (below). Literature stays separate. |
@@ -417,7 +417,7 @@ everything else is Pitch or Later.
 | F-16 | Case summary with levels | The Patient Detail overview shows the case summary with the timeline [design-4 00:04:08]. Round 2 [design-5 00:03:21 to 00:06:32, 00:17:06]: the Overview opens with the MDT brief, then the question, then the current conclusion; below it the detailed summary: a diagnosis headline (histology, grade, TNM labeled as the stage at diagnosis; MKN-10 code smaller below) and dated rows with the event in bold; then the current state of the patient. The same view is shown during the MDT [ui-shot 17.06.15, 17.06.15 (1)]. Relevant other diagnoses listed. | Demo | Short case summary | [design-1 00:01:52, 00:22:08, 00:25:52, 00:41:44; chatgpt P 14:33, R 14:33, P 16:01; juro-notes] | Keeps the documents' status (suspicion vs confirmed by histology). Age appears only when a document states it (3 of the 10 FNO patients); otherwise the brief leaves age out and the identity header shows "věk neuveden v dostupné dokumentaci". Unrelated visits and private data hidden [juro-notes]. |
 | F-17 | Expandable items | Anamnéza, clinical state, imaging, histology, past treatment, question for the MDT; each expands to detail with links. The summary and the finding groups are ticked for the report in the dialog behind the header's "Stáhnout report (PDF)". | Demo | Expandable items; wiki links; ticking | [FNO spec; chatgpt P 14:00; juro-notes] | See the reconciliation above. |
 | F-18 | Source view | Every fact carries a numbered reference [1], as in a paper; clicking it opens the passage in the original document. | Demo | Wiki-style links | [design-1 00:42:20; design-4 00:03:45 to 00:04:00; juro-notes; chatgpt R 01:17] | Mock v1's inline source chips in a monospace font disturbed reading [design-4 00:03:55, 00:04:00]. Round 2: the source list under each card is folded away by default [design-5 00:08:47]; unreadable OCR characters are marked in the source view [design-5 00:11:10]. Team decision 2026-10-16: the source view shows the actual page image with the passage highlighted, and the extracted text in a separate tab, so source links can point at the text passage; tokens the OCR engines read differently are marked "ověřit" (mock v4). |
-| F-19 | Timeline with tracks | A horizontal, scrollable timeline with parallel tracks per kind of event, like git branches. Bigger points carry their label (date, type, title) directly on the line; clicking one shows its detail and source. Oncology milestones highlighted. | Demo | Timeline view; SEŘADIT | [design-1 00:24:05, 00:42:05; design-2 00:15:58, 00:16:54; design-4 00:04:31, 00:05:16, 00:06:17; ui-shot 17.04.50; juro-notes; chatgpt P 14:33] | Horizontal, decided in feedback [design-4 00:06:17]. Soňa's ChatGPT design is vertical cards (icon, date, type, title, one line, expandable) [ui-shot 17.04.50]; its card content carries over. Not dots with a separate list and a years-only axis (mock v1). Long intervals shown as facts. Opening video or images is Later. |
+| F-19 | Timeline categories | One horizontal, chronological timeline. Every event has one category icon and label. Category buttons show counts and filter the same timeline; Vše restores all events. Clicking an event opens its original source. Planned events keep a dashed pin and explicit plan label. | Demo | Timeline view; SEŘADIT | Team decision in Codex chat, 2026-10-17; [design-4 00:06:17] | Categories and source-date rules below. Empty categories have a disabled zero-count filter. |
 | F-20 | Compare current and previous exam | Two reports side by side (for example two MRI reports) with the differences listed as the assistant's observation. | Pitch (text); Later (images) | Significant changes; POROVNAT | [design-1 00:11:45, 00:43:21; paper-notes more_notes; chatgpt P 11:54, R 11:54] | Compare like with like; any computed change (ChatGPT's "34.4% decrease") is labeled. |
 | F-21 | Lab value trends | A matrix of tests (rows) by draw date and time (columns), original units and ranges; clicking a test shows its trend chart [design-5 00:13:43]. | Pitch | Lab value trends | [FNO spec; challenge] | Not discussed in the design sessions. The only lab values in the data are one undated set in patient 10's PDF, so a trend needs synthetic labs (open question with FNO). Mock v3 opens on the real undated values; a second view shows the matrix and chart on a synthetic series, labeled as such inside the chart. |
 | F-22 | Attendance | Specialties per department (neurochirurgie, klinická onkologie, radiační onkologie, radiologie, neurologie, patologie) with their doctors pre-filled; set who is present once per session; count present; copy; per-case exceptions. | Pitch | (report) | [design-1 00:14:16, 00:40:26, 00:41:13; chatgpt P 11:54, P 14:33, P 14:36] | Soňa: "jj super attendance" [chatgpt P 14:36]. Decided in round 2: one dropdown per department, filled in once per seminar day [design-5 00:21:35]. Set in the start dialog of a session and edited from the session bar or the discussion card. Approving a conclusion freezes the attendance in that report. |
@@ -445,6 +445,36 @@ everything else is Pitch or Later.
 |---|---|---|---|---|---|---|
 | F-35 | Retry an AI output | A button to rerun a section. | Later | - | [design-1 00:32:35] | Conflicts with reproducible outputs; keep both versions. |
 | F-36 | Mobile web | Works in a phone browser; no app to install. | Later | - | [design-2 00:12:53] | Juro's point. |
+
+### Timeline categories
+
+The team agreed on these labels and icons on 17 October 2026:
+
+| Category key | Czech label | Icon |
+|---|---|---|
+| `imaging` | Zobrazovací vyšetření | `scan-line` |
+| `systemic` | Systémová protinádorová léčba | `syringe` |
+| `medication` | Ostatní medikace | `pill` |
+| `mdt` | MDT a rozhodnutí | `users-round` |
+| `surgery` | Chirurgie a výkony | `scissors` |
+| `pathology` | Patologie a molekulární vyšetření | `microscope` |
+| `radiotherapy` | Radioterapie | `target` |
+| `laboratory` | Laboratorní vyšetření | `test-tube-diagonal` |
+| `clinical` | Klinický stav a ostatní | `stethoscope` |
+
+The category describes the event, not the document that mentions it. It is
+stored as display metadata beside the original kind. Unknown categories
+fall under `clinical`; uncertainty remains a separate marker. There is no
+"K ověření" category. The compact oncology summary uses the same icons.
+
+The mock's 16 timeline cards keep their wording, dates, sources and planned
+status. Mixed procedure/histology cards stay combined: an excision date is
+not a newly inferred pathology-result date. Planned outpatient control with
+blood tests stays clinical, not a completed laboratory event. Filters use
+the original event indexes so opening a source cannot select another event.
+The filter resets when switching patients and remains while changing tabs
+within one patient. Categorization is fixed mock metadata; it is not a new
+extraction pipeline or an editable clinical decision.
 
 ## FNO requirements coverage
 
@@ -566,3 +596,4 @@ challenge deck, both listed in [`REQUIREMENTS.md`](../agent/REQUIREMENTS.md).
 Where the rest went: domain facts are in
 [`INDEX.md`](../agent/INDEX.md#from-soňas-experience), open questions in
 [`OPEN_QUESTIONS.md`](../agent/OPEN_QUESTIONS.md).
+
