@@ -211,28 +211,27 @@ details.more > summary { cursor: pointer; color: var(--muted); font-size: 12.5px
 .pipeline li.run { background: var(--change-soft); color: var(--change); }
 .drop { border: 1.5px dashed var(--line-strong); border-radius: var(--r); padding: 18px; text-align: center; color: var(--muted); background: var(--sunk); }
 
-/* Findings (presentation) */
-.find { border: 1px solid var(--line); border-radius: var(--r); background: var(--surface); }
-.find + .find { margin-top: 8px; }
-.find > summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 10px; padding: 12px 14px; }
-.find > summary::-webkit-details-marker { display: none; }
-.find > summary::before { content: "›"; font-size: 18px; color: var(--muted); transition: transform .15s; width: 10px; }
-.find[open] > summary::before { transform: rotate(90deg); }
-.find .ttl { font: 700 15px/1.3 var(--font-head); }
-.find .cnt { color: var(--muted); font-size: 12.5px; }
-.find .pick { margin-left: auto; display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--muted); }
-.find ul { margin: 0; padding: 0 16px 14px 36px; display: grid; gap: 6px; }
-.find li .dt { color: var(--muted); font-variant-numeric: tabular-nums; margin-right: 6px; }
+/* MDT session bar: the day's agenda above the patient view while an MDT is running. It sticks under the top bar
+   (whose height is measured into --toph), so the next patient is always one click away. */
+.sesbar { position: sticky; top: calc(var(--toph, 52px) + env(safe-area-inset-top, 0px)); z-index: 4; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; background: var(--surface); border: 1px solid var(--accent); border-radius: var(--r); padding: 8px 10px; box-shadow: 0 4px 14px rgba(28,39,38,.08); min-width: 0; }
+.sesbar .sestitle { font-weight: 700; font-size: 13px; color: var(--accent-ink); white-space: nowrap; }
+.agenda { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; min-width: 0; flex: 1 1 280px; }
+.agenda button { border: 1px solid var(--line); background: var(--surface); border-radius: 99px; padding: 4px 11px; cursor: pointer; white-space: nowrap; font-size: 13px; }
+.agenda button[aria-current="true"] { border-color: var(--accent); background: var(--accent-soft); color: var(--accent-ink); font-weight: 700; }
+/* On a phone the top bar already wraps to several rows, so a second sticky band would cover most of the screen. */
+@media (max-width: 640px) { .sesbar { position: static; } .sesbar .sestitle { flex-basis: 100%; } }
+.agenda button .tm2 { color: var(--muted); font-variant-numeric: tabular-nums; margin-right: 4px; }
+/* The MDT discussion card: collapsed outside a session, open and outlined while the case is being discussed. */
+details.mdtcard > summary { cursor: pointer; list-style: none; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+details.mdtcard > summary::-webkit-details-marker { display: none; }
+details.mdtcard > summary::before { content: "›"; font-size: 18px; color: var(--muted); transition: transform .15s; width: 10px; }
+details.mdtcard[open] > summary { margin-bottom: 12px; }
+details.mdtcard[open] > summary::before { transform: rotate(90deg); }
+.mdtcard.live { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
+.mdtcard .sub { border-top: 1px solid var(--line); padding-top: 12px; }
+.mdtcard .sub > .head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
 
-.present { background: var(--surface); }
-.present .page { max-width: 1400px; }
-.present .prose { font-size: 17px; }
-.present .question p { font-size: 18px; }
-.agenda { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; min-width: 0; flex: 1 1 320px; }
-.agenda button { border: 1px solid var(--line); background: var(--surface); border-radius: 6px; padding: 5px 10px; cursor: pointer; white-space: nowrap; font-size: 13px; }
-.agenda button[aria-current="true"] { border-color: var(--accent); background: var(--accent-soft); font-weight: 700; }
-
-/* Protocol */
+/* MDT discussion: attendance, notes, steps */
 .att { display: grid; grid-template-columns: 170px minmax(0, 1fr) auto; gap: 8px 12px; align-items: center; }
 .att .dept { font-weight: 600; font-size: 13.5px; }
 .seg2 { display: grid; grid-template-columns: 1fr 1fr; background: var(--sunk); border-radius: 8px; padding: 3px; gap: 3px; }
@@ -394,10 +393,6 @@ details.srcs .refs { border-top: 0; margin-top: 4px; padding-top: 0; }
 .stc { font-size: 13.5px; line-height: 1.55; }
 .stc p { margin: 0 0 6px; }
 .info { display: inline-grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; border: 1px solid var(--line-strong); color: var(--muted); font: 700 11px/1 var(--font-body); cursor: help; background: var(--surface); padding: 0; }
-.kebab { position: relative; }
-.kebab .menu { position: absolute; right: 0; top: 110%; z-index: 20; background: var(--surface); border: 1px solid var(--line-strong); border-radius: var(--r); box-shadow: 0 8px 24px rgba(28,39,38,.12); padding: 6px; min-width: 200px; }
-.kebab .menu button { display: block; width: 100%; text-align: left; border: 0; background: none; padding: 7px 10px; border-radius: 6px; cursor: pointer; }
-.kebab .menu button:hover { background: var(--sunk); }
 .ev .pin b { font: 800 11px/1 var(--font-head); }
 /* v3: unreadable OCR characters in the source view */
 .unr { display: inline-block; min-width: 1em; text-align: center; background: var(--conflict-soft); color: var(--conflict); border-radius: 3px; font-size: .8em; font-weight: 700; cursor: help; }
@@ -6352,7 +6347,7 @@ function initialPatients() {
 }
 
 const S = {
-  view: "patients", pid: CASE.file, tab: "overview", brief: "brief", user: USERS[0],
+  view: "patients", pid: CASE.file, tab: "overview", user: USERS[0],
   patients: initialPatients(), q: "", colf: {}, colOpen: null, editLog: [], subFrom: "", subTo: "", dbPage: 0, dbAll: false,
   week: mondayOf("2026-10-22"), miniMonth: "2026-10", labMode: "doc", guideOn: true, labSel: null, edits: {},
   selTl: null, picked: new Set(["summary", "imaging", "histology", "past_treatment"]),
@@ -6360,7 +6355,9 @@ const S = {
     { id: 1, pid: "2_pacient.pdf", text: "doplnit pooperační MR do podkladů", who: COORD, due: "2026-10-21", done: false },
     { id: 2, pid: "13_pacient.pdf", text: "vyžádat snímky MR 8/2025 ke srovnání", who: COORD, due: "2026-10-21", done: true },
   ],
-  mails: [], protos: {}, attByDay: {}, schedPick: null, calPop: null, overlay: null, tlScroll: 0, openFind: new Set(), taskScope: "mine", srcTab: "image",
+  mails: [], protos: {}, attByDay: {}, schedPick: null, calPop: null, overlay: null, tlScroll: 0, taskScope: "mine", srcTab: "image",
+  /* The running MDT session: { day }. While it is set, every case on that day's agenda shows the session bar. */
+  session: null, mdtOpen: {},
 };
 const P = id => S.patients.find(p => p.file === id);
 
@@ -6471,7 +6468,7 @@ function renderNav() {
   const items = [["patients", "Databáze pacientů"], ["calendar", "Kalendář MDT"], ["tasks", `Moje úlohy<span class="count">${open}</span>`]];
   /* The audit log is for administrators only (Soňa and Juro, round 2); doctors do not see it. */
   if (S.user === ADMIN) items.push(["admin", "Administrace"]);
-  document.getElementById("nav").innerHTML = items.map(([k, t]) => `<button data-nav="${k}" aria-current="${S.view === k || (k === "patients" && ["patient", "present", "protocol"].includes(S.view))}">${t}</button>`).join("");
+  document.getElementById("nav").innerHTML = items.map(([k, t]) => `<button data-nav="${k}" aria-current="${S.view === k || (k === "patients" && S.view === "patient")}">${t}</button>`).join("");
   document.getElementById("user").innerHTML = USERS.map(u => `<option ${u === S.user ? "selected" : ""}>${esc(u)}</option>`).join("");
 }
 
@@ -6675,10 +6672,12 @@ function conclusionBox(p) {
   const dec = S.decisions.filter(d => d.pid === p.file);
   const last = dec[dec.length - 1];
   const pr = ensureProto(p), draftable = isDoctor(S.user) && pr.state !== "approved";
+  /* The valid (approved) conclusion stays on top; a new draft that will supersede it sits below it, so a draft
+     is never read as the decision. */
   return `<div class="concl ${last ? "valid" : ""}"><span class="bh">Závěr MDT</span>
-    ${draftable ? `<textarea class="input" id="concl" placeholder="Závěr a další postup, píše lékař (koncept, schvaluje se v protokolu MDT)" style="min-height:70px">${esc(pr.concl)}</textarea>${pr.concl.trim() ? `<p class="muted small" style="margin:4px 0 0">Koncept, zatím neschváleno. <button class="linkbtn small" data-go="protocol">Schválit v protokolu MDT</button></p>` : ""}` : ""}
-    ${last ? `<p>${esc(last.text)}</p><div class="muted small">Platný závěr č. ${dec.length} · schválil(a) ${esc(last.by)}, ${esc(last.when)}</div>${dec.length > 1 ? `<details class="srcs"><summary>Předchozí závěry (${dec.length - 1})</summary><ul class="hist" style="margin-top:6px">${dec.slice(0, -1).reverse().map((x, i) => `<li class="old small"><b>Závěr č. ${dec.length - 1 - i}</b> · nahrazen · ${esc(x.when)} · ${esc(x.by)}<br>${esc(x.text)}${x.reportSnap ? `<details class="srcs"><summary>Schválený protokol</summary><div style="margin-top:6px">${x.reportSnap}</div></details>` : ""}</li>`).join("")}</ul></details>` : ""}`
-      : draftable ? "" : `<p class="muted" style="font-size:14px">Zatím neprojednáno.</p>`}</div>`;
+    ${last ? `<p>${esc(last.text)}</p><div class="muted small">Platný závěr č. ${dec.length} · schválil(a) ${esc(last.by)}, ${esc(last.when)}</div>${dec.length > 1 ? `<details class="srcs"><summary>Předchozí závěry (${dec.length - 1})</summary><ul class="hist" style="margin-top:6px">${dec.slice(0, -1).reverse().map((x, i) => `<li class="old small"><b>Závěr č. ${dec.length - 1 - i}</b> · nahrazen · ${esc(x.when)} · ${esc(x.by)}<br>${esc(x.text)}${x.reportSnap ? `<details class="srcs"><summary>Schválený report</summary><div style="margin-top:6px">${x.reportSnap}</div></details>` : ""}</li>`).join("")}</ul></details>` : ""}`
+      : draftable ? "" : `<p class="muted" style="font-size:14px">Zatím neprojednáno.</p>`}
+    ${draftable ? `${last ? `<span class="label" style="display:block;margin-top:10px">Koncept nového závěru (nahradí platný až po schválení)</span>` : ""}<textarea class="input" id="concl" placeholder="Závěr a další postup, píše lékař (koncept, schvaluje se níže v části Projednání na MDT)" style="min-height:70px;margin-top:4px">${esc(pr.concl)}</textarea>${pr.concl.trim() ? `<p class="muted small" style="margin:4px 0 0">Koncept, zatím neschváleno. Schvaluje se níže v části Projednání na MDT.</p>` : ""}` : ""}</div>`;
 }
 function topAlerts() {
   const all = CASE.flags.map((f, i) => ({ ...f, i }));
@@ -6736,7 +6735,7 @@ function guideBox() {
         ${(a.quotes || []).slice(0, 1).map(q => `<q>${esc(q)}</q>`).join("")}<span class="small">Proč: ${esc(a.why_relevant_cs || "")}</span></li>`).join("")}</ol>
       <p class="muted small" style="margin:6px 0 0">Literatura není doporučení. Hledání v PubMed používá jen odborné pojmy, nikdy údaje o pacientovi${(GUIDE.queries || []).length ? `; dotazy: ${(GUIDE.queries || []).map(q => `„${esc(q.query)}“`).join(", ")}` : ""}.</p></details>` : ""}
     ${(GUIDE.not_retrieved || []).length ? `<details class="srcs"><summary class="muted">Nenačtené zdroje (${GUIDE.not_retrieved.length})</summary><ul class="small muted">${GUIDE.not_retrieved.map(n => `<li>${esc(n.name)}: ${esc(n.reason)}</li>`).join("")}</ul></details>` : ""}
-    <p class="muted small" style="margin:8px 0 0">Citace doslovně z uvedených doporučení. Asistent možnosti neřadí a postup nenavrhuje; rozhoduje MDT. Odchylky se zapisují v protokolu MDT.</p></details>`;
+    <p class="muted small" style="margin:8px 0 0">Citace doslovně z uvedených doporučení. Asistent možnosti neřadí a postup nenavrhuje; rozhoduje MDT. Odchylky se zapisují v záložce Odchylky od doporučení.</p></details>`;
 }
 /* Source links named by page ("s. 2"), as in the labs table, so several links in one row are told apart. */
 const srcLinks = refs => { const xs = refs || [], seen = {}; return xs.map(r => { const same = xs.filter(x => x.page === r.page).length, k = (seen[r.page] = (seen[r.page] || 0) + 1);
@@ -6758,16 +6757,16 @@ function briefBlock(p) {
     <p class="prose">${briefHtml(reg)}</p>
     ${reasonQuestionBox(p, reg)}
     ${timelineCard(true)}
+    ${srcList(reg)}
     ${conclusionBox(p)}
-    ${srcList(reg)}</section>`;
+    ${mdtCard(p)}</section>`;
 }
-function detailedCard(reg, inPresent) {
+function detailedCard(reg) {
   const d = DXH();
   const rows = EXTRA.onco_detailed_v3 || [];
   const head = d ? `<p class="dxh">${reg.wrap(ed("dx", [d.histology_cs, d.grade_cs, d.tnm_cs].filter(Boolean).join(", ")), R3((d.refs || [])[0]))}${d.histology_date_cs ? ` <span class="muted" style="font-size:13px;font-weight:600" title="${esc(d.tnm_context_cs || "")}">(pTNM při diagnóze, ${esc(d.histology_date_cs.replace(/^\d+\./, "").replace(".", "/"))})</span>` : ""}${marks(d, "dx")}${(d.refs || []).map(i => reg.n(R3(i))).join("")}</p>
     <p class="dxs">${esc(d.mkn_cs || "")}</p>` : "";
-  return `<section class="card"><div class="head"><h2>Onkologický souhrn</h2>
-      ${inPresent ? `<label class="small muted"><input type="checkbox" data-pickrep="summary" ${S.picked.has("summary") ? "checked" : ""}> do reportu</label>` : ""}</div>
+  return `<section class="card"><div class="head"><h2>Onkologický souhrn</h2></div>
     ${head}
     ${kindLegend()}
     ${EXTRA.onco_compact_v3 ? compactRows(reg) : rows.map((r, i) => `<div class="orow cat cat-${rowKind(r)}" title="${KIND_CS[rowKind(r)] || ""}"><span class="dt">${esc(r.date_cs || r.date_label_cs || "")}</span><span><b>${reg.wrap(ed(`od:${i}:e`, r.event_cs), R3((r.refs || [])[0]))}</b>${r.comment_cs ? `<br>${ed(`od:${i}:c`, r.comment_cs)}` : ""}${marks(r, edOf(`od:${i}:e`) ? `od:${i}:e` : `od:${i}:c`)}${(r.refs || []).map(j => reg.n(R3(j))).join("")}</span></div>`).join("")}
@@ -6976,7 +6975,7 @@ function viewAdmin() {
   if (S.user !== ADMIN) return `<div class="page"><p class="muted">Administrace je jen pro správce systému.</p></div>`;
   return `<div class="page"><div class="pagehead"><div><h1>Administrace</h1><div class="muted small">Záznam přístupů ke všem případům · jen pro správce systému</div></div></div>
     <section class="card" style="padding:0"><div class="scroll"><table class="tbl"><thead><tr><th>Čas</th><th>Uživatel</th><th>Případ</th><th>Akce</th></tr></thead>
-    <tbody>${S.access.map(a => `<tr><td class="num">${esc(a.when)}</td><td>${esc(a.who)}</td><td class="id">${esc(P(a.pid)?.id || a.pid)}</td><td>${esc(a.what)}</td></tr>`).join("") || `<tr><td colspan="4" class="muted">Zatím žádné přístupy v této relaci. Záznam vznikne otevřením případu, prezentace, protokolu nebo zdrojového dokumentu.</td></tr>`}</tbody></table></div></section>
+    <tbody>${S.access.map(a => `<tr><td class="num">${esc(a.when)}</td><td>${esc(a.who)}</td><td class="id">${esc(P(a.pid)?.id || a.pid)}</td><td>${esc(a.what)}</td></tr>`).join("") || `<tr><td colspan="4" class="muted">Zatím žádné přístupy v této relaci. Záznam vznikne otevřením případu nebo zdrojového dokumentu.</td></tr>`}</tbody></table></div></section>
     <section class="card"><div class="head"><h2>Úpravy lékařů (${S.editLog.length})</h2><span class="muted small">Původní hodnota zůstává; seznam se jen doplňuje</span></div>
       <ul class="hist">${S.editLog.slice().reverse().map(e => `<li class="small"><b>${esc(P(e.pid)?.id || e.pid)}</b> · ${esc(e.by)} · ${esc(e.when)}${e.reverted ? " · <b>vráceno na původní</b>" : ""}<br>Původně: <span class="muted">${esc(e.orig || GAP)}</span>${e.reverted ? "" : `<br>Nově: ${esc(e.text)}`}</li>`).join("") || `<li class="muted small">Zatím žádné úpravy. Záznam vznikne, když lékař v případu pacienta opraví údaj tužkou ✎.</li>`}</ul></section>
     <p class="muted small">Role správce zde slouží jen k náhledu záznamu; v reálné aplikaci by správce neměl přístup ke klinickému obsahu případů. Záznam se v maketě drží jen v paměti prohlížeče. V reálné aplikaci by byl na serveru nemocnice, neměnný a s dobou uchování podle předpisů FNO.</p></div>`;
@@ -6989,8 +6988,9 @@ function viewPatient() {
   if (!tabs.some(t => t[0] === S.tab)) S.tab = "overview";
   const body = { overview: tabOverview, anamnesis: tabAnamnesis, documents: tabDocuments, labs: tabLabs, alerts: tabAlerts, next: tabNext, dev: tabDev }[S.tab]();
   return `<div class="page">
+    ${sessionBar(p)}
     <div class="row"><button class="linkbtn" data-nav="patients">‹ Databáze pacientů</button></div>
-    ${patientHeader(p, `<button class="btn" data-sched="${esc(p.file)}">${p.slot ? "Změnit termín" : "Naplánovat"}</button><button class="btn" data-go="protocol">Protokol MDT</button><button class="btn primary" data-go="present">Prezentovat na MDT</button><span class="kebab"><button class="btn" data-act="kebab" aria-label="Další akce" aria-expanded="${!!S.kebab}">⋮</button>${S.kebab ? `<div class="menu"><button data-act="download">Stáhnout report (PDF)</button></div>` : ""}</span>`)}
+    ${patientHeader(p, headerActions(p))}
     ${briefBlock(p)}
     <div class="tabs" role="tablist">${tabs.map(([k, t]) => `<button class="tab" role="tab" data-tab="${k}" aria-selected="${S.tab === k}">${t}</button>`).join("")}</div>
     ${body}</div>`;
@@ -7010,115 +7010,110 @@ function tabDev() {
   const p = P(S.pid), pr = ensureProto(p);
   return S.guideOn && STMTS().length ? devTable(p, pr, pr.state === "approved") : `<section class="card"><p class="muted">Vrstva doporučení je vypnutá nebo bez citací.</p></section>`;
 }
+/* Cases the mock has not processed still get the same view: header, short overview, conclusion and the MDT
+   discussion card, so a session can run through every case on the agenda. */
 function viewPatientLite(p) {
-  return `<div class="page"><div class="row"><button class="linkbtn" data-nav="patients">‹ Databáze pacientů</button></div>
-    ${patientHeader(p, `<button class="btn" data-sched="${esc(p.file)}">${p.slot ? "Změnit termín" : "Naplánovat"}</button>`, true)}
-    <section class="card"><div class="head"><h2>Stručný přehled</h2><span class="chip plain st-new">V maketě nezpracováno</span></div>
+  return `<div class="page">${sessionBar(p)}<div class="row"><button class="linkbtn" data-nav="patients">‹ Databáze pacientů</button></div>
+    ${patientHeader(p, headerActions(p), true)}
+    <section class="card blk"><div class="head" style="margin:0"><h2>Stručný přehled</h2><span class="chip plain st-new">V maketě nezpracováno</span></div>
       <p class="prose">${esc(p.summary || "")}</p>
-      <p class="muted small">Plně zpracovaný je v maketě případ NO-010. Zdroj: ${esc(p.file)}, ${p.pages || "?"} s.</p></section></div>`;
+      <p class="muted small" style="margin:0">Plně zpracovaný je v maketě případ NO-010. Zdroj: ${esc(p.file)}, ${p.pages || "?"} s.</p>
+      ${conclusionBox(p)}
+      ${mdtCard(p)}</section></div>`;
+}
+/* Header actions: scheduling, starting the MDT for this case's day, and the report. The report button is the
+   only place it is offered, so there is no second copy in a menu. */
+function headerActions(p) {
+  const live = S.session && p.slot && S.session.day === p.slot.day;
+  return `<button class="btn" data-sched="${esc(p.file)}">${p.slot ? "Změnit termín" : "Naplánovat"}</button>${p.slot && !live ? `<button class="btn" data-startday="${esc(p.slot.day)}" data-startfrom="${esc(p.file)}">Zahájit MDT</button>` : ""}<button class="btn primary" data-act="download">Stáhnout report (PDF)</button>`;
 }
 
-/* ---------- 4. MDT presentation (projector) ---------- */
+/* Parts the doctor can tick for the report (FNO spec): the assistant's summary and these finding groups.
+   A ticked group with no findings prints the gap wording. */
 const FIND = [["clinical_finding", "Klinický nález"], ["imaging", "Zobrazovací vyšetření"], ["histology", "Histologie"], ["past_treatment", "Prodělaná léčba"], ["current_state", "Aktuální stav"]];
-/* Presentation keeps the brief/detailed switch: the brief for the room, the detail on demand. */
-function presentSummary(reg) {
-  const seg = `<span class="seg" role="group" aria-label="Úroveň detailu"><button data-brief="brief" aria-pressed="${S.brief === "brief"}">MDT brief</button><button data-brief="detailed" aria-pressed="${S.brief === "detailed"}">Detailní</button></span>`;
-  if (S.brief === "detailed") return detailedCard(reg, true).replace('<div class="head"><h2>Onkologický souhrn</h2>', `<div class="head"><h2>Onkologický souhrn</h2>${seg}`);
-  return `<section class="card"><div class="head"><h2>Shrnutí (30 až 60 s)</h2><label class="small muted"><input type="checkbox" data-pickrep="summary" ${S.picked.has("summary") ? "checked" : ""}> do reportu</label>${seg}</div>
-    <p class="prose">${briefHtml(reg)}</p>${srcList(reg)}</section>`;
-}
-function viewPresent() {
-  const p = P(S.pid);
-  const agenda = S.patients.filter(x => x.slot && x.slot.day === (p.slot?.day || "2026-10-22")).sort((a, b) => a.slot.time.localeCompare(b.slot.time));
-  const reg = refRegistry();
-  const finds = FIND.map(([k, t]) => { const items = CASE.sections[k] || []; return `<details class="find" data-find="${k}" ${S.openFind.has(k) ? "open" : ""}><summary><span class="ttl">${t}</span><span class="cnt">${items.length || GAP}</span>
-      <label class="pick" onclick="event.stopPropagation()"><input type="checkbox" data-pickrep="${k}" ${S.picked.has(k) ? "checked" : ""}> do reportu</label></summary>
-      <ul>${items.map(f => `<li><span class="dt">${esc(f.date || "")}</span>${esc(f.text_cs)}${tags(f)}${reg.n(f.source)}${f.certainty !== "documented" && f.note ? `<span class="note">${esc(f.note)}</span>` : ""}</li>`).join("")}</ul></details>`; }).join("");
-  return `<div class="present"><div class="page">
-    <div class="row spread"><div class="agenda" aria-label="Pořadí na semináři">${agenda.map(a => `<button data-present="${esc(a.file)}" aria-current="${a.file === p.file}" aria-label="${a.slot.time} ${esc(surnameFirst(a))}, ${esc(a.id)}">${a.slot.time} ${esc(a.name.split(" ").slice(-1)[0])}</button>`).join("")}</div>
-      <div class="row">${p.slot ? `<button class="btn" data-startday="${esc(p.slot.day)}">Přítomní (${presentList().length})</button>` : ""}<button class="btn" data-go="patient">Zavřít prezentaci</button><button class="btn primary" data-go="protocol">Protokol MDT ›</button></div></div>
-    ${p.full ? `${patientHeader(p, "", true)}
-    <div class="grid2"><div class="stack">${presentSummary(reg)}</div>
-      <div class="stack">${finds}</div></div>
-    ${timelineCard()}` : `${patientHeader(p, "", true)}<section class="card"><p class="prose">${esc(p.summary || "")}</p><p class="muted small">V maketě nezpracováno.</p></section>`}
-  </div></div>`;
+
+/* ---------- 4. MDT session bar ---------- */
+/* While an MDT runs, the only thing that changes in the patient view is this bar: the day's cases in order,
+   so the team moves between them without leaving the case they are looking at. */
+const inSession = p => !!(S.session && p.slot && p.slot.day === S.session.day);
+function sessionBar(p) {
+  if (!inSession(p)) return "";
+  const ag = dayAgenda(S.session.day), i = ag.findIndex(a => a.file === p.file);
+  const prev = ag[i - 1], next = ag[i + 1];
+  return `<div class="sesbar" role="navigation" aria-label="Probíhající MDT">
+    <span class="sestitle">MDT · ${esc(dayLabel(S.session.day))}</span>
+    <button class="btn small" ${prev ? `data-sesgo="${esc(prev.file)}"` : "disabled"} aria-label="Předchozí pacient">‹</button>
+    <div class="agenda" aria-label="Pořadí na semináři">${ag.map(a => `<button data-sesgo="${esc(a.file)}" aria-current="${a.file === p.file}" aria-label="${a.slot.time} ${esc(surnameFirst(a))}, ${esc(a.id)}${ensureProto(a).state === "approved" ? ", závěr schválen" : ""}"><span class="tm2">${a.slot.time}</span>${esc(a.name.split(" ").slice(-1)[0])}${ensureProto(a).state === "approved" ? " ✓" : ""}</button>`).join("")}</div>
+    <button class="btn small" ${next ? `data-sesgo="${esc(next.file)}"` : "disabled"} aria-label="Další pacient">›</button>
+    <button class="btn small" data-startday="${esc(S.session.day)}">Přítomní (${presentList(S.session.day).length})</button>
+    <button class="btn small" data-act="endsession">Ukončit MDT</button></div>`;
 }
 
-/* ---------- 5. MDT protocol ---------- */
-/* One protocol per patient; attendance belongs to the whole seminar, so it is entered once. */
+/* ---------- 5. MDT discussion record ---------- */
+/* One discussion record per patient (mode, notes, conclusion draft, steps, approval); attendance belongs to the
+   whole seminar, so it is entered once per day. */
 function ensureProto(p) {
   if (!S.protos[p.file]) S.protos[p.file] = { pid: p.file, mode: "manual", notes: "", concl: "", steps: [], state: "draft" };
   return S.protos[p.file];
 }
 /* Attendance is entered once per seminar day and applies to every case that day (Soňa, rounds 1 and 2). */
-const attDay = () => P(S.pid)?.slot?.day || `bez termínu: ${S.pid}`;
+const attDay = (p = P(S.pid)) => p?.slot?.day || `bez termínu: ${p?.file}`;
 function attFor(day = attDay()) { if (!S.attByDay[day]) S.attByDay[day] = Object.fromEntries(DEPTS.map(([d]) => [d, [""]])); return S.attByDay[day]; }
-/* Attendance selects for one seminar day; the same grid sits in the protocol and in the "Zahájit MDT" dialog. */
+/* Attendance selects for one seminar day; the grid sits in the attendance dialog ("Zahájit MDT", "Přítomní", "Upravit"). */
 function attGrid(day) {
   const a = attFor(day);
   return `<div class="att">${DEPTS.map(([d, docs]) => a[d].map((v, k) => `<span class="dept">${k === 0 ? d : ""}</span>
     <select class="input" data-att="${esc(d)}" data-day="${esc(day)}" data-k="${k}" aria-label="${esc(d)}"><option value="">${k === 0 ? "vyberte…" : "odebrat"}</option>${docs.map(x => `<option ${v === x ? "selected" : ""} ${a[d].includes(x) && v !== x ? "disabled" : ""}>${esc(x)}</option>`).join("")}</select>
     ${k === 0 ? `<button class="btn small" data-addatt="${esc(d)}" data-day="${esc(day)}" ${a[d].length >= docs.length ? "disabled" : ""}>+ další</button>` : "<span></span>"}`).join("")).join("")}</div>`;
 }
-const presentList = () => Object.values(attFor()).flat().filter(Boolean);
+const presentList = (day = attDay()) => Object.values(attFor(day)).flat().filter(Boolean);
 const isDoctor = u => u.startsWith("MUDr.");
-function viewProtocol() {
-  if (P(S.pid).full) loadGuidance(P(S.pid));
-  const p = P(S.pid), pr = ensureProto(p);
-  const present = presentList();
+/* "Projednání na MDT": attendance, discussion notes, next steps, approval and the report preview, in the patient
+   view itself. Outside a session it is collapsed unless a draft exists; in a session it is open and outlined. */
+function mdtCard(p) {
+  const pr = ensureProto(p), day = attDay(p);
+  const present = presentList(day);
   const locked = pr.state === "approved";
   const named = pr.steps.filter(x => x.text.trim());
-  const stepsDone = [!!pr.concl.trim(), named.length > 0, locked];
+  const hasConcl = !!pr.concl.trim();
   const assignees = [COORD, p.owner, ...present].filter((v, i, a) => a.indexOf(v) === i);
   const canApprove = isDoctor(S.user) && present.includes(S.user);
   const versions = S.decisions.filter(d => d.pid === p.file).length;
-  return `<div class="page">
-    <div class="row spread"><button class="linkbtn" data-go="patient">‹ ${esc(p.id)} · ${esc(p.name)}</button>
-      <span class="chip ${locked ? "st-done" : "st-scheduled"}">${locked ? "Schváleno" : versions ? `Koncept nového závěru (předchozí: č. ${versions})` : "Probíhá · koncept"}</span></div>
-    <div class="pagehead"><div><h1>Protokol MDT</h1><div class="muted small">${esc(slotText(p))} · Neuroonkologický seminář</div></div>
-      <div class="row"><button class="btn" data-go="present">‹ Zpět do prezentace</button>${locked ? `<button class="btn" data-act="newversion">Nový závěr (nahradí platný)</button>` : ""}</div></div>
+  const live = inSession(p);
+  /* The doctor's own open/closed choice wins; otherwise open when the case is discussed or has a draft. */
+  const open = S.mdtOpen[p.file] ?? (live || hasConcl || locked);
+  const shown = locked ? (pr.attSnap || []) : present;
+  const chip = locked ? `<span class="chip st-done">Závěr schválen</span>` : hasConcl ? `<span class="chip st-attention">Koncept, neschváleno</span>` : versions ? `<span class="chip st-new">Platný závěr č. ${versions}</span>` : "";
+  return `<details class="card mdtcard ${live ? "live" : ""}" data-mdtopen="${esc(p.file)}" ${open ? "open" : ""}><summary><h2>Projednání na MDT</h2>${chip}${live ? `<span class="chip st-scheduled">MDT probíhá</span>` : ""}</summary>
     <div class="grid2"><div class="stack">
-      <section class="card"><div class="head"><h2>Přítomní na semináři</h2><span class="row"><span class="muted small">${plural(locked ? (pr.attSnap || []).length : present.length, "lékař", "lékaři", "lékařů")}</span><button class="btn small" data-act="copyatt">Kopírovat</button></span></div>
-        ${locked ? `<p style="margin:0">${esc((pr.attSnap || []).join(", ") || "nezadáno")}</p><p class="muted small" style="margin:6px 0 0">Uzamčeno schválením závěru ${esc(pr.when)}.</p>` : attGrid(attDay())}
-        <p class="muted small" style="margin:10px 0 0">${p.slot ? `Platí pro celý den (${esc(dayLabel(p.slot.day) + " " + p.slot.day.slice(0, 4))}), pro všechny případy semináře.` : "Pacient nemá termín; přítomnost platí jen pro tento případ."} Jména jsou smyšlená; v reálné aplikaci se personál spravuje v nastavení pracoviště.</p></section>
-      <section class="card"><div class="head"><h2>Záznam diskuse</h2></div>
+      <div class="sub"><div class="head"><h3>Záznam diskuse</h3></div>
         <div class="seg2" role="group"><button data-mode="manual" aria-pressed="${pr.mode === "manual"}">Ruční poznámky</button><button data-mode="ai" aria-pressed="${pr.mode === "ai"}">AI záznam</button></div>
         ${pr.mode === "manual" ? `<label class="label" for="notes" style="display:block;margin:12px 0 6px">Průběžné poznámky</label>
           <textarea class="input" id="notes" placeholder="Poznámky z diskuse" ${locked ? "disabled" : ""}>${esc(pr.notes)}</textarea>`
         : `<div class="rec"><b>AI záznam diskuse</b><span class="small muted">Se souhlasem účastníků systém zaznamená zvuk a připraví návrh závěru a dalších kroků k potvrzení lékařem. Vyžaduje souhlas FNO se službou přepisu.</span>
-          <span class="chip plain st-new">Plánovaná funkce</span><span class="small muted">Zvuk se nezaznamenává.</span></div>`}
-      </section>
-      <section class="card"><div class="head"><h2>Další kroky</h2><span class="row"><span class="muted small">${plural(named.length, "úloha", "úlohy", "úloh")}</span><button class="btn small" data-act="copytasks" ${named.length ? "" : "disabled"}>Kopírovat úlohy</button></span></div>
+          <span class="chip plain st-new">Plánovaná funkce</span><span class="small muted">Zvuk se nezaznamenává.</span></div>`}</div>
+      <div class="sub"><div class="head"><h3>Další kroky</h3><span class="row"><span class="muted small">${plural(named.length, "úloha", "úlohy", "úloh")}</span><button class="btn small" data-act="copytasks" ${named.length ? "" : "disabled"}>Kopírovat úlohy</button></span></div>
         <div class="tasklist">${pr.steps.map((x, i) => `<div class="task"><input class="input" data-step="${i}" data-f="text" value="${esc(x.text)}" placeholder="Úloha" ${locked ? "disabled" : ""}>
           <select class="input" data-step="${i}" data-f="who" ${locked ? "disabled" : ""}>${assignees.map(a => `<option ${x.who === a ? "selected" : ""}>${esc(a)}</option>`).join("")}</select>
           <input class="input" type="date" data-step="${i}" data-f="due" value="${esc(x.due)}" ${locked ? "disabled" : ""}>
           ${locked ? "" : `<button class="btn small" data-delstep="${i}" aria-label="Odebrat úlohu">✕</button>`}</div>`).join("")}</div>
-        ${locked ? "" : `<button class="btn small" data-act="addstep" style="margin-top:10px">+ Přidat úlohu</button>`}</section>
+        ${locked ? "" : `<button class="btn small" data-act="addstep" style="margin-top:10px">+ Přidat úlohu</button>`}</div>
     </div><div class="stack">
-      ${protoConclCard(p, pr, locked)}
-      <section class="card"><div class="head"><h2>Po diskusi</h2></div>
-        <ol class="steps">
-          <li><span class="s ${stepsDone[0] ? "done" : ""}">1</span><span><b>Závěr MDT</b><br><span class="muted small">Zapisuje lékař v přehledu pacienta${locked || !isDoctor(S.user) ? "" : ` · <button class="linkbtn small" data-act="editconcl">${stepsDone[0] ? "Upravit závěr" : "Zapsat závěr"}</button>`}</span></span></li>
-          <li><span class="s ${stepsDone[1] ? "done" : ""}">2</span><span><b>Další kroky a odpovědnosti</b><br><span class="muted small">Úlohy s odpovědnou osobou a termínem</span></span></li>
-          <li><span class="s ${stepsDone[2] ? "done" : ""}">3</span><span><b>Kontrola a schválení lékařem</b><br><span class="muted small">Až po schválení vzniknou úlohy a report</span></span></li></ol>
-        ${locked ? `<p class="small" style="margin:12px 0 0">Schválil(a) <b>${esc(pr.approver)}</b> · ${esc(pr.when)}</p>` : `
-        <p class="small" style="margin:14px 0 6px">Schvaluje přihlášený lékař, který je označen jako přítomný: <b>${esc(S.user)}</b></p>
-        <button class="btn primary" data-act="approve" style="width:100%" ${stepsDone[0] && canApprove ? "" : "disabled"}>Schválit závěr jako ${esc(S.user)}</button>
-        <p class="muted small" style="margin:8px 0 0">${!stepsDone[0] ? "Nejdřív zapište závěr v přehledu pacienta. " : ""}${!isDoctor(S.user) ? "Závěr schvaluje lékař; koordinátorka schvalovat nemůže. " : !present.includes(S.user) ? "Označte se jako přítomný(á) v seznamu přítomných. " : ""}</p>`}
-      </section>
-      ${locked ? `<section class="card"><div class="head"><h2>Odeslané upozornění</h2></div>${S.mails.filter(m => m.pid === p.file).map(mailHtml).join("") || `<p class="muted small">Bez úloh, upozornění se neodesílá.</p>`}</section>` : ""}
-      <section class="card"><div class="head"><h2>Report (PDF)</h2></div><p style="margin:0"><button class="btn primary" data-act="download">Stáhnout report (PDF)</button></p>
-      <details class="srcs"><summary>Náhled reportu</summary><div id="report">${locked && pr.reportSnap ? pr.reportSnap : reportHtml(p, pr, present)}</div></details>${locked ? `<p class="muted small" style="margin:8px 0 0">Report je uzamčen ve stavu při schválení. Pozdější úpravy se do něj nepromítnou; změna vyžaduje nový závěr.</p>` : ""}</section>
-    </div></div></div>`;
-}
-/* The conclusion is written in the patient overview (doctors' decision, kept); the protocol shows it read-only so
-   the doctor approving it sees exactly what is approved, and links back to edit it. Until approval it is a draft. */
-function protoConclCard(p, pr, locked) {
-  const txt = pr.concl.trim();
-  return `<section class="card"><div class="head"><h2>Závěr MDT</h2>${locked ? `<span class="chip st-done">Schváleno</span>` : txt ? `<span class="chip st-attention">Koncept, neschváleno</span>` : ""}</div>
-    ${(() => { const prev = S.decisions.filter(d => d.pid === p.file); const last = prev[prev.length - 1]; return !locked && last ? `<div class="synth" style="margin:0 0 10px;border-style:solid"><span class="label">Platný závěr č. ${prev.length} · schválil(a) ${esc(last.by)}, ${esc(last.when)}</span><p style="margin:4px 0 0;white-space:pre-wrap">${esc(last.text)}</p></div>` : ""; })()}
-    ${txt ? `<p style="margin:0;white-space:pre-wrap">${esc(pr.concl)}</p>` : `<p class="muted" style="margin:0">Zatím nezapsán. Závěr píše lékař v přehledu pacienta; asistent závěr nenavrhuje.</p>`}
-    ${locked ? "" : isDoctor(S.user) ? `<p style="margin:10px 0 0"><button class="btn small" data-act="editconcl">${txt ? "Upravit závěr" : "Zapsat závěr"}</button></p>` : `<p class="muted small" style="margin:8px 0 0">Závěr zapisuje a schvaluje lékař.</p>`}</section>`;
+      <div class="sub"><div class="head"><h3>Přítomní (${shown.length})</h3><span class="row">${locked ? "" : `<button class="btn small" data-startday="${esc(day)}" data-attonly="1">Upravit</button>`}<button class="btn small" data-act="copyatt">Kopírovat</button></span></div>
+        <p style="margin:0">${esc(shown.join(", ") || "nezadáno")}</p>
+        <p class="muted small" style="margin:6px 0 0">${locked ? `Uzamčeno schválením závěru ${esc(pr.when)}.` : p.slot ? `Platí pro celý seminář (${esc(dayLabel(p.slot.day) + " " + p.slot.day.slice(0, 4))}). Jména jsou smyšlená.` : "Pacient nemá termín; přítomnost platí jen pro tento případ. Jména jsou smyšlená."}</p></div>
+      <div class="sub"><div class="head"><h3>Schválení závěru</h3></div>
+        ${locked ? `<p class="small" style="margin:0">Schválil(a) <b>${esc(pr.approver)}</b> · ${esc(pr.when)}</p>
+          <p style="margin:10px 0 0"><button class="btn small" data-act="newversion">Nový závěr (nahradí platný)</button></p>
+          <p class="muted small" style="margin:6px 0 0">Platný závěr zůstane v historii; nový začne jako koncept.</p>`
+        : `<p class="small" style="margin:0 0 6px">${hasConcl ? "Schvaluje se koncept v poli Závěr MDT výše." : `Závěr zatím nezapsán. Píše ho lékař v poli Závěr MDT výše; asistent závěr nenavrhuje.${isDoctor(S.user) ? ` <button class="linkbtn small" data-act="editconcl">Zapsat závěr</button>` : ""}`}</p>
+          <button class="btn primary" data-act="approve" style="width:100%" ${hasConcl && canApprove ? "" : "disabled"}>Schválit závěr jako ${esc(S.user)}</button>
+          <p class="muted small" style="margin:8px 0 0">Schvaluje lékař označený jako přítomný. ${!isDoctor(S.user) ? "Koordinátorka schvalovat nemůže. " : !present.includes(S.user) ? "Označte se jako přítomný(á) v seznamu přítomných. " : ""}Úlohy a report vzniknou až schválením.</p>`}</div>
+      ${locked ? `<div class="sub"><div class="head"><h3>Odeslané upozornění</h3></div>${S.mails.filter(m => m.pid === p.file).map(mailHtml).join("") || `<p class="muted small" style="margin:0">Bez úloh, upozornění se neodesílá.</p>`}</div>` : ""}
+      <div class="sub"><div class="head"><h3>Report</h3></div>
+        ${p.full ? `<div class="row small" style="gap:4px 12px;margin-bottom:8px"><span class="muted">Do reportu:</span>${[["summary", "Onkologický souhrn"], ...FIND].map(([k, t]) => `<label class="row" style="gap:4px"><input type="checkbox" data-pickrep="${k}" ${S.picked.has(k) ? "checked" : ""} ${locked ? "disabled" : ""}> ${t}</label>`).join("")}</div>` : ""}
+        <details class="srcs" style="margin:0;border:0;padding:0"><summary>Náhled reportu</summary><div id="report" style="margin-top:8px">${locked && pr.reportSnap ? pr.reportSnap : reportHtml(p, pr, present)}</div></details>${locked ? `<p class="muted small" style="margin:8px 0 0">Report je uzamčen ve stavu při schválení. Pozdější úpravy se do něj nepromítnou; změna vyžaduje nový závěr.</p>` : ""}</div>
+    </div></div></details>`;
 }
 /* Deviations from the quoted statements: the doctors record them; the assistant does not judge the plan (F-27). */
 const DEV = { "": "nevyplněno", follows: "v souladu", deviates: "záměrná odchylka", na: "neuplatňuje se" };
@@ -7153,11 +7148,12 @@ function reportHtml(p, pr, present) {
   const anamLines = ANAM.map(([k, t]) => `<li><span style="text-decoration:underline">${t}:</span> ${(A[k] || []).length ? A[k].map((f, i) => anamItem(k, f, i)).join("; ") : GAP}${k === "FA" && (A.FA_warnings || []).length ? `<br><b>Pozor:</b> ${A.FA_warnings.map((f, i) => anamItem("faw", f, i)).join("; ")}` : ""}</li>`).join("");
   const brief = edOf("brief", p.file) ? esc(briefPlain()) + " [upraveno lékařem]" : BRIEF_CS ? esc(BRIEF_CS).replace(/\[(\d+)\]/g, (m, n) => `<span class="src">${refTxt((BRIEF_REFS || [])[n - 1])}</span>`) : esc(CASE.summary.map(x => x.text_cs).join(" "));
   return `<article class="sheet">
-    <div class="hdr"><div><b>Fakultní nemocnice Ostrava</b><br>Protokol neuroonkologického MDT (maketa)</div><div>${esc(slotText(p))}</div></div>
+    <div class="hdr"><div><b>Fakultní nemocnice Ostrava</b><br>Report z neuroonkologického MDT (maketa)</div><div>${esc(slotText(p))}</div></div>
     <h4>Pacient</h4><p>${esc(surnameFirst(p))} · RČ: ${esc(p.rc || GAP)} · věk: ${esc(ageNum(p) || GAP)} · ID ${esc(p.id)}</p>
-    <h4>Anamnéza</h4>${anamLines ? `<ul>${anamLines}</ul>` : `<p>${GAP}</p>`}
+    ${p.full ? `<h4>Anamnéza</h4><ul>${anamLines}</ul>
     ${S.picked.has("summary") ? `<h4>Onkologický souhrn (sestavil asistent)</h4><p>${brief}</p>` : ""}
-    ${FIND.filter(([k]) => S.picked.has(k)).map(([k, t]) => `<h4>${t}</h4><ul>${(CASE.sections[k] || []).map(line).join("") || `<li>${GAP}</li>`}</ul>`).join("")}
+    ${FIND.filter(([k]) => S.picked.has(k)).map(([k, t]) => `<h4>${t}</h4><ul>${(CASE.sections[k] || []).map(line).join("") || `<li>${GAP}</li>`}</ul>`).join("")}`
+    : `<h4>Podklady</h4><p>Dokumentace případu není v maketě zpracovaná; anamnéza a nálezy se do reportu netisknou.</p>`}
     <h4>Přítomní</h4><p>${esc(present.join(", ") || "nezadáno")}</p>
     <h4>Diagnóza</h4><p><b>${esc(p.full ? dxHeadlineText(true) : p.diagnosis)}</b>${p.full && DXH()?.mkn_cs ? `<br>${esc(DXH().mkn_cs)}` : ""}</p>
     <h4>Dotaz</h4><p>${esc(edOf("q", p.file) ? questionText(p) + (p.explicit ? " [upraveno lékařem]" : " [doplněno lékařem]") : p.explicit ? p.question : `Výslovná otázka ${GAP_F}. Účel dle dokumentu: ${p.purpose || ""}`)}</p>
@@ -7172,7 +7168,7 @@ function refreshReport() {
   const el = document.getElementById("report"); if (!el) return;
   const p = P(S.pid), pr = ensureProto(p);
   if (pr.state === "approved") return;
-  el.innerHTML = reportHtml(p, pr, presentList());
+  el.innerHTML = reportHtml(p, pr, presentList(attDay(p)));
 }
 
 /* ---------- 6. My tasks (coordinator) ---------- */
@@ -7183,7 +7179,7 @@ function viewTasks() {
         <div><div class="tt"><b>${esc(t.text)}</b></div><div class="muted small">${esc(p.id)} · ${esc(t.who)} · do ${esc(fmtDate(t.due))}</div></div>
         <button class="btn small" data-open="${esc(t.pid)}">Otevřít případ</button></div>`; };
   /* Empty state says what fills the list and how, so an empty view is not read as a fault. */
-  const empty = `<p class="muted">${S.taskScope === "mine" ? `Pro uživatele ${esc(S.user)} zatím žádné úlohy. ` : "Zatím žádné úlohy. "}Úlohy vzniknou po schválení závěru v protokolu MDT.${S.taskScope === "mine" ? " Úlohy ostatních ukáže přepínač „Všechny“." : ""}</p>`;
+  const empty = `<p class="muted">${S.taskScope === "mine" ? `Pro uživatele ${esc(S.user)} zatím žádné úlohy. ` : "Zatím žádné úlohy. "}Úlohy vzniknou po schválení závěru MDT v případu pacienta.${S.taskScope === "mine" ? " Úlohy ostatních ukáže přepínač „Všechny“." : ""}</p>`;
   return `<div class="page"><div class="pagehead"><div><h1>Moje úlohy</h1><div class="muted small">Úlohy ze schválených závěrů MDT napříč pacienty · uživatel ${esc(S.user)}</div></div>
       <span class="seg" role="group"><button data-scope="mine" aria-pressed="${S.taskScope === "mine"}">Moje</button><button data-scope="all" aria-pressed="${S.taskScope === "all"}">Všechny</button></span></div>
     <div class="grid2"><section class="card"><div class="head"><h2>Úlohy</h2><span class="muted small">${plural(open.length, "otevřená", "otevřené", "otevřených")}</span></div>
@@ -7367,12 +7363,15 @@ function renderOverlay() {
       <div class="text">${text}</div></aside>`;
     document.getElementById("hit")?.scrollIntoView({ block: "center" });
   } else if (o.kind === "start") {
-    const ag = dayAgenda(o.day), n = Object.values(attFor(o.day)).flat().filter(Boolean).length;
-    el.innerHTML = `<div class="scrim" data-close="1"></div><div class="modal" role="dialog" aria-label="Zahájit MDT">
-      <div class="row spread"><h2>Zahájit MDT · ${esc(dayLabel(o.day))}</h2><button class="btn small" data-close="1">Zavřít</button></div>
-      <div><span class="label">Pořadí (${ag.length})</span><ol style="margin:4px 0 0;padding-left:20px">${ag.map(a => `<li>${a.slot.time} ${esc(surnameFirst(a))}</li>`).join("")}</ol></div>
-      <div><span class="label">Přítomní lékaři (${n})</span>${attGrid(o.day)}<p class="muted small" style="margin:6px 0 0">Platí pro všechny případy tohoto dne; lze upravit i později v protokolu.</p></div>
-      <div class="row" style="justify-content:flex-end">${S.view === "present" ? `<button class="btn primary" data-close="1">Hotovo</button>` : `<button class="btn primary" data-startgo="${esc(o.day)}" ${ag.length ? "" : "disabled"}>Zahájit prezentaci ▸</button>`}</div></div>`;
+    /* One dialog for attendance: it starts the MDT from the calendar or a case header, and only edits attendance
+       while the session runs or when opened from the discussion card. */
+    const isDay = /^\d{4}-\d\d-\d\d$/.test(o.day), editOnly = o.attOnly || !isDay || S.session?.day === o.day;
+    const ag = isDay ? dayAgenda(o.day) : [], n = presentList(o.day).length, when = isDay ? dayLabel(o.day) : "bez termínu";
+    el.innerHTML = `<div class="scrim" data-close="1"></div><div class="modal" role="dialog" aria-label="${editOnly ? "Přítomní lékaři" : "Zahájit MDT"}">
+      <div class="row spread"><h2>${editOnly ? "Přítomní" : "Zahájit MDT"} · ${esc(when)}</h2><button class="btn small" data-close="1">Zavřít</button></div>
+      ${editOnly ? "" : `<div><span class="label">Pořadí (${ag.length})</span><ol style="margin:4px 0 0;padding-left:20px">${ag.map(a => `<li>${a.slot.time} ${esc(surnameFirst(a))}</li>`).join("")}</ol></div>`}
+      <div><span class="label">Přítomní lékaři (${n})</span>${attGrid(o.day)}<p class="muted small" style="margin:6px 0 0">${isDay ? "Platí pro všechny případy tohoto dne; lze upravit i během MDT." : "Platí jen pro tento případ."}</p></div>
+      <div class="row" style="justify-content:flex-end">${editOnly ? `<button class="btn primary" data-close="1">Hotovo</button>` : `<button class="btn primary" data-startgo="${esc(o.day)}" ${o.from ? `data-startfrom="${esc(o.from)}"` : ""} ${ag.length ? "" : "disabled"}>Zahájit MDT ▸</button>`}</div></div>`;
   } else if (o.kind === "upload") {
     el.innerHTML = `<div class="scrim" data-close="1"></div><div class="modal" role="dialog" aria-label="Nahrát dokument">
       <div class="row spread"><h2>Nahrát dokument · ${esc(P(S.pid).id)}</h2><button class="btn small" data-close="1">Zavřít</button></div>
@@ -7414,33 +7413,45 @@ function renderOverlay() {
 function render() {
   const bar = document.querySelector(".tlbar"); if (bar) S.tlScroll = bar.scrollLeft;
   renderNav();
-  const v = { patients: viewPatients, calendar: viewCalendar, patient: viewPatient, present: viewPresent, protocol: viewProtocol, tasks: viewTasks, admin: viewAdmin }[S.view];
+  const v = { patients: viewPatients, calendar: viewCalendar, patient: viewPatient, tasks: viewTasks, admin: viewAdmin }[S.view];
   document.getElementById("app").innerHTML = v();
   const nb = document.querySelector(".tlbar"); if (nb) nb.scrollLeft = S.tlScroll || 0;
+  measureTop();
+  /* The current case's pill is scrolled into the middle of the agenda, so it is visible on narrow screens. */
+  const ag = document.querySelector(".sesbar .agenda"), cur = ag?.querySelector('[aria-current="true"]');
+  if (cur) ag.scrollLeft = cur.offsetLeft - ag.offsetLeft - (ag.clientWidth - cur.offsetWidth) / 2;
   renderOverlay();
   writeHash();
 }
+/* The session bar sticks under the top bar, whose height changes when it wraps on narrow screens. */
+function measureTop() { const t = document.querySelector(".top"); if (t) document.documentElement.style.setProperty("--toph", t.offsetHeight + "px"); }
+window.addEventListener("resize", measureTop);
 /* Hash-based history so the browser's back and forward buttons work inside the single-file mock (round 2). */
-const hashOf = () => "#" + [S.view, ["patient", "present", "protocol"].includes(S.view) ? nr(S.pid) : S.view === "calendar" ? S.week : "", S.view === "patient" ? S.tab : ""].filter(Boolean).join("/");
+const hashOf = () => "#" + [S.view, S.view === "patient" ? nr(S.pid) : S.view === "calendar" ? S.week : "", S.view === "patient" ? S.tab : ""].filter(Boolean).join("/");
 function writeHash() { const h = hashOf(); if (location.hash !== h) { S.hashSet = h; location.hash = h; } }
 function readHash() {
-  const [view, id, tab] = location.hash.slice(1).split("/");
-  if (!view || !{ patients: 1, calendar: 1, patient: 1, present: 1, protocol: 1, tasks: 1, admin: 1 }[view]) return false;
+  let [view, id, tab] = location.hash.slice(1).split("/");
+  /* #present/<id> and #protocol/<id> links open the patient view, which holds the case and its MDT discussion. */
+  const legacy = view === "present" || view === "protocol";
+  if (legacy) { view = "patient"; tab = "overview"; }
+  if (!view || !{ patients: 1, calendar: 1, patient: 1, tasks: 1, admin: 1 }[view]) return false;
   const before = S.pid + S.view;
   S.view = view;
   if (view === "calendar" && /^\d{4}-\d\d-\d\d$/.test(id || "")) { S.week = mondayOf(id); S.miniMonth = id.slice(0, 7); }
   else if (id) { const f = S.patients.find(p => nr(p.file) === id)?.file; if (f && f !== S.pid) { S.pid = f; S.selTl = null; S.tlScroll = 0; } }
   /* Opening a case by link or by back/forward is an access too and goes to the log. */
-  if (["patient", "present", "protocol"].includes(view) && before !== S.pid + view) logAccess(S.pid, `otevřel(a) ${{ patient: "případ", present: "prezentaci", protocol: "protokol" }[view]} (odkazem nebo historií prohlížeče)`);
+  if (view === "patient" && before !== S.pid + view) logAccess(S.pid, "otevřel(a) případ (odkazem nebo historií prohlížeče)");
   if (tab) S.tab = tab;
   S.overlay = null; S.colOpen = null;
+  if (legacy) history.replaceState(null, "", hashOf());
   return true;
 }
 /* hashSet marks the one hashchange event that our own writeHash caused; it is cleared on first use so later back/forward to the same hash still works. */
 window.addEventListener("hashchange", () => { if (S.hashSet && location.hash === S.hashSet) { S.hashSet = null; return; } S.hashSet = null; if (readHash()) render(); });
-function openPatient(file, view = "patient") {
-  S.pid = file; S.view = view; S.tab = "overview"; S.selTl = null; S.calPop = null; S.tlScroll = 0; S.openFind = new Set();
-  logAccess(file, view === "present" ? "otevřel(a) prezentaci" : "otevřel(a) případ");
+/* keepTab: moving between cases during an MDT keeps the tab the team is looking at. */
+function openPatient(file, keepTab = false, what = "otevřel(a) případ") {
+  S.pid = file; S.view = "patient"; if (!keepTab) S.tab = "overview"; S.selTl = null; S.calPop = null; S.tlScroll = 0;
+  logAccess(file, what);
   render(); window.scrollTo(0, 0);
 }
 
@@ -7474,7 +7485,7 @@ document.addEventListener("click", e => {
   if (mk && !mk.closest("[data-src],[data-edit],[data-act],[data-tab],[data-open]")) { e.preventDefault(); showTip(mk); return; }
   hideTip();
   if (S.colOpen && !e.target.closest(".fpop,[data-colopen]")) { S.colOpen = null; render(); return; }
-  const t = e.target.closest("[data-dbpage],[data-guide],[data-colopen],[data-colclose],[data-colall],[data-wk],[data-jump],[data-mm],[data-calclose],[data-labmode],[data-labsel],[data-edit],[data-scope],[data-addatt],[data-startday],[data-startgo],[data-nav],[data-open],[data-tab],[data-brief],[data-src],[data-close],[data-page],[data-vtab],[data-zoom],[data-zoomstep],[data-zoomhit],[data-tl],[data-ack],[data-go],[data-present],[data-sched],[data-pick],[data-free],[data-slot],[data-unsched],[data-act],[data-mode],[data-delstep],[data-done]");
+  const t = e.target.closest("[data-dbpage],[data-guide],[data-colopen],[data-colclose],[data-colall],[data-wk],[data-jump],[data-mm],[data-calclose],[data-labmode],[data-labsel],[data-edit],[data-scope],[data-addatt],[data-startday],[data-startgo],[data-sesgo],[data-nav],[data-open],[data-tab],[data-src],[data-close],[data-page],[data-vtab],[data-zoom],[data-zoomstep],[data-zoomhit],[data-tl],[data-ack],[data-sched],[data-pick],[data-free],[data-slot],[data-unsched],[data-act],[data-mode],[data-delstep],[data-done]");
   if (!t) return;
   const d = t.dataset;
   if (d.colopen) { S.colOpen = S.colOpen === d.colopen ? null : d.colopen; render(); }
@@ -7491,12 +7502,17 @@ document.addEventListener("click", e => {
   else if (d.edit) { S.overlay = { kind: "edit", key: d.edit, orig: d.orig }; renderOverlay(); }
   else if (d.scope) { S.taskScope = d.scope; render(); }
   else if (d.addatt) { attFor(d.day || attDay())[d.addatt].push(""); render(); if (S.overlay?.kind === "start") renderOverlay(); }
-  else if (d.startday) { S.overlay = { kind: "start", day: d.startday }; renderOverlay(); }
-  else if (d.startgo) { const first = dayAgenda(d.startgo)[0]; S.overlay = null; renderOverlay(); if (first) { logAccess(first.file, "zahájil(a) MDT"); openPatient(first.file, "present"); } }
+  else if (d.startday) { S.overlay = { kind: "start", day: d.startday, from: d.startfrom || null, attOnly: !!d.attonly }; renderOverlay(); }
+  else if (d.startgo) {
+    /* Started from a case header, the session opens on that case; from the calendar, on the first case of the day. */
+    const ag = dayAgenda(d.startgo), first = ag.find(a => a.file === d.startfrom) || ag[0];
+    S.overlay = null; renderOverlay();
+    if (first) { S.session = { day: d.startgo }; delete S.mdtOpen[first.file]; openPatient(first.file, false, "zahájil(a) MDT, otevřel(a) případ"); }
+  }
+  else if (d.sesgo) { delete S.mdtOpen[d.sesgo]; openPatient(d.sesgo, true, "otevřel(a) případ na MDT"); }
   else if (d.nav) { S.view = d.nav; S.schedPick = null; render(); }
   else if (d.open) { openPatient(d.open); }
   else if (d.tab) { S.tab = d.tab.replace(/<.*$/, ""); render(); }
-  else if (d.brief) { S.brief = d.brief; render(); }
   else if (d.src) { e.preventDefault(); openSource(JSON.parse(d.src)); }
   else if (d.close) { S.overlay = null; renderOverlay(); }
   else if (d.page) { S.overlay.page = +d.page; loadSourcePage(); renderOverlay(); }
@@ -7512,8 +7528,6 @@ document.addEventListener("click", e => {
     S.selTl = +d.tl; render(); if (c && c.source) openSource(c.source);
   }
   else if (d.ack !== undefined) { S.acks[d.ack] = S.user; logAccess(S.pid, "vzal(a) upozornění na vědomí"); render(); }
-  else if (d.go) { if (d.go === "present") logAccess(S.pid, "otevřel(a) prezentaci"); S.view = d.go; render(); window.scrollTo(0, 0); }
-  else if (d.present) { openPatient(d.present, "present"); }
   else if (d.sched) { S.view = "calendar"; S.schedPick = d.sched; S.calPop = null; render(); }
   else if (d.pick) { S.schedPick = S.schedPick === d.pick ? null : d.pick; render(); }
   else if (d.free) {
@@ -7536,7 +7550,7 @@ async function copyText(text, what) {
   try { await navigator.clipboard.writeText(text); toast(`${what} zkopírováno`); } catch (e) { toast("Kopírování není v tomto prohlížeči dostupné"); }
 }
 function action(a) {
-  const pr = S.view === "protocol" ? curProto() : null;
+  const pr = S.view === "patient" ? curProto() : null;
   if (a === "newpatient") { S.overlay = { kind: "new", step: 0, uploaded: false, progress: 0 }; renderOverlay(); }
   else if (a === "newnext") {
     const o = S.overlay;
@@ -7557,20 +7571,19 @@ function action(a) {
   else if (a === "clearcolf") { COLS.forEach(c => delete S.colf[c[0]]); render(); }
   else if (a === "cleardcolf") { DCOLS.forEach(c => delete S.colf[c[0]]); S.dq = ""; render(); }
   else if (a === "gaps") { S.gapsOpen = !S.gapsOpen; render(); }
-  else if (a === "kebab") { S.kebab = !S.kebab; render(); }
+  else if (a === "endsession") { S.session = null; logAccess(S.pid, "ukončil(a) MDT"); toast("MDT ukončeno"); render(); }
   else if (a === "download") {
     /* The browser's print dialog saves the report as PDF; no PDF library is needed in the mock. */
-    S.kebab = false; const p = P(S.pid), pr = ensureProto(p);
-    const html = pr.state === "approved" && pr.reportSnap ? pr.reportSnap : reportHtml(p, pr, presentList());
+    const p = P(S.pid), pr = ensureProto(p);
+    const html = pr.state === "approved" && pr.reportSnap ? pr.reportSnap : reportHtml(p, pr, presentList(attDay(p)));
     const w = window.open("", "_blank");
-    if (w) { w.document.write(`<!doctype html><meta charset="utf-8"><title>Protokol MDT ${p.id}</title><style>body{font:13px/1.5 system-ui,sans-serif;margin:30px}h4{margin:16px 0 4px;text-transform:uppercase;font-size:12px;border-bottom:1px solid #ccc}.src{color:#666;font-size:11px}</style>${html}`); w.document.close(); w.focus(); w.print(); }
+    if (w) { w.document.write(`<!doctype html><meta charset="utf-8"><title>Report MDT ${p.id}</title><style>body{font:13px/1.5 system-ui,sans-serif;margin:30px}h4{margin:16px 0 4px;text-transform:uppercase;font-size:12px;border-bottom:1px solid #ccc}.src{color:#666;font-size:11px}</style>${html}`); w.document.close(); w.focus(); w.print(); }
     else toast("Prohlížeč zablokoval nové okno");
-    render();
+    logAccess(p.file, "stáhl(a) report");
   }
   else if (a === "calfull") { S.calFullDay = !S.calFullDay; render(); }
   else if (a === "editconcl") {
-    /* The conclusion is written in the patient overview (doctors' decision); jump there and put the cursor in it. */
-    S.view = "patient"; S.tab = "overview"; render();
+    /* The conclusion has one field, in the brief above the discussion card; put the cursor in it. */
     const c = document.getElementById("concl"); if (c) { c.scrollIntoView({ block: "center" }); c.focus(); }
   }
   else if (a === "today") { S.week = mondayOf(TODAY); S.miniMonth = TODAY.slice(0, 7); render(); }
@@ -7593,7 +7606,7 @@ function action(a) {
     if (!pr.concl.trim() || !isDoctor(S.user) || !presentList().includes(S.user)) return;
     pr.approver = S.user;
     pr.state = "approved"; pr.when = new Date().toLocaleString("cs-CZ");
-    /* Freeze what the doctor confirmed: later attendance changes or edits must not alter an approved protocol. */
+    /* Freeze what the doctor confirmed: later attendance changes or edits must not alter an approved report. */
     pr.attSnap = presentList().slice();
     pr.reportSnap = reportHtml(P(pr.pid), pr, pr.attSnap);
     const p = P(pr.pid); p.status = "done"; p.updated = "2026-10-16";
@@ -7673,11 +7686,11 @@ document.addEventListener("change", e => {
   }
   else if (t.dataset.att) { const arr = attFor(t.dataset.day || attDay())[t.dataset.att], k = +t.dataset.k; if (!t.value && k > 0) arr.splice(k, 1); else arr[k] = t.value; render(); if (S.overlay?.kind === "start") renderOverlay(); }
   else if (t.dataset.redact) { S.overlay.redacted = t.checked; renderOverlay(); }
-  else if (t.dataset.pickrep) { t.checked ? S.picked.add(t.dataset.pickrep) : S.picked.delete(t.dataset.pickrep); }
+  else if (t.dataset.pickrep) { t.checked ? S.picked.add(t.dataset.pickrep) : S.picked.delete(t.dataset.pickrep); refreshReport(); }
   else if (t.dataset.step !== undefined) { curProto().steps[+t.dataset.step][t.dataset.f] = t.value; render(); }
 });
 document.addEventListener("toggle", e => { if (e.target.dataset?.guideopen) S.guideOpen = e.target.open; if (e.target.dataset?.doneopen) S.doneOpen = e.target.open; }, true);
-document.addEventListener("toggle", e => { const d = e.target.dataset?.find; if (d) e.target.open ? S.openFind.add(d) : S.openFind.delete(d); }, true);
+document.addEventListener("toggle", e => { const f = e.target.dataset?.mdtopen; if (f) S.mdtOpen[f] = e.target.open; }, true);
 /* Zoom keys as in common PDF viewers; only on the page image, and never while typing. */
 document.addEventListener("keydown", e => {
   const o = S.overlay;
