@@ -157,6 +157,10 @@ experience.
   2026-10-16 (quoted statements under the proposed management, the
   guideline opened at the passage, a deviations table; see `CLAUDE.md`).
   (design-2 00:00:36; chatgpt P 14:56, P 16:01, R 10:27; juro-notes)
+- [ ] **May the assistant ever suggest a severity for a retrospective
+  deviation?** Since 2026-10-17 doctors set severity and assessment
+  themselves and the assistant never prefills them (`CLAUDE.md`,
+  `PRODUCT.md` feedback round 19).
 - [ ] **NCCN guidelines need a login.** Do we get an account for the
   demo, or show NCCN as "not retrieved"? (Other PDFs are not stored in
   the repo; the app opens them online.)

@@ -88,7 +88,8 @@
    "row_index": 5,
    "decision_cs": "Udržovací nivolumab 6/2023-12/2025",
    "relation_cs": "Řádek tabulky popisuje dávkování nivolumabu s ipilimumabem a následnou fázi nivolumabu; dle dokumentace podány 2 cykly (27.3. a 17.4.2023), poté gastrointestinální a plicní toxicita; dále nivolumab 240 mg každé 2 týdny.",
-   "edition_note_cs": "Aktuální vydání 2026, ne vydání platné v době rozhodnutí (2023)."
+   "edition_note_cs": "Aktuální vydání 2026, ne vydání platné v době rozhodnutí (2023).",
+   "decision_ref": 13
   },
   {
    "id": "past-skin-metastasectomy",
@@ -118,7 +119,8 @@
    "row_index": 12,
    "decision_cs": "2. linie sunitinib 1/2026",
    "relation_cs": "Pasáž (sloupec algoritmu) uvádí možnosti 2. linie po předchozí moderní imunoterapii; pacient měl dle dokumentace v 1. linii nivolumab + ipilimumab a dosud žádný VEGF-TKI.",
-   "edition_note_cs": "Aktuální vydání 2026 (platné od 1. 3. 2026), ne vydání platné v době rozhodnutí (1/2026)."
+   "edition_note_cs": "Aktuální vydání 2026 (platné od 1. 3. 2026), ne vydání platné v době rozhodnutí (1/2026).",
+   "decision_ref": 55
   },
   {
    "id": "past-3l-after-io-tki",
@@ -133,7 +135,8 @@
    "row_index": 16,
    "decision_cs": "3. linie everolimus 9/2026",
    "relation_cs": "Pasáž (sloupec algoritmu) uvádí možnosti 3. linie po IO a VEGF-TKI; pacient měl dle dokumentace nivolumab + ipilimumab a sunitinib, záznam uvádí kabozantinib ponechaný do 4. linie.",
-   "edition_note_cs": "Vydání 2026 (platné od 1. 3. 2026) platilo i v době rozhodnutí (9/2026)."
+   "edition_note_cs": "Vydání 2026 (platné od 1. 3. 2026) platilo i v době rozhodnutí (9/2026).",
+   "decision_ref": 33
   }
  ],
  "pages": [

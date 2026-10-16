@@ -113,6 +113,68 @@ for (const width of [1280, 400]) {
   await page.selectOption("#user", "Ing. Kovář (správce systému)"); await c('[data-nav="admin"]'); await over("admin");
   ok(await page.locator("tbody tr").count() > 3, `${width} admin sees the access log`);
   ok((await page.locator("main").textContent()).includes("vráceno na původní"), `${width} admin sees the edit log`);
+  // ---- feedback round 19 ----
+  await page.selectOption("#user", "MUDr. Svobodová");
+  // the logo opens the patient database
+  await go("#calendar/2026-10-19"); await c(".top .brand");
+  ok((await page.evaluate(() => location.hash)) === "#patients", `${width} logo opens the patient database`);
+  // drag a booked slot back onto "Nenaplánovaní": the card lights up as a drop target and the slot is freed
+  await go("#calendar/2026-10-19");
+  const moved = await page.evaluate(() => S.patients.find(p => p.slot && p.slot.day === "2026-10-22" && p.slot.time === "14:10").file);
+  const hl = await page.evaluate(() => {
+    const dt = new DataTransfer(), src = document.querySelector('[data-slot="2026-10-22 14:10"]'), zone = document.querySelector("[data-unschedzone]");
+    src.dispatchEvent(new DragEvent("dragstart", { bubbles: true, dataTransfer: dt }));
+    zone.dispatchEvent(new DragEvent("dragover", { bubbles: true, cancelable: true, dataTransfer: dt }));
+    const lit = zone.classList.contains("drop");
+    zone.dispatchEvent(new DragEvent("drop", { bubbles: true, cancelable: true, dataTransfer: dt }));
+    return lit;
+  });
+  ok(hl && await page.evaluate(f => P(f).slot === null, moved), `${width} dragging a slot onto Nenaplánovaní unschedules it (drop target highlighted)`);
+  // booking outside the seminar hours: the default range includes an hour after the seminar, the slot is marked
+  ok(await page.locator('[data-free="2026-10-22 16:50"].oot').count() === 1 && await page.locator('[data-free="2026-10-22 14:30"].oot').count() === 0, `${width} out-of-hours slots shown after the seminar, seminar slots unchanged`);
+  await c(`[data-pick="${moved}"]`); await c('[data-free="2026-10-22 16:30"]'); await over("calendar out of hours");
+  ok(await page.evaluate(f => P(f).slot?.time === "16:30", moved) && await page.locator('[data-slot="2026-10-22 16:30"] .ootm').count() === 1, `${width} booking outside seminar hours works and shows a marker`);
+  // compact oncology summary: the row date is not repeated in the text, a letter pin sits next to every date, no colour bands
+  await go("#patient/10/overview"); await over("overview r19");
+  const dup = await page.evaluate(() => EXTRA.onco_compact_v3.lines.filter(l => !l.row_date_in_text_because && l.date_sort && l.text_cs.includes(l.date_sort.split("-").reverse().map(Number).join("."))).length);
+  const nrows = await page.locator(".orow.cpt").count();
+  ok(dup === 0 && nrows === await page.evaluate(() => EXTRA.onco_compact_v3.lines.length) && await page.locator(".orow.cpt .dt .lpin").count() === nrows && await page.locator(".orow.cat").count() === 0, `${width} compact summary rows: no duplicated row date, letter pin by each date, no colour bands`);
+  ok(await page.locator(".stc .edl").first().evaluate(el => getComputedStyle(el).textDecorationLine) === "none", `${width} editable status text not underlined at rest`);
+  // alerts: no counts in the toggle, the tab or the headings
+  const alertTexts = [await text(".gapsbtn"), await text('[data-tab="alerts"]')];
+  await c('[data-tab="alerts"]'); alertTexts.push(...await page.locator("main section.card").last().locator("h2, h3, h4").allTextContents());
+  ok(alertTexts.every(t => !/\d/.test(t)), `${width} alert labels carry no counts`);
+  // prospective guideline statements sorted by strength tier, no country groups
+  await c('[data-tab="next"]'); await over("next");
+  const tiers = await page.evaluate(() => [".stmts-onc", ".stmts-other"].map(sel => [...document.querySelectorAll(`${sel} li[data-tier]`)].map(li => +li.dataset.tier)));
+  ok(tiers[0].length > 3 && tiers.every(t => t.every((v, i) => !i || t[i - 1] <= v)) && !(await page.locator("main").textContent()).includes("Evropa ("), `${width} prospective statements sorted by strength tier, not by country`);
+  // retrospective deviations: severity and assessment only for doctors, never prefilled, stored with who and when
+  await c('[data-tab="dev"]'); await over("dev");
+  const nr = await page.locator("[data-retroitem]").count();
+  ok(nr === 8 && await page.locator('select[data-retro][data-rf="sev"]').count() === nr && await page.locator(".retro[class*=sev-]").count() === 0
+    && (await page.locator("select[data-retro]").evaluateAll(xs => xs.every(x => x.value === ""))), `${width} retrospective deviations listed, severity empty until a doctor picks it`);
+  const rid = await page.locator("[data-retroitem]").first().getAttribute("data-retroitem");
+  await page.selectOption(`select[data-retro="${rid}"][data-rf="sev"]`, "major");
+  ok(await page.evaluate(id => { const r = S.retro["10_pacient.pdf"][id]; return r.sev === "major" && r.sevBy === "MUDr. Svobodová" && !!r.sevWhen; }, rid)
+    && await page.locator(`[data-retroitem="${rid}"].sev-major`).count() === 1, `${width} doctor's severity stored with who and when, colour shown`);
+  await page.selectOption("#user", "Bc. Marková (koordinátorka MDT)");
+  ok(await page.locator("select[data-retro]").count() === 0 && (await text(`[data-retroitem="${rid}"]`)).includes("major"), `${width} coordinator sees severity but cannot set it`);
+  // approved conclusion -> assistant drafts tasks -> coordinator confirms in "Úlohy po MDT" -> digest e-mail without patient data
+  await page.selectOption("#user", "MUDr. Svobodová"); await go("#patient/10/overview");
+  if (await page.locator('[data-act="newversion"]').count()) await c('[data-act="newversion"]');
+  await page.fill("#concl", "Stereotaktická radioterapie ložiska v mozečku, kontrolní MR mozku za 3 měsíce, kontrola na onkologii za 4 týdny."); await page.waitForTimeout(80);
+  const before = await page.evaluate(() => S.tasks.length);
+  await c('[data-act="approve"]');
+  ok(await page.locator(".suggbox [data-suggitem]").count() === 3 && await page.evaluate(n => S.tasks.length === n, before)
+    && (await text(".suggbox")).includes("Návrh asistenta"), `${width} approval drafts 3 suggested tasks, none becomes a task by itself`);
+  await page.selectOption("#user", "Bc. Marková (koordinátorka MDT)"); await c('[data-nav="tasks"]'); await c('[data-scope="mdt"]'); await over("tasks mdt");
+  ok((await text('[data-tgrp="10_pacient.pdf"]')).includes("NO-010") && await page.locator('[data-tgrp="10_pacient.pdf"] [data-suggrow]').count() === 3 && await page.locator("[data-tgrp]").count() >= 3, `${width} coordinator sees tasks grouped by patient with drafts`);
+  await c('[data-tgrp="10_pacient.pdf"] [data-suggok]');
+  ok(await page.evaluate(n => S.tasks.length === n + 1 && S.tasks.at(-1).confirmedBy === "Bc. Marková (koordinátorka MDT)", before), `${width} a confirmed draft becomes a task with who confirmed it`);
+  await c('[data-act="maildigest"]');
+  const mail = await page.evaluate(() => S.mails[0]);
+  const leaks = await page.evaluate(body => S.patients.flatMap(p => [p.name, p.name.split(" ").slice(-1)[0], p.diagnosis, p.id, p.mkn10]).filter(x => x && body.includes(x)), mail.body);
+  ok(mail.kind === "digest" && /^\d+ úloh[ay]? (čeká|čekají) na vyřízení\nhttps:\/\/\S+$/.test(mail.body) && !leaks.length, `${width} digest e-mail holds only the count and the link`);
   await page.close();
 }
 await browser.close();

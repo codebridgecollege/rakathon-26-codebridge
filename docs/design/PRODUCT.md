@@ -113,7 +113,8 @@ All made by the team on 2026-10-16.
 1. The doctor ticks the fields for the report in the "Projednání na MDT"
    card and downloads the PDF from the case header (F-31).
 2. Tasks for the coordinator are created from the confirmed conclusion
-   (F-32).
+   (F-32): the doctor's own next steps, plus tasks the assistant drafts
+   from the approved text, each confirmed or dismissed by a person.
 3. New documents re-run the checks without overwriting the confirmed
    content (F-33). When the patient returns, the Patient Detail shows what
    changed since the last MDT (F-13).
@@ -322,6 +323,40 @@ The product owner's written feedback on mock v3.
 | 3 | During the meeting only the header should change, showing the other patients so the team can click between them. | S-4: the session bar with the day's cases; a click keeps the tab. |
 | 4 | No separate 30 to 60 second summary. | The brief in S-3 is the summary at the meeting. |
 
+## Feedback round 19 (2026-10-17)
+
+The product owner's written feedback on mock v3, as built.
+
+| # | Feedback | What changes |
+|---|---|---|
+| 1 | The "MDT Workspace" logo should take you home. | The logo in the top bar opens the patient database. |
+| 2 | From the committee's decisions, suggest the to-dos per patient and summarize them for the oncology coordinator, in the app and maybe by email. | After approval, the assistant drafts tasks from the approved conclusion with phrase rules ("kontrolní MR", "odeslat k", "radioterapie", "kontrola za", "doplnit"); each quotes its clause, is labeled "Návrh asistenta, nepotvrzeno", and becomes a task only when a person confirms it (who and when are kept); a dismissed draft stays in the history. "Moje úlohy" has a third view, "Úlohy po MDT": every task and draft across patients, grouped by case ID and surname, with status, owner, due date, and a link to the case. "Odeslat přehled e-mailem" records a mail whose body is only "N úloh čeká na vyřízení" and the app link, no names, case IDs, or diagnoses; the screen says so. |
+| 3 | Drag a booked patient back to "Nenaplánovaní" to unschedule. | The card highlights as a drop target for a booked patient and frees the slot on drop. |
+| 4 | Sessions may run longer than the seminar hours. | On a seminar day every slot outside the seminar hours can be booked; such slots are hatched and say "mimo čas semináře", and a booked one shows a "mimo" marker. The default range runs from 30 minutes before to one hour after the seminar. |
+| 5 | The editable status text should not be underlined all the time. | The underline shows only on hover or keyboard focus. |
+| 6 | The oncology summary is too long, repeats each date, and uses too many colours. | The line text no longer repeats the date in the left column (dates of other events and ranges stay; the plan line keeps "kontrola 9.10.2026" because its row date belongs to that one item); no pastel bands or stripes, only fine dividers; the timeline's letter pin (Ch, CT, MR, F, K; dashed when planned) sits next to the date; smaller rows. |
+| 7 | No counts in the alert labels. | The toggle, the tab, and the headings say "Upozornění" without numbers. |
+| 8 | Show the guideline passages about past decisions as retrospective deviations. | The "Odchylky od doporučení" tab starts with "Retrospektivní odchylky": per past decision, the verbatim quote from the documentation (with its source), the verbatim guideline passage, the guideline's name and edition year, a link that opens the guideline at the passage, and the edition note. A doctor may set "Závažnost" (major red, moderate orange, minor yellow) and "Posouzení" (odůvodněná, neodůvodněná, nejisté); both start empty, are never prefilled or suggested by the assistant, record who and when, and the colour appears only after a doctor picks it. Others see the values read-only. The team decided this on 2026-10-17. Whether the assistant may ever suggest a severity is open (`OPEN_QUESTIONS.md`). |
+| 9 | Order the recommendations by strength, not by country. | Statements under the proposed management are one list per field (oncology; other fields), strongest first, with a common tier next to the original grade (below). Literature stays separate. |
+
+**Strength tiers.** The tier is read only from the statement's own
+grade; the original grade is always shown next to it.
+
+| Grading system | silné | střední | slabé |
+|---|---|---|---|
+| ESMO, EANO (level I-V, grade A-E) | grade A | grade B | grade C |
+| Modrá kniha ČOS, NCCN categories | 1 | 2A | 2B, 3 |
+| GRADE wording (ASTRO, EASL) | strong recommendation | - | conditional or weak recommendation |
+| ESC classes | I, III (against) | IIa | IIb |
+
+Chapter text without a grade, an abstract that does not state the
+strength, and ESMO grades D and E (not in our data) are "neuvedeno". The
+level of evidence (for example EASL "LoE") is not the strength. A
+statement graded more than once (EANO and ESMO, or one grade per drug)
+shows the range ("střední až slabé") and sorts by its strongest grade,
+so the tier never hides a weaker one. The order states the guideline's
+own strength, not which option suits the patient; the screen says so.
+
 ## Features
 
 Tiers: **Demo** is in the working demo; **Pitch** is shown as a mock or a
@@ -369,7 +404,7 @@ everything else is Pitch or Later.
 | F-24 | Decision history | Each conclusion is confirmed by a named doctor and stored; a later decision supersedes it, never erases it. | Demo | (report; timeline) | [juro-notes; chatgpt P 12:16, R 14:04] | Decision 3. |
 | F-25 | Live listening | Record the discussion per patient, transcribe it with names, draft the conclusion for the doctors to confirm. In the mock: the "AI recording" tab, labeled as a planned feature that needs participants' consent and does not record [ui-shot 17.06.14 (1)]. | Pitch (stretch Demo) | - | [design-1 00:46:27; juro-notes; paper-notes more_notes; chatgpt P 10:14, P 14:51] | Decision 2. Opt-in and consent; patient data. Voice enrolment for names is Later (biometric data). Raw transcript fixed, summary editable [design-1 00:43:31], undecided. |
 | F-26 | Query mode | Doctors ask the assistant questions about the case; answers cite sources or say "not found". | Pitch | - | [juro-notes] | |
-| F-27 | Guideline layer | Under the proposed management: guideline statements that apply to the documented facts, verbatim, with guideline name, society, year, version, section, page and evidence level, and the patient facts they rest on; a click opens the guideline PDF's page with the statement highlighted. In the "Odchylky od doporučení" tab: a deviations table, one row per quoted statement, where the doctors mark whether the MDT's plan follows it, departs from it on purpose (with the reason), or it does not apply. Also (a) review of the path so far for missing information. | Pitch | - (beyond the challenge) | [design-1 00:35:08, 00:46:00; design-2 00:00:36; chatgpt P 12:16, P 14:56, P 16:01, R 14:56, R 16:01; juro-notes] | Decision 1; the line was set on 2026-10-16 (quotes, highlighted source, deviations table; no ranking, never the conclusion). Sources (Juro, 2026-10-16): Czech Modrá kniha ČOS first, then ESMO, EANO, ESTRO, ASTRO, ASCO, NCCN, and guidelines of other fields for comorbidities (for example hepatology, cardiology); PubMed literature for rare situations. Architecture: the client asks the server for a case's guidance (`GET /api/cases/{id}/guidance`, sending the case ID, not patient text); the server keeps a curated, versioned library of guideline texts and returns only the matching statements; the guideline PDF opens from the publisher online at the cited page. In mock v3 an API stub returns data embedded in the HTML. Soňa wants it in ("ja to tam riadne chcem", chatgpt P 12:16), framed later as "možno by sme chceli" (P 14:56); the on/off switch was her idea (P 14:56). Part (a)'s missing-information check is F-07/F-08. Use a small curated, versioned guideline set [chatgpt R 14:56]. Kept apart from the MDT conclusion. |
+| F-27 | Guideline layer | Under the proposed management: guideline statements that apply to the documented facts, verbatim, with guideline name, society, year, version, section, page and evidence level, and the patient facts they rest on; a click opens the guideline PDF's page with the statement highlighted. In the "Odchylky od doporučení" tab: a deviations table, one row per quoted statement, where the doctors mark whether the MDT's plan follows it, departs from it on purpose (with the reason), or it does not apply; above it, retrospective deviations put past decisions next to guideline passages, with severity and assessment set only by doctors (feedback round 19). Statements are sorted by a common strength tier. Also (a) review of the path so far for missing information. | Pitch | - (beyond the challenge) | [design-1 00:35:08, 00:46:00; design-2 00:00:36; chatgpt P 12:16, P 14:56, P 16:01, R 14:56, R 16:01; juro-notes] | Decision 1; the line was set on 2026-10-16 (quotes, highlighted source, deviations table; no ranking, never the conclusion). Sources (Juro, 2026-10-16): Czech Modrá kniha ČOS first, then ESMO, EANO, ESTRO, ASTRO, ASCO, NCCN, and guidelines of other fields for comorbidities (for example hepatology, cardiology); PubMed literature for rare situations. Architecture: the client asks the server for a case's guidance (`GET /api/cases/{id}/guidance`, sending the case ID, not patient text); the server keeps a curated, versioned library of guideline texts and returns only the matching statements; the guideline PDF opens from the publisher online at the cited page. In mock v3 an API stub returns data embedded in the HTML. Soňa wants it in ("ja to tam riadne chcem", chatgpt P 12:16), framed later as "možno by sme chceli" (P 14:56); the on/off switch was her idea (P 14:56). Part (a)'s missing-information check is F-07/F-08. Use a small curated, versioned guideline set [chatgpt R 14:56]. Kept apart from the MDT conclusion. |
 | F-28 | AI engagement levels | Passive (summarize), on demand (when asked), proactive (an independent assessment formed before the discussion). | Later | - | [juro-notes; chatgpt P 10:14, P 10:27] | Soňa moved from on-demand to proactive because the doctors, as experts, would bias the AI [chatgpt P 10:14]. ChatGPT put it in the roadmap tier [chatgpt R 12:15]. |
 | F-29 | Rare-case support | A small warning that a case looks unusual from past MDTs; help finding guidelines and case reports beforehand. | Later | - | [design-3 00:00:52, 00:02:18] | Soňa's answer on flagging is unclear; open question. Literature support is our reading of her need. |
 | F-30 | Agenda priority | Facts that could order the agenda (for example days since biopsy). | Later | - | [juro-notes] | Facts only, no ranking verdict. |
@@ -379,7 +414,7 @@ everything else is Pitch or Later.
 | ID | Feature | What the doctor sees | Tier | FNO | Sources | Notes |
 |---|---|---|---|---|---|---|
 | F-31 | PDF report | A PDF with identity, the ticked items, attendees (once F-22 exists), and the confirmed conclusion, usable as a report for the record. Also kept in our app. | Demo | Output 2 | [FNO spec; design-1 00:33:39, 00:33:55; chatgpt R 12:15, R 12:27, R 14:00] | Pre-MDT briefing and post-MDT protocol are separate [chatgpt R 12:15]. Nothing is written back to the hospital record. FNO also wants the report usable as a request for further examination or treatment; nothing produces request text yet (gap). |
-| F-32 | Coordinator task list | Action items drawn from the approved conclusion, each with assignee and due date, a completed count, and copy; a coordinator "My Tasks" screen across patients; an email "MDT - nové úlohy na spracovanie" with only the case ID, the task count, and a link. | Pitch; Later (email) | - | [design-1 00:33:10, 00:49:33; chatgpt P 14:51; ui-shot 17.06.14, 17.07.06 (1)] | "Order MRI" is not "MRI ordered". Not a requisition system. |
+| F-32 | Coordinator task list | Action items drawn from the approved conclusion, each with assignee and due date, a completed count, and copy; a coordinator "My Tasks" screen across patients; an email "MDT - nové úlohy na spracovanie" with only the case ID, the task count, and a link. After approval the assistant drafts tasks from the conclusion's text ("Návrh asistenta"), each a draft until a person confirms or dismisses it; "Úlohy po MDT" lists all tasks and drafts grouped by patient (case ID and surname); "Odeslat přehled e-mailem" sends only "N úloh čeká na vyřízení" and the app link. | Pitch; Later (email) | - | [design-1 00:33:10, 00:49:33; chatgpt P 14:51; ui-shot 17.06.14, 17.07.06 (1)] | "Order MRI" is not "MRI ordered". Not a requisition system. |
 | F-33 | Re-check on new upload | New documents re-run the checks and update drafts; confirmed content is never silently changed. | Pitch | - | [chatgpt R 14:57] | ChatGPT only. |
 | F-34 | Extra documents for a session | Attach material by hand, for example a photo of paper notes. | Later | - | [design-1 00:16:16] | |
 

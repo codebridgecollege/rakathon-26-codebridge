@@ -193,6 +193,9 @@ data (slide 21 notes).
   the proposed management, verbatim and with their evidence level,
   opens the guideline document at the quoted passage, and lists in a
   deviations table where the MDT's plan departs from a quoted statement.
+  Retrospective deviations list past decisions from the documentation
+  next to guideline passages on the same topic; their severity and
+  assessment are set by doctors, never by the assistant.
   It never ranks options, never writes the proposal or the conclusion,
   and the doctors record whether a deviation is intended and why. A
   statement is never paraphrased as a quote and never invented: no
