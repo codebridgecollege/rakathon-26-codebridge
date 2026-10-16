@@ -272,6 +272,83 @@ for (const width of [1280, 400]) {
   ok(await page.locator(".otherdx").evaluate(el => getComputedStyle(el).fontStyle === "italic"), `${width} other diagnoses line italic`);
   await page.close();
 }
+// round 20 review: typing in the conclusion never re-renders the field; closed cases, slots and duplicate birth numbers
+{
+  const page = await browser.newPage({ viewport: { width: 400, height: 900 }, hasTouch: true, isMobile: true });
+  page.on("pageerror", e => errs.push(`review: ${e.message}`));
+  const go = async h => { await page.evaluate(x => { location.hash = x; }, h); await page.waitForTimeout(120); };
+  const text = sel => page.locator(sel).first().textContent();
+  const toastText = () => page.evaluate(() => [...document.querySelectorAll(".toast")].map(t => t.textContent).join(" | "));
+  await page.goto(file + "#patient/10/overview"); await page.waitForTimeout(150);
+  // IME composition (phone keyboards, Czech dead keys): the composed text is stored once, not appended to the preedit
+  await page.evaluate(() => { window.__ta = document.getElementById("concl"); });
+  await page.locator("#concl").click();
+  const cdp = await page.context().newCDPSession(page);
+  await cdp.send("Input.imeSetComposition", { text: "Ste", selectionStart: 3, selectionEnd: 3 });
+  await cdp.send("Input.imeSetComposition", { text: "Stereo", selectionStart: 6, selectionEnd: 6 });
+  await cdp.send("Input.insertText", { text: "Stereotaxe" });
+  await cdp.send("Input.insertText", { text: " mozku" });
+  ok(await page.evaluate(() => S.protos["10_pacient.pdf"].concl === "Stereotaxe mozku" && document.getElementById("concl").value === "Stereotaxe mozku"), "review IME composition stores \"Stereotaxe mozku\"");
+  ok(await page.evaluate(() => document.getElementById("concl") === window.__ta && document.activeElement === window.__ta), "review conclusion field is the same element after composing");
+  // plain typing: same element, approve enabled, draft note and card chip updated in place
+  await go("#patient/2/overview");
+  await page.evaluate(() => { window.__ta = document.getElementById("concl"); });
+  ok(await page.locator('[data-act="approve"]').isDisabled() && await page.locator("#concldraft").isHidden(), "review approve disabled and no draft note before typing");
+  await page.locator("#concl").click(); await page.keyboard.type("Kontrola za 3 měsíce");
+  ok(await page.evaluate(() => document.getElementById("concl") === window.__ta && S.protos["2_pacient.pdf"].concl === "Kontrola za 3 měsíce"), "review typing does not replace the conclusion textarea");
+  ok(!(await page.locator('[data-act="approve"]').isDisabled()) && await page.locator("#concldraft").isVisible() && (await text("#mdtchip")).includes("Koncept"), "review approve, draft note and chip follow the field in place");
+  // a value set without an input event (dictation) is read by the change event and by approve itself
+  await page.evaluate(() => { const t = document.getElementById("concl"); t.value = "Diktovaný závěr"; t.dispatchEvent(new Event("change", { bubbles: true })); });
+  ok(await page.evaluate(() => S.protos["2_pacient.pdf"].concl === "Diktovaný závěr"), "review change event stores the conclusion");
+  await page.evaluate(() => { document.getElementById("concl").value = "Stereotaxe, kontrola MR za 3 měsíce"; });
+  const slot2 = await page.evaluate(() => ({ ...P("2_pacient.pdf").slot }));
+  await page.locator('[data-act="approve"]').click();
+  ok(await page.evaluate(s => { const d = S.decisions.filter(x => x.pid === "2_pacient.pdf").at(-1); return d.text === "Stereotaxe, kontrola MR za 3 měsíce" && d.slot.day === s.day && d.slot.time === s.time; }, slot2), "review approve reads the field and stores the decision's slot");
+  // the approved slot can never be moved or freed, also after "Nový závěr"
+  await page.locator('[data-act="newversion"]').click();
+  ok(await page.evaluate(() => P("2_pacient.pdf").status === "scheduled" && slotLocked(P("2_pacient.pdf"))), "review slot stays locked after Nový závěr");
+  await page.evaluate(() => { unschedule("2_pacient.pdf"); scheduleAt("2_pacient.pdf", "2026-10-29 14:00"); });
+  ok(await page.evaluate(s => { const p = P("2_pacient.pdf"); return p.slot.day === s.day && p.slot.time === s.time; }, slot2), "review locked slot cannot be freed or moved");
+  await go("#patient/2/overview");
+  // closing keeps a slot a decision was made on; the closed case hides the conclusion controls
+  await page.locator("#concl").fill("Nový koncept");
+  await page.locator(".phead [data-stmenu]").click(); await page.locator('.stpop [data-setst="closed"]').click();
+  ok(await page.evaluate(s => { const p = P("2_pacient.pdf"); return p.status === "closed" && p.slot?.day === s.day && p.slot?.time === s.time; }, slot2) && (await toastText()).includes("Případ uzavřen") && !(await toastText()).includes("uvolněn"), "review closing keeps a slot that belongs to a decision");
+  ok(await page.locator("#concl").count() === 0 && await page.locator('[data-act="approve"]').count() === 0 && await page.locator('[data-act="newversion"]').count() === 0
+    && (await text("main")).includes("Případ je uzavřen; znovu ho otevřete v menu stavu"), "review closed case hides conclusion field, approve and Nový závěr");
+  const nDec = await page.evaluate(() => S.decisions.length);
+  await page.evaluate(() => { action("approve"); action("newversion"); });
+  ok(await page.evaluate(n => P("2_pacient.pdf").status === "closed" && S.decisions.length === n && S.protos["2_pacient.pdf"].concl === "Nový koncept", nDec), "review approve and Nový závěr do nothing on a closed case");
+  // closing a case whose slot has no decision frees it, logged and said in the toast
+  await go("#patient/9/overview");
+  const was9 = await page.evaluate(() => slotText(P("9_pacient.pdf")));
+  await page.locator(".phead [data-stmenu]").click(); await page.locator('.stpop [data-setst="closed"]').click();
+  ok(await page.evaluate(w => P("9_pacient.pdf").slot === null && S.access.some(a => a.pid === "9_pacient.pdf" && a.what.includes("uvolnil(a) termín MDT při uzavření případu") && a.what.includes(w)), was9) && (await toastText()).includes(`termín ${was9} uvolněn`), "review closing without a decision frees the slot, logged and in the toast");
+  await page.locator(".phead [data-stmenu]").click();
+  ok(await page.locator(".stpop [data-setst]").evaluateAll(xs => xs.map(x => x.dataset.setst).join()) === "new", "review a case closed from Naplánován without a slot reopens as Nový");
+  await page.locator(".phead [data-stmenu]").first().click();
+  // new patient: duplicate birth number needs an explicit choice; empty workplace stays empty
+  const fillNew = async rc => { await page.evaluate(() => action("newpatient")); await page.fill("#nf0", "Jan"); await page.fill("#nf1", "Test"); await page.fill("#nf2", rc); await page.check("#nfg"); await page.locator('[data-act="newnext"]').click(); };
+  await page.evaluate(() => action("newpatient"));
+  ok((await text(".modal")).includes("kontroluje se jen formát"), "review birth number hint says only the format is checked");
+  await fillNew("800101/1234");
+  ok((await text(".stepper .on")).includes("Dokumenty") && await page.locator(".modal .fwarn").count() === 0, "review no duplicate warning for a new birth number");
+  await page.evaluate(() => { S.overlay.step = 2; S.overlay.progress = 4; action("newdone"); });
+  const made = await page.evaluate(() => S.patients.at(-1));
+  ok(made.dept === null, "review empty Odesílající pracoviště stored as null");
+  await page.evaluate(f => openPatient(f), made.file);
+  ok(await page.locator('.phead .gapq[title="neuvedeno v dostupné dokumentaci"]').count() >= 1 && !(await text(".phead")).includes("Klinická onkologie"), "review empty workplace shown as - with the gap tooltip");
+  await fillNew("8001011234");
+  ok((await text(".stepper .on")).includes("Žádost") && (await text(".modal .fwarn")).includes(made.id) && await page.locator('.modal [data-act="newdupok"]').count() === 1, "review duplicate birth number (slash ignored) warns with a link and stops");
+  await page.locator('.modal [data-act="opendup"]').click();
+  ok(await page.evaluate(f => S.pid === f && !S.overlay, made.file), "review warning link opens the existing case");
+  await fillNew("800101/1234");
+  await page.locator('.modal [data-act="newdupok"]').click();
+  ok((await text(".stepper .on")).includes("Dokumenty"), "review Přesto vytvořit nový záznam continues the form");
+  await page.evaluate(() => { S.overlay.step = 2; S.overlay.progress = 4; action("newdone"); });
+  ok(await page.evaluate(() => S.access.some(a => a.what.includes("přestože rodné číslo už v databázi je"))), "review deliberate duplicate logged");
+  await page.close();
+}
 await browser.close();
 console.log(errs.length ? "\n" + errs.join("\n") : "\nall checks passed, no errors");
 process.exit(errs.length ? 1 : 0);

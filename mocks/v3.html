@@ -100,6 +100,7 @@ button.chip.st-closed { border: 1px dashed var(--line-strong); }
 .ferr { color: var(--conflict); font-size: 12.5px; font-weight: 600; }
 .input[aria-invalid="true"] { border-color: var(--conflict); box-shadow: 0 0 0 1px var(--conflict) inset; }
 .fhint { font-weight: 500; color: var(--muted); font-size: 12px; }
+.fwarn { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; color: var(--missing); font-size: 12.5px; font-weight: 600; margin-top: 4px; }
 .k-missing { background: var(--missing-soft); color: var(--missing); }
 .k-contradiction { background: var(--conflict-soft); color: var(--conflict); }
 .k-change { background: var(--change-soft); color: var(--change); }
@@ -6438,6 +6439,17 @@ function setStatus(p, to, how) {
   p.status = to;
   logAccess(p.file, `změnil(a) stav případu: ${STATUS[from][0]} -> ${STATUS[to][0]} (${how})`);
 }
+/* Closing a case (round 20 review): a slot without an approved decision only reserves seminar time, so closing frees
+   it for other patients and says so in the access log and the toast. A slot an approved decision was made on is part
+   of the MDT record and stays. */
+function closeCase(p, how) {
+  setStatus(p, "closed", how);
+  if (p.slot && !slotLocked(p)) {
+    const was = slotText(p); p.slot = null; if (S.calPop === p.file) S.calPop = null;
+    logAccess(p.file, `uvolnil(a) termín MDT při uzavření případu (${was})`);
+    toast(`Případ uzavřen, termín ${was} uvolněn`);
+  } else toast("Případ uzavřen");
+}
 /* Doctors and the coordinator run the cases; the administrator only reads (no clinical role). */
 const canSetStatus = () => isDoctor(S.user) || S.user === COORD;
 /* Manual moves. "Naplánován" and "Projednán" are never picked by hand: they say a slot is booked and a conclusion
@@ -6445,7 +6457,8 @@ const canSetStatus = () => isDoctor(S.user) || S.user === COORD;
    the slot says. "Projednán" can only be closed; reopening a closed case returns to the status it was closed from. */
 function manualMoves(p) {
   const base = p.slot ? "scheduled" : "new";
-  if (p.status === "closed") { const h = (p.statusHist || []).filter(x => x.to === "closed").at(-1); return [h?.from || base]; }
+  /* Closing may have freed the slot, so a case closed from "Naplánován" without a slot reopens as "Nový". */
+  if (p.status === "closed") { const h = (p.statusHist || []).filter(x => x.to === "closed").at(-1); const back = h?.from || base; return [back === "scheduled" && !p.slot ? "new" : back]; }
   const m = { new: ["ready", "attention", "closed"], scheduled: ["ready", "attention", "closed"], attention: [base, "ready", "closed"], ready: [base, "attention", "closed"], done: ["closed"] }[p.status] || [];
   return m.filter((v, i, a) => v !== p.status && a.indexOf(v) === i);
 }
@@ -6573,7 +6586,7 @@ function renderNav() {
 const READ_CS = { good: "Dobře čitelné", fair: "Částečně čitelné", poor: "Špatně čitelné" };
 const COLS = [
   ["owner", "Vlastník", p => p.owner],
-  ["dept", "Odesílající pracoviště", p => p.dept],
+  ["dept", "Odesílající pracoviště", p => p.dept || "-"],
   ["slot", "Příští MDT", p => p.slot ? `${dayLabel(p.slot.day)} ${p.slot.day.slice(0, 4)}` : "nenaplánováno"],
   ["status", "Stav", p => STATUS[p.status][0]],
 ];
@@ -6622,7 +6635,7 @@ function viewPatients() {
         <td class="num ${p.rc ? "" : "muted"}" title="${p.rc ? "" : "Rodné číslo " + GAP}">${esc(rcText(p))}</td><td class="num ${ageNum(p) ? "" : "muted"}" ${!p.age && p.birth ? 'title="vypočteno z data narození"' : ""}>${esc(ageNum(p) || "-")}</td>
         <td><b style="font-weight:600">${esc(p.diagnosis)}</b></td>
         <td>${esc(p.owner)}</td>
-        <td>${esc(p.dept)}</td>
+        <td>${p.dept ? esc(p.dept) : DASH}</td>
         <td class="num nw">${p.slot ? esc(slotText(p)) : `<button class="linkbtn" data-sched="${esc(p.file)}">Naplánovat</button>`}</td>
         <td>${statusChip(p)}</td><td class="num nw">${fmtDate(p.submitted)}</td></tr>`).join("") || `<tr><td colspan="12" class="muted">Žádný pacient neodpovídá filtru.</td></tr>`}</tbody>
     </table></div>
@@ -6651,8 +6664,9 @@ function miniMonth() {
 }
 const dayAgenda = day => S.patients.filter(x => x.slot && x.slot.day === day).sort((a, b) => a.slot.time.localeCompare(b.slot.time));
 const LOCK_WHY = "Případ je na tomto termínu projednán; termín patří k záznamu MDT, nelze ho uvolnit ani přesunout.";
-/* A slot stays locked once a conclusion was approved on it, also after the case is closed. */
-const slotLocked = p => !!p?.slot && (p.status === "done" || (p.status === "closed" && S.decisions.some(d => d.pid === p.file)));
+/* A slot stays locked once a conclusion was approved on it: the decision stores its slot, so the lock holds after the
+   case is closed and after "Nový závěr" reopens it (round 20 review), because the slot is part of the MDT record. */
+const slotLocked = p => !!p?.slot && S.decisions.some(d => d.pid === p.file && d.slot?.day === p.slot.day && d.slot?.time === p.slot.time);
 function viewCalendar() {
   const days = [0, 1, 2, 3, 4].map(i => addDays(S.week, i));
   /* A closed case needs no slot, so it does not wait in "Nenaplánovaní" (round 20). */
@@ -6741,7 +6755,7 @@ function patientHeader(p, extraActions = "", withQuestion = false) {
         <h1 style="margin-top:4px">${esc(surnameFirst(p))}<span class="idp">RČ: ${p.rc ? esc(p.rc) : DASH}</span><span class="idp">Věk: ${ageNum(p) ? esc(ageNum(p)) : DASH}</span></h1>
         ${p.warn ? `<div class="question missing" style="margin:8px 0 0;padding:6px 10px"><b>Ověřit identitu:</b> ${esc(p.warn)}</div>` : ""}
         <div class="facts">
-          <span>Vlastník: <b>${esc(p.owner)}</b></span><span>Pracoviště: <b>${esc(p.dept)}</b></span><span>Příští MDT: <b>${esc(slotText(p))}</b></span></div></div>
+          <span>Vlastník: <b>${esc(p.owner)}</b></span><span>Pracoviště: <b>${p.dept ? esc(p.dept) : DASH}</b></span><span>Příští MDT: <b>${esc(slotText(p))}</b></span></div></div>
       <div class="row">${extraActions}</div>
     </div>
     ${withQuestion ? questionBox(p) : ""}
@@ -6768,16 +6782,20 @@ function questionBox(p) {
     <p>${e ? `${esc(e.text)}<span class="edtag" title="Doplnil(a) ${esc(e.by)}, ${esc(e.when)}">doplněno lékařem</span>` : p.explicit ? esc(p.question) : `<b>Výslovná otázka ${GAP_F}.</b> ${p.purpose ? `Účel dle dokumentu: „${esc(p.purpose)}“` : ""}`}
     ${isDoctor(S.user) ? `<button class="edbtn" data-edit="${esc(EK("q", p.file))}" data-orig="${esc(p.explicit ? p.question : "")}" title="${filled ? "Upravit otázku" : "Doplnit otázku"}">✎ ${filled ? "" : "doplnit"}</button>` : ""}</p></div>`;
 }
+const CLOSED_MSG = "Případ je uzavřen; znovu ho otevřete v menu stavu.";
 function conclusionBox(p) {
   const dec = S.decisions.filter(d => d.pid === p.file);
   const last = dec[dec.length - 1];
-  const pr = ensureProto(p), draftable = isDoctor(S.user) && pr.state !== "approved";
+  /* A closed case takes no new conclusion (round 20 review): it is reopened from the status menu first, so a draft
+     never reopens a case on its own. */
+  const closed = p.status === "closed", pr = ensureProto(p), draftable = isDoctor(S.user) && pr.state !== "approved" && !closed;
   /* The valid (approved) conclusion stays on top; a new draft that will supersede it sits below it, so a draft
      is never read as the decision. */
   return `<div class="concl ${last ? "valid" : ""}"><span class="bh">Závěr MDT</span>
     ${last ? `<p>${esc(last.text)}</p><div class="muted small">Platný závěr č. ${dec.length} · schválil(a) ${esc(last.by)}, ${esc(last.when)}</div>${dec.length > 1 ? `<details class="srcs"><summary>Předchozí závěry (${dec.length - 1})</summary><ul class="hist" style="margin-top:6px">${dec.slice(0, -1).reverse().map((x, i) => `<li class="old small"><b>Závěr č. ${dec.length - 1 - i}</b> · nahrazen · ${esc(x.when)} · ${esc(x.by)}<br>${esc(x.text)}${x.reportSnap ? `<details class="srcs"><summary>Schválený report</summary><div style="margin-top:6px">${x.reportSnap}</div></details>` : ""}</li>`).join("")}</ul></details>` : ""}`
       : draftable ? "" : `<p class="muted" style="font-size:14px">Zatím neprojednáno.</p>`}
-    ${draftable ? `${last ? `<span class="label" style="display:block;margin-top:10px">Koncept nového závěru (nahradí platný až po schválení)</span>` : ""}<textarea class="input" id="concl" placeholder="Závěr a další postup, píše lékař (koncept, schvaluje se níže v části Projednání na MDT)" style="min-height:70px;margin-top:4px">${esc(pr.concl)}</textarea>${pr.concl.trim() ? `<p class="muted small" style="margin:4px 0 0">Koncept, zatím neschváleno. Schvaluje se níže v části Projednání na MDT.</p>` : ""}` : ""}</div>`;
+    ${closed ? `${pr.state !== "approved" && pr.concl.trim() ? `<p class="muted small" style="margin:6px 0 0">Neschválený koncept: ${esc(pr.concl)}</p>` : ""}<p class="small closedmsg" style="margin:6px 0 0">${CLOSED_MSG}</p>` : ""}
+    ${draftable ? `${last ? `<span class="label" style="display:block;margin-top:10px">Koncept nového závěru (nahradí platný až po schválení)</span>` : ""}<textarea class="input" id="concl" placeholder="Závěr a další postup, píše lékař (koncept, schvaluje se níže v části Projednání na MDT)" style="min-height:70px;margin-top:4px">${esc(pr.concl)}</textarea><p class="muted small" id="concldraft" style="margin:4px 0 0" ${pr.concl.trim() ? "" : "hidden"}>Koncept, zatím neschváleno. Schvaluje se níže v části Projednání na MDT.</p>` : ""}</div>`;
 }
 function topAlerts() {
   const all = CASE.flags.map((f, i) => ({ ...f, i }));
@@ -7232,6 +7250,12 @@ function attGrid(day) {
 }
 const presentList = (day = attDay()) => Object.values(attFor(day)).flat().filter(Boolean);
 const isDoctor = u => u.startsWith("MUDr.");
+/* The card's chip and approval hint follow the conclusion field; typing updates them in place (syncConcl). */
+function mdtChip(p) {
+  const pr = ensureProto(p), versions = S.decisions.filter(d => d.pid === p.file).length;
+  return pr.state === "approved" ? `<span class="chip st-done">Závěr schválen</span>` : pr.concl.trim() ? `<span class="chip st-attention">Koncept, neschváleno</span>` : versions ? `<span class="chip st-new">Platný závěr č. ${versions}</span>` : "";
+}
+const apprHint = has => has ? "Schvaluje se koncept v poli Závěr MDT výše." : `Závěr zatím nezapsán. Píše ho lékař v poli Závěr MDT výše; asistent závěr nenavrhuje.${isDoctor(S.user) ? ` <button class="linkbtn small" data-act="editconcl">Zapsat závěr</button>` : ""}`;
 /* "Projednání na MDT": attendance, discussion notes, next steps and approval, in the patient
    view itself. Outside a session it is collapsed unless a draft exists; in a session it is open and outlined. */
 function mdtCard(p) {
@@ -7243,13 +7267,12 @@ function mdtCard(p) {
   const assignees = [COORD, p.owner, ...present].filter((v, i, a) => a.indexOf(v) === i);
   /* Any doctor may approve for the team; the name is recorded, and approving adds them to the attendance. */
   const canApprove = isDoctor(S.user);
-  const versions = S.decisions.filter(d => d.pid === p.file).length;
   const live = inSession(p);
   /* The doctor's own open/closed choice wins; otherwise open when the case is discussed or has a draft. */
   const open = S.mdtOpen[p.file] ?? (live || hasConcl || locked);
   const shown = locked ? (pr.attSnap || []) : present;
-  const chip = locked ? `<span class="chip st-done">Závěr schválen</span>` : hasConcl ? `<span class="chip st-attention">Koncept, neschváleno</span>` : versions ? `<span class="chip st-new">Platný závěr č. ${versions}</span>` : "";
-  return `<details class="card mdtcard ${live ? "live" : ""}" data-mdtopen="${esc(p.file)}" ${open ? "open" : ""}><summary><h2>Projednání na MDT</h2>${chip}${live ? `<span class="chip st-scheduled">MDT probíhá</span>` : ""}</summary>
+  const closed = p.status === "closed";
+  return `<details class="card mdtcard ${live ? "live" : ""}" data-mdtopen="${esc(p.file)}" ${open ? "open" : ""}><summary><h2>Projednání na MDT</h2><span id="mdtchip" style="display:contents">${mdtChip(p)}</span>${live ? `<span class="chip st-scheduled">MDT probíhá</span>` : ""}</summary>
     <div class="grid2"><div class="stack">
       <div class="sub"><div class="head"><h3>Záznam diskuse</h3></div>
         <div class="seg2" role="group"><button data-mode="manual" aria-pressed="${pr.mode === "manual"}">Ruční poznámky</button><button data-mode="ai" aria-pressed="${pr.mode === "ai"}">AI záznam</button></div>
@@ -7272,9 +7295,10 @@ function mdtCard(p) {
           ${p.status === "done" && canSetStatus() ? `<div style="margin:10px 0 0"><button class="btn primary closecase" data-act="closecase">Uzavřít případ</button>
             <p class="muted small" style="margin:6px 0 0">Po vyřízení úloh. Uzavřený případ zmizí z Nenaplánovaných; znovu ho otevře menu stavu v záhlaví.</p></div>` : ""}
           ${p.status === "closed" ? `<p class="small" style="margin:8px 0 0"><span class="chip st-closed">Uzavřen</span> ${(() => { const h = (p.statusHist || []).filter(x => x.to === "closed").at(-1); return h ? `${esc(h.by)}, ${esc(h.when)}` : ""; })()}</p>` : ""}
-          <p style="margin:10px 0 0"><button class="btn small" data-act="newversion">Nový závěr (nahradí platný)</button></p>
-          <p class="muted small" style="margin:6px 0 0">Platný závěr zůstane v historii; nový začne jako koncept.</p>`
-        : `<p class="small" style="margin:0 0 6px">${hasConcl ? "Schvaluje se koncept v poli Závěr MDT výše." : `Závěr zatím nezapsán. Píše ho lékař v poli Závěr MDT výše; asistent závěr nenavrhuje.${isDoctor(S.user) ? ` <button class="linkbtn small" data-act="editconcl">Zapsat závěr</button>` : ""}`}</p>
+          ${closed ? `<p class="small closedmsg" style="margin:8px 0 0">${CLOSED_MSG}</p>` : `<p style="margin:10px 0 0"><button class="btn small" data-act="newversion">Nový závěr (nahradí platný)</button></p>
+          <p class="muted small" style="margin:6px 0 0">Platný závěr zůstane v historii; nový začne jako koncept.</p>`}`
+        : closed ? `<p class="small closedmsg" style="margin:0">${CLOSED_MSG}</p>`
+        : `<p class="small" id="apphint" style="margin:0 0 6px">${apprHint(hasConcl)}</p>
           <button class="btn primary" data-act="approve" style="width:100%" ${hasConcl && canApprove ? "" : "disabled"}>Schválit závěr MDT</button>
           <p class="small approver" style="margin:6px 0 0">${isDoctor(S.user) ? `schvaluje za tým: <b>${esc(S.user)}</b>` : "schvaluje lékař"}</p>
           <p class="muted small" style="margin:4px 0 0">${isDoctor(S.user) && !present.includes(S.user) ? "Schválením budete doplněn(a) mezi přítomné. " : ""}Úlohy a report vzniknou až schválením.</p>`}</div>
@@ -7687,16 +7711,22 @@ function renderOverlay() {
     const step = o.step;
     /* Round 20: only identity and the GDPR consent are required. The history comes from the uploaded documents and
        the MDT question can be added later in the patient view, so neither blocks a referral. */
-    const fields = [["Jméno", "text", true], ["Příjmení", "text", true], ["Rodné číslo", "text", true], ["Pojišťovna", "select"], ["Jméno lékaře (vlastník)", "text"], ["Odesílající pracoviště", "text"], ["Kontaktní e-mail", "email"], ["Kontaktní telefon", "text"]];
+    const fields = [["Jméno", "text", true], ["Příjmení", "text", true], ["Rodné číslo", "text", true, "kontroluje se jen formát"], ["Pojišťovna", "select"], ["Jméno lékaře (vlastník)", "text"], ["Odesílající pracoviště", "text"], ["Kontaktní e-mail", "email"], ["Kontaktní telefon", "text"]];
     const pipe = ["Kontrola čitelnosti", "Pseudonymizace", "Extrakce údajů", "Kontrola úplnosti"];
     const f = o.form || {}, er = o.errs || {};
     const inv = id => er[id] ? `aria-invalid="true" aria-describedby="${id}-err"` : "";
     const msg = id => er[id] ? `<span class="ferr" id="${id}-err">${esc(er[id])}</span>` : "";
+    /* A birth number already in the database may be the same person (CLAUDE.md: never merge or duplicate patients
+       silently), so the form links the existing case and asks for an explicit choice before a second record. */
+    const dp = o.dup && P(o.dup);
+    const dupWarn = dp ? `<span class="fwarn" role="alert">Pacient s tímto rodným číslem už v databázi je:
+      <button type="button" class="linkbtn" data-act="opendup">${esc(surnameFirst(dp))}, ${esc(dp.id)}</button>.
+      <button type="button" class="btn small" data-act="newdupok">Přesto vytvořit nový záznam</button></span>` : "";
     el.innerHTML = `<div class="scrim" data-close="1"></div><div class="modal" role="dialog" aria-label="Nový pacient">
       <div class="row spread"><h2>Nový pacient</h2><button class="btn small" data-close="1">Zavřít</button></div>
       <div class="stepper">${["Žádost o konzultaci", "Dokumenty", "Zpracování"].map((t, i) => `<span class="${i === step ? "on" : ""}">${i + 1}. ${t}</span>`).join("")}</div>
       ${step === 0 ? `<p class="muted small" style="margin:0">Pole podle formuláře FNO „Konzultace pacienta“. Povinná pole jsou označena *.</p>
-        <div class="formgrid">${fields.map(([l, t, req], i) => `<label>${l}${req ? " *" : ""}${t === "select" ? `<select class="input" id="nf${i}"><option value="">nevybráno</option>${["111", "201", "205", "207", "209", "211", "213"].map(v => `<option ${f["nf" + i] === v ? "selected" : ""}>${v}</option>`).join("")}</select>` : `<input class="input" id="nf${i}" type="${t}" value="${esc(f["nf" + i] || "")}" ${req ? "required" : ""} ${inv("nf" + i)}>`}${msg("nf" + i)}</label>`).join("")}
+        <div class="formgrid">${fields.map(([l, t, req, hint], i) => `<label>${l}${req ? " *" : ""}${hint ? ` <span class="fhint">${hint}</span>` : ""}${t === "select" ? `<select class="input" id="nf${i}"><option value="">nevybráno</option>${["111", "201", "205", "207", "209", "211", "213"].map(v => `<option ${f["nf" + i] === v ? "selected" : ""}>${v}</option>`).join("")}</select>` : `<input class="input" id="nf${i}" type="${t}" value="${esc(f["nf" + i] || "")}" ${req ? "required" : ""} ${inv("nf" + i)}>`}${msg("nf" + i)}${i === 2 ? dupWarn : ""}</label>`).join("")}
           <label class="full">Anamnéza <span class="fhint">nepovinné, asistent ji sestaví z dokumentace</span><textarea class="input" id="nfa">${esc(f.nfa || "")}</textarea></label>
           <label class="full">Otázka na NOCO (otázka pro MDT) <span class="fhint">nepovinné, lze doplnit později v detailu pacienta</span><textarea class="input" id="nfq" style="min-height:60px">${esc(f.nfq || "")}</textarea></label>
           <div class="full"><label style="display:flex;gap:8px;align-items:center;font-weight:500"><input type="checkbox" id="nfg" ${f.nfg ? "checked" : ""} ${inv("nfg")}> Souhlasím, aby FNO použila uvedené osobní údaje ke zpracování požadavku, dle GDPR. *</label>${msg("nfg")}</div></div>
@@ -7796,8 +7826,10 @@ document.addEventListener("click", e => {
   else if (d.setst) {
     /* The menu offers only the allowed moves; this guard repeats the rule for any other path to the handler. */
     const p = P(S.pid); if (!canSetStatus() || !manualMoves(p).includes(d.setst)) return;
-    const reopen = p.status === "closed"; setStatus(p, d.setst, reopen ? "ručně, znovu otevřeno" : "ručně"); S.stOpen = null;
-    toast(reopen ? "Případ znovu otevřen" : `Stav změněn na ${STATUS[d.setst][0]}`); render();
+    const reopen = p.status === "closed"; S.stOpen = null;
+    if (d.setst === "closed") closeCase(p, "ručně");
+    else { setStatus(p, d.setst, reopen ? "ručně, znovu otevřeno" : "ručně"); toast(reopen ? "Případ znovu otevřen" : `Stav změněn na ${STATUS[d.setst][0]}`); }
+    render();
   }
   else if (d.colopen) { S.colOpen = S.colOpen === d.colopen ? null : d.colopen; render(); }
   else if (d.colclose) { S.colOpen = null; render(); }
@@ -7889,18 +7921,29 @@ function action(a) {
       else if (!/^\d{6}\/?\d{3,4}$/.test(o.form.nf2)) e.nf2 = "Rodné číslo zadejte ve tvaru 123456/7890.";
       if (!o.form.nfg) e.nfg = "Bez souhlasu se zpracováním údajů nelze žádost odeslat.";
       o.errs = e;
-      if (Object.keys(e).length) { renderOverlay(); document.getElementById(Object.keys(e)[0])?.focus(); return; }
+      if (Object.keys(e).length) { o.dup = null; renderOverlay(); document.getElementById(Object.keys(e)[0])?.focus(); return; }
+      /* Compare birth numbers without the slash, the only formatting the format check allows. */
+      const rcN = o.form.nf2.replace("/", ""), dup = S.patients.find(x => x.rc && x.rc.replace("/", "") === rcN);
+      if (dup && o.dupOk !== rcN) { o.dup = dup.file; renderOverlay(); return; }
+      o.dup = null;
     }
     o.step++; renderOverlay();
     if (o.step === 2) { const tick = () => { o.progress++; renderOverlay(); if (o.progress < 4) setTimeout(tick, 550); }; setTimeout(tick, 450); }
   }
   else if (a === "newback") { S.overlay.step--; renderOverlay(); }
+  else if (a === "newdupok") {
+    /* The confirmation holds only for the birth number it was given; a changed number is checked again. */
+    S.overlay.dupOk = (document.getElementById("nf2")?.value.trim() || "").replace("/", ""); action("newnext");
+  }
+  else if (a === "opendup") { const f = S.overlay.dup; S.overlay = null; renderOverlay(); openPatient(f); }
   else if (a === "fakeupload") { S.overlay.uploaded = true; renderOverlay(); }
   else if (a === "newdone") {
     const n = S.patients.length + 11;
     /* Identity and the optional question come from the form; everything else waits for the documents. */
     const f = S.overlay.form || {};
-    S.patients.push({ file: `${n}_novy`, id: `NO-${String(n).padStart(3, "0")}`, name: [f.nf0, f.nf1].filter(Boolean).join(" ") || "Nový pacient", rc: f.nf2 || null, birth: null, diagnosis: "Čeká na kontrolu lékařem", mkn10: null, question: f.nfq || null, purpose: null, explicit: !!f.nfq, status: "new", slot: null, updated: "2026-10-16", submitted: TODAY, owner: f.nf4 || S.user, dept: f.nf5 || "Klinická onkologie", summary: "Ukázkový záznam vytvořený v maketě.", pages: 2 });
+    S.patients.push({ file: `${n}_novy`, id: `NO-${String(n).padStart(3, "0")}`, name: [f.nf0, f.nf1].filter(Boolean).join(" ") || "Nový pacient", rc: f.nf2 || null, birth: null, diagnosis: "Čeká na kontrolu lékařem", mkn10: null, question: f.nfq || null, purpose: null, explicit: !!f.nfq, status: "new", slot: null, updated: "2026-10-16", submitted: TODAY, owner: f.nf4 || S.user, dept: f.nf5 || null, summary: "Ukázkový záznam vytvořený v maketě.", pages: 2 });
+    /* A second record for a known birth number is a deliberate choice; the access log keeps who made it. */
+    if (f.nf2 && S.overlay.dupOk === f.nf2.replace("/", "")) logAccess(`${n}_novy`, "vytvořil(a) nový záznam, přestože rodné číslo už v databázi je");
     S.overlay = null; S.view = "patients"; S.colf = {}; toast(`Pacient NO-${String(n).padStart(3, "0")} přidán do databáze`); render();
   }
   else if (a === "maildigest") {
@@ -7945,13 +7988,16 @@ function action(a) {
   else if (a === "copyatt") { copyText((pr?.state === "approved" ? pr.attSnap : presentList()).join(", ") || "nezadáno", "Seznam přítomných"); }
   else if (a === "copytasks") { copyText(pr.steps.filter(x => x.text.trim()).map(x => `${x.text} (${x.who}, do ${fmtDate(x.due)})`).join("\n"), "Úlohy"); }
   else if (a === "newversion") {
-    /* A new conclusion reopens the case: it goes back to what its slot says, logged like any status change. */
-    const np = P(pr.pid); S.protos[pr.pid] = { pid: pr.pid, mode: "manual", notes: "", concl: "", steps: [], state: "draft" };
+    /* A new conclusion reopens a discussed case: it goes back to what its slot says, logged like any status change.
+       A closed case is reopened from the status menu first, never by this button (round 20 review). */
+    const np = P(pr.pid); if (np.status === "closed") return; S.protos[pr.pid] = { pid: pr.pid, mode: "manual", notes: "", concl: "", steps: [], state: "draft" };
     setStatus(np, np.slot ? "scheduled" : "new", "automaticky při novém závěru"); render();
   }
-  else if (a === "closecase") { const cp = P(S.pid); if (canSetStatus() && cp.status === "done") { setStatus(cp, "closed", "ručně"); toast("Případ uzavřen"); render(); } }
+  else if (a === "closecase") { const cp = P(S.pid); if (canSetStatus() && cp.status === "done") { closeCase(cp, "ručně"); render(); } }
   else if (a === "approve") {
-    if (!pr.concl.trim() || !isDoctor(S.user)) return;
+    /* Read the field itself: the stored value may lag behind it (an IME composition not yet committed). */
+    const cf = document.getElementById("concl"); if (cf && pr.state !== "approved") pr.concl = cf.value;
+    if (P(pr.pid).status === "closed" || !pr.concl.trim() || !isDoctor(S.user)) return;
     /* The approving doctor was at the meeting, so approving adds them to the day's attendance instead of blocking
        (round 20); the access log says so, and the attendance list in the card shows the name. */
     const day = attDay(P(pr.pid));
@@ -7967,7 +8013,7 @@ function action(a) {
     pr.attSnap = presentList(day).slice(); pr.pickSnap = [...S.picked];
     pr.reportSnap = reportHtml(P(pr.pid), pr, pr.attSnap);
     const p = P(pr.pid); setStatus(p, "done", "automaticky při schválení závěru"); p.updated = "2026-10-16";
-    S.decisions.push({ pid: p.file, text: pr.concl, by: pr.approver, when: pr.when, reportSnap: pr.reportSnap, attSnap: pr.attSnap });
+    S.decisions.push({ pid: p.file, text: pr.concl, by: pr.approver, when: pr.when, reportSnap: pr.reportSnap, attSnap: pr.attSnap, slot: p.slot ? { ...p.slot } : null });
     let id = Math.max(0, ...S.tasks.map(x => x.id));
     pr.steps.filter(s => s.text.trim()).forEach(s => S.tasks.push({ id: ++id, pid: p.file, text: s.text, who: s.who, due: s.due, done: false }));
     const n = pr.steps.filter(s => s.text.trim()).length;
@@ -7986,12 +8032,25 @@ document.addEventListener("input", e => {
   else if (t.dataset.step !== undefined) { curProto().steps[+t.dataset.step][t.dataset.f] = t.value; refreshReport(); }
   else if (t.dataset.devwhy) { const pr = curProto(); pr.dev[t.dataset.devwhy].why = t.value; refreshReport(); }
   else if (t.id === "notes") curProto().notes = t.value;
-  else if (t.id === "concl") {
-    const pr = curProto(), had = !!pr.concl.trim(); pr.concl = t.value;
-    if (had !== !!t.value.trim()) { const pos = t.selectionStart; render(); const c = document.getElementById("concl"); c.focus(); c.setSelectionRange(pos, pos); }
-    else refreshReport();
-  }
+  else if (t.id === "concl") syncConcl(t);
 });
+/* The conclusion field is never re-rendered while the doctor types (round 20 review): recreating it mid-typing broke
+   IME composition on phone keyboards and Czech dead keys ("Ste" + "Stereotaxe mozku" stored as both). Only the parts
+   that depend on it change in place. "change" and "compositionend" store the same value for input paths that send no
+   "input" event, such as dictation or a committed composition. */
+function syncConcl(t) {
+  const p = P(S.pid), pr = ensureProto(p); if (pr.state === "approved" || p.status === "closed") return;
+  pr.concl = t.value; const has = !!t.value.trim();
+  const b = document.querySelector('[data-act="approve"]'); if (b) b.disabled = !(has && isDoctor(S.user) && p.status !== "closed");
+  const n = document.getElementById("concldraft"); if (n) n.hidden = !has;
+  const h = document.getElementById("apphint"); if (h) h.innerHTML = apprHint(has);
+  const c = document.getElementById("mdtchip"); if (c) c.innerHTML = mdtChip(p);
+  /* A written draft opens the discussion card so the approve button is reachable, unless the doctor chose otherwise;
+     the card sits below the field, so opening it does not move the caret. */
+  const card = document.querySelector("details.mdtcard"); if (has && card && !card.open && S.mdtOpen[p.file] === undefined) card.open = true;
+  refreshReport();
+}
+["change", "compositionend"].forEach(ev => document.addEventListener(ev, e => { if (e.target.id === "concl") syncConcl(e.target); }));
 /* Booking and freeing a slot are logged like opening a case: who handled which patient's MDT date (no other text).
    A discussed case keeps its slot; the controls are hidden, and these guards repeat the rule for drag and drop. */
 function unschedule(file) {
