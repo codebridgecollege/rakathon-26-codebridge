@@ -2857,12 +2857,12 @@
   }
  ],
  "document_history_note_cs": "Ukázková data: kdy a kdo dokumenty nahrál a kdy byly zpracovány. Všech 13 dokumentů pochází z jednoho PDF (10_pacient.pdf), proto mají stejný čas.",
- "onco_brief_v3_cs": "Pacient se světlobuněčným renálním adenokarcinomem G2, pT2a pN1(3+/5) M0 (v OCR „MO“, ověřit čtení) [4], dg. 4/2022 [3], st.p. transperitoneální nefrektomii vpravo s retroperitoneální lymfadenektomií 2.6.2022 [14]. Histologicky MTS paraaortální LU vlevo, st.p. exstirpaci 25.10.2022, R0 [5]. Na baseline CT 6.3.2023 mediastinální a plicní hilová lymfadenopatie charakteru MTS [6]; 1. linie nivolumab + ipilimumab od 27.3.2023 [8], udržovací nivolumab do 29.12.2025 [9]. St.p. excizi kožního ložiska brady vlevo 21.11.2023 [16], histologicky kožní MTS [7]. 2. linie sunitinib od 27.1.2026 [10], pro PD na CT 26.8.2026 [11] ukončen [15]; 3. linie everolimus od 3.9.2026 [12]. Na MR mozku 14.9.2026 solitérní nodulus v pravé mozečkové hemisféře do 3 mm, susp. solitérní MTS [1]. Při poslední kontrole (datum neuvedeno) ECOG PS 1, bez klin. známek mozkových MTS [13]. Zadán k projednání na NCH semináři [2].",
+ "onco_brief_v3_cs": "Pacient se světlobuněčným renálním adenokarcinomem G2, dg. 4/2022 [3]; při nefrektomii 6/2022 pT2a pN1(3+/5) M0 (v OCR „MO“, ověřit čtení) [4], st.p. transperitoneální nefrektomii vpravo s retroperitoneální lymfadenektomií 2.6.2022 [5]. Následně histologicky ověřené MTS (viz níže), nyní ve 3. paliativní linii [6]. HBsAg pozitivní [7]. St.p. exstirpaci paraaortální LU vlevo 25.10.2022, histol. MTS světlobuněčného renálního karcinomu G2, R0 [8]. Na baseline CT 6.3.2023 patol. mediastinální a plicní hilová lymfadenopatie charakteru hypervaskularizovaných MTS [9]. 1. paliativní linie nivolumab + ipilimumab od 27.3.2023 [10], plánovány 4 cykly [11]; po 2. cyklu GIT toxicita 1. st. a plicní toxicita (IPP 1. až 2. st.), kortikoterapie od 28.4.2023 [12]; dle CT 6/2023 iPR [13], udržovací nivolumab do 29.12.2025 [14]; dle iRECIST 11/2025 iUPD a 1/2026 iCPD (LU levého plicního hilu, retroperitoneum) [15]. St.p. excizi kožního ložiska brady vlevo 21.11.2023 [16], histologicky kožní MTS [17]. 2. paliativní linie sunitinib od 27.1.2026 [18], CT 4/2026 SD [19], dle CT 8/2026 PD (LU v levém plicním hilu a retroperitoneálně paraaortálně vlevo), léčba ukončena [20]; 3. paliativní linie everolimus od 3.9.2026 [6]. Drobná osteoplastická ložiska do 7 mm v přechodu Th/L páteře; ke kterému vyšetření patří, je v textu nejasné, ověřit [21]. MR mozku 14.9.2026: solitérní postkontrastně se sytící nodulus v pravé mozečkové hemisféře do 3 mm, susp. solitérní MTS, bez jiných sytících se lézí intrakraniálně [1]. Při kontrole na everolimu (datum neuvedeno) ECOG PS 1, bez klin. známek mozkových MTS [22]; na cílený dotaz neguje závratě a poruchy rovnováhy, udává občasné mžitky před očima [23]. Nález MR mozku zadán k projednání na NCH semináři [2]; výsledek semináře v dokumentaci neuveden.",
  "onco_brief_v3_refs": [
   {
    "file": "10_pacient.pdf",
    "page": 1,
-   "quote": "MR yyš, mozku 14.9.2026 NNJ Závěr: Solitérní nodulus postkontrastně se sytící v pravé mozečkové hemisféře(do 3mm) - suspekce na solitérní MTS"
+   "quote": "MR yyš, mozku 14.9.2026 NNJ Závěr: Solitérní nodulus postkontrastně se sytící v pravé mozečkové hemisféře(do 3mm) - suspekce na solitérní MTS, postkontrastně bez jiných, sytících se lézí intrakraniálně."
   },
   {
    "file": "10_pacient.pdf",
@@ -2882,6 +2882,21 @@
   {
    "file": "10_pacient.pdf",
    "page": 1,
+   "quote": "2.6.2022 - stp. transperitoneálni nefrektomii vpravo s retroperitoneálni lymfadenektomii"
+  },
+  {
+   "file": "10_pacient.pdf",
+   "page": 1,
+   "quote": "3, pal, linie léčby everolimus - start 3.9.2026"
+  },
+  {
+   "file": "10_pacient.pdf",
+   "page": 1,
+   "quote": "HBsAg pozit. pac."
+  },
+  {
+   "file": "10_pacient.pdf",
+   "page": 1,
    "quote": "st.p. exstirpaci paraaortálni LU vlevo 25.10.2022 Histol. MTS světlobuněčného renálního karcinomu G2, R0"
   },
   {
@@ -2892,12 +2907,22 @@
   {
    "file": "10_pacient.pdf",
    "page": 1,
-   "quote": "Histol. kožní metastáza světlebuněčného (konvenčního) karcinomu renálního origa v oblasti brady vlevo"
+   "quote": "27.3.2023 1. cyklus nivolumab 3mg/kg + ipilimumab lmg/kg q3w"
+  },
+  {
+   "file": "10_pacient.pdf",
+   "page": 2,
+   "quote": "v kombinaci s ipilimumabem lmg/kg q3w 4 cykly"
   },
   {
    "file": "10_pacient.pdf",
    "page": 1,
-   "quote": "27.3.2023 1. cyklus nivolumab 3mg/kg + ipilimumab lmg/kg q3w"
+   "quote": "po 2. cyklu rozvoj GIT toxicity 1.st., plicní toxicita= IPP 1.až 2. stupně, od 28.4.2023 kortikoterapie prednison lmg/kg/den"
+  },
+  {
+   "file": "10_pacient.pdf",
+   "page": 2,
+   "quote": "Dle restaging. CT 6/2023 dosaženo iPR, proto pokračujeme v udržovací léčbě nivolumabem 240mg q2w."
   },
   {
    "file": "10_pacient.pdf",
@@ -2907,17 +2932,37 @@
   {
    "file": "10_pacient.pdf",
    "page": 1,
-   "quote": "2. pal, linie léčby sunitinib - start 27.1.2026"
-  },
-  {
-   "file": "10_pacient.pdf",
-   "page": 5,
-   "quote": "CT hrudník, břicho, malá pánev 26.8.2026 Závěr: Ve srovnáni s minulým CT z 4/2026 i s baseline CT z 1/2026 je patrná velikostní progrse"
+   "quote": "11/2025 dle iRECIST iUPD - nově patol. LU v levém plic hilu - 1/2026 iCPD - v levém hilu je velikostní progrese uzlin od baseline i ve srovnáni s minulým CT, další progrese jedné LU retroperitonea"
   },
   {
    "file": "10_pacient.pdf",
    "page": 1,
-   "quote": "3, pal, linie léčby everolimus - start 3.9.2026"
+   "quote": "21.11.2023 excize susp. iritovaného intraderm. névu brady vlevo"
+  },
+  {
+   "file": "10_pacient.pdf",
+   "page": 1,
+   "quote": "Histol. kožní metastáza světlebuněčného (konvenčního) karcinomu renálního origa v oblasti brady vlevo"
+  },
+  {
+   "file": "10_pacient.pdf",
+   "page": 1,
+   "quote": "2. pal, linie léčby sunitinib - start 27.1.2026"
+  },
+  {
+   "file": "10_pacient.pdf",
+   "page": 2,
+   "quote": "Dle restaging. CT 4/2026 SD - velikostni regrese sledovaných lézi je o cca 24 %."
+  },
+  {
+   "file": "10_pacient.pdf",
+   "page": 2,
+   "quote": "Dle CT 8/2026 ale PD - velikostni progrese LU v levém pl. hilu a v retroperitonu paraaortálně vlevo. Proto léčbu sunitinibem ukončuji."
+  },
+  {
+   "file": "10_pacient.pdf",
+   "page": 5,
+   "quote": "Drobné osteoplatické ložiska do průměru 7mm v přechodu th/L páteře."
   },
   {
    "file": "10_pacient.pdf",
@@ -2926,18 +2971,8 @@
   },
   {
    "file": "10_pacient.pdf",
-   "page": 1,
-   "quote": "2.6.2022 - stp. transperitoneálni nefrektomii vpravo s retroperitoneálni lymfadenektomii"
-  },
-  {
-   "file": "10_pacient.pdf",
-   "page": 2,
-   "quote": "Proto léčbu sunitinibem ukončuji."
-  },
-  {
-   "file": "10_pacient.pdf",
-   "page": 1,
-   "quote": "21.11.2023 excize susp. iritovaného intraderm. névu brady vlevo"
+   "page": 4,
+   "quote": "Na cílený dotaz neguje závratě či poruchy rovnováhy, jenom jsou někdy během dne mžitky před očima."
   }
  ]
 }
