@@ -383,6 +383,49 @@ details.srcs .refs { border-top: 0; margin-top: 4px; padding-top: 0; }
 .ev .pin b { font: 800 11px/1 var(--font-head); }
 /* v3: unreadable OCR characters in the source view */
 .unr { display: inline-block; min-width: 1em; text-align: center; background: var(--conflict-soft); color: var(--conflict); border-radius: 3px; font-size: .8em; font-weight: 700; cursor: help; }
+/* Source viewer (ported from mock v4). The page image is the evidence; the transcription is a second tab, so a source
+   link can still point at a text passage (team decision, 2026-10-16). */
+.drawer.wide { width: min(1060px, 100%); display: flex; flex-direction: column; }
+.drawer.wide header { flex: none; }
+.drawer.wide .pages { flex: none; padding-top: 2px; }
+.vbar { flex: none; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 10px 20px; border-bottom: 1px solid var(--line); }
+.vnote { flex: none; margin: 10px 20px 0; font-size: 12.5px; color: var(--muted); }
+.vnote.warn { color: var(--missing); background: var(--missing-soft); border-radius: 6px; padding: 6px 10px; font-weight: 600; }
+.vquote { font-size: 12.5px; color: var(--muted); margin-top: 6px; overflow-wrap: anywhere; }
+.vwrap { position: relative; flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
+.vbody { flex: 1 1 auto; min-height: 0; overflow: auto; padding: 14px 20px 40px; }
+/* Zoom controls float over the page in the top-right corner, clear of the scrollbar, as in common PDF viewers. */
+.zoomctl { position: absolute; top: 10px; right: 26px; z-index: 2; display: flex; align-items: center; gap: 2px; padding: 3px; border-radius: 8px; background: var(--surface); border: 1px solid var(--line-strong); box-shadow: 0 2px 8px rgba(0,0,0,.10); }
+.zoomctl button { min-width: 30px; height: 30px; border: 0; border-radius: 6px; background: none; cursor: pointer; font-size: 17px; line-height: 1; color: var(--fg); }
+.zoomctl button:hover:not(:disabled) { background: var(--sunk); }
+.zoomctl button:disabled { opacity: .35; cursor: default; }
+.zoomctl .zlvl { min-width: 54px; text-align: center; font-size: 12.5px; font-variant-numeric: tabular-nums; color: var(--muted); }
+.pgimg { position: relative; width: 100%; background: #fff; border: 1px solid var(--line-strong); box-shadow: 0 1px 4px rgba(0,0,0,.06); }
+.pgimg img { display: block; width: 100%; height: 100%; }
+/* Boxes are placed in percent of the page, so they follow the image at any zoom or screen width. */
+.hbox { position: absolute; background: rgba(255, 206, 0, .32); outline: 2px solid rgba(201, 150, 0, .9); border-radius: 2px; pointer-events: none; }
+.vbox { position: absolute; outline: 1.5px dashed var(--missing); outline-offset: 1px; border-radius: 2px; cursor: help; }
+.ptext { font-size: 14px; line-height: 1.6; max-width: 92ch; }
+.ptext .ln { white-space: pre-wrap; overflow-wrap: anywhere; min-height: 1.5em; }
+.ptext .mdh { font: 700 15px/1.5 var(--font-head); margin-top: 4px; }
+.ptext table.mdt { border-collapse: collapse; margin: 6px 0; font-size: 13px; }
+.ptext table.mdt td { border: 1px solid var(--line-strong); padding: 3px 8px; vertical-align: top; }
+.ptext mark, .drawer mark { background: var(--mark); color: inherit; border-radius: 2px; padding: 0 1px; box-shadow: 0 0 0 1px rgba(201, 150, 0, .5); }
+.vf { text-decoration: underline dotted var(--missing) 2px; text-underline-offset: 3px; cursor: help; }
+.vm { color: var(--faint); font-style: italic; }
+.doclist { display: flex; flex-wrap: wrap; gap: 6px; }
+/* On a phone the viewer header is compact, so the page itself gets most of the screen. */
+@media (max-width: 640px) {
+  .drawer.wide header { padding: 10px 14px 4px; }
+  .drawer.wide header h2 { font-size: 14px; }
+  .drawer.wide .vlabel { display: none; }
+  .drawer.wide .vquote { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; margin-top: 2px; }
+  .drawer.wide .pages { flex-wrap: nowrap; overflow-x: auto; padding: 0 14px 6px; }
+  .vbar { padding: 6px 14px; gap: 6px; }
+  .vbar .vengine { flex-basis: 100%; font-size: 11.5px; }
+  .vnote { margin: 6px 14px 0; }
+  .vbody { padding: 10px 14px 30px; }
+}
 
 @media (max-width: 980px) {
   .grid2, .calwrap, .calwrap3 { grid-template-columns: minmax(0, 1fr); }
@@ -414,6 +457,7 @@ details.srcs .refs { border-top: 0; margin-top: 4px; padding-top: 0; }
 <script id="case-data" type="application/json">/*CASE*/</script>
 <script id="list-data" type="application/json">/*LIST*/</script>
 <script id="extra-data" type="application/json">/*EXTRA*/</script>
+<script id="page-data" type="application/json">/*PAGES*/</script>
 <script id="guide-data" type="application/json">/*GUIDE*/</script>
 <script>
 "use strict";
@@ -428,6 +472,146 @@ const api = {
   async guidance(caseId) {
     await new Promise(r => setTimeout(r, 350));
     return caseId === "NO-010" ? SERVER_GUIDANCE : { guidelines: [], statements: [], pages: [], literature: [], queries: [], not_retrieved: [] };
+  },
+};
+/* ---------- source documents: what the server would return for the source view ----------
+   The page index (data/derived/page-index.json) holds, per page, the image path and size, the vision
+   model's transcription, Tesseract's words with their boxes, and the tokens to verify. Only the functions
+   below read it, so a real backend replaces them with GET /api/documents/:file, GET .../pages/:n and
+   POST .../pages/:n/locate, as mock v4 shows. */
+const SERVER_PAGES = JSON.parse(document.getElementById("page-data").textContent || "{}");
+const isEmptyPage = text => /^\s*\[prázdná stránka\]\s*$/.test(text);
+/* ---------- quote matching for the source view ----------
+   Source references carry a quote from the PDF's old text layer, with its OCR errors ("MO" for "M0",
+   "lmg/kg", "1112023"). The page now shows the vision transcription and Tesseract's words, so the quote
+   is matched tolerantly: tokens compared without case, accents or punctuation, with the usual
+   O/0 and l/1/i confusions folded together. An exact run of tokens wins; otherwise the best window by a
+   weighted in-order alignment, accepted when it covers at least 60 % of the quote. */
+const canon = t => t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]/g, "").replace(/o/g, "0").replace(/[il]/g, "1");
+function lev(a, b) {
+  let prev = Array.from({ length: b.length + 1 }, (_, j) => j);
+  for (let i = 1; i <= a.length; i++) {
+    const cur = [i];
+    for (let j = 1; j <= b.length; j++) cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+    prev = cur;
+  }
+  return prev[b.length];
+}
+/* Partial credit for a token misread by one or two characters ("vyš" read as "wš", "CT" as "CI"),
+   or cut short by the OCR ("pánev" read as "pá"). */
+function sim(a, b) {
+  if (a === b) return 1;
+  const short = Math.min(a.length, b.length), [s, l] = a.length <= b.length ? [a, b] : [b, a];
+  if (short < 2) return 0;
+  if (Math.abs(a.length - b.length) <= 2) {
+    const d = lev(a, b);
+    if (short >= 3 && d <= 1) return .7;
+    if ((short >= 5 && d <= 2) || (short === 2 && d <= 1)) return .5;
+    if (short >= 4 && d <= 2) return .4;
+  }
+  return s.length / l.length >= .4 && (l.startsWith(s) || l.endsWith(s)) ? .4 : 0;
+}
+const MIN_OVERLAP = .6;
+function align(q, toks, i, L) {
+  /* Weighted longest common subsequence of the quote and the text window toks[i, i+L). */
+  const m = q.length, W = Math.min(L, toks.length - i);
+  const dp = Array.from({ length: m + 1 }, () => new Float64Array(W + 1));
+  const sm = Array.from({ length: m }, () => new Float64Array(W));
+  for (let k = 1; k <= m; k++) for (let x = 1; x <= W; x++) {
+    const s = sm[k - 1][x - 1] = sim(q[k - 1], toks[i + x - 1].c);
+    dp[k][x] = Math.max(dp[k - 1][x], dp[k][x - 1], s ? dp[k - 1][x - 1] + s : 0);
+  }
+  let k = m, x = W, first = -1, last = -1;
+  while (k > 0 && x > 0) {
+    const s = sm[k - 1][x - 1];
+    if (s && Math.abs(dp[k][x] - (dp[k - 1][x - 1] + s)) < 1e-9) {
+      if (last < 0) last = i + x - 1;
+      first = i + x - 1; k--; x--;
+    } else if (dp[k - 1][x] >= dp[k][x - 1]) k--; else x--;
+  }
+  return first < 0 ? null : { score: dp[m][W] / m, from: first, to: last };
+}
+function bestWindow(q, toks) {
+  const m = q.length, n = toks.length;
+  if (!m || !n) return null;
+  const exact = [];
+  for (let i = 0; i + m <= n; i++) {
+    let k = 0; while (k < m && toks[i + k].c === q[k]) k++;
+    if (k === m) exact.push(i);
+  }
+  /* A repeated quote is highlighted at its first place, and the doctor is told it occurs more than once. */
+  if (exact.length) return { from: exact[0], to: exact[0] + m - 1, score: 1, method: "exact", ambiguous: exact.length > 1 };
+  /* Among windows, prefer the one that contains the quote's numbers: lab rows share words ("[0 ... 0.7]",
+     "ukat/l") and differ only in the test name and the value. */
+  const qd = q.filter(t => /\d/.test(t));
+  const cands = [];
+  for (let i = 0; i < n; i++) {
+    const a = align(q, toks, i, m + 4);
+    if (!a) continue;
+    const span = toks.slice(a.from, a.to + 1).map(t => t.c);
+    a.rank = a.score + .1 * (qd.length ? qd.filter(d => span.includes(d)).length / qd.length : 1);
+    cands.push(a);
+  }
+  cands.sort((x, y) => y.rank - x.rank || (x.to - x.from) - (y.to - y.from));
+  const best = cands[0];
+  if (!best || best.score < MIN_OVERLAP) return null;
+  const rival = cands.find(c => c.score >= MIN_OVERLAP && (c.to < best.from || c.from > best.to) && best.rank - c.rank < .05);
+  return { from: best.from, to: best.to, score: Math.round(best.score * 100) / 100, method: "overlap", ambiguous: !!rival };
+}
+const quoteTokens = quote => String(quote).split(/\s+/).map(canon).filter(Boolean);
+function lineBoxes(words) {
+  /* One box per printed line, so a highlight spanning two lines does not cover the space between them. */
+  const out = [];
+  for (const w of words) {
+    const [x, y, bw, bh] = w.b, cur = out[out.length - 1];
+    if (cur && x >= cur.x - 4 && Math.abs((y + bh / 2) - (cur.y + cur.h / 2)) < Math.max(bh, cur.h) * .6) {
+      const r = Math.max(cur.x + cur.w, x + bw), b = Math.max(cur.y + cur.h, y + bh);
+      cur.y = Math.min(cur.y, y); cur.w = r - cur.x; cur.h = b - cur.y;
+    } else out.push({ x, y, w: bw, h: bh });
+  }
+  return out.map(r => [r.x - 3, r.y - 2, r.w + 6, r.h + 4]);
+}
+function matchImage(quote, words) {
+  const toks = words.map((w, i) => ({ c: canon(w.t), i })).filter(t => t.c);
+  const win = bestWindow(quoteTokens(quote), toks);
+  if (!win) return null;
+  const a = toks[win.from].i, b = toks[win.to].i;
+  return { method: win.method, score: win.score, ambiguous: win.ambiguous, words: [a, b], boxes: lineBoxes(words.slice(a, b + 1)) };
+}
+function matchText(quote, text) {
+  const toks = [...String(text).matchAll(/\S+/g)].map(m => ({ c: canon(m[0]), s: m.index, e: m.index + m[0].length })).filter(t => t.c);
+  const win = bestWindow(quoteTokens(quote), toks);
+  return win ? { method: win.method, score: win.score, ambiguous: win.ambiguous, range: [toks[win.from].s, toks[win.to].e] } : null;
+}
+/* Each "ověřit" item carries its character offsets in the vision text from scripts/build_page_index.py,
+   which aligned the two readings word by word; the text tab marks exactly that place. */
+const verifyOf = page => (page.verify || []).map(v => ({ ...v, at: Number.isInteger(v.start) ? [v.start, v.end] : null }));
+const srcApi = {
+  /* The page list of one document; null when the file has no page images. */
+  document(file) {
+    const doc = SERVER_PAGES[file];
+    if (!doc) return null;
+    return { file, case_id: P(file)?.id || null, pages: doc.pages.map(p => ({ n: p.n, empty: isEmptyPage(p.text) })) };
+  },
+  /* One page: the image, the vision text, Tesseract's words and the "ověřit" items. */
+  page(file, n) {
+    const doc = SERVER_PAGES[file], pg = doc?.pages.find(p => p.n === n);
+    if (!pg) return null;
+    const title = file === CASE.file ? ((EXTRA.documents || []).find(d => (d.pages || []).includes(n))?.title_cs || null) : null;
+    return structuredClone({
+      file, n: pg.n, of: doc.pages.length, doc_title: title,
+      image: pg.image, size: pg.size, text: pg.text, engine: pg.engine, empty: isEmptyPage(pg.text),
+      mean_conf: pg.mean_conf, low_conf_words: pg.low_conf_words,
+      words: pg.words, verify: verifyOf(pg),
+      /* Local redaction demo (DATA-PROTECTION.md, option B): the image that would go to a cloud model. */
+      redacted: pg.redacted || null,
+    });
+  },
+  /* Where a quote sits on the page image (word boxes) and in the vision text (character range). A real
+     backend takes the quote in a POST body, not the URL: quotes can contain names, and URLs end up in logs. */
+  locate(file, n, quote) {
+    const pg = SERVER_PAGES[file]?.pages.find(p => p.n === n);
+    return pg && quote ? { image: matchImage(quote, pg.words), text: matchText(quote, pg.text) } : { image: null, text: null };
   },
 };
 let GUIDE = {};
@@ -541,7 +725,7 @@ const S = {
     { id: 1, pid: "2_pacient.pdf", text: "doplnit pooperační MR do podkladů", who: COORD, due: "2026-10-21", done: false },
     { id: 2, pid: "13_pacient.pdf", text: "vyžádat snímky MR 8/2025 ke srovnání", who: COORD, due: "2026-10-21", done: true },
   ],
-  mails: [], protos: {}, attByDay: {}, schedPick: null, calPop: null, overlay: null, tlScroll: 0, openFind: new Set(), taskScope: "mine",
+  mails: [], protos: {}, attByDay: {}, schedPick: null, calPop: null, overlay: null, tlScroll: 0, openFind: new Set(), taskScope: "mine", srcTab: "image",
 };
 const P = id => S.patients.find(p => p.file === id);
 
@@ -1305,28 +1489,166 @@ function viewTasks() {
       <section class="card"><div class="head"><h2>Upozornění e-mailem</h2></div>${S.mails.map(mailHtml).join("") || `<p class="muted small">Po schválení závěru MDT se koordinátorce odešle e-mail jen s ID případu a odkazem.</p>`}</section></div></div>`;
 }
 
-/* ---------- overlays: source drawer and new-patient modal ---------- */
-function openSource(r) { S.overlay = { kind: "source", r }; logAccess(S.pid, `zobrazil(a) zdroj s. ${r.page}`); renderOverlay(); }
+/* ---------- overlays: source view and new-patient modal ---------- */
+/* ---------- source view: the page image, with the transcription in a second tab ----------
+   Team decision (2026-10-16): show the actual page; the extracted text sits in a separate tab, so a
+   source link still points at a text passage. The local document functions find the quote on the image
+   (Tesseract's word boxes) and in the vision text, and list the tokens the two engines read differently
+   ("ověřit"). */
+function openSource(r) {
+  const o = { kind: "source", cite: r, file: r.file || CASE.file, page: +r.page || 1, tab: S.srcTab, zoom: "fit", data: null, doc: null };
+  /* A document without page images cannot be shown; say so instead of opening an empty viewer. */
+  if (!srcApi.document(o.file)) { toast("Původní dokument není v maketě k dispozici."); return; }
+  S.overlay = o; loadSourcePage(); renderOverlay();
+}
+function loadSourcePage() {
+  const o = S.overlay;
+  o.doc = srcApi.document(o.file);
+  o.data = srcApi.page(o.file, o.page);
+  if (!o.data) { o.page = o.doc.pages[0].n; o.data = srcApi.page(o.file, o.page); }
+  /* Every viewed page is an access to patient data, so each one goes to the access log. */
+  logAccess(o.file, `zobrazil(a) zdroj s. ${o.page}`);
+  /* The quote belongs to the cited page; on another page of the same document nothing is highlighted. */
+  o.data.match = o.cite.quote && +o.cite.page === o.page ? { quote: o.cite.quote, ...srcApi.locate(o.file, o.page, o.cite.quote) } : null;
+}
+const pct = (b, W, H) => `left:${(b[0] / W * 100).toFixed(3)}%;top:${(b[1] / H * 100).toFixed(3)}%;width:${(b[2] / W * 100).toFixed(3)}%;height:${(b[3] / H * 100).toFixed(3)}%`;
+const verifyTitle = v => v.reason === "only_vision" ? "Četl jen jazykový model; Tesseract zde nic nepřečetl, ověřit"
+  : `Tesseract četl: ${v.tess}${v.reason === "low_conf" ? ` (jistota ${v.conf} %)` : ""}, ověřit`;
+/* The vision transcription is Markdown. It is shown as text with headings and tables kept, and with the
+   cited passage, the "ověřit" tokens and the transcriber's own [notes] marked by character ranges. */
+function pageTextHtml(d) {
+  const text = d.text || "";
+  const spans = [];
+  if (d.match?.text) spans.push({ s: d.match.text.range[0], e: d.match.text.range[1], k: "hit" });
+  d.verify.forEach(v => v.at && spans.push({ s: v.at[0], e: v.at[1], k: "vf", t: verifyTitle(v) }));
+  /* Transcriber notes ("[razítko: SK]", "[?]") have no digits; a bracket with a digit is a printed lab range. */
+  for (const m of text.matchAll(/\[[^\]\n\d]{1,160}\]/g)) spans.push({ s: m.index, e: m.index + m[0].length, k: "vm" });
+  for (const m of text.matchAll(/\ufffd+/g)) spans.push({ s: m.index, e: m.index + m[0].length, k: "unr" });
+  let firstHit = true;
+  const seg = (a, b) => {
+    const cuts = new Set([a, b]);
+    spans.forEach(sp => { if (sp.s > a && sp.s < b) cuts.add(sp.s); if (sp.e > a && sp.e < b) cuts.add(sp.e); });
+    const pts = [...cuts].sort((x, y) => x - y);
+    let h = "";
+    for (let i = 0; i < pts.length - 1; i++) {
+      const s = pts[i], e = pts[i + 1], on = spans.filter(sp => sp.s <= s && sp.e >= e);
+      /* Markdown emphasis markers are not printed text; they are hidden, not "corrected". */
+      let piece = text.slice(s, e).replace(/\*/g, "");
+      if (!piece) continue;
+      piece = on.some(x => x.k === "unr") ? `<span class="unr" title="Nečitelné znaky (${piece.length})">?</span>` : esc(piece);
+      const vf = on.find(x => x.k === "vf");
+      if (vf) piece = `<span class="vf" title="${esc(vf.t)}">${piece}</span>`;
+      if (on.some(x => x.k === "vm")) piece = `<span class="vm" title="Poznámka přepisu, není tištěný text">${piece}</span>`;
+      if (on.some(x => x.k === "hit")) { piece = `<mark${firstHit ? ' id="hit"' : ""}>${piece}</mark>`; firstHit = false; }
+      h += piece;
+    }
+    return h;
+  };
+  let out = "", pos = 0, rows = [];
+  const flush = () => { if (rows.length) { out += `<div class="scroll"><table class="mdt">${rows.join("")}</table></div>`; rows = []; } };
+  for (const line of text.split("\n")) {
+    const s = pos, e = pos + line.length; pos = e + 1;
+    if (/^\s*\|/.test(line)) {
+      if (/^[\s|:-]+$/.test(line)) continue;
+      const bars = [...line.matchAll(/\|/g)].map(m => s + m.index);
+      const cells = [];
+      for (let k = 0; k < bars.length - 1; k++) cells.push(`<td>${seg(bars[k] + 1, bars[k + 1])}</td>`);
+      if (!line.trim().endsWith("|")) cells.push(`<td>${seg(bars[bars.length - 1] + 1, e)}</td>`);
+      rows.push(`<tr>${cells.join("")}</tr>`);
+      continue;
+    }
+    flush();
+    const h = line.match(/^(#{1,6})\s+/);
+    out += h ? `<div class="ln mdh">${seg(s + h[0].length, e)}</div>` : `<div class="ln">${line.trim() ? seg(s, e) : ""}</div>`;
+  }
+  flush();
+  return `<div class="ptext">${out}</div>`;
+}
+function sourceHtml(o) {
+  const d = o.data, [W, H] = d.size, m = d.match;
+  const red = o.redacted && d.redacted;
+  const tab = red ? "image" : o.tab;
+  const imgHit = m?.image, txtHit = m?.text;
+  const vis = d.verify.filter(v => v.box);
+  /* What the doctor needs to know about the highlight: found exactly, found approximately, or not at all. */
+  let note = "";
+  if (red) note = "";
+  else if (m && !imgHit && !txtHit) note = `<div class="vnote warn">Citace nenalezena přesně, zobrazena celá stránka.</div>`;
+  else if (m) {
+    const hit = tab === "text" ? txtHit : imgHit;
+    if (!hit) note = `<div class="vnote warn">${tab === "text" ? "V přepisu" : "Na obrázku"} citaci nelze vyznačit; ${tab === "text" ? "na obrázku stránky" : "v přepisu stránky"} vyznačena je.</div>`;
+    else {
+      const parts = [];
+      if (hit.method !== "exact") parts.push(hit.score >= .995
+        ? "Všechna slova citace nalezena, ale mezi nimi stojí další slova."
+        : `Citace nalezena přibližně (shoda ${Math.round(hit.score * 100)} %): původní citace pochází ze staršího převodu textu s chybami čtení.`);
+      if (hit.ambiguous) parts.push(hit.method === "exact" ? "Citace je na stránce víckrát; zvýrazněn první výskyt." : "Podobná pasáž je na stránce víckrát; zvýrazněna nejlepší shoda, ověřte.");
+      if (parts.length) note = `<div class="vnote ${hit.ambiguous ? "warn" : ""}">${parts.join(" ")}</div>`;
+    }
+  }
+  const engine = d.engine === "vision" ? "Přepis: jazykový model, kontrola: Tesseract" : "Přepis: Tesseract";
+  const conf = d.mean_conf != null ? ` · průměrná jistota Tesseractu ${String(d.mean_conf).replace(".", ",")} %` : "";
+  const nv = d.verify.length;
+  const empty = d.empty ? `<p class="synth" style="margin:0 0 12px">Prázdná stránka: na stránce není žádný text.</p>` : "";
+  /* The legend says what a mark means and what its absence does not mean. */
+  const legend = `Tečkovaně: číslo, datum nebo stadium, které Tesseract přečetl jinak, s nízkou jistotou, nebo vůbec (četl jen jazykový model). Neoznačený text není ověřený; rozhoduje obrázek stránky.`;
+  const frame = (src, alt, inner = "") => `<div class="pgimg" style="aspect-ratio:${W} / ${H};${typeof o.zoom === "number" ? `width:${Math.round(W * o.zoom / 100)}px;max-width:none` : ""}"><img src="${esc(src)}" alt="${esc(alt)}" width="${W}" height="${H}">${inner}</div>`;
+  const body = red
+    ? `<p class="synth" style="margin:0 0 12px;border-style:solid">Ukázka místního začernění: takto by stránka odešla do cloudového jazykového modelu. ${d.redacted.count
+        ? `Začerněno ${plural(d.redacted.count, "místo", "místa", "míst")} (${esc(d.redacted.reasons.join(", "))}) přímo na serveru nemocnice.`
+        : "Na této stránce kontrola nic nenašla; kontrola je neúplná, stránku před odesláním zkontrolujte."} Data, diagnózy a nálezy zůstávají, proto je stránka stále osobní údaj.</p>
+      ${frame(d.redacted.image, `Strana ${d.n} po začernění identifikátorů`)}`
+    : tab === "text"
+    ? `${empty}${d.empty ? "" : pageTextHtml(d)}${nv ? `<p class="muted small" style="margin:14px 0 0">${legend}</p>` : ""}`
+    : `${empty}${frame(d.image, `Strana ${d.n} dokumentu ${d.file}`, `
+        ${(imgHit?.boxes || []).map((b, i) => `<span class="hbox" ${i === 0 ? 'id="hit"' : ""} style="${pct(b, W, H)}"></span>`).join("")}
+        ${vis.map(v => `<span class="vbox" title="${esc(verifyTitle(v))}; přepis: ${esc(v.vision)}" style="${pct([v.box[0] - 2, v.box[1] - 2, v.box[2] + 4, v.box[3] + 4], W, H)}"></span>`).join("")}`)}
+      ${nv ? `<p class="muted small" style="margin:10px 0 0">Žlutě: citovaná pasáž. Čárkovaně: ${legend} Místa, která četl jen jazykový model, jsou podtržená v přepisu.</p>` : ""}`;
+  return `<div class="scrim" data-close="1"></div><aside class="drawer wide" role="dialog" aria-label="Původní dokument">
+    <header><div style="min-width:0"><div class="label vlabel">Původní dokument · obrázek stránky</div><h2 style="margin-top:4px">${esc(d.doc_title || d.file)}</h2>
+      <div class="muted small">${esc(d.file)}${o.doc?.case_id ? ` · ${esc(o.doc.case_id)}` : ""} · strana ${d.n} z ${d.of}</div>
+      ${m && !red ? `<div class="vquote">Hledaná citace (s. ${esc(o.cite.page)}): „${esc(m.quote.length > 160 ? m.quote.slice(0, 160) + "…" : m.quote)}“</div>` : ""}</div>
+      <button class="btn small" data-close="1">Zavřít</button></header>
+    <div class="pages">${(o.doc?.pages || []).map(p => `<button data-page="${p.n}" aria-pressed="${p.n === d.n}" title="${p.empty ? "prázdná stránka" : ""}">s. ${p.n}${p.empty ? " (prázdná)" : ""}</button>`).join("")}</div>
+    <div class="vbar">${red ? "" : `<span class="seg" role="tablist" aria-label="Zobrazení"><button role="tab" data-vtab="image" aria-pressed="${tab !== "text"}">Stránka</button><button role="tab" data-vtab="text" aria-pressed="${tab === "text"}">Přepis stránky</button></span>`}
+      ${tab !== "text" && d.redacted ? `<label class="small" style="display:inline-flex;gap:6px;align-items:center"><input type="checkbox" data-redact="1" ${red ? "checked" : ""}> Co by odešlo do cloudu (začerněno)</label>` : ""}
+      ${tab !== "text" && !red && imgHit ? `<button class="btn small" data-zoomhit="1">Přiblížit na citaci</button>` : ""}
+      <span class="muted small vengine">${engine}${conf}${nv ? ` · ${plural(nv, "místo", "místa", "míst")} k ověření` : ""}</span></div>
+    ${note}
+    <div class="vwrap">${tab !== "text" ? zoomCtl(o) : ""}<div class="vbody" id="vbody">${body}</div></div></aside>`;
+}
+
+/* Zoom: "fit" follows the drawer width; a number is a percentage of the page image's native size. */
+const ZOOM_STEPS = [25, 50, 75, 100, 125, 150, 200, 300, 400];
+function currentZoomPct(o) {
+  if (typeof o.zoom === "number") return o.zoom;
+  // At fit width the effective percentage depends on the drawer, so read it from the rendered image.
+  const img = document.querySelector("#vbody .pgimg img");
+  return img && img.naturalWidth ? Math.round(img.clientWidth / img.naturalWidth * 100) : 100;
+}
+function zoomStep(o, dir) {
+  const cur = currentZoomPct(o);
+  const next = dir > 0 ? ZOOM_STEPS.find(z => z > cur + 1) : [...ZOOM_STEPS].reverse().find(z => z < cur - 1);
+  if (next) { o.zoom = next; renderOverlay(); }
+}
+function zoomCtl(o) {
+  const fit = typeof o.zoom !== "number";
+  return `<div class="zoomctl" role="group" aria-label="Zvětšení stránky">
+    <button data-zoomstep="-1" title="Oddálit (−)" aria-label="Oddálit" ${!fit && o.zoom <= ZOOM_STEPS[0] ? "disabled" : ""}>−</button>
+    <span class="zlvl" aria-live="polite">${fit ? "Na šířku" : `${o.zoom} %`}</span>
+    <button data-zoomstep="1" title="Přiblížit (+)" aria-label="Přiblížit" ${!fit && o.zoom >= ZOOM_STEPS.at(-1) ? "disabled" : ""}>+</button>
+    <button data-zoom="fit" title="Obnovit: na šířku (0)" aria-label="Obnovit zvětšení" ${fit ? "disabled" : ""}>⟲</button>
+  </div>`;
+}
+
+
 function renderOverlay() {
   const o = S.overlay, el = document.getElementById("overlay");
   if (!o) { el.innerHTML = ""; return; }
   if (o.kind === "source") {
-    const r = o.r, page = CASE.full_text_by_page.find(p => p.page === r.page);
-    let text = esc(page ? page.text : "Text stránky není k dispozici.");
-    if (r.quote && page) {
-      const pat = r.quote.trim().split(/\s+/).map(w => esc(w).replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("\\s+");
-      try { text = text.replace(new RegExp(pat), m => `<mark id="hit">${m}</mark>`); } catch (e) { /* quote with odd characters: show the page unmarked */ }
-    }
-    /* U+FFFD is where the OCR could not read a character; show it as a marked gap instead of a broken glyph. */
-    const unr = (page ? page.text.match(/\ufffd/g) || [] : []).length;
-    text = text.replace(/\ufffd+/g, m => `<span class="unr" title="Nečitelné znaky v OCR (${m.length})">?</span>`);
-    el.innerHTML = `<div class="scrim" data-close="1"></div><aside class="drawer" role="dialog" aria-label="Původní dokument">
-      <header><div><div class="label">Původní dokument · text z OCR</div><h2 style="margin-top:4px">${esc(docTitle(r))}</h2><div class="muted small">${esc(r.file)} · strana ${esc(r.page)} z ${CASE.page_count}</div></div>
-        <button class="btn small" data-close="1">Zavřít</button></header>
-      <div class="pages">${CASE.full_text_by_page.map(p => `<button data-page="${p.page}" aria-pressed="${p.page === r.page}">s. ${p.page}</button>`).join("")}</div>
-      ${unr ? `<div class="synth" style="margin:10px 20px 0;border-style:solid">Strana obsahuje ${plural(unr, "nečitelný znak", "nečitelné znaky", "nečitelných znaků")} z OCR (označeno <span class="unr">?</span>). Čtěte s rezervou, případně si vyžádejte lepší kopii.</div>` : ""}
-      <div class="text">${text}</div></aside>`;
-    document.getElementById("hit")?.scrollIntoView({ block: "center" });
+    if (!o.data) return;
+    el.innerHTML = sourceHtml(o);
+    document.getElementById("hit")?.scrollIntoView({ block: "center", inline: "center" });
   } else if (o.kind === "guide") {
     const st = anyStmt(o.id), g = GL(st.guideline_id);
     const pg = (GUIDE.pages || []).find(x => x.guideline_id === st.guideline_id && x.pdf_page === st.pdf_page);
@@ -1412,8 +1734,14 @@ function openPatient(file, view = "patient") {
   render(); window.scrollTo(0, 0);
 }
 
+/* A page image that fails to load says so, instead of leaving an empty frame. */
+document.addEventListener("error", e => {
+  const img = e.target; if (!(img instanceof HTMLImageElement) || !img.closest(".pgimg")) return;
+  img.replaceWith(Object.assign(document.createElement("p"), { className: "synth", textContent: "Obrázek stránky se nepodařilo načíst. Přepis je v záložce „Přepis stránky“." }));
+}, true);
+
 /* Tooltips for info and certainty icons: the title moves to data-tip so the browser does not show a second one. */
-const TIP_SEL = ".info, .mk, .edtag, .gapq, .chip[title], .chip[data-tip]";
+const TIP_SEL = ".info, .mk, .edtag, .gapq, .chip[title], .chip[data-tip], .vf, .vbox";
 let tipEl = null;
 function showTip(el) {
   if (el.title) { el.dataset.tip = el.title; el.removeAttribute("title"); }
@@ -1435,7 +1763,7 @@ document.addEventListener("click", e => {
   if (mk && !mk.closest("[data-src],[data-edit],[data-act],[data-tab],[data-open]")) { e.preventDefault(); showTip(mk); return; }
   hideTip();
   if (S.colOpen && !e.target.closest(".fpop,[data-colopen]")) { S.colOpen = null; render(); return; }
-  const t = e.target.closest("[data-dbpage],[data-guide],[data-colopen],[data-colclose],[data-colall],[data-wk],[data-jump],[data-mm],[data-calclose],[data-labmode],[data-labsel],[data-edit],[data-scope],[data-addatt],[data-nav],[data-open],[data-tab],[data-brief],[data-src],[data-close],[data-page],[data-tl],[data-ack],[data-go],[data-present],[data-sched],[data-pick],[data-free],[data-slot],[data-unsched],[data-act],[data-mode],[data-delstep],[data-done]");
+  const t = e.target.closest("[data-dbpage],[data-guide],[data-colopen],[data-colclose],[data-colall],[data-wk],[data-jump],[data-mm],[data-calclose],[data-labmode],[data-labsel],[data-edit],[data-scope],[data-addatt],[data-nav],[data-open],[data-tab],[data-brief],[data-src],[data-close],[data-page],[data-vtab],[data-zoom],[data-zoomstep],[data-zoomhit],[data-tl],[data-ack],[data-go],[data-present],[data-sched],[data-pick],[data-free],[data-slot],[data-unsched],[data-act],[data-mode],[data-delstep],[data-done]");
   if (!t) return;
   const d = t.dataset;
   if (d.colopen) { S.colOpen = S.colOpen === d.colopen ? null : d.colopen; render(); }
@@ -1458,7 +1786,13 @@ document.addEventListener("click", e => {
   else if (d.brief) { S.brief = d.brief; render(); }
   else if (d.src) { e.preventDefault(); openSource(JSON.parse(d.src)); }
   else if (d.close) { S.overlay = null; renderOverlay(); }
-  else if (d.page) { openSource({ file: CASE.file, page: +d.page }); }
+  else if (d.page) { S.overlay.page = +d.page; loadSourcePage(); renderOverlay(); }
+  /* The chosen tab is remembered for the next source the doctor opens. */
+  else if (d.vtab) { S.overlay.tab = S.srcTab = d.vtab; renderOverlay(); }
+  else if (d.zoomstep) { zoomStep(S.overlay, +d.zoomstep); }
+  else if (d.zoom) { S.overlay.zoom = d.zoom === "fit" ? "fit" : +d.zoom; renderOverlay(); }
+  /* Zoom to the passage: the page at full size, scrolled so the highlight is in the middle (renderOverlay scrolls to #hit). */
+  else if (d.zoomhit) { S.overlay.zoom = 100; renderOverlay(); }
   else if (d.tl !== undefined) {
     /* One click straight to the full source text (Soňa, round 13); no detail panel in between. */
     const cards = EXTRA.timeline_cards_v3 || EXTRA.timeline_cards || []; const c = cards[+d.tl];
@@ -1585,11 +1919,21 @@ document.addEventListener("change", e => {
     render();
   }
   else if (t.dataset.att) { const arr = attFor()[t.dataset.att], k = +t.dataset.k; if (!t.value && k > 0) arr.splice(k, 1); else arr[k] = t.value; render(); }
+  else if (t.dataset.redact) { S.overlay.redacted = t.checked; renderOverlay(); }
   else if (t.dataset.pickrep) { t.checked ? S.picked.add(t.dataset.pickrep) : S.picked.delete(t.dataset.pickrep); }
   else if (t.dataset.step !== undefined) { curProto().steps[+t.dataset.step][t.dataset.f] = t.value; render(); }
 });
 document.addEventListener("toggle", e => { if (e.target.dataset?.guideopen) S.guideOpen = e.target.open; }, true);
 document.addEventListener("toggle", e => { const d = e.target.dataset?.find; if (d) e.target.open ? S.openFind.add(d) : S.openFind.delete(d); }, true);
+/* Zoom keys as in common PDF viewers; only on the page image, and never while typing. */
+document.addEventListener("keydown", e => {
+  const o = S.overlay;
+  if (o && o.kind === "source" && (o.tab || S.srcTab) !== "text" && !/INPUT|TEXTAREA|SELECT/.test(e.target.tagName) && !e.ctrlKey && !e.metaKey) {
+    if (e.key === "+" || e.key === "=") { zoomStep(o, 1); e.preventDefault(); return; }
+    if (e.key === "-") { zoomStep(o, -1); e.preventDefault(); return; }
+    if (e.key === "0") { o.zoom = "fit"; renderOverlay(); e.preventDefault(); return; }
+  }
+});
 document.addEventListener("keydown", e => { if (e.key === "Escape" && S.overlay) { S.overlay = null; renderOverlay(); } else if (e.key === "Escape" && S.colOpen) { S.colOpen = null; render(); } });
 
 readHash();

@@ -12,7 +12,7 @@ All patient data is FNO's fictitious challenge data.
 |---|---|---|
 | `v1.html` | First simple mock (one patient workspace) | https://claude.ai/artifact/KraDQ9X7diVo93QzXtse6t |
 | `v2.html` | Full mock after feedback round 1 (database, calendar, patient detail, presentation, protocol, tasks) | https://claude.ai/artifact/6F5AbN6vEAHJQgXP1fkUdc |
-| `v3.html` | Mock after feedback round 2 (Excel-style filters, month navigation, 10-minute slots, brief first, diagnosis headline, current state, lab chart, doctor edits, back/forward) | https://claude.ai/artifact/6JwakCBuGZr9STKnfRUz8T |
+| `v3.html` | Mock after feedback round 2 (Excel-style filters, month navigation, 10-minute slots, brief first, diagnosis headline, current state, lab chart, doctor edits, back/forward); its source view is the same page-image viewer as v4, run by local functions instead of the in-page server, so publishing it also needs the `pages/` folder | https://claude.ai/artifact/6JwakCBuGZr9STKnfRUz8T |
 | `v4.html` | The latest mock v3 (through the guideline layer and the passages next to past decisions) split into an in-page server and a client; the source view shows the rendered page image with the cited passage highlighted, the transcription in a second tab, "ověřit" marks, and the locally redacted page on request | https://claude.ai/artifact/KuNwC9Un9dxPkzeWqoABGv (published with the `pages/` folder) |
 
 The published copies are private claude.ai artifacts owned by Juro; ask him
@@ -43,7 +43,7 @@ Do not edit `v1.html` to `v4.html` or `pages/` directly; they are generated.
 - `mock-patient-list.json`: one entry per other patient.
 - `ocr.json`: the raw OCR text of all ten patient PDFs.
 
-Mock v4 also embeds `data/derived/page-index.json` (built by
+Mocks v3 and v4 also embed `data/derived/page-index.json` (built by
 `scripts/build_page_index.py` from the OCR outputs in `data/derived/pages/`):
 per page the image path and size, the vision model's transcription,
 Tesseract's words with confidence and box, and the tokens to verify.
@@ -160,8 +160,8 @@ image decides.
 The images are not embedded. `build.py` copies
 `data/derived/pages/<stem>/p<n>.png` and `p<n>.redacted.png` to
 `mocks/pages/<stem>/`, and the page refers to them as
-`pages/<stem>/p<n>.png`. Open `v4.html` from the `mocks/` folder; to
-publish it, publish `pages/` with it. The redacted image (from
+`pages/<stem>/p<n>.png`. Open `v3.html` or `v4.html` from the `mocks/`
+folder; to publish either, publish `pages/` with it. The redacted image (from
 `scripts/redact_pages.py`) appears only when the doctor ticks "Co by
 odešlo do cloudu (začerněno)", labelled as a demonstration of local
 redaction; a page where the check found nothing says the check is
@@ -172,7 +172,8 @@ redacted image is shown.
 
 - `src/test/v3.mjs`: clicks through mock v3 in Chromium with Playwright at
   1280 px and 400 px (filters, calendar, back/forward, edits, labs,
-  approval, admin) and reports JS errors and horizontal overflow
+  approval, the source view: image, highlight, verify marks, zoom,
+  transcription tab, page switch, redacted page, access log, admin) and reports JS errors and horizontal overflow
   (`node mocks/src/test/v3.mjs`).
 - `src/test/v4.mjs`: clicks through mock v4 at 1280 px and 400 px: the
   v3 flows through the server, role and copy checks on the `api`, the

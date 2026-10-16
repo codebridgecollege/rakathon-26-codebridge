@@ -7,16 +7,16 @@ Usage:
     uv run mocks/build.py
 
 Writes `mocks/v1.html` to `mocks/v4.html`. Each template has placeholders
-(`/*CASE*/`, `/*LIST*/`, `/*EXTRA*/`, and in v4 `/*PAGES*/`) that are
+(`/*CASE*/`, `/*LIST*/`, `/*EXTRA*/`, and in v3 and v4 `/*PAGES*/`) that are
 replaced with the JSON files in `mocks/src/data/` and the page index in
 `data/derived/page-index.json`, so the page needs no server.
 
-Mock v4 shows the rendered page images in its source view. The page index
+Mocks v3 and v4 show the rendered page images in their source view. The page index
 refers to them as `pages/<pdf stem>/p<n>.png`, so the build copies
 `data/derived/pages/<pdf stem>/p<n>.png` to `mocks/pages/<pdf stem>/`, next
 to the generated HTML. It also copies `p<n>.redacted.png` (written by
 `scripts/redact_pages.py`), which the viewer shows on request as what would
-be sent to a cloud model after local redaction. Publishing v4 means
+be sent to a cloud model after local redaction. Publishing v3 or v4 means
 publishing that folder with it. Mock v3's guideline layer reads the merged
 guideline and literature files through an API stub and opens each guideline
 PDF online at the cited page.

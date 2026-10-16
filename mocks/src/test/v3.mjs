@@ -59,8 +59,26 @@ for (const width of [1280, 400]) {
   await go("#patient/10/anamnesis"); await page.evaluate(() => document.querySelector('[data-edit$="|fa:1:line"]').click()); await c('[data-act="revertedit"]');
   ok(await page.evaluate(() => S.editLog.some(e => e.reverted)), `${width} revert kept in the edit log`);
   // source drawer, presentation, admin
-  await c('[data-tab="overview"]'); await page.evaluate(() => document.querySelector(".srcl").click()); await c('[data-page="4"]');
-  ok(await page.locator(".drawer .unr").count() >= 1, `${width} unreadable OCR characters marked`); await over("drawer"); await c(".drawer [data-close]");
+  // source view (ported from v4): page image with the cited passage highlighted, transcription in a second tab
+  const imageLoaded = () => page.waitForFunction(() => { const i = document.querySelector(".drawer .pgimg img"); return i && i.complete && i.naturalWidth > 0; }, null, { timeout: 5000 }).then(() => true, () => false);
+  const pgw = () => page.evaluate(() => document.querySelector(".drawer .pgimg").getBoundingClientRect().width);
+  await c('[data-tab="overview"]'); await page.evaluate(() => document.querySelector(".srcl").click());
+  ok(await imageLoaded(), `${width} source view loads the page image`);
+  ok(await page.locator(".drawer .hbox").count() >= 1, `${width} cited passage highlighted on the image`);
+  ok(await page.locator(".drawer .vbox").count() >= 1, `${width} verify tokens outlined on the image`);
+  await over("drawer image");
+  { const w0 = await pgw(); await c('.zoomctl [data-zoomstep="1"]'); const w1 = await pgw(); await c('.zoomctl [data-zoomstep="-1"]');
+    ok(w1 > w0 && (await pgw()) < w1, `${width} zoom in and out change the page size`); await c('.zoomctl [data-zoom="fit"]'); }
+  await c('[data-vtab="text"]'); ok(await page.locator(".drawer .ptext mark#hit").count() === 1, `${width} cited passage highlighted in the transcription`);
+  // doubtful readings (characters the two OCR engines read differently) are marked for verification in the transcription
+  await c('[data-page="4"]');
+  ok(await page.locator(".drawer .ptext .vf").count() >= 1 && await page.locator(".drawer .ptext mark").count() === 0, `${width} doubtful OCR characters marked on page 4, no highlight on another page`);
+  await over("drawer text"); await c('[data-vtab="image"]'); ok(await imageLoaded(), `${width} page switcher loads page 4`);
+  await page.locator("[data-redact]").check();
+  ok(await imageLoaded() && (await page.locator(".drawer .pgimg img").getAttribute("src")).includes(".redacted.png"), `${width} redacted page shown on request`);
+  await page.locator("[data-redact]").uncheck();
+  ok(await page.evaluate(() => S.access.some(a => a.what === "zobrazil(a) zdroj s. 4")), `${width} viewed page logged`);
+  await c(".drawer [data-close]");
   await c('[data-go="present"]'); await over("present"); await c('[data-brief="detailed"]'); await over("present detailed");
   await page.selectOption("#user", "Ing. Kovář (správce systému)"); await c('[data-nav="admin"]'); await over("admin");
   ok(await page.locator("tbody tr").count() > 3, `${width} admin sees the access log`);
