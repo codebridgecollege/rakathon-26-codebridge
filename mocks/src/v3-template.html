@@ -832,13 +832,13 @@ function timelineCard(inline) {
     if (y !== lastYear) { html += `<div class="tlyear"><span>${y}</span></div>`; lastYear = y; }
     html += `<button class="ev kind-${esc(c.kind)} ${c.status === "planned" ? "planned" : ""}" data-tl="${c.i}" aria-pressed="${S.selTl === c.i}">
       <span class="date">${esc(c.date || "datum " + GAP)}${c.status === "planned" ? " · plán" : ""}</span><span class="pin">${icon(c.kind)}</span>
-      <span class="t">${esc(c.title_cs)}</span><span class="d">${esc(c.text_cs)}</span></button>`;
+      <span class="t">${esc(c.title_cs)}${c.note_cs || c.ocr_note_cs ? ' <span class="mk obs" aria-hidden="true">i</span>' : ""}</span><span class="d">${esc(c.text_cs)}</span></button>`;
   }
   const sel = cards.find(c => c.i === S.selTl);
   return `<section class="${inline ? "" : "card"}"><div class="head"><h2 style="${inline ? "font-size:14px" : ""}">Průběh onemocnění</h2><span class="muted small">Posuňte vodorovně · klikněte na událost pro detail</span></div>
     <div class="tlbar"><div class="tltrack">${html}</div></div>
     ${sel ? `<div class="evdetail"><div class="row"><span class="chip plain kind-${esc(sel.kind)}" style="background:var(--sunk)">${KIND_CS[sel.kind] || sel.kind}</span><b>${esc(sel.date || "datum " + GAP)} · ${esc(sel.title_cs)}</b>${sel.status === "planned" ? '<span class="tag k-unclear">plánováno</span>' : ""}</div>
-      <p style="margin:4px 0">${esc(sel.detail_cs || sel.text_cs)}</p>
+      <p style="margin:4px 0">${esc(sel.detail_cs || sel.text_cs)}${marks(sel)}</p>${sel.note_cs ? `<p class="muted small" style="margin:0">Poznámka asistenta: ${esc(sel.note_cs)}</p>` : ""}
       <div><button class="btn small" data-src='${esc(JSON.stringify(sel.source))}'>Otevřít původní dokument</button></div></div>` : ""}</section>`;
 }
 function tabOverview() {
