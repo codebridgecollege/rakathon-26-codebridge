@@ -330,13 +330,13 @@ The product owner's written feedback on mock v3, as built.
 | # | Feedback | What changes |
 |---|---|---|
 | 1 | The "MDT Workspace" logo should take you home. | The logo in the top bar opens the patient database. |
-| 2 | From the committee's decisions, suggest the to-dos per patient and summarize them for the oncology coordinator, in the app and maybe by email. | After approval, the assistant drafts tasks from the approved conclusion with phrase rules ("kontrolní MR", "odeslat k", "radioterapie", "kontrola za", "doplnit"); each quotes its clause, is labeled "Návrh asistenta, nepotvrzeno", and becomes a task only when a person confirms it (who and when are kept); a dismissed draft stays in the history. "Moje úlohy" has a third view, "Úlohy po MDT": every task and draft across patients, grouped by case ID and surname, with status, owner, due date, and a link to the case. "Odeslat přehled e-mailem" records a mail whose body is only "N úloh čeká na vyřízení" and the app link, no names, case IDs, or diagnoses; the screen says so. |
-| 3 | Drag a booked patient back to "Nenaplánovaní" to unschedule. | The card highlights as a drop target for a booked patient and frees the slot on drop. |
+| 2 | From the committee's decisions, suggest the to-dos per patient and summarize them for the oncology coordinator, in the app and maybe by email. | After approval, the assistant drafts tasks from the approved conclusion with phrase rules ("kontrolní MR", "odeslat k", "radioterapie", "kontrola za", "doplnit"); a clause with a negation word (není, nejsou, ne, nebude, nelze, bez, nedoporuč-, neindikov-, neprovád-) drafts nothing. Each draft quotes its clause, is labeled "Návrh asistenta, nepotvrzeno", and becomes a task only when a doctor confirms it (who and when are kept); others see it read-only as "čeká na potvrzení lékařem"; a dismissed draft stays in the history. Only "za N dní / týdnů / měsíců" with a single N gives a due date (months by calendar month), labeled "vypočteno ze závěru"; a clause with a date, a month or year, or a range ("za 2-3 měsíce") gets no date, shows its own wording, and is labeled "termín doplní člověk". The label stays on the confirmed task. "Moje úlohy" has a third view, "Úlohy po MDT": every task and draft across patients, grouped by case ID and surname, with status, owner, due date, and a link to the case. "Odeslat přehled e-mailem" records a mail whose body is only "N úloh čeká na vyřízení" and the app link, no names, case IDs, or diagnoses; the screen says so. |
+| 3 | Drag a booked patient back to "Nenaplánovaní" to unschedule. | The card highlights as a drop target for a booked patient and frees the slot on drop. Booking and freeing a slot are written to the access log. A discussed case (status "done") keeps its slot: it cannot be dragged, moved, or freed, and its card says why. |
 | 4 | Sessions may run longer than the seminar hours. | On a seminar day every slot outside the seminar hours can be booked; such slots are hatched and say "mimo čas semináře", and a booked one shows a "mimo" marker. The default range runs from 30 minutes before to one hour after the seminar. |
 | 5 | The editable status text should not be underlined all the time. | The underline shows only on hover or keyboard focus. |
-| 6 | The oncology summary is too long, repeats each date, and uses too many colours. | The line text no longer repeats the date in the left column (dates of other events and ranges stay; the plan line keeps "kontrola 9.10.2026" because its row date belongs to that one item); no pastel bands or stripes, only fine dividers; the timeline's letter pin (Ch, CT, MR, F, K; dashed when planned) sits next to the date; smaller rows. |
-| 7 | No counts in the alert labels. | The toggle, the tab, and the headings say "Upozornění" without numbers. |
-| 8 | Show the guideline passages about past decisions as retrospective deviations. | The "Odchylky od doporučení" tab starts with "Retrospektivní odchylky": per past decision, the verbatim quote from the documentation (with its source), the verbatim guideline passage, the guideline's name and edition year, a link that opens the guideline at the passage, and the edition note. A doctor may set "Závažnost" (major red, moderate orange, minor yellow) and "Posouzení" (odůvodněná, neodůvodněná, nejisté); both start empty, are never prefilled or suggested by the assistant, record who and when, and the colour appears only after a doctor picks it. Others see the values read-only. The team decided this on 2026-10-17. Whether the assistant may ever suggest a severity is open (`OPEN_QUESTIONS.md`). |
+| 6 | The oncology summary is too long, repeats each date, and uses too many colours. | The line text no longer repeats the date in the left column (dates of other events and ranges stay; the plan line keeps "kontrola 9.10.2026" because its row date belongs to that one item); no pastel bands or stripes, only fine dividers; the timeline's letter pin (Ch, CT, MR, F, K; dashed when planned) sits next to the date, and the date of a systemic-therapy row has the tooltip "zahájení léčby"; smaller rows. |
+| 7 | No counts in the alert labels. | The toggle, the tab, and the headings say "Upozornění" without numbers. Missing-document alerts stay visible without a click: under the toggle the brief lists the missing items relevant to the MDT question, one line each, under "⚠ Chybí dokumenty a údaje". |
+| 8 | Show the guideline passages about past decisions as retrospective deviations. | The "Odchylky od doporučení" tab starts with "Retrospektivní odchylky": per past decision, the verbatim quote from the documentation (with its source), the verbatim guideline passage, the guideline's name and edition year, a link that opens the guideline at the passage, and the edition note. A doctor may set "Závažnost" (závažná red, středně závažná orange, méně závažná yellow) and "Posouzení" (odůvodněná, neodůvodněná, nejisté); both start empty, are never prefilled or suggested by the assistant, and the colour appears only after a doctor picks it. Every choice is kept in an append-only history with who and when; the latest shows, and "změněno N×" opens the earlier ones. Others see the values read-only. The team decided this on 2026-10-17. Whether the assistant may ever suggest a severity is open (`OPEN_QUESTIONS.md`). |
 | 9 | Order the recommendations by strength, not by country. | Statements under the proposed management are one list per field (oncology; other fields), strongest first, with a common tier next to the original grade (below). Literature stays separate. |
 
 **Strength tiers.** The tier is read only from the statement's own
@@ -345,17 +345,20 @@ grade; the original grade is always shown next to it.
 | Grading system | silné | střední | slabé |
 |---|---|---|---|
 | ESMO, EANO (level I-V, grade A-E) | grade A | grade B | grade C |
-| Modrá kniha ČOS, NCCN categories | 1 | 2A | 2B, 3 |
 | GRADE wording (ASTRO, EASL) | strong recommendation | - | conditional or weak recommendation |
 | ESC classes | I, III (against) | IIa | IIb |
 
 Chapter text without a grade, an abstract that does not state the
 strength, and ESMO grades D and E (not in our data) are "neuvedeno". The
-level of evidence (for example EASL "LoE") is not the strength. A
+level of evidence (for example EASL "LoE") is not the strength. The
+categories of Modrá kniha ČOS and NCCN (1, 2A, 2B, 3) state the level of
+evidence and the experts' consensus, not the strength, so they sort as
+"neuvedeno" and their chip says "kategorie 2A (důkazy a shoda)". A
 statement graded more than once (EANO and ESMO, or one grade per drug)
 shows the range ("střední až slabé") and sorts by its strongest grade,
 so the tier never hides a weaker one. The order states the guideline's
-own strength, not which option suits the patient; the screen says so.
+own strength, not which option suits the patient; a sentence in normal
+text at the top of the list says so.
 
 ## Features
 

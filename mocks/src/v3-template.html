@@ -381,6 +381,12 @@ details.srcs .refs { border-top: 0; margin-top: 4px; padding-top: 0; }
 .gl .chip { white-space: normal; }
 .gl .cite { display: block; font-size: 12px; color: var(--muted); }
 .devt td, .devt th { vertical-align: top; }
+.misslist { margin: 4px 0 4px; padding-left: 18px; font-size: 13.5px; color: var(--missing); overflow-wrap: anywhere; }
+.misslist li { margin: 2px 0; }
+.ordernote { margin: 10px 0; font-size: 14px; }
+.rhist { margin-top: 4px; padding-top: 4px; }
+.rhist ol { margin: 4px 0 0; padding-left: 18px; }
+.orow .dt[data-tip] { cursor: help; }
 .retrolist { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
 .retro { border: 1px solid var(--line); border-left: 4px solid var(--line); border-radius: var(--r); padding: 10px 12px; display: grid; gap: 4px; overflow-wrap: anywhere; }
 .retro .chip { white-space: normal; justify-self: start; }
@@ -982,6 +988,8 @@ function miniMonth() {
     <div class="mini">${cells}</div></div>`;
 }
 const dayAgenda = day => S.patients.filter(x => x.slot && x.slot.day === day).sort((a, b) => a.slot.time.localeCompare(b.slot.time));
+const LOCK_WHY = "Případ je na tomto termínu projednán; termín patří k záznamu MDT, nelze ho uvolnit ani přesunout.";
+const slotLocked = p => !!p?.slot && p.status === "done";
 function viewCalendar() {
   const days = [0, 1, 2, 3, 4].map(i => addDays(S.week, i));
   const unscheduled = S.patients.filter(p => !p.slot || p.file === S.schedPick);
@@ -1007,7 +1015,8 @@ function viewCalendar() {
       let inner = "";
       /* Soňa wants the real name in the slot, not just the case ID: the calendar is used by the MDT team itself. */
       /* A missing birth number is left out of the slot text (a bare "RČ -" is noise there) but stays in the label. */
-      if (p) inner = `<button class="slotbtn taken" draggable="true" data-drag="${esc(p.file)}" data-slot="${d} ${t}" data-dbl="${esc(p.file)}" title="${esc(surnameFirst(p))}, RČ ${esc(p.rc || GAP)}. Dvojklik otevře případ" aria-label="${esc(surnameFirst(p))}, RČ ${esc(p.rc || GAP)}, ${t}" aria-pressed="${S.calPop === p.file}"><span class="dot" style="background:var(--${{ new: "muted", scheduled: "change", attention: "missing", ready: "ok", done: "accent" }[p.status]})"></span>${oot ? `<span class="ootm" title="Mimo čas semináře" aria-label="mimo čas semináře">mimo</span>` : ""}<span class="cid">${esc(surnameFirst(p))}</span>${p.rc ? `<span class="nm">RČ ${esc(p.rc)}</span>` : ""}</button>`;
+      /* A discussed case ("done") keeps its slot as part of the MDT record, so it cannot be dragged away. */
+      if (p) inner = `<button class="slotbtn taken" ${slotLocked(p) ? `draggable="false"` : `draggable="true" data-drag="${esc(p.file)}"`} data-slot="${d} ${t}" data-dbl="${esc(p.file)}" title="${esc(surnameFirst(p))}, RČ ${esc(p.rc || GAP)}. Dvojklik otevře případ" aria-label="${esc(surnameFirst(p))}, RČ ${esc(p.rc || GAP)}, ${t}" aria-pressed="${S.calPop === p.file}"><span class="dot" style="background:var(--${{ new: "muted", scheduled: "change", attention: "missing", ready: "ok", done: "accent" }[p.status]})"></span>${oot ? `<span class="ootm" title="Mimo čas semináře" aria-label="mimo čas semináře">mimo</span>` : ""}<span class="cid">${esc(surnameFirst(p))}</span>${p.rc ? `<span class="nm">RČ ${esc(p.rc)}</span>` : ""}</button>`;
       else if (sem) inner = `<button class="slotbtn free ${S.schedPick ? "target" : ""}" data-free="${d} ${t}" aria-label="Volný termín ${t}"><span class="tt2">${t}-${slotEnd(t)}</span>${S.schedPick ? " · Naplánovat sem" : ""}</button>`;
       else if (oot) inner = `<button class="slotbtn free oot ${S.schedPick ? "target" : ""}" data-free="${d} ${t}" title="Mimo čas semináře" aria-label="Volný termín ${t}, mimo čas semináře"><span class="tt2">${t} · mimo čas semináře</span></button>`;
       cells += `<div class="cell ${sem ? "sem" : oot ? "oot" : ""}">${inner}</div>`;
@@ -1020,7 +1029,7 @@ function viewCalendar() {
       <div><span class="label">Diagnóza</span><p style="margin:2px 0 0;font-weight:700">${esc(pop.full ? dxHeadlineText() : pop.diagnosis)}</p></div>
       <div class="question ${pop.explicit || edOf("q", pop.file) ? "" : "missing"}" style="padding:8px 12px"><span class="label">Otázka pro MDT</span><p style="font-size:14px">${esc(questionText(pop))}</p></div>
       ${pop.full ? `<p class="small" style="margin:0">${esc(briefPlain().slice(0, 260))}…${edOf("brief", CASE.file) ? " (upraveno lékařem)" : ""}</p>` : `<p class="small" style="margin:0">${esc(pop.summary || "")}</p>`}
-      <div class="row" style="gap:6px"><button class="btn primary" data-open="${esc(pop.file)}">Otevřít případ</button><button class="btn" data-pick="${esc(pop.file)}">Změnit termín</button><button class="btn" data-unsched="${esc(pop.file)}">Uvolnit termín</button><button class="btn" data-calclose="1" aria-label="Zavřít kartu" style="margin-left:auto">✕</button></div></div>` : "";
+      <div class="row" style="gap:6px"><button class="btn primary" data-open="${esc(pop.file)}">Otevřít případ</button>${slotLocked(pop) ? `<button class="btn" disabled title="${esc(LOCK_WHY)}">Uvolnit termín</button>` : `<button class="btn" data-pick="${esc(pop.file)}">Změnit termín</button><button class="btn" data-unsched="${esc(pop.file)}">Uvolnit termín</button>`}<button class="btn" data-calclose="1" aria-label="Zavřít kartu" style="margin-left:auto">✕</button></div>${slotLocked(pop) ? `<p class="muted small lockwhy" style="margin:0">${esc(LOCK_WHY)}</p>` : ""}</div>` : "";
   const end = addDays(S.week, 4);
   return `<div class="page">
     <div class="pagehead"><div><h1>Kalendář MDT</h1><div class="muted small">${dObj(S.week).getUTCDate()}. ${dObj(S.week).getUTCMonth() + 1}. až ${dObj(end).getUTCDate()}. ${dObj(end).getUTCMonth() + 1}. ${end.slice(0, 4)}</div></div>
@@ -1139,7 +1148,9 @@ const typeChip = x => x.type === "guideline_text" ? `<span class="chip plain st-
    to the tier. Mapping (also in docs/design/PRODUCT.md, "Feedback round 19"):
    - ESMO and EANO (level I-V, grade A-E): grade A = silné, B = střední, C = slabé. D and E (evidence against) do not
      occur in our data and fall to "neuvedeno" rather than being guessed.
-   - Modrá kniha ČOS and NCCN categories: 1 = silné, 2A = střední, 2B = slabé, 3 = slabé.
+   - Modrá kniha ČOS and NCCN categories (1, 2A, 2B, 3) state the level of evidence and the panel's consensus, not
+     the strength of the recommendation, so they map to "neuvedeno" for sorting; the chip names the category
+     instead ("kategorie 2A (důkazy a shoda)").
    - GRADE wording (ASTRO, EASL): "strong recommendation" = silné, "conditional" or "weak recommendation" = slabé.
      The level of evidence (EASL "LoE") is not the strength and is ignored.
    - ESC classes: I = silné, IIa = střední, IIb = slabé, III (not recommended) = silné, because III is a firm
@@ -1152,17 +1163,19 @@ function tiersOf(st) {
   if (st.type === "guideline_text") return [3];
   const e = String(st.evidence || ""), t = [];
   for (const m of e.matchAll(/\b(?:EANO|ESMO):\s*[IV]+,\s*([A-E]|n\/a)/g)) { const g = { A: 0, B: 1, C: 2 }[m[1]]; if (g !== undefined) t.push(g); }
-  const cos = e.match(/ČOS[^0-9]*((?:\b(?:1|2A|2B|3)\b[,\s]*)+)/);
-  if (cos) for (const m of cos[1].matchAll(/\b(1|2A|2B|3)\b/g)) t.push({ "1": 0, "2A": 1, "2B": 2, "3": 2 }[m[1]]);
   if (/\bstrong recommendation\b/i.test(e)) t.push(0);
   if (/\b(conditional|weak) recommendation\b/i.test(e)) t.push(2);
   const esc1 = e.match(/\bClass (IIa|IIb|III|I)\b/); if (esc1) t.push({ I: 0, IIa: 1, IIb: 2, III: 0 }[esc1[1]]);
   return t.length ? [...new Set(t)].sort() : [3];
 }
+/* ČOS and NCCN categories of a statement, in the order given ("2A, 2B" for a list graded per drug). */
+const categoriesOf = st => { const cos = String(st.evidence || "").match(/(?:ČOS|NCCN)[^0-9]*((?:\b(?:1|2A|2B|3)\b[,\s]*)+)/); return cos ? [...new Set([...cos[1].matchAll(/\b(1|2A|2B|3)\b/g)].map(m => m[1]))] : []; };
 const tierLabel = st => { const t = tiersOf(st); return t.length > 1 ? `${TIER[t[0]]} až ${TIER[t[t.length - 1]]}` : TIER[t[0]]; };
 /* Strongest first; a range sorts after a single tier of the same strength, then the data's order. */
 const byTier = xs => xs.map((x, i) => ({ x, i, t: tiersOf(x) })).sort((a, b) => a.t[0] - b.t[0] || a.t[a.t.length - 1] - b.t[b.t.length - 1] || a.i - b.i).map(o => o.x);
-const tierChip = st => `<span class="chip plain tier tier-${tiersOf(st)[0]}" title="Síla doporučení převedená na společnou škálu z vlastního stupně doporučení">síla: ${esc(tierLabel(st))}</span>`;
+const tierChip = st => { const t = tiersOf(st), cat = categoriesOf(st);
+  if (t.length === 1 && t[0] === 3 && cat.length) return `<span class="chip plain tier tier-3" title="Kategorie ČOS a NCCN vyjadřují úroveň důkazů a míru shody odborníků, ne sílu doporučení; v pořadí podle síly jsou proto mezi „neuvedeno“">kategorie ${esc(cat.join(", "))} (důkazy a shoda)</span>`;
+  return `<span class="chip plain tier tier-${t[0]}" title="Síla doporučení převedená na společnou škálu z vlastního stupně doporučení">síla: ${esc(tierLabel(st))}</span>`; };
 function stmtHtml(x) {
   return `<li data-tier="${tiersOf(x)[0]}">${x.section ? `<span class="cite">${esc(String(x.section).split(/[;:]/).slice(-1)[0].trim())}</span>` : ""}<q>${esc(x.quote)}</q> ${tierChip(x)} ${typeChip(x)}
     <span class="cite">${esc(shortCite(x))} · <button class="linkbtn small" data-guide="${esc(x.id)}" title="${esc(citeOf(x))}">otevřít</button></span>
@@ -1185,6 +1198,7 @@ function guideBox() {
   const lit = GUIDE.literature || [];
   return `<details class="gl" ${S.guideOpen ? "open" : ""} data-guideopen="1"><summary style="cursor:pointer"><b>Doporučené postupy k dalšímu postupu: citace (${st.length})</b>${lit.length ? ` · literatura (${lit.length})` : ""} <span class="muted small">· pozorování asistenta, rozhoduje MDT</span></summary>${head}
     ${important.map(n => `<div class="synth" style="margin:8px 0">${esc(n.note_cs || n.name)}</div>`).join("")}
+    <p class="ordernote">Pořadí je stupeň síly, který uvádí samo doporučení (silné, střední, slabé, neuvedeno), ne pořadí možností pro tohoto pacienta. Asistent možnosti pro pacienta neřadí a postup nenavrhuje; rozhoduje MDT.</p>
     ${groups}
     ${grp("Další obory (přidružená onemocnění)", other, false, "stmts-other")}
     ${lit.length ? `<details class="srcs" style="margin-top:12px"><summary>Literatura z PubMed (${lit.length}) · pro situace, kde doporučení nestačí</summary>
@@ -1192,7 +1206,7 @@ function guideBox() {
         ${(a.quotes || []).slice(0, 1).map(q => `<q>${esc(q)}</q>`).join("")}<span class="small">Proč: ${esc(a.why_relevant_cs || "")}</span></li>`).join("")}</ol>
       <p class="muted small" style="margin:6px 0 0">Literatura není doporučení. Hledání v PubMed používá jen odborné pojmy, nikdy údaje o pacientovi${(GUIDE.queries || []).length ? `; dotazy: ${(GUIDE.queries || []).map(q => `„${esc(q.query)}“`).join(", ")}` : ""}.</p></details>` : ""}
     ${(GUIDE.not_retrieved || []).length ? `<details class="srcs"><summary class="muted">Nenačtené zdroje (${GUIDE.not_retrieved.length})</summary><ul class="small muted">${GUIDE.not_retrieved.map(n => `<li>${esc(n.name)}: ${esc(n.reason)}</li>`).join("")}</ul></details>` : ""}
-    <p class="muted small" style="margin:8px 0 0">Citace doslovně z uvedených doporučení, seřazené podle síly doporučení, kterou uvádí samo doporučení (převedeno na společnou škálu silné, střední, slabé, neuvedeno; původní stupeň je u každé citace). Pořadí neříká, která možnost se hodí pro pacienta: asistent možnosti pro pacienta neřadí a postup nenavrhuje; rozhoduje MDT. Odchylky se zapisují v záložce Odchylky od doporučení.</p></details>`;
+    <p class="muted small" style="margin:8px 0 0">Citace doslovně z uvedených doporučení; původní stupeň je u každé citace. Kategorie ČOS a NCCN (1, 2A, 2B, 3) vyjadřují úroveň důkazů a shodu odborníků, ne sílu doporučení, proto se řadí mezi „neuvedeno“. Odchylky se zapisují v záložce Odchylky od doporučení.</p></details>`;
 }
 /* Source links named by page ("s. 2"), as in the labs table, so several links in one row are told apart. */
 const srcLinks = refs => { const xs = refs || [], seen = {}; return xs.map(r => { const same = xs.filter(x => x.page === r.page).length, k = (seen[r.page] = (seen[r.page] || 0) + 1);
@@ -1208,9 +1222,19 @@ function gapsBox() {
     ${g.length ? `<span class="label" style="display:block;margin-top:12px">Chybějící a nejasné údaje v briefu</span><div class="alerts" style="margin-top:6px">${g.map(x => `<div class="alert" style="grid-template-columns:auto minmax(0,1fr)"><span class="chip plain ${ALERT[x.kind][1]}">${ALERT[x.kind][0]}</span><span>${esc(x.text_cs)} ${srcLinks(x.refs)}</span></div>`).join("")}</div>` : ""}
     <div class="disclaim">Pozorování asistenta, ne klinický závěr. Upozornění neblokují projednání.</div></div>`;
 }
+/* Missing-document alerts are always on (CLAUDE.md), so they show under the toggle without a click: the ones relevant
+   to the MDT question in one compact line each, no counts (round 19). When the toggle is open the same rows sit in
+   the box above, so they are not repeated. Without a relevant one, a label still says that documents are missing. */
+function missingStrip() {
+  const { top, all } = topAlerts(), rel = top.filter(f => f.kind === "missing");
+  if (!all.some(f => f.kind === "missing")) return "";
+  return `<div class="missstrip" style="margin-top:8px"><span class="label" style="color:var(--missing)">⚠ Chybí dokumenty a údaje</span>
+    ${rel.length ? `<ul class="misslist">${rel.map(f => `<li>${esc(f.text_cs)} ${srcLinks(f.based_on)}</li>`).join("")}</ul>` : ""}
+    <button class="linkbtn small" data-tab="alerts">Všechna upozornění</button></div>`;
+}
 function briefBlock(p) {
   const reg = refRegistry();
-  return `<section class="card blk"><div class="head" style="margin:0"><h2>MDT brief</h2><span class="row">${gapsToggle()}</span></div>${S.gapsOpen ? gapsBox() : ""}
+  return `<section class="card blk"><div class="head" style="margin:0"><h2>MDT brief</h2><span class="row">${gapsToggle()}</span></div>${S.gapsOpen ? gapsBox() : missingStrip()}
     <p class="prose">${briefHtml(reg)}</p>
     ${reasonQuestionBox(p, reg)}
     ${timelineCard(true)}
@@ -1238,7 +1262,8 @@ const compactKind = l => l.kind !== "plan" ? l.kind : /everolim|sunitinib|nivolu
 const rowPin = l => { const k = compactKind(l); return `<span class="lpin kind-${esc(k)} ${l.kind === "plan" ? "planned" : ""}" title="${esc((KIND_CS[k] || "") + (l.kind === "plan" ? ", plánováno" : ""))}" aria-hidden="true">${esc(letterOf({ kind: k, title_cs: l.text_cs }))}</span>`; };
 function compactRows(reg) {
   const c = EXTRA.onco_compact_v3;
-  const line = (l, i) => `<div class="orow cpt"><span class="dt">${l.date_sort ? fmtDate(l.date_sort) : ""}${rowPin(l)}</span><span>${reg.wrap(ed(`oc:${i}`, l.text_cs), R3((l.refs || [])[0]))}${(l.refs || []).slice(1).map(j => reg.n(R3(j))).join("")}${marks(l)}</span></div>`;
+  /* A systemic-therapy row is dated by its start; the tooltip says so, because the row text spans a whole course. */
+  const line = (l, i) => `<div class="orow cpt"><span class="dt"${l.kind === "systemic" ? ` data-tip="zahájení léčby" tabindex="0"` : ""}>${l.date_sort ? fmtDate(l.date_sort) : ""}${rowPin(l)}</span><span>${reg.wrap(ed(`oc:${i}`, l.text_cs), R3((l.refs || [])[0]))}${(l.refs || []).slice(1).map(j => reg.n(R3(j))).join("")}${marks(l)}</span></div>`;
   return `${c.lines.map(line).join("")}
     ${c.other_dx_cs ? `<p style="margin:10px 0 0;font-size:14px">${reg.wrap(esc(c.other_dx_cs), R3((c.other_dx_refs || [])[0]))}</p>` : ""}`;
 }
@@ -1267,15 +1292,6 @@ function statusCard() {
     <div class="stc"><p><b>Subjektivně:</b> ${subjHtml}.</p>
       <p><b>Objektivně:</b> ${[lead, brain ? link(brain) : "", ...rest.map(link)].filter(Boolean).join("; ")}.</p></div>
     ${srcList(reg)}</section>`;
-}
-function alertsStrip() {
-  const { top } = topAlerts();
-  const open = top.filter(f => !S.acks[f.i]);
-  return `<section class="card"><div class="head"><h2>Upozornění k dotazu na MDT</h2>
-      <button class="linkbtn" data-tab="alerts">Všechna upozornění</button></div>
-    <div class="alerts">${top.map(f => alertRow(f, true)).join("")}</div>
-    ${open.length === 0 ? `<p class="muted small" style="margin:8px 0 0">Vše vzato na vědomí.</p>` : ""}
-    <div class="disclaim">Pozorování asistenta, ne klinický závěr. Upozornění neblokují projednání.</div></section>`;
 }
 function alertRow(f, compact) {
   const ack = S.acks[f.i];
@@ -1459,7 +1475,8 @@ function tabDev() {
    guideline passage on the same topic. The assistant only puts the two quotes side by side; severity and assessment
    are set by a doctor, never prefilled or suggested by the assistant, and each choice records who and when. The
    colour appears only after a doctor has picked a severity. */
-const SEV = { "": "-", major: "major", moderate: "moderate", minor: "minor" };
+/* Value keys stay in English for the CSS classes; the doctor sees Czech labels (major red, moderate orange, minor yellow). */
+const SEV = { "": "-", major: "závažná", moderate: "středně závažná", minor: "méně závažná" };
 const ASSESS = { "": "-", justified: "odůvodněná", unjustified: "neodůvodněná", uncertain: "nejisté" };
 const retroOf = pid => (S.retro[pid] = S.retro[pid] || {});
 /* The decision's own words: the reference the statement names, else the first source of its oncology row. */
@@ -1468,10 +1485,12 @@ function retroList(p) {
   const xs = PAST(); if (!xs.length) return "";
   const rs = retroOf(p.file), doc = isDoctor(S.user);
   const pick = (x, field, opts, label) => {
-    const r = rs[x.id] || {}, v = r[field] || "", by = r[field + "By"];
+    const r = rs[x.id] || {}, v = r[field] || "", by = r[field + "By"], hist = (r.hist || {})[field] || [];
+    /* The latest choice with who and when; earlier choices stay in an append-only history behind "změněno N×". */
     const who = by ? `<span class="note">${esc(label)} nastavil(a) ${esc(by)}, ${esc(r[field + "When"])}</span>` : "";
-    return doc ? `<label class="small"><span class="label">${esc(label)}</span><select class="input" data-retro="${esc(x.id)}" data-rf="${field}" aria-label="${esc(label)}">${Object.entries(opts).map(([k, t]) => `<option value="${k}" ${v === k ? "selected" : ""}>${esc(t)}</option>`).join("")}</select>${who}</label>`
-      : `<div class="small"><span class="label">${esc(label)}</span><div>${esc(opts[v] || "-")}</div>${who}</div>`;
+    const older = hist.length > 1 ? `<details class="srcs rhist"><summary class="small">změněno ${hist.length - 1}×</summary><ol class="small" reversed>${hist.slice().reverse().map(h => `<li>${esc(opts[h.v] || "-")} · ${esc(h.by)}, ${esc(h.when)}</li>`).join("")}</ol></details>` : "";
+    return doc ? `<div class="small"><span class="label">${esc(label)}</span><select class="input" data-retro="${esc(x.id)}" data-rf="${field}" aria-label="${esc(label)}">${Object.entries(opts).map(([k, t]) => `<option value="${k}" ${v === k ? "selected" : ""}>${esc(t)}</option>`).join("")}</select>${who}${older}</div>`
+      : `<div class="small"><span class="label">${esc(label)}</span><div>${esc(opts[v] || "-")}</div>${who}${older}</div>`;
   };
   const item = x => {
     const g = GL(x.guideline_id), dr = decisionRef(x), sev = (rs[x.id] || {}).sev || "";
@@ -1668,37 +1687,77 @@ const SUGG_RULES = [
   [/doplnit|dovyšetř/i, "Zajistit doplnění"],
   [/znovu\s+na\s+MDT|opět\s+na\s+MDT|představit\s+na\s+MDT|předložit/i, "Naplánovat MDT"],
 ];
-/* "za 3 měsíce", "za 4 týdny", "za 10 dní" give a due date from the approval day; otherwise a week, labelled as a default. */
+/* Due date (round 19 review): only "za N dní", "za N týdnů" or "za N měsíců" with a single N gives a computed date,
+   counted from the approval day, months by calendar month (30 days would drift). A clause that names a date, a
+   month or year ("1/2027", "v roce 2028") or a range ("za 2-3 měsíce") keeps its own wording and no date: picking a
+   day inside a range or a month would be the assistant's guess, so a person fills it in. No clause gets a default. */
+const DUE_LBL = { computed: "vypočteno ze závěru", none: "termín doplní člověk" };
+const addMonths = (iso, n) => {
+  const d = dObj(iso), day = d.getUTCDate(); d.setUTCDate(1); d.setUTCMonth(d.getUTCMonth() + n);
+  /* 31 January plus one month is the last day of February, not 3 March. */
+  const last = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0, 12)).getUTCDate();
+  d.setUTCDate(Math.min(day, last)); return isoOf(d);
+};
+/* JavaScript's \b only knows ASCII letters, so word edges are lookarounds over \p{L}; "ledna" is listed in full
+   because a "led" prefix would also match "ledvina". */
+const MONTHS_CS = "leden|ledna|lednu|únor|února|únoru|březen|března|březnu|duben|dubna|dubnu|květen|května|květnu|červen|června|červnu|červenec|července|červenci|srpen|srpna|srpnu|září|říjen|října|říjnu|listopad|listopadu|prosinec|prosince|prosinci";
+const TIMING_RE = [
+  /(?<![\p{L}\d])za\s+\d+\s*(?:[-–]|až)\s*\d+\s*\p{L}+/giu,             // range: "za 2-3 měsíce", "za 2 až 3 týdny"
+  /(?<![\d.])\d{1,2}\.\s?\d{1,2}\.(?:\s?\d{4})?/gu,                       // date or day and month: "9.10.2026", "9. 10."
+  /(?<![\d./])\d{1,2}\/\d{2,4}(?!\d)/gu,                                // month/year: "1/2027"
+  /(?<![\p{L}\d./])(?:v\s+roce\s+|r\.\s?)?(?:19|20)\d{2}(?!\d)/giu,      // year: "v roce 2028", "r.2028"
+  new RegExp(`(?<![\\p{L}])(?:v\\s+)?(?:${MONTHS_CS})(?![\\p{L}])(?:\\s+\\d{4})?`, "giu"), // month name: "v lednu 2027"
+  /(?<![\p{L}\d])za\s+\d+\s*(?:dn|den|týd|měs)\p{L}*/giu,                // single interval: "za 3 měsíce"
+];
 function dueFrom(clause) {
-  const m = clause.match(/za\s+(\d+)\s*(dn|den|týd|měs)/i);
-  if (!m) return { due: addDays(TODAY, 7), dueDefault: true };
-  const n = +m[1], u = m[2].toLowerCase();
-  return { due: addDays(TODAY, u.startsWith("týd") ? n * 7 : u.startsWith("měs") ? n * 30 : n), dueDefault: false };
+  const said = [...new Set(TIMING_RE.flatMap(re => [...clause.matchAll(re)].map(m => m[0].trim())))];
+  const single = clause.match(/(?<![\p{L}\d])za\s+(\d+)\s*(dn|den|týd|měs)/iu);
+  /* Any other timing in the clause (a date, a month, a range) wins over the interval, so nothing is guessed. */
+  const other = said.filter(t => !/^za\s+\d+\s*(dn|den|týd|měs)/iu.test(t));
+  if (!single || other.length) return { due: "", dueSrc: "none", timing: said.join(", ") };
+  const n = +single[1], u = single[2].toLowerCase();
+  return { due: u.startsWith("měs") ? addMonths(TODAY, n) : addDays(TODAY, u.startsWith("týd") ? n * 7 : n), dueSrc: "computed", timing: said.join(", ") };
 }
+/* A negated clause ("radioterapie není indikována", "bez nutnosti doplnit") must not become a task. Negation is read
+   from a list of whole words, not from a "ne" prefix, because "nefrektomie" or "neurochirurg" are not negations. A
+   clause with any of these words is skipped as a whole; losing a draft is safer than drafting the opposite step, and
+   the doctor can still add the task by hand. */
+const NEG_RE = /(?:^|[^\p{L}])(?:ne|není|nejsou|nebude|nebudou|nelze|bez|nedoporuč\p{L}*|neindikov\p{L}*|neprovád\p{L}*|neplánuje\p{L}*)(?![\p{L}])/iu;
 function suggestTasks(concl) {
   /* Split into clauses at ";", line breaks, and at "." or "," not followed by a digit, so "9.10.2026" stays whole. */
   const clauses = String(concl).split(/[;\n]|[.,](?!\d)/).map(x => x.trim()).filter(Boolean);
   const out = [];
   for (const c of clauses) {
+    if (NEG_RE.test(c)) continue;
     const r = SUGG_RULES.find(([re]) => re.test(c));
     if (r) out.push({ text: `${r[1]}: ${c}`, quote: c, ...dueFrom(c) });
   }
   return out;
 }
+/* Due date with where it came from, for drafts, confirmed tasks, and the "Úlohy po MDT" rows. */
+const dueLabel = t => t.dueSrc === "manual" ? `zadal(a) ${t.dueBy || "člověk"}` : DUE_LBL[t.dueSrc] || "";
+const dueText = t => t.due ? `${fmtDate(t.due)}${dueLabel(t) ? ` (${dueLabel(t)})` : ""}` : DUE_LBL.none;
 const pendingSugg = pid => S.sugg.filter(x => x.state === "draft" && (!pid || x.pid === pid));
+/* Only a doctor confirms or dismisses a drafted task (round 19 review): the draft turns the approved conclusion into
+   a clinical step, so the coordinator sees it read-only until a doctor has confirmed it. */
+const canConfirmSugg = () => isDoctor(S.user);
+const WAIT_DOC = "čeká na potvrzení lékařem";
+/* The timing the clause itself states, verbatim, next to the date field, so a person filling the date sees it. */
+const dueNote = x => `${x.timing ? `<span class="note">V závěru: „${esc(x.timing)}“</span>` : ""}${dueLabel(x) ? `<span class="note">${esc(dueLabel(x))}</span>` : ""}`;
 function suggHtml(p) {
   const xs = S.sugg.filter(x => x.pid === p.file);
   if (!xs.length) return "";
-  const can = S.user !== ADMIN;
+  const can = canConfirmSugg();
   const owners = [COORD, p.owner].filter((v, i, a) => a.indexOf(v) === i);
   return `<div class="sub suggbox"><div class="head"><h3>Návrh úloh ze schváleného závěru</h3><span class="chip plain k-unclear">Návrh asistenta</span></div>
     <ul class="hist">${xs.map(x => x.state === "draft" ? `<li class="sugg" data-suggitem="${x.id}"><span class="chip plain k-unclear">Návrh asistenta, nepotvrzeno</span> <b>${esc(x.text)}</b>
         <span class="note">Ze závěru: „${esc(x.quote)}“</span>
-        <div class="row" style="margin-top:6px"><select class="input" data-sugg="${x.id}" data-f="who" style="width:auto" ${can ? "" : "disabled"}>${owners.map(o => `<option ${x.who === o ? "selected" : ""}>${esc(o)}</option>`).join("")}</select>
-          <input class="input" type="date" data-sugg="${x.id}" data-f="due" value="${esc(x.due)}" style="width:auto" ${can ? "" : "disabled"}>${x.dueDefault ? `<span class="note">termín výchozí, v závěru není</span>` : ""}
-          ${can ? `<button class="btn small primary" data-suggok="${x.id}">Potvrdit</button><button class="btn small" data-suggno="${x.id}">Zamítnout</button>` : ""}</div></li>`
-      : `<li class="small ${x.state === "dismissed" ? "old" : ""}"><b>${esc(x.text)}</b><br>${x.state === "confirmed" ? `Potvrdil(a) ${esc(x.by)}, ${esc(x.when)}; úloha pro ${esc(x.who)} do ${esc(fmtDate(x.due))}` : `Zamítl(a) ${esc(x.by)}, ${esc(x.when)}`}</li>`).join("")}</ul>
-    <p class="muted small" style="margin:6px 0 0">Asistent úlohy jen navrhuje z textu schváleného závěru. Úlohou se návrh stane až po potvrzení člověkem.</p></div>`;
+        ${can ? `<div class="row" style="margin-top:6px"><select class="input" data-sugg="${x.id}" data-f="who" style="width:auto">${owners.map(o => `<option ${x.who === o ? "selected" : ""}>${esc(o)}</option>`).join("")}</select>
+          <input class="input" type="date" data-sugg="${x.id}" data-f="due" value="${esc(x.due)}" style="width:auto" aria-label="Termín">
+          <button class="btn small primary" data-suggok="${x.id}">Potvrdit</button><button class="btn small" data-suggno="${x.id}">Zamítnout</button></div>${dueNote(x)}`
+        : `<span class="note">Odpovídá: ${esc(x.who)} · ${x.due ? `termín: ${esc(dueText(x))}` : DUE_LBL.none}${x.timing ? ` · v závěru: „${esc(x.timing)}“` : ""}</span><span class="note"><b>${WAIT_DOC}</b></span>`}</li>`
+      : `<li class="small ${x.state === "dismissed" ? "old" : ""}"><b>${esc(x.text)}</b><br>${x.state === "confirmed" ? `Potvrdil(a) ${esc(x.by)}, ${esc(x.when)}; úloha pro ${esc(x.who)}, ${x.due ? `termín ${esc(dueText(x))}` : DUE_LBL.none}` : `Zamítl(a) ${esc(x.by)}, ${esc(x.when)}`}</li>`).join("")}</ul>
+    <p class="muted small" style="margin:6px 0 0">Asistent úlohy jen navrhuje z textu schváleného závěru. Úlohou se návrh stane až po potvrzení lékařem.${can ? "" : " Potvrdit nebo zamítnout návrh může jen lékař."}</p></div>`;
 }
 
 /* ---------- 6. My tasks (coordinator) ---------- */
@@ -1713,13 +1772,13 @@ function mdtTasksCard() {
     const ts = S.tasks.filter(t => t.pid === p.file), sg = pendingSugg(p.file);
     return `<div class="tgrp" data-tgrp="${esc(p.file)}"><div class="row spread" style="padding:10px 0 4px;border-bottom:1px solid var(--line-strong)"><b>${esc(p.id)} · ${esc(surnameOf(p))}</b><button class="btn small" data-open="${esc(p.file)}">Otevřít případ</button></div>
       <div class="scroll"><table class="tbl dense"><thead><tr><th>Úloha</th><th>Stav</th><th>Odpovídá</th><th>Termín</th></tr></thead><tbody>
-      ${ts.map(t => `<tr><td>${esc(t.text)}${t.confirmedBy ? `<span class="note">z návrhu asistenta, potvrdil(a) ${esc(t.confirmedBy)}</span>` : ""}</td><td>${st(t)}</td><td>${esc(t.who)}</td><td class="num nw">${esc(fmtDate(t.due))}</td></tr>`).join("")}
-      ${sg.map(x => `<tr data-suggrow="${x.id}"><td>${esc(x.text)}<span class="note">Ze závěru: „${esc(x.quote)}“</span></td><td><span class="chip plain k-unclear">návrh asistenta, nepotvrzeno</span></td><td>${esc(x.who)}</td><td class="num nw">${esc(fmtDate(x.due))}${S.user !== ADMIN ? `<div class="row" style="gap:4px;margin-top:4px"><button class="btn small primary" data-suggok="${x.id}">Potvrdit</button><button class="btn small" data-suggno="${x.id}">Zamítnout</button></div>` : ""}</td></tr>`).join("")}
+      ${ts.map(t => `<tr><td>${esc(t.text)}${t.confirmedBy ? `<span class="note">z návrhu asistenta, potvrdil(a) ${esc(t.confirmedBy)}</span>` : ""}</td><td>${st(t)}</td><td>${esc(t.who)}</td><td class="nw">${esc(t.due ? fmtDate(t.due) : DUE_LBL.none)}${t.due && dueLabel(t) ? `<span class="note">${esc(dueLabel(t))}</span>` : ""}</td></tr>`).join("")}
+      ${sg.map(x => `<tr data-suggrow="${x.id}"><td>${esc(x.text)}<span class="note">Ze závěru: „${esc(x.quote)}“</span></td><td><span class="chip plain k-unclear">návrh asistenta, nepotvrzeno</span></td><td>${esc(x.who)}</td><td class="nw">${esc(x.due ? fmtDate(x.due) : DUE_LBL.none)}${x.due && dueLabel(x) ? `<span class="note">${esc(dueLabel(x))}</span>` : ""}${x.timing ? `<span class="note">v závěru: „${esc(x.timing)}“</span>` : ""}${canConfirmSugg() ? `<div class="row" style="gap:4px;margin-top:4px"><button class="btn small primary" data-suggok="${x.id}">Potvrdit</button><button class="btn small" data-suggno="${x.id}">Zamítnout</button></div>` : `<span class="note"><b>${WAIT_DOC}</b></span>`}</td></tr>`).join("")}
       </tbody></table></div></div>`;
   }).join("");
   const waiting = S.tasks.filter(t => !t.done).length + pendingSugg().length;
   return `<section class="card"><div class="head"><h2>Úlohy po MDT</h2><span class="row"><span class="muted small">podle pacienta, všechny případy</span><button class="btn small primary" data-act="maildigest">Odeslat přehled e-mailem</button></span></div>
-    ${groups || `<p class="muted">Zatím žádné úlohy. Vzniknou po schválení závěru MDT; návrhy asistenta potvrzuje člověk.</p>`}
+    ${groups || `<p class="muted">Zatím žádné úlohy. Vzniknou po schválení závěru MDT; návrhy asistenta potvrzuje lékař.</p>`}
     <p class="muted small" style="margin:10px 0 0">E-mail koordinátorce obsahuje jen větu „${esc(waitingText(waiting))}“ a odkaz do aplikace, žádná jména, ID případů ani diagnózy: upozornění nese odkaz, ne zdravotní údaje. Počet zahrnuje i nepotvrzené návrhy asistenta.</p></section>`;
 }
 const waitingText = n => `${n} ${n === 1 ? "úloha čeká" : n >= 2 && n <= 4 ? "úlohy čekají" : "úloh čeká"} na vyřízení`;
@@ -1729,7 +1788,7 @@ function viewTasks() {
   const list = S.taskScope === "all" ? S.tasks : myTasks();
   const open = list.filter(t => !t.done), done = list.filter(t => t.done);
   const row = t => { const p = P(t.pid); return `<div class="trow ${t.done ? "done" : ""}"><input type="checkbox" data-done="${t.id}" ${t.done ? "checked" : ""} aria-label="Hotovo">
-        <div><div class="tt"><b>${esc(t.text)}</b></div><div class="muted small">${esc(p.id)} · ${esc(t.who)} · do ${esc(fmtDate(t.due))}</div></div>
+        <div><div class="tt"><b>${esc(t.text)}</b></div><div class="muted small">${esc(p.id)} · ${esc(t.who)} · ${t.due ? `do ${esc(dueText(t))}` : DUE_LBL.none}</div></div>
         <button class="btn small" data-open="${esc(t.pid)}">Otevřít případ</button></div>`; };
   /* Empty state says what fills the list and how, so an empty view is not read as a fault. */
   const empty = `<p class="muted">${S.taskScope === "mine" ? `Pro uživatele ${esc(S.user)} zatím žádné úlohy. ` : "Zatím žádné úlohy. "}Úlohy vzniknou po schválení závěru MDT v případu pacienta.${S.taskScope === "mine" ? " Úlohy ostatních ukáže přepínač „Všechny“." : ""}</p>`;
@@ -2021,7 +2080,7 @@ document.addEventListener("error", e => {
 }, true);
 
 /* Tooltips for info and certainty icons: the title moves to data-tip so the browser does not show a second one. */
-const TIP_SEL = ".info, .mk, .edtag, .gapq, .chip[title], .chip[data-tip], .vf, .vbox";
+const TIP_SEL = ".info, .mk, .edtag, .gapq, .chip[title], .chip[data-tip], .vf, .vbox, .dt[data-tip]";
 let tipEl = null;
 function showTip(el) {
   if (el.title) { el.dataset.tip = el.title; el.removeAttribute("title"); }
@@ -2106,11 +2165,13 @@ document.addEventListener("click", e => {
   else if (d.act) action(d.act);
 });
 const curProto = () => ensureProto(P(S.pid));
-/* A person confirms or dismisses each drafted task; only a confirmed one joins the task list, with who confirmed it. */
+/* A doctor confirms or dismisses each drafted task; only a confirmed one joins the task list, with who confirmed it. */
 function confirmSugg(id, accept) {
-  const x = S.sugg.find(y => y.id === id); if (!x || x.state !== "draft" || S.user === ADMIN) return;
+  /* The buttons are rendered only for doctors; this guard repeats the rule for any other path to the handler. */
+  const x = S.sugg.find(y => y.id === id); if (!x || x.state !== "draft" || !canConfirmSugg()) return;
   x.state = accept ? "confirmed" : "dismissed"; x.by = S.user; x.when = new Date().toLocaleString("cs-CZ");
-  if (accept) S.tasks.push({ id: Math.max(0, ...S.tasks.map(t => t.id)) + 1, pid: x.pid, text: x.text, who: x.who, due: x.due, done: false, fromSugg: x.id, confirmedBy: x.by });
+  /* The task keeps where its due date came from (computed, typed, or left for a person), so the label travels with it. */
+  if (accept) S.tasks.push({ id: Math.max(0, ...S.tasks.map(t => t.id)) + 1, pid: x.pid, text: x.text, who: x.who, due: x.due, dueSrc: x.dueSrc, dueBy: x.dueBy, timing: x.timing, done: false, fromSugg: x.id, confirmedBy: x.by });
   logAccess(x.pid, accept ? "potvrdil(a) návrh úlohy" : "zamítl(a) návrh úlohy");
   toast(accept ? "Úloha potvrzena" : "Návrh zamítnut"); render();
 }
@@ -2208,14 +2269,21 @@ document.addEventListener("input", e => {
     else refreshReport();
   }
 });
+/* Booking and freeing a slot are logged like opening a case: who handled which patient's MDT date (no other text).
+   A discussed case keeps its slot; the controls are hidden, and these guards repeat the rule for drag and drop. */
 function unschedule(file) {
   const p = P(file); if (!p?.slot) return;
+  if (slotLocked(p)) { toast(LOCK_WHY); return; }
+  const was = slotText(p);
   p.slot = null; if (p.status === "scheduled") p.status = "new"; S.calPop = null; S.schedPick = null;
+  logAccess(p.file, `uvolnil(a) termín MDT (${was})`);
   toast(`Termín pro ${surnameFirst(p)} uvolněn`); render();
 }
 function scheduleAt(file, slot) {
   const [day, time] = slot.split(" "), p = P(file);
+  if (slotLocked(p)) { toast(LOCK_WHY); S.schedPick = null; render(); return; }
   p.slot = { day, time }; if (p.status === "new") p.status = "scheduled";
+  logAccess(p.file, `naplánoval(a) na MDT (${slotText(p)})`);
   const sem = seminarOn(day), oot = sem && (time < sem[0] || time >= sem[1]);
   toast(`${surnameFirst(p)} naplánován(a) na ${slotText(p)}${oot ? " (mimo čas semináře)" : ""}`); S.schedPick = null; S.calPop = p.file; render();
 }
@@ -2263,6 +2331,8 @@ document.addEventListener("change", e => {
     if (!isDoctor(S.user)) return;
     const r = retroOf(S.pid)[t.dataset.retro] = retroOf(S.pid)[t.dataset.retro] || {}, f = t.dataset.rf;
     r[f] = t.value; r[f + "By"] = S.user; r[f + "When"] = new Date().toLocaleString("cs-CZ");
+    /* Append-only: every choice is kept with who and when, so a later change never hides an earlier one. */
+    r.hist = r.hist || {}; (r.hist[f] = r.hist[f] || []).push({ v: t.value, by: S.user, when: r[f + "When"] });
     logAccess(S.pid, `nastavil(a) ${f === "sev" ? "závažnost" : "posouzení"} retrospektivní odchylky`); render();
   }
   else if (t.dataset.dev) { const pr = curProto(); pr.dev = pr.dev || {}; pr.dev[t.dataset.dev] = { ...(pr.dev[t.dataset.dev] || {}), s: t.value }; render(); }
@@ -2281,7 +2351,10 @@ document.addEventListener("change", e => {
   else if (t.dataset.redact) { S.overlay.redacted = t.checked; renderOverlay(); }
   else if (t.dataset.pickrep) { t.checked ? S.picked.add(t.dataset.pickrep) : S.picked.delete(t.dataset.pickrep); refreshReport(); }
   else if (t.dataset.step !== undefined) { curProto().steps[+t.dataset.step][t.dataset.f] = t.value; render(); }
-  else if (t.dataset.sugg) { const x = S.sugg.find(y => y.id === +t.dataset.sugg); if (x && x.state === "draft") { x[t.dataset.f] = t.value; if (t.dataset.f === "due") x.dueDefault = false; } }
+  else if (t.dataset.sugg) {
+    const x = S.sugg.find(y => y.id === +t.dataset.sugg);
+    if (x && x.state === "draft" && canConfirmSugg()) { x[t.dataset.f] = t.value; if (t.dataset.f === "due") { x.dueSrc = t.value ? "manual" : "none"; x.dueBy = S.user; } render(); }
+  }
 });
 document.addEventListener("toggle", e => { if (e.target.dataset?.guideopen) S.guideOpen = e.target.open; if (e.target.dataset?.doneopen) S.doneOpen = e.target.open; }, true);
 document.addEventListener("toggle", e => { const f = e.target.dataset?.mdtopen; if (f) S.mdtOpen[f] = e.target.open; }, true);

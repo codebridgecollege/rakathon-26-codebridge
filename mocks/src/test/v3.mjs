@@ -158,7 +158,16 @@ for (const width of [1280, 400]) {
   ok(await page.evaluate(id => { const r = S.retro["10_pacient.pdf"][id]; return r.sev === "major" && r.sevBy === "MUDr. Svobodová" && !!r.sevWhen; }, rid)
     && await page.locator(`[data-retroitem="${rid}"].sev-major`).count() === 1, `${width} doctor's severity stored with who and when, colour shown`);
   await page.selectOption("#user", "Bc. Marková (koordinátorka MDT)");
-  ok(await page.locator("select[data-retro]").count() === 0 && (await text(`[data-retroitem="${rid}"]`)).includes("major"), `${width} coordinator sees severity but cannot set it`);
+  ok(await page.locator("select[data-retro]").count() === 0 && (await text(`[data-retroitem="${rid}"]`)).includes("závažná"), `${width} coordinator sees severity (Czech label) but cannot set it`);
+  // severity changes are an append-only history: the latest shows, earlier ones behind "změněno N×"
+  await page.selectOption("#user", "MUDr. Svobodová");
+  await page.selectOption(`select[data-retro="${rid}"][data-rf="sev"]`, "minor");
+  ok(await page.evaluate(id => { const h = S.retro["10_pacient.pdf"][id].hist.sev; return h.length === 2 && h[0].v === "major" && h[1].v === "minor" && h.every(x => x.by && x.when); }, rid)
+    && (await text(`[data-retroitem="${rid}"]`)).includes("změněno 1×") && await page.locator(`[data-retroitem="${rid}"].sev-minor`).count() === 1, `${width} severity history kept, latest shown with změněno 1×`);
+  ok(await page.locator(`select[data-retro="${rid}"][data-rf="sev"] option`).allTextContents().then(o => o.join("|") === "-|závažná|středně závažná|méně závažná"), `${width} severity options in Czech`);
+  // the excision of a suspected naevus is labelled as such, so the passage reads as context
+  ok((await text('[data-retroitem="past-skin-metastasectomy"]')).includes("Excize suspektního névu brady vlevo (histologicky kožní metastáza)"), `${width} skin excision retitled as naevus excision`);
+  await page.selectOption("#user", "Bc. Marková (koordinátorka MDT)");
   // approved conclusion -> assistant drafts tasks -> coordinator confirms in "Úlohy po MDT" -> digest e-mail without patient data
   await page.selectOption("#user", "MUDr. Svobodová"); await go("#patient/10/overview");
   if (await page.locator('[data-act="newversion"]').count()) await c('[data-act="newversion"]');
@@ -169,12 +178,45 @@ for (const width of [1280, 400]) {
     && (await text(".suggbox")).includes("Návrh asistenta"), `${width} approval drafts 3 suggested tasks, none becomes a task by itself`);
   await page.selectOption("#user", "Bc. Marková (koordinátorka MDT)"); await c('[data-nav="tasks"]'); await c('[data-scope="mdt"]'); await over("tasks mdt");
   ok((await text('[data-tgrp="10_pacient.pdf"]')).includes("NO-010") && await page.locator('[data-tgrp="10_pacient.pdf"] [data-suggrow]').count() === 3 && await page.locator("[data-tgrp]").count() >= 3, `${width} coordinator sees tasks grouped by patient with drafts`);
+  ok(await page.locator('[data-tgrp="10_pacient.pdf"] [data-suggok]').count() === 0 && (await text('[data-tgrp="10_pacient.pdf"]')).includes("čeká na potvrzení lékařem"), `${width} coordinator sees drafts read-only, waiting for a doctor`);
+  await page.evaluate(() => confirmSugg(S.sugg.find(x => x.state === "draft").id, true));
+  ok(await page.evaluate(n => S.tasks.length === n, before), `${width} coordinator cannot confirm a draft`);
+  // due dates: a single interval is computed by calendar month and labelled; no default date
+  ok((await text('[data-tgrp="10_pacient.pdf"]')).includes("vypočteno ze závěru") && await page.evaluate(() => S.sugg.filter(x => x.pid === "10_pacient.pdf").map(x => x.due).join() === ",2027-01-16,2026-11-13"), `${width} due dates computed only from "za N", months by calendar`);
+  await page.selectOption("#user", "MUDr. Svobodová");
   await c('[data-tgrp="10_pacient.pdf"] [data-suggok]');
-  ok(await page.evaluate(n => S.tasks.length === n + 1 && S.tasks.at(-1).confirmedBy === "Bc. Marková (koordinátorka MDT)", before), `${width} a confirmed draft becomes a task with who confirmed it`);
+  ok(await page.evaluate(n => S.tasks.length === n + 1 && S.tasks.at(-1).confirmedBy === "MUDr. Svobodová" && S.tasks.at(-1).dueSrc === "none", before), `${width} a doctor confirms a draft, it becomes a task with who confirmed it and keeps its due label`);
+  ok((await text('[data-tgrp="10_pacient.pdf"]')).includes("termín doplní člověk"), `${width} confirmed task without a stated date shows "termín doplní člověk"`);
+  await page.selectOption("#user", "Bc. Marková (koordinátorka MDT)");
   await c('[data-act="maildigest"]');
   const mail = await page.evaluate(() => S.mails[0]);
   const leaks = await page.evaluate(body => S.patients.flatMap(p => [p.name, p.name.split(" ").slice(-1)[0], p.diagnosis, p.id, p.mkn10]).filter(x => x && body.includes(x)), mail.body);
   ok(mail.kind === "digest" && /^\d+ úloh[ay]? (čeká|čekají) na vyřízení\nhttps:\/\/\S+$/.test(mail.body) && !leaks.length, `${width} digest e-mail holds only the count and the link`);
+  // task drafter: negated clauses give no task; a date, month/year or range keeps its wording and leaves the date empty
+  const neg = await page.evaluate(() => suggestTasks("Radioterapie není indikována. Stereotaktická radioterapie nedoporučena. Bez nutnosti doplnit vyšetření.").length);
+  const dues = await page.evaluate(() => ["Kontrolní CT 1/2027", "Kontrola za 2-3 měsíce", "Kontrolní MR 9.1.2027", "Kontrola za 1 měsíc", "Odeslat k nefrektomii", "Odeslat k neurochirurgovi"].map(c => suggestTasks(c)[0]));
+  ok(neg === 0, `${width} negated clauses draft no tasks`);
+  ok(dues[0].due === "" && dues[0].timing === "1/2027" && dues[1].due === "" && dues[1].timing === "za 2-3 měsíce" && dues[2].due === "" && dues[2].timing === "9.1.2027"
+    && dues[3].due === "2026-11-16" && dues[3].dueSrc === "computed" && dues[4]?.dueSrc === "none" && dues[5]?.dueSrc === "none", `${width} due dates: stated timing kept verbatim, only a single interval computed, words starting with ne- not read as negation`);
+  // calendar: booking and freeing are logged; a discussed case keeps its slot
+  await page.selectOption("#user", "MUDr. Svobodová");
+  ok(await page.evaluate(() => S.access.some(a => a.what.startsWith("naplánoval(a) na MDT")) && S.access.some(a => a.what.startsWith("uvolnil(a) termín MDT"))), `${width} scheduling and unscheduling logged`);
+  await go("#calendar/2026-10-19"); await over("calendar done");
+  ok(await page.evaluate(() => P("10_pacient.pdf").status) === "done" && await page.locator('[data-slot="2026-10-22 14:00"][data-drag]').count() === 0, `${width} discussed case's slot not draggable`);
+  await c('[data-slot="2026-10-22 14:00"]');
+  ok(await page.locator("#minicard [data-unsched]").count() === 0 && (await text("#minicard")).includes("nelze ho uvolnit"), `${width} discussed case cannot be unscheduled, reason shown`);
+  await page.evaluate(() => unschedule("10_pacient.pdf"));
+  ok(await page.evaluate(() => !!P("10_pacient.pdf").slot), `${width} unschedule guard keeps a discussed case's slot`);
+  // brief: missing-document alerts visible without a click, no counts
+  await go("#patient/10/overview");
+  ok(await page.locator(".missstrip li").count() >= 1 && !/\d/.test(await text(".missstrip .label")) && await page.locator('[data-act="gaps"][aria-expanded="false"]').count() === 1, `${width} missing-document alerts shown in the brief without a click`);
+  // oncology summary: nivolumab row says 2 cycles, therapy dates say "zahájení léčby", the CT note says time without date
+  ok((await text("main")).includes("2 cykly (2. cyklus 17.4.2023)") && await page.locator('.orow.cpt .dt[data-tip="zahájení léčby"]').count() >= 3
+    && await page.evaluate(() => EXTRA.onco_compact_v3.lines.some(l => /čas \(9\.20 hod\.\), datum ne/.test(l.note_cs || ""))), `${width} oncology summary: cycle count, therapy start tooltip, CT time note`);
+  // guideline layer: ČOS categories sort as "neuvedeno" and are labelled as evidence and consensus; order note visible
+  await c('[data-tab="next"]');
+  ok(await page.evaluate(() => STMTS().filter(x => /ČOS/.test(x.evidence)).every(x => tiersOf(x).join() === "3")) && (await text(".stmts-onc")).includes("(důkazy a shoda)")
+    && await page.locator(".ordernote").evaluate(el => parseFloat(getComputedStyle(el).fontSize) >= 14 && el.textContent.includes("ne pořadí možností pro tohoto pacienta")), `${width} ČOS categories not read as strength, order note in normal text`);
   await page.close();
 }
 await browser.close();
