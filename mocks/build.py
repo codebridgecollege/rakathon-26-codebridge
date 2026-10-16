@@ -17,7 +17,9 @@ refers to them as `pages/<pdf stem>/p<n>.png`, so the build copies
 to the generated HTML. It also copies `p<n>.redacted.png` (written by
 `scripts/redact_pages.py`), which the viewer shows on request as what would
 be sent to a cloud model after local redaction. Publishing v4 means
-publishing that folder with it.
+publishing that folder with it. Mock v3's guideline viewer links to the
+guideline PDFs, which the build copies from `docs/sources/guidelines/` to
+`mocks/guidelines/`.
 """
 
 import json
@@ -69,12 +71,25 @@ def copy_page_images() -> int:
     return count
 
 
+def copy_guidelines() -> int:
+    """Copy the guideline PDFs next to the HTML so the guideline viewer can open them at the quoted page."""
+    count = 0
+    for pdf in sorted((HERE.parent / "docs" / "sources" / "guidelines").glob("*.pdf")):
+        target = HERE / "guidelines" / pdf.name
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(pdf, target)
+        count += 1
+    return count
+
+
 def main() -> None:
     parts = {
         "/*CASE*/": embed((DATA / "mock-case-10.json").read_text()),
         "/*LIST*/": embed((DATA / "mock-patient-list.json").read_text()),
         "/*EXTRA*/": embed((DATA / "mock-case-10-extra.json").read_text()),
         "/*PAGES*/": embed(page_index()),
+        # Guideline statements for the guideline layer (mock v3); empty until the file exists.
+        "/*GUIDE*/": embed((DATA / "guidelines-case-10.json").read_text()) if (DATA / "guidelines-case-10.json").exists() else "{}",
     }
     for version in ("v1", "v2", "v3", "v4"):
         page = (HERE / "src" / f"{version}-template.html").read_text()
@@ -83,6 +98,7 @@ def main() -> None:
         (HERE / f"{version}.html").write_text(page)
         print(f"wrote mocks/{version}.html ({len(page)} bytes)")
     print(f"copied {copy_page_images()} page images to mocks/pages/")
+    print(f"copied {copy_guidelines()} guideline PDFs to mocks/guidelines/")
 
 
 if __name__ == "__main__":

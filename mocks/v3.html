@@ -341,6 +341,13 @@ details.srcs .refs { border-top: 0; margin-top: 4px; padding-top: 0; }
 .chart { width: 100%; height: auto; display: block; }
 .synth { border: 1.5px dashed var(--missing); background: var(--missing-soft); color: var(--missing); border-radius: var(--r); padding: 8px 12px; font-weight: 600; font-size: 13px; }
 
+/* v3: guideline layer */
+.gl { border: 1px dashed var(--unclear); border-radius: var(--r); padding: 10px 12px; margin-top: 10px; background: #fbfaff; }
+.gl ol { margin: 6px 0 0; padding-left: 20px; display: grid; gap: 8px; }
+.gl q { font-style: italic; }
+.gl .cite { display: block; font-size: 12px; color: var(--muted); }
+.devt td, .devt th { vertical-align: top; }
+.devt select, .devt input { width: 100%; }
 /* v3: unreadable OCR characters in the source view */
 .unr { display: inline-block; min-width: 1em; text-align: center; background: var(--conflict-soft); color: var(--conflict); border-radius: 3px; font-size: .8em; font-weight: 700; cursor: help; }
 
@@ -5771,11 +5778,17 @@ details.srcs .refs { border-top: 0; margin-top: 4px; padding-top: 0; }
   }
  ]
 }</script>
+<script id="guide-data" type="application/json">{}</script>
 <script>
 "use strict";
 const CASE = JSON.parse(document.getElementById("case-data").textContent);
 const OTHERS = JSON.parse(document.getElementById("list-data").textContent);
 const EXTRA = JSON.parse(document.getElementById("extra-data").textContent || "{}");
+/* Guideline layer (F-27, team decision 2026-10-16): verbatim statements with full citation; never invented. */
+const GUIDE = JSON.parse(document.getElementById("guide-data").textContent || "{}");
+const GL = id => (GUIDE.guidelines || []).find(g => g.id === id) || {};
+const STMTS = () => GUIDE.statements || [];
+const citeOf = st => { const g = GL(st.guideline_id); return `${g.name || ""}, ${g.society || ""} ${g.year || ""}${g.version ? ", " + g.version : ""}; ${st.section || ""}; s. ${st.printed_page || st.pdf_page}`; };
 
 const GAP = "neuvedeno v dostupné dokumentaci";
 const GAP_F = "neuvedena v dostupné dokumentaci";
@@ -5865,7 +5878,7 @@ function initialPatients() {
 const S = {
   view: "patients", pid: CASE.file, tab: "overview", brief: "brief", user: USERS[0],
   patients: initialPatients(), q: "", colf: {}, colOpen: null, editLog: [],
-  week: mondayOf("2026-10-22"), miniMonth: "2026-10", labMode: "doc", labSel: null, edits: {},
+  week: mondayOf("2026-10-22"), miniMonth: "2026-10", labMode: "doc", guideOn: true, labSel: null, edits: {},
   selTl: null, picked: new Set(["summary", "imaging", "histology", "past_treatment"]),
   acks: {}, access: [], decisions: [], tasks: [
     { id: 1, pid: "2_pacient.pdf", text: "Ukázková úloha: doplnit pooperační MR do podkladů", who: COORD, due: "2026-10-21", done: false },
@@ -6158,7 +6171,20 @@ function proposalBox(p) {
   const e = edOf("proposal", p.file);
   return `<div class="concl"><span class="label">Navrhovaný postup</span>
     <p style="font-size:14px">${e ? `${esc(e.text)}<span class="edtag" title="Zapsal(a) ${esc(e.by)}, ${esc(e.when)}">návrh lékaře, ne rozhodnutí MDT</span>` : `<span class="muted">${GAP}. Vyplňuje odesílající lékař; asistent postup nenavrhuje.</span>`}
-    ${isDoctor(S.user) ? `<button class="edbtn" style="opacity:1" data-edit="${esc(EK("proposal", p.file))}" data-orig="">✎ ${e ? "" : "doplnit"}</button>` : ""}</p></div>`;
+    ${isDoctor(S.user) ? `<button class="edbtn" style="opacity:1" data-edit="${esc(EK("proposal", p.file))}" data-orig="">✎ ${e ? "" : "doplnit"}</button>` : ""}</p>
+    ${p.full ? guideBox() : ""}</div>`;
+}
+function guideBox() {
+  const st = STMTS();
+  if (!st.length) return "";
+  const head = `<div class="row spread"><span class="label">Doporučení k navrhovanému postupu · pozorování asistenta</span>
+    <label class="small muted" style="display:flex;gap:6px;align-items:center"><input type="checkbox" data-act-toggle="guide" ${S.guideOn ? "checked" : ""}> vrstva doporučení</label></div>`;
+  if (!S.guideOn) return `<div class="gl">${head}<p class="muted small" style="margin:6px 0 0">Vypnuto.</p></div>`;
+  return `<div class="gl">${head}
+    <ol>${st.map(x => `<li><q>${esc(x.quote.length > 260 ? x.quote.slice(0, 260) + "…" : x.quote)}</q>${x.evidence ? ` <span class="chip plain st-new">${esc(x.evidence)}</span>` : ""}
+      <span class="cite">${esc(citeOf(x))} · <button class="linkbtn small" data-guide="${esc(x.id)}">otevřít v doporučení</button></span>
+      <span class="small">Platí, protože: ${esc(x.applies_because_cs || (x.patient_facts || []).join("; "))}</span></li>`).join("")}</ol>
+    <p class="muted small" style="margin:8px 0 0">Citace doslovně z uvedených doporučení. Asistent možnosti neřadí a postup nenavrhuje; rozhoduje MDT. Odchylky se zapisují v protokolu MDT.</p></div>`;
 }
 function gapsBox() {
   const g = EXTRA.data_gaps_v3 || [];
@@ -6425,6 +6451,7 @@ function viewProtocol() {
         : `<div class="rec"><b>AI záznam diskuse</b><span class="small muted">Se souhlasem účastníků systém zaznamená zvuk a připraví návrh závěru a dalších kroků k potvrzení lékařem. Vyžaduje souhlas FNO se službou přepisu.</span>
           <span class="chip plain st-new">Plánovaná funkce</span><span class="small muted">Tato ukázka zvuk nezaznamenává.</span></div>`}
       </section>
+      ${p.full && S.guideOn && STMTS().length ? devTable(p, pr, locked) : ""}
       <section class="card"><div class="head"><h2>Závěr MDT</h2><span class="muted small">Píše lékař; asistent závěr nenavrhuje</span></div>
         <textarea class="input" id="concl" placeholder="Závěr a další postup" ${locked ? "disabled" : ""}>${esc(pr.concl)}</textarea></section>
       <section class="card"><div class="head"><h2>Další kroky</h2><span class="row"><span class="muted small">${plural(named.length, "úloha", "úlohy", "úloh")}</span><button class="btn small" data-act="copytasks" ${named.length ? "" : "disabled"}>Kopírovat úlohy</button></span></div>
@@ -6447,6 +6474,16 @@ function viewProtocol() {
       ${locked ? `<section class="card"><div class="head"><h2>Odeslané upozornění</h2></div>${S.mails.filter(m => m.pid === p.file).map(mailHtml).join("") || `<p class="muted small">Bez úloh, upozornění se neodesílá.</p>`}</section>` : ""}
       <section class="card"><div class="head"><h2>Report (PDF)</h2><button class="btn small" disabled title="V maketě není">Stáhnout PDF</button></div><div id="report">${locked && pr.reportSnap ? pr.reportSnap : reportHtml(p, pr, present)}</div>${locked ? `<p class="muted small" style="margin:8px 0 0">Report je uzamčen ve stavu při schválení. Pozdější úpravy se do něj nepromítnou; změna vyžaduje nový závěr.</p>` : ""}</section>
     </div></div></div>`;
+}
+/* Deviations from the quoted statements: the doctors record them; the assistant does not judge the plan (F-27). */
+const DEV = { "": "nevyplněno", follows: "v souladu", deviates: "záměrná odchylka", na: "neuplatňuje se" };
+function devTable(p, pr, locked) {
+  pr.dev = pr.dev || {};
+  return `<section class="card"><div class="head"><h2>Odchylky od doporučení</h2><span class="muted small">Vyplňuje MDT; asistent plán nehodnotí</span></div>
+    <div class="scroll"><table class="tbl devt"><thead><tr><th>Doporučení</th><th style="width:160px">Postup MDT</th><th style="width:34%">Důvod odchylky</th></tr></thead><tbody>
+    ${STMTS().map(st => { const d = pr.dev[st.id] || {}; return `<tr><td><span class="small"><q>${esc(st.quote.length > 140 ? st.quote.slice(0, 140) + "…" : st.quote)}</q></span><span class="note">${esc(citeOf(st))}</span></td>
+      <td><select class="input" data-dev="${esc(st.id)}" ${locked ? "disabled" : ""}>${Object.entries(DEV).map(([k, t]) => `<option value="${k}" ${(d.s || "") === k ? "selected" : ""}>${t}</option>`).join("")}</select></td>
+      <td>${d.s === "deviates" ? `<input class="input" data-devwhy="${esc(st.id)}" value="${esc(d.why || "")}" placeholder="Proč se MDT odchyluje" ${locked ? "disabled" : ""}>${!locked && !(d.why || "").trim() ? '<span class="note" style="color:var(--missing)">Uveďte důvod.</span>' : ""}` : '<span class="muted small">-</span>'}</td></tr>`; }).join("")}</tbody></table></div></section>`;
 }
 function mailHtml(m) {
   return `<div class="mail"><div class="row"><b>✉ MDT - nové úlohy ke zpracování</b></div><p class="small" style="margin:6px 0">Komu: ${esc(COORD)}</p>
@@ -6481,6 +6518,7 @@ function reportHtml(p, pr, present) {
     <h4>Dotaz</h4><p>${esc(edOf("q", p.file) ? questionText(p) + (p.explicit ? " [upraveno lékařem]" : " [doplněno lékařem]") : p.explicit ? p.question : `Výslovná otázka ${GAP_F}. Účel dle dokumentu: ${p.purpose || ""}`)}</p>
     <h4>Závěr</h4><p id="rep-concl">${esc(pr.concl || "Zatím nezapsán.")}</p>
     <h4>Další kroky</h4>${pr.steps.filter(x => x.text.trim()).length ? `<ul>${pr.steps.filter(x => x.text.trim()).map(x => `<li>${esc(x.text)} · ${esc(x.who)} · do ${esc(fmtDate(x.due))}</li>`).join("")}</ul>` : "<p>Žádné.</p>"}
+    ${p.full && S.guideOn && STMTS().length ? `<h4>Odchylky od doporučení</h4><ul>${STMTS().map(st => { const d = (pr.dev || {})[st.id] || {}; return `<li>${esc(st.quote.length > 120 ? st.quote.slice(0, 120) + "…" : st.quote)} <span class="src">(${esc(citeOf(st))})</span>: <b>${DEV[d.s || ""]}</b>${d.s === "deviates" ? `, důvod: ${esc(d.why || "neuveden")}` : ""}</li>`; }).join("")}</ul>` : ""}
     <h4>Schválení</h4><p>${pr.state === "approved" ? `${esc(pr.approver)}, ${esc(pr.when)}` : "Koncept, zatím neschváleno."}</p>
     ${reg.list.length ? `<h4>Zdroje</h4><ol class="src">${reg.list.map(r => `<li>${esc(docTitle(r))}, s. ${esc(r.page)}${r.quote ? `: „${esc(r.quote.length > 70 ? r.quote.slice(0, 70) + "…" : r.quote)}“` : ""}</li>`).join("")}</ol>` : ""}
     <p class="src" style="margin-top:14px">Údaje sestavil asistent z uvedených dokumentů; čísla v hranatých závorkách odkazují na zdroje. [zápor v dokumentu] = zápor zapsaný lékařem; [ověřit čtení] = text, který mohl být špatně přečten; [pozorování asistenta] = odvozeno asistentem, v dokumentu výslovně není; [upraveno lékařem] = hodnotu změnil lékař, zdroj ji v této podobě neuvádí.</p></article>`;
@@ -6525,6 +6563,20 @@ function renderOverlay() {
         <button class="btn small" data-close="1">Zavřít</button></header>
       <div class="pages">${CASE.full_text_by_page.map(p => `<button data-page="${p.page}" aria-pressed="${p.page === r.page}">s. ${p.page}</button>`).join("")}</div>
       ${unr ? `<div class="synth" style="margin:10px 20px 0;border-style:solid">Strana obsahuje ${plural(unr, "nečitelný znak", "nečitelné znaky", "nečitelných znaků")} z OCR (označeno <span class="unr">?</span>). Čtěte s rezervou, případně si vyžádejte lepší kopii.</div>` : ""}
+      <div class="text">${text}</div></aside>`;
+    document.getElementById("hit")?.scrollIntoView({ block: "center" });
+  } else if (o.kind === "guide") {
+    const st = STMTS().find(x => x.id === o.id), g = GL(st.guideline_id);
+    const pg = (GUIDE.pages || []).find(x => x.guideline_id === st.guideline_id && x.pdf_page === st.pdf_page);
+    let text = esc(pg ? pg.text : "Text strany není k dispozici.");
+    const pat = st.quote.trim().split(/\s+/).map(w => esc(w).replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("\\s+");
+    try { text = text.replace(new RegExp(pat), m => `<mark id="hit">${m}</mark>`); } catch (e) { /* odd characters: show the page unmarked */ }
+    el.innerHTML = `<div class="scrim" data-close="1"></div><aside class="drawer" role="dialog" aria-label="Doporučení">
+      <header><div><div class="label">Doporučení · ${esc(g.society || "")} ${esc(g.year || "")}</div><h2 style="margin-top:4px">${esc(g.name || "")}</h2>
+        <div class="muted small">${esc(g.version || "")} · ${esc(st.section || "")} · strana PDF ${esc(st.pdf_page)}${st.printed_page && st.printed_page !== st.pdf_page ? ` (tištěná ${esc(st.printed_page)})` : ""}</div></div>
+        <button class="btn small" data-close="1">Zavřít</button></header>
+      <div class="pages">${g.file ? `<a class="btn small" href="guidelines/${esc(g.file.split("/").pop())}#page=${esc(st.pdf_page)}" target="_blank" rel="noopener">Otevřít PDF na straně ${esc(st.pdf_page)}</a>` : ""}${g.url ? ` <a class="btn small" href="${esc(g.url)}" target="_blank" rel="noopener">Zdroj vydavatele</a>` : ""}</div>
+      <div class="synth" style="margin:10px 20px 0;border-style:solid">Platí, protože: ${esc(st.applies_because_cs || "")}</div>
       <div class="text">${text}</div></aside>`;
     document.getElementById("hit")?.scrollIntoView({ block: "center" });
   } else if (o.kind === "upload") {
@@ -6602,7 +6654,7 @@ document.addEventListener("click", e => {
   /* Touch screens never show title tooltips, so a tap on a certainty icon shows its detail as a toast. */
   const mk = e.target.closest(".mk[title], .edtag[title], .chip[title]"); if (mk) { toast(mk.getAttribute("title")); return; }
   if (S.colOpen && !e.target.closest(".fpop,[data-colopen]")) { S.colOpen = null; render(); return; }
-  const t = e.target.closest("[data-colopen],[data-colclose],[data-colall],[data-wk],[data-jump],[data-mm],[data-calclose],[data-labmode],[data-labsel],[data-edit],[data-scope],[data-addatt],[data-nav],[data-open],[data-tab],[data-brief],[data-src],[data-close],[data-page],[data-tl],[data-ack],[data-go],[data-present],[data-sched],[data-pick],[data-free],[data-slot],[data-unsched],[data-act],[data-mode],[data-delstep],[data-done]");
+  const t = e.target.closest("[data-guide],[data-colopen],[data-colclose],[data-colall],[data-wk],[data-jump],[data-mm],[data-calclose],[data-labmode],[data-labsel],[data-edit],[data-scope],[data-addatt],[data-nav],[data-open],[data-tab],[data-brief],[data-src],[data-close],[data-page],[data-tl],[data-ack],[data-go],[data-present],[data-sched],[data-pick],[data-free],[data-slot],[data-unsched],[data-act],[data-mode],[data-delstep],[data-done]");
   if (!t) return;
   const d = t.dataset;
   if (d.colopen) { S.colOpen = S.colOpen === d.colopen ? null : d.colopen; render(); }
@@ -6614,6 +6666,7 @@ document.addEventListener("click", e => {
   else if (d.calclose) { S.calPop = null; render(); }
   else if (d.labmode) { S.labMode = d.labmode; render(); }
   else if (d.labsel) { S.labSel = d.labsel; render(); }
+  else if (d.guide) { S.overlay = { kind: "guide", id: d.guide }; logAccess(S.pid, "otevřel(a) doporučení"); renderOverlay(); }
   else if (d.edit) { S.overlay = { kind: "edit", key: d.edit, orig: d.orig }; renderOverlay(); }
   else if (d.scope) { S.taskScope = d.scope; render(); }
   else if (d.addatt) { attFor()[d.addatt].push(""); render(); }
@@ -6709,6 +6762,7 @@ document.addEventListener("input", e => {
   if (t.id === "dq") { S.dq = t.value; const pos = t.selectionStart; render(); const q = document.getElementById("dq"); q.focus(); q.setSelectionRange(pos, pos); }
   else if (t.id === "q") { S.q = t.value; const pos = t.selectionStart; render(); const q = document.getElementById("q"); q.focus(); q.setSelectionRange(pos, pos); }
   else if (t.dataset.step !== undefined) { curProto().steps[+t.dataset.step][t.dataset.f] = t.value; refreshReport(); }
+  else if (t.dataset.devwhy) { const pr = curProto(); pr.dev[t.dataset.devwhy].why = t.value; refreshReport(); }
   else if (t.id === "notes") curProto().notes = t.value;
   else if (t.id === "concl") {
     const pr = curProto(), had = !!pr.concl.trim(); pr.concl = t.value;
@@ -6719,6 +6773,8 @@ document.addEventListener("input", e => {
 document.addEventListener("change", e => {
   const t = e.target;
   if (t.id === "user") { S.user = t.value; if (S.view === "admin" && t.value !== ADMIN) S.view = "patients"; render(); }
+  else if (t.dataset.actToggle === "guide") { S.guideOn = t.checked; render(); }
+  else if (t.dataset.dev) { const pr = curProto(); pr.dev = pr.dev || {}; pr.dev[t.dataset.dev] = { ...(pr.dev[t.dataset.dev] || {}), s: t.value }; render(); }
   else if (t.id === "mmyear") { S.miniMonth = `${t.value}-${S.miniMonth.slice(5)}`; S.week = mondayOf(`${S.miniMonth}-15`); render(); }
   else if (t.dataset.colall) { if (t.checked) delete S.colf[t.dataset.colall]; else S.colf[t.dataset.colall] = []; render(); }
   else if (t.dataset.colv) {
