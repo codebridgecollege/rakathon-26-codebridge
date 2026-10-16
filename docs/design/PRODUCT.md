@@ -260,6 +260,41 @@ Written feedback on mock v3 [juro-round3].
 | 6 | The labs view is liked. | No change. |
 | 7 | The documents list should be filterable. | S-3: search plus Excel-style filters on type, readability and year. |
 
+## Feedback round 6 (2026-10-16)
+
+Soňa's written model of the summary block [juro-round3], applied to the
+patient detail and recorded as the design for F-16.
+
+- **Separate fields, each prefilled where the documents allow:**
+  oncological summary (short, chronological, factual, only what the
+  decision needs); reason for presenting at the MDT (one sentence, why
+  now); question for the MDT; proposed management; MDT conclusion (only
+  after the MDT).
+- **Missing or conflicting data is shown next to the summary**, never
+  silently filled in (for patient 10: M0 only per the initial
+  documentation and read from "MO"; age and birth number missing; the
+  neurosurgical seminar's result missing; no explicit question or
+  proposal; possible spine lesions of uncertain origin; date of the last
+  visit missing).
+- **Length follows the clinical question, not the amount of
+  documentation.** What the summary holds depends on the type of MDT:
+  - new diagnosis: age, diagnosis, histology, TNM, key staging exams,
+    clinical state; question: primary strategy;
+  - after surgery (adjuvant MDT): diagnosis, procedure, definitive
+    histology with risk factors, current state; question: adjuvant
+    treatment;
+  - recurrence or progression: original diagnosis, main earlier lines,
+    response, new findings, current performance status; question: next
+    step.
+- **Deliberate deviation:** in her example the assistant also drafts the
+  question and a proposed management that names a treatment option
+  (stereotactic radiotherapy). `CLAUDE.md` does not let the assistant
+  recommend treatment outside the guideline layer, so in mock v3 the
+  proposed management is a field the referring doctor fills in, labeled
+  "návrh lékaře, ne rozhodnutí MDT", and the question stays empty with
+  "doplnit" until a doctor writes it. Whether the assistant may draft a
+  question or proposal is added to `OPEN_QUESTIONS.md`.
+
 ## Features
 
 Tiers: **Demo** is in the working demo; **Pitch** is shown as a mock or a

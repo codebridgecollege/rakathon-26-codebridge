@@ -683,8 +683,8 @@ function viewCalendar() {
 /* ---------- 3. Patient detail ---------- */
 const R3 = i => (EXTRA.refs || [])[i];
 /* v3 brief in the clinicians' own compact style, staging first (round 4); v2 keeps its own brief. */
-const BRIEF_CS = EXTRA.onco_brief_v3_cs || EXTRA.onco_brief_cs;
-const BRIEF_REFS = EXTRA.onco_brief_v3_refs || EXTRA.onco_brief_refs;
+const BRIEF_CS = EXTRA.onco_summary_v3_cs || EXTRA.onco_brief_v3_cs || EXTRA.onco_brief_cs;
+const BRIEF_REFS = EXTRA.onco_summary_v3_refs || EXTRA.onco_brief_v3_refs || EXTRA.onco_brief_refs;
 const DXH = () => EXTRA.diagnosis_headline || null;
 /* Soňa: the first line is histology + grade + staging; the MKN code is for reporting and goes below. */
 /* The TNM is the stage at diagnosis; every place that shows the headline says so, and keeps the OCR flag. */
@@ -733,17 +733,36 @@ function topAlerts() {
 }
 function briefHtml(reg) {
   if (edOf("brief")) return ed("brief", briefPlain());
-  const html = esc(BRIEF_CS || "").replace(/\[(\d+)\]/g, (m, n) => reg.n((BRIEF_REFS || [])[n - 1]));
+  const html = esc(BRIEF_CS || "").replace(/\[(\d+)\]/g, (m, n) => reg.n((BRIEF_REFS || [])[n - 1])).replace(/\n/g, "<br><br>");
   return ed("brief", (BRIEF_CS || "").replace(/\s*\[\d+\]/g, ""), { html });
 }
 const srcList = (reg, label = "Zdroje") => reg.list.length ? `<details class="srcs"><summary>${label} (${reg.list.length})</summary>${reg.html()}</details>` : "";
 /* Overview order (Soňa, round 2): MDT brief, then the question, then the conclusion; details below. */
+function reasonHtml(reg) {
+  if (!EXTRA.mdt_reason_v3_cs) return "";
+  const html = esc(EXTRA.mdt_reason_v3_cs).replace(/\[(\d+)\]/g, (m, n) => reg.n(EXTRA.mdt_reason_v3_refs[n - 1]));
+  return ed("reason", EXTRA.mdt_reason_v3_cs.replace(/\s*\[\d+\]/g, ""), { html: edOf("reason") ? null : html });
+}
+function proposalBox(p) {
+  const e = edOf("proposal", p.file);
+  return `<div class="concl"><span class="label">Navrhovaný postup</span>
+    <p style="font-size:14px">${e ? `${esc(e.text)}<span class="edtag" title="Zapsal(a) ${esc(e.by)}, ${esc(e.when)}">návrh lékaře, ne rozhodnutí MDT</span>` : `<span class="muted">${GAP}. Vyplňuje odesílající lékař; asistent postup nenavrhuje.</span>`}
+    ${isDoctor(S.user) ? `<button class="edbtn" style="opacity:1" data-edit="${esc(EK("proposal", p.file))}" data-orig="">✎ ${e ? "" : "doplnit"}</button>` : ""}</p></div>`;
+}
+function gapsBox() {
+  const g = EXTRA.data_gaps_v3 || [];
+  if (!g.length) return "";
+  return `<div><span class="label">Chybějící a nejasné údaje</span><div class="alerts" style="margin-top:6px">${g.map(x => `<div class="alert" style="grid-template-columns:auto minmax(0,1fr)"><span class="chip plain ${ALERT[x.kind][1]}">${ALERT[x.kind][0]}</span><span>${esc(x.text_cs)} ${(x.refs || []).slice(0, 1).map(r => `<button class="linkbtn small" data-src='${esc(JSON.stringify(r))}'>zdroj</button>`).join("")}</span></div>`).join("")}</div></div>`;
+}
 function briefBlock(p) {
   const reg = refRegistry();
-  return `<section class="card blk"><div class="head" style="margin:0"><h2>MDT brief</h2><span class="muted small">Sestaveno asistentem z dokumentů</span></div>
+  return `<section class="card blk"><div class="head" style="margin:0"><h2>Onkologický souhrn</h2><span class="muted small">Sestaveno asistentem z dokumentů · typ MDT: recidiva / progrese</span></div>
     <p class="prose">${briefHtml(reg)}</p>
+    ${EXTRA.mdt_reason_v3_cs ? `<div class="question"><span class="label">Důvod prezentace na MDT</span><p style="font-size:15px">${reasonHtml(reg)}</p></div>` : ""}
     ${questionBox(p)}
+    ${proposalBox(p)}
     ${conclusionBox(p)}
+    ${gapsBox()}
     ${srcList(reg)}</section>`;
 }
 function detailedCard(reg, inPresent) {
@@ -751,7 +770,7 @@ function detailedCard(reg, inPresent) {
   const rows = EXTRA.onco_detailed_v3 || [];
   const head = d ? `<p class="dxh">${ed("dx", [d.histology_cs, d.grade_cs, d.tnm_cs].filter(Boolean).join(", "))}${marks(d, "dx")}${(d.refs || []).map(i => reg.n(R3(i))).join("")}</p>
     <p class="dxs">${esc(d.mkn_cs || "")}${d.date_cs ? ` · ${esc(d.date_label_cs || "diagnostikováno")} ${esc(d.date_cs)}` : ""}${d.tnm_context_cs ? `<br>${esc(d.tnm_context_cs)}` : ""}</p>` : "";
-  return `<section class="card"><div class="head"><h2>Onkologický souhrn</h2>
+  return `<section class="card"><div class="head"><h2>Podrobný onkologický přehled</h2>
       ${inPresent ? `<label class="small muted"><input type="checkbox" data-pickrep="summary" ${S.picked.has("summary") ? "checked" : ""}> do reportu</label>` : ""}</div>
     ${head}
     ${rows.map((r, i) => `<div class="orow"><span class="dt">${esc(r.date_cs || r.date_label_cs || "")}</span><span><b>${ed(`od:${i}:e`, r.event_cs)}</b>${r.comment_cs ? `: ${ed(`od:${i}:c`, r.comment_cs)}` : ""}${marks(r, edOf(`od:${i}:e`) ? `od:${i}:e` : `od:${i}:c`)}${(r.refs || []).map(j => reg.n(R3(j))).join("")}</span></div>`).join("")}
@@ -937,7 +956,7 @@ const FIND = [["clinical_finding", "Klinický nález"], ["imaging", "Zobrazovac�
 /* Presentation keeps the brief/detailed switch: the brief for the room, the detail on demand. */
 function presentSummary(reg) {
   const seg = `<span class="seg" role="group" aria-label="Úroveň detailu"><button data-brief="brief" aria-pressed="${S.brief === "brief"}">MDT brief</button><button data-brief="detailed" aria-pressed="${S.brief === "detailed"}">Detailní</button></span>`;
-  if (S.brief === "detailed") return detailedCard(reg, true).replace('<div class="head"><h2>Onkologický souhrn</h2>', `<div class="head"><h2>Onkologický souhrn</h2>${seg}`);
+  if (S.brief === "detailed") return detailedCard(reg, true).replace('<div class="head"><h2>Podrobný onkologický přehled</h2>', `<div class="head"><h2>Podrobný onkologický přehled</h2>${seg}`);
   return `<section class="card"><div class="head"><h2>Shrnutí (30 až 60 s)</h2><label class="small muted"><input type="checkbox" data-pickrep="summary" ${S.picked.has("summary") ? "checked" : ""}> do reportu</label>${seg}</div>
     <p class="prose">${briefHtml(reg)}</p>${srcList(reg)}</section>`;
 }
