@@ -141,7 +141,11 @@ Before publishing, check:
 - the Zoom chat exports and research notes name other participants;
   remove or anonymize those names;
 - the organizer decks, recordings, and transcripts in `docs/sources/`:
-  ask the organizers whether they may be published, otherwise remove them.
+  ask the organizers whether they may be published, otherwise remove them;
+- git history: commits 544fb19 and cd700c9 hold full pages of copyrighted
+  guideline text (ESC, EASL, EANO-ESMO, Modrá kniha) and PubMed abstracts;
+  the team chose to keep the history for now and clean it when the real
+  server exists (2026-10-16).
 
 ## What existed before the hackathon
 

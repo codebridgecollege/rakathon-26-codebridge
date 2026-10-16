@@ -805,16 +805,18 @@ function proposalBox(p) {
     ${isDoctor(S.user) ? `<button class="edbtn" style="opacity:1" data-edit="${esc(EK("proposal", p.file))}" data-orig="">✎ ${e ? "" : "doplnit"}</button>` : ""}</p>
     ${p.full ? guideBox() : ""}</div>`;
 }
-const GROUPS = [["CZ", "Česko (Modrá kniha ČOS)"], ["EU", "Evropa (ESMO, EANO, ESTRO)"], ["US", "USA (ASCO, ASTRO, NCCN)"], ["INT", "Mezinárodní"]];
 const fieldOf = st => GL(st.guideline_id).field || "oncology";
 /* Compact line per statement (round 10): quote, short source, a link; the full citation and the reason sit in the viewer. */
 const shortCite = st => { const g = GL(st.guideline_id); return `${(g.society || "").replace(/\s*\(.*?\)/g, "")} ${g.year || ""}, ${st.pdf_page ? "s. " + (st.printed_page || st.pdf_page) : "abstrakt"}`; };
+/* A quote is never cut: a shortened guideline sentence can say the opposite (review of the layer). */
+const typeChip = x => x.type === "guideline_text" ? `<span class="chip plain st-new">text kapitoly, bez stupně</span>` : `<span class="chip plain st-ready">${esc(x.evidence_cs || "doporučení")}</span>`;
 function stmtHtml(x) {
-  return `<li><q>${esc(x.quote.length > 200 ? x.quote.slice(0, 200) + "…" : x.quote)}</q>
-    <span class="cite">${esc(shortCite(x))}${x.evidence && x.evidence.length < 40 ? ` · ${esc(x.evidence)}` : ""} · <button class="linkbtn small" data-guide="${esc(x.id)}" title="${esc(citeOf(x))}">otevřít</button></span></li>`;
+  return `<li>${x.section ? `<span class="cite">${esc(String(x.section).split(/[;:]/).slice(-1)[0].trim())}</span>` : ""}<q>${esc(x.quote)}</q> ${typeChip(x)}
+    <span class="cite">${esc(shortCite(x))} · <button class="linkbtn small" data-guide="${esc(x.id)}" title="${esc(citeOf(x))}">otevřít</button></span>
+    <span class="cite">Vztah k pacientovi: ${esc(x.applies_because_cs || "")}</span></li>`;
 }
 function guideBox() {
-  const head = `<div class="row spread"><span class="label">Doporučení a literatura k navrhovanému postupu · pozorování asistenta</span>
+  const head = `<div class="row spread"><span class="label">Citace z doporučených postupů a literatura · pozorování asistenta, pořadí neznamená preferenci</span>
     <label class="small muted" style="display:flex;gap:6px;align-items:center"><input type="checkbox" data-act-toggle="guide" ${S.guideOn ? "checked" : ""}> vrstva doporučení</label></div>`;
   if (!S.guideOn) return `<div class="gl">${head}<p class="muted small" style="margin:6px 0 0">Vypnuto.</p></div>`;
   if (GUIDE.loading) return `<div class="gl">${head}<p class="muted small" style="margin:6px 0 0">Načítám doporučení ze serveru…</p></div>`;
@@ -822,14 +824,17 @@ function guideBox() {
   if (!st.length && !(GUIDE.literature || []).length) return "";
   const onc = st.filter(x => /oncology/.test(fieldOf(x)));
   const other = st.filter(x => !/oncology/.test(fieldOf(x)));
-  const grp = (t, xs, open) => xs.length ? `<details class="srcs" ${open ? "open" : ""}><summary><b>${t}</b> (${xs.length})</summary><ol>${xs.map(stmtHtml).join("")}</ol></details>` : "";
-  const groups = GROUPS.map(([r, t], i) => grp(t, onc.filter(x => (GL(x.guideline_id).region || "EU") === r), i === 0)).join("");
+  const socs = xs => [...new Set(xs.map(x => (GL(x.guideline_id).society || "").replace(/\s*\(.*?\)/g, "").split(/[,;]/)[0].trim()).filter(Boolean))].join(", ");
+  const grp = (t, xs, open) => xs.length ? `<details class="srcs" ${open ? "open" : ""}><summary><b>${t}</b> (${xs.length}) <span class="muted small">${esc(socs(xs))}</span></summary><ol>${xs.map(stmtHtml).join("")}</ol></details>` : "";
+  const groups = [["CZ", "Česko"], ["EU", "Evropa"], ["US", "USA"], ["INT", "Mezinárodní"]].map(([r, t], i) => grp(t, onc.filter(x => (GL(x.guideline_id).region || "EU") === r), i === 0)).join("");
+  const important = (GUIDE.not_retrieved || []).filter(n => n.important);
   const lit = GUIDE.literature || [];
-  return `<details class="gl" ${S.guideOpen ? "open" : ""} data-guideopen="1"><summary style="cursor:pointer"><b>Doporučení k postupu (${st.length})</b>${lit.length ? ` · literatura (${lit.length})` : ""} <span class="muted small">· pozorování asistenta, rozhoduje MDT</span></summary>${head}
+  return `<details class="gl" ${S.guideOpen ? "open" : ""} data-guideopen="1"><summary style="cursor:pointer"><b>Citace z doporučených postupů (${st.length})</b>${lit.length ? ` · literatura (${lit.length})` : ""} <span class="muted small">· pozorování asistenta, rozhoduje MDT</span></summary>${head}
+    ${important.map(n => `<div class="synth" style="margin:8px 0">${esc(n.note_cs || n.name)}</div>`).join("")}
     ${groups}
     ${grp("Další obory (přidružená onemocnění)", other, false)}
     ${lit.length ? `<details class="srcs" style="margin-top:12px"><summary>Literatura z PubMed (${lit.length}) · pro situace, kde doporučení nestačí</summary>
-      <ol>${lit.map(a => `<li><b>${esc(a.title)}</b><span class="cite">${esc(a.first_author || "")} et al. ${esc(a.journal || "")} ${esc(a.year || "")} · ${esc(a.pub_type || "")} · <a href="${esc(a.url)}" target="_blank" rel="noopener">PMID ${esc(a.pmid)}</a></span>
+      <ol>${lit.map(a => `<li><b>${esc(a.title)}</b><span class="cite">${esc((a.first_author || "").replace(/\s*et al\.?$/, ""))} et al. ${esc(a.journal || "")} ${esc(a.year || "")} · ${esc(a.pub_type || "")} · <a href="${esc(a.url)}" target="_blank" rel="noopener">PMID ${esc(a.pmid)}</a></span>
         ${(a.quotes || []).slice(0, 1).map(q => `<q>${esc(q)}</q>`).join("")}<span class="small">Proč: ${esc(a.why_relevant_cs || "")}</span></li>`).join("")}</ol>
       <p class="muted small" style="margin:6px 0 0">Literatura není doporučení. Hledání v PubMed používá jen odborné pojmy, nikdy údaje o pacientovi${(GUIDE.queries || []).length ? `; dotazy: ${(GUIDE.queries || []).map(q => `„${esc(q.query)}“`).join(", ")}` : ""}.</p></details>` : ""}
     ${(GUIDE.not_retrieved || []).length ? `<details class="srcs"><summary class="muted">Nenačtené zdroje (${GUIDE.not_retrieved.length})</summary><ul class="small muted">${GUIDE.not_retrieved.map(n => `<li>${esc(n.name)}: ${esc(n.reason)}</li>`).join("")}</ul></details>` : ""}
@@ -1139,7 +1144,7 @@ function devTable(p, pr, locked) {
   pr.dev = pr.dev || {};
   return `<section class="card"><div class="head"><h2>Odchylky od doporučení</h2><span class="muted small">Vyplňuje MDT; asistent plán nehodnotí</span></div>
     <div class="scroll"><table class="tbl devt"><thead><tr><th>Doporučení</th><th style="width:160px">Postup MDT</th><th style="width:34%">Důvod odchylky</th></tr></thead><tbody>
-    ${STMTS().map(st => { const d = pr.dev[st.id] || {}; return `<tr><td><span class="small"><q>${esc(st.quote.length > 140 ? st.quote.slice(0, 140) + "…" : st.quote)}</q></span><span class="note">${esc(citeOf(st))}</span></td>
+    ${STMTS().filter(st => st.type !== "guideline_text").map(st => { const d = pr.dev[st.id] || {}; return `<tr><td><span class="small"><q>${esc(st.quote)}</q></span><span class="note">${esc(citeOf(st))}</span></td>
       <td><select class="input" data-dev="${esc(st.id)}" ${locked ? "disabled" : ""}>${Object.entries(DEV).map(([k, t]) => `<option value="${k}" ${(d.s || "") === k ? "selected" : ""}>${t}</option>`).join("")}</select></td>
       <td>${d.s === "deviates" ? `<input class="input" data-devwhy="${esc(st.id)}" value="${esc(d.why || "")}" placeholder="Proč se MDT odchyluje" ${locked ? "disabled" : ""}>${!locked && !(d.why || "").trim() ? '<span class="note" style="color:var(--missing)">Uveďte důvod.</span>' : ""}` : '<span class="muted small">-</span>'}</td></tr>`; }).join("")}</tbody></table></div></section>`;
 }
@@ -1176,7 +1181,7 @@ function reportHtml(p, pr, present) {
     <h4>Dotaz</h4><p>${esc(edOf("q", p.file) ? questionText(p) + (p.explicit ? " [upraveno lékařem]" : " [doplněno lékařem]") : p.explicit ? p.question : `Výslovná otázka ${GAP_F}. Účel dle dokumentu: ${p.purpose || ""}`)}</p>
     <h4>Závěr</h4><p id="rep-concl">${esc(pr.concl || "Zatím nezapsán.")}</p>
     <h4>Další kroky</h4>${pr.steps.filter(x => x.text.trim()).length ? `<ul>${pr.steps.filter(x => x.text.trim()).map(x => `<li>${esc(x.text)} · ${esc(x.who)} · do ${esc(fmtDate(x.due))}</li>`).join("")}</ul>` : "<p>Žádné.</p>"}
-    ${p.full && S.guideOn && STMTS().length ? `<h4>Odchylky od doporučení</h4><ul>${STMTS().map(st => { const d = (pr.dev || {})[st.id] || {}; return `<li>${esc(st.quote.length > 120 ? st.quote.slice(0, 120) + "…" : st.quote)} <span class="src">(${esc(citeOf(st))})</span>: <b>${DEV[d.s || ""]}</b>${d.s === "deviates" ? `, důvod: ${esc(d.why || "neuveden")}` : ""}</li>`; }).join("")}</ul>` : ""}
+    ${p.full && S.guideOn && STMTS().length ? `<h4>Odchylky od doporučení</h4>${STMTS().filter(st => (pr.dev || {})[st.id]?.s).length ? `<ul>${STMTS().filter(st => (pr.dev || {})[st.id]?.s).map(st => { const d = pr.dev[st.id]; return `<li>${esc(st.quote)} <span class="src">(${esc(citeOf(st))})</span>: <b>${DEV[d.s]}</b>${d.s === "deviates" ? `, důvod: ${esc(d.why || "neuveden")}` : ""}</li>`; }).join("")}</ul>` : "<p>Nevyplněno.</p>"}` : ""}
     <h4>Schválení</h4><p>${pr.state === "approved" ? `${esc(pr.approver)}, ${esc(pr.when)}` : "Koncept, zatím neschváleno."}</p>
     ${reg.list.length ? `<h4>Zdroje</h4><ol class="src">${reg.list.map(r => `<li>${esc(docTitle(r))}, s. ${esc(r.page)}${r.quote ? `: „${esc(r.quote.length > 70 ? r.quote.slice(0, 70) + "…" : r.quote)}“` : ""}</li>`).join("")}</ol>` : ""}
     <p class="src" style="margin-top:14px">Údaje sestavil asistent z uvedených dokumentů; čísla v hranatých závorkách odkazují na zdroje. [zápor v dokumentu] = zápor zapsaný lékařem; [ověřit čtení] = text, který mohl být špatně přečten; [pozorování asistenta] = odvozeno asistentem, v dokumentu výslovně není; [upraveno lékařem] = hodnotu změnil lékař, zdroj ji v této podobě neuvádí.</p></article>`;
