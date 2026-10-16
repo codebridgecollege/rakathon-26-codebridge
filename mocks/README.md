@@ -13,7 +13,7 @@ All patient data is FNO's fictitious challenge data.
 | `v1.html` | First simple mock (one patient workspace) | https://claude.ai/artifact/KraDQ9X7diVo93QzXtse6t |
 | `v2.html` | Full mock after feedback round 1 (database, calendar, patient detail, presentation, protocol, tasks) | https://claude.ai/artifact/6F5AbN6vEAHJQgXP1fkUdc |
 | `v3.html` | Mock after feedback round 2 (Excel-style filters, month navigation, 10-minute slots, brief first, diagnosis headline, current state, lab chart, doctor edits, back/forward) | https://claude.ai/artifact/6JwakCBuGZr9STKnfRUz8T |
-| `v4.html` | The latest mock v3 (through Soňa's summary model) split into an in-page server and a client; the source view shows the rendered page image with the cited passage highlighted, the transcription in a second tab, "ověřit" marks, and the locally redacted page on request | https://claude.ai/artifact/KuNwC9Un9dxPkzeWqoABGv (published with the `pages/` folder) |
+| `v4.html` | The latest mock v3 (through the guideline layer and the passages next to past decisions) split into an in-page server and a client; the source view shows the rendered page image with the cited passage highlighted, the transcription in a second tab, "ověřit" marks, and the locally redacted page on request | https://claude.ai/artifact/KuNwC9Un9dxPkzeWqoABGv (published with the `pages/` folder) |
 
 The published copies are private claude.ai artifacts owned by Juro; ask him
 to share them. To view a mock locally, open the `.html` file in a browser.
@@ -98,16 +98,17 @@ client does not change. `:id` is the patient's number (`10` for
 | PUT | `/api/patients/:id/slot` | Books `{day, time}`; 422 outside a seminar slot, 409 if taken |
 | DELETE | `/api/patients/:id/slot` | Frees the slot |
 | GET | `/api/patients/:id/case` | Case content: for the structured patient the case and its extra data (other patients' data left out); for the others the summary, its sources and the page count |
+| GET | `/api/patients/:id/guidance` | The guideline layer for the case: guidelines (name, society, year, version, PDF link), statements quoted verbatim with section and page, page excerpts for the viewer, statements next to past decisions, PubMed literature and its search queries, and sources not retrieved; empty for the patients not structured in the mock. Fetched only while the layer is switched on; logged |
 | GET | `/api/patients/:id/alerts` | Alerts with their acknowledgement (who, when) |
 | POST | `/api/patients/:id/alerts/:i/ack` | Acknowledges alert `i` |
 | GET | `/api/patients/:id/edits` | Current doctor edits by field key, and the append-only edit log |
 | POST | `/api/patients/:id/edits` | Saves `{key, text, orig}`; doctors only |
 | DELETE | `/api/patients/:id/edits/:key` | Reverts to the original; the log keeps both |
 | GET | `/api/patients/:id/protocol` | The protocol draft or the approved protocol |
-| PUT | `/api/patients/:id/protocol` | Saves the draft (mode, notes, conclusion, steps) with the `version` it is based on; 409 for a stale version or once approved |
+| PUT | `/api/patients/:id/protocol` | Saves the draft (mode, notes, conclusion, steps, deviations from the quoted recommendations) with the `version` it is based on; 409 for a stale version or once approved |
 | POST | `/api/patients/:id/protocol/new-version` | Starts a new conclusion that will supersede the approved one |
 | GET | `/api/patients/:id/decisions` | Approved MDT conclusions, oldest first (append-only) |
-| POST | `/api/patients/:id/decisions` | Approves `{version, text, steps, picked}`: checks the user is a doctor marked present and the version is current, stores a structured snapshot (patient record, attendance, edits, ticked report fields), creates tasks and the e-mail. The client renders the frozen report from the snapshot with escaping; no HTML is stored |
+| POST | `/api/patients/:id/decisions` | Approves `{version, text, steps, picked, dev}`: checks the user is a doctor marked present and the version is current, stores a structured snapshot (patient record, attendance, edits, ticked report fields), creates tasks and the e-mail. The client renders the frozen report from the snapshot with escaping; no HTML is stored |
 | GET | `/api/seminars/:day/attendance` | Who is present, per department, for a seminar day (or `bez-terminu-:id`) |
 | PUT | `/api/seminars/:day/attendance` | Saves the attendance; only staff of each department |
 | GET | `/api/tasks?assignee=&owner=` | Tasks assigned to a person, plus tasks on cases they own; all tasks without parameters |
@@ -118,6 +119,19 @@ client does not change. `:id` is the patient's number (`10` for
 | GET | `/api/documents/:file` | The document's pages and which are empty |
 | GET | `/api/documents/:file/pages/:n` | One page: image path and size, vision text, Tesseract words, the "ověřit" items with their character offsets in the text, and the redacted image with its redaction count and reasons; logged as a viewed source |
 | POST | `/api/documents/:file/pages/:n/locate` | Where `{quote}` sits on the image (word boxes) and in the text (character range), with how it matched; the quote goes in the body, not the URL, because quotes can contain names |
+
+### Guideline layer
+
+The guideline statements, guideline page excerpts and PubMed literature
+come from `src/data/guidelines-case-10*.json` and
+`literature-case-10.json`, merged by `build.py` (the same merge feeds
+mock v3) and embedded in the server block. The client gets them only from
+`GET /api/patients/:id/guidance`. A statement opens in a text drawer
+with the quote marked and a link to the publisher's PDF at the cited
+page; guideline PDFs are not bundled, so the page-image viewer is used
+only for the patient's own documents. Deviations recorded in the
+protocol are saved with the protocol and frozen in the approval
+snapshot.
 
 ### Source view and page images
 

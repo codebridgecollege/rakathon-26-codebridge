@@ -36,7 +36,8 @@ for (const width of [1280, 400]) {
   await c('[data-colopen="status"]'); await over("filter");
   await page.locator('[data-colv="status"][value="Naplánován"]').uncheck();
   const n = await page.locator("tbody tr.click").count(); await c('[data-colclose]'); await c('[data-act="clearcolf"]');
-  ok(n < 10 && (await page.locator("tbody tr.click").count()) === 10, `${width} column filter narrows and clears`);
+  ok(n < 8 && (await page.locator("tbody tr.click").count()) === 8, `${width} column filter narrows and clears (page of 8)`);
+  await c('[data-act="dball"]'); ok((await page.locator("tbody tr.click").count()) === 10, `${width} show all lists every patient`); await c('[data-act="dbpaged"]');
   // calendar
   await c('[data-nav="calendar"]'); await over("calendar"); await c(".slotbtn.taken"); await over("calendar card");
   ok(await page.locator("#minicard").count() === 1, `${width} calendar card opens`);
@@ -53,7 +54,18 @@ for (const width of [1280, 400]) {
   for (const t of ["anamnesis", "documents", "labs", "alerts"]) { await c(`[data-tab="${t}"]`); await over(t); }
   await c('[data-tab="documents"]'); await c('[data-colopen="dread"]'); await page.locator('[data-colv="dread"][value="Špatně čitelné"]').uncheck(); await c('[data-colclose]');
   ok((await page.locator("main tbody tr").count()) < 13, `${width} documents filter by readability`); await c('[data-act="cleardcolf"]');
-  ok((await page.locator(".tabs").evaluate(el => el.previousElementSibling?.textContent || "")).includes("Důvod a otázka pro MDT"), `${width} summary block sits above the tabs`);
+  ok((await page.locator(".tabs").evaluate(el => el.previousElementSibling?.textContent || "")).includes("Důvod a otázka pro MDT"), `${width} brief block sits above the tabs`);
+  // guideline layer: a server call, statements quoted with citation, the viewer marks the quote, the switch turns it off
+  ok((await audit()).some(a => a.case_id === "NO-010" && /doporučené postupy/.test(a.what)), `${width} guidance read is logged by the server`);
+  await page.evaluate(() => { const d = document.querySelector("details.gl"); if (d) d.open = true; });
+  ok(await page.locator("details.gl li q").count() >= 3, `${width} guideline statements listed with quotes`);
+  await page.evaluate(() => document.querySelector("details.gl [data-guide]").click()); await page.waitForTimeout(40);
+  ok(await page.locator(".drawer mark#hit").count() === 1 && (await text(".drawer")).includes("Otevřít PDF online"), `${width} guideline viewer marks the quote and links the PDF`);
+  await over("guideline viewer"); await c(".drawer [data-close]");
+  await c('[data-tab="overview"]'); ok(await page.locator(".pastgl").count() >= 1, `${width} guideline passages next to past decisions`);
+  await page.locator('[data-act-toggle="guide"]').first().uncheck(); await page.waitForTimeout(40);
+  ok(await page.locator("details.gl li").count() === 0 && await page.locator(".pastgl").count() === 0, `${width} switching the layer off hides it`);
+  await page.locator('[data-act-toggle="guide"]').first().check(); await page.waitForTimeout(40);
   await c('[data-act="gaps"]'); ok((await page.locator("main").textContent()).includes("osteoplastická"), `${width} gaps toggle opens`); await c('[data-act="gaps"]');
   await c('[data-tab="labs"]'); ok((await text('[data-labmode][aria-pressed="true"]')).includes("z dokumentu"), `${width} labs open on document values`);
   await c('[data-labmode="series"]'); ok((await page.locator("svg.chart").textContent()).includes("UKÁZKA"), `${width} synthetic chart labelled inside the SVG`);
@@ -73,6 +85,10 @@ for (const width of [1280, 400]) {
   ok((await text("#report")).includes("při diagnóze") || (await text("#report")).includes("ne aktuální"), `${width} TNM labelled as stage at diagnosis in report`);
   // approve, then change attendance and edit again: approved report must not change
   await page.selectOption('[data-att="Klinická onkologie"]', "MUDr. Svobodová"); await page.waitForTimeout(30);
+  ok(await page.locator("table.devt [data-dev]").count() >= 1, `${width} deviations table in the protocol`);
+  const devId = await page.locator("table.devt [data-dev]").first().getAttribute("data-dev");
+  await page.locator("table.devt [data-dev]").first().selectOption("deviates"); await page.waitForTimeout(30);
+  await page.fill(`[data-devwhy="${devId}"]`, "Pacient odmítl");
   await page.fill("#concl", "Test závěr"); await c('[data-act="addstep"]'); await page.fill('[data-step="0"][data-f="text"]', "Objednat MR mozku");
   await c('[data-act="approve"]'); await page.waitForTimeout(50);
   ok((await text(".chip")).includes("Schváleno") || (await page.locator("main").textContent()).includes("Schválil(a)"), `${width} conclusion approved`);
@@ -80,6 +96,7 @@ for (const width of [1280, 400]) {
   ok(frozen.includes("Test závěr") && frozen.includes("MUDr. Svobodová"), `${width} frozen report attached to the decision`);
   ok((await page.evaluate(() => api.get("/api/tasks", { "X-User": "MUDr. Novák" }))).some(t => t.text === "Objednat MR mozku"), `${width} approval created the coordinator task on the server`);
   ok(await page.evaluate(async () => { const d = await api.get("/api/patients/10/decisions", { "X-User": "MUDr. Novák" }); return d.length === 1 && d[0].snap && d[0].snap.concl === "Test závěr" && !("reportSnap" in d[0]); }), `${width} decision stores a structured snapshot, no client HTML`);
+  ok(await page.evaluate(async id => { const d = await api.get("/api/patients/10/decisions", { "X-User": "MUDr. Novák" }); return d[0].snap.dev?.[id]?.s === "deviates" && d[0].snap.dev[id].why === "Pacient odmítl"; }, devId) && frozen.includes("záměrná odchylka"), `${width} deviation and its reason frozen with the decision`);
   await go("#patient/2"); await go("#protocol/2"); await page.selectOption('[data-att="Neurochirurgie"]', "MUDr. Novák"); await page.waitForTimeout(30);
   await go("#protocol/10"); ok((await text("#report")) === frozen, `${width} approved report frozen after attendance change`);
   await go("#patient/10/anamnesis"); await page.evaluate(() => document.querySelector('[data-edit$="|fa:1:line"]').click()); await page.fill("#edtext", "ZMENA"); await c('[data-act="saveedit"]');
