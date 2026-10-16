@@ -1,0 +1,209 @@
+{
+ "guidelines": [
+  {
+   "id": "cos-mk-2026",
+   "name": "Modrá kniha České onkologické společnosti",
+   "society": "Česká onkologická společnost ČLS JEP",
+   "year": 2026,
+   "version": "32. aktualizace, platnost od 1. 3. 2026 (ISBN 978-80-86793-63-4)",
+   "region": "CZ",
+   "url": "https://www.linkos.cz/lekar-a-multidisciplinarni-tym/personalizovana-onkologie/modra-kniha-cos/aktualni-vydani-modre-knihy/",
+   "pdf_url": "https://www.linkos.cz/files/modra-kniha/26.pdf",
+   "file": "docs/sources/guidelines/cos-modra-kniha-2026.pdf",
+   "license": "© Masarykův onkologický ústav, 2026 (imprint, PDF page 3). Published free online on linkos.cz; no licence for redistribution found on linkos.cz or in the PDF. Short quotations with source are allowed under the Czech copyright citation exception; republishing the whole PDF is not granted.",
+   "republish_ok": false
+  }
+ ],
+ "statements": [
+  {
+   "id": "past-nephrectomy",
+   "guideline_id": "cos-mk-2026",
+   "section": "21.1 Léčba lokalizovaného onemocnění (stádium I, II a operabilní III. stádium)",
+   "pdf_page": 215,
+   "printed_page": 215,
+   "quote": "Základem je léčba chirurgická. Pokud je to možné, pak by u všech T1 tumorů měl být proveden ledvinu šetřící výkon, ve všech ostatních případech je provedena radikální nefrektomie.",
+   "evidence": "bez stupně",
+   "evidence_cs": "text kapitoly, bez stupně",
+   "type": "guideline_text",
+   "row_index": 0,
+   "decision_cs": "Nefrektomie vpravo 2.6.2022",
+   "relation_cs": "Pasáž popisuje volbu chirurgického výkonu podle kategorie T; pacient měl dle histologie pT2a pN1 M0.",
+   "edition_note_cs": "Aktuální vydání 2026, ne vydání platné v době rozhodnutí (2022)."
+  },
+  {
+   "id": "past-lymphadenectomy",
+   "guideline_id": "cos-mk-2026",
+   "section": "21.1 Léčba lokalizovaného onemocnění (stádium I, II a operabilní III. stádium)",
+   "pdf_page": 215,
+   "printed_page": 215,
+   "quote": "Regionální lymfadenektomie je možná u vysoce rizikových tumorů nebo v případě radiograficky patrné lymfadenopatie z důvodů zpřesnění stagingu a prognózy, i když její onkologický benefit nebyl jednoznačně prokázaný.",
+   "evidence": "bez stupně",
+   "evidence_cs": "text kapitoly, bez stupně",
+   "type": "guideline_text",
+   "row_index": 0,
+   "decision_cs": "Retroperitoneální lymfadenektomie 2.6.2022",
+   "relation_cs": "Pasáž popisuje, kdy je regionální lymfadenektomie možná a k čemu slouží; u pacienta histologie uvádí pN1 (3 z 5 uzlin).",
+   "edition_note_cs": "Aktuální vydání 2026, ne vydání platné v době rozhodnutí (2022)."
+  },
+  {
+   "id": "past-adjuvant-after-nephrectomy",
+   "guideline_id": "cos-mk-2026",
+   "section": "21.1 Léčba lokalizovaného onemocnění (stádium I, II a operabilní III. stádium)",
+   "pdf_page": 215,
+   "printed_page": 215,
+   "quote": "Adjuvantní léčba pembrolizumabem může být zvažovaná u pacientů s operabilním světlobuněčným RCC se středním nebo vysokým rizikem (střední riziko: pT2, grade 4 nebo sarkomatoidní složka, N0M0 nebo pT3, jakýkoliv grade, N0M0; vysoké riziko: pT4, jakýkoliv grade, N0 M0 nebo jakékoliv pT jakýkoliv grade, N1M0) konzultaci s pacientem s ohledem na potenciální dlouhodobé nežádoucí účinky (úroveň důkazů 1).",
+   "evidence": "ČOS 1",
+   "evidence_cs": "ČOS úroveň důkazů 1",
+   "type": "recommendation",
+   "row_index": 0,
+   "decision_cs": "Adjuvantní léčba po nefrektomii (6/2022)",
+   "relation_cs": "Pasáž popisuje adjuvantní pembrolizumab u světlobuněčného RCC se středním nebo vysokým rizikem; pacient měl dle histologie světlobuněčný RCC pT2a pN1 M0. Adjuvantní léčba: neuvedeno v dostupné dokumentaci.",
+   "edition_note_cs": "Aktuální vydání 2026, ne vydání platné v době rozhodnutí (2022)."
+  },
+  {
+   "id": "past-metastasectomy-node",
+   "guideline_id": "cos-mk-2026",
+   "section": "21.2.1 Chirurgická léčba metastatického karcinomu ledviny",
+   "pdf_page": 216,
+   "printed_page": 216,
+   "quote": "Chirurgická léčba metastáz je doporučena v případě možnosti jejich kompletního odstranění a zvážení přínosu vs. operační zátěže (úroveň důkazů 2A), alternativou může být využití lokálně ablativních metod (např. SBRT).",
+   "evidence": "ČOS 2A",
+   "evidence_cs": "ČOS 2A",
+   "type": "recommendation",
+   "row_index": 2,
+   "decision_cs": "Exstirpace paraaortální uzliny 25.10.2022",
+   "relation_cs": "Pasáž popisuje chirurgickou léčbu metastáz RCC; u pacienta histologie uvádí metastázu světlobuněčného RCC v paraaortální uzlině, R0.",
+   "edition_note_cs": "Aktuální vydání 2026, ne vydání platné v době rozhodnutí (2022)."
+  },
+  {
+   "id": "past-adjuvant-after-metastasectomy",
+   "guideline_id": "cos-mk-2026",
+   "section": "21.1 Léčba lokalizovaného onemocnění (stádium I, II a operabilní III. stádium)",
+   "pdf_page": 215,
+   "printed_page": 215,
+   "quote": "U pacientů po metastasektomii (dle registrační studie optimálně do jednoho roku od nefrektomie) pro oligometastatické onemocnění lze nabídnout adjuvantní pembrolizumab po kompletní resekci (stupeň doporučení 1)..",
+   "evidence": "ČOS 1",
+   "evidence_cs": "ČOS stupeň doporučení 1",
+   "type": "recommendation",
+   "row_index": 2,
+   "decision_cs": "Léčba po exstirpaci uzliny (10/2022)",
+   "relation_cs": "Pasáž popisuje adjuvantní pembrolizumab po kompletní metastasektomii; u pacienta exstirpace R0 25.10.2022, asi 5 měsíců po nefrektomii. Adjuvantní léčba: neuvedeno v dostupné dokumentaci.",
+   "edition_note_cs": "Aktuální vydání 2026, ne vydání platné v době rozhodnutí (2022)."
+  },
+  {
+   "id": "past-1l-intermediate",
+   "guideline_id": "cos-mk-2026",
+   "section": "21.2.2 Systémová léčba metastatického karcinomu ledviny - Léčebný algoritmus - První linie léčby mRCC - Světlobuněčný karcinom - střední prognóza",
+   "pdf_page": 217,
+   "printed_page": 217,
+   "quote": "Nivolumab + ipilimumab (1) Axitinib+ pembrolizumab (1) Kabozantinib + nivolumab (1) Lenvatinib + pemrolizumab (1) Kabozantinib (2A) Pazopanib (2A) Sunitinib (2A) Axitinib + avelumab (2A) Tivozanib (2B)",
+   "evidence": "stupeň ČOS u každého režimu: 1, 1, 1, 1, 2A, 2A, 2A, 2A, 2B",
+   "evidence_cs": "ČOS 1 / 2A / 2B (podle režimu)",
+   "type": "recommendation",
+   "row_index": 5,
+   "decision_cs": "1. linie nivolumab + ipilimumab 3/2023",
+   "relation_cs": "Pasáž (sloupec algoritmu) uvádí možnosti 1. linie u světlobuněčného mRCC se střední prognózou; pacient měl dle dokumentace střední prognózu IMDC (1 faktor: interval pod 1 rok od diagnózy do systémové léčby).",
+   "edition_note_cs": "Aktuální vydání 2026, ne vydání platné v době rozhodnutí (2023)."
+  },
+  {
+   "id": "past-nivo-ipi-regimen",
+   "guideline_id": "cos-mk-2026",
+   "section": "21.2.2 Systémová léčba metastatického karcinomu ledviny - Imunoterapie a její kombinace s cílenou léčbou (tabulka režimů)",
+   "pdf_page": 219,
+   "printed_page": 219,
+   "quote": "Nivolumab 3 mg/kg první 4 cykly à 3 týdny poté 240 mg à 2 týdny nebo 480 mg à 4 týdny ipilimumab 1 mg/kg à 3 týdny 4 cykly",
+   "evidence": "bez stupně",
+   "evidence_cs": "řádek tabulky režimů, bez stupně",
+   "type": "guideline_text",
+   "row_index": 6,
+   "decision_cs": "Udržovací nivolumab 6/2023-12/2025",
+   "relation_cs": "Řádek tabulky popisuje dávkování nivolumabu s ipilimumabem a následnou fázi nivolumabu; pacient dostal dle dokumentace 2 ze 4 indikovaných cyklů kombinace a poté nivolumab 240 mg každé 2 týdny. Délku udržovací léčby pasáž neuvádí.",
+   "edition_note_cs": "Aktuální vydání 2026, ne vydání platné v době rozhodnutí (2023)."
+  },
+  {
+   "id": "past-skin-metastasectomy",
+   "guideline_id": "cos-mk-2026",
+   "section": "21.2.1 Chirurgická léčba metastatického karcinomu ledviny",
+   "pdf_page": 216,
+   "printed_page": 216,
+   "quote": "Chirurgická léčba metastáz je doporučena v případě možnosti jejich kompletního odstranění a zvážení přínosu vs. operační zátěže (úroveň důkazů 2A), alternativou může být využití lokálně ablativních metod (např. SBRT).",
+   "evidence": "ČOS 2A",
+   "evidence_cs": "ČOS 2A",
+   "type": "recommendation",
+   "row_index": 8,
+   "decision_cs": "Excize kožní metastázy na bradě 21.11.2023",
+   "relation_cs": "Pasáž popisuje chirurgickou léčbu metastáz RCC obecně, kůži nejmenuje; u pacienta histologie uvádí kožní metastázu světlobuněčného RCC, odstraněnou kompletně, během udržovacího nivolumabu.",
+   "edition_note_cs": "Aktuální vydání 2026, ne vydání platné v době rozhodnutí (2023)."
+  },
+  {
+   "id": "past-2l-after-io",
+   "guideline_id": "cos-mk-2026",
+   "section": "21.2.2 Systémová léčba metastatického karcinomu ledviny - Léčebný algoritmus - Léčba mRCC druhé linie - Předchozí léčba moderní imunoterapií (IO)",
+   "pdf_page": 217,
+   "printed_page": 217,
+   "quote": "Kabozantinib (2A) Pazopanib (2A) Sunitinib (2A) Axitinib (2A) Everolimus (2B)",
+   "evidence": "stupeň ČOS u každého léku: 2A, 2A, 2A, 2A, 2B",
+   "evidence_cs": "ČOS 2A / 2B (podle léku)",
+   "type": "recommendation",
+   "row_index": 12,
+   "decision_cs": "2. linie sunitinib 1/2026",
+   "relation_cs": "Pasáž (sloupec algoritmu) uvádí možnosti 2. linie po předchozí moderní imunoterapii; pacient měl dle dokumentace v 1. linii nivolumab + ipilimumab a dosud žádný VEGF-TKI.",
+   "edition_note_cs": "Aktuální vydání 2026 (platné od 1. 3. 2026), ne vydání platné v době rozhodnutí (1/2026)."
+  },
+  {
+   "id": "past-3l-after-io-tki",
+   "guideline_id": "cos-mk-2026",
+   "section": "21.2.2 Systémová léčba metastatického karcinomu ledviny - Léčebný algoritmus - Léčba mRCC třetí linie - Předchozí léčba IO a inhibitorem VEGF-TKI",
+   "pdf_page": 217,
+   "printed_page": 217,
+   "quote": "Kabozantinib (2A) Everolimus (2A) Dosud nepoužitý VEGF-TKI (2B) Belzutifan (2B) Lenvatinib a everolimus (2B)",
+   "evidence": "stupeň ČOS u každého léku: 2A, 2A, 2B, 2B, 2B",
+   "evidence_cs": "ČOS 2A / 2B (podle léku)",
+   "type": "recommendation",
+   "row_index": 16,
+   "decision_cs": "3. linie everolimus 9/2026",
+   "relation_cs": "Pasáž (sloupec algoritmu) uvádí možnosti 3. linie po IO a VEGF-TKI; pacient měl dle dokumentace nivolumab + ipilimumab a sunitinib, záznam uvádí kabozantinib ponechaný do 4. linie.",
+   "edition_note_cs": "Vydání 2026 (platné od 1. 3. 2026) platilo i v době rozhodnutí (9/2026)."
+  }
+ ],
+ "pages": [
+  {
+   "guideline_id": "cos-mk-2026",
+   "pdf_page": 215,
+   "text": "Základem je léčba chirurgická. Pokud je to možné, pak by u všech T1 tumorů měl být proveden ledvinu šetřící výkon, ve všech ostatních případech je provedena radikální nefrektomie. […] Regionální lymfadenektomie je možná u vysoce rizikových tumorů nebo v případě radiograficky patrné lymfadenopatie z důvodů zpřesnění stagingu a prognózy, i když její onkologický benefit nebyl jednoznačně prokázaný. […] Adjuvantní léčba pembrolizumabem může být zvažovaná u pacientů s operabilním světlobuněčným RCC se středním nebo vysokým rizikem (střední riziko: pT2, grade 4 nebo sarkomatoidní složka, N0M0 nebo pT3, jakýkoliv grade, N0M0; vysoké riziko: pT4, jakýkoliv grade, N0 M0 nebo jakékoliv pT jakýkoliv grade, N1M0) konzultaci s pacientem s ohledem na potenciální dlouhodobé nežádoucí účinky (úroveň důkazů 1). […] U pacientů po metastasektomii (dle registrační studie optimálně do jednoho roku od nefrektomie) pro oligometastatické onemocnění lze nabídnout adjuvantní pembrolizumab po kompletní resekci (stupeň doporučení 1).."
+  },
+  {
+   "guideline_id": "cos-mk-2026",
+   "pdf_page": 216,
+   "text": "Chirurgická léčba metastáz je doporučena v případě možnosti jejich kompletního odstranění a zvážení přínosu vs. operační zátěže (úroveň důkazů 2A), alternativou může být využití lokálně ablativních metod (např. SBRT)."
+  },
+  {
+   "guideline_id": "cos-mk-2026",
+   "pdf_page": 217,
+   "text": "Nivolumab + ipilimumab (1) Axitinib+ pembrolizumab (1) Kabozantinib + nivolumab (1) Lenvatinib + pemrolizumab (1) Kabozantinib (2A) Pazopanib (2A) Sunitinib (2A) Axitinib + avelumab (2A) Tivozanib (2B) […] Kabozantinib (2A) Pazopanib (2A) Sunitinib (2A) Axitinib (2A) Everolimus (2B) […] Kabozantinib (2A) Everolimus (2A) Dosud nepoužitý VEGF-TKI (2B) Belzutifan (2B) Lenvatinib a everolimus (2B)"
+  },
+  {
+   "guideline_id": "cos-mk-2026",
+   "pdf_page": 219,
+   "text": "Nivolumab 3 mg/kg první 4 cykly à 3 týdny poté 240 mg à 2 týdny nebo 480 mg à 4 týdny ipilimumab 1 mg/kg à 3 týdny 4 cykly"
+  }
+ ],
+ "not_retrieved": [
+  {
+   "name": "Doporučení k délce udržovací imunoterapie (nivolumab) u mRCC",
+   "society": "ČOS",
+   "region": "CZ",
+   "reason": "Modrá kniha ČOS 2026 (kap. 21) dobu trvání ani ukončení udržovacího nivolumabu neuvádí; tabulka režimů uvádí jen dávkování.",
+   "important": false,
+   "note_cs": "K délce udržovací léčby (6/2023-12/2025) necitujeme žádnou pasáž."
+  },
+  {
+   "name": "Starší vydání Modré knihy ČOS (2022, 2023, 2025)",
+   "society": "ČOS",
+   "region": "CZ",
+   "reason": "Načteno jen aktuální vydání 2026; vydání platná v době rozhodnutí nebyla stažena, proto u každé pasáže uvádíme poznámku o vydání.",
+   "important": true,
+   "note_cs": "Text mohl být v době rozhodnutí jiný (např. adjuvantní pembrolizumab)."
+  }
+ ]
+}
