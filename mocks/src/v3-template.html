@@ -208,8 +208,21 @@ details.more > summary { cursor: pointer; color: var(--muted); font-size: 12.5px
 .ev[aria-pressed="true"] .t { color: var(--accent-ink); }
 .evdetail { margin-top: 10px; border-top: 1px solid var(--line); padding-top: 12px; display: grid; gap: 4px; }
 .kind-diagnosis { color: #7a3f8f; } .kind-imaging { color: #2b5aa8; } .kind-surgery { color: #8f5a06; }
-.kind-pathology { color: #a8323f; } .kind-systemic { color: #2d7650; } .kind-radiotherapy { color: #b5521b; }
-.kind-mdt { color: #3d7a6f; } .kind-visit { color: #5b6866; }
+.kind-pathology { color: #6e5987; } .kind-systemic { color: #2d7650; } .kind-radiotherapy { color: #b5521b; }
+.kind-mdt { color: #3d7a6f; } .kind-visit, .kind-clinical { color: #5b6866; }
+.kind-medication { color: #6e5d43; } .kind-laboratory { color: #356c7b; }
+
+/* Category controls keep their labels visible; colour is only a secondary cue. */
+.tlfilters { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 8px; }
+.tlfilter { display: inline-flex; align-items: center; gap: 6px; padding: 6px 9px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--muted); font: inherit; font-size: 12px; text-align: left; cursor: pointer; max-width: 100%; }
+.tlfilter svg { width: 16px; height: 16px; flex: none; }
+.tlfilter[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent); color: var(--accent-ink); }
+.tlfilter:disabled { cursor: default; color: var(--faint); }
+.tlfilter .tlcount { font-variant-numeric: tabular-nums; }
+.tlstatus { color: var(--muted); font-size: 12px; margin-bottom: 6px; }
+.ev .category { display: block; font-size: 11.5px; font-weight: 600; color: var(--muted); margin-bottom: 4px; }
+.lpin svg { width: 15px; height: 15px; }
+@media (pointer: coarse) { .tlfilter { min-height: 44px; } }
 
 /* Anamnesis and documents */
 .anam { display: grid; grid-template-columns: 220px minmax(0, 1fr); border-top: 1px solid var(--line); }
@@ -336,7 +349,7 @@ details.mdtcard[open] > summary::before { transform: rotate(90deg); }
 .orow { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 4px 14px; padding: 6px 0; border-top: 1px solid var(--line); font-size: 14.5px; }
 .orow .dt { color: var(--muted); font-variant-numeric: tabular-nums; }
 .orow b { font-weight: 700; }
-/* Compact oncology rows (round 19): plain rows with fine dividers; the category is the timeline's letter pin next to
+/* Compact oncology rows (round 19): plain rows with fine dividers; the category is the timeline's category icon next to
    the date, not a coloured band, so the summary reads as text and the date is said once. */
 .orow.cpt { grid-template-columns: 128px minmax(0, 1fr); padding: 4px 0; font-size: 13.5px; line-height: 1.45; align-items: start; }
 .orow.cpt .dt { display: flex; align-items: center; justify-content: space-between; gap: 6px; white-space: nowrap; }
@@ -801,7 +814,7 @@ const S = {
   view: "patients", pid: CASE.file, tab: "overview", user: USERS[0],
   patients: initialPatients(), q: "", colf: {}, colOpen: null, editLog: [], subFrom: "", subTo: "", dbPage: 0, dbAll: false,
   week: mondayOf("2026-10-22"), miniMonth: "2026-10", labMode: "doc", guideOn: true, labSel: null, edits: {},
-  selTl: null, picked: new Set(["summary", "imaging", "histology", "past_treatment"]),
+  selTl: null, tlCategory: "all", picked: new Set(["summary", "imaging", "histology", "past_treatment"]),
   acks: {}, access: [], decisions: [], tasks: [
     { id: 1, pid: "2_pacient.pdf", text: "doplnit pooperační MR do podkladů", who: COORD, due: "2026-10-21", done: false },
     { id: 2, pid: "13_pacient.pdf", text: "vyžádat snímky MR 8/2025 ke srovnání", who: COORD, due: "2026-10-21", done: true },
@@ -936,23 +949,95 @@ function docTitle(r) {
   return d ? d.title_cs : r.file;
 }
 
-/* ---------- icons for timeline kinds ---------- */
+/* ---------- categories and icons for timeline events ---------- */
+/* Lucide 0.468.0. Embedded so the mock works offline.
+ISC License
+
+Copyright (c) for portions of Lucide are held by Cole Bemis 2013-2022 as part of Feather (MIT). All other copyright (c) for Lucide are held by Lucide Contributors 2022.
+
+Permission to use, copy, modify, and/or distribute this software for any
+purpose with or without fee is hereby granted, provided that the above
+copyright notice and this permission notice appear in all copies.
+
+THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+
+*/
+const EVENT_CATEGORIES = [
+  {
+    "id": "imaging",
+    "label": "Zobrazovací vyšetření",
+    "icon": "scan-line"
+  },
+  {
+    "id": "systemic",
+    "label": "Systémová protinádorová léčba",
+    "icon": "syringe"
+  },
+  {
+    "id": "medication",
+    "label": "Ostatní medikace",
+    "icon": "pill"
+  },
+  {
+    "id": "mdt",
+    "label": "MDT a rozhodnutí",
+    "icon": "users-round"
+  },
+  {
+    "id": "surgery",
+    "label": "Chirurgie a výkony",
+    "icon": "scissors"
+  },
+  {
+    "id": "pathology",
+    "label": "Patologie a molekulární vyšetření",
+    "icon": "microscope"
+  },
+  {
+    "id": "radiotherapy",
+    "label": "Radioterapie",
+    "icon": "target"
+  },
+  {
+    "id": "laboratory",
+    "label": "Laboratorní vyšetření",
+    "icon": "test-tube-diagonal"
+  },
+  {
+    "id": "clinical",
+    "label": "Klinický stav a ostatní",
+    "icon": "stethoscope"
+  }
+];
+const KIND_CS = Object.fromEntries(EVENT_CATEGORIES.map(c => [c.id, c.label]));
 const ICON = {
-  imaging: '<path d="M2 5V2h3M11 2h3v3M14 11v3h-3M5 14H2v-3" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="8" cy="8" r="2.2" fill="currentColor"/>',
-  surgery: '<path d="M3 13 13 3M6 3l7 7" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>',
-  pathology: '<circle cx="8" cy="6" r="3" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8 9v4M4 14h8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>',
-  systemic: '<rect x="2.5" y="5.5" width="11" height="5" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8 5.5v5" stroke="currentColor" stroke-width="1.6"/>',
-  radiotherapy: '<circle cx="8" cy="8" r="2" fill="currentColor"/><path d="M8 1.5v2.5M8 12v2.5M1.5 8H4M12 8h2.5M3.4 3.4l1.8 1.8M10.8 10.8l1.8 1.8M3.4 12.6l1.8-1.8M10.8 5.2l1.8-1.8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>',
-  diagnosis: '<path d="M8 3v10M3 8h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
-  mdt: '<circle cx="5" cy="6" r="2" fill="currentColor"/><circle cx="11" cy="6" r="2" fill="currentColor"/><path d="M1.5 13c.5-2.5 2-3.5 3.5-3.5S8 10.5 8.5 13M7.5 13c.5-2.5 2-3.5 3.5-3.5s3 1 3.5 3.5" fill="none" stroke="currentColor" stroke-width="1.4"/>',
-  visit: '<rect x="2" y="3" width="12" height="11" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M2 6.5h12M5 1.5v3M11 1.5v3" stroke="currentColor" stroke-width="1.5"/>',
+  "imaging": "<path d=\"M3 7V5a2 2 0 0 1 2-2h2\" />\n  <path d=\"M17 3h2a2 2 0 0 1 2 2v2\" />\n  <path d=\"M21 17v2a2 2 0 0 1-2 2h-2\" />\n  <path d=\"M7 21H5a2 2 0 0 1-2-2v-2\" />\n  <path d=\"M7 12h10\" />",
+  "systemic": "<path d=\"m18 2 4 4\" />\n  <path d=\"m17 7 3-3\" />\n  <path d=\"M19 9 8.7 19.3c-1 1-2.5 1-3.4 0l-.6-.6c-1-1-1-2.5 0-3.4L15 5\" />\n  <path d=\"m9 11 4 4\" />\n  <path d=\"m5 19-3 3\" />\n  <path d=\"m14 4 6 6\" />",
+  "medication": "<path d=\"m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z\" />\n  <path d=\"m8.5 8.5 7 7\" />",
+  "mdt": "<path d=\"M18 21a8 8 0 0 0-16 0\" />\n  <circle cx=\"10\" cy=\"8\" r=\"5\" />\n  <path d=\"M22 20c0-3.37-2-6.5-4-8a5 5 0 0 0-.45-8.3\" />",
+  "surgery": "<circle cx=\"6\" cy=\"6\" r=\"3\" />\n  <path d=\"M8.12 8.12 12 12\" />\n  <path d=\"M20 4 8.12 15.88\" />\n  <circle cx=\"6\" cy=\"18\" r=\"3\" />\n  <path d=\"M14.8 14.8 20 20\" />",
+  "pathology": "<path d=\"M6 18h8\" />\n  <path d=\"M3 22h18\" />\n  <path d=\"M14 22a7 7 0 1 0 0-14h-1\" />\n  <path d=\"M9 14h2\" />\n  <path d=\"M9 12a2 2 0 0 1-2-2V6h6v4a2 2 0 0 1-2 2Z\" />\n  <path d=\"M12 6V3a1 1 0 0 0-1-1H9a1 1 0 0 0-1 1v3\" />",
+  "radiotherapy": "<circle cx=\"12\" cy=\"12\" r=\"10\" />\n  <circle cx=\"12\" cy=\"12\" r=\"6\" />\n  <circle cx=\"12\" cy=\"12\" r=\"2\" />",
+  "laboratory": "<path d=\"M21 7 6.82 21.18a2.83 2.83 0 0 1-3.99-.01a2.83 2.83 0 0 1 0-4L17 3\" />\n  <path d=\"m16 2 6 6\" />\n  <path d=\"M12 16H4\" />",
+  "clinical": "<path d=\"M11 2v2\" />\n  <path d=\"M5 2v2\" />\n  <path d=\"M5 3H4a2 2 0 0 0-2 2v4a6 6 0 0 0 12 0V5a2 2 0 0 0-2-2h-1\" />\n  <path d=\"M8 15a6 6 0 0 0 12 0v-3\" />\n  <circle cx=\"20\" cy=\"10\" r=\"2\" />"
 };
-const KIND_CS = { diagnosis: "Diagnóza", imaging: "Zobrazení", surgery: "Operace", pathology: "Histologie", systemic: "Systémová léčba", radiotherapy: "Radioterapie", mdt: "MDT", visit: "Kontrola" };
-const icon = k => `<svg viewBox="0 0 16 16" aria-hidden="true">${ICON[k] || ICON.visit}</svg>`;
-/* Timeline pins show the first letters of the category (Soňa, round 14); imaging names its modality. */
-const LETTER = { diagnosis: "D", surgery: "Ch", systemic: "F", radiotherapy: "RT", pathology: "H", mdt: "MDT", visit: "K" };
-const letterOf = c => c.kind === "imaging" ? ((String(c.title_cs).match(/\b(CT|MR|PET|UZ|RTG)\b/) || [])[1] || (/ultrazvuk/i.test(c.title_cs) ? "UZ" : "Z")) : (LETTER[c.kind] || "K");
-const TL_HELP = "Posuňte vodorovně, kliknutím na událost otevřete zdrojový dokument. Písmena: D diagnóza, Ch chirurgický výkon, CT/MR/UZ zobrazovací vyšetření, F farmakoterapie, RT radioterapie, H histologie, K kontrola.";
+/* Explicit category metadata wins. Old kinds remain readable without guessing from clinical prose. */
+const categoryOf = event => {
+  const key = event.category || event.kind || event.type;
+  const alias = { histology: "pathology", diagnosis: "clinical", visit: "clinical", other: "clinical" };
+  return EVENT_CATEGORIES.some(c => c.id === key) ? key : (alias[key] || "clinical");
+};
+const icon = key => {
+  const category = EVENT_CATEGORIES.find(c => c.id === key) || EVENT_CATEGORIES.find(c => c.id === "clinical");
+  return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" data-icon="${category.icon}">${ICON[category.id]}</svg>`;
+};
+const TL_HELP = "Události jsou seřazeny podle data a označeny ikonou a názvem kategorie. Kategorie filtrují jednu časovou osu. Čárkovaný kroužek znamená plán. Kliknutím na událost otevřete její zdroj; datum a nejistota zůstávají podle dokumentace.";
 
 /* ---------- navigation ---------- */
 /* "Moje" tasks: assigned to the user, or (for a doctor) on a case they own. The nav badge and the task list
@@ -1318,11 +1403,11 @@ function detailedCard(reg) {
 /* Compact clinician-style summary (Soňa, round 14): one short line per event, "St. p." for what was done,
    "Plánováno" for what is planned, then "Další diagnózy"; each line opens its first source.
    Round 19: the date is said once, in the left column (the line text no longer repeats it), next to the
-   timeline's letter pin; a planned line gets a dashed pin, as on the timeline. */
-const PIN_HELP = "Písmeno u data je kategorie jako na časové ose: Ch chirurgický výkon, CT/MR/UZ zobrazovací vyšetření, F farmakoterapie, RT radioterapie, H histologie, K kontrola nebo jiný plán. Čárkovaný kroužek = plánováno.";
-/* A planned line has no category of its own; its letter follows what is planned (a drug change is F). */
-const compactKind = l => l.kind !== "plan" ? l.kind : /everolim|sunitinib|nivolumab|ipilimumab|kabozantinib|cabozantinib|linie/i.test(l.text_cs) ? "systemic" : "visit";
-const rowPin = l => { const k = compactKind(l); return `<span class="lpin kind-${esc(k)} ${l.kind === "plan" ? "planned" : ""}" title="${esc((KIND_CS[k] || "") + (l.kind === "plan" ? ", plánováno" : ""))}" aria-hidden="true">${esc(letterOf({ kind: k, title_cs: l.text_cs }))}</span>`; };
+   timeline's category icon; a planned line gets a dashed pin, as on the timeline. */
+const PIN_HELP = "Ikona u data označuje stejnou kategorii jako na časové ose. Název kategorie ukáže najetí myší nebo zaměření klávesnicí. Čárkovaný kroužek znamená plánováno.";
+/* A planned line is grouped by the planned action; it never becomes a performed event. */
+const compactKind = l => l.kind !== "plan" ? categoryOf(l) : /everolim|sunitinib|nivolumab|ipilimumab|kabozantinib|cabozantinib|linie/i.test(l.text_cs) ? "systemic" : "clinical";
+const rowPin = l => { const k = compactKind(l), label = KIND_CS[k] + (l.kind === "plan" ? ", plánováno" : ""); return `<span class="lpin kind-${k} ${l.kind === "plan" ? "planned" : ""}" title="${esc(label)}" role="img" aria-label="${esc(label)}" tabindex="0">${icon(k)}</span>`; };
 function compactRows(reg) {
   const c = EXTRA.onco_compact_v3;
   /* A systemic-therapy row is dated by its start; the tooltip says so, because the row text spans a whole course. */
@@ -1366,24 +1451,31 @@ function alertRow(f, compact) {
       ${!compact && note ? `<span class="why">${esc(note)}</span>` : ""}${ack ? `<span class="why">Vzal(a) na vědomí ${esc(ack)}</span>` : ""}</span>
     ${ack ? "" : `<button class="btn small ackbtn" data-ack="${f.i}">Vzít na vědomí</button>`}</div>`;
 }
+/* Rendering and source navigation share the same unsorted array, so filters cannot shift source indexes. */
+function timelineEvents() {
+  return EXTRA.timeline_cards_v3 || EXTRA.timeline_cards || (CASE.timeline || []).map(e => ({
+    ...e, kind: e.type, title_cs: e.label_cs, text_cs: e.label_cs, status: e.status || "done",
+  }));
+}
 function timelineCard(inline) {
-  const cards = (EXTRA.timeline_cards_v3 || EXTRA.timeline_cards || CASE.timeline.filter(e => e.date_sort).map(e => ({ date: e.date, date_sort: e.date_sort, kind: e.type === "histology" ? "pathology" : e.type, title_cs: e.label_cs.slice(0, 40), text_cs: e.label_cs, detail_cs: e.label_cs, status: e.status || "done", source: e.source })))
-    .map((c, i) => ({ ...c, i })).sort((a, b) => (a.date_sort ? 0 : 1) - (b.date_sort ? 0 : 1) || String(a.date_sort).localeCompare(String(b.date_sort)));
+  const all = timelineEvents().map((c, i) => ({ ...c, i, category: categoryOf(c) }))
+    .sort((a, b) => (a.date_sort ? 0 : 1) - (b.date_sort ? 0 : 1) || String(a.date_sort || "").localeCompare(String(b.date_sort || "")));
+  const cards = all.filter(c => S.tlCategory === "all" || c.category === S.tlCategory);
+  const filterButton = (id, label, count) => `<button type="button" class="tlfilter" data-tl-category="${id}" aria-pressed="${S.tlCategory === id}" ${count === 0 ? "disabled" : ""}>${id === "all" ? "" : icon(id)}<span>${esc(label)}</span><span class="tlcount">${count}</span></button>`;
+  const filters = filterButton("all", "Vše", all.length) + EVENT_CATEGORIES.map(c => filterButton(c.id, c.label, all.filter(e => e.category === c.id).length)).join("");
   let lastYear = null, html = "";
   for (const c of cards) {
     const y = c.date_sort ? String(c.date_sort).slice(0, 4) : "Bez data";
-    if (y !== lastYear) { html += `<div class="tlyear"><span>${y}</span></div>`; lastYear = y; }
-    html += `<button class="ev kind-${esc(c.kind)} ${c.status === "planned" ? "planned" : ""}" data-tl="${c.i}" aria-pressed="${S.selTl === c.i}">
-      <span class="date">${esc(c.date || "-")}${c.status === "planned" ? " · plán" : ""}</span><span class="pin"><b>${esc(letterOf(c))}</b></span>
-      <span class="t">${esc(c.title_cs)}${c.note_cs || c.ocr_note_cs ? ' <span class="mk obs" aria-hidden="true">i</span>' : ""}</span><span class="d">${esc(c.text_cs)}</span></button>`;
+    if (y !== lastYear) { html += `<div class="tlyear"><span>${esc(y)}</span></div>`; lastYear = y; }
+    const label = KIND_CS[c.category], note = [c.note_cs, c.ocr_note_cs].filter(Boolean).join(" ");
+    html += `<button type="button" class="ev kind-${c.category} ${c.status === "planned" ? "planned" : ""}" data-tl="${c.i}" aria-pressed="${S.selTl === c.i}">
+      <span class="date">${esc(c.date || "Bez data")}${c.status === "planned" ? " · plán" : ""}</span><span class="pin">${icon(c.category)}</span>
+      <span class="category">${esc(label)}</span><span class="t">${esc(c.title_cs)}${note ? ` <span class="mk obs" title="${esc(note)}" aria-label="${esc(note)}">i</span>` : ""}</span><span class="d">${esc(c.text_cs)}</span></button>`;
   }
-  /* The event opens its source directly, so no detail panel is shown under the timeline (round 13). */
-  const sel = null;
   return `<section class="${inline ? "" : "card"}"><div class="head"><h2 style="${inline ? "font-size:14px" : ""}">Průběh onemocnění <button class="info" title="${esc(TL_HELP)}" aria-label="${esc(TL_HELP)}">i</button></h2></div>
-    <div class="tlbar"><div class="tltrack">${html}</div></div>
-    ${sel ? `<div class="evdetail"><div class="row"><span class="chip plain kind-${esc(sel.kind)}" style="background:var(--sunk)">${KIND_CS[sel.kind] || sel.kind}</span><b>${esc(sel.date || "datum " + GAP)} · ${esc(sel.title_cs)}</b>${sel.status === "planned" ? '<span class="tag k-unclear">plánováno</span>' : ""}</div>
-      <p style="margin:4px 0">${esc(sel.detail_cs || sel.text_cs)}${marks(sel)}</p>${sel.note_cs ? `<p class="muted small" style="margin:0">Poznámka asistenta: ${esc(sel.note_cs)}</p>` : ""}
-      <div><button class="btn small" data-src='${esc(JSON.stringify(sel.source))}'>Otevřít původní dokument</button></div></div>` : ""}</section>`;
+    <div class="tlfilters" role="group" aria-label="Kategorie událostí">${filters}</div>
+    <div class="tlstatus" role="status">Zobrazeno ${cards.length} z ${all.length} událostí${S.tlCategory !== "all" ? ` · ${esc(KIND_CS[S.tlCategory])}` : ""}</div>
+    ${cards.length ? `<div class="tlbar" tabindex="0" role="region" aria-label="Časová osa průběhu onemocnění"><div class="tltrack">${html}</div></div>` : '<p class="muted small">V této kategorii nejsou zaznamenané události.</p>'}</section>`;
 }
 function tabOverview() {
   const p = P(S.pid);
@@ -2140,7 +2232,7 @@ function readHash() {
   const before = S.pid + S.view;
   S.view = view;
   if (view === "calendar" && /^\d{4}-\d\d-\d\d$/.test(id || "")) { S.week = mondayOf(id); S.miniMonth = id.slice(0, 7); }
-  else if (id) { const f = S.patients.find(p => nr(p.file) === id)?.file; if (f && f !== S.pid) { S.pid = f; S.selTl = null; S.tlScroll = 0; } }
+  else if (id) { const f = S.patients.find(p => nr(p.file) === id)?.file; if (f && f !== S.pid) { S.pid = f; S.tlCategory = "all"; S.selTl = null; S.tlScroll = 0; } }
   /* Opening a case by link or by back/forward is an access too and goes to the log. */
   if (view === "patient" && before !== S.pid + view) logAccess(S.pid, "otevřel(a) případ (odkazem nebo historií prohlížeče)");
   if (tab) S.tab = tab;
@@ -2152,6 +2244,7 @@ function readHash() {
 window.addEventListener("hashchange", () => { if (S.hashSet && location.hash === S.hashSet) { S.hashSet = null; return; } S.hashSet = null; if (readHash()) render(); });
 /* keepTab: moving between cases during an MDT keeps the tab the team is looking at. */
 function openPatient(file, keepTab = false, what = "otevřel(a) případ") {
+  if (S.pid !== file) S.tlCategory = "all";
   S.pid = file; S.view = "patient"; if (!keepTab) S.tab = "overview"; S.selTl = null; S.calPop = null; S.tlScroll = 0; S.stOpen = null;
   logAccess(file, what);
   render(); window.scrollTo(0, 0);
@@ -2164,7 +2257,7 @@ document.addEventListener("error", e => {
 }, true);
 
 /* Tooltips for info and certainty icons: the title moves to data-tip so the browser does not show a second one. */
-const TIP_SEL = ".info, .mk, .edtag, .gapq, .chip[title], .chip[data-tip], .vf, .vbox, .dt[data-tip]";
+const TIP_SEL = ".info, .mk, .edtag, .gapq, .chip[title], .chip[data-tip], .vf, .vbox, .dt[data-tip], .lpin[title], .lpin[data-tip]";
 let tipEl = null;
 function showTip(el) {
   if (el.title) { el.dataset.tip = el.title; el.removeAttribute("title"); }
@@ -2188,7 +2281,7 @@ document.addEventListener("click", e => {
   hideTip();
   if (S.colOpen && !e.target.closest(".fpop,[data-colopen]")) { S.colOpen = null; render(); return; }
   if (S.stOpen && !e.target.closest(".stpop,[data-stmenu]")) { S.stOpen = null; render(); return; }
-  const t = e.target.closest("[data-stmenu],[data-setst],[data-dbpage],[data-guide],[data-colopen],[data-colclose],[data-colall],[data-wk],[data-jump],[data-mm],[data-calclose],[data-labmode],[data-labsel],[data-edit],[data-scope],[data-addatt],[data-startday],[data-startgo],[data-sesgo],[data-nav],[data-open],[data-tab],[data-src],[data-close],[data-page],[data-vtab],[data-zoom],[data-zoomstep],[data-zoomhit],[data-tl],[data-ack],[data-sched],[data-pick],[data-free],[data-slot],[data-unsched],[data-act],[data-mode],[data-delstep],[data-done],[data-suggok],[data-suggno]");
+  const t = e.target.closest("[data-stmenu],[data-setst],[data-dbpage],[data-guide],[data-colopen],[data-colclose],[data-colall],[data-wk],[data-jump],[data-mm],[data-calclose],[data-labmode],[data-labsel],[data-edit],[data-scope],[data-addatt],[data-startday],[data-startgo],[data-sesgo],[data-nav],[data-open],[data-tab],[data-src],[data-close],[data-page],[data-vtab],[data-zoom],[data-zoomstep],[data-zoomhit],[data-tl-category],[data-tl],[data-ack],[data-sched],[data-pick],[data-free],[data-slot],[data-unsched],[data-act],[data-mode],[data-delstep],[data-done],[data-suggok],[data-suggno]");
   if (!t) return;
   const d = t.dataset;
   if (d.stmenu) { S.stOpen = S.stOpen === d.stmenu ? null : d.stmenu; render(); }
@@ -2232,9 +2325,15 @@ document.addEventListener("click", e => {
   else if (d.zoom) { S.overlay.zoom = d.zoom === "fit" ? "fit" : +d.zoom; renderOverlay(); }
   /* Zoom to the passage: the page at full size, scrolled so the highlight is in the middle (renderOverlay scrolls to #hit). */
   else if (d.zoomhit) { S.overlay.zoom = 100; renderOverlay(); }
+  else if (d.tlCategory !== undefined) {
+    if (d.tlCategory !== "all" && !EVENT_CATEGORIES.some(c => c.id === d.tlCategory)) return;
+    S.tlCategory = d.tlCategory; S.selTl = null; S.tlScroll = 0;
+    const bar = document.querySelector(".tlbar"); if (bar) bar.scrollLeft = 0;
+    render(); document.querySelector(`[data-tl-category="${S.tlCategory}"]`)?.focus({ preventScroll: true });
+  }
   else if (d.tl !== undefined) {
     /* One click straight to the full source text (Soňa, round 13); no detail panel in between. */
-    const cards = EXTRA.timeline_cards_v3 || EXTRA.timeline_cards || []; const c = cards[+d.tl];
+    const c = timelineEvents()[+d.tl];
     S.selTl = +d.tl; render(); if (c && c.source) openSource(c.source);
   }
   else if (d.ack !== undefined) { S.acks[d.ack] = S.user; logAccess(S.pid, "vzal(a) upozornění na vědomí"); render(); }
@@ -2494,3 +2593,4 @@ document.addEventListener("keydown", e => { if (e.key === "Escape" && S.overlay)
 readHash();
 render();
 </script>
+
