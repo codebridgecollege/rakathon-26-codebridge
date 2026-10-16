@@ -37,7 +37,7 @@ for (const width of [1280, 400]) {
   ok((await page.locator(".tabs").evaluate(el => el.previousElementSibling?.textContent || "")).includes("Důvod a otázka pro MDT"), `${width} brief block sits above the tabs`);
   await c('[data-act="gaps"]'); ok((await page.locator("main").textContent()).includes("osteoplastická"), `${width} gaps toggle opens`); await c('[data-act="gaps"]');
   await c('[data-tab="labs"]'); ok((await text('[data-labmode][aria-pressed="true"]')).includes("z dokumentu"), `${width} labs open on document values`);
-  await c('[data-labmode="series"]'); ok((await page.locator("svg.chart").textContent()).includes("UKÁZKA"), `${width} synthetic chart labelled inside the SVG`);
+  await c('[data-labmode="series"]'); ok((await page.locator("svg.chart").textContent()).includes("syntetická data"), `${width} synthetic chart labelled inside the SVG`);
   // edit on patient 2 must not appear in patient 10's history
   await go("#patient/2"); await c('[data-edit$="|q"]'); await page.fill("#edtext", "Otázka pro pacienta 2"); await c('[data-act="saveedit"]');
   await go("#patient/10/overview"); ok(!(await page.locator("main").textContent()).includes("Otázka pro pacienta 2"), `${width} edits stay with their patient`);
@@ -50,7 +50,7 @@ for (const width of [1280, 400]) {
   ok((await text("#report")).includes("při diagnóze") || (await text("#report")).includes("ne aktuální"), `${width} TNM labelled as stage at diagnosis in report`);
   // approve, then change attendance and edit again: approved report must not change
   await page.selectOption('[data-att="Klinická onkologie"]', "MUDr. Svobodová");
-  await page.fill("#concl", "Test závěr"); await c('[data-act="approve"]');
+  await go("#patient/10/overview"); await page.fill("#concl", "Test závěr"); await go("#protocol/10"); await c('[data-act="approve"]');
   const frozen = await text("#report");
   await go("#patient/2"); await go("#protocol/2"); await page.selectOption('[data-att="Neurochirurgie"]', "MUDr. Novák");
   await go("#protocol/10"); ok((await text("#report")) === frozen, `${width} approved report frozen after attendance change`);
@@ -59,7 +59,7 @@ for (const width of [1280, 400]) {
   await go("#patient/10/anamnesis"); await page.evaluate(() => document.querySelector('[data-edit$="|fa:1:line"]').click()); await c('[data-act="revertedit"]');
   ok(await page.evaluate(() => S.editLog.some(e => e.reverted)), `${width} revert kept in the edit log`);
   // source drawer, presentation, admin
-  await c('[data-tab="overview"]'); await page.evaluate(() => document.querySelector(".ref").click()); await c('[data-page="4"]');
+  await c('[data-tab="overview"]'); await page.evaluate(() => document.querySelector(".srcl").click()); await c('[data-page="4"]');
   ok(await page.locator(".drawer .unr").count() >= 1, `${width} unreadable OCR characters marked`); await over("drawer"); await c(".drawer [data-close]");
   await c('[data-go="present"]'); await over("present"); await c('[data-brief="detailed"]'); await over("present detailed");
   await page.selectOption("#user", "Ing. Kovář (správce systému)"); await c('[data-nav="admin"]'); await over("admin");
