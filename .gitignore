@@ -58,3 +58,7 @@ Thumbs.db
 # transcripts are committed instead.
 *.m4a
 *.mp4
+
+# Guideline PDFs are downloaded only to extract quotes; they are copyrighted and the app opens them online.
+docs/sources/guidelines/*.pdf
+mocks/guidelines/

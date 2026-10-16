@@ -157,11 +157,9 @@ experience.
   2026-10-16 (quoted statements under the proposed management, the
   guideline opened at the passage, a deviations table; see `CLAUDE.md`).
   (design-2 00:00:36; chatgpt P 14:56, P 16:01, R 10:27; juro-notes)
-- [ ] **May the full guideline PDFs stay in the public repo?** The team
-  chose to store them in `docs/sources/guidelines/`; each one's license
-  is recorded in `mocks/src/data/guidelines-case-10.json`. Any PDF whose
-  license does not allow republishing must leave the repo before it goes
-  public.
+- [ ] **NCCN guidelines need a login.** Do we get an account for the
+  demo, or show NCCN as "not retrieved"? (Other PDFs are not stored in
+  the repo; the app opens them online.)
 - [ ] Where does the AI model run? Juro said the interface would run on
   the hospital's internal servers (design-4 00:01:17); Soňa wants no
   patient names sent to the AI (design-4 00:00:03). Is the model local

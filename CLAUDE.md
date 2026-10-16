@@ -194,7 +194,11 @@ data (slide 21 notes).
   It never ranks options, never writes the proposal or the conclusion,
   and the doctors record whether a deviation is intended and why. A
   statement is never paraphrased as a quote and never invented: no
-  verified source text, no statement. Whether the layer is on by
+  verified source text, no statement. When guidelines are not enough
+  (rare situations), the layer may add literature from PubMed, labeled as
+  literature and not as a recommendation, with verbatim abstract
+  sentences; its searches use clinical terms only, never patient data.
+  Whether the layer is on by
   default is open in
   [`docs/agent/OPEN_QUESTIONS.md`](docs/agent/OPEN_QUESTIONS.md).
   Outside that layer the assistant does not recommend a treatment.

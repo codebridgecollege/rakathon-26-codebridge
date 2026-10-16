@@ -5779,14 +5779,29 @@ details.srcs .refs { border-top: 0; margin-top: 4px; padding-top: 0; }
   }
  ]
 }</script>
-<script id="guide-data" type="application/json">{}</script>
+<script id="guide-data" type="application/json">{"guidelines": [], "statements": [], "pages": [], "not_retrieved": [], "literature": [], "queries": []}</script>
 <script>
 "use strict";
 const CASE = JSON.parse(document.getElementById("case-data").textContent);
 const OTHERS = JSON.parse(document.getElementById("list-data").textContent);
 const EXTRA = JSON.parse(document.getElementById("extra-data").textContent || "{}");
 /* Guideline layer (F-27, team decision 2026-10-16): verbatim statements with full citation; never invented. */
-const GUIDE = JSON.parse(document.getElementById("guide-data").textContent || "{}");
+/* What the server would hold. The page never reads it directly: it goes through api.guidance(), so swapping
+   the stub for fetch(`/api/cases/${id}/guidance`) is the only change a real backend needs. */
+const SERVER_GUIDANCE = JSON.parse(document.getElementById("guide-data").textContent || "{}");
+const api = {
+  async guidance(caseId) {
+    await new Promise(r => setTimeout(r, 350));
+    return caseId === "NO-010" ? SERVER_GUIDANCE : { guidelines: [], statements: [], pages: [], literature: [], queries: [], not_retrieved: [] };
+  },
+};
+let GUIDE = {};
+async function loadGuidance(p) {
+  if (S.guideFor === p.id) return;
+  S.guideFor = p.id; GUIDE = { loading: true };
+  const res = await api.guidance(p.id);
+  if (S.guideFor === p.id) { GUIDE = res; render(); }
+}
 const GL = id => (GUIDE.guidelines || []).find(g => g.id === id) || {};
 const STMTS = () => GUIDE.statements || [];
 const citeOf = st => { const g = GL(st.guideline_id); return `${g.name || ""}, ${g.society || ""} ${g.year || ""}${g.version ? ", " + g.version : ""}; ${st.section || ""}; s. ${st.printed_page || st.pdf_page}`; };
@@ -6186,16 +6201,32 @@ function proposalBox(p) {
     ${isDoctor(S.user) ? `<button class="edbtn" style="opacity:1" data-edit="${esc(EK("proposal", p.file))}" data-orig="">✎ ${e ? "" : "doplnit"}</button>` : ""}</p>
     ${p.full ? guideBox() : ""}</div>`;
 }
+const GROUPS = [["CZ", "Česko (Modrá kniha ČOS)"], ["EU", "Evropa (ESMO, EANO, ESTRO)"], ["US", "USA (ASCO, ASTRO, NCCN)"], ["INT", "Mezinárodní"]];
+const fieldOf = st => GL(st.guideline_id).field || "oncology";
+function stmtHtml(x) {
+  return `<li><q>${esc(x.quote.length > 260 ? x.quote.slice(0, 260) + "…" : x.quote)}</q>${x.evidence ? ` <span class="chip plain st-new">${esc(x.evidence)}</span>` : ""}
+    <span class="cite">${esc(citeOf(x))} · <button class="linkbtn small" data-guide="${esc(x.id)}">otevřít v doporučení</button></span>
+    <span class="small">Platí, protože: ${esc(x.applies_because_cs || (x.patient_facts || []).join("; "))}</span></li>`;
+}
 function guideBox() {
-  const st = STMTS();
-  if (!st.length) return "";
-  const head = `<div class="row spread"><span class="label">Doporučení k navrhovanému postupu · pozorování asistenta</span>
+  const head = `<div class="row spread"><span class="label">Doporučení a literatura k navrhovanému postupu · pozorování asistenta</span>
     <label class="small muted" style="display:flex;gap:6px;align-items:center"><input type="checkbox" data-act-toggle="guide" ${S.guideOn ? "checked" : ""}> vrstva doporučení</label></div>`;
   if (!S.guideOn) return `<div class="gl">${head}<p class="muted small" style="margin:6px 0 0">Vypnuto.</p></div>`;
+  if (GUIDE.loading) return `<div class="gl">${head}<p class="muted small" style="margin:6px 0 0">Načítám doporučení ze serveru…</p></div>`;
+  const st = STMTS();
+  if (!st.length && !(GUIDE.literature || []).length) return "";
+  const onc = st.filter(x => /oncology/.test(fieldOf(x)));
+  const other = st.filter(x => !/oncology/.test(fieldOf(x)));
+  const groups = GROUPS.map(([r, t]) => { const xs = onc.filter(x => (GL(x.guideline_id).region || "EU") === r); return xs.length ? `<h3 style="margin:10px 0 0;font-size:13px">${t}</h3><ol>${xs.map(stmtHtml).join("")}</ol>` : ""; }).join("");
+  const lit = GUIDE.literature || [];
   return `<div class="gl">${head}
-    <ol>${st.map(x => `<li><q>${esc(x.quote.length > 260 ? x.quote.slice(0, 260) + "…" : x.quote)}</q>${x.evidence ? ` <span class="chip plain st-new">${esc(x.evidence)}</span>` : ""}
-      <span class="cite">${esc(citeOf(x))} · <button class="linkbtn small" data-guide="${esc(x.id)}">otevřít v doporučení</button></span>
-      <span class="small">Platí, protože: ${esc(x.applies_because_cs || (x.patient_facts || []).join("; "))}</span></li>`).join("")}</ol>
+    ${groups}
+    ${other.length ? `<h3 style="margin:12px 0 0;font-size:13px">Další obory (přidružená onemocnění)</h3><ol>${other.map(stmtHtml).join("")}</ol>` : ""}
+    ${lit.length ? `<details class="srcs" style="margin-top:12px"><summary>Literatura z PubMed (${lit.length}) · pro situace, kde doporučení nestačí</summary>
+      <ol>${lit.map(a => `<li><b>${esc(a.title)}</b><span class="cite">${esc(a.first_author || "")} et al. ${esc(a.journal || "")} ${esc(a.year || "")} · ${esc(a.pub_type || "")} · <a href="${esc(a.url)}" target="_blank" rel="noopener">PMID ${esc(a.pmid)}</a></span>
+        ${(a.quotes || []).slice(0, 1).map(q => `<q>${esc(q)}</q>`).join("")}<span class="small">Proč: ${esc(a.why_relevant_cs || "")}</span></li>`).join("")}</ol>
+      <p class="muted small" style="margin:6px 0 0">Literatura není doporučení. Hledání v PubMed používá jen odborné pojmy, nikdy údaje o pacientovi${(GUIDE.queries || []).length ? `; dotazy: ${(GUIDE.queries || []).map(q => `„${esc(q.query)}“`).join(", ")}` : ""}.</p></details>` : ""}
+    ${(GUIDE.not_retrieved || []).length ? `<p class="muted small" style="margin:8px 0 0">Nenačteno: ${(GUIDE.not_retrieved || []).map(n => `${esc(n.name)} (${esc(n.reason)})`).join("; ")}.</p>` : ""}
     <p class="muted small" style="margin:8px 0 0">Citace doslovně z uvedených doporučení. Asistent možnosti neřadí a postup nenavrhuje; rozhoduje MDT. Odchylky se zapisují v protokolu MDT.</p></div>`;
 }
 function gapsBox() {
@@ -6387,6 +6418,7 @@ function viewAdmin() {
 }
 function viewPatient() {
   const p = P(S.pid);
+  if (p.full) loadGuidance(p);
   if (!p.full) return viewPatientLite(p);
   const tabs = [["overview", "Přehled"], ["anamnesis", "Anamnéza"], ["documents", "Dokumenty"], ["labs", "Laboratoř"], ["alerts", `Upozornění<span class="n">${CASE.flags.length}</span>`]];
   if (!tabs.some(t => t[0] === S.tab)) S.tab = "overview";
@@ -6444,6 +6476,7 @@ function attFor(day = attDay()) { if (!S.attByDay[day]) S.attByDay[day] = Object
 const presentList = () => Object.values(attFor()).flat().filter(Boolean);
 const isDoctor = u => u.startsWith("MUDr.");
 function viewProtocol() {
+  if (P(S.pid).full) loadGuidance(P(S.pid));
   const p = P(S.pid), pr = ensureProto(p);
   const present = presentList();
   const locked = pr.state === "approved";
@@ -6594,7 +6627,7 @@ function renderOverlay() {
       <header><div><div class="label">Doporučení · ${esc(g.society || "")} ${esc(g.year || "")}</div><h2 style="margin-top:4px">${esc(g.name || "")}</h2>
         <div class="muted small">${esc(g.version || "")} · ${esc(st.section || "")} · strana PDF ${esc(st.pdf_page)}${st.printed_page && st.printed_page !== st.pdf_page ? ` (tištěná ${esc(st.printed_page)})` : ""}</div></div>
         <button class="btn small" data-close="1">Zavřít</button></header>
-      <div class="pages">${g.file ? `<a class="btn small" href="guidelines/${esc(g.file.split("/").pop())}#page=${esc(st.pdf_page)}" target="_blank" rel="noopener">Otevřít PDF na straně ${esc(st.pdf_page)}</a>` : ""}${g.url ? ` <a class="btn small" href="${esc(g.url)}" target="_blank" rel="noopener">Zdroj vydavatele</a>` : ""}</div>
+      <div class="pages">${g.pdf_url ? `<a class="btn small" href="${esc(g.pdf_url)}${/\.pdf($|\?)/i.test(g.pdf_url) ? "#page=" + esc(st.pdf_page) : ""}" target="_blank" rel="noopener">Otevřít PDF online (str. ${esc(st.pdf_page)})</a>` : ""}${g.url ? ` <a class="btn small" href="${esc(g.url)}" target="_blank" rel="noopener">Zdroj vydavatele</a>` : ""}</div>
       <div class="synth" style="margin:10px 20px 0;border-style:solid">Platí, protože: ${esc(st.applies_because_cs || "")}</div>
       <div class="text">${text}</div></aside>`;
     document.getElementById("hit")?.scrollIntoView({ block: "center" });
