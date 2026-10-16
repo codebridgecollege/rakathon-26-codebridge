@@ -152,14 +152,16 @@ experience.
 - [ ] Before the repository goes public: remove or anonymize other
   participants' names in the Zoom chat exports and research notes.
   (`HACKATHON.md`)
-- [ ] **Where does the guideline layer's line fall?** Options: show only
-  guideline passages that apply to documented facts; list
-  guideline-supported options with references and no ranking; also flag
-  where the MDT's plan departs from the guideline. Also: on or off by
-  default, and visible before the discussion, hidden, or a mix? The
-  layer is in scope by team decision (2026-10-16); `CLAUDE.md` forbids
-  treatment recommendations. Get Soňa's view first. (design-2 00:00:36;
-  chatgpt P 14:56, P 16:01, R 10:27; juro-notes)
+- [ ] **Is the guideline layer on by default**, and visible before the
+  discussion, hidden, or a mix? How far it goes was decided on
+  2026-10-16 (quoted statements under the proposed management, the
+  guideline opened at the passage, a deviations table; see `CLAUDE.md`).
+  (design-2 00:00:36; chatgpt P 14:56, P 16:01, R 10:27; juro-notes)
+- [ ] **May the full guideline PDFs stay in the public repo?** The team
+  chose to store them in `docs/sources/guidelines/`; each one's license
+  is recorded in `mocks/src/data/guidelines-case-10.json`. Any PDF whose
+  license does not allow republishing must leave the repo before it goes
+  public.
 - [ ] Where does the AI model run? Juro said the interface would run on
   the hospital's internal servers (design-4 00:01:17); Soňa wants no
   patient names sent to the AI (design-4 00:00:03). Is the model local

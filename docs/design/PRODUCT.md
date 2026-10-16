@@ -43,10 +43,16 @@ add-on [chatgpt P 12:15].
 
 All made by the team on 2026-10-16.
 
-1. **Guideline layer is in scope, as an option.** Treatment suggestions
-   and checking the MDT's plan against guidelines stay in as an optional
-   layer the team can switch on or off. Where the line falls (what the
-   assistant may suggest) is an open question to explore. `CLAUDE.md`
+1. **Guideline layer is in scope, as an option.** Decided on
+   2026-10-16 (Soňa, via Juro): under the proposed management the layer
+   quotes the guideline statements that apply to the patient, verbatim
+   with name, society, year, version, section, page and evidence level;
+   a click opens the guideline document with the statement highlighted;
+   a deviations table lists where the MDT's plan departs from a quoted
+   statement, and the doctors record whether it is intended and why.
+   Guidelines in the mock: EANO-ESMO brain metastases, ESMO renal cell
+   carcinoma, Czech Oncological Society's Modrá kniha. The layer never
+   ranks options or writes the proposal or conclusion. `CLAUDE.md`
    allows it as the one exception to "does not recommend a treatment";
    see [Conflicts](#conflicts-with-claudemd).
 2. **Listening live to the meeting is a stretch goal.**
@@ -342,7 +348,7 @@ everything else is Pitch or Later.
 | F-24 | Decision history | Each conclusion is confirmed by a named doctor and stored; a later decision supersedes it, never erases it. | Demo | (report; timeline) | [juro-notes; chatgpt P 12:16, R 14:04] | Decision 3. |
 | F-25 | Live listening | Record the discussion per patient, transcribe it with names, draft the conclusion for the doctors to confirm. In the mock: the "AI recording" tab, labeled as a planned feature that needs participants' consent and does not record [ui-shot 17.06.14 (1)]. | Pitch (stretch Demo) | - | [design-1 00:46:27; juro-notes; paper-notes more_notes; chatgpt P 10:14, P 14:51] | Decision 2. Opt-in and consent; patient data. Voice enrolment for names is Later (biometric data). Raw transcript fixed, summary editable [design-1 00:43:31], undecided. |
 | F-26 | Query mode | Doctors ask the assistant questions about the case; answers cite sources or say "not found". | Pitch | - | [juro-notes] | |
-| F-27 | Guideline layer | A switch turns on: (a) review of the path so far for information missing for a decision, (b) guideline-supported options for the next treatment, (c) review of the MDT conclusion. Each finding shows patient evidence, guideline name, society, year, section, uncertainty, and the doctor's review. | Pitch | - (beyond the challenge) | [design-1 00:35:08, 00:46:00; design-2 00:00:36; chatgpt P 12:16, P 14:56, P 16:01, R 14:56, R 16:01; juro-notes] | Decision 1; the line is open. Soňa wants it in ("ja to tam riadne chcem", chatgpt P 12:16), framed later as "možno by sme chceli" (P 14:56); the on/off switch was her idea (P 14:56). Part (a)'s missing-information check is F-07/F-08. Use a small curated, versioned guideline set [chatgpt R 14:56]. Kept apart from the MDT conclusion. |
+| F-27 | Guideline layer | Under the proposed management: guideline statements that apply to the documented facts, verbatim, with guideline name, society, year, version, section, page and evidence level, and the patient facts they rest on; a click opens the guideline PDF's page with the statement highlighted. In the protocol: a deviations table, one row per quoted statement, where the doctors mark whether the MDT's plan follows it, departs from it on purpose (with the reason), or it does not apply. Also (a) review of the path so far for missing information. | Pitch | - (beyond the challenge) | [design-1 00:35:08, 00:46:00; design-2 00:00:36; chatgpt P 12:16, P 14:56, P 16:01, R 14:56, R 16:01; juro-notes] | Decision 1; the line was set on 2026-10-16 (quotes, highlighted source, deviations table; no ranking, never the conclusion). Soňa wants it in ("ja to tam riadne chcem", chatgpt P 12:16), framed later as "možno by sme chceli" (P 14:56); the on/off switch was her idea (P 14:56). Part (a)'s missing-information check is F-07/F-08. Use a small curated, versioned guideline set [chatgpt R 14:56]. Kept apart from the MDT conclusion. |
 | F-28 | AI engagement levels | Passive (summarize), on demand (when asked), proactive (an independent assessment formed before the discussion). | Later | - | [juro-notes; chatgpt P 10:14, P 10:27] | Soňa moved from on-demand to proactive because the doctors, as experts, would bias the AI [chatgpt P 10:14]. ChatGPT put it in the roadmap tier [chatgpt R 12:15]. |
 | F-29 | Rare-case support | A small warning that a case looks unusual from past MDTs; help finding guidelines and case reports beforehand. | Later | - | [design-3 00:00:52, 00:02:18] | Soňa's answer on flagging is unclear; open question. Literature support is our reading of her need. |
 | F-30 | Agenda priority | Facts that could order the agenda (for example days since biopsy). | Later | - | [juro-notes] | Facts only, no ranking verdict. |
@@ -436,7 +442,7 @@ This table says which feature each rule touches and what is still open.
 
 | Feature or idea | CLAUDE.md rule | Status |
 |---|---|---|
-| Guideline layer: treatment options and review of the MDT's plan (F-27, F-28) | "The assistant prepares, the doctor decides", with the guideline layer as the one exception | Allowed as an explored option. How far it may go and whether it is on by default are open (`OPEN_QUESTIONS.md`). |
+| Guideline layer: treatment options and review of the MDT's plan (F-27, F-28) | "The assistant prepares, the doctor decides", with the guideline layer as the one exception | Allowed. Scope decided on 2026-10-16: verbatim statements with full citation under the proposed management, the guideline opened at the passage, and a deviations table the doctors fill in; no ranking, no proposal or conclusion written by the assistant. On by default is still open (`OPEN_QUESTIONS.md`). |
 | Recording and transcribing the meeting (F-25) | "Meeting audio is patient data" | Covered by the rule. Needs explicit opt-in, participants' consent, and FNO clearance for any speech-to-text service; stretch goal. |
 | Voice enrolment to name speakers (F-25 notes) | "Meeting audio is patient data": no voiceprints in the prototype | Not in the prototype; Later at most. |
 | Login and the admin layer | "Skip login, OAuth, and scaling"; keep the simple access log | No login: a user picker stands in. Mock v3 has an Administrace screen (S-7) with the access log, shown only when the administrator user is picked; a real admin layer stays Vision. |

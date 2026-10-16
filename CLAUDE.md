@@ -183,17 +183,21 @@ data (slide 21 notes).
   belongs to the provider. The one exception is the optional guideline
   layer (F-27 in [`docs/design/PRODUCT.md`](docs/design/PRODUCT.md)),
   which the team decided on 2026-10-16 to explore. Every item it shows
-  names the guideline (name, society, year, version, section) and the
-  patient documents it rests on; it is labeled as the assistant's
+  names the guideline (name, society, year, version, section, page) and
+  the patient documents it rests on; it is labeled as the assistant's
   observation; it is stored apart from the MDT conclusion and never
-  becomes one. How far it may go (guideline passages only, options
-  without ranking, or flags on the MDT's plan) and whether it is on by
-  default are open questions in
-  [`docs/agent/OPEN_QUESTIONS.md`](docs/agent/OPEN_QUESTIONS.md). Until
-  the team decides, the layer shows only guideline passages tied to
-  documented facts, never treatment options, and it is not part of the
-  demo build. Outside that layer the assistant does not recommend a
-  treatment.
+  becomes one. The team decided on 2026-10-16 how far it goes: it
+  quotes guideline statements that apply to the documented facts under
+  the proposed management, verbatim and with their evidence level,
+  opens the guideline document at the quoted passage, and lists in a
+  deviations table where the MDT's plan departs from a quoted statement.
+  It never ranks options, never writes the proposal or the conclusion,
+  and the doctors record whether a deviation is intended and why. A
+  statement is never paraphrased as a quote and never invented: no
+  verified source text, no statement. Whether the layer is on by
+  default is open in
+  [`docs/agent/OPEN_QUESTIONS.md`](docs/agent/OPEN_QUESTIONS.md).
+  Outside that layer the assistant does not recommend a treatment.
 - **A draft is never shown as approved.** A conclusion or task the
   assistant drafts stays a draft until a named doctor confirms it. New
   documents may update drafts but never silently change content a doctor
