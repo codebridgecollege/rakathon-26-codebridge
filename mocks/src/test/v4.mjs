@@ -97,8 +97,19 @@ for (const width of [1280, 400]) {
   await over("drawer image");
   const box = await page.evaluate(() => { const b = document.querySelector(".drawer .hbox").getBoundingClientRect(), i = document.querySelector(".drawer .pgimg").getBoundingClientRect(); return b.width > 4 && b.height > 4 && b.left >= i.left - 1 && b.right <= i.right + 1; });
   ok(box, `${width} highlight box is scaled inside the displayed image`);
-  await c('[data-zoom="100"]'); ok(await page.evaluate(() => document.querySelector(".drawer .pgimg").getBoundingClientRect().width > 1100), `${width} zoom 100 % shows the page at full size`); await over("drawer zoom 100");
-  await c('[data-zoom="fit"]');
+  {
+    const w = () => page.evaluate(() => document.querySelector(".drawer .pgimg").getBoundingClientRect().width);
+    ok(await page.locator(".zoomctl [data-zoomstep]").count() === 2 && await page.locator('.zoomctl [data-zoom="fit"]').isDisabled(), `${width} zoom controls in the viewer, reset disabled at fit width`);
+    const w0 = await w();
+    await c('.zoomctl [data-zoomstep="1"]'); const w1 = await w();
+    await c('.zoomctl [data-zoomstep="1"]'); const w2 = await w();
+    ok(w1 > w0 && w2 > w1, `${width} zoom in enlarges the page step by step (${Math.round(w0)} > ${Math.round(w1)} > ${Math.round(w2)})`);
+    await c('.zoomctl [data-zoomstep="-1"]'); ok(Math.abs(await w() - w1) < 2, `${width} zoom out goes back one step`);
+    await page.keyboard.press("+"); ok(Math.abs(await w() - w2) < 2, `${width} + key zooms in`);
+    await over("drawer zoomed");
+    await page.keyboard.press("0"); ok(Math.abs(await w() - w0) < 2, `${width} 0 key resets to fit width`);
+    await c('.zoomctl [data-zoomstep="1"]'); await c('.zoomctl [data-zoom="fit"]'); ok(Math.abs(await w() - w0) < 2, `${width} reset button returns to fit width`);
+  }
   await c('[data-vtab="text"]');
   ok(await page.locator(".drawer .ptext mark#hit").count() === 1, `${width} cited passage highlighted in the transcription`);
   ok(await page.locator(".drawer .ptext .vf[title*='Tesseract četl']").count() >= 1, `${width} verify tokens marked in the transcription`);

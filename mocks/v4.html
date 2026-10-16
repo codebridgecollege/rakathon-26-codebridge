@@ -354,7 +354,14 @@ details.srcs .refs { border-top: 0; margin-top: 4px; padding-top: 0; }
 .vnote { flex: none; margin: 10px 20px 0; font-size: 12.5px; color: var(--muted); }
 .vnote.warn { color: var(--missing); background: var(--missing-soft); border-radius: 6px; padding: 6px 10px; font-weight: 600; }
 .vquote { font-size: 12.5px; color: var(--muted); margin-top: 6px; overflow-wrap: anywhere; }
+.vwrap { position: relative; flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
 .vbody { flex: 1 1 auto; min-height: 0; overflow: auto; padding: 14px 20px 40px; }
+/* Zoom controls float over the page in the top-right corner, clear of the scrollbar, as in common PDF viewers. */
+.zoomctl { position: absolute; top: 10px; right: 26px; z-index: 2; display: flex; align-items: center; gap: 2px; padding: 3px; border-radius: 8px; background: var(--surface); border: 1px solid var(--line-strong); box-shadow: 0 2px 8px rgba(0,0,0,.10); }
+.zoomctl button { min-width: 30px; height: 30px; border: 0; border-radius: 6px; background: none; cursor: pointer; font-size: 17px; line-height: 1; color: var(--fg); }
+.zoomctl button:hover:not(:disabled) { background: var(--sunk); }
+.zoomctl button:disabled { opacity: .35; cursor: default; }
+.zoomctl .zlvl { min-width: 54px; text-align: center; font-size: 12.5px; font-variant-numeric: tabular-nums; color: var(--muted); }
 .pgimg { position: relative; width: 100%; background: #fff; border: 1px solid var(--line-strong); box-shadow: 0 1px 4px rgba(0,0,0,.06); }
 .pgimg img { display: block; width: 100%; height: 100%; }
 /* Boxes are placed in percent of the page, so they follow the image at any zoom or screen width. */
@@ -7192,7 +7199,7 @@ function sourceHtml(o) {
   const empty = d.empty ? `<p class="synth" style="margin:0 0 12px">Prázdná stránka: na stránce není žádný text.</p>` : "";
   /* The legend says what a mark means and what its absence does not mean. */
   const legend = `Tečkovaně: číslo, datum nebo stadium, které Tesseract přečetl jinak, s nízkou jistotou, nebo vůbec (četl jen jazykový model). Neoznačený text není ověřený; rozhoduje obrázek stránky.`;
-  const frame = (src, alt, inner = "") => `<div class="pgimg" style="aspect-ratio:${W} / ${H};${o.zoom === "100" ? `width:${W}px;max-width:none` : ""}"><img src="${esc(src)}" alt="${esc(alt)}" width="${W}" height="${H}">${inner}</div>`;
+  const frame = (src, alt, inner = "") => `<div class="pgimg" style="aspect-ratio:${W} / ${H};${typeof o.zoom === "number" ? `width:${Math.round(W * o.zoom / 100)}px;max-width:none` : ""}"><img src="${esc(src)}" alt="${esc(alt)}" width="${W}" height="${H}">${inner}</div>`;
   const body = red
     ? `<p class="synth" style="margin:0 0 12px;border-style:solid">Ukázka místního začernění: takto by stránka odešla do cloudového jazykového modelu. ${d.redacted.count
         ? `Začerněno ${plural(d.redacted.count, "místo", "místa", "míst")} (${esc(d.redacted.reasons.join(", "))}) přímo na serveru nemocnice.`
@@ -7212,11 +7219,33 @@ function sourceHtml(o) {
     <div class="pages">${(o.doc?.pages || []).map(p => `<button data-page="${p.n}" aria-pressed="${p.n === d.n}" title="${p.empty ? "prázdná stránka" : ""}">s. ${p.n}${p.empty ? " (prázdná)" : ""}</button>`).join("")}</div>
     <div class="vbar">${red ? "" : `<span class="seg" role="tablist" aria-label="Zobrazení"><button role="tab" data-vtab="image" aria-pressed="${tab !== "text"}">Stránka</button><button role="tab" data-vtab="text" aria-pressed="${tab === "text"}">Přepis stránky</button></span>`}
       ${tab !== "text" && d.redacted ? `<label class="small" style="display:inline-flex;gap:6px;align-items:center"><input type="checkbox" data-redact="1" ${red ? "checked" : ""}> Co by odešlo do cloudu (začerněno)</label>` : ""}
-      ${tab !== "text" ? `<span class="seg" role="group" aria-label="Zvětšení"><button data-zoom="fit" aria-pressed="${o.zoom !== "100"}">Na šířku</button><button data-zoom="100" aria-pressed="${o.zoom === "100"}">100 %</button></span>` : ""}
       ${tab !== "text" && !red && imgHit ? `<button class="btn small" data-zoomhit="1">Přiblížit na citaci</button>` : ""}
       <span class="muted small vengine">${engine}${conf}${nv ? ` · ${plural(nv, "místo", "místa", "míst")} k ověření` : ""}</span></div>
     ${note}
-    <div class="vbody" id="vbody">${body}</div></aside>`;
+    <div class="vwrap">${tab !== "text" ? zoomCtl(o) : ""}<div class="vbody" id="vbody">${body}</div></div></aside>`;
+}
+
+/* Zoom: "fit" follows the drawer width; a number is a percentage of the page image's native size. */
+const ZOOM_STEPS = [25, 50, 75, 100, 125, 150, 200, 300, 400];
+function currentZoomPct(o) {
+  if (typeof o.zoom === "number") return o.zoom;
+  // At fit width the effective percentage depends on the drawer, so read it from the rendered image.
+  const img = document.querySelector("#vbody .pgimg img");
+  return img && img.naturalWidth ? Math.round(img.clientWidth / img.naturalWidth * 100) : 100;
+}
+function zoomStep(o, dir) {
+  const cur = currentZoomPct(o);
+  const next = dir > 0 ? ZOOM_STEPS.find(z => z > cur + 1) : [...ZOOM_STEPS].reverse().find(z => z < cur - 1);
+  if (next) { o.zoom = next; renderOverlay(); }
+}
+function zoomCtl(o) {
+  const fit = typeof o.zoom !== "number";
+  return `<div class="zoomctl" role="group" aria-label="Zvětšení stránky">
+    <button data-zoomstep="-1" title="Oddálit (−)" aria-label="Oddálit" ${!fit && o.zoom <= ZOOM_STEPS[0] ? "disabled" : ""}>−</button>
+    <span class="zlvl" aria-live="polite">${fit ? "Na šířku" : `${o.zoom} %`}</span>
+    <button data-zoomstep="1" title="Přiblížit (+)" aria-label="Přiblížit" ${!fit && o.zoom >= ZOOM_STEPS.at(-1) ? "disabled" : ""}>+</button>
+    <button data-zoom="fit" title="Obnovit: na šířku (0)" aria-label="Obnovit zvětšení" ${fit ? "disabled" : ""}>⟲</button>
+  </div>`;
 }
 
 /* ---------- overlays: source view, edit, upload and new-patient dialogs ---------- */
@@ -7326,7 +7355,7 @@ async function onClick(e) {
   /* Touch screens never show title tooltips, so a tap on a certainty icon shows its detail as a toast. */
   const mk = e.target.closest(".mk[title], .edtag[title], .chip[title], .vf[title], .vbox[title]"); if (mk) { toast(mk.getAttribute("title")); return; }
   if (S.colOpen && !e.target.closest(".fpop,[data-colopen]")) { S.colOpen = null; render(); return; }
-  const t = e.target.closest("[data-colopen],[data-colclose],[data-colall],[data-wk],[data-jump],[data-mm],[data-calclose],[data-labmode],[data-labsel],[data-edit],[data-scope],[data-addatt],[data-nav],[data-open],[data-tab],[data-brief],[data-src],[data-close],[data-page],[data-vtab],[data-zoom],[data-zoomhit],[data-tl],[data-ack],[data-go],[data-present],[data-sched],[data-pick],[data-free],[data-slot],[data-unsched],[data-act],[data-mode],[data-delstep],[data-done]");
+  const t = e.target.closest("[data-colopen],[data-colclose],[data-colall],[data-wk],[data-jump],[data-mm],[data-calclose],[data-labmode],[data-labsel],[data-edit],[data-scope],[data-addatt],[data-nav],[data-open],[data-tab],[data-brief],[data-src],[data-close],[data-page],[data-vtab],[data-zoom],[data-zoomstep],[data-zoomhit],[data-tl],[data-ack],[data-go],[data-present],[data-sched],[data-pick],[data-free],[data-slot],[data-unsched],[data-act],[data-mode],[data-delstep],[data-done]");
   if (!t) return;
   const d = t.dataset;
   if (d.colopen) { S.colOpen = S.colOpen === d.colopen ? null : d.colopen; render(); }
@@ -7349,9 +7378,10 @@ async function onClick(e) {
   else if (d.close) { S.overlay = null; renderOverlay(); }
   else if (d.page) { S.overlay.page = +d.page; await loadSourcePage(); renderOverlay(); }
   else if (d.vtab) { S.overlay.tab = S.srcTab = d.vtab; renderOverlay(); }
-  else if (d.zoom) { S.overlay.zoom = d.zoom; renderOverlay(); }
+  else if (d.zoomstep) { zoomStep(S.overlay, +d.zoomstep); }
+  else if (d.zoom) { S.overlay.zoom = d.zoom === "fit" ? "fit" : +d.zoom; renderOverlay(); }
   /* Zoom to the passage: the page at full size, scrolled so the highlight is in the middle (renderOverlay scrolls to #hit). */
-  else if (d.zoomhit) { S.overlay.zoom = "100"; renderOverlay(); }
+  else if (d.zoomhit) { S.overlay.zoom = 100; renderOverlay(); }
   else if (d.tl !== undefined) { S.selTl = S.selTl === +d.tl ? null : +d.tl; render(); }
   else if (d.ack !== undefined) { await http.post(`${PT(S.pid)}/alerts/${d.ack}/ack`, {}); await mutated(); }
   else if (d.go) { S.view = d.go; if (d.go !== "patient") await openedOn(S.pid, d.go); await show(); window.scrollTo(0, 0); }
@@ -7467,6 +7497,14 @@ async function onChange(e) {
   else if (t.dataset.step !== undefined && t.dataset.f !== "text") { curProto().steps[+t.dataset.step][t.dataset.f] = t.value; saveProto(); render(); }
 }
 document.addEventListener("toggle", e => { const d = e.target.dataset?.find; if (d) e.target.open ? S.openFind.add(d) : S.openFind.delete(d); }, true);
+document.addEventListener("keydown", e => {
+  const o = S.overlay;
+  if (o && o.kind === "source" && (o.tab || S.srcTab) !== "text" && !/INPUT|TEXTAREA|SELECT/.test(e.target.tagName) && !e.ctrlKey && !e.metaKey) {
+    if (e.key === "+" || e.key === "=") { zoomStep(o, 1); e.preventDefault(); return; }
+    if (e.key === "-") { zoomStep(o, -1); e.preventDefault(); return; }
+    if (e.key === "0") { o.zoom = "fit"; renderOverlay(); e.preventDefault(); return; }
+  }
+});
 document.addEventListener("keydown", e => { if (e.key === "Escape" && S.overlay) { S.overlay = null; renderOverlay(); } else if (e.key === "Escape" && S.colOpen) { S.colOpen = null; render(); } });
 
 /* Start-up: configuration and the patient list first, then the screen the URL names. */
