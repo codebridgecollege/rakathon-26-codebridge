@@ -30,12 +30,15 @@ for (const width of [1280, 400]) {
   // URL access is logged
   await go("#patient/10/overview"); await over("overview");
   ok(await page.evaluate(() => S.access.some(a => a.pid === "10_pacient.pdf")), `${width} opening by URL is logged`);
-  for (const t of ["anamnesis", "documents", "labs", "alerts", "history"]) { await c(`[data-tab="${t}"]`); await over(t); }
+  for (const t of ["anamnesis", "documents", "labs", "alerts"]) { await c(`[data-tab="${t}"]`); await over(t); }
+  await c('[data-tab="documents"]'); await c('[data-colopen="dread"]'); await page.locator('[data-colv="dread"][value="Špatně čitelné"]').uncheck(); await c('[data-colclose]');
+  ok((await page.locator("main tbody tr").count()) < 13, `${width} documents filter by readability`); await c('[data-act="cleardcolf"]');
+  ok((await page.locator(".tabs").evaluate(el => el.previousElementSibling?.textContent || "")).includes("MDT brief"), `${width} brief sits above the tabs`);
   await c('[data-tab="labs"]'); ok((await text('[data-labmode][aria-pressed="true"]')).includes("z dokumentu"), `${width} labs open on document values`);
   await c('[data-labmode="series"]'); ok((await page.locator("svg.chart").textContent()).includes("UKÁZKA"), `${width} synthetic chart labelled inside the SVG`);
   // edit on patient 2 must not appear in patient 10's history
   await go("#patient/2"); await c('[data-edit$="|q"]'); await page.fill("#edtext", "Otázka pro pacienta 2"); await c('[data-act="saveedit"]');
-  await go("#patient/10/history"); ok(!(await page.locator("main").textContent()).includes("Otázka pro pacienta 2"), `${width} edits stay with their patient`);
+  await go("#patient/10/overview"); ok(!(await page.locator("main").textContent()).includes("Otázka pro pacienta 2"), `${width} edits stay with their patient`);
   // edit a drug, check marker in report, revert keeps history
   await c('[data-tab="anamnesis"]'); await page.evaluate(() => document.querySelector('[data-edit$="|fa:0:z"]').click());
   await page.fill("#edtext", "navýšeno na 10 mg"); await c('[data-act="saveedit"]');
@@ -52,13 +55,14 @@ for (const width of [1280, 400]) {
   await go("#patient/10/anamnesis"); await page.evaluate(() => document.querySelector('[data-edit$="|fa:1:d"]').click()); await page.fill("#edtext", "ZMENA"); await c('[data-act="saveedit"]');
   await go("#protocol/10"); ok(!(await text("#report")).includes("ZMENA"), `${width} approved report frozen after edit`);
   await go("#patient/10/anamnesis"); await page.evaluate(() => document.querySelector('[data-edit$="|fa:1:d"]').click()); await c('[data-act="revertedit"]');
-  await c('[data-tab="history"]'); ok((await page.locator("main").textContent()).includes("vráceno na původní"), `${width} revert kept in history`);
+  ok(await page.evaluate(() => S.editLog.some(e => e.reverted)), `${width} revert kept in the edit log`);
   // source drawer, presentation, admin
   await c('[data-tab="overview"]'); await page.evaluate(() => document.querySelector(".ref").click()); await c('[data-page="4"]');
   ok(await page.locator(".drawer .unr").count() >= 1, `${width} unreadable OCR characters marked`); await over("drawer"); await c(".drawer [data-close]");
   await c('[data-go="present"]'); await over("present"); await c('[data-brief="detailed"]'); await over("present detailed");
   await page.selectOption("#user", "Ing. Kovář (správce systému)"); await c('[data-nav="admin"]'); await over("admin");
   ok(await page.locator("tbody tr").count() > 3, `${width} admin sees the access log`);
+  ok((await page.locator("main").textContent()).includes("vráceno na původní"), `${width} admin sees the edit log`);
   await page.close();
 }
 await browser.close();

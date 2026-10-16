@@ -246,6 +246,20 @@ screenshots [juro-round3].
 | 5 | Birth number instead of "Narozen / věk", or perhaps age. | S-1, S-3, report: separate RČ and Věk; age from a document's stated age, or computed from a stated birth date (marked "vyp."). |
 | 6 | Otherwise the calendar is nice. | No change. |
 
+## Feedback round 4 (2026-10-16)
+
+Written feedback on mock v3 [juro-round3].
+
+| # | Feedback | What changes |
+|---|---|---|
+| 1 | The mock data has no birth numbers, which is fine for a mock; in the real system the RČ is a must-have. | Recorded: RČ is required in the real patient identity (F-01, F-02). |
+| 2 | Age as a number only. | S-1, S-3: "65", no unit or marker; the tooltip says when it is computed from the birth date. |
+| 3 | The MDT brief block (brief, question, conclusion) sits directly under the name and identity; the tabs (Přehled, Anamnéza, ...) come below it. | S-3: the block is shown above the tabs on every tab. |
+| 4 | Remove the Historie tab. | S-3: tab removed. Earlier conclusions stay readable in the conclusion box ("Předchozí závěry", with each approved protocol), so the decision history is still append-only and visible; the doctors' edit log moved to Administrace. |
+| 5 | The brief should read like a clinician's summary (example: a dense paragraph with "st.p.", histology, TNM, receptors, treatment lines, current indication), with the staging in the first sentence. | F-16: the v3 brief is rewritten in that style, starting with histology, grade and TNM; every clause keeps its numbered source. |
+| 6 | The labs view is liked. | No change. |
+| 7 | The documents list should be filterable. | S-3: search plus Excel-style filters on type, readability and year. |
+
 ## Features
 
 Tiers: **Demo** is in the working demo; **Pitch** is shown as a mock or a
@@ -426,7 +440,7 @@ experience, and her statements outweigh ChatGPT's).
 | `[chatgpt pt2]` | `2026-10-16-chatgpt-brainstorm-sona-pt2.jpeg` | Screenshot of a later part of the same conversation |
 | `[juro-notes]` | `2026-10-16-juro-notes.md` | Juro |
 | `[paper-notes]` | `2026-10-16-juro-paper-notes.md` and the three photos | Juro |
-| `[juro-round3]` | Written feedback on mock v3 in the Claude Code session, 2026-10-16 (no file) | Juro, passing on the team's feedback |
+| `[juro-round3]` | Written feedback on mock v3 in the Claude Code session, 2026-10-16, rounds 3 and 4 (no file) | Juro, passing on the team's feedback |
 
 `[FNO spec]` is FNO's output specification and `[FNO deck slide N]` its
 challenge deck, both listed in [`REQUIREMENTS.md`](../agent/REQUIREMENTS.md).
