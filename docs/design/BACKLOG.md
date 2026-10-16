@@ -57,6 +57,9 @@ hospitals, ideally in the EU and Czechia, then a design for FNO.
 - Done when: a research note in `docs/research/` with sources, and an
   integration design (architecture diagram, interfaces, identity and
   access model, deployment requirements) that the demo can point to.
+- Status 2026-10-17: the integration design is written,
+  [`INTEGRATION.md`](INTEGRATION.md); the research note with sources is
+  still to do.
 
 ## 3. Test with more data, ideally open data sets
 
