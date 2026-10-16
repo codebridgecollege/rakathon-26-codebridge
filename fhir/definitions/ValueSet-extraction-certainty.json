@@ -1,0 +1,17 @@
+{
+  "resourceType": "ValueSet",
+  "id": "extraction-certainty",
+  "url": "https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/ValueSet/extraction-certainty",
+  "version": "0.1.0",
+  "name": "ExtractionCertainty",
+  "title": "Extraction certainty",
+  "status": "draft",
+  "description": "All codes of the extraction-certainty code system.",
+  "compose": {
+    "include": [
+      {
+        "system": "https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty"
+      }
+    ]
+  }
+}

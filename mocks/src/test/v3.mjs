@@ -35,7 +35,7 @@ for (const width of [1280, 400]) {
   // FHIR export: a Bundle where every fact and observation of the assistant has a Provenance, and the export is logged
   await c('[data-act="fhirdlg"]');
   ok(await page.evaluate(() => { const b = S.overlay.bundle, t = new Set(b.entry.filter(e => e.resource.resourceType === "Provenance").flatMap(e => e.resource.target.map(x => x.reference)));
-    return b.resourceType === "Bundle" && b.entry.filter(e => ["Observation", "Procedure", "MedicationStatement", "Condition", "DetectedIssue"].includes(e.resource.resourceType)).every(e => t.has(e.fullUrl)); }), `${width} FHIR export: every fact has a Provenance`);
+    return b.resourceType === "Bundle" && b.entry.filter(e => ["Observation", "Procedure", "MedicationStatement", "Condition", "DetectedIssue", "Flag", "Patient"].includes(e.resource.resourceType)).every(e => t.has(e.fullUrl)); }), `${width} FHIR export: every fact has a Provenance`);
   ok(await page.evaluate(() => S.access.some(a => a.what.includes("FHIR"))), `${width} FHIR export is logged`);
   await c('[data-close="1"] >> nth=-1');
   for (const t of ["anamnesis", "documents", "labs", "alerts"]) { await c(`[data-tab="${t}"]`); await over(t); }

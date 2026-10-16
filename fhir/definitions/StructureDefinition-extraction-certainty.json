@@ -1,0 +1,57 @@
+{
+  "resourceType": "StructureDefinition",
+  "id": "extraction-certainty",
+  "url": "https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/StructureDefinition/extraction-certainty",
+  "version": "0.1.0",
+  "name": "ExtractionCertainty",
+  "title": "Extraction certainty",
+  "status": "draft",
+  "description": "How sure the assistant is that the fact was read correctly from the source document.",
+  "fhirVersion": "4.0.1",
+  "kind": "complex-type",
+  "abstract": false,
+  "context": [
+    {
+      "type": "element",
+      "expression": "DomainResource"
+    }
+  ],
+  "type": "Extension",
+  "baseDefinition": "http://hl7.org/fhir/StructureDefinition/Extension",
+  "derivation": "constraint",
+  "differential": {
+    "element": [
+      {
+        "id": "Extension",
+        "path": "Extension",
+        "short": "Extraction certainty",
+        "definition": "How sure the assistant is that the fact was read correctly from the source document.",
+        "max": "1"
+      },
+      {
+        "id": "Extension.extension",
+        "path": "Extension.extension",
+        "max": "0"
+      },
+      {
+        "id": "Extension.url",
+        "path": "Extension.url",
+        "fixedUri": "https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/StructureDefinition/extraction-certainty"
+      },
+      {
+        "id": "Extension.value[x]",
+        "path": "Extension.value[x]",
+        "min": 1,
+        "type": [
+          {
+            "code": "Coding"
+          }
+        ],
+        "binding": {
+          "strength": "required",
+          "valueSet": "https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/ValueSet/extraction-certainty"
+        }
+      }
+    ]
+  }
+}

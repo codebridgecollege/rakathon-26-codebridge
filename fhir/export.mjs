@@ -11,9 +11,9 @@ const errors = [];
 p.on("pageerror", e => errors.push(e.message));
 await p.goto(`file://${page}#patient/${nr}/overview`);
 await p.click('[data-act="fhirdlg"]');
-const bundle = await p.evaluate(() => S.overlay.bundle);
+const json = await p.evaluate(() => fhirJson(S.overlay.bundle));
 await b.close();
 if (errors.length) { console.error(errors.join("\n")); process.exit(1); }
 fs.mkdirSync(path.dirname(out), { recursive: true });
-fs.writeFileSync(out, JSON.stringify(bundle, null, 2) + "\n");
-console.log(`wrote ${out}: ${bundle.entry.length} entries`);
+fs.writeFileSync(out, json + "\n");
+console.log(`wrote ${out}: ${JSON.parse(json).entry.length} entries`);
