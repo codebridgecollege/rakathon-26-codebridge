@@ -7,19 +7,19 @@ Usage:
     uv run mocks/build.py
 
 Writes `mocks/v1.html` to `mocks/v3.html`. Each template has placeholders
-(`/*CASE*/`, `/*LIST*/`, `/*EXTRA*/`, and in v3 `/*PAGES*/` and `/*GUIDE*/`) that are
+(`/*CASE*/`, `/*LIST*/`, `/*EXTRA*/`, and in v3 `/*PAGES*/`) that are
 replaced with the JSON files in `mocks/src/data/` and the page index in
 `data/derived/page-index.json`, so the page needs no server.
 
-Mock v3 shows the rendered page images in its source view. The page index
+Mock v3 shows the rendered page images in their source view. The page index
 refers to them as `pages/<pdf stem>/p<n>.png`, so the build copies
 `data/derived/pages/<pdf stem>/p<n>.png` to `mocks/pages/<pdf stem>/`, next
 to the generated HTML. It also copies `p<n>.redacted.png` (written by
 `scripts/redact_pages.py`), which the viewer shows on request as what would
 be sent to a cloud model after local redaction. Publishing v3 means
-publishing that folder with it. Mock v3's in-page server holds the merged
-guideline and literature files and serves them on its guidance route; the
-viewer opens each guideline PDF online at the cited page.
+publishing that folder with it. Mock v3's guideline layer reads the merged
+guideline and literature files through an API stub and opens each guideline
+PDF online at the cited page.
 """
 
 import json
@@ -72,7 +72,7 @@ def copy_page_images() -> int:
 
 
 def guidance() -> str:
-    """Merge the guideline and literature files into the one response the mock's guidance route returns.
+    """Merge the guideline and literature files into the one response the mock's API stub returns.
 
     In a deployed app this is what `GET /api/cases/{case_id}/guidance` would return from the server; the
     mock embeds it because it is a single HTML file. PDFs are not bundled: the viewer opens each guideline
