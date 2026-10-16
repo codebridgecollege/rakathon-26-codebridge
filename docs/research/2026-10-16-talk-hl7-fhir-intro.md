@@ -165,11 +165,4 @@ The only data-access question (a FHIR token for test data) was deferred to the a
 
 ## Open points
 
-- **Which data and format will we actually get?** Not answered here; deferred to the Microsoft and InterSystems workshops [rec1 02:06:59]. Check that talk's notes (second recording `GMT20261015-105031`) for FHIR server URLs and tokens.
-- **Judging: idea versus technical execution** is unanswered [chat 02:28:04]. Ask the organizers.
-- **SNOMED CT disagreement between speakers.** Michal Opatřil: few people know or use SNOMED CT in Czechia, use NČLP for labs and MKN-10 for diagnoses [rec1 01:23:56]. Hynek Kružík: "moje doporučení naopak trošku je odlišné od toho, co říkal Michal" (my recommendation is a bit different from Michal's), new Czech profiles move to SNOMED CT except NČLP [rec1 01:54:48]. Both agree NČLP stays for lab tests. For our input, real FNO documents will likely use MKN-10 and NČLP and rarely SNOMED CT (inference); confirm with the challenge owners.
-- **Will FNO data come as FHIR at all, or as PDFs, CDA, or DASTA exports?** The deck warns that not all Czech systems use FHIR yet and that CDA and other interfaces are in use [slide 8 notes, slide 6 notes]. DASTA is still maintained for existing systems [rec1 02:02:25], so a DASTA export from the hospital is possible (inference).
-- **"Synthetic Data for Phoenix"** appears in the Málaga agenda [slide 23]. Our sources folder also holds `Rakathon_HoF_PHOENIX_XiA.pdf`; whether these refer to the same Phoenix, and whether synthetic oncology data in Common Cancer Model shape exists, is unverified.
-- **Garbled terms to confirm:** "eHealth Room FHIR Base" [rec1 02:10:41] (possibly HL7 EU Base or the Czech core guide); "Clot a Clot a Corex" [rec1 02:10:41] (probably Claude, Claude Code, Codex); "Lucem Chatim" [rec1 02:11:49] (probably Luc Chatty); "info zavináč chex tečka com" [rec1 02:06:06] (the organizers' email); "ILFU" for the Monday event venue, which the previous speaker calls "Institut pro postgraduální vzdělávání" [rec1 01:27:56, rec1 01:32:37]; "Plie Hack" for the morning session [rec1 02:11:49] (probably "pre-hack").
-- **EU guide acronyms on slide 18** (EU DR, EU MDR, EU PMD and others) are not expanded in the talk [slide 18].
-- **The Common Cancer Model is a ballot draft** with only the Patient mapped [slide 10, rec1 01:52:47]. If we use its class names in our data model, say it is a draft and pin version 1.0.0-ballot.
+Moved to [`docs/agent/OPEN_QUESTIONS.md`](../agent/OPEN_QUESTIONS.md).

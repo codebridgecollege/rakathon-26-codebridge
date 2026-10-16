@@ -15,9 +15,8 @@ and [FHIR workshop and PHOENIX](../research/2026-10-16-talk-fhir-workshop-and-ph
   hackathon lasts 24 hours. The Prague venue is the Plzeňská campus of the
   Second Faculty of Medicine, Charles University, in Motol.
 - **Sunday:** finals and the hacker prize, which participants vote for.
-- **To fill in from the opening:** submission deadline, judging criteria,
-  the official rules (check them against the cloud LLM rule below), and
-  which venue our team is at.
+- Deadline, judging criteria, official rules, and our venue are pending;
+  see [`OPEN_QUESTIONS.md`](OPEN_QUESTIONS.md).
 
 ## Data
 
@@ -102,13 +101,11 @@ and [FHIR workshop and PHOENIX](../research/2026-10-16-talk-fhir-workshop-and-ph
 
 ## Decisions agreed with the organizers
 
-Record each one with the date and who confirmed it.
+Record each one with the date and who confirmed it. Questions still
+waiting for an answer are in [`OPEN_QUESTIONS.md`](OPEN_QUESTIONS.md).
 
-- *Cloud LLM use with FNO data: not yet confirmed.* Until FNO confirms the
-  data is anonymous or synthetic and may go to a cloud model (including
-  coding agents), use cloud models only with synthetic samples.
-- *Committing samples derived from FNO data: not yet confirmed.*
-- *FHIR input or output, and the InterSystems prize: not yet decided.*
+- None yet. Until FNO confirms its data may go to a cloud model
+  (including coding agents), cloud models see only synthetic samples.
 
 ## Before the repository goes public
 

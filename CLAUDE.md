@@ -280,6 +280,7 @@ Pick **one** location. All of these are in git, so the whole team sees them.
 | Operating rule (applies to any task) | `/CLAUDE.md` (this file) |
 | Problem, data, domain, or architecture fact | [`/docs/agent/INDEX.md`](docs/agent/INDEX.md) |
 | Hackathon logistics, infrastructure, judging, contacts, decisions with organizers | [`/docs/agent/HACKATHON.md`](docs/agent/HACKATHON.md) |
+| Open question, unanswered or pending a decision | [`/docs/agent/OPEN_QUESTIONS.md`](docs/agent/OPEN_QUESTIONS.md); when answered, move the answer to its home above and delete the question |
 | Fact local to one package or folder | that folder's `AGENTS.md` (create when needed) |
 | Research, exploration, meeting notes, open findings | [`/docs/research/`](docs/research/), one file per topic |
 | Raw source material (organizer slides, transcripts, specs) | [`/docs/sources/`](docs/sources/), kept as received |

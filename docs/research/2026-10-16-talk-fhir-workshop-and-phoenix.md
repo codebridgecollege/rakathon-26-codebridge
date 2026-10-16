@@ -337,25 +337,7 @@ technology for integration between its systems [rec2 01:14:55].
 
 ## Open points
 
-- The exact URLs of the InterSystems challenge page and of the "FHIR AI
-  Hackathon Kit" repository were not read out; find them in the InterSystems
-  challenge text on rakathon.cz [rec2 01:36:27].
-- The default FHIR server user name and password are in the kit, not in the
-  talk [rec2 01:42:28].
-- Does FNO deliver challenge 2 data in FHIR, in another structured format, or
-  as documents? The speaker only said that some owners deliver FHIR
-  [rec2 01:40:28].
-- May our challenge data go to a cloud LLM (Azure OpenAI or another)? This
-  must be confirmed with FNO, matching our own rule in `CLAUDE.md`
-  [rec2 02:08:19, Zoom captions].
-- Are the OpenAI embedding models used in the notebooks available in the
-  Rakathon Azure environment? The speaker did not know [rec2 01:56:30].
-- The host said the partner tools are not part of challenge evaluation
-  [rec2 01:07:58], while the speaker said FHIR use may interest challenge
-  judges [rec2 01:38:28]. The team must decide whether FHIR input or output
-  is worth the time for challenge 2, and whether to also aim for the
-  InterSystems prize.
-
+Moved to [`docs/agent/OPEN_QUESTIONS.md`](../agent/OPEN_QUESTIONS.md).
 ---
 
 # Part 2: Oncology solutions that work beyond one hospital (Hospitals on FHIR, PHOENIX, XiA)
@@ -613,16 +595,4 @@ so a product needs its own converter into a standard format
 
 ## Open points
 
-- The PHOENIX FHIR profiles do not exist yet; only the conceptual and
-  logical models are published, as a ballot [rec2 02:31:11] [page 9]. If we
-  emit FHIR, we would use base FHIR R4 resources (and possibly mCODE
-  profiles), not PHOENIX profiles (inference).
-- "The final text is out in March": unclear whether this means an EHDS
-  implementing act or a specification, and which March [rec2 02:42:17].
-- The EUSurvey link's URL is not in the chat export, only its title
-  [chat 03:13:35].
-- SYNDERAI content was shown live; whether it contains any oncology cases or
-  Czech examples was not said [rec2 02:23:08].
-- The slides speak of "the first 48 hours" [page 15], while the InterSystems
-  speaker and the host describe a 24-hour hackathon [rec2 02:04:31]; trust
-  the organizers' timetable.
+Moved to [`docs/agent/OPEN_QUESTIONS.md`](../agent/OPEN_QUESTIONS.md).

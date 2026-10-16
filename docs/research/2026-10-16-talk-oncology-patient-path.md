@@ -425,48 +425,4 @@ name. These are the passages closest to it:
 
 ## Open points
 
-- **The deck's "Výzva 1-4" are not our challenge numbering.** Slides 44 to
-  48 list "Výzva 1: Od podezření k dokončené diagnostice", "Výzva 2:
-  Správná péče na správném pracovišti", "Výzva 3: Dopravní služba pro
-  koordinátora", "Výzva 4: Dokumentace dostupná koordinátorovi", with
-  speaker notes calling them hackathon proposals [slide 44] [slide 45]
-  [slide 46] [slide 48]. They were not presented aloud. Check with the
-  organizers whether these are official Rakathon challenges from another
-  setter, so nobody confuses "Výzva 2" here with our challenge 2 (MDT
-  assistant, FN Ostrava).
-- **Slide 30 speaker notes do not match the slide.** The slide shows breast
-  cancer time to treatment, but the notes talk about cholesterol testing
-  during and after hospitalization [slide 30].
-- **PD-L1 year.** The transcript says "tam už jsme samozřejmě rok 2006"
-  [rec1 00:43:12], but the chart covers 2018 to 2021 [slide 31]. Probably a
-  slip or a transcription error.
-- **Barrett's segment.** The speaker called it a precancerous condition of
-  the stomach [rec1 00:15:57]; the slide says Barrett's oesophagus
-  ("Barrettsova jícnu") [slide 13]. Not relevant to our build, but the
-  slide is the more accurate source.
-- **Garbled transcript terms:** "legatis" [rec1 00:28:31] is unclear,
-  possibly "legitimitu" (legitimacy) or a similar word; "zprů поздnil"
-  [rec1 00:41:11] contains Cyrillic and is probably "zprůhlednil" (made
-  transparent) or "zprůchodnil" (made passable); "fríza" [rec1 00:53:45]
-  is probably "freelancer"; "Fajdlová" [rec1 00:20:21] is Fajtlová;
-  "Studentik" [rec1 00:04:09] is Studeník; "SX ... PH" [rec1 00:39:10] is
-  SX and PHT; "OMOPu" is the OMOP data model; "vysmátý" [rec1 00:30:31]
-  is unclear in context; "v Jičíně" among KOC cities [rec1 00:45:12] may
-  mean Nový Jičín, which appears on slide 38.
-- **Speaker attribution.** The diarization merged the moderator into
-  speaker_0 at several points (for example "Aleši, jenom upozornění, máme
-  pět minut" at rec1 00:45:12 and "Tak já ti děkuji, Aleši" at
-  rec1 00:47:13). The remark about low acceptance of a rigid system at
-  rec1 00:55:04 is labelled speaker_1 but reads like the end of the
-  speaker's own sentence.
-- **Slide date.** The title says January 2026, but speaker notes cite
-  sources from September and October 2026 [slide 1] [slide 33] [slide 48].
-  The deck was apparently updated for the hackathon; the extraction and
-  legal slides (44 to 51) are the speaker's own proposals, not approved
-  clinical algorithms [slide 51].
-- **MDT minutes in FN Ostrava data.** Since MDTs are often not recorded
-  [rec1 00:43:12], ask the organizers whether the sample documentation
-  includes previous MDT records, and whether the data uses any of the
-  event coding from slides 21 and 23.
-- **Slide 38 numbers** are my visual reading of a bar chart, not values
-  stated anywhere; do not quote them as exact.
+Moved to [`docs/agent/OPEN_QUESTIONS.md`](../agent/OPEN_QUESTIONS.md).

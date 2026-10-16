@@ -562,32 +562,4 @@ assistant:
 
 ## Open points
 
-- **Pages 17, 18, and 19 were not presented aloud.** Their guidance (MVP
-  architecture, oncology guide, prototype types A, B, C) is the speaker's
-  written view only. Check with organizers whether the jury uses these as
-  criteria.
-- **"Six" priority categories but five listed.** Page 6's title says six
-  European priority categories, while the "1. vlna" (first wave) list has
-  five items, including the ZZS call-out report. Page 5's timeline also
-  names ePrescription and eDispensation (Rx/Disp). The exact six-item list
-  needs a check against the EHDS text or the MZČR wiki page.
-- **ITI-66 versus ITI-67.** The slide and the speech word their roles
-  differently [page 12] [rec1 01:21:56]. Check profiles.ihe.net/ITI/MHD
-  before implementing.
-- **Event venue.** The slide says Hotel ILF, Prague [page 21]; the speech
-  says "Institut pro postgraduální vzdělávání Praha" and "pražského ILFU"
-  [rec1 01:27:56]. Probably the same place; check with the speaker if the
-  team wins.
-- **Domain IG names.** "CZ Lab / Imaging / HDR / PS" are listed without
-  links or status [page 15]; confirm which are published on hl7.cz/fhir
-  and which are drafts.
-- **Garbled vendor and product names** (eSpráva, "Emedox", "Clickbox",
-  "Stapromise", "Medax") and unexpanded abbreviations (JSU, NPEZ,
-  EZKarta, SZZ, HCID) need checking before anyone cites them. [rec1
-  01:02:04] [rec1 01:08:47] [page 8] [page 11]
-- **Draft law dates** (mandatory electronic documentation from 2029,
-  eŽádanky from 2027/2028) are a 2026 draft that "may change in October
-  2026" [page 4]. Do not present them as current obligations.
-- **Uncertainty display.** Page 19 asks for a degree of uncertainty on AI
-  answers. Our rules in `CLAUDE.md` do not yet require it; the team should
-  decide whether to add it.
+Moved to [`docs/agent/OPEN_QUESTIONS.md`](../agent/OPEN_QUESTIONS.md).

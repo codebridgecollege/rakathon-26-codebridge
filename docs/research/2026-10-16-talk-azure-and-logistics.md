@@ -400,35 +400,4 @@ indirectly:
 
 ## Open points
 
-- **Budget period.** 100 to 200 USD per team is described once as enough
-  "for the duration of the hackathon" [rec2 00:46:14] and once as "for
-  roughly the day" [rec2 00:56:00]. Ask the coaches what the real cap is
-  and what happens when it is reached.
-- **Exact model names.** "Astra", "šest jedna Sol", and "Luna" may be
-  garbled or may be OpenAI model names we do not know. Read the exact
-  deployment names, their regions (EU or global), and the API version from
-  the portal on 16 October, then pin them in `.env.example`.
-- **Data protection for challenge 2.** Confirm with FN Ostrava (the
-  challenge owner) whether its data is synthetic or anonymized and may be
-  sent to the shared Azure deployments, and whether only EU deployments are
-  acceptable. No one in this session stated a rule for health data.
-- **Copilot credit.** The presenter said both 100,000 and 10,000 credits for
-  100 USD; at one cent per credit it is 10,000.
-- **Rate limits.** No numbers were given for the shared LLM endpoint.
-  Measure early whether our extraction volume (many documents per patient)
-  fits.
-- **Managed identities and Key Vault.** Teams cannot assign roles, so a
-  deployed app may not be able to read secrets from Key Vault without coach
-  help. Keeping the key in app settings or environment variables avoids
-  this (inference).
-- **Slack channel names.** The host said "Tech Support", the InterSystems
-  speaker said "Tech Helpdesk" [rec2 02:04:31], and the host later said
-  "helpdesk" [rec2 02:08:28]. Check the real channel name on Slack.
-- **Third partner.** The host named the technology partners as
-  "InterSystems, Microsoft a SECA" [rec2 00:09:54]. "SECA" may be a
-  mis-transcription; check who it is.
-- **Deadlines.** The session gives no time for the end of hacking or for
-  submission, and no judging criteria; both are promised for the opening on
-  16 October [rec2 02:46:22].
-- **Microsoft prize.** The host said there "may" be a Microsoft prize
-  [rec2 01:07:58]. Check at the opening.
+Moved to [`docs/agent/OPEN_QUESTIONS.md`](../agent/OPEN_QUESTIONS.md).

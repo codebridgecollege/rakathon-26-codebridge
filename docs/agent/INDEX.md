@@ -164,7 +164,8 @@ From path, slide 19:
   pathological from surgery and histology; both can exist for one tumour
   (HL7, slide 15).
 - **KOC / ROC**: comprehensive and regional oncology centre. FNO hosts a
-  KOC (background knowledge, not stated in the talks; verify).
+  KOC (background knowledge, not stated in the talks; see
+  [`OPEN_QUESTIONS.md`](OPEN_QUESTIONS.md)).
 
 ## Standards we follow
 
@@ -212,16 +213,4 @@ https://mzcr.atlassian.net/wiki/spaces/EPZS/pages/203096069/Standardy+EHR+-+prio
 
 ## Open questions
 
-Record answers here as the team learns them.
-
-- What format does FNO's documentation come in (PDF, scans, text exports,
-  FHIR, CDA, DASTA)? Does it include earlier MDT minutes?
-- Is the data anonymized or synthetic, and has FNO confirmed it may go to
-  a cloud LLM? (Blocks the cloud LLM rule in `CLAUDE.md`.)
-- Which diagnoses does the FNO MDT focus on? That decides the "missing
-  documents" checklist beyond lung cancer.
-- How is the challenge judged: idea or technical execution? Asked in chat,
-  unanswered (HL7, chat 02:28:04).
-- Which tech stack and which LLM deployment do we use?
-- Do we read or produce FHIR, and do we also aim for the InterSystems
-  prize? Record the decision in `HACKATHON.md`.
+All open questions are in [`OPEN_QUESTIONS.md`](OPEN_QUESTIONS.md).
