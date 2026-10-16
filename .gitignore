@@ -60,5 +60,5 @@ Thumbs.db
 *.mp4
 
 # Guideline PDFs are downloaded only to extract quotes; they are copyrighted and the app opens them online.
-docs/sources/guidelines/*.pdf
+docs/sources/guidelines/
 mocks/guidelines/

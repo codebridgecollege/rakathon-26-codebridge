@@ -250,7 +250,7 @@ details.more > summary { cursor: pointer; color: var(--muted); font-size: 12.5px
 .drawer .pages { display: flex; gap: 4px; flex-wrap: wrap; padding: 0 20px 10px; border-bottom: 1px solid var(--line); }
 .drawer .pages button { border: 1px solid var(--line); background: none; border-radius: 5px; padding: 2px 9px; cursor: pointer; font-size: 12.5px; }
 .drawer .pages button[aria-pressed="true"] { background: var(--accent); color: #fff; border-color: var(--accent); }
-.drawer .text { overflow: auto; padding: 16px 20px 40px; white-space: pre-wrap; word-break: break-word; font-size: 14px; line-height: 1.65; }
+.drawer .text { overflow-wrap: anywhere; overflow: auto; padding: 16px 20px 40px; white-space: pre-wrap; word-break: break-word; font-size: 14px; line-height: 1.65; }
 .drawer mark { background: var(--mark); color: inherit; border-radius: 2px; padding: 0 1px; }
 
 /* Modal */
@@ -343,9 +343,10 @@ details.srcs .refs { border-top: 0; margin-top: 4px; padding-top: 0; }
 .synth { border: 1.5px dashed var(--missing); background: var(--missing-soft); color: var(--missing); border-radius: var(--r); padding: 8px 12px; font-weight: 600; font-size: 13px; }
 
 /* v3: guideline layer */
-.gl { border: 1px dashed var(--unclear); border-radius: var(--r); padding: 10px 12px; margin-top: 10px; background: #fbfaff; }
+.gl { overflow-wrap: anywhere; border: 1px dashed var(--unclear); border-radius: var(--r); padding: 10px 12px; margin-top: 10px; background: #fbfaff; }
 .gl ol { margin: 6px 0 0; padding-left: 20px; display: grid; gap: 8px; }
 .gl q { font-style: italic; }
+.gl .chip { white-space: normal; }
 .gl .cite { display: block; font-size: 12px; color: var(--muted); }
 .devt td, .devt th { vertical-align: top; }
 .devt select, .devt input { width: 100%; }
@@ -407,7 +408,7 @@ async function loadGuidance(p) {
 }
 const GL = id => (GUIDE.guidelines || []).find(g => g.id === id) || {};
 const STMTS = () => GUIDE.statements || [];
-const citeOf = st => { const g = GL(st.guideline_id); return `${g.name || ""}, ${g.society || ""} ${g.year || ""}${g.version ? ", " + g.version : ""}; ${st.section || ""}; s. ${st.printed_page || st.pdf_page}`; };
+const citeOf = st => { const g = GL(st.guideline_id); return `${g.name || ""}, ${g.society || ""} ${g.year || ""}${g.version ? ", " + g.version : ""}; ${st.section || ""}; ${st.pdf_page ? "s. " + (st.printed_page || st.pdf_page) : "abstrakt"}`; };
 
 const GAP = "neuvedeno v dostupné dokumentaci";
 const GAP_F = "neuvedena v dostupné dokumentaci";
@@ -806,10 +807,11 @@ function proposalBox(p) {
 }
 const GROUPS = [["CZ", "Česko (Modrá kniha ČOS)"], ["EU", "Evropa (ESMO, EANO, ESTRO)"], ["US", "USA (ASCO, ASTRO, NCCN)"], ["INT", "Mezinárodní"]];
 const fieldOf = st => GL(st.guideline_id).field || "oncology";
+/* Compact line per statement (round 10): quote, short source, a link; the full citation and the reason sit in the viewer. */
+const shortCite = st => { const g = GL(st.guideline_id); return `${(g.society || "").replace(/\s*\(.*?\)/g, "")} ${g.year || ""}, ${st.pdf_page ? "s. " + (st.printed_page || st.pdf_page) : "abstrakt"}`; };
 function stmtHtml(x) {
-  return `<li><q>${esc(x.quote.length > 260 ? x.quote.slice(0, 260) + "…" : x.quote)}</q>${x.evidence ? ` <span class="chip plain st-new">${esc(x.evidence)}</span>` : ""}
-    <span class="cite">${esc(citeOf(x))} · <button class="linkbtn small" data-guide="${esc(x.id)}">otevřít v doporučení</button></span>
-    <span class="small">Platí, protože: ${esc(x.applies_because_cs || (x.patient_facts || []).join("; "))}</span></li>`;
+  return `<li><q>${esc(x.quote.length > 200 ? x.quote.slice(0, 200) + "…" : x.quote)}</q>
+    <span class="cite">${esc(shortCite(x))}${x.evidence && x.evidence.length < 40 ? ` · ${esc(x.evidence)}` : ""} · <button class="linkbtn small" data-guide="${esc(x.id)}" title="${esc(citeOf(x))}">otevřít</button></span></li>`;
 }
 function guideBox() {
   const head = `<div class="row spread"><span class="label">Doporučení a literatura k navrhovanému postupu · pozorování asistenta</span>
@@ -820,17 +822,18 @@ function guideBox() {
   if (!st.length && !(GUIDE.literature || []).length) return "";
   const onc = st.filter(x => /oncology/.test(fieldOf(x)));
   const other = st.filter(x => !/oncology/.test(fieldOf(x)));
-  const groups = GROUPS.map(([r, t]) => { const xs = onc.filter(x => (GL(x.guideline_id).region || "EU") === r); return xs.length ? `<h3 style="margin:10px 0 0;font-size:13px">${t}</h3><ol>${xs.map(stmtHtml).join("")}</ol>` : ""; }).join("");
+  const grp = (t, xs, open) => xs.length ? `<details class="srcs" ${open ? "open" : ""}><summary><b>${t}</b> (${xs.length})</summary><ol>${xs.map(stmtHtml).join("")}</ol></details>` : "";
+  const groups = GROUPS.map(([r, t], i) => grp(t, onc.filter(x => (GL(x.guideline_id).region || "EU") === r), i === 0)).join("");
   const lit = GUIDE.literature || [];
-  return `<div class="gl">${head}
+  return `<details class="gl" ${S.guideOpen ? "open" : ""} data-guideopen="1"><summary style="cursor:pointer"><b>Doporučení k postupu (${st.length})</b>${lit.length ? ` · literatura (${lit.length})` : ""} <span class="muted small">· pozorování asistenta, rozhoduje MDT</span></summary>${head}
     ${groups}
-    ${other.length ? `<h3 style="margin:12px 0 0;font-size:13px">Další obory (přidružená onemocnění)</h3><ol>${other.map(stmtHtml).join("")}</ol>` : ""}
+    ${grp("Další obory (přidružená onemocnění)", other, false)}
     ${lit.length ? `<details class="srcs" style="margin-top:12px"><summary>Literatura z PubMed (${lit.length}) · pro situace, kde doporučení nestačí</summary>
       <ol>${lit.map(a => `<li><b>${esc(a.title)}</b><span class="cite">${esc(a.first_author || "")} et al. ${esc(a.journal || "")} ${esc(a.year || "")} · ${esc(a.pub_type || "")} · <a href="${esc(a.url)}" target="_blank" rel="noopener">PMID ${esc(a.pmid)}</a></span>
         ${(a.quotes || []).slice(0, 1).map(q => `<q>${esc(q)}</q>`).join("")}<span class="small">Proč: ${esc(a.why_relevant_cs || "")}</span></li>`).join("")}</ol>
       <p class="muted small" style="margin:6px 0 0">Literatura není doporučení. Hledání v PubMed používá jen odborné pojmy, nikdy údaje o pacientovi${(GUIDE.queries || []).length ? `; dotazy: ${(GUIDE.queries || []).map(q => `„${esc(q.query)}“`).join(", ")}` : ""}.</p></details>` : ""}
-    ${(GUIDE.not_retrieved || []).length ? `<p class="muted small" style="margin:8px 0 0">Nenačteno: ${(GUIDE.not_retrieved || []).map(n => `${esc(n.name)} (${esc(n.reason)})`).join("; ")}.</p>` : ""}
-    <p class="muted small" style="margin:8px 0 0">Citace doslovně z uvedených doporučení. Asistent možnosti neřadí a postup nenavrhuje; rozhoduje MDT. Odchylky se zapisují v protokolu MDT.</p></div>`;
+    ${(GUIDE.not_retrieved || []).length ? `<details class="srcs"><summary class="muted">Nenačtené zdroje (${GUIDE.not_retrieved.length})</summary><ul class="small muted">${GUIDE.not_retrieved.map(n => `<li>${esc(n.name)}: ${esc(n.reason)}</li>`).join("")}</ul></details>` : ""}
+    <p class="muted small" style="margin:8px 0 0">Citace doslovně z uvedených doporučení. Asistent možnosti neřadí a postup nenavrhuje; rozhoduje MDT. Odchylky se zapisují v protokolu MDT.</p></details>`;
 }
 function gapsBox() {
   const g = EXTRA.data_gaps_v3 || [];
@@ -1228,10 +1231,10 @@ function renderOverlay() {
     try { text = text.replace(new RegExp(pat), m => `<mark id="hit">${m}</mark>`); } catch (e) { /* odd characters: show the page unmarked */ }
     el.innerHTML = `<div class="scrim" data-close="1"></div><aside class="drawer" role="dialog" aria-label="Doporučení">
       <header><div><div class="label">Doporučení · ${esc(g.society || "")} ${esc(g.year || "")}</div><h2 style="margin-top:4px">${esc(g.name || "")}</h2>
-        <div class="muted small">${esc(g.version || "")} · ${esc(st.section || "")} · strana PDF ${esc(st.pdf_page)}${st.printed_page && st.printed_page !== st.pdf_page ? ` (tištěná ${esc(st.printed_page)})` : ""}</div></div>
+        <div class="muted small">${esc(g.version || "")} · ${esc(st.section || "")} · ${st.pdf_page ? `strana PDF ${esc(st.pdf_page)}${st.printed_page && st.printed_page !== st.pdf_page ? ` (tištěná ${esc(st.printed_page)})` : ""}` : "jen abstrakt, plný text nebyl dostupný"}</div></div>
         <button class="btn small" data-close="1">Zavřít</button></header>
-      <div class="pages">${g.pdf_url ? `<a class="btn small" href="${esc(g.pdf_url)}${/\.pdf($|\?)/i.test(g.pdf_url) ? "#page=" + esc(st.pdf_page) : ""}" target="_blank" rel="noopener">Otevřít PDF online (str. ${esc(st.pdf_page)})</a>` : ""}${g.url ? ` <a class="btn small" href="${esc(g.url)}" target="_blank" rel="noopener">Zdroj vydavatele</a>` : ""}</div>
-      <div class="synth" style="margin:10px 20px 0;border-style:solid">Platí, protože: ${esc(st.applies_because_cs || "")}</div>
+      <div class="pages">${g.pdf_url ? `<a class="btn small" href="${esc(g.pdf_url)}${st.pdf_page && /\.pdf($|\?)/i.test(g.pdf_url) ? "#page=" + esc(st.pdf_page) : ""}" target="_blank" rel="noopener">Otevřít PDF online${st.pdf_page ? ` (str. ${esc(st.pdf_page)})` : ""}</a>` : ""}${g.url ? ` <a class="btn small" href="${esc(g.url)}" target="_blank" rel="noopener">Zdroj vydavatele</a>` : ""}</div>
+      <div class="synth" style="margin:10px 20px 0;border-style:solid">${st.evidence ? `Síla doporučení: ${esc(st.evidence)}<br>` : ""}Platí, protože: ${esc(st.applies_because_cs || "")}<br><span style="font-weight:500">${esc(citeOf(st))}</span></div>
       <div class="text">${text}</div></aside>`;
     document.getElementById("hit")?.scrollIntoView({ block: "center" });
   } else if (o.kind === "upload") {
@@ -1448,6 +1451,7 @@ document.addEventListener("change", e => {
   else if (t.dataset.pickrep) { t.checked ? S.picked.add(t.dataset.pickrep) : S.picked.delete(t.dataset.pickrep); }
   else if (t.dataset.step !== undefined) { curProto().steps[+t.dataset.step][t.dataset.f] = t.value; render(); }
 });
+document.addEventListener("toggle", e => { if (e.target.dataset?.guideopen) S.guideOpen = e.target.open; }, true);
 document.addEventListener("toggle", e => { const d = e.target.dataset?.find; if (d) e.target.open ? S.openFind.add(d) : S.openFind.delete(d); }, true);
 document.addEventListener("keydown", e => { if (e.key === "Escape" && S.overlay) { S.overlay = null; renderOverlay(); } else if (e.key === "Escape" && S.colOpen) { S.colOpen = null; render(); } });
 
