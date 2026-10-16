@@ -79,7 +79,9 @@ and a list of boxes with reasons (never the removed values) next to each
 page in `data/derived/pages/`. It covers the form fields, patterns (birth
 number, phone, e-mail, a value glued to its label such as
 "nar.:13.10.1961"), known patient names, and doctors' names after
-"MUDr.". It found 52 identifiers on 10 pages.
+"MUDr." and similar titles. It found 54 identifiers on 10 of the 20
+pages; on the other 10 it found nothing, which the mock states as "kontrola
+je neúplná", not as "clean".
 
 What testing on FNO's pages taught us, useful for questions:
 
@@ -91,6 +93,11 @@ What testing on FNO's pages taught us, useful for questions:
   text was taken for the "Bydliště:" form field and medical words were
   blacked out. Fixed by treating a word as a label only at the start of a
   line or before a colon. Lesson: every rule needs a check on both sides.
+- **Missed again (review of mock v4):** "MUDr.Hofrová" came out of
+  Tesseract as one token, so the rule "the word after MUDr." missed it.
+  Fixed by matching a title glued to the name. Widening the title list to
+  "prim." then blacked out "přim. konfigurace" ("přiměřené"), so "prim."
+  was taken out again; "prim. MUDr. X" is still caught through "MUDr.".
 - **Not built yet:** a Czech name recognizer for names in free text
   (relatives, other doctors without "MUDr."), and blacking out whole
   header blocks. Until then, option B is a demonstration, not a

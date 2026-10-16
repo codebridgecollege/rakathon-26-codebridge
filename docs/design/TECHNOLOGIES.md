@@ -88,8 +88,9 @@ development and corrected by hand after two reviews
 | Technology | Status | What we use it for | Why |
 |---|---|---|---|
 | Static HTML, CSS, plain JavaScript | used | The clickable mocks in `mocks/` | No build step; one file opens anywhere and can be published as a link |
-| Hash-based routing | used (v3) | Browser back and forward inside a single page | Soňa asked for back and forward; works without a server |
-| In-page "server" module | planned (next mock) | All data access goes through one async API module, so a real backend can replace it later without touching the screens | See `mocks/README.md` once built |
+| Hash-based routing | used (v3, v4) | Browser back and forward inside a single page | Soňa asked for back and forward; works without a server |
+| In-page "server" module | used (v4) | All data and every record that changes sit in one server block behind an async `api` with REST-shaped routes; the screens only call it and render from a cache. The server checks roles and writes the audit log | A real backend replaces the `api` object with `fetch()` calls to the same routes; route table in [`mocks/README.md`](../../mocks/README.md) |
+| Page-image source view | used (v4) | A source reference opens the rendered page image (150 dpi) with the cited passage boxed from Tesseract's word positions, the vision transcription in a second tab with the same passage marked, and the "ověřit" tokens marked in both | Team decision 2026-10-16: show the actual page, so the doctor can check the original; the text tab keeps source links pointing at a passage |
 | Google Fonts: Manrope, DM Sans | used | Headings and text | Soňa's visual brief (GLIDE-inspired clinical workspace) |
 | claude.ai artifacts | dev only | Publishing the mocks as private links for the team | Quick sharing and comments |
 

@@ -6,15 +6,28 @@
 Usage:
     uv run mocks/build.py
 
-Writes `mocks/v1.html`, `mocks/v2.html` and `mocks/v3.html`. Each template has placeholders
-(`/*CASE*/`, `/*LIST*/`, `/*EXTRA*/`) that are replaced with the JSON files
-in `mocks/src/data/`, so the published page needs no server.
+Writes `mocks/v1.html` to `mocks/v4.html`. Each template has placeholders
+(`/*CASE*/`, `/*LIST*/`, `/*EXTRA*/`, and in v4 `/*PAGES*/`) that are
+replaced with the JSON files in `mocks/src/data/` and the page index in
+`data/derived/page-index.json`, so the page needs no server.
+
+Mock v4 shows the rendered page images in its source view. The page index
+refers to them as `pages/<pdf stem>/p<n>.png`, so the build copies
+`data/derived/pages/<pdf stem>/p<n>.png` to `mocks/pages/<pdf stem>/`, next
+to the generated HTML. It also copies `p<n>.redacted.png` (written by
+`scripts/redact_pages.py`), which the viewer shows on request as what would
+be sent to a cloud model after local redaction. Publishing v4 means
+publishing that folder with it.
 """
 
+import json
+import re
+import shutil
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 DATA = HERE / "src" / "data"
+DERIVED = HERE.parent / "data" / "derived"
 
 
 def embed(text: str) -> str:
@@ -23,18 +36,53 @@ def embed(text: str) -> str:
     return text.replace("</", "<\\/").replace("�", "\\ufffd")
 
 
+PAGE_IMAGE = re.compile(r"p\d+(\.redacted)?\.png")
+
+
+def page_index() -> str:
+    index = json.loads((DERIVED / "page-index.json").read_text())
+    for name, doc in index.items():
+        for page in doc["pages"]:
+            # The viewer shows the vision text and Tesseract's word boxes; the plain
+            # Tesseract text is not shown, so it is left out to keep the page small.
+            page.pop("tess_text", None)
+            # The redaction record holds only reasons and boxes, never the identifier values.
+            folder = DERIVED / "pages" / Path(name).stem
+            record = folder / f"p{page['n']}.redactions.json"
+            if (folder / f"p{page['n']}.redacted.png").exists() and record.exists():
+                reasons = [r["reason"] for r in json.loads(record.read_text())]
+                page["redacted"] = {"image": f"pages/{folder.name}/p{page['n']}.redacted.png", "count": len(reasons), "reasons": sorted(set(reasons))}
+    return json.dumps(index, ensure_ascii=False)
+
+
+def copy_page_images() -> int:
+    """Copy the page renders (and their redacted versions) next to the HTML, where the page index expects them."""
+    count = 0
+    for png in sorted((DERIVED / "pages").glob("*/*.png")):
+        # Only the page images; anything else a script leaves in the folder stays out of the mock.
+        if not PAGE_IMAGE.fullmatch(png.name):
+            continue
+        target = HERE / "pages" / png.parent.name / png.name
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(png, target)
+        count += 1
+    return count
+
+
 def main() -> None:
     parts = {
         "/*CASE*/": embed((DATA / "mock-case-10.json").read_text()),
         "/*LIST*/": embed((DATA / "mock-patient-list.json").read_text()),
         "/*EXTRA*/": embed((DATA / "mock-case-10-extra.json").read_text()),
+        "/*PAGES*/": embed(page_index()),
     }
-    for version in ("v1", "v2", "v3"):
+    for version in ("v1", "v2", "v3", "v4"):
         page = (HERE / "src" / f"{version}-template.html").read_text()
         for key, value in parts.items():
             page = page.replace(key, value)
         (HERE / f"{version}.html").write_text(page)
         print(f"wrote mocks/{version}.html ({len(page)} bytes)")
+    print(f"copied {copy_page_images()} page images to mocks/pages/")
 
 
 if __name__ == "__main__":
