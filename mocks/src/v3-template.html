@@ -460,7 +460,7 @@ function initialPatients() {
   return [p10, ...others].map((p, i) => ({
     ...p, id: caseId(p.file),
     owner: p.referrer || ownerFor(i), ownerExample: !p.referrer,
-    dept: p.dept || ["Klinická onkologie", "Neurologie", "Neurochirurgie"][i % 3], deptExample: !p.dept,
+    dept: p.dept || ["Nemocnice Havířov, neurologie", "Slezská nemocnice v Opavě, onkologie", "Nemocnice Karviná-Ráj, neurochirurgie", "FN Ostrava, Klinika onkologická"][i % 4], deptExample: !p.dept,
   }));
 }
 
@@ -480,13 +480,14 @@ const P = id => S.patients.find(p => p.file === id);
 /* ---------- small UI helpers ---------- */
 /* Identity as the MDT team reads it (Soňa, round 3): surname first, then the birth number. No FNO document
    in the challenge data contains a birth number, so it shows as not stated; never invented. */
+const lastMdt = p => { const d = S.decisions.filter(x => x.pid === p.file); return d.length ? d[d.length - 1].when.split(",")[0] : null; };
 const surnameFirst = p => p.nameAsWritten || (p.name.includes(" ") ? p.name.split(" ").slice(-1)[0] + " " + p.name.split(" ").slice(0, -1).join(" ") : p.name);
 const rcText = p => p.rc || "neuvedeno";
 /* Age as a bare number (round 4); from a stated age, or computed from a stated birth date. */
 const ageNum = p => { const t = ageText(p); return t ? t.replace(/\s*let$/, "") : null; };
 const ageText = p => p.age ? p.age : p.birth ? (() => { const [d, m, y] = p.birth.split(".").map(Number); const t = dObj(TODAY); let a = t.getUTCFullYear() - y; if (t.getUTCMonth() + 1 < m || (t.getUTCMonth() + 1 === m && t.getUTCDate() < d)) a--; return `${a} let`; })() : null;
 const statusChip = p => `<span class="chip ${STATUS[p.status][1]}">${STATUS[p.status][0]}</span>`;
-const slotText = p => p.slot ? `${dayLabel(p.slot.day)} ${p.slot.day.slice(0, 4)} · ${p.slot.time}–${slotEnd(p.slot.time)}` : "nenaplánováno";
+const slotText = p => p.slot ? `${dayLabel(p.slot.day)} ${p.slot.day.slice(0, 4)} · ${p.slot.time}-${slotEnd(p.slot.time)}` : "nenaplánováno";
 
 /* Doctor edits (Soňa: "everything editable"). An edit never changes the source document or the
    extracted value; it is stored next to it with who and when, and the UI marks it as edited. */
@@ -509,7 +510,7 @@ const edRep = (key, orig, pid = S.pid) => edOf(key, pid) ? `${edOf(key, pid).tex
    The meaning is still shown on every fact, as CLAUDE.md requires; only the wording moved into the tooltip. */
 function marks(f) {
   let h = "";
-  if (f.negated) h += `<span class="mk neg" title="Zápor zapsaný v dokumentu">–</span>`;
+  if (f.negated) h += `<span class="mk neg" title="Zápor zapsaný v dokumentu">-</span>`;
   if (f.certainty === "unclear_ocr" || f.ocr_note_cs) h += `<span class="mk ocr" title="Ověřit čtení: ${esc(f.ocr_note_cs || f.note || "text mohl být špatně přečten")}">!</span>`;
   if (f.certainty === "inferred") h += `<span class="mk obs" title="Pozorování asistenta, v dokumentu výslovně není">i</span>`;
   if (f.certainty === "planned" || f.change_status === "planned_unconfirmed" || /plánováno/i.test(f.change_cs || "")) h += `<span class="mk plan" title="Plánováno, dokument neuvádí, že se stalo${f.note_cs ? ": " + esc(f.note_cs) : ""}">?</span>`;
@@ -597,17 +598,18 @@ function viewPatients() {
       ${active ? `<button class="linkbtn small" data-act="clearcolf">Zrušit filtry (${active})</button>` : ""}
     </div>
     <div class="card" style="padding:0"><div class="scroll" style="min-height:${S.colOpen ? 360 : 0}px"><table class="tbl">
-      <thead><tr><th>ID</th><th>Pacient</th><th>RČ</th><th>Věk</th><th>Diagnóza</th>${colHead("owner", "Vlastník")}${colHead("dept", "Odesílající pracoviště")}${colHead("slot", "Příští MDT")}${colHead("status", "Stav")}<th>Aktualizace</th></tr></thead>
+      <thead><tr><th>ID</th><th>Pacient</th><th>RČ</th><th>Věk</th><th>Diagnóza</th>${colHead("owner", "Vlastník")}${colHead("dept", "Odesílající pracoviště")}${colHead("slot", "Příští MDT")}<th>Předchozí MDT</th>${colHead("status", "Stav")}<th>Aktualizace</th></tr></thead>
       <tbody>${rows.map(p => `<tr class="click" data-open="${esc(p.file)}">
         <td class="id">${p.id}</td><td><b>${esc(surnameFirst(p))}</b>${p.warn ? ' <span class="tag ocr">ověřit identitu</span>' : ""}</td>
-        <td class="num ${p.rc ? "" : "muted"}" title="${p.rc ? "" : "Rodné číslo " + GAP}">${esc(rcText(p))}</td><td class="num ${ageNum(p) ? "" : "muted"}" ${!p.age && p.birth ? 'title="vypočteno z data narození"' : ""}>${esc(ageNum(p) || "–")}</td>
+        <td class="num ${p.rc ? "" : "muted"}" title="${p.rc ? "" : "Rodné číslo " + GAP}">${esc(rcText(p))}</td><td class="num ${ageNum(p) ? "" : "muted"}" ${!p.age && p.birth ? 'title="vypočteno z data narození"' : ""}>${esc(ageNum(p) || "-")}</td>
         <td><b style="font-weight:600">${esc(p.diagnosis)}</b>${p.diagnosisNote || p.mkn10 ? `<div class="muted small">${esc([p.diagnosisNote, p.mkn10].filter(Boolean).join(" · "))}</div>` : ""}</td>
         <td>${esc(p.owner)}${p.ownerExample ? '<span class="ex">ukázka</span>' : ""}</td>
         <td>${esc(p.dept)}${p.deptExample ? '<span class="ex">ukázka</span>' : ""}</td>
         <td class="num">${p.slot ? esc(slotText(p)) : `<button class="linkbtn" data-sched="${esc(p.file)}">Naplánovat</button>`}</td>
+        <td class="num ${lastMdt(p) ? "" : "muted"}" title="${lastMdt(p) ? "" : "Předchozí MDT " + GAP}">${esc(lastMdt(p) || "neuvedeno")}</td>
         <td>${statusChip(p)}</td><td class="num muted">${fmtDate(p.updated)}</td></tr>`).join("") || `<tr><td colspan="9" class="muted">Žádný pacient neodpovídá filtru.</td></tr>`}</tbody>
     </table></div></div>
-    <p class="muted small">Vlastník případu je odesílající lékař. Hodnoty označené „ukázka“ (vlastník, pracoviště, termín) v dokumentech nejsou a slouží jen pro maketu. „neuvedeno“ u RČ a „–“ u věku: ${GAP}; žádný dokument v datech výzvy rodné číslo neobsahuje.</p>
+    <p class="muted small">Vlastník případu je odesílající lékař. Hodnoty označené „ukázka“ (vlastník, pracoviště, termín) v dokumentech nejsou a slouží jen pro maketu. „neuvedeno“ u RČ a „-“ u věku: ${GAP}; žádný dokument v datech výzvy rodné číslo neobsahuje.</p>
   </div>`;
 }
 
@@ -635,7 +637,7 @@ function viewCalendar() {
   const unscheduled = S.patients.filter(p => !p.slot || p.file === S.schedPick);
   const byslot = {}; S.patients.forEach(p => { if (p.slot) byslot[`${p.slot.day} ${p.slot.time}`] = p; });
   const inSem = (day, t) => { const s = seminarOn(day); return s && t >= s[0] && t < s[1]; };
-  let cells = `<div></div>${days.map(d => `<div class="dh">${dayLabel(d)}${d === TODAY ? " · dnes" : ""}<small>${seminarOn(d) ? esc(seminarOn(d)[2]) + " " + seminarOn(d)[0] + "–" + seminarOn(d)[1] : "&nbsp;"}</small></div>`).join("")}`;
+  let cells = `<div></div>${days.map(d => `<div class="dh">${dayLabel(d)}${d === TODAY ? " · dnes" : ""}<small>${seminarOn(d) ? esc(seminarOn(d)[2]) + " " + seminarOn(d)[0] + "-" + seminarOn(d)[1] : "&nbsp;"}</small></div>`).join("")}`;
   for (const t of TIMES) {
     cells += `<div class="tm ${t.endsWith(":00") ? "hr" : ""}">${t}</div>`;
     for (const d of days) {
@@ -644,7 +646,7 @@ function viewCalendar() {
       let inner = "";
       /* Soňa wants the real name in the slot, not just the case ID: the calendar is used by the MDT team itself. */
       if (p) inner = `<button class="slotbtn taken" data-slot="${d} ${t}" data-dbl="${esc(p.file)}" title="Dvojklik otevře případ" aria-label="${esc(surnameFirst(p))}, RČ ${esc(rcText(p))}, ${t}" aria-pressed="${S.calPop === p.file}"><span class="dot" style="background:var(--${{ new: "muted", scheduled: "change", attention: "missing", ready: "ok", done: "accent" }[p.status]})"></span><span class="cid">${esc(surnameFirst(p))}</span><span class="nm">RČ ${esc(rcText(p))}</span></button>`;
-      else if (sem) inner = `<button class="slotbtn free ${S.schedPick ? "target" : ""}" data-free="${d} ${t}" aria-label="Volný termín ${t}"><span class="tt2">${t}–${slotEnd(t)}</span>${S.schedPick ? " · Naplánovat sem" : ""}</button>`;
+      else if (sem) inner = `<button class="slotbtn free ${S.schedPick ? "target" : ""}" data-free="${d} ${t}" aria-label="Volný termín ${t}"><span class="tt2">${t}-${slotEnd(t)}</span>${S.schedPick ? " · Naplánovat sem" : ""}</button>`;
       cells += `<div class="cell ${sem ? "sem" : ""}">${inner}</div>`;
     }
   }
@@ -702,7 +704,7 @@ function patientHeader(p, extraActions = "", withQuestion = false) {
         <h1 style="margin-top:4px">${esc(surnameFirst(p))}</h1>
         ${p.warn ? `<div class="question missing" style="margin:8px 0 0;padding:6px 10px"><b>Ověřit identitu:</b> ${esc(p.warn)}</div>` : ""}
         <div class="facts"><span>RČ: <b>${esc(p.rc || GAP)}</b></span><span>Věk: <b>${esc(ageNum(p) || GAP)}</b></span>
-          <span>Vlastník: <b>${esc(p.owner)}</b>${p.ownerExample ? '<span class="ex">ukázka</span>' : ""}</span><span>Pracoviště: <b>${esc(p.dept)}</b>${p.deptExample ? '<span class="ex">ukázka</span>' : ""}</span><span>Příští MDT: <b>${esc(slotText(p))}</b></span></div></div>
+          <span>Vlastník: <b>${esc(p.owner)}</b>${p.ownerExample ? '<span class="ex">ukázka</span>' : ""}</span><span>Pracoviště: <b>${esc(p.dept)}</b>${p.deptExample ? '<span class="ex">ukázka</span>' : ""}</span><span>Příští MDT: <b>${esc(slotText(p))}</b></span><span>Předchozí MDT: <b>${esc(lastMdt(p) || GAP)}</b></span></div></div>
       <div class="row">${extraActions}</div>
     </div>
     ${withQuestion ? questionBox(p) : ""}
@@ -817,10 +819,12 @@ const A3 = () => EXTRA.anamnesis_v3 || {};
 function termLine(f, key, reg) {
   return `${f.term_cs ? `<b>${ed(key + ":t", f.term_cs)}</b>` : ""}${f.comment_cs ? `${f.term_cs ? ", " : ""}${ed(key + ":c", f.comment_cs)}` : ""}${marks(f, edOf(key + ":t") ? key + ":t" : key + ":c")}${(f.refs || []).map(j => reg.n(R3(j))).join("")}`;
 }
+/* One line per drug, as a doctor writes it ("Everolimus Sandoz 5 mg 1-0-0"), with the indication or change
+   as a grey comment next to it (Soňa, round 5); the indication stays because "1-1-1 při nevolnosti" is not regular dosing. */
+const drugLine = m => [m.drug_cs, m.strength_cs, m.dosing_cs].filter(Boolean).join(" ");
+const drugNote = m => m.comment_line_cs || [m.indication_cs, m.change_cs].filter(Boolean).join("; ");
 function medsTable(list, reg) {
-  /* Indication stays visible: "1-1-1 při nevolnosti" is not a regular three-times-daily drug (review of v3). */
-  return `<div class="scroll"><table class="meds"><thead><tr><th>Lék</th><th>Síla</th><th>Dávkování</th><th>Kdy / indikace</th><th>Změna</th></tr></thead><tbody>
-    ${list.map((m, i) => `<tr><td><b>${ed(`fa:${i}:d`, m.drug_cs)}</b>${marks(m, `fa:${i}:d`)}${(m.refs || []).map(j => reg.n(R3(j))).join("")}</td><td>${ed(`fa:${i}:s`, m.strength_cs || "")}</td><td class="num">${ed(`fa:${i}:x`, m.dosing_cs || "")}</td><td>${ed(`fa:${i}:i`, m.indication_cs || "")}</td><td>${ed(`fa:${i}:z`, m.change_cs || "")}</td></tr>`).join("")}</tbody></table></div>`;
+  return `<ul>${list.map((m, i) => `<li><b>${ed(`fa:${i}:line`, drugLine(m))}</b>${drugNote(m) || isDoctor(S.user) ? ` <span class="muted">${ed(`fa:${i}:note`, drugNote(m))}</span>` : ""}${marks(m)}${(m.refs || []).map(j => reg.n(R3(j))).join("")}</li>`).join("")}</ul>`;
 }
 function tabAnamnesis() {
   const reg = refRegistry();
@@ -835,7 +839,7 @@ function tabAnamnesis() {
   return `<section class="card"><div class="head"><h2>Anamnéza</h2></div>
     <div class="anam3">${ANAM.map(([k, t]) => `<div>${t}</div><div>${body(k)}</div>`).join("")}</div>
     ${srcList(reg)}
-    <p class="muted small" style="margin:10px 0 0">Ikony: <span class="mk ocr">!</span> ověřit čtení · <span class="mk neg">–</span> zápor v dokumentu · <span class="mk plan">?</span> plánováno · <span class="mk ocr" style="background:var(--conflict-soft);color:var(--conflict)">≠</span> rozpor mezi dokumenty · <span class="mk obs">i</span> pozorování asistenta. Podrobnost ukáže najetí myší. Léky slouží pro informaci; při příjmu se kontrolují.</p></section>`;
+    <p class="muted small" style="margin:10px 0 0">Ikony: <span class="mk ocr">!</span> ověřit čtení · <span class="mk neg">-</span> zápor v dokumentu · <span class="mk plan">?</span> plánováno · <span class="mk ocr" style="background:var(--conflict-soft);color:var(--conflict)">≠</span> rozpor mezi dokumenty · <span class="mk obs">i</span> pozorování asistenta. Podrobnost ukáže najetí myší. Léky slouží pro informaci; při příjmu se kontrolují.</p></section>`;
 }
 /* Documents (Soňa and Juro, round 2): a full-width table; upload is a button that opens a dialog. */
 function tabDocuments() {
@@ -855,7 +859,7 @@ function tabDocuments() {
 }
 /* Labs (Soňa, round 2): rows are tests, columns are draws; clicking a test draws its trend. */
 const num = v => v == null || v === "" ? null : parseFloat(String(v).replace(",", "."));
-const rangeOf = r => { const m = String(r || "").replace(/,/g, ".").match(/(-?[\d.]+)\s*(?:\.\.\.|–|-)\s*(-?[\d.]+)/); return m ? [+m[1], +m[2]] : null; };
+const rangeOf = r => { const m = String(r || "").replace(/,/g, ".").match(/(-?[\d.]+)\s*(?:\.\.\.|\u2013|-)\s*(-?[\d.]+)/); return m ? [+m[1], +m[2]] : null; };
 function labChart(t, draws) {
   const pts = t.values.map((v, i) => [i, num(v)]).filter(x => x[1] != null);
   if (pts.length < 2) return `<p class="muted small">Pro graf jsou potřeba alespoň dvě hodnoty.</p>`;
@@ -883,7 +887,7 @@ function tabLabs() {
       <td>${esc(l.unit)}</td><td class="num">${esc(l.reference_range)}</td><td class="muted">${esc(l.date || GAP)}</td>
       <td><button class="linkbtn small" data-src='${esc(JSON.stringify(l.source))}'>s. ${esc(l.source.page)}</button></td></tr>`).join("")}</tbody></table></div></section>`;
   const sel = ser.tests.find(t => t.code === S.labSel) || ser.tests[0];
-  const cell = (t, v) => { const n = num(v), rg = rangeOf(t.reference_range); if (n == null) return `<td class="v muted">–</td>`; const c = rg && n > rg[1] ? "hi" : rg && n < rg[0] ? "lo" : ""; return `<td class="v ${c}">${esc(String(v).replace(".", ","))}${c === "hi" ? " ↑" : c === "lo" ? " ↓" : ""}</td>`; };
+  const cell = (t, v) => { const n = num(v), rg = rangeOf(t.reference_range); if (n == null) return `<td class="v muted">-</td>`; const c = rg && n > rg[1] ? "hi" : rg && n < rg[0] ? "lo" : ""; return `<td class="v ${c}">${esc(String(v).replace(".", ","))}${c === "hi" ? " ↑" : c === "lo" ? " ↓" : ""}</td>`; };
   return `<section class="card"><div class="head"><h2>Laboratoř</h2>${seg}</div>
     <div class="synth" style="margin-bottom:12px">${esc(ser.note_cs || "Syntetická ukázka, není z dokumentace pacienta.")} V dokumentaci je jen jedna sada bez data odběru (přepněte na „Hodnoty z dokumentu“).</div>
     <div class="scroll"><table class="tbl lm"><thead><tr><th>Parametr</th><th>Jednotka</th><th>Ref. mez</th>${ser.draws.map(d => `<th class="dtc">${esc(fmtDate(d.datetime.slice(0, 10)))}<br><span style="font-weight:500">${esc(d.datetime.slice(11, 16))} · ukázka</span></th>`).join("")}</tr></thead>
@@ -1014,7 +1018,7 @@ function viewProtocol() {
     </div></div></div>`;
 }
 function mailHtml(m) {
-  return `<div class="mail"><div class="row"><b>✉ MDT – nové úlohy ke zpracování</b></div><p class="small" style="margin:6px 0">Komu: ${esc(COORD)}</p>
+  return `<div class="mail"><div class="row"><b>✉ MDT - nové úlohy ke zpracování</b></div><p class="small" style="margin:6px 0">Komu: ${esc(COORD)}</p>
     <p style="margin:0">K případu ${esc(m.id)} ${m.n === 1 ? "byla přiřazena 1 nová úloha" : m.n <= 4 ? `byly přiřazeny ${m.n} nové úlohy` : `bylo přiřazeno ${m.n} nových úloh`}. Otevřete zabezpečenou aplikaci MDT Workspace a potvrďte převzetí.</p>
     <p style="margin:6px 0 0">Odkaz: <span class="num">https://mdt.fno.local/pripad/${esc(m.id)}</span> <span class="muted small">(ukázková interní adresa)</span></p>
     <p class="muted small" style="margin:6px 0 0">E-mail obsahuje jen ID případu a odkaz, žádné zdravotní údaje.</p></div>`;
@@ -1030,7 +1034,7 @@ function reportHtml(p, pr, present) {
   const rf = f => (f.refs || []).map(j => `<span class="src">${refTxt(R3(j))}</span>`).join("");
   const anyEd = keys => keys.some(k => edOf(k, p.file));
   const anamItem = (k, f, i) => k === "FA"
-    ? `${esc(edRep(`fa:${i}:d`, f.drug_cs, p.file))}${f.strength_cs ? " " + esc(edRep(`fa:${i}:s`, f.strength_cs, p.file)) : ""}${f.dosing_cs ? " " + esc(edRep(`fa:${i}:x`, f.dosing_cs, p.file)) : ""}${f.indication_cs ? " " + esc(edRep(`fa:${i}:i`, f.indication_cs, p.file)) : ""}${f.change_cs ? ` (${esc(edRep(`fa:${i}:z`, f.change_cs, p.file))})` : ""}${esc(mt(f))}${rf(f)}`
+    ? `${esc(edRep(`fa:${i}:line`, drugLine(f), p.file))}${drugNote(f) || edOf(`fa:${i}:note`, p.file) ? ` (${esc(edRep(`fa:${i}:note`, drugNote(f), p.file))})` : ""}${esc(mt(f))}${rf(f)}`
     : `${f.term_cs ? `<b>${esc(edRep(`${k}:${i}:t`, f.term_cs, p.file))}</b>` : ""}${f.comment_cs ? `${f.term_cs ? ", " : ""}${esc(edRep(`${k}:${i}:c`, f.comment_cs, p.file))}` : ""}${esc(mt(f))}${rf(f)}`;
   /* Every section is listed; an empty one prints the gap wording (allergies must never just vanish). */
   const anamLines = ANAM.map(([k, t]) => `<li><span style="text-decoration:underline">${t}:</span> ${(A[k] || []).length ? A[k].map((f, i) => anamItem(k, f, i)).join("; ") : GAP}${k === "FA" && (A.FA_warnings || []).length ? `<br><b>Pozor:</b> ${A.FA_warnings.map((f, i) => anamItem("faw", f, i)).join("; ")}` : ""}</li>`).join("");

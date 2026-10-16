@@ -40,7 +40,7 @@ for (const width of [1280, 400]) {
   await go("#patient/2"); await c('[data-edit$="|q"]'); await page.fill("#edtext", "Otázka pro pacienta 2"); await c('[data-act="saveedit"]');
   await go("#patient/10/overview"); ok(!(await page.locator("main").textContent()).includes("Otázka pro pacienta 2"), `${width} edits stay with their patient`);
   // edit a drug, check marker in report, revert keeps history
-  await c('[data-tab="anamnesis"]'); await page.evaluate(() => document.querySelector('[data-edit$="|fa:0:z"]').click());
+  await c('[data-tab="anamnesis"]'); await page.evaluate(() => document.querySelector('[data-edit$="|fa:0:note"]').click());
   await page.fill("#edtext", "navýšeno na 10 mg"); await c('[data-act="saveedit"]');
   await c('[data-go="protocol"]'); await over("protocol");
   ok((await text("#report")).includes("navýšeno na 10 mg [upraveno lékařem]"), `${width} edit marked in report`);
@@ -52,9 +52,9 @@ for (const width of [1280, 400]) {
   const frozen = await text("#report");
   await go("#patient/2"); await go("#protocol/2"); await page.selectOption('[data-att="Neurochirurgie"]', "MUDr. Novák");
   await go("#protocol/10"); ok((await text("#report")) === frozen, `${width} approved report frozen after attendance change`);
-  await go("#patient/10/anamnesis"); await page.evaluate(() => document.querySelector('[data-edit$="|fa:1:d"]').click()); await page.fill("#edtext", "ZMENA"); await c('[data-act="saveedit"]');
+  await go("#patient/10/anamnesis"); await page.evaluate(() => document.querySelector('[data-edit$="|fa:1:line"]').click()); await page.fill("#edtext", "ZMENA"); await c('[data-act="saveedit"]');
   await go("#protocol/10"); ok(!(await text("#report")).includes("ZMENA"), `${width} approved report frozen after edit`);
-  await go("#patient/10/anamnesis"); await page.evaluate(() => document.querySelector('[data-edit$="|fa:1:d"]').click()); await c('[data-act="revertedit"]');
+  await go("#patient/10/anamnesis"); await page.evaluate(() => document.querySelector('[data-edit$="|fa:1:line"]').click()); await c('[data-act="revertedit"]');
   ok(await page.evaluate(() => S.editLog.some(e => e.reverted)), `${width} revert kept in the edit log`);
   // source drawer, presentation, admin
   await c('[data-tab="overview"]'); await page.evaluate(() => document.querySelector(".ref").click()); await c('[data-page="4"]');
