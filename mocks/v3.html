@@ -663,7 +663,7 @@ details.donegrp > summary { cursor: pointer; color: var(--muted); font-size: 13p
    "page": 3,
    "quote": "Nález při MR vyš. mozku zadávám k projednáni na NCH semináři."
   },
-  "question_draft_cs": "Jaký postup doporučuje neurochirurgický seminář?",
+  "question_draft_cs": "Jaký postup doporučuje neurochirurgický seminář u solitárního sytícího se ložiska pravé mozečkové hemisféry do 3 mm, suspektního z metastázy (MR mozku 14.9.2026), při probíhající léčbě everolimem?",
   "question_kind": "document_purpose",
   "question_basis": [
    {
@@ -680,6 +680,14 @@ details.donegrp > summary { cursor: pointer; color: var(--muted); font-size: 13p
     "source": {
      "file": "10_pacient.pdf",
      "page": 1
+    }
+   },
+   {
+    "role": "finding",
+    "quote": "Do 3. pal. linie léčby indikován everolimus - schváleno KOC komisi.",
+    "source": {
+     "file": "10_pacient.pdf",
+     "page": 2
     }
    }
   ]
@@ -2441,7 +2449,8 @@ details.donegrp > summary { cursor: pointer; color: var(--muted); font-size: 13p
    "text": " \nK\nAmbulantní vyšetření kontrolní \n  \nLU mediastina a hilů 10-15 mm ano v L hilu \ncr Ag plicnice 10.2.2026 \nZávěr: Bez plicní embolie, jen drobná cysta v HL vpravo. \nano \nDrobné osteoplatické ložiska do průměru 7mm v přechodu th/L páteře. \nInterní wš, 10.2.2026 NNJ \nZávěr: Dušnost k vyloučení kard. etiologie \nDoporučení: \n \n- plicní embolie vyloučena, EKG bez ischemických změn, hstroponin stabilní bez\ndynamiky- možno na vrub dekorigované HT\n- u nás kontrolní TK 174/92, dle pacienta doma prav. TK kolem 150\n- nově k medikaci Orcal 10 mg tbl 1/2-0-0, doma prav. měřit tenze -poučen,\nzapisovat a hodnoty donést ke shlédnutí k PL\nECHO 20.2.2026 NNJ \nZavěr: \nNormální velikosti srdečních oddílů. Normální systol. fce LK s EF 60%, bez hrubších \nregionálních poruch kinetiky při suboptm. přehlednosti, bez hypertrofie. Dobrá fce \nPK. \nAo chl: okrajově skleortická, 3-cp, dobře separuje, bez reg, PG 11 mmHg \nMi chl: jemná, dobře pohyblivé cípy, stop. reg \nTr chl: jemná, bez zřetelné reg \nPU chl: jemná, typ křivky II v RVOT, stop. reg \nperikard bpn, asc. ao bez dilatace \nRES: dobrá systolická funkce obou komor, bez hemodynamicky významné chlop. vady \nCT hrudník, břicho 28.4.2026 \nDle iRECIST \nT-7éze\nLU pravého pl. hilu \nložisko před L ledvinou \nLU levého pl. hilu \nLU retroperitonea \nNon-T léze \nLU mediastina a hilů 10-15 mm \nbaseline 1/26 \n6 \no \n15 \n36 \nano v L hilu \ndnes \n6 \no \n12 \n30 \nano \nZávěr: \nVe srovnáni s baseline CT 1/2026 došlo k mirné regresi velikosti LU v levém plicnim \nhilu, jinak v mediastinu a pravém hilu další LU stacionární. \nParc. regrese velikosti patologické LU v retroperitoneu. \nNová ložiska nep\ufffdibyla. \nVelikostní regrese sledovaných lézi je o cca 24 %. \nDle iRECIST • iSD. \nPlicní wš, 22,5,2026 MUDr.Hofrová \nSpirometrie - lehká obstrukce \nZ: CHOPN II/B fumat., susp. interstic. post1zené, stp. kortikoterapii \nDop. inhal Spiriva resp. 2-0-0 + Ventolin dlp., Erdomed 300mg 1-1-0, kontrola \n9/2026 + spirometrie \nuz tepen DKK 30.7.2026 \nRE: Na tepnách DKK středně silné sklerotické (ne angiitické) změny. \nDopplerometrický nález je vlevo negativní a velmi dobrý. Vpravo zřetelná, i když ne \ntěžká stenosa v prox. úseku PDK. Sledování vhodné. \nCT hrudník, břicho, malá pánev 26.8.2026 \nZávěr: \nVe srovnáni s minulým CT z 4/2026 i s baseline CT z 1/2026 je patrná velikostní \nprogrse LU v levém pl. hilu a v retroperitonu paraaortálně vlevo. \nJ-"
   }
  ]
-}</script>
+}
+</script>
 <script id="list-data" type="application/json">[
  {
   "file": "2_pacient.pdf",
@@ -7630,10 +7639,11 @@ function patientHeader(p, extraActions = "", withQuestion = false) {
 /* Reason (why now) and the question in one box (Soňa, round 7). */
 function reasonQuestionBox(p, reg) {
   const qi = questionInner(p), orig = p.explicit ? p.question : p.draft || "";
-  /* One paragraph (doctor's request, round 24): the reason, then "Otázka:" and the question with its chip at the end. */
-  return `<div class="question ${qi.cls}"><span class="bh">Důvod a otázka pro MDT</span>
-    <p class="rq1">${EXTRA.mdt_reason_v3_cs ? `${reasonHtml(reg)} ` : ""}<b>Otázka:</b> ${qi.filled ? qi.html : DASH}
-    ${isDoctor(S.user) ? `<button class="edbtn" style="opacity:1" data-edit="${esc(EK("q", p.file))}" data-orig="${esc(orig)}" title="${qi.filled ? "Upravit otázku" : "Doplnit otázku"}">✎ ${qi.filled ? "" : "doplnit"}</button>` : ""}</p>${qi.quote}${qi.confirm}</div>`;
+  /* Only the question (doctor's request, round 26): the question carries its own context, so the reason is not
+     repeated above it; the passages it rests on sit in a collapsed "Zdroje" list under it. */
+  return `<div class="question ${qi.cls}"><span class="bh">Otázka pro MDT</span>
+    <p class="rq1">${qi.filled ? qi.html : DASH}
+    ${isDoctor(S.user) ? `<button class="edbtn" style="opacity:1" data-edit="${esc(EK("q", p.file))}" data-orig="${esc(orig)}" title="${qi.filled ? "Upravit otázku" : "Doplnit otázku"}">✎ ${qi.filled ? "" : "doplnit"}</button>` : ""}</p>${qi.quote ? `<details class="srcs qsrcs"><summary>Zdroje</summary>${qi.quote}</details>` : ""}${qi.confirm}</div>`;
 }
 /* Missing and unclear data: a toggle, details on demand (round 7), no counts (round 19): numbers read as a score.
    Missing-document alerts are always on (CLAUDE.md), so when any document or datum is missing the button itself is

@@ -27,7 +27,7 @@
    "page": 3,
    "quote": "Nález při MR vyš. mozku zadávám k projednáni na NCH semináři."
   },
-  "question_draft_cs": "Jaký postup doporučuje neurochirurgický seminář?",
+  "question_draft_cs": "Jaký postup doporučuje neurochirurgický seminář u solitárního sytícího se ložiska pravé mozečkové hemisféry do 3 mm, suspektního z metastázy (MR mozku 14.9.2026), při probíhající léčbě everolimem?",
   "question_kind": "document_purpose",
   "question_basis": [
    {
@@ -44,6 +44,14 @@
     "source": {
      "file": "10_pacient.pdf",
      "page": 1
+    }
+   },
+   {
+    "role": "finding",
+    "quote": "Do 3. pal. linie léčby indikován everolimus - schváleno KOC komisi.",
+    "source": {
+     "file": "10_pacient.pdf",
+     "page": 2
     }
    }
   ]

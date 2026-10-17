@@ -43,7 +43,7 @@ for (const width of [1280, 400]) {
   for (const t of ["anamnesis", "documents", "labs", "alerts"]) { await c(`[data-tab="${t}"]`); await over(t); }
   await c('[data-tab="documents"]'); await c('[data-colopen="dread"]'); await page.locator('[data-colv="dread"][value="Špatně čitelné"]').uncheck(); await c('[data-colclose]');
   ok((await page.locator("main tbody tr").count()) < 13, `${width} documents filter by readability`); await c('[data-act="cleardcolf"]');
-  ok((await page.locator(".tabs").evaluate(el => el.previousElementSibling?.textContent || "")).includes("Důvod a otázka pro MDT"), `${width} brief block sits above the tabs`);
+  ok((await page.locator(".tabs").evaluate(el => el.previousElementSibling?.textContent || "")).includes("Otázka pro MDT"), `${width} brief block sits above the tabs`);
   await c('[data-act="gaps"]'); ok((await page.locator("main").textContent()).includes("osteoplastická"), `${width} gaps toggle opens`); await c('[data-act="gaps"]');
   // round 24: case 10 has one undated panel, so no trend and no invented series
   await c('[data-tab="labs"]'); ok((await text("main")).includes("Hodnoty z dokumentu") && await page.locator("[data-labmode]").count() === 0 && await page.locator("svg.chart, th.dtc").count() === 0
@@ -483,16 +483,15 @@ for (const width of [1280, 400]) {
   const head = await page.locator(".phead").textContent();
   ok(head.includes("Jelen Otakar") && !/ověřit identitu/i.test(head) && head.includes("jméno a příjmení ve formuláři prohozené") && await page.locator(".phead .namenote [data-src]").count() === 1
     && await page.evaluate(() => P("17_pacient.pdf").status !== "attention"), `${width} r22 Jelen Otakar header with the neutral name note and its source`);
-  // round 24: reason and question in one paragraph, the draft chip at its end; each cited passage with its page link
+  // round 26: only the question (it carries its own context), the draft chip at its end; the passages in a collapsed "Zdroje"
   await go("#patient/10/overview");
   const para = page.locator("main .question p.rq1");
   t = await para.textContent();
   const html = await para.innerHTML();
-  ok(await para.count() === 1 && t.includes("Otázka:") && t.includes("Jaký postup doporučuje neurochirurgický seminář?") && !t.includes("solitární sytící se nodulus")
-    && html.indexOf("seminář?") < html.indexOf('class="qlbl') && html.indexOf("Otázka:") < html.indexOf("seminář?") && html.indexOf("Otázka:") > 40
-    && await page.locator("main .question > p").count() === 1, `${width} r24 case 10: reason then "Otázka:" in one paragraph, short question, chip at the end`);
-  ok(await page.evaluate(() => P("10_pacient.pdf").basis.map(b => b.role + ":" + b.source.page).join()) === "purpose:3,finding:1"
-    && await page.locator("main .question .qbasis li").count() === 2 && await page.locator("main .question .qbasis [data-src]").count() === 2, `${width} r24 case 10 basis: purpose (s. 3) and MR finding (s. 1), each linked`);
+  ok(await para.count() === 1 && !t.includes("Otázka:") && t.includes("Jaký postup doporučuje neurochirurgický seminář u solitárního sytícího se ložiska") && !t.includes("nález zadán ošetřujícím lékařem")
+    && html.indexOf("everolimem?") < html.indexOf('class="qlbl') && (await page.locator("main .question .bh").first().textContent()).trim() === "Otázka pro MDT", `${width} r26 case 10: only the question, with its context and the chip at the end`);
+  ok(await page.evaluate(() => P("10_pacient.pdf").basis.map(b => b.role + ":" + b.source.page).join()) === "purpose:3,finding:1,finding:2"
+    && await page.locator("main .question details.qsrcs:not([open]) .qbasis li").count() === 3 && await page.locator("main .question .qbasis [data-src]").count() === 3, `${width} r26 case 10 sources collapsed: purpose (s. 3), MR finding (s. 1), everolimus (s. 2)`);
   await go("#patient/11");
   const q11 = page.locator("main .question").first();
   t = await q11.textContent();
