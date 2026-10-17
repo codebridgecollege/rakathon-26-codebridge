@@ -6,7 +6,8 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 PROJECT="${CF_PAGES_PROJECT:-codebridge-mdt}"
 
-uv run mocks/build.py
+# CI deploys the committed build (mocks/v3.html and mocks/pages/), so it sets RUN_BUILD=0.
+if [ "${RUN_BUILD:-1}" = 1 ]; then uv run mocks/build.py; fi
 OUT="$(mktemp -d)"
 trap 'rm -rf "$OUT"' EXIT
 cp mocks/v3.html "$OUT/index.html"

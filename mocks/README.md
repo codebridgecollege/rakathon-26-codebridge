@@ -111,8 +111,9 @@ expires after three days and has a credit cap); a gitignored
 `stt-config.js` next to `v3.html` (see `stt-config.example.js`) overrides
 it. The team's live copy is https://codebridge-mdt.pages.dev
 (Cloudflare Pages, HTTPS, so the browser allows the microphone);
-`mocks/deploy.sh` rebuilds and redeploys it after `npx -y wrangler@4
-login`. Open the page in Chrome, from a file or a web server; the
+a push to main that changes `v3.html` or `pages/` redeploys it
+(`.github/workflows/deploy-mock.yml`); `mocks/deploy.sh` does the same
+by hand after `npx -y wrangler@4 login`. Open the page in Chrome, from a file or a web server; the
 claude.ai artifact viewer may block the microphone.
 
 - One recording runs for the whole meeting. Each word goes to the patient
