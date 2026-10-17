@@ -267,3 +267,6 @@ DejaVu Sans subsets and jsPDF 4.2.1, vendored under `mocks/src/vendor/` with lic
 `mocks/build.py` embeds all three components into the self-contained v3 HTML.
 Run `node mocks/src/test/report-pdf.mjs` to exercise actual downloads, snapshot
 invariance, field selection and error recovery. Test outputs go to `tmp/pdfs/`.
+
+The app and PDF use the GLIDE MDT name and the original GLIDE wordmark. The logo
+is embedded locally from `src/brand/` so exports need no external asset request.

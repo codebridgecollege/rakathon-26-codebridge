@@ -1,5 +1,5 @@
 <meta charset="utf-8">
-<title>MDT Workspace v3</title>
+<title>GLIDE MDT</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@600;700;800&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap">
@@ -51,6 +51,8 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
   padding-block: 10px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
 .brand { font: 800 15px/1 var(--font-head); display: flex; align-items: center; gap: 8px; background: none; border: 0; padding: 4px 2px; cursor: pointer; color: inherit; }
 .brand:hover { color: var(--accent-ink); }
+.brand img { width: 80px; height: auto; display: block; }
+.brand > span { color: #19191c; }
 .brand i { width: 22px; height: 22px; border-radius: 0; background: var(--accent); display: inline-grid; place-items: center; color: #fff; font-style: normal; font-size: 12px; }
 .nav { display: flex; gap: 2px; flex-wrap: wrap; }
 .nav button { background: none; border: 0; padding: 7px 12px; border-radius: 0; cursor: pointer; color: var(--muted); font-weight: 600; }
@@ -361,6 +363,9 @@ details.mdtcard[open] > summary::before { transform: rotate(90deg); }
 .sheet h1 { font: 700 21px/1.3 Arial, sans-serif; letter-spacing: 0; color: #111; }
 .sheet .hdr { display: block; }
 .sheet .report-meta { margin-top: 8px; }
+.sheet .report-brand { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; }
+.sheet .report-brand img { width: 100px; height: auto; }
+.sheet .report-brand b { font-size: 23px; line-height: 1; color: #19191c; }
 .sheet { font-family: Arial, sans-serif; box-shadow: none; }
 .sheet .signatures { display: grid; grid-template-columns: 1fr 1fr; gap: 36px; margin-top: 44px; break-inside: avoid; }
 .sheet .signature { border-top: 1px solid #111; padding-top: 6px; font-size: 11px; }
@@ -821,7 +826,7 @@ h3 { letter-spacing: -.02em; }
 </style>
 
 <header class="top">
-  <button class="brand" data-nav="patients" title="Databáze pacientů" aria-label="MDT Workspace, otevřít databázi pacientů"><i>M</i>MDT Workspace</button>
+  <button class="brand" data-nav="patients" title="Databáze pacientů" aria-label="GLIDE MDT, otevřít databázi pacientů"><img src="/*GLIDE_LOGO_PNG*/" alt="GLIDE"><span>MDT</span></button>
   <nav class="nav" aria-label="Hlavní oblasti" id="nav"></nav>
   <span id="recpill"></span>
   <span class="who"><span class="lbl">Uživatel:</span>
@@ -2667,11 +2672,11 @@ function devTable(p, pr, locked) {
 }
 function mailHtml(m) {
   /* The digest carries only the count sentence and the link (CLAUDE.md: notifications carry a link, not medical data). */
-  if (m.kind === "digest") return `<div class="mail" data-mail="digest"><div class="row"><b>✉ MDT Workspace - přehled úloh</b><span class="muted small">${esc(m.when)}</span></div><p class="small" style="margin:6px 0">Komu: ${esc(m.to)} · odeslal(a) ${esc(m.by)}</p>
+  if (m.kind === "digest") return `<div class="mail" data-mail="digest"><div class="row"><b>✉ GLIDE MDT - přehled úloh</b><span class="muted small">${esc(m.when)}</span></div><p class="small" style="margin:6px 0">Komu: ${esc(m.to)} · odeslal(a) ${esc(m.by)}</p>
     <p style="margin:0;white-space:pre-line" class="mailbody">${esc(m.body)}</p>
     <p class="muted small" style="margin:6px 0 0">Jen počet úloh a odkaz, žádná jména ani diagnózy. Ukázková interní adresa; v maketě se nic neodesílá.</p></div>`;
   return `<div class="mail"><div class="row"><b>✉ MDT - nové úlohy ke zpracování</b></div><p class="small" style="margin:6px 0">Komu: ${esc(COORD)}</p>
-    <p style="margin:0">K případu ${esc(m.id)} ${m.n === 1 ? "byla přiřazena 1 nová úloha" : m.n <= 4 ? `byly přiřazeny ${m.n} nové úlohy` : `bylo přiřazeno ${m.n} nových úloh`}. Otevřete zabezpečenou aplikaci MDT Workspace a potvrďte převzetí.</p>
+    <p style="margin:0">K případu ${esc(m.id)} ${m.n === 1 ? "byla přiřazena 1 nová úloha" : m.n <= 4 ? `byly přiřazeny ${m.n} nové úlohy` : `bylo přiřazeno ${m.n} nových úloh`}. Otevřete zabezpečenou aplikaci GLIDE MDT a potvrďte převzetí.</p>
     <p style="margin:6px 0 0">Odkaz: <span class="num">https://mdt.fno.local/pripad/${esc(m.id)}</span> <span class="muted small">(ukázková interní adresa)</span></p>
     <p class="muted small" style="margin:6px 0 0">E-mail obsahuje jen ID případu a odkaz, žádné zdravotní údaje.</p></div>`;
 }
@@ -2694,7 +2699,7 @@ function reportHtml(p, pr, present) {
   const anamLines = p.full && S.picked.has("anamnesis") ? ANAM.map(([k, t]) => `<li><span style="text-decoration:underline">${t}:</span> ${(A[k] || []).length ? A[k].map((f, i) => anamItem(k, f, i)).join("; ") : GAP}${k === "FA" && (A.FA_warnings || []).length ? `<br><b>Pozor:</b> ${A.FA_warnings.map((f, i) => anamItem("faw", f, i)).join("; ")}` : ""}</li>`).join("") : "";
   const brief = p.full && S.picked.has("summary") ? (edOf("brief", p.file) ? esc(briefPlain()) + " [upraveno lékařem]" : BRIEF_CS ? esc(BRIEF_CS).replace(/\[(\d+)\]/g, (m, n) => `<span class="src">${refTxt((BRIEF_REFS || [])[n - 1])}</span>`) : esc(CASE.summary.map(x => x.text_cs).join(" "))) : "";
   return `<article class="sheet">
-    <div class="hdr"><h1>Záznam z MDT</h1><p class="report-meta">Datum MDT: ${p.slot ? esc(slotText(p)) : esc(GAP)} · ID ${esc(p.id)}${pr.state !== "approved" ? " · Koncept" : ""}</p></div>
+    <div class="hdr"><div class="report-brand"><img src="/*GLIDE_LOGO_PNG*/" alt="GLIDE"><b>MDT</b></div><h1>Záznam z MDT</h1><p class="report-meta">Datum MDT: ${p.slot ? esc(slotText(p)) : esc(GAP)} · ID ${esc(p.id)}${pr.state !== "approved" ? " · Koncept" : ""}</p></div>
     <h4>Pacient</h4><p>${esc(surnameFirst(p))} · RČ: ${esc(p.rc || GAP)} · věk: ${esc(ageNum(p) || GAP)} · ID ${esc(p.id)}</p>
     <h4>Přítomní</h4><p>${esc(present.join(", ") || "nezadáno")}</p>
     <h4>Diagnóza</h4><p><b>${esc(p.full ? dxHeadlineText(true) : p.diagnosis)}</b>${p.full && DXH()?.mkn_cs ? `<br>${esc(DXH().mkn_cs)}` : ""}</p>

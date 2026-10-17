@@ -222,3 +222,6 @@ review; the prototype does not provide an individual survival prediction.
   These are pre-existing third-party components; report composition, pagination and
   application integration were written during the hackathon. Licenses are stored in
   `mocks/src/vendor/`. No patient text is sent to an external PDF service.
+
+- GLIDE wordmark: existing brand asset reused from `sonicaopica/glide/GLIDE.svg`
+  at blob `2a0eebad98a033b70f43c324b209fae760e3ff2a`, supplied by the team.

@@ -8,11 +8,11 @@ function reportPdf(html, meta) {
     const name = `MDT-${style}.ttf`;
     pdf.addFileToVFS(name, data); pdf.addFont(name, "MDT", style);
   }
-  pdf.setProperties({ title: `Záznam z MDT - ${meta.id}`, subject: "Záznam z multidisciplinárního týmu", creator: "MDT Workspace" });
+  pdf.setProperties({ title: `GLIDE MDT - Záznam z MDT - ${meta.id}`, subject: "Záznam z multidisciplinárního týmu", creator: "GLIDE MDT" });
   const margin = 18, width = 174, bottom = 276;
   let y = 22;
   const font = (size = 10.5, bold = false) => { pdf.setFont("MDT", bold ? "bold" : "normal"); pdf.setFontSize(size); pdf.setTextColor(0); };
-  const page = () => { pdf.addPage(); y = 19; font(8); pdf.text(`Záznam z MDT - ${meta.id}`, margin, 12); };
+  const page = () => { pdf.addPage(); y = 19; font(8); pdf.text(`GLIDE MDT | Záznam z MDT - ${meta.id}`, margin, 12); };
   const room = h => { if (y + h > bottom) page(); };
   const text = (value, options = {}) => {
     const { size = 10.5, bold = false, indent = 0, gap = 2, leading = 5.1 } = options;
@@ -73,8 +73,13 @@ function reportPdf(html, meta) {
       y += 14; return;
     }
     if (node.classList.contains("hdr")) {
+      const logo = node.querySelector(".report-brand img");
+      if (logo) {
+        pdf.addImage(logo.getAttribute("src"), "PNG", margin, y - 5.8, 28, 28 * 216 / 880);
+        font(18, true); pdf.text("MDT", margin + 31, y); y += 12;
+      }
       text("Záznam z MDT", { size: 17, bold: true, gap: 4, leading: 7 });
-      text(plain(node).replace(/^Záznam z MDT\s*/, ""), { size: 9, gap: 4, leading: 4.5 });
+      text(plain(node.querySelector(".report-meta") || node).replace(/^Záznam z MDT\s*/, ""), { size: 9, gap: 4, leading: 4.5 });
       return;
     }
     if (node.tagName === "H4") {
@@ -124,7 +129,7 @@ async function downloadReport() {
     const pdf = reportPdf(html, meta), bytes = pdf.output("arraybuffer");
     const blob = new Blob([bytes], { type: "application/pdf" }), url = URL.createObjectURL(blob);
     const link = document.createElement("a"); link.href = url;
-    link.download = `zaznam-MDT-${meta.id}-${meta.date}${meta.draft ? "-koncept" : ""}.pdf`;
+    link.download = `GLIDE-MDT-${meta.id}-${meta.date}${meta.draft ? "-koncept" : ""}.pdf`;
     document.body.appendChild(link); link.click(); link.remove();
     setTimeout(() => URL.revokeObjectURL(url), 30000);
     logAccess(meta.pid, "vytvořil(a) PDF report"); toast("PDF připraveno ke stažení");

@@ -158,6 +158,7 @@ def synthetic_cases() -> str:
 
 def main() -> None:
     parts = {
+        "/*GLIDE_LOGO_PNG*/": "data:image/png;base64," + (HERE / "src" / "brand" / "glide-logo.base64").read_text().strip(),
         "/*PDF_VENDOR*/": (HERE / "src" / "vendor" / "jspdf.umd.min.js").read_text(),
         "/*PDF_FONTS*/": (HERE / "src" / "vendor" / "pdf-fonts.js").read_text(),
         "/*REPORT_PDF_JS*/": (HERE / "src" / "report-pdf.js").read_text(),
