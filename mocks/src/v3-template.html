@@ -298,6 +298,19 @@ details.mdtcard[open] > summary::before { transform: rotate(90deg); }
 .uplist { list-style: none; padding: 0; margin: 10px 0 0; display: grid; gap: 6px; }
 .uplist li { display: flex; gap: 8px; align-items: center; padding: 6px 8px; border: 1px solid var(--line); border-radius: 8px; }
 .uplist .nm { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+.recbar { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; margin-top: 12px; }
+.recbtn.on { background: #b3261e; border-color: #b3261e; color: #fff; }
+.recdot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: #b3261e; margin-right: 6px; animation: recblink 1.2s infinite; }
+@keyframes recblink { 50% { opacity: .25; } }
+.rectx { margin-top: 10px; max-height: 260px; overflow-y: auto; border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; display: grid; gap: 6px; font-size: 14px; }
+.rectx:empty::before { content: "Zatím žádný přepis."; color: var(--muted); }
+.rectx .ln { display: grid; grid-template-columns: 44px 1fr; gap: 8px; }
+.rectx .tm { color: var(--muted); font-variant-numeric: tabular-nums; font-size: 12px; padding-top: 2px; }
+.rectx .partial { color: var(--muted); font-style: italic; }
+.rectx .spk { font-weight: 700; margin-right: 4px; }
+.sp0 { color: #2c5c53; } .sp1 { color: #7a3d8c; } .sp2 { color: #8f5a06; } .sp3 { color: #1f5fa8; } .sp4 { color: #a3364c; }
+.recpass { margin-top: 12px; }
+.recpill { border: 0; border-radius: 999px; padding: 5px 12px; background: #fbe9e7; color: #8c1d18; font-weight: 600; cursor: pointer; font-size: 13px; }
 .rec { text-align: center; padding: 18px 10px; display: grid; gap: 6px; justify-items: center; }
 .steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
 .steps li { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 8px; align-items: start; }
@@ -588,12 +601,15 @@ details.donegrp > summary { cursor: pointer; color: var(--muted); font-size: 13p
 <header class="top">
   <button class="brand" data-nav="patients" title="Databáze pacientů" aria-label="MDT Workspace, otevřít databázi pacientů"><i>M</i>MDT Workspace</button>
   <nav class="nav" aria-label="Hlavní oblasti" id="nav"></nav>
+  <span id="recpill"></span>
   <span class="who"><span class="lbl">Uživatel:</span>
     <select id="user" aria-label="Aktuální uživatel (maketa bez přihlášení)"></select></span>
 </header>
 <main id="app"></main>
 <div id="overlay"></div>
 
+<!-- Optional and gitignored: sets window.STT_CONFIG = { key } for the live transcription demo (mocks/README.md). -->
+<script src="stt-config.js"></script>
 <script id="case-data" type="application/json">/*CASE*/</script>
 <script id="list-data" type="application/json">/*LIST*/</script>
 <script id="extra-data" type="application/json">/*EXTRA*/</script>
@@ -942,6 +958,7 @@ const statusChip = p => `<span class="chip ${STATUS[p.status][1]}">${STATUS[p.st
 function setStatus(p, to, how) {
   if (!p || p.status === to) return;
   const from = p.status;
+  if (to === "closed") recPurge([p.file], "případ uzavřen");
   (p.statusHist = p.statusHist || []).push({ from, to, by: S.user, when: new Date().toLocaleString("cs-CZ"), how });
   p.status = to;
   logAccess(p.file, `změnil(a) stav případu: ${STATUS[from][0]} -> ${STATUS[to][0]} (${how})`);
@@ -2027,6 +2044,218 @@ function addUploads(files) {
   logAccess(S.pid, `nahrál(a) ${plural(files.length, "dokument", "dokumenty", "dokumentů")} k projednání`);
   toast(`Nahráno: ${plural(files.length, "soubor", "soubory", "souborů")}`); render();
 }
+/* ---------- AI záznam: live transcription of the MDT discussion ----------
+   One recording runs for the whole meeting. Each word goes to the patient whose case was open when it was spoken,
+   so moving to the next case moves the transcript with it, and moving back continues the earlier one (append-only).
+   A case with an approved conclusion gets no more words; audio spoken while no open case can take it is replaced
+   by silence before it is sent, so it never leaves the browser.
+   Two passes: live text from ElevenLabs Scribe v2 Realtime (it does not tell speakers apart), then after approval
+   the case's own audio goes once through Scribe v2 with speaker separation, and the audio is deleted.
+   Demo only: in operation the same two passes run on a transcription server inside FNO (for example Whisper). */
+const STT_API = "https://api.elevenlabs.io", REC_RATE = 16000;
+/* ses holds one recording's timeline (start time, which case was open from which second); each socket keeps a
+   reference to its own, so a late sentence from a stopped recording is never mapped onto a new one. */
+S.rec = { on: false, status: "off", msg: "", tx: {}, ses: null, sent: 0, partial: "", lastPid: null, fails: 0 };
+const sttKey = () => window.STT_CONFIG?.key || S.sttKey || "";
+const hhmm = ms => new Date(ms).toLocaleTimeString("cs-CZ", { hour: "2-digit", minute: "2-digit" });
+const txOf = pid => S.rec.tx[pid] || (S.rec.tx[pid] = { lines: [], audio: [], passes: [] });
+/* Words go only to an open case that is still being discussed: the doctor's choice of case decides, never a guess. */
+function recTarget() {
+  const p = S.view === "patient" && P(S.pid);
+  if (!p || p.status === "closed" || ensureProto(p).state === "approved") return null;
+  /* During a seminar only its own cases take words; a patient opened to look something up does not. */
+  return !S.session || inSession(p) ? p.file : null;
+}
+async function recStart() {
+  S.rec.status = "connecting"; S.rec.msg = ""; recUI();
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true } });
+    /* The browser resamples the microphone to 16 kHz, the format both ElevenLabs endpoints take as raw PCM. */
+    const ctx = new AudioContext({ sampleRate: REC_RATE });
+    const src = ctx.createMediaStreamSource(stream), proc = ctx.createScriptProcessor(4096, 1, 1), mute = ctx.createGain();
+    mute.gain.value = 0; proc.onaudioprocess = e => recChunk(e.inputBuffer.getChannelData(0));
+    src.connect(proc); proc.connect(mute); mute.connect(ctx.destination);
+    Object.assign(S.rec, { on: true, stream, ctx, ses: { t0: Date.now(), spans: [] }, sent: 0, lastPid: null, partial: "", fails: 0 });
+    await recConnect();
+  } catch (err) { recStop(`Záznam se nespustil: ${err.message || err}`); }
+}
+async function recConnect() {
+  /* A single-use token keeps the key itself off the WebSocket URL; the key still sits in this demo page. */
+  const r = await fetch(`${STT_API}/v1/single-use-token/realtime_scribe`, { method: "POST", headers: { "xi-api-key": sttKey() } });
+  if (!r.ok) throw new Error(`ElevenLabs odmítl klíč (HTTP ${r.status})`);
+  const { token } = await r.json();
+  if (!S.rec.on) return; // stopped while the token was on its way
+  const ws = new WebSocket(`${STT_API.replace("https", "wss")}/v1/speech-to-text/realtime?model_id=scribe_v2_realtime&language_code=cs&commit_strategy=vad&vad_silence_threshold_secs=0.8&include_timestamps=true&audio_format=pcm_16000&token=${encodeURIComponent(token)}`);
+  ws.ses = S.rec.ses;
+  ws.onopen = () => { if (S.rec.ws !== ws || !S.rec.on) { ws.close(); return; } ws.base = S.rec.sent / REC_RATE; ws.opened = Date.now(); S.rec.status = "on"; recUI(); };
+  ws.onmessage = e => recMessage(JSON.parse(e.data), ws);
+  /* The service ends long sessions; while recording is on, reconnect with a new token and keep the timeline.
+     A socket that closes within seconds is failing (quota, key), so after three of those in a row we stop. */
+  ws.onclose = () => {
+    if (S.rec.ws !== ws || !S.rec.on) return;
+    S.rec.ws = null; S.rec.fails = ws.opened && Date.now() - ws.opened > 10000 ? 0 : S.rec.fails + 1;
+    if (S.rec.fails >= 3) { recStop("Spojení s přepisem opakovaně selhalo, záznam se zastavil."); return; }
+    S.rec.status = "connecting"; recUI();
+    setTimeout(() => S.rec.on && !S.rec.ws && recConnect().catch(err => recStop(err.message)), 1000 * 2 ** S.rec.fails);
+  };
+  S.rec.ws = ws;
+}
+function recChunk(f32) {
+  const pid = recTarget(), pcm = new Int16Array(f32.length);
+  if (pid) for (let i = 0; i < f32.length; i++) pcm[i] = Math.max(-1, Math.min(1, f32[i])) * 32767;
+  /* The case's own audio is kept in memory for the speaker pass after approval, one segment per visit. */
+  if (pid) { const tx = txOf(pid); if (pid !== S.rec.lastPid) tx.audio.push({ wall: Date.now(), chunks: [] }); tx.audio.at(-1).chunks.push(pcm); }
+  if (pid !== S.rec.lastPid) { S.rec.lastPid = pid; if (S.rec.partial) { S.rec.partial = ""; recUI(); } }
+  const ws = S.rec.ws; if (ws?.readyState !== 1) return;
+  const at = S.rec.sent / REC_RATE;
+  if (S.rec.ses.spans.at(-1)?.pid !== pid) S.rec.ses.spans.push({ from: at, pid });
+  const b = new Uint8Array(pcm.buffer); let bin = ""; for (let i = 0; i < b.length; i += 0x8000) bin += String.fromCharCode(...b.subarray(i, i + 0x8000));
+  ws.send(JSON.stringify({ message_type: "input_audio_chunk", audio_base_64: btoa(bin), commit: false, sample_rate: REC_RATE }));
+  S.rec.sent += pcm.length;
+}
+/* Live words are split between cases by their timestamps (seconds on the session timeline), not by when the text
+   arrives: the service commits a sentence only after a pause, possibly after the doctor has switched cases. */
+const spanPid = (ses, t) => { let pid = null; for (const sp of ses.spans) { if (sp.from <= t) pid = sp.pid; else break; } return pid; };
+function recMessage(m, ws) {
+  if (m.message_type === "partial_transcript") { if (ws === S.rec.ws) { S.rec.partial = m.text || ""; recUI(); } }
+  else if (m.message_type === "committed_transcript_with_timestamps") {
+    S.rec.partial = "";
+    let cur = null;
+    for (const w of m.words || []) {
+      if (w.type !== "word") continue;
+      const t = ws.base + (w.start ?? 0), pid = spanPid(ws.ses, t); if (!pid) { cur = null; continue; }
+      if (!cur || cur.pid !== pid) { cur = { pid, wall: ws.ses.t0 + t * 1000, text: [] }; txOf(pid).lines.push(cur); }
+      cur.text.push(w.text);
+    }
+    recUI();
+  } else if (/error/.test(m.message_type || "")) { S.rec.msg = `Přepis hlásí chybu: ${m.error || m.message || m.message_type}`; recUI(); }
+}
+function recStop(msg = "") {
+  const r = S.rec; if (!r.on && r.status === "off") { r.msg = msg; recUI(); return; }
+  r.on = false; r.status = "off"; r.msg = msg; r.partial = "";
+  r.stream?.getTracks().forEach(t => t.stop()); r.ctx?.close().catch(() => {});
+  /* Ask for the last sentence before closing, so words spoken just before stopping are not lost. */
+  const ws = r.ws; r.ws = null;
+  if (ws?.readyState === 1) { ws.send(JSON.stringify({ message_type: "input_audio_chunk", audio_base_64: btoa(String.fromCharCode(...new Uint8Array(3200))), commit: true, sample_rate: REC_RATE })); setTimeout(() => ws.close(), 3000); }
+  else ws?.close();
+  recUI();
+}
+/* Audio is held only until the case's speaker pass; a case that ends without approval (the seminar ends, the case
+   is closed) loses its audio then, and keeps only the live transcript. */
+function recPurge(pids, why) {
+  for (const pid of pids) {
+    const tx = S.rec.tx[pid]; if (!tx) continue;
+    const had = tx.audio.length || tx.passes.some(x => x.segs);
+    tx.audio = []; tx.passes.forEach(x => { if (x.segs) { delete x.segs; x.state = "purged"; } });
+    if (had) logAccess(pid, `AI záznam: zvuk smazán bez rozlišení mluvčích (${why})`);
+  }
+}
+/* Approval ends the case's transcript and starts its speaker pass; when every case of the running seminar is
+   approved, the recording stops by itself. */
+function recAfterApprove(pid) {
+  if (S.rec.tx[pid]?.audio.length) recPostPass(pid);
+  const ag = S.session ? dayAgenda(S.session.day) : [];
+  if (S.rec.on && ag.length && ag.every(a => ensureProto(a).state === "approved" || a.status === "closed")) { logAccess(pid, "AI záznam se zastavil, všechny případy semináře mají schválený závěr"); recStop("Všechny případy semináře mají schválený závěr, záznam se sám zastavil."); }
+}
+function wavOf(chunks) {
+  const n = chunks.reduce((a, c) => a + c.length, 0), buf = new ArrayBuffer(44 + n * 2), v = new DataView(buf);
+  [..."RIFF"].forEach((c, i) => v.setUint8(i, c.charCodeAt(0))); v.setUint32(4, 36 + n * 2, true);
+  [..."WAVEfmt "].forEach((c, i) => v.setUint8(8 + i, c.charCodeAt(0))); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+  v.setUint32(24, REC_RATE, true); v.setUint32(28, REC_RATE * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true);
+  [..."data"].forEach((c, i) => v.setUint8(36 + i, c.charCodeAt(0))); v.setUint32(40, n * 2, true);
+  let o = 44; for (const c of chunks) { new Int16Array(buf, o, c.length).set(c); o += c.length * 2; }
+  return new Blob([buf], { type: "audio/wav" });
+}
+/* Second pass: the case's audio (only its own segments, joined) goes through Scribe v2 with speaker separation.
+   Speakers are numbered per case and pass ("Mluvčí 1"); naming them would need voiceprints, which we do not collect. */
+async function recPostPass(pid, retry = null) {
+  const tx = S.rec.tx[pid]; if (!tx || (retry && retry.state !== "error")) return;
+  const pass = retry || { when: Date.now(), lines: [], segs: tx.audio.splice(0) }; if (!retry) tx.passes.push(pass);
+  const segs = pass.segs; pass.state = "running"; recUI();
+  try {
+    const marks = []; let at = 0; for (const sg of segs) { marks.push({ at, wall: sg.wall }); at += sg.chunks.reduce((a, c) => a + c.length, 0) / REC_RATE; }
+    if (at < 0.5) { pass.state = "empty"; delete pass.segs; recUI(); return; }
+    const fd = new FormData();
+    fd.append("file", wavOf(segs.flatMap(sg => sg.chunks)), "mdt.wav"); fd.append("model_id", "scribe_v2"); fd.append("language_code", "cs");
+    fd.append("diarize", "true"); fd.append("timestamps_granularity", "word");
+    const r = await fetch(`${STT_API}/v1/speech-to-text`, { method: "POST", headers: { "xi-api-key": sttKey() }, body: fd });
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const d = await r.json(), spk = {};
+    let cur = null;
+    for (const w of d.words || []) {
+      if (w.type !== "word") continue;
+      const s = w.speaker_id ?? "?", m = marks.filter(x => x.at <= (w.start ?? 0)).at(-1) || marks[0];
+      if (!(s in spk)) spk[s] = Object.keys(spk).length;
+      if (!cur || cur.spk !== spk[s]) { cur = { spk: spk[s], wall: m.wall + ((w.start ?? 0) - m.at) * 1000, text: [] }; pass.lines.push(cur); }
+      cur.text.push(w.text);
+    }
+    pass.state = "done"; delete pass.segs;
+    logAccess(pid, "AI záznam: rozlišení mluvčích po schválení závěru, zvuk smazán");
+  } catch (err) { pass.state = "error"; pass.err = err.message; }
+  recUI();
+}
+function recLinesHtml(lines, speakers) {
+  return lines.map(l => `<div class="ln"><span class="tm">${hhmm(l.wall)}</span><span>${speakers ? `<span class="spk sp${l.spk % 5}">Mluvčí ${l.spk + 1}:</span>` : ""}${esc(l.text.join(" "))}</span></div>`).join("");
+}
+function recTxHtml(pid) {
+  const tx = S.rec.tx[pid], live = S.rec.on && recTarget() === pid && S.rec.partial;
+  return (tx ? recLinesHtml(tx.lines) : "") + (live ? `<div class="ln"><span class="tm">${hhmm(Date.now())}</span><span class="partial">${esc(S.rec.partial)}…</span></div>` : "");
+}
+function recPassesHtml(pid) {
+  const tx = S.rec.tx[pid]; if (!tx?.passes.length) return "";
+  return tx.passes.map((ps, i) => `<div class="recpass"><div class="row spread"><b class="small">Přepis podle mluvčích${tx.passes.length > 1 ? ` (${i + 1})` : ""}</b><span class="muted small">${hhmm(ps.when)}</span></div>
+    ${ps.state === "running" ? `<p class="muted small" style="margin:6px 0 0">Rozlišuji mluvčí…</p>`
+    : ps.state === "error" ? `<p class="small" style="margin:6px 0 0">Rozlišení mluvčích selhalo (${esc(ps.err)}). Zvuk zůstává v paměti stránky. <button class="linkbtn small" data-recretry="${i}">Zkusit znovu</button></p>`
+    : ps.state === "purged" ? `<p class="muted small" style="margin:6px 0 0">Zvuk byl smazán bez rozlišení mluvčích.</p>`
+    : ps.state === "empty" ? `<p class="muted small" style="margin:6px 0 0">Záznam byl příliš krátký.</p>`
+    : `<div class="rectx">${recLinesHtml(ps.lines, true)}</div><p class="muted small" style="margin:4px 0 0">Mluvčí jsou očíslovaní v rámci tohoto případu, bez jmen. Zvuk byl po zpracování smazán.</p>`}</div>`).join("");
+}
+function recState(p) {
+  const r = S.rec;
+  if (r.status === "connecting") return "Připojuji…";
+  if (!r.on) return "Záznam je vypnutý.";
+  if (recTarget() === p.file) return `<span class="recdot"></span>Přepis se ukládá k tomuto pacientovi.`;
+  return ensureProto(p).state === "approved" ? "Záznam běží, ale závěr tohoto pacienta je schválen; přepis se mu už nepřidává."
+    : S.session && !inSession(p) ? "Záznam běží, ale pacient není na programu probíhajícího MDT; přepis se mu nepřidává." : "Záznam běží.";
+}
+function recCtlHtml(p) {
+  const r = S.rec;
+  return `<div class="recbar">${r.on || r.status === "connecting" ? `<button class="btn recbtn on" data-act="recstop">■ Zastavit záznam</button>` : `<button class="btn recbtn" data-act="recon">● Spustit záznam</button>`}
+      <span class="small">${recState(p)}</span></div>
+    ${r.msg ? `<p class="small" style="margin:8px 0 0">${esc(r.msg)}</p>` : ""}`;
+}
+function recPanel(p) {
+  const r = S.rec;
+  return `<div id="recctl">${recCtlHtml(p)}</div>
+    <div class="rectx" id="rectx" data-pid="${esc(p.file)}" aria-live="polite">${recTxHtml(p.file)}</div>
+    <div id="recpasses">${recPassesHtml(p.file)}</div>
+    <p class="muted small" style="margin:8px 0 0">Ukázka: zvuk se posílá do ElevenLabs Scribe v2 (cloud mimo FNO), proto jen smyšlené rozhovory. V provozu přepisuje interní server ve FNO (např. Whisper). Zvuk se drží jen v paměti stránky, do rozlišení mluvčích po schválení závěru, nejdéle do ukončení MDT. Přepis je jen pomůcka k zápisu, závěr píše lékař.</p>`;
+}
+/* Live updates touch only the transcript and the header pill; a full render would steal focus from a doctor
+   typing the conclusion. */
+function recUI() {
+  const el = document.getElementById("rectx");
+  if (el) { const atEnd = el.scrollTop + el.clientHeight >= el.scrollHeight - 30; el.innerHTML = recTxHtml(el.dataset.pid); if (atEnd) el.scrollTop = el.scrollHeight; }
+  const ps = document.getElementById("recpasses"); if (ps && el) ps.innerHTML = recPassesHtml(el.dataset.pid);
+  const ctl = document.getElementById("recctl"); if (ctl && el) ctl.innerHTML = recCtlHtml(P(el.dataset.pid));
+  const mb = document.querySelector('button[data-mode="ai"]'); if (mb) mb.innerHTML = `${S.rec.on ? `<span class="recdot"></span>` : ""}AI záznam`;
+  recPill();
+}
+function recPill() {
+  const el = document.getElementById("recpill"); if (!el) return;
+  const t = recTarget();
+  el.innerHTML = S.rec.on ? `<button class="recpill" data-act="recstop" title="Zastavit záznam"><span class="recdot"></span>${t ? `Záznam · ${esc(P(t).id)}` : "Záznam běží, přepis se nikam neukládá"} · Zastavit</button>` : "";
+}
+function recConsentHtml() {
+  return `<div class="scrim" data-close="1"></div><div class="modal" role="dialog" aria-label="Spustit AI záznam">
+    <div class="row spread"><h2>Spustit AI záznam</h2><button class="btn small" data-close="1">Zavřít</button></div>
+    <p style="margin:0">Záznam poběží pro celé MDT. Přepis se ukládá k pacientovi, jehož případ je právě otevřený; po přechodu na dalšího pacienta patří další slova jemu a po návratu se přepis původního pacienta doplňuje. Pacientovi se schváleným závěrem se už nic nepřidává. Když mají všechny případy semináře schválený závěr, záznam se sám zastaví.</p>
+    <p class="small" style="margin:0">Po schválení závěru se zvuk případu ještě jednou přepíše s rozlišením mluvčích a pak se smaže.</p>
+    <p class="muted small" style="margin:0">Ukázka: zvuk se posílá do služby ElevenLabs (cloud mimo FNO). Mluvte jen o smyšlených pacientech. V provozu přepisuje interní server ve FNO a zvuk neopouští nemocnici.</p>
+    ${window.STT_CONFIG?.key ? "" : `<label class="label" for="sttkey">Klíč ElevenLabs (drží se jen v paměti stránky)</label><input class="input" id="sttkey" type="password" autocomplete="off" value="${esc(S.sttKey || "")}">`}
+    <label class="row small" style="gap:6px"><input type="checkbox" id="recconsent"> Účastníci byli informováni a se záznamem souhlasí.</label>
+    <div class="row" style="justify-content:flex-end"><button class="btn" data-close="1">Zrušit</button><button class="btn primary" data-act="recgo">Spustit záznam</button></div></div>`;
+}
 /* "Projednání na MDT": attendance, discussion notes, next steps and approval, in the patient
    view itself. Outside a session it is collapsed unless a draft exists; in a session it is open and outlined. */
 function mdtCard(p) {
@@ -2046,11 +2275,10 @@ function mdtCard(p) {
   return `<details class="card mdtcard ${live ? "live" : ""}" data-mdtopen="${esc(p.file)}" ${open ? "open" : ""}><summary><h2>Projednání na MDT</h2><span id="mdtchip" style="display:contents">${mdtChip(p)}</span>${live ? `<span class="chip st-scheduled">MDT probíhá</span>` : ""}</summary>
     <div class="grid2"><div class="stack">
       <div class="sub"><div class="head"><h3>Záznam diskuse</h3></div>
-        <div class="seg2 three" role="group"><button data-mode="manual" aria-pressed="${pr.mode === "manual"}">Ruční poznámky</button><button data-mode="ai" aria-pressed="${pr.mode === "ai"}">AI záznam</button><button data-mode="docs" aria-pressed="${pr.mode === "docs"}">Dokumenty${pr.uploads?.length ? ` (${pr.uploads.length})` : ""}</button></div>
+        <div class="seg2 three" role="group"><button data-mode="manual" aria-pressed="${pr.mode === "manual"}">Ruční poznámky</button><button data-mode="ai" aria-pressed="${pr.mode === "ai"}">${S.rec.on ? `<span class="recdot"></span>` : ""}AI záznam</button><button data-mode="docs" aria-pressed="${pr.mode === "docs"}">Dokumenty${pr.uploads?.length ? ` (${pr.uploads.length})` : ""}</button></div>
         ${pr.mode === "docs" ? uploadsHtml(pr, locked) : pr.mode === "manual" ? `<label class="label" for="notes" style="display:block;margin:12px 0 6px">Průběžné poznámky</label>
           <textarea class="input" id="notes" placeholder="Poznámky z diskuse" ${locked ? "disabled" : ""}>${esc(pr.notes)}</textarea>`
-        : `<div class="rec"><b>AI záznam diskuse</b><span class="small muted">Se souhlasem účastníků systém zaznamená zvuk a připraví návrh závěru a dalších kroků k potvrzení lékařem. Vyžaduje souhlas FNO se službou přepisu.</span>
-          <span class="chip plain st-new">Plánovaná funkce</span><span class="small muted">Zvuk se nezaznamenává.</span></div>`}</div>
+        : recPanel(p)}</div>
       <div class="sub"><div class="head"><h3>Další kroky</h3><span class="row"><span class="muted small">${plural(named.length, "úloha", "úlohy", "úloh")}</span><button class="btn small" data-act="copytasks" ${named.length ? "" : "disabled"}>Kopírovat úlohy</button></span></div>
         <div class="tasklist">${pr.steps.map((x, i) => `<div class="task"><input class="input" data-step="${i}" data-f="text" value="${esc(x.text)}" placeholder="Úloha" ${locked ? "disabled" : ""}>
           <select class="input" data-step="${i}" data-f="who" ${locked ? "disabled" : ""}>${assignees.map(a => `<option ${x.who === a ? "selected" : ""}>${esc(a)}</option>`).join("")}</select>
@@ -2585,6 +2813,7 @@ function renderOverlay() {
   const o = S.overlay, el = document.getElementById("overlay");
   if (!o) { el.innerHTML = ""; return; }
   if (o.kind === "fhir") { el.innerHTML = fhirHtml(o); return; }
+  if (o.kind === "recon") { el.innerHTML = recConsentHtml(); return; }
   if (o.kind === "source") {
     if (!o.data) return;
     el.innerHTML = sourceHtml(o);
@@ -2684,6 +2913,7 @@ function render() {
   const ag = document.querySelector(".sesbar .agenda"), cur = ag?.querySelector('[aria-current="true"]');
   if (cur) ag.scrollLeft = cur.offsetLeft - ag.offsetLeft - (ag.clientWidth - cur.offsetWidth) / 2;
   renderOverlay();
+  recPill();
   writeHash();
 }
 /* The session bar sticks under the top bar, whose height changes when it wraps on narrow screens. */
@@ -2750,7 +2980,7 @@ document.addEventListener("click", e => {
   hideTip();
   if (S.colOpen && !e.target.closest(".fpop,[data-colopen]")) { S.colOpen = null; render(); return; }
   if (S.stOpen && !e.target.closest(".stpop,[data-stmenu]")) { S.stOpen = null; render(); return; }
-  const t = e.target.closest("[data-stmenu],[data-setst],[data-dbpage],[data-guide],[data-colopen],[data-colclose],[data-colall],[data-wk],[data-jump],[data-mm],[data-calclose],[data-labmode],[data-labsel],[data-edit],[data-scope],[data-addatt],[data-delatt],[data-staffdel],[data-staffadd],[data-startday],[data-startgo],[data-sesgo],[data-nav],[data-open],[data-tab],[data-src],[data-close],[data-page],[data-vtab],[data-zoom],[data-zoomstep],[data-zoomhit],[data-tl-category],[data-tl],[data-ack],[data-sched],[data-pick],[data-free],[data-slot],[data-unsched],[data-act],[data-mode],[data-delstep],[data-delup],[data-done],[data-suggok],[data-suggno]");
+  const t = e.target.closest("[data-stmenu],[data-setst],[data-dbpage],[data-guide],[data-colopen],[data-colclose],[data-colall],[data-wk],[data-jump],[data-mm],[data-calclose],[data-labmode],[data-labsel],[data-edit],[data-scope],[data-addatt],[data-delatt],[data-staffdel],[data-staffadd],[data-startday],[data-startgo],[data-sesgo],[data-nav],[data-open],[data-tab],[data-src],[data-close],[data-page],[data-vtab],[data-zoom],[data-zoomstep],[data-zoomhit],[data-tl-category],[data-tl],[data-ack],[data-sched],[data-pick],[data-free],[data-slot],[data-unsched],[data-act],[data-mode],[data-delstep],[data-delup],[data-recretry],[data-done],[data-suggok],[data-suggno]");
   if (!t) return;
   const d = t.dataset;
   if (d.stmenu) { S.stOpen = S.stOpen === d.stmenu ? null : d.stmenu; render(); }
@@ -2824,6 +3054,7 @@ document.addEventListener("click", e => {
     const [day, time] = d.slot.split(" "); S.calPop = S.patients.find(p => p.slot && p.slot.day === day && p.slot.time === time)?.file; if (S.calPop) logAccess(S.calPop, "zobrazil(a) detail termínu"); render(); document.getElementById("minicard")?.scrollIntoView({ block: "nearest", behavior: "smooth" }); }
   else if (d.unsched) unschedule(d.unsched);
   else if (d.mode) { curProto().mode = d.mode; render(); }
+  else if (d.recretry !== undefined) recPostPass(S.pid, S.rec.tx[S.pid]?.passes[+d.recretry]);
   else if (d.delup) { const pr = curProto(), u = pr.uploads.splice(+d.delup, 1)[0]; logAccess(S.pid, `odebral(a) nahraný dokument ${u.name}`); render(); }
   else if (d.delstep !== undefined) { curProto().steps.splice(+d.delstep, 1); render(); }
   else if (d.suggok || d.suggno) confirmSugg(+(d.suggok || d.suggno), !!d.suggok);
@@ -2846,7 +3077,15 @@ async function copyText(text, what) {
 }
 function action(a) {
   const pr = S.view === "patient" ? curProto() : null;
-  if (a === "reportdlg") { S.overlay = { kind: "report" }; renderOverlay(); }
+  if (a === "recon") { S.overlay = { kind: "recon" }; renderOverlay(); }
+  else if (a === "recgo") {
+    if (!document.getElementById("recconsent")?.checked) { toast("Potvrďte souhlas účastníků se záznamem"); return; }
+    const k = document.getElementById("sttkey")?.value.trim(); if (k) S.sttKey = k;
+    if (!sttKey()) { toast("Chybí klíč ElevenLabs"); return; }
+    S.overlay = null; logAccess(S.pid, "zapnul(a) AI záznam diskuse"); render(); recStart();
+  }
+  else if (a === "recstop") { logAccess(S.pid, "vypnul(a) AI záznam diskuse"); recStop(); }
+  else if (a === "reportdlg") { S.overlay = { kind: "report" }; renderOverlay(); }
   else if (a === "fhirdlg") { const p = P(S.pid); S.overlay = { kind: "fhir", id: p.id, bundle: fhirBundle(p) }; logAccess(p.file, "exportoval(a) případ jako FHIR"); renderOverlay(); }
   else if (a === "fhirdl" || a === "fhircopy") {
     const o = S.overlay, json = fhirJson(o.bundle);
@@ -2918,7 +3157,7 @@ function action(a) {
   else if (a === "clearcolf") { COLS.forEach(c => delete S.colf[c[0]]); render(); }
   else if (a === "cleardcolf") { DCOLS.forEach(c => delete S.colf[c[0]]); S.dq = ""; render(); }
   else if (a === "gaps") { S.gapsOpen = !S.gapsOpen; render(); }
-  else if (a === "endsession") { S.session = null; logAccess(S.pid, "ukončil(a) MDT"); toast("MDT ukončeno"); render(); }
+  else if (a === "endsession") { if (S.rec.on) recStop("Záznam se zastavil s koncem MDT."); recPurge(Object.keys(S.rec.tx), "konec MDT"); S.session = null; logAccess(S.pid, "ukončil(a) MDT"); toast("MDT ukončeno"); render(); }
   else if (a === "download") {
     /* The browser's print dialog saves the report as PDF; no PDF library is needed in the mock. */
     const p = P(S.pid), pr = ensureProto(p);
@@ -2991,6 +3230,7 @@ function action(a) {
     let sid = Math.max(0, ...S.sugg.map(x => x.id));
     suggestTasks(pr.concl).forEach(x => S.sugg.push({ id: ++sid, pid: p.file, decision: S.decisions.filter(d => d.pid === p.file).length, who: COORD, state: "draft", ...x }));
     logAccess(p.file, "schválil(a) závěr MDT");
+    recAfterApprove(p.file);
     toast(`Závěr schválen${n ? `, koordinátorce ${n === 1 ? "odeslána 1 úloha" : n <= 4 ? `odeslány ${n} úlohy` : `odesláno ${n} úloh`}` : ""}`); render();
   }
 }

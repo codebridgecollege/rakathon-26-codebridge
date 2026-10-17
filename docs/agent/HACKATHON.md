@@ -182,7 +182,8 @@ Declare this list to the jury and mentors.
 ## Tools and data sources used
 
 - ElevenLabs Scribe, for transcribing the pre-hack talks and the team's
-  design discussions.
+  design discussions, and (Scribe v2 Realtime and Scribe v2) for the
+  live "AI záznam" demo in mock v3, with fictitious speech only.
 - ChatGPT, used by Soňa for brainstorming and UI sketches
   (`docs/sources/design/`).
 - Claude artifacts (claude.ai), for publishing the UI mocks in `mocks/`.

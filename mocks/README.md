@@ -83,11 +83,44 @@ The images are not embedded. `build.py` copies
 `mocks/pages/<stem>/`, and the page refers to them as
 `pages/<stem>/p<n>.png`. Open `v3.html` from the `mocks/`
 folder; to publish it, publish `pages/` with it. The redacted image (from
-`scripts/redact_pages.py`) appears only when the doctor ticks "Co by
-odešlo do cloudu (začerněno)", labelled as a demonstration of local
+`scripts/redact_pages.py`) appears only when the doctor ticks "Cenzurovat
+(demo)", labelled as a demonstration of local
 redaction; a page where the check found nothing says the check is
 incomplete, and the quote and the transcription are hidden while the
 redacted image is shown.
+
+## AI záznam (live transcription)
+
+"AI záznam" in the "Projednání na MDT" card records the discussion and
+writes a live Czech transcript. It needs an ElevenLabs API key with
+speech-to-text permission: copy `stt-config.example.js` to
+`stt-config.js` (gitignored) next to `v3.html` and put the key there, or
+paste it into the start dialog, where it stays in the page's memory. Never
+commit the key. Open the page in Chrome, from a file or a web server; the
+claude.ai artifact viewer may block the microphone.
+
+- One recording runs for the whole meeting. Each word goes to the patient
+  whose case was open when it was spoken: the service returns word
+  timestamps on the session timeline, and the page keeps a list of which
+  case was open from which second. Moving to another case and back
+  continues the earlier transcript; nothing is overwritten.
+- A case with an approved conclusion gets no more words. Audio spoken
+  while no such case is open is replaced by silence before it is sent.
+  When every case of the running seminar ("Zahájit MDT") is approved, the
+  recording stops by itself; "Ukončit MDT" stops it too.
+- Live text comes from Scribe v2 Realtime (`scribe_v2_realtime`,
+  `commit_strategy=vad`), which does not tell speakers apart. After
+  approval, the case's own audio (kept in memory, 16 kHz PCM) goes once
+  to Scribe v2 (`scribe_v2`, `diarize=true`), and the page shows
+  "Přepis podle mluvčích" with speakers numbered per case, then deletes
+  the audio. Speakers are not named: that would need voiceprints.
+- Starting, stopping and the speaker pass go to the access log.
+
+Checked with Chrome's fake microphone
+(`--use-fake-device-for-media-stream --use-file-for-fake-audio-capture=<wav>`)
+playing a fictitious two-voice Czech dialogue: words split correctly at a
+case switch, the speaker pass separated the two voices, and the recording
+stopped after the last case of the seminar was approved.
 
 ## Timeline categories
 
