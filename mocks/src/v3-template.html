@@ -734,6 +734,28 @@ h3 { letter-spacing: -.02em; }
 }
 @media print { .overview-panels .summary-card { height: auto; } .summary-scroll { overflow: visible; max-height: none; } }
 
+
+/* Dark patient header groups identity and case actions without rounded framing. */
+.patient-identity { background: #092d3b; color: #fff; padding: 26px 28px; border: 0; }
+.patient-identity .facts, .patient-identity .idp, .patient-identity .namenote, .patient-identity .gapq { color: #bfd1d8; }
+.patient-identity .facts b { color: #fff; }
+.patient-identity .phead > div > .row > .label { color: #bfd1d8; }
+.patient-identity .btn { background: transparent; border-color: #76929e; color: #fff; }
+.patient-identity .btn:hover { background: #1b4352; }
+.patient-identity .btn.primary { background: #74ebcc; border-color: #74ebcc; color: #062330; }
+.patient-identity .btn.primary:hover { background: #a5f7df; }
+.patient-identity .linkbtn { color: #9df0dc; }
+.patient-identity .st-ready, .patient-identity .st-done { color: #9ce3bc; }
+.patient-identity .st-attention { color: #ffcf88; }
+.patient-identity .st-scheduled { color: #b5d1ff; }
+.patient-identity .st-new, .patient-identity .st-closed { color: #d1dfe4; }
+.patient-identity .question { color: var(--fg); }
+.patient-identity .stpop { color: var(--fg); }
+.patient-identity .stpop .label { color: var(--muted); }
+@media (max-width: 640px) {
+  .patient-identity { padding: 20px 16px; }
+}
+
 </style>
 
 <header class="top">
