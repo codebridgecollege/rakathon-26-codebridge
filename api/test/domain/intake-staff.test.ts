@@ -23,9 +23,11 @@ describe("new referral", () => {
     const existing = [{ case_id: "NO-A", file: "A_pacient.pdf" }];
     expect(duplicateDecision("6453121234", [], undefined)).toBeNull();
     expect(() => duplicateDecision("6453121234", existing, undefined)).toThrow(expect.objectContaining({ code: "duplicate_birth_number", extra: { current: { case_id: "NO-A", file: "A_pacient.pdf" } } }));
-    expect(() => duplicateDecision("645312/1234", existing, { birth_number: "6453121234", reason: "krátce" })).toThrow(expect.objectContaining({ code: "override_reason_required" }));
+    // The pre-server flow: "Přesto vytvořit nový záznam" with no reason; a typed reason is kept.
+    expect(duplicateDecision("645312/1234", existing, { birth_number: "6453121234" })).toEqual({ reason: null });
+    expect(duplicateDecision("645312/1234", existing, { birth_number: "6453121234", reason: "  " })).toEqual({ reason: null });
     expect(() => duplicateDecision("645312/1234", existing, { birth_number: "6453121235", reason: "jiný pacient, ověřeno v registru" })).toThrow(expect.objectContaining({ code: "duplicate_birth_number" }));
-    expect(duplicateDecision("645312/1234", existing, { birth_number: "6453121234", reason: "jiný pacient, ověřeno v registru" })).toBe("jiný pacient, ověřeno v registru");
+    expect(duplicateDecision("645312/1234", existing, { birth_number: "6453121234", reason: "jiný pacient, ověřeno v registru" })).toEqual({ reason: "jiný pacient, ověřeno v registru" });
   });
 
 });
@@ -84,9 +86,11 @@ describe("intake on the server (step 6)", () => {
     }
   });
 
-  it("does not attach a partial upload, a foreign file, a second intake or no documents", () => {
+  it("does not attach a partial upload, another fixture's file, a second intake or no documents", () => {
     expect(evaluateIntake(input({ docs: docs.slice(0, 2) }))).toMatchObject({ ready: false, present: 2, missing_cs: ["Dokument 3"], reason_cs: "Chybí ještě 1 z 3 dokumentů ukázkového pacienta; záznam zůstane bez zpracovaných dokumentů." });
-    expect(evaluateIntake(input({ docs: [...docs, { id: "up-9", sha256: "other", fixture_id: null, file_name: "x.pdf" }] })).reason_cs).toMatch(/nepatří/);
+    expect(evaluateIntake(input({ docs: [...docs, { id: "up-9", sha256: "other", fixture_id: "S01", file_name: "x.pdf" }] })).reason_cs).toMatch(/nepatří/);
+    // A listed file (content not kept: no hash, no fixture) is an extra, as before the server.
+    expect(evaluateIntake(input({ docs: [...docs, { id: "up-9", sha256: null, fixture_id: null, file_name: "x.docx" }] })).ready).toBe(true);
     expect(evaluateIntake(input({ attachedElsewhere: true })).reason_cs).toMatch(/už v databázi je/);
     expect(evaluateIntake(input({ docs: [] })).ready).toBe(false);
     expect(evaluateIntake(input({ fixture: null })).reason_cs).toMatch(/zůstane bez extrakce/);

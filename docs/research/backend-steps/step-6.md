@@ -74,7 +74,7 @@ is not a known fixture:
 
 | `UPLOAD_POLICY` | Unknown file | Used where |
 |---|---|---|
-| `fixtures_only` | Refused, never written anywhere (HTTP 422, `upload_not_fixture`) | Shared demo behind Access (default in `wrangler.jsonc`) |
+| `fixtures_only` | Accepted and listed by name, size, uploader and time; content, hash and identity result never kept (user decision 2026-10-18; the design refused it with 422) | Shared demo behind Access (default in `wrangler.jsonc`) |
 | `store_unprocessed` | Stored, listed as "nezpracováno", pipeline not started | Team staging, local `wrangler dev` |
 | `process` | Stored and sent to the pipeline | Local dev and evaluation only, once slice 6b-1 exists |
 
@@ -821,23 +821,29 @@ rules) are not built.
   (`document.upload`: doctor on the team or coordinator), case not closed
   and no approved conclusion (`case_locked`), at most 40 documents, rate
   limit `RL_UPLOAD` (20 a minute; Cloudflare's limiter has 10 s and 60 s
-  periods only, so not "30 an hour"), declared size over
-  `UPLOAD_MAX_BYTES` (413 before reading), body read with the limit,
-  declared and actual size equal, magic bytes (`%PDF-` within the first
-  1024 bytes; ZIP gets "ZIP rozbalte a nahrajte jednotlivé PDF."), SHA-256,
-  registry lookup. With `UPLOAD_POLICY=fixtures_only` (default) an unknown
-  hash is refused with 422 `upload_not_fixture` and the design's Czech text
-  before anything is written. A duplicate hash in the case is 409
-  `duplicate`; a different file with the same name is 409 `name_taken`
+  periods only, so not "30 an hour"), then the body: not read when the
+  declared size is 0 or over `UPLOAD_MAX_BYTES`, else read with the limit
+  (declared and actual size equal), magic bytes (`%PDF-` within the first
+  1024 bytes), SHA-256 of a PDF, registry lookup. Every file is accepted
+  (user decision 2026-10-18, revising the design's refusals above): with
+  `UPLOAD_POLICY=fixtures_only` (default) only a registered fixture's
+  bytes are stored; any other file (unknown PDF, another format, ZIP,
+  empty or oversized) is only listed, with name, size, declared media
+  type, uploader and time, and no content, hash, fixture or identity
+  result. `store_unprocessed` also stores unknown PDFs. A repeat (the same
+  bytes, or the same name) answers 200 with the document already listed
   (the step 2 table keeps `UNIQUE(case_id, file_name)`; a new unique index
-  adds `(case_id, sha256)`).
+  adds `(case_id, sha256)`); 409 `duplicate` is left only for two uploads
+  racing.
 - Stored at `uploads/<case>/<doc>.pdf` (not `docs/`), so reset-demo's
   existing `uploads/` prefix delete and the intake discard clear it. Then
   one guarded batch: the `documents` row (`origin = 'upload'`, `state =
   'stored'`, fixture, identity, title, type and date from the registry),
   the access-log line "nahrál(a) dokument k případu (PDF, 48 kB, otisk
-  <12 hex>)", and for a wrong patient a second line naming no one. A failed
-  batch deletes the object.
+  <12 hex>)" (a listed file: "nahrál(a) soubor k případu (uložen jen název
+  a velikost, 48 kB)"), and for a wrong patient a second line naming no
+  one. A failed batch deletes the object. The answer carries
+  `content_stored`; the pipeline refuses a listed file (`no_file`).
 - Registry: `fixture_files` (step 2) gained `kind` (`upload`, `combined`,
   `referral`), size, title, type, date, page count and the pages of the
   combined PDF; a new table `fixture_patients` holds each fixture's
@@ -869,10 +875,14 @@ rules) are not built.
   alert events, and every non-seed document with its pages and parts. The
   local reset now reports 45 statements. `seed.py` counts triggers without
   it.
-- Page ("Projednání", tab "Dokumenty") in API mode: each file goes to the
-  server; the list is the server's uploads of the case with state and the
-  identity alert; refused files are named with the server's reason and
-  never stored. Embedded mode keeps the browser-only list.
+- Page ("Projednání", tab "Dokumenty") in API mode: it looks as before the
+  server (any file, every row "Nahráno", no refusal or error text). Each
+  file is listed at once and goes to the server; the row takes the
+  server's answer, and the identity alert shows on the row and on the
+  case. A file the server did not take (unreachable, rate limit) stays
+  listed in the browser only. The pipeline's states and "Přečíst bez AI"
+  show only when `/api/health` reports `features.pipeline`. Embedded mode
+  keeps the browser-only list.
 
 ### Intake on the server (6a-2)
 
@@ -893,11 +903,14 @@ rules) are not built.
 - `GET /api/cases/:id/intake` gives the verdict (ready, reason in Czech,
   expected, present, missing titles) and the documents;
   `POST /api/cases/:id/intake/complete` closes the intake. The prepared
-  data is attached only when every uploaded document is a file of one
-  fixture by hash, all of its files are present, the referral's name and
-  birth number both match the fixture's patient, and no other case holds
-  that fixture's prepared data (`cases.intake_fixture`, unique among
-  completed cases). The reasons never name the fixture's patient (the
+  data is attached only when all of one fixture's files are present by
+  hash, no file of another fixture is, the referral's name and birth
+  number both match the fixture's patient, and no other case holds that
+  fixture's prepared data (`cases.intake_fixture`, unique among completed
+  cases). Listed files (content not kept) are extras, as on the page
+  before the server, and stay "nezpracováno". The attach also copies the
+  fixture's birth date (`fixture_patients.birth_as_written`, migration
+  0008) to the patient, so the age shows as before. The reasons never name the fixture's patient (the
   mock's message did). Otherwise the case is listed with its documents
   "nezpracováno" and the reason.
 - Prepared data: the seed writes `fixtures/S02/prepared.json`, the
@@ -920,12 +933,14 @@ rules) are not built.
   after 24 hours (`api/src/store/intake.ts`), and reset-demo. Nothing else
   can reference an open intake, so the case, patient, documents and files
   go entirely.
-- Page in API mode: "Import z FHIR" asks the server; "Pokračovat" opens
-  the intake; uploads go to it one by one with the server's answers;
-  "Zpracovat" shows the server's verdict, and the four stages say
-  "připraveno předem (ukázková data)" or "neproběhlo" instead of an
-  animation; "Přidat do databáze" completes it. Embedded mode keeps the
-  browser-only flow. The source view and the documents tab open each
+- Page in API mode: it looks as before the server. "Import z FHIR" asks
+  the server; "Pokračovat" opens the intake; every file is listed at once
+  as "Nahráno" and goes to the intake one by one (a file the server did
+  not take stays in the dialog only); the hints come from the page's own
+  check of names and birth number, as before; "Zpracovat" waits for the
+  uploads, runs the pre-server animation and closes with its sentence,
+  chosen by the server's verdict; "Přidat do databáze" completes it.
+  Embedded mode keeps the browser-only flow. The source view and the documents tab open each
   uploaded file (`setReady` maps every document file to its case).
 - `api/scripts/e2e-intake.mjs <base URL> [--pipeline] [--reset]` runs the
   whole S02 intake against a Worker with the committed files.

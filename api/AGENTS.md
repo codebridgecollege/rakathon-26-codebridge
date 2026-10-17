@@ -122,9 +122,12 @@ built.
 
 Design and contract: `docs/research/backend-steps/step-6.md`, section "As implemented".
 
-- Uploads: `src/routes/documents.ts` (raw PDF body, one file per request; the write middleware skips the JSON parse for
-  this path only). `UPLOAD_POLICY=fixtures_only` stores only registered synthetic fixtures (`fixture_files` by SHA-256);
-  a refused file touches neither R2 nor D1. Files live under R2 `uploads/<case>/`, which reset-demo and the intake
+- Uploads: `src/routes/documents.ts` (raw body, one file per request; the write middleware skips the JSON parse for
+  this path only). Every file is accepted, never refused for its type, size or origin (user decision 2026-10-18).
+  `UPLOAD_POLICY=fixtures_only` stores the bytes of registered synthetic fixtures only (`fixture_files` by SHA-256); any
+  other file gets a listing row (name, size, media type, uploader, time; `original_r2_key`, `sha256`, `fixture_id` NULL,
+  `content_stored: false` in the answer) and nothing in R2. A repeat (same bytes or same name) answers 200 with the
+  document already there. Files live under R2 `uploads/<case>/`, which reset-demo and the intake
   discard delete. Rules in `src/domain/documents.ts`; the fixture's patient (`fixture_patients`, D1 only) is compared
   with the case's patient and only the result (`matches`, `conflicts`, `cannot_verify`) leaves the server.
 - Intake: `src/routes/intake.ts`, `src/store/intake.ts`, rules in `src/domain/intake.ts` and `src/domain/fhir.ts`. An

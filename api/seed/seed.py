@@ -639,6 +639,10 @@ def main() -> None:
     # Each fixture names its patient in fixture_patients (D1 only), so a file uploaded into another patient's case is
     # recognised at once. The seeded cases' own PDFs are fixtures too (FNO's challenge PDFs and S01).
     fixture_rows, fixture_pats = [], []
+    # Only a written date ("nar. 14.6.1958") is a birth date; an age such as "53 let" is not, and nothing is inferred.
+    def birth_of(v):
+        m = re.fullmatch(r"(?:nar\.\s*)?(\d{1,2}\.\d{1,2}\.\d{4})", (v or "").strip())
+        return m.group(1) if m else None
     pat_by_id = {x["id"]: x for x in patients}
     for p in rows:
         f = p["file"]
@@ -646,7 +650,8 @@ def main() -> None:
         pdf = FNO_PDFS / f if (FNO_PDFS / f).exists() else SAMPLES / stem / f
         fid = stem.removesuffix("_pacient") if f in syn_by_file else "FNO-" + stem.removesuffix("_pacient")
         pt = pat_by_id["pt-" + p["id"].removeprefix("NO-")]
-        fixture_pats.append({"fixture_id": fid, "full_name": pt["full_name"], "birth_number": pt["birth_number"], "data_origin": pt["data_origin"]})
+        fixture_pats.append({"fixture_id": fid, "full_name": pt["full_name"], "birth_number": pt["birth_number"],
+                             "birth_as_written": pt.get("birth_as_written"), "data_origin": pt["data_origin"]})
         fixture_rows.append({"sha256": sha256_file(pdf), "fixture_id": fid, "file_name": f, "r2_prefix": f"docs/{p['id']}/",
                              "kind": "combined", "size_bytes": pdf.stat().st_size, "title_cs": None, "doc_type": None, "doc_date": None,
                              "page_count": len(page_index.get(f, {}).get("pages", [])), "combined_pages_json": None})
@@ -655,7 +660,9 @@ def main() -> None:
             continue
         sid = s["file"].removesuffix("_pacient.pdf")
         le = s["list_entry"]
-        fixture_pats.append({"fixture_id": sid, "full_name": le["name"], "birth_number": le.get("rc") or None, "data_origin": "codebridge_synthetic"})
+        # The birth date as the documents write it, so the completed intake shows the age (migration 0008).
+        fixture_pats.append({"fixture_id": sid, "full_name": le["name"], "birth_number": le.get("rc") or None,
+                             "birth_as_written": birth_of(le.get("age_or_birth")), "data_origin": "codebridge_synthetic"})
         combined = SAMPLES / f"{sid}_pacient" / s["file"]
         fixture_rows.append({"sha256": sha256_file(combined), "fixture_id": sid, "file_name": s["file"], "r2_prefix": f"fixtures/{sid}/",
                              "kind": "combined", "size_bytes": combined.stat().st_size, "title_cs": None, "doc_type": None, "doc_date": None,

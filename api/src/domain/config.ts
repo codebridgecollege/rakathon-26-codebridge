@@ -2,8 +2,9 @@
 // assumed in the designs"). Each is one constant, so a decision is a one-line change; the tests read them too.
 
 // May the coordinator edit notes, the conclusion draft and the "Další kroky" steps before approval? INTEGRATION.md
-// gives the coordinator no clinical edits, so the assumption is no.
-export const COORDINATOR_EDITS_PROTOCOL = false;
+// gives the coordinator no clinical edits, but the page before the server let her write them, and the demo keeps that
+// (user decision 2026-10-18: no divergence from the pre-server page). Open in docs/agent/OPEN_QUESTIONS.md.
+export const COORDINATOR_EDITS_PROTOCOL = true;
 
 // May the coordinator acknowledge or resolve alerts (for example a missing report she has requested)? Assumed yes.
 export const COORDINATOR_ACTS_ON_ALERTS = true;

@@ -1,6 +1,7 @@
 // End-to-end check of step 6 against a running Worker (local `wrangler dev` or the deployed demo), with the committed
 // synthetic files only: the S02 referral from FHIR, an intake with the seven PDFs uploaded under other names, the
-// prepared data attached by hash, the source page of an uploaded file, a refused unknown file, a wrong-patient upload,
+// prepared data attached by hash, the source page of an uploaded file, an unknown file listed without its content, a
+// wrong-patient upload,
 // and (with --reset) reset-demo afterwards so the shared demo is clean again.
 // With --pipeline it then runs the document pipeline (no LLM) on the four lab sheets and checks that every prepared lab
 // value is either read the same or marked "ověřit" (needs PAGEKIT_URL or the PageKit container on that Worker).
@@ -55,8 +56,10 @@ const listed = await api("GET", "/patients", { user: "coord" });
 assert.ok(!listed.j.patients.some((p) => p.id === id), "an open intake is not listed");
 
 const unknown = await api("POST", `/cases/${id}/documents`, { body: new TextEncoder().encode("%PDF-1.4\n% e2e unknown\n%%EOF\n"), headers: { "X-File-Name": "neznamy.pdf" } });
-assert.equal(unknown.j.error?.code, "upload_not_fixture");
-console.log(`unknown PDF: ${unknown.status} ${unknown.j.error.code}`);
+// Accepted and listed by name and size only; it does not stop the attach (listed files are extras).
+assert.equal(unknown.status, 201, JSON.stringify(unknown.j.error));
+assert.equal(unknown.j.data.document.content_stored, false);
+console.log(`unknown PDF: ${unknown.status}, listed without content`);
 
 const pdfs = readdirSync(up).filter((n) => n.endsWith(".pdf")).sort();
 for (const n of pdfs) {

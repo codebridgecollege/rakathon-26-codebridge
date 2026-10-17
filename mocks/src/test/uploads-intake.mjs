@@ -1,7 +1,8 @@
 // Checks mock v3's uploads and "Nový pacient" in API mode (step 6, docs/research/backend-steps/step-6.md "As implemented") in jsdom against
-// a fake server that follows the upload contract: the "Projednání" upload panel sends each file as its own raw request,
-// lists what the server stored, names refused files with the server's reason, shows the wrong-patient alert and removes
-// an upload. Embedded mode keeps the browser-only list (covered by v3.mjs).
+// a fake server that follows the upload contract: the "Projednání" upload panel sends each file as its own raw request
+// and lists every file as "Nahráno" as before the server (a prepared document is stored, any other file only listed),
+// keeps a file the server did not take in the browser, never shows an upload error, shows the wrong-patient alert and
+// removes an upload. Embedded mode keeps the browser-only list (covered by v3.mjs).
 // Usage: JSDOM_PATH=/path/to/node_modules/jsdom node mocks/src/test/uploads-intake.mjs  (jsdom 24)
 // Rebuild the page first: uv run mocks/build.py
 import { createRequire } from "module";
@@ -41,8 +42,9 @@ const H = JSON.parse(harvest.ev(`JSON.stringify({ patients: S.patients.map(p => 
   staff: defaultStaff(), user: S.user, userId: userIdOf(S.user), c10: { case: CASE, extra: EXTRA }, syn: SYN })`));
 const json = (status, body) => ({ ok: status < 400, status, headers: { get: () => "application/json" }, json: async () => structuredClone(body) });
 
-// The fake decides by file name what the real server decides by hash; the page only shows the answer.
-const REFUSAL = "Ve sdílené ukázce lze nahrát jen připravené syntetické dokumenty (např. ze složky samples/S02_pacient/upload). Jiný soubor se neuložil, protože by šlo o data bez souhlasu s jejich zpracováním.";
+// The fake decides by file name what the real server decides by hash; the page only shows the answer. A name starting
+// "offline" fails as a network error does.
+const NO_UPLOAD_ERROR = /nepodařilo|odmítnuto|Ve sdílené ukázce|Server neodpov|nenahrál/;
 function fakeServer() {
   const st = { epoch: 3, writes: [], docs: {}, seq: 0 };
   const roles = Object.fromEntries([...H.staff.depts.flatMap(d => d.people.map(x => [x.id, "doctor"])), ["coord", "coordinator"], ["admin", "admin"]]);
@@ -75,9 +77,10 @@ function fakeServer() {
       assert.equal(hd["X-Data-Epoch"], String(st.epoch), "an upload carries the data epoch");
       assert.ok(body && typeof body === "object" && typeof body.size === "number" && body.name, "the body is the file itself, not JSON");
       const name = decodeURIComponent(hd["X-File-Name"]);
-      if (!/^0\d-/.test(name)) return err(422, "upload_not_fixture", REFUSAL);
-      const d = { id: `up-${++st.seq}`, origin: "upload", name, size: body.size, state: "stored", state_cs: "nezpracováno", type_cs: "Laboratorní výsledky",
-        identity: /histologie/.test(name) ? "conflicts" : "matches", identity_cs: /histologie/.test(name) ? "Dokument patří jinému pacientovi: jméno nebo rodné číslo se neshoduje." : null,
+      if (/^offline/.test(name)) throw new TypeError("Failed to fetch");
+      const fixture = /^0\d-/.test(name);
+      const d = { id: `up-${++st.seq}`, origin: "upload", name, size: body.size, state: "stored", state_cs: "nezpracováno", type_cs: fixture ? "Laboratorní výsledky" : null,
+        fixture, content_stored: fixture, identity: !fixture ? null : /histologie/.test(name) ? "conflicts" : "matches", identity_cs: /histologie/.test(name) ? "Dokument patří jinému pacientovi: jméno nebo rodné číslo se neshoduje." : null,
         uploaded_by: H.user, uploaded_at: new Date().toISOString() };
       list.push(d);
       return json(201, { data: { document: d }, data_epoch: st.epoch, state: {} });
@@ -115,36 +118,46 @@ const apiOpen = async srv => {
   return r;
 };
 
-// 1. The "Projednání" panel uploads each file on its own, lists the server's answer, refuses and removes.
+// 1. The "Projednání" panel uploads each file on its own and lists every one as "Nahráno", with no error.
 {
   const srv = fakeServer();
   const { w, ev, errors } = await apiOpen(srv);
   ev(`openPatient("S01_pacient.pdf")`); await sleep(100);
   ev(`curProto().mode = "docs"; render()`); await sleep(200);
-  const files = ["04-laborator-2026-03-10.pdf", "vlastni-zprava.pdf", "02-histologie-biopsie-2026-03-12.pdf"].map(n => new w.File([new Uint8Array([37, 80, 68, 70, 45])], n, { type: "application/pdf" }));
+  const files = ["04-laborator-2026-03-10.pdf", "vlastni-zprava.docx", "02-histologie-biopsie-2026-03-12.pdf", "offline-sken.jpg"].map(n => new w.File([new Uint8Array([37, 80, 68, 70, 45])], n, { type: /pdf$/.test(n) ? "application/pdf" : "application/octet-stream" }));
   w.addUploads(files);
+  // The rows show at once, before any answer, as on the page without a server.
+  assert.equal((w.document.getElementById("app").innerHTML.match(/>Nahráno</g) || []).length, 4, "every file is listed at once");
   await sleep(300);
   const ups = srv.st.writes.filter(x => /\/documents$/.test(x.path));
-  assert.equal(ups.length, 3, "one request per file");
+  assert.equal(ups.length, 4, "one request per file");
   assert.equal(ups[0].headers["Content-Type"], "application/pdf");
   const html = w.document.getElementById("app").innerHTML;
-  assert.match(html, /04-laborator-2026-03-10\.pdf/);
-  assert.match(html, /nezpracováno/);
-  assert.match(html, /Ve sdílené ukázce lze nahrát jen připravené syntetické dokumenty/, "the refusal is shown with the server's reason");
+  for (const f of files) assert.ok(html.includes(f.name), `${f.name} is listed`);
+  assert.equal((html.match(/>Nahráno</g) || []).length, 4, "every file shows as Nahráno, the one the server did not take too");
+  assert.doesNotMatch(html, /nezpracováno|zpracování selhalo/, "no server state chip while the pipeline is off");
+  assert.doesNotMatch(html, NO_UPLOAD_ERROR, "no upload error on the page");
+  assert.doesNotMatch(html, /Přečíst bez AI/, "no pipeline button while features.pipeline is off");
   assert.match(html, /Dokument patří jinému pacientovi/, "the wrong-patient alert is shown");
   assert.equal(srv.st.writes.filter(x => /audit\/events/.test(x.path)).length, 0, "the server logs uploads itself; no view event");
-  assert.ok(w.__toasts.some(t => /Nahráno: 2 soubory, odmítnuto 1/.test(t)));
+  assert.ok(w.__toasts.some(t => t === "Nahráno: 4 soubory"));
+  assert.ok(!w.__toasts.some(t => NO_UPLOAD_ERROR.test(t)), "no upload error in a toast");
   // The case itself signals a document with another patient's identity, not only the upload list.
   assert.match(w.document.getElementById("app").innerHTML, /Možná jiný pacient/);
   w.document.querySelector("[data-delupapi]").click();
   await sleep(150);
   assert.ok(srv.st.writes.some(x => x.method === "DELETE" && x.path === "/api/documents/up-1"));
   assert.doesNotMatch(w.document.getElementById("app").innerHTML, /04-laborator-2026-03-10\.pdf/);
+  // A row kept in the browser only is removed in the browser.
+  const local = [...w.document.querySelectorAll("[data-delupapi]")].find(b => /offline/.test(b.getAttribute("aria-label")));
+  local.click(); await sleep(50);
+  assert.doesNotMatch(w.document.getElementById("app").innerHTML, /offline-sken/);
   assert.deepEqual(errors, []);
 }
 
-// 2. "Nový pacient" in API mode: FHIR on the server, the intake opened at "Pokračovat", uploads to it, the server's
-// verdict instead of an animation, and "Přidat do databáze" completing it; closing a second dialog discards its intake.
+// 2. "Nový pacient" in API mode: FHIR on the server, the intake opened at "Pokračovat", uploads to it listed as before the
+// server, the pre-server animation closed by the server's verdict, and "Přidat do databáze" completing it; closing a
+// second dialog discards its intake.
 {
   const srv = fakeServer();
   const { w, ev, errors } = await apiOpen(srv);
@@ -166,16 +179,22 @@ const apiOpen = async srv => {
   const mk = n => new w.File([new Uint8Array([37, 80, 68, 70, 45])], n, { type: "application/pdf" });
   ev(`newUploads`)([mk("01-ambulantni-zprava-2026-10-08.pdf")]);
   await sleep(150);
-  assert.match(w.document.getElementById("overlay").innerHTML, /Chybí ještě 1 z 2 dokumentů/);
+  assert.match(w.document.getElementById("overlay").innerHTML, /Ukázkový pacient: chybí ještě/, "the pre-server hint");
   ev(`newUploads`)([mk("04-laborator-2026-03-10.pdf"), mk("cizi.pdf")]);
   await sleep(200);
   const ov = w.document.getElementById("overlay").innerHTML;
-  assert.match(ov, /Ve sdílené ukázce lze nahrát jen připravené syntetické dokumenty/);
+  assert.equal((ov.match(/>Nahráno</g) || []).length, 3, "every file is listed as Nahráno");
+  assert.doesNotMatch(ov, NO_UPLOAD_ERROR);
   assert.equal(srv.st.writes.filter(x => x.path === "/api/cases/NO-S02/documents").length, 3);
+  // The fake attaches with exactly two fixture files; drop the extra one (the real server ignores listed extras).
+  const extra = [...w.document.querySelectorAll("[data-delnew]")].find(b => /cizi/.test(b.getAttribute("aria-label")));
+  extra.click(); await sleep(100);
   act("newnext"); await sleep(100);
+  assert.match(w.document.getElementById("overlay").innerHTML, /Kontrola čitelnosti/, "the pre-server stages show");
+  await sleep(2600);
   const v = w.document.getElementById("overlay").innerHTML;
-  assert.match(v, /připraveno předem \(ukázková data\)/, "stages that did not run are not animated");
-  assert.match(v, /Připojí se předem připravená data/);
+  assert.match(v, /<b>Hotovo\.<\/b> Zpracováno/, "the pre-server closing sentence, from the server's verdict");
+  assert.doesNotMatch(v, /neproběhlo|připraveno předem/);
   w.document.querySelector('[data-act="newdone"]').click();
   await sleep(300);
   assert.equal(srv.st.completed, true);
@@ -196,5 +215,5 @@ const apiOpen = async srv => {
   assert.deepEqual(errors, []);
 }
 
-console.log("Nový pacient in API mode: FHIR on the server, intake opened, uploads, the server's verdict, completion and discard passed.");
-console.log("Uploads in API mode: one raw request per file, the server's list, refusals with reasons, the wrong-patient alert and removal passed.");
+console.log("Nový pacient in API mode: FHIR on the server, intake opened, uploads listed as before, the pre-server stages closed by the server's verdict, completion and discard passed.");
+console.log("Uploads in API mode: one raw request per file, every file listed as Nahráno (also one the server did not take), no upload error, the wrong-patient alert and removal passed.");

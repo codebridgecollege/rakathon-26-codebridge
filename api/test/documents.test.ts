@@ -1,6 +1,6 @@
-// Route tests of uploads (step 6, slice a-1) on local D1 and R2: the fixture registry by hash, every refusal (and that a
-// refused file leaves no trace), the wrong-patient check, removal, the document list, the reset, and that no
-// access-log line carries a file name or patient text.
+// Route tests of uploads (step 6, slice a-1) on local D1 and R2: the fixture registry by hash, that every other file is
+// accepted but only listed (no content, hash or identity kept), repeats, the wrong-patient check, removal, the document
+// list, the reset, and that no access-log line carries a file name or patient text.
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { env } from "cloudflare:workers";
 import { call, testEnv } from "./helpers";
@@ -96,40 +96,63 @@ describe("upload of a registered fixture", () => {
   });
 });
 
-describe("refusals leave no trace", () => {
-  const traces = async () => ({ r2: await uploadsInR2(), docs: await count("documents", "origin = 'upload'"), log: (await log()).filter((l) => l.action.startsWith("document.")).length });
+describe("any other file is listed, never stored", () => {
+  const listed = async (id: string) => (await q<Record<string, unknown>>("SELECT original_r2_key, sha256, fixture_id, identity, title_cs, size_bytes, media_type, state FROM documents WHERE id = ?1", id))[0];
+  const LISTED = { original_r2_key: null, sha256: null, fixture_id: null, identity: null, title_cs: null, state: "stored" };
 
-  it("refuses an unregistered PDF in the shared demo and stores nothing", async () => {
-    const r = await upload("NO-A", UNKNOWN);
-    expect(r.status).toBe(422);
-    expect(r.body.error).toMatchObject({ code: "upload_not_fixture" });
-    expect(r.body.error!.message_cs).toMatch(/^Ve sdílené ukázce lze nahrát jen připravené syntetické dokumenty/);
-    expect(await traces()).toEqual({ r2: [], docs: 0, log: 0 });
+  it("accepts an unregistered PDF in the shared demo and keeps only its name, size, uploader and time", async () => {
+    const r = await upload("NO-A", UNKNOWN, "cizi zprava.pdf");
+    expect(r.status).toBe(201);
+    expect(r.body.data!.document).toMatchObject({ name: "cizi zprava.pdf", size: UNKNOWN.length, fixture: false, content_stored: false, identity: null, sha256: null, uploaded_by: "MUDr. Svobodová" });
+    expect(await listed(r.body.data!.document.id)).toMatchObject({ ...LISTED, size_bytes: UNKNOWN.length, media_type: "application/pdf" });
+    expect(await uploadsInR2()).toEqual([]);
+    expect((await log()).filter((l) => l.action === "document.upload").map((l) => l.what_cs)).toEqual(["nahrál(a) soubor k případu (uložen jen název a velikost, 1 kB)"]);
   });
 
-  it("checks the type by the bytes, gives ZIP its own message, and refuses empty and oversized files", async () => {
-    const txt = await upload("NO-A", enc.encode("hello, I am not a PDF"), "fake.pdf");
-    expect([txt.status, txt.body.error!.code]).toEqual([415, "type_not_allowed"]);
-    const zip = await upload("NO-A", Uint8Array.from([0x50, 0x4b, 3, 4, 1, 2, 3]), "docs.zip");
-    expect(zip.body.error!.message_cs).toBe("ZIP rozbalte a nahrajte jednotlivé PDF.");
-    const small = testEnv({ UPLOAD_MAX_BYTES: "20" });
-    const big = await upload("NO-A", MINE, "x.pdf", "d2p1", {}, small);
-    expect([big.status, big.body.error!.code]).toEqual([413, "too_large"]);
-    expect(await traces()).toEqual({ r2: [], docs: 0, log: 0 });
+  it("lists other formats, ZIP, empty and oversized files the same way, without an error", async () => {
+    const word = await upload("NO-A", enc.encode("hello, I am not a PDF"), "zprava.docx", "d2p1", { "content-type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document" });
+    const zip = await upload("NO-A", Uint8Array.from([0x50, 0x4b, 3, 4, 1, 2, 3]), "docs.zip", "d2p1", { "content-type": "application/zip" });
+    const empty = await upload("NO-A", new Uint8Array(), "prazdny.pdf");
+    const big = await upload("NO-A", MINE, "velky.pdf", "d2p1", {}, testEnv({ UPLOAD_MAX_BYTES: "20" }));
+    for (const r of [word, zip, empty, big]) {
+      expect(r.status).toBe(201);
+      expect(await listed(r.body.data!.document.id)).toMatchObject(LISTED);
+    }
+    // An oversized fixture is not read, so it is not recognised either.
+    expect(big.body.data!.document).toMatchObject({ fixture: false, size: MINE.length });
+    expect((await listed(word.body.data!.document.id))!.media_type).toBe("application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+    expect(await uploadsInR2()).toEqual([]);
   });
 
-  it("refuses a declared size over the limit before reading the body", async () => {
+  it("lists a declared size over the limit without reading the body", async () => {
     const r = await upload("NO-A", MINE, "x.pdf", "d2p1", { "content-length": String(30 * 1024 * 1024) });
-    expect(r.status).toBe(413);
+    expect([r.status, r.body.data!.document.size]).toEqual([201, 30 * 1024 * 1024]);
+    expect(await uploadsInR2()).toEqual([]);
   });
 
-  it("refuses a duplicate and a second file of the same name", async () => {
-    await upload("NO-A", MINE, "a.pdf");
+  it("answers a repeat with the document already there", async () => {
+    const a = (await upload("NO-A", MINE, "a.pdf")).body.data!.document;
     const dup = await upload("NO-A", MINE, "b.pdf");
-    expect([dup.status, dup.body.error!.code, dup.body.error!.message_cs]).toEqual([409, "duplicate", "Tento dokument už je u případu nahraný."]);
-    const same = await upload("NO-A", NO_ID, "a.pdf");
-    expect([same.status, same.body.error!.code]).toEqual([409, "name_taken"]);
-    expect(await uploadsInR2()).toHaveLength(1);
+    expect([dup.status, dup.body.data!.document.id]).toEqual([200, a.id]);
+    const l1 = (await upload("NO-A", UNKNOWN, "c.docx")).body.data!.document;
+    expect((await upload("NO-A", UNKNOWN, "c.docx")).body.data!.document.id).toBe(l1.id);
+    // A different file under a taken name is its own document, renamed; another patient's fixture still raises the alert.
+    const other = await upload("NO-A", OTHER, "a.pdf");
+    expect([other.status, other.body.data!.document.name, other.body.data!.document.identity]).toEqual([201, "a (2).pdf", "conflicts"]);
+    const listed = await upload("NO-A", UNKNOWN, "a.pdf");
+    expect([listed.status, listed.body.data!.document.name]).toEqual([201, "a (3).pdf"]);
+    // The case's own seeded PDF is not a repeat of an upload: same name as the seed row, a new listed document.
+    const seedName = (await q<{ file_name: string }>("SELECT file_name FROM documents WHERE origin = 'seed' AND case_id = 'NO-A'"))[0]!.file_name;
+    const again = await upload("NO-A", enc.encode("not the seed"), seedName);
+    expect([again.status, again.body.data!.document.origin]).toEqual([201, "upload"]);
+    expect(await uploadsInR2()).toHaveLength(2);
+    expect(await count("documents", "origin = 'upload'")).toBe(5);
+  });
+
+  it("removes a listed file", async () => {
+    const d = (await upload("NO-A", UNKNOWN, "x.pdf")).body.data!.document;
+    expect((await w("DELETE", `/documents/${d.id}`)).status).toBe(200);
+    expect(await count("documents", "origin = 'upload'")).toBe(0);
   });
 
   it("refuses uploads to an approved or closed case", async () => {
@@ -156,10 +179,12 @@ describe("refusals leave no trace", () => {
 });
 
 describe("other policies", () => {
-  it("store_unprocessed keeps an unknown PDF as nezpracováno, with no identity result", async () => {
+  it("store_unprocessed keeps an unknown PDF as nezpracováno, with no identity result, and still only lists a Word file", async () => {
     const r = await upload("NO-A", UNKNOWN, "x.pdf", "d2p1", {}, testEnv({ UPLOAD_POLICY: "store_unprocessed" }));
     expect(r.status).toBe(201);
-    expect(r.body.data!.document).toMatchObject({ fixture: false, identity: null, state: "stored" });
+    expect(r.body.data!.document).toMatchObject({ fixture: false, identity: null, state: "stored", content_stored: true });
+    const word = await upload("NO-A", enc.encode("not a pdf"), "y.docx", "d2p1", {}, testEnv({ UPLOAD_POLICY: "store_unprocessed" }));
+    expect(word.body.data!.document.content_stored).toBe(false);
     expect((await q<{ sha256: string }>("SELECT sha256 FROM documents WHERE origin = 'upload'"))[0]!.sha256).toBe(await hex(UNKNOWN));
   });
 });

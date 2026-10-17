@@ -1,6 +1,7 @@
 // A new referral (Nový pacient): the form's checks with the page's messages, the duplicate birth-number rule and the
 // one-time demo intake fixture. Czech hospitals hold duplicate records for one birth number, so a second record is
-// allowed only as a deliberate choice with a reason, which the access log keeps (CLAUDE.md: do not merge silently).
+// allowed only as a deliberate choice ("Přesto vytvořit nový záznam"), which the access log keeps (CLAUDE.md: do not
+// merge silently). A typed reason is optional and stays with the case.
 import { D } from "./errors";
 
 export const RC_RE = /^\d{6}\/?\d{3,4}$/;
@@ -39,22 +40,22 @@ export function validateReferral(body: Record<string, unknown>): Referral {
 
 export type Existing = { case_id: string; file: string };
 
-// Returns the override reason when a duplicate is knowingly created, null when there is no duplicate.
-export function duplicateDecision(rc: string, existing: Existing[], override: unknown): string | null {
+// Null when there is no duplicate; otherwise the confirmed override with its optional reason (at most 300 characters).
+export function duplicateDecision(rc: string, existing: Existing[], override: unknown): { reason: string | null } | null {
   if (!existing.length) return null;
   const o = (override ?? null) as { birth_number?: unknown; reason?: unknown } | null;
   const first = existing[0]!;
   // The confirmation holds only for the number it was given; a changed number is checked again (mock rule).
   if (!o || typeof o.birth_number !== "string" || normalizeRc(o.birth_number) !== normalizeRc(rc)) throw D.duplicateBirthNumber({ case_id: first.case_id, file: first.file });
-  const reason = typeof o.reason === "string" ? o.reason.trim() : "";
-  if (reason.length < 10 || reason.length > 300) throw D.overrideReasonRequired();
-  return reason;
+  const reason = typeof o.reason === "string" ? o.reason.trim().slice(0, 300) : "";
+  return { reason: reason || null };
 }
 
 // ---------- intake on the server (step 6) ----------
 // "Nový pacient" creates the case at once, open for intake; its creator uploads the documents, and completing the
 // intake attaches a fixture's prepared extraction only when it is the same person and the same documents.
 
+// A listed file (content not kept) has neither hash nor fixture.
 export type IntakeDoc = { id: string; sha256: string | null; fixture_id: string | null; file_name: string };
 export type FixtureFile = { sha256: string; file_name: string; title_cs: string | null; page_count: number | null };
 export type IntakeInput = {
@@ -107,8 +108,10 @@ export function evaluateIntake(x: IntakeInput): IntakeVerdict {
   if (!samePerson(x.patient, x.fixture.patient))
     return none("Jméno nebo rodné číslo v žádosti se neshoduje s dokumenty ukázkového pacienta. Dokumenty se k tomuto záznamu nepřipojí.", { expected: 0 });
   if (x.attachedElsewhere) return none("Ukázkový pacient už v databázi je; nový záznam zůstane bez zpracovaných dokumentů.", extra);
+  // Files that are not a fixture (listed only) do not stop the attach, as the page before the server ignored extra
+  // files; a fixture file that is not one of these uploads (another fixture's document) does.
   const fixtureShas = new Set(x.fixture.files.map((f) => f.sha256));
-  if (x.docs.some((d) => !d.sha256 || !fixtureShas.has(d.sha256)))
+  if (x.docs.some((d) => d.fixture_id && (!d.sha256 || !fixtureShas.has(d.sha256))))
     return none("Mezi nahranými dokumenty je soubor, který k ukázkovému pacientovi nepatří; předem připravená data se nepřipojí.", extra);
   if (missing.length)
     return none(`Chybí ještě ${missing.length} z ${x.fixture.files.length} dokumentů ukázkového pacienta; záznam zůstane bez zpracovaných dokumentů.`, extra);

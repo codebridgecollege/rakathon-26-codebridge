@@ -208,24 +208,34 @@ synthetic patients.
   line names the action and safe details only (status names, slot time,
   the edit key, the alert kind, counts), never a name, birth number,
   conclusion, quote or file name. Free text typed by staff stays out of
-  the line: the reason for a second record per birth number is stored
-  with the case, and a break-the-glass reason is stored once with the
+  the line: an optional reason for a second record per birth number is
+  stored with the case, and a break-the-glass reason is stored once with the
   grant (later rows under the grant name the grant). Edit keys and
   attendance keys are checked against fixed formats before they reach
   the log. Refused attempts are logged too ("odmítnuto: ...").
 
 ## Uploads and the document pipeline (step 6)
 
-- **The shared demo stores only known synthetic files.** The upload route
-  hashes the file in memory and refuses anything that is not a registered
-  fixture before it is written anywhere (`UPLOAD_POLICY=fixtures_only`).
-  Once stored, a file would be third-party data without clearance in a
-  database every visitor reads. Other policies are for team staging and
-  local work only.
+- **The shared demo stores the content of known synthetic files only.**
+  The upload route hashes a PDF in memory and stores its bytes only when
+  the hash is a registered fixture (`UPLOAD_POLICY=fixtures_only`). Any
+  other file (another PDF, Word, an image, an empty or oversized file) is
+  accepted so the demo never refuses an upload (user decision
+  2026-10-18), but only listed: the `documents` row keeps its name, size,
+  declared media type, uploader and time, with no content, no hash and no
+  identity result, and nothing goes to R2. Stored, the content would be
+  third-party data without clearance in a database every visitor reads.
+  The trade-off: the file still travels to the Worker and sits in its
+  memory for the request, and its name is kept, which may name a patient
+  (the name is display data only and never enters the access log; it
+  travels in the `X-File-Name` header, so check that Workers Logs do not
+  record request headers, as for the Access header in `api/AGENTS.md`).
+  Other policies are for team staging and local work only.
 - **Stored uploads** live in the EU bucket under `uploads/<case>/`, with
   a `documents` row (name, size, hash). The access log records actor,
-  case, document ID, size and the first 12 hex characters of the hash,
-  never the file name (it may name the patient) or content. A removed
+  case, document ID, size and the first 12 hex characters of the hash
+  (for a listed file: "uložen jen název a velikost" and the size), never
+  the file name (it may name the patient) or content. A removed
   upload is deleted, rows and file. An intake left open is deleted with
   its files after 24 hours; reset-demo deletes every upload.
 - **A FHIR referral is read, not kept.** The server fills the form from

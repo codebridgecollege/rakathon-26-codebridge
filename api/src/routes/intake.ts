@@ -1,8 +1,8 @@
 // "Nový pacient" on the server (step 6, slice a-2). The referral form creates the case open for intake (POST /api/cases
 // with intake: true, routes/write-work.ts); its creator uploads the documents (routes/documents.ts) and completes the
-// intake here. A registered fixture's prepared extraction is attached only when every uploaded document is one of
-// that fixture's files by hash and the referral's name and birth number match the fixture's patient; otherwise the case
-// is listed with its documents "nezpracováno". Design: step-6.md "As implemented".
+// intake here. A registered fixture's prepared extraction is attached only when every one of that fixture's files is
+// uploaded (by hash), no other fixture's file is, and the referral's name and birth number match the fixture's patient;
+// otherwise the case is listed with its documents "nezpracováno". Listed files (content not kept) stay as they are. Design: step-6.md "As implemented".
 import { Hono } from "hono";
 import type { AppEnv } from "../types";
 import { ApiError, E } from "../http/errors";
@@ -79,8 +79,8 @@ export const intake = new Hono<AppEnv>()
     // The documents the verdict rests on are the ones still there.
     t.guard(
       "docs",
-      "(SELECT group_concat(id || ':' || sha256, ',') FROM (SELECT id, sha256 FROM documents WHERE case_id = ? AND origin = 'upload' ORDER BY id)) IS ?",
-      [id, docs.length ? [...docs].sort((a, b) => (a.id < b.id ? -1 : 1)).map((d) => `${d.id}:${d.sha256}`).join(",") : null],
+      "(SELECT group_concat(id || ':' || COALESCE(sha256, ''), ',') FROM (SELECT id, sha256 FROM documents WHERE case_id = ? AND origin = 'upload' ORDER BY id)) IS ?",
+      [id, docs.length ? [...docs].sort((a, b) => (a.id < b.id ? -1 : 1)).map((d) => `${d.id}:${d.sha256 ?? ""}`).join(",") : null],
       () => D.conflict(),
     );
     const written: string[] = [];
@@ -140,7 +140,7 @@ export const intake = new Hono<AppEnv>()
       t.run(
         `INSERT INTO extraction_runs (id, case_id, kind, producer, model, prompt_version, temperature, input_hashes_json, r2_key, sha256, is_current, created_at)
          VALUES (?1, ?2, 'seed_fixture', 'prepared-fixture', NULL, NULL, NULL, ?3, ?4, ?5, 1, ?6)`,
-        runId, id, JSON.stringify(Object.fromEntries(docs.map((d) => [d.id, d.sha256]))), key, await sha256Hex(body), at,
+        runId, id, JSON.stringify(Object.fromEntries(docs.filter((d) => d.fixture_id === fid).map((d) => [d.id, d.sha256]))), key, await sha256Hex(body), at,
       );
       if (alertRows.length)
         t.run(
@@ -163,7 +163,14 @@ export const intake = new Hono<AppEnv>()
            json_extract(value, '$.r'), json_extract(value, '$.rs'), json_extract(value, '$.u') FROM json_each(?1)`,
         JSON.stringify(partRows),
       );
-      t.run("UPDATE documents SET state = 'prepared', processing = 'processed' WHERE case_id = ?1 AND origin = 'upload'", id);
+      // The same person (checked by the verdict), so the birth date the fixture's documents state becomes the patient's,
+      // where the referral gave none; the page derives the age from it.
+      t.run(
+        "UPDATE patients SET birth_as_written = COALESCE(birth_as_written, (SELECT birth_as_written FROM fixture_patients WHERE fixture_id = ?1)) WHERE id = ?2",
+        fid, core.patient_id,
+      );
+      // Only the fixture's files are prepared; a listed extra file stays "nezpracováno".
+      t.run("UPDATE documents SET state = 'prepared', processing = 'processed' WHERE case_id = ?1 AND origin = 'upload' AND fixture_id = ?2", id, fid);
       // The question typed in the referral wins; without one, the documents' question with its source (as the page did).
       t.run(
         `UPDATE cases SET intake_open = 0, intake_fixture = ?1, processing_level = 'partial', diagnosis_text = ?2, summary_one_line = ?3, page_count = ?4,

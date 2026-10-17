@@ -150,12 +150,14 @@ const typeConcl = (w, text) => { const c = w.document.getElementById("concl"); c
   assert.equal(ev(`S.session.day`), "2026-10-22");
   assert.match(ev(`S.mails[0].body`), /3 úlohy čekají na vyřízení/);
   assert.equal(ev(`DATA.epoch`), 3);
-  // The banner, on every view, with the last reset time in Czech format.
-  const banner = () => w.document.getElementById("demobanner").textContent.trim();
-  const expected = `Ukázková data: všechny osoby a případy jsou smyšlené. Změny vidí všichni návštěvníci; správce je může obnovit (naposledy ${new Date(RESET_AT).toLocaleString("cs-CZ")}).`;
-  for (const h of ["#patients", "#calendar/2026-10-19", "#tasks", "#patient/10/overview"]) { ev(`location.hash = "${h}"`); await sleep(60); assert.equal(banner(), expected, `banner on ${h}`); }
-  ev(`DATA.demo.reset_at = null; render()`);
-  assert.equal(banner(), "Ukázková data: všechny osoby a případy jsou smyšlené. Změny vidí všichni návštěvníci; správce je může obnovit.");
+  // No shared-data banner, data-mode chip or reset time on any view (user decision 2026-10-18: as before the server).
+  for (const h of ["#patients", "#calendar/2026-10-19", "#tasks", "#patient/10/overview", "#staff"]) {
+    ev(`location.hash = "${h}"`); await sleep(60);
+    const t = w.document.body.textContent;
+    assert.doesNotMatch(t, /Ukázková data: všechny osoby|Data: server|Data: vložená|naposledy|ukládají na server/, `no server fluff on ${h}`);
+    assert.equal(w.document.getElementById("demobanner"), null);
+    assert.equal(w.document.getElementById("datachip"), null);
+  }
   // The approved conclusion shows from the server; "Nový závěr" is offered (the protocol is approved).
   ev(`openPatient("10_pacient.pdf")`); await sleep(80);
   assert.match(w.document.querySelector(".concl.valid").textContent, /Stereotaktická radioterapie ložiska v mozečku\./);
@@ -333,7 +335,8 @@ const typeConcl = (w, text) => { const c = w.document.getElementById("concl"); c
   assert.deepEqual(errors, []);
 }
 
-// 8. Roles: the coordinator gets the discussion record read-only and no approve button (the server refuses both).
+// 8. Roles: the coordinator writes the discussion record as before the server (COORDINATOR_EDITS_PROTOCOL) and gets no
+// approve button (the server refuses it).
 {
   const srv = fakeServer();
   const { w, ev, evj, errors } = await apiOpen(srv);
@@ -341,8 +344,9 @@ const typeConcl = (w, text) => { const c = w.document.getElementById("concl"); c
   assert.equal(ev(`S.user`), H.coord);
   ev(`openPatient("S01_pacient.pdf")`); await sleep(100);
   ev(`S.mdtOpen["S01_pacient.pdf"] = true; render()`);
-  assert.ok(w.document.getElementById("notes").disabled, "notes read-only for the coordinator");
-  assert.equal(w.document.querySelector('[data-act="addstep"]'), null);
+  assert.equal(w.document.getElementById("notes").disabled, false, "the coordinator writes notes, as before the server");
+  assert.ok(w.document.querySelector('[data-act="addstep"]'));
+  assert.doesNotMatch(w.document.getElementById("app").textContent, /Další kroky zapisuje lékař/);
   assert.ok(w.document.querySelector('[data-act="approve"]').disabled);
   assert.equal(ev(`isDoctor(COORD)`), false);
   // Doctors come from the server's roles, not from a title.
@@ -351,7 +355,8 @@ const typeConcl = (w, text) => { const c = w.document.getElementById("concl"); c
 }
 
 // 9. The other writes: attendance by ids with its version, task done rolled back on refusal, alert keys on the wire,
-// a new case with a duplicate birth number and a reason, break-the-glass, a new staff member's explicit role.
+// a new case with a duplicate birth number (no reason asked, as before the server), break-the-glass, a new staff
+// member's role from the title.
 {
   const answers = {
     "PUT /api/attendance/case%3ANO-S01": (b, st) => ({ att: { "case:NO-S01": { key: "case:NO-S01", version: b.version + 1, byName: { "Klinická onkologie": [H.user] }, byId: b.by_dept } } }),
@@ -402,32 +407,27 @@ const typeConcl = (w, text) => { const c = w.document.getElementById("concl"); c
   ev(`alertAct("gap:0", "ack")`); await sleep(80);
   assert.deepEqual(writes(srv, /alerts/).map(x => x.body), [{ action: "ack", expected_state: "open" }]);
   assert.equal(ev(`alertState("10_pacient.pdf", "gap:0").state`), "ack");
-  // New case: the server finds a duplicate this user cannot see; the second record needs a reason of 10 characters.
+  // New case: the server finds a duplicate this user cannot see; "Přesto vytvořit nový záznam" goes on without a reason.
   ev(`S.overlay = { kind: "new", step: 0, progress: 0, files: [], form: { nf0: "Jana", nf1: "Testová", nf2: "715309/1236", nfg: true } }; renderOverlay()`);
   w.document.querySelector('[data-act="newnext"]').click(); await sleep(100);
   assert.equal(ev(`S.overlay.step`), 0);
   assert.match(w.document.getElementById("overlay").textContent, /Pacient s tímto rodným číslem už v databázi je:\s*NO-777/);
-  w.document.getElementById("nfdupwhy").value = "krátce"; w.document.querySelector('[data-act="newdupok"]').click(); await sleep(30);
-  assert.match(w.document.getElementById("overlay").textContent, /nejméně 10 znaků/);
-  w.document.getElementById("nfdupwhy").value = "Jiná osoba se stejným RČ, ověřeno"; w.document.querySelector('[data-act="newdupok"]').click(); await sleep(30);
-  await sleep(120);
+  assert.equal(w.document.getElementById("nfdupwhy"), null, "no reason field");
+  assert.doesNotMatch(w.document.getElementById("overlay").textContent, /Důvod druhého záznamu/);
+  w.document.querySelector('[data-act="newdupok"]').click(); await sleep(150);
   const cr = writes(srv, /^POST \/api\/cases$/);
   assert.equal(cr.length, 2);
-  assert.deepEqual(cr[1].body.duplicate_override, { birth_number: "7153091236", reason: "Jiná osoba se stejným RČ, ověřeno" });
+  assert.deepEqual(cr[1].body.duplicate_override, { birth_number: "7153091236" });
   assert.ok(cr[1].headers["Idempotency-Key"] && cr[1].headers["Idempotency-Key"] !== cr[0].headers["Idempotency-Key"], "a changed request gets a new key");
   assert.equal(ev(`S.overlay.caseId`), "NO-021", "the referral opened an intake on the server");
   assert.equal(ev(`S.overlay.step`), 1, "the dialog moves on to the documents");
   assert.equal(cr[1].body.intake, true);
   ev(`S.overlay = null; renderOverlay()`);
-  // Staff: a person without "MUDr." needs an explicit role; the server's roles decide who is a doctor.
+  // Staff: the role follows the title as before the server ("MUDr." is a doctor, anyone else staff); no role picker.
   const sel = w.document.getElementById("user"); sel.value = H.coord; sel.dispatchEvent(new w.Event("change", { bubbles: true })); await sleep(120);
   ev(`S.view = "staff"; render()`);
+  assert.equal(w.document.querySelector('[data-newrole]'), null, "no role picker");
   w.document.querySelector('[data-newin="d1"][data-sf="pre"]').value = "Bc."; w.document.querySelector('[data-newin="d1"][data-sf="sur"]').value = "Nová";
-  w.document.querySelector('[data-staffadd="d1"]').click(); await sleep(50);
-  assert.equal(writes(srv, /staff/).length, 0, "no role chosen, nothing sent");
-  assert.match(toasts().at(-1), /Vyberte roli/);
-  w.document.querySelector('[data-newin="d1"][data-sf="pre"]').value = "Bc."; w.document.querySelector('[data-newin="d1"][data-sf="sur"]').value = "Nová";
-  w.document.querySelector('[data-newrole="d1"]').value = "staff";
   w.document.querySelector('[data-staffadd="d1"]').click(); await sleep(100);
   assert.equal(writes(srv, /staff/)[0].body.role, "staff");
   assert.ok(ev(`DEPTS[0][1].includes("Bc. Nová") && !isDoctor("Bc. Nová")`), "listed, not a doctor");
@@ -435,5 +435,5 @@ const typeConcl = (w, text) => { const c = w.document.getElementById("concl"); c
   assert.deepEqual(errors, []);
 }
 
-console.log("Write API: workflow load, banner, approval (one request, idempotency key, stored first), Nový závěr guard in both modes, slot conflict, data reset reload, view events as codes, protocol conflict bar, coordinator read-only passed.");
+console.log("Write API: workflow load, no banner or chip, approval (one request, idempotency key, stored first), Nový závěr guard in both modes, slot conflict, data reset reload, view events as codes, protocol conflict bar, coordinator edits as before passed.");
 process.exit(0);

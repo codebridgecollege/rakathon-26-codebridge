@@ -71,14 +71,15 @@ re-running the scripts would undo those fixes. Edit the JSON instead.
 
 ## Two data modes: embedded and server
 
-Mock v3 decides at startup where its data comes from, and the top bar shows
-the result in a chip:
+Mock v3 decides at startup where its data comes from. Both modes look the
+same to the user (user decision 2026-10-18: no banner, chip or server
+notes in front of an audience); `DATA.mode` in the console tells them apart.
 
-- **Data: vložená** (embedded). Opened from a file, on Pages
+- **Embedded**. Opened from a file, on Pages
   (`codebridge-mdt.pages.dev`), under `mocks/serve.py`, or with
   `?data=embedded`. The page uses the JSON embedded by `build.py`, exactly as
   before.
-- **Data: server**. On the API Worker (`api/`), when `GET /api/health`
+- **Server**. On the API Worker (`api/`), when `GET /api/health`
   answers JSON with `service: "codebridge-mdt"` and `features.data: true`.
   Before the first render the page loads `/api/me`, `/api/staff`,
   `/api/patients` and `/api/tasks`. Case data loads per case when a case is
@@ -101,23 +102,26 @@ the result in a chip:
   mou verzí"), approval (one request with an `Idempotency-Key`, the button
   disabled while it runs), "Nový závěr", tasks, drafted tasks, the digest, the
   drafted question, fact edits, alert events, attendance, MDT sessions, new
-  patients (a second record for a known birth number needs a reason), the
-  staff list (a new person's role is chosen explicitly; "MUDr." prefills
-  "lékař") and break-the-glass ("Otevřít mimo tým" with a reason). The server
+  patients (a second record for a known birth number with "Přesto vytvořit
+  nový záznam", as before), the staff list (a new person's role follows the
+  title: "MUDr." is a doctor, anyone else staff) and break-the-glass ("Otevřít mimo tým" with a reason). The server
   checks each rule and writes the audit row; the page shows the server's
   answer and its Czech message on a refusal. `GET /api/workflow` loads the
   stored state of every case at startup, so a reload shows decisions, drafts,
   edits, alert history, attendance, the running session and mails. The page's
   own access log is off in API mode: views the server cannot see go to
   `POST /api/audit/events` as fixed codes, never as text. Doctors are the
-  people the server's `roles` map calls doctors, not a title. A banner on
-  every view says the data is shared and fictional; Administrace offers
-  "Obnovit ukázková data" (type OBNOVIT) where the server enables it, and a
-  tab opened before a reset reloads on its next write. Uploads in the
-  discussion card still stay in the browser (step 6).
-- **Data: vložená (server nedostupný)** in amber: the health check said the
-  data API is on, but a load failed. Nothing from the server is used; the page
-  runs on embedded data, so a silent fallback cannot hide a broken backend.
+  people the server's `roles` map calls doctors. Administrace offers
+  "Obnovit ukázková data" where the server enables it, and a tab opened
+  before a reset reloads on its next write. Uploads (the discussion card and
+  "Nový pacient") look as before: any file, listed at once as "Nahráno"; the
+  server stores a prepared synthetic document and lists any other file by
+  name and size only (step 6), and a file it did not take stays listed in
+  the browser. "Přečíst bez AI" shows only when `/api/health` reports
+  `features.pipeline`.
+- **Server failed at startup**: the health check said the data API is on,
+  but a load failed. Nothing from the server is used; the page runs on
+  embedded data and says why in the console (`DATA.error`).
 
 The demo has no login. The picked user travels as a staff id (`d2p1`,
 `coord`, `admin`) in the `X-Demo-User` header and in the `cb_demo_user`
@@ -145,7 +149,8 @@ Synthetic patient S02 (Věra Lipenská, rectal cancer, `samples/S02_pacient`) is
 
 The documents were read and extracted in advance, like every case in the mock; the dialog recognises them by
 file name and attaches that record only when the birth number from the form matches and all seven are uploaded.
-Any other upload makes an empty record, as before.
+Any other upload makes an empty record, as before. On the Worker the server decides the same by the files' hashes
+(extra files that are not prepared documents do not stop it) and stores only the prepared documents' content.
 
 ## Source view and page images
 
@@ -277,12 +282,12 @@ Lucide 0.468.0 paths are embedded in the template, with the ISC notice in
   five-case bound, the user switch).
 - `src/test/write-api.mjs`: the write path of API mode in jsdom against a fake
   server that follows the step 4 contract (same setup as `case-store.mjs`):
-  the workflow load, the banner, approval (stored first, one request on a
+  the workflow load, no banner or data chip, approval (stored first, one request on a
   double click, the idempotency key kept for a retry), "Nový závěr" only after
   approval in both modes, a taken slot, the reset reload, view events as
-  codes, the protocol conflict bar, the coordinator's read-only record,
-  attendance ids, task rollback, alert keys, a duplicate birth number with a
-  reason, break-the-glass and a new person's role.
+  codes, the protocol conflict bar, the coordinator writing the record as
+  before, attendance ids, task rollback, alert keys, a duplicate birth number
+  without a reason, break-the-glass and a new person's role from the title.
 - `src/test/recorder-server.mjs`: the AI recorder in server mode (step 5) in
   jsdom against a fake server (same setup as `case-store.mjs`): live lines
   with client ids, audio in parts, the last lines and the final part stored
@@ -290,10 +295,11 @@ Lucide 0.468.0 paths are embedded in the template, with the ISC notice in
   "Shrnutí AI · návrh" draft shown, and "Zkusit znovu" after a failed pass.
 - `src/test/uploads-intake.mjs`: uploads and "Nový pacient" in API mode
   (step 6) in jsdom against a fake server (same setup as `case-store.mjs`):
-  one raw request per file, the server's list, refusals with the server's
-  reason, the wrong-patient alert, removal; FHIR read on the server, the
-  intake opened at "Pokračovat", the server's verdict instead of an
-  animation, completion, and discard when the dialog closes.
+  one raw request per file, every file listed as "Nahráno" at once (also
+  one the server did not take), no upload error, the wrong-patient alert,
+  removal; FHIR read on the server, the intake opened at "Pokračovat", the
+  pre-server animation closed by the server's verdict, completion, and
+  discard when the dialog closes.
 - `node mocks/src/test/timeline-categories.mjs`: category filters, preserved source indexes, partial and missing dates, planned status, and escaped labels.
 
 - `src/test/v3.mjs`: clicks through mock v3 in Chromium with Playwright at

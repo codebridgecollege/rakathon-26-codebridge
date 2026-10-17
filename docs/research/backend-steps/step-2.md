@@ -1161,7 +1161,9 @@ Line numbers refer to the template at commit `04968a4`.
 9. **Data source chip** in the top bar (`renderNav`, line 1446 area):
    "Data: server" or "Data: vložená" with a tooltip; when API mode failed
    during startup, "Data: vložená (server nedostupný)" in amber, so a
-   silent fallback cannot hide a broken backend during the demo.
+   silent fallback cannot hide a broken backend during the demo. Removed
+   on 2026-10-18 (user decision: no server additions on screen); the
+   console reports the mode and a failed start (`mocks/README.md`).
 
 10. **Prognosis messages** (`mocks/src/prognosis.js`, `pgJson`): read
     `data.error?.message_cs` as well as `message`, so the Worker's 404 for

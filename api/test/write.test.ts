@@ -6,6 +6,7 @@ import { call, testEnv } from "./helpers";
 import { FAKE_NAME, SQL, loadFixture } from "./data";
 import { Tx } from "../src/store/write";
 import { D } from "../src/domain/errors";
+import { COORDINATOR_EDITS_PROTOCOL } from "../src/domain/config";
 
 type Body = { data?: Record<string, unknown>; data_epoch?: number; state?: Record<string, any>; error?: { code: string; message_cs: string; current?: any; fields?: any } };
 
@@ -155,10 +156,11 @@ describe("protocol, approval, new version", () => {
     expect(await count("access_log", "action = 'protocol.edit'")).toBe(1);
   });
 
-  it("refuses protocol edits by the coordinator (doctors only, open question)", async () => {
+  it("follows COORDINATOR_EDITS_PROTOCOL for the coordinator's protocol edits (open question), and refuses the administrator", async () => {
     const r = await w("PUT", "/cases/NO-A/protocol", { version: 0, concl: "x" }, "coord");
-    expect(r.status).toBe(403);
-    expect(r.body.error?.code).toBe("not_doctor");
+    if (COORDINATOR_EDITS_PROTOCOL) expect(r.status).toBe(200);
+    else expect([r.status, r.body.error?.code]).toEqual([403, "not_doctor"]);
+    expect((await w("PUT", "/cases/NO-A/protocol", { version: COORDINATOR_EDITS_PROTOCOL ? 1 : 0, concl: "y" }, "admin")).status).toBe(403);
   });
 
   it("approves with an open missing-document alert, once per key, and freezes what was approved", async () => {
@@ -320,11 +322,13 @@ describe("new case and break-the-glass", () => {
     expect((await w("POST", "/cases", form, "admin", key(3))).status).toBe(403);
   });
 
-  it("needs an override with a reason for a known birth number; the reason stays out of the log", async () => {
+  it("needs the override for a known birth number, logs it, and keeps an optional reason out of the log", async () => {
     const dup = await w("POST", "/cases", { ...form, birth_number: "6453121234" }, "coord", key(4));
     expect(dup.body.error).toMatchObject({ code: "duplicate_birth_number", current: { case_id: "NO-A" } });
-    const short = await w("POST", "/cases", { ...form, birth_number: "6453121234", duplicate_override: { birth_number: "645312/1234", reason: "x" } }, "coord", key(5));
-    expect(short.body.error?.code).toBe("override_reason_required");
+    const plain = await w("POST", "/cases", { ...form, birth_number: "6453121234", duplicate_override: { birth_number: "645312/1234" } }, "coord", key(5));
+    expect(plain.status).toBe(200);
+    expect((await q("SELECT duplicate_override_reason AS r FROM cases WHERE id = ?1", plain.body.data!.case_id))[0]!.r).toBeNull();
+    expect((await log()).filter((l) => l.action === "case.duplicate_override").map((l) => l.what_cs)).toEqual(["vytvořil(a) nový záznam, přestože rodné číslo už v databázi je"]);
     const reason = "jiná osoba, ověřeno u odesílajícího lékaře";
     const ok = await w("POST", "/cases", { ...form, birth_number: "6453121234", duplicate_override: { birth_number: "645312/1234", reason } }, "coord", key(6));
     expect(ok.status).toBe(200);

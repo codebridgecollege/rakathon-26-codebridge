@@ -1,10 +1,12 @@
-// Uploads (step 6, slice a-1): what a file must be before it is stored, how a registered fixture's patient is compared
-// with the case's patient, and the Czech labels of a document's state. Pure: the route reads the body, the registry and
-// the case, and passes them in.
+// Uploads (step 6, slice a-1): which files are stored and which are only listed, how a registered fixture's patient is
+// compared with the case's patient, and the Czech labels of a document's state. Pure: the route reads the body, the
+// registry and the case, and passes them in.
 import { DomainError, type DomainStatus } from "./errors";
 
-// The shared demo stores only known synthetic files (decision 2026-10-17): once a file is stored it would be data
-// without clearance in a database everyone can read. The other policies are for team staging and local work.
+// The shared demo stores the content of known synthetic files only (decision 2026-10-17): any other file would be data
+// without clearance in a database everyone can read. Such a file is still accepted and listed, by its name, size,
+// uploader and time, so the demo never refuses an upload (user decision 2026-10-18). store_unprocessed (team staging and
+// local work) also stores unknown PDFs.
 export type UploadPolicy = "fixtures_only" | "store_unprocessed";
 export const uploadPolicy = (v: string | undefined): UploadPolicy => (v === "store_unprocessed" ? "store_unprocessed" : "fixtures_only");
 
@@ -14,23 +16,28 @@ export const MAX_DOCUMENTS_PER_CASE = 40;
 const u = (status: DomainStatus, code: string, msg: string) => () => new DomainError(status, code, msg);
 
 export const UP = {
-  notFixture: u(
-    422,
-    "upload_not_fixture",
-    "Ve sdílené ukázce lze nahrát jen připravené syntetické dokumenty (např. ze složky samples/S02_pacient/upload). Jiný soubor se neuložil, protože by šlo o data bez souhlasu s jejich zpracováním.",
-  ),
-  tooLarge: u(413, "too_large", "Soubor je větší než 20 MB."),
-  empty: u(422, "empty_file", "Soubor je prázdný."),
   lengthRequired: u(411, "length_required", "Chybí velikost souboru (Content-Length)."),
-  zip: u(415, "type_not_allowed", "ZIP rozbalte a nahrajte jednotlivé PDF."),
-  notPdf: u(415, "type_not_allowed", "Nahrát lze jen PDF. Jiné formáty (Word, obrázky) zatím server nepřijímá."),
+  // Only when two uploads of the same file race; a plain repeat answers with the document already there.
   duplicate: u(409, "duplicate", "Tento dokument už je u případu nahraný."),
-  nameTaken: u(409, "name_taken", "Soubor se stejným názvem už je u případu nahraný; přejmenujte ho."),
   locked: u(409, "case_locked", "Případ je uzavřený nebo má schválený závěr, nahrávání je uzamčeno."),
   tooMany: u(409, "too_many_documents", `Případ má už ${MAX_DOCUMENTS_PER_CASE} dokumentů, další nelze nahrát.`),
   notFound: u(404, "document_not_found", "Dokument nebyl nalezen."),
   notRemovable: u(409, "document_not_removable", "Odebrat lze jen nahraný dokument, který se zatím nezpracoval."),
   badName: u(422, "invalid_input", "Chybí název souboru (X-File-Name)."),
+};
+
+// Whether the bytes are kept: a registered fixture always, an unknown PDF only under store_unprocessed, anything else
+// (another format, an empty or oversized file) never. A file that is not kept leaves only its listing row.
+export function keepsContent(policy: UploadPolicy, kind: "pdf" | "zip" | "other" | null, fixture: { kind: string } | null): boolean {
+  if (kind !== "pdf") return false;
+  if (fixture) return fixture.kind !== "referral";
+  return policy === "store_unprocessed";
+}
+
+// The media type a listed file declared, as display data; anything malformed is stored as the generic type.
+export const mediaTypeOf = (header: string | undefined) => {
+  const t = String(header ?? "").split(";")[0]!.trim().toLowerCase();
+  return /^[a-z0-9.+-]{1,60}\/[a-z0-9.+-]{1,80}$/.test(t) ? t : "application/octet-stream";
 };
 
 // PDF by its bytes, never by the header or the extension. The PDF standard lets the header start within the first
@@ -93,3 +100,4 @@ export const STATE_CS: Record<string, string> = {
 // What the access log keeps of an upload: size and the start of the hash, never the name or the content.
 export const sizeCs = (n: number) => (n < 1024 * 1024 ? `${Math.max(1, Math.round(n / 1024))} kB` : `${(n / 1024 / 1024).toFixed(1).replace(".", ",")} MB`);
 export const uploadLine = (size: number, sha: string) => `nahrál(a) dokument k případu (PDF, ${sizeCs(size)}, otisk ${sha.slice(0, 12)})`;
+export const listedLine = (size: number) => `nahrál(a) soubor k případu (uložen jen název a velikost, ${sizeCs(size)})`;

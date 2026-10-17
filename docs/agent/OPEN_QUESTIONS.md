@@ -160,7 +160,8 @@ experience.
   (`docs/research/backend-steps/step-2.md`, `step-4.md`): the server refuses
   clinical content to the administrator and the coordinator (INTEGRATION.md),
   while today's demo shows it to every role; a coordinator may acknowledge
-  alerts but not edit next steps; every MDT department is a member of every
+  alerts and, as on the page before the server (switched back on
+  2026-10-18), edit notes and next steps; every MDT department is a member of every
   case; a closed case cannot be booked. Step 2 keeps today's demo behaviour
   behind the Worker var `CLINICAL_ACCESS` (`all_roles`, the default: every
   role reads clinical content); `doctors_only` applies INTEGRATION.md's rule
@@ -168,7 +169,7 @@ experience.
   team is still refused while the coordinator and administrator read every
   case; the seed hides this because every department is on every case.
   Step 4 implements the other assumptions, each as one constant in
-  `api/src/domain/config.ts`: `COORDINATOR_EDITS_PROTOCOL = false`,
+  `api/src/domain/config.ts`: `COORDINATOR_EDITS_PROTOCOL = true`,
   `COORDINATOR_ACTS_ON_ALERTS = true`, `CLOSED_CASE_BOOKABLE = false`,
   `NEW_CASE_MEMBERS = "all_mdt_departments"` (a new case gets every MDT
   department as a member, plus its creator and owner).

@@ -323,7 +323,7 @@ All paths under `/api`. "Member" means doctor with membership or grant.
 
 #### Case creation and break-the-glass
 
-**`POST /cases`** `{ first_name, last_name, birth_number, consent: true, question?, owner_user_id?, dept?, intake_fixture?, duplicate_override?: { birth_number, reason } }`, header `Idempotency-Key`
+**`POST /cases`** `{ first_name, last_name, birth_number, consent: true, question?, owner_user_id?, dept?, intake_fixture?, duplicate_override?: { birth_number, reason? } }`, header `Idempotency-Key`
 - Who: doctor, coordinator.
 - Rule: `validateReferral`; `duplicateDecision`; `intakeFixtureAllowed`.
 - Batch: idempotency insert; guard "no patient with this normalized birth number" unless override; insert `patients` (identity only), `cases` (question explicit or empty; the drafted question for an empty one comes from extraction, never typed by the server), `case_members`, `status_history (null -> new)`; audit `vytvořil(a) případ` and, with override, `vytvořil(a) nový záznam, přestože rodné číslo už v databázi je: <reason>` (the reason is staff text, length-limited).
@@ -580,7 +580,9 @@ before Steps 2 and 3 existed, and the exact API contract the page uses.
   recreating the triggers, and bumps `data_epoch` too.
 - **Duplicate-override reason stays with the case** (`cases.duplicate_override_reason`):
   it is staff free text that may name the patient, so the access-log line
-  only says that a second record was created.
+  only says that a second record was created. Since 2026-10-18 the reason
+  is optional (the page asks none, as before the server: "Přesto vytvořit
+  nový záznam"); the override itself is still required and logged.
 - **New cases** get IDs `NO-100` and up (`<n>_novy.pdf`), processing
   `none`; the S02 intake fixture gets `NO-S02` once.
 - **Hooks** `onCaseClosed`, `onApproved`, `onSessionEnded` are no-ops in
@@ -656,7 +658,7 @@ means edits and alert history were withheld for the role
 | `POST /sessions` | `{ day }` | `sessions` |
 | `DELETE /sessions/:day` | `{}` | `sessions` |
 | `PUT /attendance/:key` | `{ version, by_dept: { <dept id>: [user ids] } }` | `att` |
-| `POST /cases` | `{ first_name, last_name, birth_number, consent, question?, owner?, dept?, intake_fixture?, duplicate_override?: { birth_number, reason } }` + `Idempotency-Key` | `patient`, `cases` |
+| `POST /cases` | `{ first_name, last_name, birth_number, consent, question?, owner?, dept?, intake_fixture?, duplicate_override?: { birth_number, reason? } }` + `Idempotency-Key` | `patient`, `cases` |
 | `POST /cases/:id/break-glass` | `{ reason }` | none; `data.expires_at` |
 | `POST /staff/departments` | `{ name }` | `staff` |
 | `DELETE /staff/departments/:id` | `{}` | `staff` |

@@ -176,6 +176,22 @@ describe("intake without the attach", () => {
     expect(first.body.data!.case_id).toMatch(/^NO-1\d\d$/);
   });
 
+  it("attaches with a listed extra file, which stays nezpracováno and has no content, and takes the fixture's birth date", async () => {
+    await env.DB.prepare("UPDATE fixture_patients SET birth_as_written = '14.6.1958' WHERE fixture_id = 'FX'").run();
+    await startIntake();
+    for (const f of FILES) await upload("NO-FX", f);
+    const extra = await call("/api/cases/NO-FX/documents", {
+      method: "POST",
+      headers: { "content-type": "application/msword", "x-demo-user": "d2p1", "x-data-epoch": "1", "x-file-name": "propousteci.doc", "content-length": "5" },
+      body: enc.encode("hello"),
+    });
+    expect(extra.status).toBe(201);
+    const done = await w("POST", "/cases/NO-FX/intake/complete");
+    expect(done.body.data!.attached).toBe(true);
+    expect((await q<{ file_name: string; state: string; k: string | null }>("SELECT file_name, state, original_r2_key AS k FROM documents WHERE case_id = 'NO-FX' AND fixture_id IS NULL"))).toEqual([{ file_name: "propousteci.doc", state: "stored", k: null }]);
+    expect(done.body.state!.patient).toMatchObject({ birth: "14.6.1958" });
+  });
+
   it("does not attach the fixture twice", async () => {
     await startIntake();
     for (const f of FILES) await upload("NO-FX", f);

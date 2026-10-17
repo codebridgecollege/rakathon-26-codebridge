@@ -52,8 +52,8 @@ alias.
 On the Worker every change in the page (status, calendar, conclusion,
 approval, tasks, edits, alerts, attendance, new patient, staff) goes
 through the write API, which enforces the rules and writes the audit
-log. The data is shared by every visitor and marked "Ukázková data";
-the administrator restores the seed with "Obnovit ukázková data" in
+log. The data is shared by every visitor; the administrator restores
+the seed with "Obnovit ukázková data" in
 Administrace (`POST /api/admin/reset-demo`, on when
 `DEMO_RESET_ENABLED=true`). See [`api/AGENTS.md`](api/AGENTS.md).
 

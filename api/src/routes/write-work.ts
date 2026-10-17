@@ -244,9 +244,9 @@ export const writeWork = new Hono<AppEnv>()
         .bind(rcN)
         .all<{ case_id: string; file: string }>()
     ).results;
-    let overrideReason: string | null;
+    let override: { reason: string | null } | null;
     try {
-      overrideReason = duplicateDecision(ref.birth_number, existing, b.duplicate_override);
+      override = duplicateDecision(ref.birth_number, existing, b.duplicate_override);
     } catch (e) {
       // The "Otevřít" link names the existing case only to someone who may open it; others learn that a record exists.
       if (e instanceof DomainError && e.code === "duplicate_birth_number") throw D.duplicateBirthNumber(await visibleDuplicate(c, existing));
@@ -287,7 +287,7 @@ export const writeWork = new Hono<AppEnv>()
     const t = tx(c);
     t.idempotency(key, "create_case", sha, data, 200, at);
     // A second record for a known birth number only with the override; re-checked inside the batch.
-    if (!overrideReason)
+    if (!override)
       t.guard("no_duplicate", "NOT EXISTS (SELECT 1 FROM patients p JOIN cases c ON c.patient_id = p.id WHERE replace(p.birth_number, '/', '') = ? AND c.intake_open = 0)", [rcN], () => D.duplicateBirthNumber({}));
     t.guard("id_free", "NOT EXISTS (SELECT 1 FROM cases WHERE id = ?)", [id], () => D.conflict());
     t.run(
@@ -301,7 +301,7 @@ export const writeWork = new Hono<AppEnv>()
        VALUES (?1, ?2, ?3, ?4, 'new', 'none', ?5, ?6, NULL, ?7, NULL, ?8, ?9, ?10, ?11, ?11, ?12, ?13, ?14, ?15, ?16)`,
       id, `pt-${id}`, file, lastOrder + 1, ref.question, ref.question ? 1 : 0,
       // The documents decide the diagnosis; until a doctor reviews them the list says so instead of guessing.
-      "Čeká na kontrolu lékařem", staff.idByName.get(owner) ?? null, owner, ref.dept, day, overrideReason, v.id, at, intake ? 1 : 0, referralSha,
+      "Čeká na kontrolu lékařem", staff.idByName.get(owner) ?? null, owner, ref.dept, day, override?.reason ?? null, v.id, at, intake ? 1 : 0, referralSha,
     );
     if (NEW_CASE_MEMBERS === "all_mdt_departments")
       t.run("INSERT INTO case_members (case_id, dept_id, reason, added_by, added_at) SELECT ?1, id, 'nový případ: oddělení MDT', ?2, ?3 FROM departments", id, v.id, at);
@@ -309,8 +309,9 @@ export const writeWork = new Hono<AppEnv>()
     const ownerId = staff.idByName.get(owner);
     if (ownerId && ownerId !== v.id) t.run("INSERT INTO case_members (case_id, user_id, reason, added_by, added_at) VALUES (?1, ?2, 'odesílající lékař', ?3, ?4)", id, ownerId, v.id, at);
     t.audit({ action: intake ? "intake.start" : "case.create", what_cs: intake ? "založil(a) příjem nového pacienta (rozpracováno, dokumenty se nahrávají)" : "vytvořil(a) případ", case_id: id });
-    // The reason is staff free text that may name the patient; it stays with the case, the log only says it exists.
-    if (overrideReason) t.audit({ action: "case.duplicate_override", what_cs: "vytvořil(a) nový záznam, přestože rodné číslo už v databázi je (důvod uložen u případu)", case_id: id });
+    // A typed reason is staff free text that may name the patient; it stays with the case, the log only says it exists.
+    if (override)
+      t.audit({ action: "case.duplicate_override", what_cs: `vytvořil(a) nový záznam, přestože rodné číslo už v databázi je${override.reason ? " (důvod uložen u případu)" : ""}`, case_id: id });
     try {
       await t.commit();
     } catch (e) {

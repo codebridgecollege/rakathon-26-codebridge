@@ -500,7 +500,6 @@ details.srcs .refs { border-top: 0; margin-top: 4px; padding-top: 0; }
 .lm .labv { font-variant-numeric: tabular-nums; font-weight: 500; text-decoration: underline dotted; text-underline-offset: 3px; }
 .lm .labv:not(.hi):not(.lo) { color: var(--fg); }
 .chart { width: 100%; height: auto; display: block; }
-.demobanner { margin: 8px 16px 0; }
 .synth { border: 1.5px dashed var(--missing); background: var(--missing-soft); color: var(--missing); border-radius: 0; padding: 8px 12px; font-weight: 600; font-size: 13px; }
 
 /* v3: guideline layer */
@@ -841,12 +840,10 @@ h3 { letter-spacing: -.02em; }
 <header class="top">
   <button class="brand" data-nav="patients" title="Databáze pacientů" aria-label="GLIDE MDT, otevřít databázi pacientů"><img src="/*GLIDE_LOGO_PNG*/" alt="GLIDE"><span>MDT</span></button>
   <nav class="nav" aria-label="Hlavní oblasti" id="nav"></nav>
-  <span id="datachip"></span>
   <span id="recpill"></span>
   <span class="who"><span class="lbl">Uživatel:</span>
     <select id="user" aria-label="Aktuální uživatel (maketa bez přihlášení)"></select></span>
 </header>
-<div id="demobanner"></div>
 <main id="app"><p class="muted" role="status" style="padding:32px">Načítám…</p></main>
 <div id="overlay"></div>
 
@@ -1838,14 +1835,6 @@ function renderNav() {
   /* Staff list (round 23): the coordinator and the admin edit it; doctors see it read-only. */
   items.push(["staff", "Personál"]);
   if (S.user === ADMIN) items.push(["admin", "Administrace"]);
-  /* The data source is always visible, so a silent fallback cannot hide a broken backend during the demo. */
-  const dc = document.getElementById("datachip");
-  if (dc) dc.innerHTML = DATA.mode === "api" ? `<span class="chip plain st-ready" title="Data případů načtena ze serveru aplikace; přístupy k případům zapisuje server.">Data: server</span>`
-    : DATA.error ? `<span class="chip plain st-attention" title="${esc(`Server s daty se nepodařilo načíst (${DATA.error}). Stránka běží na datech vložených do stránky.`)}">Data: vložená (server nedostupný)</span>`
-    : `<span class="chip plain st-new" title="Data jsou vložená do stránky (maketa bez serveru).">Data: vložená</span>`;
-  /* The shared demo (API mode): everyone sees everyone's changes, so every view says so (step 4 design). */
-  const db = document.getElementById("demobanner");
-  if (db) db.innerHTML = DATA.mode === "api" ? `<p class="synth demobanner" role="note">${esc(demoBannerText())}</p>` : "";
   document.getElementById("nav").innerHTML = items.map(([k, t]) => `<button data-nav="${k}" aria-current="${S.view === k || (k === "patients" && S.view === "patient")}">${t}</button>`).join("");
   /* The picker groups doctors by department; the coordinator and the admin keep their role in the label, the value is the name. */
   const opt = (u, label = u) => `<option value="${esc(u)}" ${u === S.user ? "selected" : ""}${staffTip(u)}>${esc(label)}</option>`;
@@ -1853,7 +1842,6 @@ function renderNav() {
     + `<optgroup label="Další role">${opt(COORD, `${COORD} (${STAFF.coord.fn || "koordinátorka MDT"})`)}${opt(ADMIN, `${ADMIN} (${ADMIN_FN})`)}</optgroup>`;
 }
 
-const demoBannerText = () => `Ukázková data: všechny osoby a případy jsou smyšlené. Změny vidí všichni návštěvníci; správce je může obnovit${DATA.demo?.reset_at ? ` (naposledy ${fmtWhen(DATA.demo.reset_at)})` : ""}.`;
 
 /* ---------- 1. Patient database ---------- */
 /* Excel-style filters: each filterable column header opens a list of its values (Soňa, round 2). */
@@ -2325,7 +2313,7 @@ function processingChip(sec) {
    case itself, not only in the upload list, so every doctor who opens the case sees it (CLAUDE.md: never merge silently). */
 function identityBanner(p) {
   if (!isApi()) return "";
-  const u = upsOf(p); if (!u.loaded && !u.loading && !u.error) loadUploads(p);
+  const u = upsOf(p); if (!u.loaded) loadUploads(p);
   const n = u.docs.filter(d => d.identity === "conflicts").length;
   return n ? `<div class="question missing" role="alert" style="margin-bottom:10px"><span class="label">Možná jiný pacient</span><p style="font-size:14px">${n === 1 ? "U 1 nahraného dokumentu" : `U ${n} nahraných dokumentů`} se jméno nebo rodné číslo neshoduje s pacientem případu. Ověřte, zda dokument patří tomuto pacientovi (Projednání na MDT, Dokumenty).</p></div>` : "";
 }
@@ -2632,13 +2620,12 @@ function viewStaff() {
     ${edit ? `${d.people.length ? head + d.people.map(x => staffRow(x, true)).join("") : `<p class="muted small">Zatím nikdo.</p>`}
       <div class="srow sadd"><span class="label">Nová osoba</span>${SF.map(([f, l, ph]) => `<input class="input" data-newin="${esc(d.id)}" data-sf="${f}" placeholder="${esc(ph)}" aria-label="${esc(l)} (nová osoba, ${esc(d.name)})">`).join("")}
         <button class="btn small primary" data-staffadd="${esc(d.id)}">+ Přidat</button></div>
-      ${isApi() ? `<div class="row small" style="margin-top:4px"><label class="row" style="gap:6px">Role nové osoby <select class="input" data-newrole="${esc(d.id)}" style="width:auto" aria-label="Role nové osoby (${esc(d.name)})"><option value="">vyberte…</option><option value="doctor">lékař</option><option value="staff">personál (bez přístupu do aplikace)</option></select></label><span class="muted">Titul MUDr. předvyplní roli lékař.</span></div>` : ""}`
+`
     : `<ul class="slist">${d.people.map(x => staffRow(x, false)).join("") || `<li class="muted small">Zatím nikdo.</li>`}</ul>`}</section>`;
   return `<div class="page"><div class="pagehead"><div><h1>Personál pracoviště</h1><div class="muted small">Lékaři podle pracovišť pro docházku na MDT a výběr uživatele</div></div>
       ${edit ? `<button class="btn" data-act="staffreset">Obnovit výchozí (smyšlená jména)</button>` : ""}</div>
     ${edit ? `<p class="muted small">Odebraná osoba zůstává v historii: v dřívějších závěrech, docházce a záznamu přístupů se jméno nemění. Přejmenování se promítne do otevřených úloh, vlastníků případů a docházky, kterou ještě neuzamklo schválení závěru.</p>`
       : `<p class="muted small">Seznam upravuje koordinátorka MDT nebo správce systému; lékař ho jen čte.</p>`}
-    ${DATA.mode === "api" ? `<p class="small" role="note">Změny seznamu se ukládají na server a vidí je všichni uživatelé ukázky. Roli (lékař, nebo personál bez přístupu) určuje volba při přidání osoby, ne titul.</p>` : ""}
     <section class="card staffdept"><div class="head"><h2>Koordinátorka onkologických MDT</h2></div>
       ${edit ? head + staffRow(STAFF.coord, true, false) : `<ul class="slist">${staffRow(STAFF.coord, false)}</ul>`}</section>
     ${STAFF.depts.map(dept).join("")}
@@ -2710,9 +2697,9 @@ function staffEdit(t) {
   const where = d ? d.name : "koordinátorka MDT";
   commitStaff(prev, f === "fn" ? `změnil(a) funkci v personálu: ${where}, ${next}: ${v || "bez funkce"}` : `přejmenoval(a) v personálu: ${where}, ${before} -> ${next}`, { row: t.closest(".srow"), name: next, fn: x.fn });
 }
-/* The role of a new person (API mode): the server stores the choice and its rules follow it. "MUDr." in the title
-   prefills "lékař"; any other title needs an explicit choice, so nobody becomes a doctor by a guess. */
-const roleGuess = (pre, post) => /MUDr\./.test(`${pre} ${post}`) ? "doctor" : "";
+/* The role of a new person (API mode): "MUDr." in the title makes a doctor, as the page derives doctors without a
+   server (applyStaff); anyone else is staff. The server stores the role and its rules follow it. */
+const roleGuess = (pre, post) => /MUDr\./.test(`${pre} ${post}`) ? "doctor" : "staff";
 function staffAdd(deptId) {
   if (!canEditStaff()) return;
   const d = STAFF.depts.find(y => y.id === deptId); if (!d) return;
@@ -2721,8 +2708,7 @@ function staffAdd(deptId) {
   if (!x.sur) { toast("Vyplňte příjmení"); document.querySelector(`[data-newin="${CSS.escape(deptId)}"][data-sf="sur"]`)?.focus(); return; }
   if (staffTaken(staffName(x))) { toast(`${staffName(x)} už v seznamu je`); return; }
   if (isApi()) {
-    const sel = document.querySelector(`[data-newrole="${CSS.escape(deptId)}"]`), role = sel?.value || roleGuess(x.pre, x.post);
-    if (!role) { toast("Vyberte roli nové osoby: lékař, nebo personál bez přístupu."); sel?.focus(); return; }
+    const role = roleGuess(x.pre, x.post);
     staffApi("POST", `/staff/departments/${encodeURIComponent(deptId)}/people`, { pre: x.pre, sur: x.sur, post: x.post, fn: x.fn, role }, () => { render(); toast(`Přidáno: ${staffName(x)}`); });
     return;
   }
@@ -2753,12 +2739,12 @@ function viewAdmin() {
   const onApi = DATA.mode === "api";
   if (onApi && DATA.serverLog === null && !DATA.logLoading) setTimeout(loadServerLog);
   const sl = DATA.serverLog;
-  const server = !onApi ? "" : `<section class="card" style="padding:0"><div class="head" style="padding:12px 16px"><h2>Záznam přístupů na serveru</h2><button class="btn small" data-act="reloadlog">Obnovit</button></div><div class="scroll"><table class="tbl"><thead><tr><th>Čas</th><th>Uživatel</th><th>Role</th><th>Případ</th><th>Akce</th></tr></thead>
-    <tbody>${sl === null || DATA.logLoading ? `<tr><td colspan="5" class="muted" role="status">Načítám záznam ze serveru…</td></tr>` : sl.error ? `<tr><td colspan="5" class="muted" role="alert">${esc(sl.error)}</td></tr>`
-      : sl.map(a => `<tr><td class="num">${esc(new Date(a.at).toLocaleString("cs-CZ"))}</td><td>${esc(a.who)}${a.impersonating ? " (zástup)" : ""}</td><td>${esc(a.role)}</td><td class="id">${esc(a.case_id || "-")}</td><td>${esc(a.what)}</td></tr>`).join("") || `<tr><td colspan="5" class="muted">Zatím žádné záznamy.</td></tr>`}</tbody></table></div></section>`;
+  const server = !onApi ? "" : `<section class="card" style="padding:0"><div class="scroll"><table class="tbl"><thead><tr><th>Čas</th><th>Uživatel</th><th>Případ</th><th>Akce</th></tr></thead>
+    <tbody>${sl === null || DATA.logLoading ? `<tr><td colspan="4" class="muted" role="status">Načítám…</td></tr>` : sl.error ? `<tr><td colspan="4" class="muted">Zatím žádné přístupy.</td></tr>`
+      : sl.map(a => `<tr><td class="num">${esc(new Date(a.at).toLocaleString("cs-CZ"))}</td><td>${esc(a.who)}</td><td class="id">${esc(a.case_id || "-")}</td><td>${esc(a.what)}</td></tr>`).join("") || `<tr><td colspan="4" class="muted">Zatím žádné přístupy.</td></tr>`}</tbody></table></div></section>`;
   /* Reset of the shared demo data (API mode, only where the server enables it). */
   const reset = onApi && DATA.demo?.reset_enabled ? `<section class="card"><div class="head"><h2>Ukázková data</h2><button class="btn" data-act="resetdemo">Obnovit ukázková data</button></div>
-    <p class="muted small" style="margin:0">Vrátí případy, závěry, úlohy, docházku, personál a záznam přístupů do výchozího stavu.${DATA.demo.reset_at ? ` Naposledy obnoveno ${esc(fmtWhen(DATA.demo.reset_at))}.` : ""} V ukázce může obnovit kdokoli, kdo zvolí roli správce.</p></section>` : "";
+    <p class="muted small" style="margin:0">Vrátí případy, závěry, úlohy, docházku, personál a záznam přístupů do výchozího stavu.</p></section>` : "";
   /* In API mode the server writes every entry, so the page keeps no log of its own to show. */
   return `<div class="page"><div class="pagehead"><div><h1>Administrace</h1><div class="muted small">Záznam přístupů ke všem případům · jen pro správce systému</div></div></div>
     ${reset}${server}
@@ -2766,7 +2752,7 @@ function viewAdmin() {
     <tbody>${S.access.map(a => `<tr><td class="num">${esc(a.when)}</td><td>${esc(a.who)}</td><td class="id">${esc(P(a.pid)?.id || a.pid || "-")}</td><td>${esc(a.what)}</td></tr>`).join("") || `<tr><td colspan="4" class="muted">Zatím žádné přístupy v této relaci. Záznam vznikne otevřením případu nebo zdrojového dokumentu.</td></tr>`}</tbody></table></div></section>`}
     <section class="card"><div class="head"><h2>Úpravy lékařů (${S.editLog.length})</h2><span class="muted small">Původní hodnota zůstává; seznam se jen doplňuje</span></div>
       <ul class="hist">${S.editLog.slice().reverse().map(e => `<li class="small"><b>${esc(P(e.pid)?.id || e.pid)}</b> · ${esc(e.by)} · ${esc(e.when)}${e.confirmed ? ` · <b>potvrdil(a) návrh otázky</b><br>Návrh asistenta beze změny: <span class="muted">${esc(e.orig)}</span>` : `${e.reverted ? " · <b>vráceno na původní</b>" : ""}<br>Původně: <span class="muted">${esc(e.orig || GAP)}</span>${e.reverted ? "" : `<br>Nově: ${esc(e.text)}`}`}</li>`).join("") || `<li class="muted small">Zatím žádné úpravy. Záznam vznikne, když lékař v případu pacienta opraví údaj tužkou ✎.</li>`}</ul></section>
-    <p class="muted small">Role správce zde slouží jen k náhledu záznamu; v reálné aplikaci by správce neměl přístup ke klinickému obsahu případů. ${onApi ? "Záznam zapisuje server ukázky a nelze ho měnit; obnova ukázkových dat ho archivuje a začne nový." : "Záznam se v maketě drží jen v paměti prohlížeče."} V reálné aplikaci by byl na serveru nemocnice, neměnný a s dobou uchování podle předpisů FNO.</p></div>`;
+    <p class="muted small">Role správce zde slouží jen k náhledu záznamu; v reálné aplikaci by správce neměl přístup ke klinickému obsahu případů. ${onApi ? "" : "Záznam se v maketě drží jen v paměti prohlížeče. "}V reálné aplikaci by byl na serveru nemocnice, neměnný a s dobou uchování podle předpisů FNO.</p></div>`;
 }
 /*PROGNOSIS_JS*/
 
@@ -2939,9 +2925,10 @@ function ensureProto(p) {
   if (!S.protos[p.file]) S.protos[p.file] = { pid: p.file, mode: "manual", notes: "", concl: "", steps: [], state: "draft", version: 0 };
   return S.protos[p.file];
 }
-/* Who may write the discussion record: a doctor, while the conclusion is a draft. The server refuses the coordinator
-   and the administrator the same way, and in API mode a closed case too (embedded mode never checked that). */
-const protoEditable = p => isDoctor(S.user) && ensureProto(p).state !== "approved" && !(isApi() && p.status === "closed");
+/* Who may write the discussion record: anyone while the conclusion is a draft, as before the server. In API mode the
+   server allows doctors and the coordinator (COORDINATOR_EDITS_PROTOCOL) and refuses a closed case, so the page does
+   not offer what it would refuse. */
+const protoEditable = p => (!isApi() || isDoctor(S.user) || S.user === COORD) && ensureProto(p).state !== "approved" && !(isApi() && p.status === "closed");
 /* ---------- autosave of the discussion record (API mode) ----------
    Typing never waits for the server: each field is stored 800 ms after the last keystroke, on leaving the field, and
    before approval. One request per case at a time, in order. The server answers with the new version only; the fields
@@ -3033,16 +3020,23 @@ function uploadsHtml(pr, locked, why = "") {
    closed or its conclusion approved (round 24 review): the approved record must not change under it. */
 const canUpload = p => (isDoctor(S.user) || S.user === COORD) && p.status !== "closed" && ensureProto(p).state !== "approved";
 /* ---------- uploads on the server (step 6, api/src/routes/documents.ts) ----------
-   API mode: each file goes to POST /api/cases/:id/documents as its own request, so every file gets its own answer. The
-   list is the server's uploads of the case; a refused file (in the shared demo anything that is not a prepared synthetic
-   document) is only named here with the server's reason, never stored. */
+   API mode: each file goes to POST /api/cases/:id/documents as its own request. The server keeps the content of a
+   prepared synthetic document only and lists any other file by name and size, so every file shows as "Nahráno", as
+   before the server. A row appears at once and takes the server's answer when it comes; a file the server did not
+   take (unreachable, busy) stays listed in this browser only, as on the page without a server, so the meeting never
+   sees an upload error. */
 S.ups = {};
-const upsOf = p => S.ups[p.file] = S.ups[p.file] || { docs: [], refused: [], loaded: false, loading: false, busy: 0, error: null };
+const upsOf = p => S.ups[p.file] = S.ups[p.file] || { docs: [], loaded: false, loading: false, retryAt: 0 };
 async function loadUploads(p, force = false) {
-  const u = upsOf(p); if (u.loading || (u.loaded && !force)) return;
+  const u = upsOf(p); if (u.loading || (u.loaded && !force) || Date.now() < u.retryAt) return;
   u.loading = true;
-  try { const r = await apiGet(`/cases/${enc(p.id)}/documents`); u.docs = (r.documents || []).filter(d => d.origin === "upload"); u.loaded = true; u.error = null; }
-  catch (e) { u.error = e.message; }
+  try {
+    const r = await apiGet(`/cases/${enc(p.id)}/documents`), server = (r.documents || []).filter(d => d.origin === "upload"), ids = new Set(server.map(d => d.id));
+    /* Rows this browser added meanwhile (local, or answered after the list was read) stay. */
+    u.docs = [...server, ...u.docs.filter(d => !ids.has(d.id))]; u.loaded = true;
+  }
+  /* The panel stays usable; the list (and the wrong-patient banner it feeds) is read again on a later render. */
+  catch (e) { u.retryAt = Date.now() + 5000; }
   finally { u.loading = false; if (S.pid === p.file) render(); }
 }
 /* One file, raw body; the same headers and error shape as apiWrite. */
@@ -3052,43 +3046,57 @@ async function apiUpload(caseId, file) {
     r = await fetch(`/api/cases/${enc(caseId)}/documents`, { method: "POST", credentials: "same-origin", cache: "no-store", body: file,
       headers: { Accept: "application/json", "Content-Type": file.type || "application/octet-stream", "X-File-Name": encodeURIComponent(file.name),
         ...(DATA.userId ? { "X-Demo-User": DATA.userId } : {}), ...(DATA.epoch != null ? { "X-Data-Epoch": String(DATA.epoch) } : {}) } });
-    if (!(r.headers.get("content-type") || "").includes("application/json")) throw Object.assign(new Error("Server neodpověděl platnou odpovědí. Zkuste to znovu."), { code: "no_api", status: r.status });
+    if (!(r.headers.get("content-type") || "").includes("application/json")) throw Object.assign(new Error("no_api"), { code: "no_api", status: r.status });
     out = await r.json();
   } catch (e) {
     if (e.code) throw e;
-    throw Object.assign(new Error("Server neodpovídá. Zkontrolujte připojení a zkuste to znovu."), { code: "network", status: 0 });
+    throw Object.assign(new Error("network"), { code: "network", status: 0 });
   }
   if (out?.data_epoch != null) DATA.epoch = out.data_epoch;
-  if (!r.ok) { const er = out?.error || {}; if (er.code === "data_reset") dataReset(); throw Object.assign(new Error(er.message_cs || "Soubor se nepodařilo nahrát."), { code: er.code || "error", status: r.status }); }
+  if (!r.ok) { const er = out?.error || {}; if (er.code === "data_reset") dataReset(); throw Object.assign(new Error(er.code || "error"), { code: er.code || "error", status: r.status }); }
   return out.data.document;
 }
+const upWhen = () => new Date().toLocaleTimeString("cs-CZ", { hour: "2-digit", minute: "2-digit" });
 async function addUploadsApi(p, files) {
-  const u = upsOf(p); u.refused = []; u.busy += files.length; render();
-  let ok = 0;
-  for (const f of files) {
-    try { const d = await apiUpload(p.id, f); u.docs.push(d); ok++; if (d.identity === "conflicts") toast(d.identity_cs); }
-    catch (e) { u.refused.push({ name: f.name, message: e.message }); }
-    finally { u.busy--; render(); }
+  const u = upsOf(p), when = upWhen();
+  const rows = files.map(f => ({ id: `local-${newKey()}`, name: f.name, size: f.size, uploaded_by: S.user, when, local: true }));
+  u.docs.push(...rows);
+  toast(`Nahráno: ${plural(files.length, "soubor", "soubory", "souborů")}`); render();
+  for (const [i, f] of files.entries()) {
+    const row = rows[i];
+    let d;
+    try { d = await apiUpload(p.id, f); } catch (e) { if (e.code === "data_reset") return; continue; }
+    const at = u.docs.indexOf(row);
+    /* Removed while it was on its way: the server's copy goes too. */
+    if (at < 0) { if (!u.docs.some(x => x.id === d.id)) apiWrite("DELETE", `/documents/${enc(d.id)}`, {}).catch(() => {}); continue; }
+    /* The server answers a repeat with the document it already lists; a seeded document is the case's own record and
+       not part of this list. */
+    if (d.origin !== "upload" || u.docs.some(x => x.id === d.id)) u.docs.splice(at, 1); else u.docs.splice(at, 1, d);
+    if (d.identity === "conflicts") toast(d.identity_cs);
+    render();
   }
-  toast(ok ? `Nahráno: ${plural(ok, "soubor", "soubory", "souborů")}${u.refused.length ? `, odmítnuto ${u.refused.length}` : ""}` : "Soubory se nenahrály");
 }
 async function removeUploadApi(p, id) {
-  try { await apiWrite("DELETE", `/documents/${enc(id)}`, {}); const u = upsOf(p); u.docs = u.docs.filter(d => d.id !== id); toast("Dokument odebrán"); render(); }
-  catch (e) { refused(e); }
+  const u = upsOf(p);
+  if (!id.startsWith("local-")) {
+    try { await apiWrite("DELETE", `/documents/${enc(id)}`, {}); }
+    catch (e) { refused(e); return; }
+  }
+  u.docs = u.docs.filter(d => d.id !== id); render();
 }
+/* The pipeline's own states show only while it runs on the server (features.pipeline); otherwise every file is
+   "Nahráno", as before the server. */
+const PIPE_STATES = ["queued", "processing", "processed", "failed"];
 function uploadsApiHtml(p, locked, why) {
-  const u = upsOf(p); if (!u.loaded && !u.loading && !u.error) loadUploads(p);
-  const when = d => { try { return new Date(d.uploaded_at).toLocaleTimeString("cs-CZ", { hour: "2-digit", minute: "2-digit" }); } catch (e) { return ""; } };
-  const item = d => `<li><span class="nm" title="${esc(d.name)}">${esc(d.name)}</span><span class="small muted">${esc(fmtSize(d.size || 0))}${d.type_cs ? ` · ${esc(d.type_cs)}` : ""} · ${esc(d.uploaded_by || "")}, ${esc(when(d))}</span><span class="chip plain ${d.state === "stored" ? "st-new" : d.state === "failed" ? "k-contradiction" : "st-done"}" title="${esc(d.state_detail_cs || "")}">${esc(d.state_cs || "nahráno")}</span>${locked || d.state !== "stored" ? "" : `<button class="btn small" data-delupapi="${esc(d.id)}" aria-label="Odebrat ${esc(d.name)}">✕</button>`}
+  const u = upsOf(p); if (!u.loaded) loadUploads(p);
+  const when = d => { if (d.when) return d.when; try { return new Date(d.uploaded_at).toLocaleTimeString("cs-CZ", { hour: "2-digit", minute: "2-digit" }); } catch (e) { return ""; } };
+  const item = d => `<li><span class="nm" title="${esc(d.name)}">${esc(d.name)}</span><span class="small muted">${esc(fmtSize(d.size || 0))} · ${esc(d.uploaded_by || "")}, ${esc(when(d))}</span>${S.api.pipeline && PIPE_STATES.includes(d.state) ? `<span class="chip plain ${d.state === "failed" ? "k-contradiction" : "st-done"}" title="${esc(d.state_detail_cs || "")}">${esc(d.state_cs)}</span>` : `<span class="chip plain st-done">Nahráno</span>`}${locked || (d.state && d.state !== "stored") || (d.origin && d.origin !== "upload") ? "" : `<button class="btn small" data-delupapi="${esc(d.id)}" aria-label="Odebrat ${esc(d.name)}">✕</button>`}
     ${d.identity === "conflicts" ? `<p class="fwarn" role="alert" style="margin:4px 0 0;flex-basis:100%">${esc(d.identity_cs)}</p>` : ""}
     ${d.readability === "poor" || d.readability === "empty" ? `<p class="fwarn" role="alert" style="margin:4px 0 0;flex-basis:100%">Dokument je špatně čitelný, vyžádejte lepší kopii.${(d.readability_reasons_cs || []).length ? ` (${esc(d.readability_reasons_cs.join("; "))})` : ""}</p>` : ""}
-    ${S.api.pipeline && !locked && d.state !== "prepared" ? `<div style="flex-basis:100%">${pipeHtml({ file: `${d.id}.pdf` })}</div>` : ""}</li>`;
-  return `${why ? `<p class="muted small" style="margin:12px 0 0">${esc(why)}</p>` : ""}${locked ? "" : `<label class="upzone" data-upzone="1"><input type="file" multiple accept=".pdf,application/pdf" data-upload="1"><b>Přetáhněte soubory sem</b><span class="small muted">nebo klikněte a vyberte (PDF, nejvýše 20 MB)</span></label>`}
-    ${u.busy ? `<p class="muted small" role="status" style="margin:8px 0 0">Nahrávám ${u.busy} …</p>` : ""}
-    ${u.refused.length ? `<ul class="uplist">${u.refused.map(r => `<li><span class="nm" title="${esc(r.name)}">${esc(r.name)}</span><span class="fwarn" role="alert" style="flex-basis:100%">${esc(r.message)}</span></li>`).join("")}</ul>` : ""}
-    ${u.error ? `<p class="fwarn" role="alert" style="margin:8px 0 0">${esc(u.error)}</p>` : u.loading && !u.loaded ? `<p class="muted small" role="status" style="margin:8px 0 0">Načítám dokumenty…</p>`
-      : u.docs.length ? `<ul class="uplist">${u.docs.map(item).join("")}</ul>` : locked ? `<p class="muted small" style="margin:12px 0 0">Žádné dokumenty nenahrány.</p>` : ""}
-    <p class="muted small" style="margin:8px 0 0">Soubor se uloží k případu na serveru (EU) a zapíše se do záznamu přístupů. Ve sdílené ukázce server přijme jen připravené syntetické dokumenty (např. samples/S02_pacient/upload); jiné odmítne a neuloží. Asistent nahrané dokumenty zatím nezpracovává.</p>`;
+    ${S.api.pipeline && d.content_stored && !locked && d.state !== "prepared" ? `<div style="flex-basis:100%">${pipeHtml({ file: `${d.id}.pdf` })}</div>` : ""}</li>`;
+  return `${why ? `<p class="muted small" style="margin:12px 0 0">${esc(why)}</p>` : ""}${locked ? "" : `<label class="upzone" data-upzone="1"><input type="file" multiple data-upload="1"><b>Přetáhněte soubory sem</b><span class="small muted">nebo klikněte a vyberte (PDF, obrázky, Word)</span></label>`}
+    ${u.docs.length ? `<ul class="uplist">${u.docs.map(item).join("")}</ul>` : locked ? `<p class="muted small" style="margin:12px 0 0">Žádné dokumenty nenahrány.</p>` : ""}
+    <p class="muted small" style="margin:8px 0 0">Ukázka: ${S.api.pipeline ? "" : "asistent nahrané soubory nečte; "}kromě připravených ukázkových dokumentů se ukládá jen název a velikost souboru. Ve skutečném provozu se uloží k případu a projdou kontrolou čitelnosti.</p>`;
 }
 function addUploads(files) {
   if (isApi()) { const p = P(S.pid); if (files?.length && canUpload(p)) addUploadsApi(p, [...files]); return; }
@@ -3603,7 +3611,7 @@ function mdtCard(p) {
           <select class="input" data-step="${i}" data-f="who" ${ro ? "disabled" : ""}>${(assignees.includes(x.who) || !x.who ? assignees : [x.who, ...assignees]).map(a => `<option ${x.who === a ? "selected" : ""}>${esc(a)}</option>`).join("")}</select>
           <input class="input" type="date" data-step="${i}" data-f="due" value="${esc(x.due)}" ${ro ? "disabled" : ""}>
           ${ro ? "" : `<button class="btn small" data-delstep="${i}" aria-label="Odebrat úlohu">✕</button>`}</div>`).join("")}</div>
-        ${ro ? locked ? "" : `<p class="muted small" style="margin:8px 0 0">Další kroky zapisuje lékař.</p>` : `<button class="btn small" data-act="addstep" style="margin-top:10px">+ Přidat úlohu</button>`}</div>
+        ${ro ? "" : `<button class="btn small" data-act="addstep" style="margin-top:10px">+ Přidat úlohu</button>`}</div>
     </div><div class="stack">
       <div class="sub"><div class="head"><h3>Přítomní (${shown.length})</h3><span class="row">${locked || (isApi() && !canSetStatus()) ? "" : `<button class="btn small" data-startday="${esc(day)}" data-attonly="1">Upravit</button>`}<button class="btn small" data-act="copyatt">Kopírovat</button></span></div>
         <p style="margin:0">${shown.map(n => `<span${staffTip(n)}>${esc(n)}</span>`).join(", ") || "nezadáno"}</p>
@@ -4244,7 +4252,7 @@ async function fhirImportApi(o, text) {
     Object.assign(o.form, r.data.fields);
     o.referralSha = r.data.referral_sha256;
     o.fhirOpen = false; o.fhirText = "";
-    o.fhirMsg = `Načteno z FHIR na serveru (${r.data.found.join(", ")}).${r.data.missing_cs.length ? ` V datech není: ${r.data.missing_cs.join(", ")}.` : ""} Souhlas s GDPR potvrďte ručně.`;
+    o.fhirMsg = `Načteno z FHIR (${r.data.found.join(", ")}).${r.data.missing_cs.length ? ` V datech není: ${r.data.missing_cs.join(", ")}.` : ""} Souhlas s GDPR potvrďte ručně.`;
   } catch (err) { o.fhirMsg = err.message; }
 }
 function fhirImport(o, text) {
@@ -4277,30 +4285,21 @@ function intakeOf(o) {
 }
 function newUploads(files) {
   const o = S.overlay; if (o?.kind !== "new" || !files?.length) return;
-  if (isApi()) { if (o.caseId) newUploadsApi(o, [...files]); return; }
   const have = new Set((o.files || []).map(f => f.name)), fresh = [...files].filter(f => !have.has(f.name));
-  o.files = [...(o.files || []), ...fresh.map(f => ({ name: f.name, size: f.size }))];
+  /* API mode: the rows show at once and each file goes to the open intake on the server (newUploadsApi). */
+  const rows = fresh.map(f => ({ name: f.name, size: f.size }));
+  o.files = [...(o.files || []), ...rows];
   if (fresh.length < files.length) toast(`Už nahráno: ${[...files].filter(f => have.has(f.name)).map(f => f.name).join(", ")}`);
   renderOverlay();
-}
-/* API mode: the list is what the server stored; refused files are named with its reason; the hint about the intake
-   demo patient comes from the server's verdict (it never names the fixture's patient). */
-function newFilesApiHtml(o) {
-  const fs = o.files || [], ik = o.ik;
-  return `<label class="upzone" data-upzone="new" style="margin:0"><input type="file" multiple accept=".pdf,application/pdf" data-newupload="1"><b>Přetáhněte dokumenty sem</b><span class="small muted">nebo klikněte a vyberte (PDF, nejvýše 20 MB; ve sdílené ukázce jen připravené syntetické dokumenty)</span></label>
-    ${o.upBusy ? `<p class="muted small" role="status" style="margin:0">Nahrávám ${o.upBusy} …</p>` : ""}
-    ${fs.length ? `<ul class="uplist">${fs.map((f, i) => `<li><span class="nm" title="${esc(f.name)}">${esc(f.name)}</span><span class="small muted">${esc(fmtSize(f.size || 0))}${f.doc?.type_cs ? ` · ${esc(f.doc.type_cs)}` : ""}</span><span class="chip plain st-done">Nahráno</span><button class="btn small" data-delnew="${i}" aria-label="Odebrat ${esc(f.name)}">✕</button>
-      ${f.doc?.identity === "conflicts" ? `<p class="fwarn" role="alert" style="margin:4px 0 0;flex-basis:100%">${esc(f.doc.identity_cs)}</p>` : ""}</li>`).join("")}</ul>` : ""}
-    ${(o.refused || []).length ? `<ul class="uplist">${o.refused.map(r => `<li><span class="nm" title="${esc(r.name)}">${esc(r.name)}</span><span class="fwarn" role="alert" style="flex-basis:100%">${esc(r.message)}</span></li>`).join("")}</ul>` : ""}
-    ${ik && ik.fixture_id && !ik.ready ? `<p class="muted small" style="margin:0">${esc(ik.reason_cs)}${ik.missing_cs?.length ? ` Chybí: ${esc(ik.missing_cs.join(", "))}.` : ""}</p>`
-      : !fs.length ? `<p class="muted small" style="margin:0">Ukázkový pacient: nahrajte jeho dokumenty (PDF) ze složky samples/S02_pacient/upload, nebo <a href="ukazka/S02-dokumenty.zip" download>stáhněte ZIP</a>, rozbalte ho a nahrajte jednotlivé PDF.</p>` : ""}`;
+  if (isApi() && o.caseId && fresh.length) newUploadsApi(o, fresh, rows);
 }
 function newFilesHtml(o) {
-  if (isApi()) return newFilesApiHtml(o);
   const ik = intakeOf(o), fs = o.files || [];
   const kind = f => ik?.docs.find(d => d.upload_name === f.name)?.title_cs;
+  /* API mode: a document of another patient (by the server's fixture registry) is flagged on its row, never blocked. */
+  const wrong = f => f.doc?.identity === "conflicts" ? `<p class="fwarn" role="alert" style="margin:4px 0 0;flex-basis:100%">${esc(f.doc.identity_cs)}</p>` : "";
   return `<label class="upzone" data-upzone="new" style="margin:0"><input type="file" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.odt,.zip,application/pdf" data-newupload="1"><b>Přetáhněte dokumenty sem</b><span class="small muted">nebo klikněte a vyberte (PDF, DOC/DOCX, XLS/XLSX, ODT nebo ZIP, nejvýše 20 MB)</span></label>
-    ${fs.length ? `<ul class="uplist">${fs.map((f, i) => `<li><span class="nm" title="${esc(f.name)}">${esc(f.name)}</span><span class="small muted">${esc(fmtSize(f.size))}${kind(f) ? ` · ${esc(kind(f))}` : ""}</span><span class="chip plain st-done">Nahráno</span><button class="btn small" data-delnew="${i}" aria-label="Odebrat ${esc(f.name)}">✕</button></li>`).join("")}</ul>` : ""}
+    ${fs.length ? `<ul class="uplist">${fs.map((f, i) => `<li><span class="nm" title="${esc(f.name)}">${esc(f.name)}</span><span class="small muted">${esc(fmtSize(f.size))}${kind(f) ? ` · ${esc(kind(f))}` : ""}</span><span class="chip plain st-done">Nahráno</span><button class="btn small" data-delnew="${i}" aria-label="Odebrat ${esc(f.name)}">✕</button>${wrong(f)}</li>`).join("")}</ul>` : ""}
     ${!ik ? "" : !ik.nameOk ? `<p class="fwarn" role="alert" style="margin:0">Jméno v žádosti se neshoduje se jménem v dokumentech ukázkového pacienta (${esc(ik.s.list_entry.name)}). Dokumenty se k tomuto záznamu nepřipojí.</p>`
       : ik.exists ? `<p class="fwarn" role="alert" style="margin:0">Ukázkový pacient ${esc(ik.s.list_entry.name)} už v databázi je; nový záznam zůstane bez zpracovaných dokumentů.</p>`
       : ik.missing.length ? `<p class="muted small" style="margin:0">Ukázkový pacient: ${ik.have.length ? `chybí ještě ${ik.missing.length} z ${ik.docs.length} dokumentů` : `nahrajte ${ik.docs.length} dokumentů (PDF)`} ze složky samples/${esc(ik.s.file.replace(/\.pdf$/, ""))}/upload, nebo <a href="ukazka/${esc(ik.s.file.split("_")[0])}-dokumenty.zip" download>stáhněte ZIP</a>, rozbalte ho a nahrajte jednotlivé PDF.</p>` : ""}`;
@@ -4391,9 +4390,7 @@ function renderOverlay() {
   } else if (o.kind === "reset") {
     el.innerHTML = `<div class="scrim" data-close="1"></div><div class="modal" role="dialog" aria-label="Obnovit ukázková data">
       <div class="row spread"><h2>Obnovit ukázková data</h2><button class="btn small" data-close="1">Zavřít</button></div>
-      <p style="margin:0">Obnova vrátí všechny případy, závěry, úlohy, docházku, personál a záznam přístupů do výchozího stavu ukázky. Změny všech návštěvníků se ztratí; otevřené stránky se znovu načtou.</p>
-      <label class="label" for="resetconfirm">Pro potvrzení napište OBNOVIT</label>
-      <input class="input" id="resetconfirm" autocomplete="off" value="${esc(o.typed || "")}" ${o.err ? `aria-invalid="true" aria-describedby="resetconfirm-err"` : ""}>${o.err ? `<span class="ferr" id="resetconfirm-err" role="alert">${esc(o.err)}</span>` : ""}
+      <p style="margin:0">Vrátí případy, závěry, úlohy, docházku, personál a záznam přístupů do výchozího stavu.</p>${o.err ? `<span class="ferr" role="alert">${esc(o.err)}</span>` : ""}
       <div class="row" style="justify-content:flex-end"><button class="btn" data-close="1">Zrušit</button><button class="btn primary" data-act="resetgo" ${o.busy ? "disabled" : ""}>Obnovit ukázková data</button></div></div>`;
   } else if (o.kind === "new") {
     const step = o.step;
@@ -4409,10 +4406,9 @@ function renderOverlay() {
     /* A birth number already in the database may be the same person (CLAUDE.md: never merge or duplicate patients
        silently), so the form links the existing case and asks for an explicit choice before a second record. */
     const dp = o.dup && P(o.dup);
-    /* API mode: the server may know a case this user cannot see (dupId only), and a second record needs a reason. */
+    /* API mode: the server may know a case this user cannot see (dupId only). */
     const dupWarn = dp || o.dupId ? `<span class="fwarn" role="alert">Pacient s tímto rodným číslem už v databázi je:
       ${dp ? `<button type="button" class="linkbtn" data-act="opendup">${esc(surnameFirst(dp))}, ${esc(dp.id)}</button>` : esc(o.dupId)}.
-      ${isApi() ? `<label style="display:block;width:100%;font-weight:500;color:var(--fg)">Důvod druhého záznamu <span class="fhint">10 až 300 znaků, uloží se k případu</span><input class="input" id="nfdupwhy" autocomplete="off" maxlength="300" value="${esc(o.dupWhy || "")}" ${o.dupErr ? `aria-invalid="true" aria-describedby="nfdupwhy-err"` : ""}></label>${o.dupErr ? `<span class="ferr" id="nfdupwhy-err">${esc(o.dupErr)}</span>` : ""}` : ""}
       <button type="button" class="btn small" data-act="newdupok">Přesto vytvořit nový záznam</button></span>` : "";
     el.innerHTML = `<div class="scrim" data-close="1"></div><div class="modal" role="dialog" aria-label="Nový pacient">
       <div class="row spread"><h2>Nový pacient</h2><button class="btn small" data-close="1">Zavřít</button></div>
@@ -4431,11 +4427,10 @@ function renderOverlay() {
           <div class="full"><label style="display:flex;gap:8px;align-items:center;font-weight:500"><input type="checkbox" id="nfg" ${f.nfg ? "checked" : ""} ${inv("nfg")}> Souhlasím, aby FNO použila uvedené osobní údaje ke zpracování požadavku, dle GDPR. *</label>${msg("nfg")}</div></div>
         <div class="row" style="justify-content:flex-end"><button class="btn primary" data-act="newnext">Pokračovat</button></div>`
       : step === 1 ? `${newFilesHtml(o)}
-        <div class="row" style="justify-content:flex-end"><button class="btn" data-act="newback">Zpět</button><button class="btn primary" data-act="newnext" ${(o.files || []).length && !o.upBusy ? "" : "disabled"}>Zpracovat</button></div>`
-      : isApi() ? intakeVerdictHtml(o, pipe)
+        <div class="row" style="justify-content:flex-end"><button class="btn" data-act="newback">Zpět</button><button class="btn primary" data-act="newnext" ${(o.files || []).length ? "" : "disabled"}>Zpracovat</button></div>`
       : `<ul class="pipeline">${pipe.map((t, i) => `<li class="${i < o.progress ? "" : i === o.progress ? "run" : "wait"}">${i < o.progress ? "✓" : i === o.progress ? "…" : "○"} ${t}</li>`).join("")}</ul>
-        ${isApi() ? "" : `<p class="small" style="margin:0">Před extrakcí se jméno a rodné číslo nahradí ID případu; jazykový model vidí jen pseudonymizovaný text. Převodní tabulka zůstává na serveru nemocnice.</p>`}
-        ${o.progress >= pipe.length && !isApi() ? `<p class="small" style="margin:0"><b>Hotovo.</b> ${(() => { const ik = intakeOf(o); return ik?.ready
+        <p class="small" style="margin:0">Před extrakcí se jméno a rodné číslo nahradí ID případu; jazykový model vidí jen pseudonymizovaný text. Převodní tabulka zůstává na serveru nemocnice.</p>
+        ${o.progress >= pipe.length && (!isApi() || o.ik) ? `<p class="small" style="margin:0"><b>Hotovo.</b> ${(() => { const ik = intakeOf(o); return (isApi() ? o.ik.ready && ik : ik?.ready)
           ? `Zpracováno ${plural(ik.docs.length, "dokument", "dokumenty", "dokumentů")} (${esc(ik.s.list_entry.page_count)} s.), všechny dobře čitelné. Chybějící podklady: ${(ik.s.data_gaps || []).length}, ukážou se v detailu pacienta.`
           : "Dokumenty jsou nahrané. Maketa zpracovává jen připravené dokumenty ukázkového pacienta, tento záznam zůstane bez extrakce."; })()}</p>
           <div class="row" style="justify-content:flex-end"><button class="btn primary" data-act="newdone" ${o.busy ? "disabled" : ""}>${o.busy ? "Ukládám…" : "Přidat do databáze"}</button></div>` : ""}`}
@@ -4821,62 +4816,69 @@ async function newCaseApi(o) {
     o.busy = false;
     if (e.status) { o.idem = null; o.idemSig = null; }
     if (e.code === "duplicate_birth_number") { Object.assign(o, { step: 0, dup: S.patients.find(x => x.id === e.current?.case_id)?.file || null, dupId: e.current?.case_id || "", override: null, errs: {} }); renderOverlay(); return; }
-    if (e.code === "override_reason_required") { Object.assign(o, { step: 0, dupErr: e.message }); renderOverlay(); return; }
     if (e.fields) {
-      o.errs = {}; Object.entries(e.fields).forEach(([k, m]) => { if (/reason|override/.test(k)) o.dupErr = m; else o.errs[NF_FIELD[k] || k] = m; });
+      o.errs = {}; Object.entries(e.fields).forEach(([k, m]) => { o.errs[NF_FIELD[k] || k] = m; });
       o.step = 0; renderOverlay(); toast(e.message); return;
     }
     refused(e); renderOverlay();
   }
 }
-/* Step 3 of the dialog in API mode: no stage ran on the server, so none is shown as done. A prepared attach says so. */
-function intakeVerdictHtml(o, pipe) {
-  const ik = o.ik;
-  if (!ik) return `<p class="muted small" role="status" style="margin:0">Zjišťuji stav dokumentů…</p>`;
-  return `<ul class="pipeline">${pipe.map(t => `<li class="wait">${ik.ready ? "✓" : "○"} ${t}: ${ik.ready ? "připraveno předem (ukázková data)" : "neproběhlo"}</li>`).join("")}</ul>
-    <p class="small" style="margin:0">${ik.ready ? "<b>Připraveno.</b> " : ""}${esc(ik.reason_cs)}</p>
-    <p class="muted small" style="margin:0">Zpracování dokumentů (kontrola čitelnosti, pseudonymizace, extrakce) server zatím nespouští; ukázkový pacient má data připravená předem a server je připojí jen tehdy, když otisky všech dokumentů i jméno a rodné číslo souhlasí.</p>
-    <div class="row" style="justify-content:flex-end"><button class="btn" data-act="newback">Zpět</button><button class="btn primary" data-act="newdone" ${o.busy || o.upBusy ? "disabled" : ""}>${o.busy ? "Ukládám…" : "Přidat do databáze"}</button></div>`;
-}
 /* ---------- intake on the server (step 6) ----------
-   Step 1 of the dialog opened the case for intake; each document goes to it as its own upload, the server answers with
-   the fixture's title or the refusal, and GET .../intake says whether the prepared data will attach. */
+   Step 1 of the dialog opened the case for intake; each document goes to it as its own upload. The server keeps the
+   content of a prepared synthetic document only and lists any other file, so every file shows as "Nahráno", as
+   before the server; a file the server did not take stays listed in the dialog only. GET .../intake says whether the
+   prepared data will attach, which step 3 shows in the words of the page without a server. */
 async function intakeRefresh(o) {
   if (!o.caseId) return;
-  try { o.ik = await apiGet(`/cases/${enc(o.caseId)}/intake`); } catch (e) { o.ik = { ready: false, reason_cs: e.message, missing_cs: [], expected: 0, present: 0 }; }
+  try { o.ik = await apiGet(`/cases/${enc(o.caseId)}/intake`); } catch (e) { o.ik = { ready: false }; }
   renderOverlay();
 }
-async function newUploadsApi(o, files) {
-  o.refused = []; o.upBusy = (o.upBusy || 0) + files.length; renderOverlay();
-  for (const f of files) {
-    try { const d = await apiUpload(o.caseId, f); o.files.push({ name: d.name, size: d.size, doc: d }); }
-    catch (e) { o.refused.push({ name: f.name, message: e.message }); }
-    finally { o.upBusy--; renderOverlay(); }
-  }
-  intakeRefresh(o);
+/* Uploads and removals run one after another on o.pending, which "Zpracovat" waits for; each belongs to the intake
+   it was made for, so a discarded intake's chain stops instead of writing into the next one. */
+const intakeChain = (o, fn) => { o.pending = (o.pending || Promise.resolve()).then(fn).catch(() => {}); };
+function newUploadsApi(o, files, rows) {
+  const caseId = o.caseId;
+  intakeChain(o, async () => {
+    for (const [i, f] of files.entries()) {
+      if (o.caseId !== caseId) return;
+      let d;
+      try { d = await apiUpload(caseId, f); } catch (e) { continue; }
+      if (o.caseId !== caseId) return;
+      /* The same file under two names is one document on the server: one row. */
+      const twin = o.files.find(x => x !== rows[i] && x.doc?.id === d.id);
+      if (o.files.includes(rows[i]) && !twin) { rows[i].doc = d; rows[i].size = d.size ?? rows[i].size; }
+      else if (twin) { const at = o.files.indexOf(rows[i]); if (at >= 0) o.files.splice(at, 1); }
+      /* Removed while it was on its way: the server's copy goes too. */
+      else await apiWrite("DELETE", `/documents/${enc(d.id)}`, {}).catch(() => {});
+    }
+    renderOverlay();
+  });
 }
-async function removeNewUploadApi(o, i) {
-  const f = o.files[i]; if (!f?.doc) return;
-  try { await apiWrite("DELETE", `/documents/${enc(f.doc.id)}`, {}); o.files.splice(i, 1); renderOverlay(); intakeRefresh(o); }
-  catch (e) { refused(e); }
+function removeNewUploadApi(o, i) {
+  const f = o.files[i]; if (!f) return;
+  o.files.splice(i, 1); renderOverlay();
+  const caseId = o.caseId;
+  if (f.doc) intakeChain(o, () => o.caseId === caseId ? apiWrite("DELETE", `/documents/${enc(f.doc.id)}`, {}) : null);
 }
 /* Closing the dialog or going back to the referral discards the open intake and its files on the server. */
 function discardIntake(o) {
   if (!o?.caseId || o.completed) return;
-  const id = o.caseId; o.caseId = null; o.files = []; o.ik = null;
+  const id = o.caseId; o.caseId = null; o.files = []; o.ik = null; o.pending = null;
   /* A new referral waits for this, so it never meets its own discarded draft. */
   o.discarding = apiWrite("DELETE", `/cases/${enc(id)}/intake`, {}).catch(() => { /* the server removes it after 24 hours anyway */ });
 }
 async function completeIntakeApi(o) {
   if (o.busy) return;
   o.busy = true; renderOverlay();
+  /* A removal made after "Zpracovat" lands before the intake is completed. */
+  await o.pending;
   let r;
   try { r = await apiWrite("POST", `/cases/${enc(o.caseId)}/intake/complete`, {}); }
   catch (e) { o.busy = false; refused(e); renderOverlay(); return; }
   o.completed = true;
   applyState(r.state);
   const p = r.state?.patient && S.patients.find(x => x.file === r.state.patient.file || x.id === r.state.patient.id);
-  S.overlay = null; renderOverlay(); toast(`Pacient ${p?.id || r.data.case_id} přidán do databáze${r.data.attached ? "" : " (dokumenty nezpracovány)"}`);
+  S.overlay = null; renderOverlay(); toast(`Pacient ${p?.id || r.data.case_id} přidán do databáze`);
   if (p && r.data.attached) openPatient(p.file); else { S.view = "patients"; S.colf = {}; render(); }
 }
 async function breakGlassApi(o) {
@@ -4895,14 +4897,12 @@ async function breakGlassApi(o) {
   openPatient(p.file, true, "otevřel(a) případ mimo tým");
 }
 async function resetDemoApi(o) {
-  const typed = (document.getElementById("resetconfirm")?.value || "").trim(); o.typed = typed;
-  if (typed !== "OBNOVIT") { o.err = "Pro obnovu napište OBNOVIT."; renderOverlay(); return; }
   if (o.busy) return;
   o.busy = true; o.err = null; renderOverlay();
   try { await apiWrite("POST", "/admin/reset-demo", { confirm: "OBNOVIT" }); }
   catch (e) { o.busy = false; o.err = e.message; renderOverlay(); return; }
   S.overlay = null; renderOverlay();
-  toast("Ukázková data obnovena, stránka se znovu načte.");
+  toast("Data obnovena, stránka se znovu načte.");
   setTimeout(() => DATA.reload(), 1200);
 }
 async function copyText(text, what) {
@@ -4949,9 +4949,8 @@ function action(a) {
       if (isApi()) { if (!o.caseId) newCaseApi(o); else { o.step = 1; renderOverlay(); } return; }
     }
     o.step++; renderOverlay();
-    /* API mode: nothing animates; the server's verdict says whether the prepared data attaches (stages it did not run
-       are not shown as running). */
-    if (o.step === 2 && isApi()) { o.progress = 4; intakeRefresh(o); return; }
+    /* API mode: the uploads finish first, then the server's verdict decides the closing sentence. */
+    if (o.step === 2 && isApi()) { o.ik = null; Promise.resolve(o.pending).then(() => intakeRefresh(o)); }
     if (o.step === 2) { const tick = () => { o.progress++; renderOverlay(); if (o.progress < 4) setTimeout(tick, 550); }; setTimeout(tick, 450); }
   }
   else if (a === "newback") {
@@ -4961,12 +4960,10 @@ function action(a) {
     o.step--; renderOverlay();
   }
   else if (a === "newdupok") {
-    /* API mode: a second record for a known birth number needs a stated reason, which the server keeps in its log. */
+    /* API mode: the override goes with the referral; the server logs that a second record was made knowingly. */
     if (isApi()) {
-      const o = S.overlay, why = (document.getElementById("nfdupwhy")?.value || "").trim(), rc = rcKey(document.getElementById("nf2")?.value.trim() || "");
-      o.dupWhy = why;
-      if (why.length < 10) { o.dupErr = "Uveďte důvod, proč zakládáte druhý záznam (nejméně 10 znaků)."; readNewForm(o); renderOverlay(); document.getElementById("nfdupwhy")?.focus(); return; }
-      o.dupErr = null; o.override = { birth_number: rc, reason: why };
+      const o = S.overlay, rc = rcKey(document.getElementById("nf2")?.value.trim() || "");
+      o.override = { birth_number: rc };
       /* The server found the duplicate (a case this user may not see): the form is complete, so continue from here. */
       if (!o.dup && o.dupId) { o.dupId = null; o.dupOk = rc; readNewForm(o); newCaseApi(o); return; }
     }
@@ -5001,7 +4998,6 @@ function action(a) {
     S.mails.unshift({ kind: "digest", to: COORD, by: S.user, when: new Date().toLocaleString("cs-CZ"), n, body: `${waitingText(n)}\n${APP_LINK}` });
     toast("Přehled odeslán (jen počet a odkaz)"); render();
   }
-  else if (a === "reloadlog") { if (DATA.mode === "api" && !DATA.logLoading) { loadServerLog(); render(); } }
   else if (a === "staffreset") {
     if (!canEditStaff()) return;
     if (isApi()) { staffApi("POST", "/staff/reset", {}, () => { render(); toast("Obnoven výchozí personál (smyšlená jména)"); }); return; }
@@ -5139,11 +5135,6 @@ document.addEventListener("input", e => {
   else if (t.dataset.step !== undefined) { curProto().steps[+t.dataset.step][t.dataset.f] = t.value; protoTouched(S.pid, "steps"); refreshReport(); }
   else if (t.id === "notes") { curProto().notes = t.value; protoTouched(S.pid, "notes"); }
   else if (t.id === "concl") syncConcl(t);
-  /* "MUDr." in a new person's title prefills the role "lékař" while the role is still unchosen. */
-  else if (t.dataset.newin && (t.dataset.sf === "pre" || t.dataset.sf === "post")) {
-    const sel = document.querySelector(`[data-newrole="${CSS.escape(t.dataset.newin)}"]`), v = f => document.querySelector(`[data-newin="${CSS.escape(t.dataset.newin)}"][data-sf="${f}"]`)?.value || "";
-    if (sel && !sel.dataset.chosen) sel.value = roleGuess(v("pre"), v("post"));
-  }
 });
 /* Leaving a field of the discussion record stores it at once instead of after the pause. */
 document.addEventListener("focusout", e => { const t = e.target; if ((t.id === "notes" || t.id === "concl" || t.dataset?.step !== undefined) && PSAVE[S.pid]?.dirty.size) flushProto(S.pid); });
@@ -5255,7 +5246,6 @@ document.addEventListener("change", e => {
     attFor(key)[t.dataset.att][+t.dataset.k] = t.value; render(); if (S.overlay?.kind === "start") renderOverlay();
     attChanged(key);
   }
-  else if (t.dataset.newrole) t.dataset.chosen = "1";
   else if (t.dataset.redact) { S.overlay.redacted = t.checked; renderOverlay(); }
   else if (t.dataset.pickrep) { t.checked ? S.picked.add(t.dataset.pickrep) : S.picked.delete(t.dataset.pickrep); refreshReport(); }
   else if (t.dataset.step !== undefined) { curProto().steps[+t.dataset.step][t.dataset.f] = t.value; protoTouched(S.pid, "steps", true); render(); }
@@ -5288,7 +5278,7 @@ document.addEventListener("keydown", e => { if (e.key === "Escape" && S.overlay)
 
 /* Startup. On the Worker (health says features.data) the data comes from the API before the first render; on Pages,
    from a file, or with ?data=embedded the embedded data is used as before. A failed load assigns nothing, so the
-   embedded data stays whole, and the data chip says the server was not reachable. */
+   embedded data stays whole; the console says why, so a broken backend is found without a message on screen. */
 async function boot() {
   const qs = new URLSearchParams(location.search);
   let health = null;
@@ -5297,7 +5287,7 @@ async function boot() {
     if (health?.service === "codebridge-mdt" && health.features?.data === true) {
       DATA.demo = health.demo || null; DATA.epoch = health.demo?.data_epoch ?? null;
       try { await loadFromApi(); DATA.mode = "api"; }
-      catch (e) { DATA.error = e.message || "neznámá chyba"; DATA.userId = null; }
+      catch (e) { DATA.error = e.message || "neznámá chyba"; DATA.userId = null; console.warn("API data not loaded, using embedded data:", DATA.error); }
     } else if (health?.service !== "codebridge-mdt") health = null;
   }
   initCaseStore(DATA.mode);
