@@ -83,38 +83,43 @@ function pgUrl(value) {
 }
 function pgLink(url, label) { const safe = pgUrl(url); return safe ? `<a href="${esc(safe)}" target="_blank" rel="noopener noreferrer">${esc(label)}</a>` : esc(label); }
 const PG_DIMENSIONS = { histology:"Histologie", stage:"Stádium", biomarkers:"Biomarkery", treatment_line:"Linie léčby", prior_treatment:"Předchozí léčba", performance_status:"Výkonnostní stav", brain_metastases:"Mozkové metastázy", age:"Věk" };
+/* Sources and similarity explanations open in the right-hand drawer, like document sources elsewhere. Each render
+   rebuilds the list of panels, and a button carries its index into it. */
+let PG_PANELS = [], pgCurRow = null;
+const pgPanel = (title, sub, html) => PG_PANELS.push({ title, sub, html, study: pgCurRow?.study_title || "" }) - 1;
 const pgMissing = () => `<span class="muted" title="neuvedeno v dostupné dokumentaci">-</span>`;
-function pgMetric(metric, label = "") {
+function pgMetric(metric, label = "", name = label) {
   if (!metric || metric.value === null || metric.value === undefined || metric.value === "") return label ? `<div>${esc(label)}: ${pgMissing()}</div>` : pgMissing();
   const unit = metric.unit === "months" ? "měsíců" : metric.unit === "text" ? "" : metric.unit || "";
   const value = `${metric.value}${unit ? " " + unit : ""}`;
   return `<div>${label ? `<span class="muted">${esc(label)}: </span>` : ""}<b>${esc(value)}</b>${metric.ci ? `<div class="muted small">${esc(metric.ci)}</div>` : ""}
-    <details><summary title="Ověřit údaj v původním zdroji">Zdroj</summary>${metric.quote ? `<blockquote>${esc(metric.quote)}</blockquote>` : `<p>Pasáž nebyla dodána.</p>`}${metric.source_url ? pgLink(metric.source_url, "Otevřít zdroj") : ""}${metric.locator ? `<div>${esc(metric.locator)}</div>` : ""}</details></div>`;
+    <button class="linkbtn small" title="Ověřit údaj v původním zdroji" data-pgpanel="${pgPanel("Zdroj údaje", `${name ? name + ": " : ""}${value}`, `${metric.quote ? `<blockquote>${esc(metric.quote)}</blockquote>` : `<p>Pasáž nebyla dodána.</p>`}${metric.locator ? `<p class="muted small">${esc(metric.locator)}</p>` : ""}${metric.source_url ? `<p>${pgLink(metric.source_url, "Otevřít zdroj")}</p>` : ""}`)}">Zdroj</button></div>`;
 }
 function pgSimilarity(similarity) {
   if (!similarity) return pgMissing();
   const dimensions = Array.isArray(similarity.dimensions) ? similarity.dimensions : Object.entries(similarity.dimensions || {}).map(([name, value]) => ({ name, ...(typeof value === "object" ? value : { status: value }) }));
   const score = Number.isFinite(similarity.score) ? `<span class="pg-score">${esc(similarity.score)} %</span>` : pgMissing();
-  return `${score}<div class="muted small">Orientační shoda populace${Number.isFinite(similarity.coverage) ? `<br>Pokrytí ${esc(similarity.coverage)} % váhy údajů` : ""}</div>${(similarity.critical_mismatches || []).length ? `<div class="pg-warning small">Zásadní rozdíl: ${esc(similarity.critical_mismatches.map(key => PG_DIMENSIONS[key] || key).join("; "))}</div>` : ""}<details><summary>Vysvětlení podobnosti</summary>${similarity.method ? `<p>${esc(similarity.method)}</p>` : ""}<p>Skóre shody se studovanou populací. Nejde o pravděpodobnost přežití ani validovaný prognostický model.</p>
+  return `${score}<div class="muted small">Orientační shoda populace${Number.isFinite(similarity.coverage) ? `<br>Pokrytí ${esc(similarity.coverage)} % váhy údajů` : ""}</div>${(similarity.critical_mismatches || []).length ? `<div class="pg-warning small">Zásadní rozdíl: ${esc(similarity.critical_mismatches.map(key => PG_DIMENSIONS[key] || key).join("; "))}</div>` : ""}<button class="linkbtn small" data-pgpanel="${pgPanel("Vysvětlení podobnosti", Number.isFinite(similarity.score) ? `Orientační shoda ${similarity.score} %` : "", `${similarity.method ? `<p>${esc(similarity.method)}</p>` : ""}<p>Skóre shody se studovanou populací. Nejde o pravděpodobnost přežití ani validovaný prognostický model.</p>
     ${similarity.coverage !== undefined ? `<p>Pokrytí známými údaji: ${esc(typeof similarity.coverage === "object" ? JSON.stringify(similarity.coverage) : similarity.coverage)} % celkové váhy</p>` : ""}
     <ul>${dimensions.map(d => `<li><b>${esc(d.label || PG_DIMENSIONS[d.key] || d.name || d.dimension || "")}</b>: ${esc(({ match:"shoda", mismatch:"neshoda", unknown:"nezjištěno", partial:"částečná shoda" })[d.status] || d.status || "nezjištěno")}${d.reason || d.explanation ? ` · ${esc(d.reason || d.explanation)}` : ""}${d.patient_quote ? `<div>Pacient: ${esc(d.patient_quote)}</div>` : ""}${d.study_quote ? `<div>Studie: ${esc(d.study_quote)}</div>` : ""}</li>`).join("")}</ul>
-    ${(similarity.critical_mismatches || []).length ? `<p class="pg-warning">Zásadní rozdíly: ${esc(similarity.critical_mismatches.map(key => PG_DIMENSIONS[key] || key).join("; "))}</p>` : ""}</details>`;
+    ${(similarity.critical_mismatches || []).length ? `<p class="pg-warning">Zásadní rozdíly: ${esc(similarity.critical_mismatches.map(key => PG_DIMENSIONS[key] || key).join("; "))}</p>` : ""}`)}">Vysvětlení podobnosti</button>`;
 }
 function pgConflicts(conflicts, models) {
   const labels = Object.fromEntries([...PG_ENDPOINTS, ["orr", "ORR"], ["dor", "Trvání odpovědi"], ["toxicity_grade3", "Toxicita stupně ≥3"], ["discontinuation_toxicity", "Ukončení pro toxicitu"]]);
-  return `<details class="pg-warning"><summary>Rozdílné extrahované hodnoty (${conflicts.length})</summary><p>Sporné hodnoty se nezobrazují v hlavní buňce. Ověřte populaci, rameno a analýzu.</p>${conflicts.map(conflict => `<div><b>${esc(labels[conflict.field] || conflict.field)}</b>${(conflict.values || []).map(value => `<div>${(value.found_by || []).map(id => esc(models.find(m => m.id === id)?.label || id)).join(", ")}${pgMetric(value)}</div>`).join("")}</div>`).join("")}</details>`;
+  return `<details class="pg-warning"><summary>Rozdílné extrahované hodnoty (${conflicts.length})</summary><p>Sporné hodnoty se nezobrazují v hlavní buňce. Ověřte populaci, rameno a analýzu.</p>${conflicts.map(conflict => `<div><b>${esc(labels[conflict.field] || conflict.field)}</b>${(conflict.values || []).map(value => `<div>${(value.found_by || []).map(id => esc(models.find(m => m.id === id)?.label || id)).join(", ")}${pgMetric(value, "", labels[conflict.field] || conflict.field)}</div>`).join("")}</div>`).join("")}</details>`;
 }
 function pgStudyRow(row, models) {
+  pgCurRow = row;
   const source = row.source || {}, endpoints = row.endpoints || {};
   const found = (row.found_by || []).map(id => models.find(m => m.id === id)?.label || id);
   return `<tr><td><b>${esc(row.study_title || "Zdroj bez názvu")}</b><div class="small">${esc(source.published_date ? fmtDate(source.published_date) : source.year || "")} ${esc(row.study_type || "")}</div><div>${pgLink(source.url, source.pmid ? `PubMed ${source.pmid}` : source.doi ? `DOI ${source.doi}` : "Otevřít zdroj")}</div>
     <span class="chip plain k-unclear">Extrakce modelu · ověřit</span>${row.conflicts?.length ? pgConflicts(row.conflicts, models) : ""}</td>
     <td><b>${esc(row.arm || "")}</b><p>${esc(row.population || "")}</p>${row.sample_size ? `<div>n = ${esc(row.sample_size)}</div>` : ""}<div class="muted small">Počátek sledování: ${esc(row.time_origin || "neuvedeno v dostupné dokumentaci")}</div></td>
     <td>${pgSimilarity(row.similarity)}${row.similarity_variants?.length ? `<details><summary>Odlišná posouzení shody</summary>${row.similarity_variants.map(variant => `<div>${(variant.found_by || []).map(id => esc(models.find(m => m.id === id)?.label || id)).join(", ")}${pgSimilarity(variant.similarity || variant)}</div>`).join("")}</details>` : ""}</td>
-    ${["os_6", "os_12", "os_36", "os_60", "pfs"].map(key => `<td>${pgMetric(endpoints[key])}</td>`).join("")}
+    ${["os_6", "os_12", "os_36", "os_60", "pfs"].map(key => `<td>${pgMetric(endpoints[key], "", PG_ENDPOINTS.find(e => e[0] === key)[1])}</td>`).join("")}
     <td>${pgMetric(endpoints.orr, "ORR")}${pgMetric(endpoints.dor, "Medián trvání odpovědi")}</td>
     <td>${pgMetric(endpoints.toxicity_grade3, "Stupeň ≥3")}${pgMetric(endpoints.discontinuation_toxicity, "Ukončení pro toxicitu")}</td>
-    <td>${pgMetric(endpoints.burden)}</td><td>${found.map(m => `<div class="small">${esc(m)}</div>`).join("")}</td></tr>`;
+    <td>${pgMetric(endpoints.burden, "", "Zátěž léčby")}</td><td>${found.map(m => `<div class="small">${esc(m)}</div>`).join("")}</td></tr>`;
 }
 function pgProfile(profile) {
   if (!profile) return "";
@@ -124,7 +129,7 @@ function pgProfile(profile) {
     ${(profile.warnings || []).map(w => `<p class="pg-warning small">${esc(w)}</p>`).join("")}</details>`;
 }
 function tabPrognosis(p = P(S.pid)) {
-  pgLoad(p);
+  pgLoad(p); PG_PANELS = []; pgCurRow = null;
   const state = pgEntry(p), result = state.result, config = PROGNOSIS.config, day = p.slot?.day;
   const models = result?.models || config?.models || [];
   const canSearch = !!day && !state.pending && !state.savedPending && !!state.profile && state.profile.available !== false && !!config?.configured;
