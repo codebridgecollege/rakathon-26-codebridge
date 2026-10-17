@@ -16,7 +16,7 @@ async function pgJson(url, options = {}) {
     const response = await fetch(url, { ...options, signal:controller.signal, credentials: "same-origin", headers: { "Accept": "application/json", ...options.headers } });
     if (!response.headers.get("content-type")?.includes("application/json")) throw new Error("Vyhledávání vyžaduje spuštěný lokální server Prognózy (python3 mocks/serve.py).");
     const data = await response.json();
-    if (!response.ok) throw new Error(typeof data.error === "string" ? data.error : data.error?.message || "Požadavek se nepodařilo dokončit.");
+    if (!response.ok) throw new Error(typeof data.error === "string" ? data.error : data.error?.message_cs || data.error?.message || "Požadavek se nepodařilo dokončit.");
     return data;
   } catch (error) {
     if (error.name === "AbortError") throw new Error("Vypršel časový limit. Další vyhledávání se nespustí automaticky.");

@@ -69,6 +69,41 @@ data from `data/rakathon-26/`. The JSON was corrected by hand after two
 reviews (OCR misreads, a planned dose shown as done, negation tags), so
 re-running the scripts would undo those fixes. Edit the JSON instead.
 
+## Two data modes: embedded and server
+
+Mock v3 decides at startup where its data comes from, and the top bar shows
+the result in a chip:
+
+- **Data: vložená** (embedded). Opened from a file, on Pages
+  (`codebridge-mdt.pages.dev`), under `mocks/serve.py`, or with
+  `?data=embedded`. The page uses the JSON embedded by `build.py`, exactly as
+  before.
+- **Data: server**. On the API Worker (`api/`), when `GET /api/health`
+  answers JSON with `service: "codebridge-mdt"` and `features.data: true`.
+  Before the first render the page loads `/api/me`, `/api/staff`,
+  `/api/patients`, `/api/tasks` and case 10's `/api/cases/NO-010/extraction`
+  (into the `CASE` and `EXTRA` globals; identity comes from the patient row,
+  not from the case JSON). The guideline layer calls
+  `/api/cases/:id/guidance`, the source viewer fetches each page from
+  `/api/documents/:id/pages/:n` (images from `.../image`), opening a case
+  calls `/api/cases/:id` so the server writes the access log, and
+  Administrace shows the server's log next to this session's local entries.
+  Staff edits stay in memory ("Změny seznamu se zatím neukládají na server").
+- **Data: vložená (server nedostupný)** in amber: the health check said the
+  data API is on, but a load failed. Nothing from the server is used; the page
+  runs on embedded data, so a silent fallback cannot hide a broken backend.
+
+The demo has no login. The picked user travels as a staff id (`d2p1`,
+`coord`, `admin`) in the `X-Demo-User` header and in the `cb_demo_user`
+cookie (page images load through `<img>`, which cannot send a header).
+
+`?parity` (server mode only) compares the server's patient rows, staff and
+tasks with what the embedded data builds and prints the differences to the
+console (identity keys by name only, never their values).
+
+The embedded data stays in the HTML in both modes until a later step removes
+it, so the server mode does not yet reduce what the page carries.
+
 ## New patient from FHIR and uploaded documents
 
 Synthetic patient S02 (Věra Lipenská, rectal cancer, `samples/S02_pacient`) is the demo of a new referral. Her

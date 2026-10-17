@@ -840,11 +840,12 @@ h3 { letter-spacing: -.02em; }
 <header class="top">
   <button class="brand" data-nav="patients" title="Databáze pacientů" aria-label="GLIDE MDT, otevřít databázi pacientů"><img src="/*GLIDE_LOGO_PNG*/" alt="GLIDE"><span>MDT</span></button>
   <nav class="nav" aria-label="Hlavní oblasti" id="nav"></nav>
+  <span id="datachip"></span>
   <span id="recpill"></span>
   <span class="who"><span class="lbl">Uživatel:</span>
     <select id="user" aria-label="Aktuální uživatel (maketa bez přihlášení)"></select></span>
 </header>
-<main id="app"></main>
+<main id="app"><p class="muted" role="status" style="padding:32px">Načítám…</p></main>
 <div id="overlay"></div>
 
 <script id="case-data" type="application/json">/*CASE*/</script>
@@ -860,9 +861,10 @@ h3 { letter-spacing: -.02em; }
 /* The template has no <html> tag of its own (the publisher wraps it), so the language is set here: Czech date
    inputs and screen readers read the page as Czech. */
 document.documentElement.lang = "cs";
-const CASE =JSON.parse(document.getElementById("case-data").textContent);
+/* CASE and EXTRA are reassigned once at startup when the Worker serves the data (boot, loadFromApi). */
+let CASE = JSON.parse(document.getElementById("case-data").textContent);
 const OTHERS = JSON.parse(document.getElementById("list-data").textContent);
-const EXTRA = JSON.parse(document.getElementById("extra-data").textContent || "{}");
+let EXTRA = JSON.parse(document.getElementById("extra-data").textContent || "{}");
 /* The team's synthetic patients (samples/S<nn>_pacient): invented people whose documents we wrote, so the lab trend
    and the missing-document alerts can be shown on data that comes from documents. Each carries its list entry, its
    documents, its data gaps and its lab series, every value with its page and quote. */
@@ -874,10 +876,35 @@ const SYN_BY_FILE = Object.fromEntries(SYN.map(s => [s.file, s]));
 const SERVER_GUIDANCE = JSON.parse(document.getElementById("guide-data").textContent || "{}");
 const api = {
   async guidance(caseId) {
+    if (DATA.mode === "api") return apiGet(`/cases/${encodeURIComponent(caseId)}/guidance`);
     await new Promise(r => setTimeout(r, 350));
     return caseId === "NO-010" ? SERVER_GUIDANCE : { guidelines: [], statements: [], pages: [], literature: [], queries: [], not_retrieved: [] };
   },
 };
+/* Where the data comes from: "embedded" (Pages, file://, mocks/serve.py) or "api" (the Worker with D1 and R2).
+   Decided once at startup (boot), so one page build serves both hosts during the migration. */
+const DATA = { mode: "embedded", userId: null, error: null, pages: new Map(), docs: new Map(), serverStaff: null, serverLog: null, logLoading: false };
+async function apiGet(path, { timeout = 8000 } = {}) {
+  const ctl = new AbortController(), t = setTimeout(() => ctl.abort(), timeout);
+  try {
+    /* The demo has no login: the picked user travels as a staff id (ids are ASCII; names with "ř" cannot be a header). */
+    const r = await fetch("/api" + path, { signal: ctl.signal, credentials: "same-origin", cache: "no-store",
+      headers: { Accept: "application/json", ...(DATA.userId ? { "X-Demo-User": DATA.userId } : {}) } });
+    /* A static host answers unknown paths with an HTML page; only a JSON answer comes from our API. */
+    if (!(r.headers.get("content-type") || "").includes("application/json")) throw Object.assign(new Error("Server neodpovídá."), { code: "no_api", status: r.status });
+    const body = await r.json();
+    if (!r.ok) throw Object.assign(new Error(body.error?.message_cs || "Požadavek se nepodařilo dokončit."), { code: body.error?.code, status: r.status });
+    return body;
+  } catch (e) {
+    if (e.name === "AbortError") throw Object.assign(new Error("Server neodpověděl včas."), { code: "timeout" });
+    throw e;
+  } finally { clearTimeout(t); }
+}
+/* Page images load through <img>, which cannot send a header, so the same staff id also goes in a cookie. */
+function setDemoUser(id) {
+  DATA.userId = id;
+  try { document.cookie = `cb_demo_user=${encodeURIComponent(id)}; path=/; SameSite=Strict`; } catch (e) { /* cookies blocked: images then load as the default demo user */ }
+}
 /* ---------- source documents: what the server would return for the source view ----------
    The page index (data/derived/page-index.json) holds, per page, the image path and size, the vision
    model's transcription, Tesseract's words with their boxes, and the tokens to verify. Only the functions
@@ -990,15 +1017,33 @@ function matchText(quote, text) {
 /* Each "ověřit" item carries its character offsets in the vision text from scripts/build_page_index.py,
    which aligned the two readings word by word; the text tab marks exactly that place. */
 const verifyOf = page => (page.verify || []).map(v => ({ ...v, at: Number.isInteger(v.start) ? [v.start, v.end] : null }));
+/* In API mode each page comes from the Worker (srcFetch) right before the viewer shows it, and the server logs that
+   view. The functions below stay synchronous and read the fetched page, so the viewer code is the same in both modes. */
+const docIdOf = file => String(file).replace(/\.pdf$/i, "");
+const pageRaw = (file, n) => DATA.mode === "api" ? DATA.pages.get(`${file}|${n}`) || null : SERVER_PAGES[file]?.pages.find(p => p.n === n) || null;
+async function srcFetch(file, n) {
+  if (DATA.mode !== "api") return;
+  /* Fetched every time, not cached: each view of a page is an access the server must record. */
+  const pg = await apiGet(`/documents/${encodeURIComponent(docIdOf(file))}/pages/${n}`);
+  DATA.pages.set(`${file}|${n}`, pg);
+  DATA.docs.set(file, { file, case_id: pg.case_id || null, pages: pg.pages || [] });
+}
 const srcApi = {
   /* The page list of one document; null when the file has no page images. */
   document(file) {
+    if (DATA.mode === "api") return DATA.docs.get(file) || null;
     const doc = SERVER_PAGES[file];
     if (!doc) return null;
     return { file, case_id: P(file)?.id || null, pages: doc.pages.map(p => ({ n: p.n, empty: isEmptyPage(p.text) })) };
   },
   /* One page: the image, the vision text, Tesseract's words and the "ověřit" items. */
   page(file, n) {
+    if (DATA.mode === "api") {
+      const pg = pageRaw(file, n);
+      if (!pg) return null;
+      const { pages, document_id, case_id, ...rest } = pg;
+      return structuredClone({ ...rest, doc_title: pg.doc_title ?? ((docsOf(file)?.documents || []).find(d => (d.pages || []).includes(n))?.title_cs || null), verify: verifyOf(pg), redacted: pg.redacted || null });
+    }
     const doc = SERVER_PAGES[file], pg = doc?.pages.find(p => p.n === n);
     if (!pg) return null;
     const title = (docsOf(file)?.documents || []).find(d => (d.pages || []).includes(n))?.title_cs || null;
@@ -1014,7 +1059,7 @@ const srcApi = {
   /* Where a quote sits on the page image (word boxes) and in the vision text (character range). A real
      backend takes the quote in a POST body, not the URL: quotes can contain names, and URLs end up in logs. */
   locate(file, n, quote) {
-    const pg = SERVER_PAGES[file]?.pages.find(p => p.n === n);
+    const pg = pageRaw(file, n);
     return pg && quote ? { image: matchImage(quote, pg.words), text: matchText(quote, pg.text) } : { image: null, text: null };
   },
 };
@@ -1022,7 +1067,9 @@ let GUIDE = {};
 async function loadGuidance(p) {
   if (S.guideFor === p.id) return;
   S.guideFor = p.id; GUIDE = { loading: true };
-  const res = await api.guidance(p.id);
+  /* A failed request shows its message in the guideline panel instead of a spinner that never ends. */
+  let res;
+  try { res = await api.guidance(p.id); } catch (e) { res = { error: e.message || "Doporučení se nepodařilo načíst." }; }
   if (S.guideFor === p.id) { GUIDE = res; render(); }
 }
 const GL = id => (GUIDE.guidelines || []).find(g => g.id === id) || {};
@@ -1078,7 +1125,8 @@ function loadStaff() {
   try { const s = JSON.parse(localStorage.getItem(STAFF_KEY) || "null"); if (validStaff(s)) return s; } catch (e) { /* private window or blocked storage: use the defaults */ }
   return defaultStaff();
 }
-function saveStaff() { try { localStorage.setItem(STAFF_KEY, JSON.stringify(STAFF)); } catch (e) { /* not saved; the list still works for this page view */ } }
+/* With the Worker the list comes from the server, and a stale browser copy must not override it; PUT /staff is step 4. */
+function saveStaff() { if (DATA.mode === "api") return; try { localStorage.setItem(STAFF_KEY, JSON.stringify(STAFF)); } catch (e) { /* not saved; the list still works for this page view */ } }
 let STAFF = loadStaff();
 let DEPTS, COORD, USERS, DOCTORS, STAFF_FN;
 /* Recomputes every name list the screens use from the staff list. Doctors are the people whose title contains "MUDr.". */
@@ -1442,6 +1490,11 @@ function renderNav() {
   /* Staff list (round 23): the coordinator and the admin edit it; doctors see it read-only. */
   items.push(["staff", "Personál"]);
   if (S.user === ADMIN) items.push(["admin", "Administrace"]);
+  /* The data source is always visible, so a silent fallback cannot hide a broken backend during the demo. */
+  const dc = document.getElementById("datachip");
+  if (dc) dc.innerHTML = DATA.mode === "api" ? `<span class="chip plain st-ready" title="Data případů načtena ze serveru aplikace; přístupy k případům zapisuje server.">Data: server</span>`
+    : DATA.error ? `<span class="chip plain st-attention" title="${esc(`Server s daty se nepodařilo načíst (${DATA.error}). Stránka běží na datech vložených do stránky.`)}">Data: vložená (server nedostupný)</span>`
+    : `<span class="chip plain st-new" title="Data jsou vložená do stránky (maketa bez serveru).">Data: vložená</span>`;
   document.getElementById("nav").innerHTML = items.map(([k, t]) => `<button data-nav="${k}" aria-current="${S.view === k || (k === "patients" && S.view === "patient")}">${t}</button>`).join("");
   /* The picker groups doctors by department; the coordinator and the admin keep their role in the label, the value is the name. */
   const opt = (u, label = u) => `<option value="${esc(u)}" ${u === S.user ? "selected" : ""}${staffTip(u)}>${esc(label)}</option>`;
@@ -1600,8 +1653,13 @@ function viewCalendar() {
 /* ---------- 3. Patient detail ---------- */
 const R3 = i => (EXTRA.refs || [])[i];
 /* v3 brief in the clinicians' own compact style, staging first (round 4); v2 keeps its own brief. */
-const BRIEF_CS = EXTRA.onco_summary_v3_cs || EXTRA.onco_brief_v3_cs || EXTRA.onco_brief_cs;
-const BRIEF_REFS = EXTRA.onco_summary_v3_refs || EXTRA.onco_brief_v3_refs || EXTRA.onco_brief_refs;
+let BRIEF_CS, BRIEF_REFS;
+/* Recomputed when EXTRA is replaced by the server's copy; every other reader of EXTRA reads it lazily. */
+function deriveFromExtra() {
+  BRIEF_CS = EXTRA.onco_summary_v3_cs || EXTRA.onco_brief_v3_cs || EXTRA.onco_brief_cs;
+  BRIEF_REFS = EXTRA.onco_summary_v3_refs || EXTRA.onco_brief_v3_refs || EXTRA.onco_brief_refs;
+}
+deriveFromExtra();
 const DXH = () => EXTRA.diagnosis_headline || null;
 /* Soňa: the first line is histology + grade + staging; the MKN code is for reporting and goes below. */
 /* The TNM is the stage at diagnosis; every place that shows the headline says so, and keeps the OCR flag. */
@@ -1829,6 +1887,7 @@ function guideBox() {
     <label class="small muted" style="display:flex;gap:6px;align-items:center"><input type="checkbox" data-act-toggle="guide" ${S.guideOn ? "checked" : ""}> vrstva doporučení</label></div>`;
   if (!S.guideOn) return `<div class="gl">${head}<p class="muted small" style="margin:6px 0 0">Vypnuto.</p></div>`;
   if (GUIDE.loading) return `<div class="gl">${head}<p class="muted small" style="margin:6px 0 0">Načítám doporučení ze serveru…</p></div>`;
+  if (GUIDE.error) return `<div class="gl">${head}<p class="muted small" role="alert" style="margin:6px 0 0">${esc(GUIDE.error)}</p></div>`;
   const st = STMTS();
   if (!st.length && !(GUIDE.literature || []).length) return "";
   /* One list per field, sorted by the strength of the recommendation, not grouped by country (round 19). Open
@@ -2131,6 +2190,7 @@ function viewStaff() {
       ${edit ? `<button class="btn" data-act="staffreset">Obnovit výchozí (smyšlená jména)</button>` : ""}</div>
     ${edit ? `<p class="muted small">Odebraná osoba zůstává v historii: v dřívějších závěrech, docházce a záznamu přístupů se jméno nemění. Přejmenování se promítne do otevřených úloh, vlastníků případů a docházky, kterou ještě neuzamklo schválení závěru.</p>`
       : `<p class="muted small">Seznam upravuje koordinátorka MDT nebo správce systému; lékař ho jen čte.</p>`}
+    ${DATA.mode === "api" ? `<p class="small" role="note"><b>Změny seznamu se zatím neukládají na server.</b> Platí jen do obnovení stránky.</p>` : ""}
     <section class="card staffdept"><div class="head"><h2>Koordinátorka onkologických MDT</h2></div>
       ${edit ? head + staffRow(STAFF.coord, true, false) : `<ul class="slist">${staffRow(STAFF.coord, false)}</ul>`}</section>
     ${STAFF.depts.map(dept).join("")}
@@ -2139,6 +2199,8 @@ function viewStaff() {
 }
 /* id -> displayed name for every person and the coordinator, to tell renames from removals after a change. */
 const staffIds = () => Object.fromEntries([[STAFF.coord.id, staffName(STAFF.coord)], ...STAFF.depts.flatMap(d => d.people.map(x => [x.id, staffName(x)]))]);
+/* The server knows people by id; the picker holds display names, so the id is looked up from the current list. */
+const userIdOf = name => name === ADMIN ? "admin" : Object.entries(staffIds()).find(([, n]) => n === name)?.[0] || null;
 const staffTaken = (name, exceptId) => [ADMIN, ...Object.entries(staffIds()).filter(([id]) => id !== exceptId).map(([, n]) => n)].includes(name);
 /* Applies a staff change: re-derives the name lists, moves open assignments to a renamed person, drops a removed
    person from attendance that no approval has frozen, saves, and writes the access log (no patient data). History
@@ -2156,7 +2218,7 @@ function commitStaff(prev, what, opts = {}) {
   Object.values(S.protos).forEach(pr => { if (pr.state !== "approved") pr.steps.forEach(st => { st.who = mv(st.who); }); });
   Object.values(S.attByDay).forEach(a => Object.keys(a).forEach(d => { a[d] = a[d].map(v => gone.includes(v) ? "" : mv(v)); }));
   if (!USERS.includes(S.user)) S.user = COORD;
-  if (opts.reset) { try { localStorage.removeItem(STAFF_KEY); } catch (e) { /* nothing stored to remove */ } } else saveStaff();
+  if (opts.reset && DATA.mode !== "api") { try { localStorage.removeItem(STAFF_KEY); } catch (e) { /* nothing stored to remove */ } } else saveStaff();
   logAccess("", what);
   /* A field edit commits on "change", which fires on blur while focus moves to the next field; re-rendering the page
      then would throw and drop that focus, so a field edit refreshes only the nav and the row's displayed name. */
@@ -2197,9 +2259,22 @@ function staffDel(id) {
   d.people = d.people.filter(y => y.id !== id);
   commitStaff(prev, `odebral(a) z personálu: ${d.name}, ${staffName(x)}`); toast(`Odebráno: ${staffName(x)} (v historii zůstává)`);
 }
+/* The server's access log (API mode); loaded when Administrace opens and on "Obnovit", never on every render. */
+function loadServerLog() {
+  DATA.logLoading = true;
+  apiGet("/admin/access-log").then(r => { DATA.serverLog = r.entries || []; }).catch(e => { DATA.serverLog = { error: e.message }; })
+    .finally(() => { DATA.logLoading = false; if (S.view === "admin") render(); });
+}
 function viewAdmin() {
   if (S.user !== ADMIN) return `<div class="page"><p class="muted">Administrace je jen pro správce systému.</p></div>`;
+  const onApi = DATA.mode === "api";
+  if (onApi && DATA.serverLog === null && !DATA.logLoading) setTimeout(loadServerLog);
+  const sl = DATA.serverLog;
+  const server = !onApi ? "" : `<section class="card" style="padding:0"><div class="head" style="padding:12px 16px"><h2>Záznam přístupů na serveru</h2><button class="btn small" data-act="reloadlog">Obnovit</button></div><div class="scroll"><table class="tbl"><thead><tr><th>Čas</th><th>Uživatel</th><th>Role</th><th>Případ</th><th>Akce</th></tr></thead>
+    <tbody>${sl === null || DATA.logLoading ? `<tr><td colspan="5" class="muted" role="status">Načítám záznam ze serveru…</td></tr>` : sl.error ? `<tr><td colspan="5" class="muted" role="alert">${esc(sl.error)}</td></tr>`
+      : sl.map(a => `<tr><td class="num">${esc(new Date(a.at).toLocaleString("cs-CZ"))}</td><td>${esc(a.who)}${a.impersonating ? " (zástup)" : ""}</td><td>${esc(a.role)}</td><td class="id">${esc(a.case_id || "-")}</td><td>${esc(a.what)}</td></tr>`).join("") || `<tr><td colspan="5" class="muted">Zatím žádné záznamy.</td></tr>`}</tbody></table></div></section>`;
   return `<div class="page"><div class="pagehead"><div><h1>Administrace</h1><div class="muted small">Záznam přístupů ke všem případům · jen pro správce systému</div></div></div>
+    ${server}${onApi ? `<h2 style="margin:16px 0 8px">Změny v této relaci (zatím jen v prohlížeči)</h2>` : ""}
     <section class="card" style="padding:0"><div class="scroll"><table class="tbl"><thead><tr><th>Čas</th><th>Uživatel</th><th>Případ</th><th>Akce</th></tr></thead>
     <tbody>${S.access.map(a => `<tr><td class="num">${esc(a.when)}</td><td>${esc(a.who)}</td><td class="id">${esc(P(a.pid)?.id || a.pid || "-")}</td><td>${esc(a.what)}</td></tr>`).join("") || `<tr><td colspan="4" class="muted">Zatím žádné přístupy v této relaci. Záznam vznikne otevřením případu nebo zdrojového dokumentu.</td></tr>`}</tbody></table></div></section>
     <section class="card"><div class="head"><h2>Úpravy lékařů (${S.editLog.length})</h2><span class="muted small">Původní hodnota zůstává; seznam se jen doplňuje</span></div>
@@ -2232,6 +2307,7 @@ function tabNext() {
 function tabDev() {
   if (!S.guideOn) return `<section class="card"><p class="muted">Vrstva doporučení je vypnutá.</p></section>`;
   if (GUIDE.loading) return `<section class="card"><p class="muted" role="status">Načítání podkladů pro odchylky…</p></section>`;
+  if (GUIDE.error) return `<section class="card"><p class="muted" role="alert">${esc(GUIDE.error)}</p></section>`;
   const p = P(S.pid), pr = ensureProto(p);
   return `${deviationFindings(p)}<details class="card deviation-context"><summary>Další srovnání minulých rozhodnutí s doporučeními (${PAST().length})</summary>${retroList(p) || '<p class="muted">K minulým rozhodnutím nejsou pasáže z doporučení.</p>'}</details>${Object.values(pr.dev || {}).some(d => d.s) ? devTable(p, pr) : ''}`;
 }
@@ -2436,7 +2512,9 @@ S.rec = { on: false, status: "off", msg: "", tx: {}, ses: null, sent: 0, partial
 /* What this copy of the page can reach. Opened from a file, in an artifact viewer or under mocks/serve.py there is
    no speech server, and the recorder says so instead of failing during the meeting. */
 S.api = { stt: false, summarize: false, data: false, limits: {}, probed: false };
-async function apiProbe(retry = true) {
+async function apiProbe(retry = true, pre = null) {
+  /* boot() already asked /api/health; its answer fills S.api without a second request. */
+  if (pre) { Object.assign(S.api, pre.features || {}, { limits: pre.limits || {} }); S.api.probed = true; recUI(); return; }
   try {
     const r = await fetch("/api/health", { cache: "no-store", signal: AbortSignal.timeout(3000) });
     /* A static host answers unknown paths with an HTML 404 page; only a JSON answer counts. */
@@ -2925,19 +3003,43 @@ function mailCard() {
    source link still points at a text passage. The local document functions find the quote on the image
    (Tesseract's word boxes) and in the vision text, and list the tokens the two engines read differently
    ("ověřit"). */
-function openSource(r) {
+async function openSource(r) {
   const o = { kind: "source", cite: r, file: r.file || CASE.file, page: +r.page || 1, tab: S.srcTab, zoom: "fit", data: null, doc: null };
+  if (DATA.mode === "api") {
+    o.loading = true; S.overlay = o; renderOverlay();
+    try {
+      try { await srcFetch(o.file, o.page); }
+      /* A cited page the document does not have opens the first page, as in the embedded viewer. */
+      catch (e) { if (e.code !== "page_not_found" || o.page === 1) throw e; o.page = 1; await srcFetch(o.file, 1); }
+    } catch (e) {
+      if (S.overlay === o) { S.overlay = null; renderOverlay(); }
+      toast(e.code === "page_not_found" ? "Původní dokument není v maketě k dispozici." : e.message);
+      return;
+    }
+    /* A late reply for a viewer the doctor already closed is dropped. */
+    if (S.overlay !== o) return;
+    o.loading = false;
+  }
   /* A document without page images cannot be shown; say so instead of opening an empty viewer. */
   if (!srcApi.document(o.file)) { toast("Původní dokument není v maketě k dispozici."); return; }
   S.overlay = o; loadSourcePage(); renderOverlay();
+}
+async function gotoSourcePage(o, n) {
+  if (DATA.mode === "api") {
+    o.loading = true;
+    try { await srcFetch(o.file, n); } catch (e) { o.loading = false; toast(e.message); return; }
+    o.loading = false;
+    if (S.overlay !== o) return;
+  }
+  o.page = n; loadSourcePage(); renderOverlay();
 }
 function loadSourcePage() {
   const o = S.overlay;
   o.doc = srcApi.document(o.file);
   o.data = srcApi.page(o.file, o.page);
   if (!o.data) { o.page = o.doc.pages[0].n; o.data = srcApi.page(o.file, o.page); }
-  /* Every viewed page is an access to patient data, so each one goes to the access log. */
-  logAccess(o.file, `zobrazil(a) zdroj s. ${o.page}`);
+  /* Every viewed page is an access to patient data, so each one goes to the access log (in API mode the server writes it). */
+  if (DATA.mode !== "api") logAccess(o.file, `zobrazil(a) zdroj s. ${o.page}`);
   /* The quote belongs to the cited page; on another page of the same document nothing is highlighted. */
   o.data.match = o.cite.quote && +o.cite.page === o.page ? { quote: o.cite.quote, ...srcApi.locate(o.file, o.page, o.cite.quote) } : null;
 }
@@ -3325,6 +3427,10 @@ function renderOverlay() {
   if (!o) { el.innerHTML = ""; return; }
   if (o.kind === "fhir") { el.innerHTML = fhirHtml(o); return; }
   if (o.kind === "source") {
+    if (o.loading && !o.data) {
+      el.innerHTML = `<div class="scrim" data-close="1"></div><aside class="drawer" role="dialog" aria-label="Zdrojový dokument"><header><div><div class="label">Zdroj</div></div><button class="btn small" data-close="1">Zavřít</button></header><p class="muted" role="status" style="padding:16px">Načítám stránku…</p></aside>`;
+      return;
+    }
     if (!o.data) return;
     el.innerHTML = sourceHtml(o);
     document.getElementById("hit")?.scrollIntoView({ block: "center", inline: "center" });
@@ -3472,7 +3578,7 @@ function readHash() {
   if (view === "calendar" && /^\d{4}-\d\d-\d\d$/.test(id || "")) { S.week = mondayOf(id); S.miniMonth = id.slice(0, 7); }
   else if (id) { const f = S.patients.find(p => nr(p.file) === id)?.file; if (f && f !== S.pid) { S.pid = f; S.tlExcluded = new Set(); S.selTl = null; S.tlScroll = 0; } }
   /* Opening a case by link or by back/forward is an access too and goes to the log. */
-  if (view === "patient" && before !== S.pid + view) logAccess(S.pid, "otevřel(a) případ (odkazem nebo historií prohlížeče)");
+  if (view === "patient" && before !== S.pid + view) caseOpened(S.pid, "otevřel(a) případ (odkazem nebo historií prohlížeče)", true);
   if (tab) S.tab = tab;
   S.overlay = null; S.colOpen = null;
   if (legacy) history.replaceState(null, "", hashOf());
@@ -3484,8 +3590,18 @@ window.addEventListener("hashchange", () => { if (S.hashSet && location.hash ===
 function openPatient(file, keepTab = false, what = "otevřel(a) případ") {
   if (S.pid !== file) S.tlExcluded = new Set();
   S.pid = file; S.view = "patient"; if (!keepTab) S.tab = "overview"; S.selTl = null; S.calPop = null; S.tlScroll = 0; S.stOpen = null;
-  logAccess(file, what);
+  caseOpened(file, what);
   render(); window.scrollTo(0, 0);
+}
+/* Opening a case is an access. In API mode the server writes the entry (and may refuse the case); otherwise the page
+   keeps its own log. The request is not awaited: the case view opens at once, and a refusal returns to the list. */
+function caseOpened(file, what, viaLink = false) {
+  if (DATA.mode !== "api") { logAccess(file, what); return; }
+  const p = P(file); if (!p) return;
+  apiGet(`/cases/${encodeURIComponent(p.id)}${viaLink ? "?via=link" : ""}`).catch(e => {
+    toast(e.message);
+    if (e.status === 403 && S.view === "patient" && S.pid === file) { S.view = "patients"; S.overlay = null; renderOverlay(); render(); }
+  });
 }
 
 /* A page image that fails to load says so, instead of leaving an empty frame. */
@@ -3559,12 +3675,12 @@ document.addEventListener("click", e => {
     if (first) { S.session = { day: d.startgo }; delete S.mdtOpen[first.file]; openPatient(first.file, false, "zahájil(a) MDT, otevřel(a) případ"); }
   }
   else if (d.sesgo) { delete S.mdtOpen[d.sesgo]; openPatient(d.sesgo, true, "otevřel(a) případ na MDT"); }
-  else if (d.nav) { S.view = d.nav; S.schedPick = null; render(); }
+  else if (d.nav) { if (d.nav === "admin" && !DATA.logLoading) DATA.serverLog = null; S.view = d.nav; S.schedPick = null; render(); }
   else if (d.open) { openPatient(d.open); }
   else if (d.tab) { S.tab = d.tab.replace(/<.*$/, ""); render(); }
   else if (d.src) { e.preventDefault(); openSource(JSON.parse(d.src)); }
   else if (d.close) { S.overlay = null; renderOverlay(); }
-  else if (d.page) { S.overlay.page = +d.page; loadSourcePage(); renderOverlay(); }
+  else if (d.page) { gotoSourcePage(S.overlay, +d.page); }
   /* The chosen tab is remembered for the next source the doctor opens. */
   else if (d.vtab) { S.overlay.tab = S.srcTab = d.vtab; renderOverlay(); }
   else if (d.zoomstep) { zoomStep(S.overlay, +d.zoomstep); }
@@ -3696,9 +3812,10 @@ function action(a) {
     S.mails.unshift({ kind: "digest", to: COORD, by: S.user, when: new Date().toLocaleString("cs-CZ"), n, body: `${waitingText(n)}\n${APP_LINK}` });
     toast("Přehled odeslán (jen počet a odkaz)"); render();
   }
+  else if (a === "reloadlog") { if (DATA.mode === "api" && !DATA.logLoading) { loadServerLog(); render(); } }
   else if (a === "staffreset") {
     if (!canEditStaff()) return;
-    const prev = staffIds(); STAFF = defaultStaff();
+    const prev = staffIds(); STAFF = DATA.mode === "api" && DATA.serverStaff ? structuredClone(DATA.serverStaff) : defaultStaff();
     commitStaff(prev, "obnovil(a) výchozí personál (smyšlená jména)", { reset: true }); toast("Obnoven výchozí personál (smyšlená jména)");
   }
   else if (a === "staffadddept") {
@@ -3874,7 +3991,7 @@ document.addEventListener("pointerdown", e => {
 }, true);
 document.addEventListener("change", e => {
   const t = e.target;
-  if (t.id === "user") { S.user = t.value; if (S.view === "admin" && t.value !== ADMIN) S.view = "patients"; render(); }
+  if (t.id === "user") { S.user = t.value; if (DATA.mode === "api") { const id = userIdOf(t.value); if (id) setDemoUser(id); } if (S.view === "admin" && t.value !== ADMIN) S.view = "patients"; render(); }
   else if (t.dataset.upload) addUploads(t.files);
   else if (t.dataset.newupload) newUploads(t.files);
   else if (t.dataset.fhirfile && t.files[0]) { const o = S.overlay; readNewForm(o); t.files[0].text().then(x => { o.fhirText = x; fhirImport(o, x); renderOverlay(); }); }
@@ -3915,9 +4032,68 @@ document.addEventListener("keydown", e => {
 document.addEventListener("keydown", e => { if (e.key !== "Enter") return; if (e.target.dataset?.newin) { e.preventDefault(); staffAdd(e.target.dataset.newin); } else if (e.target.id === "newdept") { e.preventDefault(); action("staffadddept"); } });
 document.addEventListener("keydown", e => { if (e.key === "Escape" && S.overlay) { S.overlay = null; renderOverlay(); } else if (e.key === "Escape" && S.colOpen) { S.colOpen = null; render(); } else if (e.key === "Escape" && S.stOpen) { S.stOpen = null; render(); } });
 
-readHash();
-render();
-apiProbe(); // async: recUI() refreshes the recorder when the server answers, without a full render
+/* Startup. On the Worker (health says features.data) the data comes from the API before the first render; on Pages,
+   from a file, or with ?data=embedded the embedded data is used as before. A failed load assigns nothing, so the
+   embedded data stays whole, and the data chip says the server was not reachable. */
+async function boot() {
+  const qs = new URLSearchParams(location.search);
+  let health = null;
+  if (location.protocol.startsWith("http") && qs.get("data") !== "embedded") {
+    try { health = await apiGet("/health", { timeout: 1500 }); } catch (e) { /* Pages or no server: embedded data */ }
+    if (health?.service === "codebridge-mdt" && health.features?.data === true) {
+      try { await loadFromApi(); DATA.mode = "api"; }
+      catch (e) { DATA.error = e.message || "neznámá chyba"; DATA.userId = null; }
+    } else if (health?.service !== "codebridge-mdt") health = null;
+  }
+  readHash();
+  render();
+  apiProbe(true, health); // async: recUI() refreshes the recorder when the server answers, without a full render
+  if (DATA.mode === "api" && qs.has("parity")) checkApiParity();
+}
+async function loadFromApi() {
+  const me = await apiGet("/me");
+  setDemoUser(me.user.id);
+  const [staff, list, tasks] = await Promise.all([apiGet("/staff"), apiGet("/patients"), apiGet("/tasks?scope=all")]);
+  const full = list.patients.find(p => p.full);
+  /* Step 2 keeps case 10's full view on the CASE/EXTRA globals; step 3 replaces them with a per-case cache. */
+  const ex = full ? await apiGet(`/cases/${encodeURIComponent(full.id)}/extraction`) : null;
+  if (full && !ex?.data?.case) throw new Error(`Server nevrátil data případu ${full.id}.`);
+  /* Nothing is assigned until every request succeeded. */
+  DATA.embedded = { patients: S.patients, tasks: S.tasks, staff: STAFF };
+  DATA.serverStaff = { depts: staff.depts, coord: staff.coord, seq: 0 };
+  STAFF = structuredClone(DATA.serverStaff); applyStaff();
+  S.patients = list.patients; S.tasks = tasks.tasks; S.user = me.user.name;
+  if (full) {
+    const c = ex.data.case;
+    /* The server keeps identity in its patients table, out of the case JSON; the page puts it back from the list row. */
+    CASE = { ...c, file: full.file, patient: { ...(c.patient || {}), name: full.name, name_as_written: full.nameAsWritten, birth_number: full.rc, birth_date: full.birth, age: full.age } };
+    EXTRA = ex.data.extra || {}; deriveFromExtra(); S.pid = full.file;
+  }
+}
+/* Development check behind ?parity: the server's rows against what the embedded data builds, key by key. Identity keys
+   are reported by name only, so the console never shows patient values. */
+function checkApiParity() {
+  /* false, null and a missing key read the same in the page (it tests flags with !!), and the server cannot send "missing". */
+  const norm = v => v === false || v === undefined ? null : v;
+  const same = (a, b) => JSON.stringify(norm(a)) === JSON.stringify(norm(b));
+  const ID = new Set(["name", "nameAsWritten", "rc", "birth", "age", "warn", "nameNote"]);
+  const SKIP = new Set(["processing", "statusHist", "redacted_for_role"]);
+  const diffs = [], emb = DATA.embedded.patients;
+  emb.forEach(e => {
+    const s = S.patients.find(p => p.file === e.file);
+    if (!s) { diffs.push({ file: e.file, key: "(řádek)", embedded: "ano", server: "chybí" }); return; }
+    new Set([...Object.keys(e), ...Object.keys(s)]).forEach(k => {
+      if (!SKIP.has(k) && !same(e[k], s[k])) diffs.push({ file: e.file, key: k, ...(ID.has(k) ? {} : { embedded: JSON.stringify(e[k]), server: JSON.stringify(s[k]) }) });
+    });
+  });
+  S.patients.filter(s => !emb.some(e => e.file === s.file)).forEach(s => diffs.push({ file: s.file, key: "(řádek)", embedded: "chybí", server: "ano" }));
+  if (!same(DATA.serverStaff, defaultStaff())) diffs.push({ file: "(personál)", key: "STAFF" });
+  const tk = t => ({ id: t.id, pid: t.pid, text: t.text, who: t.who, due: t.due, done: !!t.done });
+  if (!same(DATA.embedded.tasks.map(tk), S.tasks.map(tk))) diffs.push({ file: "(úlohy)", key: "tasks" });
+  if (diffs.length) { console.warn(`Parita API: ${diffs.length} rozdílů`); console.table(diffs); } else console.info("Parita API: žádné rozdíly (pacienti, personál, úlohy)");
+  return diffs;
+}
+boot();
 </script>
 
 
