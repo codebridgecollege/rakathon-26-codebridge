@@ -20,6 +20,8 @@ export function testEnv(over: Record<string, unknown> = {}): Env {
     AI_GATEWAY_TOKEN: "",
     AI_GATEWAY_BASE: "",
     AUTH_MODE: "demo",
+    DATA_API: "on",
+    CLINICAL_ACCESS: "all_roles",
     ACCESS_TEAM_DOMAIN: "",
     ACCESS_AUD: "",
     AZURE_OPENAI_BASE: "https://apim-rakathon-q7146n.azure-api.net/openai/v1",

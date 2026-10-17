@@ -22,6 +22,13 @@ export const E = {
   unauthenticated: () => new ApiError(401, "unauthenticated", "Přihlášení chybí nebo vypršelo. Obnovte stránku."),
   badOrigin: () => new ApiError(403, "bad_origin", "Požadavek nepřišel z této aplikace."),
   notFound: () => new ApiError(404, "not_found", "Neznámá adresa API."),
+  unknownUser: () => new ApiError(401, "unknown_user", "Neznámý uživatel. Vyberte uživatele znovu."),
+  notMember: () =>
+    new ApiError(403, "not_member", "Nejste v týmu tohoto případu. Přístup mimo tým (s důvodem) přijde v dalším kroku."),
+  roleForbidden: () => new ApiError(403, "role_forbidden", "Vaše role k těmto údajům nemá přístup."),
+  caseNotFound: () => new ApiError(404, "case_not_found", "Případ nebyl nalezen."),
+  pageNotFound: () => new ApiError(404, "page_not_found", "Stránka dokumentu není k dispozici."),
+  dataUnavailable: () => new ApiError(503, "data_unavailable", "Data případu se nepodařilo načíst. Zkuste to znovu."),
   lengthRequired: () => new ApiError(411, "length_required", "Chybí velikost nahrávaného záznamu."),
   transcriptTooLarge: () => new ApiError(413, "too_large", "Přepis je příliš dlouhý ke shrnutí."),
   audioTooLarge: () => new ApiError(413, "too_large", "Záznam případu je příliš dlouhý (nad 50 minut)."),
