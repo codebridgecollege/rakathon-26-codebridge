@@ -17,7 +17,7 @@ const context = vm.createContext({
   render: () => renders.push(context.S.pid),
   fetch: (url, options) => new Promise((resolve, reject) => { calls.push({ url, options, resolve }); options.signal.addEventListener('abort', () => reject(new DOMException('Aborted', 'AbortError'))); }),
 });
-vm.runInContext(code + '\nglobalThis.api = { PROGNOSIS, pgEntry, pgSearch, pgMetric, pgSimilarity, pgStudyRow, pgUrl, tabPrognosis, pgJson, pgLoadSaved, pgLoad };', context);
+vm.runInContext(code + '\nglobalThis.api = { PROGNOSIS, pgEntry, pgSearch, pgMetric, pgSimilarity, pgStudyRow, pgUrl, tabPrognosis, pgJson, pgLoadSaved, pgLoad, pgPanels: () => PG_PANELS, pgRefs: () => PG_REFS, pgRefsHtml };', context);
 const { api } = context;
 api.PROGNOSIS.config = { configured:true, models:[{ id:'model1', label:'Model 1' }] };
 api.pgEntry(patients.a).profile = { available:true, facts:[] };
@@ -43,10 +43,14 @@ assert.equal(api.pgUrl('https://user:pass@example.org'), '');
 assert.equal(api.pgUrl('https://pubmed.ncbi.nlm.nih.gov/123/'), 'https://pubmed.ncbi.nlm.nih.gov/123/');
 const metric = api.pgMetric({ value:'<img src=x onerror=alert(1)>', unit:'%', quote:'<script>bad</script>', source_url:'javascript:bad' });
 assert.doesNotMatch(metric, /<script>|<img|href="javascript/);
-assert.match(metric, /&lt;script&gt;/);
+assert.match(metric, /data-pgref/);
+const metricPanel = api.pgRefsHtml(api.pgRefs(), 1);
+assert.doesNotMatch(metricPanel, /<script>|<img|href="javascript/);
+assert.match(metricPanel, /&lt;script&gt;/);
 assert.match(api.pgMetric(null), /neuvedeno v dostupné dokumentaci/);
-assert.match(api.pgSimilarity({ score:100, coverage:25, dimensions:[] }), /25 % celkové váhy/);
-assert.match(api.pgSimilarity({ score:100, coverage:25, dimensions:[] }), /není pravděpodobnost|Nejde o pravděpodobnost/);
+assert.match(api.pgSimilarity({ score:100, coverage:25, dimensions:[] }), /data-pgpanel/);
+assert.match(api.pgPanels().at(-1).html, /25 % celkové váhy/);
+assert.match(api.pgPanels().at(-1).html, /není pravděpodobnost|Nejde o pravděpodobnost/);
 const html = api.pgStudyRow({ study_title:'<script>x</script>', source:{url:'javascript:alert(1)'}, endpoints:{}, found_by:['model1'] }, [{id:'model1',label:'Model 1'}]);
 assert.doesNotMatch(html, /<script>|href="javascript/);
 assert.match(html, /Extrakce modelu · ověřit/);
@@ -119,3 +123,4 @@ assert.equal(api.pgEntry(patients.polacek).result.saved_data_changed, true);
 assert.equal(JSON.stringify(api.pgEntry(patients.polacek).profile.facts), JSON.stringify(saved.result.profile.facts));
 assert.ok(calls.slice(callStart).every(call => call.options.method !== 'POST'));
 console.log('Prognosis UI and two-second saved replay checks passed.');
+

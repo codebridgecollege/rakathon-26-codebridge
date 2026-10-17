@@ -214,3 +214,35 @@ The prognosis table uses compact 11.5 px text, smaller population descriptions a
 fixed column proportions. The population column is wider; the four OS timepoints
 are narrow. All twelve columns fit together in the desktop view. Source passages
 remain available under Zdroj.
+
+
+## Glide visual integration
+
+The approved design uses flat, square sections on a white canvas, a navy patient header,
+opaque timeline icon circles and rounded semantic badges. The question stays editable by
+clicking its text (including an empty placeholder); confirmation, history and provenance
+remain available in state and exports. The heading is "Stručný souhrn".
+
+Both current-plan deviation assessment and historical decisions now live in
+"Retrospektivní odchylky", as separate sections. Selecting and explaining a deviation
+still persists across tabs and is included in the report. "Navrhovaný postup" keeps the
+proposal and guideline passages.
+
+Acknowledged and resolved warnings move into an expandable archive with a reversible
+"Vrátit" action. Brief and synthetic-case data gaps use the same per-patient, append-only
+history as other warnings. Archiving a gap does not supply a missing document; its amber
+missing-document signal remains. The oncology panel retains main's CSS-native scrolling.
+
+Integration starts from current main so prognosis (including its source drawer), FHIR
+import/export, timeline multiselect, recording/transcript summary, staff management,
+calendar handling and clinical data corrections remain present. Run the regression checks:
+
+```sh
+node mocks/src/test/v3.mjs
+node mocks/src/test/patient-panels.mjs
+node mocks/src/test/main-preservation.mjs
+node mocks/src/test/timeline-categories.mjs
+node mocks/src/test/prognosis-ui.mjs
+```
+
+Set `PLAYWRIGHT_PATH` if Playwright is installed outside the default path.

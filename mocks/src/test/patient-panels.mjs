@@ -1,0 +1,85 @@
+// Checks the scrolling panel and warning workflow against the existing synthetic cases.
+import { createRequire } from 'module';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import assert from 'node:assert/strict';
+const require = createRequire(import.meta.url);
+const { chromium } = require(process.env.PLAYWRIGHT_PATH || 'playwright');
+const file = 'file://' + path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../v3.html');
+const browser = await chromium.launch();
+const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
+const errors = [];
+page.on('pageerror', e => errors.push(e.message));
+const go = async hash => { await page.goto(file + '#' + hash); await page.waitForTimeout(450); };
+await go('patient/10/overview');
+await page.waitForFunction(() => Math.abs(document.querySelector('.onco').getBoundingClientRect().height - [...document.querySelectorAll('section.card')].find(e => e.querySelector('h2')?.textContent.includes('Aktuální stav pacienta')).getBoundingClientRect().height) < 2);
+const sizes = await page.locator('.ocbody').evaluate(e => ({ height: e.clientHeight, content: e.scrollHeight }));
+assert(sizes.content > sizes.height, 'long oncology summary scrolls within the pane');
+await page.locator('.ocbody').focus();
+await page.keyboard.press('PageDown');
+await page.waitForTimeout(150);
+assert(await page.locator('.ocbody').evaluate(e => e.scrollTop > 0), 'summary scroll works from the keyboard');
+assert.equal(await page.locator('.stc .mk.ocr[title*="výbormně"], .stc .mk.ocr[title*="nevolnoist"]').count(), 0);
+assert(await page.evaluate(() => marks({ certainty:'unclear_ocr', ocr_note_cs:'M0 nebo MO', text_cs:'M0' }).includes('Ověřit čtení')));
+assert(await page.evaluate(() => marks({ certainty:'unclear_ocr', ocr_note_cs:'Nejasná dávka 5 nebo 50 mg', text_cs:'5 mg' }).includes('Ověřit čtení')));
+assert(await page.evaluate(() => marks({ ocr_note_cs:'Nejasný zápor', text_cs:'nevolnost není' }).includes('Ověřit čtení')));
+const pin = await page.locator('.lpin').first().evaluate(e => ({ radius:getComputedStyle(e).borderRadius, bg:getComputedStyle(e).backgroundColor }));
+assert.equal(pin.radius, '50%'); assert.equal(pin.bg, 'rgb(255, 255, 255)');
+await go('patient/10/alerts');
+const row = page.locator('.alert[data-alert="0"]').first();
+await row.locator('[data-alact="resolved"]').click();
+assert.equal(await page.locator('.alert:not(.ack)[data-alert="0"]').count(),0);
+if (!await page.locator('.resolved').evaluate(e => e.open)) await page.locator('.resolved > summary').click();
+assert((await page.locator('.resolved').textContent()).includes('Vyřešil(a)'));
+await page.locator('.resolved [data-alert="0"] [data-alact="reopen"]').click();
+assert.equal(await page.locator('.alert:not(.ack)[data-alert="0"]').count(),1);
+await page.locator('.alert[data-alert="0"] [data-alact="ack"]').click();
+if (!await page.locator('.resolved').evaluate(e => e.open)) await page.locator('.resolved > summary').click();
+assert((await page.locator('.resolved').textContent()).includes('Vzal(a) na vědomí'));
+await page.locator('.resolved [data-alert="0"] [data-alact="reopen"]').click();
+await page.locator('.alert[data-alert="gap:0"] [data-alact="resolved"]').click();
+assert(await page.evaluate(() => S.alertHist.length === 5));
+await go('patient/S01/labs');
+await page.locator('[data-act="gaps"]').click();
+assert.equal(await page.locator('.alert:not(.ack)[data-alert="gap:0"]').count(),1, 'warning states do not leak between patients');
+await page.locator('.alert[data-alert="gap:0"] [data-alact="ack"]').click();
+if (!await page.locator('.resolved').evaluate(e => e.open)) await page.locator('.resolved > summary').click();
+await page.locator('.resolved [data-alert="gap:0"] [data-alact="reopen"]').click();
+assert.equal(await page.locator('.alert:not(.ack)[data-alert="gap:0"]').count(),1);
+await go('patient/10/alerts');
+assert.equal(await page.locator('.alert:not(.ack)[data-alert="gap:0"]').count(),0, 'case state survives navigation');
+assert.equal(await page.locator('.gapsbtn.warn').count(),1, 'workflow resolution does not invent missing source documents');
+for (const width of [400,320]) {
+  await page.setViewportSize({width,height:900});
+  for (const hash of ['patient/10/overview','patient/10/alerts','patient/S01/labs']) {
+    await go(hash);
+    assert(await page.evaluate(() => document.documentElement.scrollWidth) <= width, `${width}px ${hash} fits`);
+  }
+}
+await page.setViewportSize({width:1440,height:1000});
+await go('patient/10/overview');
+assert((await page.locator('main h2').allTextContents()).includes('Stručný souhrn'));
+assert.equal(await page.locator('.question .bh').first().textContent(), 'Otázka pro MDT');
+assert((await page.locator('.question p.rq1').textContent()).startsWith('Jaký postup doporučuje neurochirurgický seminář'));
+assert.equal(await page.locator('.question .qlbl, .question .qbasis, .question .edbtn').count(),0);
+assert(await page.evaluate(() => qState(P(S.pid)).mode === 'draft' && questionPlain(P(S.pid)).includes('neověřeno lékařem')));
+assert.equal(await page.locator('.patient-identity .chip.st-ready').evaluate(e=>getComputedStyle(e).borderRadius),'99px');
+await go('patient/10/documents');
+assert.equal(await page.locator('tbody .chip').first().evaluate(e=>getComputedStyle(e).borderRadius),'99px');
+await go('patient/10/next');
+assert.equal(await page.locator('.devt').count(),0);
+await go('patient/10/dev');
+assert.equal(await page.locator('.devt').count(),1);
+assert(await page.locator('[data-retroitem]').count()>0);
+assert((await page.locator('main').textContent()).includes('Odchylky aktuálního postupu MDT'));
+// A calendar card must use that patient's question and edit target, never S.pid's override.
+assert(await page.evaluate(()=>{
+ S.edits[EK('q','10_pacient.pdf')]={text:'Question for patient ten',by:S.user,when:'now'};
+ S.edits[EK('q','11_pacient.pdf')]={text:'Question for patient eleven',by:S.user,when:'now'};
+ S.pid='10_pacient.pdf';
+ const html=questionInner(P('11_pacient.pdf'),false).html;
+ return html.includes('Question for patient eleven') && !html.includes('Question for patient ten') && html.includes('11_pacient.pdf|q');
+}));
+assert.deepEqual(errors,[]);
+console.log('Patient panels, keyboard scrolling, bounded OCR markers, opaque circles, and reversible per-patient warning states passed.');
+await browser.close();
