@@ -141,7 +141,17 @@ deleted as soon as its speaker pass is done. Speakers are numbered, not
 named, because naming them would need voiceprints (biometric data). The
 demo sends audio to ElevenLabs and is used only with fictitious speech; a
 pilot needs a speech server inside FNO, or FNO's clearance for an
-outside service.
+outside service. The ElevenLabs key stays on our server: the browser
+streams the live audio to ElevenLabs with a single-use token our server
+mints, and the case audio for the speaker pass passes through our server
+(Cloudflare) to ElevenLabs. The server checks its origin, type and size,
+stores nothing and logs no audio, transcript or token. The origin check
+stops other websites, not a script that forges the header, and the Pages
+host cannot rate-limit, so until the Worker takes over the key's credit
+cap is the guard against someone spending our quota. ElevenLabs may
+keep request logs, because its zero-retention mode is offered only to
+enterprise customers; this is another reason the demo uses fictitious
+speech only.
 
 Open points are in [`docs/agent/OPEN_QUESTIONS.md`](../agent/OPEN_QUESTIONS.md).
 

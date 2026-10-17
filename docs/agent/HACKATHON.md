@@ -175,6 +175,10 @@ Before publishing, check:
   guideline text (ESC, EASL, EANO-ESMO, Modrá kniha) and PubMed abstracts;
   the team chose to keep the history for now and clean it when the real
   server exists (2026-10-16).
+- the demo ElevenLabs key: it was embedded in the published page and is
+  in git history. On 2026-10-17 it left the page (the server holds the
+  key now, issue #2); it must be revoked in the ElevenLabs dashboard,
+  since removing it from the code does not unpublish it.
 
 ## What existed before the hackathon
 
@@ -195,7 +199,8 @@ Declare this list to the jury and mentors.
   live "AI záznam" demo in mock v3, with fictitious speech only.
 - The hackathon's Azure OpenAI gateway (`gpt-6-luna-dz-eu`), for the
   one-sentence summary of a recorded MDT discussion in mock v3.
-- Cloudflare Pages, hosting mock v3 at https://codebridge-mdt.pages.dev.
+- Cloudflare Pages, hosting mock v3 at https://codebridge-mdt.pages.dev,
+  with Pages Functions for the speech and summary routes.
 - ChatGPT, used by Soňa for brainstorming and UI sketches
   (`docs/sources/design/`).
 - Claude artifacts (claude.ai), for publishing the UI mocks in `mocks/`.

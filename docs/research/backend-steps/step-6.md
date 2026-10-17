@@ -1,0 +1,803 @@
+# Step 6: uploads to R2 and the document processing pipeline
+
+Status: implementation design, 2026-10-17. Nothing here is built. It
+assumes Steps 0-5 of
+`docs/research/2026-10-17-backend-migration.md`
+exist: the Worker `api/` with Hono, D1 tables `documents`, `pages`,
+`jobs`, `extraction_runs`, the R2 layout `docs/`, `pages/`, `extract/`,
+the write API with server-side audit, and the Workflows infrastructure.
+
+Terms used below:
+- **Worker**: the Cloudflare Workers backend (`api/`).
+- **R2 / D1**: Cloudflare object storage / SQLite database, both created with EU jurisdiction.
+- **Workflow**: a durable multi-step job; each `step.do` is retried on its own and its return value is persisted by Cloudflare.
+- **Container**: a Cloudflare Container, a Docker image run behind a Durable Object (DO); only reachable through that DO's binding.
+- **Fixture**: a synthetic file we ship (FNO's ten `data/rakathon-26/2_AI asistent MDT/*_pacient.pdf`, `samples/S01_pacient/S01_pacient.pdf`, `samples/S02_pacient/S02_pacient.pdf`, the seven `samples/S02_pacient/upload/*.pdf` and `zadost-fhir.json`).
+- **Prepared extraction**: case data written in advance by development agents and checked by scripts (`mocks/src/data/mock-case-*.json`), as opposed to a pipeline run.
+- **Text of record**: the page text that quotes must be found in and that the source view highlights.
+- **"ověřit" mark**: a span the doctor should verify against the image (engine disagreement, low confidence, vision-only reading).
+
+## Goal
+
+1. A user can upload documents to a case, and they land in R2 with a
+   hash, a D1 row, an audit entry, and a visible state. In the shared
+   demo only known synthetic fixtures are accepted; anything else is
+   refused with a Czech message and never stored.
+2. "Nový pacient" works on the server: FHIR referral plus uploads create
+   a case; the server recognises the S02 fixture by file hash (not by
+   file name, as `intakeOf` in `mocks/src/v3-template.html` does today)
+   and attaches its prepared extraction; other documents show as
+   "nezpracováno".
+3. A document pipeline exists as real code: a Workflow per document that
+   calls a Container for the native work (render, Tesseract, page index,
+   readability, redaction) and, in later slices, a configured LLM for
+   page reading and fact extraction, with every output traceable to
+   page and quote and every run recorded in `extraction_runs`.
+4. The pipeline's first slice is deterministic (no LLM) and is shown
+   honestly next to the prepared extraction, never silently replacing it.
+
+## Scope and out of scope
+
+In scope:
+- `POST /api/cases/:id/documents`, `GET /api/cases/:id/documents`,
+  `GET /api/documents/:id` (state), `DELETE` of a not-yet-processed
+  upload by its uploader (soft delete, logged).
+- Intake: `POST /api/cases` with `intake: true`, uploads to the intake
+  case, `POST /api/cases/:id/intake/complete`.
+- Fixture registry (`api/seed/fixtures.json`) and the prepared-extraction
+  attach.
+- The Container image and its HTTP API; the shared Python package both
+  the scripts and the Container use.
+- The `ProcessDocument` and `ProcessCase` Workflows, stage by stage.
+- Prompts, schemas, caching, `extraction_runs`, the output shape.
+- The evaluation harness against `samples/` and the failure cases.
+
+Out of scope (later steps or never):
+- Presigned R2 uploads, resumable uploads, ZIP expansion, DOCX/ODT/XLS
+  conversion, photographed reports (JPEG/HEIC). The mock's upload zone
+  lists them; the server refuses them with a Czech message for now.
+- Per-visitor workspaces (decision 2026-10-17: shared demo).
+- A local vision model (DATA-PROTECTION.md option A); the page reader
+  interface leaves room for it.
+- LLM wording of the summary (stage 11 stays templates, per the review).
+- Normalizing facts into D1 tables (case data stays JSON in R2).
+- Re-writing the curated case 10 data.
+
+## Design (a): uploads and intake
+
+### Upload policy
+
+One configuration variable decides what the route does with a file that
+is not a known fixture:
+
+| `UPLOAD_POLICY` | Unknown file | Used where |
+|---|---|---|
+| `fixtures_only` | Refused, never written anywhere (HTTP 422, `upload_not_fixture`) | Shared demo behind Access (default in `wrangler.jsonc`) |
+| `store_unprocessed` | Stored, listed as "nezpracováno", pipeline not started | Team staging, local `wrangler dev` |
+| `process` | Stored and sent to the pipeline | Local dev and evaluation only, once slice 6b-1 exists |
+
+Why refuse rather than store-but-unprocessed in the shared demo: once a
+file is stored it is third-party data with no clearance in a database
+everyone can read (research doc, "Login and roles"). The research doc's
+other sentence ("any other file is listed as nezpracováno") then applies
+to fixtures without a prepared extraction (FNO's PDFs, `S01_pacient.pdf`)
+and to the non-demo policies. Czech refusal text:
+
+> Ve sdílené ukázce lze nahrát jen připravené syntetické dokumenty (např.
+> ze složky samples/S02_pacient/upload). Jiný soubor se neuložil, protože
+> by šlo o data bez souhlasu s jejich zpracováním.
+
+### Fixture registry
+
+`api/seed/fixtures.json`, generated by `api/seed/build_fixtures.py`
+(run in CI and checked in), one entry per fixture file:
+
+```json
+{
+  "sha256": "…", "size": 48213, "media_type": "application/pdf",
+  "fixture": "S02", "upload_name": "04-laborator-2026-03-10.pdf",
+  "patient": { "name": "Věra Lipenská", "rc": "585614/4019" },
+  "document": { "title_cs": "…", "type": "laboratorní výsledky", "date": "2026-03-10",
+                "combined_pages": [5], "page_count": 1 },
+  "prepared": { "case_file": "mock-case-S02.json" },
+  "page_assets": "pages/S02_pacient/p5"
+}
+```
+
+- Matching is by SHA-256 of the bytes only. A renamed copy matches; an
+  edited file with the same name does not. The file name is display data.
+- The registry knows each fixture's patient, so a fixture uploaded into
+  the wrong case gives an immediate identity conflict (failure case "two
+  patients mixed up") without any pipeline.
+- Hashes are of the committed bytes. `render_samples.py` output is not
+  guaranteed byte-identical across machines (PyMuPDF writes timestamps),
+  so the demo uses the committed PDFs or the published
+  `ukazka/S02-dokumenty.zip`; a CI check asserts the ZIP members hash to
+  the registry values.
+- `patient` identity lives only in the registry and in `patients`, never
+  in the stored extraction (pseudonymization rule in the research doc).
+
+### `POST /api/cases/:id/documents`
+
+One file per request, raw body (not multipart), so the browser loops
+over dropped files and each gets its own result.
+
+Request headers: `Content-Type`, `Content-Length` (required),
+`X-File-Name` (RFC 5987 encoded). Response `201`:
+`{ document: { id, name, size, sha256, type_cs, state, fixture, identity } }`.
+
+Order of checks (each refusal is `{ error: { code, message_cs } }`):
+
+1. Session, role (doctor or coordinator with case membership, same rule
+   as the mock's `canUpload`), CSRF origin check, per-user rate limit
+   (30 uploads per hour).
+2. Case exists, is not closed, has no approved decision (Step 4 rule):
+   409 `case_locked`, "Případ je schválený, nahrávání je uzamčeno."
+3. `Content-Length` at most `UPLOAD_MAX_BYTES` (20 MB, what the UI
+   already promises): 413 `too_large`. Documents per case at most 40.
+4. Type: allow `application/pdf` only, verified by the magic bytes
+   `%PDF-`, not by the header or extension. ZIP gets its own message
+   ("ZIP rozbalte a nahrajte jednotlivé PDF."), others 415
+   `type_not_allowed`.
+5. Hash:
+   - `fixtures_only`: read the body into memory (at most 20 MB, well
+     under the 128 MB Worker limit), `crypto.subtle.digest("SHA-256")`,
+     look up the registry. Unknown hash: 422 and nothing written. Why
+     buffer: the file must not touch storage before we know it is allowed.
+   - other policies: stream. `request.body.tee()`, one branch through
+     `crypto.DigestStream("SHA-256")`, the other into
+     `R2.put("docs/<case>/<doc>.pdf", stream, { httpMetadata })`. A
+     size mismatch with `Content-Length` deletes the object.
+6. Duplicate in the same case (same `sha256`): 409 `duplicate`,
+   "Tento dokument už je u případu nahraný."
+7. Write the R2 object (fixture mode: from the buffer), then in one D1
+   batch: the `documents` row, the audit entry, and (policy `process`
+   only) a `jobs` row; then start `ProcessDocument` after the batch
+   commits.
+8. Identity: for a fixture, compare the registry patient with the case's
+   `patients` row (name in either order, birth number without the
+   slash). Result `matches`, `conflicts` or `cannot_verify`. A conflict
+   is stored on the document and raised as an always-on alert
+   ("Dokument patří jinému pacientovi: jméno nebo rodné číslo se
+   neshoduje."); it never blocks and never merges.
+
+`documents` columns this step needs (add in a migration if Step 2 did
+not): `id`, `case_id`, `name`, `size`, `sha256`, `media_type`,
+`r2_key`, `uploaded_by`, `uploaded_at`, `source` (`upload`, `seed`,
+`intake`), `fixture_id` (nullable), `state`, `state_detail_cs`,
+`readability` (`good`/`fair`/`poor`/`empty`/null), `readability_reasons`
+(JSON, Czech), `identity` (`matches`/`conflicts`/`cannot_verify`/null),
+`page_count`, `deleted_at`. `UNIQUE(case_id, sha256)`.
+
+Document `state` and its Czech label:
+
+| state | Label | Meaning |
+|---|---|---|
+| `stored` | nezpracováno | Stored; no pipeline run and no prepared extraction |
+| `prepared` | připraveno předem (ukázková data) | Covered by a fixture's prepared extraction |
+| `queued`, `processing` | zpracovává se (fáze: …) | Workflow running; `state_detail_cs` names the stage |
+| `processed` | zpracováno | Latest run finished |
+| `failed` | zpracování selhalo | Run failed; `state_detail_cs` gives the reason (encrypted PDF, too many pages, service unavailable) |
+
+What is never logged: the body, page text, the file name (it may hold a
+patient name). The audit entry records actor, case, document ID, size
+and the first 12 hex characters of the hash.
+
+`GET /api/cases/:id/documents` returns the rows above (no R2 keys), and
+the case's processing level (`full` when a prepared or processed
+extraction covers every document, `partial`, `none`), which the patient
+list already shows as "V maketě nezpracováno".
+
+### Intake ("Nový pacient") on the server
+
+Today: the form recognises S02 by birth number and file names
+(`intakeOf`, `newUploads`, `newdone` in `v3-template.html`) and pushes a
+prepared record into browser state. Server flow, keeping the three-step
+dialog the users know:
+
+1. **Step 1, referral.** "Import z FHIR" calls `POST /api/fhir/referral`
+   (Step 4) to fill the form. "Pokračovat" calls `POST /api/cases` with
+   `{ form, fhir_bundle?, intake: true }`. The server runs the duplicate
+   birth-number check (Step 4 rule, override with reason), creates the
+   `patients` and `cases` rows with status `intake`, and stores the FHIR
+   bundle in R2 (`docs/<case>/referral.fhir.json`) with its hash. A case
+   in `intake` is hidden from the patient list and the calendar, and is
+   visible only to its creator.
+2. **Step 2, documents.** Each file goes through
+   `POST /api/cases/:id/documents` exactly as above. The dialog lists
+   each file with the server's answer: the fixture's document title, or
+   the refusal message. It shows which fixture documents are still
+   missing, from `GET /api/cases/:id/intake` (counts and titles only).
+3. **Step 3, "Zpracovat" then "Přidat do databáze".** The dialog calls
+   `POST /api/cases/:id/intake/complete`. The server:
+   - checks that the form identity matches the fixture's patient (the
+     same name-and-birth-number rule as `intakeOf`; never join a
+     differently named person to the documents);
+   - checks that every fixture document of that patient is present by
+     hash, and that no other case already holds this fixture's prepared
+     extraction (a second copy would share its pages);
+   - if all hold: copies the prepared extraction (see below) to
+     `extract/<case>/<run>.json`, writes an `extraction_runs` row with
+     `producer = "prepared-fixture"`, sets every matching document to
+     `prepared`, and moves the case from `intake` to `new`;
+   - otherwise: moves the case to `new` with its documents `stored`
+     ("nezpracováno") and returns the reason in Czech, the same wording
+     the mock shows today;
+   - writes the audit entry ("vytvořil(a) pacienta z žádosti FHIR a N
+     nahraných dokumentů").
+   The progress list in step 3 ("Kontrola čitelnosti", "Pseudonymizace",
+   "Extrakce údajů", "Kontrola úplnosti") becomes the real job state when
+   the pipeline runs; for a prepared attach it says "připraveno předem"
+   instead of animating stages that did not run.
+4. Abandoned intake cases (status `intake` older than 24 hours) are
+   deleted with their R2 objects by the cron trigger and by "reset demo".
+
+**Prepared extraction, rewritten for per-document storage.** The
+prepared S02 data cites the combined PDF (`{file: "S02_pacient.pdf",
+page: 5}`), while uploads are one PDF per document with their own page
+numbers. At attach time the server rewrites every source reference with
+the registry's `combined_pages` map into `{doc_id, page, quote}` and
+keeps `file`/`page` as `orig_file`/`orig_page`. The seeded page assets
+(`pages/S02_pacient/p5.*` from `data/derived`) are copied to
+`pages/<doc>/p1.*`. A seed test asserts every rewritten quote is still
+found on the target page's text. This depends on the reference format
+Step 2 chose for seeded cases; if Step 2 already uses `doc_id`, only the
+page mapping is new.
+
+**Identity stays out of the extraction.** The attach strips
+`list_entry.name`, `rc`, `age_or_birth` and `fhir_referral` from the
+stored JSON; the API joins identity from `patients` where the screen
+needs it.
+
+## Design (b): the document pipeline
+
+### Shape
+
+```
+POST /cases/:id/documents ──► ProcessDocument (Workflow, one per document)
+                                 │ step: inspect            ──► Container /v1/inspect
+                                 │ step: pages 1-5, 6-10 …  ──► Container /v1/pages      (render, Tesseract, text layer)
+                                 │ step: readability        ──► Container /v1/readability
+                                 │ step: identity           ──► Container /v1/identity
+                                 │ step: labs               ──► Container /v1/labs
+                                 │ [6b-2] redact            ──► Container /v1/redact
+                                 │ [6b-2] vision per page   ──► LLM (Worker, key never leaves it)
+                                 │ [6b-2] page index        ──► Container /v1/page-index
+                                 │ [6b-3] pseudonymize      ──► Container /v1/pseudonymize
+                                 │ [6b-3] extract facts     ──► LLM
+                                 │ [6b-3] anchor + coverage ──► Container /v1/anchor, /v1/coverage
+                                 └ step: write run          ──► R2 extract/…, D1 extraction_runs
+When every document of a case is processed ──► ProcessCase (Workflow)
+                                 │ [6b-4] cross-document rules ──► Container /v1/rules
+                                 │ [6b-4] summary templates
+                                 └ step: write case run
+```
+
+Principles:
+- **All deterministic text logic lives in one Python package**,
+  `pipeline/pagekit/` (render, OCR, page index, readability, identity,
+  redaction, labs, pseudonymization, anchoring, coverage, rules). The
+  existing scripts become thin CLIs over it, the Container serves it
+  over HTTP, and the evaluation runs it locally. One implementation, so
+  the CLI output, the demo and the evaluation cannot drift (Mechanism 3).
+- **The Worker orchestrates and holds the keys.** LLM calls, R2 and D1
+  I/O happen in Workflow steps in TypeScript. The Container has no
+  secrets, no storage binding and no outbound network need.
+- **Workflow state holds IDs, never patient text.** Cloudflare persists
+  every step's return value and the instance parameters, and that store
+  has no documented jurisdiction control. Steps write their outputs to
+  R2 and return only keys, hashes, counts and stage codes. This also
+  keeps returns under the 1 MiB step limit.
+- **Every stage is idempotent and keyed by input hash**, so a retried
+  step or a re-run of an unchanged document reuses its output.
+
+### Container
+
+`pipeline/container/Dockerfile` (built by `wrangler deploy` from the
+`api/wrangler.jsonc` `containers` entry, `image_build_context` = repo
+root so it can copy `pipeline/`):
+
+```Dockerfile
+# linux/amd64 is the only architecture Cloudflare Containers run.
+FROM --platform=linux/amd64 python:3.12-slim-bookworm@sha256:<pinned digest>
+# Debian bookworm ships Tesseract 5.3.0 with the Czech model; pin the package versions.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      tesseract-ocr=5.3.0-2 tesseract-ocr-ces=1:4.1.0-2 hunspell-cs \
+    && rm -rf /var/lib/apt/lists/*
+COPY pipeline/requirements.lock /app/requirements.lock
+RUN pip install --no-cache-dir --require-hashes -r /app/requirements.lock   # pymupdf==1.24.10, pillow==10.4.0
+COPY pipeline/pagekit /app/pagekit
+COPY pipeline/container/server.py /app/server.py
+# One Tesseract thread per request: the instance has half a vCPU and requests run one at a time.
+ENV OMP_THREAD_LIMIT=1 PYTHONUNBUFFERED=1
+USER 65534
+EXPOSE 8080
+CMD ["python", "-I", "/app/server.py"]
+```
+
+(The exact apt version strings are checked at build time; `hunspell-cs`
+gives the Czech word list for the readability check.)
+
+`server.py` is a standard-library `ThreadingHTTPServer` with JSON in and
+out (no web framework, fewer pins). It logs only method, path, status,
+duration and page counts; never bodies. Endpoints (all `POST` unless
+noted, versioned so the Worker and image can be deployed apart):
+
+| Endpoint | Input | Output | Wraps |
+|---|---|---|---|
+| `GET /healthz` | | `{ok, versions: {pagekit, pymupdf, tesseract, ces_model}}` | new |
+| `/v1/inspect` | PDF bytes | `{page_count, encrypted, producer, has_text_layer[]}` | new (PyMuPDF) |
+| `/v1/pages?from=&to=` | PDF bytes | per page: 150 dpi PNG (base64), Tesseract TSV and text from a 300 dpi render, text layer | `scripts/ocr_pages.py` `process`/`ocr_page` |
+| `/v1/readability` | per page: TSV, Tesseract text, optional vision text | per page `{level, reasons_cs[], metrics}` | new |
+| `/v1/identity` | Tesseract text of the document, expected `{name, rc, birth_date}` | `{result, evidence: [{page, start, end, field}]}` (offsets only) | new |
+| `/v1/labs` | text of record per page + page metadata | lab draws and points with offsets and certainty | new, generalized from `build_case_s0*.py` |
+| `/v1/redact` | PNG, TSV, known names | redacted PNG, boxes with reasons | `scripts/redact_pages.py` `find` |
+| `/v1/page-index` | primary text, second reading (TSV words), PNG size | the page JSON: words, `mean_conf`, `low_conf_words`, `verify[]` | `scripts/build_page_index.py` `disagreements` |
+| `/v1/pseudonymize` | text, identity values, doctor names | text with placeholders + offset map (no values) | new, extends redaction rules |
+| `/v1/anchor` | candidate facts, page texts, page indexes | facts with offsets, boxes, `accepted`/`verify`/`rejected` + rule IDs | new |
+| `/v1/coverage` | accepted facts, page texts, lab points | uncovered dates, drugs, TNM tokens, doses, lab codes per page | new |
+| `/v1/rules` | all accepted facts and documents of a case | gaps, referrals without result, contradictions, planned versus done | new |
+
+`wrangler.jsonc` additions:
+
+```jsonc
+"containers": [{
+  "class_name": "PageKit",
+  "image": "../pipeline/container/Dockerfile",
+  "image_build_context": "..",
+  "instance_type": "standard-1",          // 1/2 vCPU, 4 GiB: Tesseract at 300 dpi needs a few hundred MB
+  "max_instances": 2,
+  "constraints": { "jurisdiction": "eu" } // page images and text are processed in the EU
+}],
+"durable_objects": { "bindings": [{ "name": "PAGEKIT", "class_name": "PageKit" }] },
+"migrations": [{ "tag": "v6", "new_sqlite_classes": ["PageKit"] }]
+```
+
+```ts
+// api/src/services/pagekit.ts
+import { Container } from "@cloudflare/containers";
+export class PageKit extends Container {
+  defaultPort = 8080;
+  sleepAfter = "15m"; // long enough to cover one demo, short enough not to burn credit overnight
+}
+// From a Workflow step: one named instance per document keeps a document's batches on one warm instance.
+const kit = env.PAGEKIT.getByName(`doc-${docId}`);
+const res = await kit.fetch("http://pagekit/v1/pages?from=1&to=5", { method: "POST", body: pdfBytes });
+```
+
+To verify when building: whether the DO namespace can be restricted with
+`env.PAGEKIT.jurisdiction("eu")` together with a Container class; the
+current docs document `constraints.jurisdiction` for the container
+itself only.
+
+Cold start: the docs say 1-3 s for a warm image, but the first start
+after a deploy waits for the image to reach the location (minutes). An
+admin route `POST /api/admin/pipeline/warm` calls `/healthz`, and the
+demo checklist runs it 10 minutes before presenting.
+
+Pages are sent in batches of 5 per step. Why: one call for a 40-page
+document would run for minutes with no partial retry and return tens of
+MB; one call per page would resend the whole PDF each time. A batch of
+5 returns roughly 2 MB of JSON, which the step writes to R2 at once.
+
+### Stages, what exists and what is new
+
+Numbers refer to the 14 stages in
+`docs/research/2026-10-16-summary-pipeline-review.md`
+section 5.
+
+| # | Stage | Kind | Existing code | New work | Slice |
+|---|---|---|---|---|---|
+| 1 | Intake: hash, type, page count; document type and date | Deterministic | none | `inspect`; type and date from header patterns ("Odběr:", "Bioptický", "Ambulantní vyšetření"), else "neurčeno" for the doctor to set | 6a, 6b-1 |
+| 2a | Render and Tesseract | Deterministic | `scripts/ocr_pages.py` | move into `pagekit.render`, `pagekit.ocr`; HTTP wrapper | 6b-1 |
+| 2b | Vision transcription | LLM | none (transcriptions in `data/derived` were made by a Claude Code sub-agent, no prompt file) | prompt, call, cache, R2 write | 6b-2 |
+| 2c | Page index with "ověřit" marks | Deterministic | `scripts/build_page_index.py` | generalize "vision vs Tesseract" to "primary vs second reading" so slice 6b-1 can compare Tesseract with the PDF text layer | 6b-1 / 6b-2 |
+| 3 | Readability | Deterministic | metrics only (`mean_conf`, `low_conf_words` in the page index) | the rule set below | 6b-1 |
+| 4 | Identity check per document | Deterministic | none (the S02 builder asserts the RC is on every page) | header and pattern search, compare with case | 6b-1 |
+| 5 | Pseudonymization of text | Deterministic | redaction rules in `scripts/redact_pages.py` (images only) | text placeholders with offset map | 6b-3 |
+| R | Redaction of page images before a cloud vision call | Deterministic | `scripts/redact_pages.py` | names from the case (not from mock files), whole-header blackout option | 6b-2 |
+| 6 | Lab parser | Deterministic | the regex and checks inside `build_case_s01.py` / `build_case_s02.py` | a general parser (below) | 6b-1 |
+| 7 | Fact extraction | LLM | none | prompt, schema, call, cache | 6b-3 |
+| 8 | Anchoring and validation | Deterministic | quote substring check in the builders | the rule set in the review (spans, value tokens, negation by clause, planned versus done, dates) | 6b-3 |
+| 9 | Coverage pass | Deterministic | none | token finders and the "Nezpracováno / k ověření" list | 6b-3 |
+| 10 | Cross-document rules | Deterministic | none (gaps in the mocks are hand-written) | rules below | 6b-4 |
+| 11-12 | Summary from templates, sentence validation | Deterministic | none | templates per MDT type | 6b-4 |
+| 13-14 | UI with sources, doctor edits | Code | mock UI; Step 4 edit API | show pipeline runs next to prepared data | each slice |
+
+### Readability check (stage 3), new code
+
+Judged from the text, not from whether a text layer exists (CLAUDE.md).
+Per page, from Tesseract (and from the vision text once 6b-2 exists):
+
+- **empty**: fewer than 5 words read.
+- **poor** if any: mean word confidence below 75; more than 15 % of
+  words below confidence 60; more than 25 % of alphabetic tokens of 4+
+  letters neither in the Czech word list (`hunspell-cs`) nor in a
+  medical/abbreviation list (`pagekit/data/med_terms.txt`, seeded from
+  terms in `data/derived`); more than 10 % of risky tokens (digits,
+  stages) marked "ověřit" once there are two readings.
+- **fair** if any: 5-15 % low-confidence words; any OCR-damage pattern
+  hit: a 6-7 digit run where a date belongs (`1112023`, `212024`),
+  `MO`/`NO`/`RO`/`PO` in a TNM or response context, `l`/`I` inside a
+  number or dose (`lmg`), `O` inside a number or range (`[O ... 5]`),
+  `/1` where a unit ends (`mmol/1`).
+- **good** otherwise.
+
+Thresholds are constants with a comment saying where they came from;
+they are calibrated once on the 35 pages in `data/derived` (FNO's 20 and
+our 15). The hand labels in `mock-case-10-extra.json` (`readability`
+per document) are only a rough reference, since they were judged from
+the text layer. Every reason is a Czech string naming the page and the
+pattern ("s. 4: data ve tvaru 1112023, ověřte v originálu"), never the
+surrounding text. The document level is the worst page. A `poor` or
+`empty` document raises an immediate alert "Dokument je špatně čitelný,
+vyžádejte lepší kopii" with the pages; unreadable parts are marked
+unreadable, never filled in.
+
+### Lab parser (stage 6), new code
+
+Generalized from the builders' regex
+`^(\S+): (\**)([\d,]+)\** (.+?) \[([\d.]+) \.\.\. ([\d.]+)\]$`, which
+only handles our clean synthetic sheets. FNO's printout (patient 10
+page 3) adds section headings ("Sérum, plazma - zánět:"), several
+results on one line separated by two spaces or commas, sample-quality
+indices (`S_IDXLIPK: NEGAT -`), qualitative values, and OCR damage in
+units and ranges (`mmol/1`, `[O ... 5]`, `10A9/l`).
+
+- Tokenize per line into `CODE: value unit [low ... high]` records, also
+  several per line. Codes match `^[A-Z]{1,4}(\([A-Z]+\))?_[A-Z0-9]+$`
+  (NČLP-style: `S_CREAE`, `B_PLT`, `PT(KIDN)_EGFRCKDE`).
+- Keep the value, unit and range **as written**; store a parsed number
+  (decimal comma) separately. Keep the code as given; the display name
+  comes from a lookup table marked as our label, as today.
+- `S_IDX*` lines are sample-quality indices: kept as such, never a
+  finding and never through the negation rule.
+- Draw date and time from `Odběr: d.m.yyyy hh:mm`; without it the draw
+  date is "neuvedeno v dostupné dokumentaci" and the document date is
+  used only if the document date itself was read, and then marked as
+  taken from the document. Never guessed.
+- `out_of_range` computed from the printed range; `flagged_in_document`
+  from bold where the text of record carries it (vision Markdown), else
+  `null` (not determinable from Tesseract text).
+- Certainty: `documented` when both readings agree on the value token
+  and its confidence is at least 60; `unclear_ocr` ("ověřit") when they
+  disagree, when the value needed the confusable map (O/0, l/1), or when
+  the page is `poor`. Units differing only by look-alike characters
+  (`mmol/1`) are shown as written plus "ověřit" if they contain a digit,
+  following `same_unit` in `build_page_index.py`.
+- Cross-draw check: a test whose unit or range changes between draws is
+  not merged into one trend row; it shows as two rows with a note (the
+  builders assert this; the parser reports it instead of failing).
+- Output: the existing `labs_series` shape (`draws`, `tests[].points[]`
+  with `value`, `out_of_range`, `flagged_in_document`, `date`, `time`,
+  `certainty`, `source`), plus `source.doc_id`, `start`, `end`.
+
+Labs never go to an LLM. Free-text lab values in letters ("PLT 97")
+are covered by stage 9 and compared with the sheets in stage 10.
+
+### Identity check (stage 4), new code
+
+Searches the Tesseract text of each page for birth-number patterns,
+"nar." dates and the case patient's name parts (case- and
+diacritic-folded, both orders). Result per document: `matches` (at least
+one identifier found and none conflicting), `conflicts` (a different
+birth number, or a different full name next to a form label), or
+`cannot_verify` (header blacked out or missing, as on every page of
+patient 10). Runs before pseudonymization and redaction, on the
+hospital side of the line; returns offsets and field kinds only.
+
+### Second reading in slice 6b-1 (before any LLM)
+
+Without the vision model the text of record is Tesseract's text. The
+"ověřit" marks need a second reading, and the PDF text layer is one:
+untrustworthy on FNO's broken font maps, but independent of Tesseract.
+`page-index` gets a `mode` parameter: `vision_vs_tesseract` (today's
+logic) or `tesseract_vs_layer`. Where both agree the token is
+confirmed; where they disagree the token is "ověřit" and the UI shows
+both readings next to the image crop. The text layer is never the text
+of record and is never shown alone.
+
+### LLM stages (slices 6b-2 and 6b-3)
+
+**Where prompts live.** `pipeline/prompts/`:
+- `transcribe_page.v1.md`: transcribe exactly as printed; keep tables as
+  Markdown tables; keep the author's typos; never normalize units or
+  numbers; write `[razítko: …]`, `[začerněno]` for blacked-out areas and
+  `[?]` for anything not legible; no commentary. Based on the
+  instruction described in the OCR evaluation, written down for the
+  first time.
+- `extract_facts.v1.md` and `extract_facts.v1.schema.json`: one call per
+  document (or per section for long ones). Output only what the text
+  states: kind, value as written, date as written, status (documented,
+  planned, requested, done, unclear), negation, and one or more verbatim
+  spans of at most 160 characters. Never output a value that is not in
+  a span; omit rather than infer. Placeholders such as `[PACIENT]` stay
+  as they are.
+- Each prompt has a version in its file name; the Worker imports the
+  files as text (Wrangler `rules` with `type: "Text"`) and records the
+  SHA-256 of the exact content on every run.
+
+**Model configuration** (plain variables in `wrangler.jsonc`, key as a
+secret, mirrored in `.env.example`): `LLM_ENDPOINT`, `LLM_API_VERSION`,
+`LLM_VISION_DEPLOYMENT`, `LLM_EXTRACT_DEPLOYMENT`, `LLM_TEMPERATURE=0`,
+`LLM_MAX_OUTPUT_TOKENS`, secret `AZURE_OPENAI_KEY`. Default deployment:
+the hackathon's EU data-zone deployment (`gpt-6-luna-dz-eu`), if it
+accepts images and JSON-schema output; to verify on the portal. If a
+model rejects `temperature`, the run records `temperature: null` with
+the reason.
+
+**Calls.** `api/src/services/llm.ts`: one client used by every stage,
+retry on 429 and 5xx with exponential backoff and jitter (1, 2, 4, 8, 16
+s, then fail the step so the Workflow's own retry takes over), honour
+`Retry-After`, per-run concurrency of 2 (70 teams share the endpoint).
+Structured output with the JSON schema where supported; the response is
+validated against the schema in code either way, and an invalid response
+is a failed call, not a partial result.
+
+**Cache.** Key = SHA-256 of `(stage, model deployment and version,
+prompt SHA-256, temperature, input SHA-256)`, where the input is the
+redacted PNG bytes (transcription) or the pseudonymized text
+(extraction). Stored at `cache/llm/<key>.json` in the EU bucket. For
+the synthetic fixtures the cache is exported to
+`api/seed/llm-cache/` and committed, so the demo runs without the
+endpoint and survives rate limits. For real data the cache would live
+next to the case and be deleted with it (retention open).
+
+**Privacy gates before any cloud call** (enforced in code, not by
+convention):
+- A page image goes to the vision model only as its redacted version
+  (`p<n>.redacted.png`) when `REDACT_BEFORE_CLOUD=true` (default). The
+  redaction gets the case's own patient name, birth number and the
+  doctors named in the documents from the case, not from mock files.
+- Text goes to the extraction model only after `/v1/pseudonymize`.
+  Placeholders keep roles apart (`[PACIENT]`, `[RC]`, `[LÉKAŘ_1]`,
+  `[OSOBA_1]`). The mapping placeholder to value is stored in D1
+  `pseudonym_maps(case_id, placeholder, kind, value)`, readable only by
+  the pipeline code path and the identity screens; the offset map (no
+  values) is in R2 next to the page.
+- Only the pages a stage needs are sent (lab pages are never sent).
+- A guard function `assertCloudSafe(payload)` refuses a call whose text
+  still matches the birth-number or e-mail patterns or a known name of
+  the case; a refused call fails the step with `pseudonymization_leak`.
+- Request and response bodies are never logged; AI Gateway logging off.
+
+**Quote verification (stage 8).** `/v1/anchor` applies the review's
+rules: each span must occur in the pseudonymized text after whitespace
+folding, else the fact is rejected; offsets are mapped back to the
+original text of record; every number, date, dose, unit and stage token
+in the value must occur in a span (through the documented O/0, l/1,
+decimal-comma map; a match needing the map gives "ověřit"); a span
+touching an "ověřit" token or a `poor` page gives "ověřit"; negation is
+checked by clause against the cue list ("nevyšetřen", "neprovedeno" are
+gaps, never negatives); future or conditional wording forces `planned`
+or `requested`. Rejected facts are kept with their rule ID and shown in
+"Nezpracováno / k ověření", never mixed with accepted ones. The stable
+fact key is `(document sha256, span offsets, kind)`.
+
+### Cross-document rules (stage 10, slice 6b-4)
+
+Deterministic, each result labeled "Pozorování asistenta" with the facts
+it rests on and fixed Czech wording:
+- **Report missing:** an exam named with a date in a letter, or quoted
+  as "popis z NIS" / "převzato", with no uploaded document of the same
+  type within 3 days: "zpráva nenalezena v podkladech". Missing-document
+  alerts are always on.
+- **Referral without result:** request cues ("žádanka", "odeslán
+  požadavek", "zadávám", "bude", "t.č. výsledek nemáme") with no later
+  document of the matching type: a gap, never "neprovedeno".
+- **Like-with-like contradictions:** same kind, same stage prefix (c,
+  p, yp), same time window, different value. cT3b cN1 (3/2026) against
+  ypT2 ypN0 (8/2026) is not a contradiction. Lab values quoted in a
+  letter are compared with the sheet of the same draw.
+- **Superseded values:** a later value of the same kind marks the
+  earlier one `superseded_by`.
+- **Identity conflicts** from stage 4 shown on the case, never resolved.
+- **Intervals** as facts ("38 dní od biopsie do MDT"), never verdicts.
+
+### Outputs and records
+
+- **Per page in R2** (`pages/<doc>/`): `p<n>.png`, `p<n>.redacted.png`,
+  `p<n>.redactions.json`, `p<n>.tess.json` (words, boxes, confidences),
+  `p<n>.layer.txt`, `p<n>.vision.md` (6b-2), and `p<n>.json`, the page
+  record the viewer loads (Step 2 format: text of record, engine,
+  words, `verify[]`, `readability`).
+- **Per run** `extract/<case>/<run>.json` in the existing mock-case
+  shape: `documents` (with `readability`, `reason_cs`, `identity`,
+  `state`), `labs_series`, `data_gaps`, and from 6b-3 on `sections`
+  facts with `certainty` (`documented`, `unclear_ocr`, `inferred`),
+  `negated`, `status`, `source` (first span, so the current UI keeps
+  working) and the additive `sources[]` (all spans), plus `rejected[]`
+  and `uncovered[]`. Every object carries `run_id`. No name, birth
+  number or address in this file.
+- **`extraction_runs` row** per run: `id`, `case_id`, `document_id`
+  (null for a case-level run), `producer` (`prepared-fixture`,
+  `pipeline`), `pipeline_version` (git SHA and `pagekit` version),
+  `container_versions` (from `/healthz`), `stages` (JSON list of stage,
+  model deployment, prompt path and SHA-256, temperature, input hashes,
+  cache hit, duration, token counts), `output_key`, `status`,
+  `error_code`, counts (`facts_accepted`, `facts_verify`,
+  `facts_rejected`, `uncovered`, `lab_points`), `started_at`,
+  `finished_at`. No patient text.
+- **What the case shows.** A prepared extraction stays the case's view
+  for fixture cases; a pipeline run on the same documents is shown next
+  to it ("Zpracováno pipeline, běh 3: 72 z 72 laboratorních hodnot shodných,
+  2 k ověření") with a diff view, never merged into it. For a case with
+  no prepared data the latest pipeline run is the view, labeled as the
+  assistant's processing. A new run never changes a fact a doctor
+  confirmed or edited: Step 4's edits attach to fact keys; a changed
+  confirmed fact shows both values and asks.
+
+### Evaluation against `samples/`
+
+`pipeline/eval.py` runs the deterministic stages locally (same package)
+and, for LLM stages, drives a local Worker (`wrangler dev`) through the
+admin route `POST /api/admin/pipeline/run` and reads its output. Per
+case it compares against `samples/<S..>/expected.json` and writes a
+report to `samples/reports/<date>-<git sha>.md` (committed for the
+synthetic cases).
+
+`expected.json` holds: lab points (code, value as written, unit, range,
+draw date, out-of-range), critical facts per MDT type, expected gaps
+(missing reports, referrals without result), recorded negatives,
+"must not flag" items (the planted non-contradictions), identity
+result per document, and readability per page.
+
+| Failure case (CLAUDE.md) | Sample that checks it | Exists? |
+|---|---|---|
+| Critical fact left out | S01, S02 critical-fact lists; coverage pass | needs `expected.json` |
+| Wrong or outdated date | S01/S02 draw dates; superseded stage (cT3b vs ypT2) | needs `expected.json` |
+| Negated finding read as positive | S01/S02 "neguje" items, "Lymfovaskulární invaze neprokázána" | needs `expected.json` |
+| Two patients mixed up | **new S04**: S02's case plus one S01 lab sheet uploaded into it; expected `conflicts` | new |
+| Exam done, report missing | S01 MRI 29.9.2026, S02 MRI 16.3.2026 ("popis z NIS") | yes |
+| Referral with no result | S01 PET/CT, S02 CT 7.10.2026 | yes |
+| Poor scan changes a value or negation | **new S03**: S02 pages degraded by `scripts/degrade_scan.py` (rasterize at 100 dpi, blur, noise, slight rotation, JPEG) so "M0" reads "MO", a date loses its dots; expected readability `poor`/`fair` and "ověřit" on those tokens, no silent value | new |
+| (FNO data) | patient 10 with the curated reference, reported but not scored until a clinician reviews it (review decision 14) | partial |
+
+Metrics per case: lab points exact (value, unit, range, date), missing
+critical facts, wrong dates, wrong negation, wrong status, missed gaps,
+false alarms (any flag on a "must not flag" item is a failure),
+uncovered items, identity results, readability levels. A pipeline
+change that affects the doctor's view is merged only with a report that
+shows no regression.
+
+## Slices
+
+| Slice | Contents | LLM | Demo value |
+|---|---|---|---|
+| **6a-1 Uploads** | Upload route with policy, fixture registry, D1 columns, document list with states, audit, identity from registry, frontend upload overlay and patient documents tab wired to the API | no | Real storage; refusal of non-fixtures; "nezpracováno" labels; wrong-patient alert |
+| **6a-2 Intake** | `intake` status, `/intake`, `/intake/complete`, prepared-extraction attach with reference rewrite, cron cleanup, reset-demo coverage, "Nový pacient" dialog on the API | no | S02 created through the real server by hash |
+| **6b-1 MVP pipeline** | `pipeline/pagekit` refactor of the three scripts; Container image and API; `ProcessDocument` with inspect, pages, readability, identity, page index (`tesseract_vs_layer`), lab parser; `extraction_runs`; run diff view for labs; S03 sample; eval for labs, readability, identity | no | "Zpracovat znovu" on S01/S02 lab sheets reproduces the prepared lab trend from the PDF alone, with "ověřit" marks; poor scan warning |
+| **6b-2 Vision reading** | redaction from case identity, `transcribe_page.v1.md`, LLM client with backoff and cache, page index `vision_vs_tesseract`, seeded cache | yes | Vision text with marks on any uploaded page |
+| **6b-3 Facts** | pseudonymization with D1 map and leak guard, `extract_facts.v1`, anchoring, coverage, rejected/uncovered list, fact keys | yes | Facts with sources from a pipeline run, beside the prepared ones |
+| **6b-4 Case rules** | `ProcessCase`, cross-document rules, summary templates and sentence check | no | Missing documents and referrals computed, not hand-written |
+
+**MVP for the hackathon: 6a-1, 6a-2, then 6b-1.** These need no LLM and
+no new prompt, cover four of the seven failure cases with code we can
+check, and keep the demo path working if the shared endpoint is slow.
+6b-2 onward start only after a time box is agreed.
+
+## Tests
+
+Worker (Vitest with the Workers pool; container calls stubbed by a fake
+DO):
+- Upload: PDF accepted; non-PDF body with `.pdf` name refused (magic
+  bytes); 20 MB + 1 byte refused before reading; ZIP gets its own
+  message; unknown hash in `fixtures_only` returns 422 **and** leaves R2
+  and D1 unchanged; `store_unprocessed` stores with the right hash;
+  duplicate refused; approved case refused; wrong role refused; audit
+  row written with hash prefix and no file name; nothing from the body
+  in logs (log spy).
+- Identity from registry: S02 sheet into S01 case gives `conflicts` and
+  an alert; into S02 case gives `matches`.
+- Intake: complete with all seven S02 PDFs and matching name attaches
+  the prepared run; name in other order matches; different name refuses
+  attach; six of seven leaves `stored`; second intake of S02 refuses
+  attach; abandoned intake removed by the cron handler; the stored
+  extraction JSON contains no name or birth number (string search).
+- Reference rewrite: every quote in the attached S02 extraction is found
+  on its new `(doc_id, page)` text.
+- Workflow: step returns contain only IDs and counts (assert on every
+  step's return type and a JSON size bound); a failing container batch
+  retries only that batch; document state moves through `queued`,
+  `processing`, `processed`/`failed`.
+- LLM client (6b-2+): 429 then 200 succeeds with backoff; `Retry-After`
+  honoured; cache hit skips the call; schema-invalid output fails the
+  step; `assertCloudSafe` blocks text with a birth number.
+
+Python (`pytest` in `pipeline/`, run locally and in the image build):
+- Refactor safety: `pagekit` reproduces the committed `data/derived`
+  outputs: page index `verify[]` for all 35 pages identical (same
+  Tesseract version) or within a documented tolerance (container
+  Tesseract 5.3 versus Homebrew); redaction boxes per page equal to the
+  committed `p<n>.redactions.json`.
+- Lab parser: on S01 and S02 vision text, output equals
+  `labs_series` in `mock-case-S01.json` / `mock-case-S02.json` (codes,
+  values, units, ranges, dates, out-of-range, bold); on Tesseract text,
+  same values with "ověřit" exactly where the unit or value was misread
+  (`10"9/|`); on patient 10 page 3, `S_IDX*` parsed as indices, `[O ...
+  5]` marked, no draw date invented.
+- Readability: S01/S02 pages `good` or `fair` (never `poor`); S03
+  degraded pages `poor` or `fair` with the expected reasons; patient 10
+  page 4 at least `fair`.
+- Identity: S02 pages `matches`; patient 10 pages `cannot_verify`; S04
+  mixed sheet `conflicts`.
+- Anchoring (6b-3): quote not in text rejected; "MO" for "M0" gives
+  "ověřit"; "Bez plicní embolie, jen drobná cysta" gives two facts;
+  "Při dobré toleranci navýšíme" gives `planned`; "nevyšetřen" gives a
+  gap.
+
+Container contract: `docker run` the image locally, call each endpoint
+with an S02 page, compare with the Python results (same code, checks
+packaging and pinned binaries).
+
+Evaluation: `pipeline/eval.py` over S01-S04 and patient 10, report
+committed.
+
+## Acceptance criteria
+
+Slice 6a-1:
+- [ ] Uploading `samples/S02_pacient/upload/04-laborator-2026-03-10.pdf` to a case returns 201, the file is in the EU bucket at `docs/<case>/<doc>.pdf`, and the D1 row has the matching SHA-256.
+- [ ] Uploading any other file in the shared demo shows the Czech refusal, and neither R2 nor D1 has a trace of it (checked by listing).
+- [ ] Non-PDF, oversized and duplicate uploads and uploads to an approved case are refused with their Czech messages.
+- [ ] The documents tab shows each document's state label; fixtures without a prepared extraction show "nezpracováno".
+- [ ] A fixture of another patient raises the identity alert; it does not block anything.
+- [ ] Audit log has one entry per upload, without file names or content.
+
+Slice 6a-2:
+- [ ] The presenter imports `zadost-fhir.json`, uploads the seven S02 PDFs (renamed copies too), and gets case S02 with the same documents, labs and gaps the mock shows today, served from the API.
+- [ ] A mismatched name, a missing document or a second intake gives the case with "nezpracováno" documents and the mock's Czech explanation.
+- [ ] The stored extraction has no patient name or birth number.
+- [ ] An intake case is invisible in the patient list until completed; abandoned ones disappear after 24 hours and on reset.
+
+Slice 6b-1:
+- [ ] `scripts/ocr_pages.py`, `build_page_index.py`, `redact_pages.py` run as before from the `pagekit` package and reproduce `data/derived` within the stated tolerance.
+- [ ] The Container deploys with `constraints.jurisdiction: "eu"`, `/healthz` reports pinned versions, and the warm route brings it up.
+- [ ] Re-processing S02's four lab sheets yields 18 tests x 4 draws with the same values, units, ranges and dates as the prepared data; every difference is an "ověřit" mark, not a silent change.
+- [ ] Each processed page has a readability level and Czech reasons; S03 triggers the "vyžádejte lepší kopii" alert.
+- [ ] Every run has an `extraction_runs` row with versions and input hashes; Workflow step returns contain no page text.
+- [ ] The UI shows the pipeline run beside the prepared data, labeled, with the lab diff.
+- [ ] Eval report for S01-S04 committed; no false contradiction on S01/S02.
+
+Slices 6b-2 to 6b-4 (each):
+- [ ] Prompts and schemas in `pipeline/prompts/`, model and temperature from configuration, recorded per run.
+- [ ] No cloud call without redaction (images) or pseudonymization (text); the leak guard test passes.
+- [ ] Every accepted fact's spans are found in the text of record; rejected and uncovered items are listed separately.
+- [ ] The demo runs from the committed cache with the endpoint switched off.
+- [ ] Eval report shows each of the seven failure cases and no regression against the previous report.
+
+## Risks
+
+| Risk | Effect | Mitigation |
+|---|---|---|
+| Container cold start after deploy takes minutes | Demo stalls on first "Zpracovat" | Warm route in the demo checklist; prepared data stays the default view, so the demo never depends on the pipeline |
+| Container Tesseract 5.3 (Debian) differs from the Homebrew build used for `data/derived` | Refactor tests fail on details; different "ověřit" marks | Regenerate `data/derived` once from the container and commit; tolerance documented |
+| Workflow state and DO placement have no documented jurisdiction control | Patient text could be persisted outside the EU | Steps return IDs only; tested; container `constraints.jurisdiction`; real data runs at FNO anyway |
+| PyMuPDF output not byte-stable across machines | Fixture hashes miss for regenerated PDFs | Registry hashes committed bytes; CI checks the ZIP |
+| Lab parser overfits to our synthetic sheets | FNO printouts mis-parsed | Patient 10 page 3 in the tests; unparsed lab-like lines go to "uncovered", never dropped silently |
+| Readability thresholds from 35 pages | Wrong "poor" labels on new scans | Reasons always shown; thresholds as named constants; recalibrate with S03 |
+| Hackathon EU deployment lacks vision or JSON-schema output, or is rate-limited during the demo | 6b-2/6b-3 blocked or slow | Committed cache; check deployment capabilities before writing prompts; slices 6a and 6b-1 need no LLM |
+| Redaction misses identifiers (known gaps: free-text names, "nar." date rules) | Identifiers reach the cloud model | Synthetic data only; `assertCloudSafe` guard; header blackout option; option B stays a demonstration, as DATA-PROTECTION.md says |
+| Pseudonym map in D1 next to case data | Weaker separation than "mapping stays at the hospital" | Separate table, separate code path, stated in DATA-PROTECTION.md as a demo trade-off |
+| Presenter or jury confuses a pipeline run with prepared data | Trust issue | Both always labeled; diff view; prepared stays the default |
+| Scope creep into 6b-3 during the hackathon | Demo not ready | MVP stops at 6b-1; anything after needs an agreed time box (CLAUDE.md) |
+
+## Effort
+
+One developer with agents, rough:
+
+| Slice | Effort |
+|---|---|
+| 6a-1 Uploads | 1 day |
+| 6a-2 Intake on the server | 0.5-1 day |
+| 6b-1 `pagekit` refactor, Container, MVP Workflow, lab parser, readability, identity, S03/S04, eval | 3-5 days |
+| 6b-2 Redaction from case data, vision transcription, LLM client, cache | 2-3 days |
+| 6b-3 Pseudonymization, extraction prompt, anchoring, coverage, UI lists | 1-2 weeks |
+| 6b-4 Cross-document rules, summary templates | 1 week |
+
+Docs to update in the same changes (Mechanism 3): `samples/README.md`
+(S03, S04, `expected.json`, eval), `docs/design/DATA-PROTECTION.md`
+(redaction and pseudonymization in the pipeline, pseudonym map, Workflow
+state rule), `docs/design/TECHNOLOGIES.md` and `docs/agent/HACKATHON.md`
+(Containers, Workflows, pinned images and models), `.env.example` and
+`wrangler.jsonc` variables, `README.md` (how to run the container and
+the eval), `mocks/README.md` (prepared versus pipeline data).

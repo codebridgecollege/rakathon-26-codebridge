@@ -65,5 +65,9 @@ mocks/guidelines/
 
 # Temporary git worktrees that review agents use
 .claude/worktrees/
-mocks/stt-config.js
 .wrangler/
+
+# Local secrets for wrangler dev (Workers and Pages Functions).
+.dev.vars
+.dev.vars.*
+!.dev.vars.example

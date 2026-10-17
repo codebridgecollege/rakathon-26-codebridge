@@ -1,0 +1,17 @@
+# Pages config for the transitional demo host. deploy.sh copies it to the
+# deploy folder as wrangler.toml. Secrets (ELEVENLABS_API_KEY,
+# AZURE_OPENAI_KEY) are set with `wrangler pages secret put`, never here.
+name = "codebridge-mdt"
+pages_build_output_dir = "./public"
+compatibility_date = "2026-09-30"
+
+[vars]
+ELEVENLABS_API_BASE = "https://api.elevenlabs.io"
+STT_REALTIME_MODEL = "scribe_v2_realtime"
+STT_BATCH_MODEL = "scribe_v2"
+STT_LANGUAGE = "cs"
+# 100 MB is the Workers/Pages request body limit on Free and Pro; at 16 kHz
+# 16-bit mono (32 000 B/s) it is about 52 minutes of one case's audio.
+STT_MAX_AUDIO_BYTES = "100000000"
+SUMMARY_MAX_CHARS = "40000"
+GIT_SHA = "pages"
