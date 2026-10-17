@@ -56,6 +56,30 @@ for (const width of [400,320]) {
     assert(await page.evaluate(() => document.documentElement.scrollWidth) <= width, `${width}px ${hash} fits`);
   }
 }
+await page.setViewportSize({width:1440,height:1000});
+await go('patient/10/overview');
+assert((await page.locator('main h2').allTextContents()).includes('Stručný souhrn'));
+assert.equal(await page.locator('.question .bh').first().textContent(), 'Otázka pro MDT');
+assert.equal(await page.locator('.question p.rq1').textContent(), 'Jaký postup doporučuje neurochirurgický seminář?');
+assert.equal(await page.locator('.question .qlbl, .question .qbasis, .question .edbtn').count(),0);
+assert(await page.evaluate(() => qState(P(S.pid)).mode === 'draft' && questionPlain(P(S.pid)).includes('neověřeno lékařem')));
+assert.equal(await page.locator('.patient-identity .chip.st-ready').evaluate(e=>getComputedStyle(e).borderRadius),'99px');
+await go('patient/10/documents');
+assert.equal(await page.locator('tbody .chip').first().evaluate(e=>getComputedStyle(e).borderRadius),'99px');
+await go('patient/10/next');
+assert.equal(await page.locator('.devt').count(),0);
+await go('patient/10/dev');
+assert.equal(await page.locator('.devt').count(),1);
+assert(await page.locator('[data-retroitem]').count()>0);
+assert((await page.locator('main').textContent()).includes('Odchylky aktuálního postupu MDT'));
+// A calendar card must use that patient's question and edit target, never S.pid's override.
+assert(await page.evaluate(()=>{
+ S.edits[EK('q','10_pacient.pdf')]={text:'Question for patient ten',by:S.user,when:'now'};
+ S.edits[EK('q','11_pacient.pdf')]={text:'Question for patient eleven',by:S.user,when:'now'};
+ S.pid='10_pacient.pdf';
+ const html=questionInner(P('11_pacient.pdf'),false).html;
+ return html.includes('Question for patient eleven') && !html.includes('Question for patient ten') && html.includes('11_pacient.pdf|q');
+}));
 assert.deepEqual(errors,[]);
 console.log('Patient panels, keyboard scrolling, bounded OCR markers, opaque circles, and reversible per-patient warning states passed.');
 await browser.close();

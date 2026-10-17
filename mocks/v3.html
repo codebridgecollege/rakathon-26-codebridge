@@ -756,6 +756,31 @@ h3 { letter-spacing: -.02em; }
   .patient-identity { padding: 20px 16px; }
 }
 
+
+/* Rounded badges and small markers are distinct from the open, square section layout. */
+.chip { border-radius: 99px; padding: 2px 9px; }
+.chip::before { width: 6px; height: 6px; border-radius: 50%; }
+.st-new { background: var(--sunk); color: var(--muted); }
+.st-scheduled { background: var(--change-soft); color: var(--change); }
+.st-attention { background: var(--missing-soft); color: var(--missing); }
+.st-ready { background: var(--ok-soft); color: var(--ok); }
+.st-done { background: var(--accent-soft); color: var(--accent-ink); }
+.st-closed { background: var(--surface); color: var(--faint); }
+.k-missing { background: var(--missing-soft); }
+.k-contradiction { background: var(--conflict-soft); }
+.k-change { background: var(--change-soft); }
+.k-unclear { background: var(--unclear-soft); }
+.chip.tier { background: var(--sunk); }
+.mk, .info, .steps .s, .slotbtn.taken .dot, .mini button.sem::after, .recdot { border-radius: 50%; }
+.nav .count, .tab .n, .demo, .recpill { border-radius: 99px; }
+.tag, .edtag { border-radius: 4px; }
+.patient-identity .st-ready { color: var(--ok); }
+.patient-identity .st-done { color: var(--accent-ink); }
+.patient-identity .st-attention { color: var(--missing); }
+.patient-identity .st-scheduled { color: var(--change); }
+.patient-identity .st-new { color: var(--muted); }
+.patient-identity .st-closed { color: var(--faint); }
+
 </style>
 
 <header class="top">
@@ -7221,17 +7246,12 @@ function questionPlain(p) {
   if (q.mode === "draft") return `${q.text} [${p.qkind === "document_purpose" ? "otázka podle účelu v dokumentu, návrh asistenta" : "návrh otázky asistentem"}, neověřeno lékařem]${basis}`;
   return `Výslovná otázka ${GAP_F}.`;
 }
-/* The question as one run of text (doctor's request, round 24): the question, then its label as a small chip at the
-   end, so the label never stands between the reason and the question. `full` adds the source passages and the
-   confirm button for doctors (the calendar card shows the question and the chip only). */
+/* The visible question stays concise; qState and the exported provenance remain unchanged. */
 function questionInner(p, full = true) {
-  const q = qState(p), bs = q.basis || [];
-  const chip = q.mode === "draft" ? ` <span class="qlbl draft">${esc(q.tag)}</span>` : q.mode === "confirmed" ? ` <span class="qlbl ok" title="${esc(q.tip)}">${esc(q.tag)}</span>` : "";
-  const body = q.mode === "edited" ? `${esc(q.text)}<span class="edtag" title="${esc(q.tip)}">${esc(q.tag)}</span>`
-    : q.mode === "none" ? `<b>Výslovná otázka ${GAP_F}.</b> ${p.purpose ? `Účel dle dokumentu: „${esc(p.purpose)}“` : ""}` : esc(q.text);
-  const quote = full && bs.length && q.mode !== "edited" ? `<ul class="qbasis">${bs.map(b => `<li class="note">${basisLabel(b)}: „${esc(b.quote)}“ ${srcLinks([{ ...b.source, quote: b.quote }])}</li>`).join("")}</ul>` : "";
-  const confirm = full && q.mode === "draft" && isDoctor(S.user) ? `<button class="btn small" data-act="confirmq" style="margin-top:6px">Potvrdit otázku</button>` : "";
-  return { cls: q.mode === "none" ? "missing" : q.mode === "draft" ? "draft" : "", html: `${body}${chip}`, quote, confirm, filled: q.mode !== "none" };
+  const q = qState(p), original = p.explicit ? p.question : p.draft || '';
+  const body = q.mode === 'none' ? `<b>Výslovná otázka ${GAP_F}.</b>` : isDoctor(S.user) ? `<span class="edl" role="button" tabindex="0" data-edit="${esc(EK('q', p.file))}" data-orig="${esc(original)}" title="Upravit otázku">${esc(q.text)}</span>` : esc(q.text);
+  const confirm = full && q.mode === 'draft' && isDoctor(S.user) ? '<button class="btn small" data-act="confirmq" style="margin-top:6px">Potvrdit otázku</button>' : '';
+  return { cls: q.mode === 'none' ? 'missing' : '', html: body, quote: '', confirm, filled: q.mode !== 'none' };
 }
 const briefPlain = () => edText("brief", (BRIEF_CS || "").replace(/\s*\[\d+\]/g, ""), CASE.file);
 function patientHeader(p, extraActions = "", withQuestion = false) {
@@ -7248,13 +7268,10 @@ function patientHeader(p, extraActions = "", withQuestion = false) {
   </div>`;
 }
 /* The MDT question can be filled in by a doctor when the documents do not state one (Soňa, round 2). */
-/* Reason (why now) and the question in one box (Soňa, round 7). */
+/* The context is already in the short summary; this block contains only the MDT question. */
 function reasonQuestionBox(p, reg) {
-  const qi = questionInner(p), orig = p.explicit ? p.question : p.draft || "";
-  /* One paragraph (doctor's request, round 24): the reason, then "Otázka:" and the question with its chip at the end. */
-  return `<div class="question ${qi.cls}"><span class="bh">Důvod a otázka pro MDT</span>
-    <p class="rq1">${EXTRA.mdt_reason_v3_cs ? `${reasonHtml(reg)} ` : ""}<b>Otázka:</b> ${qi.filled ? qi.html : DASH}
-    ${isDoctor(S.user) ? `<button class="edbtn" style="opacity:1" data-edit="${esc(EK("q", p.file))}" data-orig="${esc(orig)}" title="${qi.filled ? "Upravit otázku" : "Doplnit otázku"}">✎ ${qi.filled ? "" : "doplnit"}</button>` : ""}</p>${qi.quote}${qi.confirm}</div>`;
+  const qi = questionInner(p);
+  return `<div class="question ${qi.cls}"><span class="bh">Otázka pro MDT</span><p class="rq1">${qi.html}</p>${qi.confirm}</div>`;
 }
 /* Missing and unclear data: a toggle, details on demand (round 7), no counts (round 19): numbers read as a score.
    Missing-document alerts are always on (CLAUDE.md), so when any document or datum is missing the button itself is
@@ -7273,10 +7290,8 @@ function gapsToggle(p) {
   return `<button class="btn small gapsbtn ${warn ? "warn" : ""}" data-act="gaps" aria-expanded="${!!S.gapsOpen}">⚠ Upozornění${warn ? " · chybí podklady" : ""} ${S.gapsOpen ? "▴" : "▾"}</button>`;
 }
 function questionBox(p) {
-  const qi = questionInner(p), orig = p.explicit ? p.question : p.draft || "";
-  return `<div class="question ${qi.cls}"><span class="label">Otázka pro MDT</span>
-    <p>${qi.html}
-    ${isDoctor(S.user) ? `<button class="edbtn" data-edit="${esc(EK("q", p.file))}" data-orig="${esc(orig)}" title="${qi.filled ? "Upravit otázku" : "Doplnit otázku"}">✎ ${qi.filled ? "" : "doplnit"}</button>` : ""}</p>${qi.quote}${qi.confirm}</div>`;
+  const qi = questionInner(p);
+  return `<div class="question ${qi.cls}"><span class="bh">Otázka pro MDT</span><p>${qi.html}</p>${qi.confirm}</div>`;
 }
 const CLOSED_MSG = "Případ je uzavřen; znovu ho otevřete v menu stavu.";
 function conclusionBox(p) {
@@ -7439,7 +7454,7 @@ function gapsBox() {
 }
 function briefBlock(p) {
   const reg = refRegistry();
-  return `<section class="card blk"><div class="head" style="margin:0"><h2>MDT brief</h2><span class="row">${gapsToggle(p)}</span></div>${S.gapsOpen ? gapsBox() : ""}
+  return `<section class="card blk"><div class="head" style="margin:0"><h2>Stručný souhrn</h2><span class="row">${gapsToggle(p)}</span></div>${S.gapsOpen ? gapsBox() : ""}
     <p class="prose">${briefHtml(reg)}</p>
     ${reasonQuestionBox(p, reg)}
     ${timelineCard(true)}
@@ -7781,15 +7796,15 @@ function viewPatient() {
     <div class="tabs" role="tablist">${tabs.map(([k, t]) => `<button class="tab" role="tab" data-tab="${k}" aria-selected="${S.tab === k}">${t}</button>`).join("")}</div>
     ${body}</div>`;
 }
-/* Proposed management, the guideline layer and the MDT's deviations table in one tab (round 21): the table compares
-   the plan with the statements quoted just above it. Past decisions live in the "Retrospektivní odchylky" tab. */
+/* Proposed management contains the plan and guideline passages; both deviation tables live in the deviations tab. */
 function tabNext() {
-  const p = P(S.pid), pr = ensureProto(p);
-  return `<section class="card blk">${proposalBox(p)}${guideBox()}</section>${S.guideOn && STMTS().length ? devTable(p, pr, pr.state === "approved") : ""}`;
+  const p = P(S.pid);
+  return `<section class="card blk">${proposalBox(p)}${guideBox()}</section>`;
 }
 function tabDev() {
   if (!S.guideOn) return `<section class="card"><p class="muted">Vrstva doporučení je vypnutá.</p></section>`;
-  return retroList(P(S.pid)) || `<section class="card"><p class="muted">K minulým rozhodnutím nejsou pasáže z doporučení.</p></section>`;
+  const p = P(S.pid), pr = ensureProto(p);
+  return `${STMTS().length ? devTable(p, pr, pr.state === 'approved') : ''}${retroList(p) || '<section class="card"><p class="muted">K minulým rozhodnutím nejsou pasáže z doporučení.</p></section>'}`;
 }
 /* Retrospective deviations (round 19, team decision 2026-10-17): each past decision from the documentation next to a
    guideline passage on the same topic. The assistant only puts the two quotes side by side; severity and assessment
@@ -8206,8 +8221,8 @@ function mdtCard(p) {
 const DEV = { "": "nevyplněno", follows: "v souladu", deviates: "záměrná odchylka", na: "neuplatňuje se" };
 function devTable(p, pr, locked) {
   pr.dev = pr.dev || {};
-  return `<section class="card"><div class="head"><h2>Odchylky od doporučení</h2><span class="muted small">Vyplňuje MDT; asistent plán nehodnotí</span></div>
-    <div class="scroll"><table class="tbl devt"><thead><tr><th>Doporučení</th><th style="width:160px">Postup MDT</th><th style="width:34%">Důvod odchylky</th></tr></thead><tbody>
+  return `<section class="card"><div class="head"><h2>Odchylky aktuálního postupu MDT</h2><span class="muted small">Vyplňuje MDT; asistent plán nehodnotí</span></div>
+    <p class="muted small">Posouzení aktuálního návrhu, odděleně od minulých rozhodnutí níže. <button class="linkbtn small" data-tab="next">Zobrazit navrhovaný postup</button></p><div class="scroll"><table class="tbl devt"><thead><tr><th>Doporučení</th><th style="width:160px">Postup MDT</th><th style="width:34%">Důvod odchylky</th></tr></thead><tbody>
     ${STMTS().filter(st => st.type !== "guideline_text").map(st => { const d = pr.dev[st.id] || {}; return `<tr><td><span class="small"><q>${esc(st.quote)}</q></span><span class="note">${esc(citeOf(st))}</span></td>
       <td><select class="input" data-dev="${esc(st.id)}" ${locked ? "disabled" : ""}>${Object.entries(DEV).map(([k, t]) => `<option value="${k}" ${(d.s || "") === k ? "selected" : ""}>${t}</option>`).join("")}</select></td>
       <td>${d.s === "deviates" ? `<input class="input" data-devwhy="${esc(st.id)}" value="${esc(d.why || "")}" placeholder="Proč se MDT odchyluje" ${locked ? "disabled" : ""}>${!locked && !(d.why || "").trim() ? '<span class="note" style="color:var(--missing)">Uveďte důvod.</span>' : ""}` : '<span class="muted small">-</span>'}</td></tr>`; }).join("")}</tbody></table></div></section>`;

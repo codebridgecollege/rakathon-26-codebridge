@@ -42,7 +42,7 @@ for (const width of [1280, 400]) {
   for (const t of ["anamnesis", "documents", "labs", "alerts"]) { await c(`[data-tab="${t}"]`); await over(t); }
   await c('[data-tab="documents"]'); await c('[data-colopen="dread"]'); await page.locator('[data-colv="dread"][value="Špatně čitelné"]').uncheck(); await c('[data-colclose]');
   ok((await page.locator("main tbody tr").count()) < 13, `${width} documents filter by readability`); await c('[data-act="cleardcolf"]');
-  ok((await page.locator(".tabs").evaluate(el => el.previousElementSibling?.textContent || "")).includes("Důvod a otázka pro MDT"), `${width} brief block sits above the tabs`);
+  ok((await page.locator(".tabs").evaluate(el => el.previousElementSibling?.textContent || "")).includes("Otázka pro MDT"), `${width} brief block sits above the tabs`);
   await c('[data-act="gaps"]'); ok((await page.locator("main").textContent()).includes("osteoplastická"), `${width} gaps toggle opens`); await c('[data-act="gaps"]');
   // round 24: case 10 has one undated panel, so no trend and no invented series
   await c('[data-tab="labs"]'); ok((await text("main")).includes("Hodnoty z dokumentu") && await page.locator("[data-labmode]").count() === 0 && await page.locator("svg.chart, th.dtc").count() === 0
@@ -215,7 +215,7 @@ for (const width of [1280, 400]) {
   ok(await page.locator(".gll.lit > li.gle").count() === await page.evaluate(() => (GUIDE.literature || []).length) && (await text(".gll.lit")).includes("literatura, ne doporučení")
     && (await page.locator("h4.glh").allTextContents()).some(t => t.includes("Literatura z PubMed · není doporučení")), `${width} literature is its own section, same entries, labelled not a recommendation`);
   // the MDT's deviations table now sits in this tab, below the recommendations
-  ok(await page.locator(".devt").count() === 1 && await page.evaluate(() => document.querySelector(".devt").getBoundingClientRect().top > document.querySelector(".gl").getBoundingClientRect().bottom), `${width} deviations table in Navrhovaný postup below the recommendations`);
+  ok(await page.locator(".devt").count() === 0, `${width} proposed management contains no deviations table`);
   // quote clamping: only long quotes without a condition word are clamped; a visually cut quote says so
   const clamp = await page.locator(".gll .gle details:not([open]) q.glq").evaluateAll(qs => qs.map(q => ({ t: q.textContent, cls: q.classList.contains("clamp"),
     cut: q.scrollHeight > q.clientHeight + 1, lc: getComputedStyle(q).webkitLineClamp, note: q.parentElement.querySelector(".clampnote") })).map(x => ({ ...x, noteShown: !!x.note && getComputedStyle(x.note).display !== "none" })));
@@ -226,10 +226,11 @@ for (const width of [1280, 400]) {
     && !clampable("Léčba je vhodná pokud ".padEnd(200, "a")) && clampable("Ideally, therapeutic decisions should be discussed at a dedicated board ".padEnd(200, "b"))
     && !clampable("short quote")), `${width} clampable() rejects condition words (if, pokud) and short quotes`);
   // prospective deviations: a choice and a reason survive a tab switch and print in the report
+  await c('[data-tab="dev"]');
   const dev0 = await page.locator(".devt [data-dev]").first().getAttribute("data-dev");
   await page.locator(`.devt [data-dev="${dev0}"]`).selectOption("deviates"); await page.waitForTimeout(80);
   await page.locator(`.devt [data-devwhy="${dev0}"]`).fill("Pacient odmítá ozáření"); await page.waitForTimeout(80);
-  await c('[data-tab="dev"]'); await c('[data-tab="next"]');
+  await c('[data-tab="next"]'); await c('[data-tab="dev"]');
   ok(await page.locator(`.devt [data-dev="${dev0}"]`).inputValue() === "deviates" && await page.locator(`.devt [data-devwhy="${dev0}"]`).inputValue() === "Pacient odmítá ozáření",
     `${width} deviation choice and reason survive a tab switch`);
   { const r = await rep(); ok(r.includes("Odchylky od doporučení") && r.includes("záměrná odchylka") && r.includes("Pacient odmítá ozáření"), `${width} filled deviation printed in the report`); }
@@ -238,7 +239,7 @@ for (const width of [1280, 400]) {
   await c('[data-tab="dev"]'); await over("dev");
   const nr = await page.locator("[data-retroitem]").count();
   // round 21: only the retrospective list; each quote is the historic edition's text, from the edition valid at the decision
-  ok((await text('[data-tab="dev"]')) === "Retrospektivní odchylky" && await page.locator(".devt").count() === 0, `${width} retrospective tab holds no prospective table`);
+  ok((await text('[data-tab="dev"]')) === "Retrospektivní odchylky" && await page.locator(".devt").count() === 1 && (await text("main")).includes("Odchylky aktuálního postupu MDT"), `${width} deviations tab separates current-plan assessment from historical review`);
   const hist = await page.evaluate(() => PAST().map(x => ({ id: x.id, quote: x.quote, year: x.edition?.year, from: x.edition?.valid_from, to: x.edition?.valid_to, url: x.edition?.pdf_url, page: x.pdf_page, date: x.decision_date })));
   const histFile = JSON.parse(fs.readFileSync(path.resolve(here, "../data/guidelines-case-10-past-historic.json"), "utf8")).items;
   const shown = await page.locator("[data-retroitem]").evaluateAll(els => els.map(el => ({ id: el.dataset.retroitem, q: el.querySelector("q.pastq")?.textContent, t: el.textContent, href: el.querySelector("a[href*='#page=']")?.getAttribute("href") })));
@@ -442,39 +443,30 @@ for (const width of [1280, 400]) {
   await page.goto(file);
   await go("#patient/18");
   let t = await qbox();
-  ok(t.includes("Návrh otázky (asistent, ověřte)") && t.includes("Jde o nádor míchy") && !t.includes("Výslovná otázka neuvedena") && !t.includes("potvrzena")
-    && t.includes("Vychází z") && await page.locator("main .question .qbasis [data-src]").count() === 3, `${width} r22 inference draft labelled as a draft with its sources (one per cited finding), no gap headline`);
-  await go("#patient/9");
-  t = await qbox();
-  ok(t.includes("Otázka podle účelu v dokumentu") && t.includes("návrh, ověřte") && t.includes("Je indikována neurochirurgická intervence") && t.includes("k posouzení indikace NCH intervence") && !t.includes("Výslovná otázka neuvedena"),
-    `${width} r22 document-purpose draft shows the question and the quote`);
+  ok(t.includes("Jde o nádor míchy") && !t.includes("Návrh otázky") && !t.includes("Vychází z") && await page.locator("main .question .qlbl, main .question .qbasis, main .question .edbtn").count() === 0,
+    `${width} question is concise, without draft annotation, source list or pencil`);
+  ok(await page.evaluate(() => qState(P(S.pid)).mode === "draft" && P(S.pid).basis.length === 3), `${width} draft provenance retained in the data`);
+  await go("#patient/9"); t = await qbox();
+  ok(t.includes("Je indikována neurochirurgická intervence") && !t.includes("návrh, ověřte"), `${width} document-purpose question has no visible annotation`);
   for (const [nr, f] of [["2", "2_pacient.pdf"], ["13", "13_pacient.pdf"]]) {
-    await go(`#patient/${nr}`);
-    const exp = await page.evaluate(x => P(x).question, f);
-    t = await qbox();
-    ok(exp && t.includes(exp) && await page.locator("main .question .qlbl").count() === 0 && await page.locator('main [data-act="confirmq"]').count() === 0, `${width} r22 explicit question ${nr} unchanged, no draft label`);
+    await go(`#patient/${nr}`); const exp = await page.evaluate(x => P(x).question, f); t = await qbox();
+    ok(exp && t.includes(exp) && await page.locator('main [data-act="confirmq"]').count() === 0, `${width} explicit question ${nr} unchanged`);
   }
   await go("#patient/10/overview");
-  t = await qbox();
-  ok(t.includes("Otázka podle účelu v dokumentu") && t.includes("neurochirurgický seminář"), `${width} r22 case 10 brief shows the document-purpose draft`);
-  // a coordinator cannot confirm; a doctor can, and the label then names the doctor
+  ok((await page.locator('main h2').allTextContents()).includes('Stručný souhrn') && (await page.locator('main .question p.rq1').textContent()) === 'Jaký postup doporučuje neurochirurgický seminář?', `${width} short summary renamed and question shown without repeated context`);
   await go("#patient/18");
   await page.evaluate(() => { S.user = COORD; render(); });
-  ok(await page.locator('main [data-act="confirmq"]').count() === 0, `${width} r22 coordinator sees no confirm button`);
+  ok(await page.locator('main [data-act="confirmq"]').count() === 0, `${width} coordinator cannot confirm`);
   await page.evaluate(() => { S.user = "MUDr. Novák"; render(); });
   await page.locator('main [data-act="confirmq"]').click();
-  t = await qbox();
-  ok(t.includes("otázka potvrzena: MUDr. Novák") && !t.includes("Návrh otázky (asistent") && await page.locator('main [data-act="confirmq"]').count() === 0
-    && await page.evaluate(() => S.qConfirm["18_pacient.pdf"]?.by === "MUDr. Novák" && S.access.some(a => a.pid === "18_pacient.pdf" && a.what.includes("potvrdil(a) návrh otázky"))), `${width} r22 confirm flips the label to the confirming doctor, logged`);
+  ok(await page.locator('main [data-act="confirmq"]').count() === 0 && await page.evaluate(() => S.qConfirm["18_pacient.pdf"]?.by === "MUDr. Novák" && S.access.some(a => a.what.includes("potvrdil(a) návrh otázky"))), `${width} confirmation kept and logged without a visible label`);
   const rep = async () => { await page.locator('[data-act="reportdlg"]').first().click(); const r = await page.locator(".modal #report").first().textContent(); await page.locator(".modal [data-close]").first().click(); return r; };
-  ok((await rep()).includes("potvrdil(a) MUDr. Novák"), `${width} r22 report shows who confirmed the drafted question`);
-  await go("#patient/11");
-  t = await rep();
-  ok(t.includes("Souhlasí radiolog") && t.includes("neověřeno lékařem") && !t.includes("Výslovná otázka neuvedena"), `${width} r22 report marks an unconfirmed question as a draft`);
-  // the calendar card carries the same label
+  ok((await rep()).includes("potvrdil(a) MUDr. Novák"), `${width} report retains confirmation provenance`);
+  await go("#patient/11"); t = await rep();
+  ok(t.includes("Souhlasí radiolog") && t.includes("neověřeno lékařem"), `${width} report retains unconfirmed question provenance`);
   await go("#calendar/2026-10-19"); await page.evaluate(() => { S.calPop = "11_pacient.pdf"; render(); });
   t = await page.locator("#minicard .question").textContent();
-  ok(t.includes("Návrh otázky (asistent, ověřte)") && t.includes("Souhlasí radiolog"), `${width} r22 calendar card shows the draft label`);
+  ok(t.includes("Souhlasí radiolog") && !t.includes("Návrh otázky"), `${width} calendar question uses the same concise display`);
   // Jelen Otakar: surname Jelen, first name Otakar; a calm note with its source instead of an identity alarm
   await page.evaluate(() => { S.view = "patients"; S.dbAll = true; S.calPop = null; render(); });
   const row = await page.locator('tr[data-open="17_pacient.pdf"]').textContent();
@@ -483,30 +475,15 @@ for (const width of [1280, 400]) {
   const head = await page.locator(".phead").textContent();
   ok(head.includes("Jelen Otakar") && !/ověřit identitu/i.test(head) && head.includes("jméno a příjmení ve formuláři prohozené") && await page.locator(".phead .namenote [data-src]").count() === 1
     && await page.evaluate(() => P("17_pacient.pdf").status !== "attention"), `${width} r22 Jelen Otakar header with the neutral name note and its source`);
-  // round 24: reason and question in one paragraph, the draft chip at its end; each cited passage with its page link
-  await go("#patient/10/overview");
-  const para = page.locator("main .question p.rq1");
-  t = await para.textContent();
-  const html = await para.innerHTML();
-  ok(await para.count() === 1 && t.includes("Otázka:") && t.includes("Jaký postup doporučuje neurochirurgický seminář?") && !t.includes("solitární sytící se nodulus")
-    && html.indexOf("seminář?") < html.indexOf('class="qlbl') && html.indexOf("Otázka:") < html.indexOf("seminář?") && html.indexOf("Otázka:") > 40
-    && await page.locator("main .question > p").count() === 1, `${width} r24 case 10: reason then "Otázka:" in one paragraph, short question, chip at the end`);
-  ok(await page.evaluate(() => P("10_pacient.pdf").basis.map(b => b.role + ":" + b.source.page).join()) === "purpose:3,finding:1"
-    && await page.locator("main .question .qbasis li").count() === 2 && await page.locator("main .question .qbasis [data-src]").count() === 2, `${width} r24 case 10 basis: purpose (s. 3) and MR finding (s. 1), each linked`);
   await go("#patient/11");
-  const q11 = page.locator("main .question").first();
-  t = await q11.textContent();
-  ok(t.includes("Je indikováno operační řešení, nebo sledování?") && !t.includes("radiochirurg") && t.includes("charakteru Schwanomu n. VIII sin") && t.includes("Drobný meningeom F parafalcinně sin")
-    && await q11.locator(".qbasis [data-src]").count() === 2 && (await q11.locator("p").first().innerHTML()).indexOf('class="qlbl') > (await q11.locator("p").first().innerHTML()).indexOf("sledování?"), `${width} r24 Kabátová: no radiosurgery, two cited findings with page links, chip at the end`);
-  ok((await rep()).includes("Vychází z: „Drobný meningeom F parafalcinně sin“ (11_pacient.pdf, s. 2)"), `${width} r24 report prints each cited passage`);
-  ok(await page.evaluate(() => P("20_pacient.pdf").draft.includes("náhrada obratlových těl)") && !P("20_pacient.pdf").draft.includes("stabilizace") && P("19_pacient.pdf").draft.includes("(coiling)")
-    && P("17_pacient.pdf").draft === "Jaký postup doporučuje NCH u intraoseálního ložiska kalvy F vpravo (DD intraoseální meningeom x MTS)?"), `${width} r24 drafts name only options the doctor or a document gave`);
-  // confirming is logged as a confirmation, not as a text change
+  t = await qbox();
+  ok(t.includes("Je indikováno operační řešení, nebo sledování?") && !t.includes("radiochirurg") && !t.includes("Vychází z"), `${width} question wording unchanged without source expansion`);
+  ok((await rep()).includes("Vychází z: „Drobný meningeom F parafalcinně sin“ (11_pacient.pdf, s. 2)"), `${width} report retains source passages`);
   await page.evaluate(() => { S.user = "MUDr. Novák"; render(); }); await page.locator('main [data-act="confirmq"]').click();
-  ok(await page.evaluate(() => { const e = S.editLog.filter(x => x.pid === "11_pacient.pdf").at(-1); return e.confirmed === true && !("text" in e); }), `${width} r24 confirm pushes {confirmed: true} to the edit log`);
+  ok(await page.evaluate(() => { const e = S.editLog.filter(x => x.pid === "11_pacient.pdf").at(-1); return e.confirmed === true && !("text" in e); }), `${width} confirmation remains distinct from a text edit`);
   await page.evaluate(() => { S.user = ADMIN; S.view = "admin"; render(); });
   t = await page.locator("main").textContent();
-  ok(t.includes("potvrdil(a) návrh otázky") && !t.includes("(návrh asistenta potvrzen)"), `${width} r24 admin edits list shows "potvrdil(a) návrh otázky"`);
+  ok(t.includes("potvrdil(a) návrh otázky"), `${width} confirmation retained in the audit log`);
   // uploads in "Projednání na MDT": doctors and the coordinator only, never on a closed or approved case
   const upz = async (user) => { await page.evaluate(u => { S.user = u; S.view = "patient"; S.pid = "11_pacient.pdf"; S.mdtOpen["11_pacient.pdf"] = true; ensureProto(P("11_pacient.pdf")).mode = "docs"; render(); }, user); return page.locator("main [data-upzone]").count(); };
   ok(await upz("MUDr. Novák") === 1 && await upz(await page.evaluate(() => COORD)) === 1 && await upz(await page.evaluate(() => ADMIN)) === 0, `${width} r24 upload zone for doctors and the coordinator only`);
@@ -586,3 +563,4 @@ for (const width of [1280, 400]) {
 await browser.close();
 console.log(errs.length ? "\n" + errs.join("\n") : "\nall checks passed, no errors");
 process.exit(errs.length ? 1 : 0);
+

@@ -20,7 +20,14 @@ to share them. To view a mock locally, open the `.html` file in a browser.
 
 Branch `design/glide-inspired-ui` tests an alternative visual treatment of
 mock v3. Open `mocks/v3.html` with the existing `pages/` folder next to it.
-The template keeps the current interactions and case data. White space,
+The template keeps the case data. The short overview is titled `Stručný souhrn`.
+The `Otázka pro MDT` block shows only the question and its confirmation
+control where applicable. Draft metadata and source passages remain in
+`qState` and exported reports, without the expanded on-screen annotation.
+Status and readability badges use rounded capsules; large sections remain
+flat. The deviations tab holds both the current-plan assessment table and
+the separately labelled historical review; the proposed-management tab
+contains the proposal and guideline passages. White space,
 ruled sections, navy primary actions and teal accents replace nested
 rounded card frames. Manrope and DM Sans remain the typefaces.
 
