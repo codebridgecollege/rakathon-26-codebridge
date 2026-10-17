@@ -156,6 +156,18 @@ experience.
   when the backend reaches it. (`docs/research/2026-10-17-backend-migration.md`)
 - [ ] **Which hosted LLM does document extraction use, if FNO approves
   cloud use?** (`docs/research/2026-10-17-backend-migration.md`)
+- [ ] **Backend roles, assumed in the designs until decided**
+  (`docs/research/backend-steps/step-2.md`, `step-4.md`): the server refuses
+  clinical content to the administrator and the coordinator (INTEGRATION.md),
+  while today's demo shows it to every role; a coordinator may acknowledge
+  alerts but not edit next steps; every MDT department is a member of every
+  case; a closed case cannot be booked.
+- [ ] **Speaker pass on failure**: delete the case audio when the pass fails
+  (no "Zkusit znovu", the summary is made from the live text), or keep the
+  audio until the case is closed? (`docs/research/backend-steps/step-5.md`)
+- [ ] **Prognosis retries**: `prognosis/README.md` promises no retries, even
+  on HTTP 429, but CLAUDE.md asks for backoff on 429. Retry only on 429/503?
+  (`docs/research/backend-steps/step-5.md`)
 - [ ] Before the repository goes public: remove or anonymize other
   participants' names in the Zoom chat exports and research notes.
   (`HACKATHON.md`)
