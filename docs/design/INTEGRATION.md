@@ -40,6 +40,7 @@ flowchart LR
       DB[("App database<br/>MDT cases, decisions,<br/>tasks, audit")]
       BLOB[("Document store<br/>copies, page images,<br/>transcriptions")]
       AI["Reading and summary<br/>Tesseract, local vision<br/>model and LLM (GPU)"]
+      STT["Speech server<br/>Whisper-class model<br/>and diarization (GPU)"]
     end
     MAIL["Hospital e-mail<br/>(SMTP)"]
   end
@@ -54,6 +55,7 @@ flowchart LR
   ENG --> NIS
   ENG --> OTHER
   BLOB --> AI
+  UI -- "MDT audio, only when<br/>recording is on" --> STT
   AI -. "option B" .-> CLOUD
   API -- "link only" --> MAIL
 ```
@@ -233,6 +235,7 @@ What it does show, and what each stands for:
 | Different screens per role (Administrace only for the administrator) | Role checks in the backend |
 | Access log in Administrace | The audit log |
 | Fictitious PDFs read by Tesseract and a vision model | Documents from the NIS over FHIR, read by the local pipeline |
+| "AI záznam" with ElevenLabs Scribe v2, fictitious speech only | The speech server inside FNO: live transcript per case, speakers after approval, audio deleted after processing |
 | "Export FHIR" in the patient view: a validated FHIR R4 Bundle with a Provenance on every fact ([`fhir/README.md`](../../fhir/README.md)) | What CodeBridge sends to and reads from FNO's FHIR API |
 
 ## Questions for FNO

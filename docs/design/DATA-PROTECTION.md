@@ -130,4 +130,17 @@ quasi-identifiers, which is why the data stays personal data.
   the hospital, and keep the mapping on the hospital's server
   (`CLAUDE.md`, "Expose as little as possible").
 
+## Meeting audio
+
+The recording of an MDT discussion is patient data. In the demo, "AI
+záznam" is off until a doctor starts it and confirms the participants'
+consent. Words are filed only under the case the doctor has open, never
+split by guessing. Audio from moments when no case can take it is
+replaced by silence before it leaves the browser, and a case's audio is
+deleted as soon as its speaker pass is done. Speakers are numbered, not
+named, because naming them would need voiceprints (biometric data). The
+demo sends audio to ElevenLabs and is used only with fictitious speech; a
+pilot needs a speech server inside FNO, or FNO's clearance for an
+outside service.
+
 Open points are in [`docs/agent/OPEN_QUESTIONS.md`](../agent/OPEN_QUESTIONS.md).
