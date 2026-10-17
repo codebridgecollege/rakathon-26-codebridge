@@ -1,6 +1,8 @@
 // Smoke tests for functions added on main while the visual branch was in progress.
 import { createRequire } from 'module';
 import assert from 'node:assert/strict';
+import os from 'node:os';
+import path from 'node:path';
 const require = createRequire(import.meta.url);
 const { chromium } = require(process.env.PLAYWRIGHT_PATH || 'playwright');
 const browser = await chromium.launch();
@@ -11,10 +13,12 @@ await page.locator('[data-act="newpatient"]').click();
 await page.locator('[data-act="fhiropen"]').click();
 await page.locator('[data-act="fhirsample"]').click();
 await page.locator('[data-act="fhirimport"]').click();
-assert.equal(await page.locator('#nf0').inputValue(),'Alena');
-assert.equal(await page.locator('#nf1').inputValue(),'Ukázková');
+// The sample referral is the intake demo patient's (samples/S02_pacient), read from the page so the test follows the fixture.
+const [sample,reason]=await page.evaluate(()=>{const es=SYN.find(x=>x.intake_demo).fhir_referral.entry.map(e=>e.resource);return [es.find(r=>r.resourceType==='Patient').name[0],es.find(r=>r.resourceType==='ServiceRequest').reasonCode[0].text];});
+assert.equal(await page.locator('#nf0').inputValue(),sample.given[0]);
+assert.equal(await page.locator('#nf1').inputValue(),sample.family);
 assert.equal(await page.locator('#nf3').inputValue(),'111');
-assert((await page.locator('#nfq').inputValue()).includes('Indikace k resekci'));
+assert.equal(await page.locator('#nfq').inputValue(),reason);
 assert.equal(await page.locator('#nfg').isChecked(),false,'consent still needs a person');
 assert.equal(await page.locator('#nf6').getAttribute('autocomplete'),'email');
 await page.locator('.modal [data-close]').click();
@@ -44,7 +48,7 @@ assert(await page.evaluate(async()=>{
 await page.evaluate(()=>{location.hash='#patient/10/overview';});
 await page.waitForTimeout(200);
 assert.equal(await page.locator('.patient-identity').evaluate(e=>getComputedStyle(e).backgroundColor),'rgb(9, 45, 59)');
-await page.screenshot({path:'/workspace/scratch/8d6498bf9494/tmp/deploy-overview.png',fullPage:true});
+await page.screenshot({path:path.join(os.tmpdir(),'deploy-overview.png'),fullPage:true});
 assert.deepEqual(errors,[]);
 console.log('Main preservation: FHIR import, consent/autocomplete, prognosis drawer/replay and transcript summary passed.');
 await browser.close();
