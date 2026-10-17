@@ -66,3 +66,4 @@ mocks/guidelines/
 # Temporary git worktrees that review agents use
 .claude/worktrees/
 mocks/stt-config.js
+.wrangler/

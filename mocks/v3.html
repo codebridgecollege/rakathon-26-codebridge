@@ -327,7 +327,7 @@ details.mdtcard[open] > summary::before { transform: rotate(90deg); }
 .rectx .partial { color: var(--muted); font-style: italic; }
 .rectx .spk { font-weight: 700; margin-right: 4px; }
 .sp0 { color: #2c5c53; } .sp1 { color: #7a3d8c; } .sp2 { color: #8f5a06; } .sp3 { color: #1f5fa8; } .sp4 { color: #a3364c; }
-.recpass { margin-top: 12px; }
+.recsum { margin-top: 10px; padding: 8px 10px; border-radius: 8px; background: var(--sunk); font-size: 14px; }
 .recpill { border: 0; border-radius: 999px; padding: 5px 12px; background: #fbe9e7; color: #8c1d18; font-weight: 600; cursor: pointer; font-size: 13px; }
 .rec { text-align: center; padding: 18px 10px; display: grid; gap: 6px; justify-items: center; }
 .steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
@@ -8361,7 +8361,10 @@ const STT_API = "https://api.elevenlabs.io", REC_RATE = 16000;
 /* ses holds one recording's timeline (start time, which case was open from which second); each socket keeps a
    reference to its own, so a late sentence from a stopped recording is never mapped onto a new one. */
 S.rec = { on: false, status: "off", msg: "", tx: {}, ses: null, sent: 0, partial: "", lastPid: null, fails: 0 };
-const sttKey = () => window.STT_CONFIG?.key || S.sttKey || "";
+/* Demo key, published with the team's consent: it expires after three days and has a credit cap.
+   A gitignored stt-config.js can override it. */
+const STT_DEMO_KEY = "sk_e7e8a6d03d03de3d10a6df65ee3f3478a8e6d60e55c77f43";
+const sttKey = () => window.STT_CONFIG?.key || STT_DEMO_KEY;
 const hhmm = ms => new Date(ms).toLocaleTimeString("cs-CZ", { hour: "2-digit", minute: "2-digit" });
 const txOf = pid => S.rec.tx[pid] || (S.rec.tx[pid] = { lines: [], audio: [], passes: [] });
 /* Words go only to an open case that is still being discussed: the doctor's choice of case decides, never a guess. */
@@ -8428,7 +8431,9 @@ function recMessage(m, ws) {
     let cur = null;
     for (const w of m.words || []) {
       if (w.type !== "word") continue;
-      const t = ws.base + (w.start ?? 0), pid = spanPid(ws.ses, t); if (!pid) { cur = null; continue; }
+      const t = ws.base + (w.start ?? 0), pid = spanPid(ws.ses, t), wall = ws.ses.t0 + t * 1000;
+      /* A sentence committed late may cover speech the speaker pass already holds; keep one version. */
+      if (!pid || txOf(pid).passes.some(x => x.state === "done" && wall <= x.when)) { cur = null; continue; }
       if (!cur || cur.pid !== pid) { cur = { pid, wall: ws.ses.t0 + t * 1000, text: [] }; txOf(pid).lines.push(cur); }
       cur.text.push(w.text);
     }
@@ -8479,7 +8484,7 @@ async function recPostPass(pid, retry = null) {
   const segs = pass.segs; pass.state = "running"; recUI();
   try {
     const marks = []; let at = 0; for (const sg of segs) { marks.push({ at, wall: sg.wall }); at += sg.chunks.reduce((a, c) => a + c.length, 0) / REC_RATE; }
-    if (at < 0.5) { pass.state = "empty"; delete pass.segs; recUI(); return; }
+    if (at < 0.5) { pass.state = "empty"; delete pass.segs; recUI(); recSummarize(pid); return; }
     const fd = new FormData();
     fd.append("file", wavOf(segs.flatMap(sg => sg.chunks)), "mdt.wav"); fd.append("model_id", "scribe_v2"); fd.append("language_code", "cs");
     fd.append("diarize", "true"); fd.append("timestamps_granularity", "word");
@@ -8494,34 +8499,68 @@ async function recPostPass(pid, retry = null) {
       if (!cur || cur.spk !== spk[s]) { cur = { spk: spk[s], wall: m.wall + ((w.start ?? 0) - m.at) * 1000, text: [] }; pass.lines.push(cur); }
       cur.text.push(w.text);
     }
-    pass.state = "done"; delete pass.segs;
+    /* The speaker version replaces the live text it covers (everything said before this approval). */
+    tx.lines = [...tx.lines.filter(l => l.wall > pass.when), ...pass.lines].sort((a, b) => a.wall - b.wall);
+    pass.state = "done"; delete pass.segs; delete pass.lines;
     logAccess(pid, "AI záznam: rozlišení mluvčích po schválení závěru, zvuk smazán");
-  } catch (err) { pass.state = "error"; pass.err = err.message; }
+  } catch (err) { pass.state = "error"; pass.err = err.message; recUI(); return; }
+  recUI(); recSummarize(pid);
+}
+/* Third pass: one or two sentences in the manner of an MDT conclusion (decisions, next steps), from the transcript
+   only. It is a draft for the doctor, like everything the assistant writes; the conclusion stays the doctor's. */
+const LLM_DEMO = null; // { provider: "anthropic", key } or { provider: "azure", endpoint, deployment, key }
+const SUM_PROMPT = `Jsi asistent multidisciplinárního týmu (MDT). Níže je přepis diskuse o jednom pacientovi.
+Shrň ji do 1 až 2 krátkých vět ve stylu závěru MDT: co bylo rozhodnuto a jaké jsou další kroky.
+Neuváděj, kdo co řekl. Uveď jen to, co v přepisu zaznělo; nic nedoplňuj ani neodhaduj.
+Když žádné rozhodnutí nezaznělo, napiš přesně: "Rozhodnutí v diskusi nezaznělo."
+Odpověz jen samotným shrnutím.`;
+async function recSummarize(pid) {
+  const tx = S.rec.tx[pid], llm = window.STT_CONFIG?.llm || LLM_DEMO;
+  if (!tx?.lines.length || !llm?.key) return;
+  const text = tx.lines.map(l => `${l.spk != null ? `Mluvčí ${l.spk + 1}: ` : ""}${l.text.join(" ")}`).join("\n");
+  tx.summary = { state: "running" }; recUI();
+  try {
+    let out;
+    if (llm.provider === "azure") {
+      const r = await fetch(`${llm.endpoint.replace(/\/$/, "")}/openai/deployments/${llm.deployment}/chat/completions?api-version=${llm.apiVersion || "2024-10-21"}`, { method: "POST", headers: { "api-key": llm.key, "content-type": "application/json" },
+        body: JSON.stringify({ temperature: 0, max_tokens: 200, messages: [{ role: "system", content: SUM_PROMPT }, { role: "user", content: text }] }) });
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      out = (await r.json()).choices[0].message.content;
+    } else {
+      const r = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "x-api-key": llm.key, "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true", "content-type": "application/json" },
+        body: JSON.stringify({ model: llm.model || "claude-haiku-5-5", max_tokens: 200, temperature: 0, system: SUM_PROMPT, messages: [{ role: "user", content: text }] }) });
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      out = (await r.json()).content.map(c => c.text || "").join("");
+    }
+    tx.summary = { state: "done", text: out.trim(), when: Date.now() };
+    logAccess(pid, "AI záznam: shrnutí diskuse");
+  } catch (err) { tx.summary = { state: "error", err: err.message }; }
   recUI();
 }
-function recLinesHtml(lines, speakers) {
-  return lines.map(l => `<div class="ln"><span class="tm">${hhmm(l.wall)}</span><span>${speakers ? `<span class="spk sp${l.spk % 5}">Mluvčí ${l.spk + 1}:</span>` : ""}${esc(l.text.join(" "))}</span></div>`).join("");
+function recLinesHtml(lines) {
+  return lines.map(l => `<div class="ln"><span class="tm">${hhmm(l.wall)}</span><span>${l.spk != null ? `<span class="spk sp${l.spk % 5}">Mluvčí ${l.spk + 1}:</span>` : ""}${esc(l.text.join(" "))}</span></div>`).join("");
 }
 function recTxHtml(pid) {
   const tx = S.rec.tx[pid], live = S.rec.on && recTarget() === pid && S.rec.partial;
   return (tx ? recLinesHtml(tx.lines) : "") + (live ? `<div class="ln"><span class="tm">${hhmm(Date.now())}</span><span class="partial">${esc(S.rec.partial)}…</span></div>` : "");
 }
+/* Above the transcript: the summary, and a short line while a pass runs or after it failed. */
 function recPassesHtml(pid) {
-  const tx = S.rec.tx[pid]; if (!tx?.passes.length) return "";
-  return tx.passes.map((ps, i) => `<div class="recpass"><div class="row spread"><b class="small">Přepis podle mluvčích${tx.passes.length > 1 ? ` (${i + 1})` : ""}</b><span class="muted small">${hhmm(ps.when)}</span></div>
-    ${ps.state === "running" ? `<p class="muted small" style="margin:6px 0 0">Rozlišuji mluvčí…</p>`
-    : ps.state === "error" ? `<p class="small" style="margin:6px 0 0">Rozlišení mluvčích selhalo (${esc(ps.err)}). Zvuk zůstává v paměti stránky. <button class="linkbtn small" data-recretry="${i}">Zkusit znovu</button></p>`
-    : ps.state === "purged" ? `<p class="muted small" style="margin:6px 0 0">Zvuk byl smazán bez rozlišení mluvčích.</p>`
-    : ps.state === "empty" ? `<p class="muted small" style="margin:6px 0 0">Záznam byl příliš krátký.</p>`
-    : `<div class="rectx">${recLinesHtml(ps.lines, true)}</div><p class="muted small" style="margin:4px 0 0">Mluvčí jsou očíslovaní v rámci tohoto případu, bez jmen. Zvuk byl po zpracování smazán.</p>`}</div>`).join("");
+  const tx = S.rec.tx[pid]; if (!tx) return "";
+  const sm = tx.summary, ps = tx.passes.map((x, i) => [x, i]);
+  return ps.filter(([x]) => x.state === "running").map(() => `<p class="muted small" style="margin:10px 0 0">Rozlišuji mluvčí…</p>`).join("")
+    + ps.filter(([x]) => x.state === "error").map(([x, i]) => `<p class="small" style="margin:10px 0 0">Rozlišení mluvčích selhalo (${esc(x.err)}). <button class="linkbtn small" data-recretry="${i}">Zkusit znovu</button></p>`).join("")
+    + (sm?.state === "running" ? `<p class="muted small" style="margin:10px 0 0">Shrnuji diskusi…</p>`
+      : sm?.state === "error" ? `<p class="small" style="margin:10px 0 0">Shrnutí selhalo (${esc(sm.err)}).</p>`
+      : sm?.state === "done" ? `<div class="recsum"><span class="chip plain st-new">Shrnutí AI</span> ${esc(sm.text)}</div>` : "");
 }
 function recState(p) {
   const r = S.rec;
   if (r.status === "connecting") return "Připojuji…";
   if (!r.on) return "Záznam je vypnutý.";
-  if (recTarget() === p.file) return `<span class="recdot"></span>Přepis se ukládá k tomuto pacientovi.`;
-  return ensureProto(p).state === "approved" ? "Záznam běží, ale závěr tohoto pacienta je schválen; přepis se mu už nepřidává."
-    : S.session && !inSession(p) ? "Záznam běží, ale pacient není na programu probíhajícího MDT; přepis se mu nepřidává." : "Záznam běží.";
+  if (recTarget() === p.file) return `<span class="recdot"></span>Nahrávám.`;
+  return ensureProto(p).state === "approved" ? "Záznam běží, závěr pacienta je schválen."
+    : S.session && !inSession(p) ? "Záznam běží, pacient není na programu MDT." : "Záznam běží.";
 }
 function recCtlHtml(p) {
   const r = S.rec;
@@ -8532,13 +8571,18 @@ function recCtlHtml(p) {
 function recPanel(p) {
   const r = S.rec;
   return `<div id="recctl">${recCtlHtml(p)}</div>
-    <div class="rectx" id="rectx" data-pid="${esc(p.file)}" aria-live="polite">${recTxHtml(p.file)}</div>
-    <div id="recpasses">${recPassesHtml(p.file)}</div>
-    <p class="muted small" style="margin:8px 0 0">Ukázka: zvuk se posílá do ElevenLabs Scribe v2 (cloud mimo FNO), proto jen smyšlené rozhovory. V provozu přepisuje interní server ve FNO (např. Whisper). Zvuk se drží jen v paměti stránky, do rozlišení mluvčích po schválení závěru, nejdéle do ukončení MDT. Přepis je jen pomůcka k zápisu, závěr píše lékař.</p>`;
+    <div id="recbody" data-pid="${esc(p.file)}">${recBodyHtml(p.file)}</div>`;
+}
+/* Once the summary exists it leads, and the transcript it came from folds into a closed panel. */
+function recBodyHtml(pid) {
+  const done = S.rec.tx[pid]?.summary?.state === "done", tx = `<div class="rectx" id="rectx" data-pid="${esc(pid)}" aria-live="polite">${recTxHtml(pid)}</div>`;
+  return `<div id="recpasses">${recPassesHtml(pid)}</div>${done ? `<details class="srcs" style="margin-top:8px"><summary>Přepis diskuse</summary>${tx}</details>` : tx}`;
 }
 /* Live updates touch only the transcript and the header pill; a full render would steal focus from a doctor
    typing the conclusion. */
 function recUI() {
+  const body = document.getElementById("recbody");
+  if (body && body.dataset.sum !== String(S.rec.tx[body.dataset.pid]?.summary?.state)) { body.dataset.sum = String(S.rec.tx[body.dataset.pid]?.summary?.state); body.innerHTML = recBodyHtml(body.dataset.pid); }
   const el = document.getElementById("rectx");
   if (el) { const atEnd = el.scrollTop + el.clientHeight >= el.scrollHeight - 30; el.innerHTML = recTxHtml(el.dataset.pid); if (atEnd) el.scrollTop = el.scrollHeight; }
   const ps = document.getElementById("recpasses"); if (ps && el) ps.innerHTML = recPassesHtml(el.dataset.pid);
@@ -8550,16 +8594,6 @@ function recPill() {
   const el = document.getElementById("recpill"); if (!el) return;
   const t = recTarget();
   el.innerHTML = S.rec.on ? `<button class="recpill" data-act="recstop" title="Zastavit záznam"><span class="recdot"></span>${t ? `Záznam · ${esc(P(t).id)}` : "Záznam běží, přepis se nikam neukládá"} · Zastavit</button>` : "";
-}
-function recConsentHtml() {
-  return `<div class="scrim" data-close="1"></div><div class="modal" role="dialog" aria-label="Spustit AI záznam">
-    <div class="row spread"><h2>Spustit AI záznam</h2><button class="btn small" data-close="1">Zavřít</button></div>
-    <p style="margin:0">Záznam poběží pro celé MDT. Přepis se ukládá k pacientovi, jehož případ je právě otevřený; po přechodu na dalšího pacienta patří další slova jemu a po návratu se přepis původního pacienta doplňuje. Pacientovi se schváleným závěrem se už nic nepřidává. Když mají všechny případy semináře schválený závěr, záznam se sám zastaví.</p>
-    <p class="small" style="margin:0">Po schválení závěru se zvuk případu ještě jednou přepíše s rozlišením mluvčích a pak se smaže.</p>
-    <p class="muted small" style="margin:0">Ukázka: zvuk se posílá do služby ElevenLabs (cloud mimo FNO). Mluvte jen o smyšlených pacientech. V provozu přepisuje interní server ve FNO a zvuk neopouští nemocnici.</p>
-    ${window.STT_CONFIG?.key ? "" : `<label class="label" for="sttkey">Klíč ElevenLabs (drží se jen v paměti stránky)</label><input class="input" id="sttkey" type="password" autocomplete="off" value="${esc(S.sttKey || "")}">`}
-    <label class="row small" style="gap:6px"><input type="checkbox" id="recconsent"> Účastníci byli informováni a se záznamem souhlasí.</label>
-    <div class="row" style="justify-content:flex-end"><button class="btn" data-close="1">Zrušit</button><button class="btn primary" data-act="recgo">Spustit záznam</button></div></div>`;
 }
 /* "Projednání na MDT": attendance, discussion notes, next steps and approval, in the patient
    view itself. Outside a session it is collapsed unless a draft exists; in a session it is open and outlined. */
@@ -9121,7 +9155,6 @@ function renderOverlay() {
   const o = S.overlay, el = document.getElementById("overlay");
   if (!o) { el.innerHTML = ""; return; }
   if (o.kind === "fhir") { el.innerHTML = fhirHtml(o); return; }
-  if (o.kind === "recon") { el.innerHTML = recConsentHtml(); return; }
   if (o.kind === "source") {
     if (!o.data) return;
     el.innerHTML = sourceHtml(o);
@@ -9395,13 +9428,7 @@ async function copyText(text, what) {
 }
 function action(a) {
   const pr = S.view === "patient" ? curProto() : null;
-  if (a === "recon") { S.overlay = { kind: "recon" }; renderOverlay(); }
-  else if (a === "recgo") {
-    if (!document.getElementById("recconsent")?.checked) { toast("Potvrďte souhlas účastníků se záznamem"); return; }
-    const k = document.getElementById("sttkey")?.value.trim(); if (k) S.sttKey = k;
-    if (!sttKey()) { toast("Chybí klíč ElevenLabs"); return; }
-    S.overlay = null; logAccess(S.pid, "zapnul(a) AI záznam diskuse"); render(); recStart();
-  }
+  if (a === "recon") { logAccess(S.pid, "zapnul(a) AI záznam diskuse"); recStart(); }
   else if (a === "recstop") { logAccess(S.pid, "vypnul(a) AI záznam diskuse"); recStop(); }
   else if (a === "reportdlg") { S.overlay = { kind: "report" }; renderOverlay(); }
   else if (a === "fhirdlg") { const p = P(S.pid); S.overlay = { kind: "fhir", id: p.id, bundle: fhirBundle(p) }; logAccess(p.file, "exportoval(a) případ jako FHIR"); renderOverlay(); }

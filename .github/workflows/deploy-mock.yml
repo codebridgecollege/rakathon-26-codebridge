@@ -1,0 +1,27 @@
+# Redeploys mock v3 to https://codebridge-mdt.pages.dev on every push to main that changes it.
+name: Deploy mock
+
+on:
+  push:
+    branches: [main]
+    paths: ["mocks/v3.html", "mocks/pages/**", "mocks/deploy.sh", ".github/workflows/deploy-mock.yml"]
+  workflow_dispatch:
+
+# One deploy at a time; a newer push replaces a queued one.
+concurrency:
+  group: deploy-mock
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Deploy to Cloudflare Pages
+        run: RUN_BUILD=0 mocks/deploy.sh
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
