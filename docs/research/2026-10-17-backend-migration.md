@@ -375,10 +375,44 @@ Steps 0 and 1 are worth doing even if the rest waits.
 - **Retention:** deletion jobs (document copies after the case, the audit log per FNO's rules) become a cron trigger once FNO sets the periods.
 - **Docs:** new tools (Workers, D1, R2, Workflows, Access, AI Gateway, Hono, Vite, `jose`) go into `docs/agent/HACKATHON.md` and `docs/design/TECHNOLOGIES.md` when adopted.
 
+## Decisions (2026-10-17)
+
+- **Shared demo**, as recommended in "Login and roles". Organizations or
+  accounts (a tenant ID on every row) may come later; the schema keeps
+  every table scoped through `cases` so that a tenant column can be added
+  in one migration.
+- **Prognosis: TypeScript port or Python Workers** is decided when the
+  backend reaches it, after reading the code.
+- The other points below are open questions, tracked in
+  [`OPEN_QUESTIONS.md`](../agent/OPEN_QUESTIONS.md).
+
+## Foundations every step builds on
+
+- **Branch:** work happens on `backend`, merged into `main` per step once
+  the demo path works. The Pages site (`codebridge-mdt.pages.dev`) stays
+  live and unchanged until the Worker replaces it.
+- **Folder:** `api/`, one Wrangler project: `wrangler.jsonc`, `src/`
+  (`index.ts` with the Hono app, `routes/`, `domain/`, `store/`,
+  `services/`), `migrations/`, `seed/`, `test/`, `package.json` with a
+  lockfile. TypeScript, strict.
+- **Pinned tools:** Wrangler 4, Hono 4, `jose` 5, Vitest with the Workers
+  integration. Exact versions go in `package.json` and `TECHNOLOGIES.md`.
+- **Worker:** named `codebridge-mdt`, served at
+  `codebridge-mdt.<account>.workers.dev` until it replaces Pages. Static
+  assets are the built mock, staged by a script into `api/.assets/`
+  (gitignored), so `mocks/build.py` stays the one build of the page.
+- **Auth modes:** `AUTH_MODE=demo` keeps the role picker (labeled as a
+  stand-in) and trusts no client claim beyond the picked user's name;
+  `AUTH_MODE=access` verifies the Cloudflare Access JWT. The Worker ships
+  in demo mode until Access is configured.
+- **Frontend switch:** the page asks `GET /api/health`; when it answers,
+  the page uses the API, otherwise it keeps its embedded data. So the
+  same build works on Pages and on the Worker during the migration.
+- **Errors:** JSON `{ error: { code, message_cs } }` with the HTTP status;
+  the Czech message is what the UI shows.
+
 ## Open points to decide or verify
 
-- **Shared demo or per-visitor workspaces**: see "Login and roles".
-- **TypeScript port of the prognosis service, or Python Workers.** Python Workers exist but would be the only Python in the API.
 - **D1 EU jurisdiction**: check on the created database (see "Residency").
 - **Presigned R2 URLs on the EU endpoint**: unverified.
 - **Which hosted LLM for extraction, if FNO approves cloud use**: still open in [`OPEN_QUESTIONS.md`](../agent/OPEN_QUESTIONS.md) ("Which tech stack and which LLM deployment").

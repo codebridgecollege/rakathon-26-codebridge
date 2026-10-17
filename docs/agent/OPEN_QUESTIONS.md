@@ -53,6 +53,11 @@ point into the team's design discussion; the citation forms are in
 - [ ] Can one patient's data sit in different systems than another's?
   (juro-notes)
 
+- [ ] **Would FNO ever accept a Cloudflare-hosted backend for real
+  patient data,** or only on its own servers? It decides whether the
+  portable storage layer of the backend is insurance or the main path.
+  (`docs/research/2026-10-17-backend-migration.md`)
+
 ## Ask Soňa
 
 Soňa is the oncologist on our team; the product is based on her
@@ -146,6 +151,11 @@ experience.
 ## Decide as a team
 
 - [ ] **Which tech stack and which LLM deployment do we use?**
+- [ ] **Backend: port the prognosis service to TypeScript, or keep it in
+  Python** (Python Workers)? Juro decides after reading `prognosis/service.py`
+  when the backend reaches it. (`docs/research/2026-10-17-backend-migration.md`)
+- [ ] **Which hosted LLM does document extraction use, if FNO approves
+  cloud use?** (`docs/research/2026-10-17-backend-migration.md`)
 - [ ] Before the repository goes public: remove or anonymize other
   participants' names in the Zoom chat exports and research notes.
   (`HACKATHON.md`)
@@ -172,6 +182,12 @@ experience.
   be edited, or only the summary? (design-1 00:43:31, 00:44:31)
 
 ## Check ourselves (docs and the web)
+
+- [ ] **Do D1 and R2 really keep data in the EU** with `--jurisdiction=eu`?
+  Cloudflare's docs disagree for D1; check on the created database. Do
+  presigned R2 URLs work on the EU endpoint? Does AI Gateway retry on
+  HTTP 429, and does its Azure provider fit the hackathon APIM host?
+  (`docs/research/2026-10-17-backend-migration.md`)
 
 - [ ] What are the URL of the InterSystems "FHIR AI Hackathon Kit" and the
   kit's default FHIR credentials? Both should be on the challenge page in
