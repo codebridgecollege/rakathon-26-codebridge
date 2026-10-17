@@ -196,18 +196,26 @@ def fold(s: str) -> str:
     return "".join(c for c in unicodedata.normalize("NFD", s) if not unicodedata.combining(c)).lower()
 
 
-def identity_patterns(patients):
-    """Per patient: word-start patterns for each name part (and a stem, to catch Czech case endings) and the birth number digits."""
+def patient_patterns(p):
+    """One patient's patterns: each name part (from the list name and the name as written) with a stem for Czech case
+    endings and the dropped vowel ("Šimek" -> "Šimka", "Poláček" -> "Poláčka"), the birth date as written, and the
+    birth number digits (also the first six, the birth-date part)."""
     pats = []
-    for p in patients:
-        tokens = [t for t in re.split(r"[\s,]+", fold(p["full_name"])) if len(t) >= 3]
-        for t in tokens:
-            stem = t[:-2] if len(t) >= 6 else t
-            pats.append(re.compile(r"(?<![a-z])" + re.escape(stem)))
-        if p.get("birth_number"):
-            digits = re.sub(r"\D", "", p["birth_number"])
-            pats.append(re.compile(re.escape(digits)))
+    names = " ".join(x for x in (p["full_name"], p.get("name_as_written")) if x)
+    for t in {t for t in re.split(r"[\s,]+", fold(names)) if len(t) >= 3}:
+        for v in {t, t[:-2] if len(t) >= 6 else t, re.sub(r"e(?=[a-z]$)", "", t)}:
+            if len(v) >= 3:
+                pats.append(re.compile(r"(?<![a-z])" + re.escape(v)))
+    if p.get("birth_as_written"):
+        pats.append(re.compile(re.escape(fold(p["birth_as_written"]))))
+    if p.get("birth_number"):
+        digits = re.sub(r"\D", "", p["birth_number"])
+        pats += [re.compile(re.escape(digits)), re.compile(re.escape(digits[:6]))]
     return pats
+
+
+def identity_patterns(patients):
+    return [x for p in patients for x in patient_patterns(p)]
 
 
 def is_quote_path(path: list) -> bool:
@@ -462,10 +470,26 @@ def main() -> None:
     for c in cases:
         scan(c, pats, [f"cases/{c['id']}"], hits)
     # The scan must see the names in the unstripped fixtures; if it does not, the scan is broken, not the data clean.
-    control = []
-    scan({"case": case, "syn": syn}, pats, ["control"], control)
-    if not any(not is_quote_path(h[0]) for h in control):
-        sys.exit("seed: identity scan self-check failed (found no names in the unstripped fixtures)")
+    # Document notes and titles end up in D1 columns outside patients, so they are scanned as well.
+    scan({"documents": {f: v for f, v in doc_parts.items()}}, pats, ["documents"], hits)
+    # The scan must find every patient in the unstripped fixtures; if it misses one, the scan is broken, not the data clean.
+    for pt in patients:
+        control = []
+        scan({"case": case, "syn": syn, "list": others_list}, patient_patterns(pt), ["control"], control)
+        if not control:
+            sys.exit(f"seed: identity scan self-check failed for {pt['id']} (its name is not found in the unstripped fixtures)")
+    # Belt and braces: the identity keys themselves must be gone from every stored extraction.
+    for name, obj in stored_json.items():
+        if not name.startswith("extract/"):
+            continue
+        pat = obj.get("case", {}).get("patient", {})
+        left = [k for k in ("name", "name_as_written", "birth_number", "birth_date", "age", "insurer", "source") if k in pat]
+        left += [k for k in ("full_text_by_page",) if k in obj.get("case", {})] + [k for k in ("others",) if k in obj.get("extra", {})]
+        le = obj.get("syn", {}).get("list_entry", {})
+        left += [f"list_entry.{k}" for k in le if k not in ("file", "page_count")]
+        left += [k for k in ("others_entry", "fhir_referral") if k in obj.get("syn", {})]
+        if left:
+            sys.exit(f"seed: identity keys left in {name}: {left}")
     bad = [h for h in hits if not is_quote_path(h[0])]
     lines = [f"{'OK  ' if is_quote_path(p) else 'FAIL'} {kind} {'.'.join(map(str, p))}" for p, kind in hits]
     (OUT / "identity-scan.txt").write_text(
@@ -564,7 +588,13 @@ def main() -> None:
     print(f"uploaded {len(todo)} R2 objects ({len(manifest) - len(todo)} unchanged)")
 
     # 12. D1.
-    wrangler(["d1", "execute", DB_NAME, f"--{t}", "--yes", "--file", str(OUT / "seed.sql")])
+    r = subprocess.run(["npx", "wrangler", "d1", "execute", DB_NAME, f"--{t}", "--yes", "--file", str(OUT / "seed.sql")],
+                       cwd=API, capture_output=True, text=True)
+    if r.returncode != 0:
+        # A reset that stops half way can leave the append-only triggers dropped; say so, since nothing else will.
+        trig = d1_query(t, "SELECT COUNT(*) AS n FROM sqlite_master WHERE type='trigger'")[0]["n"]
+        sys.exit(f"seed: d1 execute failed ({trig} of {len(trigger_names(triggers_sql))} append-only triggers present;"
+                 f" rerun with --reset to restore them):\n{r.stderr[-2000:] or r.stdout[-2000:]}")
 
     # 13. Verify counts and that every append-only trigger exists.
     counts = d1_query(t, "SELECT (SELECT COUNT(*) FROM patients) p, (SELECT COUNT(*) FROM cases) c, (SELECT COUNT(*) FROM documents) d,"
