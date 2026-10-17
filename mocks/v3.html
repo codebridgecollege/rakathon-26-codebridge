@@ -268,6 +268,13 @@ details.mdtcard[open] > summary::before { transform: rotate(90deg); }
 .seg2 { display: grid; grid-template-columns: 1fr 1fr; background: var(--sunk); border-radius: 8px; padding: 3px; gap: 3px; }
 .seg2 button { border: 0; background: none; border-radius: 6px; padding: 7px; cursor: pointer; font-weight: 600; color: var(--muted); }
 .seg2 button[aria-pressed="true"] { background: var(--surface); color: var(--fg); box-shadow: 0 1px 2px rgba(0,0,0,.08); }
+.seg2.three { grid-template-columns: 1fr 1fr 1fr; }
+.upzone { display: grid; gap: 4px; justify-items: center; text-align: center; margin-top: 12px; padding: 18px 10px; border: 2px dashed var(--line); border-radius: 10px; cursor: pointer; }
+.upzone.drop, .upzone:hover { border-color: var(--accent); background: var(--sunk); }
+.upzone input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.uplist { list-style: none; padding: 0; margin: 10px 0 0; display: grid; gap: 6px; }
+.uplist li { display: flex; gap: 8px; align-items: center; padding: 6px 8px; border: 1px solid var(--line); border-radius: 8px; }
+.uplist .nm { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
 .rec { text-align: center; padding: 18px 10px; display: grid; gap: 6px; justify-items: center; }
 .steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
 .steps li { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 8px; align-items: start; }
@@ -7436,6 +7443,23 @@ function mdtChip(p) {
   return pr.state === "approved" ? `<span class="chip st-done">Závěr schválen</span>` : pr.concl.trim() ? `<span class="chip st-attention">Koncept, neschváleno</span>` : versions ? `<span class="chip st-new">Platný závěr č. ${versions}</span>` : "";
 }
 const apprHint = has => has ? "Schvaluje se koncept v poli Závěr MDT výše." : `Závěr zatím nezapsán. Píše ho lékař v poli Závěr MDT výše; asistent závěr nenavrhuje.${isDoctor(S.user) ? ` <button class="linkbtn small" data-act="editconcl">Zapsat závěr</button>` : ""}`;
+/* Documents brought to the meeting ad hoc (an outside report, a printout). The mock keeps only name, size and
+   who added them, in memory; the file content is not read or stored, so nothing leaves the browser. */
+const fmtSize = n => n < 1024 * 1024 ? `${Math.max(1, Math.round(n / 1024))} kB` : `${(n / 1024 / 1024).toFixed(1).replace(".", ",")} MB`;
+function uploadsHtml(pr, locked) {
+  const ups = pr.uploads || [];
+  return `${locked ? "" : `<label class="upzone" data-upzone="1"><input type="file" multiple data-upload="1"><b>Přetáhněte soubory sem</b><span class="small muted">nebo klikněte a vyberte (PDF, obrázky, Word)</span></label>`}
+    ${ups.length ? `<ul class="uplist">${ups.map((u, i) => `<li><span class="nm" title="${esc(u.name)}">${esc(u.name)}</span><span class="small muted">${esc(fmtSize(u.size))} · ${esc(u.who)}, ${esc(u.when)}</span><span class="chip plain st-done">Nahráno</span>${locked ? "" : `<button class="btn small" data-delup="${i}" aria-label="Odebrat ${esc(u.name)}">✕</button>`}</li>`).join("")}</ul>`
+      : locked ? `<p class="muted small" style="margin:12px 0 0">Žádné dokumenty nenahrány.</p>` : ""}
+    <p class="muted small" style="margin:8px 0 0">Ukázka: soubory zůstávají jen v prohlížeči a asistent je nečte. Ve skutečném provozu se uloží k případu a projdou kontrolou čitelnosti.</p>`;
+}
+function addUploads(files) {
+  const pr = curProto(); if (!files?.length || pr.state === "approved") return;
+  const when = new Date().toLocaleTimeString("cs-CZ", { hour: "2-digit", minute: "2-digit" });
+  pr.uploads = [...(pr.uploads || []), ...[...files].map(f => ({ name: f.name, size: f.size, who: S.user, when }))];
+  logAccess(S.pid, `nahrál(a) ${plural(files.length, "dokument", "dokumenty", "dokumentů")} k projednání`);
+  toast(`Nahráno: ${plural(files.length, "soubor", "soubory", "souborů")}`); render();
+}
 /* "Projednání na MDT": attendance, discussion notes, next steps and approval, in the patient
    view itself. Outside a session it is collapsed unless a draft exists; in a session it is open and outlined. */
 function mdtCard(p) {
@@ -7455,8 +7479,8 @@ function mdtCard(p) {
   return `<details class="card mdtcard ${live ? "live" : ""}" data-mdtopen="${esc(p.file)}" ${open ? "open" : ""}><summary><h2>Projednání na MDT</h2><span id="mdtchip" style="display:contents">${mdtChip(p)}</span>${live ? `<span class="chip st-scheduled">MDT probíhá</span>` : ""}</summary>
     <div class="grid2"><div class="stack">
       <div class="sub"><div class="head"><h3>Záznam diskuse</h3></div>
-        <div class="seg2" role="group"><button data-mode="manual" aria-pressed="${pr.mode === "manual"}">Ruční poznámky</button><button data-mode="ai" aria-pressed="${pr.mode === "ai"}">AI záznam</button></div>
-        ${pr.mode === "manual" ? `<label class="label" for="notes" style="display:block;margin:12px 0 6px">Průběžné poznámky</label>
+        <div class="seg2 three" role="group"><button data-mode="manual" aria-pressed="${pr.mode === "manual"}">Ruční poznámky</button><button data-mode="ai" aria-pressed="${pr.mode === "ai"}">AI záznam</button><button data-mode="docs" aria-pressed="${pr.mode === "docs"}">Dokumenty${pr.uploads?.length ? ` (${pr.uploads.length})` : ""}</button></div>
+        ${pr.mode === "docs" ? uploadsHtml(pr, locked) : pr.mode === "manual" ? `<label class="label" for="notes" style="display:block;margin:12px 0 6px">Průběžné poznámky</label>
           <textarea class="input" id="notes" placeholder="Poznámky z diskuse" ${locked ? "disabled" : ""}>${esc(pr.notes)}</textarea>`
         : `<div class="rec"><b>AI záznam diskuse</b><span class="small muted">Se souhlasem účastníků systém zaznamená zvuk a připraví návrh závěru a dalších kroků k potvrzení lékařem. Vyžaduje souhlas FNO se službou přepisu.</span>
           <span class="chip plain st-new">Plánovaná funkce</span><span class="small muted">Zvuk se nezaznamenává.</span></div>`}</div>
@@ -8159,7 +8183,7 @@ document.addEventListener("click", e => {
   hideTip();
   if (S.colOpen && !e.target.closest(".fpop,[data-colopen]")) { S.colOpen = null; render(); return; }
   if (S.stOpen && !e.target.closest(".stpop,[data-stmenu]")) { S.stOpen = null; render(); return; }
-  const t = e.target.closest("[data-stmenu],[data-setst],[data-dbpage],[data-guide],[data-colopen],[data-colclose],[data-colall],[data-wk],[data-jump],[data-mm],[data-calclose],[data-labmode],[data-labsel],[data-edit],[data-scope],[data-addatt],[data-startday],[data-startgo],[data-sesgo],[data-nav],[data-open],[data-tab],[data-src],[data-close],[data-page],[data-vtab],[data-zoom],[data-zoomstep],[data-zoomhit],[data-tl-category],[data-tl],[data-ack],[data-sched],[data-pick],[data-free],[data-slot],[data-unsched],[data-act],[data-mode],[data-delstep],[data-done],[data-suggok],[data-suggno]");
+  const t = e.target.closest("[data-stmenu],[data-setst],[data-dbpage],[data-guide],[data-colopen],[data-colclose],[data-colall],[data-wk],[data-jump],[data-mm],[data-calclose],[data-labmode],[data-labsel],[data-edit],[data-scope],[data-addatt],[data-startday],[data-startgo],[data-sesgo],[data-nav],[data-open],[data-tab],[data-src],[data-close],[data-page],[data-vtab],[data-zoom],[data-zoomstep],[data-zoomhit],[data-tl-category],[data-tl],[data-ack],[data-sched],[data-pick],[data-free],[data-slot],[data-unsched],[data-act],[data-mode],[data-delstep],[data-delup],[data-done],[data-suggok],[data-suggno]");
   if (!t) return;
   const d = t.dataset;
   if (d.stmenu) { S.stOpen = S.stOpen === d.stmenu ? null : d.stmenu; render(); }
@@ -8230,6 +8254,7 @@ document.addEventListener("click", e => {
     const [day, time] = d.slot.split(" "); S.calPop = S.patients.find(p => p.slot && p.slot.day === day && p.slot.time === time)?.file; if (S.calPop) logAccess(S.calPop, "zobrazil(a) detail termínu"); render(); document.getElementById("minicard")?.scrollIntoView({ block: "nearest", behavior: "smooth" }); }
   else if (d.unsched) unschedule(d.unsched);
   else if (d.mode) { curProto().mode = d.mode; render(); }
+  else if (d.delup) { const pr = curProto(), u = pr.uploads.splice(+d.delup, 1)[0]; logAccess(S.pid, `odebral(a) nahraný dokument ${u.name}`); render(); }
   else if (d.delstep !== undefined) { curProto().steps.splice(+d.delstep, 1); render(); }
   else if (d.suggok || d.suggno) confirmSugg(+(d.suggok || d.suggno), !!d.suggok);
   else if (d.done) { const task = S.tasks.find(x => x.id === +d.done); task.done = t.checked; renderNav(); render(); }
@@ -8443,6 +8468,11 @@ document.addEventListener("drop", e => {
   if (!file || !P(file)) return;
   if (f.dataset.unschedzone) unschedule(file); else scheduleAt(file, f.dataset.free);
 });
+/* Files dropped from the desktop onto the upload zone; patient drags (S.dragFile) are left to the calendar handlers. */
+const isFileDrag = e => [...(e.dataTransfer?.types || [])].includes("Files");
+document.addEventListener("dragover", e => { const z = e.target.closest?.("[data-upzone]"); if (z && isFileDrag(e)) { e.preventDefault(); e.dataTransfer.dropEffect = "copy"; z.classList.add("drop"); } });
+document.addEventListener("dragleave", e => { const z = e.target.closest?.("[data-upzone]"); if (z && !z.contains(e.relatedTarget)) z.classList.remove("drop"); });
+document.addEventListener("drop", e => { const z = e.target.closest?.("[data-upzone]"); if (!z || !isFileDrag(e)) return; e.preventDefault(); addUploads(e.dataTransfer.files); });
 /* Column resizing in the patients table (round 16): the first drag freezes the current widths, then only the
    dragged column changes; widths live in S.colW for the session. */
 document.addEventListener("pointerdown", e => {
@@ -8460,6 +8490,7 @@ document.addEventListener("pointerdown", e => {
 document.addEventListener("change", e => {
   const t = e.target;
   if (t.id === "user") { S.user = t.value; if (S.view === "admin" && t.value !== ADMIN) S.view = "patients"; render(); }
+  else if (t.dataset.upload) addUploads(t.files);
   else if (t.dataset.actToggle === "guide") { S.guideOn = t.checked; render(); }
   else if (t.dataset.retro) {
     /* Only a doctor sets severity or assessment; the select is not rendered for others, and this guard repeats the rule. */
