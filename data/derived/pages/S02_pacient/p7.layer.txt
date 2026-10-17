@@ -1,0 +1,34 @@
+Laboratoř klinické biochemie a hematologie
+Výsledky laboratorních vyšetření
+Lipenská Věra, nar. 14.6.1958, r.č. 585614/4019, poj. 111
+Žádající: chirurgická ambulance, MUDr. Ondřej Habrman
+Odběr: 15.9.2026 07:30, příjem vzorku: 15.9.2026 07:55, vydáno: 15.9.2026 10:47
+Č. žádanky: S02-260915-01
+Primární vzorek: krev, sérum
+Krevní obraz:
+B_LKC: 6,88 10^9/l [4 ... 10]
+B_NEU: 4,41 10^9/l [2 ... 7]
+B_LYMFO: 0,74 10^9/l [0.8 ... 4]
+B_HB: 116 g/l [120 ... 160]
+B_PLT: 241 10^9/l [150 ... 400]
+Sérum, plazma - dusík. metab.:
+S_UREA: 9,8 mmol/l [2.9 ... 8.2]
+S_CREAE: 104 µmol/l [44 ... 80]
+Krev - minerály:
+S_NA: 133 mmol/l [136 ... 145]
+S_K: 3,38 mmol/l [3.5 ... 5.1]
+Sérum, plazma - jaterní testy:
+S_BIL: 6,9 µmol/l [0 ... 21]
+S_ALT: 0,29 µkat/l [0.17 ... 0.58]
+S_AST: 0,33 µkat/l [0.17 ... 0.58]
+S_GGT: 0,47 µkat/l [0.14 ... 0.68]
+S_ALP: 1,21 µkat/l [0.58 ... 1.74]
+Sérum, plazma - proteiny:
+S_ALB: 33,6 g/l [35 ... 52]
+S_HSCRP: 12,6 mg/l [0 ... 5]
+Sérum - nádorové markery:
+S_CEA: 2,9 µg/l [0 ... 5]
+S_CA199: 19,4 kU/l [0 ... 37]
+Hodnoty mimo referenční mez jsou vytištěny tučně.
+Uvolnila: Mgr. Petra Šindelářová, klinická biochemička
+SYNTETICKÝ DOKUMENT - fiktivní pacient, vytvořeno týmem CodeBridge pro Rakathon 2026 · strana 7

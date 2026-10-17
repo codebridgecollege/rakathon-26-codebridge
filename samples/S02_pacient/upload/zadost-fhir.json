@@ -1,0 +1,111 @@
+{
+  "resourceType": "Bundle",
+  "type": "collection",
+  "entry": [
+    {
+      "fullUrl": "urn:uuid:fbf10c3d-b4b7-5c16-9126-0544e7c4834f",
+      "resource": {
+        "resourceType": "Patient",
+        "identifier": [
+          {
+            "system": "https://ncez.mzcr.cz/fhir/sid/rcis",
+            "value": "585614/4019"
+          }
+        ],
+        "name": [
+          {
+            "use": "official",
+            "family": "Lipenská",
+            "given": [
+              "Věra"
+            ]
+          }
+        ],
+        "gender": "female",
+        "birthDate": "1958-06-14"
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:2955354b-7fd3-5066-9d5e-125aade54748",
+      "resource": {
+        "resourceType": "Organization",
+        "identifier": [
+          {
+            "system": "https://ncez.mzcr.cz/fhir/sid/kp",
+            "value": "111"
+          }
+        ],
+        "name": "Všeobecná zdravotní pojišťovna ČR"
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:c792dd7c-c2ad-5530-89e4-daf2717f46b2",
+      "resource": {
+        "resourceType": "Coverage",
+        "status": "active",
+        "beneficiary": {
+          "reference": "urn:uuid:fbf10c3d-b4b7-5c16-9126-0544e7c4834f"
+        },
+        "payor": [
+          {
+            "reference": "urn:uuid:2955354b-7fd3-5066-9d5e-125aade54748"
+          }
+        ]
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:ded4f4d8-46a7-58d6-ba06-2f7c7d620b70",
+      "resource": {
+        "resourceType": "Organization",
+        "name": "Chirurgická ambulance - koloproktologická poradna"
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:1f076117-cc6a-5822-a33a-2f0977767025",
+      "resource": {
+        "resourceType": "PractitionerRole",
+        "practitioner": {
+          "display": "MUDr. Ondřej Habrman"
+        },
+        "organization": {
+          "reference": "urn:uuid:ded4f4d8-46a7-58d6-ba06-2f7c7d620b70"
+        },
+        "telecom": [
+          {
+            "system": "email",
+            "value": "koloproktologie@example.org"
+          },
+          {
+            "system": "phone",
+            "value": "+420 596 000 111"
+          }
+        ]
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:b46c4430-d7fc-5ceb-bfca-0b571085efe1",
+      "resource": {
+        "resourceType": "ServiceRequest",
+        "status": "active",
+        "intent": "order",
+        "subject": {
+          "reference": "urn:uuid:fbf10c3d-b4b7-5c16-9126-0544e7c4834f"
+        },
+        "requester": {
+          "reference": "urn:uuid:1f076117-cc6a-5822-a33a-2f0977767025"
+        },
+        "authoredOn": "2026-10-08",
+        "reasonCode": [
+          {
+            "text": "Je po neoadjuvantní CHRT a nízké přední resekci rekta (ypT2 ypN0, R0) indikována adjuvantní chemoterapie? Jak dále došetřit vzestup CEA na 9,6 µg/l, je indikováno PET/CT? Kdy je vhodné zrušení protektivní ileostomie?"
+          }
+        ],
+        "note": [
+          {
+            "text": "Adenokarcinom rekta diag. 3/2026, cT3b cN1 cM0 (MR pánve 16.3.2026, CT 17.3.2026). Neoadjuvantní CHRT 4-5/2026, nízká přední resekce s TME a protektivní ileostomií 11.8.2026, histologie ypT2 ypN0 (0/14), R0. CEA po operaci 2,9 µg/l (15.9.2026), nyní vzestup na 9,6 µg/l (6.10.2026), CT hrudníku, břicha a pánve vyžádáno 7.10.2026, výsledek zatím není."
+          }
+        ]
+      }
+    }
+  ]
+}

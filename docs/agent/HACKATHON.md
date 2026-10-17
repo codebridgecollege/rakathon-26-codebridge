@@ -41,6 +41,15 @@ and [FHIR workshop and PHOENIX](../research/2026-10-16-talk-fhir-workshop-and-ph
   [`samples/S01_pacient/`](../../samples/README.md), the page images and
   Tesseract output in `data/derived/pages/S01_pacient/`, and the mock data
   in `mocks/src/data/mock-case-S01.json`.
+- **17 October 2026: our own synthetic patient `S02_pacient`.** A fully
+  fictional rectal cancer patient (neoadjuvant chemoradiotherapy, low
+  anterior resection, a rising CEA over four lab sheets) for the intake
+  demo: a FHIR referral is imported in "Nový pacient" and the documents
+  are uploaded one PDF each. Our work made during the event, not FNO
+  data: the sources, the combined PDF, the upload PDFs and the FHIR
+  referral are in [`samples/S02_pacient/`](../../samples/README.md), the
+  page images and Tesseract output in `data/derived/pages/S02_pacient/`,
+  and the mock data in `mocks/src/data/mock-case-S02.json`.
 
 ## Infrastructure
 
@@ -198,6 +207,8 @@ Declare this list to the jury and mentors.
 - Claude Code also wrote the synthetic patient `S01_pacient`
   ([`samples/README.md`](../../samples/README.md)), rendered to PDF with
   PyMuPDF and Python-Markdown 3.7 (`scripts/render_samples.py`).
+- Claude Code also wrote the synthetic patient `S02_pacient` the same way,
+  with the Liberation Sans 2.1.5 fonts from the liberation-fonts release.
 - (Add the LLMs, libraries, and datasets as we adopt them.)
 
 

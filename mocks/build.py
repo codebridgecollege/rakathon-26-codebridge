@@ -26,6 +26,7 @@ edition valid on each decision's date (`guidelines-case-10-past-historic.json`).
 import json
 import re
 import shutil
+import zipfile
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -160,6 +161,28 @@ def synthetic_cases() -> str:
     return json.dumps([json.loads(f.read_text()) for f in sorted(DATA.glob("mock-case-S*.json"))], ensure_ascii=False)
 
 
+def intake_zips() -> list[str]:
+    """Pack each intake demo patient's upload folder (`samples/S<nn>_pacient/upload/`) into `mocks/ukazka/S<nn>-dokumenty.zip`.
+
+    The presenter, or a visitor of the published mock, downloads it from the "Nový pacient" dialog and drops the
+    files in. Fixed timestamps keep the ZIP byte-identical between builds, so it changes in git only when a file does.
+    """
+    written = []
+    for case in sorted(DATA.glob("mock-case-S*.json")):
+        if not json.loads(case.read_text()).get("intake_demo"):
+            continue
+        sid = case.stem.removeprefix("mock-case-")
+        folder = HERE.parent / "samples" / f"{sid}_pacient" / "upload"
+        target = HERE / "ukazka" / f"{sid}-dokumenty.zip"
+        target.parent.mkdir(exist_ok=True)
+        with zipfile.ZipFile(target, "w", zipfile.ZIP_DEFLATED) as z:
+            for f in sorted(folder.iterdir()):
+                if f.is_file():
+                    z.writestr(zipfile.ZipInfo(f.name, date_time=(2026, 10, 17, 0, 0, 0)), f.read_bytes(), zipfile.ZIP_DEFLATED)
+        written.append(str(target.relative_to(HERE.parent)))
+    return written
+
+
 def main() -> None:
     parts = {
         "/*GLIDE_LOGO_PNG*/": "data:image/png;base64," + (HERE / "src" / "brand" / "glide-logo.base64").read_text().strip(),
@@ -184,6 +207,8 @@ def main() -> None:
         (HERE / f"{version}.html").write_text(page)
         print(f"wrote mocks/{version}.html ({len(page)} bytes)")
     print(f"copied {copy_page_images()} page images to mocks/pages/")
+    for z in intake_zips():
+        print(f"wrote {z}")
 
 
 if __name__ == "__main__":

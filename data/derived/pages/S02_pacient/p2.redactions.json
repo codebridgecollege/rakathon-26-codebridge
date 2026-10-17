@@ -1,0 +1,38 @@
+[
+ {
+  "reason": "jméno pacienta",
+  "box": [
+   120,
+   111,
+   89,
+   20
+  ]
+ },
+ {
+  "reason": "jméno pacienta",
+  "box": [
+   215,
+   111,
+   49,
+   18
+  ]
+ },
+ {
+  "reason": "rodné číslo",
+  "box": [
+   450,
+   112,
+   124,
+   18
+  ]
+ },
+ {
+  "reason": "jméno lékaře",
+  "box": [
+   184,
+   914,
+   60,
+   20
+  ]
+ }
+]

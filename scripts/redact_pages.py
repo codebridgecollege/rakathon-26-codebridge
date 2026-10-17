@@ -122,6 +122,8 @@ def main() -> None:
     # "Poláček Daniel" and "Daniel Poláček" are both found.
     known = [p.get("name") for p in json.loads(names_file.read_text())]
     known.append(json.loads(case_file.read_text())["patient"]["name"])
+    # Our synthetic patients (mock-case-S<nn>.json) are not in the patient list, so their names come from their case files.
+    known += [json.loads(f.read_text())["list_entry"]["name"] for f in sorted(case_file.parent.glob("mock-case-S*.json"))]
     names = {fold(part) for n in known if n for part in n.split() if len(part) > 2}
     total = 0
     for tsv in sorted(pages_dir.glob("*/p*.tess.tsv")):

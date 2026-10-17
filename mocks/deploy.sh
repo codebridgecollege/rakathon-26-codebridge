@@ -14,6 +14,8 @@ trap 'rm -rf "$OUT"' EXIT
 mkdir "$OUT/public"
 cp mocks/v3.html "$OUT/public/index.html"
 cp -R mocks/pages "$OUT/public/pages"
+# The intake demo patient's documents as a ZIP, linked from the "Nový pacient" dialog.
+cp -R mocks/ukazka "$OUT/public/ukazka"
 # Wrangler picks up Pages Functions from ./functions next to where it runs.
 cp -R mocks/functions "$OUT/functions"
 # Without a 404 page, Pages answers every unknown path with the app; a real 404 keeps old links from looking alive.

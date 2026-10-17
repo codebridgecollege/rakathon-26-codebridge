@@ -67,6 +67,23 @@ data from `data/rakathon-26/`. The JSON was corrected by hand after two
 reviews (OCR misreads, a planned dose shown as done, negation tags), so
 re-running the scripts would undo those fixes. Edit the JSON instead.
 
+## New patient from FHIR and uploaded documents
+
+Synthetic patient S02 (Věra Lipenská, rectal cancer, `samples/S02_pacient`) is the demo of a new referral. Her
+`mock-case-S02.json` has `intake_demo: true`, so she is not in the patient database until someone creates her:
+
+1. "+ Nový pacient", "Import z FHIR", then "Vložit ukázku" (or choose `samples/S02_pacient/upload/zadost-fhir.json`)
+   and "Načíst". Tick the GDPR consent and continue.
+2. Drop the seven PDFs from `samples/S02_pacient/upload/` into "Dokumenty": the outpatient report, the biopsy and
+   resection histology, and four lab sheets. The dialog links them as `ukazka/S02-dokumenty.zip`, which
+   `build.py` packs and `deploy.sh` publishes.
+3. "Zpracovat", then "Přidat do databáze": the patient opens with her documents, missing documents and the lab
+   trend (CEA 14,8 → 5,8 → 2,9 → 9,6 µg/l).
+
+The documents were read and extracted in advance, like every case in the mock; the dialog recognises them by
+file name and attaches that record only when the birth number from the form matches and all seven are uploaded.
+Any other upload makes an empty record, as before.
+
 ## Source view and page images
 
 Clicking a reference [n] or "zdroj" opens the document viewer: the page

@@ -1129,6 +1129,25 @@ const extraOthers = Object.fromEntries([...(EXTRA.others || []), ...SYN.map(s =>
 const nr = file => String(file).replace("_pacient.pdf", "");
 const caseId = file => `NO-${nr(file).padStart(3, "0")}`;
 const ownerFor = i => DEPTS[i % 2 === 0 ? 1 : 0][1][i % 2];
+/* One patient-list entry (FNO's list or a synthetic patient's list_entry) as a database record. */
+function listPatient(o, slot) {
+  const ex = extraOthers[o.file] || {};
+  const hasQ = o.mdt_question_cs && o.mdt_question_explicit !== false;
+  return {
+    file: o.file, name: o.name, rc: o.rc || null, synthetic: !!SYN_BY_FILE[o.file]?.synthetic_patient,
+    birth: /\d{1,2}\.\d{1,2}\.\d{4}/.test(o.age_or_birth || "") ? o.age_or_birth.replace(/^nar\.\s*/, "") : null,
+    age: /let/.test(o.age_or_birth || "") ? o.age_or_birth : null,
+    /* warn is for a real identity doubt; a form with first name and surname swapped is a neutral note (round 22). */
+    warn: /ověřit identitu/i.test(o.note || "") ? o.note : null,
+    nameNote: o.name_note_cs ? { text: o.name_note_cs, src: o.name_note_source } : null,
+    diagnosis: ex.diagnosis_cs || o.main_problem_cs, mkn10: ex.mkn10 || null,
+    question: hasQ ? o.mdt_question_cs : null, purpose: o.mdt_question_cs, explicit: !!hasQ,
+    draft: hasQ ? null : o.question_draft_cs || null, qkind: hasQ ? null : o.question_kind || null, basis: hasQ ? null : o.question_basis || null,
+    summary: o.one_line_summary_cs, pages: o.page_count,
+    referrer: ex.referring_doctor || null, dept: ex.referring_department || null,
+    status: !slot ? "new" : /ověřit identitu|useknut/i.test(o.note || "") ? "attention" : "scheduled", slot, updated: "2026-10-15",
+  };
+}
 function initialPatients() {
   const p10 = {
     file: CASE.file, name: CASE.patient.name, nameAsWritten: CASE.patient.name_as_written, rc: CASE.patient.birth_number || null, birth: CASE.patient.birth_date || null, age: CASE.patient.age || null,
@@ -1140,26 +1159,9 @@ function initialPatients() {
     status: "ready", slot: { day: "2026-10-22", time: "14:00" }, updated: "2026-10-16", full: true,
   };
   const slots = [["2026-10-22", "14:10"], ["2026-10-22", "14:20"], ["2026-10-22", "14:30"], ["2026-10-22", "14:40"], null, ["2026-10-22", "14:50"], null, ["2026-10-22", "15:00"], null];
-  /* Synthetic patients join the list after FNO's patients; they have no example slot, so they start unscheduled. */
-  const others = [...OTHERS, ...SYN.map(s => s.list_entry)].map((o, i) => {
-    const ex = extraOthers[o.file] || {};
-    const slot = slots[i] ? { day: slots[i][0], time: slots[i][1] } : null;
-    const hasQ = o.mdt_question_cs && o.mdt_question_explicit !== false;
-    return {
-      file: o.file, name: o.name, synthetic: !!SYN_BY_FILE[o.file]?.synthetic_patient,
-      birth: /\d{1,2}\.\d{1,2}\.\d{4}/.test(o.age_or_birth || "") ? o.age_or_birth.replace(/^nar\.\s*/, "") : null,
-      age: /let/.test(o.age_or_birth || "") ? o.age_or_birth : null,
-      /* warn is for a real identity doubt; a form with first name and surname swapped is a neutral note (round 22). */
-      warn: /ověřit identitu/i.test(o.note || "") ? o.note : null,
-      nameNote: o.name_note_cs ? { text: o.name_note_cs, src: o.name_note_source } : null,
-      diagnosis: ex.diagnosis_cs || o.main_problem_cs, mkn10: ex.mkn10 || null,
-      question: hasQ ? o.mdt_question_cs : null, purpose: o.mdt_question_cs, explicit: !!hasQ,
-      draft: hasQ ? null : o.question_draft_cs || null, qkind: hasQ ? null : o.question_kind || null, basis: hasQ ? null : o.question_basis || null,
-      summary: o.one_line_summary_cs, pages: o.page_count,
-      referrer: ex.referring_doctor || null, dept: ex.referring_department || null,
-      status: !slot ? "new" : /ověřit identitu|useknut/i.test(o.note || "") ? "attention" : "scheduled", slot, updated: "2026-10-15",
-    };
-  });
+  /* Synthetic patients join the list after FNO's patients; they have no example slot, so they start unscheduled.
+     An intake demo patient (samples/S02_pacient) is left out: it enters through "Nový pacient" (FHIR import and upload). */
+  const others = [...OTHERS, ...SYN.filter(s => !s.intake_demo).map(s => s.list_entry)].map((o, i) => listPatient(o, slots[i] ? { day: slots[i][0], time: slots[i][1] } : null));
   return [p10, ...others].map((p, i) => ({
     ...p, id: caseId(p.file),
     owner: p.referrer || ownerFor(i), ownerExample: !p.referrer,
@@ -3262,6 +3264,38 @@ function fhirImport(o, text) {
     logAccess(null, "importoval(a) žádost o konzultaci z FHIR");
   } catch (err) { o.fhirMsg = `Import se nezdařil: ${err.message}`; }
 }
+/* The intake demo patient (samples/S02_pacient) is created through this form: its referral comes in as FHIR and its
+   documents are uploaded one file each. Like every case in the mock, those documents were read and extracted in advance,
+   so the form recognises them by file name and, once all are uploaded, attaches that prepared record to the new patient.
+   Any other file is only listed, as before. */
+const rcKey = v => String(v || "").replace("/", "");
+function intakeOf(o) {
+  const rc = rcKey(o.form?.nf2), s = rc && SYN.find(x => x.intake_demo && rcKey(x.list_entry.rc) === rc);
+  if (!s) return null;
+  const names = new Set((o.files || []).map(f => f.name)), docs = (s.documents || []).filter(d => d.upload_name);
+  /* The birth number alone must not join a differently named person to these documents (CLAUDE.md: never merge
+     patients silently), so the name in the form has to match the documents too, in either order. */
+  const norm = v => String(v || "").toLocaleLowerCase("cs").split(/\s+/).filter(Boolean).sort().join(" ");
+  const nameOk = norm([o.form?.nf0, o.form?.nf1].join(" ")) === norm(s.list_entry.name);
+  const missing = docs.filter(d => !names.has(d.upload_name)), exists = S.patients.some(x => x.file === s.file);
+  return { s, docs, nameOk, exists, missing, have: docs.filter(d => names.has(d.upload_name)), ready: nameOk && !exists && !missing.length };
+}
+function newUploads(files) {
+  const o = S.overlay; if (o?.kind !== "new" || !files?.length) return;
+  const have = new Set((o.files || []).map(f => f.name)), fresh = [...files].filter(f => !have.has(f.name));
+  o.files = [...(o.files || []), ...fresh.map(f => ({ name: f.name, size: f.size }))];
+  if (fresh.length < files.length) toast(`Už nahráno: ${[...files].filter(f => have.has(f.name)).map(f => f.name).join(", ")}`);
+  renderOverlay();
+}
+function newFilesHtml(o) {
+  const ik = intakeOf(o), fs = o.files || [];
+  const kind = f => ik?.docs.find(d => d.upload_name === f.name)?.title_cs;
+  return `<label class="upzone" data-upzone="new" style="margin:0"><input type="file" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.odt,.zip,application/pdf" data-newupload="1"><b>Přetáhněte dokumenty sem</b><span class="small muted">nebo klikněte a vyberte (PDF, DOC/DOCX, XLS/XLSX, ODT nebo ZIP, nejvýše 20 MB)</span></label>
+    ${fs.length ? `<ul class="uplist">${fs.map((f, i) => `<li><span class="nm" title="${esc(f.name)}">${esc(f.name)}</span><span class="small muted">${esc(fmtSize(f.size))}${kind(f) ? ` · ${esc(kind(f))}` : ""}</span><span class="chip plain st-done">Nahráno</span><button class="btn small" data-delnew="${i}" aria-label="Odebrat ${esc(f.name)}">✕</button></li>`).join("")}</ul>` : ""}
+    ${!ik ? "" : !ik.nameOk ? `<p class="fwarn" role="alert" style="margin:0">Jméno v žádosti se neshoduje se jménem v dokumentech ukázkového pacienta (${esc(ik.s.list_entry.name)}). Dokumenty se k tomuto záznamu nepřipojí.</p>`
+      : ik.exists ? `<p class="fwarn" role="alert" style="margin:0">Ukázkový pacient ${esc(ik.s.list_entry.name)} už v databázi je; nový záznam zůstane bez zpracovaných dokumentů.</p>`
+      : ik.missing.length ? `<p class="muted small" style="margin:0">Ukázkový pacient: ${ik.have.length ? `chybí ještě ${ik.missing.length} z ${ik.docs.length} dokumentů` : `nahrajte ${ik.docs.length} dokumentů (PDF)`} ze složky samples/${esc(ik.s.file.replace(/\.pdf$/, ""))}/upload, nebo <a href="ukazka/${esc(ik.s.file.split("_")[0])}-dokumenty.zip" download>stáhněte ZIP</a>, rozbalte ho a nahrajte jednotlivé PDF.</p>` : ""}`;
+}
 function renderOverlay() {
   const o = S.overlay, el = document.getElementById("overlay");
   if (!o) { el.innerHTML = ""; return; }
@@ -3363,12 +3397,13 @@ function renderOverlay() {
           <label class="full">Otázka na NOCO (otázka pro MDT) <span class="fhint">nepovinné, lze doplnit později v detailu pacienta</span><textarea class="input" id="nfq" autocomplete="off" style="min-height:60px">${esc(f.nfq || "")}</textarea></label>
           <div class="full"><label style="display:flex;gap:8px;align-items:center;font-weight:500"><input type="checkbox" id="nfg" ${f.nfg ? "checked" : ""} ${inv("nfg")}> Souhlasím, aby FNO použila uvedené osobní údaje ke zpracování požadavku, dle GDPR. *</label>${msg("nfg")}</div></div>
         <div class="row" style="justify-content:flex-end"><button class="btn primary" data-act="newnext">Pokračovat</button></div>`
-      : step === 1 ? `<div class="drop">Přetáhněte PDF, DOC/DOCX, XLS/XLSX, ODT nebo ZIP (nejvýše 20 MB)<br><button class="btn small" style="margin-top:8px" data-act="fakeupload">Vybrat soubory</button></div>
-        ${o.uploaded ? `<p class="small" style="margin:0">Nahráno: <b>propousteci_zprava.pdf</b>, <b>MR_mozku_zaver.pdf</b></p>` : ""}
-        <div class="row" style="justify-content:flex-end"><button class="btn" data-act="newback">Zpět</button><button class="btn primary" data-act="newnext" ${o.uploaded ? "" : "disabled"}>Zpracovat</button></div>`
+      : step === 1 ? `${newFilesHtml(o)}
+        <div class="row" style="justify-content:flex-end"><button class="btn" data-act="newback">Zpět</button><button class="btn primary" data-act="newnext" ${(o.files || []).length ? "" : "disabled"}>Zpracovat</button></div>`
       : `<ul class="pipeline">${pipe.map((t, i) => `<li class="${i < o.progress ? "" : i === o.progress ? "run" : "wait"}">${i < o.progress ? "✓" : i === o.progress ? "…" : "○"} ${t}</li>`).join("")}</ul>
         <p class="small" style="margin:0">Před extrakcí se jméno a rodné číslo nahradí ID případu; jazykový model vidí jen pseudonymizovaný text. Převodní tabulka zůstává na serveru nemocnice.</p>
-        ${o.progress >= pipe.length ? `<p class="small" style="margin:0"><b>Hotovo.</b> Jedna strana je špatně čitelná; aplikace by odesílajícího lékaře požádala o lepší kopii (v maketě se nic neodesílá).</p>
+        ${o.progress >= pipe.length ? `<p class="small" style="margin:0"><b>Hotovo.</b> ${(() => { const ik = intakeOf(o); return ik?.ready
+          ? `Zpracováno ${plural(ik.docs.length, "dokument", "dokumenty", "dokumentů")} (${esc(ik.s.list_entry.page_count)} s.), všechny dobře čitelné. Chybějící podklady: ${(ik.s.data_gaps || []).length}, ukážou se v detailu pacienta.`
+          : "Dokumenty jsou nahrané. Maketa zpracovává jen připravené dokumenty ukázkového pacienta, tento záznam zůstane bez extrakce."; })()}</p>
           <div class="row" style="justify-content:flex-end"><button class="btn primary" data-act="newdone">Přidat do databáze</button></div>` : ""}`}
     </div>`;
   }
@@ -3462,7 +3497,7 @@ document.addEventListener("click", e => {
   hideTip();
   if (S.colOpen && !e.target.closest(".fpop,[data-colopen]")) { S.colOpen = null; render(); return; }
   if (S.stOpen && !e.target.closest(".stpop,[data-stmenu]")) { S.stOpen = null; render(); return; }
-  const t = e.target.closest("[data-stmenu],[data-setst],[data-dbpage],[data-guide],[data-colopen],[data-colclose],[data-colall],[data-wk],[data-jump],[data-mm],[data-calclose],[data-labsel],[data-edit],[data-scope],[data-addatt],[data-delatt],[data-staffdel],[data-staffadd],[data-startday],[data-startgo],[data-sesgo],[data-nav],[data-open],[data-tab],[data-src],[data-close],[data-page],[data-vtab],[data-zoom],[data-zoomstep],[data-zoomhit],[data-tl-category],[data-tl],[data-alact],[data-sched],[data-pick],[data-free],[data-slot],[data-unsched],[data-act],[data-mode],[data-delstep],[data-delup],[data-recretry],[data-pgpanel],[data-pgref],[data-done],[data-suggok],[data-suggno]");
+  const t = e.target.closest("[data-stmenu],[data-setst],[data-dbpage],[data-guide],[data-colopen],[data-colclose],[data-colall],[data-wk],[data-jump],[data-mm],[data-calclose],[data-labsel],[data-edit],[data-scope],[data-addatt],[data-delatt],[data-staffdel],[data-staffadd],[data-startday],[data-startgo],[data-sesgo],[data-nav],[data-open],[data-tab],[data-src],[data-close],[data-page],[data-vtab],[data-zoom],[data-zoomstep],[data-zoomhit],[data-tl-category],[data-tl],[data-alact],[data-sched],[data-pick],[data-free],[data-slot],[data-unsched],[data-act],[data-mode],[data-delstep],[data-delup],[data-delnew],[data-recretry],[data-pgpanel],[data-pgref],[data-done],[data-suggok],[data-suggno]");
   if (!t) return;
   const d = t.dataset;
   if (d.stmenu) { S.stOpen = S.stOpen === d.stmenu ? null : d.stmenu; render(); }
@@ -3543,6 +3578,7 @@ document.addEventListener("click", e => {
   else if (d.unsched) unschedule(d.unsched);
   else if (d.mode) { curProto().mode = d.mode; render(); }
   else if (d.recretry !== undefined) recPostPass(S.pid, S.rec.tx[S.pid]?.passes[+d.recretry]);
+  else if (d.delnew) { S.overlay.files.splice(+d.delnew, 1); renderOverlay(); }
   else if (d.delup) { if (!canUpload(P(S.pid))) return; const pr = curProto(), u = pr.uploads.splice(+d.delup, 1)[0]; logAccess(S.pid, `odebral(a) nahraný dokument ${u.name}`); render(); }
   else if (d.delstep !== undefined) { curProto().steps.splice(+d.delstep, 1); render(); }
   else if (d.suggok || d.suggno) confirmSugg(+(d.suggok || d.suggno), !!d.suggok);
@@ -3578,9 +3614,9 @@ function action(a) {
     if (a === "fhircopy") navigator.clipboard?.writeText(json).then(() => toast("Zkopírováno do schránky"), () => toast("Kopírování se nepodařilo; označte text ručně"));
     else { const u = URL.createObjectURL(new Blob([json], { type: "application/fhir+json" })), l = document.createElement("a"); l.href = u; l.download = `${o.id}-fhir-r4.json`; document.body.appendChild(l); l.click(); l.remove(); setTimeout(() => URL.revokeObjectURL(u), 1000); }
   }
-  else if (a === "newpatient") { S.overlay = { kind: "new", step: 0, uploaded: false, progress: 0 }; renderOverlay(); }
+  else if (a === "newpatient") { S.overlay = { kind: "new", step: 0, files: [], progress: 0 }; renderOverlay(); }
   else if (a === "fhiropen" || a === "fhirclose") { const o = S.overlay; readNewForm(o); o.fhirOpen = a === "fhiropen"; o.fhirMsg = ""; renderOverlay(); }
-  else if (a === "fhirsample") { const o = S.overlay; readNewForm(o); o.fhirText = JSON.stringify(FHIR_SAMPLE, null, 2); renderOverlay(); }
+  else if (a === "fhirsample") { const o = S.overlay; readNewForm(o); o.fhirText = JSON.stringify(SYN.find(x => x.intake_demo)?.fhir_referral || FHIR_SAMPLE, null, 2); renderOverlay(); }
   else if (a === "fhirimport") { const o = S.overlay; const t = document.getElementById("nffhir")?.value || ""; readNewForm(o); o.fhirText = t; fhirImport(o, t); renderOverlay(); }
   else if (a === "newnext") {
     const o = S.overlay;
@@ -3611,11 +3647,21 @@ function action(a) {
     S.overlay.dupOk = (document.getElementById("nf2")?.value.trim() || "").replace("/", ""); action("newnext");
   }
   else if (a === "opendup") { const f = S.overlay.dup; S.overlay = null; renderOverlay(); openPatient(f); }
-  else if (a === "fakeupload") { S.overlay.uploaded = true; renderOverlay(); }
   else if (a === "newdone") {
     const n = S.patients.length + 11;
     /* Identity and the optional question come from the form; everything else waits for the documents. */
-    const f = S.overlay.form || {};
+    const f = S.overlay.form || {}, ik = intakeOf(S.overlay);
+    /* The intake demo patient with all its documents gets its prepared record (once: a second copy would share its file). */
+    if (ik?.ready) {
+      const base = listPatient(ik.s.list_entry, null);
+      const p = { ...base, id: caseId(ik.s.file), name: [f.nf0, f.nf1].filter(Boolean).join(" ") || base.name, rc: f.nf2 || base.rc,
+        question: f.nfq || base.question, purpose: base.purpose || f.nfq || null, explicit: !!(f.nfq || base.question),
+        owner: f.nf4 || ik.s.list_entry.owner || S.user, dept: f.nf5 || null, submitted: TODAY, updated: TODAY };
+      S.patients.push(p);
+      if (f.nf2 && S.overlay.dupOk === rcKey(f.nf2)) logAccess(p.file, "vytvořil(a) nový záznam, přestože rodné číslo už v databázi je");
+      logAccess(p.file, `vytvořil(a) pacienta z žádosti FHIR a ${plural(ik.docs.length, "nahraného dokumentu", "nahraných dokumentů", "nahraných dokumentů")}`);
+      S.overlay = null; renderOverlay(); toast(`Pacient ${p.id} přidán do databáze`); openPatient(p.file); return;
+    }
     S.patients.push({ file: `${n}_novy`, id: `NO-${String(n).padStart(3, "0")}`, name: [f.nf0, f.nf1].filter(Boolean).join(" ") || "Nový pacient", rc: f.nf2 || null, birth: null, diagnosis: "Čeká na kontrolu lékařem", mkn10: null, question: f.nfq || null, purpose: null, explicit: !!f.nfq, status: "new", slot: null, updated: "2026-10-16", submitted: TODAY, owner: f.nf4 || S.user, dept: f.nf5 || null, summary: "Ukázkový záznam vytvořený v maketě.", pages: 2 });
     /* A second record for a known birth number is a deliberate choice; the access log keeps who made it. */
     if (f.nf2 && S.overlay.dupOk === f.nf2.replace("/", "")) logAccess(`${n}_novy`, "vytvořil(a) nový záznam, přestože rodné číslo už v databázi je");
@@ -3787,7 +3833,7 @@ document.addEventListener("drop", e => {
 const isFileDrag = e => [...(e.dataTransfer?.types || [])].includes("Files");
 document.addEventListener("dragover", e => { const z = e.target.closest?.("[data-upzone]"); if (z && isFileDrag(e)) { e.preventDefault(); e.dataTransfer.dropEffect = "copy"; z.classList.add("drop"); } });
 document.addEventListener("dragleave", e => { const z = e.target.closest?.("[data-upzone]"); if (z && !z.contains(e.relatedTarget)) z.classList.remove("drop"); });
-document.addEventListener("drop", e => { const z = e.target.closest?.("[data-upzone]"); if (!z || !isFileDrag(e)) return; e.preventDefault(); addUploads(e.dataTransfer.files); });
+document.addEventListener("drop", e => { const z = e.target.closest?.("[data-upzone]"); if (!z || !isFileDrag(e)) return; e.preventDefault(); if (z.dataset.upzone === "new") newUploads(e.dataTransfer.files); else addUploads(e.dataTransfer.files); });
 /* Column resizing in the patients table (round 16): the first drag freezes the current widths, then only the
    dragged column changes; widths live in S.colW for the session. */
 document.addEventListener("pointerdown", e => {
@@ -3806,6 +3852,7 @@ document.addEventListener("change", e => {
   const t = e.target;
   if (t.id === "user") { S.user = t.value; if (S.view === "admin" && t.value !== ADMIN) S.view = "patients"; render(); }
   else if (t.dataset.upload) addUploads(t.files);
+  else if (t.dataset.newupload) newUploads(t.files);
   else if (t.dataset.fhirfile && t.files[0]) { const o = S.overlay; readNewForm(o); t.files[0].text().then(x => { o.fhirText = x; fhirImport(o, x); renderOverlay(); }); }
   else if (t.dataset.staff) staffEdit(t);
   else if (t.dataset.actToggle === "guide") { S.guideOn = t.checked; render(); }
