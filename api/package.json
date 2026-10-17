@@ -2,7 +2,9 @@
   "name": "codebridge-api",
   "private": true,
   "type": "module",
-  "engines": { "node": ">=22" },
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "stage": "bash scripts/stage-assets.sh",
     "dev": "npm run stage && wrangler dev",
@@ -10,7 +12,12 @@
     "typecheck": "tsc --noEmit && tsc --noEmit -p test",
     "pretest": "node -e \"require('fs').mkdirSync('.assets',{recursive:true})\"",
     "test": "vitest run",
-    "deploy": "npm run stage && wrangler deploy"
+    "deploy": "npm run stage && wrangler deploy",
+    "seed:local": "uv run seed/seed.py --target local --reset",
+    "seed:remote": "uv run seed/seed.py --target remote",
+    "seed:remote:reset": "uv run seed/seed.py --target remote --reset",
+    "migrate:local": "wrangler d1 migrations apply codebridge-mdt --local",
+    "migrate:remote": "wrangler d1 migrations apply codebridge-mdt --remote"
   },
   "dependencies": {
     "hono": "4.13.13",
