@@ -1698,12 +1698,15 @@ function viewCalendar() {
     }
   }
   const pop = S.calPop && P(S.calPop);
+  /* The card shows the extracted brief only when the case data is already loaded: opening the card is not opening the
+     case, so it never starts a load (and never writes a server access-log row). */
+  const pcd = pop ? readyData(pop) : null;
   const card = pop ? `<div class="minicard" id="minicard"><div class="row spread"><span class="label">Pacient</span>${statusChip(pop)}</div>
       <h2>${esc(surnameFirst(pop))}</h2>
       <div class="facts" style="margin:0"><span>RČ: <b>${esc(pop.rc || "-")}</b></span>${ageNum(pop) ? `<span>Věk: <b>${esc(ageNum(pop))}</b></span>` : ""}<span>Termín: <b>${esc(slotText(pop))}</b></span><span>Vlastník: <b>${esc(pop.owner)}</b></span></div>
-      <div><span class="label">Diagnóza</span><p style="margin:2px 0 0;font-weight:700">${esc(pop.full ? dxHeadlineText() : pop.diagnosis)}</p></div>
+      <div><span class="label">Diagnóza</span><p style="margin:2px 0 0;font-weight:700">${esc(dxHeadlineText(pop, pcd))}</p></div>
       ${(() => { const qi = questionInner(pop, false); return `<div class="question ${qi.cls}" style="padding:8px 12px"><span class="label">Otázka pro MDT</span><p style="font-size:14px">${qi.html}</p></div>`; })()}
-      ${pop.full ? `<p class="small" style="margin:0">${esc(briefPlain().slice(0, 260))}…${edOf("brief", CASE.file) ? " (upraveno lékařem)" : ""}</p>` : `<p class="small" style="margin:0">${esc(pop.summary || "")}</p>`}
+      ${pcd?.brief?.text_cs ? `<p class="small" style="margin:0">${esc(briefPlain(pop, pcd).slice(0, 260))}…${edOf("brief", pop.file) ? " (upraveno lékařem)" : ""}</p>` : `<p class="small" style="margin:0">${esc(pop.summary || "")}</p>`}
       <div class="row" style="gap:6px"><button class="btn primary" data-open="${esc(pop.file)}">Otevřít případ</button>${slotLocked(pop) ? `<button class="btn" disabled title="${esc(LOCK_WHY)}">Uvolnit termín</button>` : `<button class="btn" data-pick="${esc(pop.file)}">Změnit termín</button><button class="btn" data-unsched="${esc(pop.file)}">Uvolnit termín</button>`}<button class="btn" data-calclose="1" aria-label="Zavřít kartu" style="margin-left:auto">✕</button></div>${slotLocked(pop) ? `<p class="muted small lockwhy" style="margin:0">${esc(LOCK_WHY)}</p>` : ""}</div>` : "";
   const end = addDays(S.week, 4);
   return `<div class="page">
@@ -1729,21 +1732,17 @@ function viewCalendar() {
 /* ---------- 3. Patient detail ---------- */
 const R3 = i => (EXTRA.refs || [])[i];
 /* v3 brief in the clinicians' own compact style, staging first (round 4); v2 keeps its own brief. */
-let BRIEF_CS, BRIEF_REFS;
-/* Recomputed when EXTRA is replaced by the server's copy; every other reader of EXTRA reads it lazily. */
-function deriveFromExtra() {
-  BRIEF_CS = EXTRA.onco_summary_v3_cs || EXTRA.onco_brief_v3_cs || EXTRA.onco_brief_cs;
-  BRIEF_REFS = EXTRA.onco_summary_v3_refs || EXTRA.onco_brief_v3_refs || EXTRA.onco_brief_refs;
-}
-deriveFromExtra();
+/* The i-th indexed source of a case (CaseData.refs). */
+const refAt = (cd, i) => (cd?.refs || [])[i];
 const DXH = () => EXTRA.diagnosis_headline || null;
 /* Soňa: the first line is histology + grade + staging; the MKN code is for reporting and goes below. */
 /* The TNM is the stage at diagnosis; every place that shows the headline says so, and keeps the OCR flag. */
-function dxHeadlineText(forReport = false) {
-  const d = DXH(); if (!d) return P(CASE.file).diagnosis;
+/* Without an extracted headline the list row's diagnosis is shown. */
+function dxHeadlineText(p, cd, forReport = false) {
+  const d = cd?.brief?.dx_headline; if (!d) return p.diagnosis;
   const base = [d.histology_cs, d.grade_cs, d.tnm_cs].filter(Boolean).join(", ");
-  const txt = forReport ? edRep("dx", base, CASE.file) : edText("dx", base, CASE.file);
-  return `${txt}${!forReport && edOf("dx", CASE.file) ? " (upraveno lékařem)" : ""}${d.tnm_context_cs ? `; ${d.tnm_context_cs}` : ""}${d.ocr_note_cs && !ocrCleared(d) && !edOf("dx", CASE.file) ? " [ověřit čtení]" : ""}`;
+  const txt = forReport ? edRep("dx", base, p.file) : edText("dx", base, p.file);
+  return `${txt}${!forReport && edOf("dx", p.file) ? " (upraveno lékařem)" : ""}${d.tnm_context_cs ? `; ${d.tnm_context_cs}` : ""}${d.ocr_note_cs && !ocrCleared(d) && !edOf("dx", p.file) ? " [ověřit čtení]" : ""}`;
 }
 /* The MDT question (team decision 2026-10-17): the referral's explicit question as written; otherwise the assistant's
    draft, labelled as a draft until a named doctor confirms or edits it; the gap wording only when there is neither.
@@ -1784,7 +1783,7 @@ function questionInner(p, full = true) {
   const confirm = full && q.mode === 'draft' && isDoctor(S.user) ? '<button class="btn small" data-act="confirmq" style="margin-top:6px">Potvrdit otázku</button>' : '';
   return { cls: q.mode === 'none' ? 'missing' : '', html: body, quote: '', confirm, filled: q.mode !== 'none' };
 }
-const briefPlain = () => edText("brief", (BRIEF_CS || "").replace(/\s*\[\d+\]/g, ""), CASE.file);
+const briefPlain = (p, cd) => edText("brief", (cd?.brief?.text_cs || "").replace(/\s*\[\d+\]/g, ""), p.file);
 function patientHeader(p, extraActions = "", withQuestion = false) {
   return `<div class="card patient-identity"><div class="phead">
       <div><div class="row"><span class="label">${p.id}</span>${statusMenu(p)}${p.synthetic ? SYN_CHIP : ""}</div>
@@ -1869,17 +1868,18 @@ function topAlerts() {
   const open = all.filter(f => f.st === "open");
   return { top: open.filter(f => f.relevant), all, open, resolved: all.filter(f => f.st === "resolved"), archived: all.filter(f => f.st !== "open") };
 }
-function briefHtml(reg) {
-  if (edOf("brief")) return ed("brief", briefPlain());
-  const html = linkProse(BRIEF_CS || "", BRIEF_REFS, reg).replace(/\n/g, "<br><br>");
-  return ed("brief", (BRIEF_CS || "").replace(/\s*\[\d+\]/g, ""), { html });
+function briefHtml(p, cd, reg) {
+  if (edOf("brief", p.file)) return ed("brief", briefPlain(p, cd));
+  const text = cd?.brief?.text_cs || "";
+  const html = linkProse(text, cd?.brief?.refs, reg).replace(/\n/g, "<br><br>");
+  return ed("brief", text.replace(/\s*\[\d+\]/g, ""), { html });
 }
 const srcList = (reg, label = "Zdroje") => reg.list.length ? `<details class="srcs"><summary>${label} (${reg.list.length})</summary>${reg.html()}</details>` : "";
 /* Overview order (Soňa, round 2): MDT brief, then the question, then the conclusion; details below. */
-function reasonHtml(reg) {
-  if (!EXTRA.mdt_reason_v3_cs) return "";
-  const html = linkProse(EXTRA.mdt_reason_v3_cs, EXTRA.mdt_reason_v3_refs, reg);
-  return ed("reason", EXTRA.mdt_reason_v3_cs.replace(/\s*\[\d+\]/g, ""), { html: edOf("reason") ? null : html });
+function reasonHtml(cd, reg) {
+  const r = cd?.brief?.reason_cs; if (!r) return "";
+  const html = linkProse(r, cd.brief.reason_refs, reg);
+  return ed("reason", r.replace(/\s*\[\d+\]/g, ""), { html: edOf("reason") ? null : html });
 }
 function proposalBox(p) {
   const e = edOf("proposal", p.file);
@@ -1997,7 +1997,7 @@ function gapsBox() {
 function briefBlock(p) {
   const reg = refRegistry();
   return `<section class="card blk"><div class="head" style="margin:0"><h2>Stručný souhrn</h2><span class="row">${gapsToggle(p)}</span></div>${S.gapsOpen ? gapsBox() : ""}
-    <p class="prose">${briefHtml(reg)}</p>
+    <p class="prose">${briefHtml(p, readyData(p), reg)}</p>
     ${reasonQuestionBox(p, reg)}
     ${timelineCard(true)}
     ${srcList(reg)}
@@ -2903,7 +2903,7 @@ function mailHtml(m) {
 /*REPORT_PDF_JS*/
 
 function reportHtml(p, pr, present) {
-  const reg = refRegistry();
+  const reg = refRegistry(), cd = readyData(p);
   const refTxt = r => r ? ` [${reg.num(r)}]` : "";
   const line = f => `<li>${f.date ? esc(f.date) + ": " : ""}${esc(f.text_cs)}${esc(tagsText(f))}<span class="src">${refTxt(f.source)}</span></li>`;
   /* Report anamnesis (Soňa, round 2): diagnoses stand out in bold, qualifiers stay plain text. */
@@ -2917,12 +2917,13 @@ function reportHtml(p, pr, present) {
     : `${f.term_cs ? `<b>${esc(edRep(`${k}:${i}:t`, f.term_cs, p.file))}</b>` : ""}${f.comment_cs ? `${f.term_cs ? ", " : ""}${esc(edRep(`${k}:${i}:c`, f.comment_cs, p.file))}` : ""}${esc(mt(f))}${rf(f)}`;
   /* Every section is listed; an empty one prints the gap wording (allergies must never just vanish). */
   const anamLines = p.full && S.picked.has("anamnesis") ? ANAM.map(([k, t]) => `<li><span style="text-decoration:underline">${t}:</span> ${(A[k] || []).length ? A[k].map((f, i) => anamItem(k, f, i)).join("; ") : GAP}${k === "FA" && (A.FA_warnings || []).length ? `<br><b>Pozor:</b> ${A.FA_warnings.map((f, i) => anamItem("faw", f, i)).join("; ")}` : ""}</li>`).join("") : "";
-  const brief = p.full && S.picked.has("summary") ? (edOf("brief", p.file) ? esc(briefPlain()) + " [upraveno lékařem]" : BRIEF_CS ? esc(BRIEF_CS).replace(/\[(\d+)\]/g, (m, n) => `<span class="src">${refTxt((BRIEF_REFS || [])[n - 1])}</span>`) : esc(CASE.summary.map(x => x.text_cs).join(" "))) : "";
+  const bf = cd?.brief;
+  const brief = p.full && S.picked.has("summary") ? (edOf("brief", p.file) ? esc(briefPlain(p, cd)) + " [upraveno lékařem]" : bf?.text_cs ? esc(bf.text_cs).replace(/\[(\d+)\]/g, (m, n) => `<span class="src">${refTxt((bf.refs || [])[n - 1])}</span>`) : esc((bf?.summary_items || []).map(x => x.text_cs).join(" "))) : "";
   return `<article class="sheet">
     <div class="hdr"><div class="report-brand"><img src="/*GLIDE_LOGO_PNG*/" alt="GLIDE"><b>MDT</b></div><h1>Záznam z MDT</h1><p class="report-meta">Datum MDT: ${p.slot ? esc(slotText(p)) : esc(GAP)} · ID ${esc(p.id)}${pr.state !== "approved" ? " · Koncept" : ""}</p></div>
     <h4>Pacient</h4><p>${esc(surnameFirst(p))} · RČ: ${esc(p.rc || GAP)} · věk: ${esc(ageNum(p) || GAP)} · ID ${esc(p.id)}</p>
     <h4>Přítomní</h4><p>${esc(present.join(", ") || "nezadáno")}</p>
-    <h4>Diagnóza</h4><p><b>${esc(p.full ? dxHeadlineText(true) : p.diagnosis)}</b>${p.full && DXH()?.mkn_cs ? `<br>${esc(DXH().mkn_cs)}` : ""}</p>
+    <h4>Diagnóza</h4><p><b>${esc(p.full ? dxHeadlineText(p, cd, true) : p.diagnosis)}</b>${p.full && bf?.dx_headline?.mkn_cs ? `<br>${esc(bf.dx_headline.mkn_cs)}` : ""}</p>
     ${S.picked.has("summary") ? `<h4>NO</h4><p>${p.full ? brief : esc(p.summary || GAP)}</p>` : ""}
     ${p.full ? `${S.picked.has("anamnesis") ? `<h4>Anamnéza</h4><ul>${anamLines}</ul>` : ""}
     ${FIND.filter(([k]) => S.picked.has(k)).map(([k, t]) => `<h4>${t}</h4><ul>${(CASE.sections[k] || []).map(line).join("") || `<li>${GAP}</li>`}</ul>`).join("")}`
@@ -4172,7 +4173,7 @@ async function loadFromApi() {
     const c = ex.data.case;
     /* The server keeps identity in its patients table, out of the case JSON; the page puts it back from the list row. */
     CASE = { ...c, file: full.file, patient: { ...(c.patient || {}), name: full.name, name_as_written: full.nameAsWritten, birth_number: full.rc, birth_date: full.birth, age: full.age } };
-    EXTRA = ex.data.extra || {}; deriveFromExtra(); S.pid = full.file;
+    EXTRA = ex.data.extra || {}; S.pid = full.file;
   }
 }
 /* Development check behind ?parity: the server's rows against what the embedded data builds, key by key. Identity keys
