@@ -184,6 +184,9 @@ Declare this list to the jury and mentors.
 - ElevenLabs Scribe, for transcribing the pre-hack talks and the team's
   design discussions, and (Scribe v2 Realtime and Scribe v2) for the
   live "AI záznam" demo in mock v3, with fictitious speech only.
+- The hackathon's Azure OpenAI gateway (`gpt-6-luna-dz-eu`), for the
+  one-sentence summary of a recorded MDT discussion in mock v3.
+- Cloudflare Pages, hosting mock v3 at https://codebridge-mdt.pages.dev.
 - ChatGPT, used by Soňa for brainstorming and UI sketches
   (`docs/sources/design/`).
 - Claude artifacts (claude.ai), for publishing the UI mocks in `mocks/`.

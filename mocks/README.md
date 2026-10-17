@@ -141,10 +141,12 @@ claude.ai artifact viewer may block the microphone.
   sentence summary in the manner of an MDT conclusion (decisions, next
   steps, no who-said-what), shown as "Shrnutí AI" above the transcript,
   which folds into a closed "Přepis diskuse" panel. ElevenLabs has no
-  text model, so this needs an LLM key: `llm` in `stt-config.js` or
-  `LLM_DEMO` in the template, either `{ provider: "anthropic", key }` or
-  `{ provider: "azure", endpoint, deployment, key }`. Without one the
-  summary is skipped.
+  text model, so the page posts the transcript to `/api/summarize`, a
+  Cloudflare Pages Function (`functions/api/summarize.js`) that holds the
+  prompt and calls the hackathon's Azure OpenAI gateway (`gpt-6-luna-dz-eu`,
+  EU) with the key from the Pages secret `AZURE_OPENAI_KEY`. The gateway
+  rejects browser CORS preflights, hence the function. Opened from a file,
+  the page has no `/api/summarize` and the summary shows an error.
 - Starting, stopping and the speaker pass go to the access log.
 
 Checked with Chrome's fake microphone
