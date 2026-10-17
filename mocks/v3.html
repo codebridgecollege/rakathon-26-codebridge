@@ -8100,7 +8100,8 @@ function evictOld() {
   api.slice(0, Math.max(0, api.length - keep)).forEach(([f, e]) => { e.gen++; caseStore.entries.delete(f); });
   caseStore.byDocFile.forEach((c, doc) => { if (!caseStore.entries.has(c)) caseStore.byDocFile.delete(doc); });
 }
-/* One request per case open: the server writes one access-log row for it. No prefetch: every read is an audited access,
+/* One request per case load: the server writes a "case.data" access-log row for it (opening also writes "case.open" in
+   caseOpened, and the guideline layer "guidance.load"). No prefetch: every read is an audited access,
    and a prefetch would log "opened" for cases nobody opened. */
 async function loadCase(p) {
   const e = caseOf(p), gen = ++e.gen;
@@ -9247,9 +9248,9 @@ function viewPatient() {
   const p = P(S.pid);
   ensureCase(p);
   const e = caseOf(p), back = `${sessionBar(p)}<div class="row"><button class="linkbtn" data-nav="patients">‹ Databáze pacientů</button></div>`;
-  /* Loading: no tabs and no editable fields, so the one render when the data arrives cannot interrupt typing. S.tab is
-     kept, so a deep link lands on its tab once the data is there. */
-  if (e.state !== "ready" && e.state !== "error") return `<div class="page">${back}${patientHeader(p, headerActions(p, null, false), true)}
+  /* Loading: no tabs and no editable fields (the question, which a doctor can edit, waits too), so the one render when
+     the data arrives cannot interrupt typing. S.tab is kept, so a deep link lands on its tab once the data is there. */
+  if (e.state !== "ready" && e.state !== "error") return `<div class="page">${back}${patientHeader(p, headerActions(p, null, false), false)}
     <section class="card"><p class="muted" role="status">Načítám podklady případu…</p></section></div>`;
   if (e.state === "error") {
     return `<div class="page">${back}${patientHeader(p, headerActions(p, null), true)}
@@ -9964,6 +9965,7 @@ function reportHtml(p, pr, present) {
     <h4>Prezentován pro</h4><p>${esc(questionPlain(p))}</p>
     <h4>Závěr</h4><p id="rep-concl">${esc(pr.concl || "Zatím nezapsán.")}</p>
     <h4>Další kroky</h4>${pr.steps.filter(x => x.text.trim()).length ? `<ul>${pr.steps.filter(x => x.text.trim()).map(x => `<li>${esc(x.text)} · ${esc(x.who)} · do ${esc(fmtDate(x.due))}</li>`).join("")}</ul>` : "<p>Žádné.</p>"}
+    ${sec.guidance && S.guideOn && guideOf(p.file).error && Object.values(pr.dev || {}).some(d => d.s) ? `<h4>Odchylky od doporučení</h4><p>Doporučení se nepodařilo načíst; zaznamenaná posouzení odchylek nelze do reportu vypsat.</p>` : ""}
     ${sec.guidance && S.guideOn && pst.length ? `<h4>Odchylky od doporučení</h4>${pst.filter(st => (pr.dev || {})[st.id]?.s).length ? `<ul>${pst.filter(st => (pr.dev || {})[st.id]?.s).map(st => { const d = pr.dev[st.id]; return `<li>${esc(st.quote)} <span class="src">(${esc(citeOf(st))})</span>: <b>${DEV[d.s]}</b>${d.s === "deviates" ? `, důvod: ${esc(d.why || "neuveden")}` : ""}</li>`; }).join("")}</ul>` : "<p>Žádné dřívější posouzení není zaznamenáno.</p>"}` : ""}
     ${reg.list.length ? `<h4>Zdroje</h4><ol class="src">${reg.list.map(r => `<li>${esc(docTitle(r))}, s. ${esc(r.page)}${r.quote ? `: „${esc(r.quote.length > 70 ? r.quote.slice(0, 70) + "…" : r.quote)}“` : ""}</li>`).join("")}</ol>` : ""}
     <p class="src" style="margin-top:14px">Údaje sestavil asistent z uvedených dokumentů; čísla v hranatých závorkách odkazují na zdroje. [zápor v dokumentu] = zápor zapsaný lékařem; [ověřit čtení] = text, který mohl být špatně přečten; [pozorování asistenta] = odvozeno asistentem, v dokumentu výslovně není; [upraveno lékařem] = hodnotu změnil lékař, zdroj ji v této podobě neuvádí.</p>
@@ -10998,6 +11000,9 @@ function action(a) {
     if (P(pr.pid).status === "closed" || !pr.concl.trim() || !isDoctor(S.user)) return;
     /* The report frozen at approval must not be built from data still on its way; a failed load does not block. */
     const ls = caseStore.entries.get(pr.pid)?.state; if (ls === "loading" || ls === "absent") { toast("Podklady případu se načítají, schvalte za okamžik."); return; }
+    /* The same for the guideline layer: the frozen report lists the recorded deviations from it. */
+    const ag = guideOf(pr.pid);
+    if (S.guideOn && sectionsOf(readyData(P(pr.pid))).guidance && (ag.loading || !(ag.statements || ag.error))) { toast("Doporučení se načítají, schvalte za okamžik."); return; }
     /* The approving doctor was at the meeting, so approving adds them to the day's attendance instead of blocking
        (round 20); the access log says so, and the attendance list in the card shows the name. */
     const day = attDay(P(pr.pid));
@@ -11190,6 +11195,8 @@ async function switchApiUser(t) {
   } catch (e) { setDemoUser(prev); t.value = S.user; toast(e.message); return; }
   if (S.view === "admin" && S.user !== ADMIN) S.view = "patients";
   if (S.view === "patient" && !P(S.pid)) S.view = "patients";
+  /* The open case reloads under the new user; the server logs that user opening it, as for any other open. */
+  if (S.view === "patient") caseOpened(S.pid, "otevřel(a) případ (změna uživatele)");
   render();
 }
 async function loadFromApi() {

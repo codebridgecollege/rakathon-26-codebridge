@@ -74,6 +74,13 @@ endpoints than this design assumed:
   `report-pdf.js` did not change. The report reads its own case's guidance.
 - **Calendar card in API mode** shows the list row's diagnosis and summary
   until the case has been opened, because the card never loads case data.
+- **Approval** waits for the case data and, for a case with the guideline
+  layer, for the guidance; a failed load does not block it and the frozen
+  report names the failure.
+- **Still inlined:** the Worker serves the same built page, so every
+  fixture is still in the page source in API mode. The view no longer reads
+  it there (except the intake demo patient), but it is not hidden from a
+  reader of the source until the page stops embedding data (migration step 5).
 - **Tests:** `mocks/src/test/case-store.mjs` (jsdom) covers the embedded seed,
   the tab sets, a copy of S01 with a brief and finding groups, and API mode
   against a fake server. Every refactor commit was checked by a jsdom render

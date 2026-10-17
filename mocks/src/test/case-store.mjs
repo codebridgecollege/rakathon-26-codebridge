@@ -136,7 +136,7 @@ const text = w => w.document.getElementById("app").textContent;
   await srv.release("NO-010");
   assert.equal(ev(`caseOf(P("10_pacient.pdf")).state`), "ready");
   assert.ok(w.document.querySelector('[data-tab="anamnesis"]') && w.document.querySelector('[data-act="fhirdlg"]'));
-  // Stale reply: open S01 then patient 13 (processed? no: unprocessed resolves at once) then S01's reply arrives late.
+  // Stale reply: open S01, then case 10 (cached); S01's reply arrives after the user left it.
   ev(`openPatient("S01_pacient.pdf")`);
   ev(`openPatient("10_pacient.pdf")`);
   await sleep(100); // the two hash changes settle first; they render on their own
@@ -179,6 +179,9 @@ const text = w => w.document.getElementById("app").textContent;
   const rep = ev(`reportHtml(P("S01_pacient.pdf"), ensureProto(P("S01_pacient.pdf")), [])`);
   assert.match(rep, /nepodařilo načíst ze serveru/); assert.doesNotMatch(rep, /není zpracovaná/);
   assert.ok(w.document.getElementById("concl"), "the conclusion stays available");
+  // A failed load does not block approval; the frozen report names the failure.
+  assert.equal(ev(`(() => { document.getElementById("concl").value = "Závěr bez podkladů"; action("approve"); return ensureProto(P("S01_pacient.pdf")).state; })()`), "approved");
+  assert.match(ev(`ensureProto(P("S01_pacient.pdf")).reportSnap`), /nepodařilo načíst ze serveru/);
   // Retry against a working server.
   const ok = fakeServer({ held: false });
   w.fetch = async u => ok.impl(String(u));
@@ -192,9 +195,14 @@ const text = w => w.document.getElementById("app").textContent;
   const srv = fakeServer({ held: false });
   const { w, ev, errors } = await apiOpen(srv);
   ev(`openPatient("10_pacient.pdf")`); await sleep(40);
-  ev(`(() => { const pr = ensureProto(P("10_pacient.pdf")); pr.concl = "Test"; caseOf(P("10_pacient.pdf")).state = "loading"; action("approve"); })()`);
-  assert.notEqual(ev(`ensureProto(P("10_pacient.pdf")).state`), "approved", "approval waits for the case data");
-  ev(`caseOf(P("10_pacient.pdf")).state = "ready"`);
+  // The handler reads #concl itself, so the text goes into the field.
+  const approve = () => ev(`(() => { document.getElementById("concl").value = "Test závěru"; action("approve"); return ensureProto(P("10_pacient.pdf")).state; })()`);
+  ev(`caseOf(P("10_pacient.pdf")).state = "loading"`);
+  assert.notEqual(approve(), "approved", "approval waits for the case data");
+  ev(`caseOf(P("10_pacient.pdf")).state = "ready"; caseOf(P("10_pacient.pdf")).guide = { loading: true }`);
+  assert.notEqual(approve(), "approved", "approval waits for the guideline layer");
+  ev(`caseOf(P("10_pacient.pdf")).guide = { statements: [] }`);
+  assert.equal(approve(), "approved", "positive control: approval goes through once loaded");
   // LRU over every processed case: list rows marked processed so each one loads.
   ev(`S.patients.forEach(p => { p.processing = "partial"; })`);
   for (const p of H.patients) { ev(`openPatient(${JSON.stringify(p.file)})`); await sleep(15); }

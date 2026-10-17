@@ -153,18 +153,21 @@ synthetic patients.
   serves Pages and the Worker, so the data-minimization gain arrives when
   the page stops embedding data (backend steps 3 and 5). The Worker also
   still serves the page images under `/pages/` as public static files for
-  that embedded fallback, without an access check or a log row. After a
-  user switch the page reloads what the server allows the new user, but
-  case 10's earlier extraction stays in memory, hidden (until step 3).
+  that embedded fallback, without an access check or a log row. Since step
+  3 the page in API mode shows case data only from the server (per case,
+  when opened; at most five cases in memory, cleared on a user switch), but
+  the inlined JSON is still in the page source for anyone who opens it, and
+  if the data API fails at startup the page falls back to it (amber "Data"
+  chip, no server log row).
 - **Reads through the API are logged on the server** before the content
   is read (`access_log`, append-only): who, which role, which case,
   document and page, and a short Czech line. No quote or page text goes
   into the log. If the log cannot be written, the request fails and
-  returns nothing. The admin view (Administrace) shows it. Not yet
-  logged per view: case 10's findings are loaded once at page start (one
-  `case.data` row for the starting user) and then shown from memory;
-  S01's findings and the saved prognosis still come from the embedded
-  data. Refused requests (403) are not logged. A search text in
+  returns nothing. The admin view (Administrace) shows it. Opening a case
+  writes `case.open`; its first load in this tab writes `case.data` (and
+  `guidance.load` for the guideline layer); reopening a case still in
+  memory writes only `case.open`. The saved prognosis still comes from the
+  embedded data. Refused requests (403) are not logged. A search text in
   `/api/patients?q=` would sit in the URL and so in Workers Logs; the
   page does not use it yet, and it should move to a request body first.
 - **Who may read what.** A doctor reads the cases whose team (department)
