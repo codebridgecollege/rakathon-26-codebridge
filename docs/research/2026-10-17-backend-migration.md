@@ -38,8 +38,10 @@ Terms used below:
   and S3-compatible storage inside the hospital.
 - **First, today:** revoke the ElevenLabs key embedded in the published
   page (`STT_DEMO_KEY`, `mocks/src/v3-template.html`). Deleting it from
-  the code is not enough: it is in the public git history. Once the Worker
-  exists, mint ElevenLabs' single-use token on the server.
+  the code is not enough: it is in the public git history. Code part done
+  on 2026-10-17 (issue #2): the key left the page, and Pages Functions
+  mint the single-use token and forward the speaker pass. Revoking the old
+  key is a dashboard task for the key's owner.
 
 ## What we have today
 
@@ -70,7 +72,7 @@ Terms used below:
   - The deployed page falls back to the saved result.
 
 **Calls made straight from the browser.**
-- ElevenLabs single-use token, realtime transcription and batch speaker separation, all with the embedded key (or a local override in the gitignored `stt-config.js`).
+- ElevenLabs realtime transcription: the browser streams to ElevenLabs' socket with a single-use token from `POST /api/stt/token` (since 2026-10-17; the token and the speaker pass go through our server).
 
 **Stubs already shaped as API calls.**
 - `api.guidance()` is meant as `GET /api/cases/:id/guidance`.

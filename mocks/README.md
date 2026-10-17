@@ -2,7 +2,9 @@
 
 Throwaway, clickable mocks of the MDT Workspace, used to check the design
 direction with the team (see [`docs/design/PRODUCT.md`](../docs/design/PRODUCT.md)).
-They are static HTML pages with the data embedded; there is no backend.
+They are static HTML pages with the data embedded. The only server parts are
+the Pages Functions in `functions/` (speech-to-text and the discussion
+summary for "AI záznam"), which hold the API keys.
 All patient data is FNO's fictitious challenge data, except the synthetic
 patient S01 (mock v3, case ID `NO-S01`), whom the team invented
 ([`samples/README.md`](../samples/README.md)).
@@ -129,15 +131,36 @@ redacted image is shown.
 
 "AI záznam" in the "Projednání na MDT" card records the discussion and
 writes a live Czech transcript. "Spustit záznam" starts it at once. The
-page carries a demo ElevenLabs key, published with the team's consent (it
-expires after three days and has a credit cap); a gitignored
-`stt-config.js` next to `v3.html` (see `stt-config.example.js`) overrides
-it. The team's live copy is https://codebridge-mdt.pages.dev
+page holds no speech key: it asks our server for an ElevenLabs single-use
+token (`POST /api/stt/token`, which returns the socket URL) and sends the
+case audio for the speaker pass to `POST /api/stt/diarize`. These Pages
+Functions (`functions/api/stt/`) hold the key from the Pages secret
+`ELEVENLABS_API_KEY`; model names and limits are in `pages-wrangler.toml`.
+On load the page asks `GET /api/health` what the server offers; opened from
+a file, in the claude.ai viewer or under `serve.py` there is no such server,
+and the recorder shows as unavailable (the conclusion can still be typed).
+
+The team's live copy is https://codebridge-mdt.pages.dev
 (Cloudflare Pages, HTTPS, so the browser allows the microphone);
-a push to main that changes `v3.html` or `pages/` redeploys it
-(`.github/workflows/deploy-mock.yml`); `mocks/deploy.sh` does the same
-by hand after `npx -y wrangler@4 login`. Open the page in Chrome, from a file or a web server; the
-claude.ai artifact viewer may block the microphone.
+a push to main that changes `v3.html`, `pages/`, `ukazka/`, `functions/` or `pages-wrangler.toml` redeploys it
+(`.github/workflows/deploy-mock.yml`, which refuses to publish a page that
+contains an API key); `mocks/deploy.sh` does the same by hand after
+`npx -y wrangler@4.147.0 login`.
+
+To run the recorder locally, put the two keys in `mocks/.dev.vars`
+(gitignored; `ELEVENLABS_API_KEY=` and `AZURE_OPENAI_KEY=` lines) and
+stage the site the way `deploy.sh` does. `.dev.vars` goes next to
+`wrangler.toml`, never into `public/`, which is served as is:
+
+```bash
+T=$(mktemp -d) && mkdir "$T/public" && cp mocks/v3.html "$T/public/index.html"
+cp -R mocks/pages mocks/ukazka "$T/public/" && cp -R mocks/functions "$T/functions"
+cp mocks/pages-wrangler.toml "$T/wrangler.toml" && cp mocks/.dev.vars "$T/.dev.vars"
+(cd "$T" && npx -y wrangler@4.147.0 pages dev public)
+```
+
+Open http://localhost:8788 in Chrome; localhost counts as a secure
+context, so the microphone works.
 
 - One recording runs for the whole meeting. Each word goes to the patient
   whose case was open when it was spoken: the service returns word
@@ -159,7 +182,7 @@ claude.ai artifact viewer may block the microphone.
   steps, no who-said-what), shown as "Shrnutí AI" above the transcript,
   which folds into a closed "Přepis diskuse" panel. ElevenLabs has no
   text model, so the page posts the transcript to `/api/summarize`, a
-  Cloudflare Pages Function (`functions/api/summarize.js`) that holds the
+  server route (today the Pages Function `functions/api/summarize.js`) that holds the
   prompt and calls the hackathon's Azure OpenAI gateway (`gpt-6-luna-dz-eu`,
   EU) with the key from the Pages secret `AZURE_OPENAI_KEY`. The gateway
   rejects browser CORS preflights, hence the function. Opened from a file,
