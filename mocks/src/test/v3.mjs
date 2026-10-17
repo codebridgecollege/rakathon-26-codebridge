@@ -214,7 +214,7 @@ for (const width of [1280, 400]) {
   ok(await page.locator(".drawer, #overlay .scrim").count() >= 1, `${width} a fact source opens the documentation`);
   await page.keyboard.press("Escape"); await page.evaluate(() => { S.overlay = null; renderOverlay(); });
   ok(await page.locator(".stmts-onc .gle details[open]").count() === 1, `${width} opened entry stays open after re-render`);
-  ok(await page.locator(".gll.lit > li.gle").count() === await page.evaluate(() => (GUIDE.literature || []).length) && (await text(".gll.lit")).includes("literatura, ne doporučení")
+  ok(await page.locator(".gll.lit > li.gle").count() === await page.evaluate(() => (curGuide().literature || []).length) && (await text(".gll.lit")).includes("literatura, ne doporučení")
     && (await page.locator("h4.glh").allTextContents()).some(t => t.includes("Literatura z PubMed · není doporučení")), `${width} literature is its own section, same entries, labelled not a recommendation`);
   // The deviations table moved to its own tab; guideline content stays here.
   ok(await page.locator(".devt").count() === 0, `${width} deviations table removed from Navrhovaný postup`);

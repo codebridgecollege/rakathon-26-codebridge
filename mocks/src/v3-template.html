@@ -1063,18 +1063,27 @@ const srcApi = {
     return pg && quote ? { image: matchImage(quote, pg.words), text: matchText(quote, pg.text) } : { image: null, text: null };
   },
 };
-let GUIDE = {};
-async function loadGuidance(p) {
-  if (S.guideFor === p.id) return;
-  S.guideFor = p.id; GUIDE = { loading: true };
+/* The guideline layer of a case lives in its case-store entry, loaded once when the case is shown. The helpers below
+   read the open case's guidance (curGuide): every guidance view renders only for the open case, so threading the case
+   through some 20 small helpers would change nothing but the diff. */
+const guideOf = file => caseStore.entries.get(file)?.guide || {};
+const curGuide = () => guideOf(S.pid);
+async function ensureGuidance(p) {
+  const e = caseOf(p);
+  if (e.guide) return;
+  const gen = e.gen;
+  e.guide = { loading: true };
   /* A failed request shows its message in the guideline panel instead of a spinner that never ends. */
   let res;
-  try { res = await api.guidance(p.id); } catch (e) { res = { error: e.message || "Doporučení se nepodařilo načíst." }; }
-  if (S.guideFor === p.id) { GUIDE = res; render(); }
+  try { res = await api.guidance(p.id); } catch (err) { res = { error: err.message || "Doporučení se nepodařilo načíst." }; }
+  /* A reply for a store that was reset since (user switch) or a newer request must not land in the current entry. */
+  if (caseStore.entries.get(p.file) !== e || e.gen !== gen) return;
+  e.guide = res;
+  if (S.view === "patient" && S.pid === p.file) render();
 }
-const GL = id => (GUIDE.guidelines || []).find(g => g.id === id) || {};
-const STMTS = () => GUIDE.statements || [];
-const PAST = () => GUIDE.past_statements || [];
+const GL = id => (curGuide().guidelines || []).find(g => g.id === id) || {};
+const STMTS = () => curGuide().statements || [];
+const PAST = () => curGuide().past_statements || [];
 const anyStmt = id => STMTS().find(x => x.id === id) || PAST().find(x => x.id === id);
 const citeOf = st => { const g = GL(st.guideline_id); return `${g.name || ""}, ${g.society || ""} ${g.year || ""}${g.version ? ", " + g.version : ""}; ${st.section || ""}; ${st.pdf_page ? "s. " + (st.printed_page || st.pdf_page) : "abstrakt"}`; };
 
@@ -1431,8 +1440,9 @@ function caseOf(p) {
 /* The case data when it is loaded, else null. Never starts a load, so a list or a calendar card never causes an access. */
 const readyData = p => { const e = p && caseStore.entries.get(p.file); return e && e.state === "ready" ? e.data : null; };
 function setReady(file, data, seeded) {
-  const e = caseStore.entries.get(file) || { gen: 0 };
-  caseStore.entries.set(file, { ...e, state: "ready", data, error: null, seeded, loadedAt: Date.now() });
+  /* Updated in place, so a pending guidance load still finds its entry. */
+  const e = caseOf({ file });
+  Object.assign(e, { state: "ready", data, error: null, seeded, loadedAt: Date.now() });
   (data.documents ? [file] : []).forEach(f => caseStore.byDocFile.set(f, file));
 }
 /* Embedded mode: case 10 and every synthetic patient are ready from the page's own data, so Pages makes no request
@@ -1730,7 +1740,6 @@ function viewCalendar() {
 }
 
 /* ---------- 3. Patient detail ---------- */
-const R3 = i => (EXTRA.refs || [])[i];
 /* v3 brief in the clinicians' own compact style, staging first (round 4); v2 keeps its own brief. */
 /* The i-th indexed source of a case (CaseData.refs). */
 const refAt = (cd, i) => (cd?.refs || [])[i];
@@ -1934,7 +1943,7 @@ const quoteHead = q => `<q class="glq ${clampable(q) ? "clamp" : ""}">${esc(q)}<
 const clampNote = q => clampable(q) ? `<span class="clampnote">(citace zkrácena, rozbalte)</span>` : "";
 /* The note shows only when the browser actually cut the quote at this width. */
 function markClamped() { document.querySelectorAll(".glq.clamp").forEach(q => q.classList.toggle("isclamped", q.scrollHeight > q.clientHeight + 1)); }
-const factRefs = f => ((GUIDE.fact_refs || {})[f] || []).map(R3).filter(Boolean);
+const factRefs = f => { const cd = readyData(P(S.pid)); return ((curGuide().fact_refs || {})[f] || []).map(i => refAt(cd, i)).filter(Boolean); };
 const factsHtml = fs => (fs || []).length ? `<ul class="glfacts">${fs.map(f => `<li>${esc(f)} ${factRefs(f).length ? srcLinks(factRefs(f)) : `<span class="muted small">(zdroj nedohledán)</span>`}</li>`).join("")}</ul>` : "";
 const pageOf = x => x.pdf_page ? pageLabel(x.pdf_page, x.printed_page) : "jen abstrakt";
 /* What the guideline itself printed as its grade; ČOS and NCCN categories get their meaning spelled out, because the
@@ -1959,27 +1968,28 @@ function litHtml(a) {
 function guideBox() {
   const head = `<div class="row spread"><h3 style="margin:0">Doporučené postupy k dalšímu postupu</h3>
     <label class="small muted" style="display:flex;gap:6px;align-items:center"><input type="checkbox" data-act-toggle="guide" ${S.guideOn ? "checked" : ""}> vrstva doporučení</label></div>`;
+  const G = curGuide();
   if (!S.guideOn) return `<div class="gl">${head}<p class="muted small" style="margin:6px 0 0">Vypnuto.</p></div>`;
-  if (GUIDE.loading) return `<div class="gl">${head}<p class="muted small" style="margin:6px 0 0">Načítám doporučení ze serveru…</p></div>`;
-  if (GUIDE.error) return `<div class="gl">${head}<p class="muted small" role="alert" style="margin:6px 0 0">${esc(GUIDE.error)}</p></div>`;
+  if (G.loading) return `<div class="gl">${head}<p class="muted small" style="margin:6px 0 0">Načítám doporučení ze serveru…</p></div>`;
+  if (G.error) return `<div class="gl">${head}<p class="muted small" role="alert" style="margin:6px 0 0">${esc(G.error)}</p></div>`;
   const st = STMTS();
-  if (!st.length && !(GUIDE.literature || []).length) return "";
+  if (!st.length && !(G.literature || []).length) return "";
   /* One list per field, sorted by the strength of the recommendation, not grouped by country (round 19). Open
      directly, without an outer toggle (round 21); each entry opens on its own. */
   const onc = byTier(st.filter(x => /oncology/.test(fieldOf(x))));
   const other = byTier(st.filter(x => !/oncology/.test(fieldOf(x))));
   const grp = (t, xs, cls) => xs.length ? `<h4 class="glh">${t}</h4><ol class="gll ${cls}">${xs.map(stmtHtml).join("")}</ol>` : "";
-  const important = (GUIDE.not_retrieved || []).filter(n => n.important);
-  const lit = GUIDE.literature || [];
+  const important = (G.not_retrieved || []).filter(n => n.important);
+  const lit = G.literature || [];
   return `<div class="gl">${head}
     <p class="ordernote">Seřazeno podle síly, kterou uvádí samo doporučení, ne pořadí možností pro tohoto pacienta.</p>
     ${important.map(n => `<div class="synth" style="margin:8px 0">${esc(n.note_cs || n.name)}</div>`).join("")}
     ${grp("Onkologie", onc, "stmts-onc")}
     ${grp("Další obory (přidružená onemocnění)", other, "stmts-other")}
     <p class="muted small" style="margin:8px 0 0">Pozorování asistenta, rozhoduje MDT. Citace doslovně z uvedených doporučení; kliknutím se rozbalí důvod, zdroje a původní stupeň.</p>
-    ${lit.length ? `<h4 class="glh">Literatura z PubMed · není doporučení</h4><p class="muted small" style="margin:0">Pro situace, kde doporučení nestačí. Hledání v PubMed používá jen odborné pojmy, nikdy údaje o pacientovi${(GUIDE.queries || []).length ? `; dotazy: ${(GUIDE.queries || []).map(q => `„${esc(q.query)}“`).join(", ")}` : ""}.</p>
+    ${lit.length ? `<h4 class="glh">Literatura z PubMed · není doporučení</h4><p class="muted small" style="margin:0">Pro situace, kde doporučení nestačí. Hledání v PubMed používá jen odborné pojmy, nikdy údaje o pacientovi${(G.queries || []).length ? `; dotazy: ${(G.queries || []).map(q => `„${esc(q.query)}“`).join(", ")}` : ""}.</p>
       <ol class="gll lit">${lit.map(litHtml).join("")}</ol>` : ""}
-    ${(GUIDE.not_retrieved || []).length ? `<details class="srcs"><summary class="muted">Nenačtené zdroje (${GUIDE.not_retrieved.length})</summary><ul class="small muted">${GUIDE.not_retrieved.map(n => `<li>${esc(n.name)}: ${esc(n.reason)}</li>`).join("")}</ul></details>` : ""}</div>`;
+    ${(G.not_retrieved || []).length ? `<details class="srcs"><summary class="muted">Nenačtené zdroje (${G.not_retrieved.length})</summary><ul class="small muted">${G.not_retrieved.map(n => `<li>${esc(n.name)}: ${esc(n.reason)}</li>`).join("")}</ul></details>` : ""}</div>`;
 }
 /* Source links named by page ("s. 2"), as in the labs table, so several links in one row are told apart. */
 const srcLinks = refs => { const xs = refs || [], seen = {}; return xs.map(r => { const same = xs.filter(x => x.page === r.page).length, k = (seen[r.page] = (seen[r.page] || 0) + 1);
@@ -2107,12 +2117,11 @@ function timelineCard(cd, inline) {
     ${cards.length ? `<div class="tlbar" tabindex="0" role="region" aria-label="Časová osa průběhu onemocnění"><div class="tltrack">${html}</div></div>` : `<p class="muted small">${S.tlExcluded.size === EVENT_CATEGORIES.length ? "Všechny kategorie jsou skryté. Zaškrtněte kategorii nebo Vše." : "Ve vybraných kategoriích nejsou zaznamenané události."}</p>`}</section>`;
 }
 function tabOverview(p, cd) {
-  if (p.full) loadGuidance(p);
+  if (p.full) ensureGuidance(p);
   const reg = refRegistry();
   return `<div class="grid2 ovgrid"><div class="stack ovleft">${detailedCard(cd, reg)}</div><div class="stack">${statusCard(cd)}</div></div>`;
 }
 const ANAM = [["OA", "Osobní anamnéza"], ["RA", "Rodinná anamnéza"], ["PA", "Pracovní anamnéza"], ["SA", "Sociální anamnéza"], ["FA", "Farmakologická anamnéza"], ["AA", "Alergologická anamnéza"], ["abusus", "Abúzus"], ["EA", "Epidemiologická anamnéza"], ["preventive", "Preventivní vyšetření"]];
-const A3 = () => EXTRA.anamnesis_v3 || {};
 /* Soňa, round 2: the diagnosis in bold, qualifiers in normal font, no dates or method notes on drugs,
    sources folded away. */
 function termLine(cd, f, key, reg) {
@@ -2358,7 +2367,7 @@ function viewAdmin() {
 
 function viewPatient() {
   const p = P(S.pid);
-  if (p.full) loadGuidance(p);
+  if (p.full) ensureGuidance(p);
   if (!p.full) return viewPatientLite(p);
   const tabs = [["overview", "Přehled"], ["anamnesis", "Anamnéza"], ["documents", "Dokumenty"], ["labs", "Laboratoř"], ["alerts", "Upozornění"], ["next", "Navrhovaný postup"], ["dev", "Retrospektivní odchylky"], ["prognosis", "Prognóza"]];
   if (!tabs.some(t => t[0] === S.tab)) S.tab = "overview";
@@ -2380,8 +2389,9 @@ function tabNext() {
 }
 function tabDev() {
   if (!S.guideOn) return `<section class="card"><p class="muted">Vrstva doporučení je vypnutá.</p></section>`;
-  if (GUIDE.loading) return `<section class="card"><p class="muted" role="status">Načítání podkladů pro odchylky…</p></section>`;
-  if (GUIDE.error) return `<section class="card"><p class="muted" role="alert">${esc(GUIDE.error)}</p></section>`;
+  const G = curGuide();
+  if (G.loading) return `<section class="card"><p class="muted" role="status">Načítání podkladů pro odchylky…</p></section>`;
+  if (G.error) return `<section class="card"><p class="muted" role="alert">${esc(G.error)}</p></section>`;
   const p = P(S.pid), pr = ensureProto(p);
   return `${deviationFindings(p)}<details class="card deviation-context"><summary>Další srovnání minulých rozhodnutí s doporučeními (${PAST().length})</summary>${retroList(p) || '<p class="muted">K minulým rozhodnutím nejsou pasáže z doporučení.</p>'}</details>${Object.values(pr.dev || {}).some(d => d.s) ? devTable(p, pr) : ''}`;
 }
@@ -2396,7 +2406,8 @@ function retroHistory(r, field, labels) {
   return hist.length > 1 ? `<details class="srcs rhist"><summary class="small">Historie hodnocení (${hist.length})</summary><ol class="small">${hist.map(h => `<li>${esc(labels[h.v] || "-")} · ${esc(h.by || "")} · ${esc(h.when || "")}</li>`).join("")}</ol></details>` : "";
 }
 function deviationFindings(p) {
-  const rows = GUIDE.deviation_case_file === p.file ? GUIDE.deviation_findings || [] : [];
+  const G = curGuide(), cd = readyData(p);
+  const rows = G.deviation_case_file === p.file ? G.deviation_findings || [] : [];
   if (!rows.length) return `<section class="card"><h2>Odchylky a související zjištění</h2><p class="muted small">Pro tento případ nejsou zpracovaná zjištění.</p></section>`;
   const row = x => {
     const statements = (x.statement_ids || []).map(anyStmt).filter(Boolean);
@@ -2410,7 +2421,7 @@ function deviationFindings(p) {
       <td>${esc(x.group_cs)}</td><td class="${sev ? "sev-" + sev : ""}">${sev ? `${esc(SEV[sev])}<span class="note">${esc(recorded.sevBy || "")} · ${esc(recorded.sevWhen || "")}</span>` : DASH}${retroHistory(recorded, "sev", SEV)}</td>
       <td>${guidelines.map(g => `<b>${esc(g.name)}</b><span class="note">${esc(g.society || "")} · ${esc(g.version || "")}</span>`).join("") || DASH}</td>
       <td>${guidelines.map(g => esc(g.year)).join("<br>") || DASH}</td><td>${all.map(passage).join('<hr>') || DASH}${x.risk_basis_cs ? `<p class="note">${esc(x.risk_basis_cs)} <a class="linkbtn small" href="${esc(x.risk_basis_url)}" target="_blank" rel="noopener">Tabulka 14, s. PDF 42</a></p>` : ""}</td>
-      <td>${(x.source_refs || []).map(R3).filter(Boolean).map(ref => `<p class="dev-context"><q>${esc(ref.quote)}</q> <button class="linkbtn small" data-src='${esc(JSON.stringify(ref))}'>s. ${esc(ref.page)}</button></p>`).join("") || DASH}</td>
+      <td>${(x.source_refs || []).map(i => refAt(cd, i)).filter(Boolean).map(ref => `<p class="dev-context"><q>${esc(ref.quote)}</q> <button class="linkbtn small" data-src='${esc(JSON.stringify(ref))}'>s. ${esc(ref.page)}</button></p>`).join("") || DASH}</td>
       <td>${esc(x.clinical_consequence_cs)}<span class="note">Možný dopad / omezení posouzení, nikoli doložená komplikace.</span></td></tr>`;
   };
   return `<section class="card"><div class="head"><h2>Odchylky a související zjištění</h2><span class="muted small">${rows.length} zjištění · bez povinné akce</span></div>
@@ -2420,7 +2431,7 @@ function deviationFindings(p) {
     <p class="muted dev-footnote">Závažnost není klinicky posouzena. Citace jsou původní znění zdrojů; shrnutí a možné důsledky jsou pozorováním asistenta. Současný stav nelze automaticky odvodit z historického nebo nedatovaného záznamu.</p></section>`;
 }
 /* The decision's own words: the reference the statement names, else the first source of its oncology row. */
-const decisionRef = x => R3(Number.isInteger(x.decision_ref) ? x.decision_ref : ((EXTRA.onco_detailed_v3 || [])[x.row_index]?.refs || [])[0]);
+const decisionRef = (cd, x) => refAt(cd, Number.isInteger(x.decision_ref) ? x.decision_ref : ((cd?.record?.onco_detailed || [])[x.row_index]?.refs || [])[0]);
 /* The guideline side of a past decision quotes only the edition valid on the decision date (round 21), never a later
    one; the PDF of that edition opens online at the page. Without a passage in that edition the item says so. */
 const edRange = e => `platné od ${fmtDate(e.valid_from)} do ${e.valid_to ? fmtDate(e.valid_to) : "dosud"}`;
@@ -2441,10 +2452,11 @@ function pastPassage(x) {
 }
 function retroList(p) {
   const xs = PAST(); if (!xs.length) return "";
+  const cd = readyData(p);
   const rs = retroOf(p.file);
   const groups = { "past-nephrectomy": "Chirurgie", "past-lymphadenectomy": "Chirurgie", "past-metastasectomy-node": "Chirurgie", "past-skin-metastasectomy": "Chirurgie", "past-1l-intermediate": "Systémová léčba", "past-nivo-ipi-regimen": "Systémová léčba", "past-2l-after-io": "Systémová léčba", "past-3l-after-io-tki": "Systémová léčba" };
   const item = x => {
-    const dr = decisionRef(x), r = rs[x.id] || {}, sev = Object.hasOwn(SEV, r.sev) ? r.sev : "";
+    const dr = decisionRef(cd, x), r = rs[x.id] || {}, sev = Object.hasOwn(SEV, r.sev) ? r.sev : "";
     const e = x.edition;
     const recorded = field => r[field + "By"] ? `<span class="note">Zaznamenal(a) ${esc(r[field + "By"])} · ${esc(r[field + "When"] || "")}</span>` : "";
     return `<tr data-retroitem="${esc(x.id)}">
@@ -2495,9 +2507,9 @@ function synGapsBox(syn) {
 /* Header actions: scheduling, starting the MDT for this case's day, and the report. The report button is the
    only place it is offered: it opens a small dialog with the fields for the report, the preview and the download
    (round 20), so the discussion card stays about the discussion. */
-function headerActions(p) {
+function headerActions(p, cd = readyData(p)) {
   const live = S.session && p.slot && S.session.day === p.slot.day;
-  return `<button class="btn" data-sched="${esc(p.file)}">${p.slot ? "Změnit termín" : "Naplánovat"}</button>${p.slot && !live ? `<button class="btn" data-startday="${esc(p.slot.day)}" data-startfrom="${esc(p.file)}">Zahájit MDT</button>` : ""}${p.full ? `<button class="btn" data-act="fhirdlg">Export FHIR</button>` : ""}<button class="btn primary" data-act="reportdlg">Stáhnout report (PDF)</button>`;
+  return `<button class="btn" data-sched="${esc(p.file)}">${p.slot ? "Změnit termín" : "Naplánovat"}</button>${p.slot && !live ? `<button class="btn" data-startday="${esc(p.slot.day)}" data-startfrom="${esc(p.file)}">Zahájit MDT</button>` : ""}${cd?.record?.sections ? `<button class="btn" data-act="fhirdlg">Export FHIR</button>` : ""}<button class="btn primary" data-act="reportdlg">Stáhnout report (PDF)</button>`;
 }
 
 /* Parts the doctor can tick for the report (FNO spec): the assistant's summary and these finding groups.
@@ -2900,14 +2912,15 @@ function mailHtml(m) {
 /*REPORT_PDF_JS*/
 
 function reportHtml(p, pr, present) {
-  const reg = refRegistry(), cd = readyData(p);
+  /* The report is for case p, which need not be the open case (approval during a session), so it reads p's guidance. */
+  const reg = refRegistry(), cd = readyData(p), pst = guideOf(p.file).statements || [];
   const refTxt = r => r ? ` [${reg.num(r)}]` : "";
   const line = f => `<li>${f.date ? esc(f.date) + ": " : ""}${esc(f.text_cs)}${esc(tagsText(f))}<span class="src">${refTxt(f.source)}</span></li>`;
   /* Report anamnesis (Soňa, round 2): diagnoses stand out in bold, qualifiers stay plain text. */
-  const A = A3();
+  const A = cd?.record?.anamnesis || {};
   const mt = f => (f.negated ? " [zápor v dokumentu]" : "") + ((f.ocr_note_cs || f.certainty === "unclear_ocr") && !ocrCleared(f) ? " [ověřit čtení]" : "") + (f.certainty === "inferred" ? " [pozorování asistenta]" : "")
     + (f.certainty === "conflicting" ? ` [rozpor mezi dokumenty${f.note_cs ? ": " + f.note_cs : ""}]` : "") + (f.change_status === "planned_unconfirmed" ? " [plánováno, neověřeno]" : "");
-  const rf = f => (f.refs || []).map(j => `<span class="src">${refTxt(R3(j))}</span>`).join("");
+  const rf = f => (f.refs || []).map(j => `<span class="src">${refTxt(refAt(cd, j))}</span>`).join("");
   const anyEd = keys => keys.some(k => edOf(k, p.file));
   const anamItem = (k, f, i) => k === "FA"
     ? `${esc(edRep(`fa:${i}:line`, drugLine(f), p.file))}${drugNote(f) || edOf(`fa:${i}:note`, p.file) ? ` (${esc(edRep(`fa:${i}:note`, drugNote(f), p.file))})` : ""}${esc(mt(f))}${rf(f)}`
@@ -2923,13 +2936,13 @@ function reportHtml(p, pr, present) {
     <h4>Diagnóza</h4><p><b>${esc(p.full ? dxHeadlineText(p, cd, true) : p.diagnosis)}</b>${p.full && bf?.dx_headline?.mkn_cs ? `<br>${esc(bf.dx_headline.mkn_cs)}` : ""}</p>
     ${S.picked.has("summary") ? `<h4>NO</h4><p>${p.full ? brief : esc(p.summary || GAP)}</p>` : ""}
     ${p.full ? `${S.picked.has("anamnesis") ? `<h4>Anamnéza</h4><ul>${anamLines}</ul>` : ""}
-    ${FIND.filter(([k]) => S.picked.has(k)).map(([k, t]) => `<h4>${t}</h4><ul>${(CASE.sections[k] || []).map(line).join("") || `<li>${GAP}</li>`}</ul>`).join("")}`
+    ${FIND.filter(([k]) => S.picked.has(k)).map(([k, t]) => `<h4>${t}</h4><ul>${(cd?.record?.sections?.[k] || []).map(line).join("") || `<li>${GAP}</li>`}</ul>`).join("")}`
     : SYN_BY_FILE[p.file] ? `<h4>Podklady</h4><p>Syntetický pacient: v maketě jsou zpracované dokumenty, chybějící podklady a laboratoř; anamnéza a nálezy se do reportu netisknou.</p>${(SYN_BY_FILE[p.file].data_gaps || []).length ? `<h4>Chybějící podklady</h4><ul>${SYN_BY_FILE[p.file].data_gaps.map(g => `<li>${esc(g.text_cs)} (${esc(g.source.file)}, s. ${esc(g.source.page)})</li>`).join("")}</ul>` : ""}`
     : `<h4>Podklady</h4><p>Dokumentace případu není v maketě zpracovaná; anamnéza a nálezy se do reportu netisknou.</p>`}
     <h4>Prezentován pro</h4><p>${esc(questionPlain(p))}</p>
     <h4>Závěr</h4><p id="rep-concl">${esc(pr.concl || "Zatím nezapsán.")}</p>
     <h4>Další kroky</h4>${pr.steps.filter(x => x.text.trim()).length ? `<ul>${pr.steps.filter(x => x.text.trim()).map(x => `<li>${esc(x.text)} · ${esc(x.who)} · do ${esc(fmtDate(x.due))}</li>`).join("")}</ul>` : "<p>Žádné.</p>"}
-    ${p.full && S.guideOn && STMTS().length ? `<h4>Odchylky od doporučení</h4>${STMTS().filter(st => (pr.dev || {})[st.id]?.s).length ? `<ul>${STMTS().filter(st => (pr.dev || {})[st.id]?.s).map(st => { const d = pr.dev[st.id]; return `<li>${esc(st.quote)} <span class="src">(${esc(citeOf(st))})</span>: <b>${DEV[d.s]}</b>${d.s === "deviates" ? `, důvod: ${esc(d.why || "neuveden")}` : ""}</li>`; }).join("")}</ul>` : "<p>Žádné dřívější posouzení není zaznamenáno.</p>"}` : ""}
+    ${p.full && S.guideOn && pst.length ? `<h4>Odchylky od doporučení</h4>${pst.filter(st => (pr.dev || {})[st.id]?.s).length ? `<ul>${pst.filter(st => (pr.dev || {})[st.id]?.s).map(st => { const d = pr.dev[st.id]; return `<li>${esc(st.quote)} <span class="src">(${esc(citeOf(st))})</span>: <b>${DEV[d.s]}</b>${d.s === "deviates" ? `, důvod: ${esc(d.why || "neuveden")}` : ""}</li>`; }).join("")}</ul>` : "<p>Žádné dřívější posouzení není zaznamenáno.</p>"}` : ""}
     ${reg.list.length ? `<h4>Zdroje</h4><ol class="src">${reg.list.map(r => `<li>${esc(docTitle(r))}, s. ${esc(r.page)}${r.quote ? `: „${esc(r.quote.length > 70 ? r.quote.slice(0, 70) + "…" : r.quote)}“` : ""}</li>`).join("")}</ol>` : ""}
     <p class="src" style="margin-top:14px">Údaje sestavil asistent z uvedených dokumentů; čísla v hranatých závorkách odkazují na zdroje. [zápor v dokumentu] = zápor zapsaný lékařem; [ověřit čtení] = text, který mohl být špatně přečten; [pozorování asistenta] = odvozeno asistentem, v dokumentu výslovně není; [upraveno lékařem] = hodnotu změnil lékař, zdroj ji v této podobě neuvádí.</p>
     <div class="signatures" aria-label="Místa pro podpis"><div class="signature">Jméno a podpis</div><div class="signature">Jméno a podpis</div></div></article>`;
@@ -3284,8 +3297,14 @@ function fhirDate(s) {
    JavaScript, so the value is held as a marked string and written as a bare number by fhirJson(). */
 const FHIR_NUM = "~fhirnum~";
 const fhirJson = b => JSON.stringify(b, null, 2).replace(new RegExp(`"${FHIR_NUM}(-?[0-9.]+)"`, "g"), "$1");
-function fhirBundle(p) {
-  const c = CASE, now = new Date().toISOString(), entries = [];
+/* Identity (name, birth date) comes from the list row, which holds it apart from the case data; everything else from the
+   case data. The button that calls this exists only when the case data has its finding groups. */
+function fhirBundle(p, cd = readyData(p)) {
+  const r = cd.record || {};
+  const c = { file: cd.file, patient: { ...(r.patient || {}), name: p.name, birth_date: p.birth }, diagnosis: r.diagnosis, sections: r.sections || {},
+    labs: cd.labs?.values || [], labs_note_cs: cd.labs?.note_cs || null, flags: cd.alerts?.flags || [], summary: cd.brief?.summary_items || [],
+    timeline: r.timeline_source || [], mdt_question: r.mdt_question || {}, ocr_quality_note: r.ocr_quality_note };
+  const now = new Date().toISOString(), entries = [];
   const uid = () => "urn:uuid:" + crypto.randomUUID();
   /* Each resource carries a one-line human-readable text, as FHIR recommends, so a reader without our app can see what it is. */
   const add = (r, line) => { const fullUrl = uid(); if (line) r.text = { status: "generated", div: `<div xmlns="http://www.w3.org/1999/xhtml">${esc(line)}</div>` }; entries.push({ fullUrl, resource: r }); return fullUrl; };
@@ -3322,11 +3341,14 @@ function fhirBundle(p) {
   const ids = { observations: [], procedures: [], medications: [], conditions: [], labs: [], issues: [], flags: [] };
   /* The diagnosis date comes from the timeline's diagnosis event, with that event's source. */
   const dxEv = (c.timeline || []).find(t => t.type === "diagnosis"), dxIso = fhirDate(dxEv?.date);
-  const dx = add({ resourceType: "Condition", ...cert("documented"), subject: subj, category: [{ coding: [{ system: FHIR_SYS.condCat, code: "encounter-diagnosis" }] }],
-    code: { coding: [{ system: FHIR_SYS.mkn10, code: c.diagnosis.code, display: c.diagnosis.text_cs }], text: c.diagnosis.text_cs },
-    ...(dxIso ? { onsetDateTime: dxIso } : {}) }, `${c.diagnosis.code} ${c.diagnosis.text_cs}${dxEv ? `, diagnóza ${dxEv.date}` : ""}`);
-  prov(dx, [c.diagnosis.source, dxEv?.source]);
-  ids.conditions.push(dx);
+  /* No extracted diagnosis, no Condition: the Composition section then states the gap. */
+  if (c.diagnosis) {
+    const dx = add({ resourceType: "Condition", ...cert("documented"), subject: subj, category: [{ coding: [{ system: FHIR_SYS.condCat, code: "encounter-diagnosis" }] }],
+      code: { coding: [{ system: FHIR_SYS.mkn10, code: c.diagnosis.code, display: c.diagnosis.text_cs }], text: c.diagnosis.text_cs },
+      ...(dxIso ? { onsetDateTime: dxIso } : {}) }, `${c.diagnosis.code} ${c.diagnosis.text_cs}${dxEv ? `, diagnóza ${dxEv.date}` : ""}`);
+    prov(dx, [c.diagnosis.source, dxEv?.source]);
+    ids.conditions.push(dx);
+  }
   const issue = (kind, text, sources, line) => {
     const u = add({ resourceType: "DetectedIssue", status: "preliminary", patient: subj, author: ref(assistant),
       code: { coding: [{ system: FHIR_SYS.flag, code: kind }] }, detail: text,
@@ -3522,7 +3544,7 @@ function renderOverlay() {
       <div class="pgpanel">${pn.html || ""}</div></aside>`;
   } else if (o.kind === "guide") {
     const st = anyStmt(o.id), g = GL(st.guideline_id);
-    const pg = (GUIDE.pages || []).find(x => x.guideline_id === st.guideline_id && x.pdf_page === st.pdf_page);
+    const pg = (curGuide().pages || []).find(x => x.guideline_id === st.guideline_id && x.pdf_page === st.pdf_page);
     let text = esc(pg ? pg.text : "Text strany není k dispozici.");
     const pat = st.quote.trim().split(/\s+/).map(w => esc(w).replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("\\s+");
     try { text = text.replace(new RegExp(pat), m => `<mark id="hit">${m}</mark>`); } catch (e) { /* odd characters: show the page unmarked */ }
@@ -4137,7 +4159,7 @@ async function switchApiUser(t) {
   setDemoUser(id);
   try {
     DATA.refused = null; await loadFromApi(); seedEmbedded();
-    S.guideFor = null; GUIDE = {}; DATA.pages.clear(); DATA.docs.clear(); DATA.serverLog = null; S.overlay = null; renderOverlay();
+    DATA.pages.clear(); DATA.docs.clear(); DATA.serverLog = null; S.overlay = null; renderOverlay();
   } catch (e) { setDemoUser(prev); t.value = S.user; toast(e.message); return; }
   if (S.view === "admin" && S.user !== ADMIN) S.view = "patients";
   if (S.view === "patient" && !P(S.pid)) S.view = "patients";
