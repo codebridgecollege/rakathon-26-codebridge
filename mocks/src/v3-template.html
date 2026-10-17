@@ -847,8 +847,6 @@ h3 { letter-spacing: -.02em; }
 <main id="app"></main>
 <div id="overlay"></div>
 
-<!-- Optional and gitignored: sets window.STT_CONFIG = { key } for the live transcription demo (mocks/README.md). -->
-<script src="stt-config.js"></script>
 <script id="case-data" type="application/json">/*CASE*/</script>
 <script id="list-data" type="application/json">/*LIST*/</script>
 <script id="extra-data" type="application/json">/*EXTRA*/</script>
@@ -2427,15 +2425,36 @@ function addUploads(files) {
    by silence before it is sent, so it never leaves the browser.
    Two passes: live text from ElevenLabs Scribe v2 Realtime (it does not tell speakers apart), then after approval
    the case's own audio goes once through Scribe v2 with speaker separation, and the audio is deleted.
-   Demo only: in operation the same two passes run on a transcription server inside FNO (for example Whisper). */
-const STT_API = "https://api.elevenlabs.io", REC_RATE = 16000;
+   The page never holds a speech key: our server mints the single-use realtime token and forwards the case audio
+   for the speaker pass (/api/stt/*). Demo only: in operation the same two passes run on a transcription server
+   inside FNO (for example Whisper). */
+/* REC_RATE must match audio_format=pcm_16000, which the server puts in the socket URL. */
+const REC_RATE = 16000;
 /* ses holds one recording's timeline (start time, which case was open from which second); each socket keeps a
    reference to its own, so a late sentence from a stopped recording is never mapped onto a new one. */
 S.rec = { on: false, status: "off", msg: "", tx: {}, ses: null, sent: 0, partial: "", lastPid: null, fails: 0 };
-/* Demo key, published with the team's consent: it expires after three days and has a credit cap.
-   A gitignored stt-config.js can override it. */
-const STT_DEMO_KEY = "sk_e7e8a6d03d03de3d10a6df65ee3f3478a8e6d60e55c77f43";
-const sttKey = () => window.STT_CONFIG?.key || STT_DEMO_KEY;
+/* What this copy of the page can reach. Opened from a file, in an artifact viewer or under mocks/serve.py there is
+   no speech server, and the recorder says so instead of failing during the meeting. */
+S.api = { stt: false, summarize: false, data: false, limits: {}, probed: false };
+async function apiProbe(retry = true) {
+  try {
+    const r = await fetch("/api/health", { cache: "no-store", signal: AbortSignal.timeout(3000) });
+    /* A static host answers unknown paths with an HTML 404 page; only a JSON answer counts. */
+    if (r.ok && (r.headers.get("content-type") || "").includes("application/json")) {
+      const h = await r.json(); Object.assign(S.api, h.features || {}, { limits: h.limits || {} });
+    }
+  } catch {
+    /* One dropped request on venue Wi-Fi must not disable recording for the whole meeting, so ask once more.
+       Opened from a file, the retry fails the same way and the recorder then says it is unavailable. */
+    if (retry && location.protocol !== "file:") { setTimeout(() => apiProbe(false), 2000); return; }
+  }
+  S.api.probed = true; recUI();
+}
+/* The server's Czech message when it sent one; our own status otherwise. Upstream statuses never reach the page. */
+async function apiErr(r, fallback) {
+  try { const m = (await r.json())?.error?.message_cs; if (m) return m; } catch {}
+  return `${fallback} (HTTP ${r.status})`;
+}
 const hhmm = ms => new Date(ms).toLocaleTimeString("cs-CZ", { hour: "2-digit", minute: "2-digit" });
 const txOf = pid => S.rec.tx[pid] || (S.rec.tx[pid] = { lines: [], audio: [], passes: [] });
 /* Words go only to an open case that is still being discussed: the doctor's choice of case decides, never a guess. */
@@ -2446,6 +2465,7 @@ function recTarget() {
   return !S.session || inSession(p) ? p.file : null;
 }
 async function recStart() {
+  if (!S.api.stt) { recStop("AI záznam v této kopii aplikace není dostupný (chybí server pro přepis)."); return; }
   S.rec.status = "connecting"; S.rec.msg = ""; recUI();
   try {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true } });
@@ -2459,12 +2479,12 @@ async function recStart() {
   } catch (err) { recStop(`Záznam se nespustil: ${err.message || err}`); }
 }
 async function recConnect() {
-  /* A single-use token keeps the key itself off the WebSocket URL; the key still sits in this demo page. */
-  const r = await fetch(`${STT_API}/v1/single-use-token/realtime_scribe`, { method: "POST", headers: { "xi-api-key": sttKey() } });
-  if (!r.ok) throw new Error(`ElevenLabs odmítl klíč (HTTP ${r.status})`);
-  const { token } = await r.json();
+  /* Our server mints ElevenLabs' single-use token and builds the socket URL; the API key never reaches the page. */
+  const r = await fetch("/api/stt/token", { method: "POST" });
+  if (!r.ok) throw new Error(await apiErr(r, "Server nevydal přístup k přepisu"));
+  const { ws_url } = await r.json();
   if (!S.rec.on) return; // stopped while the token was on its way
-  const ws = new WebSocket(`${STT_API.replace("https", "wss")}/v1/speech-to-text/realtime?model_id=scribe_v2_realtime&language_code=cs&commit_strategy=vad&vad_silence_threshold_secs=0.8&include_timestamps=true&audio_format=pcm_16000&token=${encodeURIComponent(token)}`);
+  const ws = new WebSocket(ws_url);
   ws.ses = S.rec.ses;
   ws.onopen = () => { if (S.rec.ws !== ws || !S.rec.on) { ws.close(); return; } ws.base = S.rec.sent / REC_RATE; ws.opened = Date.now(); S.rec.status = "on"; recUI(); };
   ws.onmessage = e => recMessage(JSON.parse(e.data), ws);
@@ -2556,15 +2576,16 @@ async function recPostPass(pid, retry = null) {
   try {
     const marks = []; let at = 0; for (const sg of segs) { marks.push({ at, wall: sg.wall }); at += sg.chunks.reduce((a, c) => a + c.length, 0) / REC_RATE; }
     if (at < 0.5) { pass.state = "empty"; delete pass.segs; recUI(); recSummarize(pid); return; }
-    const fd = new FormData();
-    fd.append("file", wavOf(segs.flatMap(sg => sg.chunks)), "mdt.wav"); fd.append("model_id", "scribe_v2"); fd.append("language_code", "cs");
-    fd.append("diarize", "true"); fd.append("timestamps_granularity", "word");
-    const r = await fetch(`${STT_API}/v1/speech-to-text`, { method: "POST", headers: { "xi-api-key": sttKey() }, body: fd });
-    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const wav = wavOf(segs.flatMap(sg => sg.chunks)), max = S.api.limits.stt_audio_bytes;
+    /* The server refuses bodies over its limit; checking here keeps the audio and says why before uploading it. */
+    if (max && wav.size > max) throw new Error("záznam případu je delší, než server přijme (asi 50 minut)");
+    /* Raw WAV, not multipart: the server streams it on to the speech service without holding it in memory. */
+    const r = await fetch("/api/stt/diarize", { method: "POST", headers: { "content-type": "audio/wav" }, body: wav });
+    if (!r.ok) throw new Error(await apiErr(r, "Server odmítl záznam"));
     const d = await r.json(), spk = {};
     let cur = null;
+    /* The server returns spoken words only, already without spacing and sound events. */
     for (const w of d.words || []) {
-      if (w.type !== "word") continue;
       const s = w.speaker_id ?? "?", m = marks.filter(x => x.at <= (w.start ?? 0)).at(-1) || marks[0];
       if (!(s in spk)) spk[s] = Object.keys(spk).length;
       if (!cur || cur.spk !== spk[s]) { cur = { spk: spk[s], wall: m.wall + ((w.start ?? 0) - m.at) * 1000, text: [] }; pass.lines.push(cur); }
@@ -2585,9 +2606,9 @@ async function recSummarize(pid) {
   const transcript = tx.lines.map(l => `${l.spk != null ? `Mluvčí ${l.spk + 1}: ` : ""}${l.text.join(" ")}`).join("\n");
   tx.summary = { state: "running" }; recUI();
   try {
-    /* Same-origin Cloudflare Pages Function (mocks/functions/api/summarize.js); it holds the model key and prompt. */
+    /* Same-origin server route (Pages Function today, the Worker from step 1); it holds the model key and prompt. */
     const r = await fetch("/api/summarize", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ transcript }) });
-    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    if (!r.ok) throw new Error(await apiErr(r, "Shrnutí selhalo"));
     const out = (await r.json()).summary || "";
     tx.summary = { state: "done", text: out.trim(), when: Date.now() };
     logAccess(pid, "AI záznam: shrnutí diskuse");
@@ -2621,6 +2642,9 @@ function recState(p) {
 }
 function recCtlHtml(p) {
   const r = S.rec;
+  if (!S.api.stt && !r.on) return `<div class="recbar"><button class="btn recbtn" disabled>● Spustit záznam</button>
+      <span class="small">${!S.api.probed ? "Ověřuji server pro přepis…" : `AI záznam v této kopii aplikace není dostupný (chybí server pro přepis). Závěr lze zapsat ručně.`}</span></div>
+    ${r.msg ? `<p class="small" style="margin:8px 0 0">${esc(r.msg)}</p>` : ""}`;
   return `<div class="recbar">${r.on || r.status === "connecting" ? `<button class="btn recbtn on" data-act="recstop">■ Zastavit záznam</button>` : `<button class="btn recbtn" data-act="recon">● Spustit záznam</button>`}
       <span class="small">${recState(p)}</span></div>
     ${r.msg ? `<p class="small" style="margin:8px 0 0">${esc(r.msg)}</p>` : ""}`;
@@ -3604,7 +3628,7 @@ function action(a) {
   if (a === "pgsearch") pgSearch();
   else if (a === "pgrefresh") pgSearch(true);
   else if (a === "pgretry") pgRetry();
-  else if (a === "recon") { logAccess(S.pid, "zapnul(a) AI záznam diskuse"); recStart(); }
+  else if (a === "recon") { if (!S.api.stt) return; logAccess(S.pid, "zapnul(a) AI záznam diskuse"); recStart(); }
   else if (a === "recstop") { logAccess(S.pid, "vypnul(a) AI záznam diskuse"); recStop(); }
   else if (a === "reportdlg") { S.overlay = { kind: "report" }; renderOverlay(); }
   else if (a === "fhirdlg") { const p = P(S.pid); S.overlay = { kind: "fhir", id: p.id, bundle: fhirBundle(p) }; logAccess(p.file, "exportoval(a) případ jako FHIR"); renderOverlay(); }
@@ -3893,6 +3917,7 @@ document.addEventListener("keydown", e => { if (e.key === "Escape" && S.overlay)
 
 readHash();
 render();
+apiProbe(); // async: recUI() refreshes the recorder when the server answers, without a full render
 </script>
 
 
