@@ -7641,11 +7641,11 @@ const srcApi = {
       const pg = pageRaw(file, n);
       if (!pg) return null;
       const { pages, document_id, case_id, ...rest } = pg;
-      return structuredClone({ ...rest, doc_title: pg.doc_title ?? ((docsOf(file)?.documents || []).find(d => (d.pages || []).includes(n))?.title_cs || null), verify: verifyOf(pg), redacted: pg.redacted || null });
+      return structuredClone({ ...rest, doc_title: pg.doc_title ?? ((docsOfDocFile(file)?.documents || []).find(d => (d.pages || []).includes(n))?.title_cs || null), verify: verifyOf(pg), redacted: pg.redacted || null });
     }
     const doc = SERVER_PAGES[file], pg = doc?.pages.find(p => p.n === n);
     if (!pg) return null;
-    const title = (docsOf(file)?.documents || []).find(d => (d.pages || []).includes(n))?.title_cs || null;
+    const title = (docsOfDocFile(file)?.documents || []).find(d => (d.pages || []).includes(n))?.title_cs || null;
     return structuredClone({
       file, n: pg.n, of: doc.pages.length, doc_title: title,
       image: pg.image, size: pg.size, text: pg.text, engine: pg.engine, empty: isEmptyPage(pg.text),
@@ -8051,15 +8051,13 @@ function ensureCase(p) {
 }
 /* For the tests: the case data of a file, as the view reads it. */
 window.caseData = file => caseStore.entries.get(file)?.data || null;
-/* The document list of a case's PDF: case 10 from its extraction, a synthetic patient from its own file; null for a
-   case the mock has not processed. */
-function docsOf(file) {
-  if (file === CASE.file) return { file, documents: EXTRA.documents || [], pages: CASE.page_count, note: EXTRA.documents_note_cs };
-  const s = SYN_BY_FILE[file];
-  return s ? { file, documents: s.documents || [], pages: s.list_entry.page_count, note: null } : null;
-}
+/* The document list of a case's PDF from its case data; null for a case whose documents are not processed or not loaded. */
+const docsOf = cd => cd?.documents ? { file: cd.file, ...cd.documents } : null;
+/* The document list a source file belongs to, through the case that holds it; null when that case is not loaded. */
+const docsOfDocFile = file => { const c = caseStore.byDocFile.get(file); return docsOf(c ? caseStore.entries.get(c)?.data : null); };
+/* A reference without a file points into the open case. */
 function docTitle(r) {
-  const d = (docsOf(r.file || CASE.file)?.documents || []).find(d => (d.pages || []).includes(r.page));
+  const d = (docsOfDocFile(r.file || S.pid)?.documents || []).find(d => (d.pages || []).includes(r.page));
   return d ? d.title_cs : r.file;
 }
 
@@ -8194,7 +8192,7 @@ const DCOLS = [
   ["dread", "Čitelnost", d => READ_CS[d.readability] || d.readability],
 ];
 /* One filter mechanism for every table: [key, title, getter] plus the rows it filters. */
-const colDef = key => { const c = COLS.find(x => x[0] === key); if (c) return { get: c[2], items: S.patients }; const dc = DCOLS.find(x => x[0] === key); return { get: dc[2], items: docsOf(S.pid)?.documents || [] }; };
+const colDef = key => { const c = COLS.find(x => x[0] === key); if (c) return { get: c[2], items: S.patients }; const dc = DCOLS.find(x => x[0] === key); return { get: dc[2], items: docsOf(readyData(P(S.pid)))?.documents || [] }; };
 const passes = (defs, row) => defs.every(([k, , get]) => !S.colf[k] || S.colf[k].includes(get(row)));
 const RS = `<span class="colrs" aria-hidden="true" title="Táhnutím změníte šířku sloupce"></span>`;
 function colHead(key, title) {
@@ -8408,10 +8406,9 @@ function reasonQuestionBox(p, reg) {
 /* Missing and unclear data: a toggle, details on demand (round 7), no counts (round 19): numbers read as a score.
    Missing-document alerts are always on (CLAUDE.md), so when any document or datum is missing the button itself is
    the signal, filled amber with "chybí podklady"; the list sits one click away (round 21, team decision 2026-10-17). */
-/* The extracted data of a case; only fully processed cases have any. An unprocessed case returns null, so callers say
-   the check was not done instead of reading another case's data or reporting "nothing missing". */
-const caseDataOf = p => p && p.full ? { flags: CASE.flags || [], gaps: EXTRA.data_gaps_v3 || [] }
-  : p && SYN_BY_FILE[p.file] ? { flags: [], gaps: SYN_BY_FILE[p.file].data_gaps || [] } : null;
+/* The alerts of a case ({ flags, gaps }) from its case data. A case whose missing-document check has not run, or whose
+   data is not loaded, returns null, so callers say the check was not done instead of reporting "nothing missing". */
+const caseDataOf = p => readyData(p)?.alerts ?? null;
 /* true or false for a processed case; null when the missing-document check has not run for this case. */
 /* A resolved missing-document alert no longer counts (round 25); the brief's data gaps are not alerts and always count. */
 const hasMissing = p => { const d = caseDataOf(p); return d ? d.flags.some((f, i) => f.kind === "missing" && alertState(p.file, i).state !== "resolved") || d.gaps.some(x => x.kind === "missing") : null; };
@@ -8750,8 +8747,8 @@ function tabAnamnesis() {
    "originál chybí" itself, so the data's own "original missing" clause would say it twice. */
 const citedIn = t => String(t).replace(/,\s*původní popis v PDF není/i, "").replace(/^citace v\b/i, "citováno v");
 /* The whole row opens the document; the "Otevřít" button stays for keyboard users. */
-function tabDocuments() {
-  const dd = docsOf(S.pid) || { file: S.pid, documents: [], pages: null, note: null }, all = dd.documents;
+function tabDocuments(p, cd) {
+  const dd = docsOf(cd) || { file: p.file, documents: [], pages: null, note: null }, all = dd.documents;
   const docs = all.filter(d => passes(DCOLS, d) && (!S.dq || `${d.title_cs} ${d.type} ${d.date || ""}`.toLowerCase().includes(S.dq.toLowerCase())));
   const active = DCOLS.filter(c => S.colf[c[0]]).length + (S.dq ? 1 : 0);
   const R = { good: ["Dobře čitelné", "st-ready"], fair: ["Částečně čitelné", "st-attention"], poor: ["Špatně čitelné", "k-contradiction"] };
@@ -8771,7 +8768,8 @@ function tabDocuments() {
    never invented to fill the chart (product owner, round 24). */
 const num = v => v == null || v === "" ? null : parseFloat(String(v).replace(",", "."));
 const rangeOf = r => { const m = String(r || "").replace(/,/g, ".").match(/(-?[\d.]+)\s*(?:\.\.\.|–|-)\s*(-?[\d.]+)/); return m ? [+m[1], +m[2]] : null; };
-const labSeriesOf = p => { const s = p && SYN_BY_FILE[p.file]?.labs_series; return s && !s.synthetic && (s.draws || []).length >= 2 ? s : null; };
+/* Only a chartable series enters the case data (fromSyn), so this is a plain read. */
+const labSeriesOf = cd => cd?.labs?.series || null;
 /* The point of test t taken at draw d; matched by date and time, so a test missing from one sheet leaves a gap. */
 const pointAt = (t, d) => (t.points || []).find(x => x.date === d.date && (x.time || "") === (d.time || ""));
 function labChart(t, draws) {
@@ -8808,12 +8806,12 @@ function labTrend(ser) {
     <tbody>${ser.tests.map(t => `<tr class="click ${t === sel ? "sel" : ""}" data-labsel="${esc(t.code)}"><td><b>${esc(t.name_cs)}</b> <span class="muted small">${esc(t.code)}</span></td><td>${esc(t.unit)}</td><td class="num">${esc(t.reference_range)}</td>${ser.draws.map(d => cell(t, d)).join("")}</tr>`).join("")}</tbody></table></div>
     <div style="margin-top:14px"><div class="row spread"><h3>${esc(sel.name_cs)} <span class="muted small">(${esc(sel.unit)})</span></h3><span class="muted small">Klikněte na řádek parametru · zelené pásmo = referenční mez</span></div>${labChart(sel, ser.draws)}</div></section>`;
 }
-function tabLabs() {
-  const ser = labSeriesOf(P(S.pid));
+function tabLabs(cd) {
+  const ser = labSeriesOf(cd);
   if (ser) return labTrend(ser);
   /* A column with the same value in every row (here: no draw date, all from page 3) is said once in the card
      header instead. The parameter name then opens its own quoted line, so each value keeps its exact source. */
-  const labs = CASE.labs, same = get => labs.length > 1 && labs.every(l => get(l) === get(labs[0]));
+  const labs = cd.labs.values, same = get => labs.length > 1 && labs.every(l => get(l) === get(labs[0]));
   const oneDate = same(l => l.date || ""), oneSrc = same(l => `${l.source.file}|${l.source.page}`);
   const dateCell = l => l.date ? esc(l.date) : DASH;
   const head = [oneDate ? `<span>Datum odběru: ${dateCell(labs[0])}</span>` : "",
@@ -8827,7 +8825,7 @@ function tabLabs() {
       <td>${esc(l.unit)}</td><td class="num">${esc(l.reference_range)}</td>${oneDate ? "" : `<td class="muted">${dateCell(l)}</td>`}
       ${oneSrc ? "" : `<td><button class="linkbtn small" data-src='${esc(JSON.stringify(l.source))}'>s. ${esc(l.source.page)}</button></td>`}</tr>`).join("")}</tbody></table></div>
     <details class="srcs labsrcs"><summary>Zdroje</summary>
-      <p class="small" style="margin:6px 0">${esc(CASE.labs_note_cs)}</p>
+      <p class="small" style="margin:6px 0">${esc(cd.labs.note_cs)}</p>
       ${head ? `<p class="small muted" style="margin:0 0 6px">Pro všechny hodnoty: ${head}${oneSrc ? ". Klik na název parametru otevře jeho řádek ve zdroji." : ""}</p>` : ""}
       <p class="muted small" style="margin:0">Vývoj v čase se ukazuje jen tam, kde dokumentace obsahuje alespoň dva datované odběry; zde je jedna sada bez data odběru.</p></details></section>`;
 }
@@ -9138,7 +9136,8 @@ function viewPatient() {
   if (!p.full) return viewPatientLite(p);
   const tabs = [["overview", "Přehled"], ["anamnesis", "Anamnéza"], ["documents", "Dokumenty"], ["labs", "Laboratoř"], ["alerts", "Upozornění"], ["next", "Navrhovaný postup"], ["dev", "Retrospektivní odchylky"], ["prognosis", "Prognóza"]];
   if (!tabs.some(t => t[0] === S.tab)) S.tab = "overview";
-  const body = { overview: tabOverview, anamnesis: tabAnamnesis, documents: tabDocuments, labs: tabLabs, alerts: tabAlerts, next: tabNext, dev: tabDev, prognosis: () => tabPrognosis(p) }[S.tab]();
+  const cd = readyData(p);
+  const body = { overview: tabOverview, anamnesis: tabAnamnesis, documents: () => tabDocuments(p, cd), labs: () => tabLabs(cd), alerts: tabAlerts, next: tabNext, dev: tabDev, prognosis: () => tabPrognosis(p) }[S.tab]();
   return `<div class="page">
     ${sessionBar(p)}
     <div class="row"><button class="linkbtn" data-nav="patients">‹ Databáze pacientů</button></div>
@@ -9258,7 +9257,7 @@ function viewPatientLite(p) {
       ${conclusionBox(p)}
       ${mdtCard(p)}</section>
     ${`<div class="tabs" role="tablist">${tabs.map(([k, t]) => `<button class="tab" role="tab" data-tab="${k}" aria-selected="${S.tab === k}">${t}</button>`).join("")}</div>
-    ${{ documents: tabDocuments, labs: tabLabs, prognosis: () => tabPrognosis(p) }[S.tab]()}`}</div>`;
+    ${{ documents: () => tabDocuments(p, readyData(p)), labs: () => tabLabs(readyData(p)), prognosis: () => tabPrognosis(p) }[S.tab]()}`}</div>`;
 }
 /* Missing documents of a synthetic patient, each with the passage that shows the gap (always on, CLAUDE.md). */
 function synGapsBox(syn) {
@@ -9995,7 +9994,7 @@ function mailCard() {
    (Tesseract's word boxes) and in the vision text, and list the tokens the two engines read differently
    ("ověřit"). */
 async function openSource(r) {
-  const o = { kind: "source", cite: r, file: r.file || CASE.file, page: +r.page || 1, tab: S.srcTab, zoom: "fit", data: null, doc: null };
+  const o = { kind: "source", cite: r, file: r.file || S.pid, page: +r.page || 1, tab: S.srcTab, zoom: "fit", data: null, doc: null };
   if (DATA.mode === "api") {
     o.loading = true; S.overlay = o; renderOverlay();
     try {

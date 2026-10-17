@@ -618,7 +618,7 @@ for (const width of [1280, 400]) {
   await page.locator(`main [data-alert="${firstI}"] [data-alact="ack"]`).first().click({ force: true });
   ok((await text(`main [data-alert="${firstI}"]`)).includes("Vzal(a) na vědomí") && await page.locator(`main [data-alert="${firstI}"] [data-alact="reopen"]`).count() >= 1, `${width} r25 acknowledged warning retains its actor and reversible action`);
   // missing-document alerts: the button stays amber while any is unresolved (data gaps aside)
-  const amber = () => page.evaluate(() => { const g = EXTRA.data_gaps_v3; EXTRA.data_gaps_v3 = g.filter(x => x.kind !== "missing"); const r = hasMissing(P(CASE.file)); EXTRA.data_gaps_v3 = g; return r; });
+  const amber = () => page.evaluate(() => { const a = caseData("10_pacient.pdf").alerts, g = a.gaps; a.gaps = g.filter(x => x.kind !== "missing"); const r = hasMissing(P("10_pacient.pdf")); a.gaps = g; return r; });
   const missIdx = await page.evaluate(() => CASE.flags.map((f, i) => f.kind === "missing" ? i : -1).filter(i => i >= 0));
   for (const i of missIdx.slice(0, -1)) await page.evaluate(i => alertAct(i, "resolved"), i);
   const stillAmber = await amber();
