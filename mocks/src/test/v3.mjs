@@ -554,8 +554,8 @@ for (const width of [1280, 400]) {
   await go("#patient/13"); await c("details.mdtcard > summary"); await c("details.mdtcard [data-attonly]");
   ok(await page.locator('.modal [data-att="Radiologie"] option', { hasText: "doc. MUDr. Zkoušková, Ph.D." }).count() === 1, `${width} r23 attendance grid lists the added person`);
   await page.selectOption('.modal [data-att="Radiologie"]', "doc. MUDr. Zkoušková, Ph.D."); await c('.modal [data-addatt="Radiologie"]');
-  ok(await page.locator('.modal [data-att="Radiologie"][data-k="1"] option').first().textContent() === "vyberte…" && !(await text(".modal")).includes("odebrat")
-    && await page.locator('.modal [data-delatt="Radiologie"][data-k="1"]').count() === 1, `${width} r23 extra attendance row: placeholder "vyberte…" and a separate ✕`);
+  ok(await page.locator('.modal [data-att="Radiologie"][data-k="1"] option').first().textContent() === "vyberte…" && await page.locator('.modal [data-att="Radiologie"][data-k="1"] option', { hasText: "odebrat" }).count() === 0
+    && await page.locator('.modal [data-delatt="Radiologie"][data-k="1"]').count() === 1, `${width} r23 extra attendance row: placeholder "vyberte…" and a separate remove button`);
   await page.selectOption('.modal [data-att="Radiologie"][data-k="1"]', "MUDr. Veselá"); await page.selectOption('.modal [data-att="Radiologie"][data-k="1"]', "");
   ok(await page.locator('.modal [data-att="Radiologie"][data-k="1"]').count() === 1, `${width} r23 choosing "vyberte…" keeps the row`);
   await c('.modal [data-delatt="Radiologie"][data-k="1"]'); await over("attendance dialog");
