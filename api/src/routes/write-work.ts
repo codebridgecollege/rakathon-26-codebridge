@@ -228,7 +228,14 @@ export const writeWork = new Hono<AppEnv>()
         .bind(rcN)
         .all<{ case_id: string; file: string }>()
     ).results;
-    const overrideReason = duplicateDecision(ref.birth_number, existing, b.duplicate_override);
+    let overrideReason: string | null;
+    try {
+      overrideReason = duplicateDecision(ref.birth_number, existing, b.duplicate_override);
+    } catch (e) {
+      // The "Otevřít" link names the existing case only to someone who may open it; others learn that a record exists.
+      if (e instanceof DomainError && e.code === "duplicate_birth_number") throw D.duplicateBirthNumber(await visibleDuplicate(c, existing));
+      throw e;
+    }
     const fixtureId = typeof b.intake_fixture === "string" ? b.intake_fixture : null;
     const fixtureTaken = fixtureId ? await c.env.DB.prepare("SELECT id FROM cases WHERE id = ?1").bind(`NO-${fixtureId}`).first<{ id: string }>() : null;
     const fixture = intakeFixture(b.intake_fixture, new Set(fixtureTaken ? [fixtureTaken.id] : []));
@@ -279,14 +286,20 @@ export const writeWork = new Hono<AppEnv>()
         if (r) return r;
       }
       if (e instanceof DomainError && e.code === "duplicate_birth_number") {
-        const dup = await c.env.DB.prepare("SELECT c.id AS case_id, c.source_file AS file FROM patients p JOIN cases c ON c.patient_id = p.id WHERE replace(p.birth_number, '/', '') = ?1 LIMIT 1").bind(rcN).first();
-        throw D.duplicateBirthNumber(dup ?? {});
+        const dup = await c.env.DB.prepare("SELECT c.id AS case_id, c.source_file AS file FROM patients p JOIN cases c ON c.patient_id = p.id WHERE replace(p.birth_number, '/', '') = ?1").bind(rcN).all<{ case_id: string; file: string }>();
+        throw D.duplicateBirthNumber(await visibleDuplicate(c, dup.results));
       }
       throw e;
     }
     const row = await c.var.stores.cases.caseById(id);
     return answer(c, data, { patient: row ? patientRow(row, await c.var.stores.cases.statusHistory(id)) : null, cases: await statesFor(c, [id]) });
   });
+
+async function visibleDuplicate(c: import("hono").Context<AppEnv>, existing: { case_id: string; file: string }[]) {
+  const v = c.var.viewer;
+  for (const x of existing) if (v.role !== "doctor" || (await c.var.stores.cases.isMember(x.case_id, v))) return x;
+  return {};
+}
 
 async function suggestionRoute(c: import("hono").Context<AppEnv>, kind: "edit" | "confirm" | "dismiss") {
   const sid = Number(c.req.param("id"));

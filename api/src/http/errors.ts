@@ -25,7 +25,7 @@ export const E = {
   notFound: () => new ApiError(404, "not_found", "Neznámá adresa API."),
   unknownUser: () => new ApiError(401, "unknown_user", "Neznámý uživatel. Vyberte uživatele znovu."),
   notMember: () =>
-    new ApiError(403, "not_member", "Nejste v týmu tohoto případu. Přístup mimo tým (s důvodem) přijde v dalším kroku."),
+    new ApiError(403, "not_member", "Nejste v týmu tohoto případu. Lékař mimo tým může případ otevřít s uvedením důvodu."),
   roleForbidden: () => new ApiError(403, "role_forbidden", "Vaše role k těmto údajům nemá přístup."),
   caseNotFound: () => new ApiError(404, "case_not_found", "Případ nebyl nalezen."),
   pageNotFound: () => new ApiError(404, "page_not_found", "Stránka dokumentu není k dispozici."),
