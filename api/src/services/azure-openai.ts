@@ -18,7 +18,7 @@ export async function summarizeTranscript(env: Env, transcript: string): Promise
       { role: "user", content: transcript },
     ],
   });
-  const opts = { attempts: numVar(env.LLM_MAX_ATTEMPTS), baseMs: numVar(env.LLM_RETRY_BASE_MS), timeoutMs: 60000 };
+  const opts = { attempts: numVar(env.LLM_MAX_ATTEMPTS), baseMs: numVar(env.LLM_RETRY_BASE_MS), timeoutMs: 60000, deadlineMs: 90000 };
   const started = Date.now();
   let res: Response, attempts: number;
   try {

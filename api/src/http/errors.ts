@@ -43,7 +43,8 @@ export const onError: ErrorHandler<AppEnv> = (err, c) => {
   }
   // Unknown errors: log the type and route only; the message may hold request text.
   console.error(JSON.stringify({ route: c.req.path, error: err?.name ?? "Error" }));
-  return c.json({ error: { code: "internal", message_cs: "Interní chyba serveru." } }, 500);
+  const e = E.internal();
+  return c.json({ error: { code: e.code, message_cs: e.message_cs } }, e.status);
 };
 
 export const notFound: NotFoundHandler<AppEnv> = (c) =>

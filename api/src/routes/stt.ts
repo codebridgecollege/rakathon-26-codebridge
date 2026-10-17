@@ -13,8 +13,9 @@ export const stt = new Hono<AppEnv>()
   })
   .post("/diarize", rateLimit("RL_STT_BATCH"), async (c) => {
     if (!c.env.ELEVENLABS_API_KEY) throw E.notConfigured();
-    const type = (c.req.header("content-type") ?? "").toLowerCase();
-    if (!type.startsWith("audio/wav") && !type.startsWith("audio/x-wav")) throw E.unsupportedMediaType();
+    // Media type without parameters; "audio/wav; codecs=1" passes, "audio/wavx" does not.
+    const type = (c.req.header("content-type") ?? "").split(";")[0]!.trim().toLowerCase();
+    if (type !== "audio/wav" && type !== "audio/x-wav") throw E.unsupportedMediaType();
     // Chunked uploads are refused: the outgoing multipart needs its exact length up front.
     const lengthHeader = c.req.header("content-length");
     if (!lengthHeader || !/^\d+$/.test(lengthHeader)) throw E.lengthRequired();

@@ -17,6 +17,18 @@ export async function verifyAccessJwt(token: string, teamDomain: string, aud: st
     audience: aud,
     algorithms: ["RS256"],
     clockTolerance: 30,
+    // jose checks exp only when present; Access always sets these, so a token without them is not from Access.
+    requiredClaims: ["exp", "iat", "sub"],
   });
   return payload;
+}
+
+// True when the team's key set could not be fetched (timeout, network, non-200, bad JSON), as opposed to a token
+// that failed verification. The first is our outage, so the user must not be told to log in again.
+export function isKeySetUnavailable(e: unknown): boolean {
+  const code = (e as { code?: unknown } | null)?.code;
+  if (code === "ERR_JWKS_TIMEOUT") return true;
+  if (typeof code !== "string" || !code.startsWith("ERR_")) return true;
+  const msg = e instanceof Error ? e.message : "";
+  return code === "ERR_JOSE_GENERIC" && /JSON Web Key Set/.test(msg);
 }

@@ -10,11 +10,28 @@ export const allow: Limiter = { limit: async () => ({ success: true }) };
 export const deny: Limiter = { limit: async () => ({ success: false }) };
 
 // Each test picks its own vars, secrets and limiters; the real limiter binding would share counters across tests.
+// Every secret and every var a developer might override in .dev.vars is set here, so a local .dev.vars (which the
+// test runner loads) neither leaks real keys into a test nor changes the results.
 export function testEnv(over: Record<string, unknown> = {}): Env {
   return {
     ...baseEnv,
     ELEVENLABS_API_KEY: "test-el",
     AZURE_OPENAI_KEY: "test-az",
+    AI_GATEWAY_TOKEN: "",
+    AI_GATEWAY_BASE: "",
+    AUTH_MODE: "demo",
+    ACCESS_TEAM_DOMAIN: "",
+    ACCESS_AUD: "",
+    AZURE_OPENAI_BASE: "https://apim-rakathon-q7146n.azure-api.net/openai/v1",
+    AZURE_OPENAI_MODEL: "gpt-6-luna-dz-eu",
+    ELEVENLABS_API_BASE: "https://api.elevenlabs.io",
+    STT_REALTIME_MODEL: "scribe_v2_realtime",
+    STT_BATCH_MODEL: "scribe_v2",
+    STT_LANGUAGE: "cs",
+    STT_MAX_AUDIO_BYTES: "100000000",
+    SUMMARY_MAX_CHARS: "40000",
+    LLM_MAX_ATTEMPTS: "4",
+    GIT_SHA: "dev",
     LLM_RETRY_BASE_MS: "1",
     RL_STT_TOKEN: allow,
     RL_STT_BATCH: allow,

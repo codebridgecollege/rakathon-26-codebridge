@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { call, deny, mockFetch, sequence, testEnv } from "./helpers";
 import { PROMPT, PROMPT_VERSION } from "../src/prompts/summarize-cs";
+import { fetchWithRetry } from "../src/services/retry";
 
 const ok = () => Response.json({ choices: [{ message: { content: "  Indikována chemoterapie.  " } }] });
 const status = (s: number, text = `upstream said ${s} secret-detail`) => () => new Response(text, { status: s });
@@ -137,6 +138,38 @@ describe("POST /api/summarize", () => {
       headers: { "content-type": "application/json", "sec-fetch-site": "cross-site" },
     });
     expect(crossSite.status).toBe(403);
+    expect(crossSite.headers.get("cache-control")).toBe("no-store");
     expect(calls).toHaveLength(0);
+  });
+
+  it("refuses a POST without an Origin header", async () => {
+    const { calls } = mockFetch(ok);
+    const res = await call("/api/summarize", {
+      ...post({ transcript: "x" }),
+      headers: { "content-type": "application/json", origin: "" },
+    });
+    expect(res.status).toBe(403);
+    expect(calls).toHaveLength(0);
+  });
+
+  it("sends no-store on refusals as well", async () => {
+    const tooLong = await call("/api/summarize", post({ transcript: "a".repeat(11) }), testEnv({ SUMMARY_MAX_CHARS: "10" }));
+    const tooBig = await call("/api/summarize", post({ transcript: "a".repeat(300 * 1024) }));
+    const wrongType = await call("/api/summarize", post({ transcript: "x" }, { "content-type": "text/plain" }));
+    for (const res of [tooLong, tooBig, wrongType]) expect(res.headers.get("cache-control")).toBe("no-store");
+  });
+
+  it("stops retrying when the next wait would pass the overall deadline", async () => {
+    const { calls } = mockFetch(status(429));
+    const started = Date.now();
+    const { res, attempts } = await fetchWithRetry(
+      "https://upstream.test/x",
+      { method: "POST", body: "{}" },
+      { attempts: 4, baseMs: 2000, timeoutMs: 1000, deadlineMs: 1500 },
+    );
+    expect(res.status).toBe(429);
+    expect(attempts).toBe(1);
+    expect(calls).toHaveLength(1);
+    expect(Date.now() - started).toBeLessThan(1000);
   });
 });

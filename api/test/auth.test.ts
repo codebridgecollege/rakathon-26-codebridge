@@ -113,6 +113,33 @@ describe("auth in access mode", () => {
     expect(noHttps.status).toBe(500);
   });
 
+  it("answers 503, not 401, when the team's keys cannot be fetched", async () => {
+    vi.spyOn(globalThis, "fetch").mockImplementation(async (input) => {
+      const url = input instanceof Request ? input.url : String(input);
+      if (url.startsWith("https://down.cloudflareaccess.com")) return new Response("oops", { status: 502 });
+      return Response.json({ token: "tok" });
+    });
+    const t = await token({ iss: "https://down.cloudflareaccess.com" });
+    const res = await tokenCall(t, accessEnv({ ACCESS_TEAM_DOMAIN: "https://down.cloudflareaccess.com" }));
+    expect(res.status).toBe(503);
+    expect(res.headers.get("cache-control")).toBe("no-store");
+  });
+
+  it("refuses a token without an email (an Access service token)", async () => {
+    upstream();
+    const t = await new SignJWT({})
+      .setProtectedHeader({ alg: "RS256", kid: KID })
+      .setIssuer(TEAM)
+      .setAudience(AUD)
+      .setSubject("svc")
+      .setIssuedAt()
+      .setExpirationTime("5m")
+      .sign(key);
+    const res = await tokenCall(t);
+    expect(res.status).toBe(401);
+    expect(res.headers.get("cache-control")).toBe("no-store");
+  });
+
   it("fails closed on an unknown mode", async () => {
     upstream();
     const res = await tokenCall(null, testEnv({ AUTH_MODE: "bogus" }));

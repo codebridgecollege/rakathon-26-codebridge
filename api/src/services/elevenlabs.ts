@@ -69,8 +69,8 @@ export async function diarizeStream(
   // FixedLengthStream gives the outgoing request a Content-Length without holding the audio in memory.
   // If the client sends fewer or more bytes than declared, the stream errors and the upstream call fails.
   const { readable, writable } = new FixedLengthStream(head.length + length + tail.length);
+  const w = writable.getWriter();
   const pump = (async () => {
-    const w = writable.getWriter();
     const reader = body.getReader();
     try {
       await w.write(head);
@@ -99,6 +99,8 @@ export async function diarizeStream(
       headers: { "xi-api-key": env.ELEVENLABS_API_KEY, "content-type": `multipart/form-data; boundary=${b}` },
     });
   } catch (e) {
+    // Unblocks the pump, which would otherwise wait on a stream nobody reads, and stops reading the upload.
+    await w.abort(e).catch(() => {});
     console.log(JSON.stringify({ route: "stt/diarize", upstream: "fetch_failed", ms: Date.now() - started }));
     throw isTimeout(e) ? E.upstreamTimeout() : E.upstreamError("přepisu");
   }

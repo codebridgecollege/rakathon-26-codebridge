@@ -49,6 +49,14 @@ CI (`.github/workflows/deploy-worker.yml`) deploys `main` to production and
    (so the Worker checks every request, not only `/api`). Run `npm run types`.
 5. Redeploy, then check that both the production and the preview URL ask
    for login and that `/api/health` shows `auth_mode: "access"`.
+6. Check in Workers Logs that invocation logs do not record request
+   headers; the `Cf-Access-Jwt-Assertion` header is a bearer credential
+   that carries the user's e-mail.
+
+Access service tokens carry no e-mail and are refused (401); the app has
+no machine clients. If the team's key set cannot be fetched, the API
+answers 503 `upstream_busy` instead of 401, so users are not sent into a
+login loop by our outage.
 
 ## AI Gateway (off)
 

@@ -154,4 +154,65 @@ describe("POST /api/stt/diarize", () => {
     const res = await call("/api/stt/diarize", upload(wav), testEnv({ RL_STT_BATCH: deny }));
     expect(res.status).toBe(429);
   });
+
+  it("refuses a media type that only starts like WAV", async () => {
+    const res = await call("/api/stt/diarize", upload(wav, { "content-type": "audio/wavx" }));
+    expect(res.status).toBe(415);
+    expect(res.headers.get("cache-control")).toBe("no-store");
+  });
+
+  it("reassembles a WAV whose first chunks are shorter than the RIFF header", async () => {
+    let file: Uint8Array | undefined;
+    mockFetch(async (req) => {
+      file = new Uint8Array(await ((await req.formData()).get("file") as File).arrayBuffer());
+      return Response.json(words);
+    });
+    const stream = new ReadableStream<Uint8Array>({
+      start(c) {
+        c.enqueue(wav.slice(0, 3));
+        c.enqueue(wav.slice(3, 7));
+        c.enqueue(wav.slice(7, 13));
+        c.enqueue(wav.slice(13));
+        c.close();
+      },
+    });
+    const res = await call("/api/stt/diarize", upload(stream));
+    expect(res.status).toBe(200);
+    expect(file).toEqual(wav);
+  });
+
+  it("answers 502 when the client sends fewer bytes than it declared", async () => {
+    mockFetch(async (req) => {
+      await req.formData();
+      return Response.json(words);
+    });
+    const short = new ReadableStream<Uint8Array>({
+      start(c) {
+        c.enqueue(wav.slice(0, 1000));
+        c.close();
+      },
+    });
+    const res = await call("/api/stt/diarize", upload(short));
+    expect(res.status).toBe(502);
+  });
+
+  it("maps an upstream error to 502 without its status or body", async () => {
+    mockFetch(async (req) => {
+      await req.arrayBuffer();
+      return new Response("internal secret-detail", { status: 500 });
+    });
+    const res = await call("/api/stt/diarize", upload(wav));
+    expect(res.status).toBe(502);
+    const text = await res.text();
+    expect(text).not.toContain("500");
+    expect(text).not.toContain("secret-detail");
+  });
+
+  it("maps an upstream timeout to 504", async () => {
+    mockFetch(() => {
+      throw new DOMException("timed out", "TimeoutError");
+    });
+    const res = await call("/api/stt/diarize", upload(wav));
+    expect(res.status).toBe(504);
+  });
 });

@@ -1,7 +1,7 @@
 import type { MiddlewareHandler } from "hono";
 import type { AppEnv } from "../types";
 import { E } from "../http/errors";
-import { verifyAccessJwt } from "./access";
+import { isKeySetUnavailable, verifyAccessJwt } from "./access";
 
 export const auth = (): MiddlewareHandler<AppEnv> => async (c, next) => {
   const mode = c.env.AUTH_MODE;
@@ -16,16 +16,21 @@ export const auth = (): MiddlewareHandler<AppEnv> => async (c, next) => {
     // Header only, not the CF_Authorization cookie: Access always adds the header on requests it lets through.
     const token = c.req.header("cf-access-jwt-assertion");
     if (!token) throw E.unauthenticated();
-    let email: string, sub: string;
+    let p;
     try {
-      const p = await verifyAccessJwt(token, c.env.ACCESS_TEAM_DOMAIN, c.env.ACCESS_AUD);
-      if (typeof p.email !== "string" || typeof p.sub !== "string" || !p.sub) throw new Error("claims");
-      email = p.email.toLowerCase();
-      sub = p.sub;
-    } catch {
+      p = await verifyAccessJwt(token, c.env.ACCESS_TEAM_DOMAIN, c.env.ACCESS_AUD);
+    } catch (e) {
+      if (isKeySetUnavailable(e)) {
+        console.log(JSON.stringify({ route: c.req.path, auth: "jwks_unavailable" }));
+        throw E.upstreamBusy();
+      }
       // The reason (expired, wrong aud, bad signature) is not echoed to the caller.
       throw E.unauthenticated();
     }
+    // Access service tokens carry no email; they are not users of this app, so they are refused too.
+    if (typeof p.email !== "string" || typeof p.sub !== "string" || !p.sub) throw E.unauthenticated();
+    const email = p.email.toLowerCase();
+    const sub = p.sub;
     c.set("user", { mode: "access", email, sub });
     return next();
   }
