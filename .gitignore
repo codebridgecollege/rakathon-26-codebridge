@@ -67,3 +67,8 @@ mocks/guidelines/
 .claude/worktrees/
 mocks/stt-config.js
 .wrangler/
+
+# Local secrets for wrangler dev (Workers and Pages Functions).
+.dev.vars
+.dev.vars.*
+!.dev.vars.example
