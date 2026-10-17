@@ -540,7 +540,19 @@ details.srcs .refs { border-top: 0; margin-top: 4px; padding-top: 0; }
 .retro select { width: auto; min-width: 150px; }
 .retro .cite { display: block; font-size: 12.5px; color: var(--muted); }
 .retro label .label, .retro div > .label { margin-right: 6px; }
-/* Severity colours only after a doctor chose one (round 19). */
+.deviation-table { min-width: 1320px; width: 100%; table-layout: fixed; font-size: 11.5px; line-height: 1.4; }
+.deviation-table td, .deviation-table th { padding: 8px; vertical-align: top; overflow-wrap: anywhere; border-right: 1px solid var(--line); }
+.deviation-table th { background: var(--accent-soft); font-size: 10px; }
+.deviation-table .label { font-size: 10px; }
+.deviation-table .rq, .deviation-table .cite, .deviation-table .note { font-size: 10.5px; }
+.deviation-table .rq, .dev-context { margin: 4px 0; }
+.deviation-table .cite { display: block; color: var(--muted); }
+.deviation-table td.sev-major { background: #f9d8d5; } .deviation-table td.sev-moderate { background: #fbe8bb; } .deviation-table td.sev-minor { background: #fff5c9; }
+.deviation-context > summary { cursor: pointer; font-size: 12px; font-weight: 600; }
+.deviation-context > section { border: 0; padding: 12px 0 0; }
+.findings-table td p { margin: 4px 0; }
+.dev-footnote { margin: 8px 0 0; font-size: 10.5px; }
+/* Existing clinician assessments remain visible without an editing control. */
 .retro.sev-major { border-left-color: #c0392b; } .retro.sev-moderate { border-left-color: #e08a1e; } .retro.sev-minor { border-left-color: #e3c21b; }
 @media (max-width: 640px) { .retrogrid { grid-template-columns: minmax(0, 1fr); } }
 .chip.tier { background: var(--sunk); color: var(--fg); border: 1px solid var(--line-strong); }
@@ -2219,17 +2231,44 @@ function tabNext() {
 }
 function tabDev() {
   if (!S.guideOn) return `<section class="card"><p class="muted">Vrstva doporučení je vypnutá.</p></section>`;
+  if (GUIDE.loading) return `<section class="card"><p class="muted" role="status">Načítání podkladů pro odchylky…</p></section>`;
   const p = P(S.pid), pr = ensureProto(p);
-  return `${STMTS().length ? devTable(p, pr, pr.state === 'approved') : ''}${retroList(p) || '<section class="card"><p class="muted">K minulým rozhodnutím nejsou pasáže z doporučení.</p></section>'}`;
+  return `${deviationFindings(p)}<details class="card deviation-context"><summary>Další srovnání minulých rozhodnutí s doporučeními (${PAST().length})</summary>${retroList(p) || '<p class="muted">K minulým rozhodnutím nejsou pasáže z doporučení.</p>'}</details>${Object.values(pr.dev || {}).some(d => d.s) ? devTable(p, pr) : ''}`;
 }
-/* Retrospective deviations (round 19, team decision 2026-10-17): each past decision from the documentation next to a
-   guideline passage on the same topic. The assistant only puts the two quotes side by side; severity and assessment
-   are set by a doctor, never prefilled or suggested by the assistant, and each choice records who and when. The
-   colour appears only after a doctor has picked a severity. */
-/* Value keys stay in English for the CSS classes; the doctor sees Czech labels (major red, moderate orange, minor yellow). */
+/* This table is a read-only comparison of documented decisions and historical guideline passages.
+   Missing severity or consequences stay missing; displaying a row does not establish a deviation. */
 const SEV = { "": "-", major: "závažná", moderate: "středně závažná", minor: "méně závažná" };
 const ASSESS = { "": "-", justified: "odůvodněná", unjustified: "neodůvodněná", uncertain: "nejisté" };
-const retroOf = pid => (S.retro[pid] = S.retro[pid] || {});
+const retroOf = pid => (S.retro[pid] || {});
+/* Keep earlier clinician ratings readable even though the table no longer edits them. */
+function retroHistory(r, field, labels) {
+  const hist = (r.hist || {})[field] || [];
+  return hist.length > 1 ? `<details class="srcs rhist"><summary class="small">Historie hodnocení (${hist.length})</summary><ol class="small">${hist.map(h => `<li>${esc(labels[h.v] || "-")} · ${esc(h.by || "")} · ${esc(h.when || "")}</li>`).join("")}</ol></details>` : "";
+}
+function deviationFindings(p) {
+  const rows = GUIDE.deviation_case_file === p.file ? GUIDE.deviation_findings || [] : [];
+  if (!rows.length) return `<section class="card"><h2>Odchylky a související zjištění</h2><p class="muted small">Pro tento případ nejsou zpracovaná zjištění.</p></section>`;
+  const row = x => {
+    const statements = (x.statement_ids || []).map(anyStmt).filter(Boolean);
+    const past = x.past_statement_id ? PAST().find(st => st.id === x.past_statement_id) : null;
+    const all = past ? [past, ...statements] : statements;
+    const guidelines = [...new Map(all.map(st => [st.guideline_id, GL(st.guideline_id)])).values()];
+    const recorded = past ? retroOf(p.file)[past.id] || {} : {};
+    const sev = Object.hasOwn(SEV, recorded.sev) ? recorded.sev : "";
+    const passage = st => st.edition ? pastPassage(st) : `<q>${esc(st.quote)}</q><span class="note">${esc(st.section || "")} · ${pageOf(st)} · ${esc(st.evidence || "")} · <button class="linkbtn small" data-guide="${esc(st.id)}">Otevřít doporučení</button></span>`;
+    return `<tr data-deviation-finding="${esc(x.id)}"><td><b>${esc(x.title_cs)}</b><span class="note">${esc(x.status_cs)}</span><p class="dev-context">${esc(x.interpretation_cs)}</p></td>
+      <td>${esc(x.group_cs)}</td><td class="${sev ? "sev-" + sev : ""}">${sev ? `${esc(SEV[sev])}<span class="note">${esc(recorded.sevBy || "")} · ${esc(recorded.sevWhen || "")}</span>` : DASH}${retroHistory(recorded, "sev", SEV)}</td>
+      <td>${guidelines.map(g => `<b>${esc(g.name)}</b><span class="note">${esc(g.society || "")} · ${esc(g.version || "")}</span>`).join("") || DASH}</td>
+      <td>${guidelines.map(g => esc(g.year)).join("<br>") || DASH}</td><td>${all.map(passage).join('<hr>') || DASH}${x.risk_basis_cs ? `<p class="note">${esc(x.risk_basis_cs)} <a class="linkbtn small" href="${esc(x.risk_basis_url)}" target="_blank" rel="noopener">Tabulka 14, s. PDF 42</a></p>` : ""}</td>
+      <td>${(x.source_refs || []).map(R3).filter(Boolean).map(ref => `<p class="dev-context"><q>${esc(ref.quote)}</q> <button class="linkbtn small" data-src='${esc(JSON.stringify(ref))}'>s. ${esc(ref.page)}</button></p>`).join("") || DASH}</td>
+      <td>${esc(x.clinical_consequence_cs)}<span class="note">Možný dopad / omezení posouzení, nikoli doložená komplikace.</span></td></tr>`;
+  };
+  return `<section class="card"><div class="head"><h2>Odchylky a související zjištění</h2><span class="muted small">${rows.length} zjištění · bez povinné akce</span></div>
+    <p class="muted small">Pozorování asistenta z dostupné dokumentace. Dokumentační mezera ani úprava při toxicitě samy o sobě neprokazují nesprávnou péči.</p>
+    <div class="scroll" role="region" aria-label="Tabulka odchylek a souvisejících zjištění" tabindex="0"><table class="tbl deviation-table findings-table"><colgroup><col style="width:19%"><col style="width:7%"><col style="width:6%"><col style="width:10%"><col style="width:4%"><col style="width:22%"><col style="width:18%"><col style="width:14%"></colgroup>
+    <thead><tr><th>Problém / zjištění</th><th>Oblast</th><th>Závažnost</th><th>Doporučení</th><th>Rok</th><th>Znění doporučení</th><th>Citace z dokumentace</th><th>Možný klinický důsledek</th></tr></thead><tbody>${rows.map(row).join("")}</tbody></table></div>
+    <p class="muted dev-footnote">Závažnost není klinicky posouzena. Citace jsou původní znění zdrojů; shrnutí a možné důsledky jsou pozorováním asistenta. Současný stav nelze automaticky odvodit z historického nebo nedatovaného záznamu.</p></section>`;
+}
 /* The decision's own words: the reference the statement names, else the first source of its oncology row. */
 const decisionRef = x => R3(Number.isInteger(x.decision_ref) ? x.decision_ref : ((EXTRA.onco_detailed_v3 || [])[x.row_index]?.refs || [])[0]);
 /* The guideline side of a past decision quotes only the edition valid on the decision date (round 21), never a later
@@ -2252,28 +2291,28 @@ function pastPassage(x) {
 }
 function retroList(p) {
   const xs = PAST(); if (!xs.length) return "";
-  const rs = retroOf(p.file), doc = isDoctor(S.user);
-  const pick = (x, field, opts, label) => {
-    const r = rs[x.id] || {}, v = r[field] || "", by = r[field + "By"], hist = (r.hist || {})[field] || [];
-    /* The latest choice with who and when; earlier choices stay in an append-only history behind "změněno N×". */
-    const who = by ? `<span class="note">${esc(label)} nastavil(a) ${esc(by)}, ${esc(r[field + "When"])}</span>` : "";
-    const older = hist.length > 1 ? `<details class="srcs rhist"><summary class="small">změněno ${hist.length - 1}×</summary><ol class="small" reversed>${hist.slice().reverse().map(h => `<li>${esc(opts[h.v] || "-")} · ${esc(h.by)}, ${esc(h.when)}</li>`).join("")}</ol></details>` : "";
-    return doc ? `<div class="small"><span class="label">${esc(label)}</span><select class="input" data-retro="${esc(x.id)}" data-rf="${field}" aria-label="${esc(label)}">${Object.entries(opts).map(([k, t]) => `<option value="${k}" ${v === k ? "selected" : ""}>${esc(t)}</option>`).join("")}</select>${who}${older}</div>`
-      : `<div class="small"><span class="label">${esc(label)}</span><div>${esc(opts[v] || "-")}</div>${who}${older}</div>`;
-  };
+  const rs = retroOf(p.file);
+  const groups = { "past-nephrectomy": "Chirurgie", "past-lymphadenectomy": "Chirurgie", "past-metastasectomy-node": "Chirurgie", "past-skin-metastasectomy": "Chirurgie", "past-1l-intermediate": "Systémová léčba", "past-nivo-ipi-regimen": "Systémová léčba", "past-2l-after-io": "Systémová léčba", "past-3l-after-io-tki": "Systémová léčba" };
   const item = x => {
-    const dr = decisionRef(x), sev = (rs[x.id] || {}).sev || "";
-    return `<li class="retro ${sev ? "sev-" + sev : ""}" data-retroitem="${esc(x.id)}">
-      <span class="chip plain k-unclear">Pozorování asistenta: pasáž z doporučení k minulému rozhodnutí</span>
-      <div class="retrogrid"><div><span class="label">Rozhodnutí v dokumentaci · ${esc(x.decision_cs || "")}</span>
-          ${dr ? `<p class="rq"><q>${esc(dr.quote)}</q> <button class="linkbtn small" data-src='${esc(JSON.stringify(dr))}'>zdroj, s. ${esc(dr.page)}</button></p>` : `<p class="rq">${DASH}</p>`}</div>
-        <div>${pastPassage(x)}</div></div>
-      ${x.relation_cs ? `<span class="cite">${esc(x.relation_cs)}</span>` : ""}
-      <div class="row" style="gap:8px 16px;margin-top:6px;align-items:flex-start">${pick(x, "sev", SEV, "Závažnost")}${pick(x, "assess", ASSESS, "Posouzení")}</div></li>`;
+    const dr = decisionRef(x), r = rs[x.id] || {}, sev = Object.hasOwn(SEV, r.sev) ? r.sev : "";
+    const e = x.edition;
+    const recorded = field => r[field + "By"] ? `<span class="note">Zaznamenal(a) ${esc(r[field + "By"])} · ${esc(r[field + "When"] || "")}</span>` : "";
+    return `<tr data-retroitem="${esc(x.id)}">
+      <td><b>${esc(x.decision_cs || "")}</b>${x.decision_date ? `<span class="note">${esc(fmtDate(x.decision_date))}</span>` : ""}${x.relation_cs ? `<p class="dev-context">${esc(x.relation_cs)}</p>` : ""}${r.assess ? `<span class="note">Dříve zaznamenané posouzení: ${esc(ASSESS[r.assess] || "-")}</span>${recorded("assess")}` : ""}${retroHistory(r, "assess", ASSESS)}</td>
+      <td>${esc(groups[x.id] || "") || DASH}</td>
+      <td class="${sev ? "sev-" + sev : ""}">${sev ? esc(SEV[sev]) + recorded("sev") : DASH}${retroHistory(r, "sev", SEV)}</td>
+      <td>${e ? `<b>${esc(e.name)}</b><span class="note">${esc(e.society || "")} · ${esc(e.version || "")}</span>` : DASH}</td>
+      <td>${e ? `${esc(e.year)}<span class="note">${esc(edRange(e))}</span>` : DASH}</td>
+      <td>${pastPassage(x)}</td>
+      <td>${dr ? `<q>${esc(dr.quote)}</q><span class="note"><button class="linkbtn small" data-src='${esc(JSON.stringify(dr))}'>${esc(docTitle(dr))}, s. ${esc(dr.page)}</button></span>` : DASH}</td>
+      <td>${DASH}</td></tr>`;
   };
-  return `<section class="card"><div class="head"><h2>Retrospektivní odchylky</h2><span class="muted small">Minulá rozhodnutí vedle pasáží z vydání doporučení platného v době rozhodnutí; závažnost a posouzení vyplňuje lékař</span></div>
-    <ol class="retrolist">${xs.map(item).join("")}</ol>
-    <p class="muted small" style="margin:8px 0 0">Ke každému rozhodnutí se cituje vydání doporučení platné v době rozhodnutí, nikdy pozdější. Asistent jen staví vedle sebe citaci z dokumentace a z doporučení; nehodnotí, zda rozhodnutí doporučení odpovídalo. Online novelizace vydání v průběhu roku nejsou archivovány a nebyly ověřeny. ${doc ? "" : "Závažnost a posouzení může nastavit jen lékař."}</p></section>`;
+  return `<section class="card"><div class="head"><h2>Retrospektivní odchylky</h2><span class="muted small">Přehled bez povinného hodnocení nebo potvrzování</span></div>
+    <p class="muted small">Pozorování asistenta: srovnání záznamů s doporučeními. Samotné zařazení řádku nepotvrzuje odchylku.</p>
+    <div class="scroll" role="region" aria-label="Tabulka retrospektivních odchylek" tabindex="0"><table class="tbl deviation-table"><colgroup><col style="width:16%"><col style="width:7%"><col style="width:7%"><col style="width:11%"><col style="width:7%"><col style="width:24%"><col style="width:19%"><col style="width:9%"></colgroup>
+      <thead><tr><th>Problém / zjištění</th><th>Oblast</th><th>Závažnost</th><th>Doporučení</th><th>Rok</th><th>Znění doporučení</th><th>Citace z dokumentace</th><th>Možný klinický důsledek</th></tr></thead>
+      <tbody>${xs.map(item).join("")}</tbody></table></div>
+    <p class="muted dev-footnote">Závažnost a klinický důsledek nejsou v podkladech stanoveny; chybějící údaje se nedoplňují. Dříve zaznamenaná hodnocení zůstávají pouze ke čtení. Citace vycházejí z vydání platného v době rozhodnutí; online novelizace v průběhu roku nebyly ověřeny.</p></section>`;
 }
 /* Cases the mock has not processed still get the same view: header, short overview, conclusion and the MDT
    discussion card, so a session can run through every case on the agenda. */
@@ -2662,13 +2701,13 @@ function mdtCard(p) {
 }
 /* Deviations from the quoted statements: the doctors record them; the assistant does not judge the plan (F-27). */
 const DEV = { "": "nevyplněno", follows: "v souladu", deviates: "záměrná odchylka", na: "neuplatňuje se" };
-function devTable(p, pr, locked) {
-  pr.dev = pr.dev || {};
-  return `<section class="card"><div class="head"><h2>Odchylky aktuálního postupu MDT</h2><span class="muted small">Vyplňuje MDT; asistent plán nehodnotí</span></div>
-    <p class="muted small">Posouzení aktuálního návrhu, odděleně od minulých rozhodnutí níže. <button class="linkbtn small" data-tab="next">Zobrazit navrhovaný postup</button></p><div class="scroll"><table class="tbl devt"><thead><tr><th>Doporučení</th><th style="width:160px">Postup MDT</th><th style="width:34%">Důvod odchylky</th></tr></thead><tbody>
-    ${STMTS().filter(st => st.type !== "guideline_text").map(st => { const d = pr.dev[st.id] || {}; return `<tr><td><span class="small"><q>${esc(st.quote)}</q></span><span class="note">${esc(citeOf(st))}</span></td>
-      <td><select class="input" data-dev="${esc(st.id)}" ${locked ? "disabled" : ""}>${Object.entries(DEV).map(([k, t]) => `<option value="${k}" ${(d.s || "") === k ? "selected" : ""}>${t}</option>`).join("")}</select></td>
-      <td>${d.s === "deviates" ? `<input class="input" data-devwhy="${esc(st.id)}" value="${esc(d.why || "")}" placeholder="Proč se MDT odchyluje" ${locked ? "disabled" : ""}>${!locked && !(d.why || "").trim() ? '<span class="note" style="color:var(--missing)">Uveďte důvod.</span>' : ""}` : '<span class="muted small">-</span>'}</td></tr>`; }).join("")}</tbody></table></div></section>`;
+/* Preserve any previously recorded MDT assessment without asking for new input. */
+function devTable(p, pr) {
+  const rows = STMTS().filter(st => (pr.dev || {})[st.id]?.s);
+  if (!rows.length) return "";
+  return `<section class="card"><div class="head"><h2>Dříve zaznamenané posouzení aktuálního postupu</h2></div>
+    <div class="scroll"><table class="tbl devt"><thead><tr><th>Doporučení</th><th>Postup MDT</th><th>Zaznamenaný důvod</th></tr></thead><tbody>
+      ${rows.map(st => { const d = pr.dev[st.id]; return `<tr><td><q>${esc(st.quote)}</q><span class="note">${esc(citeOf(st))}</span></td><td>${esc(DEV[d.s] || "-")}</td><td>${d.why ? esc(d.why) : DASH}</td></tr>`; }).join("")}</tbody></table></div></section>`;
 }
 function mailHtml(m) {
   /* The digest carries only the count sentence and the link (CLAUDE.md: notifications carry a link, not medical data). */
@@ -2711,7 +2750,7 @@ function reportHtml(p, pr, present) {
     <h4>Prezentován pro</h4><p>${esc(questionPlain(p))}</p>
     <h4>Závěr</h4><p id="rep-concl">${esc(pr.concl || "Zatím nezapsán.")}</p>
     <h4>Další kroky</h4>${pr.steps.filter(x => x.text.trim()).length ? `<ul>${pr.steps.filter(x => x.text.trim()).map(x => `<li>${esc(x.text)} · ${esc(x.who)} · do ${esc(fmtDate(x.due))}</li>`).join("")}</ul>` : "<p>Žádné.</p>"}
-    ${p.full && S.guideOn && STMTS().length ? `<h4>Odchylky od doporučení</h4>${STMTS().filter(st => (pr.dev || {})[st.id]?.s).length ? `<ul>${STMTS().filter(st => (pr.dev || {})[st.id]?.s).map(st => { const d = pr.dev[st.id]; return `<li>${esc(st.quote)} <span class="src">(${esc(citeOf(st))})</span>: <b>${DEV[d.s]}</b>${d.s === "deviates" ? `, důvod: ${esc(d.why || "neuveden")}` : ""}</li>`; }).join("")}</ul>` : "<p>Nevyplněno.</p>"}` : ""}
+    ${p.full && S.guideOn && STMTS().length ? `<h4>Odchylky od doporučení</h4>${STMTS().filter(st => (pr.dev || {})[st.id]?.s).length ? `<ul>${STMTS().filter(st => (pr.dev || {})[st.id]?.s).map(st => { const d = pr.dev[st.id]; return `<li>${esc(st.quote)} <span class="src">(${esc(citeOf(st))})</span>: <b>${DEV[d.s]}</b>${d.s === "deviates" ? `, důvod: ${esc(d.why || "neuveden")}` : ""}</li>`; }).join("")}</ul>` : "<p>Žádné dřívější posouzení není zaznamenáno.</p>"}` : ""}
     ${reg.list.length ? `<h4>Zdroje</h4><ol class="src">${reg.list.map(r => `<li>${esc(docTitle(r))}, s. ${esc(r.page)}${r.quote ? `: „${esc(r.quote.length > 70 ? r.quote.slice(0, 70) + "…" : r.quote)}“` : ""}</li>`).join("")}</ol>` : ""}
     <p class="src" style="margin-top:14px">Údaje sestavil asistent z uvedených dokumentů; čísla v hranatých závorkách odkazují na zdroje. [zápor v dokumentu] = zápor zapsaný lékařem; [ověřit čtení] = text, který mohl být špatně přečten; [pozorování asistenta] = odvozeno asistentem, v dokumentu výslovně není; [upraveno lékařem] = hodnotu změnil lékař, zdroj ji v této podobě neuvádí.</p>
     <div class="signatures" aria-label="Místa pro podpis"><div class="signature">Jméno a podpis</div><div class="signature">Jméno a podpis</div></div></article>`;
@@ -3680,7 +3719,7 @@ document.addEventListener("input", e => {
   if (t.id === "dq") { S.dq = t.value; const pos = t.selectionStart; render(); const q = document.getElementById("dq"); q.focus(); q.setSelectionRange(pos, pos); }
   else if (t.id === "q") { S.q = t.value; const pos = t.selectionStart; render(); const q = document.getElementById("q"); q.focus(); q.setSelectionRange(pos, pos); }
   else if (t.dataset.step !== undefined) { curProto().steps[+t.dataset.step][t.dataset.f] = t.value; refreshReport(); }
-  else if (t.dataset.devwhy) { const pr = curProto(); pr.dev[t.dataset.devwhy].why = t.value; refreshReport(); }
+  
   else if (t.id === "notes") curProto().notes = t.value;
   else if (t.id === "concl") syncConcl(t);
 });
@@ -3770,16 +3809,6 @@ document.addEventListener("change", e => {
   else if (t.dataset.fhirfile && t.files[0]) { const o = S.overlay; readNewForm(o); t.files[0].text().then(x => { o.fhirText = x; fhirImport(o, x); renderOverlay(); }); }
   else if (t.dataset.staff) staffEdit(t);
   else if (t.dataset.actToggle === "guide") { S.guideOn = t.checked; render(); }
-  else if (t.dataset.retro) {
-    /* Only a doctor sets severity or assessment; the select is not rendered for others, and this guard repeats the rule. */
-    if (!isDoctor(S.user)) return;
-    const r = retroOf(S.pid)[t.dataset.retro] = retroOf(S.pid)[t.dataset.retro] || {}, f = t.dataset.rf;
-    r[f] = t.value; r[f + "By"] = S.user; r[f + "When"] = new Date().toLocaleString("cs-CZ");
-    /* Append-only: every choice is kept with who and when, so a later change never hides an earlier one. */
-    r.hist = r.hist || {}; (r.hist[f] = r.hist[f] || []).push({ v: t.value, by: S.user, when: r[f + "When"] });
-    logAccess(S.pid, `nastavil(a) ${f === "sev" ? "závažnost" : "posouzení"} retrospektivní odchylky`); render();
-  }
-  else if (t.dataset.dev) { const pr = curProto(); pr.dev = pr.dev || {}; pr.dev[t.dataset.dev] = { ...(pr.dev[t.dataset.dev] || {}), s: t.value }; render(); }
   else if (t.id === "subfrom" || t.id === "subto") { S[t.id === "subfrom" ? "subFrom" : "subTo"] = t.value; S.dbPage = 0; render(); }
   else if (t.id === "mmyear") { S.miniMonth = `${t.value}-${S.miniMonth.slice(5)}`; S.week = mondayOf(`${S.miniMonth}-15`); render(); }
   else if (t.dataset.colall) { if (t.checked) delete S.colf[t.dataset.colall]; else S.colf[t.dataset.colall] = []; render(); }
@@ -3818,4 +3847,5 @@ document.addEventListener("keydown", e => { if (e.key === "Escape" && S.overlay)
 readHash();
 render();
 </script>
+
 

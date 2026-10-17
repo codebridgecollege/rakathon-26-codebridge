@@ -144,6 +144,10 @@ def guidance() -> str:
         part = json.loads(lit.read_text())
         out["literature"] = part.get("articles", [])
         out["queries"] = part.get("queries", [])
+    # Curated observations reference the existing case and guideline excerpts by ID.
+    findings = json.loads((DATA / "deviations-case-10.json").read_text())
+    out["deviation_case_file"] = findings["case_file"]
+    out["deviation_findings"] = findings["findings"]
     return json.dumps(out, ensure_ascii=False)
 
 
@@ -184,5 +188,6 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
 
 

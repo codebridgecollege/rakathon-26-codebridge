@@ -199,7 +199,7 @@ data (slide 21 notes).
   next to guideline passages on the same topic; their severity and
   assessment are set by doctors, never by the assistant.
   It never ranks options, never writes the proposal or the conclusion,
-  and the doctors record whether a deviation is intended and why. A
+  and the comparison table requires no rating, reason or confirmation. Existing doctor assessments remain read-only (user decision 2026-10-17). A
   statement is never paraphrased as a quote and never invented: no
   verified source text, no statement. When guidelines are not enough
   (rare situations), the layer may add literature from PubMed, labeled as
@@ -422,3 +422,4 @@ Do not write project knowledge into the machine-local agent memory store
   report results faithfully, including failures.
 - **Document what is there.** Describe the current design; do not leave
   notes about removed approaches in docs or comments.
+

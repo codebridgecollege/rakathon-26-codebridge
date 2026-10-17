@@ -69,9 +69,9 @@ assert.equal(await page.locator('tbody .chip').first().evaluate(e=>getComputedSt
 await go('patient/10/next');
 assert.equal(await page.locator('.devt').count(),0);
 await go('patient/10/dev');
-assert.equal(await page.locator('.devt').count(),1);
+assert.equal(await page.locator('.findings-table').count(),1);
 assert(await page.locator('[data-retroitem]').count()>0);
-assert((await page.locator('main').textContent()).includes('Odchylky aktuálního postupu MDT'));
+assert.equal(await page.locator('[data-retro], [data-dev], [data-devwhy]').count(),0);
 // A calendar card must use that patient's question and edit target, never S.pid's override.
 assert(await page.evaluate(()=>{
  S.edits[EK('q','10_pacient.pdf')]={text:'Question for patient ten',by:S.user,when:'now'};
@@ -83,3 +83,4 @@ assert(await page.evaluate(()=>{
 assert.deepEqual(errors,[]);
 console.log('Patient panels, keyboard scrolling, bounded OCR markers, opaque circles, and reversible per-patient warning states passed.');
 await browser.close();
+

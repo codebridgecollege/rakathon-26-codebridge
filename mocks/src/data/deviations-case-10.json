@@ -1,0 +1,53 @@
+{
+  "case_file": "10_pacient.pdf",
+  "basis": "Curated comparison of synthetic case documentation with the existing cited guideline passages. No row establishes negligent care or an individual outcome.",
+  "findings": [
+    {
+      "id": "hbv-prophylaxis-not-documented",
+      "title_cs": "Doplnění HBV vyšetření a antivirová profylaxe při everolimu nejsou doloženy",
+      "group_cs": "Hepatologie / bezpečnost léčby",
+      "status_cs": "Dokumentační mezera",
+      "interpretation_cs": "HBsAg pozitivita a léčba everolimem jsou uvedeny. HBV DNA, anti-HBc, hepatologické zhodnocení ani antivirová profylaxe nejsou v dostupných podkladech doloženy. Neznamená to, že nebyly provedeny nebo podány.",
+      "clinical_consequence_cs": "Při imunosupresivní léčbě existuje riziko reaktivace HBV. Z dostupné dokumentace nelze posoudit, zda je pacient proti tomuto riziku zajištěn; reaktivace HBV není doložena.",
+      "severity": null,
+      "risk_basis_cs": "EASL, tabulka 14: inhibitory mTOR u HBsAg pozitivních ve skupině středního rizika reaktivace. Jde o kategorii rizika, nikoli určenou závažnost odchylky nebo pacientovo individuální riziko.",
+      "risk_basis_url": "https://easlcampus.eu/sites/default/files/2025-08/EASL_CPGs_on_management_of_HBV_infection.pdf#page=42",
+      "source_refs": [83, 32, 67],
+      "statement_ids": ["im-easl-hbvr-assess", "im-easl-hbvr-prophylaxis"]
+    },
+    {
+      "id": "blood-pressure-above-general-target",
+      "title_cs": "Zaznamenané hodnoty TK jsou nad obecným cílovým rozmezím",
+      "group_cs": "Kardiologie / komorbidity",
+      "status_cs": "Naměřená hodnota; individuální cíl nedoložen",
+      "interpretation_cs": "Dne 10. 2. 2026 byl TK 174/92 a medikace byla upravena přidáním Orcalu. Pozdější nedatovaný záznam uvádí 155/70 a přerušení domácího měření. Individuální cíl, tolerance léčby a dlouhodobá kompenzace nejsou doloženy; nejde o důkaz současné nekontrolované hypertenze ani nevhodné léčby.",
+      "clinical_consequence_cs": "Citované doporučení spojuje léčbu k cílovému TK se snížením kardiovaskulárního rizika. Pacientův individuální cíl ani dopad uvedených hodnot na jeho prognózu nelze z těchto záznamů určit.",
+      "severity": null,
+      "source_refs": [76, 78, 94, 100, 101, 95],
+      "statement_ids": ["im-esc-target", "im-esc-lenient-target"]
+    },
+    {
+      "id": "shortened-induction-with-toxicity",
+      "title_cs": "Dva dokumentované indukční cykly místo plánovaných čtyř",
+      "group_cs": "Systémová protinádorová léčba",
+      "status_cs": "Odlišnost režimu při doložené toxicitě",
+      "interpretation_cs": "Indikovány byly čtyři cykly nivolumabu s ipilimumabem. Dokumentovány jsou dva a poté gastrointestinální a plicní toxicita s kortikoterapií. Následná udržovací léčba nivolumabem je doložena; výslovný záznam o ukončení kombinace chybí. Podklady neprokazují neodůvodněnou odchylku.",
+      "clinical_consequence_cs": "Dopad kratší indukce na účinnost nelze z dostupných záznamů určit. Doložená toxicita je důležitým kontextem změny režimu, nikoli důkazem pochybení.",
+      "severity": null,
+      "source_refs": [9, 10, 46, 11, 12, 13],
+      "statement_ids": [],
+      "past_statement_id": "past-nivo-ipi-regimen"
+    },
+    {
+      "id": "nch-result-not-documented",
+      "title_cs": "Výsledek neurochirurgického semináře není doložen",
+      "group_cs": "MDT / nález v CNS",
+      "status_cs": "Dokumentační mezera",
+      "interpretation_cs": "MR uvádí suspektní ložisko do 3 mm, nikoli potvrzenou mozkovou metastázu. Odeslání nálezu na NCH seminář je uvedeno, jeho závěr ale v podkladech není. Nelze tvrdit, že seminář neproběhl nebo že léčba byla opožděna.",
+      "clinical_consequence_cs": "Bez závěru semináře nelze z dokumentace rekonstruovat odsouhlasený postup pro suspektní ložisko v CNS. Není tím prokázána absence léčby ani zhoršení výsledku.",
+      "severity": null,
+      "source_refs": [70, 36, 41],
+      "statement_ids": ["eano-bm-board"]
+    }
+  ]
+}

@@ -11,7 +11,7 @@ patient S01 (mock v3, case ID `NO-S01`), whom the team invented
 |---|---|---|
 | `v1.html` | First simple mock (one patient workspace) | https://claude.ai/artifact/KraDQ9X7diVo93QzXtse6t |
 | `v2.html` | Full mock after feedback round 1 (database, calendar, patient detail, presentation, protocol, tasks) | https://claude.ai/artifact/6F5AbN6vEAHJQgXP1fkUdc |
-| `v3.html` | Mock after feedback round 2 (Excel-style filters, month navigation, 10-minute slots, brief first, diagnosis headline, current state, lab chart, doctor edits, back/forward), with one patient view for the whole MDT: a session bar with the day's cases and a "Projednání na MDT" card for notes, next steps and approval; its source view shows the rendered page image with the cited passage highlighted, so publishing it also needs the `pages/` folder. Round 19 added task drafts from approved conclusions with a coordinator view and a digest e-mail, out-of-hours booking, retrospective deviations with doctor-set severity, and strength-sorted guideline quotes. Round 20 added a status menu with history and "Uzavřít případ", one-button approval for the team, the report picks in a dialog behind "Stáhnout report (PDF)", and a lighter new patient form. Round 21 made guideline statements collapsed entries (quote and tier chip, opening to the reason with sources and the full citation), moved the MDT deviations table under them in "Navrhovaný postup", quoted the guideline edition valid at each past decision in "Retrospektivní odchylky", and replaced the inline missing list with a warning-styled "Upozornění" button. Round 23 added "Personál pracoviště": staff entered as title and surname, saved only in the viewer's browser (localStorage `mdt-staff-v1`, fictional defaults, "Obnovit výchozí"), from which attendance and the user picker are built. Round 24 added the synthetic patient S01 (marked "syntetický pacient", with its documents, missing-document alerts and a lab trend from four documented draws, every value linked to its line), removed the invented lab series of case 10, merged the reason and the question into one paragraph with the draft chip at its end, listed every passage a drafted question cites, and drew our own scalpel icon for surgery. Round 25 renamed the brief block "Stručný přehled", made alerts resolvable ("Vyřešeno", "Vrátit", history), removed the "Změna" kind and the lab-range and "J-" alerts, replaced the everolimus alert with a chronology observation, dropped "ověřit čtení" marks where both OCR readings agree, scrolled the oncology summary inside its card, folded the lab explanations into "Zdroje", fixed the calendar double click, shortened the database diagnoses and shows 20 patients per page | https://claude.ai/artifact/6JwakCBuGZr9STKnfRUz8T |
+| `v3.html` | Mock after feedback round 2 (Excel-style filters, month navigation, 10-minute slots, brief first, diagnosis headline, current state, lab chart, doctor edits, back/forward), with one patient view for the whole MDT: a session bar with the day's cases and a "Projednání na MDT" card for notes, next steps and approval; its source view shows the rendered page image with the cited passage highlighted, so publishing it also needs the `pages/` folder. Round 19 added task drafts from approved conclusions with a coordinator view and a digest e-mail, out-of-hours booking, retrospective comparisons (now read-only), and strength-sorted guideline quotes. Round 20 added a status menu with history and "Uzavřít případ", one-button approval for the team, the report picks in a dialog behind "Stáhnout report (PDF)", and a lighter new patient form. Round 21 made guideline statements collapsed entries (quote and tier chip, opening to the reason with sources and the full citation), moved the MDT deviations table under them in "Navrhovaný postup", quoted the guideline edition valid at each past decision in "Retrospektivní odchylky", and replaced the inline missing list with a warning-styled "Upozornění" button. Round 23 added "Personál pracoviště": staff entered as title and surname, saved only in the viewer's browser (localStorage `mdt-staff-v1`, fictional defaults, "Obnovit výchozí"), from which attendance and the user picker are built. Round 24 added the synthetic patient S01 (marked "syntetický pacient", with its documents, missing-document alerts and a lab trend from four documented draws, every value linked to its line), removed the invented lab series of case 10, merged the reason and the question into one paragraph with the draft chip at its end, listed every passage a drafted question cites, and drew our own scalpel icon for surgery. Round 25 renamed the brief block "Stručný přehled", made alerts resolvable ("Vyřešeno", "Vrátit", history), removed the "Změna" kind and the lab-range and "J-" alerts, replaced the everolimus alert with a chronology observation, dropped "ověřit čtení" marks where both OCR readings agree, scrolled the oncology summary inside its card, folded the lab explanations into "Zdroje", fixed the calendar double click, shortened the database diagnoses and shows 20 patients per page | https://claude.ai/artifact/6JwakCBuGZr9STKnfRUz8T |
 
 The published copies are private claude.ai artifacts owned by Juro; ask him
 to share them. To view a mock locally, open the `.html` file in a browser.
@@ -173,7 +173,7 @@ Lucide 0.468.0 paths are embedded in the template, with the ISC notice in
   approval, the source view: image, highlight, verify marks, zoom,
   transcription tab, page switch, redacted page, access log, admin, and the
   round 19 checks: logo, unscheduling by drag, out-of-hours booking, compact
-  summary dates, alert labels, strength order, retrospective severity,
+  summary dates, alert labels, strength order, read-only retrospective comparisons,
   coordinator tasks, digest e-mail; round 20: required fields in the new
   patient form, the report dialog, approval with automatic attendance, status
   menu, history and closing; round 21: guideline entries collapsed and
@@ -223,10 +223,13 @@ opaque timeline icon circles and rounded semantic badges. The question stays edi
 clicking its text (including an empty placeholder); confirmation, history and provenance
 remain available in state and exports. The heading is "Stručný souhrn".
 
-Both current-plan deviation assessment and historical decisions now live in
-"Retrospektivní odchylky", as separate sections. Selecting and explaining a deviation
-still persists across tabs and is included in the report. "Navrhovaný postup" keeps the
-proposal and guideline passages.
+"Retrospektivní odchylky" is a passive eight-column table: finding, area,
+severity, guideline name, year, verbatim guideline passage, documentation quote
+and possible clinical consequence. Source links stay available. No assessment,
+reason or confirmation is required. Existing clinician assessments are read-only;
+missing severity and clinical consequence stay missing. Rows compare historical
+records with the edition valid at the decision, rather than declaring a deviation.
+"Navrhovaný postup" keeps the proposal and guideline passages.
 
 Acknowledged and resolved warnings move into an expandable archive with a reversible
 "Vrátit" action. Brief and synthetic-case data gaps use the same per-patient, append-only
@@ -270,3 +273,7 @@ invariance, field selection and error recovery. Test outputs go to `tmp/pdfs/`.
 
 The app and PDF use the GLIDE MDT name and the original GLIDE wordmark. The logo
 is embedded locally from `src/brand/` so exports need no external asset request.
+
+## Passive case 10 observations
+
+Four curated case 10 observations reference existing case excerpts and guideline IDs in `src/data/deviations-case-10.json`: HBV documentation, blood pressure context, shortened induction with documented toxicity, and the missing NCH seminar result. The main table requires no input. It labels possible consequences as assistant observations and leaves clinical severity unassessed. Additional historical comparisons are collapsed; previous clinician ratings and their history remain readable. Run `node mocks/src/test/deviations.mjs` after building to check source references, patient scope and passive rendering.

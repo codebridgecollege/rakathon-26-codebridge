@@ -227,21 +227,12 @@ for (const width of [1280, 400]) {
   ok(await page.evaluate(() => !clampable("Radiotherapy should be considered only if the patient has a good performance status and limited extracranial disease, " + "x".repeat(120))
     && !clampable("Léčba je vhodná pokud ".padEnd(200, "a")) && clampable("Ideally, therapeutic decisions should be discussed at a dedicated board ".padEnd(200, "b"))
     && !clampable("short quote")), `${width} clampable() rejects condition words (if, pokud) and short quotes`);
-  // prospective deviations: a choice and a reason survive a tab switch and print in the report
-  await c('[data-tab="dev"]');
-  const dev0 = await page.locator(".devt [data-dev]").first().getAttribute("data-dev");
-  await page.locator(`.devt [data-dev="${dev0}"]`).selectOption("deviates"); await page.waitForTimeout(80);
-  await page.locator(`.devt [data-devwhy="${dev0}"]`).fill("Pacient odmítá ozáření"); await page.waitForTimeout(80);
-  await c('[data-tab="next"]'); await c('[data-tab="dev"]');
-  ok(await page.locator(`.devt [data-dev="${dev0}"]`).inputValue() === "deviates" && await page.locator(`.devt [data-devwhy="${dev0}"]`).inputValue() === "Pacient odmítá ozáření",
-    `${width} deviation choice and reason survive a tab switch`);
-  { const r = await rep(); ok(r.includes("Odchylky od doporučení") && r.includes("záměrná odchylka") && r.includes("Pacient odmítá ozáření"), `${width} filled deviation printed in the report`); }
-  await page.locator(`.devt [data-dev="${dev0}"]`).selectOption(""); await page.waitForTimeout(80);
-  // retrospective deviations: severity and assessment only for doctors, never prefilled, stored with who and when
+  // Deviations are a passive table for every role; source links remain available.
   await c('[data-tab="dev"]'); await over("dev");
+  await c(".deviation-context > summary");
   const nr = await page.locator("[data-retroitem]").count();
-  // round 21: only the retrospective list; each quote is the historic edition's text, from the edition valid at the decision
-  ok((await text('[data-tab="dev"]')) === "Retrospektivní odchylky" && await page.locator(".devt").count() === 1, `${width} deviations tab retains both current-plan assessment and historical decisions`);
+  ok(await page.locator(".findings-table").count() === 1 && await page.locator(".findings-table th").count() === 8
+    && await page.locator("[data-retro], [data-dev], [data-devwhy]").count() === 0, `${width} deviations are an eight-column read-only table`);
   const hist = await page.evaluate(() => PAST().map(x => ({ id: x.id, quote: x.quote, year: x.edition?.year, from: x.edition?.valid_from, to: x.edition?.valid_to, url: x.edition?.pdf_url, page: x.pdf_page, date: x.decision_date })));
   const histFile = JSON.parse(fs.readFileSync(path.resolve(here, "../data/guidelines-case-10-past-historic.json"), "utf8")).items;
   const shown = await page.locator("[data-retroitem]").evaluateAll(els => els.map(el => ({ id: el.dataset.retroitem, q: el.querySelector("q.pastq")?.textContent, t: el.textContent, href: el.querySelector("a[href*='#page=']")?.getAttribute("href") })));
@@ -251,20 +242,10 @@ for (const width of [1280, 400]) {
     `${width} retrospective quotes equal the historic file, show the valid edition's year and range, and open its PDF at the page`);
   ok(!(await text("main")).includes("aktuálního vydání") && !(await text("main")).includes("platilo i v době") && (await text("main")).includes("nebyly ověřeny"), `${width} edition note says the edition valid at the time is used, amendments caveat shown`);
   ok(await page.evaluate(() => { const x = { ...PAST()[0], status: "not_found", quote: "" }; return pastPassage(x).includes("vydání platné v době rozhodnutí pasáž neobsahuje") && !pastPassage({ id: "x", status: "not_checked" }).includes("<q"); }), `${width} no passage in the valid edition is said so, never filled from a later edition`);
-  ok(nr === 8 && await page.locator('select[data-retro][data-rf="sev"]').count() === nr && await page.locator(".retro[class*=sev-]").count() === 0
-    && (await page.locator("select[data-retro]").evaluateAll(xs => xs.every(x => x.value === ""))), `${width} retrospective deviations listed, severity empty until a doctor picks it`);
-  const rid = await page.locator("[data-retroitem]").first().getAttribute("data-retroitem");
-  await page.selectOption(`select[data-retro="${rid}"][data-rf="sev"]`, "major");
-  ok(await page.evaluate(id => { const r = S.retro["10_pacient.pdf"][id]; return r.sev === "major" && r.sevBy === "MUDr. Svobodová" && !!r.sevWhen; }, rid)
-    && await page.locator(`[data-retroitem="${rid}"].sev-major`).count() === 1, `${width} doctor's severity stored with who and when, colour shown`);
+  ok(nr === 8 && await page.locator('.deviation-table select, .deviation-table input, .deviation-table textarea').count() === 0
+    && await page.locator('.deviation-table td[class^="sev-"]').count() === 0, `${width} missing severity stays blank without asking the doctor to fill it`);
   await page.selectOption("#user", "Bc. Marková (koordinátorka MDT)");
-  ok(await page.locator("select[data-retro]").count() === 0 && (await text(`[data-retroitem="${rid}"]`)).includes("závažná"), `${width} coordinator sees severity (Czech label) but cannot set it`);
-  // severity changes are an append-only history: the latest shows, earlier ones behind "změněno N×"
-  await page.selectOption("#user", "MUDr. Svobodová");
-  await page.selectOption(`select[data-retro="${rid}"][data-rf="sev"]`, "minor");
-  ok(await page.evaluate(id => { const h = S.retro["10_pacient.pdf"][id].hist.sev; return h.length === 2 && h[0].v === "major" && h[1].v === "minor" && h.every(x => x.by && x.when); }, rid)
-    && (await text(`[data-retroitem="${rid}"]`)).includes("změněno 1×") && await page.locator(`[data-retroitem="${rid}"].sev-minor`).count() === 1, `${width} severity history kept, latest shown with změněno 1×`);
-  ok(await page.locator(`select[data-retro="${rid}"][data-rf="sev"] option`).allTextContents().then(o => o.join("|") === "-|závažná|středně závažná|méně závažná"), `${width} severity options in Czech`);
+  ok(await page.locator('[data-retroitem]').count() === nr && await page.locator('[data-retro], [data-dev]').count() === 0, `${width} coordinator sees the same passive rows`);
   // the excision of a suspected naevus is labelled as such, so the passage reads as context
   ok((await text('[data-retroitem="past-skin-metastasectomy"]')).includes("Excize suspektního névu brady vlevo (histologicky kožní metastáza)"), `${width} skin excision retitled as naevus excision`);
   await page.selectOption("#user", "Bc. Marková (koordinátorka MDT)");
@@ -674,4 +655,5 @@ for (const width of [1280, 400]) {
 await browser.close();
 console.log(errs.length ? "\n" + errs.join("\n") : "\nall checks passed, no errors");
 process.exit(errs.length ? 1 : 0);
+
 
