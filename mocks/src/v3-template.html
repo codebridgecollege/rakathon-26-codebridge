@@ -3600,7 +3600,7 @@ function caseOpened(file, what, viaLink = false) {
   const p = P(file); if (!p) return;
   apiGet(`/cases/${encodeURIComponent(p.id)}${viaLink ? "?via=link" : ""}`).catch(e => {
     toast(e.message);
-    if (e.status === 403 && S.view === "patient" && S.pid === file) { S.view = "patients"; S.overlay = null; renderOverlay(); render(); }
+    if (e.status >= 400 && e.status < 500 && S.view === "patient" && S.pid === file) { S.view = "patients"; S.overlay = null; renderOverlay(); render(); }
   });
 }
 
@@ -3991,7 +3991,8 @@ document.addEventListener("pointerdown", e => {
 }, true);
 document.addEventListener("change", e => {
   const t = e.target;
-  if (t.id === "user") { S.user = t.value; if (DATA.mode === "api") { const id = userIdOf(t.value); if (id) setDemoUser(id); } if (S.view === "admin" && t.value !== ADMIN) S.view = "patients"; render(); }
+  if (t.id === "user" && DATA.mode === "api") { switchApiUser(t); return; }
+  if (t.id === "user") { S.user = t.value; if (S.view === "admin" && t.value !== ADMIN) S.view = "patients"; render(); }
   else if (t.dataset.upload) addUploads(t.files);
   else if (t.dataset.newupload) newUploads(t.files);
   else if (t.dataset.fhirfile && t.files[0]) { const o = S.overlay; readNewForm(o); t.files[0].text().then(x => { o.fhirText = x; fhirImport(o, x); renderOverlay(); }); }
@@ -4050,20 +4051,45 @@ async function boot() {
   apiProbe(true, health); // async: recUI() refreshes the recorder when the server answers, without a full render
   if (DATA.mode === "api" && qs.has("parity")) checkApiParity();
 }
+/* In API mode a user switch reloads what the server lets the new user see, so the list, tasks and case data follow the
+   new role, and later server log rows name the right person. A name the server does not know is refused rather than
+   sent under the previous user's id. */
+async function switchApiUser(t) {
+  const id = userIdOf(t.value), prev = DATA.userId;
+  if (!id) { toast("Tento uživatel není v seznamu na serveru. Změny seznamu se zatím neukládají na server."); t.value = S.user; return; }
+  setDemoUser(id);
+  try {
+    DATA.refused = null; await loadFromApi();
+    S.guideFor = null; GUIDE = {}; DATA.pages.clear(); DATA.docs.clear(); DATA.serverLog = null; S.overlay = null; renderOverlay();
+  } catch (e) { setDemoUser(prev); t.value = S.user; toast(e.message); return; }
+  if (S.view === "admin" && S.user !== ADMIN) S.view = "patients";
+  if (S.view === "patient" && !P(S.pid)) S.view = "patients";
+  if (DATA.refused) toast(DATA.refused);
+  render();
+}
 async function loadFromApi() {
   const me = await apiGet("/me");
   setDemoUser(me.user.id);
   const [staff, list, tasks] = await Promise.all([apiGet("/staff"), apiGet("/patients"), apiGet("/tasks?scope=all")]);
   const full = list.patients.find(p => p.full);
   /* Step 2 keeps case 10's full view on the CASE/EXTRA globals; step 3 replaces them with a per-case cache. */
-  const ex = full ? await apiGet(`/cases/${encodeURIComponent(full.id)}/extraction`) : null;
-  if (full && !ex?.data?.case) throw new Error(`Server nevrátil data případu ${full.id}.`);
-  /* Nothing is assigned until every request succeeded. */
-  DATA.embedded = { patients: S.patients, tasks: S.tasks, staff: STAFF };
+  let ex = null;
+  if (full) {
+    try { ex = await apiGet(`/cases/${encodeURIComponent(full.id)}/extraction`); }
+    catch (e) {
+      /* A refusal (this role or team may not read the findings) is an answer, not an outage: the page stays on the
+         server's data and shows the case as not processed, instead of falling back to the embedded copy. */
+      if (!(e.status >= 400 && e.status < 500)) throw e;
+      full.full = false; full.processing = "none"; DATA.refused = e.message;
+    }
+    if (ex && !ex.data?.case) throw new Error(`Server nevrátil data případu ${full.id}.`);
+  }
+  /* Nothing is assigned until every request succeeded. The embedded copy is kept once, for ?parity. */
+  if (!DATA.embedded) DATA.embedded = { patients: S.patients, tasks: S.tasks, staff: STAFF };
   DATA.serverStaff = { depts: staff.depts, coord: staff.coord, seq: 0 };
   STAFF = structuredClone(DATA.serverStaff); applyStaff();
   S.patients = list.patients; S.tasks = tasks.tasks; S.user = me.user.name;
-  if (full) {
+  if (ex) {
     const c = ex.data.case;
     /* The server keeps identity in its patients table, out of the case JSON; the page puts it back from the list row. */
     CASE = { ...c, file: full.file, patient: { ...(c.patient || {}), name: full.name, name_as_written: full.nameAsWritten, birth_number: full.rc, birth_date: full.birth, age: full.age } };
@@ -4076,7 +4102,8 @@ function checkApiParity() {
   /* false, null and a missing key read the same in the page (it tests flags with !!), and the server cannot send "missing". */
   const norm = v => v === false || v === undefined ? null : v;
   const same = (a, b) => JSON.stringify(norm(a)) === JSON.stringify(norm(b));
-  const ID = new Set(["name", "nameAsWritten", "rc", "birth", "age", "warn", "nameNote"]);
+  /* purpose is a source quote and may hold a name, so its values are not printed either. */
+  const ID = new Set(["name", "nameAsWritten", "rc", "birth", "age", "warn", "nameNote", "purpose", "basis"]);
   const SKIP = new Set(["processing", "statusHist", "redacted_for_role"]);
   const diffs = [], emb = DATA.embedded.patients;
   emb.forEach(e => {
