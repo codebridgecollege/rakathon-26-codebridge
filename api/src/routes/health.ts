@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import type { AppEnv } from "../types";
+import { pipelineOn } from "../services/pagekit";
 
 // Public: it holds no data and no key material; the booleans only say whether a secret is set, so the page
 // knows which features this host offers. features.data is true when the data API is switched on and the database
@@ -35,7 +36,8 @@ export const health = new Hono<AppEnv>().get("/", async (c) => {
     version: c.env.GIT_SHA || "unknown",
     auth_mode: c.env.AUTH_MODE,
     // transcripts: the server stores the AI recording and runs the speaker pass (step 5); the page then uses it.
-    features: { stt: !!c.env.ELEVENLABS_API_KEY, summarize: !!c.env.AZURE_OPENAI_KEY, data: !!seeded, transcripts: !!seeded && !!c.env.SPEAKER_PASS },
+    // pipeline: the document pipeline without an LLM can run (step 6: PAGEKIT_URL or the PageKit container is set).
+    features: { stt: !!c.env.ELEVENLABS_API_KEY, summarize: !!c.env.AZURE_OPENAI_KEY, data: !!seeded, transcripts: !!seeded && !!c.env.SPEAKER_PASS, pipeline: !!seeded && pipelineOn(c.env) },
     seeded_at: seeded,
     demo: demo ? { ...demo, reset_enabled: c.env.DEMO_RESET_ENABLED === "true" } : null,
     limits: {

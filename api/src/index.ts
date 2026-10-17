@@ -20,9 +20,11 @@ import { demo } from "./routes/demo";
 import { transcript } from "./routes/transcript";
 import { documents } from "./routes/documents";
 import { intake } from "./routes/intake";
+import { pipeline } from "./routes/pipeline";
 import { sweep } from "./scheduled";
 
 export { SpeakerPassWorkflow } from "./workflows/speaker-pass";
+export { ProcessDocumentWorkflow } from "./workflows/process-document";
 
 // The data routes (step 2) resolve the person from the directory first; listed by path so an unknown /api path
 // still answers the plain JSON 404 instead of touching the database.
@@ -60,6 +62,7 @@ app.route("/", demo);
 app.route("/", transcript);
 app.route("/", documents);
 app.route("/", intake);
+app.route("/", pipeline);
 app.notFound(notFound);
 app.onError(onError);
 

@@ -2,7 +2,9 @@
 // synthetic files only: the S02 referral from FHIR, an intake with the seven PDFs uploaded under other names, the
 // prepared data attached by hash, the source page of an uploaded file, a refused unknown file, a wrong-patient upload,
 // and (with --reset) reset-demo afterwards so the shared demo is clean again.
-// Usage: node api/scripts/e2e-intake.mjs https://backend-codebridge-mdt.<sub>.workers.dev [--reset]
+// With --pipeline it then runs the document pipeline (no LLM) on the four lab sheets and checks that every prepared lab
+// value is either read the same or marked "ověřit" (needs PAGEKIT_URL or the PageKit container on that Worker).
+// Usage: node api/scripts/e2e-intake.mjs https://backend-codebridge-mdt.<sub>.workers.dev [--pipeline] [--reset]
 // It prints counts and codes only, never page text or identity.
 import assert from "node:assert/strict";
 import { readFileSync, readdirSync } from "node:fs";
@@ -11,6 +13,7 @@ import path from "node:path";
 
 const base = (process.argv[2] || "http://localhost:8787").replace(/\/$/, "");
 const reset = process.argv.includes("--reset");
+const runPipeline = process.argv.includes("--pipeline");
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const up = path.join(root, "samples/S02_pacient/upload");
 let epoch = null;
@@ -89,6 +92,30 @@ const other = await api("POST", "/cases/NO-S01/documents", { body: new Uint8Arra
 assert.equal(other.status, 201, JSON.stringify(other.j.error));
 assert.equal(other.j.data.document.identity, "conflicts");
 console.log(`S02 sheet into NO-S01: identity ${other.j.data.document.identity}`);
+
+if (runPipeline) {
+  const labDocs = docs.j.documents.filter((d) => d.doc_type === "laboratorní výsledky");
+  assert.equal(labDocs.length, 4);
+  const sum = { points: 0, unclear: 0, same: 0, verify: 0, silent: 0, missing: 0 };
+  for (const d of labDocs) {
+    const s = await api("POST", `/documents/${d.id}/process`);
+    assert.equal(s.status, 201, JSON.stringify(s.j.error));
+    let run;
+    for (let i = 0; i < 120; i++) {
+      run = (await api("GET", `/documents/${d.id}/pipeline`)).j.run;
+      if (run && (run.state === "done" || run.state === "error")) break;
+      await new Promise((r) => setTimeout(r, 1000));
+    }
+    assert.equal(run.state, "done", `run ${run?.state} ${run?.error_code}`);
+    console.log(`pipeline ${d.doc_date}: readability ${run.readability}, ${run.verify_count} ověřit marks, ${run.lab_points} lab points (${run.lab_unclear} k ověření); vs prepared: same ${run.diff.same}, ověřit ${run.diff.verify}, silent ${run.diff.silent}, missing ${run.diff.missing}`);
+    sum.points += run.lab_points; sum.unclear += run.lab_unclear;
+    for (const k of ["same", "verify", "silent", "missing"]) sum[k] += run.diff[k];
+  }
+  assert.equal(sum.silent, 0, "no prepared value read differently without an ověřit mark");
+  assert.equal(sum.missing, 0, "every prepared value found");
+  assert.equal(sum.same + sum.verify, 72, "18 tests x 4 draws");
+  console.log(`pipeline total: ${sum.points} points, ${sum.same} same as prepared, ${sum.verify} marked ověřit, ${sum.silent} silent differences, ${sum.missing} missing`);
+}
 
 if (reset) {
   const r = await api("POST", "/admin/reset-demo", { body: { confirm: "OBNOVIT" }, user: "admin" });

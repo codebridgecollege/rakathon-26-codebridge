@@ -25,25 +25,13 @@ tesseract-lang`. Tesseract runs locally, so no page leaves the machine.
 """
 
 import shutil
-import subprocess
 import sys
 from pathlib import Path
 
-import fitz  # PyMuPDF
-
-VIEW_DPI = 150  # enough to read on screen, small enough to ship in a static page
-OCR_DPI = 300  # Tesseract's accuracy drops noticeably below 300 dpi
-LANG = "ces"
-# Mode 4 reads a single column of variable-size text, which suits the
-# label-then-text layout of the reports better than the default mode 3.
-PSM = "4"
-
-
-def ocr_page(png: Path, stem: Path) -> None:
-    """Run Tesseract twice: plain text for reading, TSV for confidences and boxes."""
-    for fmt in ([], ["tsv"]):
-        subprocess.run(["tesseract", str(png), str(stem), "-l", LANG, "--psm", PSM, *fmt],
-                       check=True, capture_output=True)
+# The logic lives in pipeline/pagekit, shared with the container and the tests.
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "pipeline"))
+import fitz  # noqa: E402  PyMuPDF
+from pagekit import layer, ocr, render  # noqa: E402
 
 
 def process(pdf: Path, out: Path) -> None:
@@ -52,11 +40,11 @@ def process(pdf: Path, out: Path) -> None:
     target.mkdir(parents=True, exist_ok=True)
     for i, page in enumerate(doc, 1):
         base = target / f"p{i}"
-        page.get_pixmap(dpi=VIEW_DPI, colorspace=fitz.csGRAY).save(f"{base}.png")
-        (target / f"p{i}.layer.txt").write_text(page.get_text())
+        render.save_png(page, render.VIEW_DPI, f"{base}.png")
+        (target / f"p{i}.layer.txt").write_text(layer.page_text(page))
         hi = target / f"p{i}.ocr300.png"
-        page.get_pixmap(dpi=OCR_DPI, colorspace=fitz.csGRAY).save(hi)
-        ocr_page(hi, Path(f"{base}.tess"))
+        render.save_png(page, render.OCR_DPI, hi)
+        ocr.ocr_file(hi, Path(f"{base}.tess"))
         hi.unlink()  # the 300 dpi render is only an OCR input; the 150 dpi one is kept
         print(f"{pdf.name} p{i}: done")
 

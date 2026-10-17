@@ -1,0 +1,26 @@
+# pagekit: the deterministic document pipeline (render, OCR, page index, readability, labs, redaction).
+#
+#   cd pipeline && uv run pytest -q            # tests; the OCR tests need tesseract with the ces model
+#   cd pipeline && uv run python container/server.py --port 8080   # the container's HTTP API locally
+#   uv export --no-dev --format requirements-txt --no-emit-project > requirements.lock   # after uv lock
+#
+# The scripts in scripts/ import this package from its folder (sys.path), so they need no install.
+[project]
+name = "pagekit"
+version = "0.1.0"
+description = "CodeBridge document pipeline: deterministic page logic shared by scripts, container and tests"
+requires-python = ">=3.11,<3.13"
+dependencies = [
+    "pymupdf==1.24.10",
+    "pillow==10.4.0",
+]
+
+[dependency-groups]
+dev = ["pytest==8.3.3"]
+
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]

@@ -61,6 +61,9 @@
     // local work). The page promises 20 MB per file.
     "UPLOAD_POLICY": "fixtures_only",
     "UPLOAD_MAX_BYTES": "20971520",
+    // Step 6 (b-1): where the PageKit service runs (src/services/pagekit.ts). "" with no PAGEKIT container binding
+    // switches the document pipeline off; local work sets it to the Python service, http://localhost:8080.
+    "PAGEKIT_URL": "",
     "GIT_SHA": "dev"
   },
   // Limits are per Cloudflare location and approximate (eventually consistent). Generous on purpose:
@@ -75,7 +78,11 @@
     { "name": "RL_UPLOAD", "namespace_id": "26105", "simple": { "limit": 20, "period": 60 } }
   ],
   // Step 5: the speaker pass after approval runs as a Workflow (durable steps, each retried on its own).
-  "workflows": [{ "name": "codebridge-speaker-pass", "binding": "SPEAKER_PASS", "class_name": "SpeakerPassWorkflow" }],
+  "workflows": [
+    { "name": "codebridge-speaker-pass", "binding": "SPEAKER_PASS", "class_name": "SpeakerPassWorkflow" },
+    // Step 6: one stored PDF through the deterministic pipeline (render, Tesseract, readability, labs), no LLM.
+    { "name": "codebridge-process-document", "binding": "PROCESS_DOCUMENT", "class_name": "ProcessDocumentWorkflow" }
+  ],
   // The audio sweep (src/scheduled.ts): deletes audio every other path should already have deleted.
   "triggers": { "crons": ["*/15 * * * *"] }
 }

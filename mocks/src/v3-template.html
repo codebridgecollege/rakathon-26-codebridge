@@ -1663,8 +1663,8 @@ function initCaseStore(mode) {
 /* Drops every entry (user switch in API mode: the server's answer depends on the user). Bumping gen first makes any
    reply still on its way stale, so it cannot write into the new store. */
 caseStore.reset = () => {
-  /* The server's upload lists depend on the user too (step 6). */
-  S.ups = {};
+  /* The server's upload lists and pipeline results depend on the user too (step 6). */
+  S.ups = {}; S.pipe = {};
   caseStore.entries.forEach(e => { e.gen++; });
   caseStore.entries.clear(); caseStore.byDocFile.clear();
 };
@@ -2473,6 +2473,36 @@ function tabAnamnesis(cd) {
 /* "citace v ambulantní zprávě, původní popis v PDF není" becomes "citováno v ambulantní zprávě": the row adds
    "originál chybí" itself, so the data's own "original missing" clause would say it twice. */
 const citedIn = t => String(t).replace(/,\s*původní popis v PDF není/i, "").replace(/^citace v\b/i, "citováno v");
+/* ---------- the document pipeline without AI (step 6, api/src/routes/pipeline.ts) ----------
+   API mode, uploaded documents only: "Přečíst znovu bez AI" runs Tesseract with the PDF text layer as a second reading,
+   the readability check and the lab parser on the server. The result is shown next to the prepared data and labelled
+   as the assistant's reading; it never replaces what the case shows. */
+S.pipe = {};
+async function pipeLoad(id) {
+  try { const r = await apiGet(`/documents/${enc(id)}/pipeline`); S.pipe[id] = { ...(S.pipe[id] || {}), run: r.run, loaded: true }; }
+  catch (e) { S.pipe[id] = { ...(S.pipe[id] || {}), error: e.message, loaded: true }; }
+  render();
+  return S.pipe[id]?.run;
+}
+async function pipeRun(id) {
+  const st = S.pipe[id] = { ...(S.pipe[id] || {}), busy: true, error: null }; render();
+  try { await apiWrite("POST", `/documents/${enc(id)}/process`, {}); }
+  catch (e) { st.busy = false; st.error = e.message; render(); return; }
+  for (let i = 0; i < 90; i++) {
+    await new Promise(r => setTimeout(r, 1500));
+    const run = await pipeLoad(id);
+    if (run && (run.state === "done" || run.state === "error")) break;
+  }
+  S.pipe[id].busy = false; render();
+}
+function pipeHtml(d) {
+  const id = docIdOf(d.file), st = S.pipe[id] || {}, r = st.run;
+  const btn = `<button class="btn small" data-piperun="${esc(id)}" ${st.busy ? "disabled" : ""}>${st.busy ? "Čtu…" : r ? "Přečíst znovu bez AI" : "Přečíst bez AI"}</button>`;
+  const res = !r ? "" : r.state === "error" ? `<span class="fwarn">Čtení selhalo (${esc(r.error_code || "")}).</span>`
+    : r.state !== "done" ? `<span class="muted">Čte se (${esc(r.stage_cs || "ve frontě")})…</span>`
+    : `<span title="${esc((r.readability_reasons_cs || []).join("; "))}">${esc(r.label_cs)}: čitelnost ${esc(r.readability_cs || "-")}, ${esc(r.verify_count ?? 0)} míst k ověření${r.lab_points ? `, laboratorní hodnoty ${esc(r.lab_points)} (k ověření ${esc(r.lab_unclear)})` : ""}${r.diff ? `; proti předem připraveným datům ${esc(r.diff.same)} shodných, ${esc(r.diff.verify)} k ověření${r.diff.silent ? `, <b>${esc(r.diff.silent)} jinak bez označení</b>` : ""}` : ""}.</span>${r.readability_alert_cs ? ` <span class="fwarn" role="alert">${esc(r.readability_alert_cs)}</span>` : ""}`;
+  return `<span class="note">${btn} ${st.error ? `<span class="fwarn" role="alert">${esc(st.error)}</span>` : ""}${res}</span>`;
+}
 /* The whole row opens the document; the "Otevřít" button stays for keyboard users. */
 function tabDocuments(p, cd) {
   const dd = docsOf(cd) || { file: p.file, documents: [], pages: null, note: null }, all = dd.documents;
@@ -2483,7 +2513,7 @@ function tabDocuments(p, cd) {
     ${dd.note ? `<div class="question missing" style="margin-bottom:10px"><span class="label">Chybí originály</span><p style="font-size:14px">${esc(dd.note)}</p></div>` : ""}
     <div class="toolbar" style="margin-bottom:10px"><input class="search" id="dq" placeholder="Hledat v dokumentech" value="${esc(S.dq || "")}" aria-label="Hledat v dokumentech">${active ? `<button class="linkbtn small" data-act="cleardcolf">Zrušit filtry (${active})</button>` : ""}</div>
     <div class="scroll" style="min-height:${DCOLS.some(c => c[0] === S.colOpen) ? 300 : 0}px"><table class="tbl"><thead><tr><th>Dokument</th>${colHead("dtype", "Typ")}<th>Datum</th><th>Strany</th>${colHead("dread", "Čitelnost")}${colHead("dyear", "Rok")}<th></th></tr></thead>
-    <tbody>${docs.map(d => `<tr class="click" data-src='${esc(JSON.stringify({ file: d.file || dd.file, page: (d.pages || [1])[0] }))}'><td><b>${esc(d.title_cs)}</b>${d.embedded_in_cs ? `<span class="note">${esc(citedIn(d.embedded_in_cs))}, originál chybí</span>` : ""}</td><td>${esc(d.type)}</td><td class="num">${esc(d.date || "-")}</td><td class="num">${esc((d.pages || []).join(", "))}</td>
+    <tbody>${docs.map(d => `<tr class="click" data-src='${esc(JSON.stringify({ file: d.file || dd.file, page: (d.pages || [1])[0] }))}'><td><b>${esc(d.title_cs)}</b>${d.embedded_in_cs ? `<span class="note">${esc(citedIn(d.embedded_in_cs))}, originál chybí</span>` : ""}${isApi() && S.api.pipeline && d.file ? pipeHtml(d) : ""}</td><td>${esc(d.type)}</td><td class="num">${esc(d.date || "-")}</td><td class="num">${esc((d.pages || []).join(", "))}</td>
       <td><span class="chip ${R[d.readability]?.[1] || "st-new"}" title="${esc(d.reason_cs || "")}">${R[d.readability]?.[0] || d.readability}</span></td><td class="num">${esc(DCOLS[1][2](d))}</td>
       <td><button class="btn small" data-src='${esc(JSON.stringify({ file: d.file || dd.file, page: (d.pages || [1])[0] }))}'>Otevřít</button></td></tr>`).join("")}</tbody></table></div>
     ${docs.length ? "" : `<p class="muted">Žádný dokument neodpovídá filtru.</p>`}
@@ -3840,7 +3870,11 @@ function loadSourcePage() {
   o.data.match = o.cite.quote && +o.cite.page === o.page ? { quote: o.cite.quote, ...srcApi.locate(o.file, o.page, o.cite.quote) } : null;
 }
 const pct = (b, W, H) => `left:${(b[0] / W * 100).toFixed(3)}%;top:${(b[1] / H * 100).toFixed(3)}%;width:${(b[2] / W * 100).toFixed(3)}%;height:${(b[3] / H * 100).toFixed(3)}%`;
-const verifyTitle = v => v.reason === "only_vision" ? "Četl jen jazykový model; Tesseract zde nic nepřečetl, ověřit"
+/* A page read by the pipeline without AI (step 6) has Tesseract as its text and the PDF text layer as the second reading;
+   its items carry "layer" instead of "vision". */
+const verifyTitle = v => "layer" in v ? (v.reason === "only_tesseract" ? "Textová vrstva PDF zde nic nemá, ověřit"
+    : v.reason === "only_layer" ? `Jen textová vrstva PDF: ${v.layer}, ověřit` : v.reason === "low_conf" ? `Tesseract si není jistý (jistota ${v.conf} %), ověřit` : `Textová vrstva PDF: ${v.layer}, ověřit`)
+  : v.reason === "only_vision" ? "Četl jen jazykový model; Tesseract zde nic nepřečetl, ověřit"
   : `Tesseract četl: ${v.tess}${v.reason === "low_conf" ? ` (jistota ${v.conf} %)` : ""}, ověřit`;
 /* The vision transcription is Markdown. It is shown as text with headings and tables kept, and with the
    cited passage, the "ověřit" tokens and the transcriber's own [notes] marked by character ranges. */
@@ -3932,7 +3966,7 @@ function sourceHtml(o) {
     ? `${empty}${d.empty ? "" : pageTextHtml(d)}${nv ? `<p class="muted small" style="margin:14px 0 0">${legend}</p>` : ""}`
     : `${empty}${frame(d.image, `Strana ${d.n} dokumentu ${d.file}`, `
         ${(imgHit?.boxes || []).map((b, i) => `<span class="hbox" ${i === 0 ? 'id="hit"' : ""} style="${pct(b, W, H)}"></span>`).join("")}
-        ${vis.map(v => `<span class="vbox" title="${esc(verifyTitle(v))}; přepis: ${esc(v.vision)}" style="${pct([v.box[0] - 2, v.box[1] - 2, v.box[2] + 4, v.box[3] + 4], W, H)}"></span>`).join("")}`)}
+        ${vis.map(v => `<span class="vbox" title="${esc(verifyTitle(v))}; přepis: ${esc(v.vision ?? v.tess)}" style="${pct([v.box[0] - 2, v.box[1] - 2, v.box[2] + 4, v.box[3] + 4], W, H)}"></span>`).join("")}`)}
       ${nv ? `<p class="muted small" style="margin:10px 0 0">Žlutě: citovaná pasáž. Čárkovaně: ${legend} Místa, která četl jen jazykový model, jsou podtržená v přepisu.</p>` : ""}`;
   return `<div class="scrim" data-close="1"></div><aside class="drawer wide" role="dialog" aria-label="Původní dokument">
     <header><div style="min-width:0"><div class="label vlabel">Původní dokument · obrázek stránky</div><h2 style="margin-top:4px">${esc(d.doc_title || d.file)}</h2>
@@ -4496,7 +4530,7 @@ document.addEventListener("click", e => {
   hideTip();
   if (S.colOpen && !e.target.closest(".fpop,[data-colopen]")) { S.colOpen = null; render(); return; }
   if (S.stOpen && !e.target.closest(".stpop,[data-stmenu]")) { S.stOpen = null; render(); return; }
-  const t = e.target.closest("[data-stmenu],[data-setst],[data-dbpage],[data-guide],[data-colopen],[data-colclose],[data-colall],[data-wk],[data-jump],[data-mm],[data-calclose],[data-labsel],[data-edit],[data-scope],[data-addatt],[data-delatt],[data-staffdel],[data-staffadd],[data-startday],[data-startgo],[data-sesgo],[data-nav],[data-open],[data-tab],[data-src],[data-close],[data-page],[data-vtab],[data-zoom],[data-zoomstep],[data-zoomhit],[data-tl-category],[data-tl],[data-alact],[data-sched],[data-pick],[data-free],[data-slot],[data-unsched],[data-act],[data-mode],[data-delstep],[data-delup],[data-delupapi],[data-delnew],[data-recretry],[data-pgpanel],[data-pgref],[data-done],[data-suggok],[data-suggno]");
+  const t = e.target.closest("[data-stmenu],[data-setst],[data-dbpage],[data-guide],[data-colopen],[data-colclose],[data-colall],[data-wk],[data-jump],[data-mm],[data-calclose],[data-labsel],[data-edit],[data-scope],[data-addatt],[data-delatt],[data-staffdel],[data-staffadd],[data-startday],[data-startgo],[data-sesgo],[data-nav],[data-open],[data-tab],[data-src],[data-close],[data-page],[data-vtab],[data-zoom],[data-zoomstep],[data-zoomhit],[data-tl-category],[data-tl],[data-alact],[data-sched],[data-pick],[data-free],[data-slot],[data-unsched],[data-act],[data-mode],[data-delstep],[data-delup],[data-delupapi],[data-delnew],[data-piperun],[data-recretry],[data-pgpanel],[data-pgref],[data-done],[data-suggok],[data-suggno]");
   if (!t) return;
   const d = t.dataset;
   if (d.stmenu) { S.stOpen = S.stOpen === d.stmenu ? null : d.stmenu; render(); }
@@ -4544,6 +4578,7 @@ document.addEventListener("click", e => {
   else if (d.nav) { if (d.nav === "admin" && !DATA.logLoading) DATA.serverLog = null; S.view = d.nav; S.schedPick = null; render(); }
   else if (d.open) { openPatient(d.open); }
   else if (d.tab) { S.tab = d.tab.replace(/<.*$/, ""); render(); }
+  else if (d.piperun) { e.preventDefault(); e.stopPropagation(); if (!S.pipe[d.piperun]?.busy) pipeRun(d.piperun); }
   else if (d.src) { e.preventDefault(); openSource(JSON.parse(d.src)); }
   else if (d.close) { if (S.overlay?.kind === "new") discardIntake(S.overlay); S.overlay = null; renderOverlay(); }
   else if (d.page) { gotoSourcePage(S.overlay, +d.page); }
