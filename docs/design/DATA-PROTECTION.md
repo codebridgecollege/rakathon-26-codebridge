@@ -144,3 +144,19 @@ pilot needs a speech server inside FNO, or FNO's clearance for an
 outside service.
 
 Open points are in [`docs/agent/OPEN_QUESTIONS.md`](../agent/OPEN_QUESTIONS.md).
+
+
+
+## Prognosis searches
+
+The local prognosis API accepts only identifiers for two explicitly supported synthetic fixtures, not arbitrary uploaded documents. It constructs a dated clinical profile, removes names and birth numbers, and keeps the OpenRouter API key server-side. Searches require an explicit button action. Results and prompts are not logged or saved to disk; normalized results are held in a bounded process-memory cache. Browser edits are excluded. Provider retention remains subject to the provider policies; the request asks for providers with `data_collection:deny`. See [the API notes](../../prognosis/README.md).
+
+
+## User-requested synthetic prognosis fixture
+
+The user explicitly requested saving Poláček's prognosis search for demo replay.
+`mocks/src/data/prognosis-case-10.json` contains the minimized synthetic profile
+and six normalized Astra study rows, including their source evidence and original
+search timestamp. The generated page embeds them for a two-second replay matched
+to the patient and scheduled day. This fixture is persistent; the backend runtime
+cache remains memory-only. It contains no API key or real patient data.

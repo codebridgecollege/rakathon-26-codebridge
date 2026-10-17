@@ -1,3 +1,4 @@
+<meta charset="utf-8">
 <title>MDT asistent maketa</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -249,7 +250,7 @@ table.labs { border-collapse: collapse; width: 100%; font-variant-numeric: tabul
    "page": 3,
    "quote": "Nález při MR vyš. mozku zadávám k projednáni na NCH semináři."
   },
-  "question_draft_cs": "Jaký postup doporučuje neurochirurgický seminář?",
+  "question_draft_cs": "Jaký postup doporučuje neurochirurgický seminář u solitárního sytícího se ložiska pravé mozečkové hemisféry do 3 mm, suspektního z metastázy (MR mozku 14.9.2026), při probíhající léčbě everolimem?",
   "question_kind": "document_purpose",
   "question_basis": [
    {
@@ -266,6 +267,14 @@ table.labs { border-collapse: collapse; width: 100%; font-variant-numeric: tabul
     "source": {
      "file": "10_pacient.pdf",
      "page": 1
+    }
+   },
+   {
+    "role": "finding",
+    "quote": "Do 3. pal. linie léčby indikován everolimus - schváleno KOC komisi.",
+    "source": {
+     "file": "10_pacient.pdf",
+     "page": 2
     }
    }
   ]
@@ -1904,18 +1913,6 @@ table.labs { border-collapse: collapse; width: 100%; font-variant-numeric: tabul
    "note": "Záhlaví str. 4 je v OCR nečitelné. Datum lze jen odhadnout z kontextu (po 14.9.2026)."
   },
   {
-   "kind": "unclear",
-   "text_cs": "Text CT 26.8.2026 na str. 5 končí znaky „J-“; není jisté, zda je závěr úplný.",
-   "based_on": [
-    {
-     "file": "10_pacient.pdf",
-     "page": 5,
-     "quote": "progrse LU v levém pl. hilu a v retroperitonu paraaortálně vlevo. J-"
-    }
-   ],
-   "note": "Pozorování asistenta."
-  },
-  {
    "kind": "contradiction",
    "text_cs": "Datum restagingu s mediastinální a hilovou lymfadenopatií: str. 2 uvádí 3/2022, str. 1 uvádí baseline CT 6.3.2023.",
    "based_on": [
@@ -1972,9 +1969,24 @@ table.labs { border-collapse: collapse; width: 100%; font-variant-numeric: tabul
    "note": "Pozorování asistenta; z textu plyne přechod na udržovací nivolumab od 27.6.2023."
   },
   {
-   "kind": "unclear",
-   "text_cs": "Navýšení everolimu na 10 mg: str. 2 a 3 uvádí navýšení (od 19.9.2026), str. 3 zároveň podmíněně 'při dobré toleranci navýšíme'.",
+   "kind": "chronology",
+   "text_cs": "Dokument je podle textu jedna kontrolní zpráva, ne záznamy z více kontrol: ručně psaná čísla stran (s. 4 „1“, s. 1 „3“) dávají pořadí s. 4, 5, 1, 2, 3 a text s. 2 („Cabozantinib na“) plynule pokračuje na s. 3 („par. 16 ponecháme do 4. linie“). Nejnovější ambulantní závěr je tedy na s. 3 (kontrola po MR mozku 14.9.2026, datum zprávy začerněné); uvádí navýšení everolimu na 10 mg denně, léčba na s. 2 od 19.9.2026. Věta „Při dobré toleranci navýšíme everolimus na 10mg denně“ v doporučení na s. 3 tomu časově neodpovídá; zda jde o text převzatý z dřívější kontroly, z dokumentu určit nelze.",
    "based_on": [
+    {
+     "file": "10_pacient.pdf",
+     "page": 2,
+     "quote": "Do 3. pal. linie léčby indikován everolimus - schváleno KOC komisi. Cabozantinib na"
+    },
+    {
+     "file": "10_pacient.pdf",
+     "page": 3,
+     "quote": "par. 16 ponecháme do 4. linie."
+    },
+    {
+     "file": "10_pacient.pdf",
+     "page": 3,
+     "quote": "Tolerance léčby vývorná, lab., vyš. bez zásadni patologie, proto navyšuji Everolimus na 10mg denně."
+    },
     {
      "file": "10_pacient.pdf",
      "page": 2,
@@ -1986,7 +1998,7 @@ table.labs { border-collapse: collapse; width: 100%; font-variant-numeric: tabul
      "quote": "Při dobré toleranci navýšime everolimus na 10mg denně."
     }
    ],
-   "note": "Pozorování asistenta; možná text ze dvou různých kontrol. Aktuální dávku ověřit."
+   "note": "Pozorování asistenta k pořadí stran a k nejnovějšímu závěru; dávku potvrzuje lékař."
   },
   {
    "kind": "unclear",
@@ -1999,51 +2011,6 @@ table.labs { border-collapse: collapse; width: 100%; font-variant-numeric: tabul
     }
    ],
    "note": "Pozorování asistenta; OCR sazba stránky je promíchaná."
-  },
-  {
-   "kind": "change",
-   "text_cs": "Progrese na sunitinibu (CT 26.8.2026), od 3.9.2026 everolimus; 14.9.2026 nově suspekce na solitární MTS v mozečku.",
-   "based_on": [
-    {
-     "file": "10_pacient.pdf",
-     "page": 5,
-     "quote": "CT hrudník, břicho, malá pánev 26.8.2026"
-    },
-    {
-     "file": "10_pacient.pdf",
-     "page": 1,
-     "quote": "3, pal, linie léčby everolimus - start 3.9.2026"
-    },
-    {
-     "file": "10_pacient.pdf",
-     "page": 1,
-     "quote": "MR yyš, mozku 14.9.2026 NNJ"
-    }
-   ],
-   "note": "Pozorování asistenta, shrnuje dokumentované události.",
-   "relevant": true
-  },
-  {
-   "kind": "unclear",
-   "text_cs": "Laboratoř mimo uvedené rozmezí: kreatinin 107 µmol/l, eGFR 1,01 ml/s/1,73 m2, Hb 123 g/l (pod), MCV 102,8 fl (nad) a další. Datum odběru neuvedeno v dostupné dokumentaci.",
-   "based_on": [
-    {
-     "file": "10_pacient.pdf",
-     "page": 3,
-     "quote": "S_CREAE: 107 µmol/1 [59 ... 104]"
-    },
-    {
-     "file": "10_pacient.pdf",
-     "page": 3,
-     "quote": "B_HB: 123 g/1 [135 ... 175]"
-    },
-    {
-     "file": "10_pacient.pdf",
-     "page": 3,
-     "quote": "lab., vyš. bez zásadni patologie"
-    }
-   ],
-   "note": "Pozorování asistenta: hodnoty mimo referenční rozmezí, bez klinického hodnocení. Bez dřívějších hodnot nelze určit trend."
   }
  ],
  "ocr_quality_note": "Stránky 1, 2, 3 a 5 mají dobrou OCR vrstvu s běžnými chybami (l/1, O/0, 'yyš', 'ver;f;kována'). Záhlaví str. 4 je nečitelné ('Ambulantnf vyletfenf kontrolnf'), tabulky iRECIST na str. 4 a 5 jsou rozsypané. Citace jsou s normalizovanými mezerami (zalomení řádků nahrazena mezerou).",
@@ -2069,14 +2036,15 @@ table.labs { border-collapse: collapse; width: 100%; font-variant-numeric: tabul
    "text": " \nK\nAmbulantní vyšetření kontrolní \n  \nLU mediastina a hilů 10-15 mm ano v L hilu \ncr Ag plicnice 10.2.2026 \nZávěr: Bez plicní embolie, jen drobná cysta v HL vpravo. \nano \nDrobné osteoplatické ložiska do průměru 7mm v přechodu th/L páteře. \nInterní wš, 10.2.2026 NNJ \nZávěr: Dušnost k vyloučení kard. etiologie \nDoporučení: \n \n- plicní embolie vyloučena, EKG bez ischemických změn, hstroponin stabilní bez\ndynamiky- možno na vrub dekorigované HT\n- u nás kontrolní TK 174/92, dle pacienta doma prav. TK kolem 150\n- nově k medikaci Orcal 10 mg tbl 1/2-0-0, doma prav. měřit tenze -poučen,\nzapisovat a hodnoty donést ke shlédnutí k PL\nECHO 20.2.2026 NNJ \nZavěr: \nNormální velikosti srdečních oddílů. Normální systol. fce LK s EF 60%, bez hrubších \nregionálních poruch kinetiky při suboptm. přehlednosti, bez hypertrofie. Dobrá fce \nPK. \nAo chl: okrajově skleortická, 3-cp, dobře separuje, bez reg, PG 11 mmHg \nMi chl: jemná, dobře pohyblivé cípy, stop. reg \nTr chl: jemná, bez zřetelné reg \nPU chl: jemná, typ křivky II v RVOT, stop. reg \nperikard bpn, asc. ao bez dilatace \nRES: dobrá systolická funkce obou komor, bez hemodynamicky významné chlop. vady \nCT hrudník, břicho 28.4.2026 \nDle iRECIST \nT-7éze\nLU pravého pl. hilu \nložisko před L ledvinou \nLU levého pl. hilu \nLU retroperitonea \nNon-T léze \nLU mediastina a hilů 10-15 mm \nbaseline 1/26 \n6 \no \n15 \n36 \nano v L hilu \ndnes \n6 \no \n12 \n30 \nano \nZávěr: \nVe srovnáni s baseline CT 1/2026 došlo k mirné regresi velikosti LU v levém plicnim \nhilu, jinak v mediastinu a pravém hilu další LU stacionární. \nParc. regrese velikosti patologické LU v retroperitoneu. \nNová ložiska nep\ufffdibyla. \nVelikostní regrese sledovaných lézi je o cca 24 %. \nDle iRECIST • iSD. \nPlicní wš, 22,5,2026 MUDr.Hofrová \nSpirometrie - lehká obstrukce \nZ: CHOPN II/B fumat., susp. interstic. post1zené, stp. kortikoterapii \nDop. inhal Spiriva resp. 2-0-0 + Ventolin dlp., Erdomed 300mg 1-1-0, kontrola \n9/2026 + spirometrie \nuz tepen DKK 30.7.2026 \nRE: Na tepnách DKK středně silné sklerotické (ne angiitické) změny. \nDopplerometrický nález je vlevo negativní a velmi dobrý. Vpravo zřetelná, i když ne \ntěžká stenosa v prox. úseku PDK. Sledování vhodné. \nCT hrudník, břicho, malá pánev 26.8.2026 \nZávěr: \nVe srovnáni s minulým CT z 4/2026 i s baseline CT z 1/2026 je patrná velikostní \nprogrse LU v levém pl. hilu a v retroperitonu paraaortálně vlevo. \nJ-"
   }
  ]
-}</script>
+}
+</script>
 <script id="list-data" type="application/json">[
  {
   "file": "2_pacient.pdf",
   "name": "Jaroslava Kotěrová",
   "age_or_birth": null,
   "insurer": "205",
-  "main_problem_cs": "Glioblastom (GBM) temporálně vpravo, stp. resekci",
+  "main_problem_cs": "High grade gliový tumor temporálně vpravo, dle pooperační MR GBM",
   "mdt_question_cs": "Vzhledem k rozsahu tumoru (propagace do thalamu a mesencephala) symptomatická terapie?",
   "mdt_question_explicit": true,
   "one_line_summary_cs": "Po kolapsu nalezena objemná expanze T vpravo s šířením do inzuly, thalamu a mesencefala; resekce 7.8.2026, histol. high grade gliový tumor (Ki67 až 70 %), pooperačně rozsáhlé reziduum; levostranná hemiparéza a neglect.",
@@ -2091,7 +2059,7 @@ table.labs { border-collapse: collapse; width: 100%; font-variant-numeric: tabul
   "name": "Zdena Zábělská",
   "age_or_birth": "nar. 13.10.1961",
   "insurer": "111",
-  "main_problem_cs": "Karcinom levého prsu s generalizací do skeletu, komprese obratle Th2",
+  "main_problem_cs": "Invazivní karcinom NST levého prsu, G2, pT2 N1mi(1+/3sn) M0 (2023); MTS do skeletu",
   "mdt_question_cs": "Nález na PET/CT bude prezentován na NCH semináři k posouzení indikace NCH intervence.",
   "mdt_question_explicit": false,
   "one_line_summary_cs": "Ca levého prsu (2023, stp. mastektomii, RT, letrozol); 9/2026 progrese s mnohočetnými převážně osteolytickými MTS skeletu, patologická komprese Th2 až vertebra plana s měkkotkáňovou složkou do páteřního kanálu; od 7.9.2026 fulvestrant, od 22.9.2026 abemaciklib.",
@@ -2123,7 +2091,7 @@ table.labs { border-collapse: collapse; width: 100%; font-variant-numeric: tabul
   "name": "Lenka Kabátová",
   "age_or_birth": null,
   "insurer": "205",
-  "main_problem_cs": "Vestibulární schwannom vlevo (Koos I), drobný meningeom F vlevo",
+  "main_problem_cs": "V.s. neurinom akustiku vlevo, Koos I; drobný meningeom F parafalcinně vlevo, do 6 mm",
   "mdt_question_cs": null,
   "mdt_question_explicit": false,
   "one_line_summary_cs": "Náhlé vertigo se zvracením a zhoršením sluchu vlevo; MR mozku s KL: intrameatální tumor do 7 mm charakteru schwannomu n. VIII vlevo a drobný parafalcinní meningeom F vlevo do 6 mm; Fazekas III, atrofie.",
@@ -2155,7 +2123,7 @@ table.labs { border-collapse: collapse; width: 100%; font-variant-numeric: tabul
   "name": "Patricie Moučková",
   "age_or_birth": null,
   "insurer": "211",
-  "main_problem_cs": "Kalcifikovaný meningeom parietálně vlevo",
+  "main_problem_cs": "Kalcifikovaný meningeom parietálně vlevo, 12 x 9 mm",
   "mdt_question_cs": "Prosím laskavě o konzultaci CT mozku a srovnání s MRI.",
   "mdt_question_explicit": true,
   "one_line_summary_cs": "CT mozku 19.8.2026 (při akutní závrati): kalcifikovaný meningeom parietálně vlevo 12 x 9 mm, bez průkazu MTS; MR 8/2025 ložisko 10x6 mm, stacionární proti 10/2023; v anamnéze ca prsu (2002 až 2004, t.č. remise).",
@@ -2170,13 +2138,13 @@ table.labs { border-collapse: collapse; width: 100%; font-variant-numeric: tabul
   "name": "Luděk Zápotocký",
   "age_or_birth": null,
   "insurer": "111 (nejisté)",
-  "main_problem_cs": "Léze postranní komory vpravo, v.s. ependymom či subependymom",
+  "main_problem_cs": "V.s. ependymom či subependymom postranní komory vpravo, 7x6 mm",
   "mdt_question_cs": null,
   "mdt_question_explicit": false,
   "one_line_summary_cs": "MR mozku: FLAIR hypersignální léze 7x6 mm na vnitřní stěně pravé postranní komory bez sycení, stacionární obraz v.s. ependymomu či subependymomu, bez poruchy cirkulace likvoru.",
   "page_count": 1,
   "note": "Jen radiologický popis, bez data vyšetření, anamnézy a otázky. Číslo '111' je v poli pro pojišťovnu nebo RČ, přiřazení nejisté.",
-  "question_draft_cs": "Souhlasí radiolog s obrazem v.s. ependymomu či subependymomu postranní komory vpravo? Je při stacionárním nálezu indikováno sledování, nebo operační řešení?",
+  "question_draft_cs": "Souhlasí radiolog s obrazem v.s. ependymomu či subependymomu postranní komory vpravo? Jaký další postup?",
   "question_kind": "assistant_inference",
   "question_basis": [
    {
@@ -2194,7 +2162,7 @@ table.labs { border-collapse: collapse; width: 100%; font-variant-numeric: tabul
   "name": "Otakar Jelen",
   "age_or_birth": null,
   "insurer": null,
-  "main_problem_cs": "Intraoseální ložisko kalvy frontálně vpravo, DD meningeom vs. MTS (ca cekoascendens)",
+  "main_problem_cs": "Intraoseální ložisko kalvy F vpravo, DD intraoseální meningeom x MTS",
   "mdt_question_cs": "Žádost o doporučení dalšího postupu: MDT doporučilo konzultaci NCH, MR mozku a scintigrafii skeletu, zatím nedoplněno, 'vyčkáme Vašeho doporučení'.",
   "mdt_question_explicit": false,
   "one_line_summary_cs": "Ca cekoascendens pT3 pN0 cM0, stp. pravostranné hemikolektomii, susp. Lynch syndrom; CT mozku 13.9.2026 při vestibulárním syndromu: intraoseální ložisko F vpravo s extraaxiální propagací 13x7 mm, DD intraoseální meningeom x MTS.",
@@ -2232,7 +2200,7 @@ table.labs { border-collapse: collapse; width: 100%; font-variant-numeric: tabul
   "name": "Libor Opletal",
   "age_or_birth": "53 let",
   "insurer": null,
-  "main_problem_cs": "Syringomyelie Th4 až Th12, susp. drobný ependymom v oblasti konu",
+  "main_problem_cs": "Syringomyelie Th4-Th12, drobný ependymom v oblasti konu nelze vyloučit",
   "mdt_question_cs": null,
   "mdt_question_explicit": false,
   "one_line_summary_cs": "Opakované silné lumbalgie se zhoršením; MR Th páteře s KL: cystické okrsky míchy Th4 až Th12, rozšíření míchy max. v oblasti konu 15x17 mm se sytícími okrsky do 4,5x4 mm (drobný ependymom nelze vyloučit); protruze L3 až L5.",
@@ -2272,7 +2240,7 @@ table.labs { border-collapse: collapse; width: 100%; font-variant-numeric: tabul
   "name": "Martina Palajová",
   "age_or_birth": null,
   "insurer": null,
-  "main_problem_cs": "Regredující monoparéza LHK (DD iCMP/TIA vs. epiparoxyzmus), fraktura dens axis, aneuryzmata ACI",
+  "main_problem_cs": "Dvě výdutě ACI vlevo pod bazí lební, cca 2 a 3 mm; fraktura baze dens axis",
   "mdt_question_cs": null,
   "mdt_question_explicit": false,
   "one_line_summary_cs": "Přijata 29.9. pro odeznělou monoparézu LHK po vysazení antikoagulace; fraktura baze dens axis po pádu 27.9. (konzervativně dle NCH); CTAG 13.10.2026: vlevo dvě výdutě ACI 2 a 3 mm pod bazí lební.",
@@ -2296,7 +2264,7 @@ table.labs { border-collapse: collapse; width: 100%; font-variant-numeric: tabul
   "name": "Richard Potužný",
   "age_or_birth": "69 let",
   "insurer": null,
-  "main_problem_cs": "Infiltrace obratlů C6 až Th1, DD spondylodiscitida vs. maligní infiltrace (ca prostaty)",
+  "main_problem_cs": "Infiltrace obratlových těl C6-Th1, DD spondylodiscitida x maligní infiltrace",
   "mdt_question_cs": null,
   "mdt_question_explicit": false,
   "one_line_summary_cs": "4 měsíce po TURP (ca prostaty 5/2026) a sepsi; MR Cp 14.9.26: infiltrace obratlových těl C6/C7/Th1 se stenózou kanálu bez komprese míchy; scintigrafie: osteolytická ložiska C páteře, susp. okrsky kalvy, Th6 a LS-S1; NCH doporučilo nahlásit na NOCO a doplnit CT hrudníku a břicha.",

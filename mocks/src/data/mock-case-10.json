@@ -27,7 +27,7 @@
    "page": 3,
    "quote": "Nález při MR vyš. mozku zadávám k projednáni na NCH semináři."
   },
-  "question_draft_cs": "Jaký postup doporučuje neurochirurgický seminář?",
+  "question_draft_cs": "Jaký postup doporučuje neurochirurgický seminář u solitárního sytícího se ložiska pravé mozečkové hemisféry do 3 mm, suspektního z metastázy (MR mozku 14.9.2026), při probíhající léčbě everolimem?",
   "question_kind": "document_purpose",
   "question_basis": [
    {
@@ -44,6 +44,14 @@
     "source": {
      "file": "10_pacient.pdf",
      "page": 1
+    }
+   },
+   {
+    "role": "finding",
+    "quote": "Do 3. pal. linie léčby indikován everolimus - schváleno KOC komisi.",
+    "source": {
+     "file": "10_pacient.pdf",
+     "page": 2
     }
    }
   ]
@@ -1682,18 +1690,6 @@
    "note": "Záhlaví str. 4 je v OCR nečitelné. Datum lze jen odhadnout z kontextu (po 14.9.2026)."
   },
   {
-   "kind": "unclear",
-   "text_cs": "Text CT 26.8.2026 na str. 5 končí znaky „J-“; není jisté, zda je závěr úplný.",
-   "based_on": [
-    {
-     "file": "10_pacient.pdf",
-     "page": 5,
-     "quote": "progrse LU v levém pl. hilu a v retroperitonu paraaortálně vlevo. J-"
-    }
-   ],
-   "note": "Pozorování asistenta."
-  },
-  {
    "kind": "contradiction",
    "text_cs": "Datum restagingu s mediastinální a hilovou lymfadenopatií: str. 2 uvádí 3/2022, str. 1 uvádí baseline CT 6.3.2023.",
    "based_on": [
@@ -1750,9 +1746,24 @@
    "note": "Pozorování asistenta; z textu plyne přechod na udržovací nivolumab od 27.6.2023."
   },
   {
-   "kind": "unclear",
-   "text_cs": "Navýšení everolimu na 10 mg: str. 2 a 3 uvádí navýšení (od 19.9.2026), str. 3 zároveň podmíněně 'při dobré toleranci navýšíme'.",
+   "kind": "chronology",
+   "text_cs": "Dokument je podle textu jedna kontrolní zpráva, ne záznamy z více kontrol: ručně psaná čísla stran (s. 4 „1“, s. 1 „3“) dávají pořadí s. 4, 5, 1, 2, 3 a text s. 2 („Cabozantinib na“) plynule pokračuje na s. 3 („par. 16 ponecháme do 4. linie“). Nejnovější ambulantní závěr je tedy na s. 3 (kontrola po MR mozku 14.9.2026, datum zprávy začerněné); uvádí navýšení everolimu na 10 mg denně, léčba na s. 2 od 19.9.2026. Věta „Při dobré toleranci navýšíme everolimus na 10mg denně“ v doporučení na s. 3 tomu časově neodpovídá; zda jde o text převzatý z dřívější kontroly, z dokumentu určit nelze.",
    "based_on": [
+    {
+     "file": "10_pacient.pdf",
+     "page": 2,
+     "quote": "Do 3. pal. linie léčby indikován everolimus - schváleno KOC komisi. Cabozantinib na"
+    },
+    {
+     "file": "10_pacient.pdf",
+     "page": 3,
+     "quote": "par. 16 ponecháme do 4. linie."
+    },
+    {
+     "file": "10_pacient.pdf",
+     "page": 3,
+     "quote": "Tolerance léčby vývorná, lab., vyš. bez zásadni patologie, proto navyšuji Everolimus na 10mg denně."
+    },
     {
      "file": "10_pacient.pdf",
      "page": 2,
@@ -1764,7 +1775,7 @@
      "quote": "Při dobré toleranci navýšime everolimus na 10mg denně."
     }
    ],
-   "note": "Pozorování asistenta; možná text ze dvou různých kontrol. Aktuální dávku ověřit."
+   "note": "Pozorování asistenta k pořadí stran a k nejnovějšímu závěru; dávku potvrzuje lékař."
   },
   {
    "kind": "unclear",
@@ -1777,51 +1788,6 @@
     }
    ],
    "note": "Pozorování asistenta; OCR sazba stránky je promíchaná."
-  },
-  {
-   "kind": "change",
-   "text_cs": "Progrese na sunitinibu (CT 26.8.2026), od 3.9.2026 everolimus; 14.9.2026 nově suspekce na solitární MTS v mozečku.",
-   "based_on": [
-    {
-     "file": "10_pacient.pdf",
-     "page": 5,
-     "quote": "CT hrudník, břicho, malá pánev 26.8.2026"
-    },
-    {
-     "file": "10_pacient.pdf",
-     "page": 1,
-     "quote": "3, pal, linie léčby everolimus - start 3.9.2026"
-    },
-    {
-     "file": "10_pacient.pdf",
-     "page": 1,
-     "quote": "MR yyš, mozku 14.9.2026 NNJ"
-    }
-   ],
-   "note": "Pozorování asistenta, shrnuje dokumentované události.",
-   "relevant": true
-  },
-  {
-   "kind": "unclear",
-   "text_cs": "Laboratoř mimo uvedené rozmezí: kreatinin 107 µmol/l, eGFR 1,01 ml/s/1,73 m2, Hb 123 g/l (pod), MCV 102,8 fl (nad) a další. Datum odběru neuvedeno v dostupné dokumentaci.",
-   "based_on": [
-    {
-     "file": "10_pacient.pdf",
-     "page": 3,
-     "quote": "S_CREAE: 107 µmol/1 [59 ... 104]"
-    },
-    {
-     "file": "10_pacient.pdf",
-     "page": 3,
-     "quote": "B_HB: 123 g/1 [135 ... 175]"
-    },
-    {
-     "file": "10_pacient.pdf",
-     "page": 3,
-     "quote": "lab., vyš. bez zásadni patologie"
-    }
-   ],
-   "note": "Pozorování asistenta: hodnoty mimo referenční rozmezí, bez klinického hodnocení. Bez dřívějších hodnot nelze určit trend."
   }
  ],
  "ocr_quality_note": "Stránky 1, 2, 3 a 5 mají dobrou OCR vrstvu s běžnými chybami (l/1, O/0, 'yyš', 'ver;f;kována'). Záhlaví str. 4 je nečitelné ('Ambulantnf vyletfenf kontrolnf'), tabulky iRECIST na str. 4 a 5 jsou rozsypané. Citace jsou s normalizovanými mezerami (zalomení řádků nahrazena mezerou).",

@@ -184,6 +184,9 @@ Declare this list to the jury and mentors.
 - ElevenLabs Scribe, for transcribing the pre-hack talks and the team's
   design discussions, and (Scribe v2 Realtime and Scribe v2) for the
   live "AI záznam" demo in mock v3, with fictitious speech only.
+- The hackathon's Azure OpenAI gateway (`gpt-6-luna-dz-eu`), for the
+  one-sentence summary of a recorded MDT discussion in mock v3.
+- Cloudflare Pages, hosting mock v3 at https://codebridge-mdt.pages.dev.
 - ChatGPT, used by Soňa for brainstorming and UI sketches
   (`docs/sources/design/`).
 - Claude artifacts (claude.ai), for publishing the UI mocks in `mocks/`.
@@ -196,3 +199,16 @@ Declare this list to the jury and mentors.
   ([`samples/README.md`](../../samples/README.md)), rendered to PDF with
   PyMuPDF and Python-Markdown 3.7 (`scripts/render_samples.py`).
 - (Add the LLMs, libraries, and datasets as we adopt them.)
+
+
+
+## Prognosis prototype work on 2026-10-17
+
+The team added a local prognosis evidence-search prototype during the event. It
+uses Python standard-library HTTP handling, the existing generated mock interface,
+and GPT Astra through OpenRouter with server-side web search. The source fixtures are
+the fictitious FNO case 10 and the team synthetic S01 sample. The clinical profile
+contains no patient names or birth numbers. Keys stay in the local gitignored
+configuration. Model and integration details are in
+[the prognosis design](../design/PROGNOSIS.md). Model extracts require source
+review; the prototype does not provide an individual survival prediction.

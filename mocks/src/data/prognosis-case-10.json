@@ -1,0 +1,1747 @@
+{
+  "patient_id": "10_pacient.pdf",
+  "scheduled_date": "2026-10-22",
+  "result": {
+    "profile": {
+      "available": true,
+      "included_count": 78,
+      "synthetic": true,
+      "scheduled_date": "2026-10-22",
+      "facts": [
+        {
+          "text": "Diagnóza RCC (C64), lokálně pokročilý",
+          "date": "4/2022",
+          "source": {
+            "page": 1,
+            "quote": "RCC lok. pokročilý diag. 4/2022"
+          },
+          "kind": "diagnosis",
+          "status": "documented",
+          "certainty": "documented"
+        },
+        {
+          "text": "Nefrektomie vpravo + retroperitoneální lymfadenektomie; histol. ccRCC G2, pT2a pN1 M0",
+          "date": "2.6.2022",
+          "source": {
+            "page": 1,
+            "quote": "2.6.2022 - stp. transperitoneálni nefrektomii vpravo"
+          },
+          "kind": "surgery",
+          "status": "documented",
+          "certainty": "documented"
+        },
+        {
+          "text": "CT: susp. MTS paraaortální uzliny vlevo 20 mm",
+          "date": "7.9.2022",
+          "source": {
+            "page": 1,
+            "quote": "CT hrudník + břicho s KL 7.9.2022"
+          },
+          "kind": "imaging",
+          "status": "documented",
+          "certainty": "documented"
+        },
+        {
+          "text": "Exstirpace paraaortální LU; histol. MTS ccRCC G2, R0",
+          "date": "25.10.2022",
+          "source": {
+            "page": 1,
+            "quote": "st.p. exstirpaci paraaortálni LU vlevo 25.10.2022"
+          },
+          "kind": "surgery",
+          "status": "documented",
+          "certainty": "documented"
+        },
+        {
+          "text": "CT: spíše lymfokéla než nová uzlina",
+          "date": "25.11.2022",
+          "source": {
+            "page": 1,
+            "quote": "CT břicha, malé pánve nativně a kontrastně 25.11.2022"
+          },
+          "kind": "imaging",
+          "status": "documented",
+          "certainty": "documented"
+        },
+        {
+          "text": "Baseline CT: mediastinální a hilová lymfadenopatie, hypervaskularizované MTS",
+          "date": "6.3.2023",
+          "source": {
+            "page": 1,
+            "quote": "baseline CT s KL 6.3.2023"
+          },
+          "kind": "imaging",
+          "status": "documented",
+          "certainty": "documented"
+        },
+        {
+          "text": "Nivolumab + ipilimumab, 1. cyklus",
+          "date": "27.3.2023",
+          "source": {
+            "page": 1,
+            "quote": "27.3.2023 1. cyklus nivolumab"
+          },
+          "kind": "systemic",
+          "status": "documented",
+          "certainty": "documented"
+        },
+        {
+          "text": "Nivolumab + ipilimumab, 2. cyklus",
+          "date": "17.4.2023",
+          "source": {
+            "page": 1,
+            "quote": "17.4.2023 2. cyklus -//-"
+          },
+          "kind": "systemic",
+          "status": "documented",
+          "certainty": "documented"
+        },
+        {
+          "text": "Imunitně podmíněná toxicita (GIT, plíce), prednison 1 mg/kg/den",
+          "date": "28.4.2023",
+          "source": {
+            "page": 1,
+            "quote": "od 28.4.2023 kortikoterapie prednison lmg/kg/den"
+          },
+          "kind": "other",
+          "status": "documented",
+          "certainty": "documented"
+        },
+        {
+          "text": "Restaging CT: iPR",
+          "date": "6/2023",
+          "source": {
+            "page": 2,
+            "quote": "Dle restaging. CT 6/2023 dosaženo iPR"
+          },
+          "kind": "imaging",
+          "status": "documented",
+          "certainty": "documented"
+        },
+        {
+          "text": "Start udržovacího nivolumabu",
+          "date": "27.6.2023",
+          "source": {
+            "page": 1,
+            "quote": "udržovací léčba nivolumab od 27.6.2023"
+          },
+          "kind": "systemic",
+          "status": "documented",
+          "certainty": "documented"
+        },
+        {
+          "text": "Kortikoterapie ukončena",
+          "date": "26.7.2023",
+          "source": {
+            "page": 2,
+            "quote": "ukončen 26.7.2023"
+          },
+          "kind": "other",
+          "status": "documented",
+          "certainty": "documented"
+        },
+        {
+          "text": "Implantace venózního portu",
+          "date": "21.8.2023",
+          "source": {
+            "page": 1,
+            "quote": "Implantace venozn1ho portu 21.8.2023"
+          },
+          "kind": "other",
+          "status": "documented",
+          "certainty": "documented"
+        },
+        {
+          "text": "CT: nový spíše cystický útvar v mesogastriu, bez MTS",
+          "date": "9/23",
+          "source": {
+            "page": 2,
+            "quote": "Při CT vyš. 9/23 popisován nově útvar"
+          },
+          "kind": "imaging",
+          "status": "documented",
+          "certainty": "documented"
+        },
+        {
+          "text": "Excize ložiska brady: kožní metastáza ccRCC, ISUP 2",
+          "date": "21.11.2023",
+          "source": {
+            "page": 1,
+            "quote": "21.11.2023 excize susp. iritovaného intraderm. névu brady vlevo"
+          },
+          "kind": "histology",
+          "status": "documented",
+          "certainty": "documented"
+        },
+        {
+          "text": "Opakované restaging CT: trvá iPR",
+          "date": "11/2023 až 6/2025",
+          "source": {
+            "page": 2,
+            "quote": "11/2023 + 2/2024 + 6/2024 + 10/2024 + 2/2025 + 6/2025 - trvá iPR"
+          },
+          "kind": "imaging",
+          "status": "documented",
+          "certainty": "documented"
+        },
+        {
+          "text": "Excize léze glabely: sebaceom, bez nádorových změn",
+          "date": "11.2.2025",
+          "source": {
+            "page": 1,
+            "quote": "kožní leze v oblasti glabely - stp. excizi 11.2.2025"
+          },
+          "kind": "histology",
+          "status": "documented",
+          "certainty": "documented"
+        },
+        {
+          "text": "CT: nová patologická LU v levém plicním hilu, iRECIST PD/iUPD",
+          "date": "10.11.2025",
+          "source": {
+            "page": 4,
+            "quote": "CI plic+ břicha 10.11.2025"
+          },
+          "kind": "imaging",
+          "status": "documented",
+          "certainty": "documented"
+        },
+        {
+          "text": "Konec udržovacího nivolumabu",
+          "date": "29.12.2025",
+          "source": {
+            "page": 1,
+            "quote": "do 29.12.2025"
+          },
+          "kind": "systemic",
+          "status": "documented",
+          "certainty": "documented"
+        },
+        {
+          "text": "CT: progrese v levém hilu a retroperitoneu, iRECIST iCPD",
+          "date": "16.1.2026",
+          "source": {
+            "page": 4,
+            "quote": "CI hrudník, břicho 16.1.2026"
+          },
+          "kind": "imaging",
+          "status": "documented",
+          "certainty": "documented"
+        },
+        {
+          "text": "2. linie: sunitinib 50 mg, režim 4/2",
+          "date": "27.1.2026",
+          "source": {
+            "page": 1,
+            "quote": "2. pal, linie léčby sunitinib - start 27.1.2026"
+          },
+          "kind": "systemic",
+          "status": "documented",
+          "certainty": "documented"
+        },
+        {
+          "text": "Interní vyšetření pro dušnost; CT AG bez plicní embolie",
+          "date": "10.2.2026",
+          "source": {
+            "page": 5,
+            "quote": "Interní wš, 10.2.2026 NNJ"
+          },
+          "kind": "visit",
+          "status": "documented",
+          "certainty": "documented"
+        },
+        {
+          "text": "ECHO: EF LK 60 %",
+          "date": "20.2.2026",
+          "source": {
+            "page": 5,
+            "quote": "ECHO 20.2.2026 NNJ"
+          },
+          "kind": "imaging",
+          "status": "documented",
+          "certainty": "documented"
+        },
+        {
+          "text": "Sunitinib redukován na 37,5 mg",
+          "date": "25.2.2026",
+          "source": {
+            "page": 1,
+            "quote": "od 25.2.2026 redukce o 1 stupeň"
+          },
+          "kind": "systemic",
+          "status": "documented",
+          "certainty": "documented"
+        },
+        {
+          "text": "Sunitinib redukován na 25 mg",
+          "date": "26.3.2026",
+          "source": {
+            "page": 1,
+            "quote": "od 26.3.2026 redukce o 2 stupně"
+          },
+          "kind": "systemic",
+          "status": "documented",
+          "certainty": "documented"
+        },
+        {
+          "text": "CT: iSD, regrese sledovaných lézí o cca 24 %",
+          "date": "28.4.2026",
+          "source": {
+            "page": 5,
+            "quote": "CT hrudník, břicho 28.4.2026"
+          },
+          "kind": "imaging",
+          "status": "documented",
+          "certainty": "documented"
+        },
+        {
+          "text": "Plicní vyšetření: CHOPN II/B, lehká obstrukce",
+          "date": "22.5.2026",
+          "source": {
+            "page": 5,
+            "quote": "Plicní wš, 22,5,2026 MUDr.Hofrová"
+          },
+          "kind": "visit",
+          "status": "documented",
+          "certainty": "documented"
+        },
+        {
+          "text": "UZ tepen DKK: stenóza PDK vpravo",
+          "date": "30.7.2026",
+          "source": {
+            "page": 5,
+            "quote": "uz tepen DKK 30.7.2026"
+          },
+          "kind": "imaging",
+          "status": "documented",
+          "certainty": "documented"
+        },
+        {
+          "text": "CT: progrese LU v levém hilu a retroperitoneu (PD)",
+          "date": "26.8.2026",
+          "source": {
+            "page": 5,
+            "quote": "CT hrudník, břicho, malá pánev 26.8.2026"
+          },
+          "kind": "imaging",
+          "status": "documented",
+          "certainty": "documented"
+        },
+        {
+          "text": "3. linie: everolimus",
+          "date": "3.9.2026",
+          "source": {
+            "page": 1,
+            "quote": "3, pal, linie léčby everolimus - start 3.9.2026"
+          },
+          "kind": "systemic",
+          "status": "documented",
+          "certainty": "documented"
+        },
+        {
+          "text": "MR mozku: solitární nodulus v pravé mozečkové hemisféře do 3 mm, susp. MTS",
+          "date": "14.9.2026",
+          "source": {
+            "page": 1,
+            "quote": "MR yyš, mozku 14.9.2026 NNJ"
+          },
+          "kind": "imaging",
+          "status": "documented",
+          "certainty": "documented"
+        },
+        {
+          "text": "Plánováno navýšení everolimu na 2-0-0 (10 mg)",
+          "date": "19.9.2026",
+          "source": {
+            "page": 2,
+            "quote": "zyyšuji na 2-0-0 od 19.9.2026"
+          },
+          "kind": "systemic",
+          "status": "planned",
+          "certainty": "documented"
+        },
+        {
+          "text": "Plánovaná kontrola s odběrem KO a biochemie",
+          "date": "9.10.2026",
+          "source": {
+            "page": 3,
+            "quote": "Kontrola zde 9.10.2026 s odběrem KO, biochemie."
+          },
+          "kind": "visit",
+          "status": "documented",
+          "certainty": "documented"
+        },
+        {
+          "text": "MR mozku (NNJ): solitární postkontrastně se sytící nodulus v pravé mozečkové hemisféře do 3 mm, suspekce na solitární MTS; jiné sytící se léze intrakraniálně nejsou.",
+          "date": "14.9.2026",
+          "source": {
+            "page": 1,
+            "quote": "Solitérní nodulus postkontrastně se sytící v pravé mozečkové hemisféře(do 3mm) - suspekce na solitérní MTS, postkontrastně bez jiných, sytících se lézí intrakraniálně."
+          },
+          "kind": "imaging",
+          "status": "documented",
+          "certainty": "documented"
+        },
+        {
+          "text": "MR mozku: gliózy supratentoriálně Fazekas gr. III.",
+          "date": "14.9.2026",
+          "source": {
+            "page": 1,
+            "quote": "Gliózy supratentoriálně Fazekas gr. III."
+          },
+          "kind": "imaging",
+          "status": "documented",
+          "certainty": "documented"
+        },
+        {
+          "text": "CT hrudníku a břicha: susp. MTS paraaortální uzliny vlevo 20 mm.",
+          "date": "7.9.2022",
+          "source": {
+            "page": 1,
+            "quote": "CT hrudník + břicho s KL 7.9.2022 - susp. MTS paraaortálni uzlina vlevo 20mm"
+          },
+          "kind": "imaging",
+          "status": "documented",
+          "certainty": "documented"
+        },
+        {
+          "text": "CT břicha a malé pánve: spíše lymfokéla po lymfadenektomii (kolekce tekutiny do 36 mm vlevo paraaortálně L2-3) než nová zvětšená uzlina.",
+          "date": "25.11.2022",
+          "source": {
+            "page": 1,
+            "quote": "CT břicha, malé pánve nativně a kontrastně 25.11.2022 susp. lymfokéla po lymfadenektomii spíše ohraničená kolekce tekutiny do 36 mm vlevo paraaortálně v úrovni L2-3 než nová zvětšená uzlina."
+          },
+          "kind": "imaging",
+          "status": "documented",
+          "certainty": "documented"
+        },
+        {
+          "text": "Baseline CT: patologická mediastinální a plicní hilová lymfadenopatie charakteru hypervaskularizovaných MTS.",
+          "date": "6.3.2023",
+          "source": {
+            "page": 1,
+            "quote": "baseline CT s KL 6.3.2023 patol. mediastinálni a pl. hilová lymfadenopatie - jsou hypervaskularizované mts charakteru"
+          },
+          "kind": "imaging",
+          "status": "documented",
+          "certainty": "documented"
+        },
+        {
+          "text": "Restaging CT 6/2023: dosaženo iPR.",
+          "date": "6/2023",
+          "source": {
+            "page": 2,
+            "quote": "Dle restaging. CT 6/2023 dosaženo iPR"
+          },
+          "kind": "imaging",
+          "status": "documented",
+          "certainty": "documented"
+        },
+        {
+          "text": "CT 9/2023: nový útvar do 21x27 mm vlevo ventrálně v mesogastriu, spíše cystický; bez lymfadenopatie, bez MTS.",
+          "date": "9/23",
+          "source": {
+            "page": 2,
+            "quote": "Při CT vyš. 9/23 popisován nově útvar do 21x27 mm vlevo ventrálně v mesogastriu, etiologie je spíše cystická, jinak bez lymfadenopatie, bez mts"
+          },
+          "kind": "imaging",
+          "status": "documented",
+          "certainty": "documented"
+        },
+        {
+          "text": "Restaging CT 11/2023, 2/2024, 6/2024, 10/2024, 2/2025, 6/2025: trvá iPR.",
+          "date": "11/2023 až 6/2025",
+          "source": {
+            "page": 2,
+            "quote": "11/2023 + 2/2024 + 6/2024 + 10/2024 + 2/2025 + 6/2025 - trvá iPR"
+          },
+          "kind": "imaging",
+          "status": "documented",
+          "certainty": "documented"
+        },
+        {
+          "text": "CT plic a břicha: proti baseline 3/2023 trvá mírná parciální regrese retroperitoneální lymfadenopatie vlevo, proti 6/2025 mírná progrese; nově patologická LU v levém plicním hilu; dle iRECIST PD.",
+          "date": "10.11.2025",
+          "source": {
+            "page": 4,
+            "quote": "ve srovnání s base line CT z 03/2023 trvá mírná parc. regrese velikosti retroperitoneální lymfadenopatie vlevo ( ve srovnání s min. CT z 06/2025 je ale mírná progrese velí kosti), navíc nově patol. LU v levém plicním hílu - dle iRECIST tedy PD (progressive disease)."
+          },
+          "kind": "imaging",
+          "status": "documented",
+          "certainty": "documented"
+        },
+        {
+          "text": "CT hrudníku a břicha: regrese mediastinální a pravostranné hilové lymfadenopatie, progrese uzlin v levém hilu, progrese jedné LU retroperitonea; dle iRECIST iCPD.",
+          "date": "16.1.2026",
+          "source": {
+            "page": 4,
+            "quote": "Ve srovnání s baselíne CT došlo k regresí medíastinální a pravostranné hilové lymfadenopatie, v levém hilu je velikostní progrese uzlin od baseline i ve srovnání s minulým CT."
+          },
+          "kind": "imaging",
+          "status": "documented",
+          "certainty": "documented"
+        },
+        {
+          "text": "CT AG plicnice: bez plicní embolie, jen drobná cysta v HL vpravo.",
+          "date": "10.2.2026",
+          "source": {
+            "page": 5,
+            "quote": "Závěr: Bez plicní embolie, jen drobná cysta v HL vpravo."
+          },
+          "kind": "imaging",
+          "status": "documented",
+          "certainty": "documented"
+        },
+        {
+          "text": "ECHO: normální velikost oddílů, EF LK 60 %, bez hemodynamicky významné chlopenní vady.",
+          "date": "20.2.2026",
+          "source": {
+            "page": 5,
+            "quote": "RES: dobrá systolická funkce obou komor, bez hemodynamicky významné chlop. vady"
+          },
+          "kind": "imaging",
+          "status": "documented",
+          "certainty": "documented"
+        },
+        {
+          "text": "CT hrudníku a břicha: proti baseline 1/2026 mírná regrese LU v levém hilu, parciální regrese LU retroperitonea, bez nových ložisek; regrese sledovaných lézí o cca 24 %, dle iRECIST iSD.",
+          "date": "28.4.2026",
+          "source": {
+            "page": 5,
+            "quote": "Velikostní regrese sledovaných lézi je o cca 24 %. Dle iRECIST • iSD."
+          },
+          "kind": "imaging",
+          "status": "documented",
+          "certainty": "documented"
+        },
+        {
+          "text": "UZ tepen DKK: středně silné sklerotické změny; vpravo zřetelná, ne těžká stenóza v proximálním úseku PDK.",
+          "date": "30.7.2026",
+          "source": {
+            "page": 5,
+            "quote": "Vpravo zřetelná, i když ne těžká stenosa v prox. úseku PDK."
+          },
+          "kind": "imaging",
+          "status": "documented",
+          "certainty": "documented"
+        },
+        {
+          "text": "CT hrudníku, břicha a malé pánve: proti 4/2026 i baseline 1/2026 velikostní progrese LU v levém plicním hilu a retroperitoneu paraaortálně vlevo.",
+          "date": "26.8.2026",
+          "source": {
+            "page": 5,
+            "quote": "Ve srovnáni s minulým CT z 4/2026 i s baseline CT z 1/2026 je patrná velikostní progrse LU v levém pl. hilu a v retroperitonu paraaortálně vlevo."
+          },
+          "kind": "imaging",
+          "status": "documented",
+          "certainty": "documented"
+        },
+        {
+          "text": "Nefrektomie vpravo: světlobuněčný renální adenokarcinom G2, pT2a pN1 (3+/5) M0.",
+          "date": "2.6.2022",
+          "source": {
+            "page": 1,
+            "quote": "Histol. světlobuněčný renální adenokarcinom G2, pT2a pN1(3+/5) MO"
+          },
+          "kind": "histology",
+          "status": "documented",
+          "certainty": "unclear_ocr"
+        },
+        {
+          "text": "Exstirpace paraaortální LU vlevo: MTS světlobuněčného renálního karcinomu G2, R0.",
+          "date": "25.10.2022",
+          "source": {
+            "page": 1,
+            "quote": "Histol. MTS světlobuněčného renálního karcinomu G2, R0"
+          },
+          "kind": "histology",
+          "status": "documented",
+          "certainty": "documented"
+        },
+        {
+          "text": "Excize ložiska brady vlevo: kožní metastáza světlobuněčného (konvenčního) karcinomu renálního origa, ISUP grade 2, odstraněna kompletně.",
+          "date": "21.11.2023",
+          "source": {
+            "page": 1,
+            "quote": "Histol. kožní metastáza světlebuněčného (konvenčního) karcinomu renálního origa v oblasti brady vlevo, grade 2 dle ISUP, odstraněná kompletně"
+          },
+          "kind": "histology",
+          "status": "documented",
+          "certainty": "documented"
+        },
+        {
+          "text": "Excize kožní léze glabely: sebaceom, kompletně odstraněn, bez nádorových změn.",
+          "date": "11.2.2025",
+          "source": {
+            "page": 1,
+            "quote": "histol. sebaceom, kompletně odstraněn, kůže se solární elastózou, bez nádorových změn."
+          },
+          "kind": "histology",
+          "status": "documented",
+          "certainty": "documented"
+        },
+        {
+          "text": "Transperitoneální nefrektomie vpravo s retroperitoneální lymfadenektomií.",
+          "date": "2.6.2022",
+          "source": {
+            "page": 1,
+            "quote": "2.6.2022 - stp. transperitoneálni nefrektomii vpravo s retroperitoneálni lymfadenektomii"
+          },
+          "kind": "past_treatment",
+          "status": "documented",
+          "certainty": "documented"
+        },
+        {
+          "text": "Exstirpace paraaortální LU vlevo.",
+          "date": "25.10.2022",
+          "source": {
+            "page": 1,
+            "quote": "st.p. exstirpaci paraaortálni LU vlevo 25.10.2022"
+          },
+          "kind": "past_treatment",
+          "status": "documented",
+          "certainty": "documented"
+        },
+        {
+          "text": "Nivolumab 3 mg/kg + ipilimumab 1 mg/kg q3w, 1. cyklus.",
+          "date": "27.3.2023",
+          "source": {
+            "page": 1,
+            "quote": "27.3.2023 1. cyklus nivolumab 3mg/kg + ipilimumab lmg/kg q3w"
+          },
+          "kind": "past_treatment",
+          "status": "documented",
+          "certainty": "unclear_ocr"
+        },
+        {
+          "text": "2. cyklus nivolumab + ipilimumab.",
+          "date": "17.4.2023",
+          "source": {
+            "page": 1,
+            "quote": "17.4.2023 2. cyklus -//-"
+          },
+          "kind": "past_treatment",
+          "status": "documented",
+          "certainty": "documented"
+        },
+        {
+          "text": "Po 2. cyklu GIT toxicita 1. st. a plicní toxicita (IPP 1. až 2. st.); prednison 1 mg/kg/den od 28.4.2023 s rychlou regresí, ukončen 26.7.2023.",
+          "date": "28.4.2023",
+          "source": {
+            "page": 2,
+            "quote": "Proto od 12.5.2023 zahájeno postupné snižování dávky kortikoidu, ukončen 26.7.2023."
+          },
+          "kind": "past_treatment",
+          "status": "documented",
+          "certainty": "documented"
+        },
+        {
+          "text": "Udržovací nivolumab (240 mg q2w) od 27.6.2023 do 29.12.2025.",
+          "date": "27.6.2023",
+          "source": {
+            "page": 1,
+            "quote": "udržovací léčba nivolumab od 27.6.2023 do 29.12.2025"
+          },
+          "kind": "past_treatment",
+          "status": "documented",
+          "certainty": "documented"
+        },
+        {
+          "text": "Implantace venózního portu (Medcomp power-port).",
+          "date": "21.8.2023",
+          "source": {
+            "page": 1,
+            "quote": "Implantace venozn1ho portu 21.8.2023"
+          },
+          "kind": "past_treatment",
+          "status": "documented",
+          "certainty": "documented"
+        },
+        {
+          "text": "2. paliativní linie: sunitinib 50 mg denně, režim 4/2, start 27.1.2026.",
+          "date": "27.1.2026",
+          "source": {
+            "page": 1,
+            "quote": "2. pal, linie léčby sunitinib - start 27.1.2026"
+          },
+          "kind": "past_treatment",
+          "status": "documented",
+          "certainty": "documented"
+        },
+        {
+          "text": "Redukce sunitinibu o 1 stupeň na 37,5 mg (hepatopatie G2).",
+          "date": "25.2.2026",
+          "source": {
+            "page": 1,
+            "quote": "od 25.2.2026 redukce o 1 stupeň - dávka 37,5mg denně - hepatopatie G2"
+          },
+          "kind": "past_treatment",
+          "status": "documented",
+          "certainty": "documented"
+        },
+        {
+          "text": "Redukce sunitinibu o 2 stupně na 25 mg.",
+          "date": "26.3.2026",
+          "source": {
+            "page": 1,
+            "quote": "od 26.3.2026 redukce o 2 stupně - dávka 25mg denně"
+          },
+          "kind": "past_treatment",
+          "status": "documented",
+          "certainty": "documented"
+        },
+        {
+          "text": "Sunitinib ukončen pro PD dle CT 8/2026.",
+          "date": "8/2026",
+          "source": {
+            "page": 2,
+            "quote": "Proto léčbu sunitinibem ukončuji."
+          },
+          "kind": "past_treatment",
+          "status": "documented",
+          "certainty": "documented"
+        },
+        {
+          "text": "3. paliativní linie: everolimus, start 3.9.2026 (schváleno KOC komisí); cabozantinib ponechán do 4. linie.",
+          "date": "3.9.2026",
+          "source": {
+            "page": 1,
+            "quote": "3, pal, linie léčby everolimus - start 3.9.2026"
+          },
+          "kind": "past_treatment",
+          "status": "documented",
+          "certainty": "documented"
+        },
+        {
+          "text": "Plán: kontrola 9.10.2026 s odběrem KO a biochemie; domácí měření TK; kontrola v plicní ambulanci; kontrolní CT H+B+MP (datum v textu chybí).",
+          "date": "9.10.2026",
+          "source": {
+            "page": 3,
+            "quote": "Kontrola zde 9.10.2026 s odběrem KO, biochemie."
+          },
+          "kind": "current_state",
+          "status": "documented",
+          "certainty": "documented"
+        },
+        {
+          "text": "Interní vyšetření: plicní embolie vyloučena, EKG bez ischemie, dušnost možno na vrub dekorigované hypertenze; TK 174/92; nově Orcal 10 mg 1/2-0-0.",
+          "date": "10.2.2026",
+          "source": {
+            "page": 5,
+            "quote": "plicní embolie vyloučena, EKG bez ischemických změn, hstroponin stabilní bez dynamiky- možno na vrub dekorigované HT"
+          },
+          "kind": "comorbidities",
+          "status": "documented",
+          "certainty": "documented"
+        },
+        {
+          "text": "Plicní vyšetření: lehká obstrukce, CHOPN II/B fumátor, susp. intersticiální postižení, stp. kortikoterapii.",
+          "date": "22.5.2026",
+          "source": {
+            "page": 5,
+            "quote": "Z: CHOPN II/B fumat., susp. interstic. post1zené, stp. kortikoterapii"
+          },
+          "kind": "comorbidities",
+          "status": "documented",
+          "certainty": "documented"
+        },
+        {
+          "text": "Gliózy supratentoriálně Fazekas gr. III (MR mozku).",
+          "date": "14.9.2026",
+          "source": {
+            "page": 1,
+            "quote": "Gliózy supratentoriálně Fazekas gr. III."
+          },
+          "kind": "comorbidities",
+          "status": "documented",
+          "certainty": "documented"
+        },
+        {
+          "text": "Stenóza proximálního úseku PDK vpravo, ne těžká; sledování vhodné.",
+          "date": "30.7.2026",
+          "source": {
+            "page": 5,
+            "quote": "Sledování vhodné."
+          },
+          "kind": "comorbidities",
+          "status": "documented",
+          "certainty": "documented"
+        },
+        {
+          "text": "Everolimus Sandoz 5 mg 1-0-0, zvyšováno na 2-0-0 od 19.9.2026 (při netoleranci zpět na 1-0-0).",
+          "date": "19.9.2026",
+          "source": {
+            "page": 2,
+            "quote": "Everolimus sandoz 5mg 1-0-0 zyyšuji na 2-0-0 od 19.9.2026"
+          },
+          "kind": "medication",
+          "status": "documented",
+          "certainty": "documented"
+        },
+        {
+          "text": "Orcal 10 mg 1/2-0-0 (nasazeno na interně).",
+          "date": "10.2.2026",
+          "source": {
+            "page": 5,
+            "quote": "nově k medikaci Orcal 10 mg tbl 1/2-0-0"
+          },
+          "kind": "medication",
+          "status": "documented",
+          "certainty": "documented"
+        },
+        {
+          "text": "Erdomed 300 mg 1-1-0 (doporučení plicní ambulance).",
+          "date": "22.5.2026",
+          "source": {
+            "page": 5,
+            "quote": "Erdomed 300mg 1-1-0"
+          },
+          "kind": "medication",
+          "status": "documented",
+          "certainty": "documented"
+        },
+        {
+          "text": "CHOPN II/B, spirometrie: lehká obstrukce; susp. intersticiální postižení, stav po kortikoterapii (plicní vyš., [odstraněný autor])",
+          "date": "22.5.2026",
+          "source": {
+            "page": 5,
+            "quote": "Z: CHOPN II/B fumat., susp. interstic. post1zené, stp. kortikoterapii"
+          },
+          "kind": "anamnesis",
+          "status": "documented",
+          "certainty": "unclear_ocr"
+        },
+        {
+          "text": "Dušnost: plicní embolie vyloučena, EKG bez ischemických změn; dle interního vyšetření možno na vrub hypertenze, nově Orcal",
+          "date": "10.2.2026",
+          "source": {
+            "page": 5,
+            "quote": "plicní embolie vyloučena, EKG bez ischemických změn, hstroponin stabilní bez dynamiky- možno na vrub dekorigované HT"
+          },
+          "kind": "anamnesis",
+          "status": "documented",
+          "certainty": "unclear_ocr"
+        },
+        {
+          "text": "UZ tepen DKK: středně silné sklerotické změny, vpravo stenóza v proximálním úseku PDK (ne těžká), doporučeno sledování",
+          "date": "30.7.2026",
+          "source": {
+            "page": 5,
+            "quote": "Vpravo zřetelná, i když ne těžká stenosa v prox. úseku PDK. Sledování vhodné."
+          },
+          "kind": "anamnesis",
+          "status": "documented",
+          "certainty": "documented"
+        },
+        {
+          "text": "Everolimus Sandoz 5 mg 1-0-0; navýšení na 2-0-0 (10 mg denně) od 19.9.2026 plánováno, ověřit, zda proběhlo; při netoleranci návrat k 1-0-0",
+          "date": "19.9.2026",
+          "source": {
+            "page": 2,
+            "quote": "Everolimus sandoz 5mg 1-0-0 zyyšuji na 2-0-0 od 19.9.2026,"
+          },
+          "kind": "anamnesis",
+          "status": "documented",
+          "certainty": "unclear_ocr"
+        },
+        {
+          "text": "Orcal 10 mg 1/2-0-0, nově od interního vyšetření",
+          "date": "10.2.2026",
+          "source": {
+            "page": 5,
+            "quote": "nově k medikaci Orcal 10 mg tbl 1/2-0-0"
+          },
+          "kind": "anamnesis",
+          "status": "documented",
+          "certainty": "documented"
+        },
+        {
+          "text": "Erdomed 300 mg 1-1-0 (doporučení plicního vyšetření)",
+          "date": "22.5.2026",
+          "source": {
+            "page": 5,
+            "quote": "Erdomed 300mg 1-1-0"
+          },
+          "kind": "anamnesis",
+          "status": "documented",
+          "certainty": "documented"
+        }
+      ],
+      "excluded_undated": 40,
+      "excluded_after_cutoff": 0,
+      "warnings": [
+        "Vynecháno 40 nedatovaných a 0 údajů přesahujících datum MDT.",
+        "Nedatované údaje jsou vynechány. Profil nemusí obsahovat aktuální ECOG, věk ani všechny komorbidity.",
+        "Historický stav neprokazuje aktuální stav. Plánovaná léčba není podaná léčba."
+      ],
+      "evidence_cutoff": "2026-10-17"
+    },
+    "models": [
+      {
+        "id": "openai/gpt-6-astra",
+        "label": "GPT Astra",
+        "catalog_name": "OpenAI: GPT-6 Astra",
+        "status": "success",
+        "error": null,
+        "error_code": null,
+        "finish_reason": "stop",
+        "output_chars": 15965,
+        "parse_error": null,
+        "row_count": 6,
+        "web_search_requests": 5,
+        "warnings": [
+          "Jde o cílený výběr, nikoli systematický přehled. Zahrnuté zdroje byly publikovány před 17.10.2026; úplnost novějších výsledků nelze zaručit.",
+          "Aktuální ECOG/KPS, věk a molekulární biomarkery nejsou doloženy. Nelze potvrdit současnou způsobilost pro klinické studie.",
+          "Everolimus byl zahájen; navýšení dávky je pouze plánované a jeho provedení není potvrzeno. Cabozantinib nebyl podle profilu podán. Plánovaná kontrola není doloženou uskutečněnou návštěvou.",
+          "Mozkové ložisko je suspektní, nikoli prokázaná metastáza; jiné sytící se intrakraniální léze nebyly popsány. Retrospektivní mozkové kohorty nelze použít jako důkaz diagnózy ani jako individuální prognózu.",
+          "METEOR vylučoval předchozí inhibitory mTOR. Jeho primární PFS populace je oddělena od celkové randomizované a bezpečnostní populace; jejich výsledky zde nejsou sloučeny.",
+          "LITESPARK-005 je uveden pouze ve finální analýze. Závažná toxicita zde znamená příhody související s léčbou; ukončení léčby zahrnuje nežádoucí příhody bez ohledu na kauzalitu. Významný přínos pro OS nebyl prokázán.",
+          "Úplná kritéria LITESPARK-005 pro předchozí mTOR léčbu a mozkové metastázy nebyla ověřena. Výsledky po imunoterapii a VEGFR-TKI nelze automaticky přenášet na sekvenci po everolimu.",
+          "Předchozí imunitní plicní toxicita, CHOPN a suspektní intersticiální postižení vyžadují individuální posouzení bezpečnosti; nejsou důkazem aktuální pneumonitidy. Plicní embolie byla při uvedeném vyšetření vyloučena."
+        ]
+      }
+    ],
+    "rows": [
+      {
+        "cohort_id": "progression-free–survival population",
+        "arm_id": null,
+        "analysis_id": null,
+        "study_title": "Cabozantinib versus Everolimus in Advanced Renal-Cell Carcinoma",
+        "arm": "Cabozantinib",
+        "population": "METEOR: pokročilý nebo metastatický RCC se světlobuněčnou složkou po progresi na nejméně jednom VEGFR-TKI; primární populace pro hodnocení PFS.",
+        "sample_size": 187,
+        "source": {
+          "url": "https://www.nejm.org/doi/full/10.1056/NEJMoa1510016",
+          "doi": "10.1056/NEJMoa1510016",
+          "pmid": "26406150",
+          "year": 2015,
+          "published_date": "2015-09-25"
+        },
+        "time_origin": "Randomizace",
+        "endpoints": {
+          "os_6": null,
+          "os_12": null,
+          "os_36": null,
+          "os_60": null,
+          "pfs": {
+            "value": 7.4,
+            "unit": "months",
+            "ci": "95% CI 5,6–9,1",
+            "quote": "The estimated median progression-free survival was 7.4 months (95% confidence interval [CI], 5.6 to 9.1) with cabozantinib and 3.8 months (95% CI, 3.7 to 5.4) with everolimus.",
+            "source_url": "https://www.nejm.org/doi/full/10.1056/NEJMoa1510016",
+            "verification": "model_extracted_unverified",
+            "found_by": [
+              "openai/gpt-6-astra"
+            ],
+            "quote_matched_search_excerpt": true
+          },
+          "orr": null,
+          "dor": null,
+          "toxicity_grade3": null,
+          "discontinuation_toxicity": null,
+          "burden": null
+        },
+        "found_by": [
+          "openai/gpt-6-astra"
+        ],
+        "similarity": {
+          "found_by": [
+            "openai/gpt-6-astra"
+          ],
+          "score": 71,
+          "coverage": 35,
+          "dimensions": [
+            {
+              "key": "histology",
+              "weight": 25,
+              "status": "match",
+              "patient_quote": "histol. ccRCC G2",
+              "study_quote": "renal-cell carcinoma with a clear-cell component",
+              "explanation": "Shodná světlobuněčná histologie."
+            },
+            {
+              "key": "stage",
+              "weight": 15,
+              "status": "unknown",
+              "patient_quote": null,
+              "study_quote": null,
+              "explanation": ""
+            },
+            {
+              "key": "biomarkers",
+              "weight": 15,
+              "status": "unknown",
+              "patient_quote": null,
+              "study_quote": null,
+              "explanation": ""
+            },
+            {
+              "key": "treatment_line",
+              "weight": 15,
+              "status": "unknown",
+              "patient_quote": null,
+              "study_quote": null,
+              "explanation": ""
+            },
+            {
+              "key": "prior_treatment",
+              "weight": 10,
+              "status": "mismatch",
+              "patient_quote": "3. linie: everolimus",
+              "study_quote": "Key exclusion criteria were previous therapy with an mTOR inhibitor or cabozantinib",
+              "explanation": "Pacient již užívá everolimus; METEOR přímo neověřuje plánovaný cabozantinib po inhibitoru mTOR."
+            },
+            {
+              "key": "performance_status",
+              "weight": 10,
+              "status": "unknown",
+              "patient_quote": null,
+              "study_quote": null,
+              "explanation": ""
+            },
+            {
+              "key": "brain_metastases",
+              "weight": 5,
+              "status": "unknown",
+              "patient_quote": "solitární nodulus v pravé mozečkové hemisféře do 3 mm, susp. MTS",
+              "study_quote": "Patients with known brain metastases that were adequately treated and stable were eligible.",
+              "explanation": "Ložisko je pouze suspektní; lokální léčba ani stabilita nejsou doloženy."
+            },
+            {
+              "key": "age",
+              "weight": 5,
+              "status": "unknown",
+              "patient_quote": null,
+              "study_quote": null,
+              "explanation": ""
+            }
+          ],
+          "critical_mismatches": [],
+          "method": "Heuristická shoda mezi známými údaji; není pravděpodobnost přežití. Porovnání provedl model, výpočet server."
+        },
+        "verification": "model_extracted_unverified",
+        "conflicts": []
+      },
+      {
+        "cohort_id": "progression-free–survival population",
+        "arm_id": null,
+        "analysis_id": null,
+        "study_title": "Cabozantinib versus Everolimus in Advanced Renal-Cell Carcinoma",
+        "arm": "Everolimus",
+        "population": "METEOR: pokročilý nebo metastatický RCC se světlobuněčnou složkou po progresi na nejméně jednom VEGFR-TKI; primární populace pro hodnocení PFS.",
+        "sample_size": 188,
+        "source": {
+          "url": "https://www.nejm.org/doi/full/10.1056/NEJMoa1510016",
+          "doi": "10.1056/NEJMoa1510016",
+          "pmid": "26406150",
+          "year": 2015,
+          "published_date": "2015-09-25"
+        },
+        "time_origin": "Randomizace",
+        "endpoints": {
+          "os_6": null,
+          "os_12": null,
+          "os_36": null,
+          "os_60": null,
+          "pfs": {
+            "value": 3.8,
+            "unit": "months",
+            "ci": "95% CI 3,7–5,4",
+            "quote": "The estimated median progression-free survival was 7.4 months (95% confidence interval [CI], 5.6 to 9.1) with cabozantinib and 3.8 months (95% CI, 3.7 to 5.4) with everolimus.",
+            "source_url": "https://www.nejm.org/doi/full/10.1056/NEJMoa1510016",
+            "verification": "model_extracted_unverified",
+            "found_by": [
+              "openai/gpt-6-astra"
+            ],
+            "quote_matched_search_excerpt": true
+          },
+          "orr": null,
+          "dor": null,
+          "toxicity_grade3": null,
+          "discontinuation_toxicity": null,
+          "burden": null
+        },
+        "found_by": [
+          "openai/gpt-6-astra"
+        ],
+        "similarity": {
+          "found_by": [
+            "openai/gpt-6-astra"
+          ],
+          "score": 71,
+          "coverage": 35,
+          "dimensions": [
+            {
+              "key": "histology",
+              "weight": 25,
+              "status": "match",
+              "patient_quote": "histol. ccRCC G2",
+              "study_quote": "renal-cell carcinoma with a clear-cell component",
+              "explanation": "Shodná světlobuněčná histologie."
+            },
+            {
+              "key": "stage",
+              "weight": 15,
+              "status": "unknown",
+              "patient_quote": null,
+              "study_quote": null,
+              "explanation": ""
+            },
+            {
+              "key": "biomarkers",
+              "weight": 15,
+              "status": "unknown",
+              "patient_quote": null,
+              "study_quote": null,
+              "explanation": ""
+            },
+            {
+              "key": "treatment_line",
+              "weight": 15,
+              "status": "unknown",
+              "patient_quote": null,
+              "study_quote": null,
+              "explanation": ""
+            },
+            {
+              "key": "prior_treatment",
+              "weight": 10,
+              "status": "mismatch",
+              "patient_quote": "3. linie: everolimus",
+              "study_quote": "Key exclusion criteria were previous therapy with an mTOR inhibitor or cabozantinib",
+              "explanation": "Relevantní při zahájení everolimu, nikoli jako odhad zbývajícího PFS během již probíhající léčby."
+            },
+            {
+              "key": "performance_status",
+              "weight": 10,
+              "status": "unknown",
+              "patient_quote": null,
+              "study_quote": null,
+              "explanation": ""
+            },
+            {
+              "key": "brain_metastases",
+              "weight": 5,
+              "status": "unknown",
+              "patient_quote": "solitární nodulus v pravé mozečkové hemisféře do 3 mm, susp. MTS",
+              "study_quote": "Patients with known brain metastases that were adequately treated and stable were eligible.",
+              "explanation": "Podezření na neléčenou metastázu nesplňuje doložený stav léčených stabilních metastáz."
+            },
+            {
+              "key": "age",
+              "weight": 5,
+              "status": "unknown",
+              "patient_quote": null,
+              "study_quote": null,
+              "explanation": ""
+            }
+          ],
+          "critical_mismatches": [],
+          "method": "Heuristická shoda mezi známými údaji; není pravděpodobnost přežití. Porovnání provedl model, výpočet server."
+        },
+        "verification": "model_extracted_unverified",
+        "conflicts": []
+      },
+      {
+        "cohort_id": null,
+        "arm_id": null,
+        "analysis_id": null,
+        "study_title": "LBA74 Final analysis of the phase III LITESPARK-005 study of belzutifan versus everolimus in participants (pts) with previously treated advanced clear cell renal cell carcinoma (ccRCC)",
+        "arm": "Belzutifan",
+        "population": "Randomizovaná studie pokročilého ccRCC po imunoterapii a antiangiogenní léčbě; finální analýza, publikovaná jako kongresový abstrakt.",
+        "sample_size": 374,
+        "source": {
+          "url": "https://www.annalsofoncology.org/article/S0923-7534(24)03897-3/fulltext",
+          "doi": "10.1016/j.annonc.2024.08.2317",
+          "pmid": null,
+          "year": 2024,
+          "published_date": null
+        },
+        "time_origin": "Randomizace",
+        "endpoints": {
+          "os_6": null,
+          "os_12": {
+            "value": 67.9,
+            "unit": "%",
+            "ci": null,
+            "quote": "Estimated OS rate was 67.9% vs 65.8% at 12 mo and 45.2% vs 41.2% at 24 mo.",
+            "source_url": "https://www.annalsofoncology.org/article/S0923-7534(24)03897-3/fulltext",
+            "verification": "model_extracted_unverified",
+            "found_by": [
+              "openai/gpt-6-astra"
+            ],
+            "quote_matched_search_excerpt": true
+          },
+          "os_36": null,
+          "os_60": null,
+          "pfs": {
+            "value": 5.6,
+            "unit": "months",
+            "ci": null,
+            "quote": "PFS benefit was maintained with belzutifan vs everolimus (median 5.6 mo vs 5.6 mo; HR 0.75; 95% CI 0.63–0.88)",
+            "source_url": "https://www.annalsofoncology.org/article/S0923-7534(24)03897-3/fulltext",
+            "verification": "model_extracted_unverified",
+            "found_by": [
+              "openai/gpt-6-astra"
+            ],
+            "quote_matched_search_excerpt": true
+          },
+          "orr": {
+            "value": 22.7,
+            "unit": "%",
+            "ci": null,
+            "quote": "ORR was consistent with prior reports (22.7% vs 3.5%).",
+            "source_url": "https://www.annalsofoncology.org/article/S0923-7534(24)03897-3/fulltext",
+            "verification": "model_extracted_unverified",
+            "found_by": [
+              "openai/gpt-6-astra"
+            ],
+            "quote_matched_search_excerpt": true
+          },
+          "dor": {
+            "value": 19.3,
+            "unit": "months",
+            "ci": null,
+            "quote": "Median (range) DOR was 19.3 mo (1.9+–40.1+) vs 13.7 mo (3.8–29.5+).",
+            "source_url": "https://www.annalsofoncology.org/article/S0923-7534(24)03897-3/fulltext",
+            "verification": "model_extracted_unverified",
+            "found_by": [
+              "openai/gpt-6-astra"
+            ],
+            "quote_matched_search_excerpt": true
+          },
+          "toxicity_grade3": {
+            "value": 39.5,
+            "unit": "%",
+            "ci": null,
+            "quote": "Rate of grade ≥3 TRAEs (39.5% vs 40.0%) was similar between arms.",
+            "source_url": "https://www.annalsofoncology.org/article/S0923-7534(24)03897-3/fulltext",
+            "verification": "model_extracted_unverified",
+            "found_by": [
+              "openai/gpt-6-astra"
+            ],
+            "quote_matched_search_excerpt": true
+          },
+          "discontinuation_toxicity": {
+            "value": 6.2,
+            "unit": "%",
+            "ci": null,
+            "quote": "Fewer pts discontinued belzutifan (6.2%) vs everolimus (15.3%) due to an any-cause AE.",
+            "source_url": "https://www.annalsofoncology.org/article/S0923-7534(24)03897-3/fulltext",
+            "verification": "model_extracted_unverified",
+            "found_by": [
+              "openai/gpt-6-astra"
+            ],
+            "quote_matched_search_excerpt": true
+          },
+          "burden": null
+        },
+        "found_by": [
+          "openai/gpt-6-astra"
+        ],
+        "similarity": {
+          "found_by": [
+            "openai/gpt-6-astra"
+          ],
+          "score": null,
+          "coverage": 0,
+          "dimensions": [
+            {
+              "key": "histology",
+              "weight": 25,
+              "status": "unknown",
+              "patient_quote": "histol. ccRCC G2",
+              "study_quote": "advanced clear cell renal cell carcinoma (ccRCC)",
+              "explanation": "Shodná histologie."
+            },
+            {
+              "key": "stage",
+              "weight": 15,
+              "status": "unknown",
+              "patient_quote": null,
+              "study_quote": null,
+              "explanation": ""
+            },
+            {
+              "key": "biomarkers",
+              "weight": 15,
+              "status": "unknown",
+              "patient_quote": null,
+              "study_quote": null,
+              "explanation": ""
+            },
+            {
+              "key": "treatment_line",
+              "weight": 15,
+              "status": "unknown",
+              "patient_quote": null,
+              "study_quote": null,
+              "explanation": ""
+            },
+            {
+              "key": "prior_treatment",
+              "weight": 10,
+              "status": "unknown",
+              "patient_quote": "3. paliativní linie: everolimus, start 3.9.2026",
+              "study_quote": "after PD-(L)1 inhibitor and VEGFR-TKI therapy",
+              "explanation": "Předchozí nivolumab a sunitinib odpovídají; přenositelnost po nynějším everolimu nebyla v dostupném výňatku ověřena."
+            },
+            {
+              "key": "performance_status",
+              "weight": 10,
+              "status": "unknown",
+              "patient_quote": null,
+              "study_quote": null,
+              "explanation": ""
+            },
+            {
+              "key": "brain_metastases",
+              "weight": 5,
+              "status": "unknown",
+              "patient_quote": null,
+              "study_quote": null,
+              "explanation": ""
+            },
+            {
+              "key": "age",
+              "weight": 5,
+              "status": "unknown",
+              "patient_quote": null,
+              "study_quote": null,
+              "explanation": ""
+            }
+          ],
+          "critical_mismatches": [],
+          "method": "Heuristická shoda mezi známými údaji; není pravděpodobnost přežití. Porovnání provedl model, výpočet server."
+        },
+        "verification": "model_extracted_unverified",
+        "conflicts": []
+      },
+      {
+        "cohort_id": null,
+        "arm_id": null,
+        "analysis_id": null,
+        "study_title": "LBA74 Final analysis of the phase III LITESPARK-005 study of belzutifan versus everolimus in participants (pts) with previously treated advanced clear cell renal cell carcinoma (ccRCC)",
+        "arm": "Everolimus",
+        "population": "Randomizovaná studie pokročilého ccRCC po imunoterapii a antiangiogenní léčbě; finální analýza, publikovaná jako kongresový abstrakt.",
+        "sample_size": 372,
+        "source": {
+          "url": "https://www.annalsofoncology.org/article/S0923-7534(24)03897-3/fulltext",
+          "doi": "10.1016/j.annonc.2024.08.2317",
+          "pmid": null,
+          "year": 2024,
+          "published_date": null
+        },
+        "time_origin": "Randomizace",
+        "endpoints": {
+          "os_6": null,
+          "os_12": {
+            "value": 65.8,
+            "unit": "%",
+            "ci": null,
+            "quote": "Estimated OS rate was 67.9% vs 65.8% at 12 mo and 45.2% vs 41.2% at 24 mo.",
+            "source_url": "https://www.annalsofoncology.org/article/S0923-7534(24)03897-3/fulltext",
+            "verification": "model_extracted_unverified",
+            "found_by": [
+              "openai/gpt-6-astra"
+            ],
+            "quote_matched_search_excerpt": true
+          },
+          "os_36": null,
+          "os_60": null,
+          "pfs": {
+            "value": 5.6,
+            "unit": "months",
+            "ci": null,
+            "quote": "PFS benefit was maintained with belzutifan vs everolimus (median 5.6 mo vs 5.6 mo; HR 0.75; 95% CI 0.63–0.88)",
+            "source_url": "https://www.annalsofoncology.org/article/S0923-7534(24)03897-3/fulltext",
+            "verification": "model_extracted_unverified",
+            "found_by": [
+              "openai/gpt-6-astra"
+            ],
+            "quote_matched_search_excerpt": true
+          },
+          "orr": {
+            "value": 3.5,
+            "unit": "%",
+            "ci": null,
+            "quote": "ORR was consistent with prior reports (22.7% vs 3.5%).",
+            "source_url": "https://www.annalsofoncology.org/article/S0923-7534(24)03897-3/fulltext",
+            "verification": "model_extracted_unverified",
+            "found_by": [
+              "openai/gpt-6-astra"
+            ],
+            "quote_matched_search_excerpt": true
+          },
+          "dor": {
+            "value": 13.7,
+            "unit": "months",
+            "ci": null,
+            "quote": "Median (range) DOR was 19.3 mo (1.9+–40.1+) vs 13.7 mo (3.8–29.5+).",
+            "source_url": "https://www.annalsofoncology.org/article/S0923-7534(24)03897-3/fulltext",
+            "verification": "model_extracted_unverified",
+            "found_by": [
+              "openai/gpt-6-astra"
+            ],
+            "quote_matched_search_excerpt": true
+          },
+          "toxicity_grade3": {
+            "value": 40.0,
+            "unit": "%",
+            "ci": null,
+            "quote": "Rate of grade ≥3 TRAEs (39.5% vs 40.0%) was similar between arms.",
+            "source_url": "https://www.annalsofoncology.org/article/S0923-7534(24)03897-3/fulltext",
+            "verification": "model_extracted_unverified",
+            "found_by": [
+              "openai/gpt-6-astra"
+            ],
+            "quote_matched_search_excerpt": true
+          },
+          "discontinuation_toxicity": {
+            "value": 15.3,
+            "unit": "%",
+            "ci": null,
+            "quote": "Fewer pts discontinued belzutifan (6.2%) vs everolimus (15.3%) due to an any-cause AE.",
+            "source_url": "https://www.annalsofoncology.org/article/S0923-7534(24)03897-3/fulltext",
+            "verification": "model_extracted_unverified",
+            "found_by": [
+              "openai/gpt-6-astra"
+            ],
+            "quote_matched_search_excerpt": true
+          },
+          "burden": null
+        },
+        "found_by": [
+          "openai/gpt-6-astra"
+        ],
+        "similarity": {
+          "found_by": [
+            "openai/gpt-6-astra"
+          ],
+          "score": null,
+          "coverage": 0,
+          "dimensions": [
+            {
+              "key": "histology",
+              "weight": 25,
+              "status": "unknown",
+              "patient_quote": "histol. ccRCC G2",
+              "study_quote": "advanced clear cell renal cell carcinoma (ccRCC)",
+              "explanation": "Shodná histologie."
+            },
+            {
+              "key": "stage",
+              "weight": 15,
+              "status": "unknown",
+              "patient_quote": null,
+              "study_quote": null,
+              "explanation": ""
+            },
+            {
+              "key": "biomarkers",
+              "weight": 15,
+              "status": "unknown",
+              "patient_quote": null,
+              "study_quote": null,
+              "explanation": ""
+            },
+            {
+              "key": "treatment_line",
+              "weight": 15,
+              "status": "unknown",
+              "patient_quote": null,
+              "study_quote": null,
+              "explanation": ""
+            },
+            {
+              "key": "prior_treatment",
+              "weight": 10,
+              "status": "unknown",
+              "patient_quote": "3. paliativní linie: everolimus, start 3.9.2026",
+              "study_quote": "after PD-(L)1 inhibitor and VEGFR-TKI therapy",
+              "explanation": "Sekvence před zahájením everolimu odpovídá; výsledky nelze počítat znovu od data MDT během probíhající léčby."
+            },
+            {
+              "key": "performance_status",
+              "weight": 10,
+              "status": "unknown",
+              "patient_quote": null,
+              "study_quote": null,
+              "explanation": ""
+            },
+            {
+              "key": "brain_metastases",
+              "weight": 5,
+              "status": "unknown",
+              "patient_quote": null,
+              "study_quote": null,
+              "explanation": ""
+            },
+            {
+              "key": "age",
+              "weight": 5,
+              "status": "unknown",
+              "patient_quote": null,
+              "study_quote": null,
+              "explanation": ""
+            }
+          ],
+          "critical_mismatches": [],
+          "method": "Heuristická shoda mezi známými údaji; není pravděpodobnost přežití. Porovnání provedl model, výpočet server."
+        },
+        "verification": "model_extracted_unverified",
+        "conflicts": []
+      },
+      {
+        "cohort_id": "Cohort A",
+        "arm_id": null,
+        "analysis_id": null,
+        "study_title": "Clinical Activity and Safety of Cabozantinib for Brain Metastases in Patients With Renal Cell Carcinoma",
+        "arm": "Cabozantinib bez souběžné lokální léčby mozku",
+        "population": "Retrospektivní kohorta metastatického RCC s progredujícími mozkovými metastázami bez souběžné lokální léčby mozku; cabozantinib v libovolné linii.",
+        "sample_size": 33,
+        "source": {
+          "url": "https://jamanetwork.com/journals/jamaoncology/fullarticle/2784989",
+          "doi": "10.1001/jamaoncol.2021.4544",
+          "pmid": "34673916",
+          "year": 2021,
+          "published_date": null
+        },
+        "time_origin": "Zahájení cabozantinibu",
+        "endpoints": {
+          "os_6": null,
+          "os_12": null,
+          "os_36": null,
+          "os_60": null,
+          "pfs": null,
+          "orr": {
+            "value": 55,
+            "unit": "%",
+            "ci": "95% CI 36–73",
+            "quote": "In cohort A, the objective intracranial response rate was 55% (95% CI, 36%-73%)",
+            "source_url": "https://jamanetwork.com/journals/jamaoncology/fullarticle/2784989",
+            "verification": "model_extracted_unverified",
+            "found_by": [
+              "openai/gpt-6-astra"
+            ],
+            "quote_matched_search_excerpt": true
+          },
+          "dor": null,
+          "toxicity_grade3": null,
+          "discontinuation_toxicity": null,
+          "burden": null
+        },
+        "found_by": [
+          "openai/gpt-6-astra"
+        ],
+        "similarity": {
+          "found_by": [
+            "openai/gpt-6-astra"
+          ],
+          "score": null,
+          "coverage": 0,
+          "dimensions": [
+            {
+              "key": "histology",
+              "weight": 25,
+              "status": "unknown",
+              "patient_quote": null,
+              "study_quote": null,
+              "explanation": ""
+            },
+            {
+              "key": "stage",
+              "weight": 15,
+              "status": "unknown",
+              "patient_quote": null,
+              "study_quote": null,
+              "explanation": ""
+            },
+            {
+              "key": "biomarkers",
+              "weight": 15,
+              "status": "unknown",
+              "patient_quote": null,
+              "study_quote": null,
+              "explanation": ""
+            },
+            {
+              "key": "treatment_line",
+              "weight": 15,
+              "status": "unknown",
+              "patient_quote": "cabozantinib ponechán do 4. linie",
+              "study_quote": "Receipt of cabozantinib monotherapy at any line of treatment.",
+              "explanation": "Studie dovolovala libovolnou linii; u pacienta jde zatím pouze o plán."
+            },
+            {
+              "key": "prior_treatment",
+              "weight": 10,
+              "status": "unknown",
+              "patient_quote": null,
+              "study_quote": null,
+              "explanation": ""
+            },
+            {
+              "key": "performance_status",
+              "weight": 10,
+              "status": "unknown",
+              "patient_quote": null,
+              "study_quote": null,
+              "explanation": ""
+            },
+            {
+              "key": "brain_metastases",
+              "weight": 5,
+              "status": "unknown",
+              "patient_quote": "solitární nodulus v pravé mozečkové hemisféře do 3 mm, susp. MTS",
+              "study_quote": "Two patients were not evaluable to assess intracranial treatment response owing to lesions smaller than 5 mm.",
+              "explanation": "Pouze suspektní drobné ložisko bez doložené progrese; uvedená ORR je intrakraniální a není přímo přenositelná."
+            },
+            {
+              "key": "age",
+              "weight": 5,
+              "status": "unknown",
+              "patient_quote": null,
+              "study_quote": null,
+              "explanation": ""
+            }
+          ],
+          "critical_mismatches": [],
+          "method": "Heuristická shoda mezi známými údaji; není pravděpodobnost přežití. Porovnání provedl model, výpočet server."
+        },
+        "verification": "model_extracted_unverified",
+        "conflicts": []
+      },
+      {
+        "cohort_id": "Cohort B",
+        "arm_id": null,
+        "analysis_id": null,
+        "study_title": "Clinical Activity and Safety of Cabozantinib for Brain Metastases in Patients With Renal Cell Carcinoma",
+        "arm": "Cabozantinib; kohorta se stabilními nebo lokálně léčenými progredujícími mozkovými metastázami",
+        "population": "Retrospektivní kohorta metastatického RCC; publikace popisuje stabilní nebo progredující mozkové metastázy se souběžnou lokální léčbou mozku.",
+        "sample_size": 55,
+        "source": {
+          "url": "https://jamanetwork.com/journals/jamaoncology/fullarticle/2784989",
+          "doi": "10.1001/jamaoncol.2021.4544",
+          "pmid": "34673916",
+          "year": 2021,
+          "published_date": null
+        },
+        "time_origin": "Zahájení cabozantinibu",
+        "endpoints": {
+          "os_6": null,
+          "os_12": null,
+          "os_36": null,
+          "os_60": null,
+          "pfs": null,
+          "orr": {
+            "value": 47,
+            "unit": "%",
+            "ci": "95% CI 33–61",
+            "quote": "In cohort B, the objective intracranial response rate was 47% (95% CI, 33%-61%)",
+            "source_url": "https://jamanetwork.com/journals/jamaoncology/fullarticle/2784989",
+            "verification": "model_extracted_unverified",
+            "found_by": [
+              "openai/gpt-6-astra"
+            ],
+            "quote_matched_search_excerpt": true
+          },
+          "dor": null,
+          "toxicity_grade3": null,
+          "discontinuation_toxicity": null,
+          "burden": null
+        },
+        "found_by": [
+          "openai/gpt-6-astra"
+        ],
+        "similarity": {
+          "found_by": [
+            "openai/gpt-6-astra"
+          ],
+          "score": null,
+          "coverage": 0,
+          "dimensions": [
+            {
+              "key": "histology",
+              "weight": 25,
+              "status": "unknown",
+              "patient_quote": null,
+              "study_quote": null,
+              "explanation": ""
+            },
+            {
+              "key": "stage",
+              "weight": 15,
+              "status": "unknown",
+              "patient_quote": null,
+              "study_quote": null,
+              "explanation": ""
+            },
+            {
+              "key": "biomarkers",
+              "weight": 15,
+              "status": "unknown",
+              "patient_quote": null,
+              "study_quote": null,
+              "explanation": ""
+            },
+            {
+              "key": "treatment_line",
+              "weight": 15,
+              "status": "unknown",
+              "patient_quote": "cabozantinib ponechán do 4. linie",
+              "study_quote": "Receipt of cabozantinib monotherapy at any line of treatment.",
+              "explanation": "Povolena libovolná linie; plán není dokladem podání."
+            },
+            {
+              "key": "prior_treatment",
+              "weight": 10,
+              "status": "unknown",
+              "patient_quote": null,
+              "study_quote": null,
+              "explanation": ""
+            },
+            {
+              "key": "performance_status",
+              "weight": 10,
+              "status": "unknown",
+              "patient_quote": null,
+              "study_quote": null,
+              "explanation": ""
+            },
+            {
+              "key": "brain_metastases",
+              "weight": 5,
+              "status": "unknown",
+              "patient_quote": "solitární nodulus v pravé mozečkové hemisféře do 3 mm, susp. MTS",
+              "study_quote": "Two patients were not evaluable for intracranial response assessment owing to lesion size smaller than 5 mm.",
+              "explanation": "Metastáza není potvrzena, stabilita ani lokální léčba nejsou doloženy; ORR je pouze intrakraniální."
+            },
+            {
+              "key": "age",
+              "weight": 5,
+              "status": "unknown",
+              "patient_quote": null,
+              "study_quote": null,
+              "explanation": ""
+            }
+          ],
+          "critical_mismatches": [],
+          "method": "Heuristická shoda mezi známými údaji; není pravděpodobnost přežití. Porovnání provedl model, výpočet server."
+        },
+        "verification": "model_extracted_unverified",
+        "conflicts": []
+      }
+    ],
+    "searched_at": "2026-10-17T09:25:36.626189+00:00",
+    "scheduled_date": "2026-10-22",
+    "cache_hit": true,
+    "warnings": [
+      "Vynecháno 40 nedatovaných a 0 údajů přesahujících datum MDT.",
+      "Nedatované údaje jsou vynechány. Profil nemusí obsahovat aktuální ECOG, věk ani všechny komorbidity.",
+      "Historický stav neprokazuje aktuální stav. Plánovaná léčba není podaná léčba.",
+      "Výběr studií není vyčerpávající. Výsledky extrahoval model; citace a čísla vyžadují kontrolu v originálu.",
+      "Statistiky skupin nejsou individuální prognózou. Chybějící hodnoty nebyly dopočítány."
+    ]
+  }
+}

@@ -11,50 +11,10 @@ patient S01 (mock v3, case ID `NO-S01`), whom the team invented
 |---|---|---|
 | `v1.html` | First simple mock (one patient workspace) | https://claude.ai/artifact/KraDQ9X7diVo93QzXtse6t |
 | `v2.html` | Full mock after feedback round 1 (database, calendar, patient detail, presentation, protocol, tasks) | https://claude.ai/artifact/6F5AbN6vEAHJQgXP1fkUdc |
-| `v3.html` | Mock after feedback round 2 (Excel-style filters, month navigation, 10-minute slots, brief first, diagnosis headline, current state, lab chart, doctor edits, back/forward), with one patient view for the whole MDT: a session bar with the day's cases and a "Projednání na MDT" card for notes, next steps and approval; its source view shows the rendered page image with the cited passage highlighted, so publishing it also needs the `pages/` folder. Round 19 added task drafts from approved conclusions with a coordinator view and a digest e-mail, out-of-hours booking, retrospective deviations with doctor-set severity, and strength-sorted guideline quotes. Round 20 added a status menu with history and "Uzavřít případ", one-button approval for the team, the report picks in a dialog behind "Stáhnout report (PDF)", and a lighter new patient form. Round 21 made guideline statements collapsed entries (quote and tier chip, opening to the reason with sources and the full citation), moved the MDT deviations table under them in "Navrhovaný postup", quoted the guideline edition valid at each past decision in "Retrospektivní odchylky", and replaced the inline missing list with a warning-styled "Upozornění" button. Round 23 added "Personál pracoviště": staff entered as title and surname, saved only in the viewer's browser (localStorage `mdt-staff-v1`, fictional defaults, "Obnovit výchozí"), from which attendance and the user picker are built. Round 24 added the synthetic patient S01 (marked "syntetický pacient", with its documents, missing-document alerts and a lab trend from four documented draws, every value linked to its line), removed the invented lab series of case 10, merged the reason and the question into one paragraph with the draft chip at its end, listed every passage a drafted question cites, and drew our own scalpel icon for surgery | https://claude.ai/artifact/6JwakCBuGZr9STKnfRUz8T |
+| `v3.html` | Mock after feedback round 2 (Excel-style filters, month navigation, 10-minute slots, brief first, diagnosis headline, current state, lab chart, doctor edits, back/forward), with one patient view for the whole MDT: a session bar with the day's cases and a "Projednání na MDT" card for notes, next steps and approval; its source view shows the rendered page image with the cited passage highlighted, so publishing it also needs the `pages/` folder. Round 19 added task drafts from approved conclusions with a coordinator view and a digest e-mail, out-of-hours booking, retrospective deviations with doctor-set severity, and strength-sorted guideline quotes. Round 20 added a status menu with history and "Uzavřít případ", one-button approval for the team, the report picks in a dialog behind "Stáhnout report (PDF)", and a lighter new patient form. Round 21 made guideline statements collapsed entries (quote and tier chip, opening to the reason with sources and the full citation), moved the MDT deviations table under them in "Navrhovaný postup", quoted the guideline edition valid at each past decision in "Retrospektivní odchylky", and replaced the inline missing list with a warning-styled "Upozornění" button. Round 23 added "Personál pracoviště": staff entered as title and surname, saved only in the viewer's browser (localStorage `mdt-staff-v1`, fictional defaults, "Obnovit výchozí"), from which attendance and the user picker are built. Round 24 added the synthetic patient S01 (marked "syntetický pacient", with its documents, missing-document alerts and a lab trend from four documented draws, every value linked to its line), removed the invented lab series of case 10, merged the reason and the question into one paragraph with the draft chip at its end, listed every passage a drafted question cites, and drew our own scalpel icon for surgery. Round 25 renamed the brief block "Stručný přehled", made alerts resolvable ("Vyřešeno", "Vrátit", history), removed the "Změna" kind and the lab-range and "J-" alerts, replaced the everolimus alert with a chronology observation, dropped "ověřit čtení" marks where both OCR readings agree, scrolled the oncology summary inside its card, folded the lab explanations into "Zdroje", fixed the calendar double click, shortened the database diagnoses and shows 20 patients per page | https://claude.ai/artifact/6JwakCBuGZr9STKnfRUz8T |
 
 The published copies are private claude.ai artifacts owned by Juro; ask him
 to share them. To view a mock locally, open the `.html` file in a browser.
-
-## GLIDE design branch
-
-Branch `design/glide-inspired-ui` tests an alternative visual treatment of
-mock v3. Open `mocks/v3.html` with the existing `pages/` folder next to it.
-The template keeps the case data. The short overview is titled `Stručný souhrn`.
-The `Otázka pro MDT` block shows only the question and its confirmation
-control where applicable. Draft metadata and source passages remain in
-`qState` and exported reports, without the expanded on-screen annotation.
-Status and readability badges use rounded capsules; large sections remain
-flat. The deviations tab holds both the current-plan assessment table and
-the separately labelled historical review; the proposed-management tab
-contains the proposal and guideline passages. White space,
-ruled sections, navy primary actions and teal accents replace nested
-rounded card frames. Manrope and DM Sans remain the typefaces.
-
-The oncology summary scrolls inside a keyboard-focusable pane, matching the
-current-state panel height on desktop. On narrow screens it is limited to
-60vh. Timeline icons have opaque white circles over the connector.
-
-Warnings support `Vyřešeno` and `Vzít na vědomí`, with an expandable archive
-and `Vrátit mezi aktivní`. State and its history are per patient and kept in
-memory for this session. These actions do not alter clinical facts or
-supply missing source documents, so the missing-document header signal
-remains. All three warning sources use the same workflow: case flags,
-brief gaps and the synthetic patient's gaps.
-
-Only exact, reviewed lexical OCR corrections suppress their inline
-warning: `výbormně` to `výborně`, `nevolnoist` to `nevolnost`, `fenomenu` to
-`fenoménů` and `j izvy` to `jizvy`. Explicit uncertain or conflicting values
-retain their warnings. The source
-text and references are unchanged. Other OCR warnings remain visible.
-
-Run `node mocks/src/test/patient-panels.mjs` with Playwright available to
-check scrolling, the OCR boundary cases, circle fills and reversible
-per-patient warning states.
-
-Build with `python3 mocks/build.py` as usual. The source viewer retains its
-page boundaries and highlights; warnings, draft questions, approved
-conclusions and calendar selection retain their distinct visual states.
 
 ## How to change a mock
 
@@ -124,6 +84,12 @@ medication lines of page 2, "CT Ag plicnice" on page 5), and the viewer
 says so. A page without a match shows "Citace nenalezena přesně,
 zobrazena celá stránka".
 
+The "!" (ověřit čtení) marks on facts come from `ocr_note_cs` in the case data. `src/extract/ocr_confidence.py`
+(round 25) checks each note against the two readings in the page index and stores `ocr_check`; the mark is hidden
+when both readings agree on the word (diacritics, case and punctuation aside) or differ by one harmless character
+in a known word, and kept for a digit, negation, unit or meaning difference, a word only one engine read, or a note
+that states a doubt. Run it with `--write` after changing a note.
+
 The "ověřit" marks come from `scripts/build_page_index.py`, which aligns
 the two readings word by word and records each item's character offsets
 in the vision text. A digit, date, dose or stage is marked when Tesseract
@@ -168,9 +134,19 @@ claude.ai artifact viewer may block the microphone.
 - Live text comes from Scribe v2 Realtime (`scribe_v2_realtime`,
   `commit_strategy=vad`), which does not tell speakers apart. After
   approval, the case's own audio (kept in memory, 16 kHz PCM) goes once
-  to Scribe v2 (`scribe_v2`, `diarize=true`), and the page shows
-  "Přepis podle mluvčích" with speakers numbered per case, then deletes
-  the audio. Speakers are not named: that would need voiceprints.
+  to Scribe v2 (`scribe_v2`, `diarize=true`); its version, with speakers
+  numbered per case, replaces the live text, and the audio is deleted.
+  Speakers are not named: that would need voiceprints.
+- A third pass sends the speaker transcript to an LLM for a one or two
+  sentence summary in the manner of an MDT conclusion (decisions, next
+  steps, no who-said-what), shown as "Shrnutí AI" above the transcript,
+  which folds into a closed "Přepis diskuse" panel. ElevenLabs has no
+  text model, so the page posts the transcript to `/api/summarize`, a
+  Cloudflare Pages Function (`functions/api/summarize.js`) that holds the
+  prompt and calls the hackathon's Azure OpenAI gateway (`gpt-6-luna-dz-eu`,
+  EU) with the key from the Pages secret `AZURE_OPENAI_KEY`. The gateway
+  rejects browser CORS preflights, hence the function. Opened from a file,
+  the page has no `/api/summarize` and the summary shows an error.
 - Starting, stopping and the speaker pass go to the access log.
 
 Checked with Chrome's fake microphone
@@ -184,7 +160,7 @@ stopped after the last case of the seminar was approved.
 Mock v3 uses the nine categories documented in
 [`PRODUCT.md`](../docs/design/PRODUCT.md#timeline-categories). The `category`
 field on each timeline card is display metadata; original dates, kinds,
-sources and plan status are preserved. The compact summary shares the icons.
+sources and plan status are preserved. The compact summary shares the icons. Category checkboxes support multiple selection: all start checked, unchecking excludes a category, and Vše selects or clears all. A partial selection gives Vše a mixed state.
 Lucide 0.468.0 paths are embedded in the template, with the ISC notice in
 `src/vendor/lucide-LICENSE`; no icon CDN is needed at runtime.
 
@@ -217,3 +193,56 @@ Lucide 0.468.0 paths are embedded in the template, with the ISC notice in
   needs Google Chrome installed).
 
 
+
+## Local prognosis search
+
+Build with `python3 mocks/build.py`, then run `python3 mocks/serve.py` from the repository root. Open `http://127.0.0.1:8766/v3.html#patient/10/prognosis`. The patient must have a calendar slot. The Prognóza tab previews dated synthetic facts, then starts one GPT Astra search through OpenRouter when requested. Configure the server using `.env.example`; keys stay in the gitignored `.env`. Static hosting displays the tab but needs this backend to search. See [the API and limitations](../prognosis/README.md).
+
+Validation: `python3 -m unittest discover -s prognosis/tests -v`, `node mocks/src/test/prognosis-ui.mjs`, and `node mocks/src/test/timeline-categories.mjs`.
+
+
+## Saved Poláček prognosis
+
+The generated v3 page embeds the saved synthetic Poláček search from
+`src/data/prognosis-case-10.json`. On first opening Prognóza for case 10 with
+MDT date 2026-10-22, its six result rows appear after two seconds, labeled as a
+saved search with the original timestamp. No model API request is made for replay.
+A new search remains an explicit action. Rebuild after intentionally updating the
+fixture.
+
+The prognosis table uses compact 11.5 px text, smaller population descriptions and
+fixed column proportions. The population column is wider; the four OS timepoints
+are narrow. All twelve columns fit together in the desktop view. Source passages
+remain available under Zdroj.
+
+
+## Glide visual integration
+
+The approved design uses flat, square sections on a white canvas, a navy patient header,
+opaque timeline icon circles and rounded semantic badges. The question stays editable by
+clicking its text (including an empty placeholder); confirmation, history and provenance
+remain available in state and exports. The heading is "Stručný souhrn".
+
+Both current-plan deviation assessment and historical decisions now live in
+"Retrospektivní odchylky", as separate sections. Selecting and explaining a deviation
+still persists across tabs and is included in the report. "Navrhovaný postup" keeps the
+proposal and guideline passages.
+
+Acknowledged and resolved warnings move into an expandable archive with a reversible
+"Vrátit" action. Brief and synthetic-case data gaps use the same per-patient, append-only
+history as other warnings. Archiving a gap does not supply a missing document; its amber
+missing-document signal remains. The oncology panel retains main's CSS-native scrolling.
+
+Integration starts from current main so prognosis (including its source drawer), FHIR
+import/export, timeline multiselect, recording/transcript summary, staff management,
+calendar handling and clinical data corrections remain present. Run the regression checks:
+
+```sh
+node mocks/src/test/v3.mjs
+node mocks/src/test/patient-panels.mjs
+node mocks/src/test/main-preservation.mjs
+node mocks/src/test/timeline-categories.mjs
+node mocks/src/test/prognosis-ui.mjs
+```
+
+Set `PLAYWRIGHT_PATH` if Playwright is installed outside the default path.

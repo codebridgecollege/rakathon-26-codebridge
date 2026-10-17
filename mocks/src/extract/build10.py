@@ -262,10 +262,11 @@ case = {
    # Draft question rephrased from the document's purpose sentence (team decision 2026-10-17); a draft until a doctor confirms it.
    # The reason above the question already states the MR finding, so the question does not repeat it (round 24).
    # question_basis: the purpose sentence, then the finding the question is about; src() checks each quote against the OCR text.
-   "question_draft_cs": "Jaký postup doporučuje neurochirurgický seminář?",
+   "question_draft_cs": "Jaký postup doporučuje neurochirurgický seminář u solitárního sytícího se ložiska pravé mozečkové hemisféry do 3 mm, suspektního z metastázy (MR mozku 14.9.2026), při probíhající léčbě everolimem?",
    "question_kind": "document_purpose",
    "question_basis": [basis("purpose", 3, "Nález při MR vyš. mozku zadávám k projednáni na NCH semináři."),
-                      basis("finding", 1, "Solitérní nodulus postkontrastně se sytící v pravé mozečkové hemisféře(do 3mm) - suspekce na solitérní MTS")]},
+                      basis("finding", 1, "Solitérní nodulus postkontrastně se sytící v pravé mozečkové hemisféře(do 3mm) - suspekce na solitérní MTS"),
+                      basis("finding", 2, "Do 3. pal. linie léčby indikován everolimus - schváleno KOC komisi.")]},
  "diagnosis": {"code": "C64", "code_system": "MKN-10 (dle dokumentu)", "text_cs": "Zhoubný novotvar ledviny mimo pánvičku",
    "source": src(1, "C64 Zhoubný novotvar ledviny mimo pánvičku")},
  "summary": [

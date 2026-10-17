@@ -4,7 +4,7 @@ name: Deploy mock
 on:
   push:
     branches: [main]
-    paths: ["mocks/v3.html", "mocks/pages/**", "mocks/deploy.sh", ".github/workflows/deploy-mock.yml"]
+    paths: ["mocks/v3.html", "mocks/pages/**", "mocks/functions/**", "mocks/deploy.sh", ".github/workflows/deploy-mock.yml"]
   workflow_dispatch:
 
 # One deploy at a time; a newer push replaces a queued one.

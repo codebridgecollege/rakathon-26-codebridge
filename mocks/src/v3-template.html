@@ -1,3 +1,4 @@
+<meta charset="utf-8">
 <title>MDT Workspace v3</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -66,6 +67,17 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 .card > .head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
 .grid2 { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 16px; align-items: start; }
 .stack { display: grid; gap: 16px; min-width: 0; }
+/* Overview (round 25): the oncology summary's body scrolls; on wide screens the left card is taken out of the row's
+   height (absolute inside its column), so the row is as tall as "Aktuální stav pacienta" and both cards match. */
+.ovgrid { align-items: stretch; }
+.onco { display: flex; flex-direction: column; }
+.onco .ocbody { overflow: auto; min-height: 0; flex: 1 1 auto; overscroll-behavior: contain; }
+.onco > details.srcs[open] { max-height: 45%; overflow: auto; flex: 0 0 auto; }
+@media (min-width: 981px) {
+  .ovleft { position: relative; min-height: 360px; }
+  .ovleft > .onco { position: absolute; inset: 0; }
+}
+@media (max-width: 980px) { .onco .ocbody { max-height: 60vh; } }
 .row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .spread { justify-content: space-between; }
 
@@ -197,6 +209,11 @@ details.more > summary { cursor: pointer; color: var(--muted); font-size: 12.5px
 .alerts { display: grid; gap: 6px; }
 .alert { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 10px; align-items: start; padding: 8px 10px; border-radius: 0; background: var(--sunk); }
 .alert.ack { opacity: .55; }
+.alert .albtns { display: flex; flex-wrap: wrap; gap: 4px; justify-content: flex-end; }
+.alert .alhist { margin-top: 4px; font-size: 12px; color: var(--muted); }
+.alert .alhist summary { cursor: pointer; }
+/* On a phone the buttons go under the text, so the text keeps the full width. */
+@media (max-width: 640px) { .alert { grid-template-columns: auto minmax(0, 1fr); } .alert .albtns { grid-column: 1 / -1; justify-content: flex-start; } .alert .ackbtn { opacity: 1 !important; } }
 .alert .why { display: block; color: var(--muted); font-size: 12.5px; }
 
 /* Horizontal labelled timeline */
@@ -224,8 +241,8 @@ details.more > summary { cursor: pointer; color: var(--muted); font-size: 12.5px
 .tlfilters { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 8px; }
 .tlfilter { display: inline-flex; align-items: center; gap: 6px; padding: 6px 9px; border: 1px solid var(--line); border-radius: 0; background: var(--surface); color: var(--muted); font: inherit; font-size: 12px; text-align: left; cursor: pointer; max-width: 100%; }
 .tlfilter svg { width: 16px; height: 16px; flex: none; }
-.tlfilter[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent); color: var(--accent-ink); }
-.tlfilter:disabled { cursor: default; color: var(--faint); }
+.tlfilter.on { background: var(--accent-soft); border-color: var(--accent); color: var(--accent-ink); }
+.tlfilter input { flex: none; margin: 0; accent-color: var(--accent); }
 .tlfilter .tlcount { font-variant-numeric: tabular-nums; }
 .tlstatus { color: var(--muted); font-size: 12px; margin-bottom: 6px; }
 .ev .category { display: block; font-size: 11.5px; font-weight: 600; color: var(--muted); margin-bottom: 4px; }
@@ -270,7 +287,12 @@ details.mdtcard[open] > summary::before { transform: rotate(90deg); }
 .mdtcard .sub > .head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
 
 /* MDT discussion: attendance, notes, steps */
-.att { display: grid; grid-template-columns: 170px minmax(0, 1fr) auto; gap: 8px 12px; align-items: center; }
+.fhirimp { display: grid; gap: 8px; padding: 12px; border: 1px solid var(--line); border-radius: 0; background: var(--sunk); }
+.fhirimp textarea { min-height: 110px; font-family: ui-monospace, Menlo, monospace; font-size: 12px; }
+.att { display: grid; grid-template-columns: 170px minmax(0, 1fr) 96px; gap: 8px 12px; align-items: center; }
+/* Every row is one height: the select, its label and its button line up, and both row buttons look alike. */
+.att .input, .att .btn { height: 36px; }
+.att .btn { width: 100%; padding: 0 10px; font-size: 13px; }
 .att .dept { font-weight: 600; font-size: 13.5px; }
 /* Staff screen (round 23): one row per person, the displayed name first, then the four fields. */
 .staffdept .head .row { gap: 8px; }
@@ -280,7 +302,6 @@ details.mdtcard[open] > summary::before { transform: rotate(90deg); }
 .srow.sadd { margin-top: 4px; }
 .slist { margin: 0; padding-left: 18px; }
 .slist li { margin: 3px 0; }
-.staffnote { margin: 0 0 6px; padding: 8px 10px; border-radius: 0; background: var(--sunk); }
 @media (max-width: 640px) {
   .srow { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
   .srow.sadd .label { grid-column: 1 / -1; }
@@ -311,7 +332,7 @@ details.mdtcard[open] > summary::before { transform: rotate(90deg); }
 .rectx .partial { color: var(--muted); font-style: italic; }
 .rectx .spk { font-weight: 700; margin-right: 4px; }
 .sp0 { color: #2c5c53; } .sp1 { color: #7a3d8c; } .sp2 { color: #8f5a06; } .sp3 { color: #1f5fa8; } .sp4 { color: #a3364c; }
-.recpass { margin-top: 12px; }
+.recsum { margin-top: 10px; padding: 8px 10px; border-radius: 0; background: var(--sunk); font-size: 14px; }
 .recpill { border: 0; border-radius: 0; padding: 5px 12px; background: #fbe9e7; color: #8c1d18; font-weight: 600; cursor: pointer; font-size: 13px; }
 .rec { text-align: center; padding: 18px 10px; display: grid; gap: 6px; justify-items: center; }
 .steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
@@ -342,6 +363,8 @@ details.mdtcard[open] > summary::before { transform: rotate(90deg); }
 .scrim { position: fixed; inset: 0; background: rgba(28,39,38,.25); z-index: 30; }
 .drawer { position: fixed; top: 0; right: 0; bottom: 0; width: min(560px, 100%); background: var(--surface); z-index: 31; box-shadow: -8px 0 30px rgba(0,0,0,.12); display: grid; grid-template-rows: auto auto auto minmax(0, 1fr);
   padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); padding-right: env(safe-area-inset-right, 0px); }
+.drawer .pgpanel { padding: 4px 20px 20px; overflow: auto; border-top: 1px solid var(--line); }
+.drawer .pgpanel blockquote { margin: 12px 0; padding: 8px 12px; border-left: 3px solid var(--accent); background: var(--sunk); }
 .drawer header { padding: 16px 20px 8px; display: flex; justify-content: space-between; gap: 10px; align-items: start; }
 .drawer .pages { display: flex; gap: 4px; flex-wrap: wrap; padding: 0 20px 10px; border-bottom: 1px solid var(--line); }
 .drawer .pages button { border: 1px solid var(--line); background: none; border-radius: 0; padding: 2px 9px; cursor: pointer; font-size: 12.5px; }
@@ -432,6 +455,9 @@ details.srcs .refs { border-top: 0; margin-top: 4px; padding-top: 0; }
 /* v3: edits by a doctor */
 .edbtn { background: none; border: 0; padding: 0 3px; cursor: pointer; color: var(--faint); font-size: 13px; }
 .edbtn:hover { color: var(--accent-ink); }
+/* The reason's hover-only pencil left an empty gap before "Otázka:" (round 25). Taken out of the flow at its own
+   place (absolute, no offsets), raised like a superscript, so the hidden pencil takes no room. */
+@media (hover: hover) { .rq1 > .edbtn:not([style]) { position: absolute; font-size: 11px; padding: 0 1px; transform: translate(-3px, -0.7em); } }
 /* The pencil shows only on the line under the pointer (or keyboard focus), so editing does not clutter reading. */
 @media (hover: hover) { .stc .edbtn, .question .edbtn:not([style]), li .edbtn, dd .edbtn, td .edbtn, .orow .edbtn, .dxh .edbtn, .prose .edbtn { opacity: 0; } .stc p:hover .edbtn, .question p:hover .edbtn, li:hover .edbtn, dd:hover .edbtn, tr:hover .edbtn, .orow:hover .edbtn, .dxh:hover .edbtn, .prose:hover .edbtn, li:focus-within .edbtn, dd:focus-within .edbtn, tr:focus-within .edbtn, .orow:focus-within .edbtn, .dxh:focus-within .edbtn, .prose:focus-within .edbtn, .edbtn:focus { opacity: 1; } }
 .slotbtn.taken { white-space: nowrap; overflow: hidden; font-size: 12px; }
@@ -601,6 +627,7 @@ details.srcs .refs { border-top: 0; margin-top: 4px; padding-top: 0; }
 .gapsbtn.warn { background: var(--missing); color: #fff; }
 .unchecked { display: inline-block; white-space: normal; font-size: 13px; font-weight: 600; padding: 4px 10px; border-radius: 0; background: var(--missing); color: #fff; }
 details.donegrp > summary { cursor: pointer; color: var(--muted); font-size: 13px; padding: 10px 0 4px; }
+/*PROGNOSIS_CSS*/
 
 /* GLIDE design experiment: open sections and ruled rows keep clinical information on one canvas.
    Source-viewer boundaries and semantic warning states are retained. */
@@ -718,21 +745,16 @@ h3 { letter-spacing: -.02em; }
 /* The icon circles are opaque so the timeline connector never crosses a glyph. */
 .ev .pin, .lpin { border-radius: 50%; background: #fff; border: 1.5px solid currentColor; position: relative; z-index: 1; }
 .ev.planned .pin, .lpin.planned { border-style: dashed; }
-.overview-panels .summary-card { display: flex; flex-direction: column; height: var(--summary-height, auto); min-height: 0; }
-.summary-card > .head { flex: none; }
-.summary-scroll { overflow-y: auto; min-height: 0; flex: 1; scrollbar-gutter: stable; overscroll-behavior-y: contain; padding-right: 12px; }
 .alert { grid-template-columns: auto minmax(0, 1fr) auto; }
 .alert-actions { justify-content: flex-end; max-width: 250px; }
 .alert.ack { opacity: 1; }
 @media (max-width: 980px) {
-  .overview-panels .summary-card { height: auto; }
-  .summary-scroll { max-height: 60vh; flex: initial; }
-}
+    }
 @media (max-width: 640px) {
   .alert { grid-template-columns: auto minmax(0, 1fr); }
   .alert-actions { grid-column: 2; justify-content: flex-start; max-width: 100%; }
 }
-@media print { .overview-panels .summary-card { height: auto; } .summary-scroll { overflow: visible; max-height: none; } }
+
 
 
 /* Dark patient header groups identity and case actions without rounded framing. */
@@ -780,6 +802,7 @@ h3 { letter-spacing: -.02em; }
 .patient-identity .st-scheduled { color: var(--change); }
 .patient-identity .st-new { color: var(--muted); }
 .patient-identity .st-closed { color: var(--faint); }
+
 
 </style>
 
@@ -1046,7 +1069,9 @@ const STATUS = {
   new: ["Nový", "st-new"], scheduled: ["Naplánován", "st-scheduled"], attention: ["Vyžaduje pozornost", "st-attention"],
   ready: ["Připraven", "st-ready"], done: ["Projednán", "st-done"], closed: ["Uzavřen", "st-closed"],
 };
-const ALERT = { missing: ["Chybí", "k-missing"], contradiction: ["Rozpor", "k-contradiction"], change: ["Změna", "k-change"], unclear: ["Nejasné", "k-unclear"] };
+/* Alert kinds. A summary of documented events ("Změna") is not an alert and was removed (round 25); "Chronologie" is
+   the assistant's observation about the order of pages and records in a document. */
+const ALERT = { missing: ["Chybí", "k-missing"], contradiction: ["Rozpor", "k-contradiction"], chronology: ["Chronologie", "k-change"], unclear: ["Nejasné", "k-unclear"] };
 
 /* Calendar: seminars repeat every week (example schedule), 10-minute slots (Soňa, feedback round 2).
    Dates are handled as ISO strings at noon UTC so no time zone can shift a day. */
@@ -1116,8 +1141,8 @@ const S = {
   view: "patients", pid: CASE.file, tab: "overview", user: (DEPTS.find(([d]) => d === "Klinická onkologie")?.[1] || []).find(n => DOCTORS.includes(n)) || USERS[0],
   patients: initialPatients(), q: "", colf: {}, colOpen: null, editLog: [], subFrom: "", subTo: "", dbPage: 0, dbAll: false,
   week: mondayOf("2026-10-22"), miniMonth: "2026-10", guideOn: true, labSel: null, edits: {},
-  selTl: null, tlCategory: "all", picked: new Set(["summary", "imaging", "histology", "past_treatment"]),
-  alertStates: {}, alertHistory: [], access: [], decisions: [], tasks: [
+  selTl: null, tlExcluded: new Set(), picked: new Set(["summary", "imaging", "histology", "past_treatment"]),
+  alertHist: [], access: [], decisions: [], tasks: [
     { id: 1, pid: "2_pacient.pdf", text: "doplnit pooperační MR do podkladů", who: COORD, due: "2026-10-21", done: false },
     { id: 2, pid: "13_pacient.pdf", text: "vyžádat snímky MR 8/2025 ke srovnání", who: COORD, due: "2026-10-21", done: true },
   ],
@@ -1219,19 +1244,19 @@ const edText = (key, orig, pid = S.pid) => edOf(key, pid) ? edOf(key, pid).text 
 /* In the report an edited value is marked, so it is never read as if the cited source said it. */
 const edRep = (key, orig, pid = S.pid) => edOf(key, pid) ? `${edOf(key, pid).text} [upraveno lékařem]` : orig;
 
+/* An OCR note whose word both readings agree on needs no "!" (round 25). mocks/src/extract/ocr_confidence.py
+   compares the vision transcription with Tesseract for each word the note quotes and stores ocr_check: the mark is
+   dropped when both read the same after removing diacritics, case and punctuation, or when the vision word is a
+   known Czech or medical word and Tesseract differs by one non-digit, non-negation, non-unit character; it stays
+   when the readings differ in a digit, a negation, a unit or meaning, when one engine did not read the word, or when
+   the note itself states a doubt. The note stays in the data as the record of the old text layer's misreading. */
+const ocrCleared = f => !!(f && f.ocr_check && f.ocr_check.mark === false);
 /* Quiet certainty markers: an icon with a tooltip instead of a grey comment line (Soňa, round 2).
    The meaning is still shown on every fact, as CLAUDE.md requires; only the wording moved into the tooltip. */
-const COSMETIC_OCR = [
-  { note: 'V OCR „výbormně“.', word: 'výborně' },
-  { note: 'V OCR „nevolnoist“.', word: 'nevolnost' },
-  { note: 'V OCR „fenomenu“, čteno jako fenoménů.', word: 'fenoménů' },
-  { note: 'V OCR „j izvy“, čteno jako jizvy.', word: 'jizvy' },
-];
-const isCosmeticOcr = f => (!f.certainty || f.certainty === 'documented') && COSMETIC_OCR.some(x => f.ocr_note_cs === x.note && String(f.text_cs || '').includes(x.word));
 function marks(f) {
   let h = "";
   if (f.negated) h += `<span class="mk neg" title="Zápor zapsaný v dokumentu">-</span>`;
-  if ((f.certainty === "unclear_ocr" || f.ocr_note_cs) && !isCosmeticOcr(f)) h += `<span class="mk ocr" title="Ověřit čtení: ${esc(f.ocr_note_cs || f.note || "text mohl být špatně přečten")}">!</span>`;
+  if ((f.certainty === "unclear_ocr" || f.ocr_note_cs) && !ocrCleared(f)) h += `<span class="mk ocr" title="Ověřit čtení: ${esc(f.ocr_note_cs || f.note || "text mohl být špatně přečten")}">!</span>`;
   if (f.certainty === "inferred") h += `<span class="mk obs" title="Pozorování asistenta, v dokumentu výslovně není">i</span>`;
   if (f.certainty === "planned" || f.change_status === "planned_unconfirmed" || /plánováno/i.test(f.change_cs || "")) h += `<span class="mk plan" title="Plánováno, dokument neuvádí, že se stalo${f.note_cs ? ": " + esc(f.note_cs) : ""}">?</span>`;
   /* Any other assistant note (source discrepancy, unclear exam) stays reachable as an icon, not as row text (round 5). */
@@ -1349,8 +1374,8 @@ const EVENT_CATEGORIES = [
 ];
 const KIND_CS = Object.fromEntries(EVENT_CATEGORIES.map(c => [c.id, c.label]));
 /* The surgery icon is our own scalpel, not a Lucide icon (Lucide has no scalpel; scissors read as "cut", not
-   "operation"). It is drawn in Lucide's style (24x24 grid, stroke 2, round caps and joins): outlined handle with a grip groove,
-   a narrow blade mount and a curved cutting edge. The Lucide licence above covers only the other icons. */
+   "operation"). It is drawn in Lucide's style (24x24 grid, stroke 2, round caps and joins): handle, finger guard,
+   and a blade with a curved cutting edge. The Lucide licence above covers only the other icons. */
 const ICON = {
   "imaging": "<path d=\"M3 7V5a2 2 0 0 1 2-2h2\" />\n  <path d=\"M17 3h2a2 2 0 0 1 2 2v2\" />\n  <path d=\"M21 17v2a2 2 0 0 1-2 2h-2\" />\n  <path d=\"M7 21H5a2 2 0 0 1-2-2v-2\" />\n  <path d=\"M7 12h10\" />",
   "systemic": "<path d=\"m18 2 4 4\" />\n  <path d=\"m17 7 3-3\" />\n  <path d=\"M19 9 8.7 19.3c-1 1-2.5 1-3.4 0l-.6-.6c-1-1-1-2.5 0-3.4L15 5\" />\n  <path d=\"m9 11 4 4\" />\n  <path d=\"m5 19-3 3\" />\n  <path d=\"m14 4 6 6\" />",
@@ -1372,7 +1397,7 @@ const icon = key => {
   const category = EVENT_CATEGORIES.find(c => c.id === key) || EVENT_CATEGORIES.find(c => c.id === "clinical");
   return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" data-icon="${category.icon}">${ICON[category.id]}</svg>`;
 };
-const TL_HELP = "Události jsou seřazeny podle data a označeny ikonou a názvem kategorie. Kategorie filtrují jednu časovou osu. Čárkovaný kroužek znamená plán. Kliknutím na událost otevřete její zdroj; datum a nejistota zůstávají podle dokumentace.";
+const TL_HELP = "Události jsou seřazeny podle data a označeny ikonou a názvem kategorie. Lze vybrat více kategorií současně. Odškrtnutím kategorii skryjete; Vše zapne nebo vypne všechny kategorie. Čárkovaný kroužek znamená plán. Kliknutím na událost otevřete její zdroj; datum a nejistota zůstávají podle dokumentace.";
 
 /* ---------- navigation ---------- */
 /* "Moje" tasks: assigned to the user, or (for a doctor) on a case they own. The nav badge and the task list
@@ -1425,7 +1450,7 @@ function viewPatients() {
     && (!S.q || `${p.id} ${p.name} ${p.diagnosis} ${p.mkn10 || ""}`.toLowerCase().includes(S.q.toLowerCase())))
     .sort((a, b) => b.submitted.localeCompare(a.submitted));
   /* Pages of 8 (round 9): a real database holds hundreds of cases; "Zobrazit vše" shows the rest at once. */
-  const PER = 8, pages = Math.max(1, Math.ceil(all.length / PER)); if (S.dbPage >= pages) S.dbPage = pages - 1;
+  const PER = 20, pages = Math.max(1, Math.ceil(all.length / PER)); if (S.dbPage >= pages) S.dbPage = pages - 1;
   const rows = S.dbAll ? all : all.slice(S.dbPage * PER, S.dbPage * PER + PER);
   const active = Object.keys(S.colf).filter(k => COLS.some(c => c[0] === k)).length;
   return `<div class="page">
@@ -1524,7 +1549,7 @@ function viewCalendar() {
     <div class="pagehead"><div><h1>Kalendář MDT</h1><div class="muted small">${dObj(S.week).getUTCDate()}. ${dObj(S.week).getUTCMonth() + 1}. až ${dObj(end).getUTCDate()}. ${dObj(end).getUTCMonth() + 1}. ${end.slice(0, 4)}</div></div>
       <div class="row"><button class="btn small" data-wk="-1">‹ Předchozí týden</button><button class="btn small" data-act="today">Dnes</button><button class="btn small" data-wk="1">Další týden ›</button></div></div>
     <div class="calwrap3">
-      <div class="stack" style="gap:8px"><div class="scroll"><div class="cal">${cells}</div></div>
+      <div class="stack" style="gap:8px"><div class="scroll calscroll"><div class="cal">${cells}</div></div>
         ${canTrim ? `<div class="row small muted"><span>${S.calFullDay ? "Zobrazen celý den" : `Zobrazeno ${esc(from)}-${esc(to)}: hodiny semináře a hodina navíc`}</span><button class="linkbtn small" data-act="calfull">${S.calFullDay ? "Jen kolem semináře" : "Zobrazit celý den"}</button></div>` : ""}
         <p class="muted small" style="margin:0">Šrafované sloty jsou mimo čas semináře; lze je obsadit, když se jednání protáhne.</p></div>
       <div class="stack">
@@ -1552,7 +1577,7 @@ function dxHeadlineText(forReport = false) {
   const d = DXH(); if (!d) return P(CASE.file).diagnosis;
   const base = [d.histology_cs, d.grade_cs, d.tnm_cs].filter(Boolean).join(", ");
   const txt = forReport ? edRep("dx", base, CASE.file) : edText("dx", base, CASE.file);
-  return `${txt}${!forReport && edOf("dx", CASE.file) ? " (upraveno lékařem)" : ""}${d.tnm_context_cs ? `; ${d.tnm_context_cs}` : ""}${d.ocr_note_cs && !edOf("dx", CASE.file) ? " [ověřit čtení]" : ""}`;
+  return `${txt}${!forReport && edOf("dx", CASE.file) ? " (upraveno lékařem)" : ""}${d.tnm_context_cs ? `; ${d.tnm_context_cs}` : ""}${d.ocr_note_cs && !ocrCleared(d) && !edOf("dx", CASE.file) ? " [ověřit čtení]" : ""}`;
 }
 /* The MDT question (team decision 2026-10-17): the referral's explicit question as written; otherwise the assistant's
    draft, labelled as a draft until a named doctor confirms or edits it; the gap wording only when there is neither.
@@ -1584,10 +1609,12 @@ function questionPlain(p) {
   if (q.mode === "draft") return `${q.text} [${p.qkind === "document_purpose" ? "otázka podle účelu v dokumentu, návrh asistenta" : "návrh otázky asistentem"}, neověřeno lékařem]${basis}`;
   return `Výslovná otázka ${GAP_F}.`;
 }
-/* The visible question stays concise; qState and the exported provenance remain unchanged. */
+/* The question as one run of text (doctor's request, round 24): the question, then its label as a small chip at the
+   end, so the label never stands between the reason and the question. `full` adds the source passages and the
+   confirm button for doctors (the calendar card shows the question and the chip only). */
 function questionInner(p, full = true) {
   const q = qState(p), original = p.explicit ? p.question : p.draft || '';
-  const body = q.mode === 'none' ? `<b>Výslovná otázka ${GAP_F}.</b>` : isDoctor(S.user) ? `<span class="edl" role="button" tabindex="0" data-edit="${esc(EK('q', p.file))}" data-orig="${esc(original)}" title="Upravit otázku">${esc(q.text)}</span>` : esc(q.text);
+  const body = isDoctor(S.user) ? `<span class="edl" role="button" tabindex="0" data-edit="${esc(EK('q', p.file))}" data-orig="${esc(original)}" title="Upravit otázku">${q.mode === 'none' ? `<b>Výslovná otázka ${GAP_F}.</b>` : esc(q.text)}</span>` : q.mode === 'none' ? `<b>Výslovná otázka ${GAP_F}.</b>` : esc(q.text);
   const confirm = full && q.mode === 'draft' && isDoctor(S.user) ? '<button class="btn small" data-act="confirmq" style="margin-top:6px">Potvrdit otázku</button>' : '';
   return { cls: q.mode === 'none' ? 'missing' : '', html: body, quote: '', confirm, filled: q.mode !== 'none' };
 }
@@ -1606,7 +1633,7 @@ function patientHeader(p, extraActions = "", withQuestion = false) {
   </div>`;
 }
 /* The MDT question can be filled in by a doctor when the documents do not state one (Soňa, round 2). */
-/* The context is already in the short summary; this block contains only the MDT question. */
+/* Reason (why now) and the question in one box (Soňa, round 7). */
 function reasonQuestionBox(p, reg) {
   const qi = questionInner(p);
   return `<div class="question ${qi.cls}"><span class="bh">Otázka pro MDT</span><p class="rq1">${qi.html}</p>${qi.confirm}</div>`;
@@ -1619,7 +1646,8 @@ function reasonQuestionBox(p, reg) {
 const caseDataOf = p => p && p.full ? { flags: CASE.flags || [], gaps: EXTRA.data_gaps_v3 || [] }
   : p && SYN_BY_FILE[p.file] ? { flags: [], gaps: SYN_BY_FILE[p.file].data_gaps || [] } : null;
 /* true or false for a processed case; null when the missing-document check has not run for this case. */
-const hasMissing = p => { const d = caseDataOf(p); return d ? d.flags.some(f => f.kind === "missing") || d.gaps.some(x => x.kind === "missing") : null; };
+/* A resolved missing-document alert no longer counts (round 25); the brief's data gaps are not alerts and always count. */
+const hasMissing = p => { const d = caseDataOf(p); return d ? d.flags.some((f, i) => f.kind === "missing" && alertState(p.file, i).state !== "resolved") || d.gaps.some(x => x.kind === "missing") : null; };
 /* Unprocessed case: the missing-document check has not run, which is not the same as "nothing missing", so the place
    of the Upozornění button carries an amber signal saying so (missing-document alerts are always on, CLAUDE.md). */
 const uncheckedSignal = () => `<span class="unchecked" role="status">⚠ Chybějící podklady nezkontrolovány (případ nezpracován)</span>`;
@@ -1646,24 +1674,35 @@ function conclusionBox(p) {
     ${closed ? `${pr.state !== "approved" && pr.concl.trim() ? `<p class="muted small" style="margin:6px 0 0">Neschválený koncept: ${esc(pr.concl)}</p>` : ""}<p class="small closedmsg" style="margin:6px 0 0">${CLOSED_MSG}</p>` : ""}
     ${draftable ? `${last ? `<span class="label" style="display:block;margin-top:10px">Koncept nového závěru (nahradí platný až po schválení)</span>` : ""}<textarea class="input" id="concl" placeholder="Závěr a další postup, píše lékař (koncept, schvaluje se níže v části Projednání na MDT)" style="min-height:70px;margin-top:4px">${esc(pr.concl)}</textarea><p class="muted small" id="concldraft" style="margin:4px 0 0" ${pr.concl.trim() ? "" : "hidden"}>Koncept, zatím neschváleno. Schvaluje se níže v části Projednání na MDT.</p>` : ""}</div>`;
 }
-/* A workflow state never edits the finding or its sources. IDs are scoped to a patient. */
-const alertKey = (id, pid = S.pid) => `${pid}::${id}`;
-const alertState = id => S.alertStates[alertKey(id)] || { state: 'active' };
+/* Alert handling (round 25): "Vzít na vědomí" and "Vyřešeno", both reversible with "Vrátit". Every action is appended
+   to S.alertHist with who and when and written to the access log; nothing is edited or removed, and an alert's state is
+   its latest entry. A resolved alert moves to the collapsed "Vyřešené" list. */
+function alertState(pid, i) {
+  const h = S.alertHist.filter(x => x.pid === pid && x.i === i), last = h[h.length - 1];
+  const state = !last || last.action === "reopen" ? "open" : last.action;
+  return { state, last, hist: h };
+}
+const ALERT_ACT = { ack: ["vzal(a) upozornění na vědomí", "Vzal(a) na vědomí"], resolved: ["označil(a) upozornění jako vyřešené", "Vyřešil(a)"], reopen: ["vrátil(a) upozornění mezi otevřená", "Vrátil(a) mezi otevřená"] };
 function warningEntries(p = P(S.pid)) {
-  if (!p) return [];
-  if (p.full) return [
-    ...(CASE.flags || []).map((f, i) => ({ ...f, id: `flag:${i}`, i })),
-    ...(EXTRA.data_gaps_v3 || []).map((f, i) => ({ ...f, id: `gap:${i}`, relevant: true, based_on: f.refs || [] })),
-  ];
-  return (SYN_BY_FILE[p.file]?.data_gaps || []).map((f, i) => ({ ...f, id: `gap:${i}`, relevant: true, based_on: f.source ? [f.source] : [] }));
+  const d = caseDataOf(p); if (!d) return [];
+  return [...d.flags.map((f, i) => ({ ...f, i })), ...d.gaps.map((f, n) => ({ ...f, i: `gap:${n}`, relevant: false, based_on: f.refs || (f.source ? [f.source] : []) }))];
+}
+function warningArchive(items, compact = false) {
+  if (!items.length) return "";
+  return `<details class="srcs resolved" ${S.resolvedOpen ? "open" : ""}><summary>Vyřešené / vzaté na vědomí (${items.length})</summary><div class="alerts" style="margin-top:6px">${items.map(f => alertRow(f, compact)).join("")}</div></details>`;
+}
+function alertAct(i, action) {
+  const p = P(S.pid), f = warningEntries(p).find(x => x.i === i);
+  if (!f || !ALERT_ACT[action]) return;
+  const when = new Date().toLocaleString("cs-CZ", { day: "numeric", month: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" });
+  S.alertHist.push({ pid: p.file, i, action, who: S.user, when });
+  logAccess(p.file, `${ALERT_ACT[action][0]}: ${(ALERT[f.kind] || ALERT.unclear)[0]}`);
+  render();
 }
 function topAlerts() {
-  const all = warningEntries().filter(f => alertState(f.id).state === 'active');
-  return { top: all.filter(f => f.relevant), all };
-}
-function archivedAlerts() {
-  const hidden = warningEntries().filter(f => alertState(f.id).state !== 'active');
-  return hidden.length ? `<details class="srcs alert-archive"><summary>Vyřešená a vzatá na vědomí (${hidden.length})</summary><div class="alerts" style="margin-top:10px">${hidden.map(f => alertRow(f, false)).join('')}</div></details>` : '';
+  const all = warningEntries().map(f => ({ ...f, st: alertState(S.pid, f.i).state }));
+  const open = all.filter(f => f.st === "open");
+  return { top: open.filter(f => f.relevant), all, open, resolved: all.filter(f => f.st === "resolved"), archived: all.filter(f => f.st !== "open") };
 }
 function briefHtml(reg) {
   if (edOf("brief")) return ed("brief", briefPlain());
@@ -1783,12 +1822,11 @@ const srcLinks = refs => { const xs = refs || [], seen = {}; return xs.map(r => 
 /* The brief's toggle opens the alerts for the MDT question first (CLAUDE.md: question-relevant alerts first),
    then the brief's own data gaps; the full list stays in the "Upozornění" tab. */
 function gapsBox() {
-  const { top, all } = topAlerts(), rest = all.filter(f => !f.relevant);
-  return `<div class="brief-gaps">
-    <div class="row spread"><span class="label">Upozornění k dotazu na MDT</span><button class="linkbtn small" data-tab="alerts">Všechna upozornění</button></div>
-    <div class="alerts" style="margin-top:6px">${[...top, ...rest].map(f => alertRow(f, true)).join('') || '<p class="muted small">Žádná aktivní upozornění.</p>'}</div>
-    ${archivedAlerts()}
-    <div class="disclaim">Pozorování asistenta, ne klinický závěr. Stav upozornění nemění zdrojové podklady.</div></div>`;
+  const { top, open, archived } = topAlerts(), gaps = open.filter(f => String(f.i).startsWith("gap:"));
+  return `<div class="brief-gaps"><div class="row spread"><span class="label">Upozornění k dotazu na MDT</span><button class="linkbtn small" data-tab="alerts">Všechna upozornění</button></div>
+    <div class="alerts" style="margin-top:6px">${top.map(f => alertRow(f, true)).join("")}</div>
+    ${gaps.length ? `<span class="label" style="display:block;margin-top:12px">Chybějící a nejasné údaje ve stručném souhrnu</span><div class="alerts" style="margin-top:6px">${gaps.map(f => alertRow(f, true)).join("")}</div>` : ""}
+    ${warningArchive(archived, true)}<div class="disclaim">Pozorování asistenta, ne klinický závěr. Upozornění neblokují projednání.</div></div>`;
 }
 function briefBlock(p) {
   const reg = refRegistry();
@@ -1805,10 +1843,12 @@ function detailedCard(reg) {
   const rows = EXTRA.onco_detailed_v3 || [];
   const head = d ? `<p class="dxh">${reg.wrap(ed("dx", [d.histology_cs, d.grade_cs, d.tnm_cs].filter(Boolean).join(", ")), R3((d.refs || [])[0]))}${d.histology_date_cs ? ` <span class="muted" style="font-size:13px;font-weight:600" title="${esc(d.tnm_context_cs || "")}">(pTNM při diagnóze, ${esc(d.histology_date_cs.replace(/^\d+\./, "").replace(".", "/"))})</span>` : ""}${marks(d, "dx")}${(d.refs || []).map(i => reg.n(R3(i))).join("")}</p>
     <p class="dxs">${esc(d.mkn_cs || "")}</p>` : "";
-  return `<section class="card summary-card"><div class="head"><h2>Onkologický souhrn <button class="info" title="${esc(PIN_HELP)}" aria-label="${esc(PIN_HELP)}">i</button></h2></div>
-    <div class="summary-scroll" tabindex="0" role="region" aria-label="Onkologický souhrn, posuvný obsah">${head}
-    ${EXTRA.onco_compact_v3 ? compactRows(reg) : rows.map((r, i) => `<div class="orow" title="${KIND_CS[rowKind(r)] || ""}"><span class="dt">${esc(r.date_cs || r.date_label_cs || "")}</span><span><b>${reg.wrap(ed(`od:${i}:e`, r.event_cs), R3((r.refs || [])[0]))}</b>${r.comment_cs ? `<br>${ed(`od:${i}:c`, r.comment_cs)}` : ""}${marks(r, edOf(`od:${i}:e`) ? `od:${i}:e` : `od:${i}:c`)}${(r.refs || []).map(j => reg.n(R3(j))).join("")}</span></div>`).join("")}
-    ${srcList(reg)}</div></section>`;
+  /* The summary is long, so its body scrolls inside the card; on wide screens the card is as tall as "Aktuální stav
+     pacienta" next to it (round 25), on narrow screens it keeps the normal flow with a max height. */
+  return `<section class="card onco"><div class="head"><h2>Onkologický souhrn <button class="info" title="${esc(PIN_HELP)}" aria-label="${esc(PIN_HELP)}">i</button></h2></div>
+    <div class="ocbody" tabindex="0" role="region" aria-label="Onkologický souhrn, posuvný obsah">${head}
+    ${EXTRA.onco_compact_v3 ? compactRows(reg) : rows.map((r, i) => `<div class="orow" title="${KIND_CS[rowKind(r)] || ""}"><span class="dt">${esc(r.date_cs || r.date_label_cs || "")}</span><span><b>${reg.wrap(ed(`od:${i}:e`, r.event_cs), R3((r.refs || [])[0]))}</b>${r.comment_cs ? `<br>${ed(`od:${i}:c`, r.comment_cs)}` : ""}${marks(r, edOf(`od:${i}:e`) ? `od:${i}:e` : `od:${i}:c`)}${(r.refs || []).map(j => reg.n(R3(j))).join("")}</span></div>`).join("")}</div>
+    ${srcList(reg)}</section>`;
 }
 /* Compact clinician-style summary (Soňa, round 14): one short line per event, "St. p." for what was done,
    "Plánováno" for what is planned, then "Další diagnózy"; each line opens its first source.
@@ -1846,23 +1886,24 @@ function statusCard() {
   const tk = (vt.match(/krevní tlak ([\d/]+ ?mmHg)/) || [])[1], pulse = (vt.match(/pulz ([\d]+\/min)/) || [])[1], tt = (vt.match(/teplota ([\d,.]+ ?°C)/) || [])[1];
   const lead = `TK/P ${tk ? esc(tk) : "-"} / ${pulse ? esc(pulse) : "-"}${vit ? reg.mark(R3((vit.refs || [])[0])) : ""}, TT ${tt ? esc(tt) : DASH}, PS (ECOG) ${ecog ? edLink(`sp:${ecog.i}`, ecog.text_cs) + reg.mark(R3((ecog.refs || [])[0])) : DASH}`;
   const exam = `${sp.exam_title_cs || ""} · ${sp.exam_date_cs || "datum neuvedeno"}${sp.exam_date_note_cs ? ". " + sp.exam_date_note_cs : ""}`;
-  return `<section class="card status-card"><div class="head"><h2>Aktuální stav pacienta <button class="info" title="${esc(exam)}" aria-label="${esc(exam)}">i</button></h2></div>
+  return `<section class="card"><div class="head"><h2>Aktuální stav pacienta <button class="info" title="${esc(exam)}" aria-label="${esc(exam)}">i</button></h2></div>
     <div class="stc"><p><b>Subjektivně:</b> ${subjHtml}.</p>
       <p><b>Objektivně:</b> ${[lead, brain ? link(brain) : "", ...rest.map(link)].filter(Boolean).join("; ")}.</p></div>
     ${srcList(reg)}</section>`;
 }
 function alertRow(f, compact) {
-  const state = alertState(f.id), hidden = state.state !== 'active';
-  const note = String(f.note || '').replace(/^Pozorování asistenta[.:;,]?\s*/i, '').replace(/^./, c => c.toUpperCase());
-  const label = state.state === 'resolved' ? 'Vyřešeno' : 'Vzato na vědomí';
-  const kind = ALERT[f.kind] || ALERT.unclear;
-  return `<div class="alert ${hidden ? 'ack' : ''}" data-alert-id="${esc(f.id)}"><span class="chip plain ${kind[1]}">${kind[0]}</span>
+  const { state, last, hist } = alertState(S.pid, f.i), ack = state === "ack", done = state === "resolved";
+  /* Every alert list sits under a header saying the alerts are the assistant's observations, so the note's own
+     "Pozorování asistenta." prefix is dropped per row; the rest of the note stays. */
+  const note = String(f.note || "").replace(/^Pozorování asistenta[.:;,]?\s*/i, "").replace(/^./, c => c.toUpperCase());
+  const who = last && last.action !== "reopen" ? `<span class="why">${ALERT_ACT[last.action][1]} ${esc(last.who)}, ${esc(last.when)}</span>` : "";
+  const histHtml = !compact && hist.length ? `<details class="alhist"><summary>Historie (${hist.length})</summary><ul style="margin:4px 0 0;padding-left:18px">${hist.map(x => `<li>${esc(x.when)} · ${esc(x.who)} · ${ALERT_ACT[x.action][1].toLowerCase()}</li>`).join("")}</ul></details>` : "";
+  const btns = done ? `<button class="btn small" data-alact="reopen" data-ai="${f.i}">Vrátit</button>`
+    : `${ack ? `<button class="btn small" data-alact="reopen" data-ai="${f.i}">Vrátit</button>` : `<button class="btn small ackbtn" data-alact="ack" data-ai="${f.i}">Vzít na vědomí</button>`}<button class="btn small ackbtn" data-alact="resolved" data-ai="${f.i}">Vyřešeno</button>`;
+  return `<div class="alert ${ack || done ? "ack" : ""}" data-alert="${f.i}"><span class="chip plain ${ALERT[f.kind][1]}">${ALERT[f.kind][0]}</span>
     <span>${esc(f.text_cs)} ${srcLinks(f.based_on)}
-      ${!compact && note ? `<span class="why">${esc(note)}</span>` : ''}
-      ${hidden ? `<span class="why">${label} · ${esc(state.by)} · ${esc(state.when)}</span>` : ''}</span>
-    <span class="row alert-actions">${hidden
-      ? `<button class="btn small" data-alertstate="active" data-alertid="${esc(f.id)}">Vrátit mezi aktivní</button>`
-      : `<button class="btn small" data-alertstate="resolved" data-alertid="${esc(f.id)}">Vyřešeno</button><button class="btn small" data-alertstate="acknowledged" data-alertid="${esc(f.id)}">Vzít na vědomí</button>`}</span></div>`;
+      ${!compact && note ? `<span class="why">${esc(note)}</span>` : ""}${who}${histHtml}</span>
+    <span class="albtns">${btns}</span></div>`;
 }
 /* Rendering and source navigation share the same unsorted array, so filters cannot shift source indexes. */
 function timelineEvents() {
@@ -1870,31 +1911,42 @@ function timelineEvents() {
     ...e, kind: e.type, title_cs: e.label_cs, text_cs: e.label_cs, status: e.status || "done",
   }));
 }
+/* Exclusions make the initial view complete; changing one category never clears other choices. */
+function setTimelineCategory(id, include) {
+  if (id === "all") S.tlExcluded = new Set(include ? [] : EVENT_CATEGORIES.map(c => c.id));
+  else if (EVENT_CATEGORIES.some(c => c.id === id)) {
+    if (include) S.tlExcluded.delete(id);
+    else S.tlExcluded.add(id);
+  }
+}
 function timelineCard(inline) {
   const all = timelineEvents().map((c, i) => ({ ...c, i, category: categoryOf(c) }))
     .sort((a, b) => (a.date_sort ? 0 : 1) - (b.date_sort ? 0 : 1) || String(a.date_sort || "").localeCompare(String(b.date_sort || "")));
-  const cards = all.filter(c => S.tlCategory === "all" || c.category === S.tlCategory);
-  const filterButton = (id, label, count) => `<button type="button" class="tlfilter" data-tl-category="${id}" aria-pressed="${S.tlCategory === id}" ${count === 0 ? "disabled" : ""}>${id === "all" ? "" : icon(id)}<span>${esc(label)}</span><span class="tlcount">${count}</span></button>`;
+  const cards = all.filter(c => !S.tlExcluded.has(c.category));
+  const filterButton = (id, label, count) => {
+    const checked = id === "all" ? S.tlExcluded.size === 0 : !S.tlExcluded.has(id);
+    return `<label class="tlfilter ${checked ? "on" : ""}"><input type="checkbox" data-tl-category="${id}" ${checked ? "checked" : ""}>${id === "all" ? "" : icon(id)}<span>${esc(label)}</span><span class="tlcount">${count}</span></label>`;
+  };
   const filters = filterButton("all", "Vše", all.length) + EVENT_CATEGORIES.map(c => filterButton(c.id, c.label, all.filter(e => e.category === c.id).length)).join("");
   let lastYear = null, html = "";
   for (const c of cards) {
     const y = c.date_sort ? String(c.date_sort).slice(0, 4) : "Bez data";
     if (y !== lastYear) { html += `<div class="tlyear"><span>${esc(y)}</span></div>`; lastYear = y; }
-    const label = KIND_CS[c.category], note = [c.note_cs, c.ocr_note_cs].filter(Boolean).join(" ");
+    const label = KIND_CS[c.category], note = [c.note_cs, c.ocr_check?.mark === false ? "" : c.ocr_note_cs].filter(Boolean).join(" "); /* same test as ocrCleared */
     html += `<button type="button" class="ev kind-${c.category} ${c.status === "planned" ? "planned" : ""}" data-tl="${c.i}" aria-pressed="${S.selTl === c.i}">
       <span class="date">${esc(c.date || "Bez data")}${c.status === "planned" ? " · plán" : ""}</span><span class="pin">${icon(c.category)}</span>
       <span class="category">${esc(label)}</span><span class="t">${esc(c.title_cs)}${note ? ` <span class="mk obs" title="${esc(note)}" aria-label="${esc(note)}">i</span>` : ""}</span><span class="d">${esc(c.text_cs)}</span></button>`;
   }
   return `<section class="${inline ? "" : "card"}"><div class="head"><h2 style="${inline ? "font-size:14px" : ""}">Průběh onemocnění <button class="info" title="${esc(TL_HELP)}" aria-label="${esc(TL_HELP)}">i</button></h2></div>
     <div class="tlfilters" role="group" aria-label="Kategorie událostí">${filters}</div>
-    <div class="tlstatus" role="status">Zobrazeno ${cards.length} z ${all.length} událostí${S.tlCategory !== "all" ? ` · ${esc(KIND_CS[S.tlCategory])}` : ""}</div>
-    ${cards.length ? `<div class="tlbar" tabindex="0" role="region" aria-label="Časová osa průběhu onemocnění"><div class="tltrack">${html}</div></div>` : '<p class="muted small">V této kategorii nejsou zaznamenané události.</p>'}</section>`;
+    <div class="tlstatus" role="status">Zobrazeno ${cards.length} z ${all.length} událostí · ${EVENT_CATEGORIES.length - S.tlExcluded.size} z ${EVENT_CATEGORIES.length} kategorií</div>
+    ${cards.length ? `<div class="tlbar" tabindex="0" role="region" aria-label="Časová osa průběhu onemocnění"><div class="tltrack">${html}</div></div>` : `<p class="muted small">${S.tlExcluded.size === EVENT_CATEGORIES.length ? "Všechny kategorie jsou skryté. Zaškrtněte kategorii nebo Vše." : "Ve vybraných kategoriích nejsou zaznamenané události."}</p>`}</section>`;
 }
 function tabOverview() {
   const p = P(S.pid);
   if (p.full) loadGuidance(p);
   const reg = refRegistry();
-  return `<div class="grid2 overview-panels"><div class="stack">${detailedCard(reg)}</div><div class="stack">${statusCard()}</div></div>`;
+  return `<div class="grid2 ovgrid"><div class="stack ovleft">${detailedCard(reg)}</div><div class="stack">${statusCard()}</div></div>`;
 }
 const ANAM = [["OA", "Osobní anamnéza"], ["RA", "Rodinná anamnéza"], ["PA", "Pracovní anamnéza"], ["SA", "Sociální anamnéza"], ["FA", "Farmakologická anamnéza"], ["AA", "Alergologická anamnéza"], ["abusus", "Abúzus"], ["EA", "Epidemiologická anamnéza"], ["preventive", "Preventivní vyšetření"]];
 const A3 = () => EXTRA.anamnesis_v3 || {};
@@ -1999,24 +2051,28 @@ function tabLabs() {
   const head = [oneDate ? `<span>Datum odběru: ${dateCell(labs[0])}</span>` : "",
     oneSrc ? `<span>Zdroj: <button class="linkbtn small" data-src='${esc(JSON.stringify({ file: labs[0].source.file, page: labs[0].source.page }))}'>${esc(docTitle(labs[0].source))}, s.&nbsp;${esc(labs[0].source.page)}</button></span>` : ""].filter(Boolean).join(" · ");
   const name = l => `${esc(l.name_cs)} <span class="muted small">${esc(l.code || "")}</span>`;
+  /* The explanation lines sit in a collapsed "Zdroje" at the bottom, as on the other cards (round 25): the table comes first. */
   return `<section class="card"><div class="head"><h2>Laboratoř · Hodnoty z dokumentu</h2></div>
-    <p class="small" style="margin:0 0 6px">${esc(CASE.labs_note_cs)}</p>
-    ${head ? `<p class="small muted" style="margin:0 0 10px">Pro všechny hodnoty: ${head}${oneSrc ? ". Klik na název parametru otevře jeho řádek ve zdroji." : ""}</p>` : ""}
     <div class="scroll labscroll"><table class="tbl"><thead><tr><th>Parametr</th><th>Hodnota</th><th>Jednotka</th><th>Referenční mez</th>${oneDate ? "" : "<th>Datum odběru</th>"}${oneSrc ? "" : "<th>Zdroj</th>"}</tr></thead>
     <tbody>${labs.map(l => `<tr><td>${oneSrc ? `<span class="srcl" data-src='${esc(JSON.stringify(l.source))}' title="Otevřít zdroj">${name(l)}</span>` : name(l)}${marks(l)}</td>
       <td class="num" style="${l.out_of_range ? `color:var(--${l.out_of_range === "high" ? "conflict" : "change"});font-weight:700` : ""}">${esc(l.value)} ${l.out_of_range === "high" ? "↑" : l.out_of_range === "low" ? "↓" : ""}</td>
       <td>${esc(l.unit)}</td><td class="num">${esc(l.reference_range)}</td>${oneDate ? "" : `<td class="muted">${dateCell(l)}</td>`}
       ${oneSrc ? "" : `<td><button class="linkbtn small" data-src='${esc(JSON.stringify(l.source))}'>s. ${esc(l.source.page)}</button></td>`}</tr>`).join("")}</tbody></table></div>
-    <p class="muted small" style="margin:10px 0 0">Vývoj v čase se ukazuje jen tam, kde dokumentace obsahuje alespoň dva datované odběry; zde je jedna sada bez data odběru.</p></section>`;
+    <details class="srcs labsrcs"><summary>Zdroje</summary>
+      <p class="small" style="margin:6px 0">${esc(CASE.labs_note_cs)}</p>
+      ${head ? `<p class="small muted" style="margin:0 0 6px">Pro všechny hodnoty: ${head}${oneSrc ? ". Klik na název parametru otevře jeho řádek ve zdroji." : ""}</p>` : ""}
+      <p class="muted small" style="margin:0">Vývoj v čase se ukazuje jen tam, kde dokumentace obsahuje alespoň dva datované odběry; zde je jedna sada bez data odběru.</p></details></section>`;
 }
 function tabAlerts() {
-  const { top, all } = topAlerts(), rest = all.filter(f => !f.relevant);
-  const groups = ['contradiction', 'missing', 'change', 'unclear'];
+  const groups = ["contradiction", "missing", "chronology", "unclear"];
+  /* Alerts for the MDT question come first (CLAUDE.md), then the rest grouped by kind; headings carry no counts.
+     Resolved alerts sit in a collapsed list at the bottom; its summary shows how many, as a list length, not a score. */
+  const { top, open, archived } = topAlerts(), rest = open.filter(f => !f.relevant);
   return `<section class="card"><div class="head"><h2>Upozornění</h2><span class="muted small">Pozorování asistenta, ne klinický závěr. Upozornění neblokují projednání.</span></div>
-    ${top.length ? `<h3 style="margin:14px 0 6px">K dotazu na MDT</h3><div class="alerts">${top.map(f => alertRow(f, false)).join('')}</div>` : ''}
-    ${groups.map(g => { const items = rest.filter(f => f.kind === g); return items.length ? `<h4 style="margin:10px 0 6px;font-size:13px">${ALERT[g][0]}, další</h4><div class="alerts">${items.map(f => alertRow(f, false)).join('')}</div>` : ''; }).join('')}
-    ${!all.length ? '<p class="muted small">Žádná aktivní upozornění.</p>' : ''}
-    ${archivedAlerts()}</section>`;
+    ${top.length ? `<h3 style="margin:14px 0 6px">K dotazu na MDT</h3><div class="alerts">${top.map(f => alertRow(f, false)).join("")}</div>` : ""}
+    ${rest.length ? `<h3 style="margin:18px 0 0">Ostatní upozornění</h3>` : ""}
+    ${groups.map(g => { const items = rest.filter(f => f.kind === g); return items.length ? `<h4 style="margin:10px 0 6px;font-size:13px">${ALERT[g][0]}, další</h4><div class="alerts">${items.map(f => alertRow(f, false)).join("")}</div>` : ""; }).join("")}
+    ${warningArchive(archived)}</section>`;
 }
 /* ---------- Personál pracoviště (round 23) ---------- */
 /* The coordinator and the admin edit the staff list; doctors read it. */
@@ -2039,16 +2095,15 @@ function viewStaff() {
       <div class="srow sadd"><span class="label">Nová osoba</span>${SF.map(([f, l, ph]) => `<input class="input" data-newin="${esc(d.id)}" data-sf="${f}" placeholder="${esc(ph)}" aria-label="${esc(l)} (nová osoba, ${esc(d.name)})">`).join("")}
         <button class="btn small primary" data-staffadd="${esc(d.id)}">+ Přidat</button></div>`
     : `<ul class="slist">${d.people.map(x => staffRow(x, false)).join("") || `<li class="muted small">Zatím nikdo.</li>`}</ul>`}</section>`;
-  return `<div class="page"><div class="pagehead"><div><h1>Personál pracoviště</h1><div class="muted small">Lékaři podle pracovišť pro docházku na MDT a výběr uživatele · zobrazení: titul před, příjmení, titul za</div></div>
+  return `<div class="page"><div class="pagehead"><div><h1>Personál pracoviště</h1><div class="muted small">Lékaři podle pracovišť pro docházku na MDT a výběr uživatele</div></div>
       ${edit ? `<button class="btn" data-act="staffreset">Obnovit výchozí (smyšlená jména)</button>` : ""}</div>
-    <p class="small staffnote">Jména se ukládají jen v tomto prohlížeči; v reálné aplikaci personál spravuje nastavení pracoviště nemocnice.</p>
     ${edit ? `<p class="muted small">Odebraná osoba zůstává v historii: v dřívějších závěrech, docházce a záznamu přístupů se jméno nemění. Přejmenování se promítne do otevřených úloh, vlastníků případů a docházky, kterou ještě neuzamklo schválení závěru.</p>`
       : `<p class="muted small">Seznam upravuje koordinátorka MDT nebo správce systému; lékař ho jen čte.</p>`}
     <section class="card staffdept"><div class="head"><h2>Koordinátorka onkologických MDT</h2></div>
       ${edit ? head + staffRow(STAFF.coord, true, false) : `<ul class="slist">${staffRow(STAFF.coord, false)}</ul>`}</section>
     ${STAFF.depts.map(dept).join("")}
     ${edit ? `<section class="card"><div class="head"><h2>Přidat pracoviště</h2></div><div class="row"><input class="input" id="newdept" placeholder="Název pracoviště" aria-label="Název nového pracoviště" style="flex:1;min-width:0"><button class="btn small primary" data-act="staffadddept">+ Přidat pracoviště</button></div></section>` : ""}
-    <p class="muted small">Demo nemá přihlášení: role je zvolená v pravém horním rohu. Změny seznamu se zapisují do záznamu přístupů (kdo co změnil, bez údajů o pacientech).</p></div>`;
+    <p class="muted small">Změny seznamu se zapisují do záznamu přístupů (kdo co změnil, bez údajů o pacientech).</p></div>`;
 }
 /* id -> displayed name for every person and the coordinator, to tell renames from removals after a change. */
 const staffIds = () => Object.fromEntries([[STAFF.coord.id, staffName(STAFF.coord)], ...STAFF.depts.flatMap(d => d.people.map(x => [x.id, staffName(x)]))]);
@@ -2119,13 +2174,15 @@ function viewAdmin() {
       <ul class="hist">${S.editLog.slice().reverse().map(e => `<li class="small"><b>${esc(P(e.pid)?.id || e.pid)}</b> · ${esc(e.by)} · ${esc(e.when)}${e.confirmed ? ` · <b>potvrdil(a) návrh otázky</b><br>Návrh asistenta beze změny: <span class="muted">${esc(e.orig)}</span>` : `${e.reverted ? " · <b>vráceno na původní</b>" : ""}<br>Původně: <span class="muted">${esc(e.orig || GAP)}</span>${e.reverted ? "" : `<br>Nově: ${esc(e.text)}`}`}</li>`).join("") || `<li class="muted small">Zatím žádné úpravy. Záznam vznikne, když lékař v případu pacienta opraví údaj tužkou ✎.</li>`}</ul></section>
     <p class="muted small">Role správce zde slouží jen k náhledu záznamu; v reálné aplikaci by správce neměl přístup ke klinickému obsahu případů. Záznam se v maketě drží jen v paměti prohlížeče. V reálné aplikaci by byl na serveru nemocnice, neměnný a s dobou uchování podle předpisů FNO.</p></div>`;
 }
+/*PROGNOSIS_JS*/
+
 function viewPatient() {
   const p = P(S.pid);
   if (p.full) loadGuidance(p);
   if (!p.full) return viewPatientLite(p);
-  const tabs = [["overview", "Přehled"], ["anamnesis", "Anamnéza"], ["documents", "Dokumenty"], ["labs", "Laboratoř"], ["alerts", "Upozornění"], ["next", "Navrhovaný postup"], ["dev", "Retrospektivní odchylky"]];
+  const tabs = [["overview", "Přehled"], ["anamnesis", "Anamnéza"], ["documents", "Dokumenty"], ["labs", "Laboratoř"], ["alerts", "Upozornění"], ["next", "Navrhovaný postup"], ["dev", "Retrospektivní odchylky"], ["prognosis", "Prognóza"]];
   if (!tabs.some(t => t[0] === S.tab)) S.tab = "overview";
-  const body = { overview: tabOverview, anamnesis: tabAnamnesis, documents: tabDocuments, labs: tabLabs, alerts: tabAlerts, next: tabNext, dev: tabDev }[S.tab]();
+  const body = { overview: tabOverview, anamnesis: tabAnamnesis, documents: tabDocuments, labs: tabLabs, alerts: tabAlerts, next: tabNext, dev: tabDev, prognosis: () => tabPrognosis(p) }[S.tab]();
   return `<div class="page">
     ${sessionBar(p)}
     <div class="row"><button class="linkbtn" data-nav="patients">‹ Databáze pacientů</button></div>
@@ -2134,7 +2191,8 @@ function viewPatient() {
     <div class="tabs" role="tablist">${tabs.map(([k, t]) => `<button class="tab" role="tab" data-tab="${k}" aria-selected="${S.tab === k}">${t}</button>`).join("")}</div>
     ${body}</div>`;
 }
-/* Proposed management contains the plan and guideline passages; both deviation tables live in the deviations tab. */
+/* Proposed management, the guideline layer and the MDT's deviations table in one tab (round 21): the table compares
+   the plan with the statements quoted just above it. Past decisions live in the "Retrospektivní odchylky" tab. */
 function tabNext() {
   const p = P(S.pid);
   return `<section class="card blk">${proposalBox(p)}${guideBox()}</section>`;
@@ -2203,27 +2261,27 @@ function viewPatientLite(p) {
   const syn = SYN_BY_FILE[p.file];
   /* A synthetic patient (samples/S<nn>_pacient) has its documents, data gaps and lab series processed, so it gets the
      missing-document signal, the gaps one click away and the Dokumenty and Laboratoř tabs; its summary is the list's. */
-  const tabs = syn ? [["documents", "Dokumenty"], ["labs", "Laboratoř"]] : [];
-  if (syn && !tabs.some(t => t[0] === S.tab)) S.tab = "documents";
+  const tabs = [...(syn ? [["documents", "Dokumenty"], ["labs", "Laboratoř"]] : []), ["prognosis", "Prognóza"]];
+  if (!tabs.some(t => t[0] === S.tab)) S.tab = tabs[0][0];
   const chip = syn ? `<span class="chip plain st-new">Zpracováno: dokumenty, chybějící podklady, laboratoř</span>${gapsToggle(p)}`
     : `<span class="chip plain st-new">V maketě nezpracováno</span>${hasMissing(p) === null ? uncheckedSignal() : ""}`;
   return `<div class="page">${sessionBar(p)}<div class="row"><button class="linkbtn" data-nav="patients">‹ Databáze pacientů</button></div>
     ${patientHeader(p, headerActions(p), true)}
-    <section class="card blk"><div class="head" style="margin:0"><h2>Stručný přehled</h2><span class="row">${chip}</span></div>
+    <section class="card blk"><div class="head" style="margin:0"><h2>Stručný souhrn</h2><span class="row">${chip}</span></div>
       ${syn && S.gapsOpen ? synGapsBox(syn) : ""}
       <p class="prose">${esc(p.summary || "")}</p>
       <p class="muted small" style="margin:0">${syn ? `${esc(syn.note_cs || "")} Zdroj: ${esc(p.file)}, ${p.pages || "?"} s.` : `Plně zpracovaný je v maketě případ NO-010. Zdroj: ${esc(p.file)}, ${p.pages || "?"} s.`}</p>
       ${conclusionBox(p)}
       ${mdtCard(p)}</section>
-    ${syn ? `<div class="tabs" role="tablist">${tabs.map(([k, t]) => `<button class="tab" role="tab" data-tab="${k}" aria-selected="${S.tab === k}">${t}</button>`).join("")}</div>
-    ${{ documents: tabDocuments, labs: tabLabs }[S.tab]()}` : ""}</div>`;
+    ${`<div class="tabs" role="tablist">${tabs.map(([k, t]) => `<button class="tab" role="tab" data-tab="${k}" aria-selected="${S.tab === k}">${t}</button>`).join("")}</div>
+    ${{ documents: tabDocuments, labs: tabLabs, prognosis: () => tabPrognosis(p) }[S.tab]()}`}</div>`;
 }
 /* Missing documents of a synthetic patient, each with the passage that shows the gap (always on, CLAUDE.md). */
 function synGapsBox(syn) {
-  const { all } = topAlerts();
+  const { open, archived } = topAlerts();
   return `<div class="brief-gaps"><span class="label">Chybějící a nejasné podklady</span>
-    <div class="alerts" style="margin-top:6px">${all.map(f => alertRow(f, true)).join('') || '<p class="muted small">Žádná aktivní upozornění.</p>'}</div>
-    ${archivedAlerts()}<div class="disclaim">Pozorování asistenta, ne klinický závěr. Stav upozornění nemění zdrojové podklady.</div></div>`;
+    <div class="alerts" style="margin-top:6px">${open.map(f => alertRow(f, true)).join("") || `<p class="muted small">Žádná aktivní upozornění.</p>`}</div>
+    ${warningArchive(archived, true)}<div class="disclaim">Pozorování asistenta, ne klinický závěr. Upozornění neblokují projednání.</div></div>`;
 }
 /* Header actions: scheduling, starting the MDT for this case's day, and the report. The report button is the
    only place it is offered: it opens a small dialog with the fields for the report, the preview and the download
@@ -2270,7 +2328,7 @@ function attGrid(day) {
   const a = attFor(day);
   return `<div class="att">${DEPTS.map(([d, docs]) => a[d].map((v, k) => `<span class="dept">${k === 0 ? d : ""}</span>
     <select class="input" data-att="${esc(d)}" data-day="${esc(day)}" data-k="${k}" aria-label="${esc(d)}"><option value="">vyberte…</option>${docs.map(x => `<option ${v === x ? "selected" : ""} ${a[d].includes(x) && v !== x ? "disabled" : ""}${staffTip(x)}>${esc(x)}</option>`).join("")}</select>
-    ${k === 0 ? `<button class="btn small" data-addatt="${esc(d)}" data-day="${esc(day)}" ${a[d].length >= docs.length ? "disabled" : ""}>+ další</button>` : `<button class="btn small" data-delatt="${esc(d)}" data-day="${esc(day)}" data-k="${k}" aria-label="Odebrat řádek" title="Odebrat řádek">✕</button>`}`).join("")).join("")}</div>`;
+    ${k === 0 ? `<button class="btn" data-addatt="${esc(d)}" data-day="${esc(day)}" ${a[d].length >= docs.length ? "disabled" : ""}>+ další</button>` : `<button class="btn" data-delatt="${esc(d)}" data-day="${esc(day)}" data-k="${k}" aria-label="Odebrat řádek ${esc(d)}">− odebrat</button>`}`).join("")).join("")}</div>`;
 }
 const presentList = (day = attDay()) => Object.values(attFor(day)).flat().filter(Boolean);
 /* A doctor is a staff member whose title contains "MUDr." (derived in applyStaff). */
@@ -2383,7 +2441,9 @@ function recMessage(m, ws) {
     let cur = null;
     for (const w of m.words || []) {
       if (w.type !== "word") continue;
-      const t = ws.base + (w.start ?? 0), pid = spanPid(ws.ses, t); if (!pid) { cur = null; continue; }
+      const t = ws.base + (w.start ?? 0), pid = spanPid(ws.ses, t), wall = ws.ses.t0 + t * 1000;
+      /* A sentence committed late may cover speech the speaker pass already holds; keep one version. */
+      if (!pid || txOf(pid).passes.some(x => x.state === "done" && wall <= x.when)) { cur = null; continue; }
       if (!cur || cur.pid !== pid) { cur = { pid, wall: ws.ses.t0 + t * 1000, text: [] }; txOf(pid).lines.push(cur); }
       cur.text.push(w.text);
     }
@@ -2434,7 +2494,7 @@ async function recPostPass(pid, retry = null) {
   const segs = pass.segs; pass.state = "running"; recUI();
   try {
     const marks = []; let at = 0; for (const sg of segs) { marks.push({ at, wall: sg.wall }); at += sg.chunks.reduce((a, c) => a + c.length, 0) / REC_RATE; }
-    if (at < 0.5) { pass.state = "empty"; delete pass.segs; recUI(); return; }
+    if (at < 0.5) { pass.state = "empty"; delete pass.segs; recUI(); recSummarize(pid); return; }
     const fd = new FormData();
     fd.append("file", wavOf(segs.flatMap(sg => sg.chunks)), "mdt.wav"); fd.append("model_id", "scribe_v2"); fd.append("language_code", "cs");
     fd.append("diarize", "true"); fd.append("timestamps_granularity", "word");
@@ -2449,34 +2509,54 @@ async function recPostPass(pid, retry = null) {
       if (!cur || cur.spk !== spk[s]) { cur = { spk: spk[s], wall: m.wall + ((w.start ?? 0) - m.at) * 1000, text: [] }; pass.lines.push(cur); }
       cur.text.push(w.text);
     }
-    pass.state = "done"; delete pass.segs;
+    /* The speaker version replaces the live text it covers (everything said before this approval). */
+    tx.lines = [...tx.lines.filter(l => l.wall > pass.when), ...pass.lines].sort((a, b) => a.wall - b.wall);
+    pass.state = "done"; delete pass.segs; delete pass.lines;
     logAccess(pid, "AI záznam: rozlišení mluvčích po schválení závěru, zvuk smazán");
-  } catch (err) { pass.state = "error"; pass.err = err.message; }
+  } catch (err) { pass.state = "error"; pass.err = err.message; recUI(); return; }
+  recUI(); recSummarize(pid);
+}
+/* Third pass: one or two sentences in the manner of an MDT conclusion (decisions, next steps), from the transcript
+   only. It is a draft for the doctor, like everything the assistant writes; the conclusion stays the doctor's.
+   Works on the deployed site, where /api/summarize exists; opened from a file, the summary fails and says so. */
+async function recSummarize(pid) {
+  const tx = S.rec.tx[pid]; if (!tx?.lines.length) return;
+  const transcript = tx.lines.map(l => `${l.spk != null ? `Mluvčí ${l.spk + 1}: ` : ""}${l.text.join(" ")}`).join("\n");
+  tx.summary = { state: "running" }; recUI();
+  try {
+    /* Same-origin Cloudflare Pages Function (mocks/functions/api/summarize.js); it holds the model key and prompt. */
+    const r = await fetch("/api/summarize", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ transcript }) });
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const out = (await r.json()).summary || "";
+    tx.summary = { state: "done", text: out.trim(), when: Date.now() };
+    logAccess(pid, "AI záznam: shrnutí diskuse");
+  } catch (err) { tx.summary = { state: "error", err: err.message }; }
   recUI();
 }
-function recLinesHtml(lines, speakers) {
-  return lines.map(l => `<div class="ln"><span class="tm">${hhmm(l.wall)}</span><span>${speakers ? `<span class="spk sp${l.spk % 5}">Mluvčí ${l.spk + 1}:</span>` : ""}${esc(l.text.join(" "))}</span></div>`).join("");
+function recLinesHtml(lines) {
+  return lines.map(l => `<div class="ln"><span class="tm">${hhmm(l.wall)}</span><span>${l.spk != null ? `<span class="spk sp${l.spk % 5}">Mluvčí ${l.spk + 1}:</span>` : ""}${esc(l.text.join(" "))}</span></div>`).join("");
 }
 function recTxHtml(pid) {
   const tx = S.rec.tx[pid], live = S.rec.on && recTarget() === pid && S.rec.partial;
   return (tx ? recLinesHtml(tx.lines) : "") + (live ? `<div class="ln"><span class="tm">${hhmm(Date.now())}</span><span class="partial">${esc(S.rec.partial)}…</span></div>` : "");
 }
+/* Above the transcript: the summary, and a short line while a pass runs or after it failed. */
 function recPassesHtml(pid) {
-  const tx = S.rec.tx[pid]; if (!tx?.passes.length) return "";
-  return tx.passes.map((ps, i) => `<div class="recpass"><div class="row spread"><b class="small">Přepis podle mluvčích${tx.passes.length > 1 ? ` (${i + 1})` : ""}</b><span class="muted small">${hhmm(ps.when)}</span></div>
-    ${ps.state === "running" ? `<p class="muted small" style="margin:6px 0 0">Rozlišuji mluvčí…</p>`
-    : ps.state === "error" ? `<p class="small" style="margin:6px 0 0">Rozlišení mluvčích selhalo (${esc(ps.err)}). Zvuk zůstává v paměti stránky. <button class="linkbtn small" data-recretry="${i}">Zkusit znovu</button></p>`
-    : ps.state === "purged" ? `<p class="muted small" style="margin:6px 0 0">Zvuk byl smazán bez rozlišení mluvčích.</p>`
-    : ps.state === "empty" ? `<p class="muted small" style="margin:6px 0 0">Záznam byl příliš krátký.</p>`
-    : `<div class="rectx">${recLinesHtml(ps.lines, true)}</div><p class="muted small" style="margin:4px 0 0">Mluvčí jsou očíslovaní v rámci tohoto případu, bez jmen. Zvuk byl po zpracování smazán.</p>`}</div>`).join("");
+  const tx = S.rec.tx[pid]; if (!tx) return "";
+  const sm = tx.summary, ps = tx.passes.map((x, i) => [x, i]);
+  return ps.filter(([x]) => x.state === "running").map(() => `<p class="muted small" style="margin:10px 0 0">Rozlišuji mluvčí…</p>`).join("")
+    + ps.filter(([x]) => x.state === "error").map(([x, i]) => `<p class="small" style="margin:10px 0 0">Rozlišení mluvčích selhalo (${esc(x.err)}). <button class="linkbtn small" data-recretry="${i}">Zkusit znovu</button></p>`).join("")
+    + (sm?.state === "running" ? `<p class="muted small" style="margin:10px 0 0">Shrnuji diskusi…</p>`
+      : sm?.state === "error" ? `<p class="small" style="margin:10px 0 0">Shrnutí selhalo (${esc(sm.err)}).</p>`
+      : sm?.state === "done" ? `<div class="recsum"><span class="chip plain st-new">Shrnutí AI</span> ${esc(sm.text)}</div>` : "");
 }
 function recState(p) {
   const r = S.rec;
   if (r.status === "connecting") return "Připojuji…";
   if (!r.on) return "Záznam je vypnutý.";
-  if (recTarget() === p.file) return `<span class="recdot"></span>Přepis se ukládá k tomuto pacientovi.`;
-  return ensureProto(p).state === "approved" ? "Záznam běží, ale závěr tohoto pacienta je schválen; přepis se mu už nepřidává."
-    : S.session && !inSession(p) ? "Záznam běží, ale pacient není na programu probíhajícího MDT; přepis se mu nepřidává." : "Záznam běží.";
+  if (recTarget() === p.file) return `<span class="recdot"></span>Nahrávám.`;
+  return ensureProto(p).state === "approved" ? "Záznam běží, závěr pacienta je schválen."
+    : S.session && !inSession(p) ? "Záznam běží, pacient není na programu MDT." : "Záznam běží.";
 }
 function recCtlHtml(p) {
   const r = S.rec;
@@ -2487,13 +2567,18 @@ function recCtlHtml(p) {
 function recPanel(p) {
   const r = S.rec;
   return `<div id="recctl">${recCtlHtml(p)}</div>
-    <div class="rectx" id="rectx" data-pid="${esc(p.file)}" aria-live="polite">${recTxHtml(p.file)}</div>
-    <div id="recpasses">${recPassesHtml(p.file)}</div>
-    <p class="muted small" style="margin:8px 0 0">Ukázka: zvuk se posílá do ElevenLabs Scribe v2 (cloud mimo FNO), proto jen smyšlené rozhovory. V provozu přepisuje interní server ve FNO (např. Whisper). Zvuk se drží jen v paměti stránky, do rozlišení mluvčích po schválení závěru, nejdéle do ukončení MDT. Přepis je jen pomůcka k zápisu, závěr píše lékař.</p>`;
+    <div id="recbody" data-pid="${esc(p.file)}">${recBodyHtml(p.file)}</div>`;
+}
+/* Once the summary exists it leads, and the transcript it came from folds into a closed panel. */
+function recBodyHtml(pid) {
+  const done = S.rec.tx[pid]?.summary?.state === "done", tx = `<div class="rectx" id="rectx" data-pid="${esc(pid)}" aria-live="polite">${recTxHtml(pid)}</div>`;
+  return `<div id="recpasses">${recPassesHtml(pid)}</div>${done ? `<details class="srcs" style="margin-top:8px"><summary>Přepis diskuse</summary>${tx}</details>` : tx}`;
 }
 /* Live updates touch only the transcript and the header pill; a full render would steal focus from a doctor
    typing the conclusion. */
 function recUI() {
+  const body = document.getElementById("recbody");
+  if (body && body.dataset.sum !== String(S.rec.tx[body.dataset.pid]?.summary?.state)) { body.dataset.sum = String(S.rec.tx[body.dataset.pid]?.summary?.state); body.innerHTML = recBodyHtml(body.dataset.pid); }
   const el = document.getElementById("rectx");
   if (el) { const atEnd = el.scrollTop + el.clientHeight >= el.scrollHeight - 30; el.innerHTML = recTxHtml(el.dataset.pid); if (atEnd) el.scrollTop = el.scrollHeight; }
   const ps = document.getElementById("recpasses"); if (ps && el) ps.innerHTML = recPassesHtml(el.dataset.pid);
@@ -2581,7 +2666,7 @@ function reportHtml(p, pr, present) {
   const line = f => `<li>${f.date ? esc(f.date) + ": " : ""}${esc(f.text_cs)}${esc(tagsText(f))}<span class="src">${refTxt(f.source)}</span></li>`;
   /* Report anamnesis (Soňa, round 2): diagnoses stand out in bold, qualifiers stay plain text. */
   const A = A3();
-  const mt = f => (f.negated ? " [zápor v dokumentu]" : "") + (f.ocr_note_cs || f.certainty === "unclear_ocr" ? " [ověřit čtení]" : "") + (f.certainty === "inferred" ? " [pozorování asistenta]" : "")
+  const mt = f => (f.negated ? " [zápor v dokumentu]" : "") + ((f.ocr_note_cs || f.certainty === "unclear_ocr") && !ocrCleared(f) ? " [ověřit čtení]" : "") + (f.certainty === "inferred" ? " [pozorování asistenta]" : "")
     + (f.certainty === "conflicting" ? ` [rozpor mezi dokumenty${f.note_cs ? ": " + f.note_cs : ""}]` : "") + (f.change_status === "planned_unconfirmed" ? " [plánováno, neověřeno]" : "");
   const rf = f => (f.refs || []).map(j => `<span class="src">${refTxt(R3(j))}</span>`).join("");
   const anyEd = keys => keys.some(k => edOf(k, p.file));
@@ -3062,6 +3147,60 @@ function fhirHtml(o) {
     <div class="row"><button class="btn primary" data-act="fhirdl">Stáhnout JSON</button><button class="btn" data-act="fhircopy">Kopírovat</button></div>
     <pre style="margin:0;max-height:46vh;overflow:auto;background:var(--sunk);border-radius:6px;padding:10px;font-size:12px;white-space:pre-wrap;overflow-wrap:anywhere">${esc(fhirJson(o.bundle))}</pre></div>`;
 }
+/* ---------- Import of a referral from FHIR into "Nový pacient" ----------
+   The form's fields are the FHIR referral: Patient (name, birth number), Coverage with the insurer, and the
+   ServiceRequest with its requester (doctor, workplace, contacts), note (history) and reason (question for the MDT).
+   Identifier systems follow the Czech core guide (hl7.fhir.cz.core 1.0.0). The GDPR consent is never imported:
+   a person ticks it. Fields the data does not hold stay as they were and are listed, never guessed. */
+const SID = { rc: "https://ncez.mzcr.cz/fhir/sid/rcis", kp: "https://ncez.mzcr.cz/fhir/sid/kp" };
+const FHIR_SAMPLE = { resourceType: "Bundle", type: "collection", entry: [
+  { fullUrl: "urn:uuid:pat-1", resource: { resourceType: "Patient", identifier: [{ system: SID.rc, value: "715309/1236" }], name: [{ family: "Ukázková", given: ["Alena"] }], gender: "female", birthDate: "1971-03-09" } },
+  { fullUrl: "urn:uuid:vzp-1", resource: { resourceType: "Organization", identifier: [{ system: SID.kp, value: "111" }], name: "Všeobecná zdravotní pojišťovna ČR" } },
+  { fullUrl: "urn:uuid:cov-1", resource: { resourceType: "Coverage", status: "active", beneficiary: { reference: "urn:uuid:pat-1" }, payor: [{ reference: "urn:uuid:vzp-1" }] } },
+  { fullUrl: "urn:uuid:org-1", resource: { resourceType: "Organization", name: "Nemocnice Havířov, neurologie" } },
+  { fullUrl: "urn:uuid:role-1", resource: { resourceType: "PractitionerRole", practitioner: { display: "MUDr. Petr Ukázkový" }, organization: { reference: "urn:uuid:org-1" }, telecom: [{ system: "email", value: "neurologie@example.org" }, { system: "phone", value: "+420 596 000 000" }] } },
+  { fullUrl: "urn:uuid:sr-1", resource: { resourceType: "ServiceRequest", status: "active", intent: "order", subject: { reference: "urn:uuid:pat-1" }, requester: { reference: "urn:uuid:role-1" },
+    reasonCode: [{ text: "Indikace k resekci ložiska v levém temporálním laloku?" }], note: [{ text: "Dva týdny bolesti hlavy a porucha řeči, MR mozku 10/2026 s ložiskem vlevo temporálně." }] } },
+] };
+function fhirToForm(json) {
+  const res = json.resourceType === "Bundle" ? (json.entry || []).map(e => ({ url: e.fullUrl, r: e.resource })).filter(x => x.r) : [{ url: "", r: json }];
+  const byRef = ref => ref && res.find(x => x.url === ref || `${x.r.resourceType}/${x.r.id}` === ref)?.r;
+  const one = t => res.find(x => x.r.resourceType === t)?.r;
+  const pat = one("Patient"); if (!pat) throw new Error("V datech chybí Patient.");
+  const out = {}, nm = (pat.name || []).find(n => n.use === "official") || (pat.name || [])[0];
+  if (nm?.given?.length) out.nf0 = nm.given.join(" ");
+  if (nm?.family) out.nf1 = nm.family;
+  const rc = (pat.identifier || []).find(i => i.system === SID.rc)?.value; if (rc) out.nf2 = rc;
+  const cov = one("Coverage"), payor = cov && (byRef(cov.payor?.[0]?.reference) || null);
+  const kp = (payor?.identifier || []).find(i => i.system === SID.kp)?.value || cov?.payor?.[0]?.identifier?.value; if (kp) out.nf3 = kp;
+  const sr = one("ServiceRequest"), req = sr && byRef(sr.requester?.reference);
+  const doc = req?.resourceType === "PractitionerRole" ? (byRef(req.practitioner?.reference) || req.practitioner) : req?.resourceType === "Practitioner" ? req : sr?.requester;
+  const docName = doc?.name ? [doc.name[0]?.prefix, doc.name[0]?.given, doc.name[0]?.family].flat().filter(Boolean).join(" ") : doc?.display; if (docName) out.nf4 = docName;
+  const org = req?.resourceType === "PractitionerRole" ? (byRef(req.organization?.reference) || req.organization) : req?.resourceType === "Organization" ? req : null;
+  const orgName = org?.name || org?.display; if (orgName) out.nf5 = orgName;
+  const tel = [...(req?.telecom || []), ...(doc?.telecom || [])];
+  const mail = tel.find(t => t.system === "email")?.value, phone = tel.find(t => t.system === "phone")?.value;
+  if (mail) out.nf6 = mail; if (phone) out.nf7 = phone;
+  const note = (sr?.note || []).map(n => n.text).filter(Boolean).join("\n"); if (note) out.nfa = note;
+  const why = (sr?.reasonCode || []).map(c => c.text || c.coding?.[0]?.display).filter(Boolean).join("; "); if (why) out.nfq = why;
+  const found = ["Patient", cov && "Coverage", sr && "ServiceRequest"].filter(Boolean);
+  return { out, found };
+}
+const NF_LABELS = { nf0: "jméno", nf1: "příjmení", nf2: "rodné číslo", nf3: "pojišťovna", nf4: "lékař", nf5: "pracoviště", nf6: "e-mail", nf7: "telefon", nfa: "anamnéza", nfq: "otázka pro MDT" };
+function readNewForm(o) {
+  const v = id => document.getElementById(id)?.value.trim() ?? o.form?.[id] ?? "";
+  o.form = { ...Object.fromEntries(Object.keys(NF_LABELS).map(k => [k, v(k)])), nfg: document.getElementById("nfg")?.checked ?? !!o.form?.nfg };
+}
+function fhirImport(o, text) {
+  try {
+    const { out, found } = fhirToForm(JSON.parse(text));
+    Object.assign(o.form, out);
+    const missing = Object.keys(NF_LABELS).filter(k => !out[k]).map(k => NF_LABELS[k]);
+    o.fhirOpen = false; o.fhirText = "";
+    o.fhirMsg = `Načteno z FHIR (${found.join(", ")}).${missing.length ? ` V datech není: ${missing.join(", ")}.` : ""} Souhlas s GDPR potvrďte ručně.`;
+    logAccess(null, "importoval(a) žádost o konzultaci z FHIR");
+  } catch (err) { o.fhirMsg = `Import se nezdařil: ${err.message}`; }
+}
 function renderOverlay() {
   const o = S.overlay, el = document.getElementById("overlay");
   if (!o) { el.innerHTML = ""; return; }
@@ -3070,6 +3209,12 @@ function renderOverlay() {
     if (!o.data) return;
     el.innerHTML = sourceHtml(o);
     document.getElementById("hit")?.scrollIntoView({ block: "center", inline: "center" });
+  } else if (o.kind === "pgpanel") {
+    const pn = o.panel || {};
+    el.innerHTML = `<div class="scrim" data-close="1"></div><aside class="drawer" role="dialog" aria-label="${esc(pn.title || "Prognóza")}" style="grid-template-rows: auto minmax(0, 1fr)">
+      <header><div><div class="label">Prognóza · ${esc(pn.title || "")}</div><h2 style="margin-top:4px">${esc(pn.study || "")}</h2>${pn.sub ? `<div class="muted small">${esc(pn.sub)}</div>` : ""}</div>
+        <button class="btn small" data-close="1">Zavřít</button></header>
+      <div class="pgpanel">${pn.html || ""}</div></aside>`;
   } else if (o.kind === "guide") {
     const st = anyStmt(o.id), g = GL(st.guideline_id);
     const pg = (GUIDE.pages || []).find(x => x.guideline_id === st.guideline_id && x.pdf_page === st.pdf_page);
@@ -3122,7 +3267,9 @@ function renderOverlay() {
     const step = o.step;
     /* Round 20: only identity and the GDPR consent are required. The history comes from the uploaded documents and
        the MDT question can be added later in the patient view, so neither blocks a referral. */
-    const fields = [["Jméno", "text", true], ["Příjmení", "text", true], ["Rodné číslo", "text", true, "kontroluje se jen formát"], ["Pojišťovna", "select"], ["Jméno lékaře (vlastník)", "text"], ["Odesílající pracoviště", "text"], ["Kontaktní e-mail", "email"], ["Kontaktní telefon", "text"]];
+    /* autocomplete describes the person filling in the form, the referring doctor: their name, workplace and
+       contacts autofill, while the patient's fields are "off" so the browser never offers the doctor's own name. */
+    const fields = [["Jméno", "text", true, "", "off"], ["Příjmení", "text", true, "", "off"], ["Rodné číslo", "text", true, "kontroluje se jen formát", "off"], ["Pojišťovna", "select", false, "", "off"], ["Jméno lékaře (vlastník)", "text", false, "", "name"], ["Odesílající pracoviště", "text", false, "", "organization"], ["Kontaktní e-mail", "email", false, "", "email"], ["Kontaktní telefon", "tel", false, "", "tel"]];
     const pipe = ["Kontrola čitelnosti", "Pseudonymizace", "Extrakce údajů", "Kontrola úplnosti"];
     const f = o.form || {}, er = o.errs || {};
     const inv = id => er[id] ? `aria-invalid="true" aria-describedby="${id}-err"` : "";
@@ -3136,10 +3283,17 @@ function renderOverlay() {
     el.innerHTML = `<div class="scrim" data-close="1"></div><div class="modal" role="dialog" aria-label="Nový pacient">
       <div class="row spread"><h2>Nový pacient</h2><button class="btn small" data-close="1">Zavřít</button></div>
       <div class="stepper">${["Žádost o konzultaci", "Dokumenty", "Zpracování"].map((t, i) => `<span class="${i === step ? "on" : ""}">${i + 1}. ${t}</span>`).join("")}</div>
-      ${step === 0 ? `<p class="muted small" style="margin:0">Pole podle formuláře FNO „Konzultace pacienta“. Povinná pole jsou označena *.</p>
-        <div class="formgrid">${fields.map(([l, t, req, hint], i) => `<label>${l}${req ? " *" : ""}${hint ? ` <span class="fhint">${hint}</span>` : ""}${t === "select" ? `<select class="input" id="nf${i}"><option value="">nevybráno</option>${["111", "201", "205", "207", "209", "211", "213"].map(v => `<option ${f["nf" + i] === v ? "selected" : ""}>${v}</option>`).join("")}</select>` : `<input class="input" id="nf${i}" type="${t}" value="${esc(f["nf" + i] || "")}" ${req ? "required" : ""} ${inv("nf" + i)}>`}${msg("nf" + i)}${i === 2 ? dupWarn : ""}</label>`).join("")}
-          <label class="full">Anamnéza <span class="fhint">nepovinné, asistent ji sestaví z dokumentace</span><textarea class="input" id="nfa">${esc(f.nfa || "")}</textarea></label>
-          <label class="full">Otázka na NOCO (otázka pro MDT) <span class="fhint">nepovinné, lze doplnit později v detailu pacienta</span><textarea class="input" id="nfq" style="min-height:60px">${esc(f.nfq || "")}</textarea></label>
+      ${step === 0 ? `<div class="row spread"><p class="muted small" style="margin:0">Pole podle formuláře FNO „Konzultace pacienta“. Povinná pole jsou označena *.</p>${o.fhirOpen ? "" : `<button class="btn" data-act="fhiropen">Import z FHIR</button>`}</div>
+        ${o.fhirOpen ? `<div class="fhirimp"><label class="label" for="nffhir">Import z FHIR: Bundle s Patient, Coverage a ServiceRequest (doporučení), nebo jen Patient</label>
+          <textarea class="input" id="nffhir" autocomplete="off" spellcheck="false" placeholder='{"resourceType": "Bundle", ...}'>${esc(o.fhirText || "")}</textarea>
+          <div class="row"><label class="btn small">Vybrat soubor .json<input type="file" accept=".json,application/fhir+json,application/json" data-fhirfile="1" hidden></label>
+            <button class="linkbtn small" data-act="fhirsample">Vložit ukázku</button><span style="flex:1"></span>
+            <button class="btn small" data-act="fhirclose">Zrušit</button><button class="btn small primary" data-act="fhirimport">Načíst</button></div>
+          ${o.fhirMsg ? `<p class="small" style="margin:0" role="status">${esc(o.fhirMsg)}</p>` : ""}</div>`
+        : o.fhirMsg ? `<p class="small" style="margin:0" role="status">${esc(o.fhirMsg)}</p>` : ""}
+        <div class="formgrid">${fields.map(([l, t, req, hint, ac], i) => `<label>${l}${req ? " *" : ""}${hint ? ` <span class="fhint">${hint}</span>` : ""}${t === "select" ? `<select class="input" id="nf${i}" autocomplete="${ac}"><option value="">nevybráno</option>${["111", "201", "205", "207", "209", "211", "213"].map(v => `<option ${f["nf" + i] === v ? "selected" : ""}>${v}</option>`).join("")}</select>` : `<input class="input" id="nf${i}" type="${t}" autocomplete="${ac}" value="${esc(f["nf" + i] || "")}" ${req ? "required" : ""} ${inv("nf" + i)}>`}${msg("nf" + i)}${i === 2 ? dupWarn : ""}</label>`).join("")}
+          <label class="full">Anamnéza <span class="fhint">nepovinné, asistent ji sestaví z dokumentace</span><textarea class="input" id="nfa" autocomplete="off">${esc(f.nfa || "")}</textarea></label>
+          <label class="full">Otázka na NOCO (otázka pro MDT) <span class="fhint">nepovinné, lze doplnit později v detailu pacienta</span><textarea class="input" id="nfq" autocomplete="off" style="min-height:60px">${esc(f.nfq || "")}</textarea></label>
           <div class="full"><label style="display:flex;gap:8px;align-items:center;font-weight:500"><input type="checkbox" id="nfg" ${f.nfg ? "checked" : ""} ${inv("nfg")}> Souhlasím, aby FNO použila uvedené osobní údaje ke zpracování požadavku, dle GDPR. *</label>${msg("nfg")}</div></div>
         <div class="row" style="justify-content:flex-end"><button class="btn primary" data-act="newnext">Pokračovat</button></div>`
       : step === 1 ? `<div class="drop">Přetáhněte PDF, DOC/DOCX, XLS/XLSX, ODT nebo ZIP (nejvýše 20 MB)<br><button class="btn small" style="margin-top:8px" data-act="fakeupload">Vybrat soubory</button></div>
@@ -3154,21 +3308,19 @@ function renderOverlay() {
 }
 
 /* ---------- render and events ---------- */
-let summaryObserver;
-function syncSummaryHeight() {
-  summaryObserver?.disconnect();
-  const grid = document.querySelector('.overview-panels'), status = grid?.querySelector('.status-card');
-  if (!status) return;
-  const sync = () => grid.style.setProperty('--summary-height', `${status.getBoundingClientRect().height}px`);
-  sync(); summaryObserver = new ResizeObserver(sync); summaryObserver.observe(status);
-}
 function render() {
   const bar = document.querySelector(".tlbar"); if (bar) S.tlScroll = bar.scrollLeft;
+  /* On narrow screens the calendar grid scrolls sideways. Re-rendering reset it to the left edge, so after the first
+     click of a double click the slot jumped away and the second click missed it (round 25); the same week keeps its
+     scroll position. */
+  const cs = document.querySelector(".calscroll"), calScroll = cs ? { week: S.week, left: cs.scrollLeft, top: cs.scrollTop } : null;
   renderNav();
   const v = { patients: viewPatients, calendar: viewCalendar, patient: viewPatient, tasks: viewTasks, admin: viewAdmin, staff: viewStaff }[S.view];
   document.getElementById("app").innerHTML = v();
-  syncSummaryHeight();
+  const allCategories = document.querySelector('[data-tl-category="all"]');
+  if (allCategories) allCategories.indeterminate = S.tlExcluded.size > 0 && S.tlExcluded.size < EVENT_CATEGORIES.length;
   const nb = document.querySelector(".tlbar"); if (nb) nb.scrollLeft = S.tlScroll || 0;
+  const ncs = document.querySelector(".calscroll"); if (ncs && calScroll && calScroll.week === S.week) { ncs.scrollLeft = calScroll.left; ncs.scrollTop = calScroll.top; }
   measureTop(); markClamped();
   /* The current case's pill is scrolled into the middle of the agenda, so it is visible on narrow screens. */
   const ag = document.querySelector(".sesbar .agenda"), cur = ag?.querySelector('[aria-current="true"]');
@@ -3192,7 +3344,7 @@ function readHash() {
   const before = S.pid + S.view;
   S.view = view;
   if (view === "calendar" && /^\d{4}-\d\d-\d\d$/.test(id || "")) { S.week = mondayOf(id); S.miniMonth = id.slice(0, 7); }
-  else if (id) { const f = S.patients.find(p => nr(p.file) === id)?.file; if (f && f !== S.pid) { S.pid = f; S.tlCategory = "all"; S.selTl = null; S.tlScroll = 0; } }
+  else if (id) { const f = S.patients.find(p => nr(p.file) === id)?.file; if (f && f !== S.pid) { S.pid = f; S.tlExcluded = new Set(); S.selTl = null; S.tlScroll = 0; } }
   /* Opening a case by link or by back/forward is an access too and goes to the log. */
   if (view === "patient" && before !== S.pid + view) logAccess(S.pid, "otevřel(a) případ (odkazem nebo historií prohlížeče)");
   if (tab) S.tab = tab;
@@ -3204,7 +3356,7 @@ function readHash() {
 window.addEventListener("hashchange", () => { if (S.hashSet && location.hash === S.hashSet) { S.hashSet = null; return; } S.hashSet = null; if (readHash()) render(); });
 /* keepTab: moving between cases during an MDT keeps the tab the team is looking at. */
 function openPatient(file, keepTab = false, what = "otevřel(a) případ") {
-  if (S.pid !== file) S.tlCategory = "all";
+  if (S.pid !== file) S.tlExcluded = new Set();
   S.pid = file; S.view = "patient"; if (!keepTab) S.tab = "overview"; S.selTl = null; S.calPop = null; S.tlScroll = 0; S.stOpen = null;
   logAccess(file, what);
   render(); window.scrollTo(0, 0);
@@ -3234,6 +3386,8 @@ document.addEventListener("mouseout", e => { const el = e.target.closest(TIP_SEL
 document.addEventListener("focusin", e => { const el = e.target.closest(TIP_SEL); if (el) showTip(el); });
 document.addEventListener("focusout", hideTip);
 window.addEventListener("scroll", hideTip, true);
+/* The resolved-alert list keeps its open state across re-renders ("toggle" does not bubble, so listen in capture). */
+document.addEventListener("toggle", e => { if (e.target.matches?.("details.resolved")) S.resolvedOpen = e.target.open; }, true);
 document.addEventListener("click", e => {
   if (S.resizedAt && Date.now() - S.resizedAt < 300) { e.stopPropagation(); return; }
   const mk = e.target.closest(TIP_SEL);
@@ -3241,7 +3395,7 @@ document.addEventListener("click", e => {
   hideTip();
   if (S.colOpen && !e.target.closest(".fpop,[data-colopen]")) { S.colOpen = null; render(); return; }
   if (S.stOpen && !e.target.closest(".stpop,[data-stmenu]")) { S.stOpen = null; render(); return; }
-  const t = e.target.closest("[data-stmenu],[data-setst],[data-dbpage],[data-guide],[data-colopen],[data-colclose],[data-colall],[data-wk],[data-jump],[data-mm],[data-calclose],[data-labsel],[data-edit],[data-scope],[data-addatt],[data-delatt],[data-staffdel],[data-staffadd],[data-startday],[data-startgo],[data-sesgo],[data-nav],[data-open],[data-tab],[data-src],[data-close],[data-page],[data-vtab],[data-zoom],[data-zoomstep],[data-zoomhit],[data-tl-category],[data-tl],[data-alertstate],[data-sched],[data-pick],[data-free],[data-slot],[data-unsched],[data-act],[data-mode],[data-delstep],[data-delup],[data-recretry],[data-done],[data-suggok],[data-suggno]");
+  const t = e.target.closest("[data-stmenu],[data-setst],[data-dbpage],[data-guide],[data-colopen],[data-colclose],[data-colall],[data-wk],[data-jump],[data-mm],[data-calclose],[data-labsel],[data-edit],[data-scope],[data-addatt],[data-delatt],[data-staffdel],[data-staffadd],[data-startday],[data-startgo],[data-sesgo],[data-nav],[data-open],[data-tab],[data-src],[data-close],[data-page],[data-vtab],[data-zoom],[data-zoomstep],[data-zoomhit],[data-tl-category],[data-tl],[data-alact],[data-sched],[data-pick],[data-free],[data-slot],[data-unsched],[data-act],[data-mode],[data-delstep],[data-delup],[data-recretry],[data-pgpanel],[data-done],[data-suggok],[data-suggno]");
   if (!t) return;
   const d = t.dataset;
   if (d.stmenu) { S.stOpen = S.stOpen === d.stmenu ? null : d.stmenu; render(); }
@@ -3262,6 +3416,7 @@ document.addEventListener("click", e => {
   else if (d.calclose) { S.calPop = null; render(); }
   else if (d.labsel) { S.labSel = d.labsel; render(); }
   else if (d.dbpage !== undefined) { S.dbPage = +d.dbpage; render(); }
+  else if (d.pgpanel !== undefined) { S.overlay = { kind: "pgpanel", panel: PG_PANELS[+d.pgpanel] }; logAccess(S.pid, "otevřel(a) zdroj prognózy"); renderOverlay(); }
   else if (d.guide) { S.overlay = { kind: "guide", id: d.guide }; logAccess(S.pid, "otevřel(a) doporučení"); renderOverlay(); }
   else if (d.edit) { S.overlay = { kind: "edit", key: d.edit, orig: d.orig }; renderOverlay(); }
   else if (d.scope) { S.taskScope = d.scope; render(); }
@@ -3291,21 +3446,16 @@ document.addEventListener("click", e => {
   else if (d.zoomhit) { S.overlay.zoom = 100; renderOverlay(); }
   else if (d.tlCategory !== undefined) {
     if (d.tlCategory !== "all" && !EVENT_CATEGORIES.some(c => c.id === d.tlCategory)) return;
-    S.tlCategory = d.tlCategory; S.selTl = null; S.tlScroll = 0;
+    setTimelineCategory(d.tlCategory, t.checked); S.selTl = null; S.tlScroll = 0;
     const bar = document.querySelector(".tlbar"); if (bar) bar.scrollLeft = 0;
-    render(); document.querySelector(`[data-tl-category="${S.tlCategory}"]`)?.focus({ preventScroll: true });
+    render(); document.querySelector(`[data-tl-category="${d.tlCategory}"]`)?.focus({ preventScroll: true });
   }
   else if (d.tl !== undefined) {
     /* One click straight to the full source text (Soňa, round 13); no detail panel in between. */
     const c = timelineEvents()[+d.tl];
     S.selTl = +d.tl; render(); if (c && c.source) openSource(c.source);
   }
-  else if (d.alertstate) {
-    if (!['active', 'acknowledged', 'resolved'].includes(d.alertstate) || !warningEntries().some(f => f.id === d.alertid)) return;
-    const entry = { pid: S.pid, id: d.alertid, state: d.alertstate, by: S.user, when: new Date().toLocaleString('cs-CZ') };
-    S.alertStates[alertKey(d.alertid)] = entry; S.alertHistory.push({ ...entry });
-    logAccess(S.pid, `${d.alertid}: ${d.alertstate === 'active' ? 'upozornění vráceno mezi aktivní' : d.alertstate === 'resolved' ? 'upozornění označeno jako vyřešené' : 'upozornění vzato na vědomí'}`); render();
-  }
+  else if (d.alact) alertAct(d.ai.startsWith("gap:") ? d.ai : +d.ai, d.alact);
   else if (d.sched) { S.view = "calendar"; S.schedPick = d.sched; S.calPop = null; render(); }
   else if (d.pick) { S.schedPick = S.schedPick === d.pick ? null : d.pick; render(); }
   else if (d.free) {
@@ -3313,10 +3463,15 @@ document.addEventListener("click", e => {
     scheduleAt(S.schedPick, d.free);
   }
   else if (d.slot) {
-    /* The first click re-renders the calendar, so the browser's dblclick never fires; detect the second click ourselves. */
-    const now = Date.now(); if (S.lastSlot === d.slot && now - S.lastSlotAt < 450) { S.lastSlot = null; openPatient(d.dbl); return; }
+    /* The first click re-renders the calendar, so the browser's dblclick may not fire; detect the second click ourselves.
+       The window is generous because slower double clicks (system setting, trackpads) took up to ~600 ms in testing. */
+    const now = Date.now(); if (S.lastSlot === d.slot && now - S.lastSlotAt < DBL_MS) { S.lastSlot = null; openPatient(d.dbl); return; }
     S.lastSlot = d.slot; S.lastSlotAt = now;
-    const [day, time] = d.slot.split(" "); S.calPop = S.patients.find(p => p.slot && p.slot.day === day && p.slot.time === time)?.file; if (S.calPop) logAccess(S.calPop, "zobrazil(a) detail termínu"); render(); document.getElementById("minicard")?.scrollIntoView({ block: "nearest", behavior: "smooth" }); }
+    const [day, time] = d.slot.split(" "); S.calPop = S.patients.find(p => p.slot && p.slot.day === day && p.slot.time === time)?.file; if (S.calPop) logAccess(S.calPop, "zobrazil(a) detail termínu"); render();
+    /* Scrolling the card into view moves the grid under the pointer, so the second click of a double click landed on
+       another slot and the case never opened (round 25). The scroll waits until the double-click window has passed. */
+    const pop = S.calPop; clearTimeout(S.slotScrollTimer);
+    S.slotScrollTimer = setTimeout(() => { if (S.view === "calendar" && S.calPop === pop) document.getElementById("minicard")?.scrollIntoView({ block: "nearest", behavior: "smooth" }); }, DBL_MS + 20); }
   else if (d.unsched) unschedule(d.unsched);
   else if (d.mode) { curProto().mode = d.mode; render(); }
   else if (d.recretry !== undefined) recPostPass(S.pid, S.rec.tx[S.pid]?.passes[+d.recretry]);
@@ -3342,7 +3497,10 @@ async function copyText(text, what) {
 }
 function action(a) {
   const pr = S.view === "patient" ? curProto() : null;
-  if (a === "recon") { logAccess(S.pid, "zapnul(a) AI záznam diskuse"); recStart(); }
+  if (a === "pgsearch") pgSearch();
+  else if (a === "pgrefresh") pgSearch(true);
+  else if (a === "pgretry") pgRetry();
+  else if (a === "recon") { logAccess(S.pid, "zapnul(a) AI záznam diskuse"); recStart(); }
   else if (a === "recstop") { logAccess(S.pid, "vypnul(a) AI záznam diskuse"); recStop(); }
   else if (a === "reportdlg") { S.overlay = { kind: "report" }; renderOverlay(); }
   else if (a === "fhirdlg") { const p = P(S.pid); S.overlay = { kind: "fhir", id: p.id, bundle: fhirBundle(p) }; logAccess(p.file, "exportoval(a) případ jako FHIR"); renderOverlay(); }
@@ -3353,6 +3511,9 @@ function action(a) {
     else { const u = URL.createObjectURL(new Blob([json], { type: "application/fhir+json" })), l = document.createElement("a"); l.href = u; l.download = `${o.id}-fhir-r4.json`; document.body.appendChild(l); l.click(); l.remove(); setTimeout(() => URL.revokeObjectURL(u), 1000); }
   }
   else if (a === "newpatient") { S.overlay = { kind: "new", step: 0, uploaded: false, progress: 0 }; renderOverlay(); }
+  else if (a === "fhiropen" || a === "fhirclose") { const o = S.overlay; readNewForm(o); o.fhirOpen = a === "fhiropen"; o.fhirMsg = ""; renderOverlay(); }
+  else if (a === "fhirsample") { const o = S.overlay; readNewForm(o); o.fhirText = JSON.stringify(FHIR_SAMPLE, null, 2); renderOverlay(); }
+  else if (a === "fhirimport") { const o = S.overlay; const t = document.getElementById("nffhir")?.value || ""; readNewForm(o); o.fhirText = t; fhirImport(o, t); renderOverlay(); }
   else if (a === "newnext") {
     const o = S.overlay;
     if (o.step === 0) {
@@ -3541,6 +3702,10 @@ function scheduleAt(file, slot) {
    Clicking a patient and then a slot still works for keyboards and touch screens. */
 /* Enter or Space on a text source link acts like a click, as on a button. */
 document.addEventListener("keydown", e => { const el = e.target.closest?.(".srcl[role=button], .edl"); if (el && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); el.click(); } });
+/* Time within which a second click on the same booked slot opens the case. */
+const DBL_MS = 700;
+/* Native double click as a second path, for browsers where the slot element survives the first click's render. */
+document.addEventListener("dblclick", e => { const el = e.target.closest?.(".slotbtn.taken[data-dbl]"); if (el && S.view === "calendar") { S.lastSlot = null; openPatient(el.dataset.dbl); } });
 document.addEventListener("dragstart", e => {
   const el = e.target.closest?.("[data-drag]"); if (!el) return;
   e.dataTransfer.setData("text/plain", el.dataset.drag); e.dataTransfer.effectAllowed = "move"; S.dragFile = el.dataset.drag;
@@ -3581,6 +3746,7 @@ document.addEventListener("change", e => {
   const t = e.target;
   if (t.id === "user") { S.user = t.value; if (S.view === "admin" && t.value !== ADMIN) S.view = "patients"; render(); }
   else if (t.dataset.upload) addUploads(t.files);
+  else if (t.dataset.fhirfile && t.files[0]) { const o = S.overlay; readNewForm(o); t.files[0].text().then(x => { o.fhirText = x; fhirImport(o, x); renderOverlay(); }); }
   else if (t.dataset.staff) staffEdit(t);
   else if (t.dataset.actToggle === "guide") { S.guideOn = t.checked; render(); }
   else if (t.dataset.retro) {
@@ -3631,5 +3797,4 @@ document.addEventListener("keydown", e => { if (e.key === "Escape" && S.overlay)
 readHash();
 render();
 </script>
-
 

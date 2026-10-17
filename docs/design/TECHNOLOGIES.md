@@ -91,6 +91,8 @@ development and corrected by hand after two reviews
 | Hash-based routing | used (v3) | Browser back and forward inside a single page | Soňa asked for back and forward; works without a server |
 | Page-image source view | used (v3) | A source reference opens the rendered page image (150 dpi) with the cited passage boxed from Tesseract's word positions, the vision transcription in a second tab with the same passage marked, and the "ověřit" tokens marked in both | Team decision 2026-10-16: show the actual page, so the doctor can check the original; the text tab keeps source links pointing at a passage |
 | ElevenLabs Scribe v2 Realtime and Scribe v2 | used (v3, demo) | "AI záznam": live Czech transcript of the MDT discussion, each word filed under the case open when it was spoken; after a case's conclusion is approved, its audio goes once through Scribe v2 with speaker separation ("Mluvčí 1, 2"), then the audio is deleted | The live model does not separate speakers, so speakers come from the second pass. Demo only, with fictitious speech; at FNO the same two passes would run on a speech server inside the hospital (a Whisper-class model with a diarization model), see [integration](INTEGRATION.md) |
+| Azure OpenAI (`gpt-6-luna-dz-eu`, hackathon gateway, EU) through a Cloudflare Pages Function | used (v3, demo) | "Shrnutí AI": one or two sentences of decisions and next steps from a case's speaker transcript, shown above the folded transcript | ElevenLabs has no text model; the function keeps the key off the page and fixes the prompt (`mocks/functions/api/summarize.js`) |
+| Cloudflare Pages | used (demo hosting) | https://codebridge-mdt.pages.dev, redeployed on push to main | HTTPS outside the claude.ai viewer, so the browser allows the microphone |
 | Google Fonts: Manrope, DM Sans | used | Headings and text | Soňa's visual brief (GLIDE-inspired clinical workspace) |
 | claude.ai artifacts | dev only | Publishing the mocks as private links for the team | Quick sharing and comments |
 
@@ -116,3 +118,9 @@ development and corrected by hand after two reviews
 | python-pptx, macOS `textutil` | Reading the organizers' decks and FNO's Word documents |
 | GitHub | Repository, shared by the team |
 | HL7 FHIR validator 7.0.2 with OpenJDK 21 (`fhir/validate.sh`) | Checking the FHIR export against FHIR R4 |
+
+
+
+## Prognosis evidence search
+
+The 2026-10-17 prototype uses a Python standard-library local HTTP server and one OpenRouter Chat Completions request to GPT Astra with server-side web search. The exact model ID is configured and catalog-checked; the initial catalog verified GPT-6 Astra. No browser code receives the key. The table and source disclosures use the existing generated HTML pipeline. See [the design](PROGNOSIS.md) and [API](../../prognosis/README.md).

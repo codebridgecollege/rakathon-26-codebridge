@@ -23,8 +23,9 @@ for (const width of [1280, 400]) {
   await c('[data-colopen="status"]'); await over("filter");
   await page.locator('[data-colv="status"][value="Naplánován"]').uncheck();
   const n = await page.locator("tbody tr.click").count(); await c('[data-colclose]'); await c('[data-act="clearcolf"]');
-  ok(n < 8 && (await page.locator("tbody tr.click").count()) === 8, `${width} column filter narrows and clears (page of 8)`);
-  await c('[data-act="dball"]'); ok((await page.locator("tbody tr.click").count()) === 11, `${width} show all lists every patient`); await c('[data-act="dbpaged"]');
+  ok(n < 11 && (await page.locator("tbody tr.click").count()) === 11, `${width} column filter narrows and clears`);
+  // round 25: a page holds 20 patients, so all 11 fit on one page and "Zobrazit vše" is not offered
+  ok(await page.locator('[data-act="dball"]').count() === 0 && (await page.locator("main").textContent()).includes("Zobrazeno 1-11 z 11"), `${width} r25 database page size 20`);
   // calendar
   await c('[data-nav="calendar"]'); await over("calendar"); await c(".slotbtn.taken"); await over("calendar card");
   ok(await page.locator("#minicard").count() === 1, `${width} calendar card opens`);
@@ -48,10 +49,9 @@ for (const width of [1280, 400]) {
   await c('[data-tab="labs"]'); ok((await text("main")).includes("Hodnoty z dokumentu") && await page.locator("[data-labmode]").count() === 0 && await page.locator("svg.chart, th.dtc").count() === 0
     && await page.evaluate(() => !("labs_series_synthetic" in EXTRA)), `${width} case 10 labs: document values only, no trend toggle, no synthetic series`);
   // round 24: synthetic patient S01, marked as synthetic in the database and the header; its trend comes from four documented draws
-  await go("#patients"); await c('[data-act="dball"]');
+  await go("#patients");
   ok(await page.locator('tr[data-open="S01_pacient.pdf"] .syntag').count() === 1 && (await text('tr[data-open="S01_pacient.pdf"]')).includes("NO-S01")
     && await page.locator('tr[data-open="S01_pacient.pdf"] [data-sched]').count() === 1, `${width} S01 listed as "syntetický pacient", unscheduled with Naplánovat`);
-  await c('[data-act="dbpaged"]');
   await go("#patient/S01/labs"); await over("S01 labs");
   ok(await page.locator("main .phead .syntag").count() === 1 && (await text("main .question")).includes("lomustin") && await page.locator("main .question .qlbl").count() === 0, `${width} S01 header marked synthetic, explicit question shown`);
   ok(await page.locator("main th.dtc").count() === 4 && await page.locator("main svg.chart").count() === 1 && await page.locator("main .synth").count() === 0 && !(await text("main")).includes("syntetická data")
@@ -150,12 +150,13 @@ for (const width of [1280, 400]) {
   ok(await page.locator(".sesbar .agenda button").count() >= 5, `${width} session bar shows the day's patients`);
   ok((await text('.sesbar [aria-current="true"]')).includes("14:00"), `${width} session opens the first case`);
   ok(await page.locator("details.mdtcard.live[open]").count() === 1, `${width} discussion card open in session`);
-  await c('[data-tab="labs"]');
+  // Prognóza is available on both fully processed and lite cases; unsupported tabs fall back on lite cases.
+  await c('[data-tab="prognosis"]');
   await page.locator(".sesbar .agenda button").nth(1).click(); await page.waitForTimeout(80); await over("session switch");
   ok((await text('.sesbar [aria-current="true"]')).includes("14:10") && !(await page.evaluate(() => location.hash)).startsWith("#patient/10"), `${width} pill switches patient`);
   await c('.sesbar [data-startday]'); ok(await page.locator('.modal [data-startgo]').count() === 0 && (await text(".modal")).includes("Hotovo"), `${width} attendance dialog in session shows Hotovo`); await c('.modal [data-close]');
   await page.locator(".sesbar .agenda button").first().click(); await page.waitForTimeout(80);
-  ok((await page.evaluate(() => location.hash)) === "#patient/10/labs", `${width} switching keeps the tab`);
+  ok((await page.evaluate(() => location.hash)) === "#patient/10/prognosis", `${width} switching keeps a tab supported by both cases`);
   await c('[data-act="endsession"]'); ok(await page.locator(".sesbar").count() === 0, `${width} Ukončit MDT hides the session bar`);
   await page.selectOption("#user", "Ing. Kovář (správce systému)"); await c('[data-nav="admin"]'); await over("admin");
   ok(await page.locator("tbody tr").count() > 3, `${width} admin sees the access log`);
@@ -214,8 +215,8 @@ for (const width of [1280, 400]) {
   ok(await page.locator(".stmts-onc .gle details[open]").count() === 1, `${width} opened entry stays open after re-render`);
   ok(await page.locator(".gll.lit > li.gle").count() === await page.evaluate(() => (GUIDE.literature || []).length) && (await text(".gll.lit")).includes("literatura, ne doporučení")
     && (await page.locator("h4.glh").allTextContents()).some(t => t.includes("Literatura z PubMed · není doporučení")), `${width} literature is its own section, same entries, labelled not a recommendation`);
-  // the MDT's deviations table now sits in this tab, below the recommendations
-  ok(await page.locator(".devt").count() === 0, `${width} proposed management contains no deviations table`);
+  // The deviations table moved to its own tab; guideline content stays here.
+  ok(await page.locator(".devt").count() === 0, `${width} deviations table removed from Navrhovaný postup`);
   // quote clamping: only long quotes without a condition word are clamped; a visually cut quote says so
   const clamp = await page.locator(".gll .gle details:not([open]) q.glq").evaluateAll(qs => qs.map(q => ({ t: q.textContent, cls: q.classList.contains("clamp"),
     cut: q.scrollHeight > q.clientHeight + 1, lc: getComputedStyle(q).webkitLineClamp, note: q.parentElement.querySelector(".clampnote") })).map(x => ({ ...x, noteShown: !!x.note && getComputedStyle(x.note).display !== "none" })));
@@ -239,7 +240,7 @@ for (const width of [1280, 400]) {
   await c('[data-tab="dev"]'); await over("dev");
   const nr = await page.locator("[data-retroitem]").count();
   // round 21: only the retrospective list; each quote is the historic edition's text, from the edition valid at the decision
-  ok((await text('[data-tab="dev"]')) === "Retrospektivní odchylky" && await page.locator(".devt").count() === 1 && (await text("main")).includes("Odchylky aktuálního postupu MDT"), `${width} deviations tab separates current-plan assessment from historical review`);
+  ok((await text('[data-tab="dev"]')) === "Retrospektivní odchylky" && await page.locator(".devt").count() === 1, `${width} deviations tab retains both current-plan assessment and historical decisions`);
   const hist = await page.evaluate(() => PAST().map(x => ({ id: x.id, quote: x.quote, year: x.edition?.year, from: x.edition?.valid_from, to: x.edition?.valid_to, url: x.edition?.pdf_url, page: x.pdf_page, date: x.decision_date })));
   const histFile = JSON.parse(fs.readFileSync(path.resolve(here, "../data/guidelines-case-10-past-historic.json"), "utf8")).items;
   const shown = await page.locator("[data-retroitem]").evaluateAll(els => els.map(el => ({ id: el.dataset.retroitem, q: el.querySelector("q.pastq")?.textContent, t: el.textContent, href: el.querySelector("a[href*='#page=']")?.getAttribute("href") })));
@@ -338,8 +339,8 @@ for (const width of [1280, 400]) {
   ok(await page.evaluate(f => { const p = P(f); return p.status === "closed" && p.statusHist.at(-1).by === "MUDr. Svobodová" && p.statusHist.at(-1).how === "ručně" && S.access.some(a => a.pid === f && a.what.includes("Nový -> Uzavřen")); }, un), `${width} manual close stored with who and when, logged`);
   await go("#calendar/2026-10-19");
   ok(!(await text("[data-unschedzone]")).includes(await page.evaluate(f => surnameFirst(P(f)), un)), `${width} closed case not in Nenaplánovaní`);
-  await go("#patients"); await c('[data-act="dball"]');
-  ok(await page.locator(`tr.closed[data-open="${un}"]`).count() === 1, `${width} closed case greyed in the database`); await c('[data-act="dbpaged"]');
+  await go("#patients");
+  ok(await page.locator(`tr.closed[data-open="${un}"]`).count() === 1, `${width} closed case greyed in the database`);
   await page.selectOption("#user", "Ing. Kovář (správce systému)"); await page.evaluate(f => openPatient(f), un); await c(".phead [data-stmenu]");
   ok(await page.locator(".stpop [data-setst]").count() === 0 && (await text(".stpop")).includes("Nový -> Uzavřen"), `${width} admin sees the status history read-only`);
   await page.selectOption("#user", "Bc. Marková (koordinátorka MDT)"); if (!(await page.locator(".stpop").count())) await c(".phead [data-stmenu]");
@@ -377,6 +378,8 @@ for (const width of [1280, 400]) {
   ok(await page.evaluate(() => document.getElementById("concl") === window.__ta && document.activeElement === window.__ta), "review conclusion field is the same element after composing");
   // plain typing: same element, approve enabled, draft note and card chip updated in place
   await go("#patient/2/overview");
+  // Earlier workflow checks leave a draft on this case; start this typing check with an empty field.
+  await page.locator("#concl").fill("");
   await page.evaluate(() => { window.__ta = document.getElementById("concl"); });
   ok(await page.locator('[data-act="approve"]').isDisabled() && await page.locator("#concldraft").isHidden(), "review approve disabled and no draft note before typing");
   await page.locator("#concl").click(); await page.keyboard.type("Kontrola za 3 měsíce");
@@ -443,30 +446,39 @@ for (const width of [1280, 400]) {
   await page.goto(file);
   await go("#patient/18");
   let t = await qbox();
-  ok(t.includes("Jde o nádor míchy") && !t.includes("Návrh otázky") && !t.includes("Vychází z") && await page.locator("main .question .qlbl, main .question .qbasis, main .question .edbtn").count() === 0,
-    `${width} question is concise, without draft annotation, source list or pencil`);
-  ok(await page.evaluate(() => qState(P(S.pid)).mode === "draft" && P(S.pid).basis.length === 3), `${width} draft provenance retained in the data`);
-  await go("#patient/9"); t = await qbox();
-  ok(t.includes("Je indikována neurochirurgická intervence") && !t.includes("návrh, ověřte"), `${width} document-purpose question has no visible annotation`);
+  ok(!t.includes("Návrh otázky (asistent, ověřte)") && t.includes("Jde o nádor míchy") && !t.includes("Výslovná otázka neuvedena") && !t.includes("potvrzena")
+    && !t.includes("Vychází z") && await page.locator("main .question .qbasis [data-src]").count() === 0 && await page.evaluate(() => P("18_pacient.pdf").basis.length === 3), `${width} r22 concise inferred question retains its three source passages in state`);
+  await go("#patient/9");
+  t = await qbox();
+  ok(!t.includes("Otázka podle účelu v dokumentu") && !t.includes("návrh, ověřte") && t.includes("Je indikována neurochirurgická intervence") && await page.evaluate(() => questionPlain(P("9_pacient.pdf")).includes("k posouzení indikace NCH intervence")) && !t.includes("Výslovná otázka neuvedena"),
+    `${width} r22 purpose-based question is concise, with provenance retained in exports`);
   for (const [nr, f] of [["2", "2_pacient.pdf"], ["13", "13_pacient.pdf"]]) {
-    await go(`#patient/${nr}`); const exp = await page.evaluate(x => P(x).question, f); t = await qbox();
-    ok(exp && t.includes(exp) && await page.locator('main [data-act="confirmq"]').count() === 0, `${width} explicit question ${nr} unchanged`);
+    await go(`#patient/${nr}`);
+    const exp = await page.evaluate(x => P(x).question, f);
+    t = await qbox();
+    ok(exp && t.includes(exp) && await page.locator("main .question .qlbl").count() === 0 && await page.locator('main [data-act="confirmq"]').count() === 0, `${width} r22 explicit question ${nr} unchanged, no draft label`);
   }
   await go("#patient/10/overview");
-  ok((await page.locator('main h2').allTextContents()).includes('Stručný souhrn') && (await page.locator('main .question p.rq1').textContent()) === 'Jaký postup doporučuje neurochirurgický seminář?', `${width} short summary renamed and question shown without repeated context`);
+  t = await qbox();
+  ok(!t.includes("Otázka podle účelu v dokumentu") && t.includes("neurochirurgický seminář"), `${width} r22 case 10 brief shows the document-purpose draft`);
+  // a coordinator cannot confirm; a doctor can, and the label then names the doctor
   await go("#patient/18");
   await page.evaluate(() => { S.user = COORD; render(); });
-  ok(await page.locator('main [data-act="confirmq"]').count() === 0, `${width} coordinator cannot confirm`);
+  ok(await page.locator('main [data-act="confirmq"]').count() === 0, `${width} r22 coordinator sees no confirm button`);
   await page.evaluate(() => { S.user = "MUDr. Novák"; render(); });
   await page.locator('main [data-act="confirmq"]').click();
-  ok(await page.locator('main [data-act="confirmq"]').count() === 0 && await page.evaluate(() => S.qConfirm["18_pacient.pdf"]?.by === "MUDr. Novák" && S.access.some(a => a.what.includes("potvrdil(a) návrh otázky"))), `${width} confirmation kept and logged without a visible label`);
+  t = await qbox();
+  ok(await page.evaluate(() => qState(P("18_pacient.pdf")).mode === "confirmed") && !t.includes("Návrh otázky (asistent") && await page.locator('main [data-act="confirmq"]').count() === 0
+    && await page.evaluate(() => S.qConfirm["18_pacient.pdf"]?.by === "MUDr. Novák" && S.access.some(a => a.pid === "18_pacient.pdf" && a.what.includes("potvrdil(a) návrh otázky"))), `${width} r22 confirmation records the doctor and access history`);
   const rep = async () => { await page.locator('[data-act="reportdlg"]').first().click(); const r = await page.locator(".modal #report").first().textContent(); await page.locator(".modal [data-close]").first().click(); return r; };
-  ok((await rep()).includes("potvrdil(a) MUDr. Novák"), `${width} report retains confirmation provenance`);
-  await go("#patient/11"); t = await rep();
-  ok(t.includes("Souhlasí radiolog") && t.includes("neověřeno lékařem"), `${width} report retains unconfirmed question provenance`);
+  ok((await rep()).includes("potvrdil(a) MUDr. Novák"), `${width} r22 report shows who confirmed the drafted question`);
+  await go("#patient/11");
+  t = await rep();
+  ok(t.includes("Souhlasí radiolog") && t.includes("neověřeno lékařem") && !t.includes("Výslovná otázka neuvedena"), `${width} r22 report marks an unconfirmed question as a draft`);
+  // the calendar card carries the same label
   await go("#calendar/2026-10-19"); await page.evaluate(() => { S.calPop = "11_pacient.pdf"; render(); });
   t = await page.locator("#minicard .question").textContent();
-  ok(t.includes("Souhlasí radiolog") && !t.includes("Návrh otázky"), `${width} calendar question uses the same concise display`);
+  ok(!t.includes("Návrh otázky (asistent, ověřte)") && t.includes("Souhlasí radiolog"), `${width} r22 calendar card shows the concise question`);
   // Jelen Otakar: surname Jelen, first name Otakar; a calm note with its source instead of an identity alarm
   await page.evaluate(() => { S.view = "patients"; S.dbAll = true; S.calPop = null; render(); });
   const row = await page.locator('tr[data-open="17_pacient.pdf"]').textContent();
@@ -475,15 +487,29 @@ for (const width of [1280, 400]) {
   const head = await page.locator(".phead").textContent();
   ok(head.includes("Jelen Otakar") && !/ověřit identitu/i.test(head) && head.includes("jméno a příjmení ve formuláři prohozené") && await page.locator(".phead .namenote [data-src]").count() === 1
     && await page.evaluate(() => P("17_pacient.pdf").status !== "attention"), `${width} r22 Jelen Otakar header with the neutral name note and its source`);
+  // round 26: only the question (it carries its own context), the draft chip at its end; the passages in a collapsed "Zdroje"
+  await go("#patient/10/overview");
+  const para = page.locator("main .question p.rq1");
+  t = await para.textContent();
+  const html = await para.innerHTML();
+  ok(await para.count() === 1 && !t.includes("Otázka:") && t.includes("Jaký postup doporučuje neurochirurgický seminář u solitárního sytícího se ložiska") && !t.includes("nález zadán ošetřujícím lékařem")
+    && !html.includes('class="qlbl') && await page.locator("main .question [data-edit]").count() === 1 && (await page.locator("main .question .bh").first().textContent()).trim() === "Otázka pro MDT", `${width} r26 case 10: concise editable question without draft chip`);
+  ok(await page.evaluate(() => P("10_pacient.pdf").basis.map(b => b.role + ":" + b.source.page).join()) === "purpose:3,finding:1,finding:2"
+    && await page.locator("main .question .qbasis, main .question .qsrcs").count() === 0 && await page.evaluate(() => questionPlain(P("10_pacient.pdf")).includes("s. 3")), `${width} r26 case 10 source passages retained in state and export`);
   await go("#patient/11");
-  t = await qbox();
-  ok(t.includes("Je indikováno operační řešení, nebo sledování?") && !t.includes("radiochirurg") && !t.includes("Vychází z"), `${width} question wording unchanged without source expansion`);
-  ok((await rep()).includes("Vychází z: „Drobný meningeom F parafalcinně sin“ (11_pacient.pdf, s. 2)"), `${width} report retains source passages`);
+  const q11 = page.locator("main .question").first();
+  t = await q11.textContent();
+  ok(t.includes("Je indikováno operační řešení, nebo sledování?") && !t.includes("radiochirurg") && await page.evaluate(() => questionPlain(P("11_pacient.pdf")).includes("charakteru Schwanomu n. VIII sin") && questionPlain(P("11_pacient.pdf")).includes("Drobný meningeom F parafalcinně sin"))
+    && await q11.locator(".qbasis, .qlbl").count() === 0, `${width} r24 Kabátová: concise question and retained source provenance`);
+  ok((await rep()).includes("Vychází z: „Drobný meningeom F parafalcinně sin“ (11_pacient.pdf, s. 2)"), `${width} r24 report prints each cited passage`);
+  ok(await page.evaluate(() => P("20_pacient.pdf").draft.includes("náhrada obratlových těl)") && !P("20_pacient.pdf").draft.includes("stabilizace") && P("19_pacient.pdf").draft.includes("(coiling)")
+    && P("17_pacient.pdf").draft === "Jaký postup doporučuje NCH u intraoseálního ložiska kalvy F vpravo (DD intraoseální meningeom x MTS)?"), `${width} r24 drafts name only options the doctor or a document gave`);
+  // confirming is logged as a confirmation, not as a text change
   await page.evaluate(() => { S.user = "MUDr. Novák"; render(); }); await page.locator('main [data-act="confirmq"]').click();
-  ok(await page.evaluate(() => { const e = S.editLog.filter(x => x.pid === "11_pacient.pdf").at(-1); return e.confirmed === true && !("text" in e); }), `${width} confirmation remains distinct from a text edit`);
+  ok(await page.evaluate(() => { const e = S.editLog.filter(x => x.pid === "11_pacient.pdf").at(-1); return e.confirmed === true && !("text" in e); }), `${width} r24 confirm pushes {confirmed: true} to the edit log`);
   await page.evaluate(() => { S.user = ADMIN; S.view = "admin"; render(); });
   t = await page.locator("main").textContent();
-  ok(t.includes("potvrdil(a) návrh otázky"), `${width} confirmation retained in the audit log`);
+  ok(t.includes("potvrdil(a) návrh otázky") && !t.includes("(návrh asistenta potvrzen)"), `${width} r24 admin edits list shows "potvrdil(a) návrh otázky"`);
   // uploads in "Projednání na MDT": doctors and the coordinator only, never on a closed or approved case
   const upz = async (user) => { await page.evaluate(u => { S.user = u; S.view = "patient"; S.pid = "11_pacient.pdf"; S.mdtOpen["11_pacient.pdf"] = true; ensureProto(P("11_pacient.pdf")).mode = "docs"; render(); }, user); return page.locator("main [data-upzone]").count(); };
   ok(await upz("MUDr. Novák") === 1 && await upz(await page.evaluate(() => COORD)) === 1 && await upz(await page.evaluate(() => ADMIN)) === 0, `${width} r24 upload zone for doctors and the coordinator only`);
@@ -512,8 +538,8 @@ for (const width of [1280, 400]) {
   ok((await text("main")).includes("Personál pracoviště") && await page.locator("main [data-staff], main [data-act=staffreset]").count() === 0 && (await text("main")).includes("lékař ho jen čte"), `${width} r23 doctors see the staff list read-only`);
   ok(await pickerHas("MUDr. Šimek") && await page.evaluate(() => JSON.stringify(DEPTS.find(([d]) => d === "Radiologie")[1]) === '["MUDr. Šimek","MUDr. Veselá"]'), `${width} r23 default radiologists are the fictional MUDr. Šimek and MUDr. Veselá`);
   await page.selectOption("#user", "Bc. Marková (koordinátorka MDT)"); await over("staff edit");
-  ok((await text("main")).includes("Jména se ukládají jen v tomto prohlížeči; v reálné aplikaci personál spravuje nastavení pracoviště nemocnice.") && await page.locator('main [data-act="staffreset"]').count() === 1
-    && await page.locator("main [data-staffadd]").count() === 6, `${width} r23 coordinator edits: browser-only note, reset button, add row per department`);
+  ok(await page.locator('main [data-act="staffreset"]').count() === 1
+    && await page.locator("main [data-staffadd]").count() === 6, `${width} r23 coordinator edits: reset button, add row per department`);
   for (const [f, v] of [["pre", "doc. MUDr."], ["sur", "Testová"], ["post", "Ph.D."], ["fn", "primářka"]]) await page.fill(`[data-newin="d4"][data-sf="${f}"]`, v);
   await c('[data-staffadd="d4"]');
   ok(await page.evaluate(() => DEPTS.find(([d]) => d === "Radiologie")[1].includes("doc. MUDr. Testová, Ph.D.") && DOCTORS.includes("doc. MUDr. Testová, Ph.D.")
@@ -532,8 +558,8 @@ for (const width of [1280, 400]) {
   await go("#patient/13"); await c("details.mdtcard > summary"); await c("details.mdtcard [data-attonly]");
   ok(await page.locator('.modal [data-att="Radiologie"] option', { hasText: "doc. MUDr. Zkoušková, Ph.D." }).count() === 1, `${width} r23 attendance grid lists the added person`);
   await page.selectOption('.modal [data-att="Radiologie"]', "doc. MUDr. Zkoušková, Ph.D."); await c('.modal [data-addatt="Radiologie"]');
-  ok(await page.locator('.modal [data-att="Radiologie"][data-k="1"] option').first().textContent() === "vyberte…" && !(await text(".modal")).includes("odebrat")
-    && await page.locator('.modal [data-delatt="Radiologie"][data-k="1"]').count() === 1, `${width} r23 extra attendance row: placeholder "vyberte…" and a separate ✕`);
+  ok(await page.locator('.modal [data-att="Radiologie"][data-k="1"] option').first().textContent() === "vyberte…" && await page.locator('.modal [data-att="Radiologie"][data-k="1"] option', { hasText: "odebrat" }).count() === 0
+    && await page.locator('.modal [data-delatt="Radiologie"][data-k="1"]').count() === 1, `${width} r23 extra attendance row: placeholder "vyberte…" and a separate remove button`);
   await page.selectOption('.modal [data-att="Radiologie"][data-k="1"]', "MUDr. Veselá"); await page.selectOption('.modal [data-att="Radiologie"][data-k="1"]', "");
   ok(await page.locator('.modal [data-att="Radiologie"][data-k="1"]').count() === 1, `${width} r23 choosing "vyberte…" keeps the row`);
   await c('.modal [data-delatt="Radiologie"][data-k="1"]'); await over("attendance dialog");
@@ -558,6 +584,90 @@ for (const width of [1280, 400]) {
   ok(await page.evaluate(() => isDefaultStaff() && COORD === "Bc. Marková" && DEPTS.length === 6 && localStorage.getItem("mdt-staff-v1") === null && S.access.some(a => a.what.startsWith("obnovil(a) výchozí personál"))), `${width} r23 reset restores the fictional defaults`);
   await page.reload(); await page.waitForTimeout(150);
   ok(await page.evaluate(() => isDefaultStaff() && S.user === "MUDr. Svobodová"), `${width} r23 defaults after reload`);
+  await page.close();
+}
+// round 25: labs sources folded, summary card height, OCR marks, resolvable alerts, removed alerts, everolimus chronology,
+// calendar double click, question draft, database diagnosis and page size, "Stručný souhrn", reason pencil
+for (const width of [1280, 400]) {
+  const page = await browser.newPage({ viewport: { width, height: 900 } });
+  page.on("pageerror", e => errs.push(`${width} r25: ${e.message}`));
+  const go = async h => { await page.evaluate(x => { location.hash = x; }, h); await page.waitForTimeout(150); };
+  const text = sel => page.locator(sel).first().textContent();
+  await page.goto(file);
+  // 1. labs: explanation lines sit in a collapsed "Zdroje" at the bottom of the card
+  await go("#patient/10/labs");
+  ok(await page.locator("main details.labsrcs:not([open])").count() === 1 && (await text("main details.labsrcs summary")).trim() === "Zdroje"
+    && await page.evaluate(() => { const card = document.querySelector("main details.labsrcs").closest("section"), det = card.querySelector("details.labsrcs");
+      const outside = [...card.children].filter(el => el !== det).map(el => el.textContent).join(" ");
+      return !outside.includes("Pro všechny hodnoty") && !outside.includes(CASE.labs_note_cs.slice(0, 30)) && det.textContent.includes("Pro všechny hodnoty") && det.textContent.includes(CASE.labs_note_cs.slice(0, 30)) && card.lastElementChild === det; }),
+    `${width} r25 labs explanation in a collapsed "Zdroje" at the bottom`);
+  // 2. overview: the oncology summary scrolls inside its card; on wide screens it is as tall as the current-state card
+  await go("#patient/10/overview");
+  const geo = await page.evaluate(() => { const o = document.querySelector("main .onco"), b = o.querySelector(".ocbody"), st = [...document.querySelectorAll("main section.card h2")].find(h => h.textContent.includes("Aktuální stav pacienta")).closest("section");
+    return { oh: o.getBoundingClientRect().height, sh: st.getBoundingClientRect().height, scrolls: b.scrollHeight > b.clientHeight + 4, maxH: getComputedStyle(b).maxHeight }; });
+  ok(geo.scrolls && (width === 1280 ? Math.abs(geo.oh - geo.sh) <= 2 : geo.maxH !== "none"), `${width} r25 oncology summary body scrolls; ${width === 1280 ? "same height as Aktuální stav" : "max height on narrow screens"} (${Math.round(geo.oh)}/${Math.round(geo.sh)})`);
+  // 3. OCR marks: words both readings agree on carry no "!"; a digit-letter difference (MO/M0) keeps it
+  ok(await page.locator("main .stc .mk.ocr").count() === 0 && await page.evaluate(() => EXTRA.status_praesens.items.filter(it => it.ocr_note_cs).every(it => it.ocr_check && it.ocr_check.mark === false))
+    && await page.locator("main .dxh .mk.ocr").count() === 1 && await page.evaluate(() => EXTRA.diagnosis_headline.ocr_check.mark === true && EXTRA.diagnosis_headline.ocr_check.tokens[0].rule === "differ"),
+    `${width} r25 status praesens has no "!" where vision and Tesseract agree; M0 read as MO by Tesseract keeps its mark`);
+  // 5, 6, 9: no "Změna" kind, no "J-" alert, no out-of-range lab alert; the events stay in the summary
+  await go("#patient/10/alerts");
+  const al = await text("main");
+  ok(!al.includes("Změna") && !al.includes("„J-“") && !al.includes("kreatinin 107") && await page.evaluate(() => !("change" in ALERT) && !CASE.flags.some(f => f.kind === "change"))
+    && await page.evaluate(() => { const t = EXTRA.onco_compact_v3.lines.map(l => `${l.date_sort} ${l.text_cs}`).join("|"); return t.includes("2026-08-26 CT hrudníku, břicha a malé pánve: progrese") && t.includes("2026-09-03 3. paliativní linie everolimus") && t.includes("2026-09-14 MR mozku"); }),
+    `${width} r25 removed alerts (Změna, J-, lab range); CT 26.8., everolimus 3.9. and MR 14.9.2026 still in the summary`);
+  // 8: chronology observation replaces the "Nejasné" everolimus alert; summary and guideline facts say the same
+  ok(al.includes("Chronologie") && al.includes("Nejnovější ambulantní závěr je tedy na s. 3") && !al.includes("str. 2 a 3 uvádí navýšení")
+    && await page.evaluate(() => { const l = EXTRA.onco_compact_v3.lines.find(x => x.date_sort === "2026-09-19"); return l.text_cs.includes("dle nejnovějšího ambulantního závěru") && !l.text_cs.includes("zda proběhlo"); })
+    && await page.evaluate(() => { const g = document.getElementById("guide-data").textContent; return g.includes("dle nejnovějšího ambulantního závěru navýšení na 10 mg denně od 19. 9. 2026") && !g.includes("(zda proběhlo, neuvedeno v dostupné dokumentaci)"); }),
+    `${width} r25 everolimus: chronology observation, summary row and guideline facts consistent`);
+  // 4: resolve, return, acknowledge; history is append-only and logged; resolved alerts collapse at the bottom
+  const firstI = await page.evaluate(() => CASE.flags.findIndex(f => f.kind === "missing"));
+  await page.locator(`main [data-alert="${firstI}"] [data-alact="resolved"]`).first().click({ force: true });
+  ok((await text("main details.resolved > summary")).trim() === "Vyřešené / vzaté na vědomí (1)" && await page.locator("main details.resolved:not([open])").count() === 1
+    && await page.locator(`main details.resolved [data-alert="${firstI}"]`).count() === 1 && await page.locator(`main section.card > .alerts [data-alert="${firstI}"]`).count() === 0
+    && await page.evaluate(i => S.alertHist.length === 1 && S.alertHist[0].i === i && S.alertHist[0].who === S.user && S.access.some(a => a.what.startsWith("označil(a) upozornění jako vyřešené")), firstI),
+    `${width} r25 "Vyřešeno" moves the alert to a collapsed "Vyřešené / vzaté na vědomí (1)", records who and when, logs it`);
+  await page.locator("main details.resolved > summary").click();
+  ok((await text(`main details.resolved [data-alert="${firstI}"]`)).includes("Vyřešil(a)"), `${width} r25 resolved alert says who resolved it`);
+  await page.locator(`main details.resolved [data-alert="${firstI}"] [data-alact="reopen"]`).click();
+  ok(await page.locator("main details.resolved").count() === 0 && await page.evaluate(() => S.alertHist.length === 2 && S.alertHist[1].action === "reopen" && S.access.some(a => a.what.startsWith("vrátil(a) upozornění"))),
+    `${width} r25 "Vrátit" reopens the alert and appends to the history`);
+  await page.locator(`main [data-alert="${firstI}"] [data-alact="ack"]`).first().click({ force: true });
+  ok((await text(`main [data-alert="${firstI}"]`)).includes("Vzal(a) na vědomí") && await page.locator(`main [data-alert="${firstI}"] [data-alact="reopen"]`).count() >= 1, `${width} r25 acknowledged warning retains its actor and reversible action`);
+  // missing-document alerts: the button stays amber while any is unresolved (data gaps aside)
+  const amber = () => page.evaluate(() => { const g = EXTRA.data_gaps_v3; EXTRA.data_gaps_v3 = g.filter(x => x.kind !== "missing"); const r = hasMissing(P(CASE.file)); EXTRA.data_gaps_v3 = g; return r; });
+  const missIdx = await page.evaluate(() => CASE.flags.map((f, i) => f.kind === "missing" ? i : -1).filter(i => i >= 0));
+  for (const i of missIdx.slice(0, -1)) await page.evaluate(i => alertAct(i, "resolved"), i);
+  const stillAmber = await amber();
+  await page.evaluate(i => alertAct(i, "resolved"), missIdx.at(-1));
+  ok(stillAmber === true && await amber() === false && await page.locator(".gapsbtn.warn").count() === 1, `${width} r25 missing-document alerts resolvable; amber until the last one is resolved (data gaps keep the button amber)`);
+  // 14: the brief block is "Stručný souhrn"
+  await go("#patient/10/overview");
+  ok((await text("main section.blk h2")).trim() === "Stručný souhrn" && !(await text("main")).includes("MDT brief"), `${width} r25 block heading "Stručný souhrn"`);
+  // 11: the reason's hidden pencil takes no room before "Otázka:"
+  ok(await page.evaluate(() => { const b = document.querySelector(".rq1 > .edbtn:not([style])"); return !b || !matchMedia("(hover: hover)").matches || getComputedStyle(b).position === "absolute"; }), `${width} r25 reason pencil leaves no gap`);
+  // 10, 12, 13: question draft, diagnosis headlines, page size
+  await go("#patient/15");
+  ok((await text("main .question")).includes("Jaký další postup?") && !(await text("main .question")).includes("sledování, nebo operační řešení"), `${width} r25 Zápotocký draft names no unproposed option`);
+  await go("#patients");
+  ok((await text('tr[data-open="S01_pacient.pdf"]')).includes("IDH-wt") && (await text('tr[data-open="13_pacient.pdf"]')).includes("Kalcifikovaný meningeom parietálně vlevo, 12 x 9 mm") && !(await text("main tbody")).includes("žádost o konzultaci"),
+    `${width} r25 database diagnosis is a short headline`);
+  // 7: calendar, a double click and two quick clicks on a booked slot open the case
+  for (const how of ["dblclick", "two clicks"]) {
+    await go("#calendar/2026-10-19");
+    const slot = page.locator('[data-slot="2026-10-22 14:10"]');
+    await slot.scrollIntoViewIfNeeded();
+    const file = await slot.getAttribute("data-dbl");
+    if (how === "dblclick") await slot.dblclick();
+    else { const b = await slot.boundingBox(); await page.mouse.click(b.x + b.width / 2, b.y + b.height / 2); await page.waitForTimeout(90); await page.mouse.click(b.x + b.width / 2, b.y + b.height / 2); }
+    await page.waitForTimeout(200);
+    ok(await page.evaluate(f => S.view === "patient" && S.pid === f, file), `${width} r25 calendar ${how} on a booked patient opens the case`);
+  }
+  // a single click still opens the card and scrolls it into view after the double-click window
+  await go("#calendar/2026-10-19");
+  await page.locator('[data-slot="2026-10-22 14:10"]').click(); await page.waitForTimeout(800);
+  ok(await page.evaluate(() => S.view === "calendar" && !!document.getElementById("minicard")), `${width} r25 single click still opens the calendar card`);
   await page.close();
 }
 await browser.close();
