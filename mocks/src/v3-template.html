@@ -286,7 +286,12 @@ details.mdtcard[open] > summary::before { transform: rotate(90deg); }
 .mdtcard .sub > .head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
 
 /* MDT discussion: attendance, notes, steps */
-.att { display: grid; grid-template-columns: 170px minmax(0, 1fr) auto; gap: 8px 12px; align-items: center; }
+.fhirimp { display: grid; gap: 8px; padding: 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--sunk); }
+.fhirimp textarea { min-height: 110px; font-family: ui-monospace, Menlo, monospace; font-size: 12px; }
+.att { display: grid; grid-template-columns: 170px minmax(0, 1fr) 96px; gap: 8px 12px; align-items: center; }
+/* Every row is one height: the select, its label and its button line up, and both row buttons look alike. */
+.att .input, .att .btn { height: 36px; }
+.att .btn { width: 100%; padding: 0 10px; font-size: 13px; }
 .att .dept { font-weight: 600; font-size: 13.5px; }
 /* Staff screen (round 23): one row per person, the displayed name first, then the four fields. */
 .staffdept .head .row { gap: 8px; }
@@ -2134,7 +2139,7 @@ function attGrid(day) {
   const a = attFor(day);
   return `<div class="att">${DEPTS.map(([d, docs]) => a[d].map((v, k) => `<span class="dept">${k === 0 ? d : ""}</span>
     <select class="input" data-att="${esc(d)}" data-day="${esc(day)}" data-k="${k}" aria-label="${esc(d)}"><option value="">vyberte…</option>${docs.map(x => `<option ${v === x ? "selected" : ""} ${a[d].includes(x) && v !== x ? "disabled" : ""}${staffTip(x)}>${esc(x)}</option>`).join("")}</select>
-    ${k === 0 ? `<button class="btn small" data-addatt="${esc(d)}" data-day="${esc(day)}" ${a[d].length >= docs.length ? "disabled" : ""}>+ další</button>` : `<button class="btn small" data-delatt="${esc(d)}" data-day="${esc(day)}" data-k="${k}" aria-label="Odebrat řádek" title="Odebrat řádek">✕</button>`}`).join("")).join("")}</div>`;
+    ${k === 0 ? `<button class="btn" data-addatt="${esc(d)}" data-day="${esc(day)}" ${a[d].length >= docs.length ? "disabled" : ""}>+ další</button>` : `<button class="btn" data-delatt="${esc(d)}" data-day="${esc(day)}" data-k="${k}" aria-label="Odebrat řádek ${esc(d)}">− odebrat</button>`}`).join("")).join("")}</div>`;
 }
 const presentList = (day = attDay()) => Object.values(attFor(day)).flat().filter(Boolean);
 /* A doctor is a staff member whose title contains "MUDr." (derived in applyStaff). */
@@ -2953,6 +2958,60 @@ function fhirHtml(o) {
     <div class="row"><button class="btn primary" data-act="fhirdl">Stáhnout JSON</button><button class="btn" data-act="fhircopy">Kopírovat</button></div>
     <pre style="margin:0;max-height:46vh;overflow:auto;background:var(--sunk);border-radius:6px;padding:10px;font-size:12px;white-space:pre-wrap;overflow-wrap:anywhere">${esc(fhirJson(o.bundle))}</pre></div>`;
 }
+/* ---------- Import of a referral from FHIR into "Nový pacient" ----------
+   The form's fields are the FHIR referral: Patient (name, birth number), Coverage with the insurer, and the
+   ServiceRequest with its requester (doctor, workplace, contacts), note (history) and reason (question for the MDT).
+   Identifier systems follow the Czech core guide (hl7.fhir.cz.core 1.0.0). The GDPR consent is never imported:
+   a person ticks it. Fields the data does not hold stay as they were and are listed, never guessed. */
+const SID = { rc: "https://ncez.mzcr.cz/fhir/sid/rcis", kp: "https://ncez.mzcr.cz/fhir/sid/kp" };
+const FHIR_SAMPLE = { resourceType: "Bundle", type: "collection", entry: [
+  { fullUrl: "urn:uuid:pat-1", resource: { resourceType: "Patient", identifier: [{ system: SID.rc, value: "715309/1236" }], name: [{ family: "Ukázková", given: ["Alena"] }], gender: "female", birthDate: "1971-03-09" } },
+  { fullUrl: "urn:uuid:vzp-1", resource: { resourceType: "Organization", identifier: [{ system: SID.kp, value: "111" }], name: "Všeobecná zdravotní pojišťovna ČR" } },
+  { fullUrl: "urn:uuid:cov-1", resource: { resourceType: "Coverage", status: "active", beneficiary: { reference: "urn:uuid:pat-1" }, payor: [{ reference: "urn:uuid:vzp-1" }] } },
+  { fullUrl: "urn:uuid:org-1", resource: { resourceType: "Organization", name: "Nemocnice Havířov, neurologie" } },
+  { fullUrl: "urn:uuid:role-1", resource: { resourceType: "PractitionerRole", practitioner: { display: "MUDr. Petr Ukázkový" }, organization: { reference: "urn:uuid:org-1" }, telecom: [{ system: "email", value: "neurologie@example.org" }, { system: "phone", value: "+420 596 000 000" }] } },
+  { fullUrl: "urn:uuid:sr-1", resource: { resourceType: "ServiceRequest", status: "active", intent: "order", subject: { reference: "urn:uuid:pat-1" }, requester: { reference: "urn:uuid:role-1" },
+    reasonCode: [{ text: "Indikace k resekci ložiska v levém temporálním laloku?" }], note: [{ text: "Dva týdny bolesti hlavy a porucha řeči, MR mozku 10/2026 s ložiskem vlevo temporálně." }] } },
+] };
+function fhirToForm(json) {
+  const res = json.resourceType === "Bundle" ? (json.entry || []).map(e => ({ url: e.fullUrl, r: e.resource })).filter(x => x.r) : [{ url: "", r: json }];
+  const byRef = ref => ref && res.find(x => x.url === ref || `${x.r.resourceType}/${x.r.id}` === ref)?.r;
+  const one = t => res.find(x => x.r.resourceType === t)?.r;
+  const pat = one("Patient"); if (!pat) throw new Error("V datech chybí Patient.");
+  const out = {}, nm = (pat.name || []).find(n => n.use === "official") || (pat.name || [])[0];
+  if (nm?.given?.length) out.nf0 = nm.given.join(" ");
+  if (nm?.family) out.nf1 = nm.family;
+  const rc = (pat.identifier || []).find(i => i.system === SID.rc)?.value; if (rc) out.nf2 = rc;
+  const cov = one("Coverage"), payor = cov && (byRef(cov.payor?.[0]?.reference) || null);
+  const kp = (payor?.identifier || []).find(i => i.system === SID.kp)?.value || cov?.payor?.[0]?.identifier?.value; if (kp) out.nf3 = kp;
+  const sr = one("ServiceRequest"), req = sr && byRef(sr.requester?.reference);
+  const doc = req?.resourceType === "PractitionerRole" ? (byRef(req.practitioner?.reference) || req.practitioner) : req?.resourceType === "Practitioner" ? req : sr?.requester;
+  const docName = doc?.name ? [doc.name[0]?.prefix, doc.name[0]?.given, doc.name[0]?.family].flat().filter(Boolean).join(" ") : doc?.display; if (docName) out.nf4 = docName;
+  const org = req?.resourceType === "PractitionerRole" ? (byRef(req.organization?.reference) || req.organization) : req?.resourceType === "Organization" ? req : null;
+  const orgName = org?.name || org?.display; if (orgName) out.nf5 = orgName;
+  const tel = [...(req?.telecom || []), ...(doc?.telecom || [])];
+  const mail = tel.find(t => t.system === "email")?.value, phone = tel.find(t => t.system === "phone")?.value;
+  if (mail) out.nf6 = mail; if (phone) out.nf7 = phone;
+  const note = (sr?.note || []).map(n => n.text).filter(Boolean).join("\n"); if (note) out.nfa = note;
+  const why = (sr?.reasonCode || []).map(c => c.text || c.coding?.[0]?.display).filter(Boolean).join("; "); if (why) out.nfq = why;
+  const found = ["Patient", cov && "Coverage", sr && "ServiceRequest"].filter(Boolean);
+  return { out, found };
+}
+const NF_LABELS = { nf0: "jméno", nf1: "příjmení", nf2: "rodné číslo", nf3: "pojišťovna", nf4: "lékař", nf5: "pracoviště", nf6: "e-mail", nf7: "telefon", nfa: "anamnéza", nfq: "otázka pro MDT" };
+function readNewForm(o) {
+  const v = id => document.getElementById(id)?.value.trim() ?? o.form?.[id] ?? "";
+  o.form = { ...Object.fromEntries(Object.keys(NF_LABELS).map(k => [k, v(k)])), nfg: document.getElementById("nfg")?.checked ?? !!o.form?.nfg };
+}
+function fhirImport(o, text) {
+  try {
+    const { out, found } = fhirToForm(JSON.parse(text));
+    Object.assign(o.form, out);
+    const missing = Object.keys(NF_LABELS).filter(k => !out[k]).map(k => NF_LABELS[k]);
+    o.fhirOpen = false; o.fhirText = "";
+    o.fhirMsg = `Načteno z FHIR (${found.join(", ")}).${missing.length ? ` V datech není: ${missing.join(", ")}.` : ""} Souhlas s GDPR potvrďte ručně.`;
+    logAccess(null, "importoval(a) žádost o konzultaci z FHIR");
+  } catch (err) { o.fhirMsg = `Import se nezdařil: ${err.message}`; }
+}
 function renderOverlay() {
   const o = S.overlay, el = document.getElementById("overlay");
   if (!o) { el.innerHTML = ""; return; }
@@ -3013,7 +3072,9 @@ function renderOverlay() {
     const step = o.step;
     /* Round 20: only identity and the GDPR consent are required. The history comes from the uploaded documents and
        the MDT question can be added later in the patient view, so neither blocks a referral. */
-    const fields = [["Jméno", "text", true], ["Příjmení", "text", true], ["Rodné číslo", "text", true, "kontroluje se jen formát"], ["Pojišťovna", "select"], ["Jméno lékaře (vlastník)", "text"], ["Odesílající pracoviště", "text"], ["Kontaktní e-mail", "email"], ["Kontaktní telefon", "text"]];
+    /* autocomplete describes the person filling in the form, the referring doctor: their name, workplace and
+       contacts autofill, while the patient's fields are "off" so the browser never offers the doctor's own name. */
+    const fields = [["Jméno", "text", true, "", "off"], ["Příjmení", "text", true, "", "off"], ["Rodné číslo", "text", true, "kontroluje se jen formát", "off"], ["Pojišťovna", "select", false, "", "off"], ["Jméno lékaře (vlastník)", "text", false, "", "name"], ["Odesílající pracoviště", "text", false, "", "organization"], ["Kontaktní e-mail", "email", false, "", "email"], ["Kontaktní telefon", "tel", false, "", "tel"]];
     const pipe = ["Kontrola čitelnosti", "Pseudonymizace", "Extrakce údajů", "Kontrola úplnosti"];
     const f = o.form || {}, er = o.errs || {};
     const inv = id => er[id] ? `aria-invalid="true" aria-describedby="${id}-err"` : "";
@@ -3028,9 +3089,16 @@ function renderOverlay() {
       <div class="row spread"><h2>Nový pacient</h2><button class="btn small" data-close="1">Zavřít</button></div>
       <div class="stepper">${["Žádost o konzultaci", "Dokumenty", "Zpracování"].map((t, i) => `<span class="${i === step ? "on" : ""}">${i + 1}. ${t}</span>`).join("")}</div>
       ${step === 0 ? `<p class="muted small" style="margin:0">Pole podle formuláře FNO „Konzultace pacienta“. Povinná pole jsou označena *.</p>
-        <div class="formgrid">${fields.map(([l, t, req, hint], i) => `<label>${l}${req ? " *" : ""}${hint ? ` <span class="fhint">${hint}</span>` : ""}${t === "select" ? `<select class="input" id="nf${i}"><option value="">nevybráno</option>${["111", "201", "205", "207", "209", "211", "213"].map(v => `<option ${f["nf" + i] === v ? "selected" : ""}>${v}</option>`).join("")}</select>` : `<input class="input" id="nf${i}" type="${t}" value="${esc(f["nf" + i] || "")}" ${req ? "required" : ""} ${inv("nf" + i)}>`}${msg("nf" + i)}${i === 2 ? dupWarn : ""}</label>`).join("")}
-          <label class="full">Anamnéza <span class="fhint">nepovinné, asistent ji sestaví z dokumentace</span><textarea class="input" id="nfa">${esc(f.nfa || "")}</textarea></label>
-          <label class="full">Otázka na NOCO (otázka pro MDT) <span class="fhint">nepovinné, lze doplnit později v detailu pacienta</span><textarea class="input" id="nfq" style="min-height:60px">${esc(f.nfq || "")}</textarea></label>
+        ${o.fhirOpen ? `<div class="fhirimp"><label class="label" for="nffhir">Import z FHIR: Bundle s Patient, Coverage a ServiceRequest (doporučení), nebo jen Patient</label>
+          <textarea class="input" id="nffhir" autocomplete="off" spellcheck="false" placeholder='{"resourceType": "Bundle", ...}'>${esc(o.fhirText || "")}</textarea>
+          <div class="row"><label class="btn small">Vybrat soubor .json<input type="file" accept=".json,application/fhir+json,application/json" data-fhirfile="1" hidden></label>
+            <button class="linkbtn small" data-act="fhirsample">Vložit ukázku</button><span style="flex:1"></span>
+            <button class="btn small" data-act="fhirclose">Zrušit</button><button class="btn small primary" data-act="fhirimport">Načíst</button></div>
+          ${o.fhirMsg ? `<p class="small" style="margin:0" role="status">${esc(o.fhirMsg)}</p>` : ""}</div>`
+        : `<div class="row">${o.fhirMsg ? `<span class="small" role="status">${esc(o.fhirMsg)}</span>` : ""}<span style="flex:1"></span><button class="btn small" data-act="fhiropen">Import z FHIR</button></div>`}
+        <div class="formgrid">${fields.map(([l, t, req, hint, ac], i) => `<label>${l}${req ? " *" : ""}${hint ? ` <span class="fhint">${hint}</span>` : ""}${t === "select" ? `<select class="input" id="nf${i}" autocomplete="${ac}"><option value="">nevybráno</option>${["111", "201", "205", "207", "209", "211", "213"].map(v => `<option ${f["nf" + i] === v ? "selected" : ""}>${v}</option>`).join("")}</select>` : `<input class="input" id="nf${i}" type="${t}" autocomplete="${ac}" value="${esc(f["nf" + i] || "")}" ${req ? "required" : ""} ${inv("nf" + i)}>`}${msg("nf" + i)}${i === 2 ? dupWarn : ""}</label>`).join("")}
+          <label class="full">Anamnéza <span class="fhint">nepovinné, asistent ji sestaví z dokumentace</span><textarea class="input" id="nfa" autocomplete="off">${esc(f.nfa || "")}</textarea></label>
+          <label class="full">Otázka na NOCO (otázka pro MDT) <span class="fhint">nepovinné, lze doplnit později v detailu pacienta</span><textarea class="input" id="nfq" autocomplete="off" style="min-height:60px">${esc(f.nfq || "")}</textarea></label>
           <div class="full"><label style="display:flex;gap:8px;align-items:center;font-weight:500"><input type="checkbox" id="nfg" ${f.nfg ? "checked" : ""} ${inv("nfg")}> Souhlasím, aby FNO použila uvedené osobní údaje ke zpracování požadavku, dle GDPR. *</label>${msg("nfg")}</div></div>
         <div class="row" style="justify-content:flex-end"><button class="btn primary" data-act="newnext">Pokračovat</button></div>`
       : step === 1 ? `<div class="drop">Přetáhněte PDF, DOC/DOCX, XLS/XLSX, ODT nebo ZIP (nejvýše 20 MB)<br><button class="btn small" style="margin-top:8px" data-act="fakeupload">Vybrat soubory</button></div>
@@ -3242,6 +3310,9 @@ function action(a) {
     else { const u = URL.createObjectURL(new Blob([json], { type: "application/fhir+json" })), l = document.createElement("a"); l.href = u; l.download = `${o.id}-fhir-r4.json`; document.body.appendChild(l); l.click(); l.remove(); setTimeout(() => URL.revokeObjectURL(u), 1000); }
   }
   else if (a === "newpatient") { S.overlay = { kind: "new", step: 0, uploaded: false, progress: 0 }; renderOverlay(); }
+  else if (a === "fhiropen" || a === "fhirclose") { const o = S.overlay; readNewForm(o); o.fhirOpen = a === "fhiropen"; o.fhirMsg = ""; renderOverlay(); }
+  else if (a === "fhirsample") { const o = S.overlay; readNewForm(o); o.fhirText = JSON.stringify(FHIR_SAMPLE, null, 2); renderOverlay(); }
+  else if (a === "fhirimport") { const o = S.overlay; const t = document.getElementById("nffhir")?.value || ""; readNewForm(o); o.fhirText = t; fhirImport(o, t); renderOverlay(); }
   else if (a === "newnext") {
     const o = S.overlay;
     if (o.step === 0) {
@@ -3474,6 +3545,7 @@ document.addEventListener("change", e => {
   const t = e.target;
   if (t.id === "user") { S.user = t.value; if (S.view === "admin" && t.value !== ADMIN) S.view = "patients"; render(); }
   else if (t.dataset.upload) addUploads(t.files);
+  else if (t.dataset.fhirfile && t.files[0]) { const o = S.overlay; readNewForm(o); t.files[0].text().then(x => { o.fhirText = x; fhirImport(o, x); renderOverlay(); }); }
   else if (t.dataset.staff) staffEdit(t);
   else if (t.dataset.actToggle === "guide") { S.guideOn = t.checked; render(); }
   else if (t.dataset.retro) {
