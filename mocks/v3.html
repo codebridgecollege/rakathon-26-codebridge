@@ -9395,14 +9395,15 @@ document.addEventListener("click", e => {
     scheduleAt(S.schedPick, d.free);
   }
   else if (d.slot) {
-    /* The first click re-renders the calendar, so the browser's dblclick never fires; detect the second click ourselves. */
-    const now = Date.now(); if (S.lastSlot === d.slot && now - S.lastSlotAt < 450) { S.lastSlot = null; openPatient(d.dbl); return; }
+    /* The first click re-renders the calendar, so the browser's dblclick may not fire; detect the second click ourselves.
+       The window is generous because slower double clicks (system setting, trackpads) took up to ~600 ms in testing. */
+    const now = Date.now(); if (S.lastSlot === d.slot && now - S.lastSlotAt < DBL_MS) { S.lastSlot = null; openPatient(d.dbl); return; }
     S.lastSlot = d.slot; S.lastSlotAt = now;
     const [day, time] = d.slot.split(" "); S.calPop = S.patients.find(p => p.slot && p.slot.day === day && p.slot.time === time)?.file; if (S.calPop) logAccess(S.calPop, "zobrazil(a) detail termínu"); render();
     /* Scrolling the card into view moves the grid under the pointer, so the second click of a double click landed on
        another slot and the case never opened (round 25). The scroll waits until the double-click window has passed. */
     const pop = S.calPop; clearTimeout(S.slotScrollTimer);
-    S.slotScrollTimer = setTimeout(() => { if (S.view === "calendar" && S.calPop === pop) document.getElementById("minicard")?.scrollIntoView({ block: "nearest", behavior: "smooth" }); }, 460); }
+    S.slotScrollTimer = setTimeout(() => { if (S.view === "calendar" && S.calPop === pop) document.getElementById("minicard")?.scrollIntoView({ block: "nearest", behavior: "smooth" }); }, DBL_MS + 20); }
   else if (d.unsched) unschedule(d.unsched);
   else if (d.mode) { curProto().mode = d.mode; render(); }
   else if (d.recretry !== undefined) recPostPass(S.pid, S.rec.tx[S.pid]?.passes[+d.recretry]);
@@ -9627,6 +9628,10 @@ function scheduleAt(file, slot) {
    Clicking a patient and then a slot still works for keyboards and touch screens. */
 /* Enter or Space on a text source link acts like a click, as on a button. */
 document.addEventListener("keydown", e => { const el = e.target.closest?.(".srcl[role=button], .edl"); if (el && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); el.click(); } });
+/* Time within which a second click on the same booked slot opens the case. */
+const DBL_MS = 700;
+/* Native double click as a second path, for browsers where the slot element survives the first click's render. */
+document.addEventListener("dblclick", e => { const el = e.target.closest?.(".slotbtn.taken[data-dbl]"); if (el && S.view === "calendar") { S.lastSlot = null; openPatient(el.dataset.dbl); } });
 document.addEventListener("dragstart", e => {
   const el = e.target.closest?.("[data-drag]"); if (!el) return;
   e.dataTransfer.setData("text/plain", el.dataset.drag); e.dataTransfer.effectAllowed = "move"; S.dragFile = el.dataset.drag;
