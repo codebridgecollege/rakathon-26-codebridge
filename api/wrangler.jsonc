@@ -74,8 +74,9 @@
     { "name": "RL_LLM", "namespace_id": "26103", "simple": { "limit": 20, "period": 60 } },
     // Audio parts: one 5 MiB part is about 2.7 minutes of a case, so 30 a minute is far above a real meeting.
     { "name": "RL_AUDIO", "namespace_id": "26104", "simple": { "limit": 30, "period": 60 } },
-    // Uploads: the intake demo is seven files at once; 20 a minute leaves room for a retry.
-    { "name": "RL_UPLOAD", "namespace_id": "26105", "simple": { "limit": 20, "period": 60 } }
+    // Uploads: the intake demo is seven files at once, and in demo mode the limit is per IP, so a whole venue on one
+    // Wi-Fi shares it; 200 a minute keeps repeated demo runs smooth while still capping a runaway client.
+    { "name": "RL_UPLOAD", "namespace_id": "26105", "simple": { "limit": 200, "period": 60 } }
   ],
   // Step 5: the speaker pass after approval runs as a Workflow (durable steps, each retried on its own).
   "workflows": [

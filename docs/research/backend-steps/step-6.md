@@ -820,7 +820,7 @@ rules) are not built.
   check and the refusal log still apply. Order: role and membership
   (`document.upload`: doctor on the team or coordinator), case not closed
   and no approved conclusion (`case_locked`), at most 40 documents, rate
-  limit `RL_UPLOAD` (20 a minute; Cloudflare's limiter has 10 s and 60 s
+  limit `RL_UPLOAD` (200 a minute per IP in demo mode, since a venue shares one IP; Cloudflare's limiter has 10 s and 60 s
   periods only, so not "30 an hour"), then the body: not read when the
   declared size is 0 or over `UPLOAD_MAX_BYTES`, else read with the limit
   (declared and actual size equal), magic bytes (`%PDF-` within the first
