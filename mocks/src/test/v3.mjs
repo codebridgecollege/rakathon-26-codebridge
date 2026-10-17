@@ -23,8 +23,9 @@ for (const width of [1280, 400]) {
   await c('[data-colopen="status"]'); await over("filter");
   await page.locator('[data-colv="status"][value="Naplánován"]').uncheck();
   const n = await page.locator("tbody tr.click").count(); await c('[data-colclose]'); await c('[data-act="clearcolf"]');
-  ok(n < 8 && (await page.locator("tbody tr.click").count()) === 8, `${width} column filter narrows and clears (page of 8)`);
-  await c('[data-act="dball"]'); ok((await page.locator("tbody tr.click").count()) === 11, `${width} show all lists every patient`); await c('[data-act="dbpaged"]');
+  ok(n < 11 && (await page.locator("tbody tr.click").count()) === 11, `${width} column filter narrows and clears`);
+  // round 25: a page holds 20 patients, so all 11 fit on one page and "Zobrazit vše" is not offered
+  ok(await page.locator('[data-act="dball"]').count() === 0 && (await page.locator("main").textContent()).includes("Zobrazeno 1-11 z 11"), `${width} r25 database page size 20`);
   // calendar
   await c('[data-nav="calendar"]'); await over("calendar"); await c(".slotbtn.taken"); await over("calendar card");
   ok(await page.locator("#minicard").count() === 1, `${width} calendar card opens`);
@@ -48,10 +49,9 @@ for (const width of [1280, 400]) {
   await c('[data-tab="labs"]'); ok((await text("main")).includes("Hodnoty z dokumentu") && await page.locator("[data-labmode]").count() === 0 && await page.locator("svg.chart, th.dtc").count() === 0
     && await page.evaluate(() => !("labs_series_synthetic" in EXTRA)), `${width} case 10 labs: document values only, no trend toggle, no synthetic series`);
   // round 24: synthetic patient S01, marked as synthetic in the database and the header; its trend comes from four documented draws
-  await go("#patients"); await c('[data-act="dball"]');
+  await go("#patients");
   ok(await page.locator('tr[data-open="S01_pacient.pdf"] .syntag').count() === 1 && (await text('tr[data-open="S01_pacient.pdf"]')).includes("NO-S01")
     && await page.locator('tr[data-open="S01_pacient.pdf"] [data-sched]').count() === 1, `${width} S01 listed as "syntetický pacient", unscheduled with Naplánovat`);
-  await c('[data-act="dbpaged"]');
   await go("#patient/S01/labs"); await over("S01 labs");
   ok(await page.locator("main .phead .syntag").count() === 1 && (await text("main .question")).includes("lomustin") && await page.locator("main .question .qlbl").count() === 0, `${width} S01 header marked synthetic, explicit question shown`);
   ok(await page.locator("main th.dtc").count() === 4 && await page.locator("main svg.chart").count() === 1 && await page.locator("main .synth").count() === 0 && !(await text("main")).includes("syntetická data")
@@ -337,8 +337,8 @@ for (const width of [1280, 400]) {
   ok(await page.evaluate(f => { const p = P(f); return p.status === "closed" && p.statusHist.at(-1).by === "MUDr. Svobodová" && p.statusHist.at(-1).how === "ručně" && S.access.some(a => a.pid === f && a.what.includes("Nový -> Uzavřen")); }, un), `${width} manual close stored with who and when, logged`);
   await go("#calendar/2026-10-19");
   ok(!(await text("[data-unschedzone]")).includes(await page.evaluate(f => surnameFirst(P(f)), un)), `${width} closed case not in Nenaplánovaní`);
-  await go("#patients"); await c('[data-act="dball"]');
-  ok(await page.locator(`tr.closed[data-open="${un}"]`).count() === 1, `${width} closed case greyed in the database`); await c('[data-act="dbpaged"]');
+  await go("#patients");
+  ok(await page.locator(`tr.closed[data-open="${un}"]`).count() === 1, `${width} closed case greyed in the database`);
   await page.selectOption("#user", "Ing. Kovář (správce systému)"); await page.evaluate(f => openPatient(f), un); await c(".phead [data-stmenu]");
   ok(await page.locator(".stpop [data-setst]").count() === 0 && (await text(".stpop")).includes("Nový -> Uzavřen"), `${width} admin sees the status history read-only`);
   await page.selectOption("#user", "Bc. Marková (koordinátorka MDT)"); if (!(await page.locator(".stpop").count())) await c(".phead [data-stmenu]");
@@ -581,6 +581,90 @@ for (const width of [1280, 400]) {
   ok(await page.evaluate(() => isDefaultStaff() && COORD === "Bc. Marková" && DEPTS.length === 6 && localStorage.getItem("mdt-staff-v1") === null && S.access.some(a => a.what.startsWith("obnovil(a) výchozí personál"))), `${width} r23 reset restores the fictional defaults`);
   await page.reload(); await page.waitForTimeout(150);
   ok(await page.evaluate(() => isDefaultStaff() && S.user === "MUDr. Svobodová"), `${width} r23 defaults after reload`);
+  await page.close();
+}
+// round 25: labs sources folded, summary card height, OCR marks, resolvable alerts, removed alerts, everolimus chronology,
+// calendar double click, question draft, database diagnosis and page size, "Stručný přehled", reason pencil
+for (const width of [1280, 400]) {
+  const page = await browser.newPage({ viewport: { width, height: 900 } });
+  page.on("pageerror", e => errs.push(`${width} r25: ${e.message}`));
+  const go = async h => { await page.evaluate(x => { location.hash = x; }, h); await page.waitForTimeout(150); };
+  const text = sel => page.locator(sel).first().textContent();
+  await page.goto(file);
+  // 1. labs: explanation lines sit in a collapsed "Zdroje" at the bottom of the card
+  await go("#patient/10/labs");
+  ok(await page.locator("main details.labsrcs:not([open])").count() === 1 && (await text("main details.labsrcs summary")).trim() === "Zdroje"
+    && await page.evaluate(() => { const card = document.querySelector("main details.labsrcs").closest("section"), det = card.querySelector("details.labsrcs");
+      const outside = [...card.children].filter(el => el !== det).map(el => el.textContent).join(" ");
+      return !outside.includes("Pro všechny hodnoty") && !outside.includes(CASE.labs_note_cs.slice(0, 30)) && det.textContent.includes("Pro všechny hodnoty") && det.textContent.includes(CASE.labs_note_cs.slice(0, 30)) && card.lastElementChild === det; }),
+    `${width} r25 labs explanation in a collapsed "Zdroje" at the bottom`);
+  // 2. overview: the oncology summary scrolls inside its card; on wide screens it is as tall as the current-state card
+  await go("#patient/10/overview");
+  const geo = await page.evaluate(() => { const o = document.querySelector("main .onco"), b = o.querySelector(".ocbody"), st = [...document.querySelectorAll("main section.card h2")].find(h => h.textContent.includes("Aktuální stav pacienta")).closest("section");
+    return { oh: o.getBoundingClientRect().height, sh: st.getBoundingClientRect().height, scrolls: b.scrollHeight > b.clientHeight + 4, maxH: getComputedStyle(b).maxHeight }; });
+  ok(geo.scrolls && (width === 1280 ? Math.abs(geo.oh - geo.sh) <= 2 : geo.maxH !== "none"), `${width} r25 oncology summary body scrolls; ${width === 1280 ? "same height as Aktuální stav" : "max height on narrow screens"} (${Math.round(geo.oh)}/${Math.round(geo.sh)})`);
+  // 3. OCR marks: words both readings agree on carry no "!"; a digit-letter difference (MO/M0) keeps it
+  ok(await page.locator("main .stc .mk.ocr").count() === 0 && await page.evaluate(() => EXTRA.status_praesens.items.filter(it => it.ocr_note_cs).every(it => it.ocr_check && it.ocr_check.mark === false))
+    && await page.locator("main .dxh .mk.ocr").count() === 1 && await page.evaluate(() => EXTRA.diagnosis_headline.ocr_check.mark === true && EXTRA.diagnosis_headline.ocr_check.tokens[0].rule === "differ"),
+    `${width} r25 status praesens has no "!" where vision and Tesseract agree; M0 read as MO by Tesseract keeps its mark`);
+  // 5, 6, 9: no "Změna" kind, no "J-" alert, no out-of-range lab alert; the events stay in the summary
+  await go("#patient/10/alerts");
+  const al = await text("main");
+  ok(!al.includes("Změna") && !al.includes("„J-“") && !al.includes("kreatinin 107") && await page.evaluate(() => !("change" in ALERT) && !CASE.flags.some(f => f.kind === "change"))
+    && await page.evaluate(() => { const t = EXTRA.onco_compact_v3.lines.map(l => `${l.date_sort} ${l.text_cs}`).join("|"); return t.includes("2026-08-26 CT hrudníku, břicha a malé pánve: progrese") && t.includes("2026-09-03 3. paliativní linie everolimus") && t.includes("2026-09-14 MR mozku"); }),
+    `${width} r25 removed alerts (Změna, J-, lab range); CT 26.8., everolimus 3.9. and MR 14.9.2026 still in the summary`);
+  // 8: chronology observation replaces the "Nejasné" everolimus alert; summary and guideline facts say the same
+  ok(al.includes("Chronologie") && al.includes("Nejnovější ambulantní závěr je tedy na s. 3") && !al.includes("str. 2 a 3 uvádí navýšení")
+    && await page.evaluate(() => { const l = EXTRA.onco_compact_v3.lines.find(x => x.date_sort === "2026-09-19"); return l.text_cs.includes("dle nejnovějšího ambulantního závěru") && !l.text_cs.includes("zda proběhlo"); })
+    && await page.evaluate(() => { const g = document.getElementById("guide-data").textContent; return g.includes("dle nejnovějšího ambulantního závěru navýšení na 10 mg denně od 19. 9. 2026") && !g.includes("(zda proběhlo, neuvedeno v dostupné dokumentaci)"); }),
+    `${width} r25 everolimus: chronology observation, summary row and guideline facts consistent`);
+  // 4: resolve, return, acknowledge; history is append-only and logged; resolved alerts collapse at the bottom
+  const firstI = await page.evaluate(() => CASE.flags.findIndex(f => f.kind === "missing"));
+  await page.locator(`main [data-alert="${firstI}"] [data-alact="resolved"]`).first().click({ force: true });
+  ok((await text("main details.resolved > summary")).trim() === "Vyřešené (1)" && await page.locator("main details.resolved:not([open])").count() === 1
+    && await page.locator(`main details.resolved [data-alert="${firstI}"]`).count() === 1 && await page.locator(`main section.card > .alerts [data-alert="${firstI}"]`).count() === 0
+    && await page.evaluate(i => S.alertHist.length === 1 && S.alertHist[0].i === i && S.alertHist[0].who === S.user && S.access.some(a => a.what.startsWith("označil(a) upozornění jako vyřešené")), firstI),
+    `${width} r25 "Vyřešeno" moves the alert to a collapsed "Vyřešené (1)", records who and when, logs it`);
+  await page.locator("main details.resolved > summary").click();
+  ok((await text(`main details.resolved [data-alert="${firstI}"]`)).includes("Vyřešil(a)"), `${width} r25 resolved alert says who resolved it`);
+  await page.locator(`main details.resolved [data-alert="${firstI}"] [data-alact="reopen"]`).click();
+  ok(await page.locator("main details.resolved").count() === 0 && await page.evaluate(() => S.alertHist.length === 2 && S.alertHist[1].action === "reopen" && S.access.some(a => a.what.startsWith("vrátil(a) upozornění"))),
+    `${width} r25 "Vrátit" reopens the alert and appends to the history`);
+  await page.locator(`main [data-alert="${firstI}"] [data-alact="ack"]`).first().click({ force: true });
+  ok((await text(`main [data-alert="${firstI}"]`)).includes("Vzal(a) na vědomí") && await page.locator(`main [data-alert="${firstI}"] [data-alact="reopen"]`).count() >= 1, `${width} r25 "Vzít na vědomí" stays and can be returned`);
+  // missing-document alerts: the button stays amber while any is unresolved (data gaps aside)
+  const amber = () => page.evaluate(() => { const g = EXTRA.data_gaps_v3; EXTRA.data_gaps_v3 = g.filter(x => x.kind !== "missing"); const r = hasMissing(P(CASE.file)); EXTRA.data_gaps_v3 = g; return r; });
+  const missIdx = await page.evaluate(() => CASE.flags.map((f, i) => f.kind === "missing" ? i : -1).filter(i => i >= 0));
+  for (const i of missIdx.slice(0, -1)) await page.evaluate(i => alertAct(i, "resolved"), i);
+  const stillAmber = await amber();
+  await page.evaluate(i => alertAct(i, "resolved"), missIdx.at(-1));
+  ok(stillAmber === true && await amber() === false && await page.locator(".gapsbtn.warn").count() === 1, `${width} r25 missing-document alerts resolvable; amber until the last one is resolved (data gaps keep the button amber)`);
+  // 14: the brief block is "Stručný přehled"
+  await go("#patient/10/overview");
+  ok((await text("main section.blk h2")).trim() === "Stručný přehled" && !(await text("main")).includes("MDT brief"), `${width} r25 block heading "Stručný přehled"`);
+  // 11: the reason's hidden pencil takes no room before "Otázka:"
+  ok(await page.evaluate(() => { const b = document.querySelector(".rq1 > .edbtn:not([style])"); return !b || !matchMedia("(hover: hover)").matches || getComputedStyle(b).position === "absolute"; }), `${width} r25 reason pencil leaves no gap`);
+  // 10, 12, 13: question draft, diagnosis headlines, page size
+  await go("#patient/15");
+  ok((await text("main .question")).includes("Jaký další postup?") && !(await text("main .question")).includes("sledování, nebo operační řešení"), `${width} r25 Zápotocký draft names no unproposed option`);
+  await go("#patients");
+  ok((await text('tr[data-open="S01_pacient.pdf"]')).includes("IDH-wt") && (await text('tr[data-open="13_pacient.pdf"]')).includes("Kalcifikovaný meningeom parietálně vlevo, 12 x 9 mm") && !(await text("main tbody")).includes("žádost o konzultaci"),
+    `${width} r25 database diagnosis is a short headline`);
+  // 7: calendar, a double click and two quick clicks on a booked slot open the case
+  for (const how of ["dblclick", "two clicks"]) {
+    await go("#calendar/2026-10-19");
+    const slot = page.locator('[data-slot="2026-10-22 14:10"]');
+    await slot.scrollIntoViewIfNeeded();
+    const file = await slot.getAttribute("data-dbl");
+    if (how === "dblclick") await slot.dblclick();
+    else { const b = await slot.boundingBox(); await page.mouse.click(b.x + b.width / 2, b.y + b.height / 2); await page.waitForTimeout(90); await page.mouse.click(b.x + b.width / 2, b.y + b.height / 2); }
+    await page.waitForTimeout(200);
+    ok(await page.evaluate(f => S.view === "patient" && S.pid === f, file), `${width} r25 calendar ${how} on a booked patient opens the case`);
+  }
+  // a single click still opens the card and scrolls it into view after the double-click window
+  await go("#calendar/2026-10-19");
+  await page.locator('[data-slot="2026-10-22 14:10"]').click(); await page.waitForTimeout(800);
+  ok(await page.evaluate(() => S.view === "calendar" && !!document.getElementById("minicard")), `${width} r25 single click still opens the calendar card`);
   await page.close();
 }
 await browser.close();

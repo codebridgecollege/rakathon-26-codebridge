@@ -62,7 +62,7 @@ out = {
     "dev_note": "Generated from data/derived/pages/S01_pacient/p<n>.layer.txt; every quote is a verbatim substring of that page's text. See samples/README.md.",
     "list_entry": {
         "file": F, "name": "Radovan Křemínek", "age_or_birth": "nar. 12.3.1964", "insurer": "111",
-        "main_problem_cs": "Glioblastom vlevo frontálně, IDH-wildtype, CNS WHO gr. 4, MGMT metylován; progrese dle RANO 9/2026",
+        "main_problem_cs": "Glioblastom vlevo frontálně, IDH-wt, CNS WHO gr. 4, MGMT metylován",
         "mdt_question_cs": Q.removeprefix("Otázka na MDT: "),
         "mdt_question_explicit": True,
         "mdt_question_source": src(2, q_line),
@@ -75,7 +75,7 @@ out = {
     },
     "others_entry": {
         "file": F,
-        "diagnosis_cs": "Glioblastom vlevo frontálně, IDH-wildtype, CNS WHO gr. 4, MGMT metylován, diag. 12/2025",
+        "diagnosis_cs": "Glioblastom vlevo frontálně, IDH-wt, CNS WHO gr. 4, MGMT metylován",
         "diagnosis_source": src(1, "Glioblastom vlevo frontálně, IDH-wildtype, CNS WHO gr. 4, MGMT metylován, diag. 12/2025"),
         "histology_source": src(6, "Histol. 9.12.2025: glioblastom, IDH-wildtype, CNS WHO grade 4, MGMT promotor metylován, Ki-67 cca 40 %"),
         "mkn10": "C71.1",

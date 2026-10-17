@@ -89,7 +89,7 @@
       "evidence": "Conditional recommendation (as stated in the abstract); quality of evidence not given in the abstract",
       "applies_because_cs": "Pacient je na systémové léčbě (everolimus od 3. 9. 2026) a na cílený dotaz neguje závratě a poruchy rovnováhy, uvádí občasné mžitky před očima. Zda je ložisko asymptomatické a zda je everolimus pro tento účel léčba s účinkem v CNS, je na posouzení lékaře; dokumentace to neuvádí. Citace je ze souhrnu, ne z plného znění.",
       "patient_facts": [
-        "Everolimus 5 mg denně od 3. 9. 2026 (3. linie); zpráva uvádí navýšení na 10 mg denně od 19. 9. 2026 (zda proběhlo, neuvedeno v dostupné dokumentaci)",
+        "Everolimus 5 mg denně od 3. 9. 2026 (3. linie); dle nejnovějšího ambulantního závěru navýšení na 10 mg denně od 19. 9. 2026",
         "Na cílený dotaz neguje závratě či poruchy rovnováhy, někdy během dne mžitky před očima",
         "MR mozku 14. 9. 2026: solitární ložisko do 3 mm v pravé hemisféře mozečku, suspekce na metastázu"
       ],
@@ -108,7 +108,7 @@
       "applies_because_cs": "Ložisko v mozečku je suspektní z metastázy a pacient je na systémové léčbě (everolimus). Onkolog zapsal ‚bez klin. známek mozkových mts‘; pacient neguje závratě a poruchy rovnováhy a uvádí občasné mžitky před očima, jejich souvislost s ložiskem dokumentace nehodnotí. Citace je ze souhrnu, ne z plného znění.",
       "patient_facts": [
         "MR mozku 14. 9. 2026: solitární sytící se nodulus v pravé hemisféře mozečku do 3 mm, suspekce na metastázu",
-        "Everolimus 5 mg denně od 3. 9. 2026 (3. linie); zpráva uvádí navýšení na 10 mg denně od 19. 9. 2026 (zda proběhlo, neuvedeno v dostupné dokumentaci)",
+        "Everolimus 5 mg denně od 3. 9. 2026 (3. linie); dle nejnovějšího ambulantního závěru navýšení na 10 mg denně od 19. 9. 2026",
         "Na cílený dotaz neguje závratě či poruchy rovnováhy, někdy během dne mžitky před očima"
       ],
       "kind": "brain_metastasis",
@@ -126,7 +126,7 @@
       "applies_because_cs": "Ložisko je suspektní z metastázy a pacient je na systémové léčbě, otázka odložení lokální léčby je tedy otevřená. Souhrn jmenuje systémové režimy jen pro nemalobuněčný karcinom plic, karcinom prsu a melanom, ne pro karcinom ledviny. Onkolog zapsal ‚bez klin. známek mozkových mts‘; souvislost občasných mžitek před očima s ložiskem dokumentace nehodnotí. Citace je ze souhrnu, ne z plného znění.",
       "patient_facts": [
         "MR mozku 14. 9. 2026: solitární sytící se nodulus v pravé hemisféře mozečku do 3 mm, suspekce na metastázu",
-        "Everolimus 5 mg denně od 3. 9. 2026 (3. linie); zpráva uvádí navýšení na 10 mg denně od 19. 9. 2026 (zda proběhlo, neuvedeno v dostupné dokumentaci)",
+        "Everolimus 5 mg denně od 3. 9. 2026 (3. linie); dle nejnovějšího ambulantního závěru navýšení na 10 mg denně od 19. 9. 2026",
         "Na cílený dotaz neguje závratě či poruchy rovnováhy, někdy během dne mžitky před očima"
       ],
       "kind": "brain_metastasis",
@@ -144,7 +144,7 @@
       "applies_because_cs": "Pacient je HBsAg pozitivní a od 3. 9. 2026 užívá everolimus (inhibitor mTOR); Tabulka 14 (str. 42) uvádí u HBsAg-pozitivních inhibitory mTOR ve skupině středního rizika reaktivace (1-10 %). Sunitinib (do 8/2026) a nivolumab s ipilimumabem (do 12/2025) již skončily. Zařazení sunitinibu do řádku tabulky ‚Tyrosine kinase inhibitors‘ (vysoké riziko) je čtení asistenta, nejisté. HBV DNA, anti-HBc a hepatologické vyšetření: neuvedeno v dostupné dokumentaci.",
       "patient_facts": [
         "HBsAg pozit. pac. (anamnéza v dokumentaci)",
-        "Everolimus 5 mg denně od 3. 9. 2026 (3. linie); zpráva uvádí navýšení na 10 mg denně od 19. 9. 2026 (zda proběhlo, neuvedeno v dostupné dokumentaci)",
+        "Everolimus 5 mg denně od 3. 9. 2026 (3. linie); dle nejnovějšího ambulantního závěru navýšení na 10 mg denně od 19. 9. 2026",
         "Sunitinib 1-8/2026 (ukončen)",
         "Nivolumab + ipilimumab, udržovací nivolumab do 12/2025 (ukončeno)"
       ],
@@ -163,7 +163,7 @@
       "applies_because_cs": "Pacient je HBsAg pozitivní a užívá everolimus; Tabulka 14 (str. 42) uvádí u HBsAg-pozitivních inhibitory mTOR ve skupině středního rizika reaktivace (1-10 %). NA = nukleos(t)idová analoga. Antivirová léčba nebo profylaxe HBV: neuvedeno v dostupné dokumentaci (v chronické medikaci není).",
       "patient_facts": [
         "HBsAg pozitivní",
-        "Everolimus 5 mg denně od 3. 9. 2026 (3. linie); zpráva uvádí navýšení na 10 mg denně od 19. 9. 2026 (zda proběhlo, neuvedeno v dostupné dokumentaci)"
+        "Everolimus 5 mg denně od 3. 9. 2026 (3. linie); dle nejnovějšího ambulantního závěru navýšení na 10 mg denně od 19. 9. 2026"
       ],
       "kind": "comorbidity",
       "type": "recommendation",

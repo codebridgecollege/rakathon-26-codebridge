@@ -1971,18 +1971,6 @@ details.more > summary { cursor: pointer; color: var(--muted); font-size: 12.5px
    "note": "Záhlaví str. 4 je v OCR nečitelné. Datum lze jen odhadnout z kontextu (po 14.9.2026)."
   },
   {
-   "kind": "unclear",
-   "text_cs": "Text CT 26.8.2026 na str. 5 končí znaky „J-“; není jisté, zda je závěr úplný.",
-   "based_on": [
-    {
-     "file": "10_pacient.pdf",
-     "page": 5,
-     "quote": "progrse LU v levém pl. hilu a v retroperitonu paraaortálně vlevo. J-"
-    }
-   ],
-   "note": "Pozorování asistenta."
-  },
-  {
    "kind": "contradiction",
    "text_cs": "Datum restagingu s mediastinální a hilovou lymfadenopatií: str. 2 uvádí 3/2022, str. 1 uvádí baseline CT 6.3.2023.",
    "based_on": [
@@ -2039,9 +2027,24 @@ details.more > summary { cursor: pointer; color: var(--muted); font-size: 12.5px
    "note": "Pozorování asistenta; z textu plyne přechod na udržovací nivolumab od 27.6.2023."
   },
   {
-   "kind": "unclear",
-   "text_cs": "Navýšení everolimu na 10 mg: str. 2 a 3 uvádí navýšení (od 19.9.2026), str. 3 zároveň podmíněně 'při dobré toleranci navýšíme'.",
+   "kind": "chronology",
+   "text_cs": "Dokument je podle textu jedna kontrolní zpráva, ne záznamy z více kontrol: ručně psaná čísla stran (s. 4 „1“, s. 1 „3“) dávají pořadí s. 4, 5, 1, 2, 3 a text s. 2 („Cabozantinib na“) plynule pokračuje na s. 3 („par. 16 ponecháme do 4. linie“). Nejnovější ambulantní závěr je tedy na s. 3 (kontrola po MR mozku 14.9.2026, datum zprávy začerněné); uvádí navýšení everolimu na 10 mg denně, léčba na s. 2 od 19.9.2026. Věta „Při dobré toleranci navýšíme everolimus na 10mg denně“ v doporučení na s. 3 tomu časově neodpovídá; zda jde o text převzatý z dřívější kontroly, z dokumentu určit nelze.",
    "based_on": [
+    {
+     "file": "10_pacient.pdf",
+     "page": 2,
+     "quote": "Do 3. pal. linie léčby indikován everolimus - schváleno KOC komisi. Cabozantinib na"
+    },
+    {
+     "file": "10_pacient.pdf",
+     "page": 3,
+     "quote": "par. 16 ponecháme do 4. linie."
+    },
+    {
+     "file": "10_pacient.pdf",
+     "page": 3,
+     "quote": "Tolerance léčby vývorná, lab., vyš. bez zásadni patologie, proto navyšuji Everolimus na 10mg denně."
+    },
     {
      "file": "10_pacient.pdf",
      "page": 2,
@@ -2053,7 +2056,7 @@ details.more > summary { cursor: pointer; color: var(--muted); font-size: 12.5px
      "quote": "Při dobré toleranci navýšime everolimus na 10mg denně."
     }
    ],
-   "note": "Pozorování asistenta; možná text ze dvou různých kontrol. Aktuální dávku ověřit."
+   "note": "Pozorování asistenta k pořadí stran a k nejnovějšímu závěru; dávku potvrzuje lékař."
   },
   {
    "kind": "unclear",
@@ -2066,51 +2069,6 @@ details.more > summary { cursor: pointer; color: var(--muted); font-size: 12.5px
     }
    ],
    "note": "Pozorování asistenta; OCR sazba stránky je promíchaná."
-  },
-  {
-   "kind": "change",
-   "text_cs": "Progrese na sunitinibu (CT 26.8.2026), od 3.9.2026 everolimus; 14.9.2026 nově suspekce na solitární MTS v mozečku.",
-   "based_on": [
-    {
-     "file": "10_pacient.pdf",
-     "page": 5,
-     "quote": "CT hrudník, břicho, malá pánev 26.8.2026"
-    },
-    {
-     "file": "10_pacient.pdf",
-     "page": 1,
-     "quote": "3, pal, linie léčby everolimus - start 3.9.2026"
-    },
-    {
-     "file": "10_pacient.pdf",
-     "page": 1,
-     "quote": "MR yyš, mozku 14.9.2026 NNJ"
-    }
-   ],
-   "note": "Pozorování asistenta, shrnuje dokumentované události.",
-   "relevant": true
-  },
-  {
-   "kind": "unclear",
-   "text_cs": "Laboratoř mimo uvedené rozmezí: kreatinin 107 µmol/l, eGFR 1,01 ml/s/1,73 m2, Hb 123 g/l (pod), MCV 102,8 fl (nad) a další. Datum odběru neuvedeno v dostupné dokumentaci.",
-   "based_on": [
-    {
-     "file": "10_pacient.pdf",
-     "page": 3,
-     "quote": "S_CREAE: 107 µmol/1 [59 ... 104]"
-    },
-    {
-     "file": "10_pacient.pdf",
-     "page": 3,
-     "quote": "B_HB: 123 g/1 [135 ... 175]"
-    },
-    {
-     "file": "10_pacient.pdf",
-     "page": 3,
-     "quote": "lab., vyš. bez zásadni patologie"
-    }
-   ],
-   "note": "Pozorování asistenta: hodnoty mimo referenční rozmezí, bez klinického hodnocení. Bez dřívějších hodnot nelze určit trend."
   }
  ],
  "ocr_quality_note": "Stránky 1, 2, 3 a 5 mají dobrou OCR vrstvu s běžnými chybami (l/1, O/0, 'yyš', 'ver;f;kována'). Záhlaví str. 4 je nečitelné ('Ambulantnf vyletfenf kontrolnf'), tabulky iRECIST na str. 4 a 5 jsou rozsypané. Citace jsou s normalizovanými mezerami (zalomení řádků nahrazena mezerou).",
@@ -2143,7 +2101,7 @@ details.more > summary { cursor: pointer; color: var(--muted); font-size: 12.5px
   "name": "Jaroslava Kotěrová",
   "age_or_birth": null,
   "insurer": "205",
-  "main_problem_cs": "Glioblastom (GBM) temporálně vpravo, stp. resekci",
+  "main_problem_cs": "High grade gliový tumor temporálně vpravo, dle pooperační MR GBM",
   "mdt_question_cs": "Vzhledem k rozsahu tumoru (propagace do thalamu a mesencephala) symptomatická terapie?",
   "mdt_question_explicit": true,
   "one_line_summary_cs": "Po kolapsu nalezena objemná expanze T vpravo s šířením do inzuly, thalamu a mesencefala; resekce 7.8.2026, histol. high grade gliový tumor (Ki67 až 70 %), pooperačně rozsáhlé reziduum; levostranná hemiparéza a neglect.",
@@ -2158,7 +2116,7 @@ details.more > summary { cursor: pointer; color: var(--muted); font-size: 12.5px
   "name": "Zdena Zábělská",
   "age_or_birth": "nar. 13.10.1961",
   "insurer": "111",
-  "main_problem_cs": "Karcinom levého prsu s generalizací do skeletu, komprese obratle Th2",
+  "main_problem_cs": "Invazivní karcinom NST levého prsu, G2, pT2 N1mi(1+/3sn) M0 (2023); MTS do skeletu",
   "mdt_question_cs": "Nález na PET/CT bude prezentován na NCH semináři k posouzení indikace NCH intervence.",
   "mdt_question_explicit": false,
   "one_line_summary_cs": "Ca levého prsu (2023, stp. mastektomii, RT, letrozol); 9/2026 progrese s mnohočetnými převážně osteolytickými MTS skeletu, patologická komprese Th2 až vertebra plana s měkkotkáňovou složkou do páteřního kanálu; od 7.9.2026 fulvestrant, od 22.9.2026 abemaciklib.",
@@ -2190,7 +2148,7 @@ details.more > summary { cursor: pointer; color: var(--muted); font-size: 12.5px
   "name": "Lenka Kabátová",
   "age_or_birth": null,
   "insurer": "205",
-  "main_problem_cs": "Vestibulární schwannom vlevo (Koos I), drobný meningeom F vlevo",
+  "main_problem_cs": "V.s. neurinom akustiku vlevo, Koos I; drobný meningeom F parafalcinně vlevo, do 6 mm",
   "mdt_question_cs": null,
   "mdt_question_explicit": false,
   "one_line_summary_cs": "Náhlé vertigo se zvracením a zhoršením sluchu vlevo; MR mozku s KL: intrameatální tumor do 7 mm charakteru schwannomu n. VIII vlevo a drobný parafalcinní meningeom F vlevo do 6 mm; Fazekas III, atrofie.",
@@ -2222,7 +2180,7 @@ details.more > summary { cursor: pointer; color: var(--muted); font-size: 12.5px
   "name": "Patricie Moučková",
   "age_or_birth": null,
   "insurer": "211",
-  "main_problem_cs": "Kalcifikovaný meningeom parietálně vlevo",
+  "main_problem_cs": "Kalcifikovaný meningeom parietálně vlevo, 12 x 9 mm",
   "mdt_question_cs": "Prosím laskavě o konzultaci CT mozku a srovnání s MRI.",
   "mdt_question_explicit": true,
   "one_line_summary_cs": "CT mozku 19.8.2026 (při akutní závrati): kalcifikovaný meningeom parietálně vlevo 12 x 9 mm, bez průkazu MTS; MR 8/2025 ložisko 10x6 mm, stacionární proti 10/2023; v anamnéze ca prsu (2002 až 2004, t.č. remise).",
@@ -2237,13 +2195,13 @@ details.more > summary { cursor: pointer; color: var(--muted); font-size: 12.5px
   "name": "Luděk Zápotocký",
   "age_or_birth": null,
   "insurer": "111 (nejisté)",
-  "main_problem_cs": "Léze postranní komory vpravo, v.s. ependymom či subependymom",
+  "main_problem_cs": "V.s. ependymom či subependymom postranní komory vpravo, 7x6 mm",
   "mdt_question_cs": null,
   "mdt_question_explicit": false,
   "one_line_summary_cs": "MR mozku: FLAIR hypersignální léze 7x6 mm na vnitřní stěně pravé postranní komory bez sycení, stacionární obraz v.s. ependymomu či subependymomu, bez poruchy cirkulace likvoru.",
   "page_count": 1,
   "note": "Jen radiologický popis, bez data vyšetření, anamnézy a otázky. Číslo '111' je v poli pro pojišťovnu nebo RČ, přiřazení nejisté.",
-  "question_draft_cs": "Souhlasí radiolog s obrazem v.s. ependymomu či subependymomu postranní komory vpravo? Je při stacionárním nálezu indikováno sledování, nebo operační řešení?",
+  "question_draft_cs": "Souhlasí radiolog s obrazem v.s. ependymomu či subependymomu postranní komory vpravo? Jaký další postup?",
   "question_kind": "assistant_inference",
   "question_basis": [
    {
@@ -2261,7 +2219,7 @@ details.more > summary { cursor: pointer; color: var(--muted); font-size: 12.5px
   "name": "Otakar Jelen",
   "age_or_birth": null,
   "insurer": null,
-  "main_problem_cs": "Intraoseální ložisko kalvy frontálně vpravo, DD meningeom vs. MTS (ca cekoascendens)",
+  "main_problem_cs": "Intraoseální ložisko kalvy F vpravo, DD intraoseální meningeom x MTS",
   "mdt_question_cs": "Žádost o doporučení dalšího postupu: MDT doporučilo konzultaci NCH, MR mozku a scintigrafii skeletu, zatím nedoplněno, 'vyčkáme Vašeho doporučení'.",
   "mdt_question_explicit": false,
   "one_line_summary_cs": "Ca cekoascendens pT3 pN0 cM0, stp. pravostranné hemikolektomii, susp. Lynch syndrom; CT mozku 13.9.2026 při vestibulárním syndromu: intraoseální ložisko F vpravo s extraaxiální propagací 13x7 mm, DD intraoseální meningeom x MTS.",
@@ -2299,7 +2257,7 @@ details.more > summary { cursor: pointer; color: var(--muted); font-size: 12.5px
   "name": "Libor Opletal",
   "age_or_birth": "53 let",
   "insurer": null,
-  "main_problem_cs": "Syringomyelie Th4 až Th12, susp. drobný ependymom v oblasti konu",
+  "main_problem_cs": "Syringomyelie Th4-Th12, drobný ependymom v oblasti konu nelze vyloučit",
   "mdt_question_cs": null,
   "mdt_question_explicit": false,
   "one_line_summary_cs": "Opakované silné lumbalgie se zhoršením; MR Th páteře s KL: cystické okrsky míchy Th4 až Th12, rozšíření míchy max. v oblasti konu 15x17 mm se sytícími okrsky do 4,5x4 mm (drobný ependymom nelze vyloučit); protruze L3 až L5.",
@@ -2339,7 +2297,7 @@ details.more > summary { cursor: pointer; color: var(--muted); font-size: 12.5px
   "name": "Martina Palajová",
   "age_or_birth": null,
   "insurer": null,
-  "main_problem_cs": "Regredující monoparéza LHK (DD iCMP/TIA vs. epiparoxyzmus), fraktura dens axis, aneuryzmata ACI",
+  "main_problem_cs": "Dvě výdutě ACI vlevo pod bazí lební, cca 2 a 3 mm; fraktura baze dens axis",
   "mdt_question_cs": null,
   "mdt_question_explicit": false,
   "one_line_summary_cs": "Přijata 29.9. pro odeznělou monoparézu LHK po vysazení antikoagulace; fraktura baze dens axis po pádu 27.9. (konzervativně dle NCH); CTAG 13.10.2026: vlevo dvě výdutě ACI 2 a 3 mm pod bazí lební.",
@@ -2363,7 +2321,7 @@ details.more > summary { cursor: pointer; color: var(--muted); font-size: 12.5px
   "name": "Richard Potužný",
   "age_or_birth": "69 let",
   "insurer": null,
-  "main_problem_cs": "Infiltrace obratlů C6 až Th1, DD spondylodiscitida vs. maligní infiltrace (ca prostaty)",
+  "main_problem_cs": "Infiltrace obratlových těl C6-Th1, DD spondylodiscitida x maligní infiltrace",
   "mdt_question_cs": null,
   "mdt_question_explicit": false,
   "one_line_summary_cs": "4 měsíce po TURP (ca prostaty 5/2026) a sepsi; MR Cp 14.9.26: infiltrace obratlových těl C6/C7/Th1 se stenózou kanálu bez komprese míchy; scintigrafie: osteolytická ložiska C páteře, susp. okrsky kalvy, Th6 a LS-S1; NCH doporučilo nahlásit na NOCO a doplnit CT hrudníku a břicha.",
@@ -3949,7 +3907,7 @@ details.more > summary { cursor: pointer; color: var(--muted); font-size: 12.5px
  "others": [
   {
    "file": "2_pacient.pdf",
-   "diagnosis_cs": "High grade gliový tumor temporálně vpravo (pooperační MR uvádí GBM), stav po resekci 7.8.2026",
+   "diagnosis_cs": "High grade gliový tumor temporálně vpravo, dle pooperační MR GBM",
    "diagnosis_source": {
     "file": "2_pacient.pdf",
     "page": 1,
@@ -3967,7 +3925,7 @@ details.more > summary { cursor: pointer; color: var(--muted); font-size: 12.5px
   },
   {
    "file": "9_pacient.pdf",
-   "diagnosis_cs": "Karcinom levého prsu (2023), generalizace do skeletu, patologická komprese Th2",
+   "diagnosis_cs": "Invazivní karcinom NST levého prsu, G2, pT2 N1mi(1+/3sn) M0 (2023); MTS do skeletu",
    "diagnosis_source": {
     "file": "9_pacient.pdf",
     "page": 2,
@@ -3993,7 +3951,7 @@ details.more > summary { cursor: pointer; color: var(--muted); font-size: 12.5px
   },
   {
    "file": "11_pacient.pdf",
-   "diagnosis_cs": "V.s. neurinom akustiku vlevo (schwannom n. VIII vlevo), drobný meningeom F parafalcinně vlevo",
+   "diagnosis_cs": "V.s. neurinom akustiku vlevo, Koos I; drobný meningeom F parafalcinně vlevo, do 6 mm",
    "diagnosis_source": {
     "file": "11_pacient.pdf",
     "page": 2,
@@ -4011,7 +3969,7 @@ details.more > summary { cursor: pointer; color: var(--muted); font-size: 12.5px
   },
   {
    "file": "13_pacient.pdf",
-   "diagnosis_cs": "Kalcifikovaný meningeom parietálně vlevo 12 x 9 mm (žádost o konzultaci CT a srovnání s MRI)",
+   "diagnosis_cs": "Kalcifikovaný meningeom parietálně vlevo, 12 x 9 mm",
    "diagnosis_source": {
     "file": "13_pacient.pdf",
     "page": 1,
@@ -4029,7 +3987,7 @@ details.more > summary { cursor: pointer; color: var(--muted); font-size: 12.5px
   },
   {
    "file": "15_pacient.pdf",
-   "diagnosis_cs": "Stacionární obraz v.s. ependymomu či subependymomu postranní komory vpravo (MR mozku)",
+   "diagnosis_cs": "V.s. ependymom či subependymom postranní komory vpravo, 7x6 mm",
    "diagnosis_source": {
     "file": "15_pacient.pdf",
     "page": 1,
@@ -4047,7 +4005,7 @@ details.more > summary { cursor: pointer; color: var(--muted); font-size: 12.5px
   },
   {
    "file": "17_pacient.pdf",
-   "diagnosis_cs": "Intraoseální ložisko frontálně vpravo s propagací intrakraniálně, dif. dg. intraoseální meningeom x meta; ca cekoascendens pT3 pN0 cM0 v anamnéze",
+   "diagnosis_cs": "Intraoseální ložisko kalvy F vpravo, DD intraoseální meningeom x MTS",
    "diagnosis_source": {
     "file": "17_pacient.pdf",
     "page": 1,
@@ -4065,7 +4023,7 @@ details.more > summary { cursor: pointer; color: var(--muted); font-size: 12.5px
   },
   {
    "file": "18_pacient.pdf",
-   "diagnosis_cs": "Cystické rozšíření míchy Th4-Th12 (syringomyelie), v oblasti konu nelze vyloučit drobný ependymom",
+   "diagnosis_cs": "Syringomyelie Th4-Th12, drobný ependymom v oblasti konu nelze vyloučit",
    "diagnosis_source": {
     "file": "18_pacient.pdf",
     "page": 1,
@@ -4083,7 +4041,7 @@ details.more > summary { cursor: pointer; color: var(--muted); font-size: 12.5px
   },
   {
    "file": "19_pacient.pdf",
-   "diagnosis_cs": "Dvě drobné výdutě ACI vlevo pod bazí lební (cca 2 a 3 mm); fraktura dens axis, monoparéza LHK v dif. dg. TIA/iCMP x epiparoxyzmus",
+   "diagnosis_cs": "Dvě výdutě ACI vlevo pod bazí lební, cca 2 a 3 mm; fraktura baze dens axis",
    "diagnosis_source": {
     "file": "19_pacient.pdf",
     "page": 1,
@@ -4101,7 +4059,7 @@ details.more > summary { cursor: pointer; color: var(--muted); font-size: 12.5px
   },
   {
    "file": "20_pacient.pdf",
-   "diagnosis_cs": "Infiltrace obratlových těl C6-Th1, dif. dg. spondylodiscitida x maligní infiltrace; ca prostaty v anamnéze",
+   "diagnosis_cs": "Infiltrace obratlových těl C6-Th1, DD spondylodiscitida x maligní infiltrace",
    "diagnosis_source": {
     "file": "20_pacient.pdf",
     "page": 1,
@@ -4184,7 +4142,20 @@ details.more > summary { cursor: pointer; color: var(--muted); font-size: 12.5px
    0,
    1,
    2
-  ]
+  ],
+  "ocr_check": {
+   "mark": true,
+   "rule": "kept",
+   "tokens": [
+    {
+     "layer": "MO",
+     "vision": "M0",
+     "tess": "MO",
+     "page": 1,
+     "rule": "differ"
+    }
+   ]
+  }
  },
  "onco_detailed_v3": [
   {
@@ -4195,7 +4166,20 @@ details.more > summary { cursor: pointer; color: var(--muted); font-size: 12.5px
     1,
     2
    ],
-   "ocr_note_cs": "V OCR „MO“, čteno jako M0."
+   "ocr_note_cs": "V OCR „MO“, čteno jako M0.",
+   "ocr_check": {
+    "mark": true,
+    "rule": "kept",
+    "tokens": [
+     {
+      "layer": "MO",
+      "vision": "M0",
+      "tess": "MO",
+      "page": 1,
+      "rule": "differ"
+     }
+    ]
+   }
   },
   {
    "date_cs": "7.9.2022",
@@ -4243,7 +4227,20 @@ details.more > summary { cursor: pointer; color: var(--muted); font-size: 12.5px
     11
    ],
    "ocr_note_cs": "V OCR „lmg/kg“, čteno jako 1 mg/kg.",
-   "note_cs": "Indikovány 4 cykly, dokumentovány 2; výslovné ukončení kombinace v textu chybí."
+   "note_cs": "Indikovány 4 cykly, dokumentovány 2; výslovné ukončení kombinace v textu chybí.",
+   "ocr_check": {
+    "mark": false,
+    "rule": "suppressed",
+    "tokens": [
+     {
+      "layer": "lmg/kg",
+      "vision": "1mg/kg",
+      "tess": "1mg/kg",
+      "page": 2,
+      "rule": "agree"
+     }
+    ]
+   }
   },
   {
    "date_cs": "6/2023-12/2025",
@@ -4264,7 +4261,20 @@ details.more > summary { cursor: pointer; color: var(--muted); font-size: 12.5px
     16,
     47
    ],
-   "ocr_note_cs": "V OCR „venozn1ho“, čteno jako venózního."
+   "ocr_note_cs": "V OCR „venozn1ho“, čteno jako venózního.",
+   "ocr_check": {
+    "mark": false,
+    "rule": "suppressed",
+    "tokens": [
+     {
+      "layer": "venozn1ho",
+      "vision": "venózního",
+      "tess": "venozního",
+      "page": 1,
+      "rule": "agree"
+     }
+    ]
+   }
   },
   {
    "date_cs": "21.11.2023",
@@ -4274,7 +4284,20 @@ details.more > summary { cursor: pointer; color: var(--muted); font-size: 12.5px
     17,
     48
    ],
-   "ocr_note_cs": "V textu „světlebuněčného“, čteno jako světlobuněčného."
+   "ocr_note_cs": "V textu „světlebuněčného“, čteno jako světlobuněčného.",
+   "ocr_check": {
+    "mark": false,
+    "rule": "suppressed",
+    "tokens": [
+     {
+      "layer": "světlebuněčného",
+      "vision": "světlebuněčného",
+      "tess": "světlebuněčného",
+      "page": 1,
+      "rule": "agree"
+     }
+    ]
+   }
   },
   {
    "date_cs": "11.2.2025",
@@ -4296,7 +4319,27 @@ details.more > summary { cursor: pointer; color: var(--muted); font-size: 12.5px
     21
    ],
    "ocr_note_cs": "V OCR „CI“, čteno jako CT; „velí kosti“ čteno jako velikosti.",
-   "note_cs": "Hodnocení se v dokumentu liší: jednou „PD (progressive disease)“, jinde „iUPD“."
+   "note_cs": "Hodnocení se v dokumentu liší: jednou „PD (progressive disease)“, jinde „iUPD“.",
+   "ocr_check": {
+    "mark": false,
+    "rule": "suppressed",
+    "tokens": [
+     {
+      "layer": "CI",
+      "vision": "CT",
+      "tess": "CT",
+      "page": 4,
+      "rule": "agree"
+     },
+     {
+      "layer": "velí kosti",
+      "vision": "velikosti),",
+      "tess": "velikosti),",
+      "page": 4,
+      "rule": "agree"
+     }
+    ]
+   }
   },
   {
    "date_cs": "16.1.2026",
@@ -4308,7 +4351,20 @@ details.more > summary { cursor: pointer; color: var(--muted); font-size: 12.5px
     53,
     23
    ],
-   "ocr_note_cs": "V OCR „CI“, čteno jako CT."
+   "ocr_note_cs": "V OCR „CI“, čteno jako CT.",
+   "ocr_check": {
+    "mark": false,
+    "rule": "suppressed",
+    "tokens": [
+     {
+      "layer": "CI",
+      "vision": "CT",
+      "tess": "CT",
+      "page": 4,
+      "rule": "agree"
+     }
+    ]
+   }
   },
   {
    "date_cs": "1-8/2026",
@@ -4335,7 +4391,27 @@ details.more > summary { cursor: pointer; color: var(--muted); font-size: 12.5px
     28
    ],
    "ocr_note_cs": "V OCR „cr Ag“, čteno jako CT angiografie; „osteoplatické“ čteno jako osteoplastické.",
-   "note_cs": "Věta o osteoplastických ložiscích stojí v textu mezi tabulkou CT 16.1.2026 a závěrem CT angiografie; příslušnost k vyšetření nelze z textu určit."
+   "note_cs": "Věta o osteoplastických ložiscích stojí v textu mezi tabulkou CT 16.1.2026 a závěrem CT angiografie; příslušnost k vyšetření nelze z textu určit.",
+   "ocr_check": {
+    "mark": true,
+    "rule": "kept",
+    "tokens": [
+     {
+      "layer": "cr Ag",
+      "vision": "CT Ag",
+      "tess": "CT. A licni",
+      "page": 5,
+      "rule": "differ"
+     },
+     {
+      "layer": "osteoplatické",
+      "vision": "osteoplatické",
+      "tess": "osteoplatické",
+      "page": 5,
+      "rule": "agree"
+     }
+    ]
+   }
   },
   {
    "date_cs": "28.4.2026",
@@ -4349,7 +4425,20 @@ details.more > summary { cursor: pointer; color: var(--muted); font-size: 12.5px
     29,
     63
    ],
-   "ocr_note_cs": "V OCR „nep\ufffdibyla“ (nečitelný znak), čteno jako nepřibyla."
+   "ocr_note_cs": "V OCR „nep\ufffdibyla“ (nečitelný znak), čteno jako nepřibyla.",
+   "ocr_check": {
+    "mark": false,
+    "rule": "suppressed",
+    "tokens": [
+     {
+      "layer": "nep\ufffdibyla",
+      "vision": "nepřibyla.",
+      "tess": "nepřibyla.",
+      "page": 5,
+      "rule": "agree"
+     }
+    ]
+   }
   },
   {
    "date_cs": "26.8.2026",
@@ -4362,12 +4451,31 @@ details.more > summary { cursor: pointer; color: var(--muted); font-size: 12.5px
     31
    ],
    "ocr_note_cs": "V OCR „progrse“ a „retroperitonu“, čteno jako progrese a retroperitoneu.",
-   "note_cs": "Text závěru končí znaky „J-“; není jisté, zda je úplný."
+   "ocr_check": {
+    "mark": false,
+    "rule": "suppressed",
+    "tokens": [
+     {
+      "layer": "progrse",
+      "vision": "progrse",
+      "tess": "progrse",
+      "page": 5,
+      "rule": "agree"
+     },
+     {
+      "layer": "retroperitonu",
+      "vision": "retroperitonu",
+      "tess": "retroperitonu",
+      "page": 5,
+      "rule": "agree"
+     }
+    ]
+   }
   },
   {
    "date_cs": "3.9.2026",
    "event_cs": "3. linie everolimus",
-   "comment_cs": "schváleno komisí komplexního onkologického centra; cabozantinib (paragraf 16) ponechán do 4. linie; navýšení dávky na 10 mg denně od 19.9.2026 plánováno",
+   "comment_cs": "schváleno komisí komplexního onkologického centra; cabozantinib (paragraf 16) ponechán do 4. linie; navýšení dávky na 10 mg denně od 19.9.2026 dle nejnovějšího závěru",
    "refs": [
     32,
     33,
@@ -4378,7 +4486,33 @@ details.more > summary { cursor: pointer; color: var(--muted); font-size: 12.5px
     69
    ],
    "ocr_note_cs": "V OCR „zyyšuji“ = zvyšuji. „Cabozantinib na“ končí str. 2, pokračuje „par. 16“ na str. 3.",
-   "note_cs": "Zda navýšení dávky proběhlo, ověřit: str. 3 uvádí „navyšuji“ i „Při dobré toleranci navýšime“."
+   "ocr_check": {
+    "mark": true,
+    "rule": "kept",
+    "tokens": [
+     {
+      "layer": "zyyšuji",
+      "vision": "zvyšuji",
+      "tess": null,
+      "page": 2,
+      "rule": "tess_missing"
+     },
+     {
+      "layer": "Cabozantinib na",
+      "vision": "Cabozantinib na",
+      "tess": "Cabozantinib na",
+      "page": 2,
+      "rule": "agree"
+     },
+     {
+      "layer": "par. 16",
+      "vision": "par. 16",
+      "tess": "par. 16",
+      "page": 3,
+      "rule": "agree"
+     }
+    ]
+   }
   },
   {
    "date_cs": "14.9.2026",
@@ -4406,7 +4540,20 @@ details.more > summary { cursor: pointer; color: var(--muted); font-size: 12.5px
    ],
    "ocr_note_cs": "V OCR „výbormně“, čteno jako výborně.",
    "note_cs": "Datum kontroly neuvedeno; datum kontrolního CT v OCR chybí.",
-   "date_label_cs": "Aktuálně"
+   "date_label_cs": "Aktuálně",
+   "ocr_check": {
+    "mark": false,
+    "rule": "suppressed",
+    "tokens": [
+     {
+      "layer": "výbormně",
+      "vision": "výbormně,",
+      "tess": "výbormně,",
+      "page": 4,
+      "rule": "agree"
+     }
+    ]
+   }
   }
  ],
  "anamnesis_v3": {
@@ -4429,7 +4576,20 @@ details.more > summary { cursor: pointer; color: var(--muted); font-size: 12.5px
      75
     ],
     "ocr_note_cs": "Datum v OCR „22,5,2026“.",
-    "negated": false
+    "negated": false,
+    "ocr_check": {
+     "mark": false,
+     "rule": "suppressed",
+     "tokens": [
+      {
+       "layer": "22,5,2026",
+       "vision": "22.5.2026",
+       "tess": "22.5.2026",
+       "page": 5,
+       "rule": "agree"
+      }
+     ]
+    }
    },
    {
     "term_cs": "Podezření na intersticiální plicní postižení",
@@ -4439,7 +4599,27 @@ details.more > summary { cursor: pointer; color: var(--muted); font-size: 12.5px
      75
     ],
     "ocr_note_cs": "V OCR „post1zené“, čteno jako postižení; datum zapsáno „22,5,2026“.",
-    "negated": false
+    "negated": false,
+    "ocr_check": {
+     "mark": false,
+     "rule": "suppressed",
+     "tokens": [
+      {
+       "layer": "post1zené",
+       "vision": "postižené,",
+       "tess": "postižené,",
+       "page": 5,
+       "rule": "agree"
+      },
+      {
+       "layer": "22,5,2026",
+       "vision": "22.5.2026",
+       "tess": "22.5.2026",
+       "page": 5,
+       "rule": "agree"
+      }
+     ]
+    }
    },
    {
     "term_cs": "Hyperlipoproteinémie",
@@ -4487,7 +4667,12 @@ details.more > summary { cursor: pointer; color: var(--muted); font-size: 12.5px
      94
     ],
     "ocr_note_cs": "V OCR „dekorigované HT“, pravděpodobně dekompenzované, ověřit.",
-    "negated": false
+    "negated": false,
+    "ocr_check": {
+     "mark": true,
+     "rule": "note_states_doubt",
+     "tokens": []
+    }
    },
    {
     "term_cs": "Sklerotické změny tepen dolních končetin",
@@ -4527,19 +4712,30 @@ details.more > summary { cursor: pointer; color: var(--muted); font-size: 12.5px
     "drug_cs": "Everolimus Sandoz",
     "strength_cs": "5 mg",
     "dosing_cs": "1-0-0",
-    "change_cs": "navýšení na 2-0-0 (10 mg denně) od 19.9.2026 plánováno, zda proběhlo, ověřit; při netoleranci návrat k 1-0-0",
-    "change_status": "planned_unconfirmed",
+    "change_cs": "navýšení na 2-0-0 (10 mg denně) od 19.9.2026 dle nejnovějšího ambulantního závěru; při netoleranci návrat k 1-0-0",
     "indication_cs": null,
     "comment_cs": null,
-    "comment_line_cs": "navýšení na 2-0-0 od 19.9.2026 plánováno, ověřit; při netoleranci návrat k 1-0-0",
+    "comment_line_cs": "navýšení na 2-0-0 od 19.9.2026 dle nejnovějšího závěru; při netoleranci návrat k 1-0-0",
     "refs": [
      67,
-     68,
-     69
+     69,
+     68
     ],
     "ocr_note_cs": "V OCR „zyyšuji“ = zvyšuji.",
-    "certainty": "unclear",
-    "note_cs": "Str. 3 uvádí „navyšuji“ i „Při dobré toleranci navýšime“; aktuální dávku ověřit."
+    "certainty": "documented",
+    "ocr_check": {
+     "mark": true,
+     "rule": "kept",
+     "tokens": [
+      {
+       "layer": "zyyšuji",
+       "vision": "zvyšuji",
+       "tess": null,
+       "page": 2,
+       "rule": "tess_missing"
+      }
+     ]
+    }
    },
    {
     "drug_cs": "Kapidin",
@@ -4605,7 +4801,20 @@ details.more > summary { cursor: pointer; color: var(--muted); font-size: 12.5px
     ],
     "ocr_note_cs": "V OCR „ltbl.“, čteno jako tbl.",
     "certainty": "unclear_ocr",
-    "note_cs": null
+    "note_cs": null,
+    "ocr_check": {
+     "mark": true,
+     "rule": "kept",
+     "tokens": [
+      {
+       "layer": "ltbl.",
+       "vision": "1tbl.",
+       "tess": "1tb1l.",
+       "page": 2,
+       "rule": "differ"
+      }
+     ]
+    }
    },
    {
     "drug_cs": "Natrii chloridi (tobolky)",
@@ -4621,7 +4830,20 @@ details.more > summary { cursor: pointer; color: var(--muted); font-size: 12.5px
     ],
     "ocr_note_cs": "V OCR „l,Og“, čteno jako 1,0 g.",
     "certainty": "unclear_ocr",
-    "note_cs": null
+    "note_cs": null,
+    "ocr_check": {
+     "mark": false,
+     "rule": "suppressed",
+     "tokens": [
+      {
+       "layer": "l,Og",
+       "vision": "1,0g",
+       "tess": "1,0g",
+       "page": 2,
+       "rule": "agree"
+      }
+     ]
+    }
    },
    {
     "drug_cs": "Calcichew",
@@ -4638,7 +4860,12 @@ details.more > summary { cursor: pointer; color: var(--muted); font-size: 12.5px
     "ocr_note_cs": "Za lomítkem nečitelné (OCR „SOOIU“); jednotka u 1000 v textu neuvedena.",
     "certainty": "unclear_ocr",
     "note_cs": null,
-    "strength_as_written": "1000/SOOIU"
+    "strength_as_written": "1000/SOOIU",
+    "ocr_check": {
+     "mark": true,
+     "rule": "note_states_doubt",
+     "tokens": []
+    }
    },
    {
     "drug_cs": "Degan",
@@ -4746,7 +4973,27 @@ details.more > summary { cursor: pointer; color: var(--muted); font-size: 12.5px
     ],
     "ocr_note_cs": "V OCR „zyýšené“ a „anafylace“, čteno jako zvýšené a anafylaxe.",
     "negated": false,
-    "dev_note": "Uvedeno v doporučení k everolimu jako léková interakce, ne jako alergie."
+    "dev_note": "Uvedeno v doporučení k everolimu jako léková interakce, ne jako alergie.",
+    "ocr_check": {
+     "mark": true,
+     "rule": "kept",
+     "tokens": [
+      {
+       "layer": "zyýšené",
+       "vision": "zvýšené",
+       "tess": null,
+       "page": 2,
+       "rule": "tess_missing"
+      },
+      {
+       "layer": "anafylace",
+       "vision": "anafylace.",
+       "tess": null,
+       "page": 2,
+       "rule": "tess_missing"
+      }
+     ]
+    }
    }
   ],
   "AA": [],
@@ -4802,7 +5049,20 @@ details.more > summary { cursor: pointer; color: var(--muted); font-size: 12.5px
      97
     ],
     "negated": false,
-    "ocr_note_cs": "V OCR „výbormně“."
+    "ocr_note_cs": "V OCR „výbormně“.",
+    "ocr_check": {
+     "mark": false,
+     "rule": "suppressed",
+     "tokens": [
+      {
+       "layer": "výbormně",
+       "vision": "výbormně,",
+       "tess": "výbormně,",
+       "page": 4,
+       "rule": "agree"
+      }
+     ]
+    }
    },
    {
     "group": "subjective",
@@ -4812,7 +5072,20 @@ details.more > summary { cursor: pointer; color: var(--muted); font-size: 12.5px
      98
     ],
     "negated": true,
-    "ocr_note_cs": "V OCR „nevolnoist“."
+    "ocr_note_cs": "V OCR „nevolnoist“.",
+    "ocr_check": {
+     "mark": false,
+     "rule": "suppressed",
+     "tokens": [
+      {
+       "layer": "nevolnoist",
+       "vision": "nevolnoist",
+       "tess": "nevolnoist",
+       "page": 4,
+       "rule": "agree"
+      }
+     ]
+    }
    },
    {
     "group": "subjective",
@@ -4853,7 +5126,20 @@ details.more > summary { cursor: pointer; color: var(--muted); font-size: 12.5px
     ],
     "negated": false,
     "ocr_note_cs": "V OCR „ná/ez“ (nález) v nadpisu.",
-    "certainty": "documented"
+    "certainty": "documented",
+    "ocr_check": {
+     "mark": false,
+     "rule": "suppressed",
+     "tokens": [
+      {
+       "layer": "ná/ez",
+       "vision": "nález:**",
+       "tess": "nález:",
+       "page": 4,
+       "rule": "agree"
+      }
+     ]
+    }
    },
    {
     "group": "status",
@@ -4944,7 +5230,20 @@ details.more > summary { cursor: pointer; color: var(--muted); font-size: 12.5px
      108
     ],
     "negated": false,
-    "ocr_note_cs": "V OCR „fenomenu“, čteno jako fenoménů."
+    "ocr_note_cs": "V OCR „fenomenu“, čteno jako fenoménů.",
+    "ocr_check": {
+     "mark": false,
+     "rule": "suppressed",
+     "tokens": [
+      {
+       "layer": "fenomenu",
+       "vision": "fenomenu.",
+       "tess": "fenomenu.",
+       "page": 4,
+       "rule": "agree"
+      }
+     ]
+    }
    },
    {
     "group": "objective",
@@ -5014,7 +5313,20 @@ details.more > summary { cursor: pointer; color: var(--muted); font-size: 12.5px
      115
     ],
     "negated": false,
-    "ocr_note_cs": "V OCR „j izvy“, čteno jako jizvy."
+    "ocr_note_cs": "V OCR „j izvy“, čteno jako jizvy.",
+    "ocr_check": {
+     "mark": false,
+     "rule": "suppressed",
+     "tokens": [
+      {
+       "layer": "j izvy",
+       "vision": "jizvy",
+       "tess": "jizvy",
+       "page": 4,
+       "rule": "agree"
+      }
+     ]
+    }
    }
   ],
   "missing_cs": [
@@ -5435,7 +5747,20 @@ details.more > summary { cursor: pointer; color: var(--muted); font-size: 12.5px
    ],
    "ocr_note_cs": "V OCR „MO“, čteno jako M0.",
    "note_cs": "Původní histologická zpráva v PDF není, jen citace ve zprávě.",
-   "category": "surgery"
+   "category": "surgery",
+   "ocr_check": {
+    "mark": true,
+    "rule": "kept",
+    "tokens": [
+     {
+      "layer": "MO",
+      "vision": "M0",
+      "tess": "MO",
+      "page": 1,
+      "rule": "differ"
+     }
+    ]
+   }
   },
   {
    "date": "25.10.2022",
@@ -5498,7 +5823,20 @@ details.more > summary { cursor: pointer; color: var(--muted); font-size: 12.5px
    ],
    "ocr_note_cs": "V OCR „lmg/kg“, čteno jako 1 mg/kg.",
    "note_cs": "Výslovné ukončení kombinace v textu chybí.",
-   "category": "systemic"
+   "category": "systemic",
+   "ocr_check": {
+    "mark": false,
+    "rule": "suppressed",
+    "tokens": [
+     {
+      "layer": "lmg/kg",
+      "vision": "1mg/kg",
+      "tess": "1mg/kg",
+      "page": 2,
+      "rule": "agree"
+     }
+    ]
+   }
   },
   {
    "date": "27.6.2023",
@@ -5539,7 +5877,20 @@ details.more > summary { cursor: pointer; color: var(--muted); font-size: 12.5px
     116
    ],
    "ocr_note_cs": "V textu „světlebuněčného“, čteno jako světlobuněčného.",
-   "category": "surgery"
+   "category": "surgery",
+   "ocr_check": {
+    "mark": false,
+    "rule": "suppressed",
+    "tokens": [
+     {
+      "layer": "světlebuněčného",
+      "vision": "světlebuněčného",
+      "tess": "světlebuněčného",
+      "page": 1,
+      "rule": "agree"
+     }
+    ]
+   }
   },
   {
    "date": "10.11.2025",
@@ -5562,7 +5913,27 @@ details.more > summary { cursor: pointer; color: var(--muted); font-size: 12.5px
    ],
    "ocr_note_cs": "V OCR „CI“, čteno jako CT; „velí kosti“ čteno jako velikosti.",
    "note_cs": "Hodnocení se v dokumentu liší: jednou „PD (progressive disease)“, jinde „iUPD“.",
-   "category": "imaging"
+   "category": "imaging",
+   "ocr_check": {
+    "mark": false,
+    "rule": "suppressed",
+    "tokens": [
+     {
+      "layer": "CI",
+      "vision": "CT",
+      "tess": "CT",
+      "page": 4,
+      "rule": "agree"
+     },
+     {
+      "layer": "velí kosti",
+      "vision": "velikosti),",
+      "tess": "velikosti),",
+      "page": 4,
+      "rule": "agree"
+     }
+    ]
+   }
   },
   {
    "date": "16.1.2026",
@@ -5585,7 +5956,20 @@ details.more > summary { cursor: pointer; color: var(--muted); font-size: 12.5px
     23
    ],
    "ocr_note_cs": "V OCR „CI“, čteno jako CT.",
-   "category": "imaging"
+   "category": "imaging",
+   "ocr_check": {
+    "mark": false,
+    "rule": "suppressed",
+    "tokens": [
+     {
+      "layer": "CI",
+      "vision": "CT",
+      "tess": "CT",
+      "page": 4,
+      "rule": "agree"
+     }
+    ]
+   }
   },
   {
    "date": "27.1.2026",
@@ -5633,7 +6017,20 @@ details.more > summary { cursor: pointer; color: var(--muted); font-size: 12.5px
     63
    ],
    "ocr_note_cs": "V OCR „nep\ufffdibyla“ (nečitelný znak), čteno jako nepřibyla.",
-   "category": "imaging"
+   "category": "imaging",
+   "ocr_check": {
+    "mark": false,
+    "rule": "suppressed",
+    "tokens": [
+     {
+      "layer": "nep\ufffdibyla",
+      "vision": "nepřibyla.",
+      "tess": "nepřibyla.",
+      "page": 5,
+      "rule": "agree"
+     }
+    ]
+   }
   },
   {
    "date": "26.8.2026",
@@ -5654,8 +6051,27 @@ details.more > summary { cursor: pointer; color: var(--muted); font-size: 12.5px
     31
    ],
    "ocr_note_cs": "V OCR „progrse“ a „retroperitonu“, čteno jako progrese a retroperitoneu.",
-   "note_cs": "Text závěru končí znaky „J-“; není jisté, zda je úplný.",
-   "category": "imaging"
+   "category": "imaging",
+   "ocr_check": {
+    "mark": false,
+    "rule": "suppressed",
+    "tokens": [
+     {
+      "layer": "progrse",
+      "vision": "progrse",
+      "tess": "progrse",
+      "page": 5,
+      "rule": "agree"
+     },
+     {
+      "layer": "retroperitonu",
+      "vision": "retroperitonu",
+      "tess": "retroperitonu",
+      "page": 5,
+      "rule": "agree"
+     }
+    ]
+   }
   },
   {
    "date": "3.9.2026",
@@ -5668,8 +6084,8 @@ details.more > summary { cursor: pointer; color: var(--muted); font-size: 12.5px
     "quote": "3, pal, linie léčby everolimus - start 3.9.2026"
    },
    "title_cs": "3. linie: everolimus",
-   "text_cs": "5 mg denně; navýšení na 10 mg denně od 19.9.2026 plánováno",
-   "detail_cs": "Schváleno komisí komplexního onkologického centra; cabozantinib ponechán do 4. linie. Navýšení dávky na 10 mg denně od 19.9.2026 plánováno, při netoleranci návrat k 5 mg denně.",
+   "text_cs": "5 mg denně; od 19.9.2026 navýšení na 10 mg denně dle nejnovějšího závěru",
+   "detail_cs": "Schváleno komisí komplexního onkologického centra; cabozantinib ponechán do 4. linie. Dle nejnovějšího ambulantního závěru navýšení dávky na 10 mg denně od 19.9.2026, při netoleranci návrat k 5 mg denně.",
    "refs": [
     32,
     33,
@@ -5680,8 +6096,20 @@ details.more > summary { cursor: pointer; color: var(--muted); font-size: 12.5px
     69
    ],
    "ocr_note_cs": "V OCR „zyyšuji“ = zvyšuji.",
-   "note_cs": "Zda navýšení dávky proběhlo, ověřit: str. 3 uvádí „navyšuji“ i „Při dobré toleranci navýšime“.",
-   "category": "systemic"
+   "category": "systemic",
+   "ocr_check": {
+    "mark": true,
+    "rule": "kept",
+    "tokens": [
+     {
+      "layer": "zyyšuji",
+      "vision": "zvyšuji",
+      "tess": null,
+      "page": 2,
+      "rule": "tess_missing"
+     }
+    ]
+   }
   },
   {
    "date": "14.9.2026",
@@ -5823,7 +6251,20 @@ details.more > summary { cursor: pointer; color: var(--muted); font-size: 12.5px
      20,
      21
     ],
-    "ocr_note_cs": "V OCR „CI“, čteno jako CT."
+    "ocr_note_cs": "V OCR „CI“, čteno jako CT.",
+    "ocr_check": {
+     "mark": false,
+     "rule": "suppressed",
+     "tokens": [
+      {
+       "layer": "CI",
+       "vision": "CT",
+       "tess": "CT",
+       "page": 4,
+       "rule": "agree"
+      }
+     ]
+    }
    },
    {
     "text_cs": "CT hrudníku a břicha: progrese lymfatických uzlin v levém plicním hilu a jedné lymfatické uzliny retroperitonea, regrese mediastinální a pravostranné hilové lymfadenopatie, dle iRECIST iCPD",
@@ -5836,7 +6277,20 @@ details.more > summary { cursor: pointer; color: var(--muted); font-size: 12.5px
      117,
      23
     ],
-    "ocr_note_cs": "V OCR „CI“, čteno jako CT."
+    "ocr_note_cs": "V OCR „CI“, čteno jako CT.",
+    "ocr_check": {
+     "mark": false,
+     "rule": "suppressed",
+     "tokens": [
+      {
+       "layer": "CI",
+       "vision": "CT",
+       "tess": "CT",
+       "page": 4,
+       "rule": "agree"
+      }
+     ]
+    }
    },
    {
     "text_cs": "St. p. 2. linii sunitinib 50 mg denně; toxicita: progrese renální insuficience, minerálová dysbalance, trombocytopenie G2-3, hepatopatie G2; redukce na 37,5 mg od 25.2.2026 a na 25 mg od 26.3.2026; ukončen pro progresi dle CT 8/2026",
@@ -5863,7 +6317,27 @@ details.more > summary { cursor: pointer; color: var(--muted); font-size: 12.5px
      28
     ],
     "note_cs": "Ke kterému vyšetření věta o osteoplastických ložiscích patří, nelze z textu určit; její hodnocení ve zprávě chybí.",
-    "ocr_note_cs": "V OCR „cr Ag“, čteno jako CT angiografie; „osteoplatické“ čteno jako osteoplastické."
+    "ocr_note_cs": "V OCR „cr Ag“, čteno jako CT angiografie; „osteoplatické“ čteno jako osteoplastické.",
+    "ocr_check": {
+     "mark": true,
+     "rule": "kept",
+     "tokens": [
+      {
+       "layer": "cr Ag",
+       "vision": "CT Ag",
+       "tess": "CT. A licni",
+       "page": 5,
+       "rule": "differ"
+      },
+      {
+       "layer": "osteoplatické",
+       "vision": "osteoplatické",
+       "tess": "osteoplatické",
+       "page": 5,
+       "rule": "agree"
+      }
+     ]
+    }
    },
    {
     "text_cs": "CT hrudníku a břicha: regrese sledovaných lézí o cca 24 %, nová ložiska nepřibyla, dle iRECIST iSD",
@@ -5875,7 +6349,20 @@ details.more > summary { cursor: pointer; color: var(--muted); font-size: 12.5px
      62,
      63
     ],
-    "ocr_note_cs": "V OCR „nep\ufffdibyla“, čteno jako nepřibyla."
+    "ocr_note_cs": "V OCR „nep\ufffdibyla“, čteno jako nepřibyla.",
+    "ocr_check": {
+     "mark": false,
+     "rule": "suppressed",
+     "tokens": [
+      {
+       "layer": "nep\ufffdibyla",
+       "vision": "nepřibyla.",
+       "tess": "nepřibyla.",
+       "page": 5,
+       "rule": "agree"
+      }
+     ]
+    }
    },
    {
     "text_cs": "CT hrudníku, břicha a malé pánve: progrese lymfatických uzlin v levém plicním hilu a v retroperitoneu paraaortálně vlevo oproti CT 4/2026 i vstupnímu CT před sunitinibem (1/2026), dle onkologické zprávy PD",
@@ -5909,18 +6396,44 @@ details.more > summary { cursor: pointer; color: var(--muted); font-size: 12.5px
      71,
      37
     ],
-    "ocr_note_cs": "V OCR „yyš“, čteno jako vyšetření."
+    "ocr_note_cs": "V OCR „yyš“, čteno jako vyšetření.",
+    "ocr_check": {
+     "mark": false,
+     "rule": "suppressed",
+     "tokens": [
+      {
+       "layer": "yyš",
+       "vision": "vyš.",
+       "tess": "vyš,",
+       "page": 1,
+       "rule": "agree"
+      }
+     ]
+    }
    },
    {
-    "text_cs": "Plánováno ve zprávě: navýšení everolimu z 5 na 10 mg denně, při netoleranci návrat na 5 mg; zda proběhlo, neuvedeno v dostupné dokumentaci",
+    "text_cs": "Navýšení everolimu z 5 na 10 mg denně dle nejnovějšího ambulantního závěru, při netoleranci návrat na 5 mg",
     "kind": "plan",
     "date_sort": "2026-09-19",
     "refs": [
      67,
-     68,
-     69
+     69,
+     68
     ],
-    "ocr_note_cs": "V OCR „zyyšuji“, čteno jako zvyšuji."
+    "ocr_note_cs": "V OCR „zyyšuji“, čteno jako zvyšuji.",
+    "ocr_check": {
+     "mark": true,
+     "rule": "kept",
+     "tokens": [
+      {
+       "layer": "zyyšuji",
+       "vision": "zvyšuji",
+       "tess": null,
+       "page": 2,
+       "rule": "tess_missing"
+      }
+     ]
+    }
    },
    {
     "text_cs": "Plánováno ve zprávě: projednání nálezu MR mozku na neurochirurgickém semináři, kontrola 9.10.2026 s odběrem krevního obrazu a biochemie, kontrolní CT hrudníku, břicha a malé pánve, kontrola v plicní ambulanci, kontrolní kolonoskopie v roce 2028",

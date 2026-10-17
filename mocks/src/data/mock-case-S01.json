@@ -8,7 +8,7 @@
   "name": "Radovan Křemínek",
   "age_or_birth": "nar. 12.3.1964",
   "insurer": "111",
-  "main_problem_cs": "Glioblastom vlevo frontálně, IDH-wildtype, CNS WHO gr. 4, MGMT metylován; progrese dle RANO 9/2026",
+  "main_problem_cs": "Glioblastom vlevo frontálně, IDH-wt, CNS WHO gr. 4, MGMT metylován",
   "mdt_question_cs": "Je u progrese GBM indikována reresekce, případně reiradiace, nebo systémová léčba 2. linie (lomustin)? Prosím též o doporučení k další antikoagulaci (enoxaparin v plné dávce) vzhledem k trombocytopenii a klesající eGFR.",
   "mdt_question_explicit": true,
   "mdt_question_source": {
@@ -29,7 +29,7 @@
  },
  "others_entry": {
   "file": "S01_pacient.pdf",
-  "diagnosis_cs": "Glioblastom vlevo frontálně, IDH-wildtype, CNS WHO gr. 4, MGMT metylován, diag. 12/2025",
+  "diagnosis_cs": "Glioblastom vlevo frontálně, IDH-wt, CNS WHO gr. 4, MGMT metylován",
   "diagnosis_source": {
    "file": "S01_pacient.pdf",
    "page": 1,
