@@ -128,9 +128,17 @@ claude.ai artifact viewer may block the microphone.
 - Live text comes from Scribe v2 Realtime (`scribe_v2_realtime`,
   `commit_strategy=vad`), which does not tell speakers apart. After
   approval, the case's own audio (kept in memory, 16 kHz PCM) goes once
-  to Scribe v2 (`scribe_v2`, `diarize=true`), and the page shows
-  "Přepis podle mluvčích" with speakers numbered per case, then deletes
-  the audio. Speakers are not named: that would need voiceprints.
+  to Scribe v2 (`scribe_v2`, `diarize=true`); its version, with speakers
+  numbered per case, replaces the live text, and the audio is deleted.
+  Speakers are not named: that would need voiceprints.
+- A third pass sends the speaker transcript to an LLM for a one or two
+  sentence summary in the manner of an MDT conclusion (decisions, next
+  steps, no who-said-what), shown as "Shrnutí AI" above the transcript,
+  which folds into a closed "Přepis diskuse" panel. ElevenLabs has no
+  text model, so this needs an LLM key: `llm` in `stt-config.js` or
+  `LLM_DEMO` in the template, either `{ provider: "anthropic", key }` or
+  `{ provider: "azure", endpoint, deployment, key }`. Without one the
+  summary is skipped.
 - Starting, stopping and the speaker pass go to the access log.
 
 Checked with Chrome's fake microphone
