@@ -212,3 +212,13 @@ contains no patient names or birth numbers. Keys stay in the local gitignored
 configuration. Model and integration details are in
 [the prognosis design](../design/PROGNOSIS.md). Model extracts require source
 review; the prototype does not provide an individual survival prediction.
+
+
+## PDF report export (2026-10-17)
+
+- jsPDF 4.2.1 (MIT), vendored from the npm registry, generates text-based PDF files
+  locally in the browser. DejaVu Sans (Bitstream Vera/DejaVu license), subset for
+  Latin/Czech and common clinical symbols using fontTools, supplies embedded fonts.
+  These are pre-existing third-party components; report composition, pagination and
+  application integration were written during the hackathon. Licenses are stored in
+  `mocks/src/vendor/`. No patient text is sent to an external PDF service.

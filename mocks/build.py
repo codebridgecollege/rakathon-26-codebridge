@@ -158,6 +158,9 @@ def synthetic_cases() -> str:
 
 def main() -> None:
     parts = {
+        "/*PDF_VENDOR*/": (HERE / "src" / "vendor" / "jspdf.umd.min.js").read_text(),
+        "/*PDF_FONTS*/": (HERE / "src" / "vendor" / "pdf-fonts.js").read_text(),
+        "/*REPORT_PDF_JS*/": (HERE / "src" / "report-pdf.js").read_text(),
         "/*PROGNOSIS_CSS*/": (HERE / "src" / "prognosis.css").read_text(),
         "/*PROGNOSIS_JS*/": (HERE / "src" / "prognosis.js").read_text(),
         "/*PROGNOSIS_DATA*/": embed(json.dumps([json.loads((DATA / "prognosis-case-10.json").read_text())], ensure_ascii=False)),
@@ -180,4 +183,5 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
 

@@ -357,7 +357,16 @@ details.mdtcard[open] > summary::before { transform: rotate(90deg); }
 .sheet h4 { font: 700 12px/1.3 var(--font-head); text-transform: uppercase; letter-spacing: .06em; margin: 18px 0 6px; border-bottom: 1px solid #ccc; padding-bottom: 3px; }
 .sheet p, .sheet li { margin: 2px 0; }
 .sheet .hdr { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; border-bottom: 2px solid #111; padding-bottom: 10px; }
-.sheet .src { color: #666; font-size: 11px; }
+.sheet .src { color: #333; font-size: 11px; }
+.sheet h1 { font: 700 21px/1.3 Arial, sans-serif; letter-spacing: 0; color: #111; }
+.sheet .hdr { display: block; }
+.sheet .report-meta { margin-top: 8px; }
+.sheet { font-family: Arial, sans-serif; box-shadow: none; }
+.sheet .signatures { display: grid; grid-template-columns: 1fr 1fr; gap: 36px; margin-top: 44px; break-inside: avoid; }
+.sheet .signature { border-top: 1px solid #111; padding-top: 6px; font-size: 11px; }
+.sheet h4 { break-after: avoid; }
+.report-error { color: var(--conflict); }
+@media(max-width:640px) { .sheet .signatures { gap: 20px; } }
 
 /* Source drawer */
 .scrim { position: fixed; inset: 0; background: rgba(28,39,38,.25); z-index: 30; }
@@ -829,6 +838,8 @@ h3 { letter-spacing: -.02em; }
 <script id="page-data" type="application/json">/*PAGES*/</script>
 <script id="syn-data" type="application/json">/*SYN*/</script>
 <script id="guide-data" type="application/json">/*GUIDE*/</script>
+<script>/*PDF_VENDOR*/</script>
+<script>/*PDF_FONTS*/</script>
 <script>
 "use strict";
 /* The template has no <html> tag of its own (the publisher wraps it), so the language is set here: Czech date
@@ -2664,6 +2675,8 @@ function mailHtml(m) {
     <p style="margin:6px 0 0">Odkaz: <span class="num">https://mdt.fno.local/pripad/${esc(m.id)}</span> <span class="muted small">(ukázková interní adresa)</span></p>
     <p class="muted small" style="margin:6px 0 0">E-mail obsahuje jen ID případu a odkaz, žádné zdravotní údaje.</p></div>`;
 }
+/*REPORT_PDF_JS*/
+
 function reportHtml(p, pr, present) {
   const reg = refRegistry();
   const refTxt = r => r ? ` [${reg.num(r)}]` : "";
@@ -2678,25 +2691,25 @@ function reportHtml(p, pr, present) {
     ? `${esc(edRep(`fa:${i}:line`, drugLine(f), p.file))}${drugNote(f) || edOf(`fa:${i}:note`, p.file) ? ` (${esc(edRep(`fa:${i}:note`, drugNote(f), p.file))})` : ""}${esc(mt(f))}${rf(f)}`
     : `${f.term_cs ? `<b>${esc(edRep(`${k}:${i}:t`, f.term_cs, p.file))}</b>` : ""}${f.comment_cs ? `${f.term_cs ? ", " : ""}${esc(edRep(`${k}:${i}:c`, f.comment_cs, p.file))}` : ""}${esc(mt(f))}${rf(f)}`;
   /* Every section is listed; an empty one prints the gap wording (allergies must never just vanish). */
-  const anamLines = ANAM.map(([k, t]) => `<li><span style="text-decoration:underline">${t}:</span> ${(A[k] || []).length ? A[k].map((f, i) => anamItem(k, f, i)).join("; ") : GAP}${k === "FA" && (A.FA_warnings || []).length ? `<br><b>Pozor:</b> ${A.FA_warnings.map((f, i) => anamItem("faw", f, i)).join("; ")}` : ""}</li>`).join("");
-  const brief = edOf("brief", p.file) ? esc(briefPlain()) + " [upraveno lékařem]" : BRIEF_CS ? esc(BRIEF_CS).replace(/\[(\d+)\]/g, (m, n) => `<span class="src">${refTxt((BRIEF_REFS || [])[n - 1])}</span>`) : esc(CASE.summary.map(x => x.text_cs).join(" "));
+  const anamLines = p.full && S.picked.has("anamnesis") ? ANAM.map(([k, t]) => `<li><span style="text-decoration:underline">${t}:</span> ${(A[k] || []).length ? A[k].map((f, i) => anamItem(k, f, i)).join("; ") : GAP}${k === "FA" && (A.FA_warnings || []).length ? `<br><b>Pozor:</b> ${A.FA_warnings.map((f, i) => anamItem("faw", f, i)).join("; ")}` : ""}</li>`).join("") : "";
+  const brief = p.full && S.picked.has("summary") ? (edOf("brief", p.file) ? esc(briefPlain()) + " [upraveno lékařem]" : BRIEF_CS ? esc(BRIEF_CS).replace(/\[(\d+)\]/g, (m, n) => `<span class="src">${refTxt((BRIEF_REFS || [])[n - 1])}</span>`) : esc(CASE.summary.map(x => x.text_cs).join(" "))) : "";
   return `<article class="sheet">
-    <div class="hdr"><div><b>Fakultní nemocnice Ostrava</b><br>Report z neuroonkologického MDT (maketa)</div><div>${esc(slotText(p))}</div></div>
+    <div class="hdr"><h1>Záznam z MDT</h1><p class="report-meta">Datum MDT: ${p.slot ? esc(slotText(p)) : esc(GAP)} · ID ${esc(p.id)}${pr.state !== "approved" ? " · Koncept" : ""}</p></div>
     <h4>Pacient</h4><p>${esc(surnameFirst(p))} · RČ: ${esc(p.rc || GAP)} · věk: ${esc(ageNum(p) || GAP)} · ID ${esc(p.id)}</p>
-    ${p.full ? `<h4>Anamnéza</h4><ul>${anamLines}</ul>
-    ${S.picked.has("summary") ? `<h4>Onkologický souhrn (sestavil asistent)</h4><p>${brief}</p>` : ""}
+    <h4>Přítomní</h4><p>${esc(present.join(", ") || "nezadáno")}</p>
+    <h4>Diagnóza</h4><p><b>${esc(p.full ? dxHeadlineText(true) : p.diagnosis)}</b>${p.full && DXH()?.mkn_cs ? `<br>${esc(DXH().mkn_cs)}` : ""}</p>
+    ${S.picked.has("summary") ? `<h4>NO</h4><p>${p.full ? brief : esc(p.summary || GAP)}</p>` : ""}
+    ${p.full ? `${S.picked.has("anamnesis") ? `<h4>Anamnéza</h4><ul>${anamLines}</ul>` : ""}
     ${FIND.filter(([k]) => S.picked.has(k)).map(([k, t]) => `<h4>${t}</h4><ul>${(CASE.sections[k] || []).map(line).join("") || `<li>${GAP}</li>`}</ul>`).join("")}`
     : SYN_BY_FILE[p.file] ? `<h4>Podklady</h4><p>Syntetický pacient: v maketě jsou zpracované dokumenty, chybějící podklady a laboratoř; anamnéza a nálezy se do reportu netisknou.</p>${(SYN_BY_FILE[p.file].data_gaps || []).length ? `<h4>Chybějící podklady</h4><ul>${SYN_BY_FILE[p.file].data_gaps.map(g => `<li>${esc(g.text_cs)} (${esc(g.source.file)}, s. ${esc(g.source.page)})</li>`).join("")}</ul>` : ""}`
     : `<h4>Podklady</h4><p>Dokumentace případu není v maketě zpracovaná; anamnéza a nálezy se do reportu netisknou.</p>`}
-    <h4>Přítomní</h4><p>${esc(present.join(", ") || "nezadáno")}</p>
-    <h4>Diagnóza</h4><p><b>${esc(p.full ? dxHeadlineText(true) : p.diagnosis)}</b>${p.full && DXH()?.mkn_cs ? `<br>${esc(DXH().mkn_cs)}` : ""}</p>
-    <h4>Dotaz</h4><p>${esc(questionPlain(p))}</p>
+    <h4>Prezentován pro</h4><p>${esc(questionPlain(p))}</p>
     <h4>Závěr</h4><p id="rep-concl">${esc(pr.concl || "Zatím nezapsán.")}</p>
     <h4>Další kroky</h4>${pr.steps.filter(x => x.text.trim()).length ? `<ul>${pr.steps.filter(x => x.text.trim()).map(x => `<li>${esc(x.text)} · ${esc(x.who)} · do ${esc(fmtDate(x.due))}</li>`).join("")}</ul>` : "<p>Žádné.</p>"}
     ${p.full && S.guideOn && STMTS().length ? `<h4>Odchylky od doporučení</h4>${STMTS().filter(st => (pr.dev || {})[st.id]?.s).length ? `<ul>${STMTS().filter(st => (pr.dev || {})[st.id]?.s).map(st => { const d = pr.dev[st.id]; return `<li>${esc(st.quote)} <span class="src">(${esc(citeOf(st))})</span>: <b>${DEV[d.s]}</b>${d.s === "deviates" ? `, důvod: ${esc(d.why || "neuveden")}` : ""}</li>`; }).join("")}</ul>` : "<p>Nevyplněno.</p>"}` : ""}
-    <h4>Schválení</h4><p>${pr.state === "approved" ? `${esc(pr.approver)}, ${esc(pr.when)}` : "Koncept, zatím neschváleno."}</p>
     ${reg.list.length ? `<h4>Zdroje</h4><ol class="src">${reg.list.map(r => `<li>${esc(docTitle(r))}, s. ${esc(r.page)}${r.quote ? `: „${esc(r.quote.length > 70 ? r.quote.slice(0, 70) + "…" : r.quote)}“` : ""}</li>`).join("")}</ol>` : ""}
-    <p class="src" style="margin-top:14px">Údaje sestavil asistent z uvedených dokumentů; čísla v hranatých závorkách odkazují na zdroje. [zápor v dokumentu] = zápor zapsaný lékařem; [ověřit čtení] = text, který mohl být špatně přečten; [pozorování asistenta] = odvozeno asistentem, v dokumentu výslovně není; [upraveno lékařem] = hodnotu změnil lékař, zdroj ji v této podobě neuvádí.</p></article>`;
+    <p class="src" style="margin-top:14px">Údaje sestavil asistent z uvedených dokumentů; čísla v hranatých závorkách odkazují na zdroje. [zápor v dokumentu] = zápor zapsaný lékařem; [ověřit čtení] = text, který mohl být špatně přečten; [pozorování asistenta] = odvozeno asistentem, v dokumentu výslovně není; [upraveno lékařem] = hodnotu změnil lékař, zdroj ji v této podobě neuvádí.</p>
+    <div class="signatures" aria-label="Místa pro podpis"><div class="signature">Jméno a podpis</div><div class="signature">Jméno a podpis</div></div></article>`;
 }
 function refreshReport() {
   const el = document.getElementById("report"); if (!el) return;
@@ -3253,12 +3266,13 @@ function renderOverlay() {
        show what was chosen at approval, disabled, so the dialog never suggests a change that would not print. */
     const p = P(S.pid), pr = ensureProto(p), locked = pr.state === "approved";
     const picked = locked && pr.pickSnap ? new Set(pr.pickSnap) : S.picked;
-    el.innerHTML = `<div class="scrim" data-close="1"></div><div class="modal" role="dialog" aria-label="Report MDT">
-      <div class="row spread"><h2>Report MDT · ${esc(p.id)}</h2><button class="btn small" data-close="1">Zavřít</button></div>
-      ${p.full ? `<div><span class="label">Do reportu</span><div class="row small" style="gap:4px 14px;margin-top:4px">${[["summary", "Onkologický souhrn"], ...FIND].map(([k, t]) => `<label class="row" style="gap:4px"><input type="checkbox" data-pickrep="${k}" ${picked.has(k) ? "checked" : ""} ${locked ? "disabled" : ""}> ${t}</label>`).join("")}</div></div>` : ""}
+    el.innerHTML = `<div class="scrim" data-close="1"></div><div class="modal" role="dialog" aria-label="Záznam z MDT">
+      <div class="row spread"><h2>Záznam z MDT · ${esc(p.id)}</h2><button class="btn small" data-close="1">Zavřít</button></div>
+      ${`<div><span class="label">Zahrnout do PDF</span><div class="row small" style="gap:4px 14px;margin-top:4px">${[["summary", "NO / onkologický souhrn"], ...(p.full ? [["anamnesis", "Anamnéza"], ...FIND] : [])].map(([k, t]) => `<label class="row" style="gap:4px"><input type="checkbox" data-pickrep="${k}" ${picked.has(k) ? "checked" : ""} ${locked ? "disabled" : ""}> ${t}</label>`).join("")}</div></div>`}
       <details class="srcs" data-repopen="1" style="margin:0" ${S.repOpen ? "open" : ""}><summary>Náhled reportu</summary><div id="report" style="margin-top:8px">${locked && pr.reportSnap ? pr.reportSnap : reportHtml(p, pr, presentList(attDay(p)))}</div></details>
       <p class="muted small" style="margin:0">${locked ? `Report je uzamčen ve stavu při schválení (${esc(pr.when)}). Pozdější úpravy se do něj nepromítnou; změna vyžaduje nový závěr.` : "Závěr zatím není schválený; report se stáhne jako koncept."}</p>
-      <div class="row" style="justify-content:flex-end"><button class="btn primary" data-act="download">Stáhnout</button></div></div>`;
+      <p id="report-error" class="report-error small" role="alert" hidden></p>
+      <div class="row" style="justify-content:flex-end"><button class="btn primary" data-act="download">Stáhnout PDF</button></div></div>`;
   } else if (o.kind === "upload") {
     el.innerHTML = `<div class="scrim" data-close="1"></div><div class="modal" role="dialog" aria-label="Nahrát dokument">
       <div class="row spread"><h2>Nahrát dokument · ${esc(P(S.pid).id)}</h2><button class="btn small" data-close="1">Zavřít</button></div>
@@ -3588,15 +3602,7 @@ function action(a) {
   else if (a === "cleardcolf") { DCOLS.forEach(c => delete S.colf[c[0]]); S.dq = ""; render(); }
   else if (a === "gaps") { S.gapsOpen = !S.gapsOpen; render(); }
   else if (a === "endsession") { if (S.rec.on) recStop("Záznam se zastavil s koncem MDT."); recPurge(Object.keys(S.rec.tx), "konec MDT"); S.session = null; logAccess(S.pid, "ukončil(a) MDT"); toast("MDT ukončeno"); render(); }
-  else if (a === "download") {
-    /* The browser's print dialog saves the report as PDF; no PDF library is needed in the mock. */
-    const p = P(S.pid), pr = ensureProto(p);
-    const html = pr.state === "approved" && pr.reportSnap ? pr.reportSnap : reportHtml(p, pr, presentList(attDay(p)));
-    const w = window.open("", "_blank");
-    if (w) { w.document.write(`<!doctype html><meta charset="utf-8"><title>Report MDT ${p.id}</title><style>body{font:13px/1.5 system-ui,sans-serif;margin:30px}h4{margin:16px 0 4px;text-transform:uppercase;font-size:12px;border-bottom:1px solid #ccc}.src{color:#666;font-size:11px}</style>${html}`); w.document.close(); w.focus(); w.print(); }
-    else toast("Prohlížeč zablokoval nové okno");
-    logAccess(p.file, "stáhl(a) report");
-  }
+  else if (a === "download") downloadReport();
   else if (a === "calfull") { S.calFullDay = !S.calFullDay; render(); }
   else if (a === "editconcl") {
     /* The conclusion has one field, in the brief above the discussion card; put the cursor in it. */

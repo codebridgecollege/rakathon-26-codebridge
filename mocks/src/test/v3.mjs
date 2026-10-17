@@ -82,9 +82,10 @@ for (const width of [1280, 400]) {
   await c("details.mdtcard > summary");
   ok(await page.locator("details.mdtcard #report, details.mdtcard [data-pickrep]").count() === 0, `${width} no report section in the MDT discussion card`);
   await c('[data-act="reportdlg"]'); await over("report dialog");
-  ok(await page.locator(".modal #report").count() === 1 && await page.locator(".modal [data-pickrep]").count() === 6 && await page.locator('.modal [data-act="download"]').count() === 1
+  ok(await page.locator(".modal #report").count() === 1 && await page.locator(".modal [data-pickrep]").count() === 7 && await page.locator('.modal [data-act="download"]').count() === 1
     && await page.locator(".modal details:not([open]) #report").count() === 1, `${width} header button opens the report dialog: picks, collapsed preview, Stáhnout`);
-  ok((await text("#report")).includes("navýšeno na 10 mg [upraveno lékařem]"), `${width} edit marked in report`);
+  await page.locator('[data-pickrep="anamnesis"]').check();
+  ok((await text("#report")).includes("navýšeno na 10 mg [upraveno lékařem]"), `${width} selected anamnesis retains doctor edits in report`);
   ok(!(await text("#report")).includes("[]") && (await text("#report")).includes("[1]"), `${width} report source markers carry numbers`);
   ok((await text("#report")).includes("Alergologická anamnéza: neuvedeno v dostupné dokumentaci"), `${width} empty allergy section printed`);
   ok((await text("#report")).includes("při diagnóze") || (await text("#report")).includes("ne aktuální"), `${width} TNM labelled as stage at diagnosis in report`);
@@ -104,7 +105,7 @@ for (const width of [1280, 400]) {
   await c('[data-act="approve"]');
   ok(await page.evaluate(() => presentList(attDay(P("10_pacient.pdf"))).includes("MUDr. Svobodová") && S.protos["10_pacient.pdf"].attSnap.includes("MUDr. Svobodová") && S.access.some(a => a.what.startsWith("doplněn(a) mezi přítomné"))), `${width} approval adds the approving doctor to attendance and logs it`);
   ok((await text("details.mdtcard")).includes("MUDr. Svobodová") && (await text("details.mdtcard")).includes("Schválil(a) za tým"), `${width} attendance and approver shown in the card`);
-  ok((await text(".concl")).includes("Platný závěr č. 1") && (await rep()).includes("MUDr. Svobodová,"), `${width} approved conclusion shown as valid with approver`);
+  ok((await text(".concl")).includes("Platný závěr č. 1") && (await text(".concl")).includes("MUDr. Svobodová") && (await rep()).includes("MUDr. Svobodová"), `${width} approval stays in the app; report retains attendance without authorization section`);
   ok(await page.evaluate(() => P("10_pacient.pdf").status === "done" && P("10_pacient.pdf").statusHist.at(-1).how.includes("schválení")), `${width} approval sets Projednán automatically, in the status history`);
   await c('[data-act="reportdlg"]');
   ok(await page.locator(".modal [data-pickrep]:not([disabled])").count() === 0, `${width} report picks disabled after approval`); await c(".modal [data-close]");

@@ -246,3 +246,24 @@ node mocks/src/test/prognosis-ui.mjs
 ```
 
 Set `PLAYWRIGHT_PATH` if Playwright is installed outside the default path.
+
+## Direct PDF report
+
+"Stáhnout report (PDF)" now creates a real `.pdf` download locally, without a print
+popup, server upload or CDN. The plain black-and-white A4 report is titled "Záznam
+z MDT" and includes identification, attendance, diagnosis, selected NO/findings,
+"Prezentován pro", conclusion, further steps, filled deviations, sources and two
+blank signature lines. There is no presenting-doctor or authorization section.
+Unapproved exports are marked "Koncept".
+
+Anamnesis is an optional checkbox (off initially); sources belonging only to
+unchecked sections are omitted. Doctor edits and missing-data/uncertainty wording
+remain. Approved reports still use their frozen HTML snapshot and frozen field
+selection. The download captures its patient/content before yielding so later
+navigation cannot change it. Font and PDF errors are shown and permit retry.
+
+`mocks/src/report-pdf.js` renders selectable text with embedded Czech-capable
+DejaVu Sans subsets and jsPDF 4.2.1, vendored under `mocks/src/vendor/` with licenses.
+`mocks/build.py` embeds all three components into the self-contained v3 HTML.
+Run `node mocks/src/test/report-pdf.mjs` to exercise actual downloads, snapshot
+invariance, field selection and error recovery. Test outputs go to `tmp/pdfs/`.
