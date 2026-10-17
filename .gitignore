@@ -74,3 +74,6 @@ mocks/guidelines/
 
 # Static files the API Worker serves, staged from mocks/ by api/scripts/stage-assets.sh.
 api/.assets/
+
+# Seed output (generated SQL, R2 bodies, identity scan, upload state); rebuilt by api/seed/seed.py.
+api/seed/out/
