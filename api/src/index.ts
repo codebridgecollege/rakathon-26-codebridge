@@ -19,6 +19,7 @@ import { writeStaff } from "./routes/write-staff";
 import { demo } from "./routes/demo";
 import { transcript } from "./routes/transcript";
 import { documents } from "./routes/documents";
+import { intake } from "./routes/intake";
 import { sweep } from "./scheduled";
 
 export { SpeakerPassWorkflow } from "./workflows/speaker-pass";
@@ -28,7 +29,7 @@ export { SpeakerPassWorkflow } from "./workflows/speaker-pass";
 // Hono's "/x/*" also matches "/x", so each prefix is listed once; a second pattern would run the middleware twice.
 const DATA_PATHS = [
   "/me", "/staff/*", "/patients", "/cases/*", "/documents/*", "/tasks/*", "/calendar", "/admin/*",
-  "/workflow", "/audit/*", "/suggestions/*", "/notifications/*", "/sessions/*", "/attendance/*", "/recordings/*", "/jobs/*",
+  "/workflow", "/audit/*", "/suggestions/*", "/notifications/*", "/sessions/*", "/attendance/*", "/recordings/*", "/jobs/*", "/fhir/*",
 ];
 
 // Static files (the built mock) are served by the assets binding before this code runs; only /api/* reaches it.
@@ -58,6 +59,7 @@ app.route("/", writeStaff);
 app.route("/", demo);
 app.route("/", transcript);
 app.route("/", documents);
+app.route("/", intake);
 app.notFound(notFound);
 app.onError(onError);
 

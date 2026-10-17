@@ -463,7 +463,7 @@ export async function replayIdempotent(c: import("hono").Context<AppEnv>, key: s
   await tx(c).audit({ action: "request.replay", what_cs: "zopakoval(a) požadavek (stejná odpověď)", case_id: caseId ?? null }).commit();
   const state: Record<string, unknown> = caseId ? { cases: await statesFor(c, [caseId]) } : {};
   if (route.startsWith("approve:") && caseId) state.mails = await work(c).mails([caseId]);
-  if (route === "create_case" && caseId) {
+  if (route === "create_case" && caseId && !(data as { intake?: boolean }).intake) {
     const row2 = await c.var.stores.cases.caseById(caseId);
     if (row2) state.patient = patientRow(row2, await c.var.stores.cases.statusHistory(caseId));
   }

@@ -38,8 +38,11 @@ export type CaseCtx = { core: CaseCore; access: CaseAccess; breakGlass: string |
 export async function caseFor(c: Context<AppEnv>, id: string, action: Action, extra: Partial<CaseAccess> = {}): Promise<CaseCtx> {
   const w = work(c);
   const core = await w.caseCore(id);
-  if (!core) throw D.caseNotFound();
   const v = c.var.viewer;
+  // An open intake (step 6) exists only for its creator until it completes; to anyone else it is not there.
+  if (!core || (core.intake_open === 1 && core.created_by !== v.id)) throw D.caseNotFound();
+  // While it is open, the intake takes its documents and nothing else, so discarding it never meets a history row.
+  if (core.intake_open === 1 && action !== "document.upload" && action !== "case.create") throw D.intakeOpen();
   let member = false;
   let grant: { id: string } | null = null;
   if (v.role === "doctor") {

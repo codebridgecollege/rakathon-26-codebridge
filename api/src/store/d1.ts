@@ -86,7 +86,8 @@ export class D1Cases implements CaseStore {
 
   async listCases(v: Viewer, onlyMember: boolean, f: CaseFilter) {
     // D1 refuses bound values a statement does not use, so each value is bound only when its condition is added.
-    const where: string[] = [];
+    // An open intake (step 6) is listed only once it completes.
+    const where: string[] = ["c.intake_open = 0"];
     const args: unknown[] = [];
     const bind = (x: unknown) => (args.push(x), `?${args.length}`);
     if (onlyMember) where.push(MEMBER.replaceAll("?1", bind(v.id)));

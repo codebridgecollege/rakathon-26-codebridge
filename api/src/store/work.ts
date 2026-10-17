@@ -18,6 +18,8 @@ export type CaseCore = {
   question_draft: string | null;
   processing_level: string;
   patient_id: string;
+  intake_open: number;
+  created_by: string | null;
 };
 
 export type Staff = {
@@ -44,7 +46,7 @@ export class D1Work {
     return this.db
       .prepare(
         `SELECT c.id, c.source_file, c.status, c.updated_on, c.question_draft, c.processing_level, c.patient_id,
-           s.day AS slot_day, s.time AS slot_time
+           c.intake_open, c.created_by, s.day AS slot_day, s.time AS slot_time
          FROM cases c LEFT JOIN slots s ON s.case_id = c.id WHERE c.id = ?1`,
       )
       .bind(id)

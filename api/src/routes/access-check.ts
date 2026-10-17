@@ -18,7 +18,8 @@ export async function openCase(c: Context<AppEnv>, id: string, level: "header" |
   const { cases } = c.var.stores;
   const v = c.var.viewer;
   const row = await cases.caseById(id);
-  if (!row) throw E.caseNotFound();
+  // An open intake (step 6) exists only for its creator until it completes.
+  if (!row || (row.intake_open === 1 && row.created_by !== v.id)) throw E.caseNotFound();
   // Only doctors need membership; the other roles are decided by role alone. A break-the-glass grant counts as
   // membership until it expires, and every read under it carries the reason in the access log.
   let member = v.role === "doctor" ? await cases.isMember(id, v) : false;

@@ -1,4 +1,4 @@
-// Checks mock v3's uploads in API mode (step 6, docs/research/backend-steps/step-6.md "As implemented") in jsdom against
+// Checks mock v3's uploads and "Nový pacient" in API mode (step 6, docs/research/backend-steps/step-6.md "As implemented") in jsdom against
 // a fake server that follows the upload contract: the "Projednání" upload panel sends each file as its own raw request,
 // lists what the server stored, names refused files with the server's reason, shows the wrong-patient alert and removes
 // an upload. Embedded mode keeps the browser-only list (covered by v3.mjs).
@@ -59,6 +59,12 @@ function fakeServer() {
     if (path.startsWith("/api/tasks")) return json(200, { tasks: [] });
     if (path === "/api/workflow") return json(200, { data_epoch: st.epoch, cases: {}, att: {}, sessions: [], mails: [] });
     let m = path.match(/^\/api\/cases\/([^/]+)\/extraction$/);
+    if (m && decodeURIComponent(m[1]) === "NO-S02") {
+      st.extractionLoads = (st.extractionLoads || 0) + 1;
+      const syn = structuredClone(H.syn.find(x => x.intake_demo));
+      syn.documents = syn.documents.map((d, i) => ({ ...d, file: `up-${i + 1}.pdf`, orig_pages: d.pages, pages: [1] }));
+      return json(200, { data: { syn } });
+    }
     if (m) { const p = H.patients.find(r => r.id === decodeURIComponent(m[1])), syn = H.syn.find(s => s.file === p?.file); return json(200, { data: p.file === "10_pacient.pdf" ? H.c10 : syn ? { syn } : null }); }
     if (/^\/api\/cases\/[^/]+\/guidance$/.test(path)) return json(200, { guidelines: [], statements: [], pages: [], literature: [], queries: [], not_retrieved: [] });
     if (method === "GET" && /^\/api\/cases\/[^/]+$/.test(path)) return json(200, {});
@@ -75,6 +81,24 @@ function fakeServer() {
         uploaded_by: H.user, uploaded_at: new Date().toISOString() };
       list.push(d);
       return json(201, { data: { document: d }, data_epoch: st.epoch, state: {} });
+    }
+    if (path === "/api/fhir/referral" && method === "POST") {
+      st.fhir = body;
+      return json(200, { data: { fields: { nf0: "Věra", nf1: "Lipenská", nf2: "585614/4019", nfq: "Adjuvance?" }, found: ["Patient", "ServiceRequest"], missing_cs: ["telefon"], referral_sha256: "a".repeat(64) }, data_epoch: st.epoch });
+    }
+    if (path === "/api/cases" && method === "POST") { st.created = body; st.docs["NO-S02"] = []; return json(200, { data: { case_id: "NO-S02", file: "S02_pacient.pdf", intake: true }, data_epoch: st.epoch, state: {} }); }
+    if ((m = path.match(/^\/api\/cases\/([^/]+)\/intake$/))) {
+      const list = st.docs[decodeURIComponent(m[1])] || [];
+      if (method === "DELETE") { st.discarded = (st.discarded || 0) + 1; return json(200, { data: { discarded: m[1] }, data_epoch: st.epoch, state: {} }); }
+      const ready = list.length === 2;
+      return json(200, { case_id: m[1], ready, fixture_id: "S02", expected: 2, present: list.length, missing_cs: ready ? [] : ["Histologie"],
+        reason_cs: ready ? "Připojí se předem připravená data ukázkového pacienta: 2 dokumenty (2 s.), hledané podle otisku souborů." : "Chybí ještě 1 z 2 dokumentů ukázkového pacienta; záznam zůstane bez zpracovaných dokumentů.", documents: list });
+    }
+    if ((m = path.match(/^\/api\/cases\/([^/]+)\/intake\/complete$/)) && method === "POST") {
+      const row = { ...H.patients.find(r => r.file === "S01_pacient.pdf"), id: "NO-S02", file: "S02_pacient.pdf", name: "Věra Lipenská", processing: "partial", status: "new", slot: null };
+      st.completed = true;
+      H.patients.push(row);
+      return json(200, { data: { case_id: "NO-S02", attached: true, run_id: "prep-1", reason_cs: "x", documents: 2 }, data_epoch: st.epoch, state: { patient: row } });
     }
     if ((m = path.match(/^\/api\/documents\/([^/]+)$/)) && method === "DELETE") {
       for (const k of Object.keys(st.docs)) st.docs[k] = st.docs[k].filter(d => d.id !== m[1]);
@@ -117,4 +141,58 @@ const apiOpen = async srv => {
   assert.deepEqual(errors, []);
 }
 
+// 2. "Nový pacient" in API mode: FHIR on the server, the intake opened at "Pokračovat", uploads to it, the server's
+// verdict instead of an animation, and "Přidat do databáze" completing it; closing a second dialog discards its intake.
+{
+  const srv = fakeServer();
+  const { w, ev, errors } = await apiOpen(srv);
+  const act = a => w.document.querySelector(`[data-act="${a}"]`).click();
+  ev(`action("newpatient")`); await sleep(20);
+  act("fhiropen"); await sleep(20);
+  w.document.getElementById("nffhir").value = JSON.stringify({ resourceType: "Bundle", entry: [] });
+  act("fhirimport"); await sleep(100);
+  assert.ok(srv.st.fhir, "the bundle went to the server");
+  assert.equal(w.document.getElementById("nf1").value, "Lipenská", "the server's fields fill the form");
+  assert.equal(srv.st.writes.filter(x => /audit\/events/.test(x.path)).length, 0, "the server logs the import itself");
+  w.document.getElementById("nfg").checked = true;
+  act("newnext"); await sleep(100);
+  assert.equal(srv.st.created.intake, true);
+  assert.equal(srv.st.created.referral_sha256, "a".repeat(64));
+  assert.equal(srv.st.created.intake_fixture, undefined, "the page no longer claims a fixture");
+  assert.equal(ev(`S.overlay.step`), 1);
+  assert.equal(ev(`S.overlay.caseId`), "NO-S02");
+  const mk = n => new w.File([new Uint8Array([37, 80, 68, 70, 45])], n, { type: "application/pdf" });
+  ev(`newUploads`)([mk("01-ambulantni-zprava-2026-10-08.pdf")]);
+  await sleep(150);
+  assert.match(w.document.getElementById("overlay").innerHTML, /Chybí ještě 1 z 2 dokumentů/);
+  ev(`newUploads`)([mk("04-laborator-2026-03-10.pdf"), mk("cizi.pdf")]);
+  await sleep(200);
+  const ov = w.document.getElementById("overlay").innerHTML;
+  assert.match(ov, /Ve sdílené ukázce lze nahrát jen připravené syntetické dokumenty/);
+  assert.equal(srv.st.writes.filter(x => x.path === "/api/cases/NO-S02/documents").length, 3);
+  act("newnext"); await sleep(100);
+  const v = w.document.getElementById("overlay").innerHTML;
+  assert.match(v, /připraveno předem \(ukázková data\)/, "stages that did not run are not animated");
+  assert.match(v, /Připojí se předem připravená data/);
+  w.document.querySelector('[data-act="newdone"]').click();
+  await sleep(300);
+  assert.equal(srv.st.completed, true);
+  assert.equal(ev(`S.pid`), "S02_pacient.pdf", "the new patient opens");
+  assert.ok(srv.st.extractionLoads >= 1, "its data comes from the server, not the page's fixture");
+  assert.equal(ev(`caseStore.byDocFile.get("up-1.pdf")`), "S02_pacient.pdf", "each uploaded file maps to its case");
+  assert.equal(srv.st.discarded || 0, 0);
+  // A second dialog closed after "Pokračovat" discards its intake on the server.
+  ev(`action("newpatient")`); await sleep(20);
+  act("fhiropen"); await sleep(20);
+  w.document.getElementById("nffhir").value = "{}";
+  act("fhirimport"); await sleep(100);
+  w.document.getElementById("nfg").checked = true;
+  ev(`S.overlay.dupOk = "5856144019"`);
+  act("newnext"); await sleep(100);
+  w.document.querySelector('[data-close="1"]').click(); await sleep(50);
+  assert.equal(srv.st.discarded, 1);
+  assert.deepEqual(errors, []);
+}
+
+console.log("Nový pacient in API mode: FHIR on the server, intake opened, uploads, the server's verdict, completion and discard passed.");
 console.log("Uploads in API mode: one raw request per file, the server's list, refusals with reasons, the wrong-patient alert and removal passed.");

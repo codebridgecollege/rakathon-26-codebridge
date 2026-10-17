@@ -78,6 +78,9 @@ export const D = {
     new DomainError(409, "duplicate_birth_number", "Rodné číslo už v databázi je.", { current }),
   overrideReasonRequired: err(422, "override_reason_required", "Uveďte důvod, proč zakládáte druhý záznam."),
   fixtureUsed: err(409, "fixture_used", "Ukázkový pacient už v databázi je; obnovte ukázková data, chcete-li ho založit znovu."),
+  // step 6: intake on the server
+  intakeDone: err(409, "intake_done", "Příjem pacienta je už dokončený."),
+  intakeOpen: err(409, "intake_open", "Pacient je teprve v příjmu; nejdřív příjem dokončete."),
   alreadyMember: err(409, "already_member", "Do případu máte přístup; důvod není potřeba."),
   breakGlassReason: err(422, "invalid_input", "Uveďte důvod přístupu (10 až 500 znaků)."),
   // staff

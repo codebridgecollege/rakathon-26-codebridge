@@ -38,6 +38,8 @@ export type CaseJoinRow = {
   // slots
   slot_day: string | null;
   slot_time: string | null;
+  intake_open?: number; // step 6: 1 while the creator still uploads the documents
+  created_by?: string | null;
 };
 
 export type StatusHistItem = { from: string; to: string; by: string; when: string; how: string };

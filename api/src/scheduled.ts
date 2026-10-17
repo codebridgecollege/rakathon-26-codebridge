@@ -4,6 +4,7 @@
 import { purgeUploads, uploadsForSweep } from "./store/audio";
 import { reconcile, startJob, type JobRow } from "./store/jobs";
 import { transcriptsOn } from "./routes/hooks";
+import { sweepIntakes } from "./store/intake";
 
 // Audio older than this goes whatever its state: no case is discussed for six hours.
 export const AUDIO_MAX_AGE_MS = 6 * 3600_000;
@@ -27,6 +28,12 @@ export async function sweep(env: Env, nowMs = Date.now()): Promise<{ purged: num
     } catch {
       failed += 1;
     }
+  }
+  // Step 6: an intake nobody completed within 24 hours goes with its uploaded files.
+  try {
+    await sweepIntakes(env, nowMs);
+  } catch {
+    failed += 1;
   }
   let restarted = 0;
   if (!transcriptsOn(env)) {

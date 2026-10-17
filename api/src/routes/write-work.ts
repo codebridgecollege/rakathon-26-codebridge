@@ -11,7 +11,7 @@ import { setDone } from "../domain/tasks";
 import { confirmTask, editSuggestion, type SuggestionRow } from "../domain/suggestions";
 import { endSession, startSession } from "../domain/sessions";
 import { setAttendance, validSetKey } from "../domain/attendance";
-import { duplicateDecision, intakeFixture, normalizeRc, validateReferral } from "../domain/intake";
+import { duplicateDecision, intakeCaseId, normalizeRc, samePerson, validateReferral } from "../domain/intake";
 import { DIGEST_MIN_INTERVAL_S, NEW_CASE_MEMBERS } from "../domain/config";
 import { patientRow } from "../domain/rows";
 import { IdempotentReplay } from "../store/write";
@@ -27,14 +27,15 @@ import { hooks } from "./hooks";
 async function visibleCaseIds(c: import("hono").Context<AppEnv>): Promise<string[]> {
   const v = c.var.viewer;
   if (listsAllCases(v)) {
-    const r = await c.env.DB.prepare("SELECT id FROM cases ORDER BY list_order").all<{ id: string }>();
+    // An open intake (step 6) is its creator's draft, not yet a case of the MDT.
+    const r = await c.env.DB.prepare("SELECT id FROM cases WHERE intake_open = 0 ORDER BY list_order").all<{ id: string }>();
     return r.results.map((x) => x.id);
   }
   const r = await c.env.DB.prepare(
-    `SELECT c.id FROM cases c WHERE EXISTS (SELECT 1 FROM case_members m WHERE m.case_id = c.id AND (m.user_id = ?1
+    `SELECT c.id FROM cases c WHERE c.intake_open = 0 AND (EXISTS (SELECT 1 FROM case_members m WHERE m.case_id = c.id AND (m.user_id = ?1
        OR m.dept_id IN (SELECT dm.dept_id FROM dept_members dm WHERE dm.user_id = ?1)))
      OR EXISTS (SELECT 1 FROM case_access_grants g WHERE g.case_id = c.id AND g.user_id = ?1 AND g.expires_at > ?2)
-     ORDER BY c.list_order`,
+     ) ORDER BY c.list_order`,
   )
     .bind(v.id, now().toISOString())
     .all<{ id: string }>();
@@ -249,46 +250,63 @@ export const writeWork = new Hono<AppEnv>()
       if (e instanceof DomainError && e.code === "duplicate_birth_number") throw D.duplicateBirthNumber(await visibleDuplicate(c, existing));
       throw e;
     }
-    const fixtureId = typeof b.intake_fixture === "string" ? b.intake_fixture : null;
-    const fixtureTaken = fixtureId ? await c.env.DB.prepare("SELECT id FROM cases WHERE id = ?1").bind(`NO-${fixtureId}`).first<{ id: string }>() : null;
-    const fixture = intakeFixture(b.intake_fixture, new Set(fixtureTaken ? [fixtureTaken.id] : []));
+    // Step 6: "Nový pacient" opens the case for intake; its documents are uploaded to it before it is listed. When the
+    // referral names a fixture patient, the case gets the fixture's ID (cosmetic: the attach checks documents and
+    // identity again at completion).
+    const intake = b.intake === true;
+    const referralSha = typeof b.referral_sha256 === "string" && /^[0-9a-f]{64}$/.test(b.referral_sha256) ? b.referral_sha256 : null;
+    let fixtureId: string | null = null;
+    let fixtureTaken = false;
+    if (intake) {
+      const fps = (
+        await c.env.DB.prepare(
+          `SELECT p.fixture_id, p.full_name, p.birth_number FROM fixture_patients p WHERE replace(p.birth_number, '/', '') = ?1
+             AND EXISTS (SELECT 1 FROM fixture_files f WHERE f.fixture_id = p.fixture_id AND f.kind = 'upload')`,
+        )
+          .bind(rcN)
+          .all<{ fixture_id: string; full_name: string; birth_number: string }>()
+      ).results;
+      fixtureId = fps.find((fp) => samePerson(fp, { full_name: `${ref.first_name} ${ref.last_name}`, birth_number: ref.birth_number }))?.fixture_id ?? null;
+      if (fixtureId)
+        fixtureTaken = !!(await c.env.DB.prepare("SELECT 1 AS x FROM cases WHERE id = ?1 OR intake_fixture = ?2").bind(`NO-${fixtureId}`, fixtureId).first());
+    }
     const max = await c.env.DB.prepare(
       "SELECT MAX(CAST(substr(id, 4) AS INTEGER)) AS n, MAX(list_order) AS o FROM cases WHERE id GLOB 'NO-[0-9]*'",
     ).first<{ n: number | null; o: number | null }>();
     const lastOrder = (await c.env.DB.prepare("SELECT MAX(list_order) AS o FROM cases").first<{ o: number | null }>())?.o ?? 0;
     const n = Math.max(100, (max?.n ?? 0) + 1);
-    const id = fixture ? fixture.case_id : `NO-${String(n).padStart(3, "0")}`;
-    const file = fixture ? fixture.file : `${n}_novy.pdf`;
+    const { id, file } = intakeCaseId(fixtureId, fixtureTaken, n);
     const v = c.var.viewer;
     const at = isoNow();
     const day = todayPrague();
     const owner = ref.owner || v.name;
     const staff = await work(c).staff();
-    const data = { case_id: id, file };
+    const data = { case_id: id, file, intake };
     const t = tx(c);
     t.idempotency(key, "create_case", sha, data, 200, at);
     // A second record for a known birth number only with the override; re-checked inside the batch.
     if (!overrideReason)
       t.guard("no_duplicate", "NOT EXISTS (SELECT 1 FROM patients WHERE replace(birth_number, '/', '') = ?)", [rcN], () => D.duplicateBirthNumber({}));
-    t.guard("id_free", "NOT EXISTS (SELECT 1 FROM cases WHERE id = ?)", [id], () => (fixture ? D.fixtureUsed() : D.conflict()));
+    t.guard("id_free", "NOT EXISTS (SELECT 1 FROM cases WHERE id = ?)", [id], () => D.conflict());
     t.run(
       "INSERT INTO patients (id, full_name, name_as_written, birth_number, data_origin, created_at) VALUES (?1, ?2, ?3, ?4, 'codebridge_synthetic', ?5)",
       `pt-${id}`, `${ref.first_name} ${ref.last_name}`, `${ref.last_name} ${ref.first_name}`, ref.birth_number, at,
     );
     t.run(
       `INSERT INTO cases (id, patient_id, source_file, list_order, status, processing_level, question_text, question_explicit, question_purpose,
-         diagnosis_text, summary_one_line, owner_user_id, owner_name, referring_dept, submitted_on, updated_on, duplicate_override_reason, created_by, created_at)
-       VALUES (?1, ?2, ?3, ?4, 'new', 'none', ?5, ?6, NULL, ?7, NULL, ?8, ?9, ?10, ?11, ?11, ?12, ?13, ?14)`,
+         diagnosis_text, summary_one_line, owner_user_id, owner_name, referring_dept, submitted_on, updated_on, duplicate_override_reason, created_by, created_at,
+         intake_open, referral_sha256)
+       VALUES (?1, ?2, ?3, ?4, 'new', 'none', ?5, ?6, NULL, ?7, NULL, ?8, ?9, ?10, ?11, ?11, ?12, ?13, ?14, ?15, ?16)`,
       id, `pt-${id}`, file, lastOrder + 1, ref.question, ref.question ? 1 : 0,
       // The documents decide the diagnosis; until a doctor reviews them the list says so instead of guessing.
-      "Čeká na kontrolu lékařem", staff.idByName.get(owner) ?? null, owner, ref.dept, day, overrideReason, v.id, at,
+      "Čeká na kontrolu lékařem", staff.idByName.get(owner) ?? null, owner, ref.dept, day, overrideReason, v.id, at, intake ? 1 : 0, referralSha,
     );
     if (NEW_CASE_MEMBERS === "all_mdt_departments")
       t.run("INSERT INTO case_members (case_id, dept_id, reason, added_by, added_at) SELECT ?1, id, 'nový případ: oddělení MDT', ?2, ?3 FROM departments", id, v.id, at);
     t.run("INSERT INTO case_members (case_id, user_id, reason, added_by, added_at) VALUES (?1, ?2, 'založil(a) případ', ?2, ?3)", id, v.id, at);
     const ownerId = staff.idByName.get(owner);
     if (ownerId && ownerId !== v.id) t.run("INSERT INTO case_members (case_id, user_id, reason, added_by, added_at) VALUES (?1, ?2, 'odesílající lékař', ?3, ?4)", id, ownerId, v.id, at);
-    t.audit({ action: "case.create", what_cs: fixture ? "vytvořil(a) pacienta z ukázkové žádosti" : "vytvořil(a) případ", case_id: id });
+    t.audit({ action: intake ? "intake.start" : "case.create", what_cs: intake ? "založil(a) příjem nového pacienta (rozpracováno, dokumenty se nahrávají)" : "vytvořil(a) případ", case_id: id });
     // The reason is staff free text that may name the patient; it stays with the case, the log only says it exists.
     if (overrideReason) t.audit({ action: "case.duplicate_override", what_cs: "vytvořil(a) nový záznam, přestože rodné číslo už v databázi je (důvod uložen u případu)", case_id: id });
     try {
@@ -304,6 +322,8 @@ export const writeWork = new Hono<AppEnv>()
       }
       throw e;
     }
+    // An open intake is not listed yet, so the page gets no patient row until the intake completes.
+    if (intake) return answer(c, data);
     const row = await c.var.stores.cases.caseById(id);
     return answer(c, data, { patient: row ? patientRow(row, await c.var.stores.cases.statusHistory(id)) : null, cases: await statesFor(c, [id]) });
   });

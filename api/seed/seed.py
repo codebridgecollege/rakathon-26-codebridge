@@ -274,6 +274,81 @@ def strip_syn(s):
     return s
 
 
+# ---------- the prepared extraction of the intake fixture (step 6) ----------
+def prepared_fixture(s, sid, page_index, row, pats):
+    """R2 objects for one intake fixture: fixtures/<sid>/prepared.json and the page JSON and images of each upload."""
+    combined = s["file"]
+    pages = {p["n"]: p for p in page_index.get(combined, {}).get("pages", [])}
+    uploads = [d for d in s.get("documents") or [] if d.get("upload_name")]
+    where = {}  # combined page -> (upload name, page inside the upload)
+    for d in uploads:
+        for j, k in enumerate(d["pages"], 1):
+            where[k] = (d["upload_name"], j)
+    norm = lambda t: re.sub(r"\s+", " ", t.replace("*", "")).strip()  # noqa: E731
+    missing_quotes = []
+
+    def rewrite(o):
+        if isinstance(o, dict):
+            o = {k: rewrite(v) for k, v in o.items()}
+            if o.get("file") == combined and isinstance(o.get("page"), int):
+                if o["page"] not in where:
+                    sys.exit(f"seed: {combined} page {o['page']} is in no upload")
+                name, j = where[o["page"]]
+                q = o.get("quote")
+                if q and norm(q) not in norm(pages[o["page"]]["text"]):
+                    missing_quotes.append(f"{name} s. {j}")
+                o = {**o, "file": f"@upload:{name}", "page": j, "orig_file": combined, "orig_page": o["page"]}
+            return o
+        if isinstance(o, list):
+            return [rewrite(v) for v in o]
+        return o
+
+    syn = rewrite(strip_syn(s))
+    syn["documents"] = [{**d, "file": f"@upload:{d['upload_name']}", "orig_pages": d["pages"], "pages": list(range(1, len(d["pages"]) + 1))}
+                        if d.get("upload_name") else d for d in syn.get("documents") or []]
+    syn["list_entry"] = {"file": combined, "page_count": s["list_entry"].get("page_count")}
+    case_row = rewrite({
+        "diagnosis_text": row.get("diagnosis"), "summary_one_line": row.get("summary"), "question_text": row.get("question"),
+        "question_explicit": bool(row.get("explicit")), "question_purpose": row.get("purpose"),
+        "question_source_json": row.get("_question_source"), "page_count": row.get("pages"),
+    })
+    gaps = [{"origin": "gap", "position": i, "kind": g["kind"], "text_cs": g["text_cs"], "relevant": bool(g.get("relevant")),
+             "basis": f"{(g.get('source') or {}).get('orig_file')}:{(g.get('source') or {}).get('orig_page')}:{(g.get('source') or {}).get('quote')}"}
+            for i, g in enumerate(syn.get("data_gaps") or [])]
+    page_meta, objs = {}, []
+    for d in uploads:
+        stem = d["upload_name"].removesuffix(".pdf")
+        meta = []
+        for j, k in enumerate(d["pages"], 1):
+            pg = pages[k]
+            red = pg.get("redacted")
+            body = {"n": j, "size": pg["size"], "text": pg["text"], "engine": pg["engine"], "words": pg["words"],
+                    "mean_conf": pg.get("mean_conf"), "low_conf_words": pg.get("low_conf_words"), "verify": pg.get("verify") or [],
+                    "redacted": {"count": red["count"], "reasons": red["reasons"]} if red else None}
+            base = f"fixtures/{sid}/pages/{stem}/p{j}"
+            folder = DERIVED / "pages" / combined.removesuffix(".pdf")
+            objs.append({"key": f"{base}.json", "body": jdump(body).encode(), "content_type": "application/json"})
+            objs.append({"key": f"{base}.png", "file": folder / f"p{k}.png", "content_type": "image/png"})
+            if red:
+                objs.append({"key": f"{base}.redacted.png", "file": folder / f"p{k}.redacted.png", "content_type": "image/png"})
+            meta.append({"n": j, "width": pg["size"][0], "height": pg["size"][1], "engine": pg["engine"], "mean_conf": pg.get("mean_conf"),
+                         "low_conf_words": pg.get("low_conf_words"), "is_empty": bool(re.fullmatch(r"\s*\[prázdná stránka\]\s*", pg["text"])),
+                         "verify_count": len(pg.get("verify") or []), "redacted": bool(red), "redaction_count": red["count"] if red else None,
+                         "redaction_reasons": red["reasons"] if red else None})
+        page_meta[d["upload_name"]] = meta
+    if missing_quotes:
+        sys.exit(f"seed: {len(missing_quotes)} rewritten quotes not found on their page: {', '.join(missing_quotes[:5])}")
+    doc = {"schema": "codebridge.prepared/1", "fixture_id": sid, "syn": syn, "case_row": case_row, "alerts": gaps, "pages": page_meta}
+    # Strict for this file: not even a quote may carry the patient's name or birth number (step 6 acceptance).
+    hits = []
+    scan(doc, pats, ["prepared"], hits)
+    if hits:
+        sys.exit("seed: identity in the prepared extraction: " + ", ".join(".".join(map(str, h[0])) for h in hits[:5]))
+    objs.append({"key": f"fixtures/{sid}/prepared.json", "body": jdump(doc).encode(), "content_type": "application/json"})
+    print(f"prepared {sid}: {len(uploads)} uploads, {sum(len(m) for m in page_meta.values())} pages, {len(gaps)} gaps, quotes checked")
+    return objs
+
+
 # ---------- SQL ----------
 def lit(v) -> str:
     """The one SQL literal function: NULL, integers, booleans as 0/1, text with ' doubled."""
@@ -599,6 +674,19 @@ def main() -> None:
                                  "title_cs": d["title_cs"] if d else None, "doc_type": d.get("type") if d else None,
                                  "doc_date": d.get("date") if d else None, "page_count": len(d["pages"]) if d else None,
                                  "combined_pages_json": d["pages"] if d else None})
+        # The prepared extraction an intake attaches (POST /api/cases/:id/intake/complete), written for one PDF per
+        # document: every reference into the combined PDF becomes "@upload:<upload name>" with the page inside that
+        # upload (the Worker swaps in the uploaded document's id), and each upload's pages are stored under its name.
+        # The intake patient is not in patients (it enters through "Nový pacient"), so its own patterns are added, with
+        # the same self-check as above: they must find the patient in the unstripped fixture.
+        fx_pats = patient_patterns({"full_name": le["name"], "birth_number": le.get("rc"),
+                                    "birth_as_written": re.sub(r"^nar\.\s*", "", le.get("age_or_birth") or "") or None})
+        control = []
+        scan(s, fx_pats, ["control"], control)
+        if not control:
+            sys.exit(f"seed: identity scan self-check failed for fixture {sid}")
+        prepared_objs = prepared_fixture(s, sid, page_index, list_patient(le, None, {}, syn_by_file), pats + fx_pats)
+        r2.extend(prepared_objs)
     # Titles end up in documents rows outside patients, so they get the identity scan too.
     fx_hits = []
     scan([{k: v for k, v in r.items() if k not in ("sha256",)} for r in fixture_rows], pats, ["fixture_files"], fx_hits)
