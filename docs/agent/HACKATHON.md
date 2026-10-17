@@ -199,3 +199,16 @@ Declare this list to the jury and mentors.
   ([`samples/README.md`](../../samples/README.md)), rendered to PDF with
   PyMuPDF and Python-Markdown 3.7 (`scripts/render_samples.py`).
 - (Add the LLMs, libraries, and datasets as we adopt them.)
+
+
+
+## Prognosis prototype work on 2026-10-17
+
+The team added a local prognosis evidence-search prototype during the event. It
+uses Python standard-library HTTP handling, the existing generated mock interface,
+and GPT Astra through OpenRouter with server-side web search. The source fixtures are
+the fictitious FNO case 10 and the team synthetic S01 sample. The clinical profile
+contains no patient names or birth numbers. Keys stay in the local gitignored
+configuration. Model and integration details are in
+[the prognosis design](../design/PROGNOSIS.md). Model extracts require source
+review; the prototype does not provide an individual survival prediction.

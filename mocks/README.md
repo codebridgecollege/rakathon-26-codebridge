@@ -160,7 +160,7 @@ stopped after the last case of the seminar was approved.
 Mock v3 uses the nine categories documented in
 [`PRODUCT.md`](../docs/design/PRODUCT.md#timeline-categories). The `category`
 field on each timeline card is display metadata; original dates, kinds,
-sources and plan status are preserved. The compact summary shares the icons.
+sources and plan status are preserved. The compact summary shares the icons. Category checkboxes support multiple selection: all start checked, unchecking excludes a category, and Vše selects or clears all. A partial selection gives Vše a mixed state.
 Lucide 0.468.0 paths are embedded in the template, with the ISC notice in
 `src/vendor/lucide-LICENSE`; no icon CDN is needed at runtime.
 
@@ -192,3 +192,25 @@ Lucide 0.468.0 paths are embedded in the template, with the ISC notice in
   the page width, to catch horizontal overflow (`npm i playwright-core`,
   needs Google Chrome installed).
 
+
+
+## Local prognosis search
+
+Build with `python3 mocks/build.py`, then run `python3 mocks/serve.py` from the repository root. Open `http://127.0.0.1:8766/v3.html#patient/10/prognosis`. The patient must have a calendar slot. The Prognóza tab previews dated synthetic facts, then starts one GPT Astra search through OpenRouter when requested. Configure the server using `.env.example`; keys stay in the gitignored `.env`. Static hosting displays the tab but needs this backend to search. See [the API and limitations](../prognosis/README.md).
+
+Validation: `python3 -m unittest discover -s prognosis/tests -v`, `node mocks/src/test/prognosis-ui.mjs`, and `node mocks/src/test/timeline-categories.mjs`.
+
+
+## Saved Poláček prognosis
+
+The generated v3 page embeds the saved synthetic Poláček search from
+`src/data/prognosis-case-10.json`. On first opening Prognóza for case 10 with
+MDT date 2026-10-22, its six result rows appear after two seconds, labeled as a
+saved search with the original timestamp. No model API request is made for replay.
+A new search remains an explicit action. Rebuild after intentionally updating the
+fixture.
+
+The prognosis table uses compact 11.5 px text, smaller population descriptions and
+fixed column proportions. The population column is wider; the four OS timepoints
+are narrow. All twelve columns fit together in the desktop view. Source passages
+remain available under Zdroj.

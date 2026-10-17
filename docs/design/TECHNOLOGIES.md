@@ -118,3 +118,9 @@ development and corrected by hand after two reviews
 | python-pptx, macOS `textutil` | Reading the organizers' decks and FNO's Word documents |
 | GitHub | Repository, shared by the team |
 | HL7 FHIR validator 7.0.2 with OpenJDK 21 (`fhir/validate.sh`) | Checking the FHIR export against FHIR R4 |
+
+
+
+## Prognosis evidence search
+
+The 2026-10-17 prototype uses a Python standard-library local HTTP server and one OpenRouter Chat Completions request to GPT Astra with server-side web search. The exact model ID is configured and catalog-checked; the initial catalog verified GPT-6 Astra. No browser code receives the key. The table and source disclosures use the existing generated HTML pipeline. See [the design](PROGNOSIS.md) and [API](../../prognosis/README.md).

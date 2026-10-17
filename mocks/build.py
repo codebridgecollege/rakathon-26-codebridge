@@ -158,6 +158,9 @@ def synthetic_cases() -> str:
 
 def main() -> None:
     parts = {
+        "/*PROGNOSIS_CSS*/": (HERE / "src" / "prognosis.css").read_text(),
+        "/*PROGNOSIS_JS*/": (HERE / "src" / "prognosis.js").read_text(),
+        "/*PROGNOSIS_DATA*/": embed(json.dumps([json.loads((DATA / "prognosis-case-10.json").read_text())], ensure_ascii=False)),
         "/*CASE*/": embed((DATA / "mock-case-10.json").read_text()),
         "/*LIST*/": embed((DATA / "mock-patient-list.json").read_text()),
         "/*EXTRA*/": embed((DATA / "mock-case-10-extra.json").read_text()),
@@ -177,3 +180,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+

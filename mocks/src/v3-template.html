@@ -241,8 +241,8 @@ details.more > summary { cursor: pointer; color: var(--muted); font-size: 12.5px
 .tlfilters { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 8px; }
 .tlfilter { display: inline-flex; align-items: center; gap: 6px; padding: 6px 9px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--muted); font: inherit; font-size: 12px; text-align: left; cursor: pointer; max-width: 100%; }
 .tlfilter svg { width: 16px; height: 16px; flex: none; }
-.tlfilter[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent); color: var(--accent-ink); }
-.tlfilter:disabled { cursor: default; color: var(--faint); }
+.tlfilter.on { background: var(--accent-soft); border-color: var(--accent); color: var(--accent-ink); }
+.tlfilter input { flex: none; margin: 0; accent-color: var(--accent); }
 .tlfilter .tlcount { font-variant-numeric: tabular-nums; }
 .tlstatus { color: var(--muted); font-size: 12px; margin-bottom: 6px; }
 .ev .category { display: block; font-size: 11.5px; font-weight: 600; color: var(--muted); margin-bottom: 4px; }
@@ -625,6 +625,7 @@ details.srcs .refs { border-top: 0; margin-top: 4px; padding-top: 0; }
 .gapsbtn.warn { background: var(--missing); color: #fff; }
 .unchecked { display: inline-block; white-space: normal; font-size: 13px; font-weight: 600; padding: 4px 10px; border-radius: var(--r); background: var(--missing); color: #fff; }
 details.donegrp > summary { cursor: pointer; color: var(--muted); font-size: 13px; padding: 10px 0 4px; }
+/*PROGNOSIS_CSS*/
 </style>
 
 <header class="top">
@@ -962,7 +963,7 @@ const S = {
   view: "patients", pid: CASE.file, tab: "overview", user: (DEPTS.find(([d]) => d === "Klinická onkologie")?.[1] || []).find(n => DOCTORS.includes(n)) || USERS[0],
   patients: initialPatients(), q: "", colf: {}, colOpen: null, editLog: [], subFrom: "", subTo: "", dbPage: 0, dbAll: false,
   week: mondayOf("2026-10-22"), miniMonth: "2026-10", guideOn: true, labSel: null, edits: {},
-  selTl: null, tlCategory: "all", picked: new Set(["summary", "imaging", "histology", "past_treatment"]),
+  selTl: null, tlExcluded: new Set(), picked: new Set(["summary", "imaging", "histology", "past_treatment"]),
   alertHist: [], access: [], decisions: [], tasks: [
     { id: 1, pid: "2_pacient.pdf", text: "doplnit pooperační MR do podkladů", who: COORD, due: "2026-10-21", done: false },
     { id: 2, pid: "13_pacient.pdf", text: "vyžádat snímky MR 8/2025 ke srovnání", who: COORD, due: "2026-10-21", done: true },
@@ -1218,7 +1219,7 @@ const icon = key => {
   const category = EVENT_CATEGORIES.find(c => c.id === key) || EVENT_CATEGORIES.find(c => c.id === "clinical");
   return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" data-icon="${category.icon}">${ICON[category.id]}</svg>`;
 };
-const TL_HELP = "Události jsou seřazeny podle data a označeny ikonou a názvem kategorie. Kategorie filtrují jednu časovou osu. Čárkovaný kroužek znamená plán. Kliknutím na událost otevřete její zdroj; datum a nejistota zůstávají podle dokumentace.";
+const TL_HELP = "Události jsou seřazeny podle data a označeny ikonou a názvem kategorie. Lze vybrat více kategorií současně. Odškrtnutím kategorii skryjete; Vše zapne nebo vypne všechny kategorie. Čárkovaný kroužek znamená plán. Kliknutím na událost otevřete její zdroj; datum a nejistota zůstávají podle dokumentace.";
 
 /* ---------- navigation ---------- */
 /* "Moje" tasks: assigned to the user, or (for a doctor) on a case they own. The nav badge and the task list
@@ -1734,11 +1735,22 @@ function timelineEvents() {
     ...e, kind: e.type, title_cs: e.label_cs, text_cs: e.label_cs, status: e.status || "done",
   }));
 }
+/* Exclusions make the initial view complete; changing one category never clears other choices. */
+function setTimelineCategory(id, include) {
+  if (id === "all") S.tlExcluded = new Set(include ? [] : EVENT_CATEGORIES.map(c => c.id));
+  else if (EVENT_CATEGORIES.some(c => c.id === id)) {
+    if (include) S.tlExcluded.delete(id);
+    else S.tlExcluded.add(id);
+  }
+}
 function timelineCard(inline) {
   const all = timelineEvents().map((c, i) => ({ ...c, i, category: categoryOf(c) }))
     .sort((a, b) => (a.date_sort ? 0 : 1) - (b.date_sort ? 0 : 1) || String(a.date_sort || "").localeCompare(String(b.date_sort || "")));
-  const cards = all.filter(c => S.tlCategory === "all" || c.category === S.tlCategory);
-  const filterButton = (id, label, count) => `<button type="button" class="tlfilter" data-tl-category="${id}" aria-pressed="${S.tlCategory === id}" ${count === 0 ? "disabled" : ""}>${id === "all" ? "" : icon(id)}<span>${esc(label)}</span><span class="tlcount">${count}</span></button>`;
+  const cards = all.filter(c => !S.tlExcluded.has(c.category));
+  const filterButton = (id, label, count) => {
+    const checked = id === "all" ? S.tlExcluded.size === 0 : !S.tlExcluded.has(id);
+    return `<label class="tlfilter ${checked ? "on" : ""}"><input type="checkbox" data-tl-category="${id}" ${checked ? "checked" : ""}>${id === "all" ? "" : icon(id)}<span>${esc(label)}</span><span class="tlcount">${count}</span></label>`;
+  };
   const filters = filterButton("all", "Vše", all.length) + EVENT_CATEGORIES.map(c => filterButton(c.id, c.label, all.filter(e => e.category === c.id).length)).join("");
   let lastYear = null, html = "";
   for (const c of cards) {
@@ -1751,8 +1763,8 @@ function timelineCard(inline) {
   }
   return `<section class="${inline ? "" : "card"}"><div class="head"><h2 style="${inline ? "font-size:14px" : ""}">Průběh onemocnění <button class="info" title="${esc(TL_HELP)}" aria-label="${esc(TL_HELP)}">i</button></h2></div>
     <div class="tlfilters" role="group" aria-label="Kategorie událostí">${filters}</div>
-    <div class="tlstatus" role="status">Zobrazeno ${cards.length} z ${all.length} událostí${S.tlCategory !== "all" ? ` · ${esc(KIND_CS[S.tlCategory])}` : ""}</div>
-    ${cards.length ? `<div class="tlbar" tabindex="0" role="region" aria-label="Časová osa průběhu onemocnění"><div class="tltrack">${html}</div></div>` : '<p class="muted small">V této kategorii nejsou zaznamenané události.</p>'}</section>`;
+    <div class="tlstatus" role="status">Zobrazeno ${cards.length} z ${all.length} událostí · ${EVENT_CATEGORIES.length - S.tlExcluded.size} z ${EVENT_CATEGORIES.length} kategorií</div>
+    ${cards.length ? `<div class="tlbar" tabindex="0" role="region" aria-label="Časová osa průběhu onemocnění"><div class="tltrack">${html}</div></div>` : `<p class="muted small">${S.tlExcluded.size === EVENT_CATEGORIES.length ? "Všechny kategorie jsou skryté. Zaškrtněte kategorii nebo Vše." : "Ve vybraných kategoriích nejsou zaznamenané události."}</p>`}</section>`;
 }
 function tabOverview() {
   const p = P(S.pid);
@@ -1986,13 +1998,15 @@ function viewAdmin() {
       <ul class="hist">${S.editLog.slice().reverse().map(e => `<li class="small"><b>${esc(P(e.pid)?.id || e.pid)}</b> · ${esc(e.by)} · ${esc(e.when)}${e.confirmed ? ` · <b>potvrdil(a) návrh otázky</b><br>Návrh asistenta beze změny: <span class="muted">${esc(e.orig)}</span>` : `${e.reverted ? " · <b>vráceno na původní</b>" : ""}<br>Původně: <span class="muted">${esc(e.orig || GAP)}</span>${e.reverted ? "" : `<br>Nově: ${esc(e.text)}`}`}</li>`).join("") || `<li class="muted small">Zatím žádné úpravy. Záznam vznikne, když lékař v případu pacienta opraví údaj tužkou ✎.</li>`}</ul></section>
     <p class="muted small">Role správce zde slouží jen k náhledu záznamu; v reálné aplikaci by správce neměl přístup ke klinickému obsahu případů. Záznam se v maketě drží jen v paměti prohlížeče. V reálné aplikaci by byl na serveru nemocnice, neměnný a s dobou uchování podle předpisů FNO.</p></div>`;
 }
+/*PROGNOSIS_JS*/
+
 function viewPatient() {
   const p = P(S.pid);
   if (p.full) loadGuidance(p);
   if (!p.full) return viewPatientLite(p);
-  const tabs = [["overview", "Přehled"], ["anamnesis", "Anamnéza"], ["documents", "Dokumenty"], ["labs", "Laboratoř"], ["alerts", "Upozornění"], ["next", "Navrhovaný postup"], ["dev", "Retrospektivní odchylky"]];
+  const tabs = [["overview", "Přehled"], ["anamnesis", "Anamnéza"], ["documents", "Dokumenty"], ["labs", "Laboratoř"], ["alerts", "Upozornění"], ["next", "Navrhovaný postup"], ["dev", "Retrospektivní odchylky"], ["prognosis", "Prognóza"]];
   if (!tabs.some(t => t[0] === S.tab)) S.tab = "overview";
-  const body = { overview: tabOverview, anamnesis: tabAnamnesis, documents: tabDocuments, labs: tabLabs, alerts: tabAlerts, next: tabNext, dev: tabDev }[S.tab]();
+  const body = { overview: tabOverview, anamnesis: tabAnamnesis, documents: tabDocuments, labs: tabLabs, alerts: tabAlerts, next: tabNext, dev: tabDev, prognosis: () => tabPrognosis(p) }[S.tab]();
   return `<div class="page">
     ${sessionBar(p)}
     <div class="row"><button class="linkbtn" data-nav="patients">‹ Databáze pacientů</button></div>
@@ -2070,8 +2084,8 @@ function viewPatientLite(p) {
   const syn = SYN_BY_FILE[p.file];
   /* A synthetic patient (samples/S<nn>_pacient) has its documents, data gaps and lab series processed, so it gets the
      missing-document signal, the gaps one click away and the Dokumenty and Laboratoř tabs; its summary is the list's. */
-  const tabs = syn ? [["documents", "Dokumenty"], ["labs", "Laboratoř"]] : [];
-  if (syn && !tabs.some(t => t[0] === S.tab)) S.tab = "documents";
+  const tabs = [...(syn ? [["documents", "Dokumenty"], ["labs", "Laboratoř"]] : []), ["prognosis", "Prognóza"]];
+  if (!tabs.some(t => t[0] === S.tab)) S.tab = tabs[0][0];
   const chip = syn ? `<span class="chip plain st-new">Zpracováno: dokumenty, chybějící podklady, laboratoř</span>${gapsToggle(p)}`
     : `<span class="chip plain st-new">V maketě nezpracováno</span>${hasMissing(p) === null ? uncheckedSignal() : ""}`;
   return `<div class="page">${sessionBar(p)}<div class="row"><button class="linkbtn" data-nav="patients">‹ Databáze pacientů</button></div>
@@ -2082,8 +2096,8 @@ function viewPatientLite(p) {
       <p class="muted small" style="margin:0">${syn ? `${esc(syn.note_cs || "")} Zdroj: ${esc(p.file)}, ${p.pages || "?"} s.` : `Plně zpracovaný je v maketě případ NO-010. Zdroj: ${esc(p.file)}, ${p.pages || "?"} s.`}</p>
       ${conclusionBox(p)}
       ${mdtCard(p)}</section>
-    ${syn ? `<div class="tabs" role="tablist">${tabs.map(([k, t]) => `<button class="tab" role="tab" data-tab="${k}" aria-selected="${S.tab === k}">${t}</button>`).join("")}</div>
-    ${{ documents: tabDocuments, labs: tabLabs }[S.tab]()}` : ""}</div>`;
+    ${`<div class="tabs" role="tablist">${tabs.map(([k, t]) => `<button class="tab" role="tab" data-tab="${k}" aria-selected="${S.tab === k}">${t}</button>`).join("")}</div>
+    ${{ documents: tabDocuments, labs: tabLabs, prognosis: () => tabPrognosis(p) }[S.tab]()}`}</div>`;
 }
 /* Missing documents of a synthetic patient, each with the passage that shows the gap (always on, CLAUDE.md). */
 function synGapsBox(syn) {
@@ -3121,6 +3135,8 @@ function render() {
   renderNav();
   const v = { patients: viewPatients, calendar: viewCalendar, patient: viewPatient, tasks: viewTasks, admin: viewAdmin, staff: viewStaff }[S.view];
   document.getElementById("app").innerHTML = v();
+  const allCategories = document.querySelector('[data-tl-category="all"]');
+  if (allCategories) allCategories.indeterminate = S.tlExcluded.size > 0 && S.tlExcluded.size < EVENT_CATEGORIES.length;
   const nb = document.querySelector(".tlbar"); if (nb) nb.scrollLeft = S.tlScroll || 0;
   const ncs = document.querySelector(".calscroll"); if (ncs && calScroll && calScroll.week === S.week) { ncs.scrollLeft = calScroll.left; ncs.scrollTop = calScroll.top; }
   measureTop(); markClamped();
@@ -3146,7 +3162,7 @@ function readHash() {
   const before = S.pid + S.view;
   S.view = view;
   if (view === "calendar" && /^\d{4}-\d\d-\d\d$/.test(id || "")) { S.week = mondayOf(id); S.miniMonth = id.slice(0, 7); }
-  else if (id) { const f = S.patients.find(p => nr(p.file) === id)?.file; if (f && f !== S.pid) { S.pid = f; S.tlCategory = "all"; S.selTl = null; S.tlScroll = 0; } }
+  else if (id) { const f = S.patients.find(p => nr(p.file) === id)?.file; if (f && f !== S.pid) { S.pid = f; S.tlExcluded = new Set(); S.selTl = null; S.tlScroll = 0; } }
   /* Opening a case by link or by back/forward is an access too and goes to the log. */
   if (view === "patient" && before !== S.pid + view) logAccess(S.pid, "otevřel(a) případ (odkazem nebo historií prohlížeče)");
   if (tab) S.tab = tab;
@@ -3158,7 +3174,7 @@ function readHash() {
 window.addEventListener("hashchange", () => { if (S.hashSet && location.hash === S.hashSet) { S.hashSet = null; return; } S.hashSet = null; if (readHash()) render(); });
 /* keepTab: moving between cases during an MDT keeps the tab the team is looking at. */
 function openPatient(file, keepTab = false, what = "otevřel(a) případ") {
-  if (S.pid !== file) S.tlCategory = "all";
+  if (S.pid !== file) S.tlExcluded = new Set();
   S.pid = file; S.view = "patient"; if (!keepTab) S.tab = "overview"; S.selTl = null; S.calPop = null; S.tlScroll = 0; S.stOpen = null;
   logAccess(file, what);
   render(); window.scrollTo(0, 0);
@@ -3247,9 +3263,9 @@ document.addEventListener("click", e => {
   else if (d.zoomhit) { S.overlay.zoom = 100; renderOverlay(); }
   else if (d.tlCategory !== undefined) {
     if (d.tlCategory !== "all" && !EVENT_CATEGORIES.some(c => c.id === d.tlCategory)) return;
-    S.tlCategory = d.tlCategory; S.selTl = null; S.tlScroll = 0;
+    setTimelineCategory(d.tlCategory, t.checked); S.selTl = null; S.tlScroll = 0;
     const bar = document.querySelector(".tlbar"); if (bar) bar.scrollLeft = 0;
-    render(); document.querySelector(`[data-tl-category="${S.tlCategory}"]`)?.focus({ preventScroll: true });
+    render(); document.querySelector(`[data-tl-category="${d.tlCategory}"]`)?.focus({ preventScroll: true });
   }
   else if (d.tl !== undefined) {
     /* One click straight to the full source text (Soňa, round 13); no detail panel in between. */
@@ -3298,7 +3314,10 @@ async function copyText(text, what) {
 }
 function action(a) {
   const pr = S.view === "patient" ? curProto() : null;
-  if (a === "recon") { logAccess(S.pid, "zapnul(a) AI záznam diskuse"); recStart(); }
+  if (a === "pgsearch") pgSearch();
+  else if (a === "pgrefresh") pgSearch(true);
+  else if (a === "pgretry") pgRetry();
+  else if (a === "recon") { logAccess(S.pid, "zapnul(a) AI záznam diskuse"); recStart(); }
   else if (a === "recstop") { logAccess(S.pid, "vypnul(a) AI záznam diskuse"); recStop(); }
   else if (a === "reportdlg") { S.overlay = { kind: "report" }; renderOverlay(); }
   else if (a === "fhirdlg") { const p = P(S.pid); S.overlay = { kind: "fhir", id: p.id, bundle: fhirBundle(p) }; logAccess(p.file, "exportoval(a) případ jako FHIR"); renderOverlay(); }
@@ -3595,4 +3614,3 @@ document.addEventListener("keydown", e => { if (e.key === "Escape" && S.overlay)
 readHash();
 render();
 </script>
-
