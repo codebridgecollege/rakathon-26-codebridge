@@ -211,6 +211,9 @@ Declare this list to the jury and mentors.
   holding the seeded synthetic demo data (`api/seed/seed.py`). `wrangler d1
   info codebridge-mdt` reports `jurisdiction: eu`, region EEUR; `wrangler
   r2 bucket info codebridge-mdt --jurisdiction eu` reports location EEUR.
+- Cloudflare Workflows (`codebridge-speaker-pass`, binding `SPEAKER_PASS`),
+  a cron trigger, and R2 multipart uploads with a lifecycle rule on
+  `audio/`, for the speaker pass after approval (step 5, issue #6).
 - ChatGPT, used by Soňa for brainstorming and UI sketches
   (`docs/sources/design/`).
 - Claude artifacts (claude.ai), for publishing the UI mocks in `mocks/`.

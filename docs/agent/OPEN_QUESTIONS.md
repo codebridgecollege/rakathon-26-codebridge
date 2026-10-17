@@ -174,7 +174,10 @@ experience.
   department as a member, plus its creator and owner).
 - [ ] **Speaker pass on failure**: delete the case audio when the pass fails
   (no "Zkusit znovu", the summary is made from the live text), or keep the
-  audio until the case is closed? (`docs/research/backend-steps/step-5.md`)
+  audio until the case is closed? Both are built behind
+  `SPEAKER_PASS_AUDIO_ON_FAILURE` in `api/wrangler.jsonc`; the default
+  `keep_until_close` keeps today's behaviour, `delete` is the stricter one.
+  (`docs/research/backend-steps/step-5.md`, "As implemented")
 - [ ] **Prognosis retries**: `prognosis/README.md` promises no retries, even
   on HTTP 429, but CLAUDE.md asks for backoff on 429. Retry only on 429/503?
   (`docs/research/backend-steps/step-5.md`)

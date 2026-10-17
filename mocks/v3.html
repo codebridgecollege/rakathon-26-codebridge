@@ -9820,7 +9820,14 @@ async function recStart() {
     const src = ctx.createMediaStreamSource(stream), proc = ctx.createScriptProcessor(4096, 1, 1), mute = ctx.createGain();
     mute.gain.value = 0; proc.onaudioprocess = e => recChunk(e.inputBuffer.getChannelData(0));
     src.connect(proc); proc.connect(mute); mute.connect(ctx.destination);
-    Object.assign(S.rec, { on: true, stream, ctx, ses: { t0: Date.now(), spans: [] }, sent: 0, lastPid: null, partial: "", fails: 0 });
+    Object.assign(S.rec, { on: true, stream, ctx, ses: { t0: Date.now(), spans: [] }, sent: 0, lastPid: null, partial: "", fails: 0, recId: null });
+    /* Server mode: the server refuses lines and audio without a recording, so nothing is stored unless recording was
+       switched on here. */
+    if (recServer()) {
+      const r = await apiWrite("POST", "/recordings", { session_day: S.session?.day ?? null, case_id: P(S.pid)?.id ?? null });
+      if (!S.rec.on) { recServerEnd(r.data.recording_id, "stopped"); return; }
+      S.rec.recId = r.data.recording_id; recLinesTimer();
+    }
     await recConnect();
   } catch (err) { recStop(`Záznam se nespustil: ${err.message || err}`); }
 }
@@ -9831,7 +9838,7 @@ async function recConnect() {
   const { ws_url } = await r.json();
   if (!S.rec.on) return; // stopped while the token was on its way
   const ws = new WebSocket(ws_url);
-  ws.ses = S.rec.ses;
+  ws.ses = S.rec.ses; ws.recId = S.rec.recId;
   ws.onopen = () => { if (S.rec.ws !== ws || !S.rec.on) { ws.close(); return; } ws.base = S.rec.sent / REC_RATE; ws.opened = Date.now(); S.rec.status = "on"; recUI(); };
   ws.onmessage = e => recMessage(JSON.parse(e.data), ws);
   /* The service ends long sessions; while recording is on, reconnect with a new token and keep the timeline.
@@ -9849,7 +9856,8 @@ function recChunk(f32) {
   const pid = recTarget(), pcm = new Int16Array(f32.length);
   if (pid) for (let i = 0; i < f32.length; i++) pcm[i] = Math.max(-1, Math.min(1, f32[i])) * 32767;
   /* The case's own audio is kept in memory for the speaker pass after approval, one segment per visit. */
-  if (pid) { const tx = txOf(pid); if (pid !== S.rec.lastPid) tx.audio.push({ wall: Date.now(), chunks: [] }); tx.audio.at(-1).chunks.push(pcm); }
+  if (pid && recServer()) recAudioPush(pid, pcm, pid !== S.rec.lastPid);
+  else if (pid) { const tx = txOf(pid); if (pid !== S.rec.lastPid) tx.audio.push({ wall: Date.now(), chunks: [] }); tx.audio.at(-1).chunks.push(pcm); }
   if (pid !== S.rec.lastPid) { S.rec.lastPid = pid; if (S.rec.partial) { S.rec.partial = ""; recUI(); } }
   const ws = S.rec.ws; if (ws?.readyState !== 1) return;
   const at = S.rec.sent / REC_RATE;
@@ -9865,21 +9873,29 @@ function recMessage(m, ws) {
   if (m.message_type === "partial_transcript") { if (ws === S.rec.ws) { S.rec.partial = m.text || ""; recUI(); } }
   else if (m.message_type === "committed_transcript_with_timestamps") {
     S.rec.partial = "";
-    let cur = null;
+    let cur = null; const made = [];
     for (const w of m.words || []) {
       if (w.type !== "word") continue;
       const t = ws.base + (w.start ?? 0), pid = spanPid(ws.ses, t), wall = ws.ses.t0 + t * 1000;
       /* A sentence committed late may cover speech the speaker pass already holds; keep one version. */
       if (!pid || txOf(pid).passes.some(x => x.state === "done" && wall <= x.when)) { cur = null; continue; }
-      if (!cur || cur.pid !== pid) { cur = { pid, wall: ws.ses.t0 + t * 1000, text: [] }; txOf(pid).lines.push(cur); }
+      if (!cur || cur.pid !== pid) { cur = { pid, wall: ws.ses.t0 + t * 1000, text: [] }; txOf(pid).lines.push(cur); made.push(cur); }
       cur.text.push(w.text);
     }
+    /* A line is final once its message is processed, so it goes to the server as an immutable record. */
+    if (ws.recId) made.forEach(l => recQueueLine(l, ws.recId));
     recUI();
   } else if (/error/.test(m.message_type || "")) { S.rec.msg = `Přepis hlásí chybu: ${m.error || m.message || m.message_type}`; recUI(); }
 }
-function recStop(msg = "") {
+function recStop(msg = "", reason = "stopped") {
   const r = S.rec; if (!r.on && r.status === "off") { r.msg = msg; recUI(); return; }
   r.on = false; r.status = "off"; r.msg = msg; r.partial = "";
+  /* Server mode: after the last sentence (the socket waits 3 s for it), store what is queued and end the recording. */
+  if (r.recId) {
+    /* The uploads are taken now: a recording started again within the wait gets fresh ones and must not hide these. */
+    const id = r.recId, ups = Object.entries(S.rec.up).filter(([, u]) => u.recId === id);
+    r.recId = null; setTimeout(() => recServerEnd(id, reason, ups), 3500);
+  }
   r.stream?.getTracks().forEach(t => t.stop()); r.ctx?.close().catch(() => {});
   /* Ask for the last sentence before closing, so words spoken just before stopping are not lost. */
   const ws = r.ws; r.ws = null;
@@ -9890,6 +9906,13 @@ function recStop(msg = "") {
 /* Audio is held only until the case's speaker pass; a case that ends without approval (the seminar ends, the case
    is closed) loses its audio then, and keeps only the live transcript. */
 function recPurge(pids, why) {
+  if (recServer()) {
+    /* Queued lines stay queued: the server still takes them within its grace period, and refuses them if not. Only the
+       open case reloads, so no transcript is read (and logged) that nobody opened. */
+    for (const pid of pids) delete S.rec.up[pid];
+    if (pids.includes(S.pid) && S.rec.tx[S.pid]) recLoad(S.pid);
+    return;
+  }
   for (const pid of pids) {
     const tx = S.rec.tx[pid]; if (!tx) continue;
     const had = tx.audio.length || tx.passes.some(x => x.segs);
@@ -9899,10 +9922,17 @@ function recPurge(pids, why) {
 }
 /* Approval ends the case's transcript and starts its speaker pass; when every case of the running seminar is
    approved, the recording stops by itself. */
-function recAfterApprove(pid) {
-  if (S.rec.tx[pid]?.audio.length) recPostPass(pid);
+function recAfterApprove(pid, jobId = null) {
+  if (recServer()) {
+    /* The approval claimed the case's uploaded audio for its speaker pass; the next visit starts a new upload. */
+    delete S.rec.up[pid];
+    if (jobId) { const tx = txOf(pid); if (!tx.passes.some(x => x.jobId === jobId)) tx.passes.push({ state: "running", jobId, when: Date.now() }); recUI(); jobPoll(pid, jobId); }
+  } else if (S.rec.tx[pid]?.audio.length) recPostPass(pid);
   const ag = S.session ? dayAgenda(S.session.day) : [];
-  if (S.rec.on && ag.length && ag.every(a => ensureProto(a).state === "approved" || a.status === "closed")) { logAccess(pid, "AI záznam se zastavil, všechny případy semináře mají schválený závěr"); recStop("Všechny případy semináře mají schválený závěr, záznam se sám zastavil."); }
+  if (S.rec.on && ag.length && ag.every(a => ensureProto(a).state === "approved" || a.status === "closed")) {
+    if (!recServer()) logAccess(pid, "AI záznam se zastavil, všechny případy semináře mají schválený závěr");
+    recStop("Všechny případy semináře mají schválený závěr, záznam se sám zastavil.", "all_approved");
+  }
 }
 function wavOf(chunks) {
   const n = chunks.reduce((a, c) => a + c.length, 0), buf = new ArrayBuffer(44 + n * 2), v = new DataView(buf);
@@ -9961,6 +9991,188 @@ async function recSummarize(pid) {
   } catch (err) { tx.summary = { state: "error", err: err.message }; }
   recUI();
 }
+/* ---------- AI záznam on the server (step 5, docs/research/backend-steps/step-5.md "As implemented") ----------
+   On the Worker with the data API the page stores each finished live line and the case's audio on the server while the
+   case is discussed; approval starts the speaker pass there (a Workflow), which deletes the audio and makes the summary
+   draft. The page polls the job and shows what the server stored. Embedded mode (Pages, file://) keeps the in-browser
+   path above unchanged. */
+const recServer = () => isApi() && !!S.api.transcripts;
+S.rec.lq = []; S.rec.up = {}; S.rec.recId = null;
+const REC_POLLS = new Set();
+const recPartSamples = () => (S.api.limits.audio_part_bytes || 5242880) / 2;
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+/* Codes the server or the speaker pass may report, in words; the server never sends provider text. */
+const REC_ERR = { eleven_429: "služba přepisu je přetížená", eleven_5xx: "chyba služby přepisu", eleven_4xx: "služba přepisu záznam odmítla",
+  network: "spojení se službou selhalo", audio_missing: "zvuk chybí", audio_purged: "zvuk byl smazán", start_failed: "zpracování se nespustilo",
+  workflow_errored: "zpracování selhalo", workflow_terminated: "zpracování bylo ukončeno", workflow_incomplete: "zpracování nedoběhlo",
+  transcript_too_long: "přepis je příliš dlouhý ke shrnutí", azure_429: "jazykový model je přetížený", azure_5xx: "chyba jazykového modelu",
+  azure_4xx: "jazykový model požadavek odmítl", internal: "vnitřní chyba" };
+const recErr = c => REC_ERR[c] || c || "neznámá chyba";
+/* A refusal that will not change on retry: the line or part is dropped (the case is closed, approved, off the agenda). */
+const REC_FINAL = new Set(["no_recording", "recording_ended", "not_recorder", "case_closed", "case_approved", "not_on_agenda", "session_not_running", "audio_too_long", "bad_audio_part", "invalid_input", "not_member", "role_forbidden", "case_not_found", "data_reset"]);
+function recQueueLine(l, recId) {
+  l.cid = newKey();
+  S.rec.lq.push({ pid: l.pid, recId, line: { client_line_id: l.cid, wall_ms: Math.round(l.wall), text: l.text.join(" ") } });
+  if (S.rec.lq.filter(x => x.pid === l.pid).length >= 20) recSendLines(l.pid);
+}
+function recLinesTimer() {
+  if (S.rec.timer) return;
+  S.rec.timer = setInterval(() => {
+    [...new Set(S.rec.lq.map(x => x.pid))].forEach(pid => recSendLines(pid));
+    if (!S.rec.on && !S.rec.lq.length) { clearInterval(S.rec.timer); S.rec.timer = null; }
+  }, 2000);
+}
+/* One request at a time per case; a failed send stays queued and retries with backoff (1, 2, 4 ... 30 s). */
+const LSEND = {};
+async function recSendLines(pid) {
+  const st = LSEND[pid] || (LSEND[pid] = { busy: null, wait: 0, fails: 0 });
+  if (st.busy) return st.busy;
+  if (!S.rec.lq.some(x => x.pid === pid)) return true;
+  /* Waiting out a backoff counts as not stored, so approval warns that part of the record may be missing. */
+  if (Date.now() < st.wait) return false;
+  st.busy = (async () => {
+    while (S.rec.lq.some(x => x.pid === pid)) {
+      const first = S.rec.lq.find(x => x.pid === pid);
+      /* At most 100 lines and well under the server's 64 KB body limit (a line is at most 5000 characters). */
+      const batch = []; let bytes = 0;
+      for (const x of S.rec.lq) {
+        if (x.pid !== pid || x.recId !== first.recId) continue;
+        const n = x.line.text.length * 3 + 120;
+        if (batch.length && (batch.length >= 100 || bytes + n > 48000)) break;
+        batch.push(x); bytes += n;
+      }
+      try {
+        const r = await apiWrite("POST", `/cases/${enc(P(pid).id)}/transcript/lines`, { recording_id: first.recId, lines: batch.map(x => x.line) });
+        const done = new Set([...(r.data.accepted || []), ...(r.data.duplicate || []), ...(r.data.rejected || []).map(x => x.client_line_id)]);
+        S.rec.lq = S.rec.lq.filter(x => !done.has(x.line.client_line_id));
+        st.fails = 0;
+      } catch (e) {
+        if (REC_FINAL.has(e.code)) { const ids = new Set(batch.map(x => x.line.client_line_id)); S.rec.lq = S.rec.lq.filter(x => !ids.has(x.line.client_line_id)); continue; }
+        st.fails++; st.wait = Date.now() + Math.min(30000, 1000 * 2 ** (st.fails - 1)); return false;
+      }
+    }
+    return true;
+  })().finally(() => { st.busy = null; });
+  return st.busy;
+}
+function recUpOf(pid) {
+  const u = S.rec.up[pid];
+  if (u && u.recId === S.rec.recId) return u;
+  return (S.rec.up[pid] = { recId: S.rec.recId, n: 1, chunks: [], samples: 0, base: 0, segs: [], chain: Promise.resolve(true), off: false });
+}
+const joinPcm = (chunks, n) => { const out = new Int16Array(n); let o = 0; for (const c of chunks) { const k = Math.min(c.length, n - o); out.set(c.subarray(0, k), o); o += k; if (o >= n) break; } return out; };
+/* The case's audio leaves the browser in parts of exactly 5 MiB while it is discussed (R2 multipart), so the page keeps
+   at most one part in memory and a closed tab loses at most about 2.7 minutes. */
+function recAudioPush(pid, pcm, newSeg) {
+  if (!S.rec.recId) return;
+  const u = recUpOf(pid); if (u.off) return;
+  /* A fresh upload always starts with a visit mark (the case open at "Spustit záznam" had none yet). */
+  if (!u.base && !u.samples && !u.segs.length) newSeg = true;
+  if (newSeg) u.segs.push({ start_sample: u.base + u.samples, wall_ms: Date.now() });
+  u.chunks.push(pcm); u.samples += pcm.length;
+  const per = recPartSamples();
+  while (u.samples >= per) {
+    const all = joinPcm(u.chunks, u.samples), data = all.slice(0, per);
+    u.chunks = [all.slice(per)]; u.samples -= per;
+    const from = u.base, n = u.n; u.base += per; u.n++;
+    recSendPart(pid, u, n, data, false, u.segs.filter(x => x.start_sample >= from && x.start_sample < from + per));
+  }
+}
+function recSendPart(pid, u, n, data, final, segs) {
+  u.chain = u.chain.then(() => recPutPart(pid, u, n, data, final, segs));
+  return u.chain;
+}
+async function recPutPart(pid, u, n, data, final, segs) {
+  if (u.off) return false;
+  for (let i = 0; i < 6; i++) {
+    let r = null, code = null;
+    try {
+      r = await fetch(`/api/cases/${enc(P(pid).id)}/transcript/audio/parts/${n}?recording_id=${enc(u.recId)}&final=${final ? 1 : 0}`, {
+        method: "PUT", credentials: "same-origin", cache: "no-store", body: data, signal: AbortSignal.timeout(60000),
+        headers: { "Content-Type": "application/octet-stream", "X-Audio-Segments": JSON.stringify(segs), ...(DATA.userId ? { "X-Demo-User": DATA.userId } : {}), ...(DATA.epoch != null ? { "X-Data-Epoch": String(DATA.epoch) } : {}) } });
+      if (r.ok) return true;
+      const b = await r.json().catch(() => ({})); code = b.error?.code;
+      if (REC_FINAL.has(code)) {
+        u.off = true;
+        if (code === "audio_too_long") { S.rec.msg = b.error.message_cs; recUI(); }
+        if (code === "data_reset") dataReset();
+        return false;
+      }
+    } catch (e) { /* network: retried below */ }
+    await sleep(Math.min(30000, 1000 * 2 ** i));
+  }
+  return false;
+}
+/* The tail since the last full part goes as the final part. It stays in memory until approval: if the approval fails
+   and the discussion goes on, the next flush sends the same part number again, longer. */
+function recFlushAudio(pid) { return recFlushUpload(pid, S.rec.up[pid]); }
+function recFlushUpload(pid, u) {
+  if (!u || u.off) return Promise.resolve(true);
+  if (!u.samples) return u.chain;
+  return recSendPart(pid, u, u.n, joinPcm(u.chunks, u.samples), true, u.segs.filter(x => x.start_sample >= u.base));
+}
+async function recFlush(pid) {
+  const all = Promise.all([recSendLines(pid), recFlushAudio(pid)]).then(rs => rs.every(x => x !== false));
+  return Promise.race([all, sleep(15000).then(() => false)]);
+}
+async function recServerEnd(recId, reason, ups = []) {
+  const pids = [...new Set(S.rec.lq.filter(x => x.recId === recId).map(x => x.pid))];
+  await Promise.all([...pids.map(pid => recSendLines(pid)), ...ups.map(([pid, u]) => recFlushUpload(pid, u))]);
+  try { await apiWrite("PATCH", `/recordings/${enc(recId)}`, { end_reason: reason, case_id: P(S.pid)?.id ?? null }); } catch (e) { /* the server ends it with the seminar or after a minute of silence */ }
+}
+/* What the server stored for the case: lines, passes and summaries. Lines still waiting in the queue stay shown. */
+async function recLoad(pid) {
+  const p = P(pid); if (!p || !recServer()) return;
+  const tx = txOf(pid); tx.loaded = true;
+  let d; try { d = await apiGet(`/cases/${enc(p.id)}/transcript`); } catch (e) { tx.loaded = false; return; }
+  const pending = S.rec.lq.filter(x => x.pid === pid).map(x => x.line.client_line_id);
+  const stored = new Set((d.lines || []).map(l => l.client_line_id).filter(Boolean));
+  const local = tx.lines.filter(l => l.cid && pending.includes(l.cid) && !stored.has(l.cid));
+  tx.lines = [...(d.lines || []).map(l => ({ wall: l.wall_ms, spk: l.speaker, text: [l.text], cid: l.client_line_id })), ...local].sort((a, b) => a.wall - b.wall);
+  tx.passes = (d.passes || []).map(x => ({ id: x.id, jobId: x.job_id, when: x.cutoff_wall_ms,
+    state: ["queued", "running"].includes(x.state) ? "running" : x.state, phase: x.job_phase,
+    err: x.error_code || x.job_error, reason: x.purge_reason, audioKept: !!x.audio_kept }));
+  const last = (d.summaries || []).at(-1);
+  const summing = (d.passes || []).some(x => ["queued", "running"].includes(x.job_state) && x.job_phase === "summary");
+  tx.summary = summing ? { state: "running" } : last ? { state: last.state, text: last.text || "", basis: last.basis, err: last.error_code } : null;
+  (d.passes || []).filter(x => ["queued", "running"].includes(x.job_state)).forEach(x => jobPoll(pid, x.job_id));
+  recUI();
+}
+/* Every 2 s for the first 30 s, then every 5 s, up to 30 minutes; then the stored transcript replaces the view. */
+async function jobPoll(pid, jobId) {
+  if (REC_POLLS.has(jobId)) return;
+  REC_POLLS.add(jobId);
+  const t0 = Date.now();
+  try {
+    while (Date.now() - t0 < 30 * 60000) {
+      await sleep(Date.now() - t0 < 30000 ? 2000 : 5000);
+      let j; try { j = await apiGet(`/jobs/${enc(jobId)}`); } catch (e) { if (e.status === 403 || e.status === 404) break; continue; }
+      const ps = txOf(pid).passes.find(x => x.jobId === jobId);
+      if (ps) ps.phase = j.phase;
+      const tx = txOf(pid);
+      if (j.phase === "summary" && tx.summary?.state !== "running") tx.summary = { state: "running" };
+      recUI();
+      if (j.state === "done" || j.state === "error") break;
+    }
+  } finally { REC_POLLS.delete(jobId); await recLoad(pid); }
+}
+async function recRetry(pid, i) {
+  const ps = S.rec.tx[pid]?.passes[i]; if (!ps?.jobId) return;
+  try { await apiWrite("POST", `/jobs/${enc(ps.jobId)}/retry`, {}); } catch (e) { refused(e); recLoad(pid); return; }
+  ps.state = "running"; ps.err = null; recUI(); jobPoll(pid, ps.jobId);
+}
+const recP = html => `<p class="small" style="margin:10px 0 0">${html}</p>`;
+function recServerPassesHtml(tx) {
+  const sm = tx.summary;
+  return tx.passes.map((x, i) => x.state === "running" ? (x.phase === "summary" ? "" : `<p class="muted small" style="margin:10px 0 0">Rozlišuji mluvčí…</p>`)
+      : x.state === "purged" ? recP(`Zvuk byl smazán bez rozlišení mluvčích${x.reason ? ` (${esc(x.reason)})` : ""}.`)
+      : x.state === "error" && x.err === "start_failed" ? recP(`Zpracování se nespustilo. <button class="linkbtn small" data-recretry="${i}">Zkusit znovu</button>`)
+      : x.state === "error" ? recP(`Rozlišení mluvčích selhalo (${esc(recErr(x.err))}). ${x.audioKept ? `<button class="linkbtn small" data-recretry="${i}">Zkusit znovu</button>` : "Zvuk byl smazán, zůstává živý přepis."}`)
+      : "").join("")
+    + (sm?.state === "running" ? `<p class="muted small" style="margin:10px 0 0">Shrnuji diskusi…</p>`
+      : sm?.state === "error" ? recP(`Shrnutí selhalo (${esc(recErr(sm.err))}).`)
+      : sm?.state === "done" ? `<div class="recsum"><span class="chip plain st-new">Shrnutí AI · návrh</span> ${esc(sm.text)}${sm.basis === "live_only" ? ` <span class="muted small">(ze živého přepisu bez rozlišení mluvčích)</span>` : ""}</div>` : "");
+}
 function recLinesHtml(lines) {
   return lines.map(l => `<div class="ln"><span class="tm">${hhmm(l.wall)}</span><span>${l.spk != null ? `<span class="spk sp${l.spk % 5}">Mluvčí ${l.spk + 1}:</span>` : ""}${esc(l.text.join(" "))}</span></div>`).join("");
 }
@@ -9971,6 +10183,7 @@ function recTxHtml(pid) {
 /* Above the transcript: the summary, and a short line while a pass runs or after it failed. */
 function recPassesHtml(pid) {
   const tx = S.rec.tx[pid]; if (!tx) return "";
+  if (recServer()) return recServerPassesHtml(tx);
   const sm = tx.summary, ps = tx.passes.map((x, i) => [x, i]);
   return ps.filter(([x]) => x.state === "running").map(() => `<p class="muted small" style="margin:10px 0 0">Rozlišuji mluvčí…</p>`).join("")
     + ps.filter(([x]) => x.state === "error").map(([x, i]) => `<p class="small" style="margin:10px 0 0">Rozlišení mluvčích selhalo (${esc(x.err)}). <button class="linkbtn small" data-recretry="${i}">Zkusit znovu</button></p>`).join("")
@@ -9997,6 +10210,7 @@ function recCtlHtml(p) {
 }
 function recPanel(p) {
   const r = S.rec;
+  if (recServer() && !S.rec.tx[p.file]?.loaded) setTimeout(() => recLoad(p.file), 0);
   return `<div id="recctl">${recCtlHtml(p)}</div>
     <div id="recbody" data-pid="${esc(p.file)}">${recBodyHtml(p.file)}</div>`;
 }
@@ -11195,7 +11409,7 @@ document.addEventListener("click", e => {
     S.slotScrollTimer = setTimeout(() => { if (S.view === "calendar" && S.calPop === pop) document.getElementById("minicard")?.scrollIntoView({ block: "nearest", behavior: "smooth" }); }, DBL_MS + 20); }
   else if (d.unsched) unschedule(d.unsched);
   else if (d.mode) { curProto().mode = d.mode; render(); }
-  else if (d.recretry !== undefined) recPostPass(S.pid, S.rec.tx[S.pid]?.passes[+d.recretry]);
+  else if (d.recretry !== undefined) { if (recServer()) recRetry(S.pid, +d.recretry); else recPostPass(S.pid, S.rec.tx[S.pid]?.passes[+d.recretry]); }
   else if (d.delnew) { S.overlay.files.splice(+d.delnew, 1); renderOverlay(); }
   else if (d.delup) {
     if (!canUpload(P(S.pid))) return;
@@ -11323,6 +11537,9 @@ async function approveApi(p, pr) {
   try {
     /* The server approves what it stores, so everything typed is stored first. */
     if (!(await flushProto(p.file)) || pr.state === "approved") return;
+    /* The last words and audio of the case go first, so the speaker pass covers them. Approval never waits on them
+       for long and never fails because of them (alerts inform, they never block). */
+    if (recServer() && !(await recFlush(p.file))) toast("Část záznamu se nepodařilo uložit; rozlišení mluvčích proběhne z uloženého zvuku.");
     /* An attendance change still on its way would make the server's list differ from the frozen one. */
     await S.attQueue[attDay(p)]?.chain;
     /* The approving doctor was at the meeting (round 20): the frozen list includes them, as the server will. */
@@ -11346,7 +11563,7 @@ async function approveApi(p, pr) {
     }
     sv.approveKey = null; sv.approveSig = null;
     applyState(r.state);
-    recAfterApprove(p.file);
+    recAfterApprove(p.file, r.data?.speaker_pass_job_id || null);
     toast(`Závěr schválen${n ? `, koordinátorce ${n === 1 ? "odeslána 1 úloha" : n <= 4 ? `odeslány ${n} úlohy` : `odesláno ${n} úloh`}` : ""}`);
   } finally { sv.approving = false; render(); }
 }
@@ -11418,8 +11635,8 @@ function action(a) {
   if (a === "pgsearch") pgSearch();
   else if (a === "pgrefresh") pgSearch(true);
   else if (a === "pgretry") pgRetry();
-  else if (a === "recon") { if (!S.api.stt) return; logAccess(S.pid, "zapnul(a) AI záznam diskuse"); recStart(); }
-  else if (a === "recstop") { logAccess(S.pid, "vypnul(a) AI záznam diskuse"); recStop(); }
+  else if (a === "recon") { if (!S.api.stt) return; if (!recServer()) logAccess(S.pid, "zapnul(a) AI záznam diskuse"); recStart(); }
+  else if (a === "recstop") { if (!recServer()) logAccess(S.pid, "vypnul(a) AI záznam diskuse"); recStop(); }
   else if (a === "reportdlg") { S.overlay = { kind: "report" }; renderOverlay(); }
   else if (a === "fhirdlg") { const p = P(S.pid); S.overlay = { kind: "fhir", id: p.id, bundle: fhirBundle(p) }; logAccess(p.file, "exportoval(a) případ jako FHIR"); renderOverlay(); }
   else if (a === "fhirdl" || a === "fhircopy") {
@@ -11811,6 +12028,9 @@ async function switchApiUser(t) {
   /* Text typed under the previous user is stored under that user before the switch. */
   const saved = await Promise.all(Object.keys(PSAVE).map(flushProto));
   if (saved.includes(false)) { toast("Koncept se nepodařilo uložit; uživatele změňte, až bude uložen."); t.value = S.user; return; }
+  /* The recorder belongs to the previous user (the server takes data only from the user who started it), and the
+     transcripts it loaded were read under that user's access: both go with the switch. */
+  if (recServer()) { if (S.rec.on) recStop("Záznam se zastavil se změnou uživatele."); S.rec.tx = {}; S.rec.up = {}; S.rec.lq = []; }
   setDemoUser(id);
   try {
     await loadFromApi(); caseStore.reset();

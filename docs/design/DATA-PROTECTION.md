@@ -217,22 +217,57 @@ The recording of an MDT discussion is patient data. In the demo, "AI
 záznam" is off until a doctor starts it; the demo assumes the
 participants agreed beforehand, which a pilot must record. Words are filed only under the case the doctor has open, never
 split by guessing. Audio from moments when no case can take it is
-replaced by silence before it leaves the browser, and a case's audio is
-deleted as soon as its speaker pass is done. Speakers are numbered, not
+replaced by silence before it leaves the browser. Speakers are numbered, not
 named, because naming them would need voiceprints (biometric data). The
 demo sends audio to ElevenLabs and is used only with fictitious speech; a
 pilot needs a speech server inside FNO, or FNO's clearance for an
 outside service. The ElevenLabs key stays on our server: the browser
 streams the live audio to ElevenLabs with a single-use token our server
-mints, and the case audio for the speaker pass passes through our server
-(Cloudflare) to ElevenLabs. The server checks its origin, type and size,
-stores nothing and logs no audio, transcript or token. The origin check
-stops other websites, not a script that forges the header, and the Pages
-host cannot rate-limit, so until the Worker takes over the key's credit
-cap is the guard against someone spending our quota. ElevenLabs may
-keep request logs, because its zero-retention mode is offered only to
-enterprise customers; this is another reason the demo uses fictitious
-speech only.
+mints. ElevenLabs may keep request logs, because its zero-retention mode
+is offered only to enterprise customers; this is another reason the demo
+uses fictitious speech only.
+
+Where the case audio for the speaker pass lives depends on the host:
+
+- **On the Worker with the data API** (step 5,
+  `docs/research/backend-steps/step-5.md` "As implemented"), the server
+  stores the live transcript lines in D1 and the case's raw audio in R2 (EU
+  jurisdiction, key `audio/<case id>/<upload id>.pcm`, no name, birth
+  number or date in it) in parts of 5 MiB while the case is discussed. So
+  audio reaches our storage during the discussion, not only at approval;
+  this is a privacy cost we accept so a closed tab does not lose the
+  discussion and the browser does not hold an hour of audio. The server
+  refuses lines and audio without a recording that was switched on, and
+  only from the user who started it. After approval a background job
+  (a Cloudflare Workflow) sends the audio to ElevenLabs, replaces the live
+  lines with speaker lines, makes the summary draft and deletes the audio.
+  The pass replaces only live lines whose audio it received, so speech whose
+  audio never arrived keeps its live text. The audio is deleted when its
+  speaker pass ends; when the pass fails it
+  is kept for "Zkusit znovu" until the case is closed or the seminar ends
+  (setting `SPEAKER_PASS_AUDIO_ON_FAILURE`; `delete` removes it at once;
+  open question in `docs/agent/OPEN_QUESTIONS.md`); when its case is closed
+  or the seminar ends without approval; by a check every 15 minutes for
+  anything older than 6 hours, left by a finished pass, kept by a failed
+  pass after its seminar ended, or belonging to a closed case (this check
+  and the close and seminar-end deletions run even with the recorder
+  switched off); and by an R2
+  storage rule that removes any remaining audio under `audio/` within
+  about 2 days (rules count whole days, and R2 removes expired objects
+  typically within a day). Each deletion is in the access log. The
+  Workflow's own stored state holds case and job ids and counts only,
+  never transcript text or audio, and is kept 1 day (3 after an error).
+  Transcript lines and summaries stay with the case. Summaries are cached
+  in R2 under `cache/summary/<case id>/` by a hash of the input, so the same
+  transcript is not sent to the model twice.
+- **On Pages or opened from a file**, the browser keeps the case's audio in
+  memory until approval, the case audio for the speaker pass passes through
+  our server (Cloudflare) to ElevenLabs, and the server checks its origin,
+  type and size, stores nothing and logs no audio, transcript or token. A
+  case that ends without approval loses its audio in the browser. The
+  origin check stops other websites, not a script that forges the header,
+  and the Pages host cannot rate-limit, so the key's credit cap is the
+  guard against someone spending our quota.
 
 Open points are in [`docs/agent/OPEN_QUESTIONS.md`](../agent/OPEN_QUESTIONS.md).
 

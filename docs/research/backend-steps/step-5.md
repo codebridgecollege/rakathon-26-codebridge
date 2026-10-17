@@ -1023,3 +1023,234 @@ risk"):
 This is above the plan's 2-3 days for step 5. The speaker pass half (about
 2-2.75 days) can merge on its own first; prognosis can follow on its own
 branch, and until then the deployed page keeps the saved case-10 replay.
+
+## As implemented
+
+Status: part (a), the speaker pass, built on the `backend` branch,
+2026-10-17 (issue #6). Part (b), prognosis, is not built: the user decides
+between the TypeScript port and Python Workers first. This section records
+where the build differs from the design above, which was written before
+steps 2 to 4 existed, and the contract the page uses.
+
+### Differences from the design
+
+- **Migration 0004 replaces three step 2 tables.** `transcript_passes`,
+  `transcript_lines` and `jobs` from `0001_init.sql` never held rows, so
+  `0004_speaker_pass.sql` drops and recreates them in the shapes above and
+  adds `recordings`, `transcript_summaries`, `audio_uploads`,
+  `audio_parts` and `audio_segments`. Reset-demo and `seed.py` list the new
+  tables (reset batch: 48 statements with today's seed, under the limit of 50 that `api/AGENTS.md` names).
+- **Recordings without a seminar.** The page records a case outside a
+  running seminar too (`recTarget()`), so the route is
+  `POST /api/recordings { session_day | null, case_id }`, not
+  `/sessions/:day/recordings`. With a day, the seminar must be running and
+  only its agenda's cases take lines and audio; without one, any open case
+  the recorder may access does. `PATCH /api/recordings/:id { end_reason }`
+  ends it (`stopped`, `all_approved`, `failed`); the session-end route ends
+  the seminar's recordings with `session_end`.
+- **Who may store transcript data.** Instead of the attendance rule: the
+  role may run the meeting (`recording.write` and `transcript.write`:
+  doctor or coordinator), a doctor must be on the case's team (or hold a
+  break-the-glass grant), and only the user who started the recording may
+  post lines and audio for it (`not_recorder`), so a second browser cannot
+  write into someone else's recording.
+- **Recording windows.** Lines are accepted up to 60 s after the recording
+  ended; audio parts are not accepted once it ended (the page sends its
+  last part before it ends the recording, and a seminar's end has already
+  deleted the audio a later part would join). Line times must lie within
+  the recording (with two minutes of clock skew either side).
+- **A pass replaces only what its audio covers.** The design superseded
+  every live line up to the approval. The diarize step now stores the
+  wall-time intervals its audio covers (`transcript_passes.covered_json`:
+  each visit mark to the next one or the end of the audio, with 1.5 s of
+  slack), and activation supersedes only live lines inside them. Speech
+  whose audio never arrived (a final part slower than the 15 s flush, a
+  lost part, the cap, a closed tab) keeps its live lines and goes into the
+  summary. Found by the adversarial review: without it the end of the
+  discussion, often the conclusion, vanished silently.
+- **Late lines after approval.** A line is refused when a finished pass's
+  covered intervals hold its time (`covered_by_pass`), or when the protocol
+  is approved and the line was spoken after the latest decision
+  (`case_approved`). After "Nový závěr" the case takes lines again. A
+  malformed line is refused alone (`invalid`), not the whole batch.
+- **One upload per case and recording, several per pass.** A case can be
+  discussed across two recordings (stopped and started again), so an
+  upload belongs to a case and a recording, and approval claims all open
+  uploads of the case (`audio_uploads.pass_id`). The diarize step streams
+  them one after the other as one audio, so speakers are numbered across
+  the whole discussion, and each upload's visit marks are shifted onto the
+  joined timeline.
+- **The part body is read into memory.** One part is at most 5 MiB and R2's
+  `uploadPart` needs a known length, so the route reads the body
+  (`arrayBuffer`) after checking `Content-Length`, instead of piping it.
+  The diarize step does stream from R2.
+- **The audio part route bypasses the JSON check.** The write middleware
+  requires `application/json` for every write; `PUT
+  .../transcript/audio/parts/:n` requires `application/octet-stream`
+  instead and keeps the data-epoch check and the refusal logging.
+- **Pass and job rows are written in the approval batch.** The design
+  inserted them after the commit. The route decides before the batch
+  whether there is anything to process (open uploads, or live lines after
+  the previous pass's cutoff), adds the `jobs` and `transcript_passes` rows
+  and claims the uploads in the same batch as the decision, and names the
+  job in the answer (`speaker_pass_job_id`), so an idempotent replay
+  carries the same job id. The job id, the pass id and the first instance
+  id are all `sp-<decision id>`. The Workflow starts after the commit; a
+  failed start leaves the job `error`/`start_failed`.
+- **Retry route.** `POST /api/jobs/:id/retry` instead of
+  `.../passes/:passId/start`. A `start_failed` job starts again under the
+  same instance id; a failed pass whose audio was kept runs again as a new
+  instance `<job id>-<attempt>` (guarded on the attempt number, so a double
+  click starts one). The cron sweep also restarts `start_failed` jobs.
+- **Speaker pass on failure is a setting.** The open question
+  "Speaker pass on failure" is not decided, so both behaviours exist behind
+  `SPEAKER_PASS_AUDIO_ON_FAILURE`: `keep_until_close` (default, today's page
+  behaviour: the failed pass keeps its audio for "Zkusit znovu" until the
+  case closes, the seminar ends, the six-hour sweep or the lifecycle rule)
+  or `delete` (the pass's last step deletes it whatever happened). The value
+  is copied onto the pass row when the approval plans it
+  (`transcript_passes.audio_on_failure`), so changing the setting does not
+  change a running pass. An unknown value means `delete`.
+- **No words, no replacement.** When ElevenLabs returns no words (silence),
+  the pass ends `empty` and the live lines stay; the page's old path
+  replaced them with nothing.
+- **A new line per visit.** Speaker lines split on a speaker change, where a
+  new visit to the case starts (so a line's time is when its first word was
+  spoken), and after about 2000 characters of one voice.
+- **Retry delays.** The provider steps set `backoff: "constant"`: the delay
+  function computes the whole wait, and with the default `exponential` the
+  engine multiplies its result by 2^(attempt-1) again (miniflare's
+  `calcRetryDuration`), which stretched six attempts to hours.
+- **A failed start marks the pass too** (`error`/`start_failed`), so the page
+  offers "Zkusit znovu" and the seminar's end and the sweep treat its audio
+  as not in use.
+- **Audio part guards.** The part's batch re-checks the case is not closed,
+  the recording has not ended and its seminar still runs; an upload the
+  request created is aborted when the batch is refused. A storage error
+  while the upload is still open answers 503 (the page retries) instead of
+  a final refusal.
+- **Summary scope.** The summary covers this pass's window only
+  (`from_wall_ms < wall_ms <= cutoff_wall_ms`), so a second MDT of the case
+  gets its own; nothing is summarized for a closed case or a pass removed by
+  reset-demo.
+- **Summary after a failed pass.** The design's summary step always runs:
+  after a failed pass the summary is made from the live lines
+  (`basis = 'live_only'`, shown as "ze živého přepisu bez rozlišení
+  mluvčích"); a later successful retry makes a second draft. Each run writes
+  one summary row (`sum-<instance id>`); the page shows the latest.
+- **Model and prompt version.** The summary uses `AZURE_OPENAI_MODEL` (step
+  1's variable, not a new `SUMMARY_MODEL`) and `summarize-cs@1`. The cache
+  key is `sha256(model, prompt version, sha256(prompt), transcript)`.
+- **Retention and placement.** `create()` passes `retention: {
+  successRetention: "1 day", errorRetention: "3 days" }` and
+  `locationHint: "weur"`. Step params are `{ caseId, passId, jobId }`; step
+  results are ids, states and counts (checked in
+  `api/test/transcript.test.ts`).
+- **The synchronous `/api/stt/diarize` route stays.** The design removed it,
+  but the page still uses it in embedded mode on the Worker (the database
+  not seeded), so it is kept; its code now shares `diarizeUpstream` with the
+  Workflow.
+- **Health.** `features.transcripts` (seeded database and the Workflow
+  binding) switches the page to the server recorder;
+  `limits.audio_part_bytes` and `limits.audio_max_minutes` tell it the part
+  size and the cap.
+
+### Contract
+
+| Route | Who | Answer |
+|---|---|---|
+| `POST /api/recordings` `{ session_day, case_id }` | doctor, coordinator | 201 `{ recording_id, started_at, part_bytes }` |
+| `PATCH /api/recordings/:id` `{ end_reason, case_id }` | the recorder | `{ ended_at }`; a second stop changes nothing |
+| `POST /api/cases/:id/transcript/lines` `{ recording_id, lines: [{ client_line_id, wall_ms, text }] }` (at most 100) | the recorder, on the case's team | `{ accepted, duplicate, rejected: [{ client_line_id, code }] }` |
+| `PUT /api/cases/:id/transcript/audio/parts/:n?recording_id=&final=0\|1`, `application/octet-stream`, `X-Audio-Segments` | the recorder, on the case's team | `{ part, bytes, final }` |
+| `GET /api/cases/:id/transcript` | clinical read (audited) | `{ lines, passes, summaries }` |
+| `GET /api/jobs/:id` | case header read | `{ id, kind, state, phase, error_code, result_ref, attempt, updated_at }` |
+| `POST /api/jobs/:id/retry` | doctor, coordinator on the team | the job |
+
+Refusal codes: `no_recording`, `recording_ended`, `not_recorder`,
+`session_not_running`, `not_on_agenda`, `case_closed`, `case_approved`,
+`bad_audio_part`, `audio_too_long`, `job_not_found`, `not_retryable`. Pass
+and summary error codes: `eleven_429`, `eleven_5xx`, `eleven_4xx`,
+`network`, `audio_missing`, `audio_purged`, `azure_429`, `azure_5xx`,
+`azure_4xx`, `transcript_too_long`, `start_failed`, `workflow_<status>`,
+`internal`. The page maps them to Czech words; no provider text is stored
+or sent.
+
+### Audio deletion paths
+
+| When | What | Audit line |
+|---|---|---|
+| Pass succeeded or found no audio | last step deletes or aborts the pass's uploads | "AI záznam: zvuk po rozlišení mluvčích smazán" |
+| Pass failed, `delete` | same | "AI záznam: zvuk smazán po neúspěšném rozlišení mluvčích" |
+| Case closed | every upload of the case (a waiting pass becomes `purged`) | "AI záznam: zvuk smazán bez rozlišení mluvčích (případ uzavřen)" |
+| Seminar ended | uploads of its cases that no queued or running pass uses | "... (konec MDT)" |
+| Reset-demo | open multipart uploads aborted, `audio/` and `cache/summary/` deleted | the reset line |
+| Cron, every 15 min | uploads older than 6 hours; of a finished pass; of a failed pass in `delete` mode; of a recording whose seminar ended that no running pass uses (also kept failed audio); of a closed case | "AI záznam: zvuk smazán (kontrola uchování)" |
+| R2 lifecycle on `audio/` | objects after 1 day, incomplete multipart uploads after 1 day | none (backstop) |
+
+Close, seminar end and the cron sweep need only D1 and R2, not the feature
+switch, so switching the recorder off never keeps audio.
+
+### Deployment
+
+The Workflow and the cron trigger are registered by `wrangler deploy` only.
+CI's `wrangler versions upload --preview-alias backend` does not register
+them, so a preview's approvals run the Workflow code of the last
+`wrangler deploy`. Deploy with `npm run deploy` after changing the Workflow.
+
+### Known limits
+
+- Live line times and visit marks come from the browser's clock, the
+  approval time from the server's; a browser clock far off shifts which
+  lines a pass covers.
+- A user switch while recording stops the recording; lines and audio not yet
+  sent are dropped (the server takes data only from the user who started
+  the recording), and the recording is ended by the seminar's end or stays
+  open with nothing attached.
+- A replayed approval does not start a job whose start was lost; the job
+  page reconciles it to `start_failed` after two minutes and the cron sweep
+  starts it.
+- `seed.py --reset` does not delete R2 `audio/`; reset-demo and the
+  lifecycle rule do.
+
+### Frontend (server mode)
+
+`recServer()` is true in API mode when `features.transcripts` is on; the
+embedded path is unchanged. Each committed live line gets a
+`client_line_id` and is queued; the queue goes every 2 s or at 20 lines,
+retries with backoff, and drops lines the server refuses for good. The
+case's audio is cut into exact 5 MiB parts while it is discussed; the tail
+is sent as the final part on approval and on stop, and stays in memory
+until the approval succeeds, so a failed approval resends the same part
+number longer. Approval waits at most 15 s for the flush, then proceeds
+with a toast. After approval the page polls `GET /api/jobs/:id` (2 s, then
+5 s, up to 30 minutes) and then shows `GET /api/cases/:id/transcript`;
+opening a case's "AI záznam" loads the stored transcript and resumes
+polling a running pass. The server writes the recording's audit lines; the
+page no longer sends them as view events in server mode.
+
+### Checks
+
+- `api/test/transcript.test.ts` (26 tests, Vitest with the Workflows test
+  helpers, ElevenLabs and Azure mocked at fetch).
+- `mocks/src/test/recorder-server.mjs` (jsdom, fake server).
+- A browser run on `wrangler dev`: Chromium with a fake microphone playing
+  the synthetic speech, real ElevenLabs realtime and batch, real Azure. Two
+  live lines, one audio part, approval, "Shrnutí AI · návrh" on screen,
+  speaker lines replacing the live lines, the audio deleted, no page errors.
+- Deployed (`npm run deploy`, 2026-10-17; the account's plan accepted the
+  Workflow and the cron trigger): remote D1 migrated, R2 lifecycle rules
+  `audio-backstop-1d` and `summary-cache-30d` applied and listed, and the
+  same API run against the deployed Worker on the shared demo case NO-020
+  (no slot, chosen so the demo's main cases stay untouched): the instance
+  completed in about 20 s, the audio object is gone, the access log has the
+  recording lines, and `wrangler workflows instances describe` shows step
+  outputs of ids, states and counts only.
+- Local end-to-end run on `wrangler dev` with the real ElevenLabs and Azure
+  endpoints and synthetic Czech speech from macOS `say -v Zuzana`: a
+  recording, three live lines, two audio parts (5 MiB and 0.7 MB, two
+  visits), approval, the Workflow (diarize, activate, delete audio,
+  summary) in about 10 s, speaker lines replacing the live lines, the audio
+  object gone, the summary stored as `ai_draft` and cached in R2; then a
+  seminar's end deleting an unapproved case's audio and refusing a later
+  part.

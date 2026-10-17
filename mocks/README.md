@@ -283,6 +283,11 @@ Lucide 0.468.0 paths are embedded in the template, with the ISC notice in
   codes, the protocol conflict bar, the coordinator's read-only record,
   attendance ids, task rollback, alert keys, a duplicate birth number with a
   reason, break-the-glass and a new person's role.
+- `src/test/recorder-server.mjs`: the AI recorder in server mode (step 5) in
+  jsdom against a fake server (same setup as `case-store.mjs`): live lines
+  with client ids, audio in parts, the last lines and the final part stored
+  before the approval, the speaker pass job polled, speaker lines and the
+  "Shrnutí AI · návrh" draft shown, and "Zkusit znovu" after a failed pass.
 - `node mocks/src/test/timeline-categories.mjs`: category filters, preserved source indexes, partial and missing dates, planned status, and escaped labels.
 
 - `src/test/v3.mjs`: clicks through mock v3 in Chromium with Playwright at
