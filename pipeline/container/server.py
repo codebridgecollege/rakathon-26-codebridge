@@ -44,10 +44,13 @@ POST /v1/labs               body: {"pages": [{"n", "text", "layer_text", "readab
   200 {"name_note", "draws": [...], "tests": [...], "indices": [...], "unparsed": [{"n", "doc_id", "line_no",
        "start", "end", "reason", "reason_cs"}], "counts": {...}}
   The labs_series shape of mocks/src/data/mock-case-S02.json; see pagekit/labs.py for the rules.
+  unparsed reasons: "lab_like_not_parsed", "draw_date_not_parsed" (offsets into "text"), and
+  "only_second_reading" (a result only the text layer has; offsets into "layer_text", with "in", "code"
+  and "quote"). A page without readability_level counts as not readable: its points are unclear_ocr.
 
 Errors: {"error": {"code": str, "message_cs": str}} with
   400 bad_json, bad_request, bad_range; 404 not_found; 405 method_not_allowed; 413 too_large;
-  422 not_pdf, encrypted, too_many_pages, unreadable_pdf; 500 internal (no detail, nothing from the body).
+  422 not_pdf, encrypted, too_many_pages, unreadable_pdf, page_too_large (over MAX_PIXELS at 300 dpi); 500 internal (no detail, nothing from the body).
 """
 
 import base64
@@ -70,6 +73,9 @@ from pagekit import VERSION, labs, layer, ocr, page_index, readability, render  
 
 MAX_BODY = 20 * 1024 * 1024  # the upload limit of step 6, so anything larger never came from our Worker
 MAX_PAGES = 60  # a referral PDF is a few dozen pages; more is a wrong upload, and it bounds the work
+# A4 at 300 dpi is 8.7 Mpx and A3 17.4 Mpx; 40 Mpx leaves room for large scans while one grayscale render
+# stays under 40 MB.
+MAX_PIXELS = 40_000_000
 MAX_BATCH = 10  # the Workflow sends 5; 10 leaves room and keeps one response at a few MB
 
 REQUEST_TIMEOUT = 30  # seconds a client may take to send its body; a stalled upload must not hold a thread
@@ -140,6 +146,10 @@ def _pages(doc, query: dict) -> tuple[dict, int]:
         raise ApiError(400, "bad_range", "Parametry from a to musí být čísla stran.") from None
     if not (1 <= lo <= hi <= doc.page_count) or hi - lo + 1 > MAX_BATCH:
         raise ApiError(400, "bad_range", f"Rozsah stran musí ležet v 1-{doc.page_count} a mít nejvýš {MAX_BATCH} stran.")
+    # Check every page of the batch before rendering any: a huge mediabox would exhaust memory at 300 dpi.
+    for n in range(lo, hi + 1):
+        if render.pixels(doc[n - 1], render.OCR_DPI) > MAX_PIXELS:
+            raise ApiError(422, "page_too_large", f"Strana {n} je příliš velká na zpracování; nahrajte dokument ve formátu A4.")
     out = []
     for n in range(lo, hi + 1):
         page = doc[n - 1]

@@ -60,6 +60,13 @@ DAMAGE = (
     # "lmg" for 1 mg, "1l2", "0,l5": l or I where a digit belongs in a number or dose.
     ("l_in_number", re.compile(r"(?<![A-Za-zÀ-ž])[lI](?:[.,]\d+)?\s?(?:mg|g|ml|mmol|µg|ug|IU|j)\b|\d[lI]\d|\d[.,][lI]\b|(?<![A-Za-zÀ-ž])[lI][.,]\d"),
      "číslo nebo dávka ve tvaru {tok} (písmeno l/I místo jedničky), ověřte v originálu"),
+    # "cTl N0 M0", "Nl Ml": l or I for 1 in a stage; only on a line with two stage tokens, one of them N or M.
+    ("tnm_letter_l", re.compile(r"(?<![A-Za-zÀ-ž0-9])y?[cp]?[TNM][lI][a-d]?(?![A-Za-zÀ-ž0-9])"),
+     "stadium ve tvaru {tok} (písmeno l/I místo jedničky), ověřte v originálu"),
+    # "l0 mg/kg", "l00 mg", "1l0 mg", "10l mg": l or I as a leading or inner digit of a dose.
+    ("l_in_dose", re.compile(r"(?<![A-Za-zÀ-ž])[lI][\dOlI]+(?:[.,]\d+)?\s?(?:mg|g|ml|mmol|µg|ug|IU|j|Gy)\b"
+                             r"|\d+[lI][\dlI]*\s?(?:mg|g|ml|mmol|µg|ug|IU|j|Gy)\b"),
+     "dávka ve tvaru {tok} (písmeno l/I místo jedničky), ověřte v originálu"),
     # "[O ... 5]", "[O0 ... 4]", "1O5": the letter O inside a number or a reference range.
     # Not "O2" (oxygen) on its own: only O next to a digit run or a decimal sign counts.
     ("o_in_number", re.compile(r"\[\s*O|O\s*\.{2,3}|\.{2,3}\s*O\b|(?<=\d)O|(?<![A-Za-zÀ-ž])O(?=[.,]\d)"),
@@ -69,6 +76,8 @@ DAMAGE = (
      "jednotka ve tvaru {tok} (jednička místo l), ověřte v originálu"),
 )
 TNM_CONTEXT = re.compile(r"(?<![A-Za-z])(?:y?[cp]?T(?:[0-4]|is|x|X)|TNM|stadi|staging|resek|okraj|R[0-2]\b|odpově|regrese)", re.I)
+# A stage-like token, also misread ("T2", "cN0", "Ml", "MO"): two on one line make a TNM context.
+TNM_TOKENS = re.compile(r"(?<![A-Za-zÀ-ž0-9])(?:y?[cp]?[TNM](?:[0-4]|[lIOxX]|is)[a-d]?)(?![A-Za-zÀ-ž0-9])")
 TOKEN_SHOWN = 16  # a reason shows the damaged token only, cut to this length, never its context
 
 
@@ -85,6 +94,10 @@ def damage_hits(text: str) -> dict[str, list[str]]:
     for code, rx, _ in DAMAGE:
         for line in lines:
             if code == "tnm_letter_o" and not TNM_CONTEXT.search(line):
+                continue
+            # An N or M token is required: a line of T-only tokens is an MRI sequence list ("T2, TI sag").
+            stage = TNM_TOKENS.findall(line)
+            if code == "tnm_letter_l" and (len(stage) < 2 or not any(re.search(r"[NM]", t) for t in stage)):
                 continue
             for m in rx.finditer(line):
                 hits.setdefault(code, []).append(_tok(m))

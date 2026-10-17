@@ -57,6 +57,8 @@ RECORD = re.compile(
     # Sample-quality indices (S_IDX*) are never results, also when they carry a number.
     _CODE.replace("(?P<name>[A-Z]", "(?P<name>(?!IDX)[A-Z]") + r"[ \t]*[:.]" + _GAP0 +
     r"(?P<b1>\*\*)?(?P<val>[<>]?" + _NUM + r")(?P<b2>\*\*)?"
+    # A printed flag after the value ("5,8 H mmol/l") is the sheet's mark, not part of the unit.
+    r"(?:[ \t]+(?P<flag>[HL]|\*{1,2}|!))?"
     + _GAP + r"(?P<unit>" + _UNIT_TOK + r"(?: " + _UNIT_TOK + r")?)" + _GAP0 +
     # "[2.9... 8.2]", "[135 .... 175]", "[135\n. 175)", "[O ... 5]": spacing, the dot count and the closing bracket vary in OCR.
     r"\[\s*(?P<lo>" + _NUM + r")\s*\.{1,4}\s*(?P<hi>" + _NUM + r")\s*[\])]")
@@ -71,8 +73,13 @@ CODE_PREFIXES = {"S", "B", "P", "U", "PT", "LKC", "ERC", "PLT", "KREV", "MOC", "
 # letter or digit ("10A9/l", "10\"9/|"), as in pagekit.readability's damage patterns.
 UNIT_DAMAGE = re.compile(r"(?<=[A-Za-zµ9])/1(?![\d,.])|\||\d[\"A]\d")
 DRAW = re.compile(r"Odběr:\s*(\d{1,2})\.(\d{1,2})\.(\d{4})(?:\s+(\d{1,2}):(\d{2}))?")
-# A draw header Tesseract misread ("Odbér: 1.3.2026"): listed as unparsed, so a lost date is never silent.
-DRAW_LIKE = re.compile(r"Odb\S{0,3}:?\s*\d")
+# Anything that looks like a draw header, also misread ("Odbér", "Odbèr", "Odbr: l.3.2026"): it ends the
+# current draw even when its date cannot be read, so later results are never filed under an earlier date.
+DRAW_LIKE = re.compile(r"\bOdb\w{0,2}r\b|\bOdb\w{1,3}\s*[:.;,]?\s*[\dlIO]")
+# A time after the date that is not two clean digit pairs ("07:2O"): the time is unreadable, not absent.
+TIME_LIKE = re.compile(r"\s+[\dOolI]{1,2}[:.][\dOolI]{2}")
+DATE_UNREADABLE_CS = "Datum odběru nečitelné, ověřte v originálu."
+DATE_PREVIOUS_PAGE_CS = "Datum odběru je na předchozí straně; ověřte v originálu."
 REQUISITION = re.compile(r"Č\. žádanky: \S+")
 # What makes a line look like a lab result even when no record parsed: a reference range, or a code-like
 # token followed by a colon and a number.
@@ -103,8 +110,9 @@ def _flat(s: str) -> str:
 def parse_text(text: str) -> tuple[list[dict], list[dict], list[tuple[int, int]]]:
     """Records, indices and the character spans they cover, from one page's text."""
     records, indices, spans = [], [], []
-    for m in DRAW.finditer(text):
-        spans.append((m.start(), m.end()))
+    for d in _draws(text):
+        if d["date"]:  # an unreadable header stays uncovered, so it is listed in unparsed
+            spans.append((d["start"], d["end"]))
     for m in RECORD.finditer(text):
         g = m.groupdict()
         if not g["sep"].startswith("_") and g["pre"] not in CODE_PREFIXES:
@@ -114,7 +122,7 @@ def parse_text(text: str) -> tuple[list[dict], list[dict], list[tuple[int, int]]
             "code": code, "code_as_written": g["code"], "value": g["val"],
             # Bold on one side only is a transcription slip, so the print cannot be told: null, not False.
             "bold": True if g["b1"] and g["b2"] else None if g["b1"] or g["b2"] else False,
-            "unit": g["unit"], "lo": g["lo"], "hi": g["hi"], "start": m.start(), "end": m.end(),
+            "unit": g["unit"], "flag": g["flag"], "lo": g["lo"], "hi": g["hi"], "start": m.start(), "end": m.end(),
             "val_start": m.start("val"), "val_end": m.end("val"),
         })
         spans.append((m.start(), m.end()))
@@ -159,16 +167,35 @@ def _pair(tor: list[dict], second: list[dict]) -> list[dict | None]:
 
 
 def _draws(text: str) -> list[dict]:
-    """The draw headers of a page, each with its date as printed after "Odběr:" (the time may be missing)."""
-    draws = []
-    for m in DRAW.finditer(text):
-        d, mo, y, hh, mm = m.groups()
-        try:
-            iso = date(int(y), int(mo), int(d)).isoformat()
-        except ValueError:  # "31.2.2026" is a misread, not a date
-            iso = None
-        draws.append({"at": m.start(), "date": iso, "time": f"{int(hh):02d}:{mm}" if iso and hh else None,
-                      "key": m.groups(), "quote": m.group(0), "start": m.start(), "end": m.end()})
+    """The draw headers of a page in order, each with its date as printed after "Odběr:".
+
+    A header whose word or date cannot be read still counts (date None, status "unreadable"); a header
+    without a time has time None; a time that is there but misread sets time_unreadable."""
+    draws, last_end = [], -1
+    for h in DRAW_LIKE.finditer(text):
+        if h.start() < last_end:
+            continue
+        m = DRAW.match(text, h.start())
+        iso, tm, key, end, time_bad = None, None, None, h.end(), False
+        if m:
+            d, mo, y, hh, mm = m.groups()
+            try:
+                iso = date(int(y), int(mo), int(d)).isoformat()
+            except ValueError:  # "31.2.2026" is a misread, not a date
+                iso = None
+            end = m.end()
+            if iso:
+                key = m.groups()
+                if hh:
+                    tm = f"{int(hh):02d}:{mm}"
+                elif TIME_LIKE.match(text, m.end()):
+                    time_bad = True
+        line_end = text.find("\n", h.start())
+        line_end = len(text) if line_end < 0 else line_end
+        draws.append({"at": h.start(), "date": iso, "time": tm, "key": key, "time_unreadable": time_bad,
+                      "status": "ok" if iso else "unreadable",
+                      "quote": text[h.start():end if iso else line_end], "start": h.start(), "end": end if iso else line_end})
+        last_end = end
     return draws
 
 
@@ -189,6 +216,7 @@ def parse(pages: list[dict], doc_id: str | None = None, second_name: str = "text
     optional words (Tesseract's words, for the value confidence), optional engine ("vision" when the text
     of record is the vision Markdown, whose bold marks the sheet's out-of-range print), optional doc_id}."""
     draws, raw_points, indices, unparsed = [], [], [], []
+    had_draw: set = set()  # documents whose earlier page carried a draw header
     for pg in pages:
         n, text = pg["n"], pg.get("text") or ""
         second_text = pg.get("layer_text") or ""
@@ -200,7 +228,9 @@ def parse(pages: list[dict], doc_id: str | None = None, second_name: str = "text
         if pg.get("words"):
             toks = plain_tokens(text)
             meta = list(zip(toks, attach_words(toks, pg["words"])))
-        poor = pg.get("readability_level") in ("poor", "empty")
+        # A page whose readability was not judged counts as not readable, never as readable.
+        level = pg.get("readability_level")
+        poor = level not in ("good", "fair")
         is_vision = pg.get("engine") == "vision"
 
         page_draws, second_draws = _draws(text), _draws(second_text)
@@ -209,20 +239,34 @@ def parse(pages: list[dict], doc_id: str | None = None, second_name: str = "text
         same_headers = [d["key"] for d in page_draws] == [d["key"] for d in second_draws]
         for d in page_draws:
             d["confirmed"] = bool(d["date"]) and same_headers
+            d["confirmed"] = d["confirmed"] and not d["time_unreadable"]
         if not page_draws or (records and records[0]["start"] < page_draws[0]["at"]):
-            # Results before any "Odběr:" on this page: their draw date is not on the page and is not guessed.
-            page_draws.insert(0, {"at": -1, "date": None, "time": None, "key": None, "quote": None, "confirmed": False})
+            # Results before any header on this page: their date is not on the page and is not guessed. When an
+            # earlier page of the same document had a header, this is a continuation page, which is not a gap.
+            page_draws.insert(0, {"at": -1, "date": None, "time": None, "key": None, "quote": None, "confirmed": False,
+                                  "time_unreadable": False, "status": "previous_page" if did in had_draw else "missing"})
+        if any(d["status"] != "missing" and d["at"] >= 0 for d in page_draws):
+            had_draw.add(did)
         for d in page_draws:
             draw = {
-                "datetime": f"{d['date']} {d['time']}" if d["date"] else None, "date": d["date"], "time": d["time"],
+                # Date only when the time is not printed: never a made-up time, never "... None".
+                "datetime": (f"{d['date']} {d['time']}" if d["time"] else d["date"]) if d["date"] else None,
+                "date": d["date"], "time": d["time"],
                 "source": ({"doc_id": did, "page": n, "quote": d["quote"], "start": d["start"], "end": d["end"]}
                            if d["quote"] else None),
-                "certainty": None if not d["date"] else "documented" if d["confirmed"] else "unclear_ocr",
+                "certainty": (None if d["status"] == "missing" else "unclear_ocr" if not d["date"]
+                              else "documented" if d["confirmed"] else "unclear_ocr"),
             }
             req = REQUISITION.search(text)
             draw["requisition_quote"] = req.group(0) if req else None
-            if not d["date"]:
+            if d["status"] == "missing":
                 draw["date_note_cs"] = f"Datum odběru {GAP_CS}."
+            elif d["status"] == "unreadable":
+                draw["date_note_cs"] = DATE_UNREADABLE_CS
+            elif d["status"] == "previous_page":
+                draw["date_note_cs"] = DATE_PREVIOUS_PAGE_CS
+            elif d["time_unreadable"]:
+                draw["date_note_cs"] = "Čas odběru nečitelný, ověřte v originálu."
             d["record"] = draw
             draws.append(draw)
 
@@ -259,11 +303,19 @@ def parse(pages: list[dict], doc_id: str | None = None, second_name: str = "text
             # A missing date shows as a gap on the draw; a date read once but not confirmed may be a wrong date.
             # The paired record must also sit under the same header in the second reading.
             d2 = _draw_at(second_draws, other["start"]) if other is not None else None
-            if d["date"] and not (d["confirmed"] and d2 is not None and d2["key"] == d["key"]):
+            if d["status"] == "unreadable":
+                reasons.append("draw_date_unreadable")
+            elif d["status"] == "previous_page":
+                reasons.append("draw_on_previous_page")
+            elif d["time_unreadable"]:
+                reasons.append("draw_time_unreadable")
+            elif d["date"] and not (d["confirmed"] and d2 is not None and d2["key"] == d["key"]):
                 reasons.append("draw_date_unconfirmed")
             elif not d["date"] and d2 is not None:
                 reasons.append("draw_date_differs")  # the second reading has a draw header the text of record lost
-            if poor:
+            if level is None:
+                reasons.append("readability_unknown")
+            elif poor:
                 reasons.append("page_poor")
             out = None
             if num is not None and lo is not None and hi is not None and not r["value"].startswith(("<", ">")):
@@ -273,7 +325,8 @@ def parse(pages: list[dict], doc_id: str | None = None, second_name: str = "text
                 "value": r["value"], "unit": r["unit"], "reference_range": f"{r['lo']} ... {r['hi']}",
                 "out_of_range": out,
                 # Bold is visible only in the vision Markdown; Tesseract's text cannot tell, so null, not False.
-                "flagged_in_document": r["bold"] if is_vision else None,
+                "flagged_in_document": True if r["flag"] else r["bold"] if is_vision else None,
+                "flag_as_written": r["flag"],
                 "date": d["record"]["date"], "time": d["record"]["time"],
                 "certainty": "unclear_ocr" if reasons else "documented", "verify_reasons": reasons,
                 "code_as_written": r["code_as_written"],
@@ -295,6 +348,16 @@ def parse(pages: list[dict], doc_id: str | None = None, second_name: str = "text
                             "kind": "sample_quality_index",
                             "source": {"doc_id": did, "page": n, "quote": text[i["start"]:i["end"]], "start": i["start"], "end": i["end"]}})
         unparsed += [{"n": n, "doc_id": did, **u} for u in unparsed_lines(text, spans)]
+        # A result only the second reading has may be one the text of record lost ("S_K: 6,9" Tesseract
+        # dropped); it is listed with the other reading's quote, so it never vanishes.
+        taken = {id(o) for o in paired if o is not None}
+        for o in second:
+            if id(o) not in taken:
+                unparsed.append({"n": n, "doc_id": did, "line_no": second_text.count("\n", 0, o["start"]) + 1,
+                                 "start": o["start"], "end": o["end"], "in": second_name, "code": o["code"],
+                                 "quote": second_text[o["start"]:o["end"]], "reason": "only_second_reading",
+                                 "reason_cs": "Výsledek je jen ve druhém čtení (textová vrstva PDF), v textu záznamu "
+                                              "chybí; ověřte v originálu."})
 
     # Chronological order; draws without a date keep their input order after the dated ones. An undated draw
     # with no results (a page that is not a lab sheet) is not a draw at all.
@@ -333,5 +396,6 @@ def parse(pages: list[dict], doc_id: str | None = None, second_name: str = "text
         "counts": {"draws": len(draws), "tests": len(tests), "points": len(points),
                    "documented": sum(p["certainty"] == "documented" for p in points),
                    "unclear_ocr": sum(p["certainty"] == "unclear_ocr" for p in points),
-                   "indices": len(indices), "unparsed": len(unparsed)},
+                   "indices": len(indices), "unparsed": len(unparsed),
+                   "only_second_reading": sum(u["reason"] == "only_second_reading" for u in unparsed)},
     }

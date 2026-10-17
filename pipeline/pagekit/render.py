@@ -33,3 +33,9 @@ def png(page: fitz.Page, dpi: int) -> bytes:
 
 def save_png(page: fitz.Page, dpi: int, path) -> None:
     page.get_pixmap(dpi=dpi, colorspace=fitz.csGRAY).save(str(path))
+
+
+def pixels(page: fitz.Page, dpi: int) -> float:
+    """Pixel count of a render at dpi, from the page size alone, so the size is known before rendering."""
+    r = page.rect
+    return (r.width * dpi / 72) * (r.height * dpi / 72)

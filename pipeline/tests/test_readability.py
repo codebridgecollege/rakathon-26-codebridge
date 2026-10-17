@@ -99,3 +99,13 @@ def test_reasons_never_carry_glued_neighbours():
     assert "Novák" not in joined and "902005" not in joined
     assert r["metrics"]["damage"].get("date_run") == 2  # both 1112023 runs; the reason shows the digits only
     assert "o_in_number" not in r["metrics"]["damage"]
+
+
+def test_l_for_1_in_stages_and_doses():
+    words = [{"t": "x", "c": 95, "b": [0, 0, 1, 1]}] * 50
+    for text, code in (("Staging cTl N0 M0.", "tnm_letter_l"), ("cT2 Nl Ml", "tnm_letter_l"),
+                       ("Karboplatina l0 mg/kg.", "l_in_dose"), ("Dexamethason l00 mg.", "l_in_dose")):
+        r = rd.assess(1, words, text)
+        assert r["level"] == "fair" and code in r["metrics"]["damage"], (text, r)
+    # Not damage: a stage with digits, a flow in litres, an MRI sequence list (T tokens only).
+    assert rd.assess(1, words, "cT1 N0 M0, kyslík 2 l/min\nT2, Flair, TI sag")["level"] == "good"

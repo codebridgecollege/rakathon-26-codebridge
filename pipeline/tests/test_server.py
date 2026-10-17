@@ -111,3 +111,10 @@ def test_bad_content_length(base):
     c.endheaders()
     r = c.getresponse()
     assert r.status == 400 and json.loads(r.read())["error"]["code"] == "bad_request"
+
+
+def test_huge_page_is_refused(base):
+    doc = fitz.open()
+    doc.new_page(width=14400, height=14400)  # 200 x 200 inches: 3.6 Gpx at 300 dpi
+    status, body = call(base + "/v1/pages?from=1&to=1", doc.tobytes())
+    assert status == 422 and body["error"]["code"] == "page_too_large"

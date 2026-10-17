@@ -109,6 +109,24 @@ def risky(text: str) -> bool:
     return bool(DIGIT.search(text) or STAGE.search(text))
 
 
+# Negation words and forms. A negation misread changes the finding ("prokázány" for "neprokázány"), so in
+# layer mode these are risky like digits. Vision mode keeps its rules, so the committed page index stays as built.
+NEGATION = re.compile(r"^(?:ne|bez|ani|není|nejsou|nebyl\w*|nelze|žádn\w*|neg\w*|pozit\w*|vylouč\w*)$")
+
+
+def risky_layer(text: str) -> bool:
+    return risky(text) or any(NEGATION.match(norm(t)) for t in text.split())
+
+
+def negation_pair(vs: str, ts: str) -> bool:
+    """One reading has a negation the other lacks: a "ne-" prefix ("neprokázány"/"prokázány") or a
+    negation word on one side only."""
+    A, B = [norm(t) for t in vs.split()], [norm(t) for t in ts.split()]
+    if any(x != y and (x == "ne" + y or y == "ne" + x) for x in A for y in B):
+        return True
+    return sorted(t for t in A if NEGATION.match(t)) != sorted(t for t in B if NEGATION.match(t))
+
+
 CONFUSABLE = str.maketrans({"l": "1", "I": "1", "i": "1", "O": "0", "o": "0", "µ": "u"})
 
 
@@ -136,6 +154,8 @@ class _Pair:
         self.a = [norm(t[0]) for t in ptoks]
         self.b = [norm(w["t"]) for w in stoks]
         self.primary_only = "only_vision" if mode == VISION else "only_tesseract"
+        self.risky = risky if mode == VISION else risky_layer
+        self.negations = mode == LAYER
         # Layer mode only: second-reading tokens some alignment explained, and the primary token each
         # unexplained one sits next to, so a risky token only the layer has ("N1" Tesseract dropped) is marked.
         self.explained: set[int] = set()
@@ -198,17 +218,25 @@ def classify(P: _Pair, vi, wj, final):
             left_w += W
         elif op == "delete":
             for r in runs(V, vtoks, P.text):
-                if risky(" ".join(vtoks[i][0] for i in r)):
+                if P.risky(" ".join(vtoks[i][0] for i in r)):
                     out.append(P.item(r, [], P.primary_only))
         elif op == "replace" and len(V) <= 4 and len(W) <= 4:
             vs, ts = " ".join(vtoks[i][0] for i in V), " ".join(P.stoks[j]["t"] for j in W)
-            if risky(vs + " " + ts) and not same_unit(norm(vs), norm(ts)):
+            if P.risky(vs + " " + ts) and not same_unit(norm(vs), norm(ts)):
                 out.append(P.item(V, W, "disagree"))
+            elif P.negations and negation_pair(vs, ts):
+                # Mark the word that lost or gained its negation, not the whole replaced run.
+                pairs = [(i, j) for i in V for j in W if a[i] != b[j] and (a[i] == "ne" + b[j] or b[j] == "ne" + a[i])]
+                if pairs:
+                    out.extend(P.item([i], [j], "disagree") for i, j in pairs)
+                else:
+                    out.append(P.item(V, W, "disagree"))
         elif op == "replace":
             # A long replaced span can hide a misread line; pair its risky words one by one by similarity.
             used = set()
             for i in V:
-                if not risky(vtoks[i][0]):
+                # Layer mode pairs every word, so a dropped "ne-" on an ordinary word is found too.
+                if not P.risky(vtoks[i][0]) and not P.negations:
                     continue
                 best, score = None, 0.0
                 for j in W:
@@ -218,8 +246,12 @@ def classify(P: _Pair, vi, wj, final):
                 if best is not None and score >= .6:
                     used.add(best)
                     P.explained.add(best)
-                    if a[i] != b[best] and not same_unit(a[i], b[best]):
+                    if P.negations and negation_pair(a[i], b[best]):
                         out.append(P.item([i], [best], "disagree"))
+                    elif P.risky(vtoks[i][0]) and a[i] != b[best] and not same_unit(a[i], b[best]):
+                        out.append(P.item([i], [best], "disagree"))
+                elif not P.risky(vtoks[i][0]):
+                    continue
                 else:
                     out.append(P.item([i], [], P.primary_only))
     return out, left_v, left_w
@@ -251,7 +283,7 @@ def _only_second(P: _Pair) -> list[dict]:
     groups: dict[int, list[int]] = {}
     for j in range(len(P.stoks)):
         i = P.anchor.get(j)
-        if j not in P.explained and i is not None and risky(P.stoks[j]["t"]):
+        if j not in P.explained and i is not None and P.risky(P.stoks[j]["t"]):
             groups.setdefault(i, []).append(j)
     return [P.item([i], W, "only_layer") for i, W in groups.items()]
 

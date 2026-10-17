@@ -52,3 +52,18 @@ def test_layer_only_risky_token_is_marked():
     assert [(v["reason"], v["layer"]) for v in items] == [("only_layer", "N1")]
     v = items[0]
     assert text[v["start"]:v["end"]] == v["tess"] and v["box"] is not None
+
+
+def test_negation_misread_is_marked_in_layer_mode():
+    def items(tess, layer):
+        words = [{"t": t, "c": 95, "b": [i * 10, 0, 8, 8]} for i, t in enumerate(tess.split())]
+        toks = pi.plain_tokens(tess)
+        return pi.disagreements(toks, [{"t": t} for t in layer.split()], tess, pi.LAYER, pi.attach_words(toks, words))
+    v = items("Metastázy v játrech prokázány.", "Metastázy v játrech neprokázány.")
+    assert [(x["tess"], x["layer"], x["reason"]) for x in v] == [("prokázány.", "neprokázány.", "disagree")]
+    v = items("Uzliny zvětšené.", "Uzliny bez zvětšené.")  # a negation word only the layer has
+    assert [x["layer"] for x in v] == ["bez"]
+    # A long misread paragraph still finds the dropped prefix by pairing every word.
+    long_t = "Na CT hrudníku a břicha jsou ložiska v játrech jednoznačně prokázána a uzliny jsou zvětšené"
+    long_l = "Na CT hrudniku a bricha jsou loziska v jatrech jednoznacne neprokázána a uzliny jsou zvetsene"
+    assert any(x["tess"] == "prokázána" and x["layer"] == "neprokázána" for x in items(long_t, long_l))
