@@ -1,0 +1,61 @@
+# Tests the API Worker and deploys it: main -> production (codebridge-mdt.<subdomain>.workers.dev),
+# backend -> preview alias "backend". Pages (deploy-mock.yml) keeps deploying main until the Worker replaces it.
+name: Deploy worker
+
+on:
+  push:
+    branches: [main, backend]
+    paths: ["api/**", "mocks/v3.html", "mocks/pages/**", "mocks/ukazka/**", ".github/workflows/deploy-worker.yml"]
+  pull_request:
+    paths: ["api/**", ".github/workflows/deploy-worker.yml"]
+  workflow_dispatch:
+
+# One Worker, so one deploy at a time across branches; a newer push replaces a queued one.
+concurrency:
+  group: deploy-worker-${{ github.event_name == 'pull_request' && github.ref || 'deploy' }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: api
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: api/package-lock.json
+      - run: npm ci
+      - name: Generated runtime types match wrangler.jsonc
+        run: npm run types && git diff --exit-code src/worker-configuration.d.ts
+      - run: npm run typecheck
+      - run: npm test
+
+  deploy:
+    needs: test
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: api
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: api/package-lock.json
+      - run: npm ci
+      - run: npm run stage
+      - name: Deploy production (main)
+        if: github.ref == 'refs/heads/main'
+        run: npx wrangler deploy --var GIT_SHA:${{ github.sha }}
+      - name: Upload preview version (backend)
+        if: github.ref == 'refs/heads/backend'
+        run: npx wrangler versions upload --preview-alias backend --var GIT_SHA:${{ github.sha }}
