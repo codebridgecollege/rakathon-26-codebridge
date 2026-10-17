@@ -1907,16 +1907,15 @@ function viewStaff() {
       <div class="srow sadd"><span class="label">Nová osoba</span>${SF.map(([f, l, ph]) => `<input class="input" data-newin="${esc(d.id)}" data-sf="${f}" placeholder="${esc(ph)}" aria-label="${esc(l)} (nová osoba, ${esc(d.name)})">`).join("")}
         <button class="btn small primary" data-staffadd="${esc(d.id)}">+ Přidat</button></div>`
     : `<ul class="slist">${d.people.map(x => staffRow(x, false)).join("") || `<li class="muted small">Zatím nikdo.</li>`}</ul>`}</section>`;
-  return `<div class="page"><div class="pagehead"><div><h1>Personál pracoviště</h1><div class="muted small">Lékaři podle pracovišť pro docházku na MDT a výběr uživatele · zobrazení: titul před, příjmení, titul za</div></div>
+  return `<div class="page"><div class="pagehead"><div><h1>Personál pracoviště</h1><div class="muted small">Lékaři podle pracovišť pro docházku na MDT a výběr uživatele</div></div>
       ${edit ? `<button class="btn" data-act="staffreset">Obnovit výchozí (smyšlená jména)</button>` : ""}</div>
-    <p class="small staffnote">Jména se ukládají jen v tomto prohlížeči; v reálné aplikaci personál spravuje nastavení pracoviště nemocnice.</p>
     ${edit ? `<p class="muted small">Odebraná osoba zůstává v historii: v dřívějších závěrech, docházce a záznamu přístupů se jméno nemění. Přejmenování se promítne do otevřených úloh, vlastníků případů a docházky, kterou ještě neuzamklo schválení závěru.</p>`
       : `<p class="muted small">Seznam upravuje koordinátorka MDT nebo správce systému; lékař ho jen čte.</p>`}
     <section class="card staffdept"><div class="head"><h2>Koordinátorka onkologických MDT</h2></div>
       ${edit ? head + staffRow(STAFF.coord, true, false) : `<ul class="slist">${staffRow(STAFF.coord, false)}</ul>`}</section>
     ${STAFF.depts.map(dept).join("")}
     ${edit ? `<section class="card"><div class="head"><h2>Přidat pracoviště</h2></div><div class="row"><input class="input" id="newdept" placeholder="Název pracoviště" aria-label="Název nového pracoviště" style="flex:1;min-width:0"><button class="btn small primary" data-act="staffadddept">+ Přidat pracoviště</button></div></section>` : ""}
-    <p class="muted small">Demo nemá přihlášení: role je zvolená v pravém horním rohu. Změny seznamu se zapisují do záznamu přístupů (kdo co změnil, bez údajů o pacientech).</p></div>`;
+    <p class="muted small">Změny seznamu se zapisují do záznamu přístupů (kdo co změnil, bez údajů o pacientech).</p></div>`;
 }
 /* id -> displayed name for every person and the coordinator, to tell renames from removals after a change. */
 const staffIds = () => Object.fromEntries([[STAFF.coord.id, staffName(STAFF.coord)], ...STAFF.depts.flatMap(d => d.people.map(x => [x.id, staffName(x)]))]);
