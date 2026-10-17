@@ -3088,14 +3088,14 @@ function renderOverlay() {
     el.innerHTML = `<div class="scrim" data-close="1"></div><div class="modal" role="dialog" aria-label="Nový pacient">
       <div class="row spread"><h2>Nový pacient</h2><button class="btn small" data-close="1">Zavřít</button></div>
       <div class="stepper">${["Žádost o konzultaci", "Dokumenty", "Zpracování"].map((t, i) => `<span class="${i === step ? "on" : ""}">${i + 1}. ${t}</span>`).join("")}</div>
-      ${step === 0 ? `<p class="muted small" style="margin:0">Pole podle formuláře FNO „Konzultace pacienta“. Povinná pole jsou označena *.</p>
+      ${step === 0 ? `<div class="row spread"><p class="muted small" style="margin:0">Pole podle formuláře FNO „Konzultace pacienta“. Povinná pole jsou označena *.</p>${o.fhirOpen ? "" : `<button class="btn" data-act="fhiropen">Import z FHIR</button>`}</div>
         ${o.fhirOpen ? `<div class="fhirimp"><label class="label" for="nffhir">Import z FHIR: Bundle s Patient, Coverage a ServiceRequest (doporučení), nebo jen Patient</label>
           <textarea class="input" id="nffhir" autocomplete="off" spellcheck="false" placeholder='{"resourceType": "Bundle", ...}'>${esc(o.fhirText || "")}</textarea>
           <div class="row"><label class="btn small">Vybrat soubor .json<input type="file" accept=".json,application/fhir+json,application/json" data-fhirfile="1" hidden></label>
             <button class="linkbtn small" data-act="fhirsample">Vložit ukázku</button><span style="flex:1"></span>
             <button class="btn small" data-act="fhirclose">Zrušit</button><button class="btn small primary" data-act="fhirimport">Načíst</button></div>
           ${o.fhirMsg ? `<p class="small" style="margin:0" role="status">${esc(o.fhirMsg)}</p>` : ""}</div>`
-        : `<div class="row">${o.fhirMsg ? `<span class="small" role="status">${esc(o.fhirMsg)}</span>` : ""}<span style="flex:1"></span><button class="btn small" data-act="fhiropen">Import z FHIR</button></div>`}
+        : o.fhirMsg ? `<p class="small" style="margin:0" role="status">${esc(o.fhirMsg)}</p>` : ""}
         <div class="formgrid">${fields.map(([l, t, req, hint, ac], i) => `<label>${l}${req ? " *" : ""}${hint ? ` <span class="fhint">${hint}</span>` : ""}${t === "select" ? `<select class="input" id="nf${i}" autocomplete="${ac}"><option value="">nevybráno</option>${["111", "201", "205", "207", "209", "211", "213"].map(v => `<option ${f["nf" + i] === v ? "selected" : ""}>${v}</option>`).join("")}</select>` : `<input class="input" id="nf${i}" type="${t}" autocomplete="${ac}" value="${esc(f["nf" + i] || "")}" ${req ? "required" : ""} ${inv("nf" + i)}>`}${msg("nf" + i)}${i === 2 ? dupWarn : ""}</label>`).join("")}
           <label class="full">Anamnéza <span class="fhint">nepovinné, asistent ji sestaví z dokumentace</span><textarea class="input" id="nfa" autocomplete="off">${esc(f.nfa || "")}</textarea></label>
           <label class="full">Otázka na NOCO (otázka pro MDT) <span class="fhint">nepovinné, lze doplnit později v detailu pacienta</span><textarea class="input" id="nfq" autocomplete="off" style="min-height:60px">${esc(f.nfq || "")}</textarea></label>
