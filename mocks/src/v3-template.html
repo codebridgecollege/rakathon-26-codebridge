@@ -2321,10 +2321,18 @@ function processingChip(sec) {
 }
 /* The brief: the extracted summary with linked sources when the case has one; otherwise the list row's one-line
    summary, said to be that, with what was processed. The question sits in the header for a case without a brief. */
+/* API mode (step 6): an uploaded document whose registered patient differs from this case's patient is signalled on the
+   case itself, not only in the upload list, so every doctor who opens the case sees it (CLAUDE.md: never merge silently). */
+function identityBanner(p) {
+  if (!isApi()) return "";
+  const u = upsOf(p); if (!u.loaded && !u.loading && !u.error) loadUploads(p);
+  const n = u.docs.filter(d => d.identity === "conflicts").length;
+  return n ? `<div class="question missing" role="alert" style="margin-bottom:10px"><span class="label">Možná jiný pacient</span><p style="font-size:14px">${n === 1 ? "U 1 nahraného dokumentu" : `U ${n} nahraných dokumentů`} se jméno nebo rodné číslo neshoduje s pacientem případu. Ověřte, zda dokument patří tomuto pacientovi (Projednání na MDT, Dokumenty).</p></div>` : "";
+}
 function briefBlock(p, cd) {
   const reg = refRegistry(), sec = sectionsOf(cd);
   const note = cd.note_cs ? esc(cd.note_cs) : "Souhrn ze seznamu pacientů, bez odkazů na zdroj.";
-  return `<section class="card blk"><div class="head" style="margin:0"><h2>Stručný souhrn</h2><span class="row">${sec.brief ? "" : processingChip(sec)}${alertSignal(p)}</span></div>${S.gapsOpen && sec.alerts ? gapsBox(cd) : ""}
+  return `${identityBanner(p)}<section class="card blk"><div class="head" style="margin:0"><h2>Stručný souhrn</h2><span class="row">${sec.brief ? "" : processingChip(sec)}${alertSignal(p)}</span></div>${S.gapsOpen && sec.alerts ? gapsBox(cd) : ""}
     ${sec.brief ? `<p class="prose">${briefHtml(p, cd, reg)}</p>
     ${reasonQuestionBox(p, reg)}` : `<p class="prose">${esc(p.summary || "")}</p>
       <p class="muted small" style="margin:0">${note} Zdroj: ${esc(p.file)}, ${p.pages || "?"} s.</p>`}
@@ -2488,19 +2496,26 @@ async function pipeRun(id) {
   const st = S.pipe[id] = { ...(S.pipe[id] || {}), busy: true, error: null }; render();
   try { await apiWrite("POST", `/documents/${enc(id)}/process`, {}); }
   catch (e) { st.busy = false; st.error = e.message; render(); return; }
+  /* Polling stops when the user changes (S.pipe is replaced) or the case is left; each poll is a logged read. */
+  const mine = S.pipe, pid = S.pid;
   for (let i = 0; i < 90; i++) {
-    await new Promise(r => setTimeout(r, 1500));
+    await new Promise(r => setTimeout(r, 2000));
+    if (S.pipe !== mine || S.pid !== pid) return;
     const run = await pipeLoad(id);
+    if (run) S.pipe[id].error = null;
     if (run && (run.state === "done" || run.state === "error")) break;
   }
-  S.pipe[id].busy = false; render();
+  if (S.pipe === mine && S.pipe[id]) { S.pipe[id].busy = false; render(); }
 }
+const PIPE_ERR_CS = { start_failed: "nespustilo se", stalled: "nedokončilo se", encrypted: "PDF je zašifrované", not_pdf: "soubor není čitelné PDF", unreadable_pdf: "soubor není čitelné PDF", too_many_pages: "příliš mnoho stran", page_too_large: "stránka je příliš velká", pipeline_off: "zpracování není zapnuté", pagekit_unreachable: "služba neodpovídá" };
 function pipeHtml(d) {
   const id = docIdOf(d.file), st = S.pipe[id] || {}, r = st.run;
+  /* The last run is read once, so its result and a poor-copy warning survive a reload. */
+  if (!st.loaded && !st.loading) { S.pipe[id] = { ...st, loading: true }; pipeLoad(id); }
   const btn = `<button class="btn small" data-piperun="${esc(id)}" ${st.busy ? "disabled" : ""}>${st.busy ? "Čtu…" : r ? "Přečíst znovu bez AI" : "Přečíst bez AI"}</button>`;
-  const res = !r ? "" : r.state === "error" ? `<span class="fwarn">Čtení selhalo (${esc(r.error_code || "")}).</span>`
+  const res = !r ? "" : r.state === "error" ? `<span class="fwarn">Čtení selhalo (${esc(PIPE_ERR_CS[r.error_code] || "chyba služby")}).</span>`
     : r.state !== "done" ? `<span class="muted">Čte se (${esc(r.stage_cs || "ve frontě")})…</span>`
-    : `<span title="${esc((r.readability_reasons_cs || []).join("; "))}">${esc(r.label_cs)}: čitelnost ${esc(r.readability_cs || "-")}, ${esc(r.verify_count ?? 0)} míst k ověření${r.lab_points ? `, laboratorní hodnoty ${esc(r.lab_points)} (k ověření ${esc(r.lab_unclear)})` : ""}${r.diff ? `; proti předem připraveným datům ${esc(r.diff.same)} shodných, ${esc(r.diff.verify)} k ověření${r.diff.silent ? `, <b>${esc(r.diff.silent)} jinak bez označení</b>` : ""}` : ""}.</span>${r.readability_alert_cs ? ` <span class="fwarn" role="alert">${esc(r.readability_alert_cs)}</span>` : ""}`;
+    : `<span title="${esc((r.readability_reasons_cs || []).join("; "))}">${esc(r.label_cs)}: čitelnost ${esc(r.readability_cs || "-")}, ${esc(r.verify_count ?? 0)} míst k ověření${r.lab_points ? `, laboratorní hodnoty ${esc(r.lab_points)} (k ověření ${esc(r.lab_unclear)})` : ""}${r.diff ? `; proti předem připraveným datům ${esc(r.diff.same)} shodných, ${esc(r.diff.verify)} k ověření${r.diff.silent ? `, <b>${esc(r.diff.silent)} jinak bez označení</b>` : ""}${r.diff.missing ? `, <b>${esc(r.diff.missing)} nenalezeno</b>` : ""}` : ""}.</span>${r.readability_alert_cs ? ` <span class="fwarn" role="alert">${esc(r.readability_alert_cs)}</span>` : ""}`;
   return `<span class="note">${btn} ${st.error ? `<span class="fwarn" role="alert">${esc(st.error)}</span>` : ""}${res}</span>`;
 }
 /* The whole row opens the document; the "Otevřít" button stays for keyboard users. */
@@ -3064,8 +3079,10 @@ async function removeUploadApi(p, id) {
 function uploadsApiHtml(p, locked, why) {
   const u = upsOf(p); if (!u.loaded && !u.loading && !u.error) loadUploads(p);
   const when = d => { try { return new Date(d.uploaded_at).toLocaleTimeString("cs-CZ", { hour: "2-digit", minute: "2-digit" }); } catch (e) { return ""; } };
-  const item = d => `<li><span class="nm" title="${esc(d.name)}">${esc(d.name)}</span><span class="small muted">${esc(fmtSize(d.size || 0))}${d.type_cs ? ` · ${esc(d.type_cs)}` : ""} · ${esc(d.uploaded_by || "")}, ${esc(when(d))}</span><span class="chip plain ${d.state === "stored" ? "st-new" : "st-done"}">${esc(d.state_cs || "nahráno")}</span>${locked || d.state !== "stored" ? "" : `<button class="btn small" data-delupapi="${esc(d.id)}" aria-label="Odebrat ${esc(d.name)}">✕</button>`}
-    ${d.identity === "conflicts" ? `<p class="fwarn" role="alert" style="margin:4px 0 0;flex-basis:100%">${esc(d.identity_cs)}</p>` : ""}</li>`;
+  const item = d => `<li><span class="nm" title="${esc(d.name)}">${esc(d.name)}</span><span class="small muted">${esc(fmtSize(d.size || 0))}${d.type_cs ? ` · ${esc(d.type_cs)}` : ""} · ${esc(d.uploaded_by || "")}, ${esc(when(d))}</span><span class="chip plain ${d.state === "stored" ? "st-new" : d.state === "failed" ? "k-contradiction" : "st-done"}" title="${esc(d.state_detail_cs || "")}">${esc(d.state_cs || "nahráno")}</span>${locked || d.state !== "stored" ? "" : `<button class="btn small" data-delupapi="${esc(d.id)}" aria-label="Odebrat ${esc(d.name)}">✕</button>`}
+    ${d.identity === "conflicts" ? `<p class="fwarn" role="alert" style="margin:4px 0 0;flex-basis:100%">${esc(d.identity_cs)}</p>` : ""}
+    ${d.readability === "poor" || d.readability === "empty" ? `<p class="fwarn" role="alert" style="margin:4px 0 0;flex-basis:100%">Dokument je špatně čitelný, vyžádejte lepší kopii.${(d.readability_reasons_cs || []).length ? ` (${esc(d.readability_reasons_cs.join("; "))})` : ""}</p>` : ""}
+    ${S.api.pipeline && !locked && d.state !== "prepared" ? `<div style="flex-basis:100%">${pipeHtml({ file: `${d.id}.pdf` })}</div>` : ""}</li>`;
   return `${why ? `<p class="muted small" style="margin:12px 0 0">${esc(why)}</p>` : ""}${locked ? "" : `<label class="upzone" data-upzone="1"><input type="file" multiple accept=".pdf,application/pdf" data-upload="1"><b>Přetáhněte soubory sem</b><span class="small muted">nebo klikněte a vyberte (PDF, nejvýše 20 MB)</span></label>`}
     ${u.busy ? `<p class="muted small" role="status" style="margin:8px 0 0">Nahrávám ${u.busy} …</p>` : ""}
     ${u.refused.length ? `<ul class="uplist">${u.refused.map(r => `<li><span class="nm" title="${esc(r.name)}">${esc(r.name)}</span><span class="fwarn" role="alert" style="flex-basis:100%">${esc(r.message)}</span></li>`).join("")}</ul>` : ""}
@@ -4414,7 +4431,7 @@ function renderOverlay() {
           <div class="full"><label style="display:flex;gap:8px;align-items:center;font-weight:500"><input type="checkbox" id="nfg" ${f.nfg ? "checked" : ""} ${inv("nfg")}> Souhlasím, aby FNO použila uvedené osobní údaje ke zpracování požadavku, dle GDPR. *</label>${msg("nfg")}</div></div>
         <div class="row" style="justify-content:flex-end"><button class="btn primary" data-act="newnext">Pokračovat</button></div>`
       : step === 1 ? `${newFilesHtml(o)}
-        <div class="row" style="justify-content:flex-end"><button class="btn" data-act="newback">Zpět</button><button class="btn primary" data-act="newnext" ${(o.files || []).length ? "" : "disabled"}>Zpracovat</button></div>`
+        <div class="row" style="justify-content:flex-end"><button class="btn" data-act="newback">Zpět</button><button class="btn primary" data-act="newnext" ${(o.files || []).length && !o.upBusy ? "" : "disabled"}>Zpracovat</button></div>`
       : isApi() ? intakeVerdictHtml(o, pipe)
       : `<ul class="pipeline">${pipe.map((t, i) => `<li class="${i < o.progress ? "" : i === o.progress ? "run" : "wait"}">${i < o.progress ? "✓" : i === o.progress ? "…" : "○"} ${t}</li>`).join("")}</ul>
         ${isApi() ? "" : `<p class="small" style="margin:0">Před extrakcí se jméno a rodné číslo nahradí ID případu; jazykový model vidí jen pseudonymizovaný text. Převodní tabulka zůstává na serveru nemocnice.</p>`}
@@ -4455,6 +4472,8 @@ window.addEventListener("resize", () => { measureTop(); markClamped(); });
 const hashOf = () => "#" + [S.view, S.view === "patient" ? nr(S.pid) : S.view === "calendar" ? S.week : "", S.view === "patient" ? S.tab : ""].filter(Boolean).join("/");
 function writeHash() { const h = hashOf(); if (location.hash !== h) { S.hashSet = h; location.hash = h; } }
 function readHash() {
+  /* Back or forward away from the dialog: an open intake is discarded, as when the dialog closes. */
+  if (S.overlay?.kind === "new" && S.overlay.caseId) { discardIntake(S.overlay); S.overlay = null; renderOverlay(); }
   let [view, id, tab] = location.hash.slice(1).split("/");
   /* #present/<id> and #protocol/<id> links open the patient view, which holds the case and its MDT discussion. */
   const legacy = view === "present" || view === "protocol";
@@ -4789,6 +4808,7 @@ function newCaseBody(o) {
 const NF_FIELD = { first_name: "nf0", last_name: "nf1", birth_number: "nf2", consent: "nfg", question: "nfq", owner: "nf4", dept: "nf5" };
 async function newCaseApi(o) {
   if (o.busy) return;
+  if (o.discarding) { o.busy = true; await o.discarding; o.discarding = null; o.busy = false; }
   const body = newCaseBody(o), sig = JSON.stringify(body);
   if (o.idemSig !== sig) { o.idem = newKey(); o.idemSig = sig; }
   o.busy = true; renderOverlay();
@@ -4816,7 +4836,7 @@ function intakeVerdictHtml(o, pipe) {
   return `<ul class="pipeline">${pipe.map(t => `<li class="wait">${ik.ready ? "✓" : "○"} ${t}: ${ik.ready ? "připraveno předem (ukázková data)" : "neproběhlo"}</li>`).join("")}</ul>
     <p class="small" style="margin:0">${ik.ready ? "<b>Připraveno.</b> " : ""}${esc(ik.reason_cs)}</p>
     <p class="muted small" style="margin:0">Zpracování dokumentů (kontrola čitelnosti, pseudonymizace, extrakce) server zatím nespouští; ukázkový pacient má data připravená předem a server je připojí jen tehdy, když otisky všech dokumentů i jméno a rodné číslo souhlasí.</p>
-    <div class="row" style="justify-content:flex-end"><button class="btn" data-act="newback">Zpět</button><button class="btn primary" data-act="newdone" ${o.busy ? "disabled" : ""}>${o.busy ? "Ukládám…" : "Přidat do databáze"}</button></div>`;
+    <div class="row" style="justify-content:flex-end"><button class="btn" data-act="newback">Zpět</button><button class="btn primary" data-act="newdone" ${o.busy || o.upBusy ? "disabled" : ""}>${o.busy ? "Ukládám…" : "Přidat do databáze"}</button></div>`;
 }
 /* ---------- intake on the server (step 6) ----------
    Step 1 of the dialog opened the case for intake; each document goes to it as its own upload, the server answers with
@@ -4844,7 +4864,8 @@ async function removeNewUploadApi(o, i) {
 function discardIntake(o) {
   if (!o?.caseId || o.completed) return;
   const id = o.caseId; o.caseId = null; o.files = []; o.ik = null;
-  apiWrite("DELETE", `/cases/${enc(id)}/intake`, {}).catch(() => { /* the server removes it after 24 hours anyway */ });
+  /* A new referral waits for this, so it never meets its own discarded draft. */
+  o.discarding = apiWrite("DELETE", `/cases/${enc(id)}/intake`, {}).catch(() => { /* the server removes it after 24 hours anyway */ });
 }
 async function completeIntakeApi(o) {
   if (o.busy) return;
@@ -5290,6 +5311,8 @@ async function boot() {
    sent under the previous user's id. */
 async function switchApiUser(t) {
   const id = userIdOf(t.value), prev = DATA.userId;
+  /* An open intake belongs to the user who opened it; it goes before the switch. */
+  if (S.overlay?.kind === "new") { discardIntake(S.overlay); await S.overlay.discarding; S.overlay = null; renderOverlay(); }
   if (!id) { toast("Tento uživatel není v seznamu na serveru."); t.value = S.user; return; }
   /* Text typed under the previous user is stored under that user before the switch. */
   const saved = await Promise.all(Object.keys(PSAVE).map(flushProto));

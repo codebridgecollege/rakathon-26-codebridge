@@ -80,7 +80,8 @@ Design and the exact contract: `docs/research/backend-steps/step-4.md`, section 
   `audit-archive/<time>.jsonl`, then one batch empties the mutable tables and reinserts the rows from R2
   `seed/reset.json` (written by `seed.py`; identity is not in it, seeded patient rows stay in D1), bumps
   `demo_state.data_epoch`, aborts open audio uploads and deletes R2 `uploads/`, `audio/`, `jobs/`, `cache/summary/`.
-  48 statements with today's seed; keep it under 50 (the Workers Free per-invocation limit) when adding tables.
+  45 statements with today's seed (step 6 rows go through a trigger, see below); keep it under 50 (the Workers Free
+  per-invocation limit) when adding tables.
 - Append-only triggers allow DELETE only while `demo_state.reset_in_progress = 1` (migration 0003). A pilot database
   must not have that exception.
 - Deviation assessments have no write route (user decision 2026-10-17).
@@ -111,11 +112,41 @@ built.
 - Deploying: the Workflow and the cron trigger are registered only by `wrangler deploy` (`npm run deploy`), not by
   `wrangler versions upload`, which CI uses for the `backend` preview alias. A preview's approvals start instances of
   the Workflow as the last `wrangler deploy` registered it, so deploy after changing `src/workflows/`.
-- `seed.py --reset` empties the audio tables but does not delete R2 `audio/` objects; reset-demo does, and the
+- `seed.py --reset` empties the audio tables but does not delete R2 `audio/` objects (nor step 6's `uploads/`); reset-demo does, and the
   lifecycle rule removes the rest within about two days.
 - Workflow tests: `introspectWorkflow(env.SPEAKER_PASS)` with `await using`, `disableRetryDelays()`. The Workflow runs
   with the Worker's bindings, not the per-test env, so `vitest.config.ts` pins its secrets and endpoints to `.test`
   hosts. A test that approves a case with audio or lines starts a pass; let it finish inside the test (`settle`).
+
+## Uploads, intake and the document pipeline (step 6)
+
+Design and contract: `docs/research/backend-steps/step-6.md`, section "As implemented".
+
+- Uploads: `src/routes/documents.ts` (raw PDF body, one file per request; the write middleware skips the JSON parse for
+  this path only). `UPLOAD_POLICY=fixtures_only` stores only registered synthetic fixtures (`fixture_files` by SHA-256);
+  a refused file touches neither R2 nor D1. Files live under R2 `uploads/<case>/`, which reset-demo and the intake
+  discard delete. Rules in `src/domain/documents.ts`; the fixture's patient (`fixture_patients`, D1 only) is compared
+  with the case's patient and only the result (`matches`, `conflicts`, `cannot_verify`) leaves the server.
+- Intake: `src/routes/intake.ts`, `src/store/intake.ts`, rules in `src/domain/intake.ts` and `src/domain/fhir.ts`. An
+  open intake (`cases.intake_open = 1`) is hidden from lists and the workflow, takes uploads only, and is 404 to anyone
+  but its creator; the cron sweep removes it after 24 hours. The attach reads `fixtures/<id>/prepared.json`, written by
+  `seed.py` (identity scan strict, quotes checked on their page). Keep every new list or write route consistent with
+  that rule (`caseFor`, `openCase`, `listCases`, `visibleCaseIds`).
+- Reset: rows added by uploads, intakes and pipeline runs are removed by the trigger `demo_reset_uploads` (it fires on
+  the reset batch's `reset_in_progress = 1` update), so the reset batch stays at its size (45 statements locally). A new
+  table written by these routes goes into that trigger, not into the batch.
+- Pipeline without an LLM: `src/workflows/process-document.ts` (binding `PROCESS_DOCUMENT`), `src/routes/pipeline.ts`,
+  `src/services/pagekit.ts`. PageKit is `pipeline/container/server.py`; the Worker reaches it at `PAGEKIT_URL` or,
+  once configured, through a `PAGEKIT` container binding; with neither the pipeline answers 503 `pipeline_off`. Step
+  results hold ids, counts and codes only (`test/pipeline.test.ts`). Runs are `pipeline_runs`, never the case's view.
+- Local end to end with the real files:
+
+  ```
+  cd pipeline && uv run python container/server.py --port 8080      # PageKit (needs tesseract with ces)
+  cd api && npm run seed:local && npx wrangler dev --port 8799 --var PAGEKIT_URL:http://localhost:8080
+  node api/scripts/e2e-intake.mjs http://localhost:8799 --pipeline --reset
+  ```
+- Python tests of the pipeline: `cd pipeline && uv run pytest -q`.
 
 ## Where configuration lives
 

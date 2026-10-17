@@ -85,7 +85,7 @@ describe("upload of a registered fixture", () => {
   it("raises the wrong-patient alert for another patient's fixture, without blocking", async () => {
     const r = await upload("NO-A", OTHER, "histo.pdf");
     expect(r.status).toBe(201);
-    expect(r.body.data!.document).toMatchObject({ identity: "conflicts", identity_cs: "Dokument patří jinému pacientovi: jméno nebo rodné číslo se neshoduje." });
+    expect(r.body.data!.document).toMatchObject({ identity: "conflicts", identity_cs: "Jméno nebo rodné číslo v dokumentu se neshoduje s pacientem případu; ověřte, zda dokument patří tomuto pacientovi." });
     expect((await log()).map((l) => l.action)).toContain("document.identity_conflict");
     // The answer never carries the fixture's patient.
     expect(JSON.stringify(r.body)).not.toMatch(/Jiná Osoba|585614/);

@@ -381,7 +381,9 @@ export const writeCases = new Hono<AppEnv>()
     const id = c.req.param("id");
     label(c, "přístup mimo tým", id);
     const v = c.var.viewer;
-    if (!(await work(c).caseCore(id))) throw D.caseNotFound();
+    const core = await work(c).caseCore(id);
+    // An open intake (step 6) does not exist for anyone but its creator, and takes no grant.
+    if (!core || core.intake_open === 1) throw D.caseNotFound();
     const member = v.role === "doctor" ? await c.var.stores.cases.isMember(id, v) : false;
     const g = grant(actorOf(c), member, c.var.body.reason, now());
     const t = tx(c);

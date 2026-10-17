@@ -288,6 +288,12 @@ Lucide 0.468.0 paths are embedded in the template, with the ISC notice in
   with client ids, audio in parts, the last lines and the final part stored
   before the approval, the speaker pass job polled, speaker lines and the
   "Shrnutí AI · návrh" draft shown, and "Zkusit znovu" after a failed pass.
+- `src/test/uploads-intake.mjs`: uploads and "Nový pacient" in API mode
+  (step 6) in jsdom against a fake server (same setup as `case-store.mjs`):
+  one raw request per file, the server's list, refusals with the server's
+  reason, the wrong-patient alert, removal; FHIR read on the server, the
+  intake opened at "Pokračovat", the server's verdict instead of an
+  animation, completion, and discard when the dialog closes.
 - `node mocks/src/test/timeline-categories.mjs`: category filters, preserved source indexes, partial and missing dates, planned status, and escaped labels.
 
 - `src/test/v3.mjs`: clicks through mock v3 in Chromium with Playwright at

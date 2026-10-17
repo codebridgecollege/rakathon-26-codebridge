@@ -78,7 +78,8 @@ export function compareIdentity(fixture: Person, patient: Person): Identity {
   return rcKnown || nameKnown ? "matches" : "cannot_verify";
 }
 
-export const IDENTITY_ALERT_CS = "Dokument patří jinému pacientovi: jméno nebo rodné číslo se neshoduje.";
+// A difference in diacritics is reported too, so the wording states the mismatch, not that it is another person.
+export const IDENTITY_ALERT_CS = "Jméno nebo rodné číslo v dokumentu se neshoduje s pacientem případu; ověřte, zda dokument patří tomuto pacientovi.";
 
 export const STATE_CS: Record<string, string> = {
   stored: "nezpracováno",

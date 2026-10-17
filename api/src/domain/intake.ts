@@ -103,8 +103,9 @@ export function evaluateIntake(x: IntakeInput): IntakeVerdict {
   const missing = x.fixture.files.filter((f) => !bySha.has(f.sha256));
   const extra = { present: present.length, missing_cs: missing.map((f) => f.title_cs || f.file_name) };
   // The fixture's patient is never named in the answer: the person filling in the form may not be entitled to it.
+  // Counts and titles of the fixture's other documents only after the identity matches: they describe its patient.
   if (!samePerson(x.patient, x.fixture.patient))
-    return none("Jméno nebo rodné číslo v žádosti se neshoduje s dokumenty ukázkového pacienta. Dokumenty se k tomuto záznamu nepřipojí.", extra);
+    return none("Jméno nebo rodné číslo v žádosti se neshoduje s dokumenty ukázkového pacienta. Dokumenty se k tomuto záznamu nepřipojí.", { expected: 0 });
   if (x.attachedElsewhere) return none("Ukázkový pacient už v databázi je; nový záznam zůstane bez zpracovaných dokumentů.", extra);
   const fixtureShas = new Set(x.fixture.files.map((f) => f.sha256));
   if (x.docs.some((d) => !d.sha256 || !fixtureShas.has(d.sha256)))

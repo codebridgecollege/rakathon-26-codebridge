@@ -134,6 +134,8 @@ const apiOpen = async srv => {
   assert.match(html, /Dokument patří jinému pacientovi/, "the wrong-patient alert is shown");
   assert.equal(srv.st.writes.filter(x => /audit\/events/.test(x.path)).length, 0, "the server logs uploads itself; no view event");
   assert.ok(w.__toasts.some(t => /Nahráno: 2 soubory, odmítnuto 1/.test(t)));
+  // The case itself signals a document with another patient's identity, not only the upload list.
+  assert.match(w.document.getElementById("app").innerHTML, /Možná jiný pacient/);
   w.document.querySelector("[data-delupapi]").click();
   await sleep(150);
   assert.ok(srv.st.writes.some(x => x.method === "DELETE" && x.path === "/api/documents/up-1"));

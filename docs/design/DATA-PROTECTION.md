@@ -137,10 +137,13 @@ The Worker keeps the demo data in Cloudflare D1 (the database) and R2
 data is stored: the organizers' fictitious FNO patients and our own
 synthetic patients.
 
-- **Identity sits in one table.** Name, name as written, birth number,
-  birth date, age and insurer are in D1's `patients` table only (the
-  intake demo's upload files in R2, `fixtures/S02/`, are documents and a
-  FHIR referral, so they carry identity by nature). Case
+- **Identity sits in two tables.** Name, name as written, birth number,
+  birth date, age and insurer are in D1's `patients` table, and the
+  registry of synthetic fixtures names each fixture's patient in
+  `fixture_patients` (step 6, for the wrong-patient check; only its result
+  leaves the server). The intake demo's upload files in R2,
+  `fixtures/S02/`, and uploaded PDFs under `uploads/` are documents, so
+  they carry identity by nature. Case
   rows, alerts and the extraction JSON in R2 refer to a case ID
   (`NO-010`). The seed (`api/seed/seed.py`) removes identity from the
   extraction JSON and stops when a patient's name or birth number is
@@ -210,6 +213,35 @@ synthetic patients.
   grant (later rows under the grant name the grant). Edit keys and
   attendance keys are checked against fixed formats before they reach
   the log. Refused attempts are logged too ("odmítnuto: ...").
+
+## Uploads and the document pipeline (step 6)
+
+- **The shared demo stores only known synthetic files.** The upload route
+  hashes the file in memory and refuses anything that is not a registered
+  fixture before it is written anywhere (`UPLOAD_POLICY=fixtures_only`).
+  Once stored, a file would be third-party data without clearance in a
+  database every visitor reads. Other policies are for team staging and
+  local work only.
+- **Stored uploads** live in the EU bucket under `uploads/<case>/`, with
+  a `documents` row (name, size, hash). The access log records actor,
+  case, document ID, size and the first 12 hex characters of the hash,
+  never the file name (it may name the patient) or content. A removed
+  upload is deleted, rows and file. An intake left open is deleted with
+  its files after 24 hours; reset-demo deletes every upload.
+- **A FHIR referral is read, not kept.** The server fills the form from
+  it and keeps only its SHA-256 on the case.
+- **The prepared extraction attached by an intake holds no identity**,
+  not even in quotes: the seed scans it strictly and the attach adds only
+  document IDs. A refusal never names the fixture's patient to someone who
+  typed another name.
+- **The pipeline without an LLM keeps text out of the Workflow engine.**
+  Workflow parameters and step results hold IDs, counts and fixed codes;
+  page images, text and lab values go to R2 (EU) under the run's prefix.
+  PageKit (the container) has no secrets, no storage and no outbound
+  network, and logs only method, path, status, duration and page counts.
+  It is meant to run in the EU (`constraints.jurisdiction: "eu"` once the
+  container is deployed; today it runs locally, see step-6.md "As
+  implemented"). Nothing in slice 6b-1 sends a page to a cloud model.
 
 ## Meeting audio
 

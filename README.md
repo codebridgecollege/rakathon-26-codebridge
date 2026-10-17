@@ -57,6 +57,16 @@ the administrator restores the seed with "Obnovit ukázková data" in
 Administrace (`POST /api/admin/reset-demo`, on when
 `DEMO_RESET_ENABLED=true`). See [`api/AGENTS.md`](api/AGENTS.md).
 
+## Document pipeline
+
+`pipeline/` holds the deterministic page logic (render, Tesseract, the
+"ověřit" marks, the readability check, the lab parser) as one Python
+package, used by `scripts/` and by the PageKit service the API Worker
+calls. Run its tests with `cd pipeline && uv run pytest -q`; run the
+service with `uv run python container/server.py --port 8080`. How the
+Worker uses it and the end-to-end check: `api/AGENTS.md`, section
+"Uploads, intake and the document pipeline".
+
 ## Patient data
 
 This repository never contains real patient data. `data/` holds the

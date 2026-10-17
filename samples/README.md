@@ -128,6 +128,22 @@ upload files are dropped in one by one; the page numbers above are those
 of the combined `S02_pacient.pdf`. Each upload PDF numbers its own pages
 from 1.
 
+On the API Worker (step 6) these files are registered fixtures: the
+server recognises each one by the SHA-256 of its bytes, so a renamed copy
+works and an edited file does not. Regenerated PDFs (`render_samples.py`)
+are not guaranteed byte-identical, so the demo uses the committed files
+or `mocks/ukazka/S02-dokumenty.zip`; after regenerating, reseed. The
+prepared data attaches only when all seven PDFs are uploaded and the
+referral's name and birth number match; `api/scripts/e2e-intake.mjs`
+runs that path against a Worker.
+
+Pipeline check without an LLM (step 6, 2026-10-17, local Tesseract
+5.5.3): re-reading the four lab sheets from the upload PDFs gives the 72
+values of the prepared data; 41 read the same and 31 are marked "ověřit"
+(Tesseract misreads units and codes, for example `10"9/|` for `10^9/l`
+and `B LKC` for `B_LKC`), none differs without a mark. Every sheet is
+judged "fair" for those misreads.
+
 Built-in cases to check the assistant against (expected behaviour):
 
 - **Lab trend from documents:** 18 tests at four draws (KO, urea,

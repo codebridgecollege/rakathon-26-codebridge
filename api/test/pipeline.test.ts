@@ -7,6 +7,7 @@ import { env } from "cloudflare:workers";
 import { introspectWorkflow } from "cloudflare:test";
 import { call, mockFetch, testEnv } from "./helpers";
 import { FAKE_NAME, loadFixture } from "./data";
+import { sweep } from "../src/scheduled";
 
 const q = async <T = Record<string, unknown>>(sql: string, ...args: unknown[]) => (await env.DB.prepare(sql).bind(...args).all<T>()).results;
 const one = async <T = Record<string, any>>(sql: string, ...args: unknown[]) => (await q<T>(sql, ...args))[0]!;
@@ -159,6 +160,21 @@ describe("starting a run", () => {
     expect([off.status, off.body.error.code]).toEqual([503, "pipeline_off"]);
     expect((await w("POST", `/documents/${DOC}/process`, {}, "admin")).status).toBe(403);
     expect((await w("POST", `/documents/${DOC}/process`, {}, "d1p1")).body.error.code).toBe("not_member");
+  });
+
+  it("refuses a run on an approved case and marks a run the engine no longer runs as failed", async () => {
+    await env.DB.prepare("INSERT INTO protocols (case_id, conclusion, state) VALUES ('NO-A', 'x', 'approved')").run();
+    const r = await w("POST", `/documents/${DOC}/process`);
+    expect([r.status, r.body.error.code]).toEqual([409, "case_locked"]);
+    const old = new Date(Date.now() - 3600_000).toISOString();
+    await env.DB.prepare(
+      `INSERT INTO pipeline_runs (id, document_id, case_id, state, pipeline_version, input_sha256, output_prefix, created_by, created_by_name, created_at, updated_at)
+       VALUES ('pl-stuck', ?1, 'NO-A', 'running', 'dev', ?2, 'uploads/x/', 'd2p1', 'x', ?3, ?3)`,
+    ).bind(DOC, SHA, old).run();
+    await env.DB.prepare("UPDATE documents SET state = 'processing' WHERE id = ?1").bind(DOC).run();
+    await sweep(env);
+    expect(await one("SELECT state, error_code FROM pipeline_runs WHERE id = 'pl-stuck'")).toEqual({ state: "error", error_code: "stalled" });
+    expect((await one("SELECT state FROM documents WHERE id = ?1", DOC)).state).toBe("failed");
   });
 
   it("never changes a seeded document's state", async () => {

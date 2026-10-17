@@ -182,7 +182,8 @@ export const writeWork = new Hono<AppEnv>()
     label(c, "úprava přítomných");
     // The key is checked before it names anything in the log, so typed text never reaches the access log.
     if (!validSetKey(key)) throw D.invalidInput({ fields: { key: "Neplatný den nebo případ." } });
-    if (caseId && !(await work(c).caseCore(caseId))) throw D.caseNotFound();
+    // An open intake (step 6) has no attendance and is not there for anyone else.
+    if (caseId && !((await work(c).caseCore(caseId))?.intake_open === 0)) throw D.caseNotFound();
     label(c, "úprava přítomných", caseId);
     assertCan(actorOf(c), "session.write");
     // A case's own attendance is part of that case: a doctor needs to be on its team (or hold a grant).
@@ -237,7 +238,8 @@ export const writeWork = new Hono<AppEnv>()
     const rcN = normalizeRc(ref.birth_number);
     const existing = (
       await c.env.DB.prepare(
-        "SELECT c.id AS case_id, c.source_file AS file FROM patients p JOIN cases c ON c.patient_id = p.id WHERE replace(p.birth_number, '/', '') = ?1 ORDER BY c.list_order",
+        // An open intake (step 6) is its creator's draft, not a record yet: it neither counts nor gets named.
+        "SELECT c.id AS case_id, c.source_file AS file FROM patients p JOIN cases c ON c.patient_id = p.id WHERE replace(p.birth_number, '/', '') = ?1 AND c.intake_open = 0 ORDER BY c.list_order",
       )
         .bind(rcN)
         .all<{ case_id: string; file: string }>()
@@ -286,7 +288,7 @@ export const writeWork = new Hono<AppEnv>()
     t.idempotency(key, "create_case", sha, data, 200, at);
     // A second record for a known birth number only with the override; re-checked inside the batch.
     if (!overrideReason)
-      t.guard("no_duplicate", "NOT EXISTS (SELECT 1 FROM patients WHERE replace(birth_number, '/', '') = ?)", [rcN], () => D.duplicateBirthNumber({}));
+      t.guard("no_duplicate", "NOT EXISTS (SELECT 1 FROM patients p JOIN cases c ON c.patient_id = p.id WHERE replace(p.birth_number, '/', '') = ? AND c.intake_open = 0)", [rcN], () => D.duplicateBirthNumber({}));
     t.guard("id_free", "NOT EXISTS (SELECT 1 FROM cases WHERE id = ?)", [id], () => D.conflict());
     t.run(
       "INSERT INTO patients (id, full_name, name_as_written, birth_number, data_origin, created_at) VALUES (?1, ?2, ?3, ?4, 'codebridge_synthetic', ?5)",
@@ -317,7 +319,7 @@ export const writeWork = new Hono<AppEnv>()
         if (r) return r;
       }
       if (e instanceof DomainError && e.code === "duplicate_birth_number") {
-        const dup = await c.env.DB.prepare("SELECT c.id AS case_id, c.source_file AS file FROM patients p JOIN cases c ON c.patient_id = p.id WHERE replace(p.birth_number, '/', '') = ?1").bind(rcN).all<{ case_id: string; file: string }>();
+        const dup = await c.env.DB.prepare("SELECT c.id AS case_id, c.source_file AS file FROM patients p JOIN cases c ON c.patient_id = p.id WHERE replace(p.birth_number, '/', '') = ?1 AND c.intake_open = 0").bind(rcN).all<{ case_id: string; file: string }>();
         throw D.duplicateBirthNumber(await visibleDuplicate(c, dup.results));
       }
       throw e;

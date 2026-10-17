@@ -77,7 +77,12 @@ export const intake = new Hono<AppEnv>()
     const t = tx(c).onConstraint(/cases_intake_fixture|UNIQUE constraint failed: cases\.intake_fixture/, () => D.fixtureUsed());
     t.guard("intake_open", "(SELECT intake_open FROM cases WHERE id = ?) = 1", [id], () => D.intakeDone());
     // The documents the verdict rests on are the ones still there.
-    t.guard("docs", "(SELECT COUNT(*) FROM documents WHERE case_id = ? AND origin = 'upload') = ?", [id, docs.length], () => D.conflict());
+    t.guard(
+      "docs",
+      "(SELECT group_concat(id || ':' || sha256, ',') FROM (SELECT id, sha256 FROM documents WHERE case_id = ? AND origin = 'upload' ORDER BY id)) IS ?",
+      [id, docs.length ? [...docs].sort((a, b) => (a.id < b.id ? -1 : 1)).map((d) => `${d.id}:${d.sha256}`).join(",") : null],
+      () => D.conflict(),
+    );
     const written: string[] = [];
     let runId: string | null = null;
     if (verdict.ready && verdict.fixture_id) {

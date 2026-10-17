@@ -364,7 +364,8 @@ const typeConcl = (w, text) => { const c = w.document.getElementById("concl"); c
     if (m === "PATCH" && p === "/api/tasks/t-9") return json(409, { error: { code: "task_changed", message_cs: "Úlohu mezitím změnil jiný uživatel." } });
     if (m === "POST" && p === "/api/cases") {
       if (!b.duplicate_override) return json(409, { error: { code: "duplicate_birth_number", message_cs: "Rodné číslo už v databázi je.", current: { case_id: "NO-777" } } });
-      return json(200, { data: {}, data_epoch: st.epoch, state: { patient: { ...H.patients[1], file: "21_novy", id: "NO-021", name: "Jana Testová", rc: b.birth_number, status: "new", slot: null, processing: "none" }, cases: {} } });
+      // Step 6: the referral opens an intake; the patient joins the list only when the intake completes.
+      return json(200, { data: { case_id: "NO-021", file: "21_novy.pdf", intake: true }, data_epoch: st.epoch, state: {} });
     }
     if (m === "POST" && /^\/api\/staff\/departments\/d1\/people$/.test(p)) return json(200, { data: {}, data_epoch: st.epoch, state: { staff: { ...H.staff, depts: H.staff.depts.map(d => d.id === "d1" ? { ...d, people: [...d.people, { id: "u-new", pre: "Bc.", sur: "Nová", post: "", fn: "" }] } : d), roles: { "u-new": "staff" } } } });
     if (m === "GET" && /^\/api\/cases\/NO-S01$/.test(p) && caseCalls++ === 0) return json(403, { error: { code: "not_member", message_cs: "Nejste v týmu tohoto případu. Lékař mimo tým může případ otevřít s uvedením důvodu." } });
@@ -402,20 +403,22 @@ const typeConcl = (w, text) => { const c = w.document.getElementById("concl"); c
   assert.deepEqual(writes(srv, /alerts/).map(x => x.body), [{ action: "ack", expected_state: "open" }]);
   assert.equal(ev(`alertState("10_pacient.pdf", "gap:0").state`), "ack");
   // New case: the server finds a duplicate this user cannot see; the second record needs a reason of 10 characters.
-  ev(`S.overlay = { kind: "new", step: 2, progress: 4, files: [{ name: "a.pdf", size: 10 }], form: { nf0: "Jana", nf1: "Testová", nf2: "715309/1236", nfg: true } }; renderOverlay()`);
-  w.document.querySelector('[data-act="newdone"]').click(); await sleep(100);
+  ev(`S.overlay = { kind: "new", step: 0, progress: 0, files: [], form: { nf0: "Jana", nf1: "Testová", nf2: "715309/1236", nfg: true } }; renderOverlay()`);
+  w.document.querySelector('[data-act="newnext"]').click(); await sleep(100);
   assert.equal(ev(`S.overlay.step`), 0);
   assert.match(w.document.getElementById("overlay").textContent, /Pacient s tímto rodným číslem už v databázi je:\s*NO-777/);
   w.document.getElementById("nfdupwhy").value = "krátce"; w.document.querySelector('[data-act="newdupok"]').click(); await sleep(30);
   assert.match(w.document.getElementById("overlay").textContent, /nejméně 10 znaků/);
   w.document.getElementById("nfdupwhy").value = "Jiná osoba se stejným RČ, ověřeno"; w.document.querySelector('[data-act="newdupok"]').click(); await sleep(30);
-  ev(`S.overlay.step = 2; S.overlay.progress = 4; renderOverlay()`);
-  w.document.querySelector('[data-act="newdone"]').click(); await sleep(120);
+  await sleep(120);
   const cr = writes(srv, /^POST \/api\/cases$/);
   assert.equal(cr.length, 2);
   assert.deepEqual(cr[1].body.duplicate_override, { birth_number: "7153091236", reason: "Jiná osoba se stejným RČ, ověřeno" });
   assert.ok(cr[1].headers["Idempotency-Key"] && cr[1].headers["Idempotency-Key"] !== cr[0].headers["Idempotency-Key"], "a changed request gets a new key");
-  assert.ok(ev(`!!P("21_novy")`), "the server's patient row joins the list");
+  assert.equal(ev(`S.overlay.caseId`), "NO-021", "the referral opened an intake on the server");
+  assert.equal(ev(`S.overlay.step`), 1, "the dialog moves on to the documents");
+  assert.equal(cr[1].body.intake, true);
+  ev(`S.overlay = null; renderOverlay()`);
   // Staff: a person without "MUDr." needs an explicit role; the server's roles decide who is a doctor.
   const sel = w.document.getElementById("user"); sel.value = H.coord; sel.dispatchEvent(new w.Event("change", { bubbles: true })); await sleep(120);
   ev(`S.view = "staff"; render()`);

@@ -6,7 +6,9 @@ import { ApiError, E } from "../http/errors";
 import { assertCan } from "../domain/roles";
 import { POOR_COPY_CS, READABILITY_CS } from "../domain/pipeline";
 import { audit } from "../middleware/audit";
-import { documentRow } from "../store/documents";
+import { UNLOCKED_COND, documentRow, uploadContext } from "../store/documents";
+import { assertUnlocked } from "./documents";
+import { UP } from "../domain/documents";
 import { PageKitError, pagekit, pipelineOn } from "../services/pagekit";
 import { openCase } from "./access-check";
 import { actorOf, answer, caseFor, isoNow, label, newId, tx } from "./write-context";
@@ -32,12 +34,17 @@ export const pipeline = new Hono<AppEnv>()
     label(c, "zpracování dokumentu", d?.case_id ?? null);
     if (!d) throw E.pageNotFound();
     const { breakGlass } = await caseFor(c, d.case_id, "document.process");
+    // A closed case or an approved conclusion: the record must not change under it, as for uploads.
+    const u = await uploadContext(c.env.DB, d.case_id);
+    if (!u) throw E.caseNotFound();
+    assertUnlocked(u);
     if (!pipelineOn(c.env)) throw off();
     if (!d.original_r2_key || !d.sha256) throw new ApiError(409, "no_file", "Dokument nemá uložený soubor ke zpracování.");
     const runId = `pl-${newId()}`;
     const at = isoNow();
     const v = c.var.viewer;
     const t = tx(c, breakGlass).onConstraint(/pipeline_runs_active|UNIQUE constraint failed: pipeline_runs\.document_id/, running);
+    t.guard("unlocked", UNLOCKED_COND, [d.case_id, d.case_id], () => UP.locked());
     t.run(
       `INSERT INTO pipeline_runs (id, document_id, case_id, state, pipeline_version, input_sha256, output_prefix, created_by, created_by_name, created_at, updated_at)
        VALUES (?1, ?2, ?3, 'queued', ?4, ?5, ?6, ?7, ?8, ?9, ?9)`,

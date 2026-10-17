@@ -152,6 +152,9 @@ describe("intake without the attach", () => {
     const id = s.body.data!.case_id as string;
     expect(id).toMatch(/^NO-1\d\d$/);
     for (const f of FILES) expect((await upload(id, f)).body.data!.document.identity).toBe("conflicts");
+    // Nothing about the fixture's other documents is told to someone who typed another name.
+    const st = await get(`/cases/${id}/intake`);
+    expect(st.body).toMatchObject({ ready: false, expected: 0, present: 0, missing_cs: [] });
     const done = await w("POST", `/cases/${id}/intake/complete`);
     expect(done.body.data).toMatchObject({ attached: false });
     expect(done.body.data!.reason_cs).toMatch(/^Jméno nebo rodné číslo v žádosti se neshoduje/);
@@ -182,6 +185,19 @@ describe("intake without the attach", () => {
     for (const f of FILES) await upload(id, f);
     const second = await w("POST", `/cases/${id}/intake/complete`);
     expect(second.body.data).toMatchObject({ attached: false, reason_cs: "Ukázkový pacient už v databázi je; nový záznam zůstane bez zpracovaných dokumentů." });
+  });
+});
+
+describe("an open intake is not there for anyone else", () => {
+  it("takes no break-the-glass grant and no attendance, and does not count as a duplicate", async () => {
+    await startIntake();
+    expect((await w("POST", "/cases/NO-FX/break-glass", { reason: "akutní konzultace pacienta" }, "d1p1")).status).toBe(404);
+    expect((await w("PUT", "/attendance/case:NO-FX", { rows: [], expected_version: 0 }, "coord")).status).toBe(404);
+    // Another user's referral for the same birth number is not told about the open intake.
+    const other = await startIntake(NAME[0], NAME[1], {}, "coord");
+    expect(other.status).toBe(200);
+    expect(other.body.data!.case_id).toMatch(/^NO-1\d\d$/);
+    expect((await w("DELETE", "/cases/NO-FX/intake")).status).toBe(200);
   });
 });
 

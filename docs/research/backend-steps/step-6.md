@@ -1,7 +1,9 @@
 # Step 6: uploads to R2 and the document processing pipeline
 
-Status: implementation design, 2026-10-17. Nothing here is built. It
-assumes Steps 0-5 of
+Status: slices 6a-1, 6a-2 and 6b-1 implemented on 2026-10-17 (issue
+#7); the contract as built and every difference from this design are in
+"As implemented" at the end. The sections before it are the design as
+written before steps 2-5 existed. It assumes Steps 0-5 of
 `docs/research/2026-10-17-backend-migration.md`
 exist: the Worker `api/` with Hono, D1 tables `documents`, `pages`,
 `jobs`, `extraction_runs`, the R2 layout `docs/`, `pages/`, `extract/`,
@@ -801,3 +803,194 @@ state rule), `docs/design/TECHNOLOGIES.md` and `docs/agent/HACKATHON.md`
 (Containers, Workflows, pinned images and models), `.env.example` and
 `wrangler.jsonc` variables, `README.md` (how to run the container and
 the eval), `mocks/README.md` (prepared versus pipeline data).
+
+## As implemented
+
+Built on 2026-10-17 in three commits on `backend` (issue #7): uploads
+(6a-1), intake on the server (6a-2), and the pipeline without an LLM
+(6b-1). Slices 6b-2 to 6b-4 (vision transcription, fact extraction, case
+rules) are not built.
+
+### Uploads (6a-1)
+
+- `POST /api/cases/:id/documents` (`api/src/routes/documents.ts`), raw
+  body, one file per request; headers `Content-Length` (required),
+  `X-File-Name` (`encodeURIComponent`), `X-Data-Epoch`. The write guard
+  skips the JSON parse for this path only; the same-origin check, the epoch
+  check and the refusal log still apply. Order: role and membership
+  (`document.upload`: doctor on the team or coordinator), case not closed
+  and no approved conclusion (`case_locked`), at most 40 documents, rate
+  limit `RL_UPLOAD` (20 a minute; Cloudflare's limiter has 10 s and 60 s
+  periods only, so not "30 an hour"), declared size over
+  `UPLOAD_MAX_BYTES` (413 before reading), body read with the limit,
+  declared and actual size equal, magic bytes (`%PDF-` within the first
+  1024 bytes; ZIP gets "ZIP rozbalte a nahrajte jednotlivé PDF."), SHA-256,
+  registry lookup. With `UPLOAD_POLICY=fixtures_only` (default) an unknown
+  hash is refused with 422 `upload_not_fixture` and the design's Czech text
+  before anything is written. A duplicate hash in the case is 409
+  `duplicate`; a different file with the same name is 409 `name_taken`
+  (the step 2 table keeps `UNIQUE(case_id, file_name)`; a new unique index
+  adds `(case_id, sha256)`).
+- Stored at `uploads/<case>/<doc>.pdf` (not `docs/`), so reset-demo's
+  existing `uploads/` prefix delete and the intake discard clear it. Then
+  one guarded batch: the `documents` row (`origin = 'upload'`, `state =
+  'stored'`, fixture, identity, title, type and date from the registry),
+  the access-log line "nahrál(a) dokument k případu (PDF, 48 kB, otisk
+  <12 hex>)", and for a wrong patient a second line naming no one. A failed
+  batch deletes the object.
+- Registry: `fixture_files` (step 2) gained `kind` (`upload`, `combined`,
+  `referral`), size, title, type, date, page count and the pages of the
+  combined PDF; a new table `fixture_patients` holds each fixture's
+  patient (name, birth number) in D1 only, as `patients` does. The seed
+  registers FNO's ten PDFs and S01 (their seeded patients), S02's combined
+  PDF, its seven uploads and its referral, 20 rows, and writes
+  `api/seed/out/fixtures.json`. There is no separate `build_fixtures.py`
+  and no CI check of the ZIP yet.
+- Identity: `compareIdentity` (`api/src/domain/documents.ts`): names
+  without case and order, diacritics kept; birth number digits only.
+  `conflicts` when a known birth number or a known name differs,
+  `matches` when one is known and none differs, else `cannot_verify`. A
+  conflict is stored on the document and shown as "Dokument patří jinému
+  pacientovi: jméno nebo rodné číslo se neshoduje."; it never blocks. The
+  answer carries only the result, never the fixture's patient.
+- `GET /api/cases/:id/documents` moved here; it keeps the old fields
+  (`file`, `page_count`, `processing`, `note`, `parts`) and adds name,
+  size, hash, state with its Czech label, identity, readability and
+  uploader, plus `processing_level`. No R2 keys.
+- `DELETE /api/documents/:id` removes an upload in state `stored` (not
+  prepared, processed, or seeded) on an unlocked case: a hard delete of
+  the rows and the file, with the access-log line "odebral(a) nahraný
+  dokument". The design said soft delete; a removed upload is data nobody
+  needs, so it goes.
+- Reset: reset-demo's batch was at 48 of 50 statements. Instead of more
+  DELETE statements, a trigger on `demo_state` (`demo_reset_uploads`,
+  migrations 0005 to 0007) fires on the batch's own `reset_in_progress =
+  1` update and removes pipeline runs, intake runs with their alerts and
+  alert events, and every non-seed document with its pages and parts. The
+  local reset now reports 45 statements. `seed.py` counts triggers without
+  it.
+- Page ("Projednání", tab "Dokumenty") in API mode: each file goes to the
+  server; the list is the server's uploads of the case with state and the
+  identity alert; refused files are named with the server's reason and
+  never stored. Embedded mode keeps the browser-only list.
+
+### Intake on the server (6a-2)
+
+- `POST /api/fhir/referral` (`api/src/routes/intake.ts`): the bundle is
+  read by `fhirToForm` ported to `api/src/domain/fhir.ts`; the answer
+  gives the form keys and the page's field names, what was found and
+  missing, and the bundle's SHA-256. The bundle is not stored (it holds
+  identity); the case keeps its hash (`cases.referral_sha256`).
+- `POST /api/cases` with `intake: true` creates the patient and the case
+  with `cases.intake_open = 1` (a column: `status` keeps its CHECK). An
+  open intake is left out of `/patients`, `/workflow` and every write but
+  uploads (`intake_open` 409), and is 404 to anyone but its creator. When
+  the referral names a fixture patient (same birth number and name, both
+  orders) and `NO-<fixture>` is free, the case gets that ID (`NO-S02`,
+  `S02_pacient.pdf`), as the embedded demo shows it; otherwise the next
+  number. The ID is cosmetic: the attach decides again. The old
+  `intake_fixture` body field is gone.
+- `GET /api/cases/:id/intake` gives the verdict (ready, reason in Czech,
+  expected, present, missing titles) and the documents;
+  `POST /api/cases/:id/intake/complete` closes the intake. The prepared
+  data is attached only when every uploaded document is a file of one
+  fixture by hash, all of its files are present, the referral's name and
+  birth number both match the fixture's patient, and no other case holds
+  that fixture's prepared data (`cases.intake_fixture`, unique among
+  completed cases). The reasons never name the fixture's patient (the
+  mock's message did). Otherwise the case is listed with its documents
+  "nezpracováno" and the reason.
+- Prepared data: the seed writes `fixtures/S02/prepared.json`, the
+  stripped S02 extraction with every reference rewritten from
+  `{file: "S02_pacient.pdf", page: 5}` to `{file: "@upload:<upload name>",
+  page: 1, orig_file, orig_page}`, document entries with their own file
+  and local pages, the case-row fields, the gap alerts, and each upload's
+  page assets under `fixtures/S02/pages/<upload>/p<n>.*`. The seed checks
+  every rewritten quote on its page and scans the file strictly (quotes
+  too) for the patient's name, birth number and birth date. The attach
+  swaps `@upload:<name>` for the uploaded document's ID, writes the run to
+  `uploads/<case>/extract/<run>.json`, an `extraction_runs` row with
+  `kind = 'seed_fixture'` and the new column `producer =
+  'prepared-fixture'` (the step 2 CHECK on `kind` stays), the alerts, the
+  copied pages under `uploads/<case>/<doc>/pages/`, one document part per
+  upload, documents `prepared`, and the case row (diagnosis, summary,
+  page count, the documents' question when the referral had none).
+- Removal of an open intake: `DELETE /api/cases/:id/intake` (the dialog's
+  "Zavřít", Escape, and "Zpět" from the documents step), the cron sweep
+  after 24 hours (`api/src/store/intake.ts`), and reset-demo. Nothing else
+  can reference an open intake, so the case, patient, documents and files
+  go entirely.
+- Page in API mode: "Import z FHIR" asks the server; "Pokračovat" opens
+  the intake; uploads go to it one by one with the server's answers;
+  "Zpracovat" shows the server's verdict, and the four stages say
+  "připraveno předem (ukázková data)" or "neproběhlo" instead of an
+  animation; "Přidat do databáze" completes it. Embedded mode keeps the
+  browser-only flow. The source view and the documents tab open each
+  uploaded file (`setReady` maps every document file to its case).
+- `api/scripts/e2e-intake.mjs <base URL> [--pipeline] [--reset]` runs the
+  whole S02 intake against a Worker with the committed files.
+
+### Pipeline without an LLM (6b-1)
+
+- `pipeline/pagekit/` (render, ocr, layer, page_index, readability, labs,
+  redact) is the one implementation; `scripts/ocr_pages.py`,
+  `build_page_index.py` and `redact_pages.py` are thin CLIs over it and
+  reproduce `data/derived` byte for byte (tested).
+  `pipeline/container/server.py` serves it (contract v1 in its
+  docstring): `GET /healthz`, `POST /v1/inspect`, `/v1/pages`,
+  `/v1/analyze` (page records with "ověřit" items from Tesseract against
+  the PDF text layer, readability per page and document), `/v1/labs`.
+  No `/v1/identity`, `/v1/redact` or `/v1/page-index` endpoints: the
+  identity check stays the registry's (uploads are fixtures), redaction is
+  for the LLM slices, and the page index is part of `/v1/analyze`.
+- Differences from this design in the deterministic logic (pagekit): the
+  "ověřit" share that makes a page poor is 25 %, not 10 % (clean pages
+  reach 11 %, FNO's broken text layers up to 29 %; with the text layer as
+  second reading a high share gives fair only); the Czech word-list rule
+  is off (no `hunspell-cs` locally or in the image, and on in one place
+  only would make them disagree); a unit differing only by look-alike
+  letters without a digit (`umol/l`) stays documented with both readings
+  kept; a draw date counts only when both readings carry the same
+  "Odběr" header over the record; no fallback to the document date.
+  Readability on the 35 pages of `data/derived`: 13 good, 21 fair, 1
+  empty, none poor. There is no S03 degraded sample yet, so "poor" is
+  tested on synthetic low confidences only.
+- `ProcessDocumentWorkflow` (`api/src/workflows/process-document.ts`,
+  binding `PROCESS_DOCUMENT`): inspect, pages in batches of 5, analyze,
+  labs, compare with the prepared data, write. Outputs go to R2 under
+  `uploads/<case>/<doc>/<run>/` (page PNG, raw readings, page records,
+  `readability.json`, `labs.json`, `diff.json`); step results hold ids,
+  counts and fixed codes only (tested). Runs are rows of a new table
+  `pipeline_runs` (versions from `/healthz`, stage timings, readability,
+  "ověřit" count, lab counts, the comparison counts), not
+  `extraction_runs`: a run never becomes the case's current view, and
+  `extraction_runs` has one current row per case with the alerts on it.
+  A document with prepared data keeps it; an upload without data gets
+  the run's pages (Tesseract's text with its marks) for the source view
+  and state `processed` or `failed` with a Czech reason. Seeded documents
+  never change state.
+- Routes (`api/src/routes/pipeline.ts`): `POST /api/documents/:id/process`
+  (role `document.process`, one active run per document),
+  `GET /api/documents/:id/pipeline` (clinical read, logged; the run is
+  labelled "Zpracováno pipeline bez AI (Tesseract a textová vrstva PDF);
+  pozorování asistenta, ne dokumentace"; a poor or empty document carries
+  "Dokument je špatně čitelný, vyžádejte lepší kopii."),
+  `POST /api/admin/pipeline/warm`. `/api/health` reports
+  `features.pipeline`. The documents tab offers "Přečíst bez AI" on each
+  uploaded document in API mode and shows the run's summary next to the
+  prepared data.
+- How the Worker reaches PageKit (`api/src/services/pagekit.ts`):
+  `PAGEKIT_URL` (local work: the Python service on port 8080; tests: a
+  mocked host), else a `PAGEKIT` container binding, else the pipeline is
+  off (503 `pipeline_off`). The container binding is not configured: see
+  "Deploy" below.
+- Acceptance, measured locally with `wrangler dev`, the Python service
+  and Homebrew Tesseract 5.5.3 (`node api/scripts/e2e-intake.mjs
+  http://localhost:8799 --pipeline --reset`): re-processing S02's four lab
+  sheets gives 18 tests x 4 draws, 72 points; 41 read exactly as the
+  prepared data and 31 marked "ověřit" (units such as `10"9/|`, codes
+  without the underscore, values where the readings disagree); 0 silent
+  differences, 0 missing. Each sheet is "fair" (Tesseract misreads such as
+  `mmol/1`). With the vision text as text of record (pytest) all 72 are
+  documented.
+- Deploy: see the deploy note added below after the deploy.

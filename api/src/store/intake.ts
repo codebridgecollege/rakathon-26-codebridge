@@ -42,6 +42,9 @@ export async function discardIntake(env: Env, caseId: string, actor: Viewer | nu
     db.prepare("DELETE FROM document_parts WHERE document_id IN (SELECT id FROM documents WHERE case_id = ?1)").bind(caseId),
     db.prepare("DELETE FROM documents WHERE case_id = ?1").bind(caseId),
     db.prepare("DELETE FROM case_members WHERE case_id = ?1").bind(caseId),
+    // Grants cannot be made on an open intake today; removed anyway so a stray row never blocks the discard.
+    db.prepare("DELETE FROM case_access_grants WHERE case_id = ?1").bind(caseId),
+    db.prepare("DELETE FROM pipeline_runs WHERE case_id = ?1").bind(caseId),
     db.prepare("DELETE FROM cases WHERE id = ?1").bind(caseId),
     // The patient row was created with this intake; another case never shares it (POST /cases makes one per case).
     db.prepare("DELETE FROM patients WHERE id = ?1 AND NOT EXISTS (SELECT 1 FROM cases WHERE patient_id = ?1)").bind(c.patient_id),
@@ -68,4 +71,36 @@ export async function sweepIntakes(env: Env, nowMs: number) {
   let removed = 0;
   for (const r of old) if (await discardIntake(env, r.id, null, null, "sweep").catch(() => false)) removed++;
   return removed;
+}
+
+// Pipeline runs (step 6) whose Workflow died outside a step, or whose fail step itself failed, would stay "zpracovává
+// se" and block every rerun (one active run per document). A run untouched for 30 minutes is checked against the engine;
+// one the engine no longer runs, or that has run for over two hours, is marked failed with a fixed code.
+export const PIPELINE_STALE_MS = 30 * 60_000;
+const PIPELINE_MAX_MS = 2 * 3600_000;
+
+export async function reconcilePipelineRuns(env: Env, nowMs: number) {
+  const rows = (
+    await env.DB.prepare("SELECT id, document_id, created_at FROM pipeline_runs WHERE state IN ('queued','running') AND updated_at < ?1 LIMIT 20")
+      .bind(new Date(nowMs - PIPELINE_STALE_MS).toISOString())
+      .all<{ id: string; document_id: string; created_at: string }>()
+  ).results;
+  let failed = 0;
+  for (const r of rows) {
+    let alive = false;
+    try {
+      const st = await (await env.PROCESS_DOCUMENT.get(r.id)).status();
+      alive = ["queued", "running", "waiting", "paused", "waitingForPause"].includes(st.status);
+    } catch {
+      alive = false; // no such instance: it never started or its record expired
+    }
+    if (alive && nowMs - Date.parse(r.created_at) < PIPELINE_MAX_MS) continue;
+    const at = new Date(nowMs).toISOString();
+    await env.DB.batch([
+      env.DB.prepare("UPDATE pipeline_runs SET state = 'error', error_code = 'stalled', finished_at = ?1, updated_at = ?1 WHERE id = ?2 AND state IN ('queued','running')").bind(at, r.id),
+      env.DB.prepare("UPDATE documents SET state = 'failed', state_detail_cs = 'zpracování se nedokončilo; zkuste to znovu' WHERE id = ?1 AND origin = 'upload' AND state IN ('queued','processing')").bind(r.document_id),
+    ]);
+    failed++;
+  }
+  return failed;
 }
