@@ -187,8 +187,20 @@ synthetic patients.
   the server trusts it, as the UI says. With Cloudflare Access on, the
   verified e-mail decides who the user is and the header is ignored.
 - **Retention.** The demo data and its access log stay until someone
-  reseeds with `--reset`, which deletes the log too (shared-demo
-  decision). Nothing else is kept.
+  reseeds with `--reset` or an administrator runs "Obnovit ukázková
+  data" (`POST /api/admin/reset-demo`). The reset first archives the
+  access log and the append-only histories (decisions, edits, alert
+  events, status history, question confirmations) to the private EU R2
+  bucket under `audit-archive/`, synthetic data only, then reseeds.
+  The archive is kept until someone deletes it; nothing else is kept.
+- **Write audit (step 4).** Every server write logs who acted, in which
+  role and on which case, in the same transaction as the change. The
+  line names the action and safe details only (status names, slot time,
+  the edit key, the alert kind, counts), never a name, birth number,
+  conclusion, quote or file name. Free text typed by staff stays out of
+  the line: the reason for a second record per birth number is stored
+  with the case, and a break-the-glass reason in its own column for the
+  review. Refused attempts are logged too ("odmítnuto: ...").
 
 ## Meeting audio
 

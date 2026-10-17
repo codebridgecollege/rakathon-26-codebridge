@@ -51,7 +51,8 @@ uv run seed/seed.py --dry-run            # write seed/out/ only (SQL, R2 manifes
 - Routes that return case content check role and membership
   (`src/domain/access.ts`) and write an `access_log` row before reading the content
   (`src/middleware/audit.ts`); a failed insert answers 500 with no content.
-- `DATA_API` (`on`/`off`) switches the data API and `/api/health`'s `features.data`.
+- `DATA_API` (`on`/`off`) switches the data API and `/api/health`'s `features.data`. `DEMO_RESET_ENABLED` (`true` on the
+  demo Worker) allows reset-demo.
   `CLINICAL_ACCESS` is `all_roles` (demo default: every role reads clinical content)
   or `doctors_only` (INTEGRATION.md); open question in `docs/agent/OPEN_QUESTIONS.md`.
 - Demo mode takes the user from `X-Demo-User: <staff id>` or the `cb_demo_user` cookie
@@ -59,6 +60,30 @@ uv run seed/seed.py --dry-run            # write seed/out/ only (SQL, R2 manifes
   e-mail to `users.email`.
 - D1 limits: GLOB/LIKE patterns at most 50 bytes, 100 KB per SQL statement, and an
   unused bound value is an error.
+
+## Writes (step 4)
+
+Design and the exact contract: `docs/research/backend-steps/step-4.md`, section "As implemented".
+
+- Rules live in `src/domain/` (pure, injected clock): `roles.ts` is the permission matrix; the role questions the team
+  has not decided are one constant each in `src/domain/config.ts` (open question in `docs/agent/OPEN_QUESTIONS.md`).
+- A write route checks role and membership (`caseFor` in `src/routes/write-context.ts`), runs the domain rule, then
+  commits one D1 batch through `src/store/write.ts`: guards first (each re-checks a value the route read; a false one
+  fails `write_guards`' CHECK and rolls back the whole batch), the changes, the access-log rows. Map a constraint to a
+  Czech refusal with `tx.onConstraint`, never by catching a 500.
+- Every write sends `X-Data-Epoch` (from `/api/health` `demo.data_epoch`); a stale one answers 409 `data_reset`.
+  Approve and new case need `Idempotency-Key`; a retry with the same body replays the first answer.
+- Answers are `{ data, data_epoch, state }`; `state` is what the page applies (`src/store/work.ts`, `caseStates`).
+- Access-log lines carry no patient text (names, birth numbers, conclusions, quotes, file names, typed reasons);
+  `test/write.test.ts` checks every line it writes. Refusals (403) are logged by `middleware/write-guard.ts`.
+- `POST /api/admin/reset-demo` (administrator, `DEMO_RESET_ENABLED=true`): archives the audit to R2
+  `audit-archive/<time>.jsonl`, then one batch empties the mutable tables and reinserts the rows from R2
+  `seed/reset.json` (written by `seed.py`; identity is not in it, seeded patient rows stay in D1), bumps
+  `demo_state.data_epoch`, and deletes R2 `uploads/`, `audio/`, `jobs/`. About 40 statements; keep it under 50 (the
+  Workers Free per-invocation limit) when adding tables.
+- Append-only triggers allow DELETE only while `demo_state.reset_in_progress = 1` (migration 0003). A pilot database
+  must not have that exception.
+- Deviation assessments have no write route (user decision 2026-10-17).
 
 ## Where configuration lives
 

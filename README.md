@@ -49,6 +49,14 @@ CI (`.github/workflows/deploy-worker.yml`) runs the type check and tests,
 then deploys `main` to production and `backend` to the `backend` preview
 alias.
 
+On the Worker every change in the page (status, calendar, conclusion,
+approval, tasks, edits, alerts, attendance, new patient, staff) goes
+through the write API, which enforces the rules and writes the audit
+log. The data is shared by every visitor and marked "Ukázková data";
+the administrator restores the seed with "Obnovit ukázková data" in
+Administrace (`POST /api/admin/reset-demo`, on when
+`DEMO_RESET_ENABLED=true`). See [`api/AGENTS.md`](api/AGENTS.md).
+
 ## Patient data
 
 This repository never contains real patient data. `data/` holds the

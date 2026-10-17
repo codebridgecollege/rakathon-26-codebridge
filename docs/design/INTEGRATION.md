@@ -238,6 +238,9 @@ What it does show, and what each stands for:
 | Fictitious PDFs read by Tesseract and a vision model | Documents from the NIS over FHIR, read by the local pipeline |
 | "AI záznam" with ElevenLabs Scribe v2, fictitious speech only | The speech server inside FNO: live transcript per case, speakers after approval, audio deleted after processing |
 | "Export FHIR" in the patient view: a validated FHIR R4 Bundle with a Provenance on every fact ([`fhir/README.md`](../../fhir/README.md)) | What CodeBridge sends to and reads from FNO's FHIR API |
+| On the API Worker, every change goes through the server: role and team membership, the clinical rules (one decision per approval, drafts stay drafts, alerts never block), and the access-log row in the same database transaction ([`step-4.md`](../research/backend-steps/step-4.md)) | The backend's rules and audit; the browser is never the only place a rule lives |
+| "Otevřít mimo tým" with a reason, valid 12 hours, every read logged with the reason | Break-the-glass access for a doctor outside the case's team |
+| The "Ukázková data" banner and "Obnovit ukázková data" in Administrace (anyone who picks the administrator role can reset the shared demo; the audit trail is archived first) | Nothing in production: a pilot runs without the reset (`DEMO_RESET_ENABLED` unset) |
 
 ## Questions for FNO
 

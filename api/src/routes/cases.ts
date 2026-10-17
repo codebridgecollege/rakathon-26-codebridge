@@ -35,7 +35,7 @@ export const cases = new Hono<AppEnv>()
       pageSize,
     });
     const redact = redactsListFor(v, mode);
-    // Status history is empty until Step 4 adds writes; one query per row would be wasted now.
+    // The list carries no status history (one query per row); the page gets it from GET /api/workflow.
     return c.json({ patients: rows.map((r) => patientRow(r, [], redact)), total, page });
   })
   .get("/cases/:id", async (c) => {
@@ -101,7 +101,8 @@ export const cases = new Hono<AppEnv>()
         id: a.id,
         origin: a.origin,
         position: a.position,
-        // Today's UI key: the index for flags, "gap:<n>" for data gaps; Step 4 switches the UI to the stable id.
+        // The page's key: the index for flags, "gap:<n>" for data gaps; alert events take it (step 4) and the server
+        // resolves the stable id. Events come from GET /api/workflow.
         ui_key: a.origin === "flag" ? a.position : `gap:${a.position}`,
         kind: a.kind,
         text_cs: a.text_cs,

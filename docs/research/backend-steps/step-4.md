@@ -518,3 +518,180 @@ idempotency and guard pattern and reset-demo add work beyond moving
 code. A minimum demo slice (4a-4e: foundations, reset, calendar and
 status, protocol and approval, question, edits and alerts) is about
 3.5 days and covers everything the jury clicks in the demo path.
+
+## As implemented
+
+Status: built on the `backend` branch, 2026-10-17 (issue #5). This section
+records where the build differs from the design above, which was written
+before Steps 2 and 3 existed, and the exact API contract the page uses.
+
+### Differences from the design
+
+- **Migration number.** Step 2 shipped `0001_init.sql` and
+  `0002_append_only.sql`, so the write API's migration is
+  `0003_write_api.sql`.
+- **One protocol row per case.** Step 2 made `protocols.case_id` the primary
+  key. "Nový závěr" therefore resets that row to an empty draft (guarded by
+  `state = 'approved'`) instead of inserting a second row; the approved text
+  lives on in its `decisions` row, which is never changed.
+- **Attendance sets.** Step 2's `attendance` table was keyed by day only and
+  held no rows. It is replaced by `attendance(set_key, dept_id, position,
+  user_id, user_name)` plus `attendance_sets(set_key, version)`. A set key
+  is a seminar day (`2026-10-22`) or `case:<case id>` for a case without a
+  slot.
+- **Alerts keep their position key on the wire.** The page still keys
+  alerts by position (`3` for a flag, `gap:1` for a data gap). The route
+  `POST /cases/:id/alerts/:key/events` takes that key and resolves the
+  stable alert ID of the current extraction run on the server;
+  `alert_events` stores the stable ID.
+- **Plans are built in the route.** The domain functions are pure and
+  decide (result or `DomainError`); the route turns the decision into one
+  guarded D1 batch through `store/write.ts` (`tx.guard`, `tx.run`,
+  `tx.audit`, `tx.commit`). The domain does not emit SQL, so a Postgres
+  store reuses the same domain functions.
+- **Seed for the reset lives in R2.** `api/seed/out/` is gitignored and CI
+  does not run the seed, so the Worker cannot import the seed SQL as a
+  module. `seed.py` uploads the data part of the seed as
+  `seed/reset.json` (statements grouped into multi-row inserts) next to the
+  other seed objects; reset-demo reads it from there.
+- **Question confirmation hash.** The server computes `draft_sha` (SHA-256
+  of `cases.question_draft`) and sends it with the case state; the page
+  echoes it back, so it needs no hashing of its own.
+- **A fourth directory role, `staff`.** Department members without a
+  doctor's role (the staff screen allows titles other than "MUDr.") need a
+  `users` row to appear in attendance. They get role `staff`, which may not
+  sign in or act; the role picker lists doctors, the coordinator and the
+  administrator only.
+- **Fact edit concurrency.** `fact_edits.log_id` names the `edit_log` row
+  that set the current override; a write sends it as `expected_edit_id`.
+- **No `zod`.** Validation lives in the domain functions, which return the
+  Czech field messages the form shows; it avoided a new dependency.
+- **Idempotency stores `data` only.** A replay answers the stored `data`
+  with a freshly read `state`, because the state is read after the batch
+  commits. Keys are refused (422) when missing on approve and new case.
+- **Reset touches only what the app writes.** Documents, pages, extraction
+  runs, alerts and roles change only through `seed.py`, so reset-demo
+  leaves them; it empties the mutable tables and reinserts their seed rows
+  with foreign keys deferred to the commit. Seeded patient rows stay
+  (identity is never copied to R2); patients created later are deleted.
+  `sqlite_sequence` is reset for those tables, so a reset database equals
+  a fresh seed (`test/write.test.ts`).
+- **`seed.py --reset` uses the same flag** instead of dropping and
+  recreating the triggers, and bumps `data_epoch` too.
+- **Duplicate-override reason stays with the case** (`cases.duplicate_override_reason`):
+  it is staff free text that may name the patient, so the access-log line
+  only says that a second record was created.
+- **New cases** get IDs `NO-100` and up (`<n>_novy.pdf`), processing
+  `none`; the S02 intake fixture gets `NO-S02` once.
+- **Hooks** `onCaseClosed`, `onApproved`, `onSessionEnded` are no-ops in
+  `api/src/routes/hooks.ts` for Step 5.
+
+### Contract (what the page sends and receives)
+
+Every write sends `Content-Type: application/json`, the demo user header
+`X-Demo-User`, and `X-Data-Epoch` (from `GET /api/health` `demo.data_epoch`
+or `GET /api/workflow` `data_epoch`). Approve and new case also send
+`Idempotency-Key` (a UUID kept for the retry of the same click).
+
+Success: `200 { data, data_epoch, state }`. `state` holds any of
+`cases: { <case id>: CaseState }`, `att: { <set key>: AttSet }`,
+`sessions: Session[]`, `mails: Mail[]`, `patient: <patient row as
+GET /api/patients>`, `staff: <as GET /api/staff>`; the page replaces the
+named parts and keeps the rest.
+
+Error: `{ error: { code, message_cs, current?, fields? } }`. The page shows
+`message_cs`. `409 data_reset` makes the page say "Ukázková data byla
+obnovena, stránka se znovu načte." and reload; `503 resetting` is shown as
+is.
+
+`GET /api/workflow` (one audit row "načetl(a) stav projednání") returns
+`{ data_epoch, cases, att, sessions, mails }` for every case the viewer may
+read.
+
+`CaseState`:
+
+```
+{ case_id, file, status, slot: {day, time} | null, updated,
+  statusHist: [{ from, to, by, when, how }],
+  protocol: { notes, concl, steps: [{ text, who, due }], state: "draft" | "approved",
+              version, updated_by, updated_at, approver, approved_at },
+  decisions: [{ id, version, text, by, when, slot, attSnap, pickSnap, reportSnap, supersedes }],
+  tasks: [<as GET /api/tasks>],
+  sugg: [{ id, pid, case_id, decision, text, quote, who, due, dueSrc, dueBy, timing, state, by, when }],
+  edits: { <key>: { id, text, orig, by, when } },
+  editLog: [{ key, orig, text, by, when, reverted, confirmed }],
+  qConfirm: { text, by, when } | null, draft_sha: <hex> | null,
+  alertHist: [{ i, action, who, when }],
+  clinical: true | false }
+```
+
+Times (`when`, `*_at`) are ISO 8601 UTC; the page formats them. `edits`
+keys are the page's keys without the `<file>|` prefix. `clinical: false`
+means edits and alert history were withheld for the role
+(`CLINICAL_ACCESS=doctors_only`).
+
+`AttSet`: `{ key, version, byName: { <dept name>: [names] }, byId: { <dept id>: [user ids] } }`.
+`Session`: `{ day, started_by, started_at, ended_at }`.
+`Mail`: `{ kind: "approval", case_id, pid, n, by, when }` or
+`{ kind: "digest", to, n, by, when }` (no medical text; the page builds the
+"N úloh čeká" line and the link).
+
+| Method and path | Body | Answer `state` |
+|---|---|---|
+| `POST /audit/events` | `{ case_id?, code, target? }` (codes below) | none |
+| `POST /cases/:id/status` | `{ to, expected_status }` | `cases` (`data.slot_released`) |
+| `PUT /cases/:id/slot` | `{ day, time }` | `cases` (`data.warning_cs` outside seminar time) |
+| `DELETE /cases/:id/slot` | `{}` | `cases` |
+| `PUT /cases/:id/protocol` | `{ version, notes?, concl?, steps? }` | none; `data: { version, updated_at, updated_by }`; 409 `protocol_conflict` with `current` = protocol |
+| `POST /cases/:id/decisions` | `{ protocol_version, conclusion, picked_sections, report_html, attendance_expected: [names] }` + `Idempotency-Key` | `cases`, `att`, `mails` |
+| `POST /cases/:id/decisions/new-version` | `{ expected_decision_id }` | `cases` |
+| `PATCH /tasks/:id` | `{ done, expected_done }` | `cases` |
+| `PATCH /suggestions/:id` | `{ text?, who?, due? }` | `cases` |
+| `POST /suggestions/:id/confirm`, `/dismiss` | `{}` | `cases` |
+| `POST /notifications/digest` | `{}` | `mails` |
+| `POST /cases/:id/question/confirm` | `{ draft_sha }` | `cases` |
+| `PUT /cases/:id/edits/:key` | `{ text, orig, expected_edit_id }` | `cases` |
+| `DELETE /cases/:id/edits/:key` | `{ expected_edit_id }` | `cases` |
+| `POST /cases/:id/alerts/:key/events` | `{ action: "ack" \| "resolved" \| "reopen", expected_state }` | `cases` |
+| `POST /sessions` | `{ day }` | `sessions` |
+| `DELETE /sessions/:day` | `{}` | `sessions` |
+| `PUT /attendance/:key` | `{ version, by_dept: { <dept id>: [user ids] } }` | `att` |
+| `POST /cases` | `{ first_name, last_name, birth_number, consent, question?, owner?, dept?, intake_fixture?, duplicate_override?: { birth_number, reason } }` + `Idempotency-Key` | `patient`, `cases` |
+| `POST /cases/:id/break-glass` | `{ reason }` | none; `data.expires_at` |
+| `POST /staff/departments` | `{ name }` | `staff` |
+| `DELETE /staff/departments/:id` | `{}` | `staff` |
+| `POST /staff/departments/:id/people` | `{ pre, sur, post, fn, role: "doctor" \| "staff" }` | `staff` |
+| `PATCH /staff/people/:id` | `{ field: "pre" \| "sur" \| "post" \| "fn", value, expected }` | `staff` |
+| `DELETE /staff/people/:id` | `{}` | `staff` |
+| `POST /staff/reset` | `{}` | `staff` |
+| `POST /admin/reset-demo` | `{ confirm: "OBNOVIT" }` | none; `data: { data_epoch, reset_at, seed_version, r2_left }` |
+
+View events for `POST /audit/events` (the server writes fixed Czech text;
+the page sends no free text): `slot_detail_viewed`, `guide_opened`,
+`prognosis_source_opened`, `prognosis_sources_opened`, `source_viewed`
+(`target`: page number), `fhir_exported`, `fhir_imported` (no case),
+`report_downloaded`, `recording_on`, `recording_off`,
+`recording_stopped_all_approved`, `recording_speaker_pass`,
+`recording_summary`, `recording_audio_deleted`, `upload_added` (`target`:
+count), `upload_removed`.
+
+`GET /api/health` adds `demo: { data_epoch, reset_at, seed_version,
+reset_enabled }`.
+
+### Verification of the guard approach
+
+- **Local D1 in workerd (Vitest).** `test/write.test.ts` builds a batch
+  whose first statement passes, second guard fails, then an `UPDATE` and an
+  audit row: nothing persists, no audit row, no guard row left.
+- **Local D1 under `wrangler dev`** (2026-10-17, seeded with
+  `npm run seed:local`): moving case 10 onto a taken slot answers
+  `slot_taken`, and its own slot, deleted earlier in the same batch, is
+  still there (the batch rolled back); 20 parallel `PUT /attendance` with
+  version 0 gave one 200 and 19 `attendance_conflict`, the Worker log
+  showed `{"store":"guard_failed","guard":"version"}` for a batch that had
+  passed the read check, and the database held one set, version 1, one
+  audit row, no guard rows; 6 parallel approvals with different keys made
+  one decision.
+- **Reset size.** The seed's mutable rows group into 7 multi-row inserts;
+  the reset batch is about 40 statements (`data.statements` in the
+  answer), under the 50 queries per invocation of the Workers Free plan.
