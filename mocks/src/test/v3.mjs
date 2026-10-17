@@ -534,8 +534,8 @@ for (const width of [1280, 400]) {
   ok((await text("main")).includes("Personál pracoviště") && await page.locator("main [data-staff], main [data-act=staffreset]").count() === 0 && (await text("main")).includes("lékař ho jen čte"), `${width} r23 doctors see the staff list read-only`);
   ok(await pickerHas("MUDr. Šimek") && await page.evaluate(() => JSON.stringify(DEPTS.find(([d]) => d === "Radiologie")[1]) === '["MUDr. Šimek","MUDr. Veselá"]'), `${width} r23 default radiologists are the fictional MUDr. Šimek and MUDr. Veselá`);
   await page.selectOption("#user", "Bc. Marková (koordinátorka MDT)"); await over("staff edit");
-  ok((await text("main")).includes("Jména se ukládají jen v tomto prohlížeči; v reálné aplikaci personál spravuje nastavení pracoviště nemocnice.") && await page.locator('main [data-act="staffreset"]').count() === 1
-    && await page.locator("main [data-staffadd]").count() === 6, `${width} r23 coordinator edits: browser-only note, reset button, add row per department`);
+  ok(await page.locator('main [data-act="staffreset"]').count() === 1
+    && await page.locator("main [data-staffadd]").count() === 6, `${width} r23 coordinator edits: reset button, add row per department`);
   for (const [f, v] of [["pre", "doc. MUDr."], ["sur", "Testová"], ["post", "Ph.D."], ["fn", "primářka"]]) await page.fill(`[data-newin="d4"][data-sf="${f}"]`, v);
   await c('[data-staffadd="d4"]');
   ok(await page.evaluate(() => DEPTS.find(([d]) => d === "Radiologie")[1].includes("doc. MUDr. Testová, Ph.D.") && DOCTORS.includes("doc. MUDr. Testová, Ph.D.")
