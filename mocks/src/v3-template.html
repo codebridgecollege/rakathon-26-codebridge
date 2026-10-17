@@ -500,6 +500,7 @@ details.srcs .refs { border-top: 0; margin-top: 4px; padding-top: 0; }
 .lm .labv { font-variant-numeric: tabular-nums; font-weight: 500; text-decoration: underline dotted; text-underline-offset: 3px; }
 .lm .labv:not(.hi):not(.lo) { color: var(--fg); }
 .chart { width: 100%; height: auto; display: block; }
+.demobanner { margin: 8px 16px 0; }
 .synth { border: 1.5px dashed var(--missing); background: var(--missing-soft); color: var(--missing); border-radius: 0; padding: 8px 12px; font-weight: 600; font-size: 13px; }
 
 /* v3: guideline layer */
@@ -845,6 +846,7 @@ h3 { letter-spacing: -.02em; }
   <span class="who"><span class="lbl">Uživatel:</span>
     <select id="user" aria-label="Aktuální uživatel (maketa bez přihlášení)"></select></span>
 </header>
+<div id="demobanner"></div>
 <main id="app"><p class="muted" role="status" style="padding:32px">Načítám…</p></main>
 <div id="overlay"></div>
 
@@ -904,6 +906,195 @@ async function apiGet(path, { timeout = 8000 } = {}) {
 function setDemoUser(id) {
   DATA.userId = id;
   try { document.cookie = `cb_demo_user=${encodeURIComponent(id)}; path=/; SameSite=Strict`; } catch (e) { /* cookies blocked: images then load as the default demo user */ }
+}
+/* ---------- write API (step 4, docs/research/backend-steps/step-4.md "As implemented") ----------
+   In API mode every change goes to the Worker, which checks the rule, writes the change and its audit row together, and
+   answers with the stored state; the page shows that state. Embedded mode never calls these functions. */
+const isApi = () => DATA.mode === "api";
+/* The reset epoch of the shared demo data: a tab opened before a reset must not write into the new data, so every
+   write names the epoch it read (GET /api/health, GET /api/workflow, and every answer refresh it). */
+DATA.epoch = null; DATA.demo = null;
+/* Separate so the tests can observe a reload instead of navigating away. */
+DATA.reload = () => location.reload();
+const newKey = () => (globalThis.crypto?.randomUUID ? globalThis.crypto.randomUUID() : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`);
+/* Server times are ISO UTC; the page prints them in local Czech format, as it formats its own times. */
+const fmtWhen = iso => { if (!iso) return ""; const d = new Date(iso); return isNaN(d) ? String(iso) : d.toLocaleString("cs-CZ"); };
+function dataReset() {
+  if (DATA.resetting) return;
+  DATA.resetting = true;
+  toast("Ukázková data byla obnovena, stránka se znovu načte.");
+  setTimeout(() => DATA.reload(), 1500);
+}
+async function apiWrite(method, path, body = {}, { idem, timeout = 20000 } = {}) {
+  const ctl = new AbortController(), t = setTimeout(() => ctl.abort(), timeout);
+  let r, out;
+  try {
+    r = await fetch("/api" + path, { method, signal: ctl.signal, credentials: "same-origin", cache: "no-store", body: JSON.stringify(body ?? {}),
+      headers: { Accept: "application/json", "Content-Type": "application/json", ...(DATA.userId ? { "X-Demo-User": DATA.userId } : {}),
+        ...(DATA.epoch != null ? { "X-Data-Epoch": String(DATA.epoch) } : {}), ...(idem ? { "Idempotency-Key": idem } : {}) } });
+    if (!(r.headers.get("content-type") || "").includes("application/json")) throw Object.assign(new Error("Server neodpověděl platnou odpovědí. Zkuste to znovu."), { code: "no_api", status: r.status });
+    out = await r.json();
+  } catch (e) {
+    if (e.code) throw e;
+    /* The browser's own messages are English; the doctor gets a Czech one, and status 0 marks "the server may not have
+       seen it", so an approval keeps its idempotency key for the retry. */
+    throw Object.assign(new Error(e.name === "AbortError" ? "Server neodpověděl včas. Zkuste to znovu." : "Server neodpovídá. Zkontrolujte připojení a zkuste to znovu."), { code: "network", status: 0 });
+  } finally { clearTimeout(t); }
+  if (out?.data_epoch != null) DATA.epoch = out.data_epoch;
+  if (!r.ok) {
+    const er = out?.error || {};
+    if (er.code === "data_reset") dataReset();
+    throw Object.assign(new Error(er.message_cs || "Změnu se nepodařilo uložit."), { code: er.code || "error", status: r.status, current: er.current, fields: er.fields });
+  }
+  return out;
+}
+/* A conflict answer may carry the server's state; it is shown, so the page never keeps a version the server refused. */
+const isStateShape = c => c && typeof c === "object" && ["cases", "att", "sessions", "mails", "patient", "staff"].some(k => k in c);
+function refused(e) {
+  if (e.code !== "data_reset") toast(e.message);
+  if (isStateShape(e.current)) applyState(e.current);
+  /* Most conflicts carry no state: the page reads what the server holds now, so it never keeps showing a refused view. */
+  else if (e.status === 409 && e.code !== "data_reset") reloadWorkflow();
+}
+/* The stored state of every case again, without dropping what this page has typed and not stored (applyProto). */
+async function reloadWorkflow() {
+  try {
+    const wf = await apiGet("/workflow");
+    if (wf.data_epoch != null) DATA.epoch = wf.data_epoch;
+    applyState({ cases: wf.cases || {}, att: wf.att || {}, sessions: wf.sessions || [], mails: wf.mails || [] });
+    renderIdle();
+  } catch (e) { /* the refusal was shown; the next action tries again */ }
+}
+/* An answer that arrives later must not redraw the discussion fields under the doctor's fingers (IME, focus): while one
+   has focus only the nav is redrawn, and the next action renders the rest. */
+function renderIdle() {
+  const a = document.activeElement;
+  if (a && (a.id === "notes" || a.id === "concl" || a.dataset?.step !== undefined)) { renderNav(); return; }
+  render();
+}
+/* Replaces the parts of S the answer names and keeps the rest (contract: "the page replaces the named parts"). */
+function applyState(st) {
+  if (!st) return;
+  if (st.staff) applyServerStaff(st.staff);
+  if (st.patient) upsertPatient(st.patient);
+  if (st.cases) Object.values(st.cases).forEach(applyCase);
+  if (st.att) Object.entries(st.att).forEach(([k, set]) => applyAtt(set?.key || k, set));
+  if (st.sessions) applySessions(st.sessions);
+  if (st.mails) S.mails = st.mails.slice().sort((a, b) => String(b.when).localeCompare(String(a.when))).map(mailFromApi);
+}
+function upsertPatient(row) {
+  const i = S.patients.findIndex(x => x.file === row.file || x.id === row.id);
+  if (i >= 0) S.patients[i] = { ...S.patients[i], ...row }; else S.patients.push(row);
+}
+/* An alert key on the wire is the page's position key: "3" for a flag, "gap:1" for a data gap. */
+const alertKeyIn = i => /^\d+$/.test(String(i)) ? +i : String(i);
+function applyCase(cs) {
+  const p = S.patients.find(x => x.id === cs.case_id) || (cs.file && P(cs.file));
+  if (!p) return;
+  const file = p.file;
+  if (cs.status) p.status = cs.status;
+  if ("slot" in cs) { p.slot = cs.slot ? { day: cs.slot.day, time: cs.slot.time } : null; if (!p.slot && S.calPop === file) S.calPop = null; }
+  if (cs.updated) p.updated = cs.updated;
+  if (cs.statusHist) p.statusHist = cs.statusHist.map(h => ({ ...h, when: fmtWhen(h.when) }));
+  /* Decisions first: an approved protocol takes its frozen attendance and report from the latest one. */
+  if (cs.decisions) S.decisions = [...S.decisions.filter(d => d.pid !== file), ...cs.decisions.slice().sort((a, b) => (a.version || 0) - (b.version || 0)).map(d => ({
+    id: d.id, version: d.version, pid: file, text: d.text, by: d.by, when: fmtWhen(d.when), slot: d.slot ? { ...d.slot } : null,
+    attSnap: d.attSnap || [], pickSnap: d.pickSnap || null, reportSnap: d.reportSnap || "", supersedes: d.supersedes ?? null }))];
+  if (cs.protocol) applyProto(p, cs.protocol);
+  if (cs.tasks) S.tasks = [...S.tasks.filter(t => t.pid !== file), ...cs.tasks.map(t => ({ ...t, pid: file }))];
+  if (cs.sugg) S.sugg = [...S.sugg.filter(x => x.pid !== file), ...cs.sugg.map(x => ({ ...x, pid: file, when: x.when ? fmtWhen(x.when) : x.when }))];
+  if (cs.edits) {
+    Object.keys(S.edits).filter(k => k.startsWith(file + "|")).forEach(k => delete S.edits[k]);
+    Object.entries(cs.edits).forEach(([k, e]) => { S.edits[`${file}|${k}`] = { ...e, when: fmtWhen(e.when) }; });
+  }
+  if (cs.editLog) S.editLog = [...S.editLog.filter(e => e.pid !== file), ...cs.editLog.map(e => ({ ...e, pid: file, key: `${file}|${e.key}`, when: fmtWhen(e.when) }))];
+  if ("qConfirm" in cs) { if (cs.qConfirm) S.qConfirm[file] = { text: cs.qConfirm.text, by: cs.qConfirm.by, when: fmtWhen(cs.qConfirm.when) }; else delete S.qConfirm[file]; }
+  if ("draft_sha" in cs) S.qSha[file] = cs.draft_sha;
+  if (cs.alertHist) S.alertHist = [...S.alertHist.filter(x => x.pid !== file), ...cs.alertHist.map(x => ({ pid: file, i: alertKeyIn(x.i), action: x.action, who: x.who, when: fmtWhen(x.when) }))];
+}
+/* The server's protocol replaces the page's copy, except while this page holds typed text the server has not stored
+   yet: then the typed text and the version it was typed against stay, so the next save either succeeds or reports the
+   conflict. Nothing typed is overwritten silently. Mode and uploads are view state of this page and are kept. */
+function applyProto(p, sp) {
+  const pr = ensureProto(p), sv = protoSave(p.file);
+  /* An answer read before this page's latest autosave carries an older version; it must not roll the text back. */
+  const older = sp.state === pr.state && (sp.version ?? 0) < (pr.version ?? 0);
+  const pending = ((sv.dirty.size || sv.inflight) && sp.state !== "approved") || older;
+  if (!pending) {
+    Object.assign(pr, { notes: sp.notes ?? "", concl: sp.concl ?? sp.conclusion ?? "", steps: (sp.steps || []).map(s => ({ text: s.text || "", who: s.who || "", due: s.due || "" })), version: sp.version ?? 0 });
+    sv.dirty.clear(); sv.conflict = null;
+  }
+  pr.state = sp.state || "draft";
+  pr.updated_by = sp.updated_by ?? null; pr.updated_at = sp.updated_at ?? null;
+  if (pr.state === "approved") {
+    const last = S.decisions.filter(d => d.pid === p.file).at(-1);
+    Object.assign(pr, { approver: sp.approver || last?.by, when: fmtWhen(sp.approved_at) || last?.when, attSnap: last?.attSnap || [], pickSnap: last?.pickSnap || null, reportSnap: last?.reportSnap || "" });
+  } else { delete pr.approver; delete pr.when; delete pr.attSnap; delete pr.pickSnap; delete pr.reportSnap; }
+}
+/* An attendance set from the server. A placeholder row ("") per department keeps the selects drawable. */
+function applyAtt(key, set) {
+  if (!set || (set.version ?? 0) < (S.attVer[key] ?? 0)) return;
+  const by = set.byName || {}, a = {};
+  DEPTS.forEach(([d]) => { a[d] = (by[d] || []).length ? [...by[d]] : [""]; });
+  Object.entries(by).forEach(([d, xs]) => { if (!a[d] && xs.length) a[d] = [...xs]; });
+  S.attVer[key] = set.version ?? 0;
+  S.attServer[key] = structuredClone(a);
+  /* While another change of this set is still queued, its local rows are newer than this answer. */
+  if (!S.attQueue[key]?.n) S.attByDay[key] = a;
+}
+/* The running seminar is the session that has not ended; another user's start or end shows on the next answer. */
+function applySessions(list) {
+  const open = (list || []).filter(s => !s.ended_at).sort((a, b) => String(a.started_at).localeCompare(String(b.started_at))).at(-1);
+  S.session = open ? { day: open.day, by: open.started_by, at: fmtWhen(open.started_at) } : null;
+}
+/* Mails carry no medical text on the server either: the page builds the "N úloh čeká" line and the link itself. */
+function mailFromApi(m) {
+  if (m.kind === "digest") return { kind: "digest", to: m.to, by: m.by, when: fmtWhen(m.when), n: m.n, body: `${waitingText(m.n)}\n${APP_LINK}` };
+  const p = S.patients.find(x => x.id === m.case_id) || P(m.pid);
+  return { kind: "approval", pid: p?.file || m.pid, id: m.case_id, n: m.n, by: m.by, when: fmtWhen(m.when) };
+}
+/* The staff list from the server. Renames follow open assignments here as on the staff screen (commitStaff). */
+function applyServerStaff(s) {
+  const prev = staffIds();
+  /* Without a roles map (an older server) the page falls back to the title rule in applyStaff. */
+  DATA.serverStaff = { depts: s.depts, coord: s.coord, admin: s.admin || null, ...(s.roles ? { roles: s.roles } : {}), seq: 0 };
+  STAFF = structuredClone(DATA.serverStaff);
+  followStaff(prev);
+}
+/* Workflow state of every case (GET /api/workflow and a user switch start from nothing, so a case the new user may not
+   read keeps nothing from the previous user). */
+function resetWorkflow() {
+  Object.assign(S, { decisions: [], protos: {}, sugg: [], edits: {}, editLog: [], qConfirm: {}, qSha: {}, alertHist: [], attByDay: {}, attVer: {}, attServer: {}, attQueue: {}, mails: [], session: null });
+  Object.keys(PSAVE).forEach(k => { clearTimeout(PSAVE[k].timer); delete PSAVE[k]; });
+}
+/* View events the server cannot see, because the data is already in the page. The server writes fixed Czech text for
+   each code, so the page sends no free text: never a file name, a name or a value. Every other entry of the page's
+   log is an action whose route writes its own audit row, so logAccess sends nothing for it in API mode. */
+const VIEW_EVENTS = [
+  [/^zobrazil\(a\) detail termínu/, "slot_detail_viewed"],
+  [/^otevřel\(a\) doporučení/, "guide_opened"],
+  [/^otevřel\(a\) zdroje prognózy/, "prognosis_sources_opened"],
+  [/^otevřel\(a\) zdroj prognózy/, "prognosis_source_opened"],
+  [/^zobrazil\(a\) zdroj s\. (\d+)/, "source_viewed", m => m[1]],
+  [/^exportoval\(a\) případ jako FHIR/, "fhir_exported"],
+  [/^importoval\(a\) žádost o konzultaci z FHIR/, "fhir_imported", null, true],
+  [/^vytvořil\(a\) PDF report/, "report_downloaded"],
+  [/^zapnul\(a\) AI záznam/, "recording_on"],
+  [/^vypnul\(a\) AI záznam/, "recording_off"],
+  [/^AI záznam se zastavil/, "recording_stopped_all_approved"],
+  [/^AI záznam: rozlišení mluvčích/, "recording_speaker_pass"],
+  [/^AI záznam: shrnutí/, "recording_summary"],
+  [/^AI záznam: zvuk smazán/, "recording_audio_deleted"],
+  [/^nahrál\(a\) (\d+)/, "upload_added", m => m[1]],
+  [/^odebral\(a\) nahraný dokument/, "upload_removed"],
+];
+function sendViewEvent(pid, what) {
+  const hit = VIEW_EVENTS.find(([re]) => re.test(String(what)));
+  if (!hit) return;
+  const [re, code, target, noCase] = hit, p = pid ? P(pid) : null;
+  const body = { code, ...(p && !noCase ? { case_id: p.id } : {}), ...(target ? { target: String(target(String(what).match(re))) } : {}) };
+  /* A lost view event must not break the view; the case read itself is in the server's log already. */
+  apiWrite("POST", "/audit/events", body).catch(() => {});
 }
 /* ---------- source documents: what the server would return for the source view ----------
    The page index (data/derived/page-index.json) holds, per page, the image path and size, the vision
@@ -1138,11 +1329,13 @@ function loadStaff() {
 function saveStaff() { if (DATA.mode === "api") return; try { localStorage.setItem(STAFF_KEY, JSON.stringify(STAFF)); } catch (e) { /* not saved; the list still works for this page view */ } }
 let STAFF = loadStaff();
 let DEPTS, COORD, USERS, DOCTORS, STAFF_FN;
-/* Recomputes every name list the screens use from the staff list. Doctors are the people whose title contains "MUDr.". */
+/* Recomputes every name list the screens use from the staff list. Doctors are the people whose title contains "MUDr.";
+   a list from the server names each person's role instead (roles: id -> "doctor" | "staff" | ...), and the server's
+   rules follow that role, so the page must too. */
 function applyStaff() {
   DEPTS = STAFF.depts.map(d => [d.name, d.people.map(staffName)]);
   COORD = staffName(STAFF.coord);
-  const isMd = x => /MUDr\./.test(`${x.pre || ""} ${x.post || ""}`);
+  const isMd = STAFF.roles ? x => STAFF.roles[x.id] === "doctor" : x => /MUDr\./.test(`${x.pre || ""} ${x.post || ""}`);
   DOCTORS = STAFF.depts.flatMap(d => d.people.filter(isMd).map(staffName));
   USERS = [...DOCTORS, COORD, ADMIN];
   /* Tooltip text per name: function and department, for the user picker, attendance and the staff screen. */
@@ -1150,7 +1343,7 @@ function applyStaff() {
   STAFF.depts.forEach(d => d.people.forEach(x => { STAFF_FN[staffName(x)] = [x.fn, d.name].filter(Boolean).join(", "); }));
 }
 applyStaff();
-const isDefaultStaff = () => JSON.stringify({ ...STAFF, seq: 0 }) === JSON.stringify(defaultStaff());
+const isDefaultStaff = () => { const d = defaultStaff(); return JSON.stringify([STAFF.depts, STAFF.coord]) === JSON.stringify([d.depts, d.coord]); };
 const staffTip = n => STAFF_FN[n] ? ` title="${esc(STAFF_FN[n])}"` : "";
 
 const STATUS = {
@@ -1238,7 +1431,10 @@ const S = {
   ],
   /* Drafted MDT questions a doctor confirmed as written: per patient file, { by, when }. */
   qConfirm: {},
-  mails: [], protos: {}, attByDay: {}, schedPick: null, calPop: null, overlay: null, tlScroll: 0, taskScope: "mine", srcTab: "image",
+  mails: [], protos: {}, attByDay: {}, schedPick: null,
+  /* API mode only: the server's version and last stored rows of each attendance set, the changes still queued per set,
+     and the hash of each case's drafted question as the server sent it (a confirmation names the draft it saw). */
+  attVer: {}, attServer: {}, attQueue: {}, qSha: {}, calPop: null, overlay: null, tlScroll: 0, taskScope: "mine", srcTab: "image",
   /* The running MDT session: { day }. While it is set, every case on that day's agenda shows the session bar. */
   session: null, mdtOpen: {},
   /* Retrospective deviations: per patient, per past statement, the doctor's severity and assessment with who and when. */
@@ -1354,7 +1550,11 @@ function marks(f) {
   return h;
 }
 function toast(msg) { const t = document.createElement("div"); t.className = "toast"; t.textContent = msg; document.body.appendChild(t); setTimeout(() => t.remove(), 2600); }
-function logAccess(pid, what) { S.access.unshift({ pid, what, who: S.user, when: new Date().toLocaleTimeString("cs-CZ", { hour: "2-digit", minute: "2-digit", second: "2-digit" }) }); }
+/* The page's own access log (embedded mode, and a patient that exists only in this browser). In API mode the server
+   writes the log: actions through their routes, views through POST /audit/events with a fixed code (sendViewEvent). */
+function logAccess(pid, what) {
+  if (isApi() && !(pid && P(pid) && isLocal(P(pid)))) { sendViewEvent(pid, what); return; }
+  S.access.unshift({ pid, what, who: S.user, when: new Date().toLocaleTimeString("cs-CZ", { hour: "2-digit", minute: "2-digit", second: "2-digit" }) }); }
 
 /* Paper-style references: each view numbers its sources [1], [2] in order of first use. */
 function refRegistry() {
@@ -1477,8 +1677,9 @@ function ensureCase(p) {
   if (e.state !== "absent") return;
   const syn = SYN.find(s => s.file === p.file);
   if (caseStore.mode !== "api") setReady(p.file, unprocessedCase(p), false);
-  /* The intake demo patient's documents were "uploaded" in this browser, so its prepared fixture is the right data. */
-  else if (isLocal(p)) setReady(p.file, syn ? fromSyn(syn, p.id) : unprocessedCase(p), true);
+  /* The intake demo patient's documents were "uploaded" in this browser, so its prepared fixture is the right data; in API
+     mode the server holds its case (created with intake_fixture) but not its documents until uploads reach it (step 6). */
+  else if (isLocal(p) || syn?.intake_demo) setReady(p.file, syn ? fromSyn(syn, p.id) : unprocessedCase(p), true);
   else if (p.processing === "none") setReady(p.file, unprocessedCase(p), false);
   else loadCase(p);
 }
@@ -1640,12 +1841,17 @@ function renderNav() {
   if (dc) dc.innerHTML = DATA.mode === "api" ? `<span class="chip plain st-ready" title="Data případů načtena ze serveru aplikace; přístupy k případům zapisuje server.">Data: server</span>`
     : DATA.error ? `<span class="chip plain st-attention" title="${esc(`Server s daty se nepodařilo načíst (${DATA.error}). Stránka běží na datech vložených do stránky.`)}">Data: vložená (server nedostupný)</span>`
     : `<span class="chip plain st-new" title="Data jsou vložená do stránky (maketa bez serveru).">Data: vložená</span>`;
+  /* The shared demo (API mode): everyone sees everyone's changes, so every view says so (step 4 design). */
+  const db = document.getElementById("demobanner");
+  if (db) db.innerHTML = DATA.mode === "api" ? `<p class="synth demobanner" role="note">${esc(demoBannerText())}</p>` : "";
   document.getElementById("nav").innerHTML = items.map(([k, t]) => `<button data-nav="${k}" aria-current="${S.view === k || (k === "patients" && S.view === "patient")}">${t}</button>`).join("");
   /* The picker groups doctors by department; the coordinator and the admin keep their role in the label, the value is the name. */
   const opt = (u, label = u) => `<option value="${esc(u)}" ${u === S.user ? "selected" : ""}${staffTip(u)}>${esc(label)}</option>`;
   document.getElementById("user").innerHTML = DEPTS.map(([d, docs]) => docs.filter(n => DOCTORS.includes(n))).map((docs, i) => docs.length ? `<optgroup label="${esc(DEPTS[i][0])}">${docs.map(u => opt(u)).join("")}</optgroup>` : "").join("")
     + `<optgroup label="Další role">${opt(COORD, `${COORD} (${STAFF.coord.fn || "koordinátorka MDT"})`)}${opt(ADMIN, `${ADMIN} (${ADMIN_FN})`)}</optgroup>`;
 }
+
+const demoBannerText = () => `Ukázková data: všechny osoby a případy jsou smyšlené. Změny vidí všichni návštěvníci; správce je může obnovit${DATA.demo?.reset_at ? ` (naposledy ${fmtWhen(DATA.demo.reset_at)})` : ""}.`;
 
 /* ---------- 1. Patient database ---------- */
 /* Excel-style filters: each filterable column header opens a list of its values (Soňa, round 2). */
@@ -1820,7 +2026,8 @@ function qState(p) {
   const e = edOf("q", p.file), c = S.qConfirm[p.file];
   if (e) return { mode: "edited", text: e.text, tag: p.explicit ? "upraveno lékařem" : "doplněno lékařem", tip: `${p.explicit ? "Upravil(a)" : "Doplnil(a)"} ${e.by}, ${e.when}` };
   if (p.explicit) return { mode: "explicit", text: p.question };
-  if (p.draft && c) return { mode: "confirmed", text: p.draft, tag: `otázka potvrzena: ${c.by}`, tip: `Návrh asistenta potvrdil(a) ${c.by}, ${c.when}`, basis: p.basis };
+  /* A confirmation holds for the text it confirmed: a re-extracted draft shows as a draft again (API mode stores the text). */
+  if (p.draft && c && (c.text == null || c.text === p.draft)) return { mode: "confirmed", text: p.draft, tag: `otázka potvrzena: ${c.by}`, tip: `Návrh asistenta potvrdil(a) ${c.by}, ${c.when}`, basis: p.basis };
   if (p.draft) return { mode: "draft", text: p.draft, tag: Q_DRAFT_LBL[p.qkind] || Q_DRAFT_LBL.assistant_inference, basis: p.basis };
   return { mode: "none", text: null };
 }
@@ -1957,6 +2164,15 @@ function alertAct(i, action) {
   const p = P(S.pid), f = warningEntries(p).find(x => x.i === i);
   if (!f || !ALERT_ACT[action]) return;
   const when = new Date().toLocaleString("cs-CZ", { day: "numeric", month: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" });
+  if (isApi()) {
+    /* Shown at once; the server stores the event against the state this page saw, and a refusal removes it again. */
+    if (!canSetStatus()) return;
+    const before = alertState(p.file, i).state, entry = { pid: p.file, i, action, who: S.user, when };
+    S.alertHist.push(entry); render();
+    apiWrite("POST", `/cases/${enc(p.id)}/alerts/${enc(i)}/events`, { action, expected_state: before }).then(r => applyState(r.state))
+      .catch(e => { S.alertHist = S.alertHist.filter(x => x !== entry); refused(e); }).finally(renderIdle);
+    return;
+  }
   S.alertHist.push({ pid: p.file, i, action, who: S.user, when });
   logAccess(p.file, `${ALERT_ACT[action][0]}: ${(ALERT[f.kind] || ALERT.unclear)[0]}`);
   render();
@@ -2175,7 +2391,8 @@ function alertRow(f, compact) {
   const note = String(f.note || "").replace(/^Pozorování asistenta[.:;,]?\s*/i, "").replace(/^./, c => c.toUpperCase());
   const who = last && last.action !== "reopen" ? `<span class="why">${ALERT_ACT[last.action][1]} ${esc(last.who)}, ${esc(last.when)}</span>` : "";
   const histHtml = !compact && hist.length ? `<details class="alhist"><summary>Historie (${hist.length})</summary><ul style="margin:4px 0 0;padding-left:18px">${hist.map(x => `<li>${esc(x.when)} · ${esc(x.who)} · ${ALERT_ACT[x.action][1].toLowerCase()}</li>`).join("")}</ul></details>` : "";
-  const btns = done ? `<button class="btn small" data-alact="reopen" data-ai="${f.i}">Vrátit</button>`
+  /* The administrator reads; the server refuses alert events from that role, so the buttons are not offered (API mode). */
+  const btns = isApi() && !canSetStatus() ? "" : done ? `<button class="btn small" data-alact="reopen" data-ai="${f.i}">Vrátit</button>`
     : `${ack ? `<button class="btn small" data-alact="reopen" data-ai="${f.i}">Vrátit</button>` : `<button class="btn small ackbtn" data-alact="ack" data-ai="${f.i}">Vzít na vědomí</button>`}<button class="btn small ackbtn" data-alact="resolved" data-ai="${f.i}">Vyřešeno</button>`;
   return `<div class="alert ${ack || done ? "ack" : ""}" data-alert="${f.i}"><span class="chip plain ${ALERT[f.kind][1]}">${ALERT[f.kind][0]}</span>
     <span>${esc(f.text_cs)} ${srcLinks(f.based_on)}
@@ -2367,13 +2584,14 @@ function viewStaff() {
       ${edit && !d.people.length ? `<button class="btn small" data-staffdel="dept:${esc(d.id)}" aria-label="Odebrat pracoviště ${esc(d.name)}">Odebrat pracoviště</button>` : ""}</span></div>
     ${edit ? `${d.people.length ? head + d.people.map(x => staffRow(x, true)).join("") : `<p class="muted small">Zatím nikdo.</p>`}
       <div class="srow sadd"><span class="label">Nová osoba</span>${SF.map(([f, l, ph]) => `<input class="input" data-newin="${esc(d.id)}" data-sf="${f}" placeholder="${esc(ph)}" aria-label="${esc(l)} (nová osoba, ${esc(d.name)})">`).join("")}
-        <button class="btn small primary" data-staffadd="${esc(d.id)}">+ Přidat</button></div>`
+        <button class="btn small primary" data-staffadd="${esc(d.id)}">+ Přidat</button></div>
+      ${isApi() ? `<div class="row small" style="margin-top:4px"><label class="row" style="gap:6px">Role nové osoby <select class="input" data-newrole="${esc(d.id)}" style="width:auto" aria-label="Role nové osoby (${esc(d.name)})"><option value="">vyberte…</option><option value="doctor">lékař</option><option value="staff">personál (bez přístupu do aplikace)</option></select></label><span class="muted">Titul MUDr. předvyplní roli lékař.</span></div>` : ""}`
     : `<ul class="slist">${d.people.map(x => staffRow(x, false)).join("") || `<li class="muted small">Zatím nikdo.</li>`}</ul>`}</section>`;
   return `<div class="page"><div class="pagehead"><div><h1>Personál pracoviště</h1><div class="muted small">Lékaři podle pracovišť pro docházku na MDT a výběr uživatele</div></div>
       ${edit ? `<button class="btn" data-act="staffreset">Obnovit výchozí (smyšlená jména)</button>` : ""}</div>
     ${edit ? `<p class="muted small">Odebraná osoba zůstává v historii: v dřívějších závěrech, docházce a záznamu přístupů se jméno nemění. Přejmenování se promítne do otevřených úloh, vlastníků případů a docházky, kterou ještě neuzamklo schválení závěru.</p>`
       : `<p class="muted small">Seznam upravuje koordinátorka MDT nebo správce systému; lékař ho jen čte.</p>`}
-    ${DATA.mode === "api" ? `<p class="small" role="note"><b>Změny seznamu se zatím neukládají na server.</b> Platí jen do obnovení stránky.</p>` : ""}
+    ${DATA.mode === "api" ? `<p class="small" role="note">Změny seznamu se ukládají na server a vidí je všichni uživatelé ukázky. Roli (lékař, nebo personál bez přístupu) určuje volba při přidání osoby, ne titul.</p>` : ""}
     <section class="card staffdept"><div class="head"><h2>Koordinátorka onkologických MDT</h2></div>
       ${edit ? head + staffRow(STAFF.coord, true, false) : `<ul class="slist">${staffRow(STAFF.coord, false)}</ul>`}</section>
     ${STAFF.depts.map(dept).join("")}
@@ -2389,6 +2607,17 @@ const staffTaken = (name, exceptId) => [ADMIN, ...Object.entries(staffIds()).fil
    person from attendance that no approval has frozen, saves, and writes the access log (no patient data). History
    (decisions, attendance snapshots, status history, the access log) keeps the name it stored. */
 function commitStaff(prev, what, opts = {}) {
+  followStaff(prev);
+  if (opts.reset && DATA.mode !== "api") { try { localStorage.removeItem(STAFF_KEY); } catch (e) { /* nothing stored to remove */ } } else saveStaff();
+  logAccess("", what);
+  /* A field edit commits on "change", which fires on blur while focus moves to the next field; re-rendering the page
+     then would throw and drop that focus, so a field edit refreshes only the nav and the row's displayed name. */
+  if (opts.row) staffRowRefresh(opts.row, opts.name, opts.fn); else render();
+}
+function staffRowRefresh(row, name, fn) { renderNav(); const n = row?.querySelector(".sname"); if (n) { n.textContent = name; n.title = fn || ""; } }
+/* What a staff change means for the rest of the page: the name lists, open assignments of a renamed person, and
+   attendance that no approval has frozen (a removed person leaves it). prev is the id -> name map before the change. */
+function followStaff(prev) {
   const now = staffIds(), names = new Set(Object.values(now)), ren = {};
   Object.entries(prev).forEach(([id, n]) => { if (now[id] && now[id] !== n) ren[n] = now[id]; });
   const gone = Object.entries(prev).filter(([id]) => !now[id]).map(([, n]) => n).filter(n => !names.has(n));
@@ -2401,11 +2630,17 @@ function commitStaff(prev, what, opts = {}) {
   Object.values(S.protos).forEach(pr => { if (pr.state !== "approved") pr.steps.forEach(st => { st.who = mv(st.who); }); });
   Object.values(S.attByDay).forEach(a => Object.keys(a).forEach(d => { a[d] = a[d].map(v => gone.includes(v) ? "" : mv(v)); }));
   if (!USERS.includes(S.user)) S.user = COORD;
-  if (opts.reset && DATA.mode !== "api") { try { localStorage.removeItem(STAFF_KEY); } catch (e) { /* nothing stored to remove */ } } else saveStaff();
-  logAccess("", what);
-  /* A field edit commits on "change", which fires on blur while focus moves to the next field; re-rendering the page
-     then would throw and drop that focus, so a field edit refreshes only the nav and the row's displayed name. */
-  if (opts.row) { renderNav(); const n = opts.row.querySelector(".sname"); if (n) { n.textContent = opts.name; n.title = opts.fn || ""; } } else render();
+}
+/* API mode: one staff change on the server, then its answer (the whole list) replaces the page's copy. */
+async function staffApi(method, path, body, done) {
+  try {
+    const r = await apiWrite(method, path, body); applyState(r.state); if (done) done(r); else render();
+    /* A rename or removal also changes draft steps and attendance on the server (new versions); read them, so the next
+       autosave does not report a false conflict. */
+    reloadWorkflow();
+    return true;
+  }
+  catch (e) { refused(e); return false; }
 }
 function staffFind(id) { if (STAFF.coord.id === id) return { x: STAFF.coord, d: null }; for (const d of STAFF.depts) { const x = d.people.find(y => y.id === id); if (x) return { x, d }; } return {}; }
 function staffEdit(t) {
@@ -2417,10 +2652,20 @@ function staffEdit(t) {
   const next = staffName({ ...x, [f]: v });
   if (next !== before && staffTaken(next, x.id)) { t.value = x[f] || ""; toast(`${next} už v seznamu je`); return; }
   if ((x[f] || "") === v) return;
+  if (isApi()) {
+    /* The field already shows the typed value; a refusal puts the stored one back. */
+    const old = x[f] || "", row = t.closest(".srow");
+    staffApi("PATCH", `/staff/people/${encodeURIComponent(x.id)}`, { field: f, value: v, expected: old }, () => { const y = staffFind(x.id).x; staffRowRefresh(row, y ? staffName(y) : next, y?.fn); })
+      .then(ok => { if (!ok) t.value = old; });
+    return;
+  }
   x[f] = v;
   const where = d ? d.name : "koordinátorka MDT";
   commitStaff(prev, f === "fn" ? `změnil(a) funkci v personálu: ${where}, ${next}: ${v || "bez funkce"}` : `přejmenoval(a) v personálu: ${where}, ${before} -> ${next}`, { row: t.closest(".srow"), name: next, fn: x.fn });
 }
+/* The role of a new person (API mode): the server stores the choice and its rules follow it. "MUDr." in the title
+   prefills "lékař"; any other title needs an explicit choice, so nobody becomes a doctor by a guess. */
+const roleGuess = (pre, post) => /MUDr\./.test(`${pre} ${post}`) ? "doctor" : "";
 function staffAdd(deptId) {
   if (!canEditStaff()) return;
   const d = STAFF.depts.find(y => y.id === deptId); if (!d) return;
@@ -2428,6 +2673,12 @@ function staffAdd(deptId) {
   const x = { id: `p${++STAFF.seq}`, pre: val("pre"), sur: val("sur"), post: val("post"), fn: val("fn") };
   if (!x.sur) { toast("Vyplňte příjmení"); document.querySelector(`[data-newin="${CSS.escape(deptId)}"][data-sf="sur"]`)?.focus(); return; }
   if (staffTaken(staffName(x))) { toast(`${staffName(x)} už v seznamu je`); return; }
+  if (isApi()) {
+    const sel = document.querySelector(`[data-newrole="${CSS.escape(deptId)}"]`), role = sel?.value || roleGuess(x.pre, x.post);
+    if (!role) { toast("Vyberte roli nové osoby: lékař, nebo personál bez přístupu."); sel?.focus(); return; }
+    staffApi("POST", `/staff/departments/${encodeURIComponent(deptId)}/people`, { pre: x.pre, sur: x.sur, post: x.post, fn: x.fn, role }, () => { render(); toast(`Přidáno: ${staffName(x)}`); });
+    return;
+  }
   const prev = staffIds(); d.people.push(x);
   commitStaff(prev, `přidal(a) do personálu: ${d.name}, ${staffName(x)}`); toast(`Přidáno: ${staffName(x)}`);
 }
@@ -2436,9 +2687,11 @@ function staffDel(id) {
   const prev = staffIds();
   if (id.startsWith("dept:")) {
     const i = STAFF.depts.findIndex(d => d.id === id.slice(5)); if (i < 0 || STAFF.depts[i].people.length) return;
+    if (isApi()) { staffApi("DELETE", `/staff/departments/${encodeURIComponent(id.slice(5))}`, {}); return; }
     const [d] = STAFF.depts.splice(i, 1); commitStaff(prev, `odebral(a) pracoviště z personálu: ${d.name}`); return;
   }
   const { x, d } = staffFind(id); if (!x || !d) return;
+  if (isApi()) { staffApi("DELETE", `/staff/people/${encodeURIComponent(id)}`, {}, () => { render(); toast(`Odebráno: ${staffName(x)} (v historii zůstává)`); }); return; }
   d.people = d.people.filter(y => y.id !== id);
   commitStaff(prev, `odebral(a) z personálu: ${d.name}, ${staffName(x)}`); toast(`Odebráno: ${staffName(x)} (v historii zůstává)`);
 }
@@ -2456,13 +2709,17 @@ function viewAdmin() {
   const server = !onApi ? "" : `<section class="card" style="padding:0"><div class="head" style="padding:12px 16px"><h2>Záznam přístupů na serveru</h2><button class="btn small" data-act="reloadlog">Obnovit</button></div><div class="scroll"><table class="tbl"><thead><tr><th>Čas</th><th>Uživatel</th><th>Role</th><th>Případ</th><th>Akce</th></tr></thead>
     <tbody>${sl === null || DATA.logLoading ? `<tr><td colspan="5" class="muted" role="status">Načítám záznam ze serveru…</td></tr>` : sl.error ? `<tr><td colspan="5" class="muted" role="alert">${esc(sl.error)}</td></tr>`
       : sl.map(a => `<tr><td class="num">${esc(new Date(a.at).toLocaleString("cs-CZ"))}</td><td>${esc(a.who)}${a.impersonating ? " (zástup)" : ""}</td><td>${esc(a.role)}</td><td class="id">${esc(a.case_id || "-")}</td><td>${esc(a.what)}</td></tr>`).join("") || `<tr><td colspan="5" class="muted">Zatím žádné záznamy.</td></tr>`}</tbody></table></div></section>`;
+  /* Reset of the shared demo data (API mode, only where the server enables it). */
+  const reset = onApi && DATA.demo?.reset_enabled ? `<section class="card"><div class="head"><h2>Ukázková data</h2><button class="btn" data-act="resetdemo">Obnovit ukázková data</button></div>
+    <p class="muted small" style="margin:0">Vrátí případy, závěry, úlohy, docházku, personál a záznam přístupů do výchozího stavu.${DATA.demo.reset_at ? ` Naposledy obnoveno ${esc(fmtWhen(DATA.demo.reset_at))}.` : ""} V ukázce může obnovit kdokoli, kdo zvolí roli správce.</p></section>` : "";
+  /* In API mode the server writes every entry, so the page keeps no log of its own to show. */
   return `<div class="page"><div class="pagehead"><div><h1>Administrace</h1><div class="muted small">Záznam přístupů ke všem případům · jen pro správce systému</div></div></div>
-    ${server}${onApi ? `<h2 style="margin:16px 0 8px">Změny v této relaci (zatím jen v prohlížeči)</h2>` : ""}
-    <section class="card" style="padding:0"><div class="scroll"><table class="tbl"><thead><tr><th>Čas</th><th>Uživatel</th><th>Případ</th><th>Akce</th></tr></thead>
-    <tbody>${S.access.map(a => `<tr><td class="num">${esc(a.when)}</td><td>${esc(a.who)}</td><td class="id">${esc(P(a.pid)?.id || a.pid || "-")}</td><td>${esc(a.what)}</td></tr>`).join("") || `<tr><td colspan="4" class="muted">Zatím žádné přístupy v této relaci. Záznam vznikne otevřením případu nebo zdrojového dokumentu.</td></tr>`}</tbody></table></div></section>
+    ${reset}${server}
+    ${onApi ? "" : `<section class="card" style="padding:0"><div class="scroll"><table class="tbl"><thead><tr><th>Čas</th><th>Uživatel</th><th>Případ</th><th>Akce</th></tr></thead>
+    <tbody>${S.access.map(a => `<tr><td class="num">${esc(a.when)}</td><td>${esc(a.who)}</td><td class="id">${esc(P(a.pid)?.id || a.pid || "-")}</td><td>${esc(a.what)}</td></tr>`).join("") || `<tr><td colspan="4" class="muted">Zatím žádné přístupy v této relaci. Záznam vznikne otevřením případu nebo zdrojového dokumentu.</td></tr>`}</tbody></table></div></section>`}
     <section class="card"><div class="head"><h2>Úpravy lékařů (${S.editLog.length})</h2><span class="muted small">Původní hodnota zůstává; seznam se jen doplňuje</span></div>
       <ul class="hist">${S.editLog.slice().reverse().map(e => `<li class="small"><b>${esc(P(e.pid)?.id || e.pid)}</b> · ${esc(e.by)} · ${esc(e.when)}${e.confirmed ? ` · <b>potvrdil(a) návrh otázky</b><br>Návrh asistenta beze změny: <span class="muted">${esc(e.orig)}</span>` : `${e.reverted ? " · <b>vráceno na původní</b>" : ""}<br>Původně: <span class="muted">${esc(e.orig || GAP)}</span>${e.reverted ? "" : `<br>Nově: ${esc(e.text)}`}`}</li>`).join("") || `<li class="muted small">Zatím žádné úpravy. Záznam vznikne, když lékař v případu pacienta opraví údaj tužkou ✎.</li>`}</ul></section>
-    <p class="muted small">Role správce zde slouží jen k náhledu záznamu; v reálné aplikaci by správce neměl přístup ke klinickému obsahu případů. Záznam se v maketě drží jen v paměti prohlížeče. V reálné aplikaci by byl na serveru nemocnice, neměnný a s dobou uchování podle předpisů FNO.</p></div>`;
+    <p class="muted small">Role správce zde slouží jen k náhledu záznamu; v reálné aplikaci by správce neměl přístup ke klinickému obsahu případů. ${onApi ? "Záznam zapisuje server ukázky a nelze ho měnit; obnova ukázkových dat ho archivuje a začne nový." : "Záznam se v maketě drží jen v paměti prohlížeče."} V reálné aplikaci by byl na serveru nemocnice, neměnný a s dobou uchování podle předpisů FNO.</p></div>`;
 }
 /*PROGNOSIS_JS*/
 
@@ -2485,7 +2742,7 @@ function viewPatient() {
     return `<div class="page">${back}${patientHeader(p, headerActions(p, null), true)}
     <section class="card blk"><div class="head" style="margin:0"><h2>Stručný souhrn</h2><span class="row">${failedSignal()}</span></div>
       <div class="question missing" role="alert"><b>Podklady případu se nepodařilo načíst.</b> ${esc(e.error?.message_cs || e.error?.message || "")}</div>
-      <p><button class="btn" data-act="caseretry">Zkusit znovu</button></p>
+      <p>${e.error?.code === "not_member" && isDoctor(S.user) ? `<button class="btn primary" data-act="bgopen">Otevřít mimo tým</button> ` : ""}<button class="btn" data-act="caseretry">Zkusit znovu</button></p>
       <p class="prose">${esc(p.summary || "")}</p>
       ${conclusionBox(p)}
       ${mdtCard(p)}</section>
@@ -2632,16 +2889,75 @@ function sessionBar(p) {
 /* One discussion record per patient (mode, notes, conclusion draft, steps, approval); attendance belongs to the
    whole seminar, so it is entered once per day. */
 function ensureProto(p) {
-  if (!S.protos[p.file]) S.protos[p.file] = { pid: p.file, mode: "manual", notes: "", concl: "", steps: [], state: "draft" };
+  if (!S.protos[p.file]) S.protos[p.file] = { pid: p.file, mode: "manual", notes: "", concl: "", steps: [], state: "draft", version: 0 };
   return S.protos[p.file];
 }
-/* Attendance is entered once per seminar day and applies to every case that day (Soňa, rounds 1 and 2). */
-const attDay = (p = P(S.pid)) => p?.slot?.day || `bez termínu: ${p?.file}`;
+/* Who may write the discussion record: a doctor, while the conclusion is a draft. The server refuses the coordinator
+   and the administrator the same way, and in API mode a closed case too (embedded mode never checked that). */
+const protoEditable = p => isDoctor(S.user) && ensureProto(p).state !== "approved" && !(isApi() && p.status === "closed");
+/* ---------- autosave of the discussion record (API mode) ----------
+   Typing never waits for the server: each field is stored 800 ms after the last keystroke, on leaving the field, and
+   before approval. One request per case at a time, in order. The server answers with the new version only; the fields
+   are never redrawn from the answer (the conclusion field's IME rule, syncConcl). A version conflict shows a bar in the
+   discussion card with both choices; nothing is overwritten silently. */
+const PSAVE = {};
+const protoSave = file => PSAVE[file] || (PSAVE[file] = { timer: null, dirty: new Set(), inflight: null, conflict: null, approving: false, approveKey: null, approveSig: null });
+const autosaves = p => isApi() && !!p && !isLocal(p);
+function protoTouched(file, field, now = false) {
+  const p = P(file); if (!autosaves(p)) return;
+  const sv = protoSave(file); sv.dirty.add(field); clearTimeout(sv.timer); sv.timer = null;
+  if (now) flushProto(file); else sv.timer = setTimeout(() => flushProto(file), 800);
+}
+/* Resolves true when the server holds everything typed so far, false when a save failed or a conflict waits. */
+async function flushProto(file) {
+  const sv = protoSave(file), p = P(file); clearTimeout(sv.timer); sv.timer = null;
+  while (sv.inflight) await sv.inflight;
+  if (sv.conflict) return false;
+  if (!sv.dirty.size || !autosaves(p)) return true;
+  const pr = ensureProto(p), fields = [...sv.dirty]; sv.dirty.clear();
+  const body = { version: pr.version ?? 0 };
+  if (fields.includes("notes")) body.notes = pr.notes;
+  if (fields.includes("concl")) body.concl = pr.concl;
+  if (fields.includes("steps")) body.steps = pr.steps.map(x => ({ text: x.text, who: x.who, due: x.due }));
+  let ok = true;
+  sv.inflight = (async () => {
+    try {
+      const r = await apiWrite("PUT", `/cases/${encodeURIComponent(p.id)}/protocol`, body);
+      pr.version = r.data?.version ?? (pr.version ?? 0) + 1; pr.updated_by = r.data?.updated_by ?? pr.updated_by; pr.updated_at = r.data?.updated_at ?? pr.updated_at;
+    } catch (e) {
+      ok = false;
+      /* What was not stored stays marked, so it is sent again with the next change, on blur or before approval. */
+      fields.forEach(f => sv.dirty.add(f));
+      if (e.code === "protocol_conflict" && e.current) { sv.conflict = { current: e.current, message: e.message }; showProtoConflict(file); }
+      else {
+        /* An approved or closed record takes no more text; keeping it marked would refuse every later save again. */
+        /* An approved or closed record takes no more text, and invalid input would be refused again on every keystroke:
+           the marks are cleared, the field message shown, and a locked record read again from the server. */
+        if (e.code === "protocol_locked" || e.code === "case_closed" || e.code === "invalid_input") sv.dirty.clear();
+        if (e.fields) toast(`${e.message} ${Object.values(e.fields).join(" ")}`); else refused(e);
+        if (e.code === "protocol_locked" || e.code === "case_closed") reloadWorkflow();
+      }
+    }
+  })();
+  await sv.inflight; sv.inflight = null;
+  return ok && !sv.dirty.size ? true : ok ? flushProto(file) : false;
+}
+function protoConflictHtml(p) {
+  const c = PSAVE[p.file]?.conflict;
+  return c ? `<div class="fwarn" role="alert" style="margin:0 0 10px">${esc(c.message)} <button class="btn small" data-act="prototheirs">Načíst uloženou verzi</button><button class="btn small" data-act="protomine">Přepsat mou verzí</button></div>` : "";
+}
+/* Shown in place: a full render would recreate the conclusion field under the doctor's fingers. */
+function showProtoConflict(file) { const el = document.getElementById("protoconflict"); if (el && S.pid === file) el.innerHTML = protoConflictHtml(P(file)); }
+/* Attendance is entered once per seminar day and applies to every case that day (Soňa, rounds 1 and 2). A case without
+   a slot has its own list, keyed "case:<case id>" as on the server. */
+const attDay = (p = P(S.pid)) => p?.slot?.day || `case:${p?.id}`;
 /* A department added on the staff screen after a day's attendance was started gets an empty row too. */
 function attFor(day = attDay()) { const a = S.attByDay[day] = S.attByDay[day] || {}; DEPTS.forEach(([d]) => { a[d] = a[d] || [""]; }); return a; }
 /* Attendance selects for one seminar day; the grid sits in the attendance dialog ("Zahájit MDT", "Přítomní", "Upravit"). */
 function attGrid(day) {
   const a = attFor(day);
+  /* API mode: the server takes attendance only from doctors and the coordinator, so the administrator reads it. */
+  if (isApi() && !canSetStatus()) return `<p style="margin:4px 0 0">${presentList(day).map(n => esc(n)).join(", ") || "nezadáno"}</p>`;
   return `<div class="att">${DEPTS.map(([d, docs]) => a[d].map((v, k) => `<span class="dept">${k === 0 ? d : ""}</span>
     <select class="input" data-att="${esc(d)}" data-day="${esc(day)}" data-k="${k}" aria-label="${esc(d)}"><option value="">vyberte…</option>${docs.map(x => `<option ${v === x ? "selected" : ""} ${a[d].includes(x) && v !== x ? "disabled" : ""}${staffTip(x)}>${esc(x)}</option>`).join("")}</select>
     ${k === 0 ? `<button class="btn" data-addatt="${esc(d)}" data-day="${esc(day)}" ${a[d].length >= docs.length ? "disabled" : ""}>+ další</button>` : `<button class="btn" data-delatt="${esc(d)}" data-day="${esc(day)}" data-k="${k}" aria-label="Odebrat řádek ${esc(d)}">− odebrat</button>`}`).join("")).join("")}</div>`;
@@ -2940,10 +3256,12 @@ function recPill() {
 function mdtCard(p) {
   const pr = ensureProto(p), day = attDay(p);
   const present = presentList(day);
-  const locked = pr.state === "approved";
+  const locked = pr.state === "approved", ro = !protoEditable(p), approving = !!PSAVE[p.file]?.approving;
   const named = pr.steps.filter(x => x.text.trim());
   const hasConcl = !!pr.concl.trim();
-  const assignees = [COORD, p.owner, ...present].filter((v, i, a) => a.indexOf(v) === i);
+  /* The server accepts only people on the staff list as assignees (a referring doctor from outside is not), so API mode
+     offers only them. */
+  const assignees = [COORD, p.owner, ...present].filter((v, i, a) => a.indexOf(v) === i && (!isApi() || USERS.includes(v)));
   /* Any doctor may approve for the team; the name is recorded, and approving adds them to the attendance. */
   const canApprove = isDoctor(S.user);
   const live = inSession(p);
@@ -2952,20 +3270,21 @@ function mdtCard(p) {
   const shown = locked ? (pr.attSnap || []) : present;
   const closed = p.status === "closed";
   return `<details class="card mdtcard ${live ? "live" : ""}" data-mdtopen="${esc(p.file)}" ${open ? "open" : ""}><summary><h2>Projednání na MDT</h2><span id="mdtchip" style="display:contents">${mdtChip(p)}</span>${live ? `<span class="chip st-scheduled">MDT probíhá</span>` : ""}</summary>
+    <div id="protoconflict">${protoConflictHtml(p)}</div>
     <div class="grid2"><div class="stack">
       <div class="sub"><div class="head"><h3>Záznam diskuse</h3></div>
         <div class="seg2 three" role="group"><button data-mode="manual" aria-pressed="${pr.mode === "manual"}">Ruční poznámky</button><button data-mode="ai" aria-pressed="${pr.mode === "ai"}">${S.rec.on ? `<span class="recdot"></span>` : ""}AI záznam</button><button data-mode="docs" aria-pressed="${pr.mode === "docs"}">Dokumenty${pr.uploads?.length ? ` (${pr.uploads.length})` : ""}</button></div>
         ${pr.mode === "docs" ? uploadsHtml(pr, !canUpload(p), isDoctor(S.user) || S.user === COORD ? "" : "Nahrávat a odebírat dokumenty může lékař nebo koordinátor(ka) MDT.") : pr.mode === "manual" ? `<label class="label" for="notes" style="display:block;margin:12px 0 6px">Průběžné poznámky</label>
-          <textarea class="input" id="notes" placeholder="Poznámky z diskuse" ${locked ? "disabled" : ""}>${esc(pr.notes)}</textarea>`
+          <textarea class="input" id="notes" placeholder="Poznámky z diskuse" ${ro ? "disabled" : ""}>${esc(pr.notes)}</textarea>`
         : recPanel(p)}</div>
       <div class="sub"><div class="head"><h3>Další kroky</h3><span class="row"><span class="muted small">${plural(named.length, "úloha", "úlohy", "úloh")}</span><button class="btn small" data-act="copytasks" ${named.length ? "" : "disabled"}>Kopírovat úlohy</button></span></div>
-        <div class="tasklist">${pr.steps.map((x, i) => `<div class="task"><input class="input" data-step="${i}" data-f="text" value="${esc(x.text)}" placeholder="Úloha" ${locked ? "disabled" : ""}>
-          <select class="input" data-step="${i}" data-f="who" ${locked ? "disabled" : ""}>${assignees.map(a => `<option ${x.who === a ? "selected" : ""}>${esc(a)}</option>`).join("")}</select>
-          <input class="input" type="date" data-step="${i}" data-f="due" value="${esc(x.due)}" ${locked ? "disabled" : ""}>
-          ${locked ? "" : `<button class="btn small" data-delstep="${i}" aria-label="Odebrat úlohu">✕</button>`}</div>`).join("")}</div>
-        ${locked ? "" : `<button class="btn small" data-act="addstep" style="margin-top:10px">+ Přidat úlohu</button>`}</div>
+        <div class="tasklist">${pr.steps.map((x, i) => `<div class="task"><input class="input" data-step="${i}" data-f="text" maxlength="500" value="${esc(x.text)}" placeholder="Úloha" ${ro ? "disabled" : ""}>
+          <select class="input" data-step="${i}" data-f="who" ${ro ? "disabled" : ""}>${(assignees.includes(x.who) || !x.who ? assignees : [x.who, ...assignees]).map(a => `<option ${x.who === a ? "selected" : ""}>${esc(a)}</option>`).join("")}</select>
+          <input class="input" type="date" data-step="${i}" data-f="due" value="${esc(x.due)}" ${ro ? "disabled" : ""}>
+          ${ro ? "" : `<button class="btn small" data-delstep="${i}" aria-label="Odebrat úlohu">✕</button>`}</div>`).join("")}</div>
+        ${ro ? locked ? "" : `<p class="muted small" style="margin:8px 0 0">Další kroky zapisuje lékař.</p>` : `<button class="btn small" data-act="addstep" style="margin-top:10px">+ Přidat úlohu</button>`}</div>
     </div><div class="stack">
-      <div class="sub"><div class="head"><h3>Přítomní (${shown.length})</h3><span class="row">${locked ? "" : `<button class="btn small" data-startday="${esc(day)}" data-attonly="1">Upravit</button>`}<button class="btn small" data-act="copyatt">Kopírovat</button></span></div>
+      <div class="sub"><div class="head"><h3>Přítomní (${shown.length})</h3><span class="row">${locked || (isApi() && !canSetStatus()) ? "" : `<button class="btn small" data-startday="${esc(day)}" data-attonly="1">Upravit</button>`}<button class="btn small" data-act="copyatt">Kopírovat</button></span></div>
         <p style="margin:0">${shown.map(n => `<span${staffTip(n)}>${esc(n)}</span>`).join(", ") || "nezadáno"}</p>
         <p class="muted small" style="margin:6px 0 0">${locked ? `Uzamčeno schválením závěru ${esc(pr.when)}.` : p.slot ? `Platí pro celý seminář (${esc(dayLabel(p.slot.day) + " " + p.slot.day.slice(0, 4))}). ${staffNote()}` : `Pacient nemá termín; přítomnost platí jen pro tento případ. ${staffNote()}`}</p></div>
       <div class="sub"><div class="head"><h3>Schválení závěru</h3></div>
@@ -2973,11 +3292,11 @@ function mdtCard(p) {
           ${p.status === "done" && canSetStatus() ? `<div style="margin:10px 0 0"><button class="btn primary closecase" data-act="closecase">Uzavřít případ</button>
             <p class="muted small" style="margin:6px 0 0">Po vyřízení úloh. Uzavřený případ zmizí z Nenaplánovaných; znovu ho otevře menu stavu v záhlaví.</p></div>` : ""}
           ${p.status === "closed" ? `<p class="small" style="margin:8px 0 0"><span class="chip st-closed">Uzavřen</span> ${(() => { const h = (p.statusHist || []).filter(x => x.to === "closed").at(-1); return h ? `${esc(h.by)}, ${esc(h.when)}` : ""; })()}</p>` : ""}
-          ${closed ? `<p class="small closedmsg" style="margin:8px 0 0">${CLOSED_MSG}</p>` : `<p style="margin:10px 0 0"><button class="btn small" data-act="newversion">Nový závěr (nahradí platný)</button></p>
-          <p class="muted small" style="margin:6px 0 0">Platný závěr zůstane v historii; nový začne jako koncept.</p>`}`
+          ${closed ? `<p class="small closedmsg" style="margin:8px 0 0">${CLOSED_MSG}</p>` : !isApi() || isDoctor(S.user) ? `<p style="margin:10px 0 0"><button class="btn small" data-act="newversion">Nový závěr (nahradí platný)</button></p>
+          <p class="muted small" style="margin:6px 0 0">Platný závěr zůstane v historii; nový začne jako koncept.</p>` : ""}`
         : closed ? `<p class="small closedmsg" style="margin:0">${CLOSED_MSG}</p>`
         : `<p class="small" id="apphint" style="margin:0 0 6px">${apprHint(hasConcl)}</p>
-          <button class="btn primary" data-act="approve" style="width:100%" ${hasConcl && canApprove ? "" : "disabled"}>Schválit závěr MDT</button>
+          <button class="btn primary" data-act="approve" style="width:100%" ${hasConcl && canApprove && !approving ? "" : "disabled"}>${approving ? "Schvaluji…" : "Schválit závěr MDT"}</button>
           <p class="small approver" style="margin:6px 0 0">${isDoctor(S.user) ? `schvaluje za tým: <b>${esc(S.user)}</b>` : "schvaluje lékař"}</p>
           <p class="muted small" style="margin:4px 0 0">${isDoctor(S.user) && !present.includes(S.user) ? "Schválením budete doplněn(a) mezi přítomné. " : ""}Úlohy a report vzniknou až schválením.</p>`}</div>
       ${suggHtml(p)}
@@ -3702,6 +4021,24 @@ function renderOverlay() {
       <p class="muted small" style="margin:0">Úprava se uloží jako změna od ${esc(S.user)} s časem. Původní dokument se nemění a původní hodnota zůstane v historii případu.</p>
       <div class="row" style="justify-content:flex-end">${S.edits[o.key] ? `<button class="btn" data-act="revertedit">Vrátit původní</button>` : ""}<button class="btn primary" data-act="saveedit">Uložit</button></div></div>`;
     document.getElementById("edtext").focus();
+  } else if (o.kind === "breakglass") {
+    /* Break-the-glass (INTEGRATION.md): a doctor outside the case's team opens it only with a stated reason, which the
+       server keeps in the access log for review; the grant expires. */
+    const p = P(o.file);
+    el.innerHTML = `<div class="scrim" data-close="1"></div><div class="modal" role="dialog" aria-label="Otevřít mimo tým">
+      <div class="row spread"><h2>Otevřít mimo tým · ${esc(p?.id || "")}</h2><button class="btn small" data-close="1">Zavřít</button></div>
+      <p style="margin:0">Nejste v týmu tohoto případu. Lékař mimo tým může případ otevřít s uvedením důvodu.</p>
+      <label class="label" for="bgwhy">Důvod přístupu (10 až 500 znaků)</label>
+      <textarea class="input" id="bgwhy" maxlength="500" ${o.err ? `aria-invalid="true" aria-describedby="bgwhy-err"` : ""}>${esc(o.why || "")}</textarea>${o.err ? `<span class="ferr" id="bgwhy-err" role="alert">${esc(o.err)}</span>` : ""}
+      <p class="muted small" style="margin:0">Přístup se zapíše do záznamu přístupů i s důvodem a platí omezenou dobu.</p>
+      <div class="row" style="justify-content:flex-end"><button class="btn" data-act="bgcancel">Zpět na seznam</button><button class="btn primary" data-act="bggo" ${o.busy ? "disabled" : ""}>Otevřít mimo tým</button></div></div>`;
+  } else if (o.kind === "reset") {
+    el.innerHTML = `<div class="scrim" data-close="1"></div><div class="modal" role="dialog" aria-label="Obnovit ukázková data">
+      <div class="row spread"><h2>Obnovit ukázková data</h2><button class="btn small" data-close="1">Zavřít</button></div>
+      <p style="margin:0">Obnova vrátí všechny případy, závěry, úlohy, docházku, personál a záznam přístupů do výchozího stavu ukázky. Změny všech návštěvníků se ztratí; otevřené stránky se znovu načtou.</p>
+      <label class="label" for="resetconfirm">Pro potvrzení napište OBNOVIT</label>
+      <input class="input" id="resetconfirm" autocomplete="off" value="${esc(o.typed || "")}" ${o.err ? `aria-invalid="true" aria-describedby="resetconfirm-err"` : ""}>${o.err ? `<span class="ferr" id="resetconfirm-err" role="alert">${esc(o.err)}</span>` : ""}
+      <div class="row" style="justify-content:flex-end"><button class="btn" data-close="1">Zrušit</button><button class="btn primary" data-act="resetgo" ${o.busy ? "disabled" : ""}>Obnovit ukázková data</button></div></div>`;
   } else if (o.kind === "new") {
     const step = o.step;
     /* Round 20: only identity and the GDPR consent are required. The history comes from the uploaded documents and
@@ -3716,8 +4053,10 @@ function renderOverlay() {
     /* A birth number already in the database may be the same person (CLAUDE.md: never merge or duplicate patients
        silently), so the form links the existing case and asks for an explicit choice before a second record. */
     const dp = o.dup && P(o.dup);
-    const dupWarn = dp ? `<span class="fwarn" role="alert">Pacient s tímto rodným číslem už v databázi je:
-      <button type="button" class="linkbtn" data-act="opendup">${esc(surnameFirst(dp))}, ${esc(dp.id)}</button>.
+    /* API mode: the server may know a case this user cannot see (dupId only), and a second record needs a reason. */
+    const dupWarn = dp || o.dupId ? `<span class="fwarn" role="alert">Pacient s tímto rodným číslem už v databázi je:
+      ${dp ? `<button type="button" class="linkbtn" data-act="opendup">${esc(surnameFirst(dp))}, ${esc(dp.id)}</button>` : esc(o.dupId)}.
+      ${isApi() ? `<label style="display:block;width:100%;font-weight:500;color:var(--fg)">Důvod druhého záznamu <span class="fhint">10 až 300 znaků, uloží se k případu</span><input class="input" id="nfdupwhy" autocomplete="off" maxlength="300" value="${esc(o.dupWhy || "")}" ${o.dupErr ? `aria-invalid="true" aria-describedby="nfdupwhy-err"` : ""}></label>${o.dupErr ? `<span class="ferr" id="nfdupwhy-err">${esc(o.dupErr)}</span>` : ""}` : ""}
       <button type="button" class="btn small" data-act="newdupok">Přesto vytvořit nový záznam</button></span>` : "";
     el.innerHTML = `<div class="scrim" data-close="1"></div><div class="modal" role="dialog" aria-label="Nový pacient">
       <div class="row spread"><h2>Nový pacient</h2><button class="btn small" data-close="1">Zavřít</button></div>
@@ -3742,7 +4081,7 @@ function renderOverlay() {
         ${o.progress >= pipe.length ? `<p class="small" style="margin:0"><b>Hotovo.</b> ${(() => { const ik = intakeOf(o); return ik?.ready
           ? `Zpracováno ${plural(ik.docs.length, "dokument", "dokumenty", "dokumentů")} (${esc(ik.s.list_entry.page_count)} s.), všechny dobře čitelné. Chybějící podklady: ${(ik.s.data_gaps || []).length}, ukážou se v detailu pacienta.`
           : "Dokumenty jsou nahrané. Maketa zpracovává jen připravené dokumenty ukázkového pacienta, tento záznam zůstane bez extrakce."; })()}</p>
-          <div class="row" style="justify-content:flex-end"><button class="btn primary" data-act="newdone">Přidat do databáze</button></div>` : ""}`}
+          <div class="row" style="justify-content:flex-end"><button class="btn primary" data-act="newdone" ${o.busy ? "disabled" : ""}>${o.busy ? "Ukládám…" : "Přidat do databáze"}</button></div>` : ""}`}
     </div>`;
   }
 }
@@ -3793,7 +4132,9 @@ function readHash() {
   return true;
 }
 /* hashSet marks the one hashchange event that our own writeHash caused; it is cleared on first use so later back/forward to the same hash still works. */
-window.addEventListener("hashchange", () => { if (S.hashSet && location.hash === S.hashSet) { S.hashSet = null; return; } S.hashSet = null; if (readHash()) render(); });
+/* Two renders in a row (a case view whose data arrives and moves to its first tab) fire two hashchange events for our own
+   writes; a hash that already matches the page's state is ours too, and reading it would close an open dialog. */
+window.addEventListener("hashchange", () => { if ((S.hashSet && location.hash === S.hashSet) || location.hash === hashOf()) { S.hashSet = null; return; } S.hashSet = null; if (readHash()) render(); });
 /* keepTab: moving between cases during an MDT keeps the tab the team is looking at. */
 function openPatient(file, keepTab = false, what = "otevřel(a) případ") {
   if (S.pid !== file) S.tlExcluded = new Set();
@@ -3809,6 +4150,8 @@ function caseOpened(file, what, viaLink = false) {
   if (DATA.mode !== "api" || (p && isLocal(p))) { logAccess(file, what); return; }
   if (!p) return;
   apiGet(`/cases/${encodeURIComponent(p.id)}${viaLink ? "?via=link" : ""}`).catch(e => {
+    /* A doctor outside the case's team may open it with a stated reason (break-the-glass) instead of being sent back. */
+    if (e.code === "not_member" && isDoctor(S.user) && S.view === "patient" && S.pid === file) { S.overlay = { kind: "breakglass", file, msg: e.message }; renderOverlay(); return; }
     toast(e.message);
     if (e.status >= 400 && e.status < 500 && S.view === "patient" && S.pid === file) { S.view = "patients"; S.overlay = null; renderOverlay(); render(); }
   });
@@ -3855,6 +4198,7 @@ document.addEventListener("click", e => {
     /* The menu offers only the allowed moves; this guard repeats the rule for any other path to the handler. */
     const p = P(S.pid); if (!canSetStatus() || !manualMoves(p).includes(d.setst)) return;
     const reopen = p.status === "closed"; S.stOpen = null;
+    if (isApi()) { statusApi(p, d.setst); return; }
     if (d.setst === "closed") closeCase(p, "ručně");
     else { setStatus(p, d.setst, reopen ? "ručně, znovu otevřeno" : "ručně"); toast(reopen ? "Případ znovu otevřen" : `Stav změněn na ${STATUS[d.setst][0]}`); }
     render();
@@ -3873,14 +4217,20 @@ document.addEventListener("click", e => {
   else if (d.guide) { S.overlay = { kind: "guide", id: d.guide }; logAccess(S.pid, "otevřel(a) doporučení"); renderOverlay(); }
   else if (d.edit) { S.overlay = { kind: "edit", key: d.edit, orig: d.orig }; renderOverlay(); }
   else if (d.scope) { S.taskScope = d.scope; render(); }
-  else if (d.addatt) { attFor(d.day || attDay())[d.addatt].push(""); render(); if (S.overlay?.kind === "start") renderOverlay(); }
+  else if (d.addatt) { if (isApi() && !canSetStatus()) return; attFor(d.day || attDay())[d.addatt].push(""); render(); if (S.overlay?.kind === "start") renderOverlay(); }
   else if (d.staffdel) staffDel(d.staffdel);
   else if (d.staffadd) staffAdd(d.staffadd);
-  else if (d.delatt) { attFor(d.day || attDay())[d.delatt].splice(+d.k, 1); render(); if (S.overlay?.kind === "start") renderOverlay(); }
+  else if (d.delatt) {
+    const key = d.day || attDay(); if (isApi() && !canSetStatus()) return;
+    const [was] = attFor(key)[d.delatt].splice(+d.k, 1); render(); if (S.overlay?.kind === "start") renderOverlay();
+    /* An empty row is the page's own placeholder; only removing a person changes the stored list. */
+    if (was) attChanged(key);
+  }
   else if (d.startday) { S.overlay = { kind: "start", day: d.startday, from: d.startfrom || null, attOnly: !!d.attonly }; renderOverlay(); }
   else if (d.startgo) {
     /* Started from a case header, the session opens on that case; from the calendar, on the first case of the day. */
     const ag = dayAgenda(d.startgo), first = ag.find(a => a.file === d.startfrom) || ag[0];
+    if (isApi()) { sessionStartApi(d.startgo, first); return; }
     S.overlay = null; renderOverlay();
     if (first) { S.session = { day: d.startgo }; delete S.mdtOpen[first.file]; openPatient(first.file, false, "zahájil(a) MDT, otevřel(a) případ"); }
   }
@@ -3929,22 +4279,217 @@ document.addEventListener("click", e => {
   else if (d.mode) { curProto().mode = d.mode; render(); }
   else if (d.recretry !== undefined) recPostPass(S.pid, S.rec.tx[S.pid]?.passes[+d.recretry]);
   else if (d.delnew) { S.overlay.files.splice(+d.delnew, 1); renderOverlay(); }
-  else if (d.delup) { if (!canUpload(P(S.pid))) return; const pr = curProto(), u = pr.uploads.splice(+d.delup, 1)[0]; logAccess(S.pid, `odebral(a) nahraný dokument ${u.name}`); render(); }
-  else if (d.delstep !== undefined) { curProto().steps.splice(+d.delstep, 1); render(); }
-  else if (d.suggok || d.suggno) confirmSugg(+(d.suggok || d.suggno), !!d.suggok);
-  else if (d.done) { const task = S.tasks.find(x => x.id === +d.done); task.done = t.checked; renderNav(); render(); }
+  else if (d.delup) {
+    if (!canUpload(P(S.pid))) return;
+    /* The file name stays out of the server's log (it may name the patient); the embedded log keeps it as before. */
+    const pr = curProto(), u = pr.uploads.splice(+d.delup, 1)[0]; logAccess(S.pid, isApi() ? "odebral(a) nahraný dokument" : `odebral(a) nahraný dokument ${u.name}`); render();
+  }
+  else if (d.delstep !== undefined) { if (!protoEditable(P(S.pid))) return; curProto().steps.splice(+d.delstep, 1); protoTouched(S.pid, "steps", true); render(); }
+  else if (d.suggok || d.suggno) confirmSugg(d.suggok || d.suggno, !!d.suggok);
+  else if (d.done) {
+    /* Ids are compared as text: the server's ids need not be numbers. */
+    const task = S.tasks.find(x => String(x.id) === d.done); if (!task) return;
+    if (isApi()) { taskDoneApi(task, t.checked); return; }
+    task.done = t.checked; renderNav(); render();
+  }
   else if (d.act) action(d.act);
 });
 const curProto = () => ensureProto(P(S.pid));
 /* A doctor confirms or dismisses each drafted task; only a confirmed one joins the task list, with who confirmed it. */
 function confirmSugg(id, accept) {
   /* The buttons are rendered only for doctors; this guard repeats the rule for any other path to the handler. */
-  const x = S.sugg.find(y => y.id === id); if (!x || x.state !== "draft" || !canConfirmSugg()) return;
+  const x = S.sugg.find(y => String(y.id) === String(id)); if (!x || x.state !== "draft" || !canConfirmSugg()) return;
+  if (isApi()) {
+    const pid = x.pid, id = x.id;
+    (SUGG_PENDING[id] || Promise.resolve()).then(() => {
+      const y = S.sugg.find(z => String(z.id) === String(id)); if (!y || y.state !== "draft") return;
+      return caseApi(P(pid), "POST", `/suggestions/${enc(id)}/${accept ? "confirm" : "dismiss"}`, {}, () => toast(accept ? "Úloha potvrzena" : "Návrh zamítnut"), `sugg:${id}`);
+    });
+    return;
+  }
   x.state = accept ? "confirmed" : "dismissed"; x.by = S.user; x.when = new Date().toLocaleString("cs-CZ");
   /* The task keeps where its due date came from (computed, typed, or left for a person), so the label travels with it. */
   if (accept) S.tasks.push({ id: Math.max(0, ...S.tasks.map(t => t.id)) + 1, pid: x.pid, text: x.text, who: x.who, due: x.due, dueSrc: x.dueSrc, dueBy: x.dueBy, timing: x.timing, done: false, fromSugg: x.id, confirmedBy: x.by });
   logAccess(x.pid, accept ? "potvrdil(a) návrh úlohy" : "zamítl(a) návrh úlohy");
   toast(accept ? "Úloha potvrzena" : "Návrh zamítnut"); render();
+}
+/* ---------- API mode: one function per kind of change (step 4) ----------
+   Pessimistic changes (status, slots, approval, confirmations, sessions, creation) wait for the server and then show
+   its state; the busy key ignores a second click while the first is on its way. Optimistic ones (attendance, task
+   done, alert events) show the change at once and put the stored state back when the server refuses. */
+const enc = v => encodeURIComponent(String(v));
+const BUSY = new Set();
+const SUGG_PENDING = {};
+async function caseApi(p, method, path, body, onOk, busyKey, opts = {}) {
+  if (busyKey && BUSY.has(busyKey)) return null;
+  if (busyKey) BUSY.add(busyKey);
+  try { const r = await apiWrite(method, path, body, opts); applyState(r.state); if (onOk) onOk(r); return r; }
+  catch (e) { refused(e); if (opts.onErr) opts.onErr(e); return null; }
+  finally { if (busyKey) BUSY.delete(busyKey); renderIdle(); }
+}
+function statusApi(p, to) {
+  const reopen = p.status === "closed", was = slotText(p);
+  caseApi(p, "POST", `/cases/${enc(p.id)}/status`, { to, expected_status: p.status }, r => {
+    if (to === "closed") { recPurge([p.file], "případ uzavřen"); toast(r.data?.slot_released ? `Případ uzavřen, termín ${was} uvolněn` : "Případ uzavřen"); }
+    else toast(reopen ? "Případ znovu otevřen" : `Stav změněn na ${STATUS[to][0]}`);
+  }, `status:${p.file}`);
+}
+/* After a refused booking the calendar is reloaded, so it shows who holds the slot now instead of the page's old view. */
+async function refreshPatients() {
+  try {
+    const list = await apiGet("/patients");
+    (list.patients || []).forEach(row => { const p = S.patients.find(x => x.file === row.file); if (p) Object.assign(p, { status: row.status, slot: row.slot, updated: row.updated }); else S.patients.push(row); });
+    render();
+  } catch (e) { /* the refusal toast already told the user; the next action reloads */ }
+}
+function scheduleApi(file, slot) {
+  const [day, time] = slot.split(" "), p = P(file);
+  if (!canSetStatus()) { toast("Termín plánuje lékař nebo koordinátorka."); return; }
+  caseApi(p, "PUT", `/cases/${enc(p.id)}/slot`, { day, time }, r => {
+    const sem = seminarOn(day), oot = sem && (time < sem[0] || time >= sem[1]), warn = r.data?.warning_cs || (oot ? "mimo čas semináře" : "");
+    toast(`${surnameFirst(p)} naplánován(a) na ${slotText(p)}${warn ? ` (${warn})` : ""}`); S.schedPick = null; S.calPop = p.file;
+  }, "slot", { onErr: e => { if (e.code === "slot_taken") refreshPatients(); } });
+}
+function unscheduleApi(p) {
+  if (!canSetStatus()) { toast("Termín uvolňuje lékař nebo koordinátorka."); return; }
+  caseApi(p, "DELETE", `/cases/${enc(p.id)}/slot`, {}, () => { S.calPop = null; S.schedPick = null; toast(`Termín pro ${surnameFirst(p)} uvolněn`); }, "slot");
+}
+async function taskDoneApi(task, done) {
+  if (!canSetStatus()) { render(); return; }
+  const was = !!task.done; task.done = done; renderNav(); render();
+  try { const r = await apiWrite("PATCH", `/tasks/${enc(task.id)}`, { done, expected_done: was }); applyState(r.state); }
+  catch (e) { const t = S.tasks.find(x => String(x.id) === String(task.id)); if (t) t.done = was; refused(e); }
+  renderIdle();
+}
+function sessionStartApi(day, first) {
+  if (!canSetStatus()) { toast("MDT zahajuje lékař nebo koordinátorka."); return; }
+  caseApi(null, "POST", "/sessions", { day }, () => {
+    S.overlay = null; renderOverlay();
+    if (first) { delete S.mdtOpen[first.file]; openPatient(first.file, false, "zahájil(a) MDT, otevřel(a) případ"); }
+  }, "session");
+}
+/* The server knows attendance by department id and user id; the page holds names, looked up in the current staff list. */
+function attBody(key) {
+  const a = attFor(key), by = {};
+  STAFF.depts.forEach(d => { const ids = (a[d.name] || []).filter(Boolean).map(n => d.people.find(x => staffName(x) === n)?.id).filter(Boolean); if (ids.length) by[d.id] = ids; });
+  return { version: S.attVer[key] ?? 0, by_dept: by };
+}
+/* One request per set at a time, each built from the page's rows when it leaves, so quick changes neither overtake
+   each other nor send a stale version. A refusal puts back the rows the server last stored. */
+function attChanged(key) {
+  if (!isApi()) return;
+  const q = S.attQueue[key] || (S.attQueue[key] = { n: 0, gen: 0, chain: Promise.resolve() });
+  q.n++;
+  const gen = q.gen;
+  q.chain = q.chain.then(async () => {
+    /* After a conflict the changes queued behind it were made on rows the server no longer holds; they are dropped. */
+    if (gen !== q.gen) return;
+    try { const r = await apiWrite("PUT", `/attendance/${enc(key)}`, attBody(key)); q.n--; applyState(r.state); }
+    catch (e) {
+      q.n--;
+      /* A conflict carries the set as the server holds it now (another user's edit); anything else puts back the last
+         stored rows. */
+      if (e.code === "attendance_conflict" && e.current?.byName) { q.gen++; q.n = 0; applyAtt(key, e.current); toast(e.message); }
+      else { q.gen++; q.n = 0; S.attByDay[key] = structuredClone(S.attServer[key] || {}); refused(e); }
+    }
+    renderIdle(); if (S.overlay?.kind === "start") renderOverlay();
+  });
+}
+async function approveApi(p, pr) {
+  const sv = protoSave(p.file);
+  if (sv.approving) return;
+  if (sv.conflict) { toast("Nejdřív rozhodněte o souběžné úpravě konceptu (lišta v části Projednání na MDT)."); return; }
+  /* Set before the first await, so a second click finds the approval running. */
+  sv.approving = true;
+  const b = document.querySelector('[data-act="approve"]'); if (b) { b.disabled = true; b.textContent = "Schvaluji…"; }
+  try {
+    /* The server approves what it stores, so everything typed is stored first. */
+    if (!(await flushProto(p.file)) || pr.state === "approved") return;
+    /* An attendance change still on its way would make the server's list differ from the frozen one. */
+    await S.attQueue[attDay(p)]?.chain;
+    /* The approving doctor was at the meeting (round 20): the frozen list includes them, as the server will. */
+    const present = presentList(attDay(p)).slice(); if (!present.includes(S.user)) present.push(S.user);
+    const body = { protocol_version: pr.version ?? 0, conclusion: pr.concl, picked_sections: [...S.picked],
+      report_html: reportHtml(p, { ...pr, state: "approved", approver: S.user }, present), attendance_expected: present };
+    /* One key per approval; a retry after a lost answer reuses it, so the server replays its answer instead of making a
+       second decision. A changed approval gets a new key. */
+    const sig = JSON.stringify([body.protocol_version, body.conclusion, body.attendance_expected, body.picked_sections]);
+    if (sv.approveSig !== sig) { sv.approveKey = newKey(); sv.approveSig = sig; }
+    const n = pr.steps.filter(x => x.text.trim()).length;
+    let r;
+    try { r = await apiWrite("POST", `/cases/${enc(p.id)}/decisions`, body, { idem: sv.approveKey }); }
+    catch (e) {
+      if (e.status) { sv.approveKey = null; sv.approveSig = null; }
+      /* A colleague stored a newer draft: the same bar as for autosave, so the doctor sees both and decides. */
+      if (e.code === "protocol_conflict" && e.current) { sv.conflict = { current: e.current, message: e.message }; showProtoConflict(p.file); toast(e.message); }
+      else refused(e);
+      return;
+    }
+    sv.approveKey = null; sv.approveSig = null;
+    applyState(r.state);
+    recAfterApprove(p.file);
+    toast(`Závěr schválen${n ? `, koordinátorce ${n === 1 ? "odeslána 1 úloha" : n <= 4 ? `odeslány ${n} úlohy` : `odesláno ${n} úloh`}` : ""}`);
+  } finally { sv.approving = false; render(); }
+}
+function newCaseBody(o) {
+  const f = o.form || {}, ik = intakeOf(o);
+  /* An override holds only for the birth number it was given (as dupOk); a changed number is checked again. */
+  const ov = o.override && o.override.birth_number === rcKey(f.nf2) ? o.override : null;
+  return { first_name: f.nf0, last_name: f.nf1, birth_number: f.nf2, consent: !!f.nfg,
+    ...(f.nfq ? { question: f.nfq } : {}), ...(f.nf4 ? { owner: f.nf4 } : {}), ...(f.nf5 ? { dept: f.nf5 } : {}),
+    /* The intake demo patient's prepared record (samples/S02): the server creates its case once; its content stays the
+       page's fixture until uploads reach the server (step 6). */
+    ...(ik?.ready ? { intake_fixture: ik.s.file.split("_")[0] } : {}), ...(ov ? { duplicate_override: ov } : {}) };
+}
+const NF_FIELD = { first_name: "nf0", last_name: "nf1", birth_number: "nf2", consent: "nfg", question: "nfq", owner: "nf4", dept: "nf5" };
+async function newCaseApi(o) {
+  if (o.busy) return;
+  const ik = intakeOf(o), body = newCaseBody(o), sig = JSON.stringify(body);
+  if (o.idemSig !== sig) { o.idem = newKey(); o.idemSig = sig; }
+  o.busy = true; renderOverlay();
+  try {
+    const r = await apiWrite("POST", "/cases", body, { idem: o.idem });
+    applyState(r.state);
+    const p = r.state?.patient && S.patients.find(x => x.file === r.state.patient.file || x.id === r.state.patient.id);
+    S.overlay = null; renderOverlay(); toast(`Pacient ${p?.id || ""} přidán do databáze`);
+    if (p && ik?.ready) openPatient(p.file); else { S.view = "patients"; S.colf = {}; render(); }
+  } catch (e) {
+    o.busy = false;
+    if (e.status) { o.idem = null; o.idemSig = null; }
+    if (e.code === "duplicate_birth_number") { Object.assign(o, { step: 0, dup: S.patients.find(x => x.id === e.current?.case_id)?.file || null, dupId: e.current?.case_id || "", override: null, errs: {} }); renderOverlay(); return; }
+    if (e.code === "override_reason_required") { Object.assign(o, { step: 0, dupErr: e.message }); renderOverlay(); return; }
+    if (e.fields) {
+      o.errs = {}; Object.entries(e.fields).forEach(([k, m]) => { if (/reason|override/.test(k)) o.dupErr = m; else o.errs[NF_FIELD[k] || k] = m; });
+      o.step = 0; renderOverlay(); toast(e.message); return;
+    }
+    refused(e); renderOverlay();
+  }
+}
+async function breakGlassApi(o) {
+  const p = P(o.file), why = (document.getElementById("bgwhy")?.value || "").trim(); o.why = why;
+  if (why.length < 10 || why.length > 500) { o.err = "Uveďte důvod přístupu (10 až 500 znaků)."; renderOverlay(); return; }
+  if (o.busy) return;
+  o.busy = true; o.err = null; renderOverlay();
+  try { await apiWrite("POST", `/cases/${enc(p.id)}/break-glass`, { reason: why }); }
+  catch (e) { o.busy = false; o.err = e.message; renderOverlay(); return; }
+  /* The grant is in place: open the case again, so the server logs the opening and sends the case data. */
+  S.overlay = null; renderOverlay();
+  /* The workflow loaded at startup left this case out (no access then); read it now, so its decisions and tasks show. */
+  await reloadWorkflow();
+  const ce = caseOf(p); ce.state = "absent"; ce.error = null; ce.guide = null;
+  toast("Přístup mimo tým zapsán do záznamu přístupů");
+  openPatient(p.file, true, "otevřel(a) případ mimo tým");
+}
+async function resetDemoApi(o) {
+  const typed = (document.getElementById("resetconfirm")?.value || "").trim(); o.typed = typed;
+  if (typed !== "OBNOVIT") { o.err = "Pro obnovu napište OBNOVIT."; renderOverlay(); return; }
+  if (o.busy) return;
+  o.busy = true; o.err = null; renderOverlay();
+  try { await apiWrite("POST", "/admin/reset-demo", { confirm: "OBNOVIT" }); }
+  catch (e) { o.busy = false; o.err = e.message; renderOverlay(); return; }
+  S.overlay = null; renderOverlay();
+  toast("Ukázková data obnovena, stránka se znovu načte.");
+  setTimeout(() => DATA.reload(), 1200);
 }
 async function copyText(text, what) {
   try { await navigator.clipboard.writeText(text); toast(`${what} zkopírováno`); } catch (e) { toast("Kopírování není v tomto prohlížeči dostupné"); }
@@ -3964,7 +4509,7 @@ function action(a) {
     if (a === "fhircopy") navigator.clipboard?.writeText(json).then(() => toast("Zkopírováno do schránky"), () => toast("Kopírování se nepodařilo; označte text ručně"));
     else { const u = URL.createObjectURL(new Blob([json], { type: "application/fhir+json" })), l = document.createElement("a"); l.href = u; l.download = `${o.id}-fhir-r4.json`; document.body.appendChild(l); l.click(); l.remove(); setTimeout(() => URL.revokeObjectURL(u), 1000); }
   }
-  else if (a === "newpatient") { S.overlay = { kind: "new", step: 0, files: [], progress: 0 }; renderOverlay(); }
+  else if (a === "newpatient") { if (isApi() && !canSetStatus()) { toast("Pacienta zakládá lékař nebo koordinátorka."); return; } S.overlay = { kind: "new", step: 0, files: [], progress: 0 }; renderOverlay(); }
   else if (a === "fhiropen" || a === "fhirclose") { const o = S.overlay; readNewForm(o); o.fhirOpen = a === "fhiropen"; o.fhirMsg = ""; renderOverlay(); }
   else if (a === "fhirsample") { const o = S.overlay; readNewForm(o); o.fhirText = JSON.stringify(SYN.find(x => x.intake_demo)?.fhir_referral || FHIR_SAMPLE, null, 2); renderOverlay(); }
   else if (a === "fhirimport") { const o = S.overlay; const t = document.getElementById("nffhir")?.value || ""; readNewForm(o); o.fhirText = t; fhirImport(o, t); renderOverlay(); }
@@ -3982,22 +4527,32 @@ function action(a) {
       else if (!/^\d{6}\/?\d{3,4}$/.test(o.form.nf2)) e.nf2 = "Rodné číslo zadejte ve tvaru 123456/7890.";
       if (!o.form.nfg) e.nfg = "Bez souhlasu se zpracováním údajů nelze žádost odeslat.";
       o.errs = e;
-      if (Object.keys(e).length) { o.dup = null; renderOverlay(); document.getElementById(Object.keys(e)[0])?.focus(); return; }
+      if (Object.keys(e).length) { o.dup = null; o.dupId = null; renderOverlay(); document.getElementById(Object.keys(e)[0])?.focus(); return; }
       /* Compare birth numbers without the slash, the only formatting the format check allows. */
       const rcN = o.form.nf2.replace("/", ""), dup = S.patients.find(x => x.rc && x.rc.replace("/", "") === rcN);
       if (dup && o.dupOk !== rcN) { o.dup = dup.file; renderOverlay(); return; }
-      o.dup = null;
+      o.dup = null; o.dupId = null;
     }
     o.step++; renderOverlay();
     if (o.step === 2) { const tick = () => { o.progress++; renderOverlay(); if (o.progress < 4) setTimeout(tick, 550); }; setTimeout(tick, 450); }
   }
   else if (a === "newback") { S.overlay.step--; renderOverlay(); }
   else if (a === "newdupok") {
+    /* API mode: a second record for a known birth number needs a stated reason, which the server keeps in its log. */
+    if (isApi()) {
+      const o = S.overlay, why = (document.getElementById("nfdupwhy")?.value || "").trim(), rc = rcKey(document.getElementById("nf2")?.value.trim() || "");
+      o.dupWhy = why;
+      if (why.length < 10) { o.dupErr = "Uveďte důvod, proč zakládáte druhý záznam (nejméně 10 znaků)."; readNewForm(o); renderOverlay(); document.getElementById("nfdupwhy")?.focus(); return; }
+      o.dupErr = null; o.override = { birth_number: rc, reason: why };
+      /* The server found the duplicate (a case this user may not see): the form is complete, so continue from here. */
+      if (!o.dup && o.dupId) { o.dupId = null; o.dupOk = rc; readNewForm(o); o.step = 1; renderOverlay(); return; }
+    }
     /* The confirmation holds only for the birth number it was given; a changed number is checked again. */
     S.overlay.dupOk = (document.getElementById("nf2")?.value.trim() || "").replace("/", ""); action("newnext");
   }
   else if (a === "opendup") { const f = S.overlay.dup; S.overlay = null; renderOverlay(); openPatient(f); }
   else if (a === "newdone") {
+    if (isApi()) { newCaseApi(S.overlay); return; }
     const n = S.patients.length + 11;
     /* Identity and the optional question come from the form; everything else waits for the documents. */
     const f = S.overlay.form || {}, ik = intakeOf(S.overlay);
@@ -4018,6 +4573,7 @@ function action(a) {
     S.overlay = null; S.view = "patients"; S.colf = {}; toast(`Pacient NO-${String(n).padStart(3, "0")} přidán do databáze`); render();
   }
   else if (a === "maildigest") {
+    if (isApi()) { if (!canSetStatus()) return; caseApi(null, "POST", "/notifications/digest", {}, () => toast("Přehled odeslán (jen počet a odkaz)"), "digest"); return; }
     const n = S.tasks.filter(t => !t.done).length + pendingSugg().length;
     S.mails.unshift({ kind: "digest", to: COORD, by: S.user, when: new Date().toLocaleString("cs-CZ"), n, body: `${waitingText(n)}\n${APP_LINK}` });
     toast("Přehled odeslán (jen počet a odkaz)"); render();
@@ -4025,6 +4581,7 @@ function action(a) {
   else if (a === "reloadlog") { if (DATA.mode === "api" && !DATA.logLoading) { loadServerLog(); render(); } }
   else if (a === "staffreset") {
     if (!canEditStaff()) return;
+    if (isApi()) { staffApi("POST", "/staff/reset", {}, () => { render(); toast("Obnoven výchozí personál (smyšlená jména)"); }); return; }
     const prev = staffIds(); STAFF = DATA.mode === "api" && DATA.serverStaff ? structuredClone(DATA.serverStaff) : defaultStaff();
     commitStaff(prev, "obnovil(a) výchozí personál (smyšlená jména)", { reset: true }); toast("Obnoven výchozí personál (smyšlená jména)");
   }
@@ -4033,6 +4590,7 @@ function action(a) {
     if (!canEditStaff()) return;
     if (!name) { toast("Vyplňte název pracoviště"); inp?.focus(); return; }
     if (STAFF.depts.some(d => d.name.toLowerCase() === name.toLowerCase())) { toast(`Pracoviště ${name} už v seznamu je`); return; }
+    if (isApi()) { staffApi("POST", "/staff/departments", { name }); return; }
     const prev = staffIds(); STAFF.depts.push({ id: `d${Date.now().toString(36)}${++STAFF.seq}`, name, people: [] });
     commitStaff(prev, `přidal(a) pracoviště do personálu: ${name}`);
   }
@@ -4042,6 +4600,10 @@ function action(a) {
   else if (a === "clearcolf") { COLS.forEach(c => delete S.colf[c[0]]); render(); }
   else if (a === "cleardcolf") { DCOLS.forEach(c => delete S.colf[c[0]]); S.dq = ""; render(); }
   else if (a === "gaps") { S.gapsOpen = !S.gapsOpen; render(); }
+  else if (a === "endsession" && isApi()) {
+    const day = S.session?.day; if (!day || !canSetStatus()) return;
+    caseApi(null, "DELETE", `/sessions/${enc(day)}`, {}, () => { if (S.rec.on) recStop("Záznam se zastavil s koncem MDT."); recPurge(Object.keys(S.rec.tx), "konec MDT"); toast("MDT ukončeno"); }, "session");
+  }
   else if (a === "endsession") { if (S.rec.on) recStop("Záznam se zastavil s koncem MDT."); recPurge(Object.keys(S.rec.tx), "konec MDT"); S.session = null; logAccess(S.pid, "ukončil(a) MDT"); toast("MDT ukončeno"); render(); }
   else if (a === "download") downloadReport();
   else if (a === "calfull") { S.calFullDay = !S.calFullDay; render(); }
@@ -4056,6 +4618,8 @@ function action(a) {
     /* Confirming stores who and when; the draft text itself is unchanged, and the confirmation goes to the edit log. */
     const p = P(S.pid), when = new Date().toLocaleString("cs-CZ");
     if (!p.draft || !isDoctor(S.user)) return;
+    /* The server confirms only the draft this page showed (its hash), so a re-extracted draft is never confirmed unread. */
+    if (isApi()) { caseApi(p, "POST", `/cases/${enc(p.id)}/question/confirm`, { draft_sha: S.qSha[p.file] ?? null }, () => toast("Otázka potvrzena"), `q:${p.file}`); return; }
     S.qConfirm[p.file] = { by: S.user, when };
     S.editLog.push({ pid: p.file, key: EK("q", p.file), orig: p.draft, confirmed: true, by: S.user, when });
     logAccess(p.file, "potvrdil(a) návrh otázky pro MDT"); render(); toast("Otázka potvrzena");
@@ -4063,33 +4627,60 @@ function action(a) {
   else if (a === "saveedit" || a === "revertedit") {
     const o = S.overlay, txt = document.getElementById("edtext")?.value.trim();
     const when = new Date().toLocaleString("cs-CZ"), pid = o.key.split("|")[0];
+    if (isApi()) {
+      /* The server names the edit it replaces (expected_edit_id), so a parallel edit by a colleague is reported, not lost. */
+      const p = P(pid), key = o.key.slice(pid.length + 1), cur = S.edits[o.key], revert = a === "revertedit" || !txt || txt === o.orig;
+      if (revert && !cur) { S.overlay = null; render(); return; }
+      caseApi(p, revert ? "DELETE" : "PUT", `/cases/${enc(p.id)}/edits/${enc(key)}`, revert ? { expected_edit_id: cur.id ?? null } : { text: txt, orig: o.orig ?? "", expected_edit_id: cur?.id ?? null },
+        () => { S.overlay = null; toast(revert ? "Vrácen původní údaj" : "Úprava uložena"); }, `edit:${o.key}`);
+      return;
+    }
     /* The edit log only grows: a revert is a new entry, the earlier edit stays visible in the case history. */
     if (a === "revertedit" || !txt || txt === o.orig) { if (S.edits[o.key]) S.editLog.push({ pid, key: o.key, orig: o.orig, text: o.orig || GAP, by: S.user, when, reverted: true }); delete S.edits[o.key]; }
     else { S.edits[o.key] = { text: txt, by: S.user, when, orig: o.orig }; S.editLog.push({ pid, key: o.key, orig: o.orig, text: txt, by: S.user, when }); }
     logAccess(pid, a === "saveedit" ? `upravil(a) údaj (${o.key.split("|")[1]})` : `vrátil(a) původní údaj (${o.key.split("|")[1]})`);
     S.overlay = null; render(); toast(a === "saveedit" ? "Úprava uložena" : "Vrácen původní údaj");
   }
-  else if (a === "addstep") { pr.steps.push({ text: "", who: COORD, due: "2026-10-30" }); render(); }
+  else if (a === "addstep") { if (!protoEditable(P(pr.pid))) return; pr.steps.push({ text: "", who: COORD, due: "2026-10-30" }); protoTouched(pr.pid, "steps", true); render(); }
+  /* The two answers to a version conflict of the discussion record; the doctor picks, nothing is merged silently. */
+  else if (a === "prototheirs" || a === "protomine") {
+    const sv = protoSave(pr.pid), c = sv.conflict?.current; if (!c) return;
+    sv.conflict = null;
+    if (a === "prototheirs") { Object.assign(pr, { notes: c.notes ?? "", concl: c.concl ?? c.conclusion ?? "", steps: (c.steps || []).map(x => ({ text: x.text || "", who: x.who || "", due: x.due || "" })), version: c.version ?? pr.version }); sv.dirty.clear(); render(); }
+    else { pr.version = c.version ?? pr.version; ["notes", "concl", "steps"].forEach(f => sv.dirty.add(f)); showProtoConflict(pr.pid); flushProto(pr.pid); }
+  }
+  else if (a === "bgopen") { const p = P(S.pid); if (p) { S.overlay = { kind: "breakglass", file: p.file, msg: caseOf(p).error?.message_cs || "" }; renderOverlay(); } }
+  else if (a === "bggo") breakGlassApi(S.overlay);
+  else if (a === "bgcancel") { S.overlay = null; S.view = "patients"; render(); }
+  else if (a === "resetdemo") { S.overlay = { kind: "reset" }; renderOverlay(); }
+  else if (a === "resetgo") resetDemoApi(S.overlay);
   else if (a === "copyatt") { copyText((pr?.state === "approved" ? pr.attSnap : presentList()).join(", ") || "nezadáno", "Seznam přítomných"); }
   else if (a === "copytasks") { copyText(pr.steps.filter(x => x.text.trim()).map(x => `${x.text} (${x.who}, do ${fmtDate(x.due)})`).join("\n"), "Úlohy"); }
   else if (a === "newversion") {
     /* A new conclusion reopens a discussed case: it goes back to what its slot says, logged like any status change.
        A closed case is reopened from the status menu first, never by this button (round 20 review). */
-    const np = P(pr.pid); if (np.status === "closed") return; S.protos[pr.pid] = { pid: pr.pid, mode: "manual", notes: "", concl: "", steps: [], state: "draft" };
+    const np = P(pr.pid);
+    /* Only an approved conclusion is superseded: an unapproved draft is never wiped (fixed in both modes). */
+    if (np.status === "closed" || pr.state !== "approved" || (isApi() && !isDoctor(S.user))) return;
+    if (isApi()) { const last = S.decisions.filter(x => x.pid === np.file).at(-1); caseApi(np, "POST", `/cases/${enc(np.id)}/decisions/new-version`, { expected_decision_id: last?.id ?? null }, null, `nv:${np.file}`); return; }
+    S.protos[pr.pid] = { pid: pr.pid, mode: "manual", notes: "", concl: "", steps: [], state: "draft" };
     setStatus(np, np.slot ? "scheduled" : "new", "automaticky při novém závěru"); render();
   }
-  else if (a === "closecase") { const cp = P(S.pid); if (canSetStatus() && cp.status === "done") { closeCase(cp, "ručně"); render(); } }
+  else if (a === "closecase") { const cp = P(S.pid); if (canSetStatus() && cp.status === "done") { if (isApi()) { statusApi(cp, "closed"); return; } closeCase(cp, "ručně"); render(); } }
   else if (a === "caseretry") { const p = P(S.pid); if (!p) return; const e = caseOf(p); e.state = "absent"; e.error = null; e.guide = null; ensureCase(p); render(); }
   else if (a === "guideretry") { const p = P(S.pid); if (!p) return; caseOf(p).guide = null; render(); }
   else if (a === "approve") {
     /* Read the field itself: the stored value may lag behind it (an IME composition not yet committed). */
-    const cf = document.getElementById("concl"); if (cf && pr.state !== "approved") pr.concl = cf.value;
+    const cf = document.getElementById("concl"); if (cf && pr.state !== "approved" && pr.concl !== cf.value) { pr.concl = cf.value; protoTouched(pr.pid, "concl"); }
+    /* An approved record is never approved again: a double click or a second path makes one decision (both modes). */
+    if (pr.state === "approved") return;
     if (P(pr.pid).status === "closed" || !pr.concl.trim() || !isDoctor(S.user)) return;
     /* The report frozen at approval must not be built from data still on its way; a failed load does not block. */
     const ls = caseStore.entries.get(pr.pid)?.state; if (ls === "loading" || ls === "absent") { toast("Podklady případu se načítají, schvalte za okamžik."); return; }
     /* The same for the guideline layer: the frozen report lists the recorded deviations from it. */
     const ag = guideOf(pr.pid);
     if (S.guideOn && sectionsOf(readyData(P(pr.pid))).guidance && (ag.loading || !(ag.statements || ag.error))) { toast("Doporučení se načítají, schvalte za okamžik."); return; }
+    if (isApi() && !isLocal(P(pr.pid))) { approveApi(P(pr.pid), pr); return; }
     /* The approving doctor was at the meeting, so approving adds them to the day's attendance instead of blocking
        (round 20); the access log says so, and the attendance list in the card shows the name. */
     const day = attDay(P(pr.pid));
@@ -4122,17 +4713,24 @@ document.addEventListener("input", e => {
   const t = e.target;
   if (t.id === "dq") { S.dq = t.value; const pos = t.selectionStart; render(); const q = document.getElementById("dq"); q.focus(); q.setSelectionRange(pos, pos); }
   else if (t.id === "q") { S.q = t.value; const pos = t.selectionStart; render(); const q = document.getElementById("q"); q.focus(); q.setSelectionRange(pos, pos); }
-  else if (t.dataset.step !== undefined) { curProto().steps[+t.dataset.step][t.dataset.f] = t.value; refreshReport(); }
-  
-  else if (t.id === "notes") curProto().notes = t.value;
+  else if (t.dataset.step !== undefined) { curProto().steps[+t.dataset.step][t.dataset.f] = t.value; protoTouched(S.pid, "steps"); refreshReport(); }
+  else if (t.id === "notes") { curProto().notes = t.value; protoTouched(S.pid, "notes"); }
   else if (t.id === "concl") syncConcl(t);
+  /* "MUDr." in a new person's title prefills the role "lékař" while the role is still unchosen. */
+  else if (t.dataset.newin && (t.dataset.sf === "pre" || t.dataset.sf === "post")) {
+    const sel = document.querySelector(`[data-newrole="${CSS.escape(t.dataset.newin)}"]`), v = f => document.querySelector(`[data-newin="${CSS.escape(t.dataset.newin)}"][data-sf="${f}"]`)?.value || "";
+    if (sel && !sel.dataset.chosen) sel.value = roleGuess(v("pre"), v("post"));
+  }
 });
+/* Leaving a field of the discussion record stores it at once instead of after the pause. */
+document.addEventListener("focusout", e => { const t = e.target; if ((t.id === "notes" || t.id === "concl" || t.dataset?.step !== undefined) && PSAVE[S.pid]?.dirty.size) flushProto(S.pid); });
 /* The conclusion field is never re-rendered while the doctor types (round 20 review): recreating it mid-typing broke
    IME composition on phone keyboards and Czech dead keys ("Ste" + "Stereotaxe mozku" stored as both). Only the parts
    that depend on it change in place. "change" and "compositionend" store the same value for input paths that send no
    "input" event, such as dictation or a committed composition. */
 function syncConcl(t) {
   const p = P(S.pid), pr = ensureProto(p); if (pr.state === "approved" || p.status === "closed") return;
+  if (pr.concl !== t.value) protoTouched(p.file, "concl");
   pr.concl = t.value; const has = !!t.value.trim();
   const b = document.querySelector('[data-act="approve"]'); if (b) b.disabled = !(has && isDoctor(S.user) && p.status !== "closed");
   const n = document.getElementById("concldraft"); if (n) n.hidden = !has;
@@ -4149,6 +4747,7 @@ function syncConcl(t) {
 function unschedule(file) {
   const p = P(file); if (!p?.slot) return;
   if (slotLocked(p)) { toast(LOCK_WHY); return; }
+  if (isApi()) { unscheduleApi(p); return; }
   const was = slotText(p);
   p.slot = null; if (p.status === "scheduled") setStatus(p, "new", "automaticky po uvolnění termínu"); S.calPop = null; S.schedPick = null;
   logAccess(p.file, `uvolnil(a) termín MDT (${was})`);
@@ -4157,6 +4756,7 @@ function unschedule(file) {
 function scheduleAt(file, slot) {
   const [day, time] = slot.split(" "), p = P(file);
   if (slotLocked(p)) { toast(LOCK_WHY); S.schedPick = null; render(); return; }
+  if (isApi()) { scheduleApi(file, slot); return; }
   p.slot = { day, time }; if (p.status === "new") setStatus(p, "scheduled", "automaticky při rezervaci termínu");
   logAccess(p.file, `naplánoval(a) na MDT (${slotText(p)})`);
   const sem = seminarOn(day), oot = sem && (time < sem[0] || time >= sem[1]);
@@ -4226,13 +4826,26 @@ document.addEventListener("change", e => {
     if (cur.length === all.length) delete S.colf[k]; else S.colf[k] = cur;
     render();
   }
-  else if (t.dataset.att) { attFor(t.dataset.day || attDay())[t.dataset.att][+t.dataset.k] = t.value; render(); if (S.overlay?.kind === "start") renderOverlay(); }
+  else if (t.dataset.att) {
+    const key = t.dataset.day || attDay();
+    if (isApi() && !canSetStatus()) { render(); if (S.overlay?.kind === "start") renderOverlay(); return; }
+    attFor(key)[t.dataset.att][+t.dataset.k] = t.value; render(); if (S.overlay?.kind === "start") renderOverlay();
+    attChanged(key);
+  }
+  else if (t.dataset.newrole) t.dataset.chosen = "1";
   else if (t.dataset.redact) { S.overlay.redacted = t.checked; renderOverlay(); }
   else if (t.dataset.pickrep) { t.checked ? S.picked.add(t.dataset.pickrep) : S.picked.delete(t.dataset.pickrep); refreshReport(); }
-  else if (t.dataset.step !== undefined) { curProto().steps[+t.dataset.step][t.dataset.f] = t.value; render(); }
+  else if (t.dataset.step !== undefined) { curProto().steps[+t.dataset.step][t.dataset.f] = t.value; protoTouched(S.pid, "steps", true); render(); }
   else if (t.dataset.sugg) {
-    const x = S.sugg.find(y => y.id === +t.dataset.sugg);
-    if (x && x.state === "draft" && canConfirmSugg()) { x[t.dataset.f] = t.value; if (t.dataset.f === "due") { x.dueSrc = t.value ? "manual" : "none"; x.dueBy = S.user; } render(); }
+    const x = S.sugg.find(y => String(y.id) === t.dataset.sugg);
+    if (x && x.state === "draft" && canConfirmSugg()) {
+      const f = t.dataset.f, before = { [f]: x[f], dueSrc: x.dueSrc, dueBy: x.dueBy };
+      x[f] = t.value; if (f === "due") { x.dueSrc = t.value ? "manual" : "none"; x.dueBy = S.user; } render();
+      /* Shown at once; a refusal puts the stored value back. */
+      /* Kept per draft, so a confirmation right after an edit waits for it and never confirms the old values. */
+      if (isApi()) SUGG_PENDING[x.id] = (SUGG_PENDING[x.id] || Promise.resolve()).then(() => apiWrite("PATCH", `/suggestions/${enc(x.id)}`, { [f]: t.value })
+        .then(r => applyState(r.state)).catch(e => { Object.assign(x, before); refused(e); }).finally(renderIdle));
+    }
   }
 });
 document.addEventListener("toggle", e => { if (e.target.dataset?.gle) { S.gleOpen = S.gleOpen || {}; S.gleOpen[e.target.dataset.gle] = e.target.open; markClamped(); } if (e.target.dataset?.doneopen) S.doneOpen = e.target.open; }, true);
@@ -4259,6 +4872,7 @@ async function boot() {
   if (location.protocol.startsWith("http") && qs.get("data") !== "embedded") {
     try { health = await apiGet("/health", { timeout: 1500 }); } catch (e) { /* Pages or no server: embedded data */ }
     if (health?.service === "codebridge-mdt" && health.features?.data === true) {
+      DATA.demo = health.demo || null; DATA.epoch = health.demo?.data_epoch ?? null;
       try { await loadFromApi(); DATA.mode = "api"; }
       catch (e) { DATA.error = e.message || "neznámá chyba"; DATA.userId = null; }
     } else if (health?.service !== "codebridge-mdt") health = null;
@@ -4274,7 +4888,10 @@ async function boot() {
    sent under the previous user's id. */
 async function switchApiUser(t) {
   const id = userIdOf(t.value), prev = DATA.userId;
-  if (!id) { toast("Tento uživatel není v seznamu na serveru. Změny seznamu se zatím neukládají na server."); t.value = S.user; return; }
+  if (!id) { toast("Tento uživatel není v seznamu na serveru."); t.value = S.user; return; }
+  /* Text typed under the previous user is stored under that user before the switch. */
+  const saved = await Promise.all(Object.keys(PSAVE).map(flushProto));
+  if (saved.includes(false)) { toast("Koncept se nepodařilo uložit; uživatele změňte, až bude uložen."); t.value = S.user; return; }
   setDemoUser(id);
   try {
     await loadFromApi(); caseStore.reset();
@@ -4289,16 +4906,21 @@ async function switchApiUser(t) {
 async function loadFromApi() {
   const me = await apiGet("/me");
   setDemoUser(me.user.id);
-  const [staff, list, tasks] = await Promise.all([apiGet("/staff"), apiGet("/patients"), apiGet("/tasks?scope=all")]);
+  /* /workflow is the stored state of every case this user may read (decisions, protocols, tasks, drafts, edits, alert
+     history, attendance, the running session and the mails), so a reload shows what the server holds. */
+  const [staff, list, tasks, wf] = await Promise.all([apiGet("/staff"), apiGet("/patients"), apiGet("/tasks?scope=all"), apiGet("/workflow")]);
   /* Case data loads per case when a case is opened (loadCase); a refusal then shows on that case, never as "not
      processed". Nothing is assigned until every request succeeded. The embedded copy is kept once, for ?parity. */
   if (!DATA.embedded) DATA.embedded = { patients: S.patients, tasks: S.tasks, staff: STAFF };
-  DATA.serverStaff = { depts: staff.depts, coord: staff.coord, seq: 0 };
+  DATA.serverStaff = { depts: staff.depts, coord: staff.coord, admin: staff.admin || null, ...(staff.roles ? { roles: staff.roles } : {}), seq: 0 };
   STAFF = structuredClone(DATA.serverStaff); applyStaff();
   /* Patients created in this browser are not on the server yet (step 4); they stay in the list across a user switch. */
   S.patients = [...list.patients, ...S.patients.filter(p => p.local && !list.patients.some(x => x.file === p.file))];
   S.tasks = tasks.tasks; S.user = me.user.name;
   if (!P(S.pid) && S.patients.length) S.pid = S.patients[0].file;
+  if (wf.data_epoch != null) DATA.epoch = wf.data_epoch;
+  resetWorkflow();
+  applyState({ cases: wf.cases || {}, att: wf.att || {}, sessions: wf.sessions || [], mails: wf.mails || [] });
 }
 /* Development check behind ?parity: the server's rows against what the embedded data builds, key by key. Identity keys
    are reported by name only, so the console never shows patient values. */
@@ -4318,7 +4940,7 @@ function checkApiParity() {
     });
   });
   S.patients.filter(s => !emb.some(e => e.file === s.file)).forEach(s => diffs.push({ file: s.file, key: "(řádek)", embedded: "chybí", server: "ano" }));
-  if (!same(DATA.serverStaff, defaultStaff())) diffs.push({ file: "(personál)", key: "STAFF" });
+  if (!same([DATA.serverStaff.depts, DATA.serverStaff.coord], [defaultStaff().depts, defaultStaff().coord])) diffs.push({ file: "(personál)", key: "STAFF" });
   const tk = t => ({ id: t.id, pid: t.pid, text: t.text, who: t.who, due: t.due, done: !!t.done });
   if (!same(DATA.embedded.tasks.map(tk), S.tasks.map(tk))) diffs.push({ file: "(úlohy)", key: "tasks" });
   if (diffs.length) { console.warn(`Parita API: ${diffs.length} rozdílů`); console.table(diffs); } else console.info("Parita API: žádné rozdíly (pacienti, personál, úlohy)");

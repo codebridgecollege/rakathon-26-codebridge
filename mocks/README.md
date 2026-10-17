@@ -92,8 +92,29 @@ the result in a chip:
   `/api/cases/:id/guidance`, the source viewer fetches each page from
   `/api/documents/:id/pages/:n` (images from `.../image`), opening a case
   calls `/api/cases/:id` so the server writes the access log, and
-  Administrace shows the server's log next to this session's local entries.
-  Staff edits stay in memory ("Změny seznamu se zatím neukládají na server").
+  Administrace shows the server's log.
+  Every change goes through the write API (step 4,
+  `docs/research/backend-steps/step-4.md`, "As implemented"): status and
+  closing, booking and drag-and-drop, the discussion record (autosaved 800 ms
+  after typing, on leaving a field and before approval, with a conflict bar
+  "Koncept mezitím upravil(a) …" offering "Načíst jejich verzi" or "Přepsat
+  mou verzí"), approval (one request with an `Idempotency-Key`, the button
+  disabled while it runs), "Nový závěr", tasks, drafted tasks, the digest, the
+  drafted question, fact edits, alert events, attendance, MDT sessions, new
+  patients (a second record for a known birth number needs a reason), the
+  staff list (a new person's role is chosen explicitly; "MUDr." prefills
+  "lékař") and break-the-glass ("Otevřít mimo tým" with a reason). The server
+  checks each rule and writes the audit row; the page shows the server's
+  answer and its Czech message on a refusal. `GET /api/workflow` loads the
+  stored state of every case at startup, so a reload shows decisions, drafts,
+  edits, alert history, attendance, the running session and mails. The page's
+  own access log is off in API mode: views the server cannot see go to
+  `POST /api/audit/events` as fixed codes, never as text. Doctors are the
+  people the server's `roles` map calls doctors, not a title. A banner on
+  every view says the data is shared and fictional; Administrace offers
+  "Obnovit ukázková data" (type OBNOVIT) where the server enables it, and a
+  tab opened before a reset reloads on its next write. Uploads in the
+  discussion card still stay in the browser (step 6).
 - **Data: vložená (server nedostupný)** in amber: the health check said the
   data API is on, but a load failed. Nothing from the server is used; the page
   runs on embedded data, so a silent fallback cannot hide a broken backend.
@@ -254,6 +275,14 @@ Lucide 0.468.0 paths are embedded in the template, with the ISC notice in
   finding groups), and API mode against a fake server (loading state, late
   replies, a deep link while loading, errors and retry, approval waiting, the
   five-case bound, the user switch).
+- `src/test/write-api.mjs`: the write path of API mode in jsdom against a fake
+  server that follows the step 4 contract (same setup as `case-store.mjs`):
+  the workflow load, the banner, approval (stored first, one request on a
+  double click, the idempotency key kept for a retry), "Nový závěr" only after
+  approval in both modes, a taken slot, the reset reload, view events as
+  codes, the protocol conflict bar, the coordinator's read-only record,
+  attendance ids, task rollback, alert keys, a duplicate birth number with a
+  reason, break-the-glass and a new person's role.
 - `node mocks/src/test/timeline-categories.mjs`: category filters, preserved source indexes, partial and missing dates, planned status, and escaped labels.
 
 - `src/test/v3.mjs`: clicks through mock v3 in Chromium with Playwright at

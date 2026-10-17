@@ -99,14 +99,27 @@ function fakeServer({ held = true, fail = {} } = {}) {
     if (!p) return json(404, { error: { code: "case_not_found", message_cs: "Případ nenalezen." } });
     return json(200, { case_id: id, data: p.file === "10_pacient.pdf" ? H.c10 : syn ? { syn } : null });
   };
-  const impl = (u) => {
+  const impl = (u, o) => {
     const path = new URL(u, "http://localhost/").pathname + new URL(u, "http://localhost/").search;
     log.push(path);
+    // Step 4: approval goes to the server, which answers with the approved protocol and the decision (write-api.mjs
+    // tests the write contract itself; this store test only needs the approval to complete).
+    const pp = path.match(/^\/api\/cases\/([^/]+)\/protocol$/);
+    if (pp && o?.method === "PUT") return json(200, { data: { version: JSON.parse(o.body).version + 1 }, data_epoch: 1 });
+    const ap = path.match(/^\/api\/cases\/([^/]+)\/decisions$/);
+    if (ap && o?.method === "POST") {
+      const id = decodeURIComponent(ap[1]), b = JSON.parse(o.body), when = new Date().toISOString();
+      return json(200, { data: {}, data_epoch: 1, state: { cases: { [id]: { case_id: id, status: "done",
+        protocol: { notes: "", concl: b.conclusion, steps: [], state: "approved", version: b.protocol_version + 1, approver: H.user, approved_at: when },
+        decisions: [{ id: "d1", version: 1, text: b.conclusion, by: H.user, when, slot: null, attSnap: b.attendance_expected, pickSnap: b.picked_sections, reportSnap: b.report_html }] } } } });
+    }
     if (path === "/api/health") return json(200, { service: "codebridge-mdt", features: { data: true }, limits: {} });
     if (path === "/api/me") return json(200, { user: { id: H.userId, name: H.user, role: "doctor" }, auth_mode: "demo" });
     if (path === "/api/staff") return json(200, { ...H.staff, seq: 0 });
     if (path === "/api/patients") return json(200, { patients: structuredClone(H.patients), total: H.patients.length, page: 0 });
     if (path.startsWith("/api/tasks")) return json(200, { tasks: H.tasks });
+    // Step 4: the stored workflow state of every case; this store test needs none of it.
+    if (path === "/api/workflow") return json(200, { data_epoch: 1, cases: {}, att: {}, sessions: [], mails: [] });
     const m = path.match(/^\/api\/cases\/([^/]+)\/extraction$/);
     if (m) {
       const id = decodeURIComponent(m[1]);
@@ -180,7 +193,8 @@ const text = w => w.document.getElementById("app").textContent;
   assert.match(rep, /nepodařilo načíst ze serveru/); assert.doesNotMatch(rep, /není zpracovaná/);
   assert.ok(w.document.getElementById("concl"), "the conclusion stays available");
   // A failed load does not block approval; the frozen report names the failure.
-  assert.equal(ev(`(() => { document.getElementById("concl").value = "Závěr bez podkladů"; action("approve"); return ensureProto(P("S01_pacient.pdf")).state; })()`), "approved");
+  ev(`(() => { document.getElementById("concl").value = "Závěr bez podkladů"; action("approve"); })()`); await sleep(80);
+  assert.equal(ev(`ensureProto(P("S01_pacient.pdf")).state`), "approved");
   assert.match(ev(`ensureProto(P("S01_pacient.pdf")).reportSnap`), /nepodařilo načíst ze serveru/);
   // Retry against a working server.
   const ok = fakeServer({ held: false });
@@ -196,13 +210,13 @@ const text = w => w.document.getElementById("app").textContent;
   const { w, ev, errors } = await apiOpen(srv);
   ev(`openPatient("10_pacient.pdf")`); await sleep(40);
   // The handler reads #concl itself, so the text goes into the field.
-  const approve = () => ev(`(() => { document.getElementById("concl").value = "Test závěru"; action("approve"); return ensureProto(P("10_pacient.pdf")).state; })()`);
+  const approve = async () => { ev(`(() => { document.getElementById("concl").value = "Test závěru"; action("approve"); })()`); await sleep(80); return ev(`ensureProto(P("10_pacient.pdf")).state`); };
   ev(`caseOf(P("10_pacient.pdf")).state = "loading"`);
-  assert.notEqual(approve(), "approved", "approval waits for the case data");
+  assert.notEqual(await approve(), "approved", "approval waits for the case data");
   ev(`caseOf(P("10_pacient.pdf")).state = "ready"; caseOf(P("10_pacient.pdf")).guide = { loading: true }`);
-  assert.notEqual(approve(), "approved", "approval waits for the guideline layer");
+  assert.notEqual(await approve(), "approved", "approval waits for the guideline layer");
   ev(`caseOf(P("10_pacient.pdf")).guide = { statements: [] }`);
-  assert.equal(approve(), "approved", "positive control: approval goes through once loaded");
+  assert.equal(await approve(), "approved", "positive control: approval goes through once loaded");
   // LRU over every processed case: list rows marked processed so each one loads.
   ev(`S.patients.forEach(p => { p.processing = "partial"; })`);
   for (const p of H.patients) { ev(`openPatient(${JSON.stringify(p.file)})`); await sleep(15); }
