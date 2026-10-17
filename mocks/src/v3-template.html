@@ -1734,7 +1734,6 @@ const R3 = i => (EXTRA.refs || [])[i];
 /* v3 brief in the clinicians' own compact style, staging first (round 4); v2 keeps its own brief. */
 /* The i-th indexed source of a case (CaseData.refs). */
 const refAt = (cd, i) => (cd?.refs || [])[i];
-const DXH = () => EXTRA.diagnosis_headline || null;
 /* Soňa: the first line is histology + grade + staging; the MKN code is for reporting and goes below. */
 /* The TNM is the stage at diagnosis; every place that shows the headline says so, and keeps the OCR flag. */
 /* Without an extracted headline the list row's diagnosis is shown. */
@@ -1999,21 +1998,21 @@ function briefBlock(p) {
   return `<section class="card blk"><div class="head" style="margin:0"><h2>Stručný souhrn</h2><span class="row">${gapsToggle(p)}</span></div>${S.gapsOpen ? gapsBox() : ""}
     <p class="prose">${briefHtml(p, readyData(p), reg)}</p>
     ${reasonQuestionBox(p, reg)}
-    ${timelineCard(true)}
+    ${timelineCard(readyData(p), true)}
     ${srcList(reg)}
     ${conclusionBox(p)}
     ${mdtCard(p)}</section>`;
 }
-function detailedCard(reg) {
-  const d = DXH();
-  const rows = EXTRA.onco_detailed_v3 || [];
-  const head = d ? `<p class="dxh">${reg.wrap(ed("dx", [d.histology_cs, d.grade_cs, d.tnm_cs].filter(Boolean).join(", ")), R3((d.refs || [])[0]))}${d.histology_date_cs ? ` <span class="muted" style="font-size:13px;font-weight:600" title="${esc(d.tnm_context_cs || "")}">(pTNM při diagnóze, ${esc(d.histology_date_cs.replace(/^\d+\./, "").replace(".", "/"))})</span>` : ""}${marks(d, "dx")}${(d.refs || []).map(i => reg.n(R3(i))).join("")}</p>
+function detailedCard(cd, reg) {
+  const d = cd.brief?.dx_headline;
+  const rows = cd.record?.onco_detailed || [];
+  const head = d ? `<p class="dxh">${reg.wrap(ed("dx", [d.histology_cs, d.grade_cs, d.tnm_cs].filter(Boolean).join(", ")), refAt(cd, (d.refs || [])[0]))}${d.histology_date_cs ? ` <span class="muted" style="font-size:13px;font-weight:600" title="${esc(d.tnm_context_cs || "")}">(pTNM při diagnóze, ${esc(d.histology_date_cs.replace(/^\d+\./, "").replace(".", "/"))})</span>` : ""}${marks(d, "dx")}${(d.refs || []).map(i => reg.n(refAt(cd, i))).join("")}</p>
     <p class="dxs">${esc(d.mkn_cs || "")}</p>` : "";
   /* The summary is long, so its body scrolls inside the card; on wide screens the card is as tall as "Aktuální stav
      pacienta" next to it (round 25), on narrow screens it keeps the normal flow with a max height. */
   return `<section class="card onco"><div class="head"><h2>Onkologický souhrn <button class="info" title="${esc(PIN_HELP)}" aria-label="${esc(PIN_HELP)}">i</button></h2></div>
     <div class="ocbody" tabindex="0" role="region" aria-label="Onkologický souhrn, posuvný obsah">${head}
-    ${EXTRA.onco_compact_v3 ? compactRows(reg) : rows.map((r, i) => `<div class="orow" title="${KIND_CS[rowKind(r)] || ""}"><span class="dt">${esc(r.date_cs || r.date_label_cs || "")}</span><span><b>${reg.wrap(ed(`od:${i}:e`, r.event_cs), R3((r.refs || [])[0]))}</b>${r.comment_cs ? `<br>${ed(`od:${i}:c`, r.comment_cs)}` : ""}${marks(r, edOf(`od:${i}:e`) ? `od:${i}:e` : `od:${i}:c`)}${(r.refs || []).map(j => reg.n(R3(j))).join("")}</span></div>`).join("")}</div>
+    ${cd.record?.onco_compact ? compactRows(cd, reg) : rows.map((r, i) => `<div class="orow" title="${KIND_CS[rowKind(r)] || ""}"><span class="dt">${esc(r.date_cs || r.date_label_cs || "")}</span><span><b>${reg.wrap(ed(`od:${i}:e`, r.event_cs), refAt(cd, (r.refs || [])[0]))}</b>${r.comment_cs ? `<br>${ed(`od:${i}:c`, r.comment_cs)}` : ""}${marks(r, edOf(`od:${i}:e`) ? `od:${i}:e` : `od:${i}:c`)}${(r.refs || []).map(j => reg.n(refAt(cd, j))).join("")}</span></div>`).join("")}</div>
     ${srcList(reg)}</section>`;
 }
 /* Compact clinician-style summary (Soňa, round 14): one short line per event, "St. p." for what was done,
@@ -2024,21 +2023,21 @@ const PIN_HELP = "Ikona u data označuje stejnou kategorii jako na časové ose.
 /* A planned line is grouped by the planned action; it never becomes a performed event. */
 const compactKind = l => l.kind !== "plan" ? categoryOf(l) : /everolim|sunitinib|nivolumab|ipilimumab|kabozantinib|cabozantinib|linie/i.test(l.text_cs) ? "systemic" : "clinical";
 const rowPin = l => { const k = compactKind(l), label = KIND_CS[k] + (l.kind === "plan" ? ", plánováno" : ""); return `<span class="lpin kind-${k} ${l.kind === "plan" ? "planned" : ""}" title="${esc(label)}" role="img" aria-label="${esc(label)}" tabindex="0">${icon(k)}</span>`; };
-function compactRows(reg) {
-  const c = EXTRA.onco_compact_v3;
+function compactRows(cd, reg) {
+  const c = cd.record.onco_compact;
   /* A systemic-therapy row is dated by its start; the tooltip says so, because the row text spans a whole course. */
-  const line = (l, i) => `<div class="orow cpt"><span class="dt"${l.kind === "systemic" ? ` data-tip="zahájení léčby" tabindex="0"` : ""}>${l.date_sort ? fmtDate(l.date_sort) : ""}${rowPin(l)}</span><span>${reg.wrap(ed(`oc:${i}`, l.text_cs), R3((l.refs || [])[0]))}${(l.refs || []).slice(1).map(j => reg.n(R3(j))).join("")}${marks(l)}</span></div>`;
+  const line = (l, i) => `<div class="orow cpt"><span class="dt"${l.kind === "systemic" ? ` data-tip="zahájení léčby" tabindex="0"` : ""}>${l.date_sort ? fmtDate(l.date_sort) : ""}${rowPin(l)}</span><span>${reg.wrap(ed(`oc:${i}`, l.text_cs), refAt(cd, (l.refs || [])[0]))}${(l.refs || []).slice(1).map(j => reg.n(refAt(cd, j))).join("")}${marks(l)}</span></div>`;
   return `${c.lines.map(line).join("")}
-    ${c.other_dx_cs ? `<p class="otherdx" style="margin:10px 0 0;font-size:14px;font-style:italic">${reg.wrap(esc(c.other_dx_cs), R3((c.other_dx_refs || [])[0]))}</p>` : ""}`;
+    ${c.other_dx_cs ? `<p class="otherdx" style="margin:10px 0 0;font-size:14px;font-style:italic">${reg.wrap(esc(c.other_dx_cs), refAt(cd, (c.other_dx_refs || [])[0]))}</p>` : ""}`;
 }
 /* Category of an oncology row (round 9); from the row's own words, display only. */
 const rowKind = r => { const t = `${r.event_cs} ${r.comment_cs || ""}`; return /^(CT|MR|PET|Vstupní CT|UZ|ultrazvuk)|CT |MR /.test(r.event_cs) ? "imaging" : /ektomi|Exstirpace|Excize|Implantace|resekc|operac/i.test(r.event_cs) ? "surgery" : /linie|nivolumab|sunitinib|everolimus|chemoterap|imunoterap/i.test(r.event_cs) ? "systemic" : /radioterap|ozáření/i.test(t) ? "radiotherapy" : "visit"; };
 /* Current state of the patient from the most recent exam (Soňa, round 2: "status praesens"). */
-function statusCard() {
-  const sp = EXTRA.status_praesens; if (!sp) return "";
+function statusCard(cd) {
+  const sp = cd.record?.status_praesens; if (!sp) return "";
   const reg = refRegistry();
   const items = (sp.items || []).map((it, i) => ({ ...it, i }));
-  const link = it => edLink(`sp:${it.i}`, String(it.text_cs).replace(/[.,;]\s*$/, "")) + marks(it) + reg.mark(R3((it.refs || [])[0]));
+  const link = it => edLink(`sp:${it.i}`, String(it.text_cs).replace(/[.,;]\s*$/, "")) + marks(it) + reg.mark(refAt(cd, (it.refs || [])[0]));
   const subj = items.filter(it => it.group === "subjective");
   const vit = items.find(it => it.label_cs === "Vitální funkce");
   const ecog = items.find(it => it.label_cs === "ECOG PS");
@@ -2050,7 +2049,7 @@ function statusCard() {
   const subjHtml = subj.map(link).join(", ");
   const vt = vit ? vit.text_cs : "";
   const tk = (vt.match(/krevní tlak ([\d/]+ ?mmHg)/) || [])[1], pulse = (vt.match(/pulz ([\d]+\/min)/) || [])[1], tt = (vt.match(/teplota ([\d,.]+ ?°C)/) || [])[1];
-  const lead = `TK/P ${tk ? esc(tk) : "-"} / ${pulse ? esc(pulse) : "-"}${vit ? reg.mark(R3((vit.refs || [])[0])) : ""}, TT ${tt ? esc(tt) : DASH}, PS (ECOG) ${ecog ? edLink(`sp:${ecog.i}`, ecog.text_cs) + reg.mark(R3((ecog.refs || [])[0])) : DASH}`;
+  const lead = `TK/P ${tk ? esc(tk) : "-"} / ${pulse ? esc(pulse) : "-"}${vit ? reg.mark(refAt(cd, (vit.refs || [])[0])) : ""}, TT ${tt ? esc(tt) : DASH}, PS (ECOG) ${ecog ? edLink(`sp:${ecog.i}`, ecog.text_cs) + reg.mark(refAt(cd, (ecog.refs || [])[0])) : DASH}`;
   const exam = `${sp.exam_title_cs || ""} · ${sp.exam_date_cs || "datum neuvedeno"}${sp.exam_date_note_cs ? ". " + sp.exam_date_note_cs : ""}`;
   return `<section class="card"><div class="head"><h2>Aktuální stav pacienta <button class="info" title="${esc(exam)}" aria-label="${esc(exam)}">i</button></h2></div>
     <div class="stc"><p><b>Subjektivně:</b> ${subjHtml}.</p>
@@ -2072,10 +2071,9 @@ function alertRow(f, compact) {
     <span class="albtns">${btns}</span></div>`;
 }
 /* Rendering and source navigation share the same unsorted array, so filters cannot shift source indexes. */
-function timelineEvents() {
-  return EXTRA.timeline_cards_v3 || EXTRA.timeline_cards || (CASE.timeline || []).map(e => ({
-    ...e, kind: e.type, title_cs: e.label_cs, text_cs: e.label_cs, status: e.status || "done",
-  }));
+/* fromFullExtraction has already mapped the older timeline shape. */
+function timelineEvents(cd) {
+  return cd?.record?.timeline || [];
 }
 /* Exclusions make the initial view complete; changing one category never clears other choices. */
 function setTimelineCategory(id, include) {
@@ -2085,8 +2083,8 @@ function setTimelineCategory(id, include) {
     else S.tlExcluded.add(id);
   }
 }
-function timelineCard(inline) {
-  const all = timelineEvents().map((c, i) => ({ ...c, i, category: categoryOf(c) }))
+function timelineCard(cd, inline) {
+  const all = timelineEvents(cd).map((c, i) => ({ ...c, i, category: categoryOf(c) }))
     .sort((a, b) => (a.date_sort ? 0 : 1) - (b.date_sort ? 0 : 1) || String(a.date_sort || "").localeCompare(String(b.date_sort || "")));
   const cards = all.filter(c => !S.tlExcluded.has(c.category));
   const filterButton = (id, label, count) => {
@@ -2108,33 +2106,32 @@ function timelineCard(inline) {
     <div class="tlstatus" role="status">Zobrazeno ${cards.length} z ${all.length} událostí · ${EVENT_CATEGORIES.length - S.tlExcluded.size} z ${EVENT_CATEGORIES.length} kategorií</div>
     ${cards.length ? `<div class="tlbar" tabindex="0" role="region" aria-label="Časová osa průběhu onemocnění"><div class="tltrack">${html}</div></div>` : `<p class="muted small">${S.tlExcluded.size === EVENT_CATEGORIES.length ? "Všechny kategorie jsou skryté. Zaškrtněte kategorii nebo Vše." : "Ve vybraných kategoriích nejsou zaznamenané události."}</p>`}</section>`;
 }
-function tabOverview() {
-  const p = P(S.pid);
+function tabOverview(p, cd) {
   if (p.full) loadGuidance(p);
   const reg = refRegistry();
-  return `<div class="grid2 ovgrid"><div class="stack ovleft">${detailedCard(reg)}</div><div class="stack">${statusCard()}</div></div>`;
+  return `<div class="grid2 ovgrid"><div class="stack ovleft">${detailedCard(cd, reg)}</div><div class="stack">${statusCard(cd)}</div></div>`;
 }
 const ANAM = [["OA", "Osobní anamnéza"], ["RA", "Rodinná anamnéza"], ["PA", "Pracovní anamnéza"], ["SA", "Sociální anamnéza"], ["FA", "Farmakologická anamnéza"], ["AA", "Alergologická anamnéza"], ["abusus", "Abúzus"], ["EA", "Epidemiologická anamnéza"], ["preventive", "Preventivní vyšetření"]];
 const A3 = () => EXTRA.anamnesis_v3 || {};
 /* Soňa, round 2: the diagnosis in bold, qualifiers in normal font, no dates or method notes on drugs,
    sources folded away. */
-function termLine(f, key, reg) {
-  return `${f.term_cs ? `<b>${ed(key + ":t", f.term_cs)}</b>` : ""}${f.comment_cs ? `${f.term_cs ? ", " : ""}${ed(key + ":c", f.comment_cs)}` : ""}${marks(f, edOf(key + ":t") ? key + ":t" : key + ":c")}${(f.refs || []).map(j => reg.n(R3(j))).join("")}`;
+function termLine(cd, f, key, reg) {
+  return `${f.term_cs ? `<b>${ed(key + ":t", f.term_cs)}</b>` : ""}${f.comment_cs ? `${f.term_cs ? ", " : ""}${ed(key + ":c", f.comment_cs)}` : ""}${marks(f, edOf(key + ":t") ? key + ":t" : key + ":c")}${(f.refs || []).map(j => reg.n(refAt(cd, j))).join("")}`;
 }
 /* One line per drug, as a doctor writes it ("Everolimus Sandoz 5 mg 1-0-0"), with the indication or change
    as a grey comment next to it (Soňa, round 5); the indication stays because "1-1-1 při nevolnosti" is not regular dosing. */
 const drugLine = m => [m.drug_cs, m.strength_cs, m.dosing_cs].filter(Boolean).join(" ");
 const drugNote = m => m.comment_line_cs || [m.indication_cs, m.change_cs].filter(Boolean).join("; ");
-function medsTable(list, reg) {
-  return `<ul>${list.map((m, i) => `<li><b>${ed(`fa:${i}:line`, drugLine(m))}</b>${drugNote(m) || isDoctor(S.user) ? ` <span class="muted">${ed(`fa:${i}:note`, drugNote(m))}</span>` : ""}${marks(m)}${(m.refs || []).map(j => reg.n(R3(j))).join("")}</li>`).join("")}</ul>`;
+function medsTable(cd, list, reg) {
+  return `<ul>${list.map((m, i) => `<li><b>${ed(`fa:${i}:line`, drugLine(m))}</b>${drugNote(m) || isDoctor(S.user) ? ` <span class="muted">${ed(`fa:${i}:note`, drugNote(m))}</span>` : ""}${marks(m)}${(m.refs || []).map(j => reg.n(refAt(cd, j))).join("")}</li>`).join("")}</ul>`;
 }
-function tabAnamnesis() {
+function tabAnamnesis(cd) {
   const reg = refRegistry();
-  const A = A3();
+  const A = cd.record?.anamnesis || {};
   const body = k => {
     const list = A[k] || [];
-    if (k === "FA" && list.length) return medsTable(list, reg) + ((A.FA_warnings || []).length ? `<div style="margin-top:8px">${A.FA_warnings.map((f, i) => `<div class="small"><span class="chip plain k-contradiction">Pozor</span> ${termLine(f, `faw:${i}`, reg)}</div>`).join("")}</div>` : "");
-    const lines = list.length ? `<ul>${list.map((f, i) => `<li>${termLine(f, `${k}:${i}`, reg)}</li>`).join("")}</ul>` : DASH;
+    if (k === "FA" && list.length) return medsTable(cd, list, reg) + ((A.FA_warnings || []).length ? `<div style="margin-top:8px">${A.FA_warnings.map((f, i) => `<div class="small"><span class="chip plain k-contradiction">Pozor</span> ${termLine(cd, f, `faw:${i}`, reg)}</div>`).join("")}</div>` : "");
+    const lines = list.length ? `<ul>${list.map((f, i) => `<li>${termLine(cd, f, `${k}:${i}`, reg)}</li>`).join("")}</ul>` : DASH;
     const py = (A.abusus || []).find(x => x.pack_years_cs)?.pack_years_cs;
     return k === "abusus" ? lines + `<div class="small" style="margin-top:6px">Balíčkoroky: ${py ? `<b>${esc(py)}</b>` : DASH}</div>` : lines;
   };
@@ -2366,7 +2363,7 @@ function viewPatient() {
   const tabs = [["overview", "Přehled"], ["anamnesis", "Anamnéza"], ["documents", "Dokumenty"], ["labs", "Laboratoř"], ["alerts", "Upozornění"], ["next", "Navrhovaný postup"], ["dev", "Retrospektivní odchylky"], ["prognosis", "Prognóza"]];
   if (!tabs.some(t => t[0] === S.tab)) S.tab = "overview";
   const cd = readyData(p);
-  const body = { overview: tabOverview, anamnesis: tabAnamnesis, documents: () => tabDocuments(p, cd), labs: () => tabLabs(cd), alerts: tabAlerts, next: tabNext, dev: tabDev, prognosis: () => tabPrognosis(p) }[S.tab]();
+  const body = { overview: () => tabOverview(p, cd), anamnesis: () => tabAnamnesis(cd), documents: () => tabDocuments(p, cd), labs: () => tabLabs(cd), alerts: tabAlerts, next: tabNext, dev: tabDev, prognosis: () => tabPrognosis(p) }[S.tab]();
   return `<div class="page">
     ${sessionBar(p)}
     <div class="row"><button class="linkbtn" data-nav="patients">‹ Databáze pacientů</button></div>
@@ -3773,7 +3770,7 @@ document.addEventListener("click", e => {
   }
   else if (d.tl !== undefined) {
     /* One click straight to the full source text (Soňa, round 13); no detail panel in between. */
-    const c = timelineEvents()[+d.tl];
+    const c = timelineEvents(readyData(P(S.pid)))[+d.tl];
     S.selTl = +d.tl; render(); if (c && c.source) openSource(c.source);
   }
   else if (d.alact) alertAct(d.ai.startsWith("gap:") ? d.ai : +d.ai, d.alact);
