@@ -343,11 +343,10 @@ Each step is checked against the failure cases listed in CLAUDE.md.
    - Build them with Vite (the Cloudflare Vite plugin runs the Worker locally too).
    - No framework rewrite: the `render()` plus `innerHTML` model can stay.
 2. **Load data before the first render.** One loader fetches `/me`, `/staff` and `/patients`, then calls `render()`.
-3. **Per-case data, loaded on demand.**
-   - The full patient view reads the globals `CASE` and `EXTRA` directly, so only case 10 can be fully shown.
-   - Replace them with a cache keyed by case ID: `caseData(id)` returns the data or a loading state. When the fetch completes it calls `render()`, and it ignores late replies for a case no longer open.
-   - This follows the pattern `loadGuidance` already uses.
-   - This is the biggest frontend change and the one that lets a second fully processed case exist.
+3. **Per-case data, loaded on demand.** Done in step 3 (issue #4; design `docs/research/backend-steps/step-3.md`).
+   - The patient view reads a per-case store (`caseStore`, keyed by the case file) instead of the `CASE` and `EXTRA` globals, which only the embedded seed and list builder read now.
+   - One data-driven `viewPatient` shows each section the case's data holds, so any case with extraction data renders fully.
+   - In API mode a case loads from `/api/cases/:id/extraction` when opened; late replies for a case no longer open are kept but do not re-render, and replies older than the latest request are dropped.
 4. **Write through the API.**
    - Each action that mutates `S` calls its endpoint and renders the server's answer.
    - On a refusal, it shows the server's reason (for example "case approved, uploads locked").
@@ -365,7 +364,7 @@ Effort is a rough estimate for one developer with agents.
 | 0 | Revoke the ElevenLabs key, then move token minting and batch STT to a Worker route | 2-3 h | yes |
 | 1 | Worker with static assets replaces Pages; summary route moves; Access in front; config from variables; AI Gateway | 0.5-1 day | yes |
 | 2 | D1 schema, seed from fixtures, read API; frontend loader; page index per page from R2 | 2-3 days | yes, behind a flag until done |
-| 3 | Per-case data cache in the frontend (lifts the case-10-only limit) | 2-3 days | yes |
+| 3 | Per-case data cache in the frontend (lifts the case-10-only limit); done, issue #4 | 2-3 days | yes |
 | 4 | Write API with server-side rules and audit, action by action; reset-demo action | 3-5 days | yes |
 | 5 | Workflows: speaker pass, summary, prognosis port to TypeScript | 2-3 days | yes |
 | 6 | Uploads to R2; then the document pipeline (Container plus LLM extraction) | upload 1 day; pipeline weeks | yes; unprocessed files are labeled |

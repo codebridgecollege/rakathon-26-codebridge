@@ -81,9 +81,14 @@ the result in a chip:
 - **Data: server**. On the API Worker (`api/`), when `GET /api/health`
   answers JSON with `service: "codebridge-mdt"` and `features.data: true`.
   Before the first render the page loads `/api/me`, `/api/staff`,
-  `/api/patients`, `/api/tasks` and case 10's `/api/cases/NO-010/extraction`
-  (into the `CASE` and `EXTRA` globals; identity comes from the patient row,
-  not from the case JSON). The guideline layer calls
+  `/api/patients` and `/api/tasks`. Case data loads per case when a case is
+  opened: `/api/cases/:id/extraction` fills the page's per-case store
+  (`caseStore`, at most five cases in memory, cleared on a user switch, never
+  in `localStorage`); identity comes from the patient row, not from the case
+  JSON. A case the server lists as unprocessed and patients created in this
+  browser need no request. While a case loads the view says "Načítám podklady
+  případu…"; a failed load says so with "Zkusit znovu" and "Chybějící podklady
+  nelze ověřit", never "nezpracováno". The guideline layer calls
   `/api/cases/:id/guidance`, the source viewer fetches each page from
   `/api/documents/:id/pages/:n` (images from `.../image`), opening a case
   calls `/api/cases/:id` so the server writes the access log, and
@@ -241,6 +246,14 @@ Lucide 0.468.0 paths are embedded in the template, with the ISC notice in
 
 ## Checks
 
+- `src/test/case-store.mjs`: the per-case data store and the data-driven
+  patient view in jsdom (`npm i jsdom@24.1.0` in a scratch folder, then
+  `JSDOM_PATH=<that folder>/node_modules/jsdom node mocks/src/test/case-store.mjs`):
+  the embedded seed, no case-data request on Pages, the tabs each case's data
+  gives (case 10, S01, an unprocessed patient, a copy of S01 with a brief and
+  finding groups), and API mode against a fake server (loading state, late
+  replies, a deep link while loading, errors and retry, approval waiting, the
+  five-case bound, the user switch).
 - `node mocks/src/test/timeline-categories.mjs`: category filters, preserved source indexes, partial and missing dates, planned status, and escaped labels.
 
 - `src/test/v3.mjs`: clicks through mock v3 in Chromium with Playwright at
@@ -316,6 +329,7 @@ import/export, timeline multiselect, recording/transcript summary, staff managem
 calendar handling and clinical data corrections remain present. Run the regression checks:
 
 ```sh
+node mocks/src/test/case-store.mjs
 node mocks/src/test/v3.mjs
 node mocks/src/test/patient-panels.mjs
 node mocks/src/test/main-preservation.mjs
@@ -323,7 +337,9 @@ node mocks/src/test/timeline-categories.mjs
 node mocks/src/test/prognosis-ui.mjs
 ```
 
-Set `PLAYWRIGHT_PATH` if Playwright is installed outside the default path.
+Set `PLAYWRIGHT_PATH` if Playwright is installed outside the default path
+(the cached Chromium 1248 matches `playwright@1.64.0`), and `JSDOM_PATH` for
+`case-store.mjs`.
 
 ## Direct PDF report
 

@@ -51,6 +51,35 @@ Out of scope (other steps):
 - Splitting the template into ES modules (frontend item 1). The design is written
   so the store can become `case-store.js` unchanged when that happens.
 
+## As implemented (issue #4)
+
+Implemented on `backend` in seven commits following the refactor plan below.
+Where the code differs from this design, because step 2 shipped different
+endpoints than this design assumed:
+
+- **One request per case.** Step 2 serves the whole stored extraction from
+  `GET /api/cases/:id/extraction` (`{ case, extra }` for case 10, `{ syn }` for
+  a synthetic patient, `data: null` without a run), so `loadCase` makes that one
+  request and `fromApi(p, ex)` maps it with the same `fromFullExtraction` and
+  `fromSyn` the embedded seed uses. There are no separate brief, record, labs,
+  alerts and documents routes, so there are no per-part errors: a failed load
+  fails the whole case (error card, "Zkusit znovu", "Chybějící podklady nelze
+  ověřit (načtení selhalo)"). The header read (`GET /api/cases/:id`, the
+  "case.open" access-log row) stays in `caseOpened`, as step 2 wrote it.
+- **No request for an unprocessed case** (`processing: "none"` on the list row)
+  or for a patient created in the browser (`p.local`, set by "Nový pacient");
+  the intake demo patient S02 shows its embedded fixture in both modes.
+- **Signatures kept where the case is at hand:** `reportHtml(p, pr, present)`
+  and `fhirBundle(p, cd = readyData(p))` read the case data themselves, so
+  `report-pdf.js` did not change. The report reads its own case's guidance.
+- **Calendar card in API mode** shows the list row's diagnosis and summary
+  until the case has been opened, because the card never loads case data.
+- **Tests:** `mocks/src/test/case-store.mjs` (jsdom) covers the embedded seed,
+  the tab sets, a copy of S01 with a brief and finding groups, and API mode
+  against a fake server. Every refactor commit was checked by a jsdom render
+  of all views of case 10, S01, S02 after intake and patient 2, in embedded
+  mode and against local `wrangler dev`, before and after.
+
 ## Design
 
 ### 1. The case data shape (`CaseData`)
