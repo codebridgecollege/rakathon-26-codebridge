@@ -138,7 +138,9 @@ data is stored: the organizers' fictitious FNO patients and our own
 synthetic patients.
 
 - **Identity sits in one table.** Name, name as written, birth number,
-  birth date, age and insurer are in D1's `patients` table only. Case
+  birth date, age and insurer are in D1's `patients` table only (the
+  intake demo's upload files in R2, `fixtures/S02/`, are documents and a
+  FHIR referral, so they carry identity by nature). Case
   rows, alerts and the extraction JSON in R2 refer to a case ID
   (`NO-010`). The seed (`api/seed/seed.py`) removes identity from the
   extraction JSON and stops when a patient's name or birth number is
@@ -149,14 +151,22 @@ synthetic patients.
   in R2 still show names. Removing them is the redaction step (option B).
 - **The page still embeds every fixture.** In this step the same HTML
   serves Pages and the Worker, so the data-minimization gain arrives when
-  the page stops embedding data (backend steps 3 and 5). The page also
-  keeps case 10's extraction in memory after the user picker switches to
-  a role that may not read it (until step 3).
-- **Every read of case content is logged on the server** before the
-  content is read (`access_log`, append-only): who, which role, which
-  case, document and page, and a short Czech line. No quote, page text or
-  search term goes into the log. If the log cannot be written, the request
-  fails and returns nothing. The admin view (Administrace) shows it.
+  the page stops embedding data (backend steps 3 and 5). The Worker also
+  still serves the page images under `/pages/` as public static files for
+  that embedded fallback, without an access check or a log row. After a
+  user switch the page reloads what the server allows the new user, but
+  case 10's earlier extraction stays in memory, hidden (until step 3).
+- **Reads through the API are logged on the server** before the content
+  is read (`access_log`, append-only): who, which role, which case,
+  document and page, and a short Czech line. No quote or page text goes
+  into the log. If the log cannot be written, the request fails and
+  returns nothing. The admin view (Administrace) shows it. Not yet
+  logged per view: case 10's findings are loaded once at page start (one
+  `case.data` row for the starting user) and then shown from memory;
+  S01's findings and the saved prognosis still come from the embedded
+  data. Refused requests (403) are not logged. A search text in
+  `/api/patients?q=` would sit in the URL and so in Workers Logs; the
+  page does not use it yet, and it should move to a request body first.
 - **Who may read what.** A doctor reads the cases whose team (department)
   is on the case; the seed puts every MDT department on every case, as in
   the shared demo. The coordinator and the administrator read clinical
@@ -166,6 +176,9 @@ synthetic patients.
   decisions and tasks; the administrator identity and status only. Which
   one the prototype uses is open (`docs/agent/OPEN_QUESTIONS.md`). This
   trades privacy for a demo where a presenter can switch roles freely.
+  Even in `doctors_only` mode, the coordinator's "header" routes still
+  carry some clinical text: the question's source quote, decision report
+  snapshots and the edit log.
 - **Demo mode has no login.** The page sends the picked user's staff ID
   (header `X-Demo-User`, or the `cb_demo_user` cookie for page images);
   the server trusts it, as the UI says. With Cloudflare Access on, the

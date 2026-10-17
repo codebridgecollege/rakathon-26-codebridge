@@ -164,7 +164,9 @@ experience.
   case; a closed case cannot be booked. Step 2 keeps today's demo behaviour
   behind the Worker var `CLINICAL_ACCESS` (`all_roles`, the default: every
   role reads clinical content); `doctors_only` applies INTEGRATION.md's rule
-  (`api/src/domain/access.ts`).
+  (`api/src/domain/access.ts`). In `all_roles` a doctor outside the case's
+  team is still refused while the coordinator and administrator read every
+  case; the seed hides this because every department is on every case.
 - [ ] **Speaker pass on failure**: delete the case audio when the pass fails
   (no "Zkusit znovu", the summary is made from the live text), or keep the
   audio until the case is closed? (`docs/research/backend-steps/step-5.md`)
