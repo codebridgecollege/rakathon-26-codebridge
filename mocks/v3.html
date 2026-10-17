@@ -714,6 +714,26 @@ h3 { letter-spacing: -.02em; }
 .ev.planned .pin, .lpin.planned { border: 1px dashed currentColor; }
 .ev .pin svg, .lpin svg { width: 20px; height: 20px; }
 .tlfilter svg[data-icon="scalpel"] { width: 19px; height: 19px; }
+
+/* The icon circles are opaque so the timeline connector never crosses a glyph. */
+.ev .pin, .lpin { border-radius: 50%; background: #fff; border: 1.5px solid currentColor; position: relative; z-index: 1; }
+.ev.planned .pin, .lpin.planned { border-style: dashed; }
+.overview-panels .summary-card { display: flex; flex-direction: column; height: var(--summary-height, auto); min-height: 0; }
+.summary-card > .head { flex: none; }
+.summary-scroll { overflow-y: auto; min-height: 0; flex: 1; scrollbar-gutter: stable; overscroll-behavior-y: contain; padding-right: 12px; }
+.alert { grid-template-columns: auto minmax(0, 1fr) auto; }
+.alert-actions { justify-content: flex-end; max-width: 250px; }
+.alert.ack { opacity: 1; }
+@media (max-width: 980px) {
+  .overview-panels .summary-card { height: auto; }
+  .summary-scroll { max-height: 60vh; flex: initial; }
+}
+@media (max-width: 640px) {
+  .alert { grid-template-columns: auto minmax(0, 1fr); }
+  .alert-actions { grid-column: 2; justify-content: flex-start; max-width: 100%; }
+}
+@media print { .overview-panels .summary-card { height: auto; } .summary-scroll { overflow: visible; max-height: none; } }
+
 </style>
 
 <header class="top">
@@ -6712,7 +6732,7 @@ const S = {
   patients: initialPatients(), q: "", colf: {}, colOpen: null, editLog: [], subFrom: "", subTo: "", dbPage: 0, dbAll: false,
   week: mondayOf("2026-10-22"), miniMonth: "2026-10", guideOn: true, labSel: null, edits: {},
   selTl: null, tlCategory: "all", picked: new Set(["summary", "imaging", "histology", "past_treatment"]),
-  acks: {}, access: [], decisions: [], tasks: [
+  alertStates: {}, alertHistory: [], access: [], decisions: [], tasks: [
     { id: 1, pid: "2_pacient.pdf", text: "doplnit pooperační MR do podkladů", who: COORD, due: "2026-10-21", done: false },
     { id: 2, pid: "13_pacient.pdf", text: "vyžádat snímky MR 8/2025 ke srovnání", who: COORD, due: "2026-10-21", done: true },
   ],
@@ -6816,10 +6836,17 @@ const edRep = (key, orig, pid = S.pid) => edOf(key, pid) ? `${edOf(key, pid).tex
 
 /* Quiet certainty markers: an icon with a tooltip instead of a grey comment line (Soňa, round 2).
    The meaning is still shown on every fact, as CLAUDE.md requires; only the wording moved into the tooltip. */
+const COSMETIC_OCR = [
+  { note: 'V OCR „výbormně“.', word: 'výborně' },
+  { note: 'V OCR „nevolnoist“.', word: 'nevolnost' },
+  { note: 'V OCR „fenomenu“, čteno jako fenoménů.', word: 'fenoménů' },
+  { note: 'V OCR „j izvy“, čteno jako jizvy.', word: 'jizvy' },
+];
+const isCosmeticOcr = f => (!f.certainty || f.certainty === 'documented') && COSMETIC_OCR.some(x => f.ocr_note_cs === x.note && String(f.text_cs || '').includes(x.word));
 function marks(f) {
   let h = "";
   if (f.negated) h += `<span class="mk neg" title="Zápor zapsaný v dokumentu">-</span>`;
-  if (f.certainty === "unclear_ocr" || f.ocr_note_cs) h += `<span class="mk ocr" title="Ověřit čtení: ${esc(f.ocr_note_cs || f.note || "text mohl být špatně přečten")}">!</span>`;
+  if ((f.certainty === "unclear_ocr" || f.ocr_note_cs) && !isCosmeticOcr(f)) h += `<span class="mk ocr" title="Ověřit čtení: ${esc(f.ocr_note_cs || f.note || "text mohl být špatně přečten")}">!</span>`;
   if (f.certainty === "inferred") h += `<span class="mk obs" title="Pozorování asistenta, v dokumentu výslovně není">i</span>`;
   if (f.certainty === "planned" || f.change_status === "planned_unconfirmed" || /plánováno/i.test(f.change_cs || "")) h += `<span class="mk plan" title="Plánováno, dokument neuvádí, že se stalo${f.note_cs ? ": " + esc(f.note_cs) : ""}">?</span>`;
   /* Any other assistant note (source discrepancy, unclear exam) stays reachable as an icon, not as row text (round 5). */
@@ -7244,9 +7271,24 @@ function conclusionBox(p) {
     ${closed ? `${pr.state !== "approved" && pr.concl.trim() ? `<p class="muted small" style="margin:6px 0 0">Neschválený koncept: ${esc(pr.concl)}</p>` : ""}<p class="small closedmsg" style="margin:6px 0 0">${CLOSED_MSG}</p>` : ""}
     ${draftable ? `${last ? `<span class="label" style="display:block;margin-top:10px">Koncept nového závěru (nahradí platný až po schválení)</span>` : ""}<textarea class="input" id="concl" placeholder="Závěr a další postup, píše lékař (koncept, schvaluje se níže v části Projednání na MDT)" style="min-height:70px;margin-top:4px">${esc(pr.concl)}</textarea><p class="muted small" id="concldraft" style="margin:4px 0 0" ${pr.concl.trim() ? "" : "hidden"}>Koncept, zatím neschváleno. Schvaluje se níže v části Projednání na MDT.</p>` : ""}</div>`;
 }
+/* A workflow state never edits the finding or its sources. IDs are scoped to a patient. */
+const alertKey = (id, pid = S.pid) => `${pid}::${id}`;
+const alertState = id => S.alertStates[alertKey(id)] || { state: 'active' };
+function warningEntries(p = P(S.pid)) {
+  if (!p) return [];
+  if (p.full) return [
+    ...(CASE.flags || []).map((f, i) => ({ ...f, id: `flag:${i}`, i })),
+    ...(EXTRA.data_gaps_v3 || []).map((f, i) => ({ ...f, id: `gap:${i}`, relevant: true, based_on: f.refs || [] })),
+  ];
+  return (SYN_BY_FILE[p.file]?.data_gaps || []).map((f, i) => ({ ...f, id: `gap:${i}`, relevant: true, based_on: f.source ? [f.source] : [] }));
+}
 function topAlerts() {
-  const all = CASE.flags.map((f, i) => ({ ...f, i }));
+  const all = warningEntries().filter(f => alertState(f.id).state === 'active');
   return { top: all.filter(f => f.relevant), all };
+}
+function archivedAlerts() {
+  const hidden = warningEntries().filter(f => alertState(f.id).state !== 'active');
+  return hidden.length ? `<details class="srcs alert-archive"><summary>Vyřešená a vzatá na vědomí (${hidden.length})</summary><div class="alerts" style="margin-top:10px">${hidden.map(f => alertRow(f, false)).join('')}</div></details>` : '';
 }
 function briefHtml(reg) {
   if (edOf("brief")) return ed("brief", briefPlain());
@@ -7366,13 +7408,12 @@ const srcLinks = refs => { const xs = refs || [], seen = {}; return xs.map(r => 
 /* The brief's toggle opens the alerts for the MDT question first (CLAUDE.md: question-relevant alerts first),
    then the brief's own data gaps; the full list stays in the "Upozornění" tab. */
 function gapsBox() {
-  const g = EXTRA.data_gaps_v3 || [];
-  const { top } = topAlerts();
+  const { top, all } = topAlerts(), rest = all.filter(f => !f.relevant);
   return `<div class="brief-gaps">
     <div class="row spread"><span class="label">Upozornění k dotazu na MDT</span><button class="linkbtn small" data-tab="alerts">Všechna upozornění</button></div>
-    <div class="alerts" style="margin-top:6px">${top.map(f => alertRow(f, true)).join("")}</div>
-    ${g.length ? `<span class="label" style="display:block;margin-top:12px">Chybějící a nejasné údaje v briefu</span><div class="alerts" style="margin-top:6px">${g.map(x => `<div class="alert" style="grid-template-columns:auto minmax(0,1fr)"><span class="chip plain ${ALERT[x.kind][1]}">${ALERT[x.kind][0]}</span><span>${esc(x.text_cs)} ${srcLinks(x.refs)}</span></div>`).join("")}</div>` : ""}
-    <div class="disclaim">Pozorování asistenta, ne klinický závěr. Upozornění neblokují projednání.</div></div>`;
+    <div class="alerts" style="margin-top:6px">${[...top, ...rest].map(f => alertRow(f, true)).join('') || '<p class="muted small">Žádná aktivní upozornění.</p>'}</div>
+    ${archivedAlerts()}
+    <div class="disclaim">Pozorování asistenta, ne klinický závěr. Stav upozornění nemění zdrojové podklady.</div></div>`;
 }
 function briefBlock(p) {
   const reg = refRegistry();
@@ -7389,10 +7430,10 @@ function detailedCard(reg) {
   const rows = EXTRA.onco_detailed_v3 || [];
   const head = d ? `<p class="dxh">${reg.wrap(ed("dx", [d.histology_cs, d.grade_cs, d.tnm_cs].filter(Boolean).join(", ")), R3((d.refs || [])[0]))}${d.histology_date_cs ? ` <span class="muted" style="font-size:13px;font-weight:600" title="${esc(d.tnm_context_cs || "")}">(pTNM při diagnóze, ${esc(d.histology_date_cs.replace(/^\d+\./, "").replace(".", "/"))})</span>` : ""}${marks(d, "dx")}${(d.refs || []).map(i => reg.n(R3(i))).join("")}</p>
     <p class="dxs">${esc(d.mkn_cs || "")}</p>` : "";
-  return `<section class="card"><div class="head"><h2>Onkologický souhrn <button class="info" title="${esc(PIN_HELP)}" aria-label="${esc(PIN_HELP)}">i</button></h2></div>
-    ${head}
+  return `<section class="card summary-card"><div class="head"><h2>Onkologický souhrn <button class="info" title="${esc(PIN_HELP)}" aria-label="${esc(PIN_HELP)}">i</button></h2></div>
+    <div class="summary-scroll" tabindex="0" role="region" aria-label="Onkologický souhrn, posuvný obsah">${head}
     ${EXTRA.onco_compact_v3 ? compactRows(reg) : rows.map((r, i) => `<div class="orow" title="${KIND_CS[rowKind(r)] || ""}"><span class="dt">${esc(r.date_cs || r.date_label_cs || "")}</span><span><b>${reg.wrap(ed(`od:${i}:e`, r.event_cs), R3((r.refs || [])[0]))}</b>${r.comment_cs ? `<br>${ed(`od:${i}:c`, r.comment_cs)}` : ""}${marks(r, edOf(`od:${i}:e`) ? `od:${i}:e` : `od:${i}:c`)}${(r.refs || []).map(j => reg.n(R3(j))).join("")}</span></div>`).join("")}
-    ${srcList(reg)}</section>`;
+    ${srcList(reg)}</div></section>`;
 }
 /* Compact clinician-style summary (Soňa, round 14): one short line per event, "St. p." for what was done,
    "Plánováno" for what is planned, then "Další diagnózy"; each line opens its first source.
@@ -7430,20 +7471,23 @@ function statusCard() {
   const tk = (vt.match(/krevní tlak ([\d/]+ ?mmHg)/) || [])[1], pulse = (vt.match(/pulz ([\d]+\/min)/) || [])[1], tt = (vt.match(/teplota ([\d,.]+ ?°C)/) || [])[1];
   const lead = `TK/P ${tk ? esc(tk) : "-"} / ${pulse ? esc(pulse) : "-"}${vit ? reg.mark(R3((vit.refs || [])[0])) : ""}, TT ${tt ? esc(tt) : DASH}, PS (ECOG) ${ecog ? edLink(`sp:${ecog.i}`, ecog.text_cs) + reg.mark(R3((ecog.refs || [])[0])) : DASH}`;
   const exam = `${sp.exam_title_cs || ""} · ${sp.exam_date_cs || "datum neuvedeno"}${sp.exam_date_note_cs ? ". " + sp.exam_date_note_cs : ""}`;
-  return `<section class="card"><div class="head"><h2>Aktuální stav pacienta <button class="info" title="${esc(exam)}" aria-label="${esc(exam)}">i</button></h2></div>
+  return `<section class="card status-card"><div class="head"><h2>Aktuální stav pacienta <button class="info" title="${esc(exam)}" aria-label="${esc(exam)}">i</button></h2></div>
     <div class="stc"><p><b>Subjektivně:</b> ${subjHtml}.</p>
       <p><b>Objektivně:</b> ${[lead, brain ? link(brain) : "", ...rest.map(link)].filter(Boolean).join("; ")}.</p></div>
     ${srcList(reg)}</section>`;
 }
 function alertRow(f, compact) {
-  const ack = S.acks[f.i];
-  /* Every alert list sits under a header saying the alerts are the assistant's observations, so the note's own
-     "Pozorování asistenta." prefix is dropped per row; the rest of the note stays. */
-  const note = String(f.note || "").replace(/^Pozorování asistenta[.:;,]?\s*/i, "").replace(/^./, c => c.toUpperCase());
-  return `<div class="alert ${ack ? "ack" : ""}"><span class="chip plain ${ALERT[f.kind][1]}">${ALERT[f.kind][0]}</span>
+  const state = alertState(f.id), hidden = state.state !== 'active';
+  const note = String(f.note || '').replace(/^Pozorování asistenta[.:;,]?\s*/i, '').replace(/^./, c => c.toUpperCase());
+  const label = state.state === 'resolved' ? 'Vyřešeno' : 'Vzato na vědomí';
+  const kind = ALERT[f.kind] || ALERT.unclear;
+  return `<div class="alert ${hidden ? 'ack' : ''}" data-alert-id="${esc(f.id)}"><span class="chip plain ${kind[1]}">${kind[0]}</span>
     <span>${esc(f.text_cs)} ${srcLinks(f.based_on)}
-      ${!compact && note ? `<span class="why">${esc(note)}</span>` : ""}${ack ? `<span class="why">Vzal(a) na vědomí ${esc(ack)}</span>` : ""}</span>
-    ${ack ? "" : `<button class="btn small ackbtn" data-ack="${f.i}">Vzít na vědomí</button>`}</div>`;
+      ${!compact && note ? `<span class="why">${esc(note)}</span>` : ''}
+      ${hidden ? `<span class="why">${label} · ${esc(state.by)} · ${esc(state.when)}</span>` : ''}</span>
+    <span class="row alert-actions">${hidden
+      ? `<button class="btn small" data-alertstate="active" data-alertid="${esc(f.id)}">Vrátit mezi aktivní</button>`
+      : `<button class="btn small" data-alertstate="resolved" data-alertid="${esc(f.id)}">Vyřešeno</button><button class="btn small" data-alertstate="acknowledged" data-alertid="${esc(f.id)}">Vzít na vědomí</button>`}</span></div>`;
 }
 /* Rendering and source navigation share the same unsorted array, so filters cannot shift source indexes. */
 function timelineEvents() {
@@ -7475,7 +7519,7 @@ function tabOverview() {
   const p = P(S.pid);
   if (p.full) loadGuidance(p);
   const reg = refRegistry();
-  return `<div class="grid2"><div class="stack">${detailedCard(reg)}</div><div class="stack">${statusCard()}</div></div>`;
+  return `<div class="grid2 overview-panels"><div class="stack">${detailedCard(reg)}</div><div class="stack">${statusCard()}</div></div>`;
 }
 const ANAM = [["OA", "Osobní anamnéza"], ["RA", "Rodinná anamnéza"], ["PA", "Pracovní anamnéza"], ["SA", "Sociální anamnéza"], ["FA", "Farmakologická anamnéza"], ["AA", "Alergologická anamnéza"], ["abusus", "Abúzus"], ["EA", "Epidemiologická anamnéza"], ["preventive", "Preventivní vyšetření"]];
 const A3 = () => EXTRA.anamnesis_v3 || {};
@@ -7591,14 +7635,13 @@ function tabLabs() {
     <p class="muted small" style="margin:10px 0 0">Vývoj v čase se ukazuje jen tam, kde dokumentace obsahuje alespoň dva datované odběry; zde je jedna sada bez data odběru.</p></section>`;
 }
 function tabAlerts() {
-  const { all } = topAlerts();
-  const groups = ["contradiction", "missing", "change", "unclear"];
-  /* Alerts for the MDT question come first (CLAUDE.md), then the rest grouped by kind; headings carry no counts. */
-  const { top } = topAlerts(), rest = all.filter(f => !f.relevant);
+  const { top, all } = topAlerts(), rest = all.filter(f => !f.relevant);
+  const groups = ['contradiction', 'missing', 'change', 'unclear'];
   return `<section class="card"><div class="head"><h2>Upozornění</h2><span class="muted small">Pozorování asistenta, ne klinický závěr. Upozornění neblokují projednání.</span></div>
-    ${top.length ? `<h3 style="margin:14px 0 6px">K dotazu na MDT</h3><div class="alerts">${top.map(f => alertRow(f, false)).join("")}</div>` : ""}
-    ${rest.length ? `<h3 style="margin:18px 0 0">Ostatní upozornění</h3>` : ""}
-    ${groups.map(g => { const items = rest.filter(f => f.kind === g); return items.length ? `<h4 style="margin:10px 0 6px;font-size:13px">${ALERT[g][0]}, další</h4><div class="alerts">${items.map(f => alertRow(f, false)).join("")}</div>` : ""; }).join("")}</section>`;
+    ${top.length ? `<h3 style="margin:14px 0 6px">K dotazu na MDT</h3><div class="alerts">${top.map(f => alertRow(f, false)).join('')}</div>` : ''}
+    ${groups.map(g => { const items = rest.filter(f => f.kind === g); return items.length ? `<h4 style="margin:10px 0 6px;font-size:13px">${ALERT[g][0]}, další</h4><div class="alerts">${items.map(f => alertRow(f, false)).join('')}</div>` : ''; }).join('')}
+    ${!all.length ? '<p class="muted small">Žádná aktivní upozornění.</p>' : ''}
+    ${archivedAlerts()}</section>`;
 }
 /* ---------- Personál pracoviště (round 23) ---------- */
 /* The coordinator and the admin edit the staff list; doctors read it. */
@@ -7802,11 +7845,10 @@ function viewPatientLite(p) {
 }
 /* Missing documents of a synthetic patient, each with the passage that shows the gap (always on, CLAUDE.md). */
 function synGapsBox(syn) {
-  const g = syn.data_gaps || [];
-  return `<div class="brief-gaps">
-    <span class="label">Chybějící a nejasné podklady</span>
-    <div class="alerts" style="margin-top:6px">${g.map(x => `<div class="alert" style="grid-template-columns:auto minmax(0,1fr)"><span class="chip plain ${(ALERT[x.kind] || ALERT.unclear)[1]}">${(ALERT[x.kind] || ALERT.unclear)[0]}</span><span>${esc(x.text_cs)} ${x.source ? srcLinks([x.source]) : ""}</span></div>`).join("") || `<p class="muted small">Chybějící podklady nenalezeny.</p>`}</div>
-    <div class="disclaim">Pozorování asistenta, ne klinický závěr. Upozornění neblokují projednání.</div></div>`;
+  const { all } = topAlerts();
+  return `<div class="brief-gaps"><span class="label">Chybějící a nejasné podklady</span>
+    <div class="alerts" style="margin-top:6px">${all.map(f => alertRow(f, true)).join('') || '<p class="muted small">Žádná aktivní upozornění.</p>'}</div>
+    ${archivedAlerts()}<div class="disclaim">Pozorování asistenta, ne klinický závěr. Stav upozornění nemění zdrojové podklady.</div></div>`;
 }
 /* Header actions: scheduling, starting the MDT for this case's day, and the report. The report button is the
    only place it is offered: it opens a small dialog with the fields for the report, the preview and the download
@@ -8737,11 +8779,20 @@ function renderOverlay() {
 }
 
 /* ---------- render and events ---------- */
+let summaryObserver;
+function syncSummaryHeight() {
+  summaryObserver?.disconnect();
+  const grid = document.querySelector('.overview-panels'), status = grid?.querySelector('.status-card');
+  if (!status) return;
+  const sync = () => grid.style.setProperty('--summary-height', `${status.getBoundingClientRect().height}px`);
+  sync(); summaryObserver = new ResizeObserver(sync); summaryObserver.observe(status);
+}
 function render() {
   const bar = document.querySelector(".tlbar"); if (bar) S.tlScroll = bar.scrollLeft;
   renderNav();
   const v = { patients: viewPatients, calendar: viewCalendar, patient: viewPatient, tasks: viewTasks, admin: viewAdmin, staff: viewStaff }[S.view];
   document.getElementById("app").innerHTML = v();
+  syncSummaryHeight();
   const nb = document.querySelector(".tlbar"); if (nb) nb.scrollLeft = S.tlScroll || 0;
   measureTop(); markClamped();
   /* The current case's pill is scrolled into the middle of the agenda, so it is visible on narrow screens. */
@@ -8815,7 +8866,7 @@ document.addEventListener("click", e => {
   hideTip();
   if (S.colOpen && !e.target.closest(".fpop,[data-colopen]")) { S.colOpen = null; render(); return; }
   if (S.stOpen && !e.target.closest(".stpop,[data-stmenu]")) { S.stOpen = null; render(); return; }
-  const t = e.target.closest("[data-stmenu],[data-setst],[data-dbpage],[data-guide],[data-colopen],[data-colclose],[data-colall],[data-wk],[data-jump],[data-mm],[data-calclose],[data-labsel],[data-edit],[data-scope],[data-addatt],[data-delatt],[data-staffdel],[data-staffadd],[data-startday],[data-startgo],[data-sesgo],[data-nav],[data-open],[data-tab],[data-src],[data-close],[data-page],[data-vtab],[data-zoom],[data-zoomstep],[data-zoomhit],[data-tl-category],[data-tl],[data-ack],[data-sched],[data-pick],[data-free],[data-slot],[data-unsched],[data-act],[data-mode],[data-delstep],[data-delup],[data-recretry],[data-done],[data-suggok],[data-suggno]");
+  const t = e.target.closest("[data-stmenu],[data-setst],[data-dbpage],[data-guide],[data-colopen],[data-colclose],[data-colall],[data-wk],[data-jump],[data-mm],[data-calclose],[data-labsel],[data-edit],[data-scope],[data-addatt],[data-delatt],[data-staffdel],[data-staffadd],[data-startday],[data-startgo],[data-sesgo],[data-nav],[data-open],[data-tab],[data-src],[data-close],[data-page],[data-vtab],[data-zoom],[data-zoomstep],[data-zoomhit],[data-tl-category],[data-tl],[data-alertstate],[data-sched],[data-pick],[data-free],[data-slot],[data-unsched],[data-act],[data-mode],[data-delstep],[data-delup],[data-recretry],[data-done],[data-suggok],[data-suggno]");
   if (!t) return;
   const d = t.dataset;
   if (d.stmenu) { S.stOpen = S.stOpen === d.stmenu ? null : d.stmenu; render(); }
@@ -8874,7 +8925,12 @@ document.addEventListener("click", e => {
     const c = timelineEvents()[+d.tl];
     S.selTl = +d.tl; render(); if (c && c.source) openSource(c.source);
   }
-  else if (d.ack !== undefined) { S.acks[d.ack] = S.user; logAccess(S.pid, "vzal(a) upozornění na vědomí"); render(); }
+  else if (d.alertstate) {
+    if (!['active', 'acknowledged', 'resolved'].includes(d.alertstate) || !warningEntries().some(f => f.id === d.alertid)) return;
+    const entry = { pid: S.pid, id: d.alertid, state: d.alertstate, by: S.user, when: new Date().toLocaleString('cs-CZ') };
+    S.alertStates[alertKey(d.alertid)] = entry; S.alertHistory.push({ ...entry });
+    logAccess(S.pid, `${d.alertid}: ${d.alertstate === 'active' ? 'upozornění vráceno mezi aktivní' : d.alertstate === 'resolved' ? 'upozornění označeno jako vyřešené' : 'upozornění vzato na vědomí'}`); render();
+  }
   else if (d.sched) { S.view = "calendar"; S.schedPick = d.sched; S.calPop = null; render(); }
   else if (d.pick) { S.schedPick = S.schedPick === d.pick ? null : d.pick; render(); }
   else if (d.free) {
@@ -9200,4 +9256,5 @@ document.addEventListener("keydown", e => { if (e.key === "Escape" && S.overlay)
 readHash();
 render();
 </script>
+
 

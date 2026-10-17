@@ -24,6 +24,27 @@ The template keeps the current interactions and case data. White space,
 ruled sections, navy primary actions and teal accents replace nested
 rounded card frames. Manrope and DM Sans remain the typefaces.
 
+The oncology summary scrolls inside a keyboard-focusable pane, matching the
+current-state panel height on desktop. On narrow screens it is limited to
+60vh. Timeline icons have opaque white circles over the connector.
+
+Warnings support `Vyřešeno` and `Vzít na vědomí`, with an expandable archive
+and `Vrátit mezi aktivní`. State and its history are per patient and kept in
+memory for this session. These actions do not alter clinical facts or
+supply missing source documents, so the missing-document header signal
+remains. All three warning sources use the same workflow: case flags,
+brief gaps and the synthetic patient's gaps.
+
+Only exact, reviewed lexical OCR corrections suppress their inline
+warning: `výbormně` to `výborně`, `nevolnoist` to `nevolnost`, `fenomenu` to
+`fenoménů` and `j izvy` to `jizvy`. Explicit uncertain or conflicting values
+retain their warnings. The source
+text and references are unchanged. Other OCR warnings remain visible.
+
+Run `node mocks/src/test/patient-panels.mjs` with Playwright available to
+check scrolling, the OCR boundary cases, circle fills and reversible
+per-patient warning states.
+
 Build with `python3 mocks/build.py` as usual. The source viewer retains its
 page boundaries and highlights; warnings, draft questions, approved
 conclusions and calendar selection retain their distinct visual states.
