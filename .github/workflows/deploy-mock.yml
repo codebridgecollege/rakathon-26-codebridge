@@ -4,7 +4,7 @@ name: Deploy mock
 on:
   push:
     branches: [main]
-    paths: ["mocks/v3.html", "mocks/pages/**", "mocks/ukazka/**", "mocks/functions/**", "mocks/deploy.sh", ".github/workflows/deploy-mock.yml"]
+    paths: ["mocks/v3.html", "mocks/pages/**", "mocks/ukazka/**", "mocks/functions/**", "mocks/deploy.sh", "mocks/pages-wrangler.toml", ".github/workflows/deploy-mock.yml"]
   workflow_dispatch:
 
 # One deploy at a time; a newer push replaces a queued one.
@@ -20,6 +20,12 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
+      # The page must never carry a speech or model key again (the key in STT_DEMO_KEY leaked this way).
+      - name: Refuse to publish an embedded API key
+        run: |
+          # -l prints only file names, so a found key never reaches the public CI log.
+          if grep -lE 'sk_[0-9a-f]{40,}|xi-api-key' mocks/v3.html mocks/src/v3-template.html; then
+            echo "An API key or a direct ElevenLabs auth header is in the page." >&2; exit 1; fi
       - name: Deploy to Cloudflare Pages
         run: RUN_BUILD=0 mocks/deploy.sh
         env:
