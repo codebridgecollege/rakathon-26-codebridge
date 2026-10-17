@@ -22,7 +22,8 @@ const app = new Hono<AppEnv>().basePath("/api");
 // Nothing under /api may be cached by the browser or an intermediary: answers can carry case text.
 app.use("*", async (c, next) => {
   await next();
-  c.header("Cache-Control", "no-store");
+  // A route may set its own private policy (page images); everything else is never stored.
+  if (!c.res.headers.get("Cache-Control")) c.header("Cache-Control", "no-store");
 });
 app.route("/health", health); // public: no data, tells the page which features this host has
 app.use("*", auth()); // everything below needs a user (demo: anonymous demo user)

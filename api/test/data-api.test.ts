@@ -129,7 +129,9 @@ describe("case reads", () => {
     ]);
   });
 
-  it("serves the extraction without identity keys", async () => {
+  // The stripping itself happens in the seed (api/seed/seed.py, checked by its identity scan and key check); this
+  // proves the route passes the stored object through without adding identity from the patients table.
+  it("serves the extraction without identity from the patients table", async () => {
     const body = await (await call("/api/cases/NO-A/extraction")).json<{ processing: string; run: { id: string }; data: Record<string, unknown> }>();
     expect(body.processing).toBe("full");
     expect(body.run.id).toBe("run-A");
@@ -140,6 +142,11 @@ describe("case reads", () => {
 
   it("answers processing none for a case without a run", async () => {
     expect(await (await call("/api/cases/NO-B/extraction")).json()).toEqual({ case_id: "NO-B", processing: "none", run: null, data: null });
+  });
+
+  it("treats an unknown CLINICAL_ACCESS value as the strict rule", async () => {
+    const r = await call("/api/cases/NO-A/extraction", as("coord"), testEnv({ CLINICAL_ACCESS: "allroles" }));
+    expect(await errCode(r)).toBe("role_forbidden");
   });
 
   it("refuses clinical content to the coordinator and the administrator only in the strict mode", async () => {
@@ -191,10 +198,13 @@ describe("source pages", () => {
   it("streams the page image and the redacted version, and 404s a missing redacted version", async () => {
     const img = await call("/api/documents/A_pacient/pages/1/image");
     expect(img.headers.get("content-type")).toBe("image/png");
+    // Images may sit in this browser's cache briefly, so re-renders of the viewer do not log the same image again.
+    expect(img.headers.get("cache-control")).toBe("private, max-age=300");
+    expect((await call("/api/documents/A_pacient/pages/1")).headers.get("cache-control")).toBe("no-store");
     expect((await img.arrayBuffer()).byteLength).toBeGreaterThan(0);
     expect((await call("/api/documents/A_pacient/pages/1/image?redacted=1")).status).toBe(200);
     expect(await errCode(await call("/api/documents/A_pacient/pages/2/image?redacted=1"))).toBe("page_not_found");
-    expect((await accessLog()).map((l) => l.what_cs)).toEqual(["načetl(a) obrázek s. 1", "načetl(a) obrázek s. 1 (začerněná verze)"]);
+    expect((await accessLog()).map((l) => l.what_cs)).toEqual(["načetl(a) obrázek s. 1", "zobrazil(a) zdroj s. 1", "načetl(a) obrázek s. 1 (začerněná verze)"]);
   });
 
   it("refuses pages of a case outside the doctor's team, and unknown pages", async () => {
@@ -214,12 +224,17 @@ describe("audit guarantees", () => {
       blobs: new R2Blobs(e.DOCS),
       audit: Object.assign(new D1Audit(e.DB), { append: async () => { throw new Error("D1 down"); } }),
     }));
-    for (const path of ["/api/patients", "/api/cases/NO-A/extraction", "/api/documents/A_pacient/pages/1", "/api/documents/A_pacient/pages/1/image"]) {
+    const routes = ["/api/patients", "/api/cases/NO-A", "/api/cases/NO-A/extraction", "/api/cases/NO-A/documents", "/api/cases/NO-A/alerts",
+      "/api/cases/NO-A/decisions", "/api/cases/NO-A/history", "/api/cases/NO-A/guidance", "/api/cases/NO-A/prognosis",
+      "/api/documents/A_pacient/pages/1", "/api/documents/A_pacient/pages/1/image"];
+    for (const path of routes) {
       const r = await call(path);
       expect(r.status).toBe(500);
       const text = await r.text();
       expect(text).not.toContain(FAKE_NAME);
       expect(text).not.toContain("Diagnóza");
+      expect(text).not.toContain("Ambulantní");
+      expect(text).not.toContain("g1");
     }
   });
 

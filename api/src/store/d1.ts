@@ -150,6 +150,7 @@ export class D1Cases implements CaseStore {
 
   private async withParts(docs: Omit<DocumentRow, "parts">[]): Promise<DocumentRow[]> {
     if (!docs.length) return [];
+    // One bound value per document; D1 allows 100 per statement, far above a case's document count today.
     const ids = docs.map((d) => d.id);
     const parts = await this.db
       .prepare(

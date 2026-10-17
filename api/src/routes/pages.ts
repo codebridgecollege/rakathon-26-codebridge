@@ -77,5 +77,7 @@ export const pages = new Hono<AppEnv>()
     });
     const o = await c.var.stores.blobs.getStream(key);
     if (!o) throw E.dataUnavailable();
-    return c.body(o.body, 200, { "Content-Type": o.contentType });
+    // The viewer re-renders its <img> on every zoom or tab change; a short private cache keeps that from fetching
+    // (and logging) the same image again. Only this browser may keep it, and only for five minutes.
+    return c.body(o.body, 200, { "Content-Type": o.contentType, "Cache-Control": "private, max-age=300" });
   });

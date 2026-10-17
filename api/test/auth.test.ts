@@ -158,3 +158,30 @@ describe("auth in demo mode", () => {
     expect(keys).toEqual(["ip:203.0.113.7"]);
   });
 });
+
+describe("data routes in access mode", () => {
+  it("takes the user from the verified e-mail and ignores the demo header and cookie", async () => {
+    const { loadFixture } = await import("./data");
+    const { env } = await import("cloudflare:workers");
+    await loadFixture();
+    await env.DB.prepare("UPDATE users SET email = 'doktor@example.cz' WHERE id = 'd1p1'").run();
+    upstream();
+    const jwt = await token();
+    const res = await call(
+      "/api/me",
+      { headers: { "cf-access-jwt-assertion": jwt, "X-Demo-User": "admin", cookie: "cb_demo_user=admin" } },
+      accessEnv(),
+    );
+    expect(res.status).toBe(200);
+    expect(await res.json()).toMatchObject({ user: { id: "d1p1", role: "doctor" }, auth_mode: "access" });
+  });
+
+  it("refuses a verified e-mail that is not in the directory", async () => {
+    const { loadFixture } = await import("./data");
+    await loadFixture();
+    upstream();
+    const res = await call("/api/me", { headers: { "cf-access-jwt-assertion": await token({ email: "cizi@example.cz" }) } }, accessEnv());
+    expect(res.status).toBe(401);
+    expect(await code(res)).toBe("unknown_user");
+  });
+});
