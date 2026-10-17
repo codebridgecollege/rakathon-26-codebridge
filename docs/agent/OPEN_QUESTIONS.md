@@ -161,7 +161,10 @@ experience.
   clinical content to the administrator and the coordinator (INTEGRATION.md),
   while today's demo shows it to every role; a coordinator may acknowledge
   alerts but not edit next steps; every MDT department is a member of every
-  case; a closed case cannot be booked.
+  case; a closed case cannot be booked. Step 2 keeps today's demo behaviour
+  behind the Worker var `CLINICAL_ACCESS` (`all_roles`, the default: every
+  role reads clinical content); `doctors_only` applies INTEGRATION.md's rule
+  (`api/src/domain/access.ts`).
 - [ ] **Speaker pass on failure**: delete the case audio when the pass fails
   (no "Zkusit znovu", the summary is made from the live text), or keep the
   audio until the case is closed? (`docs/research/backend-steps/step-5.md`)
@@ -195,9 +198,8 @@ experience.
 
 ## Check ourselves (docs and the web)
 
-- [ ] **Do D1 and R2 really keep data in the EU** with `--jurisdiction=eu`?
-  Cloudflare's docs disagree for D1; check on the created database. Do
-  presigned R2 URLs work on the EU endpoint? Does AI Gateway retry on
+- [ ] Do presigned R2 URLs work on the EU endpoint? (D1 and R2 residency
+  is answered in `HACKATHON.md`.) Does AI Gateway retry on
   HTTP 429, and does its Azure provider fit the hackathon APIM host?
   (`docs/research/2026-10-17-backend-migration.md`)
 

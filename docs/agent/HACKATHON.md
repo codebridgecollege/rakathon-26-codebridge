@@ -206,6 +206,11 @@ Declare this list to the jury and mentors.
   4.13.13, `jose` 6.2.12, Wrangler 4.147.0, TypeScript 5.9.3, and Vitest
   4.1.11 with `@cloudflare/vitest-plugin` 1.3.6. Cloudflare AI Gateway is
   wired as an option but off.
+- Cloudflare D1 (database `codebridge-mdt`) and R2 (bucket
+  `codebridge-mdt`), both created on 2026-10-17 with the EU jurisdiction,
+  holding the seeded synthetic demo data (`api/seed/seed.py`). `wrangler d1
+  info codebridge-mdt` reports `jurisdiction: eu`, region EEUR; `wrangler
+  r2 bucket info codebridge-mdt --jurisdiction eu` reports location EEUR.
 - ChatGPT, used by Soňa for brainstorming and UI sketches
   (`docs/sources/design/`).
 - Claude artifacts (claude.ai), for publishing the UI mocks in `mocks/`.

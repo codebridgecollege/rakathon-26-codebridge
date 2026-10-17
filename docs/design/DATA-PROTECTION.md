@@ -130,6 +130,50 @@ quasi-identifiers, which is why the data stays personal data.
   the hospital, and keep the mapping on the hospital's server
   (`CLAUDE.md`, "Expose as little as possible").
 
+## Server storage (API Worker, step 2)
+
+The Worker keeps the demo data in Cloudflare D1 (the database) and R2
+(the file store), both created with the EU jurisdiction. Only synthetic
+data is stored: the organizers' fictitious FNO patients and our own
+synthetic patients.
+
+- **Identity sits in one table.** Name, name as written, birth number,
+  birth date, age and insurer are in D1's `patients` table only. Case
+  rows, alerts and the extraction JSON in R2 refer to a case ID
+  (`NO-010`). The seed (`api/seed/seed.py`) removes identity from the
+  extraction JSON and stops when a patient's name or birth number is
+  still found outside a `quote` field (`api/seed/out/identity-scan.txt`
+  lists paths, never values; it found no hits on 2026-10-17).
+- **This is not pseudonymization yet.** Quotes and page text are source
+  evidence and stay verbatim (CLAUDE.md), so the page JSON and page images
+  in R2 still show names. Removing them is the redaction step (option B).
+- **The page still embeds every fixture.** In this step the same HTML
+  serves Pages and the Worker, so the data-minimization gain arrives when
+  the page stops embedding data (backend steps 3 and 5). The page also
+  keeps case 10's extraction in memory after the user picker switches to
+  a role that may not read it (until step 3).
+- **Every read of case content is logged on the server** before the
+  content is read (`access_log`, append-only): who, which role, which
+  case, document and page, and a short Czech line. No quote, page text or
+  search term goes into the log. If the log cannot be written, the request
+  fails and returns nothing. The admin view (Administrace) shows it.
+- **Who may read what.** A doctor reads the cases whose team (department)
+  is on the case; the seed puts every MDT department on every case, as in
+  the shared demo. The coordinator and the administrator read clinical
+  content too, because the Worker var `CLINICAL_ACCESS` defaults to
+  `all_roles` (today's demo behaviour). `doctors_only` applies
+  INTEGRATION.md: the coordinator gets the case header, documents list,
+  decisions and tasks; the administrator identity and status only. Which
+  one the prototype uses is open (`docs/agent/OPEN_QUESTIONS.md`). This
+  trades privacy for a demo where a presenter can switch roles freely.
+- **Demo mode has no login.** The page sends the picked user's staff ID
+  (header `X-Demo-User`, or the `cb_demo_user` cookie for page images);
+  the server trusts it, as the UI says. With Cloudflare Access on, the
+  verified e-mail decides who the user is and the header is ignored.
+- **Retention.** The demo data and its access log stay until someone
+  reseeds with `--reset`, which deletes the log too (shared-demo
+  decision). Nothing else is kept.
+
 ## Meeting audio
 
 The recording of an MDT discussion is patient data. In the demo, "AI
