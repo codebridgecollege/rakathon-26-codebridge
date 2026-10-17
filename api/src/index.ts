@@ -12,10 +12,18 @@ import { cases } from "./routes/cases";
 import { pages } from "./routes/pages";
 import { work } from "./routes/work";
 import { admin } from "./routes/admin";
+import { writeGuard } from "./middleware/write-guard";
+import { writeCases } from "./routes/write-cases";
+import { writeWork } from "./routes/write-work";
+import { writeStaff } from "./routes/write-staff";
+import { demo } from "./routes/demo";
 
 // The data routes (step 2) resolve the person from the directory first; listed by path so an unknown /api path
 // still answers the plain JSON 404 instead of touching the database.
-const DATA_PATHS = ["/me", "/staff", "/patients", "/cases/*", "/documents/*", "/tasks", "/calendar", "/admin/*"];
+const DATA_PATHS = [
+  "/me", "/staff", "/staff/*", "/patients", "/cases", "/cases/*", "/documents/*", "/tasks", "/tasks/*", "/calendar", "/admin/*",
+  "/workflow", "/audit/*", "/suggestions/*", "/notifications/*", "/sessions", "/sessions/*", "/attendance/*",
+];
 
 // Static files (the built mock) are served by the assets binding before this code runs; only /api/* reaches it.
 const app = new Hono<AppEnv>().basePath("/api");
@@ -31,11 +39,17 @@ app.use("*", sameOrigin()); // non-GET from another origin is refused (CSRF and 
 app.route("/summarize", summarize);
 app.route("/stt", stt);
 for (const p of DATA_PATHS) app.use(p, viewer());
+// Step 4: every data write (POST, PUT, PATCH, DELETE) checks JSON, size and the demo's data epoch, and logs refusals.
+for (const p of DATA_PATHS) app.use(p, writeGuard());
 app.route("/", directory);
 app.route("/", cases);
 app.route("/", pages);
 app.route("/", work);
 app.route("/", admin);
+app.route("/", writeCases);
+app.route("/", writeWork);
+app.route("/", writeStaff);
+app.route("/", demo);
 app.notFound(notFound);
 app.onError(onError);
 

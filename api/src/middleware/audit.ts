@@ -8,7 +8,7 @@ import { E } from "../http/errors";
 // what_cs is the line Administrace shows; it never holds a quote, document text or search terms.
 export async function audit(c: Context<AppEnv>, e: Omit<AuditEntry, "viewer" | "request_id">): Promise<void> {
   try {
-    await c.var.stores.audit.append({ ...e, viewer: c.var.viewer, request_id: c.req.header("cf-ray") ?? null });
+    await c.var.stores.audit.append({ ...e, viewer: c.var.viewer, request_id: c.req.header("cf-ray") ?? null, break_glass_reason: c.var.breakGlass ?? null });
   } catch {
     console.error(JSON.stringify({ route: c.req.path, audit: "insert_failed" }));
     throw E.internal();

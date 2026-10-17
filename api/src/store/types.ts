@@ -90,6 +90,7 @@ export type AuditEntry = {
   document_id?: string | null;
   page_n?: number | null;
   request_id?: string | null;
+  break_glass_reason?: string | null;
 };
 
 export type AuditFilter = { caseId?: string; actor?: string; from?: string; to?: string; limit: number };

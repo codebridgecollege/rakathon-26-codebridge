@@ -3,6 +3,7 @@ import type { AppEnv } from "../types";
 import { E } from "../http/errors";
 import { canReadCaseHeader, canReadClinical, clinicalAccessOf, type Decision } from "../domain/access";
 import type { CaseJoinRow } from "../domain/rows";
+import { D1Work } from "../store/work";
 
 export const modeOf = (c: Context<AppEnv>) => clinicalAccessOf(c.env.CLINICAL_ACCESS);
 
@@ -18,8 +19,16 @@ export async function openCase(c: Context<AppEnv>, id: string, level: "header" |
   const v = c.var.viewer;
   const row = await cases.caseById(id);
   if (!row) throw E.caseNotFound();
-  // Only doctors need membership; the other roles are decided by role alone.
-  const member = v.role === "doctor" ? await cases.isMember(id, v) : false;
+  // Only doctors need membership; the other roles are decided by role alone. A break-the-glass grant counts as
+  // membership until it expires, and every read under it carries the reason in the access log.
+  let member = v.role === "doctor" ? await cases.isMember(id, v) : false;
+  if (v.role === "doctor" && !member) {
+    const g = await new D1Work(c.env.DB).validGrant(id, v.id, new Date().toISOString());
+    if (g) {
+      member = true;
+      c.set("breakGlass", g.reason);
+    }
+  }
   enforce((level === "header" ? canReadCaseHeader : canReadClinical)(v, member, modeOf(c)));
   return row;
 }

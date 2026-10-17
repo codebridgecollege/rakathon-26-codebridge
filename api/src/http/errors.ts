@@ -1,6 +1,7 @@
 import type { ErrorHandler, NotFoundHandler } from "hono";
 import type { ContentfulStatusCode } from "hono/utils/http-status";
 import type { AppEnv } from "../types";
+import { DomainError } from "../domain/errors";
 
 // Every /api error has the same shape, { error: { code, message_cs } }, so the page can show message_cs as is.
 // Messages never carry the upstream status, upstream body or a key.
@@ -42,11 +43,20 @@ export const E = {
   notConfigured: () => new ApiError(503, "not_configured", "Tato služba na tomto serveru není zapnutá."),
   upstreamBusy: () => new ApiError(503, "upstream_busy", "Služba je přetížená, zkuste to znovu za chvíli."),
   upstreamTimeout: () => new ApiError(504, "upstream_timeout", "Služba neodpověděla včas."),
+  // Step 4: a tab opened before a reset-demo must not write into the new data; the page reloads.
+  dataReset: () => new ApiError(409, "data_reset", "Ukázková data byla obnovena, stránka se znovu načte."),
+  bodyTooLarge: () => new ApiError(413, "too_large", "Požadavek je příliš velký."),
+  idempotencyKeyRequired: () => new ApiError(422, "invalid_input", "Chybí klíč opakování požadavku (Idempotency-Key)."),
 };
 
 export const onError: ErrorHandler<AppEnv> = (err, c) => {
   if (err instanceof ApiError) {
     return c.json({ error: { code: err.code, message_cs: err.message_cs } }, err.status, err.headers);
+  }
+  // A refused domain rule: its status, code and Czech message, plus the server state on a conflict and field
+  // messages for a form.
+  if (err instanceof DomainError) {
+    return c.json({ error: { code: err.code, message_cs: err.message_cs, ...err.extra } }, err.status);
   }
   // Unknown errors: log the type and route only; the message may hold request text.
   console.error(JSON.stringify({ route: c.req.path, error: err?.name ?? "Error" }));

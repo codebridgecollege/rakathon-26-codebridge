@@ -7,8 +7,8 @@ export const FAKE_NAME = "Testová Pacientka";
 // A 1x1 PNG.
 const PNG = Uint8Array.from(atob("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="), (ch) => ch.charCodeAt(0));
 
-const SQL = [
-  "INSERT INTO roles (id, label_cs) VALUES ('doctor','lékař'), ('coordinator','koordinátor(ka) MDT'), ('admin','správce systému')",
+export const SQL = [
+  "INSERT INTO roles (id, label_cs) VALUES ('doctor','lékař'), ('coordinator','koordinátor(ka) MDT'), ('admin','správce systému'), ('staff','personál pracoviště')",
   "INSERT INTO departments (id, name, sort) VALUES ('d1','Neurochirurgie',0), ('d2','Klinická onkologie',1)",
   `INSERT INTO users (id, pre, sur, role_id) VALUES ('d1p1','MUDr.','Novák','doctor'), ('d2p1','MUDr.','Svobodová','doctor'),
      ('coord','Bc.','Marková','coordinator'), ('admin','Ing.','Kovář','admin')`,

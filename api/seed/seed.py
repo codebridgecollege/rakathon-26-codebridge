@@ -48,8 +48,20 @@ TABLES = [
     "slots", "sessions", "attendance", "protocols", "decisions", "task_suggestions", "tasks",
     "question_confirmations", "fact_edits", "edit_log", "extraction_runs", "alerts", "alert_events",
     "documents", "document_parts", "pages", "fixture_files", "transcript_passes", "transcript_lines", "jobs",
-    "access_log", "seed_meta",
+    "access_log", "seed_meta", "attendance_sets", "notifications", "case_access_grants", "idempotency_keys",
+    "write_guards",
 ]
+# What the app writes (step 4). POST /api/admin/reset-demo empties these and reinserts their seed rows from the
+# R2 object seed/reset.json, which this script writes; the other tables change only through this script.
+MUTABLE = [
+    "users", "departments", "dept_members", "cases", "case_members", "status_history", "slots", "sessions",
+    "attendance", "attendance_sets", "protocols", "decisions", "task_suggestions", "tasks", "question_confirmations",
+    "fact_edits", "edit_log", "alert_events", "notifications", "case_access_grants", "idempotency_keys", "write_guards",
+    "transcript_lines", "transcript_passes", "jobs", "access_log",
+]
+# patients is not in the list: identity stays in D1 only (no copy in R2). The app never changes a seeded patient row,
+# so the reset keeps those and deletes only patients created after the seed (reset.json lists the seeded IDs).
+RESET_KEY = "seed/reset.json"
 
 
 def load_build():
@@ -275,13 +287,39 @@ def lit(v) -> str:
     return "'" + str(v).replace("'", "''") + "'"
 
 
+ROWS: list[tuple[str, dict]] = []  # every seeded row, for the grouped statements of seed/reset.json
+
+
 def insert(table: str, row: dict) -> str:
+    ROWS.append((table, row))
     cols = ", ".join(row)
     vals = ", ".join(lit(v) for v in row.values())
     stmt = f"INSERT INTO {table} ({cols}) VALUES ({vals});"
     if len(stmt.encode()) > MAX_STATEMENT:
         sys.exit(f"seed: statement for {table} is {len(stmt.encode())} bytes, over the D1 limit")
     return stmt
+
+
+def grouped_inserts(tables: list[str]) -> list[str]:
+    """Multi-row INSERTs per table, each under the D1 statement limit, so the reset fits few statements."""
+    out = []
+    for t in tables:
+        rows = [r for tt, r in ROWS if tt == t]
+        by_cols: dict[tuple, list[dict]] = {}
+        for r in rows:
+            by_cols.setdefault(tuple(r), []).append(r)
+        for cols, rs in by_cols.items():
+            head = f"INSERT INTO {t} ({', '.join(cols)}) VALUES "
+            chunk: list[str] = []
+            for r in rs:
+                v = "(" + ", ".join(lit(x) for x in r.values()) + ")"
+                if chunk and len((head + ", ".join(chunk + [v])).encode()) > MAX_STATEMENT:
+                    out.append(head + ", ".join(chunk))
+                    chunk = []
+                chunk.append(v)
+            if chunk:
+                out.append(head + ", ".join(chunk))
+    return out
 
 
 def trigger_names(sql: str) -> list[str]:
@@ -345,7 +383,7 @@ def main() -> None:
     sql: list[str] = []
     r2: list[dict] = []  # {key, body (bytes) or file (Path), content_type}
 
-    sql += [insert("roles", {"id": r, "label_cs": l}) for r, l in (("doctor", "lékař"), ("coordinator", "koordinátor(ka) MDT"), ("admin", "správce systému"))]
+    sql += [insert("roles", {"id": r, "label_cs": l}) for r, l in (("doctor", "lékař"), ("coordinator", "koordinátor(ka) MDT"), ("admin", "správce systému"), ("staff", "personál pracoviště"))]
     sql += [insert("departments", d) for d in depts]
     sql += [insert("users", {k: u[k] for k in ("id", "pre", "sur", "post", "fn")} | {"role_id": u["role"]}) for u in users]
     sql += [insert("dept_members", m) for m in members]
@@ -537,15 +575,21 @@ def main() -> None:
     now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.") + f"{datetime.now(timezone.utc).microsecond // 1000:03d}Z"
     sql.append(insert("seed_meta", {"id": 1, "seeded_at": now, "git_commit": git, "fixtures_json": hashes}))
 
-    # 10. The SQL file. A reset drops the append-only triggers, empties every table, then restores the triggers from
-    # the migration text itself, so they come back exactly as migrated.
-    triggers_sql = (MIGRATIONS / "0002_append_only.sql").read_text()
+    # 10. The SQL file. A reset empties every table inside the demo_state flag that lets the append-only triggers
+    # through (migration 0003), then reseeds and bumps data_epoch, so every open tab reloads instead of writing into
+    # data it never saw. Without --reset the database must be empty (checked below).
     prefix = []
     if a.reset:
-        prefix += [f"DROP TRIGGER IF EXISTS {t};" for t in trigger_names(triggers_sql)]
+        prefix += ["UPDATE demo_state SET reset_in_progress = 1 WHERE id = 1;"]
         prefix += [f"DELETE FROM {t};" for t in reversed(TABLES)]
-        prefix += ["DELETE FROM sqlite_sequence;"]
-        prefix += [l for l in triggers_sql.splitlines() if l.startswith("CREATE TRIGGER")]
+        prefix += ["DELETE FROM sqlite_sequence WHERE name <> 'demo_state';"]
+    suffix = [f"UPDATE demo_state SET reset_in_progress = 0, data_epoch = data_epoch + {1 if a.reset else 0}, seed_version = {lit(git)},"
+              f" reset_at = {lit(now) if a.reset else 'reset_at'}, reset_by = {lit('seed.py') if a.reset else 'reset_by'} WHERE id = 1;"]
+    sql = sql + suffix
+    # seed/reset.json: the mutable tables' rows for reset-demo, grouped so the reset stays one small D1 batch.
+    reset_doc = {"seed_version": git, "seeded_at": now, "tables": MUTABLE, "statements": grouped_inserts(MUTABLE),
+                 "patient_ids": [x["id"] for x in patients]}
+    r2.append({"key": RESET_KEY, "body": jdump(reset_doc).encode(), "content_type": "application/json"})
     (OUT / "seed.sql").write_text("\n".join(prefix + sql) + "\n")
     # The manifest lists keys, local source files and hashes only; generated bodies are written next to it.
     bodies = OUT / "objects"
@@ -592,16 +636,16 @@ def main() -> None:
                        cwd=API, capture_output=True, text=True)
     if r.returncode != 0:
         # A reset that stops half way can leave the append-only triggers dropped; say so, since nothing else will.
-        trig = d1_query(t, "SELECT COUNT(*) AS n FROM sqlite_master WHERE type='trigger'")[0]["n"]
-        sys.exit(f"seed: d1 execute failed ({trig} of {len(trigger_names(triggers_sql))} append-only triggers present;"
-                 f" rerun with --reset to restore them):\n{r.stderr[-2000:] or r.stdout[-2000:]}")
+        # A reset that stops half way leaves reset_in_progress = 1: writes answer 503 "resetting" until a rerun.
+        sys.exit("seed: d1 execute failed (writes stay paused while demo_state.reset_in_progress = 1;"
+                 f" rerun with --reset):\n{r.stderr[-2000:] or r.stdout[-2000:]}")
 
     # 13. Verify counts and that every append-only trigger exists.
     counts = d1_query(t, "SELECT (SELECT COUNT(*) FROM patients) p, (SELECT COUNT(*) FROM cases) c, (SELECT COUNT(*) FROM documents) d,"
                          " (SELECT COUNT(*) FROM pages) pg, (SELECT COUNT(*) FROM alerts) a, (SELECT COUNT(*) FROM tasks) t,"
                          " (SELECT COUNT(*) FROM fixture_files) f, (SELECT COUNT(*) FROM sqlite_master WHERE type='trigger') tr")[0]
     print("seeded:", counts)
-    want_triggers = len(trigger_names(triggers_sql))
+    want_triggers = len(trigger_names((MIGRATIONS / "0002_append_only.sql").read_text()))
     if counts["tr"] != want_triggers or counts["p"] != len(patients) or counts["pg"] != page_count_total:
         sys.exit(f"seed: verification failed (expected {want_triggers} triggers, {len(patients)} patients, {page_count_total} pages)")
 

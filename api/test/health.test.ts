@@ -15,6 +15,7 @@ describe("GET /api/health", () => {
       auth_mode: "demo",
       features: { stt: true, summarize: true, data: false },
       seeded_at: null,
+      demo: null,
       limits: { stt_audio_bytes: 100000000, summary_chars: 40000 },
     });
   });

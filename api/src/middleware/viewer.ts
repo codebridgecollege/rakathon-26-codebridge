@@ -27,7 +27,8 @@ export const viewer = (): MiddlewareHandler<AppEnv> => async (c, next) => {
     // Access mode: the verified e-mail picks the directory entry; a client header cannot change who you are.
     row = await stores.dir.userByEmail(user.email);
   }
-  if (!row || row.active !== 1) throw E.unknownUser();
+  // Role "staff" is a directory entry for attendance (step 4), not a user of the app.
+  if (!row || row.active !== 1 || row.role_id === ("staff" as string)) throw E.unknownUser();
   c.set("viewer", {
     id: row.id,
     name: staffName(row),
@@ -36,5 +37,6 @@ export const viewer = (): MiddlewareHandler<AppEnv> => async (c, next) => {
     authMode: user.mode,
     impersonating: false,
   });
+  c.set("breakGlass", null);
   return next();
 };

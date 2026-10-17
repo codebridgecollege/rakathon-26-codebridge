@@ -31,6 +31,9 @@
     // Who may read clinical case content. "all_roles" keeps today's demo behaviour (coordinator and administrator
     // open every case); "doctors_only" applies INTEGRATION.md's rule. Open question: docs/agent/OPEN_QUESTIONS.md.
     "CLINICAL_ACCESS": "all_roles",
+    // "true" lets the administrator restore the shared demo to its seed (POST /api/admin/reset-demo). Absent or any
+    // other value in a pilot, where the data is not synthetic.
+    "DEMO_RESET_ENABLED": "true",
     "ACCESS_TEAM_DOMAIN": "",
     "ACCESS_AUD": "",
     "AZURE_OPENAI_BASE": "https://apim-rakathon-q7146n.azure-api.net/openai/v1",
