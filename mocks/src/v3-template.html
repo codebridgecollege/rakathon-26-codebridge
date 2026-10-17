@@ -8,17 +8,17 @@
    Light ground, dark type, fine dividing lines, minimal shadow; colour only where it carries meaning.
    Layout: a top bar with the three main areas (patients, calendar, tasks); each screen is a full-width working page. */
 :root {
-  --bg: #f7f7f5;
+  --bg: #ffffff;
   --surface: #ffffff;
-  --sunk: #f0f2ef;
-  --fg: #1c2726;
-  --muted: #5b6866;
-  --faint: #8a9593;
-  --line: #e1e4e0;
-  --line-strong: #cdd3cf;
-  --accent: #3d7a6f;
-  --accent-ink: #2c5c53;
-  --accent-soft: #e3ece8;
+  --sunk: #f3f7f8;
+  --fg: #102c39;
+  --muted: #5d707a;
+  --faint: #6c818a;
+  --line: #dce5e8;
+  --line-strong: #bdcfd5;
+  --accent: #007f78;
+  --accent-ink: #00665f;
+  --accent-soft: #e8f5f1;
   --missing: #8f5a06; --missing-soft: #fbf0dc;
   --conflict: #a8323f; --conflict-soft: #fbe6e8;
   --change: #2b5aa8; --change-soft: #e5ecf8;
@@ -27,7 +27,7 @@
   --mark: #fff0a8;
   --font-head: "Manrope", "DM Sans", system-ui, sans-serif;
   --font-body: "DM Sans", "Segoe UI", system-ui, sans-serif;
-  --r: 8px;
+  --r: 3px;
   color-scheme: light;
 }
 * { box-sizing: border-box; }
@@ -601,6 +601,111 @@ details.srcs .refs { border-top: 0; margin-top: 4px; padding-top: 0; }
 .gapsbtn.warn { background: var(--missing); color: #fff; }
 .unchecked { display: inline-block; white-space: normal; font-size: 13px; font-weight: 600; padding: 4px 10px; border-radius: var(--r); background: var(--missing); color: #fff; }
 details.donegrp > summary { cursor: pointer; color: var(--muted); font-size: 13px; padding: 10px 0 4px; }
+
+/* GLIDE design experiment: open sections and ruled rows keep clinical information on one canvas.
+   Source-viewer boundaries and semantic warning states are retained. */
+body { -webkit-font-smoothing: antialiased; }
+h1 { font-size: 30px; font-weight: 700; letter-spacing: -.045em; }
+h2 { font-size: 18px; font-weight: 700; letter-spacing: -.025em; }
+h3 { letter-spacing: -.02em; }
+.top { padding-block: 16px; padding-left: max(32px, env(safe-area-inset-left, 0px)); padding-right: max(32px, env(safe-area-inset-right, 0px)); gap: 12px 32px; }
+.brand { font-size: 17px; letter-spacing: -.04em; gap: 10px; }
+.brand i { width: 28px; height: 28px; border-radius: 0; background: #092d3b; font-weight: 600; }
+.nav { gap: 16px; }
+.nav button { border-radius: 0; border-bottom: 2px solid transparent; padding: 10px 2px; }
+.nav button:hover { background: transparent; color: var(--fg); border-bottom-color: var(--line-strong); }
+.nav button[aria-current="true"] { background: transparent; color: var(--accent-ink); border-bottom-color: var(--accent); }
+.who select { border-radius: 3px; padding: 6px 8px; }
+.page { max-width: 1400px; padding-block: 34px 72px; padding-left: max(32px, env(safe-area-inset-left, 0px)); padding-right: max(32px, env(safe-area-inset-right, 0px)); gap: 28px; }
+.pagehead { padding-bottom: 4px; }
+.pagehead .muted { margin-top: 8px; font-size: 14px; }
+.card { background: transparent; border: 0; border-top: 1px solid var(--line); border-radius: 0; padding: 22px 0; box-shadow: none; }
+.card > .head { margin-bottom: 18px; }
+.card > .head > .row { max-width: 100%; min-width: 0; }
+.card > .head .chip.plain { white-space: normal; }
+.grid2 { gap: 42px; }
+.stack { gap: 22px; }
+.grid2 > .stack + .stack { border-left: 1px solid var(--line); padding-left: 32px; }
+.toolbar { padding: 14px 0; border-block: 1px solid var(--line); gap: 12px; }
+.toolbar + .card { border-top: 0; }
+.btn, .search, .input, .filter, .tlfilter { border-radius: 3px; }
+.btn { padding: 8px 15px; }
+.btn.primary { background: #092d3b; border-color: #092d3b; }
+.btn.primary:hover { background: #174657; border-color: #174657; }
+.btn.recbtn.on { background: #b3261e; border-color: #b3261e; }
+.btn.gapsbtn.warn { background: var(--missing); border-color: var(--missing); }
+.tbl th { background: #f3f7f8; padding-block: 12px; }
+.tbl.dense th { padding-block: 10px; }
+.tbl.dense td { padding-block: 12px; }
+.tbl .id { color: var(--accent-ink); }
+.patient-identity { border-top: 0; padding: 8px 0 24px; border-bottom: 1px solid var(--line-strong); }
+.patient-identity h1 { font-size: 32px; }
+.patient-identity .facts { margin-top: 12px; gap: 6px 24px; }
+.patient-identity + .blk { border-top: 0; padding-top: 0; }
+.blk { gap: 22px; }
+.blk > .question, .blk > .concl { max-width: none; }
+.blk > .prose { max-width: 94ch; font-size: 16px; line-height: 1.75; }
+.question { border-radius: 0; background: #f3f7f8; padding: 16px 20px; border-left-width: 2px; }
+.question.missing { background: var(--missing-soft); }
+.question.draft { background: var(--unclear-soft); }
+.concl { border-radius: 0; padding: 16px 20px; border-left-width: 2px; background: #f3f7f8; }
+.concl.valid { background: var(--ok-soft); }
+.brief-gaps { border-top: 1px solid var(--line); padding: 16px 0 0; }
+.blk > .card { padding: 20px 0 0; margin: 0; }
+.blk > .card > .head { margin-bottom: 12px; }
+.tabs { gap: 20px; }
+.tab { padding: 10px 0 14px; font-weight: 600; }
+.tabs + .grid2 .card { border-top: 0; padding-top: 0; }
+.seg, .seg2 { border: 0; border-bottom: 1px solid var(--line); background: transparent; border-radius: 0; padding: 0; gap: 12px; }
+.seg button, .seg2 button { border-radius: 0; border-bottom: 2px solid transparent; padding: 7px 4px; }
+.seg button[aria-pressed="true"], .seg2 button[aria-pressed="true"] { background: transparent; border-bottom-color: var(--accent); color: var(--accent-ink); box-shadow: none; }
+.tlfilter { border-color: transparent; border-bottom-color: var(--line); background: transparent; }
+.tlfilter[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent); }
+.tltrack { padding-block: 10px; }
+.tltrack::before { top: 49px; }
+.alert, .staffnote, .rectx, .uplist li, .mail, .hist li { border-radius: 0; }
+.hist li, .mail { border: 0; border-top: 1px solid var(--line); padding: 16px 0; }
+.sesbar { border-radius: 0; border: 0; border-block: 1px solid var(--accent); padding: 12px 0; box-shadow: none; }
+.agenda button { border-radius: 3px; }
+.blk > .mdtcard { background: #f3f7f8; padding: 20px; border-block: 1px solid var(--line-strong); }
+.mdtcard.live { box-shadow: none; border-block-color: var(--accent); }
+.mdtcard .sub { padding-top: 18px; }
+.calwrap, .calwrap3 { gap: 32px; }
+.cal, .slotbtn, .dragrow { border-radius: 0; }
+.dragrow { border: 0; border-bottom: 1px solid var(--line); padding: 10px 0; }
+.dragrow.sel { padding-inline: 8px; }
+.minicard { border-radius: 0; box-shadow: none; border: 0; border-top: 2px solid var(--accent); background: #f3f7f8; }
+.gl { border-radius: 0; border: 0; border-top: 1px solid var(--line); background: transparent; padding: 20px 0 0; }
+.gll { gap: 0 !important; }
+.gle details { border-radius: 0; border: 0; border-bottom: 1px solid var(--line); background: transparent; }
+.gle summary { padding: 16px 0; }
+.glbody { padding-bottom: 18px; }
+.retro { border-radius: 0; border-top: 1px solid var(--line); border-right: 0; border-bottom: 0; padding: 18px 16px; }
+.modal { border-radius: 3px; }
+.fpop, .popover, .stpop, .tip, .toast { border-radius: 3px; }
+@media (max-width: 980px) {
+  .grid2 > .stack + .stack { border-left: 0; padding-left: 0; }
+}
+@media (max-width: 640px) {
+  .top { padding-block: 10px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); gap: 8px 16px; }
+  .brand { font-size: 15px; }
+  .nav { gap: 12px; }
+  .nav button { padding: 7px 0; }
+  .who { margin-left: 0; flex-wrap: wrap; }
+  .page { padding-block: 24px 48px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); gap: 22px; }
+  h1 { font-size: 25px; }
+  .patient-identity h1 { font-size: 26px; }
+  .idp { display: inline-block; margin-left: 0; margin-right: 14px; font-size: 14px; }
+  .patient-identity h1 .idp:first-of-type { margin-left: 12px; }
+  .card { padding-block: 18px; }
+  .question, .concl { padding: 12px 14px; }
+  .blk > .mdtcard { padding: 16px 12px; }
+  .tabs { gap: 18px; }
+  .calwrap, .calwrap3, .grid2 { gap: 22px; }
+  .toolbar .search { max-width: none; }
+  .seg2.three { gap: 4px; }
+}
+
 </style>
 
 <header class="top">
@@ -1411,7 +1516,7 @@ function questionInner(p, full = true) {
 }
 const briefPlain = () => edText("brief", (BRIEF_CS || "").replace(/\s*\[\d+\]/g, ""), CASE.file);
 function patientHeader(p, extraActions = "", withQuestion = false) {
-  return `<div class="card"><div class="phead">
+  return `<div class="card patient-identity"><div class="phead">
       <div><div class="row"><span class="label">${p.id}</span>${statusMenu(p)}${p.synthetic ? SYN_CHIP : ""}</div>
         <h1 style="margin-top:4px">${esc(surnameFirst(p))}<span class="idp">RČ: ${p.rc ? esc(p.rc) : DASH}</span><span class="idp">Věk: ${ageNum(p) ? esc(ageNum(p)) : DASH}</span></h1>
         ${p.warn ? `<div class="question missing" style="margin:8px 0 0;padding:6px 10px"><b>Ověřit identitu:</b> ${esc(p.warn)}</div>` : ""}
@@ -1593,7 +1698,7 @@ const srcLinks = refs => { const xs = refs || [], seen = {}; return xs.map(r => 
 function gapsBox() {
   const g = EXTRA.data_gaps_v3 || [];
   const { top } = topAlerts();
-  return `<div style="border:1px solid var(--line);border-radius:var(--r);padding:10px 12px;margin-top:10px">
+  return `<div class="brief-gaps">
     <div class="row spread"><span class="label">Upozornění k dotazu na MDT</span><button class="linkbtn small" data-tab="alerts">Všechna upozornění</button></div>
     <div class="alerts" style="margin-top:6px">${top.map(f => alertRow(f, true)).join("")}</div>
     ${g.length ? `<span class="label" style="display:block;margin-top:12px">Chybějící a nejasné údaje v briefu</span><div class="alerts" style="margin-top:6px">${g.map(x => `<div class="alert" style="grid-template-columns:auto minmax(0,1fr)"><span class="chip plain ${ALERT[x.kind][1]}">${ALERT[x.kind][0]}</span><span>${esc(x.text_cs)} ${srcLinks(x.refs)}</span></div>`).join("")}</div>` : ""}
@@ -2028,7 +2133,7 @@ function viewPatientLite(p) {
 /* Missing documents of a synthetic patient, each with the passage that shows the gap (always on, CLAUDE.md). */
 function synGapsBox(syn) {
   const g = syn.data_gaps || [];
-  return `<div style="border:1px solid var(--line);border-radius:var(--r);padding:10px 12px;margin-top:10px">
+  return `<div class="brief-gaps">
     <span class="label">Chybějící a nejasné podklady</span>
     <div class="alerts" style="margin-top:6px">${g.map(x => `<div class="alert" style="grid-template-columns:auto minmax(0,1fr)"><span class="chip plain ${(ALERT[x.kind] || ALERT.unclear)[1]}">${(ALERT[x.kind] || ALERT.unclear)[0]}</span><span>${esc(x.text_cs)} ${x.source ? srcLinks([x.source]) : ""}</span></div>`).join("") || `<p class="muted small">Chybějící podklady nenalezeny.</p>`}</div>
     <div class="disclaim">Pozorování asistenta, ne klinický závěr. Upozornění neblokují projednání.</div></div>`;

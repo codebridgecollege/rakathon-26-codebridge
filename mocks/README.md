@@ -16,6 +16,18 @@ patient S01 (mock v3, case ID `NO-S01`), whom the team invented
 The published copies are private claude.ai artifacts owned by Juro; ask him
 to share them. To view a mock locally, open the `.html` file in a browser.
 
+## GLIDE design branch
+
+Branch `design/glide-inspired-ui` tests an alternative visual treatment of
+mock v3. Open `mocks/v3.html` with the existing `pages/` folder next to it.
+The template keeps the current interactions and case data. White space,
+ruled sections, navy primary actions and teal accents replace nested
+rounded card frames. Manrope and DM Sans remain the typefaces.
+
+Build with `python3 mocks/build.py` as usual. The source viewer retains its
+page boundaries and highlights; warnings, draft questions, approved
+conclusions and calendar selection retain their distinct visual states.
+
 ## How to change a mock
 
 Do not edit `v1.html` to `v3.html` or `pages/` directly; they are generated.
@@ -175,4 +187,5 @@ Lucide 0.468.0 paths are embedded in the template, with the ISC notice in
 - `src/test/w.mjs`: opens every screen in Chrome at 400 px width and prints
   the page width, to catch horizontal overflow (`npm i playwright-core`,
   needs Google Chrome installed).
+
 
