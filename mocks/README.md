@@ -109,7 +109,10 @@ writes a live Czech transcript. "Spustit záznam" starts it at once. The
 page carries a demo ElevenLabs key, published with the team's consent (it
 expires after three days and has a credit cap); a gitignored
 `stt-config.js` next to `v3.html` (see `stt-config.example.js`) overrides
-it. Open the page in Chrome, from a file or a web server; the
+it. The team's live copy is https://codebridge-mdt.pages.dev/mdt.html
+(Cloudflare Pages, HTTPS, so the browser allows the microphone);
+`mocks/deploy.sh` rebuilds and redeploys it after `npx -y wrangler@4
+login`. Open the page in Chrome, from a file or a web server; the
 claude.ai artifact viewer may block the microphone.
 
 - One recording runs for the whole meeting. Each word goes to the patient
