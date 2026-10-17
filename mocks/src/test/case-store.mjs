@@ -85,5 +85,127 @@ async function open({ url = "file:///repo/mocks/v3.html", fetchImpl } = {}) {
   assert.deepEqual(errors, []);
 }
 
-console.log("Case store: embedded seed, unprocessed cases, no network in embedded mode and the data-driven view passed.");
+// 3. API mode against a fake server built from the page's own embedded data, with replies released by the test.
+const harvest = await open();
+const H = JSON.parse(harvest.ev(`JSON.stringify({ patients: S.patients.map(p => ({ ...p, processing: p.full ? "full" : SYN.some(s => s.file === p.file) ? "partial" : "none" })),
+  tasks: S.tasks, staff: defaultStaff(), user: S.user, userId: userIdOf(S.user), other: USERS.find(u => u !== S.user && userIdOf(u)), otherId: userIdOf(USERS.find(u => u !== S.user && userIdOf(u))),
+  c10: { case: CASE, extra: EXTRA }, syn: SYN })`));
+const json = (status, body) => ({ ok: status < 400, status, headers: { get: () => "application/json" }, json: async () => body });
+// gates[path] holds the replies the test has not released yet; held=false answers at once.
+function fakeServer({ held = true, fail = {} } = {}) {
+  const gates = {}, log = [];
+  const extraction = id => {
+    const p = H.patients.find(x => x.id === id), syn = H.syn.find(s => s.file === p?.file);
+    if (!p) return json(404, { error: { code: "case_not_found", message_cs: "Případ nenalezen." } });
+    return json(200, { case_id: id, data: p.file === "10_pacient.pdf" ? H.c10 : syn ? { syn } : null });
+  };
+  const impl = (u) => {
+    const path = new URL(u, "http://localhost/").pathname + new URL(u, "http://localhost/").search;
+    log.push(path);
+    if (path === "/api/health") return json(200, { service: "codebridge-mdt", features: { data: true }, limits: {} });
+    if (path === "/api/me") return json(200, { user: { id: H.userId, name: H.user, role: "doctor" }, auth_mode: "demo" });
+    if (path === "/api/staff") return json(200, { ...H.staff, seq: 0 });
+    if (path === "/api/patients") return json(200, { patients: structuredClone(H.patients), total: H.patients.length, page: 0 });
+    if (path.startsWith("/api/tasks")) return json(200, { tasks: H.tasks });
+    const m = path.match(/^\/api\/cases\/([^/]+)\/extraction$/);
+    if (m) {
+      const id = decodeURIComponent(m[1]);
+      const reply = () => fail[id] ? json(fail[id], { error: { code: "internal", message_cs: "Chyba serveru (test)." } }) : extraction(id);
+      if (!held) return reply();
+      return new Promise(res => { (gates[id] = gates[id] || []).push(() => res(reply())); });
+    }
+    if (/^\/api\/cases\/[^/]+\/guidance$/.test(path)) return json(200, { guidelines: [], statements: [], pages: [], literature: [], queries: [], not_retrieved: [] });
+    if (/^\/api\/cases\/[^/]+$/.test(path)) return json(200, {});
+    return json(404, { error: { code: "not_found", message_cs: "Nenalezeno." } });
+  };
+  const release = async (id, i = 0) => { const g = gates[id]; assert.ok(g && g[i], `a request for ${id} is waiting`); const f = g[i]; g[i] = null; f(); await sleep(30); };
+  return { impl, release, log, gates };
+}
+const apiOpen = async srv => { const r = await open({ url: "http://localhost/", fetchImpl: srv.impl }); for (let i = 0; i < 40 && r.ev(`DATA.mode`) !== "api"; i++) await sleep(25); assert.equal(r.ev(`DATA.mode`), "api"); return r; };
+const text = w => w.document.getElementById("app").textContent;
+{
+  const srv = fakeServer();
+  const { w, ev, errors } = await apiOpen(srv);
+  assert.equal(ev(`caseData("10_pacient.pdf")`), null, "API mode seeds nothing from the inlined data");
+  assert.ok(!srv.log.some(u => u.includes("/extraction")), "no case data before a case is opened");
+  // Loading state, then the data.
+  ev(`openPatient("10_pacient.pdf")`);
+  assert.match(text(w), /Načítám podklady případu…/);
+  assert.equal(w.document.querySelector(".tabs"), null, "no tabs while loading");
+  assert.equal(w.document.querySelector('[data-act="reportdlg"]'), null, "no report while loading");
+  await srv.release("NO-010");
+  assert.equal(ev(`caseOf(P("10_pacient.pdf")).state`), "ready");
+  assert.ok(w.document.querySelector('[data-tab="anamnesis"]') && w.document.querySelector('[data-act="fhirdlg"]'));
+  // Stale reply: open S01 then patient 13 (processed? no: unprocessed resolves at once) then S01's reply arrives late.
+  ev(`openPatient("S01_pacient.pdf")`);
+  ev(`openPatient("10_pacient.pdf")`);
+  await sleep(100); // the two hash changes settle first; they render on their own
+  w.eval(`render = (() => { const r = render; return () => { window.__renders = (window.__renders || 0) + 1; return r(); }; })()`);
+  await srv.release("NO-S01");
+  assert.equal(ev(`S.pid`), "10_pacient.pdf");
+  assert.equal(ev(`window.__renders || 0`), 0, "a late reply for a case no longer open does not re-render");
+  assert.equal(ev(`caseOf(P("S01_pacient.pdf")).state`), "ready", "but it stays in the cache");
+  // Deep link while loading lands on its tab.
+  ev(`caseStore.entries.delete("S01_pacient.pdf")`);
+  ev(`location.hash = "#patient/S01/labs"`); await sleep(60);
+  assert.match(text(w), /Načítám podklady případu…/);
+  await srv.release("NO-S01", 1);
+  assert.equal(ev(`S.tab`), "labs");
+  assert.ok(w.document.querySelector('.tab[data-tab="labs"][aria-selected="true"]'));
+  // A reply older than the latest request for the same case is dropped (retry and user switch bump gen).
+  ev(`openPatient("2_pacient.pdf")`);
+  ev(`caseStore.entries.delete("S01_pacient.pdf"); ensureCase(P("S01_pacient.pdf")); caseStore.reset();`);
+  await srv.release("NO-S01", 2);
+  assert.equal(ev(`caseData("S01_pacient.pdf")`), null, "a reply from before a reset is not written");
+  // An unprocessed case needs no request.
+  ev(`openPatient("2_pacient.pdf")`);
+  assert.equal(ev(`caseOf(P("2_pacient.pdf")).state`), "ready");
+  assert.ok(!srv.log.some(u => u.includes("NO-002/extraction")));
+  assert.ok(w.document.querySelector(".unchecked"));
+  // Nothing about cases in localStorage.
+  assert.ok(!Object.keys(w.localStorage).some(k => /case|pacient|extract/i.test(k)), "no case data in localStorage");
+  assert.deepEqual(errors, []);
+}
+// 4. Errors: a failed load is never "nothing missing" or "not processed"; retry loads; approval is not blocked.
+{
+  const srv = fakeServer({ held: false, fail: { "NO-S01": 500 } });
+  const { w, ev, errors } = await apiOpen(srv);
+  ev(`openPatient("S01_pacient.pdf")`); await sleep(60);
+  assert.match(text(w), /Podklady případu se nepodařilo načíst\. Chyba serveru \(test\)\./);
+  assert.match(text(w), /Chybějící podklady nelze ověřit \(načtení selhalo\)/);
+  assert.ok(w.document.querySelector('[data-act="caseretry"]'));
+  assert.equal(w.document.querySelector(".gapsbtn"), null, "no Upozornění button that could read as nothing missing");
+  assert.equal(ev(`missingState(P("S01_pacient.pdf"))`), "failed");
+  const rep = ev(`reportHtml(P("S01_pacient.pdf"), ensureProto(P("S01_pacient.pdf")), [])`);
+  assert.match(rep, /nepodařilo načíst ze serveru/); assert.doesNotMatch(rep, /není zpracovaná/);
+  assert.ok(w.document.getElementById("concl"), "the conclusion stays available");
+  // Retry against a working server.
+  const ok = fakeServer({ held: false });
+  w.fetch = async u => ok.impl(String(u));
+  w.document.querySelector('[data-act="caseretry"]').click(); await sleep(60);
+  assert.equal(ev(`caseOf(P("S01_pacient.pdf")).state`), "ready");
+  assert.ok(w.document.querySelector(".gapsbtn.warn"));
+  assert.deepEqual(errors, []);
+}
+// 5. Approval waits while the case data loads; a user switch clears loaded cases; at most five API-loaded cases stay.
+{
+  const srv = fakeServer({ held: false });
+  const { w, ev, errors } = await apiOpen(srv);
+  ev(`openPatient("10_pacient.pdf")`); await sleep(40);
+  ev(`(() => { const pr = ensureProto(P("10_pacient.pdf")); pr.concl = "Test"; caseOf(P("10_pacient.pdf")).state = "loading"; action("approve"); })()`);
+  assert.notEqual(ev(`ensureProto(P("10_pacient.pdf")).state`), "approved", "approval waits for the case data");
+  ev(`caseOf(P("10_pacient.pdf")).state = "ready"`);
+  // LRU over every processed case: list rows marked processed so each one loads.
+  ev(`S.patients.forEach(p => { p.processing = "partial"; })`);
+  for (const p of H.patients) { ev(`openPatient(${JSON.stringify(p.file)})`); await sleep(15); }
+  await sleep(50);
+  const apiLoaded = ev(`[...caseStore.entries.values()].filter(e => e.state === "ready" && !e.seeded).length`);
+  assert.ok(apiLoaded <= 5, `at most five API-loaded cases (${apiLoaded})`);
+  // A user switch clears them.
+  const sel = w.document.getElementById("user"); sel.value = H.other; sel.dispatchEvent(new w.Event("change", { bubbles: true })); await sleep(80);
+  assert.ok(ev(`[...caseStore.entries.values()].every(e => e.seeded || e.loadedAt > Date.now() - 200)`), "loaded cases were cleared on the user switch");
+  assert.deepEqual(errors, []);
+}
+
+console.log("Case store: embedded seed, no network on Pages, the data-driven view and API mode (loading, stale replies, deep link, errors, retry, approval, LRU, user switch) passed.");
 process.exit(0);

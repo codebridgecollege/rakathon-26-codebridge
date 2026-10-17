@@ -7460,10 +7460,11 @@ window.MDT_PDF_FONTS = {"normal": "AAEAAAASAQAABAAgR0RFRiD1JDAAAboQAAAAWEdQT1OF3
 /* The template has no <html> tag of its own (the publisher wraps it), so the language is set here: Czech date
    inputs and screen readers read the page as Czech. */
 document.documentElement.lang = "cs";
-/* CASE and EXTRA are reassigned once at startup when the Worker serves the data (boot, loadFromApi). */
-let CASE = JSON.parse(document.getElementById("case-data").textContent);
+/* Case 10's embedded extraction. Read only by the embedded list builder and seedEmbedded(); in API mode case data comes
+   from the server per case (loadCase). */
+const CASE = JSON.parse(document.getElementById("case-data").textContent);
 const OTHERS = JSON.parse(document.getElementById("list-data").textContent);
-let EXTRA = JSON.parse(document.getElementById("extra-data").textContent || "{}");
+const EXTRA = JSON.parse(document.getElementById("extra-data").textContent || "{}");
 /* The team's synthetic patients (samples/S<nn>_pacient): invented people whose documents we wrote, so the lab trend
    and the missing-document alerts can be shown on data that comes from documents. Each carries its list entry, its
    documents, its data gaps and its lab series, every value with its page and quote. */
@@ -8041,22 +8042,80 @@ function setReady(file, data, seeded) {
   /* Updated in place, so a pending guidance load still finds its entry. */
   const e = caseOf({ file });
   Object.assign(e, { state: "ready", data, error: null, seeded, loadedAt: Date.now() });
-  (data.documents ? [file] : []).forEach(f => caseStore.byDocFile.set(f, file));
+  /* Every source of a case today is the case's own PDF; a document file of its own would be added here. */
+  if (data.documents) caseStore.byDocFile.set(file, file);
 }
 /* Embedded mode: case 10 and every synthetic patient are ready from the page's own data, so Pages makes no request
-   for case data. Case 10 is seeded only when its list row says it is processed: a server that refused its findings
-   leaves it unprocessed instead of showing the embedded copy. */
+   for case data. */
 function seedEmbedded() {
-  caseStore.entries.clear(); caseStore.byDocFile.clear();
+  caseStore.reset();
   const p10 = P(CASE.file);
   if (p10?.full) setReady(CASE.file, fromFullExtraction(CASE.file, p10.id, CASE, EXTRA), true);
   SYN.forEach(s => setReady(s.file, fromSyn(s, caseId(s.file)), true));
 }
-/* Starts what the case needs to show. In embedded mode a case with no extraction resolves at once as unprocessed. */
+/* Called once the mode is known (boot). In API mode nothing is seeded: the server is the source of truth, and a case the
+   user may not open must not show from the page's inlined copy. */
+function initCaseStore(mode) {
+  caseStore.mode = mode;
+  if (mode === "api") caseStore.reset(); else seedEmbedded();
+}
+/* Drops every entry (user switch in API mode: the server's answer depends on the user). Bumping gen first makes any
+   reply still on its way stale, so it cannot write into the new store. */
+caseStore.reset = () => {
+  caseStore.entries.forEach(e => { e.gen++; });
+  caseStore.entries.clear(); caseStore.byDocFile.clear();
+};
+/* A patient created in this browser (Nový pacient) is not on the server until step 4 posts it. */
+const isLocal = p => !!p.local || String(p.file).endsWith("_novy");
+/* Starts what the case needs to show. Embedded mode, a local patient and a case the server lists as unprocessed resolve
+   at once; in API mode a processed case loads from the server. Idempotent: a loading, ready or failed entry is left as
+   it is (a failed one reloads only through "Zkusit znovu"). */
 function ensureCase(p) {
   if (!p) return;
   const e = caseOf(p);
-  if (e.state === "absent") setReady(p.file, unprocessedCase(p), false);
+  if (e.state !== "absent") return;
+  const syn = SYN.find(s => s.file === p.file);
+  if (caseStore.mode !== "api") setReady(p.file, unprocessedCase(p), false);
+  /* The intake demo patient's documents were "uploaded" in this browser, so its prepared fixture is the right data. */
+  else if (isLocal(p)) setReady(p.file, syn ? fromSyn(syn, p.id) : unprocessedCase(p), true);
+  else if (p.processing === "none") setReady(p.file, unprocessedCase(p), false);
+  else loadCase(p);
+}
+/* The case data from GET /api/cases/:id/extraction (api/src/routes/cases.ts). The server stores the same objects the page
+   embeds, without identity: { case, extra } for a fully processed case, { syn } for a synthetic patient, data null for a
+   case without a run. All knowledge of that response shape lives here. */
+function fromApi(p, ex) {
+  const d = ex?.data;
+  if (!d) return unprocessedCase(p);
+  if (d.case) return fromFullExtraction(p.file, p.id, d.case, d.extra || {});
+  if (d.syn) return fromSyn({ ...d.syn, file: p.file }, p.id);
+  throw Object.assign(new Error(`Server nevrátil data případu ${p.id}.`), { code: "bad_shape" });
+}
+/* At most this many cases loaded from the API stay in memory: it bounds how much patient data one tab holds (nothing
+   goes to localStorage). A privacy-for-convenience trade-off: a larger cache would make switching cases faster. */
+const CASE_CACHE_MAX = 5;
+function evictOld() {
+  const api = [...caseStore.entries].filter(([f, e]) => !e.seeded && e.state === "ready" && f !== S.pid).sort((a, b) => a[1].loadedAt - b[1].loadedAt);
+  const keep = CASE_CACHE_MAX - (caseStore.entries.get(S.pid)?.seeded === false ? 1 : 0);
+  api.slice(0, Math.max(0, api.length - keep)).forEach(([f, e]) => { e.gen++; caseStore.entries.delete(f); });
+  caseStore.byDocFile.forEach((c, doc) => { if (!caseStore.entries.has(c)) caseStore.byDocFile.delete(doc); });
+}
+/* One request per case open: the server writes one access-log row for it. No prefetch: every read is an audited access,
+   and a prefetch would log "opened" for cases nobody opened. */
+async function loadCase(p) {
+  const e = caseOf(p), gen = ++e.gen;
+  e.state = "loading"; e.error = null;
+  let data = null, err = null;
+  try { data = fromApi(p, await apiGet(`/cases/${encodeURIComponent(p.id)}/extraction`, { timeout: 20000 })); }
+  catch (x) { err = x; }
+  /* A reply for an older request (a retry, a user switch) must not overwrite newer state. */
+  if (e.gen !== gen || caseStore.entries.get(p.file) !== e) return;
+  /* A network failure carries the browser's English message; the doctor gets a Czech one. */
+  if (err) { e.state = "error"; e.error = { code: err.code || "network", status: err.status || null, message_cs: err.code || err.status ? err.message : "Server neodpovídá. Zkuste to znovu." }; }
+  else { setReady(p.file, data, false); evictOld(); }
+  /* Render only when the reply still matters to the screen. A reply for a case the user left stays in the cache (it was
+     opened, so loading it was an access anyway) but does not re-render someone else's screen. */
+  if (S.view === "patient" && S.pid === p.file) render();
 }
 /* For the tests: the case data of a file, as the view reads it. */
 window.caseData = file => caseStore.entries.get(file)?.data || null;
@@ -10656,8 +10715,10 @@ function openPatient(file, keepTab = false, what = "otevřel(a) případ") {
 /* Opening a case is an access. In API mode the server writes the entry (and may refuse the case); otherwise the page
    keeps its own log. The request is not awaited: the case view opens at once, and a refusal returns to the list. */
 function caseOpened(file, what, viaLink = false) {
-  if (DATA.mode !== "api") { logAccess(file, what); return; }
-  const p = P(file); if (!p) return;
+  const p = P(file);
+  /* A patient created in this browser is unknown to the server, so its access stays in the page's own log. */
+  if (DATA.mode !== "api" || (p && isLocal(p))) { logAccess(file, what); return; }
+  if (!p) return;
   apiGet(`/cases/${encodeURIComponent(p.id)}${viaLink ? "?via=link" : ""}`).catch(e => {
     toast(e.message);
     if (e.status >= 400 && e.status < 500 && S.view === "patient" && S.pid === file) { S.view = "patients"; S.overlay = null; renderOverlay(); render(); }
@@ -10854,7 +10915,7 @@ function action(a) {
     /* The intake demo patient with all its documents gets its prepared record (once: a second copy would share its file). */
     if (ik?.ready) {
       const base = listPatient(ik.s.list_entry, null);
-      const p = { ...base, id: caseId(ik.s.file), name: [f.nf0, f.nf1].filter(Boolean).join(" ") || base.name, rc: f.nf2 || base.rc,
+      const p = { ...base, local: true, id: caseId(ik.s.file), name: [f.nf0, f.nf1].filter(Boolean).join(" ") || base.name, rc: f.nf2 || base.rc,
         question: f.nfq || base.question, purpose: base.purpose || f.nfq || null, explicit: !!(f.nfq || base.question),
         owner: f.nf4 || ik.s.list_entry.owner || S.user, dept: f.nf5 || null, submitted: TODAY, updated: TODAY };
       S.patients.push(p);
@@ -10862,7 +10923,7 @@ function action(a) {
       logAccess(p.file, `vytvořil(a) pacienta z žádosti FHIR a ${plural(ik.docs.length, "nahraného dokumentu", "nahraných dokumentů", "nahraných dokumentů")}`);
       S.overlay = null; renderOverlay(); toast(`Pacient ${p.id} přidán do databáze`); openPatient(p.file); return;
     }
-    S.patients.push({ file: `${n}_novy`, id: `NO-${String(n).padStart(3, "0")}`, name: [f.nf0, f.nf1].filter(Boolean).join(" ") || "Nový pacient", rc: f.nf2 || null, birth: null, diagnosis: "Čeká na kontrolu lékařem", mkn10: null, question: f.nfq || null, purpose: null, explicit: !!f.nfq, status: "new", slot: null, updated: "2026-10-16", submitted: TODAY, owner: f.nf4 || S.user, dept: f.nf5 || null, summary: "Ukázkový záznam vytvořený v maketě.", pages: 2 });
+    S.patients.push({ file: `${n}_novy`, local: true, id: `NO-${String(n).padStart(3, "0")}`, name: [f.nf0, f.nf1].filter(Boolean).join(" ") || "Nový pacient", rc: f.nf2 || null, birth: null, diagnosis: "Čeká na kontrolu lékařem", mkn10: null, question: f.nfq || null, purpose: null, explicit: !!f.nfq, status: "new", slot: null, updated: "2026-10-16", submitted: TODAY, owner: f.nf4 || S.user, dept: f.nf5 || null, summary: "Ukázkový záznam vytvořený v maketě.", pages: 2 });
     /* A second record for a known birth number is a deliberate choice; the access log keeps who made it. */
     if (f.nf2 && S.overlay.dupOk === f.nf2.replace("/", "")) logAccess(`${n}_novy`, "vytvořil(a) nový záznam, přestože rodné číslo už v databázi je");
     S.overlay = null; S.view = "patients"; S.colf = {}; toast(`Pacient NO-${String(n).padStart(3, "0")} přidán do databáze`); render();
@@ -11110,8 +11171,7 @@ async function boot() {
       catch (e) { DATA.error = e.message || "neznámá chyba"; DATA.userId = null; }
     } else if (health?.service !== "codebridge-mdt") health = null;
   }
-  /* After the API load: in API mode case 10's data came from the server into CASE and EXTRA. */
-  seedEmbedded();
+  initCaseStore(DATA.mode);
   readHash();
   render();
   apiProbe(true, health); // async: recUI() refreshes the recorder when the server answers, without a full render
@@ -11125,42 +11185,26 @@ async function switchApiUser(t) {
   if (!id) { toast("Tento uživatel není v seznamu na serveru. Změny seznamu se zatím neukládají na server."); t.value = S.user; return; }
   setDemoUser(id);
   try {
-    DATA.refused = null; await loadFromApi(); seedEmbedded();
+    await loadFromApi(); caseStore.reset();
     DATA.pages.clear(); DATA.docs.clear(); DATA.serverLog = null; S.overlay = null; renderOverlay();
   } catch (e) { setDemoUser(prev); t.value = S.user; toast(e.message); return; }
   if (S.view === "admin" && S.user !== ADMIN) S.view = "patients";
   if (S.view === "patient" && !P(S.pid)) S.view = "patients";
-  if (DATA.refused) toast(DATA.refused);
   render();
 }
 async function loadFromApi() {
   const me = await apiGet("/me");
   setDemoUser(me.user.id);
   const [staff, list, tasks] = await Promise.all([apiGet("/staff"), apiGet("/patients"), apiGet("/tasks?scope=all")]);
-  const full = list.patients.find(p => p.full);
-  /* Step 2 keeps case 10's full view on the CASE/EXTRA globals; step 3 replaces them with a per-case cache. */
-  let ex = null;
-  if (full) {
-    try { ex = await apiGet(`/cases/${encodeURIComponent(full.id)}/extraction`); }
-    catch (e) {
-      /* A refusal (this role or team may not read the findings) is an answer, not an outage: the page stays on the
-         server's data and shows the case as not processed, instead of falling back to the embedded copy. */
-      if (!(e.status >= 400 && e.status < 500)) throw e;
-      full.full = false; full.processing = "none"; DATA.refused = e.message;
-    }
-    if (ex && !ex.data?.case) throw new Error(`Server nevrátil data případu ${full.id}.`);
-  }
-  /* Nothing is assigned until every request succeeded. The embedded copy is kept once, for ?parity. */
+  /* Case data loads per case when a case is opened (loadCase); a refusal then shows on that case, never as "not
+     processed". Nothing is assigned until every request succeeded. The embedded copy is kept once, for ?parity. */
   if (!DATA.embedded) DATA.embedded = { patients: S.patients, tasks: S.tasks, staff: STAFF };
   DATA.serverStaff = { depts: staff.depts, coord: staff.coord, seq: 0 };
   STAFF = structuredClone(DATA.serverStaff); applyStaff();
-  S.patients = list.patients; S.tasks = tasks.tasks; S.user = me.user.name;
-  if (ex) {
-    const c = ex.data.case;
-    /* The server keeps identity in its patients table, out of the case JSON; the page puts it back from the list row. */
-    CASE = { ...c, file: full.file, patient: { ...(c.patient || {}), name: full.name, name_as_written: full.nameAsWritten, birth_number: full.rc, birth_date: full.birth, age: full.age } };
-    EXTRA = ex.data.extra || {}; S.pid = full.file;
-  }
+  /* Patients created in this browser are not on the server yet (step 4); they stay in the list across a user switch. */
+  S.patients = [...list.patients, ...S.patients.filter(p => p.local && !list.patients.some(x => x.file === p.file))];
+  S.tasks = tasks.tasks; S.user = me.user.name;
+  if (!P(S.pid) && S.patients.length) S.pid = S.patients[0].file;
 }
 /* Development check behind ?parity: the server's rows against what the embedded data builds, key by key. Identity keys
    are reported by name only, so the console never shows patient values. */
