@@ -28,7 +28,7 @@ const esc = value => String(value ?? "").replace(/[&<>"']/g, ch => ({ "&": "&amp
 const context = vm.createContext({ curGuide: () => guide, readyData: () => ({ refs: extra.refs, record: { onco_detailed: extra.onco_detailed_v3 } }), S: {retro: {}}, esc, DASH: '<span title="neuvedeno v dostupné dokumentaci">-</span>',
   fmtDate: String, pageOf: st => `s. ${st.printed_page || st.pdf_page}`, GL: id => guide.guidelines.find(x => x.id === id) || {}, PAST: () => guide.past_statements,
   anyStmt: id => [...guide.statements, ...guide.past_statements].find(x => x.id === id), refAt: (cd, i) => cd.refs[i], docTitle: ref => ref.file });
-const a = template.indexOf("const SEV ="), b = template.indexOf("/* Cases the mock has not processed", a);
+const a = template.indexOf("const SEV ="), b = template.indexOf("/* Header actions: scheduling", a);
 vm.runInContext(template.slice(a, b) + ";globalThis.view = {deviationFindings, retroList};", context);
 const html = context.view.deviationFindings({file: "10_pacient.pdf"});
 assert.equal([...html.matchAll(/data-deviation-finding=/g)].length, 4);

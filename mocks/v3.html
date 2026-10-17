@@ -7468,7 +7468,6 @@ let EXTRA = JSON.parse(document.getElementById("extra-data").textContent || "{}"
    and the missing-document alerts can be shown on data that comes from documents. Each carries its list entry, its
    documents, its data gaps and its lab series, every value with its page and quote. */
 const SYN = JSON.parse(document.getElementById("syn-data").textContent || "[]");
-const SYN_BY_FILE = Object.fromEntries(SYN.map(s => [s.file, s]));
 /* Guideline layer (F-27, team decision 2026-10-16): verbatim statements with full citation; never invented. */
 /* What the server would hold. The page never reads it directly: it goes through api.guidance(), so swapping
    the stub for fetch(`/api/cases/${id}/guidance`) is the only change a real backend needs. */
@@ -7788,7 +7787,7 @@ function listPatient(o, slot) {
   const ex = extraOthers[o.file] || {};
   const hasQ = o.mdt_question_cs && o.mdt_question_explicit !== false;
   return {
-    file: o.file, name: o.name, rc: o.rc || null, synthetic: !!SYN_BY_FILE[o.file]?.synthetic_patient,
+    file: o.file, name: o.name, rc: o.rc || null, synthetic: !!SYN.find(s => s.file === o.file)?.synthetic_patient,
     birth: /\d{1,2}\.\d{1,2}\.\d{4}/.test(o.age_or_birth || "") ? o.age_or_birth.replace(/^nar\.\s*/, "") : null,
     age: /let/.test(o.age_or_birth || "") ? o.age_or_birth : null,
     /* warn is for a real identity doubt; a form with first name and surname swapped is a neutral note (round 22). */
@@ -8416,12 +8415,43 @@ function reasonQuestionBox(p, reg) {
 /* The alerts of a case ({ flags, gaps }) from its case data. A case whose missing-document check has not run, or whose
    data is not loaded, returns null, so callers say the check was not done instead of reporting "nothing missing". */
 const caseDataOf = p => readyData(p)?.alerts ?? null;
+/* Which parts of the patient view a case can show; decided by its data, not by which patient it is. */
+const sectionsOf = cd => ({
+  brief: !!cd?.brief?.text_cs,
+  onco: !!(cd?.record?.onco_compact || cd?.record?.onco_detailed?.length),
+  status: !!cd?.record?.status_praesens,
+  timeline: (cd?.record?.timeline || []).length > 0,
+  anamnesis: !!cd?.record?.anamnesis,
+  documents: !!cd?.documents,
+  labs: !!(cd?.labs?.series || cd?.labs?.values?.length),
+  /* The missing-document check ran for this case. */
+  alerts: !!cd?.alerts,
+  /* Finding groups: the report's sections and the FHIR export. */
+  record: !!cd?.record?.sections,
+  guidance: cd?.level === "full",
+});
+/* Why the missing-document signal says what it says: "loading" and "failed" are never "nothing missing" and never
+   "not processed". */
+function missingState(p) {
+  const e = p && caseStore.entries.get(p.file);
+  if (!e || e.state === "absent" || e.state === "loading") return "loading";
+  if (e.state === "error") return "failed";
+  const m = hasMissing(p);
+  return m === null ? "unchecked" : m ? "yes" : "no";
+}
 /* true or false for a processed case; null when the missing-document check has not run for this case. */
 /* A resolved missing-document alert no longer counts (round 25); the brief's data gaps are not alerts and always count. */
 const hasMissing = p => { const d = caseDataOf(p); return d ? d.flags.some((f, i) => f.kind === "missing" && alertState(p.file, i).state !== "resolved") || d.gaps.some(x => x.kind === "missing") : null; };
 /* Unprocessed case: the missing-document check has not run, which is not the same as "nothing missing", so the place
    of the Upozornění button carries an amber signal saying so (missing-document alerts are always on, CLAUDE.md). */
 const uncheckedSignal = () => `<span class="unchecked" role="status">⚠ Chybějící podklady nezkontrolovány (případ nezpracován)</span>`;
+/* A failed load: the check may have run on the server, but the page does not know its result. */
+const failedSignal = () => `<span class="unchecked" role="status">⚠ Chybějící podklady nelze ověřit (načtení selhalo)</span>`;
+/* The place of the Upozornění button always carries a signal (missing-document alerts are always on, CLAUDE.md). */
+function alertSignal(p) {
+  const st = missingState(p);
+  return st === "failed" ? failedSignal() : st === "unchecked" ? uncheckedSignal() : st === "loading" ? "" : gapsToggle(p);
+}
 function gapsToggle(p) {
   const warn = hasMissing(p);
   return `<button class="btn small gapsbtn ${warn ? "warn" : ""}" data-act="gaps" aria-expanded="${!!S.gapsOpen}">⚠ Upozornění${warn ? " · chybí podklady" : ""} ${S.gapsOpen ? "▴" : "▾"}</button>`;
@@ -8570,7 +8600,7 @@ function guideBox() {
   const G = curGuide();
   if (!S.guideOn) return `<div class="gl">${head}<p class="muted small" style="margin:6px 0 0">Vypnuto.</p></div>`;
   if (G.loading) return `<div class="gl">${head}<p class="muted small" style="margin:6px 0 0">Načítám doporučení ze serveru…</p></div>`;
-  if (G.error) return `<div class="gl">${head}<p class="muted small" role="alert" style="margin:6px 0 0">${esc(G.error)}</p></div>`;
+  if (G.error) return `<div class="gl">${head}<p class="muted small" role="alert" style="margin:6px 0 0">${esc(G.error)} <button class="linkbtn small" data-act="guideretry">Zkusit znovu</button></p></div>`;
   const st = STMTS();
   if (!st.length && !(G.literature || []).length) return "";
   /* One list per field, sorted by the strength of the recommendation, not grouped by country (round 19). Open
@@ -8595,19 +8625,31 @@ const srcLinks = refs => { const xs = refs || [], seen = {}; return xs.map(r => 
   const q = String(r.quote || "").slice(0, 80); return `<button class="linkbtn small" data-src='${esc(JSON.stringify(r))}' title="„${esc(q)}“" aria-label="Otevřít zdroj, strana ${esc(r.page)}: ${esc(q)}">s.&nbsp;${esc(r.page)}${same > 1 ? ` (${k})` : ""}</button>`; }).join(" "); };
 /* The brief's toggle opens the alerts for the MDT question first (CLAUDE.md: question-relevant alerts first),
    then the brief's own data gaps; the full list stays in the "Upozornění" tab. */
-function gapsBox() {
+function gapsBox(cd) {
   const { top, open, archived } = topAlerts(), gaps = open.filter(f => String(f.i).startsWith("gap:"));
-  return `<div class="brief-gaps"><div class="row spread"><span class="label">Upozornění k dotazu na MDT</span><button class="linkbtn small" data-tab="alerts">Všechna upozornění</button></div>
-    <div class="alerts" style="margin-top:6px">${top.map(f => alertRow(f, true)).join("")}</div>
-    ${gaps.length ? `<span class="label" style="display:block;margin-top:12px">Chybějící a nejasné údaje ve stručném souhrnu</span><div class="alerts" style="margin-top:6px">${gaps.map(f => alertRow(f, true)).join("")}</div>` : ""}
+  /* A case without an extracted brief has data gaps of its documents, not of a summary. */
+  const gapsLabel = sectionsOf(cd).brief ? "Chybějící a nejasné údaje ve stručném souhrnu" : "Chybějící a nejasné podklady";
+  return `<div class="brief-gaps"><div class="row spread"><span class="label">${top.length ? "Upozornění k dotazu na MDT" : "Upozornění"}</span><button class="linkbtn small" data-tab="alerts">Všechna upozornění</button></div>
+    ${top.length ? `<div class="alerts" style="margin-top:6px">${top.map(f => alertRow(f, true)).join("")}</div>` : ""}
+    ${!top.length && !gaps.length ? `<p class="muted small">Žádná aktivní upozornění.</p>` : ""}
+    ${gaps.length ? `<span class="label" style="display:block;margin-top:12px">${gapsLabel}</span><div class="alerts" style="margin-top:6px">${gaps.map(f => alertRow(f, true)).join("")}</div>` : ""}
     ${warningArchive(archived, true)}<div class="disclaim">Pozorování asistenta, ne klinický závěr. Upozornění neblokují projednání.</div></div>`;
 }
-function briefBlock(p) {
-  const reg = refRegistry();
-  return `<section class="card blk"><div class="head" style="margin:0"><h2>Stručný souhrn</h2><span class="row">${gapsToggle(p)}</span></div>${S.gapsOpen ? gapsBox() : ""}
-    <p class="prose">${briefHtml(p, readyData(p), reg)}</p>
-    ${reasonQuestionBox(p, reg)}
-    ${timelineCard(readyData(p), true)}
+/* What the assistant processed for this case, named from its data; "Nezpracováno" when nothing. */
+function processingChip(sec) {
+  const done = [sec.documents && "dokumenty", sec.alerts && "chybějící podklady", sec.labs && "laboratoř", sec.anamnesis && "anamnéza", sec.record && "nálezy"].filter(Boolean);
+  return `<span class="chip plain st-new">${done.length ? `Zpracováno: ${done.join(", ")}` : "Nezpracováno"}</span>`;
+}
+/* The brief: the extracted summary with linked sources when the case has one; otherwise the list row's one-line
+   summary, said to be that, with what was processed. The question sits in the header for a case without a brief. */
+function briefBlock(p, cd) {
+  const reg = refRegistry(), sec = sectionsOf(cd);
+  const note = cd.note_cs ? esc(cd.note_cs) : "Souhrn ze seznamu pacientů, bez odkazů na zdroj.";
+  return `<section class="card blk"><div class="head" style="margin:0"><h2>Stručný souhrn</h2><span class="row">${sec.brief ? "" : processingChip(sec)}${alertSignal(p)}</span></div>${S.gapsOpen && sec.alerts ? gapsBox(cd) : ""}
+    ${sec.brief ? `<p class="prose">${briefHtml(p, cd, reg)}</p>
+    ${reasonQuestionBox(p, reg)}` : `<p class="prose">${esc(p.summary || "")}</p>
+      <p class="muted small" style="margin:0">${note} Zdroj: ${esc(p.file)}, ${p.pages || "?"} s.</p>`}
+    ${sec.timeline ? timelineCard(cd, true) : ""}
     ${srcList(reg)}
     ${conclusionBox(p)}
     ${mdtCard(p)}</section>`;
@@ -8716,7 +8758,6 @@ function timelineCard(cd, inline) {
     ${cards.length ? `<div class="tlbar" tabindex="0" role="region" aria-label="Časová osa průběhu onemocnění"><div class="tltrack">${html}</div></div>` : `<p class="muted small">${S.tlExcluded.size === EVENT_CATEGORIES.length ? "Všechny kategorie jsou skryté. Zaškrtněte kategorii nebo Vše." : "Ve vybraných kategoriích nejsou zaznamenané události."}</p>`}</section>`;
 }
 function tabOverview(p, cd) {
-  if (p.full) ensureGuidance(p);
   const reg = refRegistry();
   return `<div class="grid2 ovgrid"><div class="stack ovleft">${detailedCard(cd, reg)}</div><div class="stack">${statusCard(cd)}</div></div>`;
 }
@@ -9136,20 +9177,41 @@ function tabPrognosis(p = P(S.pid)) {
 }
 
 
+/* Tabs in a fixed order, each shown when the case data holds its part. */
+const TABS = [["overview", "Přehled", s => s.onco || s.status], ["anamnesis", "Anamnéza", s => s.anamnesis], ["documents", "Dokumenty", s => s.documents],
+  ["labs", "Laboratoř", s => s.labs], ["alerts", "Upozornění", s => s.alerts], ["next", "Navrhovaný postup", s => s.guidance],
+  ["dev", "Retrospektivní odchylky", s => s.guidance], ["prognosis", "Prognóza", () => true]];
+const tabBar = tabs => `<div class="tabs" role="tablist">${tabs.map(([k, t]) => `<button class="tab" role="tab" data-tab="${k}" aria-selected="${S.tab === k}">${t}</button>`).join("")}</div>`;
+/* One patient view for every case, driven by what its data holds. The header always renders from the list row, so the
+   doctor sees whose case it is while the data loads or after it failed. */
 function viewPatient() {
   const p = P(S.pid);
-  if (p.full) ensureGuidance(p);
-  if (!p.full) return viewPatientLite(p);
-  const tabs = [["overview", "Přehled"], ["anamnesis", "Anamnéza"], ["documents", "Dokumenty"], ["labs", "Laboratoř"], ["alerts", "Upozornění"], ["next", "Navrhovaný postup"], ["dev", "Retrospektivní odchylky"], ["prognosis", "Prognóza"]];
-  if (!tabs.some(t => t[0] === S.tab)) S.tab = "overview";
-  const cd = readyData(p);
+  ensureCase(p);
+  const e = caseOf(p), back = `${sessionBar(p)}<div class="row"><button class="linkbtn" data-nav="patients">‹ Databáze pacientů</button></div>`;
+  /* Loading: no tabs and no editable fields, so the one render when the data arrives cannot interrupt typing. S.tab is
+     kept, so a deep link lands on its tab once the data is there. */
+  if (e.state !== "ready" && e.state !== "error") return `<div class="page">${back}${patientHeader(p, headerActions(p, null, false), true)}
+    <section class="card"><p class="muted" role="status">Načítám podklady případu…</p></section></div>`;
+  if (e.state === "error") {
+    return `<div class="page">${back}${patientHeader(p, headerActions(p, null), true)}
+    <section class="card blk"><div class="head" style="margin:0"><h2>Stručný souhrn</h2><span class="row">${failedSignal()}</span></div>
+      <div class="question missing" role="alert"><b>Podklady případu se nepodařilo načíst.</b> ${esc(e.error?.message_cs || e.error?.message || "")}</div>
+      <p><button class="btn" data-act="caseretry">Zkusit znovu</button></p>
+      <p class="prose">${esc(p.summary || "")}</p>
+      ${conclusionBox(p)}
+      ${mdtCard(p)}</section>
+    <div class="tabs" role="tablist"><button class="tab" role="tab" data-tab="prognosis" aria-selected="true">Prognóza</button></div>${tabPrognosis(p)}</div>`;
+  }
+  const cd = e.data, sec = sectionsOf(cd);
+  if (sec.guidance) ensureGuidance(p);
+  const tabs = TABS.filter(t => t[2](sec));
+  if (!tabs.some(t => t[0] === S.tab)) S.tab = tabs[0][0];
   const body = { overview: () => tabOverview(p, cd), anamnesis: () => tabAnamnesis(cd), documents: () => tabDocuments(p, cd), labs: () => tabLabs(cd), alerts: tabAlerts, next: tabNext, dev: tabDev, prognosis: () => tabPrognosis(p) }[S.tab]();
   return `<div class="page">
-    ${sessionBar(p)}
-    <div class="row"><button class="linkbtn" data-nav="patients">‹ Databáze pacientů</button></div>
-    ${patientHeader(p, headerActions(p))}
-    ${briefBlock(p)}
-    <div class="tabs" role="tablist">${tabs.map(([k, t]) => `<button class="tab" role="tab" data-tab="${k}" aria-selected="${S.tab === k}">${t}</button>`).join("")}</div>
+    ${back}
+    ${patientHeader(p, headerActions(p, cd), !sec.brief)}
+    ${briefBlock(p, cd)}
+    ${tabBar(tabs)}
     ${body}</div>`;
 }
 /* Proposed management, the guideline layer and the MDT's deviations table in one tab (round 21): the table compares
@@ -9162,7 +9224,7 @@ function tabDev() {
   if (!S.guideOn) return `<section class="card"><p class="muted">Vrstva doporučení je vypnutá.</p></section>`;
   const G = curGuide();
   if (G.loading) return `<section class="card"><p class="muted" role="status">Načítání podkladů pro odchylky…</p></section>`;
-  if (G.error) return `<section class="card"><p class="muted" role="alert">${esc(G.error)}</p></section>`;
+  if (G.error) return `<section class="card"><p class="muted" role="alert">${esc(G.error)} <button class="linkbtn small" data-act="guideretry">Zkusit znovu</button></p></section>`;
   const p = P(S.pid), pr = ensureProto(p);
   return `${deviationFindings(p)}<details class="card deviation-context"><summary>Další srovnání minulých rozhodnutí s doporučeními (${PAST().length})</summary>${retroList(p) || '<p class="muted">K minulým rozhodnutím nejsou pasáže z doporučení.</p>'}</details>${Object.values(pr.dev || {}).some(d => d.s) ? devTable(p, pr) : ''}`;
 }
@@ -9247,40 +9309,13 @@ function retroList(p) {
       <tbody>${xs.map(item).join("")}</tbody></table></div>
     <p class="muted dev-footnote">Závažnost a klinický důsledek nejsou v podkladech stanoveny; chybějící údaje se nedoplňují. Dříve zaznamenaná hodnocení zůstávají pouze ke čtení. Citace vycházejí z vydání platného v době rozhodnutí; online novelizace v průběhu roku nebyly ověřeny.</p></section>`;
 }
-/* Cases the mock has not processed still get the same view: header, short overview, conclusion and the MDT
-   discussion card, so a session can run through every case on the agenda. */
-function viewPatientLite(p) {
-  const syn = SYN_BY_FILE[p.file];
-  /* A synthetic patient (samples/S<nn>_pacient) has its documents, data gaps and lab series processed, so it gets the
-     missing-document signal, the gaps one click away and the Dokumenty and Laboratoř tabs; its summary is the list's. */
-  const tabs = [...(syn ? [["documents", "Dokumenty"], ["labs", "Laboratoř"]] : []), ["prognosis", "Prognóza"]];
-  if (!tabs.some(t => t[0] === S.tab)) S.tab = tabs[0][0];
-  const chip = syn ? `<span class="chip plain st-new">Zpracováno: dokumenty, chybějící podklady, laboratoř</span>${gapsToggle(p)}`
-    : `<span class="chip plain st-new">V maketě nezpracováno</span>${hasMissing(p) === null ? uncheckedSignal() : ""}`;
-  return `<div class="page">${sessionBar(p)}<div class="row"><button class="linkbtn" data-nav="patients">‹ Databáze pacientů</button></div>
-    ${patientHeader(p, headerActions(p), true)}
-    <section class="card blk"><div class="head" style="margin:0"><h2>Stručný souhrn</h2><span class="row">${chip}</span></div>
-      ${syn && S.gapsOpen ? synGapsBox(syn) : ""}
-      <p class="prose">${esc(p.summary || "")}</p>
-      <p class="muted small" style="margin:0">${syn ? `${esc(syn.note_cs || "")} Zdroj: ${esc(p.file)}, ${p.pages || "?"} s.` : `Plně zpracovaný je v maketě případ NO-010. Zdroj: ${esc(p.file)}, ${p.pages || "?"} s.`}</p>
-      ${conclusionBox(p)}
-      ${mdtCard(p)}</section>
-    ${`<div class="tabs" role="tablist">${tabs.map(([k, t]) => `<button class="tab" role="tab" data-tab="${k}" aria-selected="${S.tab === k}">${t}</button>`).join("")}</div>
-    ${{ documents: () => tabDocuments(p, readyData(p)), labs: () => tabLabs(readyData(p)), prognosis: () => tabPrognosis(p) }[S.tab]()}`}</div>`;
-}
-/* Missing documents of a synthetic patient, each with the passage that shows the gap (always on, CLAUDE.md). */
-function synGapsBox(syn) {
-  const { open, archived } = topAlerts();
-  return `<div class="brief-gaps"><span class="label">Chybějící a nejasné podklady</span>
-    <div class="alerts" style="margin-top:6px">${open.map(f => alertRow(f, true)).join("") || `<p class="muted small">Žádná aktivní upozornění.</p>`}</div>
-    ${warningArchive(archived, true)}<div class="disclaim">Pozorování asistenta, ne klinický závěr. Upozornění neblokují projednání.</div></div>`;
-}
 /* Header actions: scheduling, starting the MDT for this case's day, and the report. The report button is the
    only place it is offered: it opens a small dialog with the fields for the report, the preview and the download
    (round 20), so the discussion card stays about the discussion. */
-function headerActions(p, cd = readyData(p)) {
+/* The FHIR export needs the finding groups; the report waits while the case data loads (withReport false). */
+function headerActions(p, cd = readyData(p), withReport = true) {
   const live = S.session && p.slot && S.session.day === p.slot.day;
-  return `<button class="btn" data-sched="${esc(p.file)}">${p.slot ? "Změnit termín" : "Naplánovat"}</button>${p.slot && !live ? `<button class="btn" data-startday="${esc(p.slot.day)}" data-startfrom="${esc(p.file)}">Zahájit MDT</button>` : ""}${cd?.record?.sections ? `<button class="btn" data-act="fhirdlg">Export FHIR</button>` : ""}<button class="btn primary" data-act="reportdlg">Stáhnout report (PDF)</button>`;
+  return `<button class="btn" data-sched="${esc(p.file)}">${p.slot ? "Změnit termín" : "Naplánovat"}</button>${p.slot && !live ? `<button class="btn" data-startday="${esc(p.slot.day)}" data-startfrom="${esc(p.file)}">Zahájit MDT</button>` : ""}${cd?.record?.sections ? `<button class="btn" data-act="fhirdlg">Export FHIR</button>` : ""}${withReport ? `<button class="btn primary" data-act="reportdlg">Stáhnout report (PDF)</button>` : ""}`;
 }
 
 /* Parts the doctor can tick for the report (FNO spec): the assistant's summary and these finding groups.
@@ -9824,9 +9859,25 @@ async function downloadReport() {
 }
 
 
+/* What the report can and cannot say about the documents. A case whose data failed to load is never printed as "not
+   processed", and its missing documents are said to be unknown, not absent. The missing-document list prints for every
+   case whose check ran. */
+function reportBasis(p, cd, sec, failed) {
+  if (failed) return `<h4>Podklady</h4><p>Podklady případu se nepodařilo načíst ze serveru: souhrn, anamnéza, nálezy a chybějící podklady nejsou v tomto reportu. Chybějící podklady nelze ověřit.</p>`;
+  if (!cd || cd.level === "none") return `<h4>Podklady</h4><p>Dokumentace případu není zpracovaná; anamnéza a nálezy se do reportu netisknou. Chybějící podklady nezkontrolovány.</p>`;
+  const done = [sec.documents && "dokumenty", sec.alerts && "chybějící podklady", sec.labs && "laboratoř"].filter(Boolean);
+  const head = sec.record ? "" : `<h4>Podklady</h4><p>${p.synthetic ? "Syntetický pacient: z" : "Z"}pracované jsou ${done.join(", ") || "jen údaje ze seznamu"}; anamnéza a nálezy se do reportu netisknou.</p>`;
+  /* Open missing-document alerts first, then the data gaps; a gap that is not "missing" says its kind. */
+  const flags = (cd.alerts?.flags || []).map((f, i) => ({ ...f, i })).filter(f => f.kind === "missing" && alertState(p.file, f.i).state !== "resolved");
+  const items = [...flags, ...(cd.alerts?.gaps || [])];
+  const src = g => g.source || (g.based_on || g.refs || [])[0];
+  const label = items.some(g => g.kind !== "missing") ? "Chybějící a nejasné podklady" : "Chybějící podklady";
+  return head + (items.length ? `<h4>${label}</h4><ul>${items.map(g => `<li>${g.kind !== "missing" && ALERT[g.kind] ? `${ALERT[g.kind][0]}: ` : ""}${esc(g.text_cs)}${src(g) ? ` (${esc(src(g).file)}, s. ${esc(src(g).page)})` : ""}</li>`).join("")}</ul>` : "");
+}
 function reportHtml(p, pr, present) {
   /* The report is for case p, which need not be the open case (approval during a session), so it reads p's guidance. */
-  const reg = refRegistry(), cd = readyData(p), pst = guideOf(p.file).statements || [];
+  const reg = refRegistry(), cd = readyData(p), sec = sectionsOf(cd), pst = guideOf(p.file).statements || [];
+  const failed = caseStore.entries.get(p.file)?.state === "error";
   const refTxt = r => r ? ` [${reg.num(r)}]` : "";
   const line = f => `<li>${f.date ? esc(f.date) + ": " : ""}${esc(f.text_cs)}${esc(tagsText(f))}<span class="src">${refTxt(f.source)}</span></li>`;
   /* Report anamnesis (Soňa, round 2): diagnoses stand out in bold, qualifiers stay plain text. */
@@ -9839,23 +9890,22 @@ function reportHtml(p, pr, present) {
     ? `${esc(edRep(`fa:${i}:line`, drugLine(f), p.file))}${drugNote(f) || edOf(`fa:${i}:note`, p.file) ? ` (${esc(edRep(`fa:${i}:note`, drugNote(f), p.file))})` : ""}${esc(mt(f))}${rf(f)}`
     : `${f.term_cs ? `<b>${esc(edRep(`${k}:${i}:t`, f.term_cs, p.file))}</b>` : ""}${f.comment_cs ? `${f.term_cs ? ", " : ""}${esc(edRep(`${k}:${i}:c`, f.comment_cs, p.file))}` : ""}${esc(mt(f))}${rf(f)}`;
   /* Every section is listed; an empty one prints the gap wording (allergies must never just vanish). */
-  const anamLines = p.full && S.picked.has("anamnesis") ? ANAM.map(([k, t]) => `<li><span style="text-decoration:underline">${t}:</span> ${(A[k] || []).length ? A[k].map((f, i) => anamItem(k, f, i)).join("; ") : GAP}${k === "FA" && (A.FA_warnings || []).length ? `<br><b>Pozor:</b> ${A.FA_warnings.map((f, i) => anamItem("faw", f, i)).join("; ")}` : ""}</li>`).join("") : "";
+  const anamLines = sec.anamnesis && S.picked.has("anamnesis") ? ANAM.map(([k, t]) => `<li><span style="text-decoration:underline">${t}:</span> ${(A[k] || []).length ? A[k].map((f, i) => anamItem(k, f, i)).join("; ") : GAP}${k === "FA" && (A.FA_warnings || []).length ? `<br><b>Pozor:</b> ${A.FA_warnings.map((f, i) => anamItem("faw", f, i)).join("; ")}` : ""}</li>`).join("") : "";
   const bf = cd?.brief;
-  const brief = p.full && S.picked.has("summary") ? (edOf("brief", p.file) ? esc(briefPlain(p, cd)) + " [upraveno lékařem]" : bf?.text_cs ? esc(bf.text_cs).replace(/\[(\d+)\]/g, (m, n) => `<span class="src">${refTxt((bf.refs || [])[n - 1])}</span>`) : esc((bf?.summary_items || []).map(x => x.text_cs).join(" "))) : "";
+  const brief = sec.brief && S.picked.has("summary") ? (edOf("brief", p.file) ? esc(briefPlain(p, cd)) + " [upraveno lékařem]" : bf?.text_cs ? esc(bf.text_cs).replace(/\[(\d+)\]/g, (m, n) => `<span class="src">${refTxt((bf.refs || [])[n - 1])}</span>`) : esc((bf?.summary_items || []).map(x => x.text_cs).join(" "))) : "";
   return `<article class="sheet">
     <div class="hdr"><div class="report-brand"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAA3AAAADYCAYAAACqTQHJAAAACXBIWXMAAAsTAAALEwEAmpwYAAAgAElEQVR4nO2deZQvV1Xv62YeCfd2+ld7n31+3SZpppZBuDKrQEAwJuDAKGjQxxOZ44InBJBRJAGJEgck8nAIwoOrEX3xMZi8EKYHSlyABBMIUwSiGAghIQm5uYlvHboT4Hb9+lZ3/+q3z6n6fNbaa2W4/9zvPkN96ld1qqqgU+q6HoUQ7iliJ4iEJ9d1/A1VO0M1vkXE3qtqF4nEj6va51OJxCtF7CoRu141/tdK2bdW/9tVqvbF1T/3SdV4gWr8a9V4lkh8tUh8nmp8oqo+cDweh6qqttFeAAAAAACA72Npaenguo53FbFHq9oLVeNfqMaPitg3vydhsy8R+45I/KyI/YNIPFM1PkUk3ltVD6OBAAAAAAAwCFR1IYT4BJH4+iRqqrbbU9Q2UXtE4mdE7O2q9pz0C2FVVft75wq3cUD65Ta32r792KPoEezN/Pz8Ed5js6mWl5cPyqlb6cbZwsLCdmrjGbD2wEaZm5s70nsNojaWQbr2YaTDVJmfHx+XRCc9rihiX81AwDoo+5aqvVsk/mZdx/tUVbUfw8gHM7uH/3horHMZE7A3qvaGDMbmmqrrcFJO3VKNb/TOpB9lu7/vlYIr0lMmqvEjqvH/qMaz041VkfiSuo7PTDda69oeMhotHFtVOw/0HgMwO1Tjn/uPVWojGYQQfoQ5Altlf9Xxj4nE09M7akOchOldPNW4S8RO5u7nbEHgoCQQuLY5IXAZPHlyuaq9f+Xi3l6e3ksPITwg/VrT8TSBGYPAlVcIHGyK9LjNyjtscZeqXe09kHOq9C7d6t3NdEAK7891DAIHJYHAtc0Jgcu77Ir0lEG6cZtuXNb1+Id5EqVcELjyCoGDDZEW6ZVf2uJ/eg/eEmr1dMxdIYRH8rxyNyBwUBIIXNucELjy6rs3c9+VDidLv9TxGGY5IHDlFQIH+yS9LCkyfq6qfcp7wBZeX1K1F8QYdzDspgcCByWBwLXNCYErvUTidSLxfJH4UpH4oMXFxUM6nl6wSRC48gqBg3UPI0nH6f/gN9aoKT1ieXb6lALDb+sgcFASCFzbnBC4vu23q9cS56raU0ejY+qOpxpsAATOf34gcLBlQgj3F7G/UY03ew/QntctIvaedGeSYbt5EDgoCQSubU4I3AAOSflQeiolhHDHjqcd7Hu+cQplYcUvcHAbdW0nitgHvQflECvlLmInMBw3DgIHJYHAtc0JgRtW2T+KjJ++uLh4+46nIDTPNwSusELgoBKJ91a1C70HI/XdTewi1fHPMCzbg8BBSSBwbXNC4Ab8isGtB3/t3/F0hO/NNwSusELgBkwIYawaz+JRySzro+nbet5jpAQQOCgJBK5tTghcBvtQDgd/vSJdq3Q8LQcPAldeIXADZH5+/oiVj3LaDd4DkFo3g1vSncjRaOFY7zGTMwgclAQC1zYnBI798da90HanvVBk/KMdT8/BgsCVdz2KwA0M1fgk1fg174FHbfSREvstjmBuBoGDkkDg2uaEwLFPNu2H8UOrj1fCVNclHqEsbb4hcAOhrheOSSceeg84aisZ2OdCCA/zHku5gcBBSSBwbXNC4Ngv190PPyZij6mqalvHU3YQIHDlXZ8icP3nAFU7RTVe6z3YqKk9Vnm2qh7tPbByAYGDkkDg2uaEwLFntrqx+am6Did1PG17DwJX3jUqAtdjUnNF4se9BxnVRQZ2Bb/GrYDAQUkgcG1zQuDYO9vviSLxPFW9V8fTt7cgcOVdqyJwPUXEThaJ13kPMKrTDG4RiWcuLy8fVA0YBA5KAoFrmxMCx/658T0xHXYyPz8+ruNp3DsQuPKuVxG4nrF9+7FHqcZ3eA8sapYZ2MdijEvVQEHgoCQQuLY5IXDso5s/+Eskvmxpaengjqdzb0DgyrtuReB6RPpumEi83HtQUR4Z2NUi9tPVAEHgoCQQuLY5IXDspVvbF0Xssrq24zue0r0AgSvv2hWB6wfbVO1U1XiT94CiXDPYIxKfVw0MBA5KAoFrmxMCx346vYO/QghzHU/tokHgyrt+ReAKJ73/xMTzn0g5lYi9LcZ4aDUQEDgoCQSubU4InPde0q+yK1Y/OwDN8+3P/XtEbSQDBK5g0lHyIvYBBj2Tfu8xIGIfXFxcvH01ABA4KAkErm1OCBx7eyd7+9nz8/NHdDzNiwOBK+86EoErlHRohUi81HsAUTlnYBePx+NQ9RwEDkoCgWubEwLnv4f0s9K1Exe/a+Ybv8AVVozhAgkhPFTEvuk9eKhiNqpx1WMQOCgJBK5tTgic9/7R95MqVe2UdIZAx1O+CBC48gqBK4y6thNXFh7/wUMVk8GX+vyZAQQOSgKBa5sTApfB3jGEOmcorxusBwJXXiFwBYG8+U+YUkskfllEFqsegsBBSSBwbXNC4Lz3jSF9biCEcKdqwCBw5RUCVwjp9CRV2+09YKhyMxCJnx2NjqmrnoHAQUkgcG1zQuC894whlYh9QyQ+qBooCFx5hcAVQF2Hx/GNN//J0ocSiZ9YWFjYXvUIBA5KAoFrmxMC571fDK3S6yki9kvVAEHgyisELnNCGD8+faDZe6DkXCJ2g4hdJRK/LhIvX/lnDnlZJ7P3pe8HVj0BgYOSQODa5oTAee+tA61bROLpQzvcBIErrxC4jKlre8iQDyxZuRsWPyFib1e1V6jGp9R1OKmu433MLLaVkO3bjz1qNFo4VlUfuPoo6nNE4mnp5eX0WOEQBVkk/knVExA4KAkErm1OCJz3PjHkErE3V1W1XzUQELjyCoHLFDO7u6pd7T1AZlh7ROLHRewPVOMvzM+Pj6uqav9ZZB1jPFRV7yUSnpzEJr3QnEEenVddx2dWPQCBg5JA4NrmhMB57xFDLxH7X1VVHVANgIwF7prVp6qovTKo63hX73EDe6GqCyL2lQwmTsdlV6jGs9LpmnNzc0fmNBDSL3zpWXjV+Jb+irTtTr/yVoWDwEFJIHDFC9yzVRd25lp1bQ8OITwsVXriRMQeqxqflJ48UbVXqtofqcZ3qMYLVO1iEbs+g0xzrrfM6mayJ7kKXF3b8d7ZALQiHTChap/2njRdVRLT9PhiegyylGfMFxcXD1GNP5vuxqnGb/erH/HKdMOgKhgEDkoCgStb4ETshKpnHH30gq6+YvBL6XUFEfub9P1Q76xzKRF7a98lDoED2BoHpAMmvBerDuomEfvbEMIjS18E67o+XCQ8TSRe0p/NKX6o5MdEEDgoCQSubU4InDchhDnV8U+q2gtU47npcTbv/cpvn+z345QIHMAWULXXei9SU65rVe2MGKP1cGBsS3diRewf0qlV5W9O8dVVoSBwUBIIXNucELgMOSCE8ACR+BJVu3BonzcSsTdVPQWBA9gkIYwf1QcRWK1rROKZ8/OLMoQBkR4HVbX3Z5D7Vupm1fHDqwJB4KAkELi2OSFwuRNj3CFiJ6/8Ome7M9jHZlD2wqqHIHAAmyDGuNSPgzJst0h8fd8+FN0WEft5kfiZgvv3H6p6dFUYCByUBALXNicEriTquh6lk41F4if997JOK91of2LVMxA4gE0cYZ++dZbBorSlErH3iMhdGAA7DxQZv1jEbvTuySbr7NJ6iMBBSSBwbXNC4Epl5UTMeHZ/f5Wz3SGEh1Y9AoED2CDpY5GFL2T/oRp/jsav/Y5f+q6df382U2U9SonAQUkgcG1zQuBKZzweBxF7Td9Ob0618i2u/ty0RuAANv7e238VXLtKfORuduw8cOW7O+n9MvdebaDsC+m0zaoQEDgoCQSubU4IXF9I1wki8fS+fXNOxC7bsWPpdlUPQOAANvDy7+qHrEtctL4ZwvjxNLsd6UPl5b3jaL9TSn8ROCgJBK5tTghc30gnUq/2dY//HjfVzwsUDwIH0JL0YcgyF6v0/TO9M43eGGZ2B1X714I2pRvn58fHldBnBA5KAoFrmxMC11fSNUR6b957n5vifvlrVeEgcAAtUI0/673gbLJ2zc/PH0GTN8fi4uLtVeMFBW1Kby2h1wgclAQC1zYnBK7viNhjVOOXvPe6KeyVN4QQfqQqGAQOYB+EEOZU7d+9F5wN1i0i8TfTx6tp8NZQ1cNE4nkZ9LRN3ayq98q95wgclAQC1zYnBG5AJ3GfXt674v16Hw6BA9gHqvZn3gvNBmtPHx4PyG/DsveWsSnF86rMQeCgJBC4tjkhcEMinX4sEr/svecN7TM8t4LAAayDSLx3SXeZROw7IvZYmjp9FhcXDxGJ53v3uE2FEO6f8xhA4KAkELi2OSFwQ3zNQMTe5r3nbfG66aerAkHgACazTSR+uKBF6EaR+FM0tDsWFha2i8TPePe6RZ2T8zhA4KAkELi2OSFwQ0XVnlrqR8BF4uVzc3NHVoWBwAFMQDU+yXth2UDtqevwOJrZPSGEO6XPMmTQ8/Xq5nSKZq7jAYGDkkDg2uaEwA0Z1fGPF3hewK0Sd2ZVGAgcwOSDK0p5tvsW1fjfaeTsUI2PyP+7OPaGXMcEAgclgcC1zQmBGzohhLGqfcp//9tw3Zz7qwd7g8ABNKBqr8hgQWl7oX4qTZw96cPZ/r2fXCLxuvTIZ45jA4GDkkDg2uaEwMFtrxp8yHsP3MSeecnS0tLBpfQQgQPYi/n5RUkXv2UsOGV896vHh5pckvf4CE+rMgSBg5JA4NrmhMDBCnVdH17Kyc2l3hBH4AD2QjX+rv8i0ubiPH48PepJA/2oa7tvzo9SisT/l+P4QOCgJBC4tjkhcPA9lpeXDxKxdxYmcN+q63pUQh8ROIAyf337mqou0Dx/0svPGYyHiZUOXakyA4GDkkDg2uaEwEGjxL3Hex/cYP1xCX1E4AC+D1U7I4PFY191S13biTQuD1T16HTXLoNx0Vgi8berzEDgoCQQuLY5IXAw8VC4D5d1qne8a+69ROAAVhmNjqkL+fWtiLtDQ0LVXp7BuJhQ9rkqMxA4KAkErm1OCBw0E0KYU7V/9d8PW++b7869lwgcQFG/vtnn5ufnj6BpeZF6svJYq/f4aC4RuUuVEQgclAQC1zYnBA4mU9eLPyQSv+69H26gHpFzPxE4gKqqYow7Cvj1bc9oZPejYXkiEl+SwRhprLqOv1FlBAIHJYHAtc0JgYP1Sa9/pG+uee+J7couyrmfCBzAysX3/yhgMcn2w8ywcgCOqu3OdOxcmFOPEDgoCQSubU4IHOwbkfhS/z2xXYUQHpZrTxE4gKraT8Qu814o1iuReGX6lZBm5Y1q/GvvsTKhbsrpo94IHJQEAtc2JwQOWl9zFXEypUg8L9eeInAweETiT3kvEi3qKYNvVAGojh+ewVhprBDGj6oyAYGDkkDg2uaEwEE7xuNxELGrypC48Y/m2FcEDgaPiP2d9wKxftk/pTtWg29UGWwTiV/OcxOKp1WZgMBBSSBwbXNC4KA9Inay977Ysnbl2FcEDgZN+hh2OhwkgwVinRo/3DsnaE/6zIP/mMn7PTgEDkoCgWubEwIHG51b8Rz/vXGftcfM7pBbbxE4GDSq9qoMFoeJJWIf9M4INkZdh5PyHEvxuqqqDsihnwgclAQC1zYnBA42/iilarzWe39scS32B7n1FoGDIbNN1b7ovTCsV3VtD/EOCTaGqh4mYtd7j53mWtiZQz8ROCgJBK5tTggcbGp+vagAgfvG4uLiITn1F4GDwVLXdl/vRWEfdYF3RrA5VOO7Mhg/2R6Gg8BBSSBwbXNC4GDjLC0tHZz7SeCp6jo8Lqf+InAwWFTj73ovCOuViJ3gnRFsDpH4Mu/x01z22hx6isBBSSBwbXNC4GBziNhj/ffHfda7cuovAgdDPi3w8nzlLX6GkyfLpa7tRO8xNKHOrTIAgYOSQODa5oTAwVbmWfxIBnvkerUnxmi59BiBg0Giqg/MYDFYR+DGT/fOCDbPaHRMnee4ssty6CsCByWBwLXNCYGDzZOeOvLeI/dddmouPUbgYJCIxDP9F4KJF9lX1XV9uHdGsDUy/R7cnhxexEbgoCQQuLY5IXCw1bkWP5rBPrnO9Vm8NJceI3AwSDK9uL51gTjTOx+YzvHIo9HCsblVDp8SQOCgJBC4tjkhcND/X+HqOt41hz4jcDA4RBaWvReAfQjcvb0zAugSBA5KAoFrmxMCB1OZbxd5X4eV8BglAgeDQ9Wek6+8ffcdpW3eGQF0CQIHJYHAtc0JgYOtU9fjX878JvuHcugzAgeDQ8T+LuOF4aXe+QB0DQIHJYHAtc0JgYPpfBdONX7N+3psnbq5ruuRd68ROBgaB6jatzJYABorxrjkHRBA1yBwUBIIXNucEDiYDiL2Gu/rsfVvttvJ3r1G4GBQhBAe4D3xJ5d9yjsfgFmAwEFJIHBtc0LgYDrU9cIx6Zcu/+uyibXLu9cIHAyK9Ihivnd04une+QDMAgQOSgKBa5sTAgdTnXfvz/iG+9XeJzojcDAoVOMFGQvcg7zzAZgFCByUBALXNicEDqaHSHyG93XZehVCuKdnvxE4GBLb0l2TfO/m7DzQOyCAWYDAQUkgcG1zQuBgeojIvGq8KeOb7s/w7DcCB4MhhHBH7wmf8/PUALMCgYOSQODa5oTAwXQRiedncH02qc727DcCB4NBNT4xgwk/qZ7tnQ/ArEDgoCQQuLY5IXAwXUTGT8/g+my97/a6gcDBYFC1M7wn/ORa2OmdD8CsQOCgJBC4tjkhcDBd5ufHx/lfn02u0eiY2qvnCBwMBlW7MM+7OPE63n+DIYHAQUkgcG1zQuCgk/n3ee/rtEkVQnikV88ROBgKGR9gEt/nHQ7ALEHgoCQQuLY5IXAwnHG1UvYqr54jcDAIzOwO/hO9uUTiad75AMwSBA5KAoEr+0JbxE7oeIhAh4jYY7zH0Dpj62+8mo/AwSCoazvRe6KvU7/gnQ/ALEHgoCQQuLY5IXAwfeq6HmVwnTah7F+9eo7AwSBQtef4T/TmGo3i3bzzAZglCByUBALXNicEDrpBJF7ufa3WVCJ2Y1VVB3j0HYGDQSASz/Se6BPqpqWlpYO98wGYJQgclAQC1zYnBA66IT2qmMH1WmPFGJc8+o7AwSBQjX/vPcmbyy72zgZg1iBwUBIIXNucEDjoBpHxi/2v15orvaLj0XcEDgZBek7Ze5JPqHd4ZwMwaxA4KAkErm1OCBx0NQfjIzK4XmsskfFzPfqeq8CJ2A3p81hUfhmEEMZVYeyXBlSeAz3+tnc4ALMGgYOSQODa5oTAQTeYWfS+XlunzvLoe64CR+WbgYgsViWhqgv5hhme5p0PwKxB4KAkELi2OSFw0BnbROx672u2CfUuj74jcO59L66kNIELITzAO7Tcnp0G8ASBg5JA4NrmhMBBp/Pw4jwviuM/e/QdgfPvfWklpQmc6vhnvEObVHxCAIYIAgclgcC1zQmBg+4Qsb/L86LYvuLRdwTOv/ellZQncPEp3qFNqu3bjz3KOx+AWYPAQUkgcG1zQuCg03l4hvc1W3PZ7vSI56x7j8B59728kgIF7vl5Bhmv884GwAMEDkoCgWubEwIHnc7DX/e+bptUMcYds+49Auff99JKyhM4+508g4z/5p0NgAcIHJQEAtc2JwQOukPEftH7um1y6Z1n3XsEzrvn5ZWUJ3B5HrUqEj/pnQ2ABwgclAQC1zYnBA6G+i24+KBZ9z7Xa1sq3wykQIE71zu05rILvbPJlbq249O3VahuMghh/HjP/iJwUBIIXNucEDjoch7qvfK9MLZHz7r3CJx/30srKVDgPpLphH+ndza5omqnePenzyUSz/TsLwIHJYHAtc0JgYPuCCGMvffOdepJs+49Aufe8+JKShO49KhinkHam72zyRUEruuxh8BNyOZc77EP+YHAtc0JgYPumJubO9L7um2desqse4/Aufe8uJICBe7SPIO03/fOJlcQuK7HHgI3IRsEDprWozd47xdNVdfhpJzahcBBt+w80HvOTZ6L8Zmz7j4C59/30kpKEzhV+4J3aM1lZ3hnkysIXNeTGIGbkA0CB03rEQLXat3mFzjoFtV4c5576vi5s+49Auff99JKShM4EftqnkHG07yzyRUErvOxxztwzdkgcNC0HiFwrdZtBA66RcRu8L52ay570ax7j8B597y8kvIELl6Z6YR/pXc2uYLAdT2JEbgJ2SBw0LQeIXCt1m0EDrpF1a7O9HruFbPuPQLn3fPySkoTONV4TZ5Bxpd4Z5MrCFznY49f4JqzQeCgaT1C4Fqt2wgcdItq/Fqee6q9Zta9R+D8+15aSWkCl/FP7qd6Z5MrCFzXkxiBm5ANAgdN6xEC12rdRuCgW0TsG5lez71u1r1H4Lx7Xl5JaQKX60uvHs9MlwIC1/UkRuAmZIPAQdN6hMC1WrcROOgWkXhdptdzr5p17xE4756XV1KgwN2UZ5DxZd7Z5AoC1/nY4xHK5mwQOGhajxC4Vus2Agfdohr3ZLqnzvyVGATOv++llRQocN/2Di2XOzalgMB1PYkRuAnZIHDQtB4hcK3WbQQOOmV//+u2ifX8WfcegXPveXElpQmciF2VZ5Czf+m1FBC4rsceAjchGwQOmtYjBK7Vuo3AQXeo6mHe122Ty54z694jcN49L6+kNIFTtX/3Dm1C/a53NrmCwHU9iRG4CdkgcNC0HiFwrdZtBA66o67rUb57qv3arHuPwPn3vbSS8gQufsk7tOayP/TOJlcQuK4nMQI3IRsEDprWIwSu1bqNwEF31PX4h/PdU8OTZ917BM6/76WVlCZwIvGz3qFNqL/wziZXELiuJzECNyEbBA6a1iMErtW6jcBBd9S1PTiD67bGCmH8+Fn3HoHz73tpJaUJnKpdnGeQ8X97Z5MrCFznY49TKJuzQeCgaT1C4Fqt2wgcdIeIPTrfPdVOmHXvETj/vpdWUqDAXZTphP+gdza5gsB1PfYQuAnZIHDQtB4hcK3WbQQOukMkPM37um1y6b1m3XsEzrvn5ZWUJnAi8Tzv0JrLLvbOJlcQuK4nMQI3IRsEDprWIwSu1bqNwEF3iMSX+l+3NVcIYTzr3iNw/n0vraQ8gbO35RmkfdU7m1xB4LoeewjchGwQOGhajxC4Vus2AgeDFJZblpeXD5p17zPOg8o0AylQ4H4/zyDtBu9scgWB63rsIXATskHgoGk9QuBardsIHHRHeu0k02u5qzz6nqvAidibVO2FVH4Z7NixdLuqJDL/2X3OO58cQeC6XmARuAnZIHDQtB4hcK3WbQQOukPVrsh0P73Eo++5Clxd2/EeeUAPEYnP8B7Qk8rM7uGdT44gcJ1vOJxC2ZwNAgdN6xEC12rdRuCgG1T1sPSoovc1W3PZ+z36jsBB76nr8Dj/Cd5cdR1O8s4nRxA4BM5pTiJw0LQeIXCt1m0EDrphNIp3875eW6d2efQdgYPeU9f2kAwmeGOlXwe988kRBA6BQ+AgFxC4tjkhcNANInZyxtdxr/boOwIHvUdkYTnjiX+adz45gsAhcAgc5AIC1zYnBA66QSS+Pt/ruPBkj74jcNB7YoyH5vrstIi93TufHEHgEDgEDnIBgWubEwIHwzqBMtVoZPfz6DsCB4NAxL7iPcmby/7FO5scQeAQOAQOcgGBa5sTAgedsJ9qvMb/eq25Yow7PPqOwMEgSKcEeU/yphKxG6uqOsA7n9xA4BA4BA5yAYFrmxMCB9NHRO7ifa22Tv2nV88ROBgEIvanGUz0CaV39s4nNxA4BA6Bg1xA4NrmhMDBsD4FlR7t9Oo5AgeDQGT84owXgMd455MbS0tLBy8sLGwvvVTjk/Icc3wHbkI2fEYA1oDAtQOBgy5QjedkfP32Zq+uI3AwCEIYP957ok8ue7l3PtANqvFn/ccXAreBbBA4aJjHfAeu5Xr3xkwvsk9gWBfL/iL2De8xNKnqOj7TKxgEDgaByPhHvSf65LJ3e+cD3YDANWNm9/Cfd42FwEHDPEbgWq53CBxMFZF47wz2hXVqYadXyxE4GASqephqvMl/sq8tEftmOmXJOyOYPghcMwgclAQC1zYnBA4G9frL9VW180CvniNwMBhU7VP5LgRyF+98YPogcM0gcFASCFzbnBA4mC4i8eMZC9wHPPuNwMFgULU/857wkyqE+N+884Hpg8A1g8BBSSBwbXNC4GB6jEYLx3pfm+1D4F7j2W8EDgaDanxWxgvBm7zzgemDwDWDwEFJIHBtc0LgYKrz7lTva7N9XLf9vGe/ETgYDCGE++e7EMR/884Hpg8C1wwCByWBwLXNCYGDqc67i7yvzdarGKN59huBg8GQ80EmKxK3sOydEUwXBK4ZBA5KAoFrmxMCB9MhnQugGm/J+Kb7pd69RuBgUOR9kEl8nnc+MF0QuGYQOCgJBK5tTggcTAeR+Hrva7L1y17n3WsEDgaFavzjjAXufO98YLogcM0gcFASCFzbnBA42DoxxkNz/nh3qrq2h3j3GoGDQSFij85X4OzGHTuWbuedEUwPBK4ZBA5KAoFrmxMCB1snhPgr3tdj65d9y/P7b7eCwMGgWFhY2K4a92QscSd7ZwTTA4FrBoGDkkDg2uaEwMFU5ts/el+L7aN25dBnBA4Gh6p9LOM7O+/2zgemBwLXDAIHJYHAtc0JgYOtUdd2vP91WBk32hE4GBwi8TTvBWCdumk0Oqb2zgimAwLXDAIHJYHAtc0JgYOtkc4CyOA6bL26ua7rUQ59RuBgcIQQHpbBIrBePcs7I5gOCFwzCByUBALXNicEDjZPXdt9M7j+WrdE4nm59BiBg8GxuLh4iIhd770QTC77mHdGMB0QuGYQOCgJBK5tTggcbGWexXPzFzj7xVx6jMDBIBGxv/VeCNar0cju550RbB0ErhkEDkoCgWubEwIHW/r1LdsPd6/WtfPz80fk0mMEDgaJanxS5nd53uqdEWwdBK4ZBA5KAoFrmxMCB5tDJH7I+7qrxXXZm3PqLwIHg2Rubu7IzB+j3B1jNO+cYGsgcM0gcFASCFzbnDS/KGQAABCMSURBVBA42Dgi9lj/a642Ahd/Iqf+InAwWFTjOd4Lwj4k7pXeGcHWQOCaQeCgJBC4tjkhcLAxlpeXDxKxy/yvt/Z5PfbFqqq25dRfBA4GSwjxCZkvGFeHEOa8c4LNg8A1g8BBSSBwbXNC4GDDc+uF/tda+y6R+JLceovAwWBR1cNU47czl7jXeucEmweBawaBg5JA4NrmhMBBe0IIdxKxGwqQt+tU9ejceovAwaBRje/Ie+Gw680seucEmwOBawaBg5JA4NrmhMBBa/YTsQ96X2O1vJH+hzn2FYGDQRNCeKj/4rBPiXuTd06wORC4ZhA4KAkErm1OCBy0HivP9r62all7YoxLOfYVgYPBo2oXZ7BIrFc38124MkHgmkHgoCQQuLY5IXCwb0QWlvN/feW22pVrTxE4GDyqdkoGi8S6JRI/WVU7Dxx8swoDgWsGgYOSQODa5oTAwfrUdX24qn3a+5qqbeV88xyBg8GzffuxR5VwN0hk/NzBN6swELhmEDgoCQSubU4IHKyPiP2l97VU+7ILc+4nAgewsqi8yX+x2GddKyKLNKwcELhmEDgoCQSubU4IHExGJDwtg+uoDdT4x3LuJwIHkPcF5Q+UiH2gqqr9aVoZIHDFzbdzZzxEoAAQuLY5IXDQTF3bQ0TsxgzW+LZ1Tu69ROAAVhGJ52ewaLQoezlNKwMErhkEDkoCgWubEwIHaxmN4t1U7Wr/a6fWdZOI3CX3XiJwAKuo6gMzWDja1M11bcfTuPxB4JpB4KAkELi2OSFw8IOk79iKxC9ncN20kZvkf1RCHxE4gO9DNf5f/8Vj35UWxNHomJrm5Q0C1wwCByWBwLXNCYGD7zEej4NIvNT7emmDdW0p11YIHECZv8Klu0QfU9XDaGC+IHDNIHBQEghc25wQOLh1LOiCiF3mf5204ZvjLy2lhwgcwF6oxvd5LyIbqL+qqmo/mpgnCFwzCByUBALXNicEDtKBJYs/pGqfL1DePhNjPLSUHiJwAHshEh9U2KJzGk3MEwSuGQQOSgKBa5sTAjd06nr8w+W98/bdujn3zwbsDQIH0ICqvTuDBWUj9XwamR8IXDMIHJQEAtc2JwRuyKjGRxR22uRtJRLPrAoDgQNoIMa4JGLf8V5UNlb2IpqZFwhcMwgclAQC1zYnBG6oqNpT0/H7/tdBm7p2+uL8/PwRVWEgcAATEImnF7gQvZCG5gMC1wwCByWBwLXNCYEbGumdMRH7n/7XPpuuW0IID60KBIEDmEC6IyNiXylQ4n6rqqptNNafuo7P9B8P+T0ugsBBSSBwbXNC4IbEyjpun/bez7ZYZ1WFgsABrEMI8QkZLDCbuEC3ty0tLR1Mc/0IYfwoEbshz/GBwE3I5lzmDOwNAtcOBG4wbEuPTIrE67z3sq2VfarkTzEhcAD7QDVe4L/QbKo+Utf1iAbPHtX4RFXbncEYaCwEbmI2CBw0zGd7g/ecbaq6Difl1C4Erv/Mz4+PE7F/8B77U6hrQgh3qgoGgQPYB2mSF3yn6UshhAfQ5JnemTx15Uhi995PLARuYjYIHKwBgWsHAtdndh6oaqeoxm9771/T2QPtF6vCQeAACn6XqWXdpGovr6pqf5rdHYuLi4eoxr8oY/PiEcoJ2SBwsAYErh0IXD+pazteJF7ivW9Nr+wNVQ9A4ADasU3E3uO/8Gzpov28EMKYhnf28dJPFjQWOMSkORsEDtaAwLUDgesXZnZ31bjLe7+a8t73iXRyZtUDEDiAlsQYTcS+4b0AbbGuUbVf59e4qbFNNT5LxK4vbBND4JqzQeBgDQhcOxC4fjAaxbuJ2DvTEfvee9V09z37qqouVD0BgQPYACL2896L0JQu4D9e1/E+NH/zhBDuKBLPL7T/CFxzNggcrAGBawcCVzTbVMcPT2tg7u9wb+HQkntWPQKBA9ggqvHsDBajaVRapN9iZndgELRncXHx9qr22pxPmdxXIXATs0HgoGHN5xTKlnvjG/Nc7+wEhvXk792mTwKsHKnv36tu6rt79SP6NgYQOIANkp6fVrWP+S9KUxW5XTHGJQbDZJaXlw9a2eji1zLo2ZYKgZuYDQIHa0Dg2oHAFcP+IYSHrd6MvsZ7P+p+vxs/veohCBzAJqjrxR8SiVf2a5GzG0XsL+va7sug+B47dizdrq7jb4jYV/rTax6hnJANAgdrQODagcDlS/pgtUj8KRF7Uw/e5d9AffcE7l6CwAFs4WjdlSP6e7no/ZOInby0tHTwkN9xU7XfUbWr/fsx3ULgJmaDwMEaELh2IHBZsS2986Uan5/e1RaxG7z3Had9blvVUxA4gC2QTnTs9wJo31S1P1t5h2DngX0fLNu3H3tU+sCnarygbydwNWxsbpjZPbwzmFAIHKwBgWsHAufHeDwOIYRHpl+c0jrWtyeENrHH/V6f5S2BwAH0dBJ1sCB+PT1+oRp/Lh3k0ZeBk979E4nPELH3psdIvXPuvmx3XYeTPDNH4KAkELi2OXGISZeP8qcDx0TiT4QQf0XVXiVib0/v46/caPXeV3Iqe101AHK99kxPp3lnA9CSnQeqxr/3njQzrj2q8SOq9lt1bQ+em5s7spDhsn/66HZdj3955ZfFeHkGWc6sROw76S6tdxPyFTj7x7q2E6ksM3iw13hF4MoWONX4LtV4VuZ19upHs3eJxPNWngKxf1G1K4ZxY3Fqa/hrq4GQq8Cp2gsz2C+ouvwMZnky5fv9J45b3SwSLxWxt4rE56U7MCGEsecjDKp6dLpbKWK/JmK/r2oXDuHErUklEq9L3/mpMiBfgaNyzUDELvMarwhc8QJHDSADkXhaNSDyFTiKDOJUMpjx+1Pxn2nc9y+o9h2ReEn6hTK9d6VqL1K1X02PYaqOf1xkYTnGaAsLC9tTVVW1X1Ou6f+JyOJotHDsysX/wk6R+CARe3Rdx2eKxJep2h+tfITULlaN19KHH5gI13r+grE3CBwb3MYvzhC4vTPxfhR6bxA45rXTvrtH1V5QDQwEjvmmPc9gphOqrutR+iXK+y9deq0+MtLbQ0Rmm2W8cjSy+1UZgcD5j4vSCoFbmwkC5z8uKfcMrg1h/KhqgCBw7mOP0m4zcJhUuqBqn6e5DG7/MWCfSy++V5mBwHmPi/IKgVubCQLnPy4p1zXhq+lpnGqgIHDMP+15Bi4Ta35+UUTiJ7z/8tSQM0gHctSjKkMQOO+xUV4hcGszQeD8xyXltR7ET66+Zz9YEDjmn/Y8A7fJtfLeVvywdwDU8DIQsXeq6mFVpiBw/mOktELg1maCwPmPS8plLXhrXdeHVwMHgWP+ac8zcJ1g8/PzR6weCeweBDWIDG5ZPYlrzWEwOYHAuY+T4gqBW5sJAuc/LqmZrgE3qNop3vtXLiBwzD/teQbec6xaXl4+SDX+lXcQVO8zuEbEHlMVAALnPlaKKwRubSYInP+4pGY1/+MlZnZ3770rJxA45p/2PIMqE/YXiadzsqL/gOhjpZNP0wfKq0JA4PzHTGmFwK3NBIHzH5fUTDI4m0cm14LAMf+05xlUORFCfMLKB5X9g6F6k8Guubm5I6uCQODcx0xxhcCtzQSB8x+XVJdzPn5dNT7Re7/KFQSO+ac9z6DKjfQYgKp9wTsYquwMROz6Ut8HQOD8x09phcCtzQSB8x+XVGcZ7Mr1FOVcQOCYf9rzDKocCSHMcbiJ/+Aot+yfQgh3rAoFgfMeP+UVArc2EwTOf1xSU5/nX1WNP+e9R5UAAsf8055nUGXMAar2CtV4k3dIVDEZ7FG1V6axUxUMAuc+joorBG5tJgic/7ikppbBLarxrB07lm7nvT+VAgLH/NOeZ1Dlzmhk9xOJn/UOiso7g/Rh+LqO96l6AALnP55KKwRubSYInP+4pKYytz/Yl71tliBwzD/teQZVCcQYDxWJZ3JKpf+AyfRdt5enz1FUPQGB8x9XpRUCtzYTBM5/XFJbmdPxsyL22KqqtnnvSSWCwDH/tOcZVCWhOn746jPg7sFRWWRwQcnvuk0CgXMfV8UVArc2EwTOf1xSm5rL31C1FywtLR3svReVDALH/NOeZ1CVRoxxh6q9YeV9J/8AKY8M7HMi9uiqpyBwzKuNzgkEbm0mCBzzqLD9+RqR+Ort2489ynsP6gMInPt4prTbDKpSCSH8iEj8MINkOJNExK5KdyYXFxcPqXoMAuc/1korBG5tJgic/7ik2szdeGV6DSDdnPbee/oEAsf8055nUBXONhE7WdX+wztIqssMbHc6gWso371B4JhPG50jCNzaTBA45lHe+7L9e7ohWdf14d57Th9B4LzHN6UdZ1D1gcXFxduLxN9bOdCCQdOXDETsRpH4J3W9cEw1IBA4/7FXWiFwazNB4PzHJdWUgf1LCPFX+nTwVo4gcMw/7XkGVZ8QkXmReLpIvM47WGpr4qYaz56fHx9XDRAEjvmziTlzmdd4XX0nObs1D4Hz7wF12/y8QTXuCiE8zGueDg0EjvmnPc+g6iOj0TG1qp2ByBX5EvfrY4xWDRgEzn0cFlcI3NpMEDj/cUnZp9NjkrzfNnsQOOaf9jyDqs+kd6ZWfpFLx/L6h001Z7DyoXZ7zo4dS7fzHjM5gMAxVza6ViBwazNB4JhHPnuufU7VXhtCuKf3XjJkEDjmv/Y8g2oIpFMLRcKTVeNHvQOnbsvgZhF7b13biVVV7ec9RnICgWOebHSdQODWZoLAMY9mt9/ap9PNYtXxj/Hh7TxA4Jj/2vMMqqGhqvdKJxqqxm97hz/EEomXpiOTh/p+WxsQOP9xWlohcGszQeD8x2XP32l7X3o80szu4L1nwFoQOP95QsVOMxjsvE8nV6rar4rE8/goeNebXfy6qv1hXdt9vfteAggcC/8mLig5xGSvTBA45tEU97GbVO2i9CtbOogkxnio9z4B64PAMf+15xmwBlRVlV4wXvmeXDx39Ztj7o0pv+wL6ZfOEMIjq2rngQy09iBw3mO3vELg1maCwPmPy4LrSyL2t+lpEdXxT6rqYexhZYHAuc8hSrvNwHuOZfkpAlV7qoi9U8S+ySDcyDfb7AOqdqrIwrJ3H0sGgWPh3+i6g8CtzQSBYx61mDc3pO+yqca3iMTnhRAeyomR/QCBY/5rzzPwnmO5s7/qws70nHt61HL1uXf3pmX4SMkjOUFyeiBw7mO7uELg1maCwPmPS+9Ke7ZI/PLKzcX45yLxZSL2S+mwkfF4HDhwpL8gcP7zj4qdZuA9x4o7zTLdoRMZv1g1nqNqXxzIAN2jahenj2ur2q+rjn88ZeHdj75S1wvHpBM6KTLYwBj4U6/xqhqfleNYret4nyoj0tq5ciOQ2lgG9p70EezVOnv1ELKzVO11Kyc/pscc47NV4xNV4yPSQWUisljX9eHePQc/0i+q3msQRQbSYQasL1skPW6RXmpWjc8Xsbcn0Sn4l7okap9PG6aI/YFIfEYI4f48/w8AAAAAAL0mxmjpl6q6Hv+yqr1SxN4qEj+cXo5Wjdf6CJpdvfq9mvPTnUwRe42qnZIegVTVOy8vLx/knRsAAAAAAEB2pEcQk+SZ2d3r2o4PIT4h/eKV3rdbrVekx0NWHhGJb0yPjKTHpL73+Ej69/h7t/4ZkfjbK+/qhaepxl9IH8hOz/mPRvFu6XESfkUDAAAAAKiK5/8DilzsARqu0VkAAAAASUVORK5CYII=" alt="GLIDE"><b>MDT</b></div><h1>Záznam z MDT</h1><p class="report-meta">Datum MDT: ${p.slot ? esc(slotText(p)) : esc(GAP)} · ID ${esc(p.id)}${pr.state !== "approved" ? " · Koncept" : ""}</p></div>
     <h4>Pacient</h4><p>${esc(surnameFirst(p))} · RČ: ${esc(p.rc || GAP)} · věk: ${esc(ageNum(p) || GAP)} · ID ${esc(p.id)}</p>
     <h4>Přítomní</h4><p>${esc(present.join(", ") || "nezadáno")}</p>
-    <h4>Diagnóza</h4><p><b>${esc(p.full ? dxHeadlineText(p, cd, true) : p.diagnosis)}</b>${p.full && bf?.dx_headline?.mkn_cs ? `<br>${esc(bf.dx_headline.mkn_cs)}` : ""}</p>
-    ${S.picked.has("summary") ? `<h4>NO</h4><p>${p.full ? brief : esc(p.summary || GAP)}</p>` : ""}
-    ${p.full ? `${S.picked.has("anamnesis") ? `<h4>Anamnéza</h4><ul>${anamLines}</ul>` : ""}
-    ${FIND.filter(([k]) => S.picked.has(k)).map(([k, t]) => `<h4>${t}</h4><ul>${(cd?.record?.sections?.[k] || []).map(line).join("") || `<li>${GAP}</li>`}</ul>`).join("")}`
-    : SYN_BY_FILE[p.file] ? `<h4>Podklady</h4><p>Syntetický pacient: v maketě jsou zpracované dokumenty, chybějící podklady a laboratoř; anamnéza a nálezy se do reportu netisknou.</p>${(SYN_BY_FILE[p.file].data_gaps || []).length ? `<h4>Chybějící podklady</h4><ul>${SYN_BY_FILE[p.file].data_gaps.map(g => `<li>${esc(g.text_cs)} (${esc(g.source.file)}, s. ${esc(g.source.page)})</li>`).join("")}</ul>` : ""}`
-    : `<h4>Podklady</h4><p>Dokumentace případu není v maketě zpracovaná; anamnéza a nálezy se do reportu netisknou.</p>`}
+    <h4>Diagnóza</h4><p><b>${esc(dxHeadlineText(p, cd, true))}</b>${bf?.dx_headline?.mkn_cs ? `<br>${esc(bf.dx_headline.mkn_cs)}` : ""}</p>
+    ${S.picked.has("summary") ? `<h4>NO</h4><p>${sec.brief ? brief : esc(p.summary || GAP)}</p>` : ""}
+    ${sec.anamnesis && S.picked.has("anamnesis") ? `<h4>Anamnéza</h4><ul>${anamLines}</ul>` : ""}
+    ${sec.record ? FIND.filter(([k]) => S.picked.has(k)).map(([k, t]) => `<h4>${t}</h4><ul>${(cd.record.sections[k] || []).map(line).join("") || `<li>${GAP}</li>`}</ul>`).join("") : ""}
+    ${reportBasis(p, cd, sec, failed)}
     <h4>Prezentován pro</h4><p>${esc(questionPlain(p))}</p>
     <h4>Závěr</h4><p id="rep-concl">${esc(pr.concl || "Zatím nezapsán.")}</p>
     <h4>Další kroky</h4>${pr.steps.filter(x => x.text.trim()).length ? `<ul>${pr.steps.filter(x => x.text.trim()).map(x => `<li>${esc(x.text)} · ${esc(x.who)} · do ${esc(fmtDate(x.due))}</li>`).join("")}</ul>` : "<p>Žádné.</p>"}
-    ${p.full && S.guideOn && pst.length ? `<h4>Odchylky od doporučení</h4>${pst.filter(st => (pr.dev || {})[st.id]?.s).length ? `<ul>${pst.filter(st => (pr.dev || {})[st.id]?.s).map(st => { const d = pr.dev[st.id]; return `<li>${esc(st.quote)} <span class="src">(${esc(citeOf(st))})</span>: <b>${DEV[d.s]}</b>${d.s === "deviates" ? `, důvod: ${esc(d.why || "neuveden")}` : ""}</li>`; }).join("")}</ul>` : "<p>Žádné dřívější posouzení není zaznamenáno.</p>"}` : ""}
+    ${sec.guidance && S.guideOn && pst.length ? `<h4>Odchylky od doporučení</h4>${pst.filter(st => (pr.dev || {})[st.id]?.s).length ? `<ul>${pst.filter(st => (pr.dev || {})[st.id]?.s).map(st => { const d = pr.dev[st.id]; return `<li>${esc(st.quote)} <span class="src">(${esc(citeOf(st))})</span>: <b>${DEV[d.s]}</b>${d.s === "deviates" ? `, důvod: ${esc(d.why || "neuveden")}` : ""}</li>`; }).join("")}</ul>` : "<p>Žádné dřívější posouzení není zaznamenáno.</p>"}` : ""}
     ${reg.list.length ? `<h4>Zdroje</h4><ol class="src">${reg.list.map(r => `<li>${esc(docTitle(r))}, s. ${esc(r.page)}${r.quote ? `: „${esc(r.quote.length > 70 ? r.quote.slice(0, 70) + "…" : r.quote)}“` : ""}</li>`).join("")}</ol>` : ""}
     <p class="src" style="margin-top:14px">Údaje sestavil asistent z uvedených dokumentů; čísla v hranatých závorkách odkazují na zdroje. [zápor v dokumentu] = zápor zapsaný lékařem; [ověřit čtení] = text, který mohl být špatně přečten; [pozorování asistenta] = odvozeno asistentem, v dokumentu výslovně není; [upraveno lékařem] = hodnotu změnil lékař, zdroj ji v této podobě neuvádí.</p>
     <div class="signatures" aria-label="Místa pro podpis"><div class="signature">Jméno a podpis</div><div class="signature">Jméno a podpis</div></div></article>`;
@@ -10486,7 +10536,7 @@ function renderOverlay() {
     const picked = locked && pr.pickSnap ? new Set(pr.pickSnap) : S.picked;
     el.innerHTML = `<div class="scrim" data-close="1"></div><div class="modal" role="dialog" aria-label="Záznam z MDT">
       <div class="row spread"><h2>Záznam z MDT · ${esc(p.id)}</h2><button class="btn small" data-close="1">Zavřít</button></div>
-      ${`<div><span class="label">Zahrnout do PDF</span><div class="row small" style="gap:4px 14px;margin-top:4px">${[["summary", "NO / onkologický souhrn"], ...(p.full ? [["anamnesis", "Anamnéza"], ...FIND] : [])].map(([k, t]) => `<label class="row" style="gap:4px"><input type="checkbox" data-pickrep="${k}" ${picked.has(k) ? "checked" : ""} ${locked ? "disabled" : ""}> ${t}</label>`).join("")}</div></div>`}
+      ${`<div><span class="label">Zahrnout do PDF</span><div class="row small" style="gap:4px 14px;margin-top:4px">${[["summary", "NO / onkologický souhrn"], ...(sectionsOf(readyData(p)).anamnesis ? [["anamnesis", "Anamnéza"]] : []), ...(sectionsOf(readyData(p)).record ? FIND : [])].map(([k, t]) => `<label class="row" style="gap:4px"><input type="checkbox" data-pickrep="${k}" ${picked.has(k) ? "checked" : ""} ${locked ? "disabled" : ""}> ${t}</label>`).join("")}</div></div>`}
       <details class="srcs" data-repopen="1" style="margin:0" ${S.repOpen ? "open" : ""}><summary>Náhled reportu</summary><div id="report" style="margin-top:8px">${locked && pr.reportSnap ? pr.reportSnap : reportHtml(p, pr, presentList(attDay(p)))}</div></details>
       <p class="muted small" style="margin:0">${locked ? `Report je uzamčen ve stavu při schválení (${esc(pr.when)}). Pozdější úpravy se do něj nepromítnou; změna vyžaduje nový závěr.` : "Závěr zatím není schválený; report se stáhne jako koncept."}</p>
       <p id="report-error" class="report-error small" role="alert" hidden></p>
@@ -10879,10 +10929,14 @@ function action(a) {
     setStatus(np, np.slot ? "scheduled" : "new", "automaticky při novém závěru"); render();
   }
   else if (a === "closecase") { const cp = P(S.pid); if (canSetStatus() && cp.status === "done") { closeCase(cp, "ručně"); render(); } }
+  else if (a === "caseretry") { const p = P(S.pid); if (!p) return; const e = caseOf(p); e.state = "absent"; e.error = null; e.guide = null; ensureCase(p); render(); }
+  else if (a === "guideretry") { const p = P(S.pid); if (!p) return; caseOf(p).guide = null; render(); }
   else if (a === "approve") {
     /* Read the field itself: the stored value may lag behind it (an IME composition not yet committed). */
     const cf = document.getElementById("concl"); if (cf && pr.state !== "approved") pr.concl = cf.value;
     if (P(pr.pid).status === "closed" || !pr.concl.trim() || !isDoctor(S.user)) return;
+    /* The report frozen at approval must not be built from data still on its way; a failed load does not block. */
+    const ls = caseStore.entries.get(pr.pid)?.state; if (ls === "loading" || ls === "absent") { toast("Podklady případu se načítají, schvalte za okamžik."); return; }
     /* The approving doctor was at the meeting, so approving adds them to the day's attendance instead of blocking
        (round 20); the access log says so, and the attendance list in the card shows the name. */
     const day = attDay(P(pr.pid));

@@ -869,7 +869,6 @@ let EXTRA = JSON.parse(document.getElementById("extra-data").textContent || "{}"
    and the missing-document alerts can be shown on data that comes from documents. Each carries its list entry, its
    documents, its data gaps and its lab series, every value with its page and quote. */
 const SYN = JSON.parse(document.getElementById("syn-data").textContent || "[]");
-const SYN_BY_FILE = Object.fromEntries(SYN.map(s => [s.file, s]));
 /* Guideline layer (F-27, team decision 2026-10-16): verbatim statements with full citation; never invented. */
 /* What the server would hold. The page never reads it directly: it goes through api.guidance(), so swapping
    the stub for fetch(`/api/cases/${id}/guidance`) is the only change a real backend needs. */
@@ -1189,7 +1188,7 @@ function listPatient(o, slot) {
   const ex = extraOthers[o.file] || {};
   const hasQ = o.mdt_question_cs && o.mdt_question_explicit !== false;
   return {
-    file: o.file, name: o.name, rc: o.rc || null, synthetic: !!SYN_BY_FILE[o.file]?.synthetic_patient,
+    file: o.file, name: o.name, rc: o.rc || null, synthetic: !!SYN.find(s => s.file === o.file)?.synthetic_patient,
     birth: /\d{1,2}\.\d{1,2}\.\d{4}/.test(o.age_or_birth || "") ? o.age_or_birth.replace(/^nar\.\s*/, "") : null,
     age: /let/.test(o.age_or_birth || "") ? o.age_or_birth : null,
     /* warn is for a real identity doubt; a form with first name and surname swapped is a neutral note (round 22). */
@@ -1817,12 +1816,43 @@ function reasonQuestionBox(p, reg) {
 /* The alerts of a case ({ flags, gaps }) from its case data. A case whose missing-document check has not run, or whose
    data is not loaded, returns null, so callers say the check was not done instead of reporting "nothing missing". */
 const caseDataOf = p => readyData(p)?.alerts ?? null;
+/* Which parts of the patient view a case can show; decided by its data, not by which patient it is. */
+const sectionsOf = cd => ({
+  brief: !!cd?.brief?.text_cs,
+  onco: !!(cd?.record?.onco_compact || cd?.record?.onco_detailed?.length),
+  status: !!cd?.record?.status_praesens,
+  timeline: (cd?.record?.timeline || []).length > 0,
+  anamnesis: !!cd?.record?.anamnesis,
+  documents: !!cd?.documents,
+  labs: !!(cd?.labs?.series || cd?.labs?.values?.length),
+  /* The missing-document check ran for this case. */
+  alerts: !!cd?.alerts,
+  /* Finding groups: the report's sections and the FHIR export. */
+  record: !!cd?.record?.sections,
+  guidance: cd?.level === "full",
+});
+/* Why the missing-document signal says what it says: "loading" and "failed" are never "nothing missing" and never
+   "not processed". */
+function missingState(p) {
+  const e = p && caseStore.entries.get(p.file);
+  if (!e || e.state === "absent" || e.state === "loading") return "loading";
+  if (e.state === "error") return "failed";
+  const m = hasMissing(p);
+  return m === null ? "unchecked" : m ? "yes" : "no";
+}
 /* true or false for a processed case; null when the missing-document check has not run for this case. */
 /* A resolved missing-document alert no longer counts (round 25); the brief's data gaps are not alerts and always count. */
 const hasMissing = p => { const d = caseDataOf(p); return d ? d.flags.some((f, i) => f.kind === "missing" && alertState(p.file, i).state !== "resolved") || d.gaps.some(x => x.kind === "missing") : null; };
 /* Unprocessed case: the missing-document check has not run, which is not the same as "nothing missing", so the place
    of the Upozornění button carries an amber signal saying so (missing-document alerts are always on, CLAUDE.md). */
 const uncheckedSignal = () => `<span class="unchecked" role="status">⚠ Chybějící podklady nezkontrolovány (případ nezpracován)</span>`;
+/* A failed load: the check may have run on the server, but the page does not know its result. */
+const failedSignal = () => `<span class="unchecked" role="status">⚠ Chybějící podklady nelze ověřit (načtení selhalo)</span>`;
+/* The place of the Upozornění button always carries a signal (missing-document alerts are always on, CLAUDE.md). */
+function alertSignal(p) {
+  const st = missingState(p);
+  return st === "failed" ? failedSignal() : st === "unchecked" ? uncheckedSignal() : st === "loading" ? "" : gapsToggle(p);
+}
 function gapsToggle(p) {
   const warn = hasMissing(p);
   return `<button class="btn small gapsbtn ${warn ? "warn" : ""}" data-act="gaps" aria-expanded="${!!S.gapsOpen}">⚠ Upozornění${warn ? " · chybí podklady" : ""} ${S.gapsOpen ? "▴" : "▾"}</button>`;
@@ -1971,7 +2001,7 @@ function guideBox() {
   const G = curGuide();
   if (!S.guideOn) return `<div class="gl">${head}<p class="muted small" style="margin:6px 0 0">Vypnuto.</p></div>`;
   if (G.loading) return `<div class="gl">${head}<p class="muted small" style="margin:6px 0 0">Načítám doporučení ze serveru…</p></div>`;
-  if (G.error) return `<div class="gl">${head}<p class="muted small" role="alert" style="margin:6px 0 0">${esc(G.error)}</p></div>`;
+  if (G.error) return `<div class="gl">${head}<p class="muted small" role="alert" style="margin:6px 0 0">${esc(G.error)} <button class="linkbtn small" data-act="guideretry">Zkusit znovu</button></p></div>`;
   const st = STMTS();
   if (!st.length && !(G.literature || []).length) return "";
   /* One list per field, sorted by the strength of the recommendation, not grouped by country (round 19). Open
@@ -1996,19 +2026,31 @@ const srcLinks = refs => { const xs = refs || [], seen = {}; return xs.map(r => 
   const q = String(r.quote || "").slice(0, 80); return `<button class="linkbtn small" data-src='${esc(JSON.stringify(r))}' title="„${esc(q)}“" aria-label="Otevřít zdroj, strana ${esc(r.page)}: ${esc(q)}">s.&nbsp;${esc(r.page)}${same > 1 ? ` (${k})` : ""}</button>`; }).join(" "); };
 /* The brief's toggle opens the alerts for the MDT question first (CLAUDE.md: question-relevant alerts first),
    then the brief's own data gaps; the full list stays in the "Upozornění" tab. */
-function gapsBox() {
+function gapsBox(cd) {
   const { top, open, archived } = topAlerts(), gaps = open.filter(f => String(f.i).startsWith("gap:"));
-  return `<div class="brief-gaps"><div class="row spread"><span class="label">Upozornění k dotazu na MDT</span><button class="linkbtn small" data-tab="alerts">Všechna upozornění</button></div>
-    <div class="alerts" style="margin-top:6px">${top.map(f => alertRow(f, true)).join("")}</div>
-    ${gaps.length ? `<span class="label" style="display:block;margin-top:12px">Chybějící a nejasné údaje ve stručném souhrnu</span><div class="alerts" style="margin-top:6px">${gaps.map(f => alertRow(f, true)).join("")}</div>` : ""}
+  /* A case without an extracted brief has data gaps of its documents, not of a summary. */
+  const gapsLabel = sectionsOf(cd).brief ? "Chybějící a nejasné údaje ve stručném souhrnu" : "Chybějící a nejasné podklady";
+  return `<div class="brief-gaps"><div class="row spread"><span class="label">${top.length ? "Upozornění k dotazu na MDT" : "Upozornění"}</span><button class="linkbtn small" data-tab="alerts">Všechna upozornění</button></div>
+    ${top.length ? `<div class="alerts" style="margin-top:6px">${top.map(f => alertRow(f, true)).join("")}</div>` : ""}
+    ${!top.length && !gaps.length ? `<p class="muted small">Žádná aktivní upozornění.</p>` : ""}
+    ${gaps.length ? `<span class="label" style="display:block;margin-top:12px">${gapsLabel}</span><div class="alerts" style="margin-top:6px">${gaps.map(f => alertRow(f, true)).join("")}</div>` : ""}
     ${warningArchive(archived, true)}<div class="disclaim">Pozorování asistenta, ne klinický závěr. Upozornění neblokují projednání.</div></div>`;
 }
-function briefBlock(p) {
-  const reg = refRegistry();
-  return `<section class="card blk"><div class="head" style="margin:0"><h2>Stručný souhrn</h2><span class="row">${gapsToggle(p)}</span></div>${S.gapsOpen ? gapsBox() : ""}
-    <p class="prose">${briefHtml(p, readyData(p), reg)}</p>
-    ${reasonQuestionBox(p, reg)}
-    ${timelineCard(readyData(p), true)}
+/* What the assistant processed for this case, named from its data; "Nezpracováno" when nothing. */
+function processingChip(sec) {
+  const done = [sec.documents && "dokumenty", sec.alerts && "chybějící podklady", sec.labs && "laboratoř", sec.anamnesis && "anamnéza", sec.record && "nálezy"].filter(Boolean);
+  return `<span class="chip plain st-new">${done.length ? `Zpracováno: ${done.join(", ")}` : "Nezpracováno"}</span>`;
+}
+/* The brief: the extracted summary with linked sources when the case has one; otherwise the list row's one-line
+   summary, said to be that, with what was processed. The question sits in the header for a case without a brief. */
+function briefBlock(p, cd) {
+  const reg = refRegistry(), sec = sectionsOf(cd);
+  const note = cd.note_cs ? esc(cd.note_cs) : "Souhrn ze seznamu pacientů, bez odkazů na zdroj.";
+  return `<section class="card blk"><div class="head" style="margin:0"><h2>Stručný souhrn</h2><span class="row">${sec.brief ? "" : processingChip(sec)}${alertSignal(p)}</span></div>${S.gapsOpen && sec.alerts ? gapsBox(cd) : ""}
+    ${sec.brief ? `<p class="prose">${briefHtml(p, cd, reg)}</p>
+    ${reasonQuestionBox(p, reg)}` : `<p class="prose">${esc(p.summary || "")}</p>
+      <p class="muted small" style="margin:0">${note} Zdroj: ${esc(p.file)}, ${p.pages || "?"} s.</p>`}
+    ${sec.timeline ? timelineCard(cd, true) : ""}
     ${srcList(reg)}
     ${conclusionBox(p)}
     ${mdtCard(p)}</section>`;
@@ -2117,7 +2159,6 @@ function timelineCard(cd, inline) {
     ${cards.length ? `<div class="tlbar" tabindex="0" role="region" aria-label="Časová osa průběhu onemocnění"><div class="tltrack">${html}</div></div>` : `<p class="muted small">${S.tlExcluded.size === EVENT_CATEGORIES.length ? "Všechny kategorie jsou skryté. Zaškrtněte kategorii nebo Vše." : "Ve vybraných kategoriích nejsou zaznamenané události."}</p>`}</section>`;
 }
 function tabOverview(p, cd) {
-  if (p.full) ensureGuidance(p);
   const reg = refRegistry();
   return `<div class="grid2 ovgrid"><div class="stack ovleft">${detailedCard(cd, reg)}</div><div class="stack">${statusCard(cd)}</div></div>`;
 }
@@ -2365,20 +2406,41 @@ function viewAdmin() {
 }
 /*PROGNOSIS_JS*/
 
+/* Tabs in a fixed order, each shown when the case data holds its part. */
+const TABS = [["overview", "Přehled", s => s.onco || s.status], ["anamnesis", "Anamnéza", s => s.anamnesis], ["documents", "Dokumenty", s => s.documents],
+  ["labs", "Laboratoř", s => s.labs], ["alerts", "Upozornění", s => s.alerts], ["next", "Navrhovaný postup", s => s.guidance],
+  ["dev", "Retrospektivní odchylky", s => s.guidance], ["prognosis", "Prognóza", () => true]];
+const tabBar = tabs => `<div class="tabs" role="tablist">${tabs.map(([k, t]) => `<button class="tab" role="tab" data-tab="${k}" aria-selected="${S.tab === k}">${t}</button>`).join("")}</div>`;
+/* One patient view for every case, driven by what its data holds. The header always renders from the list row, so the
+   doctor sees whose case it is while the data loads or after it failed. */
 function viewPatient() {
   const p = P(S.pid);
-  if (p.full) ensureGuidance(p);
-  if (!p.full) return viewPatientLite(p);
-  const tabs = [["overview", "Přehled"], ["anamnesis", "Anamnéza"], ["documents", "Dokumenty"], ["labs", "Laboratoř"], ["alerts", "Upozornění"], ["next", "Navrhovaný postup"], ["dev", "Retrospektivní odchylky"], ["prognosis", "Prognóza"]];
-  if (!tabs.some(t => t[0] === S.tab)) S.tab = "overview";
-  const cd = readyData(p);
+  ensureCase(p);
+  const e = caseOf(p), back = `${sessionBar(p)}<div class="row"><button class="linkbtn" data-nav="patients">‹ Databáze pacientů</button></div>`;
+  /* Loading: no tabs and no editable fields, so the one render when the data arrives cannot interrupt typing. S.tab is
+     kept, so a deep link lands on its tab once the data is there. */
+  if (e.state !== "ready" && e.state !== "error") return `<div class="page">${back}${patientHeader(p, headerActions(p, null, false), true)}
+    <section class="card"><p class="muted" role="status">Načítám podklady případu…</p></section></div>`;
+  if (e.state === "error") {
+    return `<div class="page">${back}${patientHeader(p, headerActions(p, null), true)}
+    <section class="card blk"><div class="head" style="margin:0"><h2>Stručný souhrn</h2><span class="row">${failedSignal()}</span></div>
+      <div class="question missing" role="alert"><b>Podklady případu se nepodařilo načíst.</b> ${esc(e.error?.message_cs || e.error?.message || "")}</div>
+      <p><button class="btn" data-act="caseretry">Zkusit znovu</button></p>
+      <p class="prose">${esc(p.summary || "")}</p>
+      ${conclusionBox(p)}
+      ${mdtCard(p)}</section>
+    <div class="tabs" role="tablist"><button class="tab" role="tab" data-tab="prognosis" aria-selected="true">Prognóza</button></div>${tabPrognosis(p)}</div>`;
+  }
+  const cd = e.data, sec = sectionsOf(cd);
+  if (sec.guidance) ensureGuidance(p);
+  const tabs = TABS.filter(t => t[2](sec));
+  if (!tabs.some(t => t[0] === S.tab)) S.tab = tabs[0][0];
   const body = { overview: () => tabOverview(p, cd), anamnesis: () => tabAnamnesis(cd), documents: () => tabDocuments(p, cd), labs: () => tabLabs(cd), alerts: tabAlerts, next: tabNext, dev: tabDev, prognosis: () => tabPrognosis(p) }[S.tab]();
   return `<div class="page">
-    ${sessionBar(p)}
-    <div class="row"><button class="linkbtn" data-nav="patients">‹ Databáze pacientů</button></div>
-    ${patientHeader(p, headerActions(p))}
-    ${briefBlock(p)}
-    <div class="tabs" role="tablist">${tabs.map(([k, t]) => `<button class="tab" role="tab" data-tab="${k}" aria-selected="${S.tab === k}">${t}</button>`).join("")}</div>
+    ${back}
+    ${patientHeader(p, headerActions(p, cd), !sec.brief)}
+    ${briefBlock(p, cd)}
+    ${tabBar(tabs)}
     ${body}</div>`;
 }
 /* Proposed management, the guideline layer and the MDT's deviations table in one tab (round 21): the table compares
@@ -2391,7 +2453,7 @@ function tabDev() {
   if (!S.guideOn) return `<section class="card"><p class="muted">Vrstva doporučení je vypnutá.</p></section>`;
   const G = curGuide();
   if (G.loading) return `<section class="card"><p class="muted" role="status">Načítání podkladů pro odchylky…</p></section>`;
-  if (G.error) return `<section class="card"><p class="muted" role="alert">${esc(G.error)}</p></section>`;
+  if (G.error) return `<section class="card"><p class="muted" role="alert">${esc(G.error)} <button class="linkbtn small" data-act="guideretry">Zkusit znovu</button></p></section>`;
   const p = P(S.pid), pr = ensureProto(p);
   return `${deviationFindings(p)}<details class="card deviation-context"><summary>Další srovnání minulých rozhodnutí s doporučeními (${PAST().length})</summary>${retroList(p) || '<p class="muted">K minulým rozhodnutím nejsou pasáže z doporučení.</p>'}</details>${Object.values(pr.dev || {}).some(d => d.s) ? devTable(p, pr) : ''}`;
 }
@@ -2476,40 +2538,13 @@ function retroList(p) {
       <tbody>${xs.map(item).join("")}</tbody></table></div>
     <p class="muted dev-footnote">Závažnost a klinický důsledek nejsou v podkladech stanoveny; chybějící údaje se nedoplňují. Dříve zaznamenaná hodnocení zůstávají pouze ke čtení. Citace vycházejí z vydání platného v době rozhodnutí; online novelizace v průběhu roku nebyly ověřeny.</p></section>`;
 }
-/* Cases the mock has not processed still get the same view: header, short overview, conclusion and the MDT
-   discussion card, so a session can run through every case on the agenda. */
-function viewPatientLite(p) {
-  const syn = SYN_BY_FILE[p.file];
-  /* A synthetic patient (samples/S<nn>_pacient) has its documents, data gaps and lab series processed, so it gets the
-     missing-document signal, the gaps one click away and the Dokumenty and Laboratoř tabs; its summary is the list's. */
-  const tabs = [...(syn ? [["documents", "Dokumenty"], ["labs", "Laboratoř"]] : []), ["prognosis", "Prognóza"]];
-  if (!tabs.some(t => t[0] === S.tab)) S.tab = tabs[0][0];
-  const chip = syn ? `<span class="chip plain st-new">Zpracováno: dokumenty, chybějící podklady, laboratoř</span>${gapsToggle(p)}`
-    : `<span class="chip plain st-new">V maketě nezpracováno</span>${hasMissing(p) === null ? uncheckedSignal() : ""}`;
-  return `<div class="page">${sessionBar(p)}<div class="row"><button class="linkbtn" data-nav="patients">‹ Databáze pacientů</button></div>
-    ${patientHeader(p, headerActions(p), true)}
-    <section class="card blk"><div class="head" style="margin:0"><h2>Stručný souhrn</h2><span class="row">${chip}</span></div>
-      ${syn && S.gapsOpen ? synGapsBox(syn) : ""}
-      <p class="prose">${esc(p.summary || "")}</p>
-      <p class="muted small" style="margin:0">${syn ? `${esc(syn.note_cs || "")} Zdroj: ${esc(p.file)}, ${p.pages || "?"} s.` : `Plně zpracovaný je v maketě případ NO-010. Zdroj: ${esc(p.file)}, ${p.pages || "?"} s.`}</p>
-      ${conclusionBox(p)}
-      ${mdtCard(p)}</section>
-    ${`<div class="tabs" role="tablist">${tabs.map(([k, t]) => `<button class="tab" role="tab" data-tab="${k}" aria-selected="${S.tab === k}">${t}</button>`).join("")}</div>
-    ${{ documents: () => tabDocuments(p, readyData(p)), labs: () => tabLabs(readyData(p)), prognosis: () => tabPrognosis(p) }[S.tab]()}`}</div>`;
-}
-/* Missing documents of a synthetic patient, each with the passage that shows the gap (always on, CLAUDE.md). */
-function synGapsBox(syn) {
-  const { open, archived } = topAlerts();
-  return `<div class="brief-gaps"><span class="label">Chybějící a nejasné podklady</span>
-    <div class="alerts" style="margin-top:6px">${open.map(f => alertRow(f, true)).join("") || `<p class="muted small">Žádná aktivní upozornění.</p>`}</div>
-    ${warningArchive(archived, true)}<div class="disclaim">Pozorování asistenta, ne klinický závěr. Upozornění neblokují projednání.</div></div>`;
-}
 /* Header actions: scheduling, starting the MDT for this case's day, and the report. The report button is the
    only place it is offered: it opens a small dialog with the fields for the report, the preview and the download
    (round 20), so the discussion card stays about the discussion. */
-function headerActions(p, cd = readyData(p)) {
+/* The FHIR export needs the finding groups; the report waits while the case data loads (withReport false). */
+function headerActions(p, cd = readyData(p), withReport = true) {
   const live = S.session && p.slot && S.session.day === p.slot.day;
-  return `<button class="btn" data-sched="${esc(p.file)}">${p.slot ? "Změnit termín" : "Naplánovat"}</button>${p.slot && !live ? `<button class="btn" data-startday="${esc(p.slot.day)}" data-startfrom="${esc(p.file)}">Zahájit MDT</button>` : ""}${cd?.record?.sections ? `<button class="btn" data-act="fhirdlg">Export FHIR</button>` : ""}<button class="btn primary" data-act="reportdlg">Stáhnout report (PDF)</button>`;
+  return `<button class="btn" data-sched="${esc(p.file)}">${p.slot ? "Změnit termín" : "Naplánovat"}</button>${p.slot && !live ? `<button class="btn" data-startday="${esc(p.slot.day)}" data-startfrom="${esc(p.file)}">Zahájit MDT</button>` : ""}${cd?.record?.sections ? `<button class="btn" data-act="fhirdlg">Export FHIR</button>` : ""}${withReport ? `<button class="btn primary" data-act="reportdlg">Stáhnout report (PDF)</button>` : ""}`;
 }
 
 /* Parts the doctor can tick for the report (FNO spec): the assistant's summary and these finding groups.
@@ -2911,9 +2946,25 @@ function mailHtml(m) {
 }
 /*REPORT_PDF_JS*/
 
+/* What the report can and cannot say about the documents. A case whose data failed to load is never printed as "not
+   processed", and its missing documents are said to be unknown, not absent. The missing-document list prints for every
+   case whose check ran. */
+function reportBasis(p, cd, sec, failed) {
+  if (failed) return `<h4>Podklady</h4><p>Podklady případu se nepodařilo načíst ze serveru: souhrn, anamnéza, nálezy a chybějící podklady nejsou v tomto reportu. Chybějící podklady nelze ověřit.</p>`;
+  if (!cd || cd.level === "none") return `<h4>Podklady</h4><p>Dokumentace případu není zpracovaná; anamnéza a nálezy se do reportu netisknou. Chybějící podklady nezkontrolovány.</p>`;
+  const done = [sec.documents && "dokumenty", sec.alerts && "chybějící podklady", sec.labs && "laboratoř"].filter(Boolean);
+  const head = sec.record ? "" : `<h4>Podklady</h4><p>${p.synthetic ? "Syntetický pacient: z" : "Z"}pracované jsou ${done.join(", ") || "jen údaje ze seznamu"}; anamnéza a nálezy se do reportu netisknou.</p>`;
+  /* Open missing-document alerts first, then the data gaps; a gap that is not "missing" says its kind. */
+  const flags = (cd.alerts?.flags || []).map((f, i) => ({ ...f, i })).filter(f => f.kind === "missing" && alertState(p.file, f.i).state !== "resolved");
+  const items = [...flags, ...(cd.alerts?.gaps || [])];
+  const src = g => g.source || (g.based_on || g.refs || [])[0];
+  const label = items.some(g => g.kind !== "missing") ? "Chybějící a nejasné podklady" : "Chybějící podklady";
+  return head + (items.length ? `<h4>${label}</h4><ul>${items.map(g => `<li>${g.kind !== "missing" && ALERT[g.kind] ? `${ALERT[g.kind][0]}: ` : ""}${esc(g.text_cs)}${src(g) ? ` (${esc(src(g).file)}, s. ${esc(src(g).page)})` : ""}</li>`).join("")}</ul>` : "");
+}
 function reportHtml(p, pr, present) {
   /* The report is for case p, which need not be the open case (approval during a session), so it reads p's guidance. */
-  const reg = refRegistry(), cd = readyData(p), pst = guideOf(p.file).statements || [];
+  const reg = refRegistry(), cd = readyData(p), sec = sectionsOf(cd), pst = guideOf(p.file).statements || [];
+  const failed = caseStore.entries.get(p.file)?.state === "error";
   const refTxt = r => r ? ` [${reg.num(r)}]` : "";
   const line = f => `<li>${f.date ? esc(f.date) + ": " : ""}${esc(f.text_cs)}${esc(tagsText(f))}<span class="src">${refTxt(f.source)}</span></li>`;
   /* Report anamnesis (Soňa, round 2): diagnoses stand out in bold, qualifiers stay plain text. */
@@ -2926,23 +2977,22 @@ function reportHtml(p, pr, present) {
     ? `${esc(edRep(`fa:${i}:line`, drugLine(f), p.file))}${drugNote(f) || edOf(`fa:${i}:note`, p.file) ? ` (${esc(edRep(`fa:${i}:note`, drugNote(f), p.file))})` : ""}${esc(mt(f))}${rf(f)}`
     : `${f.term_cs ? `<b>${esc(edRep(`${k}:${i}:t`, f.term_cs, p.file))}</b>` : ""}${f.comment_cs ? `${f.term_cs ? ", " : ""}${esc(edRep(`${k}:${i}:c`, f.comment_cs, p.file))}` : ""}${esc(mt(f))}${rf(f)}`;
   /* Every section is listed; an empty one prints the gap wording (allergies must never just vanish). */
-  const anamLines = p.full && S.picked.has("anamnesis") ? ANAM.map(([k, t]) => `<li><span style="text-decoration:underline">${t}:</span> ${(A[k] || []).length ? A[k].map((f, i) => anamItem(k, f, i)).join("; ") : GAP}${k === "FA" && (A.FA_warnings || []).length ? `<br><b>Pozor:</b> ${A.FA_warnings.map((f, i) => anamItem("faw", f, i)).join("; ")}` : ""}</li>`).join("") : "";
+  const anamLines = sec.anamnesis && S.picked.has("anamnesis") ? ANAM.map(([k, t]) => `<li><span style="text-decoration:underline">${t}:</span> ${(A[k] || []).length ? A[k].map((f, i) => anamItem(k, f, i)).join("; ") : GAP}${k === "FA" && (A.FA_warnings || []).length ? `<br><b>Pozor:</b> ${A.FA_warnings.map((f, i) => anamItem("faw", f, i)).join("; ")}` : ""}</li>`).join("") : "";
   const bf = cd?.brief;
-  const brief = p.full && S.picked.has("summary") ? (edOf("brief", p.file) ? esc(briefPlain(p, cd)) + " [upraveno lékařem]" : bf?.text_cs ? esc(bf.text_cs).replace(/\[(\d+)\]/g, (m, n) => `<span class="src">${refTxt((bf.refs || [])[n - 1])}</span>`) : esc((bf?.summary_items || []).map(x => x.text_cs).join(" "))) : "";
+  const brief = sec.brief && S.picked.has("summary") ? (edOf("brief", p.file) ? esc(briefPlain(p, cd)) + " [upraveno lékařem]" : bf?.text_cs ? esc(bf.text_cs).replace(/\[(\d+)\]/g, (m, n) => `<span class="src">${refTxt((bf.refs || [])[n - 1])}</span>`) : esc((bf?.summary_items || []).map(x => x.text_cs).join(" "))) : "";
   return `<article class="sheet">
     <div class="hdr"><div class="report-brand"><img src="/*GLIDE_LOGO_PNG*/" alt="GLIDE"><b>MDT</b></div><h1>Záznam z MDT</h1><p class="report-meta">Datum MDT: ${p.slot ? esc(slotText(p)) : esc(GAP)} · ID ${esc(p.id)}${pr.state !== "approved" ? " · Koncept" : ""}</p></div>
     <h4>Pacient</h4><p>${esc(surnameFirst(p))} · RČ: ${esc(p.rc || GAP)} · věk: ${esc(ageNum(p) || GAP)} · ID ${esc(p.id)}</p>
     <h4>Přítomní</h4><p>${esc(present.join(", ") || "nezadáno")}</p>
-    <h4>Diagnóza</h4><p><b>${esc(p.full ? dxHeadlineText(p, cd, true) : p.diagnosis)}</b>${p.full && bf?.dx_headline?.mkn_cs ? `<br>${esc(bf.dx_headline.mkn_cs)}` : ""}</p>
-    ${S.picked.has("summary") ? `<h4>NO</h4><p>${p.full ? brief : esc(p.summary || GAP)}</p>` : ""}
-    ${p.full ? `${S.picked.has("anamnesis") ? `<h4>Anamnéza</h4><ul>${anamLines}</ul>` : ""}
-    ${FIND.filter(([k]) => S.picked.has(k)).map(([k, t]) => `<h4>${t}</h4><ul>${(cd?.record?.sections?.[k] || []).map(line).join("") || `<li>${GAP}</li>`}</ul>`).join("")}`
-    : SYN_BY_FILE[p.file] ? `<h4>Podklady</h4><p>Syntetický pacient: v maketě jsou zpracované dokumenty, chybějící podklady a laboratoř; anamnéza a nálezy se do reportu netisknou.</p>${(SYN_BY_FILE[p.file].data_gaps || []).length ? `<h4>Chybějící podklady</h4><ul>${SYN_BY_FILE[p.file].data_gaps.map(g => `<li>${esc(g.text_cs)} (${esc(g.source.file)}, s. ${esc(g.source.page)})</li>`).join("")}</ul>` : ""}`
-    : `<h4>Podklady</h4><p>Dokumentace případu není v maketě zpracovaná; anamnéza a nálezy se do reportu netisknou.</p>`}
+    <h4>Diagnóza</h4><p><b>${esc(dxHeadlineText(p, cd, true))}</b>${bf?.dx_headline?.mkn_cs ? `<br>${esc(bf.dx_headline.mkn_cs)}` : ""}</p>
+    ${S.picked.has("summary") ? `<h4>NO</h4><p>${sec.brief ? brief : esc(p.summary || GAP)}</p>` : ""}
+    ${sec.anamnesis && S.picked.has("anamnesis") ? `<h4>Anamnéza</h4><ul>${anamLines}</ul>` : ""}
+    ${sec.record ? FIND.filter(([k]) => S.picked.has(k)).map(([k, t]) => `<h4>${t}</h4><ul>${(cd.record.sections[k] || []).map(line).join("") || `<li>${GAP}</li>`}</ul>`).join("") : ""}
+    ${reportBasis(p, cd, sec, failed)}
     <h4>Prezentován pro</h4><p>${esc(questionPlain(p))}</p>
     <h4>Závěr</h4><p id="rep-concl">${esc(pr.concl || "Zatím nezapsán.")}</p>
     <h4>Další kroky</h4>${pr.steps.filter(x => x.text.trim()).length ? `<ul>${pr.steps.filter(x => x.text.trim()).map(x => `<li>${esc(x.text)} · ${esc(x.who)} · do ${esc(fmtDate(x.due))}</li>`).join("")}</ul>` : "<p>Žádné.</p>"}
-    ${p.full && S.guideOn && pst.length ? `<h4>Odchylky od doporučení</h4>${pst.filter(st => (pr.dev || {})[st.id]?.s).length ? `<ul>${pst.filter(st => (pr.dev || {})[st.id]?.s).map(st => { const d = pr.dev[st.id]; return `<li>${esc(st.quote)} <span class="src">(${esc(citeOf(st))})</span>: <b>${DEV[d.s]}</b>${d.s === "deviates" ? `, důvod: ${esc(d.why || "neuveden")}` : ""}</li>`; }).join("")}</ul>` : "<p>Žádné dřívější posouzení není zaznamenáno.</p>"}` : ""}
+    ${sec.guidance && S.guideOn && pst.length ? `<h4>Odchylky od doporučení</h4>${pst.filter(st => (pr.dev || {})[st.id]?.s).length ? `<ul>${pst.filter(st => (pr.dev || {})[st.id]?.s).map(st => { const d = pr.dev[st.id]; return `<li>${esc(st.quote)} <span class="src">(${esc(citeOf(st))})</span>: <b>${DEV[d.s]}</b>${d.s === "deviates" ? `, důvod: ${esc(d.why || "neuveden")}` : ""}</li>`; }).join("")}</ul>` : "<p>Žádné dřívější posouzení není zaznamenáno.</p>"}` : ""}
     ${reg.list.length ? `<h4>Zdroje</h4><ol class="src">${reg.list.map(r => `<li>${esc(docTitle(r))}, s. ${esc(r.page)}${r.quote ? `: „${esc(r.quote.length > 70 ? r.quote.slice(0, 70) + "…" : r.quote)}“` : ""}</li>`).join("")}</ol>` : ""}
     <p class="src" style="margin-top:14px">Údaje sestavil asistent z uvedených dokumentů; čísla v hranatých závorkách odkazují na zdroje. [zápor v dokumentu] = zápor zapsaný lékařem; [ověřit čtení] = text, který mohl být špatně přečten; [pozorování asistenta] = odvozeno asistentem, v dokumentu výslovně není; [upraveno lékařem] = hodnotu změnil lékař, zdroj ji v této podobě neuvádí.</p>
     <div class="signatures" aria-label="Místa pro podpis"><div class="signature">Jméno a podpis</div><div class="signature">Jméno a podpis</div></div></article>`;
@@ -3573,7 +3623,7 @@ function renderOverlay() {
     const picked = locked && pr.pickSnap ? new Set(pr.pickSnap) : S.picked;
     el.innerHTML = `<div class="scrim" data-close="1"></div><div class="modal" role="dialog" aria-label="Záznam z MDT">
       <div class="row spread"><h2>Záznam z MDT · ${esc(p.id)}</h2><button class="btn small" data-close="1">Zavřít</button></div>
-      ${`<div><span class="label">Zahrnout do PDF</span><div class="row small" style="gap:4px 14px;margin-top:4px">${[["summary", "NO / onkologický souhrn"], ...(p.full ? [["anamnesis", "Anamnéza"], ...FIND] : [])].map(([k, t]) => `<label class="row" style="gap:4px"><input type="checkbox" data-pickrep="${k}" ${picked.has(k) ? "checked" : ""} ${locked ? "disabled" : ""}> ${t}</label>`).join("")}</div></div>`}
+      ${`<div><span class="label">Zahrnout do PDF</span><div class="row small" style="gap:4px 14px;margin-top:4px">${[["summary", "NO / onkologický souhrn"], ...(sectionsOf(readyData(p)).anamnesis ? [["anamnesis", "Anamnéza"]] : []), ...(sectionsOf(readyData(p)).record ? FIND : [])].map(([k, t]) => `<label class="row" style="gap:4px"><input type="checkbox" data-pickrep="${k}" ${picked.has(k) ? "checked" : ""} ${locked ? "disabled" : ""}> ${t}</label>`).join("")}</div></div>`}
       <details class="srcs" data-repopen="1" style="margin:0" ${S.repOpen ? "open" : ""}><summary>Náhled reportu</summary><div id="report" style="margin-top:8px">${locked && pr.reportSnap ? pr.reportSnap : reportHtml(p, pr, presentList(attDay(p)))}</div></details>
       <p class="muted small" style="margin:0">${locked ? `Report je uzamčen ve stavu při schválení (${esc(pr.when)}). Pozdější úpravy se do něj nepromítnou; změna vyžaduje nový závěr.` : "Závěr zatím není schválený; report se stáhne jako koncept."}</p>
       <p id="report-error" class="report-error small" role="alert" hidden></p>
@@ -3966,10 +4016,14 @@ function action(a) {
     setStatus(np, np.slot ? "scheduled" : "new", "automaticky při novém závěru"); render();
   }
   else if (a === "closecase") { const cp = P(S.pid); if (canSetStatus() && cp.status === "done") { closeCase(cp, "ručně"); render(); } }
+  else if (a === "caseretry") { const p = P(S.pid); if (!p) return; const e = caseOf(p); e.state = "absent"; e.error = null; e.guide = null; ensureCase(p); render(); }
+  else if (a === "guideretry") { const p = P(S.pid); if (!p) return; caseOf(p).guide = null; render(); }
   else if (a === "approve") {
     /* Read the field itself: the stored value may lag behind it (an IME composition not yet committed). */
     const cf = document.getElementById("concl"); if (cf && pr.state !== "approved") pr.concl = cf.value;
     if (P(pr.pid).status === "closed" || !pr.concl.trim() || !isDoctor(S.user)) return;
+    /* The report frozen at approval must not be built from data still on its way; a failed load does not block. */
+    const ls = caseStore.entries.get(pr.pid)?.state; if (ls === "loading" || ls === "absent") { toast("Podklady případu se načítají, schvalte za okamžik."); return; }
     /* The approving doctor was at the meeting, so approving adds them to the day's attendance instead of blocking
        (round 20); the access log says so, and the attendance list in the card shows the name. */
     const day = attDay(P(pr.pid));
