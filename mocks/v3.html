@@ -8262,6 +8262,8 @@ function initCaseStore(mode) {
 /* Drops every entry (user switch in API mode: the server's answer depends on the user). Bumping gen first makes any
    reply still on its way stale, so it cannot write into the new store. */
 caseStore.reset = () => {
+  /* The server's upload lists depend on the user too (step 6). */
+  S.ups = {};
   caseStore.entries.forEach(e => { e.gen++; });
   caseStore.entries.clear(); caseStore.byDocFile.clear();
 };
@@ -9746,6 +9748,7 @@ const apprHint = has => has ? "Schvaluje se koncept v poli Závěr MDT výše." 
    who added them, in memory; the file content is not read or stored, so nothing leaves the browser. */
 const fmtSize = n => n < 1024 * 1024 ? `${Math.max(1, Math.round(n / 1024))} kB` : `${(n / 1024 / 1024).toFixed(1).replace(".", ",")} MB`;
 function uploadsHtml(pr, locked, why = "") {
+  if (isApi()) return uploadsApiHtml(P(S.pid), locked, why);
   const ups = pr.uploads || [];
   return `${why ? `<p class="muted small" style="margin:12px 0 0">${esc(why)}</p>` : ""}${locked ? "" : `<label class="upzone" data-upzone="1"><input type="file" multiple data-upload="1"><b>Přetáhněte soubory sem</b><span class="small muted">nebo klikněte a vyberte (PDF, obrázky, Word)</span></label>`}
     ${ups.length ? `<ul class="uplist">${ups.map((u, i) => `<li><span class="nm" title="${esc(u.name)}">${esc(u.name)}</span><span class="small muted">${esc(fmtSize(u.size))} · ${esc(u.who)}, ${esc(u.when)}</span><span class="chip plain st-done">Nahráno</span>${locked ? "" : `<button class="btn small" data-delup="${i}" aria-label="Odebrat ${esc(u.name)}">✕</button>`}</li>`).join("")}</ul>`
@@ -9755,7 +9758,64 @@ function uploadsHtml(pr, locked, why = "") {
 /* Documents for the discussion are added or removed only by doctors and the coordinator, and not once the case is
    closed or its conclusion approved (round 24 review): the approved record must not change under it. */
 const canUpload = p => (isDoctor(S.user) || S.user === COORD) && p.status !== "closed" && ensureProto(p).state !== "approved";
+/* ---------- uploads on the server (step 6, api/src/routes/documents.ts) ----------
+   API mode: each file goes to POST /api/cases/:id/documents as its own request, so every file gets its own answer. The
+   list is the server's uploads of the case; a refused file (in the shared demo anything that is not a prepared synthetic
+   document) is only named here with the server's reason, never stored. */
+S.ups = {};
+const upsOf = p => S.ups[p.file] = S.ups[p.file] || { docs: [], refused: [], loaded: false, loading: false, busy: 0, error: null };
+async function loadUploads(p, force = false) {
+  const u = upsOf(p); if (u.loading || (u.loaded && !force)) return;
+  u.loading = true;
+  try { const r = await apiGet(`/cases/${enc(p.id)}/documents`); u.docs = (r.documents || []).filter(d => d.origin === "upload"); u.loaded = true; u.error = null; }
+  catch (e) { u.error = e.message; }
+  finally { u.loading = false; if (S.pid === p.file) render(); }
+}
+/* One file, raw body; the same headers and error shape as apiWrite. */
+async function apiUpload(caseId, file) {
+  let r, out;
+  try {
+    r = await fetch(`/api/cases/${enc(caseId)}/documents`, { method: "POST", credentials: "same-origin", cache: "no-store", body: file,
+      headers: { Accept: "application/json", "Content-Type": file.type || "application/octet-stream", "X-File-Name": encodeURIComponent(file.name),
+        ...(DATA.userId ? { "X-Demo-User": DATA.userId } : {}), ...(DATA.epoch != null ? { "X-Data-Epoch": String(DATA.epoch) } : {}) } });
+    if (!(r.headers.get("content-type") || "").includes("application/json")) throw Object.assign(new Error("Server neodpověděl platnou odpovědí. Zkuste to znovu."), { code: "no_api", status: r.status });
+    out = await r.json();
+  } catch (e) {
+    if (e.code) throw e;
+    throw Object.assign(new Error("Server neodpovídá. Zkontrolujte připojení a zkuste to znovu."), { code: "network", status: 0 });
+  }
+  if (out?.data_epoch != null) DATA.epoch = out.data_epoch;
+  if (!r.ok) { const er = out?.error || {}; if (er.code === "data_reset") dataReset(); throw Object.assign(new Error(er.message_cs || "Soubor se nepodařilo nahrát."), { code: er.code || "error", status: r.status }); }
+  return out.data.document;
+}
+async function addUploadsApi(p, files) {
+  const u = upsOf(p); u.refused = []; u.busy += files.length; render();
+  let ok = 0;
+  for (const f of files) {
+    try { const d = await apiUpload(p.id, f); u.docs.push(d); ok++; if (d.identity === "conflicts") toast(d.identity_cs); }
+    catch (e) { u.refused.push({ name: f.name, message: e.message }); }
+    finally { u.busy--; render(); }
+  }
+  toast(ok ? `Nahráno: ${plural(ok, "soubor", "soubory", "souborů")}${u.refused.length ? `, odmítnuto ${u.refused.length}` : ""}` : "Soubory se nenahrály");
+}
+async function removeUploadApi(p, id) {
+  try { await apiWrite("DELETE", `/documents/${enc(id)}`, {}); const u = upsOf(p); u.docs = u.docs.filter(d => d.id !== id); toast("Dokument odebrán"); render(); }
+  catch (e) { refused(e); }
+}
+function uploadsApiHtml(p, locked, why) {
+  const u = upsOf(p); if (!u.loaded && !u.loading && !u.error) loadUploads(p);
+  const when = d => { try { return new Date(d.uploaded_at).toLocaleTimeString("cs-CZ", { hour: "2-digit", minute: "2-digit" }); } catch (e) { return ""; } };
+  const item = d => `<li><span class="nm" title="${esc(d.name)}">${esc(d.name)}</span><span class="small muted">${esc(fmtSize(d.size || 0))}${d.type_cs ? ` · ${esc(d.type_cs)}` : ""} · ${esc(d.uploaded_by || "")}, ${esc(when(d))}</span><span class="chip plain ${d.state === "stored" ? "st-new" : "st-done"}">${esc(d.state_cs || "nahráno")}</span>${locked || d.state !== "stored" ? "" : `<button class="btn small" data-delupapi="${esc(d.id)}" aria-label="Odebrat ${esc(d.name)}">✕</button>`}
+    ${d.identity === "conflicts" ? `<p class="fwarn" role="alert" style="margin:4px 0 0;flex-basis:100%">${esc(d.identity_cs)}</p>` : ""}</li>`;
+  return `${why ? `<p class="muted small" style="margin:12px 0 0">${esc(why)}</p>` : ""}${locked ? "" : `<label class="upzone" data-upzone="1"><input type="file" multiple accept=".pdf,application/pdf" data-upload="1"><b>Přetáhněte soubory sem</b><span class="small muted">nebo klikněte a vyberte (PDF, nejvýše 20 MB)</span></label>`}
+    ${u.busy ? `<p class="muted small" role="status" style="margin:8px 0 0">Nahrávám ${u.busy} …</p>` : ""}
+    ${u.refused.length ? `<ul class="uplist">${u.refused.map(r => `<li><span class="nm" title="${esc(r.name)}">${esc(r.name)}</span><span class="fwarn" role="alert" style="flex-basis:100%">${esc(r.message)}</span></li>`).join("")}</ul>` : ""}
+    ${u.error ? `<p class="fwarn" role="alert" style="margin:8px 0 0">${esc(u.error)}</p>` : u.loading && !u.loaded ? `<p class="muted small" role="status" style="margin:8px 0 0">Načítám dokumenty…</p>`
+      : u.docs.length ? `<ul class="uplist">${u.docs.map(item).join("")}</ul>` : locked ? `<p class="muted small" style="margin:12px 0 0">Žádné dokumenty nenahrány.</p>` : ""}
+    <p class="muted small" style="margin:8px 0 0">Soubor se uloží k případu na serveru (EU) a zapíše se do záznamu přístupů. Ve sdílené ukázce server přijme jen připravené syntetické dokumenty (např. samples/S02_pacient/upload); jiné odmítne a neuloží. Asistent nahrané dokumenty zatím nezpracovává.</p>`;
+}
 function addUploads(files) {
+  if (isApi()) { const p = P(S.pid); if (files?.length && canUpload(p)) addUploadsApi(p, [...files]); return; }
   const pr = curProto(); if (!files?.length || !canUpload(P(S.pid))) return;
   const when = new Date().toLocaleTimeString("cs-CZ", { hour: "2-digit", minute: "2-digit" });
   pr.uploads = [...(pr.uploads || []), ...[...files].map(f => ({ name: f.name, size: f.size, who: S.user, when }))];
@@ -10258,7 +10318,7 @@ function mdtCard(p) {
     <div id="protoconflict">${protoConflictHtml(p)}</div>
     <div class="grid2"><div class="stack">
       <div class="sub"><div class="head"><h3>Záznam diskuse</h3></div>
-        <div class="seg2 three" role="group"><button data-mode="manual" aria-pressed="${pr.mode === "manual"}">Ruční poznámky</button><button data-mode="ai" aria-pressed="${pr.mode === "ai"}">${S.rec.on ? `<span class="recdot"></span>` : ""}AI záznam</button><button data-mode="docs" aria-pressed="${pr.mode === "docs"}">Dokumenty${pr.uploads?.length ? ` (${pr.uploads.length})` : ""}</button></div>
+        <div class="seg2 three" role="group"><button data-mode="manual" aria-pressed="${pr.mode === "manual"}">Ruční poznámky</button><button data-mode="ai" aria-pressed="${pr.mode === "ai"}">${S.rec.on ? `<span class="recdot"></span>` : ""}AI záznam</button><button data-mode="docs" aria-pressed="${pr.mode === "docs"}">Dokumenty${(n => n ? ` (${n})` : "")(isApi() ? upsOf(p).docs.length : pr.uploads?.length)}</button></div>
         ${pr.mode === "docs" ? uploadsHtml(pr, !canUpload(p), isDoctor(S.user) || S.user === COORD ? "" : "Nahrávat a odebírat dokumenty může lékař nebo koordinátor(ka) MDT.") : pr.mode === "manual" ? `<label class="label" for="notes" style="display:block;margin:12px 0 6px">Průběžné poznámky</label>
           <textarea class="input" id="notes" placeholder="Poznámky z diskuse" ${ro ? "disabled" : ""}>${esc(pr.notes)}</textarea>`
         : recPanel(p)}</div>
@@ -11322,7 +11382,7 @@ document.addEventListener("click", e => {
   hideTip();
   if (S.colOpen && !e.target.closest(".fpop,[data-colopen]")) { S.colOpen = null; render(); return; }
   if (S.stOpen && !e.target.closest(".stpop,[data-stmenu]")) { S.stOpen = null; render(); return; }
-  const t = e.target.closest("[data-stmenu],[data-setst],[data-dbpage],[data-guide],[data-colopen],[data-colclose],[data-colall],[data-wk],[data-jump],[data-mm],[data-calclose],[data-labsel],[data-edit],[data-scope],[data-addatt],[data-delatt],[data-staffdel],[data-staffadd],[data-startday],[data-startgo],[data-sesgo],[data-nav],[data-open],[data-tab],[data-src],[data-close],[data-page],[data-vtab],[data-zoom],[data-zoomstep],[data-zoomhit],[data-tl-category],[data-tl],[data-alact],[data-sched],[data-pick],[data-free],[data-slot],[data-unsched],[data-act],[data-mode],[data-delstep],[data-delup],[data-delnew],[data-recretry],[data-pgpanel],[data-pgref],[data-done],[data-suggok],[data-suggno]");
+  const t = e.target.closest("[data-stmenu],[data-setst],[data-dbpage],[data-guide],[data-colopen],[data-colclose],[data-colall],[data-wk],[data-jump],[data-mm],[data-calclose],[data-labsel],[data-edit],[data-scope],[data-addatt],[data-delatt],[data-staffdel],[data-staffadd],[data-startday],[data-startgo],[data-sesgo],[data-nav],[data-open],[data-tab],[data-src],[data-close],[data-page],[data-vtab],[data-zoom],[data-zoomstep],[data-zoomhit],[data-tl-category],[data-tl],[data-alact],[data-sched],[data-pick],[data-free],[data-slot],[data-unsched],[data-act],[data-mode],[data-delstep],[data-delup],[data-delupapi],[data-delnew],[data-recretry],[data-pgpanel],[data-pgref],[data-done],[data-suggok],[data-suggno]");
   if (!t) return;
   const d = t.dataset;
   if (d.stmenu) { S.stOpen = S.stOpen === d.stmenu ? null : d.stmenu; render(); }
@@ -11411,6 +11471,7 @@ document.addEventListener("click", e => {
   else if (d.mode) { curProto().mode = d.mode; render(); }
   else if (d.recretry !== undefined) { if (recServer()) recRetry(S.pid, +d.recretry); else recPostPass(S.pid, S.rec.tx[S.pid]?.passes[+d.recretry]); }
   else if (d.delnew) { S.overlay.files.splice(+d.delnew, 1); renderOverlay(); }
+  else if (d.delupapi) { const p = P(S.pid); if (canUpload(p)) removeUploadApi(p, d.delupapi); }
   else if (d.delup) {
     if (!canUpload(P(S.pid))) return;
     /* The file name stays out of the server's log (it may name the patient); the embedded log keeps it as before. */

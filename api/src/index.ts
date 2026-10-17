@@ -18,6 +18,7 @@ import { writeWork } from "./routes/write-work";
 import { writeStaff } from "./routes/write-staff";
 import { demo } from "./routes/demo";
 import { transcript } from "./routes/transcript";
+import { documents } from "./routes/documents";
 import { sweep } from "./scheduled";
 
 export { SpeakerPassWorkflow } from "./workflows/speaker-pass";
@@ -56,6 +57,7 @@ app.route("/", writeWork);
 app.route("/", writeStaff);
 app.route("/", demo);
 app.route("/", transcript);
+app.route("/", documents);
 app.notFound(notFound);
 app.onError(onError);
 

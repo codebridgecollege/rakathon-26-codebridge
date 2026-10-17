@@ -56,6 +56,11 @@
     // audio for "Zkusit znovu" until the case closes or the seminar ends (today's behaviour in the page); "delete"
     // deletes it in the pass's last step. The cron sweep and the R2 lifecycle rule apply in both.
     "SPEAKER_PASS_AUDIO_ON_FAILURE": "keep_until_close",
+    // Step 6: what the upload route does with a file that is not a registered synthetic fixture. "fixtures_only"
+    // refuses it and stores nothing (the shared demo); "store_unprocessed" stores it as "nezpracováno" (team staging,
+    // local work). The page promises 20 MB per file.
+    "UPLOAD_POLICY": "fixtures_only",
+    "UPLOAD_MAX_BYTES": "20971520",
     "GIT_SHA": "dev"
   },
   // Limits are per Cloudflare location and approximate (eventually consistent). Generous on purpose:
@@ -65,7 +70,9 @@
     { "name": "RL_STT_BATCH", "namespace_id": "26102", "simple": { "limit": 10, "period": 60 } },
     { "name": "RL_LLM", "namespace_id": "26103", "simple": { "limit": 20, "period": 60 } },
     // Audio parts: one 5 MiB part is about 2.7 minutes of a case, so 30 a minute is far above a real meeting.
-    { "name": "RL_AUDIO", "namespace_id": "26104", "simple": { "limit": 30, "period": 60 } }
+    { "name": "RL_AUDIO", "namespace_id": "26104", "simple": { "limit": 30, "period": 60 } },
+    // Uploads: the intake demo is seven files at once; 20 a minute leaves room for a retry.
+    { "name": "RL_UPLOAD", "namespace_id": "26105", "simple": { "limit": 20, "period": 60 } }
   ],
   // Step 5: the speaker pass after approval runs as a Workflow (durable steps, each retried on its own).
   "workflows": [{ "name": "codebridge-speaker-pass", "binding": "SPEAKER_PASS", "class_name": "SpeakerPassWorkflow" }],

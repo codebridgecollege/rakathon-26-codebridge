@@ -24,12 +24,14 @@ export type Action =
   | "break_glass"
   | "demo.reset"
   | "recording.write" // start and stop the AI recording
-  | "transcript.write"; // store live lines and audio of a case, retry its speaker pass
+  | "transcript.write" // store live lines and audio of a case, retry its speaker pass
+  | "document.upload" // upload a document to a case or remove an unprocessed upload (step 6)
+  | "document.process"; // start the document pipeline on a stored document (step 6)
 
 // Actions on one case need the doctor to be on its team (or to hold a break-the-glass grant).
 const CASE_SCOPED: ReadonlySet<Action> = new Set([
   "status.move", "slot.write", "protocol.edit", "decision.approve", "decision.new_version", "question.confirm",
-  "fact.edit", "suggestion.decide", "task.done", "alert.act", "transcript.write",
+  "fact.edit", "suggestion.decide", "task.done", "alert.act", "transcript.write", "document.upload", "document.process",
 ]);
 
 // The permission matrix. A row missing for a role means "no". Clinical confirmations are doctors' only.
@@ -53,6 +55,10 @@ const MATRIX: Record<Action, ReadonlySet<Role>> = {
   // Who runs the meeting runs the recorder: the same roles as starting an MDT (session.write).
   "recording.write": new Set(["doctor", "coordinator"]),
   "transcript.write": new Set(["doctor", "coordinator"]),
+  // The page's canUpload: doctors and the coordinator bring documents to a case; the administrator does not.
+  "document.upload": new Set(["doctor", "coordinator"]),
+  // Re-reading a document is not a clinical confirmation, so the same roles as uploading it.
+  "document.process": new Set(["doctor", "coordinator"]),
 };
 
 // Doctor-only clinical actions refuse with the wording the page used before (who does it), not a generic one.

@@ -47,7 +47,7 @@ TABLES = [
     "roles", "departments", "users", "dept_members", "patients", "cases", "case_members", "status_history",
     "slots", "sessions", "attendance", "protocols", "decisions", "task_suggestions", "tasks",
     "question_confirmations", "fact_edits", "edit_log", "extraction_runs", "alerts", "alert_events",
-    "documents", "document_parts", "pages", "fixture_files", "recordings", "jobs", "transcript_passes",
+    "documents", "document_parts", "pages", "fixture_files", "fixture_patients", "recordings", "jobs", "transcript_passes",
     "transcript_lines", "transcript_summaries", "audio_uploads", "audio_parts", "audio_segments", "access_log", "seed_meta", "attendance_sets", "notifications", "case_access_grants", "idempotency_keys",
     "write_guards",
 ]
@@ -560,17 +560,53 @@ def main() -> None:
               {"id": 2, "case_id": "NO-013", "text": "vyžádat snímky MR 8/2025 ke srovnání", "done": True}):
         sql.append(insert("tasks", {**t, "assignee_user_id": "coord", "assignee_name": staff_name(COORD), "due": "2026-10-21"}))
 
-    # 8. Fixture library: the intake demo's upload files, matched by hash when Step 6 accepts uploads.
+    # 8. Fixture registry (step 6): every synthetic file the upload route accepts, matched by the SHA-256 of its bytes.
+    # Each fixture names its patient in fixture_patients (D1 only), so a file uploaded into another patient's case is
+    # recognised at once. The seeded cases' own PDFs are fixtures too (FNO's challenge PDFs and S01).
+    fixture_rows, fixture_pats = [], []
+    pat_by_id = {x["id"]: x for x in patients}
+    for p in rows:
+        f = p["file"]
+        stem = f.removesuffix(".pdf")
+        pdf = FNO_PDFS / f if (FNO_PDFS / f).exists() else SAMPLES / stem / f
+        fid = stem.removesuffix("_pacient") if f in syn_by_file else "FNO-" + stem.removesuffix("_pacient")
+        pt = pat_by_id["pt-" + p["id"].removeprefix("NO-")]
+        fixture_pats.append({"fixture_id": fid, "full_name": pt["full_name"], "birth_number": pt["birth_number"], "data_origin": pt["data_origin"]})
+        fixture_rows.append({"sha256": sha256_file(pdf), "fixture_id": fid, "file_name": f, "r2_prefix": f"docs/{p['id']}/",
+                             "kind": "combined", "size_bytes": pdf.stat().st_size, "title_cs": None, "doc_type": None, "doc_date": None,
+                             "page_count": len(page_index.get(f, {}).get("pages", [])), "combined_pages_json": None})
     for s in syn:
         if not s.get("intake_demo"):
             continue
         sid = s["file"].removesuffix("_pacient.pdf")
+        le = s["list_entry"]
+        fixture_pats.append({"fixture_id": sid, "full_name": le["name"], "birth_number": le.get("rc") or None, "data_origin": "codebridge_synthetic"})
+        combined = SAMPLES / f"{sid}_pacient" / s["file"]
+        fixture_rows.append({"sha256": sha256_file(combined), "fixture_id": sid, "file_name": s["file"], "r2_prefix": f"fixtures/{sid}/",
+                             "kind": "combined", "size_bytes": combined.stat().st_size, "title_cs": None, "doc_type": None, "doc_date": None,
+                             "page_count": le.get("page_count"), "combined_pages_json": None})
+        by_upload = {d["upload_name"]: d for d in s.get("documents") or [] if d.get("upload_name")}
         for f in sorted((SAMPLES / f"{sid}_pacient" / "upload").iterdir()):
             if not f.is_file():
                 continue
             ct = "application/pdf" if f.suffix == ".pdf" else "application/fhir+json" if f.suffix == ".json" else "application/octet-stream"
             r2.append({"key": f"fixtures/{sid}/upload/{f.name}", "file": f, "content_type": ct})
-            sql.append(insert("fixture_files", {"sha256": sha256_file(f), "fixture_id": sid, "file_name": f.name, "r2_prefix": f"fixtures/{sid}/"}))
+            d = by_upload.get(f.name)
+            if f.suffix == ".pdf" and not d:
+                sys.exit(f"seed: {f.name} is not listed as an upload_name in {s['file']}'s documents")
+            fixture_rows.append({"sha256": sha256_file(f), "fixture_id": sid, "file_name": f.name, "r2_prefix": f"fixtures/{sid}/",
+                                 "kind": "upload" if f.suffix == ".pdf" else "referral", "size_bytes": f.stat().st_size,
+                                 "title_cs": d["title_cs"] if d else None, "doc_type": d.get("type") if d else None,
+                                 "doc_date": d.get("date") if d else None, "page_count": len(d["pages"]) if d else None,
+                                 "combined_pages_json": d["pages"] if d else None})
+    # Titles end up in documents rows outside patients, so they get the identity scan too.
+    fx_hits = []
+    scan([{k: v for k, v in r.items() if k not in ("sha256",)} for r in fixture_rows], pats, ["fixture_files"], fx_hits)
+    if fx_hits:
+        sys.exit("seed: identity found in the fixture registry: " + ", ".join(".".join(map(str, h[0])) for h in fx_hits))
+    sql += [insert("fixture_patients", x) for x in fixture_pats]
+    sql += [insert("fixture_files", x) for x in fixture_rows]
+    (OUT / "fixtures.json").write_text(json.dumps([{k: v for k, v in r.items()} for r in fixture_rows], ensure_ascii=False, indent=1))
 
     git = subprocess.run(["git", "rev-parse", "--short", "HEAD"], cwd=ROOT, capture_output=True, text=True).stdout.strip() or "unknown"
     now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.") + f"{datetime.now(timezone.utc).microsecond // 1000:03d}Z"
@@ -644,7 +680,7 @@ def main() -> None:
     # 13. Verify counts and that every append-only trigger exists.
     counts = d1_query(t, "SELECT (SELECT COUNT(*) FROM patients) p, (SELECT COUNT(*) FROM cases) c, (SELECT COUNT(*) FROM documents) d,"
                          " (SELECT COUNT(*) FROM pages) pg, (SELECT COUNT(*) FROM alerts) a, (SELECT COUNT(*) FROM tasks) t,"
-                         " (SELECT COUNT(*) FROM fixture_files) f, (SELECT COUNT(*) FROM sqlite_master WHERE type='trigger') tr")[0]
+                         " (SELECT COUNT(*) FROM fixture_files) f, (SELECT COUNT(*) FROM sqlite_master WHERE type='trigger' AND name NOT GLOB 'demo_reset_*') tr")[0]
     print("seeded:", counts)
     want_triggers = len(trigger_names((MIGRATIONS / "0002_append_only.sql").read_text()))
     if counts["tr"] != want_triggers or counts["p"] != len(patients) or counts["pg"] != page_count_total:

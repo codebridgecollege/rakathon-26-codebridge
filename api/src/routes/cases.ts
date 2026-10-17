@@ -72,23 +72,6 @@ export const cases = new Hono<AppEnv>()
       data,
     });
   })
-  .get("/cases/:id/documents", async (c) => {
-    const id = c.req.param("id");
-    await openCase(c, id, "header");
-    await audit(c, { action: "case.documents", case_id: id, what_cs: "zobrazil(a) seznam dokumentů" });
-    const docs = await c.var.stores.cases.documents(id);
-    return c.json({
-      case_id: id,
-      documents: docs.map((d) => ({
-        id: d.id,
-        file: d.file_name,
-        page_count: d.page_count,
-        processing: d.processing,
-        note: d.note_cs,
-        parts: d.parts,
-      })),
-    });
-  })
   .get("/cases/:id/alerts", async (c) => {
     const id = c.req.param("id");
     await openCase(c, id, "clinical");

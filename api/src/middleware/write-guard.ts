@@ -10,6 +10,8 @@ import { D1Work } from "../store/work";
 const MAX_BODY = 64 * 1024;
 const MAX_REPORT_BODY = 256 * 1024;
 const AUDIO_PART = /^\/api\/cases\/[^/]+\/transcript\/audio\/parts\/\d+$/;
+// Step 6: an upload is the file itself; its route checks the size and the type by the bytes.
+const UPLOAD = /^\/api\/cases\/[^/]+\/documents$/;
 
 // Common to every write route (step-4.md section 5): JSON only, a size limit, the data epoch of the shared demo,
 // and an access-log row for every refusal by role or membership, so a break-the-glass review also sees attempts.
@@ -21,6 +23,8 @@ export const writeGuard = (): MiddlewareHandler<AppEnv> => async (c, next) => {
   // Step 5: a part of a case's audio is raw PCM, not JSON; its route checks the size itself and streams nothing else.
   if (m === "PUT" && AUDIO_PART.test(c.req.path)) {
     if (!type.startsWith("application/octet-stream")) throw E.unsupportedMediaType();
+    c.set("body", {});
+  } else if (m === "POST" && UPLOAD.test(c.req.path)) {
     c.set("body", {});
   } else {
     if (!type.startsWith("application/json")) throw E.unsupportedMediaType();
