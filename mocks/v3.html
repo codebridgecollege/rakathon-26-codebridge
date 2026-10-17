@@ -7973,6 +7973,84 @@ function linkProse(text, refs, reg) {
   }
   return out + esc(carry);
 }
+/* ---------- case data, one entry per case ----------
+   Everything the assistant extracted for one MDT case, in one shape whatever produced it (the embedded JSON on Pages, the
+   API on the Worker). Each part is null when the extraction has no such part; null means "not in the extraction", never
+   "nothing found", so a view shows a missing part as missing and never as empty. Identity (name, birth number) is not
+   case data: it stays on the list row from the patients table. Design: docs/research/backend-steps/step-3.md. */
+/* The full extraction of one case (case 10's CASE + EXTRA shape). The objects are kept by reference, not cloned, so a
+   doctor's view and the tests read the same arrays. */
+function fromFullExtraction(file, id, c, e) {
+  return {
+    file, id, level: "full", refs: e.refs || [],
+    brief: {
+      text_cs: e.onco_summary_v3_cs || e.onco_brief_v3_cs || e.onco_brief_cs || null,
+      refs: e.onco_summary_v3_refs || e.onco_brief_v3_refs || e.onco_brief_refs || [],
+      reason_cs: e.mdt_reason_v3_cs || null, reason_refs: e.mdt_reason_v3_refs || [],
+      dx_headline: e.diagnosis_headline || null, summary_items: c.summary || [],
+    },
+    record: {
+      onco_compact: e.onco_compact_v3 || null, onco_detailed: e.onco_detailed_v3 || [], status_praesens: e.status_praesens || null,
+      /* The older timeline shape (CASE.timeline) is mapped here once, so every reader sees one event shape. */
+      timeline: e.timeline_cards_v3 || e.timeline_cards || (c.timeline || []).map(t => ({ ...t, kind: t.type, title_cs: t.label_cs, text_cs: t.label_cs, status: t.status || "done" })),
+      /* The FHIR export dates the diagnosis from the original timeline's events, with their sources. */
+      timeline_source: c.timeline || [],
+      anamnesis: e.anamnesis_v3 || null, sections: c.sections || null,
+      patient: c.patient || {}, diagnosis: c.diagnosis || null, mdt_question: c.mdt_question || {}, ocr_quality_note: c.ocr_quality_note || null,
+    },
+    labs: { values: c.labs || [], note_cs: c.labs_note_cs || null, series: null },
+    alerts: { flags: c.flags || [], gaps: e.data_gaps_v3 || [] },
+    documents: { documents: e.documents || [], pages: c.page_count ?? null, note: e.documents_note_cs || null },
+    note_cs: null,
+  };
+}
+/* A synthetic patient (samples/S<nn>_pacient): documents, data gaps and lab series are processed, nothing else. A lab
+   series that may not be charted (synthetic values, or fewer than two dated draws) never enters the case data. */
+function fromSyn(s, id) {
+  const ser = s.labs_series, chartable = ser && !ser.synthetic && (ser.draws || []).length >= 2;
+  return {
+    file: s.file, id, level: "partial", refs: [], brief: null, record: null,
+    labs: chartable ? { values: [], note_cs: null, series: ser } : null,
+    alerts: { flags: [], gaps: s.data_gaps || [] },
+    documents: { documents: s.documents || [], pages: s.list_entry?.page_count ?? null, note: null },
+    note_cs: s.note_cs || null,
+  };
+}
+/* A case the assistant has not processed: every part null, so the view says "not processed" and "not checked". */
+const unprocessedCase = p => ({ file: p.file, id: p.id, level: "none", refs: [], brief: null, record: null, labs: null, alerts: null, documents: null, note_cs: null });
+/* Keyed by the list row's file (S.pid), because every per-case map in S (edits, protos, alertHist, qConfirm, retro) is
+   keyed by it too. byDocFile maps a document file to its case, so a source reference finds its document title. */
+const caseStore = { mode: "embedded", entries: new Map(), byDocFile: new Map() };
+/* The entry of a case, created as "absent". Pure: no load starts here, so it is safe inside any render function. */
+function caseOf(p) {
+  let e = caseStore.entries.get(p.file);
+  if (!e) { e = { state: "absent", data: null, error: null, gen: 0, seeded: false, loadedAt: 0 }; caseStore.entries.set(p.file, e); }
+  return e;
+}
+/* The case data when it is loaded, else null. Never starts a load, so a list or a calendar card never causes an access. */
+const readyData = p => { const e = p && caseStore.entries.get(p.file); return e && e.state === "ready" ? e.data : null; };
+function setReady(file, data, seeded) {
+  const e = caseStore.entries.get(file) || { gen: 0 };
+  caseStore.entries.set(file, { ...e, state: "ready", data, error: null, seeded, loadedAt: Date.now() });
+  (data.documents ? [file] : []).forEach(f => caseStore.byDocFile.set(f, file));
+}
+/* Embedded mode: case 10 and every synthetic patient are ready from the page's own data, so Pages makes no request
+   for case data. Case 10 is seeded only when its list row says it is processed: a server that refused its findings
+   leaves it unprocessed instead of showing the embedded copy. */
+function seedEmbedded() {
+  caseStore.entries.clear(); caseStore.byDocFile.clear();
+  const p10 = P(CASE.file);
+  if (p10?.full) setReady(CASE.file, fromFullExtraction(CASE.file, p10.id, CASE, EXTRA), true);
+  SYN.forEach(s => setReady(s.file, fromSyn(s, caseId(s.file)), true));
+}
+/* Starts what the case needs to show. In embedded mode a case with no extraction resolves at once as unprocessed. */
+function ensureCase(p) {
+  if (!p) return;
+  const e = caseOf(p);
+  if (e.state === "absent") setReady(p.file, unprocessedCase(p), false);
+}
+/* For the tests: the case data of a file, as the view reads it. */
+window.caseData = file => caseStore.entries.get(file)?.data || null;
 /* The document list of a case's PDF: case 10 from its extraction, a synthetic patient from its own file; null for a
    case the mock has not processed. */
 function docsOf(file) {
@@ -10959,6 +11037,8 @@ async function boot() {
       catch (e) { DATA.error = e.message || "neznámá chyba"; DATA.userId = null; }
     } else if (health?.service !== "codebridge-mdt") health = null;
   }
+  /* After the API load: in API mode case 10's data came from the server into CASE and EXTRA. */
+  seedEmbedded();
   readHash();
   render();
   apiProbe(true, health); // async: recUI() refreshes the recorder when the server answers, without a full render
@@ -10972,7 +11052,7 @@ async function switchApiUser(t) {
   if (!id) { toast("Tento uživatel není v seznamu na serveru. Změny seznamu se zatím neukládají na server."); t.value = S.user; return; }
   setDemoUser(id);
   try {
-    DATA.refused = null; await loadFromApi();
+    DATA.refused = null; await loadFromApi(); seedEmbedded();
     S.guideFor = null; GUIDE = {}; DATA.pages.clear(); DATA.docs.clear(); DATA.serverLog = null; S.overlay = null; renderOverlay();
   } catch (e) { setDemoUser(prev); t.value = S.user; toast(e.message); return; }
   if (S.view === "admin" && S.user !== ADMIN) S.view = "patients";
