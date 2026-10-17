@@ -201,6 +201,11 @@ Declare this list to the jury and mentors.
   one-sentence summary of a recorded MDT discussion in mock v3.
 - Cloudflare Pages, hosting mock v3 at https://codebridge-mdt.pages.dev,
   with Pages Functions for the speech and summary routes.
+- Cloudflare Workers (static assets, rate limiting binding, Workers
+  Logs), hosting the API Worker `codebridge-mdt` in `api/`, with Hono
+  4.13.13, `jose` 6.2.12, Wrangler 4.147.0, TypeScript 5.9.3, and Vitest
+  4.1.11 with `@cloudflare/vitest-plugin` 1.3.6. Cloudflare AI Gateway is
+  wired as an option but off.
 - ChatGPT, used by Soňa for brainstorming and UI sketches
   (`docs/sources/design/`).
 - Claude artifacts (claude.ai), for publishing the UI mocks in `mocks/`.

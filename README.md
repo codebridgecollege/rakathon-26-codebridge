@@ -30,6 +30,25 @@ came from, so a doctor can check it in one click.
 Kickoff. The tech stack is not chosen yet; this section will hold the
 setup and run instructions once it is.
 
+## API Worker
+
+`api/` is a Cloudflare Worker (TypeScript, Hono) that serves the built
+mock v3 as static files and the API under `/api`. Details, secrets and
+the Access runbook are in [`api/AGENTS.md`](api/AGENTS.md).
+
+```
+cd api
+npm ci
+cp .dev.vars.example .dev.vars   # fill in keys; gitignored
+npm run dev                      # stages mocks/ into .assets, serves http://localhost:8787
+npm run typecheck                # tsc on src and tests
+npm test                         # Vitest inside workerd
+```
+
+CI (`.github/workflows/deploy-worker.yml`) runs the type check and tests,
+then deploys `main` to production and `backend` to the `backend` preview
+alias.
+
 ## Patient data
 
 This repository never contains real patient data. `data/` holds the

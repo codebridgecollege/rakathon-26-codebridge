@@ -1,0 +1,6 @@
+# Local secrets for `wrangler dev`. Copy to .dev.vars (gitignored). Never commit real values.
+ELEVENLABS_API_KEY=
+AZURE_OPENAI_KEY=
+# Optional, only with AI_GATEWAY_BASE set in wrangler.jsonc vars:
+AI_GATEWAY_TOKEN=
+# To try access mode locally, override vars here: AUTH_MODE=access, ACCESS_TEAM_DOMAIN=..., ACCESS_AUD=...

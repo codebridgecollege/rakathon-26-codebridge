@@ -397,8 +397,11 @@ Steps 0 and 1 are worth doing even if the rest waits.
   (`index.ts` with the Hono app, `routes/`, `domain/`, `store/`,
   `services/`), `migrations/`, `seed/`, `test/`, `package.json` with a
   lockfile. TypeScript, strict.
-- **Pinned tools:** Wrangler 4, Hono 4, `jose` 5, Vitest with the Workers
-  integration. Exact versions go in `package.json` and `TECHNOLOGIES.md`.
+- **Pinned tools:** Wrangler 4.147.0, Hono 4.13.13, `jose` 6.2.12 (not 5:
+  v6 is WebCrypto-only ESM, which suits Workers), Vitest 4.1.11 with
+  `@cloudflare/vitest-plugin` 1.3.6. Exact versions are in
+  `api/package.json` and `TECHNOLOGIES.md`. Step 1 (the Worker with the
+  API foundation) is implemented on branch `backend-step1` (issue #3).
 - **Worker:** named `codebridge-mdt`, served at
   `codebridge-mdt.<account>.workers.dev` until it replaces Pages. Static
   assets are the built mock, staged by a script into `api/.assets/`
@@ -407,9 +410,12 @@ Steps 0 and 1 are worth doing even if the rest waits.
   stand-in) and trusts no client claim beyond the picked user's name;
   `AUTH_MODE=access` verifies the Cloudflare Access JWT. The Worker ships
   in demo mode until Access is configured.
-- **Frontend switch:** the page asks `GET /api/health`; when it answers,
-  the page uses the API, otherwise it keeps its embedded data. So the
-  same build works on Pages and on the Worker during the migration.
+- **Frontend switch:** the page asks `GET /api/health`; when it answers
+  with `features.data: true`, the page uses the data API, otherwise it
+  keeps its embedded data. Health also answers on Pages (with
+  `features.data: false`), so the switch keys on that flag, not on health
+  answering at all. So the same build works on Pages and on the Worker
+  during the migration.
 - **Errors:** JSON `{ error: { code, message_cs } }` with the HTTP status;
   the Czech message is what the UI shows.
 

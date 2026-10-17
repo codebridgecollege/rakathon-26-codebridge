@@ -71,3 +71,6 @@ mocks/guidelines/
 .dev.vars
 .dev.vars.*
 !.dev.vars.example
+
+# Static files the API Worker serves, staged from mocks/ by api/scripts/stage-assets.sh.
+api/.assets/
