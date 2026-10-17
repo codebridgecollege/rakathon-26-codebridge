@@ -1,6 +1,6 @@
 import type { MiddlewareHandler } from "hono";
 import type { AppEnv } from "../types";
-import { E } from "../http/errors";
+import { ApiError, E } from "../http/errors";
 import { D, DomainError } from "../domain/errors";
 import { refusedLine } from "../domain/audit";
 import { auditStatement } from "../store/write";
@@ -42,7 +42,9 @@ export const writeGuard = (): MiddlewareHandler<AppEnv> => async (c, next) => {
   await next();
 
   const err = c.error;
-  if (err instanceof DomainError && err.status === 403) {
+  // Role and membership refusals come as DomainError (write rules) or ApiError (the read check reused by view events).
+  const refused = (err instanceof DomainError && err.status === 403) || (err instanceof ApiError && (err.code === "not_member" || err.code === "role_forbidden"));
+  if (refused && c.var.viewer) {
     try {
       await auditStatement(
         c.env.DB,

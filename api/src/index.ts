@@ -20,9 +20,10 @@ import { demo } from "./routes/demo";
 
 // The data routes (step 2) resolve the person from the directory first; listed by path so an unknown /api path
 // still answers the plain JSON 404 instead of touching the database.
+// Hono's "/x/*" also matches "/x", so each prefix is listed once; a second pattern would run the middleware twice.
 const DATA_PATHS = [
-  "/me", "/staff", "/staff/*", "/patients", "/cases", "/cases/*", "/documents/*", "/tasks", "/tasks/*", "/calendar", "/admin/*",
-  "/workflow", "/audit/*", "/suggestions/*", "/notifications/*", "/sessions", "/sessions/*", "/attendance/*",
+  "/me", "/staff/*", "/patients", "/cases/*", "/documents/*", "/tasks/*", "/calendar", "/admin/*",
+  "/workflow", "/audit/*", "/suggestions/*", "/notifications/*", "/sessions/*", "/attendance/*",
 ];
 
 // Static files (the built mock) are served by the assets binding before this code runs; only /api/* reaches it.

@@ -2,7 +2,10 @@
 // the edit log only grows (a revert is a new row).
 import { D } from "./errors";
 
-export const KEY_RE = /^[A-Za-z0-9_.:-]{1,120}$/;
+// The page's edit keys only (ed(), edLink() in mocks/src/v3-template.html): a field name, optionally an index and a
+// part. The key goes into the access-log line, so it must never be free text.
+const KEY_HEADS = "brief|reason|proposal|q|dx|assess|sev|od|oc|sp|fa|faw|OA|RA|PA|SA|FA|AA|abusus|EA|preventive";
+export const KEY_RE = new RegExp(`^(?:${KEY_HEADS})(?::\\d{1,4}(?::(?:e|c|t|line|note))?)?$`);
 
 export type CurrentEdit = { log_id: number | null; by_name: string } | null;
 export type EditOp = { kind: "save"; text: string } | { kind: "revert" } | { kind: "noop" };

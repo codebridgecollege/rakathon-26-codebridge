@@ -118,7 +118,8 @@ function reportPdf(html, meta) {
 async function downloadReport() {
   const p = P(S.pid), pr = ensureProto(p);
   // Capture everything before yielding; patient navigation or edits cannot change this download.
-  const html = pr.state === "approved" && pr.reportSnap ? pr.reportSnap : reportHtml(p, pr, presentList(attDay(p)));
+  // A server-stored snapshot carries the patient line as an empty placeholder; fillIdent puts the current identity back.
+  const html = pr.state === "approved" && pr.reportSnap ? fillIdent(pr.reportSnap, p) : reportHtml(p, pr, presentList(attDay(p)));
   const meta = { pid: p.file, id: p.id, date: p.slot?.day || "bez-data", draft: pr.state !== "approved" };
   const button = document.querySelector('[data-act="download"]'), error = document.getElementById("report-error");
   if (button?.disabled) return;

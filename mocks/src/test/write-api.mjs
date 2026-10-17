@@ -185,6 +185,13 @@ const typeConcl = (w, text) => { const c = w.document.getElementById("concl"); c
   assert.ok(ap[0].body.attendance_expected.includes(H.user), "the approver is in the expected attendance");
   assert.match(ap[0].body.report_html, /Kontrolní MR za 3 měsíce\./);
   assert.doesNotMatch(ap[0].body.report_html, / · Koncept</, "the frozen report is not labelled a draft");
+  // Identity stays out of the stored snapshot; the page fills the placeholder from the patient row when it shows it.
+  assert.match(ap[0].body.report_html, /<p class="pt-ident"><\/p>/);
+  const ident = ev(`identLine(P("S01_pacient.pdf"))`), sur = ev(`surnameFirst(P("S01_pacient.pdf"))`), rc = ev(`P("S01_pacient.pdf").rc`);
+  assert.ok(!ap[0].body.report_html.includes(sur) && (!rc || !ap[0].body.report_html.includes(rc)), "no name or birth number in the snapshot");
+  ev(`S.overlay = { kind: "report" }; renderOverlay()`);
+  assert.ok(w.document.querySelector("#report .pt-ident").textContent === ident, "the shown snapshot carries the current identity");
+  ev(`S.overlay = null; renderOverlay()`);
   assert.equal(ev(`ensureProto(P("S01_pacient.pdf")).state`), "approved");
   assert.equal(ev(`S.decisions.filter(d => d.pid === "S01_pacient.pdf").length`), 1);
   assert.equal(ev(`P("S01_pacient.pdf").status`), "done");
@@ -230,6 +237,10 @@ const typeConcl = (w, text) => { const c = w.document.getElementById("concl"); c
   assert.equal(nv[0].body.expected_decision_id, "dec-NO-S01-1");
   assert.equal(ev(`ensureProto(P("S01_pacient.pdf")).state`), "draft");
   assert.equal(ev(`S.decisions.filter(d => d.pid === "S01_pacient.pdf").length`), 1, "the earlier decision stays");
+  // Drafts of a replaced decision come back "superseded": not offered, not counted as waiting.
+  ev(`S.sugg.push({ id: "s-old", pid: "S01_pacient.pdf", text: "Objednat: MR", quote: "MR", who: COORD, due: "", state: "superseded" }); render()`);
+  assert.equal(ev(`pendingSugg("S01_pacient.pdf").length`), 0);
+  assert.equal(w.document.querySelector('[data-suggok="s-old"]'), null);
   assert.deepEqual([...emb.errors, ...errors], []);
 }
 

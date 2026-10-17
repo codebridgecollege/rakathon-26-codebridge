@@ -34,7 +34,11 @@ export function dueFrom(clause: string, approvalDay: string): Due {
   const single = clause.match(/(?<![\p{L}\d])za\s+(\d+)\s*(dn|den|týd|měs)/iu);
   // Any other timing in the clause (a date, a month, a range) wins over the interval, so nothing is guessed.
   const other = said.filter((t) => !/^za\s+\d+\s*(dn|den|týd|měs)/iu.test(t));
-  if (!single || other.length) return { due: "", dueSrc: "none", timing: said.join(", ") };
+  // An interval counted from another event ("za 3 měsíce po ukončení radioterapie") or a second interval would make
+  // the date a guess, so the wording stays and a person fills the date in.
+  const anchored = /(?<![\p{L}\d])za\s+\d+\s*\p{L}+\s+(?:po|od)(?![\p{L}])/iu.test(clause);
+  const intervals = [...clause.matchAll(/(?<![\p{L}\d])za\s+\d+\s*(?:dn|den|týd|měs)/giu)].length;
+  if (!single || other.length || anchored || intervals > 1) return { due: "", dueSrc: "none", timing: said.join(", ") };
   const n = Number(single[1]);
   const u = single[2]!.toLowerCase();
   return {
@@ -46,7 +50,9 @@ export function dueFrom(clause: string, approvalDay: string): Due {
 
 // A negated clause ("radioterapie není indikována", "bez nutnosti doplnit") must not become a task. Negation is read
 // from whole words, not from a "ne" prefix, because "nefrektomie" or "neurochirurg" are not negations.
-const NEG_RE = /(?:^|[^\p{L}])(?:ne|není|nejsou|nebude|nebudou|nelze|bez|nedoporuč\p{L}*|neindikov\p{L}*|neprovád\p{L}*|neplánuje\p{L}*)(?![\p{L}])/iu;
+// Server additions to the mock's list (review of step 4): contraindication, refusal, past negation, "not needed".
+const NEG_RE =
+  /(?:^|[^\p{L}])(?:ne|není|nejsou|nebude|nebudou|nelze|bez|nedoporuč\p{L}*|neindik\p{L}*|neprovád\p{L}*|neplánuj\p{L}*|kontraindik\p{L}*|odmít\p{L}*|nebyl\p{L}*|netřeba|nevyžad\p{L}*|nepotřeb\p{L}*|nezbytn\p{L}*\s+není|zbytečn\p{L}*|upouští\p{L}*|upustit)(?![\p{L}])/iu;
 
 export type Suggestion = { text: string; quote: string } & Due;
 

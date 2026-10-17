@@ -341,7 +341,9 @@ describe("new case and break-the-glass", () => {
     expect((await w("POST", "/cases/NO-A/status", { to: "attention", expected_status: "ready" }, "d1p1")).status).toBe(200);
     const rows = (await log()).filter((l) => l.actor_user_id === "d1p1" && l.case_id === "NO-A" && !l.what_cs.startsWith("odmítnuto"));
     expect(rows.length).toBeGreaterThanOrEqual(3);
-    expect(rows.every((l) => l.break_glass_reason === "konzultace na žádost onkologa")).toBe(true);
+    // The reason is stored once, with the grant row; every later row names the grant.
+    expect(rows[0]!.break_glass_reason).toBe("konzultace na žádost onkologa");
+    expect(rows.slice(1).every((l) => /^přístup mimo tým \(povolení [0-9a-f]{8}\)$/.test(l.break_glass_reason ?? ""))).toBe(true);
     expect((await w("POST", "/cases/NO-A/break-glass", { reason: "konzultace na žádost onkologa" }, "d2p1")).body.error?.code).toBe("already_member");
   });
 });
@@ -406,6 +408,96 @@ describe("reset-demo", () => {
       body: JSON.stringify({ confirm: "OBNOVIT" }),
     }, testEnv({ DEMO_RESET_ENABLED: "false" }));
     expect(r.status).toBe(403);
+  });
+});
+
+describe("review findings (step 4)", () => {
+  const k = (n: number) => ({ "idempotency-key": `77777777-aaaa-bbbb-cccc-00000000000${n}` });
+
+  it("refuses report markup outside the page's own and a report carrying the patient's identity", async () => {
+    await w("PUT", "/cases/NO-A/protocol", { version: 0, concl: "Závěr" });
+    const xss = await w("POST", "/cases/NO-A/decisions", decisionsBody({ conclusion: "Závěr", report_html: `<img src="x" onerror="fetch('/api/admin/reset-demo')">` }), "d2p1", k(1));
+    expect(xss.body.error?.code).toBe("invalid_input");
+    for (const html of ["<script>alert(1)</script>", `<p style="background:url(x)">a</p>`, `<a href="javascript:x">a</a>`, "<p>a</p><!-- x -->"])
+      expect((await w("POST", "/cases/NO-A/decisions", decisionsBody({ conclusion: "Závěr", report_html: html }), "d2p1", k(2))).status).toBe(422);
+    const ident = await w("POST", "/cases/NO-A/decisions", decisionsBody({ conclusion: "Závěr", report_html: "<p>Pacientka Testová · RČ: 645312/1234</p>" }), "d2p1", k(3));
+    expect(ident.body.error?.fields?.report_html).toMatch(/identitu/);
+    expect(await count("decisions")).toBe(0);
+    const ok = await w("POST", "/cases/NO-A/decisions", decisionsBody({ conclusion: "Závěr", report_html: `<article class="sheet"><p class="pt-ident"></p><img src="data:image/png;base64,iVBOR==" alt="GLIDE"><h4>Závěr</h4><p id="rep-concl">Závěr</p></article>` }), "d2p1", k(4));
+    expect(ok.status).toBe(200);
+  });
+
+  it("answers an assignee without a role on the case with the task only", async () => {
+    await env.DB.prepare("UPDATE tasks SET assignee_user_id = 'd1p1' WHERE id = 1").run();
+    const r = await w("PATCH", "/tasks/1", { done: true, expected_done: false }, "d1p1");
+    expect(r.status).toBe(200);
+    expect(r.body.state).toEqual({});
+    expect(r.body.data).toMatchObject({ task: { id: 1, done: true } });
+  });
+
+  it("checks access before replaying an approval", async () => {
+    await w("PUT", "/cases/NO-A/protocol", { version: 0, concl: "Závěr" });
+    const body = decisionsBody({ conclusion: "Závěr" });
+    expect((await w("POST", "/cases/NO-A/decisions", body, "d2p1", k(5))).status).toBe(200);
+    await env.DB.prepare("DELETE FROM case_members WHERE case_id = 'NO-A'").run();
+    expect((await w("POST", "/cases/NO-A/decisions", body, "d2p1", k(5))).status).toBe(403);
+  });
+
+  it("supersedes the drafts of a replaced decision; they cannot be confirmed", async () => {
+    await w("PUT", "/cases/NO-A/protocol", { version: 0, concl: "Kontrolní MR za 3 měsíce." });
+    const a = await w("POST", "/cases/NO-A/decisions", decisionsBody({ conclusion: "Kontrolní MR za 3 měsíce." }), "d2p1", k(6));
+    const old = (await q<{ id: number }>("SELECT id FROM task_suggestions"))[0]!.id;
+    await w("POST", "/cases/NO-A/decisions/new-version", { expected_decision_id: a.body.data!.decision_id });
+    await w("PUT", "/cases/NO-A/protocol", { version: 3, concl: "Kontrolní MR není nutná." });
+    expect((await w("POST", "/cases/NO-A/decisions", decisionsBody({ protocol_version: 4, conclusion: "Kontrolní MR není nutná." }), "d2p1", k(7))).status).toBe(200);
+    expect((await q("SELECT state FROM task_suggestions WHERE id = ?1", old))[0]!.state).toBe("superseded");
+    expect((await w("POST", `/suggestions/${old}/confirm`, {}, "d2p1")).body.error?.code).toBe("suggestion_superseded");
+    expect(await count("tasks", "from_suggestion_id IS NOT NULL")).toBe(0);
+  });
+
+  it("answers protocol_conflict, not already_approved, when an autosave lands before the approval", async () => {
+    await w("PUT", "/cases/NO-A/protocol", { version: 0, concl: "Závěr" });
+    await w("PUT", "/cases/NO-A/protocol", { version: 1, concl: "Závěr upravený" }, "d2p1");
+    const r = await w("POST", "/cases/NO-A/decisions", decisionsBody({ conclusion: "Závěr" }), "d2p1", k(8));
+    expect(r.body.error?.code).toBe("protocol_conflict");
+  });
+
+  it("writes one refusal row per refusal, also on /cases and /sessions and for view events", async () => {
+    await w("POST", "/cases", { first_name: "A", last_name: "B", birth_number: "700101/1234", consent: true }, "admin", k(9));
+    await w("POST", "/sessions", { day: "2026-10-22" }, "admin");
+    await w("POST", "/audit/events", { case_id: "NO-A", code: "source_viewed" }, "d1p1");
+    expect((await log()).map((l) => l.what_cs)).toEqual(["odmítnuto: založení případu", "odmítnuto: zahájení MDT", "odmítnuto: záznam zobrazení"]);
+  });
+
+  it("keeps typed text out of the log: unknown edit keys and attendance keys are refused before logging", async () => {
+    expect((await w("PUT", "/cases/NO-A/edits/Novak", { text: "x", orig: "", expected_edit_id: null })).status).toBe(422);
+    expect((await w("PUT", "/attendance/case:Novak%20Jan", { version: 0, by_dept: {} }, "admin")).status).toBe(422);
+    expect(JSON.stringify(await log())).not.toContain("Novak");
+  });
+
+  it("needs team membership for a case's own attendance", async () => {
+    expect((await w("PUT", "/attendance/case:NO-A", { version: 0, by_dept: { d1: ["d1p1"] } }, "d1p1")).status).toBe(403);
+  });
+
+  it("confirms a drafted question once under parallel clicks", async () => {
+    await env.DB.prepare("UPDATE cases SET question_draft = 'Indikace RT?' WHERE id = 'NO-B'").run();
+    const sha = ((await (await call("/api/workflow", { headers: { "x-demo-user": "d1p1" } })).json()) as { cases: Record<string, { draft_sha: string }> }).cases["NO-B"]!.draft_sha;
+    await Promise.all([w("POST", "/cases/NO-B/question/confirm", { draft_sha: sha }, "d1p1"), w("POST", "/cases/NO-B/question/confirm", { draft_sha: sha }, "d2p1")]);
+    expect(await count("question_confirmations")).toBe(1);
+  });
+
+  it("refuses a batch whose epoch changed after the request's check", async () => {
+    const v = { id: "d2p1", name: "MUDr. Svobodová", role: "doctor" as const, dept: null, authMode: "demo" as const, impersonating: false };
+    const t = new Tx(env.DB, v, { requestId: null, epoch: 1 });
+    t.run("UPDATE cases SET status = 'closed' WHERE id = 'NO-A'");
+    await env.DB.prepare("UPDATE demo_state SET data_epoch = 2").run();
+    await expect(t.commit()).rejects.toMatchObject({ code: "data_reset" });
+    expect((await q("SELECT status FROM cases WHERE id = 'NO-A'"))[0]!.status).toBe("ready");
+  });
+
+  it("gives the administrator no workflow in doctors_only mode", async () => {
+    const r = await call("/api/workflow", { headers: { "x-demo-user": "admin" } }, testEnv({ CLINICAL_ACCESS: "doctors_only" }));
+    expect(((await r.json()) as { cases: object }).cases).toEqual({});
   });
 });
 

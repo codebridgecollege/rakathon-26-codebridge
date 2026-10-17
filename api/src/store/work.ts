@@ -56,10 +56,11 @@ export class D1Work {
     return r.results;
   }
 
-  async protocol(id: string): Promise<Protocol> {
+  async protocol(id: string): Promise<Protocol & { exists: boolean }> {
     const r = await this.db.prepare("SELECT * FROM protocols WHERE case_id = ?1").bind(id).first<Record<string, unknown>>();
-    if (!r) return emptyProtocol();
+    if (!r) return { ...emptyProtocol(), exists: false };
     return {
+      exists: true,
       notes: r.notes as string,
       conclusion: r.conclusion as string,
       steps: JSON.parse(r.steps_json as string) as Step[],
@@ -69,9 +70,6 @@ export class D1Work {
     };
   }
 
-  async protocolExists(id: string) {
-    return !!(await this.db.prepare("SELECT 1 AS x FROM protocols WHERE case_id = ?1").bind(id).first());
-  }
 
   async decisions(id: string) {
     const r = await this.db.prepare("SELECT id, version, slot_day, slot_time FROM decisions WHERE case_id = ?1 ORDER BY version").bind(id).all<{ id: string; version: number; slot_day: string | null; slot_time: string | null }>();
@@ -114,9 +112,9 @@ export class D1Work {
 
   async validGrant(caseId: string, userId: string, nowIso: string) {
     return this.db
-      .prepare("SELECT reason, expires_at FROM case_access_grants WHERE case_id = ?1 AND user_id = ?2 AND expires_at > ?3 ORDER BY expires_at DESC LIMIT 1")
+      .prepare("SELECT id, reason, expires_at FROM case_access_grants WHERE case_id = ?1 AND user_id = ?2 AND expires_at > ?3 ORDER BY expires_at DESC LIMIT 1")
       .bind(caseId, userId, nowIso)
-      .first<{ reason: string; expires_at: string }>();
+      .first<{ id: string; reason: string; expires_at: string }>();
   }
 
   async epoch(): Promise<{ data_epoch: number; reset_in_progress: number; reset_at: string | null; seed_version: string | null } | null> {

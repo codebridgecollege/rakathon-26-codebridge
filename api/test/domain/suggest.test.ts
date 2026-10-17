@@ -38,4 +38,14 @@ describe("task drafts from an approved conclusion", () => {
     expect(s).toHaveLength(1);
     expect(s[0]).toMatchObject({ quote: "Kontrola v 9.10.2026 na onkologii", due: "", dueSrc: "none" });
   });
+
+  it("drafts nothing from contraindication, refusal, past negation or 'not needed' (review of step 4)", () => {
+    for (const c of ["Radioterapie kontraindikována", "Radioterapii neindikujeme", "Pacient radioterapii odmítá", "Radioterapie nebyla indikována", "Kontrolní MR netřeba", "Kontrolní MR nevyžaduje"])
+      expect(suggestTasks(c, "2026-10-22"), c).toEqual([]);
+  });
+
+  it("gives no date for an interval counted from another event or for two intervals", () => {
+    expect(dueFrom("Kontrolní MR za 3 měsíce po ukončení radioterapie", "2026-10-22")).toMatchObject({ due: "", dueSrc: "none" });
+    expect(dueFrom("kontrolní MR za 3 měsíce a za 6 měsíců", "2026-10-22")).toMatchObject({ due: "", dueSrc: "none" });
+  });
 });

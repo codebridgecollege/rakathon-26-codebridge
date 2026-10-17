@@ -678,6 +678,46 @@ count), `upload_removed`.
 `GET /api/health` adds `demo: { data_epoch, reset_at, seed_version,
 reset_enabled }`.
 
+### Changes after the adversarial review
+
+A separate agent reviewed the server (rules against CLAUDE.md, audit
+privacy, role bypasses, concurrency). Folded in:
+
+- Report snapshots: allowlisted markup only, and no patient identity
+  (the page sends an empty `pt-ident` line and fills it on display).
+- An assignee without a role on the case gets the task back, not the case.
+- An idempotent replay checks access first, is logged, and keys expire
+  after 24 hours.
+- A newer approval marks the older decision's drafted tasks `superseded`
+  (migration 0003 rebuilds `task_suggestions` for the state); they cannot
+  be confirmed.
+- Approve guards are ordered so the loser of a race sees "already
+  approved" or the protocol conflict with the newer draft, not a generic
+  status message.
+- Every batch re-checks `demo_state.data_epoch`, so a write cannot land
+  in data a reset just replaced; the reset batch refuses if a row was
+  written to an archived table after the archive was read.
+- `GET /api/workflow` follows the header-read rule (none for the
+  administrator in `doctors_only`) and logs the case IDs it covered.
+- Middleware ran twice on `/cases` and `/sessions` (Hono's `/x/*`
+  matches `/x`); listed once now.
+- More negations ("kontraindikována", "odmítá", "nebyla", "netřeba",
+  "nevyžaduje") and no date for an interval counted from another event or
+  for two intervals.
+- Staff rename and drafted-task edits no longer overwrite parallel edits.
+- Approval freezes notes and steps in the decision's snapshot, so
+  "Nový závěr" loses nothing.
+- Break-the-glass reason stored once; edit keys from a fixed list;
+  attendance of a case needs team membership; refusals of view events
+  are logged; a question is confirmed once under parallel clicks; the
+  duplicate-birth-number answer names the existing case only to someone
+  who may open it.
+
+Not changed: the coordinator may also acknowledge contradiction and
+unclear alerts (`COORDINATOR_ACTS_ON_ALERTS` covers every kind); write
+routes have no rate limit; there is no pilot migration without the
+reset exception yet.
+
 ### Verification of the guard approach
 
 - **Local D1 in workerd (Vitest).** `test/write.test.ts` builds a batch

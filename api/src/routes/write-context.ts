@@ -41,14 +41,15 @@ export async function caseFor(c: Context<AppEnv>, id: string, action: Action, ex
   if (!core) throw D.caseNotFound();
   const v = c.var.viewer;
   let member = false;
-  let grant: { reason: string } | null = null;
+  let grant: { id: string } | null = null;
   if (v.role === "doctor") {
     member = await c.var.stores.cases.isMember(id, v);
     if (!member) grant = await w.validGrant(id, v.id, now().toISOString());
   }
   const access = { member, grant: !!grant, ...extra };
   assertCan(actorOf(c), action, access);
-  return { core, access, breakGlass: grant ? grant.reason : null };
+  // Rows under a grant name the grant; its reason is stored once, in the grant and in the row that created it.
+  return { core, access, breakGlass: grant ? grantLabel(grant.id) : null };
 }
 
 // The workflow state of the given cases as the viewer may see it (edits and alert history are clinical content).
@@ -63,3 +64,5 @@ export function answer(c: Context<AppEnv>, data: unknown, state: Record<string, 
 }
 
 export const isoNow = () => now().toISOString();
+
+export const grantLabel = (id: string) => `přístup mimo tým (povolení ${id.slice(0, 8)})`;

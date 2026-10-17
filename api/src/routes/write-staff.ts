@@ -97,9 +97,11 @@ export const writeStaff = new Hono<AppEnv>()
       t.run("UPDATE tasks SET assignee_name = ?1 WHERE assignee_user_id = ?2 AND done = 0", after, id);
       t.run("UPDATE task_suggestions SET who = ?1 WHERE who = ?2 AND state = 'draft'", after, before);
       t.run("UPDATE attendance SET user_name = ?1 WHERE user_id = ?2", after, id);
-      const drafts = await c.env.DB.prepare("SELECT case_id, steps_json FROM protocols WHERE state = 'draft' AND instr(steps_json, ?1) > 0").bind(before).all<{ case_id: string; steps_json: string }>();
+      const drafts = await c.env.DB.prepare("SELECT case_id, steps_json, version FROM protocols WHERE state = 'draft' AND instr(steps_json, ?1) > 0").bind(before).all<{ case_id: string; steps_json: string; version: number }>();
       for (const p of drafts.results) {
         const steps = (JSON.parse(p.steps_json) as { who: string }[]).map((s) => (s.who === before ? { ...s, who: after } : s));
+        // The steps were read above; a doctor's autosave since then must not be overwritten.
+        t.guard("draft_unchanged", "EXISTS (SELECT 1 FROM protocols WHERE case_id = ? AND version = ?)", [p.case_id, p.version], () => D.staffChanged());
         t.run("UPDATE protocols SET steps_json = ?1, version = version + 1, updated_at = ?2 WHERE case_id = ?3 AND state = 'draft'", JSON.stringify(steps), at, p.case_id);
       }
     }

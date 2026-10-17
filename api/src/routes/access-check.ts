@@ -26,7 +26,7 @@ export async function openCase(c: Context<AppEnv>, id: string, level: "header" |
     const g = await new D1Work(c.env.DB).validGrant(id, v.id, new Date().toISOString());
     if (g) {
       member = true;
-      c.set("breakGlass", g.reason);
+      c.set("breakGlass", `přístup mimo tým (povolení ${g.id.slice(0, 8)})`);
     }
   }
   enforce((level === "header" ? canReadCaseHeader : canReadClinical)(v, member, modeOf(c)));

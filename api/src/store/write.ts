@@ -74,6 +74,10 @@ export class Tx {
   }
 
   async commit(): Promise<void> {
+    // A reset-demo may commit between the epoch check of the request and this batch; the write must not land in the
+    // new data, so the epoch is re-checked inside the batch like any other read.
+    if (this.ctx.epoch !== null && !this.guards.some((g) => g.code === "epoch"))
+      this.guards.unshift({ code: "epoch", cond: "(SELECT data_epoch FROM demo_state WHERE id = 1) = ?", args: [this.ctx.epoch], err: () => D.dataReset() });
     const guardStmts = this.guards.map((g) =>
       this.db
         .prepare(`INSERT INTO write_guards (batch_id, code, ok) SELECT ?, ?, CASE WHEN (${g.cond}) THEN 1 ELSE 0 END`)

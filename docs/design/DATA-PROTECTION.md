@@ -191,16 +191,25 @@ synthetic patients.
   data" (`POST /api/admin/reset-demo`). The reset first archives the
   access log and the append-only histories (decisions, edits, alert
   events, status history, question confirmations) to the private EU R2
-  bucket under `audit-archive/`, synthetic data only, then reseeds.
-  The archive is kept until someone deletes it; nothing else is kept.
+  bucket under `audit-archive/`, then reseeds. Decisions go to the
+  archive without their report HTML (ID, approver, time, report hash),
+  and an R2 lifecycle rule deletes archives after 30 days. Edit-log rows
+  keep the edited text, which can be clinical. Nothing else is kept.
+- **No identity in stored reports.** The report a doctor approves is
+  stored with an empty patient line (`pt-ident`); the page fills it from
+  the patient row when it shows the report, and the server refuses a
+  report that contains the patient's birth number or name, or markup
+  beyond the page's own (no scripts, handlers or external URLs).
 - **Write audit (step 4).** Every server write logs who acted, in which
   role and on which case, in the same transaction as the change. The
   line names the action and safe details only (status names, slot time,
   the edit key, the alert kind, counts), never a name, birth number,
   conclusion, quote or file name. Free text typed by staff stays out of
   the line: the reason for a second record per birth number is stored
-  with the case, and a break-the-glass reason in its own column for the
-  review. Refused attempts are logged too ("odmítnuto: ...").
+  with the case, and a break-the-glass reason is stored once with the
+  grant (later rows under the grant name the grant). Edit keys and
+  attendance keys are checked against fixed formats before they reach
+  the log. Refused attempts are logged too ("odmítnuto: ...").
 
 ## Meeting audio
 

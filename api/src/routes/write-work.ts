@@ -4,8 +4,8 @@ import { Hono } from "hono";
 import type { AppEnv } from "../types";
 import { E } from "../http/errors";
 import { D, DomainError } from "../domain/errors";
-import { listsAllCases } from "../domain/access";
-import { assertCan } from "../domain/roles";
+import { canReadCaseHeader, listsAllCases } from "../domain/access";
+import { allowed, assertCan } from "../domain/roles";
 import { VIEW_EVENTS } from "../domain/audit";
 import { setDone } from "../domain/tasks";
 import { confirmTask, editSuggestion, type SuggestionRow } from "../domain/suggestions";
@@ -15,8 +15,9 @@ import { duplicateDecision, intakeFixture, normalizeRc, validateReferral } from 
 import { DIGEST_MIN_INTERVAL_S, NEW_CASE_MEMBERS } from "../domain/config";
 import { patientRow } from "../domain/rows";
 import { IdempotentReplay } from "../store/write";
+import { taskOut } from "../store/work";
 import { audit } from "../middleware/audit";
-import { openCase } from "./access-check";
+import { modeOf, openCase } from "./access-check";
 import { actorOf, answer, caseFor, isoNow, label, newId, now, statesFor, tx, work } from "./write-context";
 import { bodySha, replayIdempotent, todayPrague } from "./write-cases";
 import { hooks } from "./hooks";
@@ -42,9 +43,11 @@ async function visibleCaseIds(c: import("hono").Context<AppEnv>): Promise<string
 
 export const writeWork = new Hono<AppEnv>()
   .get("/workflow", async (c) => {
-    // The page holds this state in memory only; one audit row says the viewer loaded the discussion records.
-    await audit(c, { action: "workflow.view", what_cs: "načetl(a) stav projednání" });
     const ids = await visibleCaseIds(c);
+    // The workflow holds conclusions and report snapshots: header-level content, so the header rule applies per case
+    // (in doctors_only mode the administrator gets none). One row names every case it covered.
+    if (!ids.length || canReadCaseHeader(c.var.viewer, true, modeOf(c)) !== "ok") return c.json({ data_epoch: (await work(c).epoch())?.data_epoch ?? null, cases: {}, att: {}, sessions: [], mails: [] });
+    await audit(c, { action: "workflow.view", what_cs: `načetl(a) stav projednání (${ids.length} případů)`, target_type: "cases", target_id: ids.join(",") });
     const w = work(c);
     const st = await w.epoch();
     const [cases, att, sessions, mails] = await Promise.all([statesFor(c, ids), w.attSets(), w.sessions(), w.mails(ids)]);
@@ -76,7 +79,9 @@ export const writeWork = new Hono<AppEnv>()
     const t0 = Number.isInteger(tid) ? await c.env.DB.prepare("SELECT id, case_id, done, assignee_user_id FROM tasks WHERE id = ?1").bind(tid).first<{ id: number; case_id: string; done: number; assignee_user_id: string | null }>() : null;
     label(c, "úloha hotovo", t0?.case_id ?? null);
     if (!t0) throw D.taskNotFound();
-    const { breakGlass } = await caseFor(c, t0.case_id, "task.done", { assignee: t0.assignee_user_id === c.var.viewer.id });
+    const { breakGlass, access } = await caseFor(c, t0.case_id, "task.done", { assignee: t0.assignee_user_id === c.var.viewer.id });
+    // An assignee without a role on the case closes the task but gets back the task only, not the case.
+    const fullAccess = allowed(actorOf(c), "task.done", { member: access.member, grant: access.grant });
     const b = c.var.body;
     const done = setDone(t0.done === 1, b.done, b.expected_done);
     const t = tx(c, breakGlass);
@@ -88,6 +93,10 @@ export const writeWork = new Hono<AppEnv>()
     );
     t.audit({ action: "task.done", what_cs: done ? "označil(a) úlohu jako hotovou" : "vrátil(a) úlohu mezi otevřené", case_id: t0.case_id, target_type: "task", target_id: String(tid) });
     await t.commit();
+    if (!fullAccess) {
+      const row = await c.env.DB.prepare("SELECT t.*, c.source_file FROM tasks t JOIN cases c ON c.id = t.case_id WHERE t.id = ?1").bind(tid).first<Record<string, unknown>>();
+      return answer(c, { task: row ? taskOut(row) : null });
+    }
     return answer(c, {}, { cases: await statesFor(c, [t0.case_id]) });
   })
 
@@ -169,10 +178,14 @@ export const writeWork = new Hono<AppEnv>()
   .put("/attendance/:key", async (c) => {
     const key = c.req.param("key");
     const caseId = key.startsWith("case:") ? key.slice(5) : null;
-    label(c, "úprava přítomných", caseId);
-    assertCan(actorOf(c), "session.write");
+    label(c, "úprava přítomných");
+    // The key is checked before it names anything in the log, so typed text never reaches the access log.
     if (!validSetKey(key)) throw D.invalidInput({ fields: { key: "Neplatný den nebo případ." } });
     if (caseId && !(await work(c).caseCore(caseId))) throw D.caseNotFound();
+    label(c, "úprava přítomných", caseId);
+    assertCan(actorOf(c), "session.write");
+    // A case's own attendance is part of that case: a doctor needs to be on its team (or hold a grant).
+    if (caseId && c.var.viewer.role === "doctor") await caseFor(c, caseId, "status.move");
     const w = work(c);
     const [att, staff] = await Promise.all([w.attendance(key), w.staff()]);
     const b = c.var.body;
@@ -310,11 +323,22 @@ async function suggestionRoute(c: import("hono").Context<AppEnv>, kind: "edit" |
   const v = c.var.viewer;
   const at = isoNow();
   const t = tx(c, breakGlass);
+  if (s.state === "superseded") throw D.suggestionSuperseded();
   t.guard("draft", "(SELECT state FROM task_suggestions WHERE id = ?) = 'draft'", [sid], () => D.suggestionDecided(null));
   if (kind === "edit") {
     const staff = await work(c).staff();
-    const next = editSuggestion(s, c.var.body, v.name, staff.activeNames);
-    t.run("UPDATE task_suggestions SET text = ?1, who = ?2, due = ?3, due_source = ?4, due_by = ?5 WHERE id = ?6", next.text, next.who, next.due, next.due_source, next.due_by, sid);
+    const b = c.var.body;
+    const next = editSuggestion(s, b, v.name, staff.activeNames);
+    // Only the fields this edit names are written, so a parallel edit of another field is not lost.
+    const sets: string[] = [];
+    const args: unknown[] = [];
+    const set = (col: string, val: unknown) => (args.push(val), sets.push(`${col} = ?${args.length}`));
+    if (b.text !== undefined) set("text", next.text);
+    if (b.who !== undefined) set("who", next.who);
+    if (b.due !== undefined) (set("due", next.due), set("due_source", next.due_source), set("due_by", next.due_by));
+    if (!sets.length) throw D.invalidInput();
+    args.push(sid);
+    t.run(`UPDATE task_suggestions SET ${sets.join(", ")} WHERE id = ?${args.length}`, ...args);
     t.audit({ action: "suggestion.edit", what_cs: "upravil(a) návrh úlohy", case_id: s.case_id, target_type: "suggestion", target_id: String(sid) });
   } else if (kind === "confirm") {
     const task = confirmTask(s, v.name);
@@ -337,7 +361,8 @@ async function suggestionRoute(c: import("hono").Context<AppEnv>, kind: "edit" |
     await t.commit();
   } catch (e) {
     if (e instanceof DomainError && e.code === "suggestion_decided") {
-      const now2 = await c.env.DB.prepare("SELECT decided_by_name FROM task_suggestions WHERE id = ?1").bind(sid).first<{ decided_by_name: string | null }>();
+      const now2 = await c.env.DB.prepare("SELECT state, decided_by_name FROM task_suggestions WHERE id = ?1").bind(sid).first<{ state: string; decided_by_name: string | null }>();
+      if (now2?.state === "superseded") throw D.suggestionSuperseded();
       throw D.suggestionDecided(now2?.decided_by_name ?? null);
     }
     throw e;

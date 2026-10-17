@@ -262,8 +262,8 @@ export class D1Audit implements AuditStore {
     await this.db
       .prepare(
         `INSERT INTO access_log (actor_user_id, actor_name, acted_as_role, impersonating, auth_mode, case_id, document_id, page_n, action, what_cs, request_id,
-           break_glass_reason, data_epoch)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, (SELECT data_epoch FROM demo_state WHERE id = 1))`,
+           break_glass_reason, target_type, target_id, data_epoch)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, (SELECT data_epoch FROM demo_state WHERE id = 1))`,
       )
       .bind(
         e.viewer.id,
@@ -278,6 +278,8 @@ export class D1Audit implements AuditStore {
         e.what_cs,
         e.request_id ?? null,
         e.break_glass_reason ?? null,
+        e.target_type ?? null,
+        e.target_id ?? null,
       )
       .run();
   }

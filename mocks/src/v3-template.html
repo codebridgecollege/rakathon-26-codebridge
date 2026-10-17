@@ -2138,7 +2138,7 @@ function conclusionBox(p) {
   /* The valid (approved) conclusion stays on top; a new draft that will supersede it sits below it, so a draft
      is never read as the decision. */
   return `<div class="concl ${last ? "valid" : ""}"><span class="bh">Závěr MDT</span>
-    ${last ? `<p>${esc(last.text)}</p><div class="muted small">Platný závěr č. ${dec.length} · schválil(a) ${esc(last.by)}, ${esc(last.when)}</div>${dec.length > 1 ? `<details class="srcs"><summary>Předchozí závěry (${dec.length - 1})</summary><ul class="hist" style="margin-top:6px">${dec.slice(0, -1).reverse().map((x, i) => `<li class="old small"><b>Závěr č. ${dec.length - 1 - i}</b> · nahrazen · ${esc(x.when)} · ${esc(x.by)}<br>${esc(x.text)}${x.reportSnap ? `<details class="srcs"><summary>Schválený report</summary><div style="margin-top:6px">${x.reportSnap}</div></details>` : ""}</li>`).join("")}</ul></details>` : ""}`
+    ${last ? `<p>${esc(last.text)}</p><div class="muted small">Platný závěr č. ${dec.length} · schválil(a) ${esc(last.by)}, ${esc(last.when)}</div>${dec.length > 1 ? `<details class="srcs"><summary>Předchozí závěry (${dec.length - 1})</summary><ul class="hist" style="margin-top:6px">${dec.slice(0, -1).reverse().map((x, i) => `<li class="old small"><b>Závěr č. ${dec.length - 1 - i}</b> · nahrazen · ${esc(x.when)} · ${esc(x.by)}<br>${esc(x.text)}${x.reportSnap ? `<details class="srcs"><summary>Schválený report</summary><div style="margin-top:6px">${fillIdent(x.reportSnap, p)}</div></details>` : ""}</li>`).join("")}</ul></details>` : ""}`
       : draftable ? "" : `<p class="muted" style="font-size:14px">Zatím neprojednáno.</p>`}
     ${closed ? `${pr.state !== "approved" && pr.concl.trim() ? `<p class="muted small" style="margin:6px 0 0">Neschválený koncept: ${esc(pr.concl)}</p>` : ""}<p class="small closedmsg" style="margin:6px 0 0">${CLOSED_MSG}</p>` : ""}
     ${draftable ? `${last ? `<span class="label" style="display:block;margin-top:10px">Koncept nového závěru (nahradí platný až po schválení)</span>` : ""}<textarea class="input" id="concl" placeholder="Závěr a další postup, píše lékař (koncept, schvaluje se níže v části Projednání na MDT)" style="min-height:70px;margin-top:4px">${esc(pr.concl)}</textarea><p class="muted small" id="concldraft" style="margin:4px 0 0" ${pr.concl.trim() ? "" : "hidden"}>Koncept, zatím neschváleno. Schvaluje se níže v části Projednání na MDT.</p>` : ""}</div>`;
@@ -3340,7 +3340,11 @@ function reportBasis(p, cd, sec, failed) {
   const label = items.some(g => g.kind !== "missing") ? "Chybějící a nejasné podklady" : "Chybějící podklady";
   return head + (items.length ? `<h4>${label}</h4><ul>${items.map(g => `<li>${g.kind !== "missing" && ALERT[g.kind] ? `${ALERT[g.kind][0]}: ` : ""}${esc(g.text_cs)}${src(g) ? ` (${esc(src(g).file)}, s. ${esc(src(g).page)})` : ""}</li>`).join("")}</ul>` : "");
 }
-function reportHtml(p, pr, present) {
+/* The patient line of the report. A snapshot stored on the server holds an empty placeholder instead (identity is not
+   kept in the decision record); the page fills it from the current patient row whenever it shows the snapshot. */
+const identLine = p => `${surnameFirst(p)} · RČ: ${p.rc || GAP} · věk: ${ageNum(p) || GAP} · ID ${p.id}`;
+const fillIdent = (html, p) => String(html || "").replace(/<p class="pt-ident"><\/p>/g, () => `<p class="pt-ident">${esc(identLine(p))}</p>`);
+function reportHtml(p, pr, present, { withIdentity = true } = {}) {
   /* The report is for case p, which need not be the open case (approval during a session), so it reads p's guidance. */
   const reg = refRegistry(), cd = readyData(p), sec = sectionsOf(cd), pst = guideOf(p.file).statements || [];
   const failed = caseStore.entries.get(p.file)?.state === "error";
@@ -3361,7 +3365,7 @@ function reportHtml(p, pr, present) {
   const brief = sec.brief && S.picked.has("summary") ? (edOf("brief", p.file) ? esc(briefPlain(p, cd)) + " [upraveno lékařem]" : bf?.text_cs ? esc(bf.text_cs).replace(/\[(\d+)\]/g, (m, n) => `<span class="src">${refTxt((bf.refs || [])[n - 1])}</span>`) : esc((bf?.summary_items || []).map(x => x.text_cs).join(" "))) : "";
   return `<article class="sheet">
     <div class="hdr"><div class="report-brand"><img src="/*GLIDE_LOGO_PNG*/" alt="GLIDE"><b>MDT</b></div><h1>Záznam z MDT</h1><p class="report-meta">Datum MDT: ${p.slot ? esc(slotText(p)) : esc(GAP)} · ID ${esc(p.id)}${pr.state !== "approved" ? " · Koncept" : ""}</p></div>
-    <h4>Pacient</h4><p>${esc(surnameFirst(p))} · RČ: ${esc(p.rc || GAP)} · věk: ${esc(ageNum(p) || GAP)} · ID ${esc(p.id)}</p>
+    <h4>Pacient</h4>${withIdentity ? `<p>${esc(identLine(p))}</p>` : `<p class="pt-ident"></p>`}
     <h4>Přítomní</h4><p>${esc(present.join(", ") || "nezadáno")}</p>
     <h4>Diagnóza</h4><p><b>${esc(dxHeadlineText(p, cd, true))}</b>${bf?.dx_headline?.mkn_cs ? `<br>${esc(bf.dx_headline.mkn_cs)}` : ""}</p>
     ${S.picked.has("summary") ? `<h4>NO</h4><p>${sec.brief ? brief : esc(p.summary || GAP)}</p>` : ""}
@@ -3465,7 +3469,7 @@ function suggHtml(p) {
           <input class="input" type="date" data-sugg="${x.id}" data-f="due" value="${esc(x.due)}" style="width:auto" aria-label="Termín">
           <button class="btn small primary" data-suggok="${x.id}">Potvrdit</button><button class="btn small" data-suggno="${x.id}">Zamítnout</button></div>${dueNote(x)}`
         : `<span class="note">Odpovídá: ${esc(x.who)} · ${x.due ? `termín: ${esc(dueText(x))}` : DUE_LBL.none}${x.timing ? ` · v závěru: „${esc(x.timing)}“` : ""}</span><span class="note"><b>${WAIT_DOC}</b></span>`}</li>`
-      : `<li class="small ${x.state === "dismissed" ? "old" : ""}"><b>${esc(x.text)}</b><br>${x.state === "confirmed" ? `Potvrdil(a) ${esc(x.by)}, ${esc(x.when)}; úloha pro ${esc(x.who)}, ${x.due ? `termín ${esc(dueText(x))}` : DUE_LBL.none}` : `Zamítl(a) ${esc(x.by)}, ${esc(x.when)}`}</li>`).join("")}</ul>
+      : `<li class="small ${x.state !== "confirmed" ? "old" : ""}"><b>${esc(x.text)}</b><br>${x.state === "confirmed" ? `Potvrdil(a) ${esc(x.by)}, ${esc(x.when)}; úloha pro ${esc(x.who)}, ${x.due ? `termín ${esc(dueText(x))}` : DUE_LBL.none}` : x.state === "superseded" ? "Nepotvrzený návrh nahrazen novějším schváleným závěrem." : `Zamítl(a) ${esc(x.by)}, ${esc(x.when)}`}</li>`).join("")}</ul>
     <p class="muted small" style="margin:6px 0 0">Asistent úlohy jen navrhuje z textu schváleného závěru. Úlohou se návrh stane až po potvrzení lékařem.${can ? "" : " Potvrdit nebo zamítnout návrh může jen lékař."}</p></div>`;
 }
 
@@ -4004,7 +4008,7 @@ function renderOverlay() {
     el.innerHTML = `<div class="scrim" data-close="1"></div><div class="modal" role="dialog" aria-label="Záznam z MDT">
       <div class="row spread"><h2>Záznam z MDT · ${esc(p.id)}</h2><button class="btn small" data-close="1">Zavřít</button></div>
       ${`<div><span class="label">Zahrnout do PDF</span><div class="row small" style="gap:4px 14px;margin-top:4px">${[["summary", "NO / onkologický souhrn"], ...(sectionsOf(readyData(p)).anamnesis ? [["anamnesis", "Anamnéza"]] : []), ...(sectionsOf(readyData(p)).record ? FIND : [])].map(([k, t]) => `<label class="row" style="gap:4px"><input type="checkbox" data-pickrep="${k}" ${picked.has(k) ? "checked" : ""} ${locked ? "disabled" : ""}> ${t}</label>`).join("")}</div></div>`}
-      <details class="srcs" data-repopen="1" style="margin:0" ${S.repOpen ? "open" : ""}><summary>Náhled reportu</summary><div id="report" style="margin-top:8px">${locked && pr.reportSnap ? pr.reportSnap : reportHtml(p, pr, presentList(attDay(p)))}</div></details>
+      <details class="srcs" data-repopen="1" style="margin:0" ${S.repOpen ? "open" : ""}><summary>Náhled reportu</summary><div id="report" style="margin-top:8px">${locked && pr.reportSnap ? fillIdent(pr.reportSnap, p) : reportHtml(p, pr, presentList(attDay(p)))}</div></details>
       <p class="muted small" style="margin:0">${locked ? `Report je uzamčen ve stavu při schválení (${esc(pr.when)}). Pozdější úpravy se do něj nepromítnou; změna vyžaduje nový závěr.` : "Závěr zatím není schválený; report se stáhne jako koncept."}</p>
       <p id="report-error" class="report-error small" role="alert" hidden></p>
       <div class="row" style="justify-content:flex-end"><button class="btn primary" data-act="download">Stáhnout PDF</button></div></div>`;
@@ -4410,7 +4414,8 @@ async function approveApi(p, pr) {
     /* The approving doctor was at the meeting (round 20): the frozen list includes them, as the server will. */
     const present = presentList(attDay(p)).slice(); if (!present.includes(S.user)) present.push(S.user);
     const body = { protocol_version: pr.version ?? 0, conclusion: pr.concl, picked_sections: [...S.picked],
-      report_html: reportHtml(p, { ...pr, state: "approved", approver: S.user }, present), attendance_expected: present };
+      /* The server keeps the snapshot without name, birth number and age (it refuses a report holding them). */
+      report_html: reportHtml(p, { ...pr, state: "approved", approver: S.user }, present, { withIdentity: false }), attendance_expected: present };
     /* One key per approval; a retry after a lost answer reuses it, so the server replays its answer instead of making a
        second decision. A changed approval gets a new key. */
     const sig = JSON.stringify([body.protocol_version, body.conclusion, body.attendance_expected, body.picked_sections]);

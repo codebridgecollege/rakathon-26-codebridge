@@ -34,8 +34,20 @@ export const demo = new Hono<AppEnv>().post("/admin/reset-demo", async (c) => {
   const resetAt = isoNow();
 
   // 1. Archive. One batch of reads; the JSON lines go to R2 before anything is deleted.
-  const reads = await db.batch(ARCHIVED.map((t) => db.prepare(`SELECT * FROM ${t}`)));
+  // Decisions are archived without the report HTML (its hash stays): the archive is a record of who did what, not a
+  // second copy of the case content.
+  const reads = await db.batch(
+    ARCHIVED.map((t) =>
+      db.prepare(
+        t === "decisions"
+          ? "SELECT id, case_id, version, approved_by_user_id, approved_by_name, approved_at, slot_day, slot_time, supersedes_id, json_extract(report_snapshot_json, '$.sha256') AS report_sha256 FROM decisions"
+          : `SELECT * FROM ${t}`,
+      ),
+    ),
+  );
   const lines = reads.flatMap((r, i) => (r.results as Record<string, unknown>[]).map((row) => JSON.stringify({ table: ARCHIVED[i], row })));
+  // Rows written after this read would be deleted unarchived; the batch below refuses if any appeared.
+  const archived = ARCHIVED.map((t, i) => ({ t, count: reads[i]!.results.length }));
   try {
     await c.env.DOCS.put(`audit-archive/${resetAt}.jsonl`, lines.join("\n") + "\n", { httpMetadata: { contentType: "application/x-ndjson" } });
   } catch {
@@ -47,6 +59,9 @@ export const demo = new Hono<AppEnv>().post("/admin/reset-demo", async (c) => {
   const v = c.var.viewer;
   const stmts: D1PreparedStatement[] = [
     db.prepare("PRAGMA defer_foreign_keys = on"),
+    db
+      .prepare(`INSERT INTO write_guards (batch_id, code, ok) SELECT 'reset', 'archived', CASE WHEN json_array(${archived.map((m) => `(SELECT COUNT(*) FROM ${m.t})`).join(", ")}) = ?1 THEN 1 ELSE 0 END`)
+      .bind(JSON.stringify(archived.map((m) => m.count))),
     db.prepare("UPDATE demo_state SET reset_in_progress = 1 WHERE id = 1"),
     ...MUTABLE_DELETE_ORDER.map((t) => db.prepare(`DELETE FROM ${t}`)),
     db.prepare("DELETE FROM patients WHERE id NOT IN (SELECT value FROM json_each(?1))").bind(JSON.stringify(doc.patient_ids)),
@@ -61,7 +76,13 @@ export const demo = new Hono<AppEnv>().post("/admin/reset-demo", async (c) => {
   stmts.push(
     auditStatement(db, v, { action: "demo.reset", what_cs: `obnovil(a) ukázková data (seed ${doc.seed_version})` }, { requestId: c.req.header("cf-ray") ?? null, epoch: epochAfter }),
   );
-  await db.batch(stmts);
+  try {
+    await db.batch(stmts);
+  } catch (e) {
+    // A write landed between the archive and the batch; nothing was deleted, the admin runs the reset again.
+    if (/CHECK constraint failed/.test(e instanceof Error ? e.message : "")) throw D.conflict();
+    throw e;
+  }
 
   // 3. R2 objects written by later steps. A failure is reported and retried by the next reset.
   let left = 0;

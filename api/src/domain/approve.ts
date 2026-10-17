@@ -40,7 +40,8 @@ export type ApprovePlan = {
     supersedes_id: string | null;
     slot: Slot | null;
     attSnap: string[];
-    report: { html: string; sha256: string; picked_sections: string[]; protocol_version: number };
+    // notes and steps are frozen too: "Nový závěr" empties the protocol row, the decision keeps what was approved.
+    report: { html: string; sha256: string; picked_sections: string[]; protocol_version: number; notes: string; steps: { text: string; who: string; due: string }[] };
   };
   attendanceAdd: AttendanceRow | null;
   tasks: { text: string; assignee_user_id: string | null; assignee_name: string; due: string | null }[];
@@ -105,7 +106,7 @@ export function approve(i: ApproveInput): ApprovePlan {
       supersedes_id: last?.id ?? null,
       slot: i.slot,
       attSnap,
-      report: { html: b.report_html, sha256: i.reportSha256, picked_sections: picked, protocol_version: i.protocol.version },
+      report: { html: b.report_html, sha256: i.reportSha256, picked_sections: picked, protocol_version: i.protocol.version, notes: i.protocol.notes, steps: i.protocol.steps },
     },
     attendanceAdd,
     tasks,

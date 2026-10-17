@@ -93,6 +93,8 @@ export const D = {
   resetDisabled: err(403, "reset_disabled", "Obnova ukázkových dat je na tomto serveru vypnutá."),
   resetConfirm: err(422, "invalid_input", "Pro obnovu napište OBNOVIT."),
   resetting: err(503, "resetting", "Ukázková data se právě obnovují, zkuste to za chvíli."),
+  dataReset: err(409, "data_reset", "Ukázková data byla obnovena, stránka se znovu načte."),
+  suggestionSuperseded: err(409, "suggestion_superseded", "Návrh patří k závěru, který nahradil novější; vychází z neplatného textu."),
   // a guard failed and its re-check passed again: a parallel write came and went
   conflict: err(409, "conflict", "Data se mezitím změnila; zkuste to znovu."),
 };

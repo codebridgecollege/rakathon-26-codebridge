@@ -94,6 +94,32 @@ INSERT INTO roles_new (id, label_cs) SELECT id, label_cs FROM roles;
 INSERT INTO roles_new (id, label_cs) SELECT 'staff', 'personál pracoviště' WHERE EXISTS (SELECT 1 FROM roles);
 DROP TABLE roles;
 ALTER TABLE roles_new RENAME TO roles;
+-- ---------- drafted tasks: a fourth state ----------
+-- A newer approval supersedes the drafts of the decision it replaces, so a draft from an outdated conclusion can no
+-- longer become a task. SQLite cannot change a CHECK, so the table is rebuilt (it held no rows before step 4).
+CREATE TABLE task_suggestions_new (
+  id               INTEGER PRIMARY KEY AUTOINCREMENT,
+  case_id          TEXT NOT NULL REFERENCES cases(id),
+  decision_id      TEXT REFERENCES decisions(id),
+  decision_version INTEGER,
+  text             TEXT NOT NULL,
+  quote            TEXT,                        -- the conclusion passage it rests on
+  who              TEXT,
+  due              TEXT CHECK (due IS NULL OR due GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]'),
+  due_source       TEXT CHECK (due_source IN ('computed','manual','none') OR due_source IS NULL),
+  due_by           TEXT,
+  timing           TEXT,
+  state            TEXT NOT NULL DEFAULT 'draft' CHECK (state IN ('draft','confirmed','dismissed','superseded')),
+  decided_by       TEXT REFERENCES users(id),
+  decided_by_name  TEXT,
+  decided_at       TEXT CHECK (decided_at IS NULL OR decided_at GLOB '[0-9][0-9][0-9][0-9]-*Z'),
+  created_at       TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')) CHECK (created_at GLOB '[0-9][0-9][0-9][0-9]-*Z')
+);
+INSERT INTO task_suggestions_new (id, case_id, decision_id, text, quote, who, due, due_source, timing, state, decided_by, decided_at, created_at)
+  SELECT id, case_id, decision_id, text, quote, who, due, due_source, timing, state, decided_by, decided_at, created_at FROM task_suggestions;
+DROP TABLE task_suggestions;
+ALTER TABLE task_suggestions_new RENAME TO task_suggestions;
+CREATE INDEX task_suggestions_case ON task_suggestions(case_id);
 PRAGMA defer_foreign_keys = false;
 
 -- ---------- columns the write routes need ----------
@@ -101,9 +127,6 @@ PRAGMA defer_foreign_keys = false;
 ALTER TABLE fact_edits ADD COLUMN log_id INTEGER;
 ALTER TABLE fact_edits ADD COLUMN extraction_run_id TEXT;
 ALTER TABLE edit_log ADD COLUMN confirmed INTEGER NOT NULL DEFAULT 0 CHECK (confirmed IN (0,1));
-ALTER TABLE task_suggestions ADD COLUMN due_by TEXT;
-ALTER TABLE task_suggestions ADD COLUMN decided_by_name TEXT;
-ALTER TABLE task_suggestions ADD COLUMN decision_version INTEGER;
 ALTER TABLE protocols ADD COLUMN updated_by_name TEXT;
 ALTER TABLE protocols ADD COLUMN approved_by_name TEXT;
 ALTER TABLE protocols ADD COLUMN approved_at TEXT;

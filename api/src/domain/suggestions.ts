@@ -12,7 +12,7 @@ export type SuggestionRow = {
   due_source: string | null;
   due_by: string | null;
   timing: string | null;
-  state: "draft" | "confirmed" | "dismissed";
+  state: "draft" | "confirmed" | "dismissed" | "superseded";
   decided_by_name: string | null;
 };
 

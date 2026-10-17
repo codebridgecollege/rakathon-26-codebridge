@@ -20,6 +20,7 @@ import { sha256Hex } from "../store/work";
 import { actorOf, answer, caseFor, isoNow, label, newId, now, statesFor, tx, work } from "./write-context";
 import { hooks } from "./hooks";
 import { patientRow } from "../domain/rows";
+import { validateReportHtml } from "../domain/report";
 
 const GAP = "neuvedeno v dostupné dokumentaci";
 
@@ -116,7 +117,8 @@ export const writeCases = new Hono<AppEnv>()
     const { core, breakGlass } = await caseFor(c, id, "protocol.edit");
     const w = work(c);
     const b = c.var.body;
-    const [p, exists, staff] = await Promise.all([w.protocol(id), w.protocolExists(id), w.staff()]);
+    const [p, staff] = await Promise.all([w.protocol(id), w.staff()]);
+    const exists = p.exists;
     const next = patchProtocol(p, core.status, { notes: b.notes, concl: b.concl, steps: b.steps }, b.version, staff.activeNames);
     const t = tx(c, breakGlass);
     const at = isoNow();
@@ -162,14 +164,27 @@ export const writeCases = new Hono<AppEnv>()
     if (!/^[A-Za-z0-9-]{8,80}$/.test(key)) throw E.idempotencyKeyRequired();
     const route = `approve:${id}`;
     const sha = await bodySha(c.var.body);
+    // Access first: a replayed answer carries the case state, so it is shown only to someone who may still act.
+    const { core, breakGlass } = await caseFor(c, id, "decision.approve");
     const replay = await replayIdempotent(c, key, route, sha);
     if (replay) return replay;
-
-    const { core, breakGlass } = await caseFor(c, id, "decision.approve");
     const w = work(c);
     const slot = slotOf(core);
     const setKey = slot ? slot.day : `case:${id}`;
-    const [p, exists, decs, att, staff] = await Promise.all([w.protocol(id), w.protocolExists(id), w.decisions(id), w.attendance(setKey), w.staff()]);
+    const [p, decs, att, staff, ident] = await Promise.all([
+      w.protocol(id),
+      w.decisions(id),
+      w.attendance(setKey),
+      w.staff(),
+      c.env.DB.prepare("SELECT full_name, name_as_written, birth_number FROM patients WHERE id = ?1").bind(core.patient_id).first<{ full_name: string; name_as_written: string | null; birth_number: string | null }>(),
+    ]);
+    const exists = p.exists;
+    // Only the page's own report markup, and no patient identity in it (identity lives in the patients table only).
+    const surnameFirst = (n: string) => (n.includes(" ") ? `${n.split(" ").slice(-1)[0]} ${n.split(" ").slice(0, -1).join(" ")}` : n);
+    validateReportHtml(String(c.var.body.report_html ?? ""), {
+      birthNumber: ident?.birth_number ?? null,
+      names: ident ? [ident.full_name, ident.name_as_written ?? "", surnameFirst(ident.full_name)] : [],
+    });
     const t0 = now();
     const plan = approve({
       actor: actorOf(c),
@@ -192,21 +207,24 @@ export const writeCases = new Hono<AppEnv>()
     const data = { decision_id: d.id, version: d.version, tasks_created: plan.tasks.length, suggestions_created: plan.suggestions.length };
     const t = tx(c, breakGlass);
     t.idempotency(key, route, sha, data, 200, at);
+    // Order matters for the refusal the loser of a race sees: another approval first, then a newer draft, then the rest.
+    t.guard("no_newer_decision", "NOT EXISTS (SELECT 1 FROM decisions WHERE case_id = ? AND version >= ?)", [id, d.version], () => D.alreadyApproved());
+    if (exists) {
+      t.guard("protocol_state", "EXISTS (SELECT 1 FROM protocols WHERE case_id = ? AND state = 'draft')", [id], () => D.alreadyApproved());
+      t.guard("protocol_version", "EXISTS (SELECT 1 FROM protocols WHERE case_id = ? AND version = ?)", [id, p.version], () => D.conflict());
+    } else t.guard("protocol", "NOT EXISTS (SELECT 1 FROM protocols WHERE case_id = ?)", [id], () => D.conflict());
     t.guard("status", "(SELECT status FROM cases WHERE id = ?) = ?", [id, core.status], () => D.statusChanged());
     // The decision freezes the slot it was made on, so the slot must still be the one read above.
     if (slot) t.guard("slot", "EXISTS (SELECT 1 FROM slots WHERE case_id = ? AND day = ? AND time = ?)", [id, slot.day, slot.time], () => D.conflict());
     else t.guard("slot", "NOT EXISTS (SELECT 1 FROM slots WHERE case_id = ?)", [id], () => D.conflict());
-    t.guard("no_newer_decision", "NOT EXISTS (SELECT 1 FROM decisions WHERE case_id = ? AND version >= ?)", [id, d.version], () => D.alreadyApproved());
     t.guard("attendance", "COALESCE((SELECT version FROM attendance_sets WHERE set_key = ?), 0) = ?", [setKey, att.version], () => D.attendanceChanged());
     if (exists) {
-      t.guard("protocol", "EXISTS (SELECT 1 FROM protocols WHERE case_id = ? AND version = ? AND state = 'draft')", [id, p.version], () => D.alreadyApproved());
       t.run(
         `UPDATE protocols SET conclusion = ?1, state = 'approved', version = version + 1, approved_by_name = ?2, approved_at = ?3,
            updated_by = ?4, updated_by_name = ?2, updated_at = ?3 WHERE case_id = ?5`,
         plan.conclusion, v.name, at, v.id, id,
       );
     } else {
-      t.guard("protocol", "NOT EXISTS (SELECT 1 FROM protocols WHERE case_id = ?)", [id], () => D.alreadyApproved());
       t.run(
         `INSERT INTO protocols (case_id, conclusion, state, version, updated_by, updated_by_name, updated_at, approved_by_name, approved_at)
          VALUES (?1, ?2, 'approved', 1, ?3, ?4, ?5, ?4, ?5)`,
@@ -239,6 +257,8 @@ export const writeCases = new Hono<AppEnv>()
          FROM json_each(?4)`,
         id, v.id, at, JSON.stringify(plan.tasks.map((x) => ({ text: x.text, uid: x.assignee_user_id, who: x.assignee_name, due: x.due }))),
       );
+    // Drafts of the decision this one replaces rest on an outdated conclusion; they can no longer become tasks.
+    t.run("UPDATE task_suggestions SET state = 'superseded' WHERE case_id = ?1 AND state = 'draft'", id);
     if (plan.suggestions.length)
       t.run(
         `INSERT INTO task_suggestions (case_id, decision_id, decision_version, text, quote, who, due, due_source, timing, state, created_at)
@@ -263,6 +283,11 @@ export const writeCases = new Hono<AppEnv>()
       if (e instanceof IdempotentReplay) {
         const r = await replayIdempotent(c, key, route, sha);
         if (r) return r;
+      }
+      // An autosave by someone else landed between the read and the batch: the doctor looks at the newer draft.
+      if (e instanceof DomainError && e.code === "conflict") {
+        const cur = await w.protocol(id);
+        if (cur.state === "draft" && cur.version !== p.version) throw D.protocolConflict(cur.updated_by_name ?? "", cur);
       }
       throw e;
     }
@@ -309,6 +334,7 @@ export const writeCases = new Hono<AppEnv>()
     const at = isoNow();
     const v = c.var.viewer;
     t.guard("draft", "(SELECT question_draft FROM cases WHERE id = ?) = ?", [id, draft], () => D.questionChanged());
+    t.guard("once", "NOT EXISTS (SELECT 1 FROM question_confirmations WHERE case_id = ? AND text = ?)", [id, draft], () => D.questionConfirmed("jiný lékař"));
     t.run("INSERT INTO question_confirmations (case_id, text, by_user_id, by_name, at) VALUES (?1, ?2, ?3, ?4, ?5)", id, draft, v.id, v.name, at);
     t.run("INSERT INTO edit_log (case_id, key, orig, text, confirmed, by_user_id, by_name, at) VALUES (?1, 'q', ?2, ?2, 1, ?3, ?4, ?5)", id, draft, v.id, v.name, at);
     t.audit({ action: "question.confirm", what_cs: "potvrdil(a) návrh otázky pro MDT", case_id: id });
@@ -420,9 +446,17 @@ export async function replayIdempotent(c: import("hono").Context<AppEnv>, key: s
     status: number;
   }>();
   if (!row) return null;
+  // Keys hold for 24 hours; after that the same key is a new request (the old row goes, it is not history).
+  const created = await c.env.DB.prepare("SELECT created_at FROM idempotency_keys WHERE key = ?1").bind(key).first<{ created_at: string }>();
+  if (created && created.created_at < new Date(now().getTime() - 24 * 3600_000).toISOString()) {
+    await c.env.DB.prepare("DELETE FROM idempotency_keys WHERE key = ?1").bind(key).run();
+    return null;
+  }
   if (row.user_id !== c.var.viewer.id || row.route !== route || row.body_sha !== sha) throw D.idempotencyMismatch();
   const data = JSON.parse(row.response_json) as { case_id?: string };
   const caseId = route.startsWith("approve:") ? route.slice(8) : data.case_id;
+  // A replay shows case data again, so it is an access like any other.
+  await tx(c).audit({ action: "request.replay", what_cs: "zopakoval(a) požadavek (stejná odpověď)", case_id: caseId ?? null }).commit();
   const state: Record<string, unknown> = caseId ? { cases: await statesFor(c, [caseId]) } : {};
   if (route.startsWith("approve:") && caseId) state.mails = await work(c).mails([caseId]);
   if (route === "create_case" && caseId) {
