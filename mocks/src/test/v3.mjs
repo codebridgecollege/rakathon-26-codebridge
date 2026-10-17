@@ -465,6 +465,70 @@ for (const width of [1280, 400]) {
     && await page.evaluate(() => P("17_pacient.pdf").status !== "attention"), `${width} r22 Jelen Otakar header with the neutral name note and its source`);
   await page.close();
 }
+// round 23: department staff, entered as title + surname and kept only in this browser
+for (const width of [1280, 400]) {
+  const page = await browser.newPage({ viewport: { width, height: 900 } });
+  page.on("pageerror", e => errs.push(`${width}: ${e.message}`));
+  const over = async name => { const w = await page.evaluate(() => document.documentElement.scrollWidth); if (w > width + 1) errs.push(`${width}: overflow on ${name} (${w})`); };
+  const c = async sel => { const el = page.locator(sel).first(); if (!(await el.count())) { errs.push(`${width}: missing ${sel}`); return; } await el.click(); };
+  const go = async h => { await page.evaluate(x => { location.hash = x; }, h); await page.waitForTimeout(120); };
+  const text = sel => page.locator(sel).first().textContent();
+  await page.goto(file);
+  // round 23: department staff entered as title + surname, kept only in this browser
+  const chg = async (sel, v) => { const l = page.locator(sel).first(); await l.fill(v); await l.evaluate(el => el.dispatchEvent(new Event("change", { bubbles: true }))); await page.waitForTimeout(60); };
+  const pickerHas = n => page.evaluate(x => [...document.querySelectorAll("#user option")].some(o => o.value === x), n);
+  await page.evaluate(() => { S.user = DOCTORS[0]; render(); }); await c('[data-nav="staff"]'); await over("staff read-only");
+  ok((await text("main")).includes("Personál pracoviště") && await page.locator("main [data-staff], main [data-act=staffreset]").count() === 0 && (await text("main")).includes("lékař ho jen čte"), `${width} r23 doctors see the staff list read-only`);
+  ok(await pickerHas("MUDr. Šimek") && await page.evaluate(() => JSON.stringify(DEPTS.find(([d]) => d === "Radiologie")[1]) === '["MUDr. Šimek","MUDr. Veselá"]'), `${width} r23 default radiologists are the fictional MUDr. Šimek and MUDr. Veselá`);
+  await page.selectOption("#user", "Bc. Marková (koordinátorka MDT)"); await over("staff edit");
+  ok((await text("main")).includes("Jména se ukládají jen v tomto prohlížeči; v reálné aplikaci personál spravuje nastavení pracoviště nemocnice.") && await page.locator('main [data-act="staffreset"]').count() === 1
+    && await page.locator("main [data-staffadd]").count() === 6, `${width} r23 coordinator edits: browser-only note, reset button, add row per department`);
+  for (const [f, v] of [["pre", "doc. MUDr."], ["sur", "Testová"], ["post", "Ph.D."], ["fn", "primářka"]]) await page.fill(`[data-newin="d4"][data-sf="${f}"]`, v);
+  await c('[data-staffadd="d4"]');
+  ok(await page.evaluate(() => DEPTS.find(([d]) => d === "Radiologie")[1].includes("doc. MUDr. Testová, Ph.D.") && DOCTORS.includes("doc. MUDr. Testová, Ph.D.")
+    && S.access.some(a => a.what === "přidal(a) do personálu: Radiologie, doc. MUDr. Testová, Ph.D." && a.who === COORD && !a.pid)) && await pickerHas("doc. MUDr. Testová, Ph.D.")
+    && (await page.locator('#user option[value="doc. MUDr. Testová, Ph.D."]').getAttribute("title")) === "primářka, Radiologie", `${width} r23 added person in DEPTS and the user picker (function as tooltip), change logged without a patient`);
+  await c('[data-staffadd="d4"]'); ok(await page.evaluate(() => DEPTS[3][1].length === 3), `${width} r23 a person without a surname is not added`);
+  await chg('[data-staff="d4p2"][data-sf="sur"]', "Šimek");
+  ok(await page.evaluate(() => DEPTS[3][1].includes("MUDr. Veselá") && DEPTS[3][1].filter(n => n === "MUDr. Šimek").length === 1) && await page.inputValue('[data-staff="d4p2"][data-sf="sur"]') === "Veselá", `${width} r23 a duplicate name is refused and the field restored`);
+  await chg('[data-staff="p1"][data-sf="sur"]', "Zkoušková");
+  ok(await page.evaluate(() => DEPTS[3][1].includes("doc. MUDr. Zkoušková, Ph.D.") && !DEPTS[3][1].includes("doc. MUDr. Testová, Ph.D.") && S.access.some(a => a.what.includes("doc. MUDr. Testová, Ph.D. -> doc. MUDr. Zkoušková, Ph.D.")))
+    && await pickerHas("doc. MUDr. Zkoušková, Ph.D.") && !(await pickerHas("doc. MUDr. Testová, Ph.D.")), `${width} r23 rename shows in DEPTS and the picker, logged`);
+  await chg('[data-staff="p1"][data-sf="sur"]', ""); ok(await page.evaluate(() => DEPTS[3][1].includes("doc. MUDr. Zkoušková, Ph.D.")), `${width} r23 emptying a surname is refused`);
+  await page.reload(); await page.waitForTimeout(150);
+  ok(await page.evaluate(() => DEPTS[3][1].includes("doc. MUDr. Zkoušková, Ph.D.") && USERS.includes("doc. MUDr. Zkoušková, Ph.D.") && !!localStorage.getItem("mdt-staff-v1")), `${width} r23 staff list survives a reload (localStorage)`);
+  // the attendance grid offers the new person; extra rows say "vyberte…" and have their own remove button
+  await go("#patient/13"); await c("details.mdtcard > summary"); await c("details.mdtcard [data-attonly]");
+  ok(await page.locator('.modal [data-att="Radiologie"] option', { hasText: "doc. MUDr. Zkoušková, Ph.D." }).count() === 1, `${width} r23 attendance grid lists the added person`);
+  await page.selectOption('.modal [data-att="Radiologie"]', "doc. MUDr. Zkoušková, Ph.D."); await c('.modal [data-addatt="Radiologie"]');
+  ok(await page.locator('.modal [data-att="Radiologie"][data-k="1"] option').first().textContent() === "vyberte…" && !(await text(".modal")).includes("odebrat")
+    && await page.locator('.modal [data-delatt="Radiologie"][data-k="1"]').count() === 1, `${width} r23 extra attendance row: placeholder "vyberte…" and a separate ✕`);
+  await page.selectOption('.modal [data-att="Radiologie"][data-k="1"]', "MUDr. Veselá"); await page.selectOption('.modal [data-att="Radiologie"][data-k="1"]', "");
+  ok(await page.locator('.modal [data-att="Radiologie"][data-k="1"]').count() === 1, `${width} r23 choosing "vyberte…" keeps the row`);
+  await c('.modal [data-delatt="Radiologie"][data-k="1"]'); await over("attendance dialog");
+  ok(await page.locator('.modal [data-att="Radiologie"][data-k="1"]').count() === 0 && await page.evaluate(() => presentList(attDay(P("13_pacient.pdf"))).includes("doc. MUDr. Zkoušková, Ph.D.")), `${width} r23 ✕ removes the extra row; the selection stays`);
+  await c(".modal [data-close]");
+  // the new doctor approves a conclusion; after removal the decision and its attendance keep the name
+  await page.selectOption("#user", "doc. MUDr. Zkoušková, Ph.D."); await go("#patient/13");
+  await page.fill("#concl", "Závěr r23"); await page.waitForTimeout(80); await c('[data-act="approve"]');
+  await page.selectOption("#user", "Bc. Marková (koordinátorka MDT)"); await c('[data-nav="staff"]'); await c('[data-staffdel="p1"]');
+  ok(await page.evaluate(() => !DEPTS[3][1].includes("doc. MUDr. Zkoušková, Ph.D.") && !USERS.includes("doc. MUDr. Zkoušková, Ph.D.") && S.access.some(a => a.what === "odebral(a) z personálu: Radiologie, doc. MUDr. Zkoušková, Ph.D.")
+    && !presentList(attDay(P("13_pacient.pdf"))).includes("doc. MUDr. Zkoušková, Ph.D.")) && !(await pickerHas("doc. MUDr. Zkoušková, Ph.D.")), `${width} r23 removed person leaves DEPTS, the picker and open attendance`);
+  await go("#patient/13");
+  ok((await text(".concl")).includes("schválil(a) doc. MUDr. Zkoušková, Ph.D.") && (await text("details.mdtcard")).includes("doc. MUDr. Zkoušková, Ph.D.")
+    && await page.evaluate(() => S.decisions.at(-1).by === "doc. MUDr. Zkoušková, Ph.D." && S.decisions.at(-1).attSnap.includes("doc. MUDr. Zkoušková, Ph.D.")), `${width} r23 a removed person still shows in the earlier decision and its attendance`);
+  // a renamed coordinator keeps the role and the open tasks
+  await c('[data-nav="staff"]'); await chg('[data-staff="coord"][data-sf="sur"]', "Marková-Nová");
+  ok(await page.evaluate(() => COORD === "Bc. Marková-Nová" && S.user === COORD && S.tasks.filter(t => !t.done).every(t => t.who !== "Bc. Marková")), `${width} r23 renaming the coordinator keeps the role and moves open tasks`);
+  // add a department; reset restores the fictional defaults and clears the stored list
+  await page.fill("#newdept", "Nukleární medicína"); await c('[data-act="staffadddept"]');
+  ok(await page.evaluate(() => DEPTS.some(([d]) => d === "Nukleární medicína") && Object.keys(attFor("2026-10-22")).includes("Nukleární medicína")), `${width} r23 added department shows in the attendance grid`);
+  await c('[data-act="staffreset"]');
+  ok(await page.evaluate(() => isDefaultStaff() && COORD === "Bc. Marková" && DEPTS.length === 6 && localStorage.getItem("mdt-staff-v1") === null && S.access.some(a => a.what.startsWith("obnovil(a) výchozí personál"))), `${width} r23 reset restores the fictional defaults`);
+  await page.reload(); await page.waitForTimeout(150);
+  ok(await page.evaluate(() => isDefaultStaff() && S.user === "MUDr. Svobodová"), `${width} r23 defaults after reload`);
+  await page.close();
+}
 await browser.close();
 console.log(errs.length ? "\n" + errs.join("\n") : "\nall checks passed, no errors");
 process.exit(errs.length ? 1 : 0);

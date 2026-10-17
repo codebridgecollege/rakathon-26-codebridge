@@ -9,7 +9,7 @@ All patient data is FNO's fictitious challenge data.
 |---|---|---|
 | `v1.html` | First simple mock (one patient workspace) | https://claude.ai/artifact/KraDQ9X7diVo93QzXtse6t |
 | `v2.html` | Full mock after feedback round 1 (database, calendar, patient detail, presentation, protocol, tasks) | https://claude.ai/artifact/6F5AbN6vEAHJQgXP1fkUdc |
-| `v3.html` | Mock after feedback round 2 (Excel-style filters, month navigation, 10-minute slots, brief first, diagnosis headline, current state, lab chart, doctor edits, back/forward), with one patient view for the whole MDT: a session bar with the day's cases and a "Projednání na MDT" card for notes, next steps and approval; its source view shows the rendered page image with the cited passage highlighted, so publishing it also needs the `pages/` folder. Round 19 added task drafts from approved conclusions with a coordinator view and a digest e-mail, out-of-hours booking, retrospective deviations with doctor-set severity, and strength-sorted guideline quotes. Round 20 added a status menu with history and "Uzavřít případ", one-button approval for the team, the report picks in a dialog behind "Stáhnout report (PDF)", and a lighter new patient form. Round 21 made guideline statements collapsed entries (quote and tier chip, opening to the reason with sources and the full citation), moved the MDT deviations table under them in "Navrhovaný postup", quoted the guideline edition valid at each past decision in "Retrospektivní odchylky", and replaced the inline missing list with a warning-styled "Upozornění" button | https://claude.ai/artifact/6JwakCBuGZr9STKnfRUz8T |
+| `v3.html` | Mock after feedback round 2 (Excel-style filters, month navigation, 10-minute slots, brief first, diagnosis headline, current state, lab chart, doctor edits, back/forward), with one patient view for the whole MDT: a session bar with the day's cases and a "Projednání na MDT" card for notes, next steps and approval; its source view shows the rendered page image with the cited passage highlighted, so publishing it also needs the `pages/` folder. Round 19 added task drafts from approved conclusions with a coordinator view and a digest e-mail, out-of-hours booking, retrospective deviations with doctor-set severity, and strength-sorted guideline quotes. Round 20 added a status menu with history and "Uzavřít případ", one-button approval for the team, the report picks in a dialog behind "Stáhnout report (PDF)", and a lighter new patient form. Round 21 made guideline statements collapsed entries (quote and tier chip, opening to the reason with sources and the full citation), moved the MDT deviations table under them in "Navrhovaný postup", quoted the guideline edition valid at each past decision in "Retrospektivní odchylky", and replaced the inline missing list with a warning-styled "Upozornění" button. Round 23 added "Personál pracoviště": staff entered as title and surname, saved only in the viewer's browser (localStorage `mdt-staff-v1`, fictional defaults, "Obnovit výchozí"), from which attendance and the user picker are built | https://claude.ai/artifact/6JwakCBuGZr9STKnfRUz8T |
 
 The published copies are private claude.ai artifacts owned by Juro; ask him
 to share them. To view a mock locally, open the `.html` file in a browser.
@@ -38,6 +38,11 @@ Do not edit `v1.html` to `v3.html` or `pages/` directly; they are generated.
   `document_history` are invented example data and the UI labels them so.
 - `mock-patient-list.json`: one entry per other patient.
 - `ocr.json`: the raw OCR text of all ten patient PDFs.
+- `mock-case-S01.json`: our own fictional patient `S01_pacient.pdf`
+  ([`samples/README.md`](../samples/README.md)): a patient-list entry, the
+  documents, the data gaps, and `labs_series`, the lab values of four
+  dated lab sheets, each with its page and verbatim quote. Built by
+  `src/extract/build_case_s01.py`; `build.py` does not embed it yet.
 
 Mock v3 also embeds `data/derived/page-index.json` (built by
 `scripts/build_page_index.py` from the OCR outputs in `data/derived/pages/`):
@@ -109,7 +114,10 @@ Lucide 0.468.0 paths are embedded in the template, with the ISC notice in
   opening to Proč with sources, the ordering sentence, the deviations table in
   "Navrhovaný postup", retrospective quotes equal to the historic-edition
   file with the edition year and PDF page, and the warning-styled
-  "Upozornění" button) and reports JS errors and horizontal overflow
+  "Upozornění" button; round 23: the staff screen read-only for doctors, adding,
+  renaming and removing a person, refused duplicates, the attendance grid
+  and the user picker following the list, persistence across a reload, a
+  removed person kept in an earlier decision, and the reset) and reports JS errors and horizontal overflow
   (`node mocks/src/test/v3.mjs`).
 - `src/test/smoke.mjs`: clicks through every screen of v2 in jsdom and reports JS
   errors (`npm i jsdom@24.1.0` in a scratch folder, then

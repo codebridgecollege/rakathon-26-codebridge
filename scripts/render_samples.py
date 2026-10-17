@@ -1,0 +1,90 @@
+# /// script
+# requires-python = ">=3.11,<3.13"
+# dependencies = ["pymupdf==1.24.10", "markdown==3.7"]
+# ///
+"""Render our own synthetic sample documents to one A4 PDF per patient.
+
+Usage:
+    uv run scripts/render_samples.py samples/S01_pacient [--pages data/derived/pages]
+
+Reads the Markdown documents in the sample folder in name order (one file
+per clinical document; a line `<!-- page -->` starts a new printed page)
+and writes:
+- `<folder>/<folder name>.pdf`: all documents in one PDF, like FNO's
+  `<n>_pacient.pdf` referrals, each document starting on a new page;
+- `<pages>/<folder name>/p<n>.vision.md`: the Markdown of each printed
+  page, which stands in for the vision model's transcription because we
+  wrote the text ourselves.
+
+Then run `scripts/ocr_pages.py` on the PDF (page images and Tesseract
+boxes) and `scripts/build_page_index.py` (page index), as for FNO's data.
+
+Every page carries a footer saying the document is synthetic, so a
+rendered page can never pass for a real record.
+"""
+
+import os
+import sys
+from pathlib import Path
+
+import fitz  # PyMuPDF
+import markdown
+
+# Liberation Sans (metrics of Arial, common in hospital printouts) covers Czech diacritics and µ; the PDF base
+# fonts do not. SAMPLE_FONTS points elsewhere on a machine without the Debian font package.
+FONTS = os.environ.get("SAMPLE_FONTS", "/usr/share/fonts/truetype/liberation")
+FOOTER = "SYNTETICKÝ DOKUMENT - fiktivní pacient, vytvořeno týmem CodeBridge pro Rakathon 2026"
+CSS = """
+@font-face { font-family: doc; src: url(LiberationSans-Regular.ttf); }
+@font-face { font-family: doc; src: url(LiberationSans-Bold.ttf); font-weight: bold; }
+@font-face { font-family: doc; src: url(LiberationSans-Italic.ttf); font-style: italic; }
+@font-face { font-family: doc; src: url(LiberationSans-BoldItalic.ttf); font-weight: bold; font-style: italic; }
+* { font-family: doc; font-size: 10pt; line-height: 1.35; }
+h1 { font-size: 14pt; margin: 6pt 0 8pt 0; }
+p { margin: 0 0 6pt 0; }
+ul { margin: 0 0 6pt 0; padding-left: 14pt; }
+li { margin: 0 0 2pt 0; }
+"""
+A4 = fitz.paper_rect("a4")
+BODY = fitz.Rect(56, 50, A4.width - 56, A4.height - 60)  # about 2 cm margins, room for the footer
+PAGE_BREAK = "<!-- page -->"
+
+
+def main() -> None:
+    args = sys.argv[1:]
+    pages_dir = Path(args[args.index("--pages") + 1]) if "--pages" in args else Path("data/derived/pages")
+    args = [a for i, a in enumerate(args) if a != "--pages" and (i == 0 or args[i - 1] != "--pages")]
+    if not args:
+        sys.exit(__doc__)
+    folder = Path(args[0])
+    out_pages = pages_dir / folder.name
+    out_pages.mkdir(parents=True, exist_ok=True)
+    archive = fitz.Archive(FONTS)
+    pdf = fitz.open()
+    n = 0
+    for src in sorted(folder.glob("*.md")):
+        if src.name.upper() == "README.MD":
+            continue
+        for chunk in src.read_text().split(PAGE_BREAK):
+            n += 1
+            md = chunk.strip()
+            page = pdf.new_page(width=A4.width, height=A4.height)
+            # nl2br keeps one lab value per printed line, as on a lab sheet, so a quote never spans two lines.
+            html = markdown.markdown(md, extensions=["nl2br"])
+            spare, scale = page.insert_htmlbox(BODY, html, css=CSS, archive=archive, scale_low=1)
+            # scale_low=1 forbids shrinking; a negative spare height means the text did not fit the page.
+            if spare < 0:
+                sys.exit(f"{src.name}: page {n} overflows; add a {PAGE_BREAK} line")
+            foot = f"{FOOTER} · strana {n}"
+            page.insert_htmlbox(fitz.Rect(56, A4.height - 45, A4.width - 56, A4.height - 25),
+                                f"<p>{foot}</p>", css=CSS.replace("10pt", "7.5pt"), archive=archive)
+            (out_pages / f"p{n}.vision.md").write_text(f"{md}\n\n{foot}\n")
+            print(f"{src.name} -> page {n}")
+    target = folder / f"{folder.name}.pdf"
+    pdf.subset_fonts()  # embed only the glyphs used; the full fonts make the PDF megabytes larger
+    pdf.save(target, garbage=3, deflate=True)
+    print(f"wrote {target} ({n} pages) and {n} vision files in {out_pages}")
+
+
+if __name__ == "__main__":
+    main()

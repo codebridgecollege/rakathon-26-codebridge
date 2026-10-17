@@ -270,6 +270,24 @@ details.mdtcard[open] > summary::before { transform: rotate(90deg); }
 /* MDT discussion: attendance, notes, steps */
 .att { display: grid; grid-template-columns: 170px minmax(0, 1fr) auto; gap: 8px 12px; align-items: center; }
 .att .dept { font-weight: 600; font-size: 13.5px; }
+/* Staff screen (round 23): one row per person, the displayed name first, then the four fields. */
+.staffdept .head .row { gap: 8px; }
+.srow { display: grid; grid-template-columns: minmax(150px, 1.3fr) minmax(0, 1fr) minmax(0, 1.1fr) minmax(0, .8fr) minmax(0, 1fr) 84px; gap: 6px 8px; align-items: center; padding: 6px 0; border-top: 1px solid var(--line); }
+.srow.shead { border-top: 0; padding: 0 0 2px; font-size: 12px; color: var(--muted); }
+.srow .sname { font-weight: 600; font-size: 13.5px; overflow-wrap: anywhere; }
+.srow.sadd { margin-top: 4px; }
+.slist { margin: 0; padding-left: 18px; }
+.slist li { margin: 3px 0; }
+.staffnote { margin: 0 0 6px; padding: 8px 10px; border-radius: 8px; background: var(--sunk); }
+@media (max-width: 640px) {
+  .srow { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .srow.sadd .label { grid-column: 1 / -1; }
+  /* The remove button sits on the name line, so it is not mistaken for a field. */
+  .srow .sname { grid-row: 1; grid-column: 1; }
+  .srow.nodel .sname { grid-column: 1 / -1; }
+  .srow [data-staffdel] { grid-row: 1; grid-column: 2; justify-self: end; width: 44px; }
+  .srow.shead { display: none; }
+}
 .seg2 { display: grid; grid-template-columns: 1fr 1fr; background: var(--sunk); border-radius: 8px; padding: 3px; gap: 3px; }
 .seg2 button { border: 0; background: none; border-radius: 6px; padding: 7px; cursor: pointer; font-weight: 600; color: var(--muted); }
 .seg2 button[aria-pressed="true"] { background: var(--surface); color: var(--fg); box-shadow: 0 1px 2px rgba(0,0,0,.08); }
@@ -765,18 +783,57 @@ const plural = (n, one, few, many) => `${n} ${n === 1 ? one : n >= 2 && n <= 4 ?
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const fmtDate = iso => { if (!iso) return GAP; const [y, m, d] = iso.split("-"); return `${+d}. ${+m}. ${y}`; };
 
-/* Fictional staff, configured per department (Soňa's attendance design). */
-const DEPTS = [
-  ["Neurochirurgie", ["MUDr. Novák", "MUDr. Dvořák"]],
-  ["Klinická onkologie", ["MUDr. Svobodová", "MUDr. Malá"]],
-  ["Radiační onkologie", ["MUDr. Černý", "MUDr. Horáková"]],
-  ["Radiologie", ["MUDr. Procházka", "MUDr. Veselá"]],
-  ["Neurologie", ["MUDr. Beneš", "MUDr. Pokorná"]],
-  ["Patologie", ["MUDr. Králová", "MUDr. Němcová"]],
-];
-const COORD = "Bc. Marková (koordinátorka MDT)";
-const ADMIN = "Ing. Kovář (správce systému)";
-const USERS = ["MUDr. Svobodová", "MUDr. Novák", "MUDr. Procházka", COORD, ADMIN];
+/* Department staff (round 23). The doctors enter their colleagues as title + surname, so names are never hardcoded:
+   the defaults below are fictional, and DEPTS, COORD, USERS and DOCTORS are derived from the staff list every time
+   it changes. The list is saved only in this browser (localStorage), so names a user types never reach git or the
+   published page. People have stable ids, so a rename can follow open assignments; history (decisions, attendance
+   snapshots, status history, access log) stores the name string and keeps it. */
+const STAFF_KEY = "mdt-staff-v1";
+const ADMIN = "Ing. Kovář";
+const ADMIN_FN = "správce systému";
+function defaultStaff() {
+  const D = [
+    ["Neurochirurgie", ["Novák", "Dvořák"]],
+    ["Klinická onkologie", ["Svobodová", "Malá"]],
+    ["Radiační onkologie", ["Černý", "Horáková"]],
+    ["Radiologie", ["Šimek", "Veselá"]],
+    ["Neurologie", ["Beneš", "Pokorná"]],
+    ["Patologie", ["Králová", "Němcová"]],
+  ];
+  return {
+    depts: D.map(([name, sur], i) => ({ id: `d${i + 1}`, name, people: sur.map((s, j) => ({ id: `d${i + 1}p${j + 1}`, pre: "MUDr.", sur: s, post: "", fn: "" })) })),
+    coord: { id: "coord", pre: "Bc.", sur: "Marková", post: "", fn: "koordinátorka MDT" },
+    seq: 0,
+  };
+}
+/* Display format everywhere: "<titul před> <příjmení>, <titul za>"; the function shows only on the staff screen and in tooltips. */
+const staffName = x => [x.pre, x.sur].map(s => (s || "").trim()).filter(Boolean).join(" ") + ((x.post || "").trim() ? `, ${x.post.trim()}` : "");
+/* A stored list is used only when its shape is right; anything else falls back to the fictional defaults. */
+function validStaff(s) {
+  const pOk = x => x && typeof x.id === "string" && typeof x.sur === "string" && x.sur.trim();
+  return s && Array.isArray(s.depts) && s.depts.every(d => d && typeof d.name === "string" && Array.isArray(d.people) && d.people.every(pOk)) && pOk(s.coord);
+}
+function loadStaff() {
+  try { const s = JSON.parse(localStorage.getItem(STAFF_KEY) || "null"); if (validStaff(s)) return s; } catch (e) { /* private window or blocked storage: use the defaults */ }
+  return defaultStaff();
+}
+function saveStaff() { try { localStorage.setItem(STAFF_KEY, JSON.stringify(STAFF)); } catch (e) { /* not saved; the list still works for this page view */ } }
+let STAFF = loadStaff();
+let DEPTS, COORD, USERS, DOCTORS, STAFF_FN;
+/* Recomputes every name list the screens use from the staff list. Doctors are the people whose title contains "MUDr.". */
+function applyStaff() {
+  DEPTS = STAFF.depts.map(d => [d.name, d.people.map(staffName)]);
+  COORD = staffName(STAFF.coord);
+  const isMd = x => /MUDr\./.test(`${x.pre || ""} ${x.post || ""}`);
+  DOCTORS = STAFF.depts.flatMap(d => d.people.filter(isMd).map(staffName));
+  USERS = [...DOCTORS, COORD, ADMIN];
+  /* Tooltip text per name: function and department, for the user picker, attendance and the staff screen. */
+  STAFF_FN = { [COORD]: STAFF.coord.fn || "koordinace MDT", [ADMIN]: ADMIN_FN };
+  STAFF.depts.forEach(d => d.people.forEach(x => { STAFF_FN[staffName(x)] = [x.fn, d.name].filter(Boolean).join(", "); }));
+}
+applyStaff();
+const isDefaultStaff = () => JSON.stringify({ ...STAFF, seq: 0 }) === JSON.stringify(defaultStaff());
+const staffTip = n => STAFF_FN[n] ? ` title="${esc(STAFF_FN[n])}"` : "";
 
 const STATUS = {
   new: ["Nový", "st-new"], scheduled: ["Naplánován", "st-scheduled"], attention: ["Vyžaduje pozornost", "st-attention"],
@@ -847,7 +904,8 @@ function initialPatients() {
 }
 
 const S = {
-  view: "patients", pid: CASE.file, tab: "overview", user: USERS[0],
+  /* The demo opens as a clinical oncologist (the demo case is an oncology patient), or the first user if that department has no doctor. */
+  view: "patients", pid: CASE.file, tab: "overview", user: (DEPTS.find(([d]) => d === "Klinická onkologie")?.[1] || []).find(n => DOCTORS.includes(n)) || USERS[0],
   patients: initialPatients(), q: "", colf: {}, colOpen: null, editLog: [], subFrom: "", subTo: "", dbPage: 0, dbAll: false,
   week: mondayOf("2026-10-22"), miniMonth: "2026-10", labMode: "doc", guideOn: true, labSel: null, edits: {},
   selTl: null, tlCategory: "all", picked: new Set(["summary", "imaging", "histology", "past_treatment"]),
@@ -1097,9 +1155,14 @@ function renderNav() {
   const open = myTasks().filter(t => !t.done).length;
   const items = [["patients", "Databáze pacientů"], ["calendar", "Kalendář MDT"], ["tasks", `Moje úlohy<span class="count">${open}</span>`]];
   /* The audit log is for administrators only (Soňa and Juro, round 2); doctors do not see it. */
+  /* Staff list (round 23): the coordinator and the admin edit it; doctors see it read-only. */
+  items.push(["staff", "Personál"]);
   if (S.user === ADMIN) items.push(["admin", "Administrace"]);
   document.getElementById("nav").innerHTML = items.map(([k, t]) => `<button data-nav="${k}" aria-current="${S.view === k || (k === "patients" && S.view === "patient")}">${t}</button>`).join("");
-  document.getElementById("user").innerHTML = USERS.map(u => `<option ${u === S.user ? "selected" : ""}>${esc(u)}</option>`).join("");
+  /* The picker groups doctors by department; the coordinator and the admin keep their role in the label, the value is the name. */
+  const opt = (u, label = u) => `<option value="${esc(u)}" ${u === S.user ? "selected" : ""}${staffTip(u)}>${esc(label)}</option>`;
+  document.getElementById("user").innerHTML = DEPTS.map(([d, docs]) => docs.filter(n => DOCTORS.includes(n))).map((docs, i) => docs.length ? `<optgroup label="${esc(DEPTS[i][0])}">${docs.map(u => opt(u)).join("")}</optgroup>` : "").join("")
+    + `<optgroup label="Další role">${opt(COORD, `${COORD} (${STAFF.coord.fn || "koordinátorka MDT"})`)}${opt(ADMIN, `${ADMIN} (${ADMIN_FN})`)}</optgroup>`;
 }
 
 /* ---------- 1. Patient database ---------- */
@@ -1701,11 +1764,103 @@ function tabAlerts() {
     ${rest.length ? `<h3 style="margin:18px 0 0">Ostatní upozornění</h3>` : ""}
     ${groups.map(g => { const items = rest.filter(f => f.kind === g); return items.length ? `<h4 style="margin:10px 0 6px;font-size:13px">${ALERT[g][0]}, další</h4><div class="alerts">${items.map(f => alertRow(f, false)).join("")}</div>` : ""; }).join("")}</section>`;
 }
+/* ---------- Personál pracoviště (round 23) ---------- */
+/* The coordinator and the admin edit the staff list; doctors read it. */
+const canEditStaff = () => S.user === COORD || S.user === ADMIN;
+const staffNote = () => isDefaultStaff() ? "Jména jsou smyšlená." : "Jména podle seznamu Personál pracoviště.";
+const SF = [["pre", "Titul před", "např. doc. MUDr."], ["sur", "Příjmení", "Příjmení"], ["post", "Titul za", "např. Ph.D."], ["fn", "Funkce", "např. primář"]];
+function staffRow(x, edit, canDel = true) {
+  const n = staffName(x);
+  if (!edit) return `<li><b>${esc(n)}</b>${x.fn ? ` <span class="muted small">· ${esc(x.fn)}</span>` : ""}</li>`;
+  return `<div class="srow ${canDel ? "" : "nodel"}"><span class="sname"${x.fn ? ` title="${esc(x.fn)}"` : ""}>${esc(n)}</span>
+    ${SF.map(([f, l, ph]) => `<input class="input" data-staff="${esc(x.id)}" data-sf="${f}" value="${esc(x[f] || "")}" placeholder="${esc(ph)}" aria-label="${esc(l)}: ${esc(n)}">`).join("")}
+    ${canDel ? `<button class="btn small" data-staffdel="${esc(x.id)}" aria-label="Odebrat ${esc(n)}" title="Odebrat">✕</button>` : "<span></span>"}</div>`;
+}
+function viewStaff() {
+  const edit = canEditStaff();
+  const head = edit ? `<div class="srow shead" aria-hidden="true"><span>Zobrazí se</span>${SF.map(([, l]) => `<span>${l}</span>`).join("")}<span></span></div>` : "";
+  const dept = d => `<section class="card staffdept"><div class="head"><h2>${esc(d.name)}</h2><span class="row"><span class="muted small">${plural(d.people.length, "osoba", "osoby", "osob")}</span>
+      ${edit && !d.people.length ? `<button class="btn small" data-staffdel="dept:${esc(d.id)}" aria-label="Odebrat pracoviště ${esc(d.name)}">Odebrat pracoviště</button>` : ""}</span></div>
+    ${edit ? `${d.people.length ? head + d.people.map(x => staffRow(x, true)).join("") : `<p class="muted small">Zatím nikdo.</p>`}
+      <div class="srow sadd"><span class="label">Nová osoba</span>${SF.map(([f, l, ph]) => `<input class="input" data-newin="${esc(d.id)}" data-sf="${f}" placeholder="${esc(ph)}" aria-label="${esc(l)} (nová osoba, ${esc(d.name)})">`).join("")}
+        <button class="btn small primary" data-staffadd="${esc(d.id)}">+ Přidat</button></div>`
+    : `<ul class="slist">${d.people.map(x => staffRow(x, false)).join("") || `<li class="muted small">Zatím nikdo.</li>`}</ul>`}</section>`;
+  return `<div class="page"><div class="pagehead"><div><h1>Personál pracoviště</h1><div class="muted small">Lékaři podle pracovišť pro docházku na MDT a výběr uživatele · zobrazení: titul před, příjmení, titul za</div></div>
+      ${edit ? `<button class="btn" data-act="staffreset">Obnovit výchozí (smyšlená jména)</button>` : ""}</div>
+    <p class="small staffnote">Jména se ukládají jen v tomto prohlížeči; v reálné aplikaci personál spravuje nastavení pracoviště nemocnice.</p>
+    ${edit ? `<p class="muted small">Odebraná osoba zůstává v historii: v dřívějších závěrech, docházce a záznamu přístupů se jméno nemění. Přejmenování se promítne do otevřených úloh, vlastníků případů a docházky, kterou ještě neuzamklo schválení závěru.</p>`
+      : `<p class="muted small">Seznam upravuje koordinátorka MDT nebo správce systému; lékař ho jen čte.</p>`}
+    <section class="card staffdept"><div class="head"><h2>Koordinátorka onkologických MDT</h2></div>
+      ${edit ? head + staffRow(STAFF.coord, true, false) : `<ul class="slist">${staffRow(STAFF.coord, false)}</ul>`}</section>
+    ${STAFF.depts.map(dept).join("")}
+    ${edit ? `<section class="card"><div class="head"><h2>Přidat pracoviště</h2></div><div class="row"><input class="input" id="newdept" placeholder="Název pracoviště" aria-label="Název nového pracoviště" style="flex:1;min-width:0"><button class="btn small primary" data-act="staffadddept">+ Přidat pracoviště</button></div></section>` : ""}
+    <p class="muted small">Demo nemá přihlášení: role je zvolená v pravém horním rohu. Změny seznamu se zapisují do záznamu přístupů (kdo co změnil, bez údajů o pacientech).</p></div>`;
+}
+/* id -> displayed name for every person and the coordinator, to tell renames from removals after a change. */
+const staffIds = () => Object.fromEntries([[STAFF.coord.id, staffName(STAFF.coord)], ...STAFF.depts.flatMap(d => d.people.map(x => [x.id, staffName(x)]))]);
+const staffTaken = (name, exceptId) => [ADMIN, ...Object.entries(staffIds()).filter(([id]) => id !== exceptId).map(([, n]) => n)].includes(name);
+/* Applies a staff change: re-derives the name lists, moves open assignments to a renamed person, drops a removed
+   person from attendance that no approval has frozen, saves, and writes the access log (no patient data). History
+   (decisions, attendance snapshots, status history, the access log) keeps the name it stored. */
+function commitStaff(prev, what, opts = {}) {
+  const now = staffIds(), names = new Set(Object.values(now)), ren = {};
+  Object.entries(prev).forEach(([id, n]) => { if (now[id] && now[id] !== n) ren[n] = now[id]; });
+  const gone = Object.entries(prev).filter(([id]) => !now[id]).map(([, n]) => n).filter(n => !names.has(n));
+  applyStaff();
+  const mv = n => ren[n] || n;
+  if (ren[S.user]) S.user = ren[S.user];
+  S.patients.forEach(p => { p.owner = mv(p.owner); });
+  S.tasks.forEach(t => { if (!t.done) t.who = mv(t.who); });
+  S.sugg.forEach(x => { if (x.state === "draft") x.who = mv(x.who); });
+  Object.values(S.protos).forEach(pr => { if (pr.state !== "approved") pr.steps.forEach(st => { st.who = mv(st.who); }); });
+  Object.values(S.attByDay).forEach(a => Object.keys(a).forEach(d => { a[d] = a[d].map(v => gone.includes(v) ? "" : mv(v)); }));
+  if (!USERS.includes(S.user)) S.user = COORD;
+  if (opts.reset) { try { localStorage.removeItem(STAFF_KEY); } catch (e) { /* nothing stored to remove */ } } else saveStaff();
+  logAccess("", what);
+  /* A field edit commits on "change", which fires on blur while focus moves to the next field; re-rendering the page
+     then would throw and drop that focus, so a field edit refreshes only the nav and the row's displayed name. */
+  if (opts.row) { renderNav(); const n = opts.row.querySelector(".sname"); if (n) { n.textContent = opts.name; n.title = opts.fn || ""; } } else render();
+}
+function staffFind(id) { if (STAFF.coord.id === id) return { x: STAFF.coord, d: null }; for (const d of STAFF.depts) { const x = d.people.find(y => y.id === id); if (x) return { x, d }; } return {}; }
+function staffEdit(t) {
+  if (!canEditStaff()) return;
+  const { x, d } = staffFind(t.dataset.staff); if (!x) return;
+  const f = t.dataset.sf, v = t.value.trim(), prev = staffIds(), before = staffName(x);
+  /* A refused value is put back into the field itself, without a re-render (see commitStaff). */
+  if (f === "sur" && !v) { t.value = x.sur; toast("Příjmení nelze smazat; osobu odeberte tlačítkem ✕"); return; }
+  const next = staffName({ ...x, [f]: v });
+  if (next !== before && staffTaken(next, x.id)) { t.value = x[f] || ""; toast(`${next} už v seznamu je`); return; }
+  if ((x[f] || "") === v) return;
+  x[f] = v;
+  const where = d ? d.name : "koordinátorka MDT";
+  commitStaff(prev, f === "fn" ? `změnil(a) funkci v personálu: ${where}, ${next}: ${v || "bez funkce"}` : `přejmenoval(a) v personálu: ${where}, ${before} -> ${next}`, { row: t.closest(".srow"), name: next, fn: x.fn });
+}
+function staffAdd(deptId) {
+  if (!canEditStaff()) return;
+  const d = STAFF.depts.find(y => y.id === deptId); if (!d) return;
+  const val = f => document.querySelector(`[data-newin="${CSS.escape(deptId)}"][data-sf="${f}"]`)?.value.trim() || "";
+  const x = { id: `p${++STAFF.seq}`, pre: val("pre"), sur: val("sur"), post: val("post"), fn: val("fn") };
+  if (!x.sur) { toast("Vyplňte příjmení"); document.querySelector(`[data-newin="${CSS.escape(deptId)}"][data-sf="sur"]`)?.focus(); return; }
+  if (staffTaken(staffName(x))) { toast(`${staffName(x)} už v seznamu je`); return; }
+  const prev = staffIds(); d.people.push(x);
+  commitStaff(prev, `přidal(a) do personálu: ${d.name}, ${staffName(x)}`); toast(`Přidáno: ${staffName(x)}`);
+}
+function staffDel(id) {
+  if (!canEditStaff()) return;
+  const prev = staffIds();
+  if (id.startsWith("dept:")) {
+    const i = STAFF.depts.findIndex(d => d.id === id.slice(5)); if (i < 0 || STAFF.depts[i].people.length) return;
+    const [d] = STAFF.depts.splice(i, 1); commitStaff(prev, `odebral(a) pracoviště z personálu: ${d.name}`); return;
+  }
+  const { x, d } = staffFind(id); if (!x || !d) return;
+  d.people = d.people.filter(y => y.id !== id);
+  commitStaff(prev, `odebral(a) z personálu: ${d.name}, ${staffName(x)}`); toast(`Odebráno: ${staffName(x)} (v historii zůstává)`);
+}
 function viewAdmin() {
   if (S.user !== ADMIN) return `<div class="page"><p class="muted">Administrace je jen pro správce systému.</p></div>`;
   return `<div class="page"><div class="pagehead"><div><h1>Administrace</h1><div class="muted small">Záznam přístupů ke všem případům · jen pro správce systému</div></div></div>
     <section class="card" style="padding:0"><div class="scroll"><table class="tbl"><thead><tr><th>Čas</th><th>Uživatel</th><th>Případ</th><th>Akce</th></tr></thead>
-    <tbody>${S.access.map(a => `<tr><td class="num">${esc(a.when)}</td><td>${esc(a.who)}</td><td class="id">${esc(P(a.pid)?.id || a.pid)}</td><td>${esc(a.what)}</td></tr>`).join("") || `<tr><td colspan="4" class="muted">Zatím žádné přístupy v této relaci. Záznam vznikne otevřením případu nebo zdrojového dokumentu.</td></tr>`}</tbody></table></div></section>
+    <tbody>${S.access.map(a => `<tr><td class="num">${esc(a.when)}</td><td>${esc(a.who)}</td><td class="id">${esc(P(a.pid)?.id || a.pid || "-")}</td><td>${esc(a.what)}</td></tr>`).join("") || `<tr><td colspan="4" class="muted">Zatím žádné přístupy v této relaci. Záznam vznikne otevřením případu nebo zdrojového dokumentu.</td></tr>`}</tbody></table></div></section>
     <section class="card"><div class="head"><h2>Úpravy lékařů (${S.editLog.length})</h2><span class="muted small">Původní hodnota zůstává; seznam se jen doplňuje</span></div>
       <ul class="hist">${S.editLog.slice().reverse().map(e => `<li class="small"><b>${esc(P(e.pid)?.id || e.pid)}</b> · ${esc(e.by)} · ${esc(e.when)}${e.reverted ? " · <b>vráceno na původní</b>" : ""}<br>Původně: <span class="muted">${esc(e.orig || GAP)}</span>${e.reverted ? "" : `<br>Nově: ${esc(e.text)}`}</li>`).join("") || `<li class="muted small">Zatím žádné úpravy. Záznam vznikne, když lékař v případu pacienta opraví údaj tužkou ✎.</li>`}</ul></section>
     <p class="muted small">Role správce zde slouží jen k náhledu záznamu; v reálné aplikaci by správce neměl přístup ke klinickému obsahu případů. Záznam se v maketě drží jen v paměti prohlížeče. V reálné aplikaci by byl na serveru nemocnice, neměnný a s dobou uchování podle předpisů FNO.</p></div>`;
@@ -1837,16 +1992,18 @@ function ensureProto(p) {
 }
 /* Attendance is entered once per seminar day and applies to every case that day (Soňa, rounds 1 and 2). */
 const attDay = (p = P(S.pid)) => p?.slot?.day || `bez termínu: ${p?.file}`;
-function attFor(day = attDay()) { if (!S.attByDay[day]) S.attByDay[day] = Object.fromEntries(DEPTS.map(([d]) => [d, [""]])); return S.attByDay[day]; }
+/* A department added on the staff screen after a day's attendance was started gets an empty row too. */
+function attFor(day = attDay()) { const a = S.attByDay[day] = S.attByDay[day] || {}; DEPTS.forEach(([d]) => { a[d] = a[d] || [""]; }); return a; }
 /* Attendance selects for one seminar day; the grid sits in the attendance dialog ("Zahájit MDT", "Přítomní", "Upravit"). */
 function attGrid(day) {
   const a = attFor(day);
   return `<div class="att">${DEPTS.map(([d, docs]) => a[d].map((v, k) => `<span class="dept">${k === 0 ? d : ""}</span>
-    <select class="input" data-att="${esc(d)}" data-day="${esc(day)}" data-k="${k}" aria-label="${esc(d)}"><option value="">${k === 0 ? "vyberte…" : "odebrat"}</option>${docs.map(x => `<option ${v === x ? "selected" : ""} ${a[d].includes(x) && v !== x ? "disabled" : ""}>${esc(x)}</option>`).join("")}</select>
-    ${k === 0 ? `<button class="btn small" data-addatt="${esc(d)}" data-day="${esc(day)}" ${a[d].length >= docs.length ? "disabled" : ""}>+ další</button>` : "<span></span>"}`).join("")).join("")}</div>`;
+    <select class="input" data-att="${esc(d)}" data-day="${esc(day)}" data-k="${k}" aria-label="${esc(d)}"><option value="">vyberte…</option>${docs.map(x => `<option ${v === x ? "selected" : ""} ${a[d].includes(x) && v !== x ? "disabled" : ""}${staffTip(x)}>${esc(x)}</option>`).join("")}</select>
+    ${k === 0 ? `<button class="btn small" data-addatt="${esc(d)}" data-day="${esc(day)}" ${a[d].length >= docs.length ? "disabled" : ""}>+ další</button>` : `<button class="btn small" data-delatt="${esc(d)}" data-day="${esc(day)}" data-k="${k}" aria-label="Odebrat řádek" title="Odebrat řádek">✕</button>`}`).join("")).join("")}</div>`;
 }
 const presentList = (day = attDay()) => Object.values(attFor(day)).flat().filter(Boolean);
-const isDoctor = u => u.startsWith("MUDr.");
+/* A doctor is a staff member whose title contains "MUDr." (derived in applyStaff). */
+const isDoctor = u => DOCTORS.includes(u);
 /* The card's chip and approval hint follow the conclusion field; typing updates them in place (syncConcl). */
 function mdtChip(p) {
   const pr = ensureProto(p), versions = S.decisions.filter(d => d.pid === p.file).length;
@@ -1902,8 +2059,8 @@ function mdtCard(p) {
         ${locked ? "" : `<button class="btn small" data-act="addstep" style="margin-top:10px">+ Přidat úlohu</button>`}</div>
     </div><div class="stack">
       <div class="sub"><div class="head"><h3>Přítomní (${shown.length})</h3><span class="row">${locked ? "" : `<button class="btn small" data-startday="${esc(day)}" data-attonly="1">Upravit</button>`}<button class="btn small" data-act="copyatt">Kopírovat</button></span></div>
-        <p style="margin:0">${esc(shown.join(", ") || "nezadáno")}</p>
-        <p class="muted small" style="margin:6px 0 0">${locked ? `Uzamčeno schválením závěru ${esc(pr.when)}.` : p.slot ? `Platí pro celý seminář (${esc(dayLabel(p.slot.day) + " " + p.slot.day.slice(0, 4))}). Jména jsou smyšlená.` : "Pacient nemá termín; přítomnost platí jen pro tento případ. Jména jsou smyšlená."}</p></div>
+        <p style="margin:0">${shown.map(n => `<span${staffTip(n)}>${esc(n)}</span>`).join(", ") || "nezadáno"}</p>
+        <p class="muted small" style="margin:6px 0 0">${locked ? `Uzamčeno schválením závěru ${esc(pr.when)}.` : p.slot ? `Platí pro celý seminář (${esc(dayLabel(p.slot.day) + " " + p.slot.day.slice(0, 4))}). ${staffNote()}` : `Pacient nemá termín; přítomnost platí jen pro tento případ. ${staffNote()}`}</p></div>
       <div class="sub"><div class="head"><h3>Schválení závěru</h3></div>
         ${locked ? `<p class="small" style="margin:0">Schválil(a) za tým <b>${esc(pr.approver)}</b> · ${esc(pr.when)}</p>
           ${p.status === "done" && canSetStatus() ? `<div style="margin:10px 0 0"><button class="btn primary closecase" data-act="closecase">Uzavřít případ</button>
@@ -2519,7 +2676,7 @@ function renderOverlay() {
 function render() {
   const bar = document.querySelector(".tlbar"); if (bar) S.tlScroll = bar.scrollLeft;
   renderNav();
-  const v = { patients: viewPatients, calendar: viewCalendar, patient: viewPatient, tasks: viewTasks, admin: viewAdmin }[S.view];
+  const v = { patients: viewPatients, calendar: viewCalendar, patient: viewPatient, tasks: viewTasks, admin: viewAdmin, staff: viewStaff }[S.view];
   document.getElementById("app").innerHTML = v();
   const nb = document.querySelector(".tlbar"); if (nb) nb.scrollLeft = S.tlScroll || 0;
   measureTop(); markClamped();
@@ -2540,7 +2697,7 @@ function readHash() {
   /* #present/<id> and #protocol/<id> links open the patient view, which holds the case and its MDT discussion. */
   const legacy = view === "present" || view === "protocol";
   if (legacy) { view = "patient"; tab = "overview"; }
-  if (!view || !{ patients: 1, calendar: 1, patient: 1, tasks: 1, admin: 1 }[view]) return false;
+  if (!view || !{ patients: 1, calendar: 1, patient: 1, tasks: 1, admin: 1, staff: 1 }[view]) return false;
   const before = S.pid + S.view;
   S.view = view;
   if (view === "calendar" && /^\d{4}-\d\d-\d\d$/.test(id || "")) { S.week = mondayOf(id); S.miniMonth = id.slice(0, 7); }
@@ -2593,7 +2750,7 @@ document.addEventListener("click", e => {
   hideTip();
   if (S.colOpen && !e.target.closest(".fpop,[data-colopen]")) { S.colOpen = null; render(); return; }
   if (S.stOpen && !e.target.closest(".stpop,[data-stmenu]")) { S.stOpen = null; render(); return; }
-  const t = e.target.closest("[data-stmenu],[data-setst],[data-dbpage],[data-guide],[data-colopen],[data-colclose],[data-colall],[data-wk],[data-jump],[data-mm],[data-calclose],[data-labmode],[data-labsel],[data-edit],[data-scope],[data-addatt],[data-startday],[data-startgo],[data-sesgo],[data-nav],[data-open],[data-tab],[data-src],[data-close],[data-page],[data-vtab],[data-zoom],[data-zoomstep],[data-zoomhit],[data-tl-category],[data-tl],[data-ack],[data-sched],[data-pick],[data-free],[data-slot],[data-unsched],[data-act],[data-mode],[data-delstep],[data-delup],[data-done],[data-suggok],[data-suggno]");
+  const t = e.target.closest("[data-stmenu],[data-setst],[data-dbpage],[data-guide],[data-colopen],[data-colclose],[data-colall],[data-wk],[data-jump],[data-mm],[data-calclose],[data-labmode],[data-labsel],[data-edit],[data-scope],[data-addatt],[data-delatt],[data-staffdel],[data-staffadd],[data-startday],[data-startgo],[data-sesgo],[data-nav],[data-open],[data-tab],[data-src],[data-close],[data-page],[data-vtab],[data-zoom],[data-zoomstep],[data-zoomhit],[data-tl-category],[data-tl],[data-ack],[data-sched],[data-pick],[data-free],[data-slot],[data-unsched],[data-act],[data-mode],[data-delstep],[data-delup],[data-done],[data-suggok],[data-suggno]");
   if (!t) return;
   const d = t.dataset;
   if (d.stmenu) { S.stOpen = S.stOpen === d.stmenu ? null : d.stmenu; render(); }
@@ -2619,6 +2776,9 @@ document.addEventListener("click", e => {
   else if (d.edit) { S.overlay = { kind: "edit", key: d.edit, orig: d.orig }; renderOverlay(); }
   else if (d.scope) { S.taskScope = d.scope; render(); }
   else if (d.addatt) { attFor(d.day || attDay())[d.addatt].push(""); render(); if (S.overlay?.kind === "start") renderOverlay(); }
+  else if (d.staffdel) staffDel(d.staffdel);
+  else if (d.staffadd) staffAdd(d.staffadd);
+  else if (d.delatt) { attFor(d.day || attDay())[d.delatt].splice(+d.k, 1); render(); if (S.overlay?.kind === "start") renderOverlay(); }
   else if (d.startday) { S.overlay = { kind: "start", day: d.startday, from: d.startfrom || null, attOnly: !!d.attonly }; renderOverlay(); }
   else if (d.startgo) {
     /* Started from a case header, the session opens on that case; from the calendar, on the first case of the day. */
@@ -2738,6 +2898,19 @@ function action(a) {
     const n = S.tasks.filter(t => !t.done).length + pendingSugg().length;
     S.mails.unshift({ kind: "digest", to: COORD, by: S.user, when: new Date().toLocaleString("cs-CZ"), n, body: `${waitingText(n)}\n${APP_LINK}` });
     toast("Přehled odeslán (jen počet a odkaz)"); render();
+  }
+  else if (a === "staffreset") {
+    if (!canEditStaff()) return;
+    const prev = staffIds(); STAFF = defaultStaff();
+    commitStaff(prev, "obnovil(a) výchozí personál (smyšlená jména)", { reset: true }); toast("Obnoven výchozí personál (smyšlená jména)");
+  }
+  else if (a === "staffadddept") {
+    const inp = document.getElementById("newdept"), name = inp?.value.trim() || "";
+    if (!canEditStaff()) return;
+    if (!name) { toast("Vyplňte název pracoviště"); inp?.focus(); return; }
+    if (STAFF.depts.some(d => d.name.toLowerCase() === name.toLowerCase())) { toast(`Pracoviště ${name} už v seznamu je`); return; }
+    const prev = staffIds(); STAFF.depts.push({ id: `d${Date.now().toString(36)}${++STAFF.seq}`, name, people: [] });
+    commitStaff(prev, `přidal(a) pracoviště do personálu: ${name}`);
   }
   else if (a === "cancelsched") { S.schedPick = null; render(); }
   else if (a === "dball") { S.dbAll = true; render(); }
@@ -2909,6 +3082,7 @@ document.addEventListener("change", e => {
   const t = e.target;
   if (t.id === "user") { S.user = t.value; if (S.view === "admin" && t.value !== ADMIN) S.view = "patients"; render(); }
   else if (t.dataset.upload) addUploads(t.files);
+  else if (t.dataset.staff) staffEdit(t);
   else if (t.dataset.actToggle === "guide") { S.guideOn = t.checked; render(); }
   else if (t.dataset.retro) {
     /* Only a doctor sets severity or assessment; the select is not rendered for others, and this guard repeats the rule. */
@@ -2931,7 +3105,7 @@ document.addEventListener("change", e => {
     if (cur.length === all.length) delete S.colf[k]; else S.colf[k] = cur;
     render();
   }
-  else if (t.dataset.att) { const arr = attFor(t.dataset.day || attDay())[t.dataset.att], k = +t.dataset.k; if (!t.value && k > 0) arr.splice(k, 1); else arr[k] = t.value; render(); if (S.overlay?.kind === "start") renderOverlay(); }
+  else if (t.dataset.att) { attFor(t.dataset.day || attDay())[t.dataset.att][+t.dataset.k] = t.value; render(); if (S.overlay?.kind === "start") renderOverlay(); }
   else if (t.dataset.redact) { S.overlay.redacted = t.checked; renderOverlay(); }
   else if (t.dataset.pickrep) { t.checked ? S.picked.add(t.dataset.pickrep) : S.picked.delete(t.dataset.pickrep); refreshReport(); }
   else if (t.dataset.step !== undefined) { curProto().steps[+t.dataset.step][t.dataset.f] = t.value; render(); }
@@ -2951,6 +3125,8 @@ document.addEventListener("keydown", e => {
     if (e.key === "0") { o.zoom = "fit"; renderOverlay(); e.preventDefault(); return; }
   }
 });
+/* Enter in a "Nová osoba" field adds the person, Enter in the department name adds the department. */
+document.addEventListener("keydown", e => { if (e.key !== "Enter") return; if (e.target.dataset?.newin) { e.preventDefault(); staffAdd(e.target.dataset.newin); } else if (e.target.id === "newdept") { e.preventDefault(); action("staffadddept"); } });
 document.addEventListener("keydown", e => { if (e.key === "Escape" && S.overlay) { S.overlay = null; renderOverlay(); } else if (e.key === "Escape" && S.colOpen) { S.colOpen = null; render(); } else if (e.key === "Escape" && S.stOpen) { S.stOpen = null; render(); } });
 
 readHash();

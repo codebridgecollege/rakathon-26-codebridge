@@ -32,6 +32,15 @@ and [FHIR workshop and PHOENIX](../research/2026-10-16-talk-fhir-workshop-and-ph
 - The Azure team portal holds data only for the challenges set by VZP (the
   Czech general health insurance company), not ours.
 - Public data may be used too.
+- **17 October 2026: our own synthetic patient `S01_pacient`.** FNO's
+  PDFs hold at most one lab panel per patient, so the team wrote a fully
+  fictional neuro-oncology patient (glioblastoma, four dated lab sheets
+  over nine months) to show lab trends from real document values. It is
+  our work made during the event, not FNO data and not derived from it:
+  the Markdown sources and the rendered PDF are in
+  [`samples/S01_pacient/`](../../samples/README.md), the page images and
+  Tesseract output in `data/derived/pages/S01_pacient/`, and the mock data
+  in `mocks/src/data/mock-case-S01.json`.
 
 ## Infrastructure
 
@@ -182,4 +191,7 @@ Declare this list to the jury and mentors.
   model for the fictitious data. Full list with reasons:
   [`docs/design/TECHNOLOGIES.md`](../design/TECHNOLOGIES.md).
 - Claude Code, for the research notes, the agent docs, and coding.
+- Claude Code also wrote the synthetic patient `S01_pacient`
+  ([`samples/README.md`](../../samples/README.md)), rendered to PDF with
+  PyMuPDF and Python-Markdown 3.7 (`scripts/render_samples.py`).
 - (Add the LLMs, libraries, and datasets as we adopt them.)

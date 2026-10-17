@@ -1,0 +1,1086 @@
+{
+ "file": "S01_pacient.pdf",
+ "synthetic_patient": true,
+ "note_cs": "Fiktivní pacient vytvořený týmem CodeBridge (samples/S01_pacient), ne z dat FNO. Hodnoty jsou z jeho syntetické dokumentace a každá má zdroj.",
+ "dev_note": "Generated from data/derived/pages/S01_pacient/p<n>.layer.txt; every quote is a verbatim substring of that page's text. See samples/README.md.",
+ "list_entry": {
+  "file": "S01_pacient.pdf",
+  "name": "Radovan Křemínek",
+  "age_or_birth": "nar. 12.3.1964",
+  "insurer": "111",
+  "main_problem_cs": "Glioblastom vlevo frontálně, IDH-wildtype, CNS WHO gr. 4, MGMT metylován; progrese dle RANO 9/2026",
+  "mdt_question_cs": "Je u progrese GBM indikována reresekce, případně reiradiace, nebo systémová léčba 2. linie (lomustin)? Prosím též o doporučení k další antikoagulaci (enoxaparin v plné dávce) vzhledem k trombocytopenii a klesající eGFR.",
+  "mdt_question_explicit": true,
+  "mdt_question_source": {
+   "file": "S01_pacient.pdf",
+   "page": 2,
+   "quote": "Otázka na MDT: Je u progrese GBM indikována reresekce, případně reiradiace, nebo systémová léčba 2. linie (lomustin)? Prosím též o doporučení k další antikoagulaci (enoxaparin v plné dávce) vzhledem k trombocytopenii a klesající eGFR."
+  },
+  "one_line_summary_cs": "GBM vlevo F diag. 12/2025, stp. subtotální resekci 2.12.2025 a CHRT dle Stuppa (12.1.-20.2.2026); adjuvantní temozolomid 6 cyklů, od 3. cyklu redukce pro trombocytopenii G2 (PLT 54 dne 12.5.2026); DVT 2/2026 na enoxaparinu; MR 29.9.2026 progrese dle RANO; steroidní hyperglykémie a vzestup kreatininu (142 µmol/l dne 6.10.2026).",
+  "page_count": 7,
+  "note": "Syntetický pacient týmu CodeBridge, ne z dat FNO. Popis MR 29.9.2026 je jen převzatý v ambulantní zprávě (originál chybí); výsledek PET/CT s 18F-FET chybí (požadavek odeslán 1.10.2026).",
+  "question_draft_cs": null,
+  "question_basis": null,
+  "status": "new",
+  "status_note_cs": "Příklad: případ zadaný, zatím bez termínu.",
+  "owner": "MUDr. Hana Modřínová",
+  "owner_note_cs": "Fiktivní lékařka, podepsaná pod ambulantními zprávami."
+ },
+ "others_entry": {
+  "file": "S01_pacient.pdf",
+  "diagnosis_cs": "Glioblastom vlevo frontálně, IDH-wildtype, CNS WHO gr. 4, MGMT metylován, diag. 12/2025",
+  "diagnosis_source": {
+   "file": "S01_pacient.pdf",
+   "page": 1,
+   "quote": "Glioblastom vlevo frontálně, IDH-wildtype, CNS WHO gr. 4, MGMT metylován, diag. 12/2025"
+  },
+  "histology_source": {
+   "file": "S01_pacient.pdf",
+   "page": 6,
+   "quote": "Histol. 9.12.2025: glioblastom, IDH-wildtype, CNS WHO grade 4, MGMT promotor metylován, Ki-67 cca 40 %"
+  },
+  "mkn10": "C71.1",
+  "mkn10_source": {
+   "file": "S01_pacient.pdf",
+   "page": 1,
+   "quote": "C71.1 Zhoubný novotvar čelního laloku"
+  },
+  "referring_doctor": "MUDr. Hana Modřínová",
+  "referring_department": "Onkologická ambulance - neuroonkologie",
+  "context_source": {
+   "file": "S01_pacient.pdf",
+   "page": 2,
+   "quote": "MUDr. Hana Modřínová, onkologická ambulance"
+  }
+ },
+ "documents": [
+  {
+   "title_cs": "Ambulantní vyšetření kontrolní (onkologie) s otázkou na MDT",
+   "type": "ambulantní zpráva",
+   "date": "2026-10-06",
+   "pages": [
+    1,
+    2
+   ],
+   "readability": "good",
+   "reason_cs": "Syntetický tištěný text."
+  },
+  {
+   "title_cs": "Výsledky laboratorních vyšetření (KO, biochemie)",
+   "type": "laboratorní výsledky",
+   "date": "2026-10-06",
+   "pages": [
+    3
+   ],
+   "readability": "good",
+   "reason_cs": "Syntetický tištěný text."
+  },
+  {
+   "title_cs": "Výsledky laboratorních vyšetření (KO, biochemie)",
+   "type": "laboratorní výsledky",
+   "date": "2026-08-04",
+   "pages": [
+    4
+   ],
+   "readability": "good",
+   "reason_cs": "Syntetický tištěný text."
+  },
+  {
+   "title_cs": "Výsledky laboratorních vyšetření (KO, biochemie)",
+   "type": "laboratorní výsledky",
+   "date": "2026-05-12",
+   "pages": [
+    5
+   ],
+   "readability": "good",
+   "reason_cs": "Syntetický tištěný text."
+  },
+  {
+   "title_cs": "Ambulantní vyšetření vstupní (onkologie)",
+   "type": "ambulantní zpráva",
+   "date": "2026-01-08",
+   "pages": [
+    6
+   ],
+   "readability": "good",
+   "reason_cs": "Syntetický tištěný text."
+  },
+  {
+   "title_cs": "Výsledky laboratorních vyšetření (KO, biochemie)",
+   "type": "laboratorní výsledky",
+   "date": "2026-01-08",
+   "pages": [
+    7
+   ],
+   "readability": "good",
+   "reason_cs": "Syntetický tištěný text."
+  }
+ ],
+ "data_gaps": [
+  {
+   "kind": "missing",
+   "text_cs": "Popis MR mozku 29.9.2026 je jen převzatý v ambulantní zprávě, originální nález radiologa chybí.",
+   "source": {
+    "file": "S01_pacient.pdf",
+    "page": 1,
+    "quote": "MR mozku 29.9.2026 (popis z NIS)"
+   }
+  },
+  {
+   "kind": "missing",
+   "text_cs": "PET/CT s 18F-FET: požadavek odeslán 1.10.2026, výsledek v dokumentaci není.",
+   "source": {
+    "file": "S01_pacient.pdf",
+    "page": 1,
+    "quote": "1.10.2026 odeslán požadavek na PET/CT s 18F-FET, t.č. výsledek nemáme"
+   }
+  },
+  {
+   "kind": "missing",
+   "text_cs": "Histologický nález 9.12.2025 a operační protokol 2.12.2025 jsou jen převzaté v ambulantní zprávě, originály chybí.",
+   "source": {
+    "file": "S01_pacient.pdf",
+    "page": 6,
+    "quote": "Histol. 9.12.2025: glioblastom, IDH-wildtype, CNS WHO grade 4, MGMT promotor metylován, Ki-67 cca 40 %"
+   }
+  }
+ ],
+ "labs_series": {
+  "synthetic": false,
+  "synthetic_patient": true,
+  "note_cs": "Hodnoty ze 4 laboratorních listů v dokumentaci (fiktivní pacient). Každá hodnota má zdroj.",
+  "name_note": "name_cs is our display label; the sheets print only the code.",
+  "draws": [
+   {
+    "datetime": "2026-01-08 07:40",
+    "date": "2026-01-08",
+    "time": "07:40",
+    "source": {
+     "file": "S01_pacient.pdf",
+     "page": 7,
+     "quote": "Odběr: 8.1.2026 07:40"
+    },
+    "requisition_quote": "Č. žádanky: S01-260108-01"
+   },
+   {
+    "datetime": "2026-05-12 07:35",
+    "date": "2026-05-12",
+    "time": "07:35",
+    "source": {
+     "file": "S01_pacient.pdf",
+     "page": 5,
+     "quote": "Odběr: 12.5.2026 07:35"
+    },
+    "requisition_quote": "Č. žádanky: S01-260512-01"
+   },
+   {
+    "datetime": "2026-08-04 07:45",
+    "date": "2026-08-04",
+    "time": "07:45",
+    "source": {
+     "file": "S01_pacient.pdf",
+     "page": 4,
+     "quote": "Odběr: 4.8.2026 07:45"
+    },
+    "requisition_quote": "Č. žádanky: S01-260804-02"
+   },
+   {
+    "datetime": "2026-10-06 07:30",
+    "date": "2026-10-06",
+    "time": "07:30",
+    "source": {
+     "file": "S01_pacient.pdf",
+     "page": 3,
+     "quote": "Odběr: 6.10.2026 07:30"
+    },
+    "requisition_quote": "Č. žádanky: S01-261006-01"
+   }
+  ],
+  "tests": [
+   {
+    "code": "B_LKC",
+    "name_cs": "Leukocyty",
+    "unit": "10^9/l",
+    "reference_range": "4 ... 10",
+    "reference_low": 4.0,
+    "reference_high": 10.0,
+    "values": [
+     11.42,
+     2.86,
+     7.95,
+     8.61
+    ],
+    "points": [
+     {
+      "value": "11,42",
+      "out_of_range": "high",
+      "flagged_in_document": true,
+      "date": "2026-01-08",
+      "time": "07:40",
+      "certainty": "documented",
+      "source": {
+       "file": "S01_pacient.pdf",
+       "page": 7,
+       "quote": "B_LKC: 11,42 10^9/l [4 ... 10]"
+      }
+     },
+     {
+      "value": "2,86",
+      "out_of_range": "low",
+      "flagged_in_document": true,
+      "date": "2026-05-12",
+      "time": "07:35",
+      "certainty": "documented",
+      "source": {
+       "file": "S01_pacient.pdf",
+       "page": 5,
+       "quote": "B_LKC: 2,86 10^9/l [4 ... 10]"
+      }
+     },
+     {
+      "value": "7,95",
+      "out_of_range": null,
+      "flagged_in_document": false,
+      "date": "2026-08-04",
+      "time": "07:45",
+      "certainty": "documented",
+      "source": {
+       "file": "S01_pacient.pdf",
+       "page": 4,
+       "quote": "B_LKC: 7,95 10^9/l [4 ... 10]"
+      }
+     },
+     {
+      "value": "8,61",
+      "out_of_range": null,
+      "flagged_in_document": false,
+      "date": "2026-10-06",
+      "time": "07:30",
+      "certainty": "documented",
+      "source": {
+       "file": "S01_pacient.pdf",
+       "page": 3,
+       "quote": "B_LKC: 8,61 10^9/l [4 ... 10]"
+      }
+     }
+    ]
+   },
+   {
+    "code": "B_NEU",
+    "name_cs": "Neutrofily (abs.)",
+    "unit": "10^9/l",
+    "reference_range": "2 ... 7",
+    "reference_low": 2.0,
+    "reference_high": 7.0,
+    "values": [
+     9.12,
+     1.38,
+     6.04,
+     6.77
+    ],
+    "points": [
+     {
+      "value": "9,12",
+      "out_of_range": "high",
+      "flagged_in_document": true,
+      "date": "2026-01-08",
+      "time": "07:40",
+      "certainty": "documented",
+      "source": {
+       "file": "S01_pacient.pdf",
+       "page": 7,
+       "quote": "B_NEU: 9,12 10^9/l [2 ... 7]"
+      }
+     },
+     {
+      "value": "1,38",
+      "out_of_range": "low",
+      "flagged_in_document": true,
+      "date": "2026-05-12",
+      "time": "07:35",
+      "certainty": "documented",
+      "source": {
+       "file": "S01_pacient.pdf",
+       "page": 5,
+       "quote": "B_NEU: 1,38 10^9/l [2 ... 7]"
+      }
+     },
+     {
+      "value": "6,04",
+      "out_of_range": null,
+      "flagged_in_document": false,
+      "date": "2026-08-04",
+      "time": "07:45",
+      "certainty": "documented",
+      "source": {
+       "file": "S01_pacient.pdf",
+       "page": 4,
+       "quote": "B_NEU: 6,04 10^9/l [2 ... 7]"
+      }
+     },
+     {
+      "value": "6,77",
+      "out_of_range": null,
+      "flagged_in_document": false,
+      "date": "2026-10-06",
+      "time": "07:30",
+      "certainty": "documented",
+      "source": {
+       "file": "S01_pacient.pdf",
+       "page": 3,
+       "quote": "B_NEU: 6,77 10^9/l [2 ... 7]"
+      }
+     }
+    ]
+   },
+   {
+    "code": "B_LYMFO",
+    "name_cs": "Lymfocyty (abs.)",
+    "unit": "10^9/l",
+    "reference_range": "0.8 ... 4",
+    "reference_low": 0.8,
+    "reference_high": 4.0,
+    "values": [
+     1.21,
+     0.52,
+     0.71,
+     0.64
+    ],
+    "points": [
+     {
+      "value": "1,21",
+      "out_of_range": null,
+      "flagged_in_document": false,
+      "date": "2026-01-08",
+      "time": "07:40",
+      "certainty": "documented",
+      "source": {
+       "file": "S01_pacient.pdf",
+       "page": 7,
+       "quote": "B_LYMFO: 1,21 10^9/l [0.8 ... 4]"
+      }
+     },
+     {
+      "value": "0,52",
+      "out_of_range": "low",
+      "flagged_in_document": true,
+      "date": "2026-05-12",
+      "time": "07:35",
+      "certainty": "documented",
+      "source": {
+       "file": "S01_pacient.pdf",
+       "page": 5,
+       "quote": "B_LYMFO: 0,52 10^9/l [0.8 ... 4]"
+      }
+     },
+     {
+      "value": "0,71",
+      "out_of_range": "low",
+      "flagged_in_document": true,
+      "date": "2026-08-04",
+      "time": "07:45",
+      "certainty": "documented",
+      "source": {
+       "file": "S01_pacient.pdf",
+       "page": 4,
+       "quote": "B_LYMFO: 0,71 10^9/l [0.8 ... 4]"
+      }
+     },
+     {
+      "value": "0,64",
+      "out_of_range": "low",
+      "flagged_in_document": true,
+      "date": "2026-10-06",
+      "time": "07:30",
+      "certainty": "documented",
+      "source": {
+       "file": "S01_pacient.pdf",
+       "page": 3,
+       "quote": "B_LYMFO: 0,64 10^9/l [0.8 ... 4]"
+      }
+     }
+    ]
+   },
+   {
+    "code": "B_HB",
+    "name_cs": "Hemoglobin",
+    "unit": "g/l",
+    "reference_range": "135 ... 175",
+    "reference_low": 135.0,
+    "reference_high": 175.0,
+    "values": [
+     141.0,
+     118.0,
+     122.0,
+     113.0
+    ],
+    "points": [
+     {
+      "value": "141",
+      "out_of_range": null,
+      "flagged_in_document": false,
+      "date": "2026-01-08",
+      "time": "07:40",
+      "certainty": "documented",
+      "source": {
+       "file": "S01_pacient.pdf",
+       "page": 7,
+       "quote": "B_HB: 141 g/l [135 ... 175]"
+      }
+     },
+     {
+      "value": "118",
+      "out_of_range": "low",
+      "flagged_in_document": true,
+      "date": "2026-05-12",
+      "time": "07:35",
+      "certainty": "documented",
+      "source": {
+       "file": "S01_pacient.pdf",
+       "page": 5,
+       "quote": "B_HB: 118 g/l [135 ... 175]"
+      }
+     },
+     {
+      "value": "122",
+      "out_of_range": "low",
+      "flagged_in_document": true,
+      "date": "2026-08-04",
+      "time": "07:45",
+      "certainty": "documented",
+      "source": {
+       "file": "S01_pacient.pdf",
+       "page": 4,
+       "quote": "B_HB: 122 g/l [135 ... 175]"
+      }
+     },
+     {
+      "value": "113",
+      "out_of_range": "low",
+      "flagged_in_document": true,
+      "date": "2026-10-06",
+      "time": "07:30",
+      "certainty": "documented",
+      "source": {
+       "file": "S01_pacient.pdf",
+       "page": 3,
+       "quote": "B_HB: 113 g/l [135 ... 175]"
+      }
+     }
+    ]
+   },
+   {
+    "code": "B_PLT",
+    "name_cs": "Trombocyty",
+    "unit": "10^9/l",
+    "reference_range": "150 ... 400",
+    "reference_low": 150.0,
+    "reference_high": 400.0,
+    "values": [
+     268.0,
+     54.0,
+     131.0,
+     97.0
+    ],
+    "points": [
+     {
+      "value": "268",
+      "out_of_range": null,
+      "flagged_in_document": false,
+      "date": "2026-01-08",
+      "time": "07:40",
+      "certainty": "documented",
+      "source": {
+       "file": "S01_pacient.pdf",
+       "page": 7,
+       "quote": "B_PLT: 268 10^9/l [150 ... 400]"
+      }
+     },
+     {
+      "value": "54",
+      "out_of_range": "low",
+      "flagged_in_document": true,
+      "date": "2026-05-12",
+      "time": "07:35",
+      "certainty": "documented",
+      "source": {
+       "file": "S01_pacient.pdf",
+       "page": 5,
+       "quote": "B_PLT: 54 10^9/l [150 ... 400]"
+      }
+     },
+     {
+      "value": "131",
+      "out_of_range": "low",
+      "flagged_in_document": true,
+      "date": "2026-08-04",
+      "time": "07:45",
+      "certainty": "documented",
+      "source": {
+       "file": "S01_pacient.pdf",
+       "page": 4,
+       "quote": "B_PLT: 131 10^9/l [150 ... 400]"
+      }
+     },
+     {
+      "value": "97",
+      "out_of_range": "low",
+      "flagged_in_document": true,
+      "date": "2026-10-06",
+      "time": "07:30",
+      "certainty": "documented",
+      "source": {
+       "file": "S01_pacient.pdf",
+       "page": 3,
+       "quote": "B_PLT: 97 10^9/l [150 ... 400]"
+      }
+     }
+    ]
+   },
+   {
+    "code": "S_GLC",
+    "name_cs": "Glukóza",
+    "unit": "mmol/l",
+    "reference_range": "3.9 ... 5.6",
+    "reference_low": 3.9,
+    "reference_high": 5.6,
+    "values": [
+     7.8,
+     5.4,
+     12.9,
+     11.2
+    ],
+    "points": [
+     {
+      "value": "7,8",
+      "out_of_range": "high",
+      "flagged_in_document": true,
+      "date": "2026-01-08",
+      "time": "07:40",
+      "certainty": "documented",
+      "source": {
+       "file": "S01_pacient.pdf",
+       "page": 7,
+       "quote": "S_GLC: 7,8 mmol/l [3.9 ... 5.6]"
+      }
+     },
+     {
+      "value": "5,4",
+      "out_of_range": null,
+      "flagged_in_document": false,
+      "date": "2026-05-12",
+      "time": "07:35",
+      "certainty": "documented",
+      "source": {
+       "file": "S01_pacient.pdf",
+       "page": 5,
+       "quote": "S_GLC: 5,4 mmol/l [3.9 ... 5.6]"
+      }
+     },
+     {
+      "value": "12,9",
+      "out_of_range": "high",
+      "flagged_in_document": true,
+      "date": "2026-08-04",
+      "time": "07:45",
+      "certainty": "documented",
+      "source": {
+       "file": "S01_pacient.pdf",
+       "page": 4,
+       "quote": "S_GLC: 12,9 mmol/l [3.9 ... 5.6]"
+      }
+     },
+     {
+      "value": "11,2",
+      "out_of_range": "high",
+      "flagged_in_document": true,
+      "date": "2026-10-06",
+      "time": "07:30",
+      "certainty": "documented",
+      "source": {
+       "file": "S01_pacient.pdf",
+       "page": 3,
+       "quote": "S_GLC: 11,2 mmol/l [3.9 ... 5.6]"
+      }
+     }
+    ]
+   },
+   {
+    "code": "S_UREA",
+    "name_cs": "Urea",
+    "unit": "mmol/l",
+    "reference_range": "2.9 ... 8.2",
+    "reference_low": 2.9,
+    "reference_high": 8.2,
+    "values": [
+     5.9,
+     6.8,
+     9.1,
+     10.4
+    ],
+    "points": [
+     {
+      "value": "5,9",
+      "out_of_range": null,
+      "flagged_in_document": false,
+      "date": "2026-01-08",
+      "time": "07:40",
+      "certainty": "documented",
+      "source": {
+       "file": "S01_pacient.pdf",
+       "page": 7,
+       "quote": "S_UREA: 5,9 mmol/l [2.9 ... 8.2]"
+      }
+     },
+     {
+      "value": "6,8",
+      "out_of_range": null,
+      "flagged_in_document": false,
+      "date": "2026-05-12",
+      "time": "07:35",
+      "certainty": "documented",
+      "source": {
+       "file": "S01_pacient.pdf",
+       "page": 5,
+       "quote": "S_UREA: 6,8 mmol/l [2.9 ... 8.2]"
+      }
+     },
+     {
+      "value": "9,1",
+      "out_of_range": "high",
+      "flagged_in_document": true,
+      "date": "2026-08-04",
+      "time": "07:45",
+      "certainty": "documented",
+      "source": {
+       "file": "S01_pacient.pdf",
+       "page": 4,
+       "quote": "S_UREA: 9,1 mmol/l [2.9 ... 8.2]"
+      }
+     },
+     {
+      "value": "10,4",
+      "out_of_range": "high",
+      "flagged_in_document": true,
+      "date": "2026-10-06",
+      "time": "07:30",
+      "certainty": "documented",
+      "source": {
+       "file": "S01_pacient.pdf",
+       "page": 3,
+       "quote": "S_UREA: 10,4 mmol/l [2.9 ... 8.2]"
+      }
+     }
+    ]
+   },
+   {
+    "code": "S_CREAE",
+    "name_cs": "Kreatinin",
+    "unit": "µmol/l",
+    "reference_range": "59 ... 104",
+    "reference_low": 59.0,
+    "reference_high": 104.0,
+    "values": [
+     78.0,
+     91.0,
+     117.0,
+     142.0
+    ],
+    "points": [
+     {
+      "value": "78",
+      "out_of_range": null,
+      "flagged_in_document": false,
+      "date": "2026-01-08",
+      "time": "07:40",
+      "certainty": "documented",
+      "source": {
+       "file": "S01_pacient.pdf",
+       "page": 7,
+       "quote": "S_CREAE: 78 µmol/l [59 ... 104]"
+      }
+     },
+     {
+      "value": "91",
+      "out_of_range": null,
+      "flagged_in_document": false,
+      "date": "2026-05-12",
+      "time": "07:35",
+      "certainty": "documented",
+      "source": {
+       "file": "S01_pacient.pdf",
+       "page": 5,
+       "quote": "S_CREAE: 91 µmol/l [59 ... 104]"
+      }
+     },
+     {
+      "value": "117",
+      "out_of_range": "high",
+      "flagged_in_document": true,
+      "date": "2026-08-04",
+      "time": "07:45",
+      "certainty": "documented",
+      "source": {
+       "file": "S01_pacient.pdf",
+       "page": 4,
+       "quote": "S_CREAE: 117 µmol/l [59 ... 104]"
+      }
+     },
+     {
+      "value": "142",
+      "out_of_range": "high",
+      "flagged_in_document": true,
+      "date": "2026-10-06",
+      "time": "07:30",
+      "certainty": "documented",
+      "source": {
+       "file": "S01_pacient.pdf",
+       "page": 3,
+       "quote": "S_CREAE: 142 µmol/l [59 ... 104]"
+      }
+     }
+    ]
+   },
+   {
+    "code": "PT(KIDN)_EGFRCKDE",
+    "name_cs": "eGFR CKD-EPI",
+    "unit": "ml/s/1,73 m2",
+    "reference_range": "1.5 ... 99",
+    "reference_low": 1.5,
+    "reference_high": 99.0,
+    "values": [
+     1.58,
+     1.32,
+     0.99,
+     0.79
+    ],
+    "points": [
+     {
+      "value": "1,58",
+      "out_of_range": null,
+      "flagged_in_document": false,
+      "date": "2026-01-08",
+      "time": "07:40",
+      "certainty": "documented",
+      "source": {
+       "file": "S01_pacient.pdf",
+       "page": 7,
+       "quote": "PT(KIDN)_EGFRCKDE: 1,58 ml/s/1,73 m2 [1.5 ... 99]"
+      }
+     },
+     {
+      "value": "1,32",
+      "out_of_range": "low",
+      "flagged_in_document": true,
+      "date": "2026-05-12",
+      "time": "07:35",
+      "certainty": "documented",
+      "source": {
+       "file": "S01_pacient.pdf",
+       "page": 5,
+       "quote": "PT(KIDN)_EGFRCKDE: 1,32 ml/s/1,73 m2 [1.5 ... 99]"
+      }
+     },
+     {
+      "value": "0,99",
+      "out_of_range": "low",
+      "flagged_in_document": true,
+      "date": "2026-08-04",
+      "time": "07:45",
+      "certainty": "documented",
+      "source": {
+       "file": "S01_pacient.pdf",
+       "page": 4,
+       "quote": "PT(KIDN)_EGFRCKDE: 0,99 ml/s/1,73 m2 [1.5 ... 99]"
+      }
+     },
+     {
+      "value": "0,79",
+      "out_of_range": "low",
+      "flagged_in_document": true,
+      "date": "2026-10-06",
+      "time": "07:30",
+      "certainty": "documented",
+      "source": {
+       "file": "S01_pacient.pdf",
+       "page": 3,
+       "quote": "PT(KIDN)_EGFRCKDE: 0,79 ml/s/1,73 m2 [1.5 ... 99]"
+      }
+     }
+    ]
+   },
+   {
+    "code": "S_ALT",
+    "name_cs": "ALT",
+    "unit": "µkat/l",
+    "reference_range": "0.17 ... 0.84",
+    "reference_low": 0.17,
+    "reference_high": 0.84,
+    "values": [
+     0.71,
+     0.93,
+     0.58,
+     0.49
+    ],
+    "points": [
+     {
+      "value": "0,71",
+      "out_of_range": null,
+      "flagged_in_document": false,
+      "date": "2026-01-08",
+      "time": "07:40",
+      "certainty": "documented",
+      "source": {
+       "file": "S01_pacient.pdf",
+       "page": 7,
+       "quote": "S_ALT: 0,71 µkat/l [0.17 ... 0.84]"
+      }
+     },
+     {
+      "value": "0,93",
+      "out_of_range": "high",
+      "flagged_in_document": true,
+      "date": "2026-05-12",
+      "time": "07:35",
+      "certainty": "documented",
+      "source": {
+       "file": "S01_pacient.pdf",
+       "page": 5,
+       "quote": "S_ALT: 0,93 µkat/l [0.17 ... 0.84]"
+      }
+     },
+     {
+      "value": "0,58",
+      "out_of_range": null,
+      "flagged_in_document": false,
+      "date": "2026-08-04",
+      "time": "07:45",
+      "certainty": "documented",
+      "source": {
+       "file": "S01_pacient.pdf",
+       "page": 4,
+       "quote": "S_ALT: 0,58 µkat/l [0.17 ... 0.84]"
+      }
+     },
+     {
+      "value": "0,49",
+      "out_of_range": null,
+      "flagged_in_document": false,
+      "date": "2026-10-06",
+      "time": "07:30",
+      "certainty": "documented",
+      "source": {
+       "file": "S01_pacient.pdf",
+       "page": 3,
+       "quote": "S_ALT: 0,49 µkat/l [0.17 ... 0.84]"
+      }
+     }
+    ]
+   },
+   {
+    "code": "S_AST",
+    "name_cs": "AST",
+    "unit": "µkat/l",
+    "reference_range": "0.17 ... 0.84",
+    "reference_low": 0.17,
+    "reference_high": 0.84,
+    "values": [
+     0.44,
+     0.61,
+     0.4,
+     0.38
+    ],
+    "points": [
+     {
+      "value": "0,44",
+      "out_of_range": null,
+      "flagged_in_document": false,
+      "date": "2026-01-08",
+      "time": "07:40",
+      "certainty": "documented",
+      "source": {
+       "file": "S01_pacient.pdf",
+       "page": 7,
+       "quote": "S_AST: 0,44 µkat/l [0.17 ... 0.84]"
+      }
+     },
+     {
+      "value": "0,61",
+      "out_of_range": null,
+      "flagged_in_document": false,
+      "date": "2026-05-12",
+      "time": "07:35",
+      "certainty": "documented",
+      "source": {
+       "file": "S01_pacient.pdf",
+       "page": 5,
+       "quote": "S_AST: 0,61 µkat/l [0.17 ... 0.84]"
+      }
+     },
+     {
+      "value": "0,40",
+      "out_of_range": null,
+      "flagged_in_document": false,
+      "date": "2026-08-04",
+      "time": "07:45",
+      "certainty": "documented",
+      "source": {
+       "file": "S01_pacient.pdf",
+       "page": 4,
+       "quote": "S_AST: 0,40 µkat/l [0.17 ... 0.84]"
+      }
+     },
+     {
+      "value": "0,38",
+      "out_of_range": null,
+      "flagged_in_document": false,
+      "date": "2026-10-06",
+      "time": "07:30",
+      "certainty": "documented",
+      "source": {
+       "file": "S01_pacient.pdf",
+       "page": 3,
+       "quote": "S_AST: 0,38 µkat/l [0.17 ... 0.84]"
+      }
+     }
+    ]
+   },
+   {
+    "code": "S_NA",
+    "name_cs": "Sodík",
+    "unit": "mmol/l",
+    "reference_range": "136 ... 145",
+    "reference_low": 136.0,
+    "reference_high": 145.0,
+    "values": [
+     139.0,
+     141.0,
+     136.0,
+     135.0
+    ],
+    "points": [
+     {
+      "value": "139",
+      "out_of_range": null,
+      "flagged_in_document": false,
+      "date": "2026-01-08",
+      "time": "07:40",
+      "certainty": "documented",
+      "source": {
+       "file": "S01_pacient.pdf",
+       "page": 7,
+       "quote": "S_NA: 139 mmol/l [136 ... 145]"
+      }
+     },
+     {
+      "value": "141",
+      "out_of_range": null,
+      "flagged_in_document": false,
+      "date": "2026-05-12",
+      "time": "07:35",
+      "certainty": "documented",
+      "source": {
+       "file": "S01_pacient.pdf",
+       "page": 5,
+       "quote": "S_NA: 141 mmol/l [136 ... 145]"
+      }
+     },
+     {
+      "value": "136",
+      "out_of_range": null,
+      "flagged_in_document": false,
+      "date": "2026-08-04",
+      "time": "07:45",
+      "certainty": "documented",
+      "source": {
+       "file": "S01_pacient.pdf",
+       "page": 4,
+       "quote": "S_NA: 136 mmol/l [136 ... 145]"
+      }
+     },
+     {
+      "value": "135",
+      "out_of_range": "low",
+      "flagged_in_document": true,
+      "date": "2026-10-06",
+      "time": "07:30",
+      "certainty": "documented",
+      "source": {
+       "file": "S01_pacient.pdf",
+       "page": 3,
+       "quote": "S_NA: 135 mmol/l [136 ... 145]"
+      }
+     }
+    ]
+   },
+   {
+    "code": "S_K",
+    "name_cs": "Draslík",
+    "unit": "mmol/l",
+    "reference_range": "3.5 ... 5.1",
+    "reference_low": 3.5,
+    "reference_high": 5.1,
+    "values": [
+     4.21,
+     4.48,
+     4.92,
+     5.34
+    ],
+    "points": [
+     {
+      "value": "4,21",
+      "out_of_range": null,
+      "flagged_in_document": false,
+      "date": "2026-01-08",
+      "time": "07:40",
+      "certainty": "documented",
+      "source": {
+       "file": "S01_pacient.pdf",
+       "page": 7,
+       "quote": "S_K: 4,21 mmol/l [3.5 ... 5.1]"
+      }
+     },
+     {
+      "value": "4,48",
+      "out_of_range": null,
+      "flagged_in_document": false,
+      "date": "2026-05-12",
+      "time": "07:35",
+      "certainty": "documented",
+      "source": {
+       "file": "S01_pacient.pdf",
+       "page": 5,
+       "quote": "S_K: 4,48 mmol/l [3.5 ... 5.1]"
+      }
+     },
+     {
+      "value": "4,92",
+      "out_of_range": null,
+      "flagged_in_document": false,
+      "date": "2026-08-04",
+      "time": "07:45",
+      "certainty": "documented",
+      "source": {
+       "file": "S01_pacient.pdf",
+       "page": 4,
+       "quote": "S_K: 4,92 mmol/l [3.5 ... 5.1]"
+      }
+     },
+     {
+      "value": "5,34",
+      "out_of_range": "high",
+      "flagged_in_document": true,
+      "date": "2026-10-06",
+      "time": "07:30",
+      "certainty": "documented",
+      "source": {
+       "file": "S01_pacient.pdf",
+       "page": 3,
+       "quote": "S_K: 5,34 mmol/l [3.5 ... 5.1]"
+      }
+     }
+    ]
+   }
+  ]
+ }
+}
