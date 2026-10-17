@@ -18,7 +18,7 @@ import { pragueDay } from "../domain/time";
 import { IdempotentReplay, type Tx } from "../store/write";
 import { sha256Hex } from "../store/work";
 import { actorOf, answer, caseFor, isoNow, label, newId, now, statesFor, tx, work } from "./write-context";
-import { hooks } from "./hooks";
+import { hooks, passIdFor } from "./hooks";
 import { patientRow } from "../domain/rows";
 import { validateReportHtml } from "../domain/report";
 
@@ -67,7 +67,7 @@ export const writeCases = new Hono<AppEnv>()
       released = true;
     }
     await t.commit();
-    if (ch.to === "closed") await hooks.onCaseClosed(id);
+    if (ch.to === "closed") await hooks.onCaseClosed(c, id);
     return answer(c, { slot_released: released }, { cases: await statesFor(c, [id]) });
   })
 
@@ -204,7 +204,10 @@ export const writeCases = new Hono<AppEnv>()
     const at = t0.toISOString();
     const v = c.var.viewer;
     const d = plan.decision;
-    const data = { decision_id: d.id, version: d.version, tasks_created: plan.tasks.length, suggestions_created: plan.suggestions.length };
+    // Step 5: the speaker pass is planned before the batch so the stored (and replayed) answer names its job.
+    const pass = await hooks.planSpeakerPass(c, id);
+    const speakerPassJobId = pass ? passIdFor(d.id) : null;
+    const data = { decision_id: d.id, version: d.version, tasks_created: plan.tasks.length, suggestions_created: plan.suggestions.length, speaker_pass_job_id: speakerPassJobId };
     const t = tx(c, breakGlass);
     t.idempotency(key, route, sha, data, 200, at);
     // Order matters for the refusal the loser of a race sees: another approval first, then a newer draft, then the rest.
@@ -238,6 +241,7 @@ export const writeCases = new Hono<AppEnv>()
       JSON.stringify(d.report), JSON.stringify(d.attSnap), d.supersedes_id,
     );
     t.audit({ action: "decision.approve", what_cs: "schválil(a) závěr MDT", case_id: id, target_type: "decision", target_id: d.id });
+    if (pass) hooks.addSpeakerPass(c, t, pass, id, d.id, t0.getTime(), at);
     if (plan.attendanceAdd) {
       const a = plan.attendanceAdd;
       t.run("INSERT INTO attendance (set_key, dept_id, position, user_id, user_name) VALUES (?1, ?2, ?3, ?4, ?5)", setKey, a.dept_id, a.position, a.user_id, a.user_name);
@@ -291,7 +295,7 @@ export const writeCases = new Hono<AppEnv>()
       }
       throw e;
     }
-    await hooks.onApproved(id, d.id);
+    await hooks.onApproved(c, speakerPassJobId);
     return answer(c, data, { cases: await statesFor(c, [id]), att: await w.attSets([setKey]), mails: await w.mails([id]) });
   })
   .post("/cases/:id/decisions/new-version", async (c) => {

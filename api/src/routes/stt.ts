@@ -56,7 +56,7 @@ export const stt = new Hono<AppEnv>()
         return reader.cancel(reason);
       },
     });
-    return c.json(await diarizeStream(c.env, body, length, c.executionCtx));
+    return c.json(await diarizeStream(c.env, body, length));
   });
 
 function concat(chunks: Uint8Array[], total: number): Uint8Array {

@@ -22,12 +22,14 @@ export type Action =
   | "digest.send"
   | "staff.write"
   | "break_glass"
-  | "demo.reset";
+  | "demo.reset"
+  | "recording.write" // start and stop the AI recording
+  | "transcript.write"; // store live lines and audio of a case, retry its speaker pass
 
 // Actions on one case need the doctor to be on its team (or to hold a break-the-glass grant).
 const CASE_SCOPED: ReadonlySet<Action> = new Set([
   "status.move", "slot.write", "protocol.edit", "decision.approve", "decision.new_version", "question.confirm",
-  "fact.edit", "suggestion.decide", "task.done", "alert.act",
+  "fact.edit", "suggestion.decide", "task.done", "alert.act", "transcript.write",
 ]);
 
 // The permission matrix. A row missing for a role means "no". Clinical confirmations are doctors' only.
@@ -48,6 +50,9 @@ const MATRIX: Record<Action, ReadonlySet<Role>> = {
   "staff.write": new Set(["coordinator", "admin"]),
   "break_glass": new Set(["doctor"]),
   "demo.reset": new Set(["admin"]),
+  // Who runs the meeting runs the recorder: the same roles as starting an MDT (session.write).
+  "recording.write": new Set(["doctor", "coordinator"]),
+  "transcript.write": new Set(["doctor", "coordinator"]),
 };
 
 // Doctor-only clinical actions refuse with the wording the page used before (who does it), not a generic one.

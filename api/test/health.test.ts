@@ -13,17 +13,17 @@ describe("GET /api/health", () => {
       runtime: "worker",
       version: "dev",
       auth_mode: "demo",
-      features: { stt: true, summarize: true, data: false },
+      features: { stt: true, summarize: true, data: false, transcripts: false },
       seeded_at: null,
       demo: null,
-      limits: { stt_audio_bytes: 100000000, summary_chars: 40000 },
+      limits: { stt_audio_bytes: 100000000, summary_chars: 40000, audio_part_bytes: 5242880, audio_max_minutes: 120 },
     });
   });
 
   it("reports a feature off when its secret is missing", async () => {
     const res = await call("/api/health", {}, testEnv({ ELEVENLABS_API_KEY: "", AZURE_OPENAI_KEY: undefined, DATA_API: "off" }));
     const body = await res.json<{ features: Record<string, boolean> }>();
-    expect(body.features).toEqual({ stt: false, summarize: false, data: false });
+    expect(body.features).toEqual({ stt: false, summarize: false, data: false, transcripts: false });
   });
 
   it("answers in access mode without a token, because it holds no data", async () => {

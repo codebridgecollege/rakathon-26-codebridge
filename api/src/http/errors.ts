@@ -6,6 +6,8 @@ import { DomainError } from "../domain/errors";
 // Every /api error has the same shape, { error: { code, message_cs } }, so the page can show message_cs as is.
 // Messages never carry the upstream status, upstream body or a key.
 export class ApiError extends Error {
+  // The provider's HTTP status behind a 502/503/504, for retry decisions only; never sent or logged with text.
+  upstream?: number | "network";
   constructor(
     public status: ContentfulStatusCode,
     public code: string,

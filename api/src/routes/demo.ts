@@ -11,7 +11,8 @@ import { actorOf, answer, isoNow, label } from "./write-context";
 // What the app writes, children first, so the deletes never leave a dangling reference mid-batch. patients is handled
 // apart: seeded rows stay (identity is never copied out of D1), rows created after the seed go.
 const MUTABLE_DELETE_ORDER = [
-  "access_log", "jobs", "transcript_lines", "transcript_passes", "write_guards", "idempotency_keys", "case_access_grants",
+  "access_log", "audio_segments", "audio_parts", "audio_uploads", "transcript_summaries", "transcript_lines",
+  "transcript_passes", "jobs", "recordings", "write_guards", "idempotency_keys", "case_access_grants",
   "notifications", "alert_events", "edit_log", "fact_edits", "question_confirmations", "tasks", "task_suggestions", "decisions",
   "protocols", "attendance_sets", "attendance", "sessions", "slots", "status_history", "case_members", "cases", "dept_members",
   "departments", "users",
@@ -19,7 +20,7 @@ const MUTABLE_DELETE_ORDER = [
 // The append-only history archived before the reset (synthetic data only; same prefix as the later audit export).
 const ARCHIVED = ["access_log", "decisions", "edit_log", "alert_events", "status_history", "question_confirmations"];
 // Prefixes Steps 5 and 6 write; seed objects (pages/, extract/, guidance/, seed/, fixtures/) are never touched.
-const R2_TRANSIENT = ["uploads/", "audio/", "jobs/"];
+const R2_TRANSIENT = ["uploads/", "audio/", "jobs/", "cache/summary/"];
 
 type ResetDoc = { seed_version: string; statements: string[]; patient_ids: string[] };
 
@@ -53,6 +54,11 @@ export const demo = new Hono<AppEnv>().post("/admin/reset-demo", async (c) => {
   } catch {
     throw new ApiError(500, "reset_archive_failed", "Archiv záznamů se nepodařilo uložit; data zůstala beze změny.");
   }
+
+  // Open multipart uploads of case audio are not listed as objects; abort them while D1 still knows them (step 5).
+  // A failure is left to the R2 lifecycle rule, which aborts incomplete uploads under audio/ after a day.
+  const open = (await db.prepare("SELECT r2_key, r2_upload_id FROM audio_uploads WHERE state = 'open' AND r2_upload_id IS NOT NULL").all<{ r2_key: string; r2_upload_id: string }>()).results;
+  for (const u of open) await c.env.DOCS.resumeMultipartUpload(u.r2_key, u.r2_upload_id).abort().catch(() => {});
 
   // 2. One D1 batch: open the append-only triggers, empty, reseed, close them, bump the epoch, log the reset.
   // Foreign keys are checked at commit, so the seeded rows can come back in any order.

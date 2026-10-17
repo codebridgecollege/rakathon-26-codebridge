@@ -79,11 +79,43 @@ Design and the exact contract: `docs/research/backend-steps/step-4.md`, section 
 - `POST /api/admin/reset-demo` (administrator, `DEMO_RESET_ENABLED=true`): archives the audit to R2
   `audit-archive/<time>.jsonl`, then one batch empties the mutable tables and reinserts the rows from R2
   `seed/reset.json` (written by `seed.py`; identity is not in it, seeded patient rows stay in D1), bumps
-  `demo_state.data_epoch`, and deletes R2 `uploads/`, `audio/`, `jobs/`. About 40 statements; keep it under 50 (the
-  Workers Free per-invocation limit) when adding tables.
+  `demo_state.data_epoch`, aborts open audio uploads and deletes R2 `uploads/`, `audio/`, `jobs/`, `cache/summary/`.
+  48 statements with today's seed; keep it under 50 (the Workers Free per-invocation limit) when adding tables.
 - Append-only triggers allow DELETE only while `demo_state.reset_in_progress = 1` (migration 0003). A pilot database
   must not have that exception.
 - Deviation assessments have no write route (user decision 2026-10-17).
+
+## AI recording and the speaker pass (step 5)
+
+Design and contract: `docs/research/backend-steps/step-5.md`, section "As implemented". Part (b), prognosis, is not
+built.
+
+- Routes in `src/routes/transcript.ts`: recordings, live lines, audio parts (raw PCM, `application/octet-stream`; the
+  write middleware exempts that one route from the JSON check), the stored transcript, jobs and retry. Rules in
+  `src/domain/transcript.ts`; R2 and D1 audio work in `src/store/audio.ts`; jobs in `src/store/jobs.ts`.
+- Approval plans the pass in its own batch (`hooks.planSpeakerPass`, `addSpeakerPass` in `src/routes/hooks.ts`) and
+  starts `SpeakerPassWorkflow` (`src/workflows/speaker-pass.ts`, binding `SPEAKER_PASS`) after the commit. Closing a
+  case and ending a seminar purge audio there too.
+- Workflow params and step results carry ids and counts only, never transcript text, audio or prompts;
+  `test/transcript.test.ts` checks every step result. Keep it so when adding a step.
+- `SPEAKER_PASS_AUDIO_ON_FAILURE` (`keep_until_close` | `delete`) is the open question "Speaker pass on failure"; the
+  value is copied onto the pass when approval plans it.
+- `scheduled()` (`src/scheduled.ts`, cron every 15 minutes) deletes audio older than 6 hours or left by a finished
+  pass and restarts passes whose start failed.
+- R2 lifecycle backstop, applied once per bucket (check with `npx wrangler r2 bucket lifecycle list codebridge-mdt -J eu`):
+
+  ```
+  npx wrangler r2 bucket lifecycle add codebridge-mdt audio-backstop-1d audio/ --expire-days 1 --abort-multipart-days 1 -J eu -y
+  npx wrangler r2 bucket lifecycle add codebridge-mdt summary-cache-30d cache/summary/ --expire-days 30 -J eu -y
+  ```
+- Deploying: the Workflow and the cron trigger are registered only by `wrangler deploy` (`npm run deploy`), not by
+  `wrangler versions upload`, which CI uses for the `backend` preview alias. A preview's approvals start instances of
+  the Workflow as the last `wrangler deploy` registered it, so deploy after changing `src/workflows/`.
+- `seed.py --reset` empties the audio tables but does not delete R2 `audio/` objects; reset-demo does, and the
+  lifecycle rule removes the rest within about two days.
+- Workflow tests: `introspectWorkflow(env.SPEAKER_PASS)` with `await using`, `disableRetryDelays()`. The Workflow runs
+  with the Worker's bindings, not the per-test env, so `vitest.config.ts` pins its secrets and endpoints to `.test`
+  hosts. A test that approves a case with audio or lines starts a pass; let it finish inside the test (`settle`).
 
 ## Where configuration lives
 
@@ -101,7 +133,7 @@ Design and the exact contract: `docs/research/backend-steps/step-4.md`, section 
 - Log only route, status, upstream status, attempts and duration; never a
   transcript, audio or token (Workers Logs sit outside our EU control).
 - Every `/api` answer carries `Cache-Control: no-store`.
-- The rate limiter namespace ids (26101 to 26103) must stay unique in the account.
+- The rate limiter namespace ids (26101 to 26104) must stay unique in the account.
 
 ## Access runbook (when the team switches on login)
 

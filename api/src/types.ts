@@ -20,4 +20,4 @@ export type AppEnv = {
   };
 };
 
-export type RateLimitName = "RL_STT_TOKEN" | "RL_STT_BATCH" | "RL_LLM";
+export type RateLimitName = "RL_STT_TOKEN" | "RL_STT_BATCH" | "RL_LLM" | "RL_AUDIO";

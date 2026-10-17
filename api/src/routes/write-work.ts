@@ -170,7 +170,7 @@ export const writeWork = new Hono<AppEnv>()
     t.run("UPDATE sessions SET ended_at = ?1 WHERE day = ?2", isoNow(), day);
     t.audit({ action: "session.end", what_cs: "ukončil(a) MDT", case_id: first?.case_id ?? null });
     await t.commit();
-    await hooks.onSessionEnded(day);
+    await hooks.onSessionEnded(c, day);
     return answer(c, {}, { sessions: await work(c).sessions() });
   })
 

@@ -17,13 +17,17 @@ import { writeCases } from "./routes/write-cases";
 import { writeWork } from "./routes/write-work";
 import { writeStaff } from "./routes/write-staff";
 import { demo } from "./routes/demo";
+import { transcript } from "./routes/transcript";
+import { sweep } from "./scheduled";
+
+export { SpeakerPassWorkflow } from "./workflows/speaker-pass";
 
 // The data routes (step 2) resolve the person from the directory first; listed by path so an unknown /api path
 // still answers the plain JSON 404 instead of touching the database.
 // Hono's "/x/*" also matches "/x", so each prefix is listed once; a second pattern would run the middleware twice.
 const DATA_PATHS = [
   "/me", "/staff/*", "/patients", "/cases/*", "/documents/*", "/tasks/*", "/calendar", "/admin/*",
-  "/workflow", "/audit/*", "/suggestions/*", "/notifications/*", "/sessions/*", "/attendance/*",
+  "/workflow", "/audit/*", "/suggestions/*", "/notifications/*", "/sessions/*", "/attendance/*", "/recordings/*", "/jobs/*",
 ];
 
 // Static files (the built mock) are served by the assets binding before this code runs; only /api/* reaches it.
@@ -51,7 +55,12 @@ app.route("/", writeCases);
 app.route("/", writeWork);
 app.route("/", writeStaff);
 app.route("/", demo);
+app.route("/", transcript);
 app.notFound(notFound);
 app.onError(onError);
 
-export default app;
+// fetch serves the page and the API; scheduled runs the audio sweep (step 5).
+export default {
+  fetch: (req: Request, env: Env, ctx: ExecutionContext) => app.fetch(req, env, ctx),
+  scheduled: (_ev: ScheduledController, env: Env, ctx: ExecutionContext) => ctx.waitUntil(sweep(env).then(() => undefined)),
+} satisfies ExportedHandler<Env>;

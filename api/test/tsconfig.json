@@ -1,5 +1,6 @@
 {
   "extends": "../tsconfig.json",
-  "compilerOptions": { "types": ["@cloudflare/vitest-plugin/types"] },
+  // esnext.disposable: the Workflow test helpers are disposed with `await using`.
+  "compilerOptions": { "types": ["@cloudflare/vitest-plugin/types"], "lib": ["ES2023", "esnext.disposable"] },
   "include": ["./**/*.ts", "../src/worker-configuration.d.ts"]
 }

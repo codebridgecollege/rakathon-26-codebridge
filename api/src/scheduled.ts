@@ -1,0 +1,59 @@
+// The cron sweep (wrangler.jsonc triggers.crons, every 15 minutes): deletes audio that every other path should already
+// have deleted, and starts speaker passes whose start failed. The R2 lifecycle rule on audio/ is the backstop behind
+// this (api/AGENTS.md, "AI recording and the speaker pass").
+import { purgeUploads, uploadsForSweep } from "./store/audio";
+import { reconcile, startJob, type JobRow } from "./store/jobs";
+import { transcriptsOn } from "./routes/hooks";
+
+// Audio older than this goes whatever its state: no case is discussed for six hours.
+export const AUDIO_MAX_AGE_MS = 6 * 3600_000;
+
+export async function sweep(env: Env, nowMs = Date.now()): Promise<{ purged: number; failed: number; restarted: number }> {
+  // Deletion depends on the storage only, not on the feature switch: switching the recorder off must not keep audio.
+  if (!env.DB || !env.DOCS) return { purged: 0, failed: 0, restarted: 0 };
+  let ups: Awaited<ReturnType<typeof uploadsForSweep>>;
+  try {
+    ups = await uploadsForSweep(env.DB, new Date(nowMs - AUDIO_MAX_AGE_MS).toISOString());
+  } catch {
+    // An unmigrated database has no audio tables, so nothing to delete.
+    return { purged: 0, failed: 1, restarted: 0 };
+  }
+  let purged = 0;
+  let failed = 0;
+  // One at a time, so one stuck object does not keep the others.
+  for (const u of ups) {
+    try {
+      purged += (await purgeUploads(env, [u], "kontrola uchování", null, null, "AI záznam: zvuk smazán (kontrola uchování)")).deleted;
+    } catch {
+      failed += 1;
+    }
+  }
+  let restarted = 0;
+  if (!transcriptsOn(env)) {
+    console.log(JSON.stringify({ cron: "audio_sweep", purged, failed, restarted }));
+    return { purged, failed, restarted };
+  }
+  const jobs = (
+    await env.DB.prepare(
+      "SELECT id, kind, case_id, workflow, instance_id, attempt, state, phase, error_code, result_ref, created_by, updated_at FROM jobs WHERE (state = 'error' AND error_code = 'start_failed') OR state IN ('queued','running') LIMIT 50",
+    ).all<JobRow>()
+  ).results;
+  for (const j of jobs) {
+    try {
+      if (j.state === "error") {
+        // Back to queued under the same instance id, then started; a job that fails again waits for the next sweep.
+        const at = new Date(nowMs).toISOString();
+        await env.DB.batch([
+          env.DB.prepare("UPDATE jobs SET state = 'queued', error_code = NULL, updated_at = ?1 WHERE id = ?2 AND state = 'error' AND error_code = 'start_failed'").bind(at, j.id),
+          env.DB.prepare("UPDATE transcript_passes SET state = 'queued', error_code = NULL, updated_at = ?1 WHERE id = ?2 AND state = 'error' AND error_code = 'start_failed'").bind(at, j.result_ref),
+        ]);
+        if (await startJob(env, j.id)) restarted += 1;
+      } else await reconcile(env, j, nowMs);
+    } catch {
+      failed += 1;
+    }
+  }
+  // Counts only: no case ids or keys in the Worker log.
+  console.log(JSON.stringify({ cron: "audio_sweep", purged, failed, restarted }));
+  return { purged, failed, restarted };
+}

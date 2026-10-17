@@ -15,7 +15,22 @@ export default defineConfig(async () => {
     plugins: [
       cloudflareTest({
         wrangler: { configPath: "./wrangler.jsonc" },
-        miniflare: { bindings: { TEST_MIGRATIONS: migrations, TEST_PAGE_DEFAULT_STAFF: staffBlock } },
+        // The Workflow runs with the Worker's own bindings, not the per-test env, so its secrets and endpoints are
+        // pinned here: a developer's .dev.vars must never reach a test, and an unmocked call goes to a .test host.
+        miniflare: {
+          bindings: {
+            TEST_MIGRATIONS: migrations,
+            TEST_PAGE_DEFAULT_STAFF: staffBlock,
+            ELEVENLABS_API_KEY: "test-el",
+            AZURE_OPENAI_KEY: "test-az",
+            AI_GATEWAY_TOKEN: "",
+            AI_GATEWAY_BASE: "",
+            ELEVENLABS_API_BASE: "https://elevenlabs.test",
+            AZURE_OPENAI_BASE: "https://azure.test/openai/v1",
+            AUTH_MODE: "demo",
+            DATA_API: "on",
+          },
+        },
       }),
     ],
   };

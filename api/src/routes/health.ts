@@ -34,12 +34,15 @@ export const health = new Hono<AppEnv>().get("/", async (c) => {
     runtime: "worker",
     version: c.env.GIT_SHA || "unknown",
     auth_mode: c.env.AUTH_MODE,
-    features: { stt: !!c.env.ELEVENLABS_API_KEY, summarize: !!c.env.AZURE_OPENAI_KEY, data: !!seeded },
+    // transcripts: the server stores the AI recording and runs the speaker pass (step 5); the page then uses it.
+    features: { stt: !!c.env.ELEVENLABS_API_KEY, summarize: !!c.env.AZURE_OPENAI_KEY, data: !!seeded, transcripts: !!seeded && !!c.env.SPEAKER_PASS },
     seeded_at: seeded,
     demo: demo ? { ...demo, reset_enabled: c.env.DEMO_RESET_ENABLED === "true" } : null,
     limits: {
       stt_audio_bytes: Number(c.env.STT_MAX_AUDIO_BYTES) || 0,
       summary_chars: Number(c.env.SUMMARY_MAX_CHARS) || 40000,
+      audio_part_bytes: Number(c.env.AUDIO_PART_BYTES) || 5242880,
+      audio_max_minutes: Number(c.env.AUDIO_MAX_MINUTES_PER_CASE) || 120,
     },
   });
 });

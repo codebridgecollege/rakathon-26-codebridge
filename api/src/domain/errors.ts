@@ -1,7 +1,7 @@
 // Refusals of the domain rules, with the HTTP status and the Czech message the page shows as is. Pure: the HTTP layer
 // (src/http/errors.ts) only copies status, code and message into the response.
 
-export type DomainStatus = 403 | 404 | 409 | 422 | 503;
+export type DomainStatus = 403 | 404 | 409 | 413 | 422 | 503;
 
 export class DomainError extends Error {
   constructor(

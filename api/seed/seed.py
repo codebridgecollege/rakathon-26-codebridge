@@ -47,8 +47,8 @@ TABLES = [
     "roles", "departments", "users", "dept_members", "patients", "cases", "case_members", "status_history",
     "slots", "sessions", "attendance", "protocols", "decisions", "task_suggestions", "tasks",
     "question_confirmations", "fact_edits", "edit_log", "extraction_runs", "alerts", "alert_events",
-    "documents", "document_parts", "pages", "fixture_files", "transcript_passes", "transcript_lines", "jobs",
-    "access_log", "seed_meta", "attendance_sets", "notifications", "case_access_grants", "idempotency_keys",
+    "documents", "document_parts", "pages", "fixture_files", "recordings", "jobs", "transcript_passes",
+    "transcript_lines", "transcript_summaries", "audio_uploads", "audio_parts", "audio_segments", "access_log", "seed_meta", "attendance_sets", "notifications", "case_access_grants", "idempotency_keys",
     "write_guards",
 ]
 # What the app writes (step 4). POST /api/admin/reset-demo empties these and reinserts their seed rows from the
@@ -57,7 +57,8 @@ MUTABLE = [
     "users", "departments", "dept_members", "cases", "case_members", "status_history", "slots", "sessions",
     "attendance", "attendance_sets", "protocols", "decisions", "task_suggestions", "tasks", "question_confirmations",
     "fact_edits", "edit_log", "alert_events", "notifications", "case_access_grants", "idempotency_keys", "write_guards",
-    "transcript_lines", "transcript_passes", "jobs", "access_log",
+    "recordings", "jobs", "transcript_passes", "transcript_lines", "transcript_summaries", "audio_uploads", "audio_parts",
+    "audio_segments", "access_log",
 ]
 # patients is not in the list: identity stays in D1 only (no copy in R2). The app never changes a seeded patient row,
 # so the reset keeps those and deletes only patients created after the seed (reset.json lists the seeded IDs).
