@@ -7,7 +7,7 @@ Usage:
     uv run mocks/build.py
 
 Writes `mocks/v1.html` to `mocks/v3.html`. Each template has placeholders
-(`/*CASE*/`, `/*LIST*/`, `/*EXTRA*/`, and in v3 `/*PAGES*/`) that are
+(`/*CASE*/`, `/*LIST*/`, `/*EXTRA*/`, and in v3 `/*PAGES*/` and `/*SYN*/`) that are
 replaced with the JSON files in `mocks/src/data/` and the page index in
 `data/derived/page-index.json`, so the page needs no server.
 
@@ -147,12 +147,22 @@ def guidance() -> str:
     return json.dumps(out, ensure_ascii=False)
 
 
+def synthetic_cases() -> str:
+    """The team's synthetic patients (`samples/S<nn>_pacient`), one `mock-case-S<nn>.json` each, as a JSON array.
+
+    They are kept apart from the FNO patient list so mocks v1 and v2 stay as they were; mock v3 adds them to its
+    patient database with their documents, data gaps and lab series.
+    """
+    return json.dumps([json.loads(f.read_text()) for f in sorted(DATA.glob("mock-case-S*.json"))], ensure_ascii=False)
+
+
 def main() -> None:
     parts = {
         "/*CASE*/": embed((DATA / "mock-case-10.json").read_text()),
         "/*LIST*/": embed((DATA / "mock-patient-list.json").read_text()),
         "/*EXTRA*/": embed((DATA / "mock-case-10-extra.json").read_text()),
         "/*PAGES*/": embed(page_index()),
+        "/*SYN*/": embed(synthetic_cases()),
         # Guideline statements for the guideline layer (mock v3); empty until the file exists.
         "/*GUIDE*/": embed(guidance()),
     }

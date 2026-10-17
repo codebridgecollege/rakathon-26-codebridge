@@ -69,7 +69,7 @@ out = {
         "one_line_summary_cs": "GBM vlevo F diag. 12/2025, stp. subtotální resekci 2.12.2025 a CHRT dle Stuppa (12.1.-20.2.2026); adjuvantní temozolomid 6 cyklů, od 3. cyklu redukce pro trombocytopenii G2 (PLT 54 dne 12.5.2026); DVT 2/2026 na enoxaparinu; MR 29.9.2026 progrese dle RANO; steroidní hyperglykémie a vzestup kreatininu (142 µmol/l dne 6.10.2026).",
         "page_count": 7,
         "note": "Syntetický pacient týmu CodeBridge, ne z dat FNO. Popis MR 29.9.2026 je jen převzatý v ambulantní zprávě (originál chybí); výsledek PET/CT s 18F-FET chybí (požadavek odeslán 1.10.2026).",
-        "question_draft_cs": None, "question_basis": None,
+        "question_draft_cs": None, "question_kind": None, "question_basis": None,
         "status": "new", "status_note_cs": "Příklad: případ zadaný, zatím bez termínu.",
         "owner": "MUDr. Hana Modřínová", "owner_note_cs": "Fiktivní lékařka, podepsaná pod ambulantními zprávami.",
     },

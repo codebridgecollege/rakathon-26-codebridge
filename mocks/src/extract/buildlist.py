@@ -48,34 +48,48 @@ L = [
 # Draft MDT question when the referral states none (team decision 2026-10-17, after Sona's review). The draft is
 # always shown as a draft until a doctor confirms it. "document_purpose": the document's own purpose sentence already
 # is a task, rephrased as a question; "assistant_inference": the assistant's reading of what the referrer wants to know.
-# The basis quote is verbatim from the OCR text and is checked below, so a draft never rests on an invented sentence.
+# A draft names only treatment options the doctor suggested in her review or a document states (round 24 review).
+# question_basis lists the passages the draft rests on: the purpose sentence first (role "purpose", if any), then each
+# finding the draft cites (role "finding"). Every quote is verbatim from the OCR text and is checked below, so a draft
+# never rests on an invented sentence.
 norm = lambda s: re.sub(r"\s+", " ", s).strip()
+P, F = "purpose", "finding"
 DRAFTS = {
- "9_pacient.pdf": ("Je indikována neurochirurgická intervence pro nález na PET/CT (patologická komprese obratle Th2)?",
-   "document_purpose", 3, "Nález na PET/CT vyš. bude prezentován na NCH semináři k posouzení indikace NCH intervence, jinak příště objednáme analgetickou pal. RT."),
- "11_pacient.pdf": ("Souhlasí radiolog s nálezem tumoru charakteru schwannomu n. VIII vlevo a drobného meningeomu F parafalcinně vlevo? Je indikováno operační (nebo radiochirurgické) řešení, nebo sledování?",
-   "assistant_inference", 2, "Homogenní solid. sycení intrameatal. TU popis. na minulém nativním MR vyš., vel. do 7mm."),
- "15_pacient.pdf": ("Souhlasí radiolog s obrazem v.s. ependymomu či subependymomu postranní komory vpravo? Je při stacionárním nálezu indikováno sledování, nebo operační řešení?",
-   "assistant_inference", 1, "Závěr: Stacionární obraz v.s. ependymomu či subependymomu postranní komory vpravo."),
- "17_pacient.pdf": ("Jaký další postup doporučuje MDT u intraoseálního ložiska kalvy frontálně vpravo (DD intraoseální meningeom x MTS)? Doplnit MR mozku a scintigrafii skeletu?",
-   "document_purpose", 1, "V rámci MDT doporučena konzultace NCH, MR mozku a scinti skeletu (zobrazovací metody zatím nedoplněny, vyčkáme Vašeho doporučení)."),
- "18_pacient.pdf": ("Jde o nádor míchy (drobný ependymom v oblasti konu nelze vyloučit), nebo jsou obtíže degenerativního původu (protruze L3 až L5)? Je indikováno operační řešení?",
-   "assistant_inference", 1, "zde drobný ependymom v terénu výrazné syringomyelie nevyloučím."),
- "19_pacient.pdf": ("Je indikováno endovaskulární řešení (coiling) dvou výdutí ACI vlevo (cca 2 a 3 mm pod bazí lební)?",
-   "assistant_inference", 1, "vlevo dvě sousedící výdutě stěny ACI o vel. cca 2 mm a 3 mm pod bazí lebky"),
- "20_pacient.pdf": ("Je indikováno neurochirurgické řešení infiltrace obratlových těl C6 až Th1 (resekce, náhrada obratlových těl, stabilizace)? Povaha infiltrace zatím nejasná (zánětlivé změny vs. maligní infiltrace).",
-   "assistant_inference", 1, "Dle rekonzultace NCH - nahlásit na NOCO a doplnit CT hrudníku a břicha s kontrastem."),
+ "9_pacient.pdf": ("Je indikována neurochirurgická intervence pro nález na PET/CT (patologická komprese obratle Th2)?", "document_purpose", [
+   (P, 3, "Nález na PET/CT vyš. bude prezentován na NCH semináři k posouzení indikace NCH intervence, jinak příště objednáme analgetickou pal. RT."),
+   (F, 2, "CAVE patol. komprese obratlového těla Th2")]),
+ "11_pacient.pdf": ("Souhlasí radiolog s nálezem tumoru charakteru schwannomu n. VIII vlevo a drobného meningeomu F parafalcinně vlevo? Je indikováno operační řešení, nebo sledování?", "assistant_inference", [
+   (F, 2, "charakteru Schwanomu n. VIII sin"),
+   (F, 2, "Drobný meningeom F parafalcinně sin")]),
+ "15_pacient.pdf": ("Souhlasí radiolog s obrazem v.s. ependymomu či subependymomu postranní komory vpravo? Je při stacionárním nálezu indikováno sledování, nebo operační řešení?", "assistant_inference", [
+   (F, 1, "Závěr: Stacionární obraz v.s. ependymomu či subependymomu postranní komory vpravo.")]),
+ "17_pacient.pdf": ("Jaký postup doporučuje NCH u intraoseálního ložiska kalvy F vpravo (DD intraoseální meningeom x MTS)?", "document_purpose", [
+   (P, 1, "V rámci MDT doporučena konzultace NCH, MR mozku a scinti skeletu (zobrazovací metody zatím nedoplněny, vyčkáme Vašeho doporučení)."),
+   (F, 1, "intraoseální ložisko vpravo F s propagací intrakraniálně extraaxiálně- v diff.dg. intraoseální meningeom x meta ložisko v rámci zákl dg.")]),
+ "18_pacient.pdf": ("Jde o nádor míchy (drobný ependymom v oblasti konu nelze vyloučit), nebo jsou obtíže degenerativního původu (protruze L3 až L5)? Je indikováno operační řešení?", "assistant_inference", [
+   (F, 1, "zde drobný ependymom v terénu výrazné syringomyelie nevyloučím."),
+   (F, 1, "V segm. L3/L4 je cirkulární protruze disku do 3 mm"),
+   (F, 2, "V segm. L4/L5 je cirkulární protruze plotny, s impresí ventrální plochy durálního vaku")]),
+ "19_pacient.pdf": ("Je indikováno endovaskulární řešení (coiling) dvou výdutí ACI vlevo (cca 2 a 3 mm pod bazí lební)?", "assistant_inference", [
+   (F, 1, "vlevo dvě sousedící výdutě stěny ACI o vel. cca 2 mm a 3 mm pod bazí lebky")]),
+ "20_pacient.pdf": ("Je indikováno neurochirurgické řešení infiltrace obratlových těl C6 až Th1 (resekce, náhrada obratlových těl)? Povaha infiltrace zatím nejasná (zánětlivé změny vs. maligní infiltrace).", "assistant_inference", [
+   (P, 1, "Dle rekonzultace NCH - nahlásit na NOCO a doplnit CT hrudníku a břicha s kontrastem."),
+   (F, 1, "MR Cp 14.9.26 - Výrazná infiltrace obr. těl C6/C7/Thl vč. pediklů a neuroforamin vpravo, postkontrastně se sytící, parc. až kompletní zánik meziobr. prostor C6-Thl."),
+   (F, 1, "Dif.dg.: susp. rozsáhlé zánětlivé změny (spondylodiscitis?) / maligní infiltrace?")]),
 }
 for d in L:
     dr = DRAFTS.get(d["file"])
     assert bool(dr) != bool(d["mdt_question_explicit"]), d["file"]
     if dr:
-        text, kind, page, quote = dr
-        assert norm(quote) in norm(ocr[d["file"]][page - 1]), (d["file"], quote)
+        text, kind, quotes = dr
+        for role, page, quote in quotes:
+            assert norm(quote) in norm(ocr[d["file"]][page - 1]), (d["file"], quote)
         d["question_draft_cs"] = text
-        d["question_basis"] = {"kind": kind, "quote": norm(quote), "source": {"file": d["file"], "page": page}}
+        d["question_kind"] = kind
+        d["question_basis"] = [{"role": role, "quote": norm(quote), "source": {"file": d["file"], "page": page}} for role, page, quote in quotes]
     else:
         d["question_draft_cs"] = None
+        d["question_kind"] = None
         d["question_basis"] = None
 # The 17 form has first name and surname in each other's fields; Otakar is the first name. This is a form error, not
 # an identity conflict between documents, so it is a neutral note with its source (Sona's review, round 22).

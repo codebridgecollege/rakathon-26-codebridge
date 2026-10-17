@@ -212,6 +212,10 @@ labs_note = ("Jeden soubor laboratorních hodnot na str. 3, bez data odběru (pr
              "Hodnoty a jednotky jsou opsány z dokumentu; out_of_range určil asistent porovnáním s uvedeným rozmezím.")
 
 def ref(page, quote): return src(page, quote)
+# A passage an MDT question draft rests on, in the shape buildlist.py writes: role, verified quote, source page.
+def basis(role, page, quote):
+    r = src(page, quote)
+    return {"role": role, "quote": r["quote"], "source": {"file": F, "page": page}}
 flags = [
  {"kind": "missing", "text_cs": "Chybí výslovně formulovaná otázka pro MDT. Dokument jen uvádí, že nález MR mozku je zadán k projednání na NCH semináři.",
   "based_on": [ref(3, "Nález při MR vyš. mozku zadávám k projednáni na NCH semináři.")],
@@ -256,8 +260,12 @@ case = {
    "note_cs": "Otázka pro MDT není výslovně formulována. Nejbližší text: nález MR mozku zadán k projednání na NCH semináři.",
    "closest_source": src(3, "Nález při MR vyš. mozku zadávám k projednáni na NCH semináři."),
    # Draft question rephrased from the document's purpose sentence (team decision 2026-10-17); a draft until a doctor confirms it.
-   "question_draft_cs": "Jaký postup doporučuje neurochirurgický seminář u nálezu na MR mozku 14.9.2026 (solitární sytící se nodulus v pravé mozečkové hemisféře do 3 mm, suspekce na solitární MTS)?",
-   "question_basis": {"kind": "document_purpose", "quote": norm("Nález při MR vyš. mozku zadávám k projednáni na NCH semináři."), "source": {"file": F, "page": 3}}},
+   # The reason above the question already states the MR finding, so the question does not repeat it (round 24).
+   # question_basis: the purpose sentence, then the finding the question is about; src() checks each quote against the OCR text.
+   "question_draft_cs": "Jaký postup doporučuje neurochirurgický seminář?",
+   "question_kind": "document_purpose",
+   "question_basis": [basis("purpose", 3, "Nález při MR vyš. mozku zadávám k projednáni na NCH semináři."),
+                      basis("finding", 1, "Solitérní nodulus postkontrastně se sytící v pravé mozečkové hemisféře(do 3mm) - suspekce na solitérní MTS")]},
  "diagnosis": {"code": "C64", "code_system": "MKN-10 (dle dokumentu)", "text_cs": "Zhoubný novotvar ledviny mimo pánvičku",
    "source": src(1, "C64 Zhoubný novotvar ledviny mimo pánvičku")},
  "summary": [

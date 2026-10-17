@@ -246,7 +246,7 @@ column says what the mock does; those points are also in
 | 13 | No unexplained abbreviations (she did not recognize "HN", which in Czech is "hypertenzní nemoc"); write the diagnosis out. Diagnoses in the personal history should stand out (bold), the rest plain text. Also in the PDF report. | Soňa | [design-5 00:10:05; 00:21:35 to 00:22:30] | F-06, F-31: "Hypertenzní nemoc" etc. in bold, qualifiers plain, in the app and the report. |
 | 14 | The source text of page 4 shows strange characters. | Juro | [design-5 00:10:48 to 00:11:26] | F-18: unreadable OCR characters (U+FFFD) are shown as a marked "?" with a note that the page has unreadable characters. |
 | 15 | Documents tab is cramped; the upload area need not be always visible: an upload button in the card's corner opens a dialog. The "Zpracování" panel is unclear. | Juro; Soňa agreed | [design-5 00:11:46 to 00:13:32] | S-3: full-width table, "+ Nahrát dokument" opens a dialog, the processing panel is gone. Readability reason moved to a tooltip. |
-| 16 | Labs: rows are tests, columns are draw dates and times; click a test to see its trend as a chart. The date matters. | Soňa | [design-5 00:13:43 to 00:14:34] | F-21: lab matrix and chart, on a clearly labeled synthetic series (the documents have one undated set, shown in a second view). |
+| 16 | Labs: rows are tests, columns are draw dates and times; click a test to see its trend as a chart. The date matters. | Soňa | [design-5 00:13:43 to 00:14:34] | F-21: lab matrix and chart, shown only where the documents hold at least two dated draws (synthetic patient S01, round 24); case 10's one undated set is shown as document values only. |
 | 17 | Drop the MRI comparison tab for now; she would maybe drop the history tab too. | Soňa; Juro agreed on the MRI tab | [design-5 00:14:57 to 00:15:37] | S-3: MRI tab removed; F-20 stays Pitch. Deliberate deviation: the history tab stays, reworked per row 18, because the append-only MDT decisions and the doctor edits need a place. |
 | 18 | "Historie" reads as the patient's history or past documents, not an audit log (Juro). Soňa: the audit log need not be visible to users; it can stay on the backend and be pulled from the database. Juro: administrators could get a fourth top-navigation item. | Juro; Soňa | [design-5 00:15:37 to 00:17:06] | S-3: "Historie" holds MDT conclusions, doctor edits and the document history; S-7 Administrace (audit log) appears only for the administrator user. |
 | 19 | The current state of the patient (subjective and objective finding from the last doctor: walking or bed-bound, self-sufficient, oriented) is missing; it belongs on the first screen. | Soňa | [design-5 00:17:06 to 00:18:39] | S-3, F-16: "Aktuální stav pacienta" on the Overview, from the latest exam; mobility and self-sufficiency are shown as the assistant's inference from ECOG PS 1; what the record does not state (speech, Karnofsky index) shows the gap wording. |
@@ -424,6 +424,25 @@ and add more people. Design by the team lead.
 | 3 | Renaming and removing must not rewrite the past. | Decisions, frozen attendance, status history and the access log keep the name they stored. A rename moves open tasks, task drafts, unapproved next steps, case owners and live attendance to the new name; a removal drops the person from live attendance and the picker only. A duplicate name or an empty surname is refused. Every change is logged ("přidal(a) do personálu: Radiologie, ..."), without patient data. |
 | 4 | In the attendance grid, an extra row's empty choice read "odebrat", which looks like an option. | Every row's empty choice is "vyberte…"; an extra row has its own ✕ to remove it. |
 
+## Feedback round 24 (2026-10-17)
+
+The product owner and Soňa reviewed the drafts of round 22 and the lab
+tab; a separate review agent checked the question drafts.
+
+| # | Feedback | What changes |
+|---|---|---|
+| 1 | Do not invent data. The lab trend of case 10 ran on an invented series. | The invented series is removed; case 10 shows "Hodnoty z dokumentu" only, with a note that a trend needs at least two dated draws. "Vývoj v čase" is shown only for a patient whose documents hold at least two dated draws. |
+| 2 | The trend needs a patient whose documents really hold a series. | Synthetic patient S01 (Křemínek Radovan, case `NO-S01`, [`samples/README.md`](../../samples/README.md)) joins the database after FNO's patients, marked "syntetický pacient" in the list and the header, unscheduled. Its view adds "Dokumenty" (page viewer), "Laboratoř" (four draws; every value and every draw date opens its line on the lab sheet; no "syntetická data" banner, because the values are from its documents) and the amber "chybí podklady" button with the three missing documents. Its explicit MDT question is shown as written. |
+| 3 | Reason and question read as two blocks, and the question repeated the finding the reason already states (Soňa). | "Důvod a otázka pro MDT" is one paragraph: the reason, then "Otázka:" and the question; the draft label is a small chip at the end of the paragraph. The plain "Otázka pro MDT" box (cases without a reason) shows the question with the chip at its end. Case 10's draft is shortened to "Jaký postup doporučuje neurochirurgický seminář?". |
+| 4 | Drafts named treatment options nobody proposed. | A draft names only options the doctor suggested or a document states: Potužný keeps "resekce, náhrada obratlových těl" without "stabilizace"; Kabátová asks "Je indikováno operační řešení, nebo sledování?"; Jelen asks "Jaký postup doporučuje NCH u intraoseálního ložiska kalvy F vpravo (DD intraoseální meningeom x MTS)?". |
+| 5 | A draft showed one passage, though it cites several findings. | `question_basis` lists every passage: the purpose sentence ("Účel v dokumentu"), then each cited finding ("Vychází z"), each verbatim and checked against the OCR text, each with its page link; the report and the FHIR export print them, and the export adds a Provenance for them. |
+| 6 | Confirming a draft appeared in the edit list as a text change. | The edit log records `{confirmed: true}`; the admin's list says "potvrdil(a) návrh otázky" and shows the unchanged draft. |
+| 7 | Anyone could upload or remove documents in "Projednání na MDT", even after approval. | Only doctors and the coordinator upload or remove, never on a closed case or after approval; other roles see why. |
+| 8 | Scissors do not say "operation". | The surgery category uses our own scalpel icon in Lucide's style. |
+
+Mock v2 no longer raises "Ověřit identitu" for Jelen (the swapped name
+fields are a form error, round 22).
+
 ## Features
 
 Tiers: **Demo** is in the working demo; **Pitch** is shown as a mock or a
@@ -466,9 +485,9 @@ everything else is Pitch or Later.
 | F-18 | Source view | Every fact carries a numbered reference [1], as in a paper; clicking it opens the passage in the original document. | Demo | Wiki-style links | [design-1 00:42:20; design-4 00:03:45 to 00:04:00; juro-notes; chatgpt R 01:17] | Mock v1's inline source chips in a monospace font disturbed reading [design-4 00:03:55, 00:04:00]. Round 2: the source list under each card is folded away by default [design-5 00:08:47]; unreadable OCR characters are marked in the source view [design-5 00:11:10]. Team decision 2026-10-16: the source view shows the actual page image with the passage highlighted, and the extracted text in a separate tab, so source links can point at the text passage; tokens the OCR engines read differently are marked "ověřit" (mock v4). |
 | F-19 | Timeline categories | One horizontal, chronological timeline. Every event has one category icon and label. Category buttons show counts and filter the same timeline; Vše restores all events. Clicking an event opens its original source. Planned events keep a dashed pin and explicit plan label. | Demo | Timeline view; SEŘADIT | Team decision in Codex chat, 2026-10-17; [design-4 00:06:17] | Categories and source-date rules below. Empty categories have a disabled zero-count filter. |
 | F-20 | Compare current and previous exam | Two reports side by side (for example two MRI reports) with the differences listed as the assistant's observation. | Pitch (text); Later (images) | Significant changes; POROVNAT | [design-1 00:11:45, 00:43:21; paper-notes more_notes; chatgpt P 11:54, R 11:54] | Compare like with like; any computed change (ChatGPT's "34.4% decrease") is labeled. |
-| F-21 | Lab value trends | A matrix of tests (rows) by draw date and time (columns), original units and ranges; clicking a test shows its trend chart [design-5 00:13:43]. | Pitch | Lab value trends | [FNO spec; challenge] | Not discussed in the design sessions. The only lab values in the data are one undated set in patient 10's PDF, so a trend needs synthetic labs (open question with FNO). Mock v3 opens on the real undated values; a second view shows the matrix and chart on a synthetic series, labeled as such inside the chart. |
+| F-21 | Lab value trends | A matrix of tests (rows) by draw date and time (columns), original units and ranges; clicking a test shows its trend chart [design-5 00:13:43]. | Pitch | Lab value trends | [FNO spec; challenge] | Not discussed in the design sessions. The only lab values in the data are one undated set in patient 10's PDF, so mock v3 shows them as "Hodnoty z dokumentu" without a trend; no series is invented (product owner, round 24). The trend ("Vývoj v čase") is shown for the team's synthetic patient S01, whose four lab sheets are documents; every value opens its line on its sheet. |
 | F-22 | Attendance | Specialties per department (neurochirurgie, klinická onkologie, radiační onkologie, radiologie, neurologie, patologie) with their doctors pre-filled; set who is present once per session; count present; copy; per-case exceptions. | Pitch | (report) | [design-1 00:14:16, 00:40:26, 00:41:13; chatgpt P 11:54, P 14:33, P 14:36] | Soňa: "jj super attendance" [chatgpt P 14:36]. Decided in round 2: one dropdown per department, filled in once per seminar day [design-5 00:21:35]. Set in the start dialog of a session and edited from the session bar or the discussion card. Approving a conclusion freezes the attendance in that report. Round 23: the doctors per department come from the staff list (S-8, F-39); extra rows say "vyberte…" and have their own ✕. |
-| F-23 | Conclusion entry | In the patient view: the conclusion in the brief's "Závěr MDT" field, and under it the "Projednání na MDT" card with "Ruční poznámky", "AI záznam" and "Dokumenty" (ad hoc upload), next steps with assignees, and physician approval (S-5). A new draft sits under the valid conclusion until it is approved. | Demo (manual notes) | (report) | [design-1 00:44:31, 00:46:27; design-4 00:06:35; ui-shot 17.06.14 (1), (2); chatgpt P 12:16, P 14:51] | Replaces the mock v1 conclusion screen, which Soňa disliked [design-4 00:06:35]. Explicit patient selection prevents mixing patients. |
+| F-23 | Conclusion entry | In the patient view: the conclusion in the brief's "Závěr MDT" field, and under it the "Projednání na MDT" card with "Ruční poznámky", "AI záznam" and "Dokumenty" (ad hoc upload by doctors and the coordinator, not on a closed or approved case), next steps with assignees, and physician approval (S-5). A new draft sits under the valid conclusion until it is approved. | Demo (manual notes) | (report) | [design-1 00:44:31, 00:46:27; design-4 00:06:35; ui-shot 17.06.14 (1), (2); chatgpt P 12:16, P 14:51] | Replaces the mock v1 conclusion screen, which Soňa disliked [design-4 00:06:35]. Explicit patient selection prevents mixing patients. |
 | F-24 | Decision history | Each conclusion is confirmed by a named doctor and stored; a later decision supersedes it, never erases it. One button, "Schválit závěr MDT", with the line "schvaluje za tým: <doctor>"; any doctor may approve once a conclusion is written, and approving adds that doctor to the day's attendance if missing (logged). Others see the button disabled with "schvaluje lékař". | Demo | (report; timeline) | [juro-notes; chatgpt P 12:16, R 14:04] | Decision 3. |
 | F-25 | Live listening | Record the discussion per patient, transcribe it with names, draft the conclusion for the doctors to confirm. In the mock: the "AI recording" tab, labeled as a planned feature that needs participants' consent and does not record [ui-shot 17.06.14 (1)]. | Pitch (stretch Demo) | - | [design-1 00:46:27; juro-notes; paper-notes more_notes; chatgpt P 10:14, P 14:51] | Decision 2. Opt-in and consent; patient data. Voice enrolment for names is Later (biometric data). Raw transcript fixed, summary editable [design-1 00:43:31], undecided. |
 | F-26 | Query mode | Doctors ask the assistant questions about the case; answers cite sources or say "not found". | Pitch | - | [juro-notes] | |
@@ -503,7 +522,7 @@ The team agreed on these labels and icons on 17 October 2026:
 | `systemic` | Systémová protinádorová léčba | `syringe` |
 | `medication` | Ostatní medikace | `pill` |
 | `mdt` | MDT a rozhodnutí | `users-round` |
-| `surgery` | Chirurgie a výkony | `scissors` |
+| `surgery` | Chirurgie a výkony | `scalpel` (our own, drawn in Lucide's style; Lucide has none) |
 | `pathology` | Patologie a molekulární vyšetření | `microscope` |
 | `radiotherapy` | Radioterapie | `target` |
 | `laboratory` | Laboratorní vyšetření | `test-tube-diagonal` |
@@ -540,7 +559,7 @@ delivers it.
 | Fields ticked for the report | F-17 | Yes |
 | PDF report with identity and ticked fields | F-31 | Yes |
 | Report usable as a request for further examination or treatment | F-31 | Gap: nothing produces request text. |
-| Lab value trends | F-21 (Pitch) | Gap: one undated lab set (patient 10) in the data; a trend needs synthetic labs. |
+| Lab value trends | F-21 (Pitch) | Partly: FNO's data has one undated lab set (patient 10), shown without a trend; the trend runs on the team's synthetic patient S01 (four dated lab sheets). |
 | Findings overview | F-05, F-17 | Yes |
 | Significant changes | F-20 (Pitch), F-13 (Pitch), F-19 shows events | Partial: events are shown, nothing in Demo labels a change. |
 | Contradictions | F-09 | Yes (conflicting values) |
@@ -553,7 +572,7 @@ delivers it.
 | ZKONTROLOVAT (check nothing is missing) | F-07 | Yes |
 | PARAMETRIZOVAT (free text to values) | F-05 | Yes |
 | Inputs: medical reports, imaging, pathology | F-02, F-05 (uploaded text) | Yes |
-| Inputs: lab results (LIS) | F-21 (Pitch) | Gap, as for lab trends. |
+| Inputs: lab results (LIS) | F-21 (Pitch) | Gap for FNO's data, as for lab trends; shown on the synthetic patient S01. |
 | Inputs: genetics | none | Gap: no genetics data and no feature. |
 | Read the consultation request's fields | F-02 | Yes |
 

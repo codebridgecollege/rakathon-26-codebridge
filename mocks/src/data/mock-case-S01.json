@@ -20,6 +20,7 @@
   "page_count": 7,
   "note": "Syntetický pacient týmu CodeBridge, ne z dat FNO. Popis MR 29.9.2026 je jen převzatý v ambulantní zprávě (originál chybí); výsledek PET/CT s 18F-FET chybí (požadavek odeslán 1.10.2026).",
   "question_draft_cs": null,
+  "question_kind": null,
   "question_basis": null,
   "status": "new",
   "status_note_cs": "Příklad: případ zadaný, zatím bez termínu.",

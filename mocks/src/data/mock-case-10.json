@@ -27,15 +27,26 @@
    "page": 3,
    "quote": "Nález při MR vyš. mozku zadávám k projednáni na NCH semináři."
   },
-  "question_draft_cs": "Jaký postup doporučuje neurochirurgický seminář u nálezu na MR mozku 14.9.2026 (solitární sytící se nodulus v pravé mozečkové hemisféře do 3 mm, suspekce na solitární MTS)?",
-  "question_basis": {
-   "kind": "document_purpose",
-   "quote": "Nález při MR vyš. mozku zadávám k projednáni na NCH semináři.",
-   "source": {
-    "file": "10_pacient.pdf",
-    "page": 3
+  "question_draft_cs": "Jaký postup doporučuje neurochirurgický seminář?",
+  "question_kind": "document_purpose",
+  "question_basis": [
+   {
+    "role": "purpose",
+    "quote": "Nález při MR vyš. mozku zadávám k projednáni na NCH semináři.",
+    "source": {
+     "file": "10_pacient.pdf",
+     "page": 3
+    }
+   },
+   {
+    "role": "finding",
+    "quote": "Solitérní nodulus postkontrastně se sytící v pravé mozečkové hemisféře(do 3mm) - suspekce na solitérní MTS",
+    "source": {
+     "file": "10_pacient.pdf",
+     "page": 1
+    }
    }
-  }
+  ]
  },
  "diagnosis": {
   "code": "C64",

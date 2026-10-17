@@ -351,7 +351,7 @@ function initialPatients() {
       file: o.file, name: o.name,
       birth: /\d{1,2}\.\d{1,2}\.\d{4}/.test(o.age_or_birth || "") ? o.age_or_birth.replace(/^nar\.\s*/, "") : null,
       age: /let/.test(o.age_or_birth || "") ? o.age_or_birth : null,
-      warn: /ověřit identitu|prohozen/i.test(o.note || "") ? o.note : null,
+      warn: /ověřit identitu/i.test(o.note || "") ? o.note : null,
       diagnosis: ex.diagnosis_cs || o.main_problem_cs, mkn10: ex.mkn10 || null,
       question: hasQ ? o.mdt_question_cs : null, purpose: o.mdt_question_cs, explicit: !!hasQ,
       summary: o.one_line_summary_cs, pages: o.page_count,

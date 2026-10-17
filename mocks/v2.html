@@ -316,15 +316,26 @@ details.more > summary { cursor: pointer; color: var(--muted); font-size: 12.5px
    "page": 3,
    "quote": "Nález při MR vyš. mozku zadávám k projednáni na NCH semináři."
   },
-  "question_draft_cs": "Jaký postup doporučuje neurochirurgický seminář u nálezu na MR mozku 14.9.2026 (solitární sytící se nodulus v pravé mozečkové hemisféře do 3 mm, suspekce na solitární MTS)?",
-  "question_basis": {
-   "kind": "document_purpose",
-   "quote": "Nález při MR vyš. mozku zadávám k projednáni na NCH semináři.",
-   "source": {
-    "file": "10_pacient.pdf",
-    "page": 3
+  "question_draft_cs": "Jaký postup doporučuje neurochirurgický seminář?",
+  "question_kind": "document_purpose",
+  "question_basis": [
+   {
+    "role": "purpose",
+    "quote": "Nález při MR vyš. mozku zadávám k projednáni na NCH semináři.",
+    "source": {
+     "file": "10_pacient.pdf",
+     "page": 3
+    }
+   },
+   {
+    "role": "finding",
+    "quote": "Solitérní nodulus postkontrastně se sytící v pravé mozečkové hemisféře(do 3mm) - suspekce na solitérní MTS",
+    "source": {
+     "file": "10_pacient.pdf",
+     "page": 1
+    }
    }
-  }
+  ]
  },
  "diagnosis": {
   "code": "C64",
@@ -2139,6 +2150,7 @@ details.more > summary { cursor: pointer; color: var(--muted); font-size: 12.5px
   "page_count": 1,
   "note": "Jméno v dokumentu zapsáno 'Kotěrova Jaroslava'.",
   "question_draft_cs": null,
+  "question_kind": null,
   "question_basis": null
  },
  {
@@ -2153,14 +2165,25 @@ details.more > summary { cursor: pointer; color: var(--muted); font-size: 12.5px
   "page_count": 4,
   "note": "Str. 4 nemá textovou vrstvu (prázdná nebo jen obraz). Jako otázku uvádíme větu o NCH semináři, výslovná otázka chybí.",
   "question_draft_cs": "Je indikována neurochirurgická intervence pro nález na PET/CT (patologická komprese obratle Th2)?",
-  "question_basis": {
-   "kind": "document_purpose",
-   "quote": "Nález na PET/CT vyš. bude prezentován na NCH semináři k posouzení indikace NCH intervence, jinak příště objednáme analgetickou pal. RT.",
-   "source": {
-    "file": "9_pacient.pdf",
-    "page": 3
+  "question_kind": "document_purpose",
+  "question_basis": [
+   {
+    "role": "purpose",
+    "quote": "Nález na PET/CT vyš. bude prezentován na NCH semináři k posouzení indikace NCH intervence, jinak příště objednáme analgetickou pal. RT.",
+    "source": {
+     "file": "9_pacient.pdf",
+     "page": 3
+    }
+   },
+   {
+    "role": "finding",
+    "quote": "CAVE patol. komprese obratlového těla Th2",
+    "source": {
+     "file": "9_pacient.pdf",
+     "page": 2
+    }
    }
-  }
+  ]
  },
  {
   "file": "11_pacient.pdf",
@@ -2173,15 +2196,26 @@ details.more > summary { cursor: pointer; color: var(--muted); font-size: 12.5px
   "one_line_summary_cs": "Náhlé vertigo se zvracením a zhoršením sluchu vlevo; MR mozku s KL: intrameatální tumor do 7 mm charakteru schwannomu n. VIII vlevo a drobný parafalcinní meningeom F vlevo do 6 mm; Fazekas III, atrofie.",
   "page_count": 2,
   "note": "Formulář bez rodného čísla a bez otázky pro MDT.",
-  "question_draft_cs": "Souhlasí radiolog s nálezem tumoru charakteru schwannomu n. VIII vlevo a drobného meningeomu F parafalcinně vlevo? Je indikováno operační (nebo radiochirurgické) řešení, nebo sledování?",
-  "question_basis": {
-   "kind": "assistant_inference",
-   "quote": "Homogenní solid. sycení intrameatal. TU popis. na minulém nativním MR vyš., vel. do 7mm.",
-   "source": {
-    "file": "11_pacient.pdf",
-    "page": 2
+  "question_draft_cs": "Souhlasí radiolog s nálezem tumoru charakteru schwannomu n. VIII vlevo a drobného meningeomu F parafalcinně vlevo? Je indikováno operační řešení, nebo sledování?",
+  "question_kind": "assistant_inference",
+  "question_basis": [
+   {
+    "role": "finding",
+    "quote": "charakteru Schwanomu n. VIII sin",
+    "source": {
+     "file": "11_pacient.pdf",
+     "page": 2
+    }
+   },
+   {
+    "role": "finding",
+    "quote": "Drobný meningeom F parafalcinně sin",
+    "source": {
+     "file": "11_pacient.pdf",
+     "page": 2
+    }
    }
-  }
+  ]
  },
  {
   "file": "13_pacient.pdf",
@@ -2195,6 +2229,7 @@ details.more > summary { cursor: pointer; color: var(--muted); font-size: 12.5px
   "page_count": 2,
   "note": "Velikost ložiska se liší mezi CT 8/2026 (12 x 9 mm) a MR 8/2025 (10x6 mm); jde o různé modality, proto to samo o sobě není rozpor. Právě srovnání je předmětem dotazu.",
   "question_draft_cs": null,
+  "question_kind": null,
   "question_basis": null
  },
  {
@@ -2209,14 +2244,17 @@ details.more > summary { cursor: pointer; color: var(--muted); font-size: 12.5px
   "page_count": 1,
   "note": "Jen radiologický popis, bez data vyšetření, anamnézy a otázky. Číslo '111' je v poli pro pojišťovnu nebo RČ, přiřazení nejisté.",
   "question_draft_cs": "Souhlasí radiolog s obrazem v.s. ependymomu či subependymomu postranní komory vpravo? Je při stacionárním nálezu indikováno sledování, nebo operační řešení?",
-  "question_basis": {
-   "kind": "assistant_inference",
-   "quote": "Závěr: Stacionární obraz v.s. ependymomu či subependymomu postranní komory vpravo.",
-   "source": {
-    "file": "15_pacient.pdf",
-    "page": 1
+  "question_kind": "assistant_inference",
+  "question_basis": [
+   {
+    "role": "finding",
+    "quote": "Závěr: Stacionární obraz v.s. ependymomu či subependymomu postranní komory vpravo.",
+    "source": {
+     "file": "15_pacient.pdf",
+     "page": 1
+    }
    }
-  }
+  ]
  },
  {
   "file": "17_pacient.pdf",
@@ -2229,15 +2267,26 @@ details.more > summary { cursor: pointer; color: var(--muted); font-size: 12.5px
   "one_line_summary_cs": "Ca cekoascendens pT3 pN0 cM0, stp. pravostranné hemikolektomii, susp. Lynch syndrom; CT mozku 13.9.2026 při vestibulárním syndromu: intraoseální ložisko F vpravo s extraaxiální propagací 13x7 mm, DD intraoseální meningeom x MTS.",
   "page_count": 1,
   "note": "Jméno a příjmení ve formuláři prohozené: 'Jméno pacienta: Jelen', 'Příjmení pacienta: Otakar'. Otakar je křestní jméno, příjmení Jelen.",
-  "question_draft_cs": "Jaký další postup doporučuje MDT u intraoseálního ložiska kalvy frontálně vpravo (DD intraoseální meningeom x MTS)? Doplnit MR mozku a scintigrafii skeletu?",
-  "question_basis": {
-   "kind": "document_purpose",
-   "quote": "V rámci MDT doporučena konzultace NCH, MR mozku a scinti skeletu (zobrazovací metody zatím nedoplněny, vyčkáme Vašeho doporučení).",
-   "source": {
-    "file": "17_pacient.pdf",
-    "page": 1
+  "question_draft_cs": "Jaký postup doporučuje NCH u intraoseálního ložiska kalvy F vpravo (DD intraoseální meningeom x MTS)?",
+  "question_kind": "document_purpose",
+  "question_basis": [
+   {
+    "role": "purpose",
+    "quote": "V rámci MDT doporučena konzultace NCH, MR mozku a scinti skeletu (zobrazovací metody zatím nedoplněny, vyčkáme Vašeho doporučení).",
+    "source": {
+     "file": "17_pacient.pdf",
+     "page": 1
+    }
+   },
+   {
+    "role": "finding",
+    "quote": "intraoseální ložisko vpravo F s propagací intrakraniálně extraaxiálně- v diff.dg. intraoseální meningeom x meta ložisko v rámci zákl dg.",
+    "source": {
+     "file": "17_pacient.pdf",
+     "page": 1
+    }
    }
-  },
+  ],
   "name_note_cs": "jméno a příjmení ve formuláři prohozené",
   "name_note_source": {
    "file": "17_pacient.pdf",
@@ -2257,14 +2306,33 @@ details.more > summary { cursor: pointer; color: var(--muted); font-size: 12.5px
   "page_count": 2,
   "note": "Formulář bez RČ, pojišťovny a otázky pro MDT; data vyšetření neuvedena.",
   "question_draft_cs": "Jde o nádor míchy (drobný ependymom v oblasti konu nelze vyloučit), nebo jsou obtíže degenerativního původu (protruze L3 až L5)? Je indikováno operační řešení?",
-  "question_basis": {
-   "kind": "assistant_inference",
-   "quote": "zde drobný ependymom v terénu výrazné syringomyelie nevyloučím.",
-   "source": {
-    "file": "18_pacient.pdf",
-    "page": 1
+  "question_kind": "assistant_inference",
+  "question_basis": [
+   {
+    "role": "finding",
+    "quote": "zde drobný ependymom v terénu výrazné syringomyelie nevyloučím.",
+    "source": {
+     "file": "18_pacient.pdf",
+     "page": 1
+    }
+   },
+   {
+    "role": "finding",
+    "quote": "V segm. L3/L4 je cirkulární protruze disku do 3 mm",
+    "source": {
+     "file": "18_pacient.pdf",
+     "page": 1
+    }
+   },
+   {
+    "role": "finding",
+    "quote": "V segm. L4/L5 je cirkulární protruze plotny, s impresí ventrální plochy durálního vaku",
+    "source": {
+     "file": "18_pacient.pdf",
+     "page": 2
+    }
    }
-  }
+  ]
  },
  {
   "file": "19_pacient.pdf",
@@ -2278,14 +2346,17 @@ details.more > summary { cursor: pointer; color: var(--muted); font-size: 12.5px
   "page_count": 1,
   "note": "OCR text je na pravém okraji useknutý (věty nedokončené). Formulář bez RČ, pojišťovny a otázky.",
   "question_draft_cs": "Je indikováno endovaskulární řešení (coiling) dvou výdutí ACI vlevo (cca 2 a 3 mm pod bazí lební)?",
-  "question_basis": {
-   "kind": "assistant_inference",
-   "quote": "vlevo dvě sousedící výdutě stěny ACI o vel. cca 2 mm a 3 mm pod bazí lebky",
-   "source": {
-    "file": "19_pacient.pdf",
-    "page": 1
+  "question_kind": "assistant_inference",
+  "question_basis": [
+   {
+    "role": "finding",
+    "quote": "vlevo dvě sousedící výdutě stěny ACI o vel. cca 2 mm a 3 mm pod bazí lebky",
+    "source": {
+     "file": "19_pacient.pdf",
+     "page": 1
+    }
    }
-  }
+  ]
  },
  {
   "file": "20_pacient.pdf",
@@ -2298,15 +2369,34 @@ details.more > summary { cursor: pointer; color: var(--muted); font-size: 12.5px
   "one_line_summary_cs": "4 měsíce po TURP (ca prostaty 5/2026) a sepsi; MR Cp 14.9.26: infiltrace obratlových těl C6/C7/Th1 se stenózou kanálu bez komprese míchy; scintigrafie: osteolytická ložiska C páteře, susp. okrsky kalvy, Th6 a LS-S1; NCH doporučilo nahlásit na NOCO a doplnit CT hrudníku a břicha.",
   "page_count": 1,
   "note": "Výslovná otázka chybí; dokument uvádí jen doporučení NCH 'nahlásit na NOCO'. Formulář bez RČ a pojišťovny.",
-  "question_draft_cs": "Je indikováno neurochirurgické řešení infiltrace obratlových těl C6 až Th1 (resekce, náhrada obratlových těl, stabilizace)? Povaha infiltrace zatím nejasná (zánětlivé změny vs. maligní infiltrace).",
-  "question_basis": {
-   "kind": "assistant_inference",
-   "quote": "Dle rekonzultace NCH - nahlásit na NOCO a doplnit CT hrudníku a břicha s kontrastem.",
-   "source": {
-    "file": "20_pacient.pdf",
-    "page": 1
+  "question_draft_cs": "Je indikováno neurochirurgické řešení infiltrace obratlových těl C6 až Th1 (resekce, náhrada obratlových těl)? Povaha infiltrace zatím nejasná (zánětlivé změny vs. maligní infiltrace).",
+  "question_kind": "assistant_inference",
+  "question_basis": [
+   {
+    "role": "purpose",
+    "quote": "Dle rekonzultace NCH - nahlásit na NOCO a doplnit CT hrudníku a břicha s kontrastem.",
+    "source": {
+     "file": "20_pacient.pdf",
+     "page": 1
+    }
+   },
+   {
+    "role": "finding",
+    "quote": "MR Cp 14.9.26 - Výrazná infiltrace obr. těl C6/C7/Thl vč. pediklů a neuroforamin vpravo, postkontrastně se sytící, parc. až kompletní zánik meziobr. prostor C6-Thl.",
+    "source": {
+     "file": "20_pacient.pdf",
+     "page": 1
+    }
+   },
+   {
+    "role": "finding",
+    "quote": "Dif.dg.: susp. rozsáhlé zánětlivé změny (spondylodiscitis?) / maligní infiltrace?",
+    "source": {
+     "file": "20_pacient.pdf",
+     "page": 1
+    }
    }
-  }
+  ]
  }
 ]</script>
 <script id="extra-data" type="application/json">{
@@ -4932,150 +5022,6 @@ details.more > summary { cursor: pointer; color: var(--muted); font-size: 12.5px
    "Karnofsky index"
   ]
  },
- "labs_series_synthetic": {
-  "synthetic": true,
-  "note_cs": "Syntetická ukázka pro mock, není z dokumentace pacienta.",
-  "dev_note": "Kódy, názvy, jednotky a referenční meze jsou převzaté z `labs` v mock-case-10.json; data odběrů a hodnoty jsou vymyšlené pro ukázku grafu.",
-  "draws": [
-   {
-    "datetime": "2025-06-10 07:35"
-   },
-   {
-    "datetime": "2025-11-12 07:50"
-   },
-   {
-    "datetime": "2026-02-24 08:05"
-   },
-   {
-    "datetime": "2026-05-05 07:40"
-   },
-   {
-    "datetime": "2026-09-12 07:45"
-   }
-  ],
-  "tests": [
-   {
-    "code": "S_HSCRP",
-    "name_cs": "hsCRP",
-    "unit": "mg/l",
-    "reference_range": "0 ... 5",
-    "reference_low": 0.0,
-    "reference_high": 5.0,
-    "values": [
-     2.1,
-     3.4,
-     4.8,
-     6.9,
-     11.2
-    ]
-   },
-   {
-    "code": "S_GLC",
-    "name_cs": "Glukóza",
-    "unit": "mmol/l",
-    "reference_range": "3.9 ... 5.6",
-    "reference_low": 3.9,
-    "reference_high": 5.6,
-    "values": [
-     5.4,
-     7.2,
-     6.1,
-     7.8,
-     5.9
-    ]
-   },
-   {
-    "code": "S_CREAE",
-    "name_cs": "Kreatinin",
-    "unit": "µmol/l",
-    "reference_range": "59 ... 104",
-    "reference_low": 59.0,
-    "reference_high": 104.0,
-    "values": [
-     98,
-     104,
-     131,
-     118,
-     112
-    ]
-   },
-   {
-    "code": "PT(KIDN)_EGFRCKDE",
-    "name_cs": "eGFR CKD-EPI",
-    "unit": "ml/s/1,73 m2",
-    "reference_range": "1.5 ... 99",
-    "reference_low": 1.5,
-    "reference_high": 99.0,
-    "values": [
-     1.18,
-     1.1,
-     0.86,
-     0.95,
-     0.99
-    ]
-   },
-   {
-    "code": "S_ALT",
-    "name_cs": "ALT",
-    "unit": "µkat/l",
-    "reference_range": "0.17 ... 0.84",
-    "reference_low": 0.17,
-    "reference_high": 0.84,
-    "values": [
-     null,
-     0.51,
-     1.12,
-     0.74,
-     0.55
-    ]
-   },
-   {
-    "code": "B_HB",
-    "name_cs": "Hemoglobin",
-    "unit": "g/l",
-    "reference_range": "135 ... 175",
-    "reference_low": 135.0,
-    "reference_high": 175.0,
-    "values": [
-     132,
-     128,
-     121,
-     119,
-     125
-    ]
-   },
-   {
-    "code": "B_LKC",
-    "name_cs": "Leukocyty",
-    "unit": "10^9/l",
-    "reference_range": "4 ... 10",
-    "reference_low": 4.0,
-    "reference_high": 10.0,
-    "values": [
-     6.9,
-     7.4,
-     5.1,
-     6.2,
-     6.4
-    ]
-   },
-   {
-    "code": "B_PLT",
-    "name_cs": "Trombocyty",
-    "unit": "10^9/l",
-    "reference_range": "150 ... 400",
-    "reference_low": 150.0,
-    "reference_high": 400.0,
-    "values": [
-     238,
-     221,
-     118,
-     149,
-     162
-    ]
-   }
-  ]
- },
  "document_history": [
   {
    "doc_index": 0,
@@ -6067,7 +6013,7 @@ function initialPatients() {
       file: o.file, name: o.name,
       birth: /\d{1,2}\.\d{1,2}\.\d{4}/.test(o.age_or_birth || "") ? o.age_or_birth.replace(/^nar\.\s*/, "") : null,
       age: /let/.test(o.age_or_birth || "") ? o.age_or_birth : null,
-      warn: /ověřit identitu|prohozen/i.test(o.note || "") ? o.note : null,
+      warn: /ověřit identitu/i.test(o.note || "") ? o.note : null,
       diagnosis: ex.diagnosis_cs || o.main_problem_cs, mkn10: ex.mkn10 || null,
       question: hasQ ? o.mdt_question_cs : null, purpose: o.mdt_question_cs, explicit: !!hasQ,
       summary: o.one_line_summary_cs, pages: o.page_count,

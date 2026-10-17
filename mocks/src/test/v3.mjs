@@ -17,13 +17,14 @@ for (const width of [1280, 400]) {
   const c = async sel => { const el = page.locator(sel).first(); if (!(await el.count())) { errs.push(`${width}: missing ${sel}`); return; } await el.click(); };
   const go = async h => { await page.evaluate(x => { location.hash = x; }, h); await page.waitForTimeout(120); };
   const text = sel => page.locator(sel).first().textContent();
+  const imageLoadedTop = () => page.waitForFunction(() => { const i = document.querySelector(".drawer .pgimg img"); return i && i.complete && i.naturalWidth > 0; }, null, { timeout: 5000 }).then(() => true, () => false);
   await page.goto(file); await over("db");
   // Excel-style filter
   await c('[data-colopen="status"]'); await over("filter");
   await page.locator('[data-colv="status"][value="Naplánován"]').uncheck();
   const n = await page.locator("tbody tr.click").count(); await c('[data-colclose]'); await c('[data-act="clearcolf"]');
   ok(n < 8 && (await page.locator("tbody tr.click").count()) === 8, `${width} column filter narrows and clears (page of 8)`);
-  await c('[data-act="dball"]'); ok((await page.locator("tbody tr.click").count()) === 10, `${width} show all lists every patient`); await c('[data-act="dbpaged"]');
+  await c('[data-act="dball"]'); ok((await page.locator("tbody tr.click").count()) === 11, `${width} show all lists every patient`); await c('[data-act="dbpaged"]');
   // calendar
   await c('[data-nav="calendar"]'); await over("calendar"); await c(".slotbtn.taken"); await over("calendar card");
   ok(await page.locator("#minicard").count() === 1, `${width} calendar card opens`);
@@ -43,8 +44,27 @@ for (const width of [1280, 400]) {
   ok((await page.locator("main tbody tr").count()) < 13, `${width} documents filter by readability`); await c('[data-act="cleardcolf"]');
   ok((await page.locator(".tabs").evaluate(el => el.previousElementSibling?.textContent || "")).includes("Důvod a otázka pro MDT"), `${width} brief block sits above the tabs`);
   await c('[data-act="gaps"]'); ok((await page.locator("main").textContent()).includes("osteoplastická"), `${width} gaps toggle opens`); await c('[data-act="gaps"]');
-  await c('[data-tab="labs"]'); ok((await text('[data-labmode][aria-pressed="true"]')).includes("z dokumentu"), `${width} labs open on document values`);
-  await c('[data-labmode="series"]'); ok((await page.locator("svg.chart").textContent()).includes("syntetická data"), `${width} synthetic chart labelled inside the SVG`);
+  // round 24: case 10 has one undated panel, so no trend and no invented series
+  await c('[data-tab="labs"]'); ok((await text("main")).includes("Hodnoty z dokumentu") && await page.locator("[data-labmode]").count() === 0 && await page.locator("svg.chart, th.dtc").count() === 0
+    && await page.evaluate(() => !("labs_series_synthetic" in EXTRA)), `${width} case 10 labs: document values only, no trend toggle, no synthetic series`);
+  // round 24: synthetic patient S01, marked as synthetic in the database and the header; its trend comes from four documented draws
+  await go("#patients"); await c('[data-act="dball"]');
+  ok(await page.locator('tr[data-open="S01_pacient.pdf"] .syntag').count() === 1 && (await text('tr[data-open="S01_pacient.pdf"]')).includes("NO-S01")
+    && await page.locator('tr[data-open="S01_pacient.pdf"] [data-sched]').count() === 1, `${width} S01 listed as "syntetický pacient", unscheduled with Naplánovat`);
+  await c('[data-act="dbpaged"]');
+  await go("#patient/S01/labs"); await over("S01 labs");
+  ok(await page.locator("main .phead .syntag").count() === 1 && (await text("main .question")).includes("lomustin") && await page.locator("main .question .qlbl").count() === 0, `${width} S01 header marked synthetic, explicit question shown`);
+  ok(await page.locator("main th.dtc").count() === 4 && await page.locator("main svg.chart").count() === 1 && await page.locator("main .synth").count() === 0 && !(await text("main")).includes("syntetická data")
+    && (await page.locator('tr[data-labsel="B_PLT"] .labv').allTextContents()).join("|") === "268|54 ↓|131 ↓|97 ↓", `${width} S01 trend shows 4 draws from documents, no synthetic banner`);
+  await page.locator('tr[data-labsel="B_PLT"] .labv').nth(1).click(); await page.waitForTimeout(150);
+  ok(await page.evaluate(() => S.overlay?.kind === "source" && S.overlay.file === "S01_pacient.pdf" && S.overlay.page === 5 && S.overlay.cite.quote === "B_PLT: 54 10^9/l [150 ... 400]")
+    && await imageLoadedTop() && await page.locator(".drawer .hbox").count() >= 1, `${width} S01 trend cell opens page 5 with its quote highlighted`);
+  await c(".drawer [data-close]");
+  await c('[data-tab="documents"]'); await over("S01 documents");
+  ok(await page.locator("main tbody tr").count() === 6, `${width} S01 documents listed`);
+  await c('[data-act="gaps"]');
+  ok(await page.locator(".gapsbtn.warn").count() === 1 && (await text("main")).includes("PET/CT s 18F-FET") && await page.evaluate(() => hasMissing(P("S01_pacient.pdf")) === true), `${width} S01 missing documents signalled and listed`);
+  await c('[data-act="gaps"]');
   // edit on patient 2 must not appear in patient 10's history
   // unprocessed case: no Upozornění button; an amber signal says the missing-document check has not run
   await go("#patient/2");
@@ -423,7 +443,7 @@ for (const width of [1280, 400]) {
   await go("#patient/18");
   let t = await qbox();
   ok(t.includes("Návrh otázky (asistent, ověřte)") && t.includes("Jde o nádor míchy") && !t.includes("Výslovná otázka neuvedena") && !t.includes("potvrzena")
-    && t.includes("Vychází z") && await page.locator("main .question .qbasis [data-src]").count() === 1, `${width} r22 inference draft labelled as a draft with its source, no gap headline`);
+    && t.includes("Vychází z") && await page.locator("main .question .qbasis [data-src]").count() === 3, `${width} r22 inference draft labelled as a draft with its sources (one per cited finding), no gap headline`);
   await go("#patient/9");
   t = await qbox();
   ok(t.includes("Otázka podle účelu v dokumentu") && t.includes("návrh, ověřte") && t.includes("Je indikována neurochirurgická intervence") && t.includes("k posouzení indikace NCH intervence") && !t.includes("Výslovná otázka neuvedena"),
@@ -463,6 +483,40 @@ for (const width of [1280, 400]) {
   const head = await page.locator(".phead").textContent();
   ok(head.includes("Jelen Otakar") && !/ověřit identitu/i.test(head) && head.includes("jméno a příjmení ve formuláři prohozené") && await page.locator(".phead .namenote [data-src]").count() === 1
     && await page.evaluate(() => P("17_pacient.pdf").status !== "attention"), `${width} r22 Jelen Otakar header with the neutral name note and its source`);
+  // round 24: reason and question in one paragraph, the draft chip at its end; each cited passage with its page link
+  await go("#patient/10/overview");
+  const para = page.locator("main .question p.rq1");
+  t = await para.textContent();
+  const html = await para.innerHTML();
+  ok(await para.count() === 1 && t.includes("Otázka:") && t.includes("Jaký postup doporučuje neurochirurgický seminář?") && !t.includes("solitární sytící se nodulus")
+    && html.indexOf("seminář?") < html.indexOf('class="qlbl') && html.indexOf("Otázka:") < html.indexOf("seminář?") && html.indexOf("Otázka:") > 40
+    && await page.locator("main .question > p").count() === 1, `${width} r24 case 10: reason then "Otázka:" in one paragraph, short question, chip at the end`);
+  ok(await page.evaluate(() => P("10_pacient.pdf").basis.map(b => b.role + ":" + b.source.page).join()) === "purpose:3,finding:1"
+    && await page.locator("main .question .qbasis li").count() === 2 && await page.locator("main .question .qbasis [data-src]").count() === 2, `${width} r24 case 10 basis: purpose (s. 3) and MR finding (s. 1), each linked`);
+  await go("#patient/11");
+  const q11 = page.locator("main .question").first();
+  t = await q11.textContent();
+  ok(t.includes("Je indikováno operační řešení, nebo sledování?") && !t.includes("radiochirurg") && t.includes("charakteru Schwanomu n. VIII sin") && t.includes("Drobný meningeom F parafalcinně sin")
+    && await q11.locator(".qbasis [data-src]").count() === 2 && (await q11.locator("p").first().innerHTML()).indexOf('class="qlbl') > (await q11.locator("p").first().innerHTML()).indexOf("sledování?"), `${width} r24 Kabátová: no radiosurgery, two cited findings with page links, chip at the end`);
+  ok((await rep()).includes("Vychází z: „Drobný meningeom F parafalcinně sin“ (11_pacient.pdf, s. 2)"), `${width} r24 report prints each cited passage`);
+  ok(await page.evaluate(() => P("20_pacient.pdf").draft.includes("náhrada obratlových těl)") && !P("20_pacient.pdf").draft.includes("stabilizace") && P("19_pacient.pdf").draft.includes("(coiling)")
+    && P("17_pacient.pdf").draft === "Jaký postup doporučuje NCH u intraoseálního ložiska kalvy F vpravo (DD intraoseální meningeom x MTS)?"), `${width} r24 drafts name only options the doctor or a document gave`);
+  // confirming is logged as a confirmation, not as a text change
+  await page.evaluate(() => { S.user = "MUDr. Novák"; render(); }); await page.locator('main [data-act="confirmq"]').click();
+  ok(await page.evaluate(() => { const e = S.editLog.filter(x => x.pid === "11_pacient.pdf").at(-1); return e.confirmed === true && !("text" in e); }), `${width} r24 confirm pushes {confirmed: true} to the edit log`);
+  await page.evaluate(() => { S.user = ADMIN; S.view = "admin"; render(); });
+  t = await page.locator("main").textContent();
+  ok(t.includes("potvrdil(a) návrh otázky") && !t.includes("(návrh asistenta potvrzen)"), `${width} r24 admin edits list shows "potvrdil(a) návrh otázky"`);
+  // uploads in "Projednání na MDT": doctors and the coordinator only, never on a closed or approved case
+  const upz = async (user) => { await page.evaluate(u => { S.user = u; S.view = "patient"; S.pid = "11_pacient.pdf"; S.mdtOpen["11_pacient.pdf"] = true; ensureProto(P("11_pacient.pdf")).mode = "docs"; render(); }, user); return page.locator("main [data-upzone]").count(); };
+  ok(await upz("MUDr. Novák") === 1 && await upz(await page.evaluate(() => COORD)) === 1 && await upz(await page.evaluate(() => ADMIN)) === 0, `${width} r24 upload zone for doctors and the coordinator only`);
+  await page.evaluate(() => { const pr = ensureProto(P("11_pacient.pdf")); pr.uploads = [{ name: "x.pdf", size: 10, who: "MUDr. Novák", when: "10:00" }]; S.user = ADMIN; addUploads([{ name: "y.pdf", size: 5 }]); });
+  ok(await page.evaluate(() => ensureProto(P("11_pacient.pdf")).uploads.length === 1), `${width} r24 addUploads refuses a non-clinical user`);
+  await page.evaluate(() => { P("11_pacient.pdf").status = "closed"; });
+  ok(await upz("MUDr. Novák") === 0 && await page.locator("main [data-delup]").count() === 0 && await page.evaluate(() => { S.user = "MUDr. Novák"; addUploads([{ name: "z.pdf", size: 5 }]); return ensureProto(P("11_pacient.pdf")).uploads.length === 1; }),
+    `${width} r24 no upload or removal on a closed case`);
+  await page.evaluate(() => { P("11_pacient.pdf").status = "scheduled"; ensureProto(P("11_pacient.pdf")).state = "approved"; });
+  ok(await upz("MUDr. Novák") === 0 && await page.locator("main [data-delup]").count() === 0, `${width} r24 no upload or removal after approval`);
   await page.close();
 }
 // round 23: department staff, entered as title + surname and kept only in this browser

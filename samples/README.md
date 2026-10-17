@@ -69,6 +69,14 @@ Built-in cases to check the assistant against (expected behaviour):
 
 The text is clean print, not a scan; it does not exercise OCR misreads.
 
+In mock v3 this patient is case `NO-S01` (route `#patient/S01`), marked
+"syntetický pacient" in the database and the header. It shows the
+documents, the three missing-document alerts, the explicit MDT question,
+and the "Vývoj v čase" lab matrix and chart, where each value opens its
+line on its lab sheet. `mocks/src/test/v3.mjs` checks the four draws, the
+platelet row (268, 54, 131, 97) and that the 12.5.2026 value opens page 5
+at "B_PLT: 54 10^9/l [150 ... 400]".
+
 ## How it was generated
 
 1. The Markdown documents were written by hand (by Claude Code, for the

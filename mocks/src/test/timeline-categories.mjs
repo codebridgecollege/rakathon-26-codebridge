@@ -16,6 +16,8 @@ assert.equal(api.categoryOf({ category: "unrecognized", kind: "imaging" }), "cli
 assert.equal(api.categoryOf({ kind: "histology" }), "pathology");
 assert.match(api.icon("clinical"), /data-icon="stethoscope"/);
 assert.match(api.icon("medication"), /data-icon="pill"/);
+assert.match(api.icon("surgery"), /data-icon="scalpel"/); // our own scalpel, not Lucide's scissors (round 24)
+assert.doesNotMatch(api.icon("surgery"), /<circle/);
 
 // A filtered and sorted view must keep indexes into the original source array.
 const expected = { imaging: [3, 7, 8, 10, 11, 13], systemic: [4, 5, 9, 12], surgery: [1, 2, 6], pathology: [], mdt: [14], clinical: [0, 15] };
