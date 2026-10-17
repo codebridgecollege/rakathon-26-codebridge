@@ -90,12 +90,12 @@ experience.
 - [ ] Which screens may show patient names? She wants names in the
   calendar (design-5 00:02:50); should a projected calendar or the
   coordinator's view show initials instead?
-- [ ] May the assistant draft the question for the MDT and a proposed
-  management (Soňa's example names "stereotaktická radioterapie" as an
-  option)? `CLAUDE.md` currently forbids treatment recommendations
-  outside the guideline layer, so mock v3 leaves both to the referring
-  doctor. A middle ground: the assistant drafts a neutral question
-  without naming treatments, marked as a draft. (`PRODUCT.md`, round 6)
+- [ ] May the assistant draft a proposed management (Soňa's example
+  names "stereotaktická radioterapie" as an option)? `CLAUDE.md` forbids
+  treatment recommendations outside the guideline layer, so mock v3
+  leaves the proposal to the referring doctor. (The MDT question itself
+  is drafted by the assistant since 2026-10-17; see `CLAUDE.md` and
+  `PRODUCT.md`, round 22.) (`PRODUCT.md`, round 6)
 - [ ] How far should editing go (F-38)? Mock v3 lets a doctor change any
   extracted or drafted value as a marked override. Should some values
   (for example lab values or dates from a document) stay read-only?

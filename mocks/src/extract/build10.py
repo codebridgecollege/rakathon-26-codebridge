@@ -254,7 +254,10 @@ case = {
              "missing_note": "Datum narození, věk, rodné číslo a pojišťovna v dokumentu nejsou."},
  "mdt_question": {"text_cs": None, "status": "missing",
    "note_cs": "Otázka pro MDT není výslovně formulována. Nejbližší text: nález MR mozku zadán k projednání na NCH semináři.",
-   "closest_source": src(3, "Nález při MR vyš. mozku zadávám k projednáni na NCH semináři.")},
+   "closest_source": src(3, "Nález při MR vyš. mozku zadávám k projednáni na NCH semináři."),
+   # Draft question rephrased from the document's purpose sentence (team decision 2026-10-17); a draft until a doctor confirms it.
+   "question_draft_cs": "Jaký postup doporučuje neurochirurgický seminář u nálezu na MR mozku 14.9.2026 (solitární sytící se nodulus v pravé mozečkové hemisféře do 3 mm, suspekce na solitární MTS)?",
+   "question_basis": {"kind": "document_purpose", "quote": norm("Nález při MR vyš. mozku zadávám k projednáni na NCH semináři."), "source": {"file": F, "page": 3}}},
  "diagnosis": {"code": "C64", "code_system": "MKN-10 (dle dokumentu)", "text_cs": "Zhoubný novotvar ledviny mimo pánvičku",
    "source": src(1, "C64 Zhoubný novotvar ledviny mimo pánvičku")},
  "summary": [

@@ -413,6 +413,58 @@ for (const width of [1280, 400]) {
   ok(await page.evaluate(() => S.access.some(a => a.what.includes("přestože rodné číslo už v databázi je"))), "review deliberate duplicate logged");
   await page.close();
 }
+// Round 22: the assistant drafts the MDT question when the referral has none (team decision 2026-10-17).
+for (const width of [1280, 400]) {
+  const page = await browser.newPage({ viewport: { width, height: 900 } });
+  page.on("pageerror", e => errs.push(`${width}: ${e.message}`));
+  const go = async h => { await page.evaluate(x => { location.hash = x; }, h); await page.waitForTimeout(120); };
+  const qbox = () => page.locator("main .question").first().textContent();
+  await page.goto(file);
+  await go("#patient/18");
+  let t = await qbox();
+  ok(t.includes("Návrh otázky (asistent, ověřte)") && t.includes("Jde o nádor míchy") && !t.includes("Výslovná otázka neuvedena") && !t.includes("potvrzena")
+    && t.includes("Vychází z") && await page.locator("main .question .qbasis [data-src]").count() === 1, `${width} r22 inference draft labelled as a draft with its source, no gap headline`);
+  await go("#patient/9");
+  t = await qbox();
+  ok(t.includes("Otázka podle účelu v dokumentu") && t.includes("návrh, ověřte") && t.includes("Je indikována neurochirurgická intervence") && t.includes("k posouzení indikace NCH intervence") && !t.includes("Výslovná otázka neuvedena"),
+    `${width} r22 document-purpose draft shows the question and the quote`);
+  for (const [nr, f] of [["2", "2_pacient.pdf"], ["13", "13_pacient.pdf"]]) {
+    await go(`#patient/${nr}`);
+    const exp = await page.evaluate(x => P(x).question, f);
+    t = await qbox();
+    ok(exp && t.includes(exp) && await page.locator("main .question .qlbl").count() === 0 && await page.locator('main [data-act="confirmq"]').count() === 0, `${width} r22 explicit question ${nr} unchanged, no draft label`);
+  }
+  await go("#patient/10/overview");
+  t = await qbox();
+  ok(t.includes("Otázka podle účelu v dokumentu") && t.includes("neurochirurgický seminář"), `${width} r22 case 10 brief shows the document-purpose draft`);
+  // a coordinator cannot confirm; a doctor can, and the label then names the doctor
+  await go("#patient/18");
+  await page.evaluate(() => { S.user = COORD; render(); });
+  ok(await page.locator('main [data-act="confirmq"]').count() === 0, `${width} r22 coordinator sees no confirm button`);
+  await page.evaluate(() => { S.user = "MUDr. Novák"; render(); });
+  await page.locator('main [data-act="confirmq"]').click();
+  t = await qbox();
+  ok(t.includes("otázka potvrzena: MUDr. Novák") && !t.includes("Návrh otázky (asistent") && await page.locator('main [data-act="confirmq"]').count() === 0
+    && await page.evaluate(() => S.qConfirm["18_pacient.pdf"]?.by === "MUDr. Novák" && S.access.some(a => a.pid === "18_pacient.pdf" && a.what.includes("potvrdil(a) návrh otázky"))), `${width} r22 confirm flips the label to the confirming doctor, logged`);
+  const rep = async () => { await page.locator('[data-act="reportdlg"]').first().click(); const r = await page.locator(".modal #report").first().textContent(); await page.locator(".modal [data-close]").first().click(); return r; };
+  ok((await rep()).includes("potvrdil(a) MUDr. Novák"), `${width} r22 report shows who confirmed the drafted question`);
+  await go("#patient/11");
+  t = await rep();
+  ok(t.includes("Souhlasí radiolog") && t.includes("neověřeno lékařem") && !t.includes("Výslovná otázka neuvedena"), `${width} r22 report marks an unconfirmed question as a draft`);
+  // the calendar card carries the same label
+  await go("#calendar/2026-10-19"); await page.evaluate(() => { S.calPop = "11_pacient.pdf"; render(); });
+  t = await page.locator("#minicard .question").textContent();
+  ok(t.includes("Návrh otázky (asistent, ověřte)") && t.includes("Souhlasí radiolog"), `${width} r22 calendar card shows the draft label`);
+  // Jelen Otakar: surname Jelen, first name Otakar; a calm note with its source instead of an identity alarm
+  await page.evaluate(() => { S.view = "patients"; S.dbAll = true; S.calPop = null; render(); });
+  const row = await page.locator('tr[data-open="17_pacient.pdf"]').textContent();
+  ok(row.includes("Jelen Otakar") && !/ověřit identitu/i.test(row), `${width} r22 Jelen Otakar in the database without the identity tag`);
+  await go("#patient/17");
+  const head = await page.locator(".phead").textContent();
+  ok(head.includes("Jelen Otakar") && !/ověřit identitu/i.test(head) && head.includes("jméno a příjmení ve formuláři prohozené") && await page.locator(".phead .namenote [data-src]").count() === 1
+    && await page.evaluate(() => P("17_pacient.pdf").status !== "attention"), `${width} r22 Jelen Otakar header with the neutral name note and its source`);
+  await page.close();
+}
 await browser.close();
 console.log(errs.length ? "\n" + errs.join("\n") : "\nall checks passed, no errors");
 process.exit(errs.length ? 1 : 0);

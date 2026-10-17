@@ -164,6 +164,11 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: 13.5px; }
 .question { border-left: 3px solid var(--accent); background: var(--accent-soft); border-radius: 0 var(--r) var(--r) 0; padding: 10px 14px; }
 .question.missing { border-left-color: var(--missing); background: var(--missing-soft); }
 .question p { margin: 2px 0 0; font-size: 15.5px; }
+.question.draft { border-left-style: dashed; border-left-color: var(--unclear); background: var(--unclear-soft); }
+.qlbl { display: inline-block; font-size: 11px; font-weight: 700; padding: 0 6px; border-radius: 4px; vertical-align: 2px; }
+.qlbl.draft { background: transparent; color: var(--unclear); border: 1px dashed var(--unclear); }
+.qlbl.ok { background: var(--ok-soft); color: var(--ok); cursor: help; }
+.qbasis { margin-top: 4px; font-size: 12.5px; }
 .tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--line); overflow-x: auto; }
 .tab { background: none; border: 0; padding: 9px 14px; cursor: pointer; color: var(--muted); font-weight: 600; border-bottom: 2px solid transparent; white-space: nowrap; }
 .tab[aria-selected="true"] { color: var(--accent-ink); border-bottom-color: var(--accent); }
@@ -802,6 +807,7 @@ function initialPatients() {
     diagnosis: EXTRA.diagnosis_headline ? `${EXTRA.diagnosis_headline.histology_cs}, ${EXTRA.diagnosis_headline.tnm_cs.replace("(", " (")}` : "Světlobuněčný karcinom ledviny",
     diagnosisNote: "pTNM při diagnóze 6/2022 · nyní susp. MTS v mozečku", mkn10: CASE.diagnosis?.code || null,
     question: CASE.mdt_question.text_cs, purpose: CASE.mdt_question.closest_source?.quote, explicit: !!CASE.mdt_question.text_cs,
+    draft: CASE.mdt_question.question_draft_cs || null, basis: CASE.mdt_question.question_basis || null,
     status: "ready", slot: { day: "2026-10-22", time: "14:00" }, updated: "2026-10-16", full: true,
   };
   const slots = [["2026-10-22", "14:10"], ["2026-10-22", "14:20"], ["2026-10-22", "14:30"], ["2026-10-22", "14:40"], null, ["2026-10-22", "14:50"], null, ["2026-10-22", "15:00"], null];
@@ -813,9 +819,12 @@ function initialPatients() {
       file: o.file, name: o.name,
       birth: /\d{1,2}\.\d{1,2}\.\d{4}/.test(o.age_or_birth || "") ? o.age_or_birth.replace(/^nar\.\s*/, "") : null,
       age: /let/.test(o.age_or_birth || "") ? o.age_or_birth : null,
-      warn: /ověřit identitu|prohozen/i.test(o.note || "") ? o.note : null,
+      /* warn is for a real identity doubt; a form with first name and surname swapped is a neutral note (round 22). */
+      warn: /ověřit identitu/i.test(o.note || "") ? o.note : null,
+      nameNote: o.name_note_cs ? { text: o.name_note_cs, src: o.name_note_source } : null,
       diagnosis: ex.diagnosis_cs || o.main_problem_cs, mkn10: ex.mkn10 || null,
       question: hasQ ? o.mdt_question_cs : null, purpose: o.mdt_question_cs, explicit: !!hasQ,
+      draft: hasQ ? null : o.question_draft_cs || null, basis: hasQ ? null : o.question_basis || null,
       summary: o.one_line_summary_cs, pages: o.page_count,
       referrer: ex.referring_doctor || null, dept: ex.referring_department || null,
       status: !slot ? "new" : /ověřit identitu|useknut/i.test(o.note || "") ? "attention" : "scheduled", slot, updated: "2026-10-15",
@@ -839,6 +848,8 @@ const S = {
     { id: 1, pid: "2_pacient.pdf", text: "doplnit pooperační MR do podkladů", who: COORD, due: "2026-10-21", done: false },
     { id: 2, pid: "13_pacient.pdf", text: "vyžádat snímky MR 8/2025 ke srovnání", who: COORD, due: "2026-10-21", done: true },
   ],
+  /* Drafted MDT questions a doctor confirmed as written: per patient file, { by, when }. */
+  qConfirm: {},
   mails: [], protos: {}, attByDay: {}, schedPick: null, calPop: null, overlay: null, tlScroll: 0, taskScope: "mine", srcTab: "image",
   /* The running MDT session: { day }. While it is set, every case on that day's agenda shows the session bar. */
   session: null, mdtOpen: {},
@@ -1208,7 +1219,7 @@ function viewCalendar() {
       <h2>${esc(surnameFirst(pop))}</h2>
       <div class="facts" style="margin:0"><span>RČ: <b>${esc(pop.rc || "-")}</b></span>${ageNum(pop) ? `<span>Věk: <b>${esc(ageNum(pop))}</b></span>` : ""}<span>Termín: <b>${esc(slotText(pop))}</b></span><span>Vlastník: <b>${esc(pop.owner)}</b></span></div>
       <div><span class="label">Diagnóza</span><p style="margin:2px 0 0;font-weight:700">${esc(pop.full ? dxHeadlineText() : pop.diagnosis)}</p></div>
-      <div class="question ${pop.explicit || edOf("q", pop.file) ? "" : "missing"}" style="padding:8px 12px"><span class="label">Otázka pro MDT</span><p style="font-size:14px">${esc(questionText(pop))}</p></div>
+      ${(() => { const qi = questionInner(pop, false); return `<div class="question ${qi.cls}" style="padding:8px 12px"><span class="label">Otázka pro MDT</span><p style="font-size:14px">${qi.html}</p></div>`; })()}
       ${pop.full ? `<p class="small" style="margin:0">${esc(briefPlain().slice(0, 260))}…${edOf("brief", CASE.file) ? " (upraveno lékařem)" : ""}</p>` : `<p class="small" style="margin:0">${esc(pop.summary || "")}</p>`}
       <div class="row" style="gap:6px"><button class="btn primary" data-open="${esc(pop.file)}">Otevřít případ</button>${slotLocked(pop) ? `<button class="btn" disabled title="${esc(LOCK_WHY)}">Uvolnit termín</button>` : `<button class="btn" data-pick="${esc(pop.file)}">Změnit termín</button><button class="btn" data-unsched="${esc(pop.file)}">Uvolnit termín</button>`}<button class="btn" data-calclose="1" aria-label="Zavřít kartu" style="margin-left:auto">✕</button></div>${slotLocked(pop) ? `<p class="muted small lockwhy" style="margin:0">${esc(LOCK_WHY)}</p>` : ""}</div>` : "";
   const end = addDays(S.week, 4);
@@ -1246,10 +1257,43 @@ function dxHeadlineText(forReport = false) {
   const txt = forReport ? edRep("dx", base, CASE.file) : edText("dx", base, CASE.file);
   return `${txt}${!forReport && edOf("dx", CASE.file) ? " (upraveno lékařem)" : ""}${d.tnm_context_cs ? `; ${d.tnm_context_cs}` : ""}${d.ocr_note_cs && !edOf("dx", CASE.file) ? " [ověřit čtení]" : ""}`;
 }
+/* The MDT question (team decision 2026-10-17): the referral's explicit question as written; otherwise the assistant's
+   draft, labelled as a draft until a named doctor confirms or edits it; the gap wording only when there is neither.
+   A "document_purpose" draft rephrases the document's own purpose sentence, an "assistant_inference" draft is the
+   assistant's reading of what the referrer wants to know. */
+const Q_DRAFT_LBL = { document_purpose: "Otázka podle účelu v dokumentu · návrh, ověřte", assistant_inference: "Návrh otázky (asistent, ověřte)" };
+function qState(p) {
+  const e = edOf("q", p.file), c = S.qConfirm[p.file];
+  if (e) return { mode: "edited", text: e.text, tag: p.explicit ? "upraveno lékařem" : "doplněno lékařem", tip: `${p.explicit ? "Upravil(a)" : "Doplnil(a)"} ${e.by}, ${e.when}` };
+  if (p.explicit) return { mode: "explicit", text: p.question };
+  if (p.draft && c) return { mode: "confirmed", text: p.draft, tag: `otázka potvrzena: ${c.by}`, tip: `Návrh asistenta potvrdil(a) ${c.by}, ${c.when}`, basis: p.basis };
+  if (p.draft) return { mode: "draft", text: p.draft, tag: Q_DRAFT_LBL[p.basis?.kind] || Q_DRAFT_LBL.assistant_inference, basis: p.basis };
+  return { mode: "none", text: null };
+}
 function questionText(p) {
-  const e = edOf("q", p.file);
-  if (e) return e.text;
-  return p.explicit ? p.question : `Výslovná otázka ${GAP_F}.`;
+  const q = qState(p);
+  return q.text || `Výslovná otázka ${GAP_F}.`;
+}
+/* Plain text for the report and the FHIR export: a draft says it is a draft, a confirmation says who confirmed it. */
+function questionPlain(p) {
+  const q = qState(p), b = q.basis;
+  const basis = b ? ` ${b.kind === "document_purpose" ? "Účel v dokumentu" : "Vychází z"}: „${b.quote}“ (${b.source.file}, s. ${b.source.page}).` : "";
+  if (q.mode === "edited") return `${q.text} [${q.tag}]`;
+  if (q.mode === "explicit") return q.text;
+  if (q.mode === "confirmed") return `${q.text} [návrh asistenta, potvrdil(a) ${S.qConfirm[p.file].by}, ${S.qConfirm[p.file].when}]${basis}`;
+  if (q.mode === "draft") return `${q.text} [${b?.kind === "document_purpose" ? "otázka podle účelu v dokumentu, návrh asistenta" : "návrh otázky asistentem"}, neověřeno lékařem]${basis}`;
+  return `Výslovná otázka ${GAP_F}.`;
+}
+/* The question with its label in a box: the explicit question plain, a draft with its label, its source quote and a
+   confirm button for doctors; `full` adds the quote and the buttons (the calendar card shows only the label). */
+function questionInner(p, full = true) {
+  const q = qState(p), b = q.basis;
+  const lbl = q.mode === "draft" ? `<span class="qlbl draft">${esc(q.tag)}</span> ` : q.mode === "confirmed" ? `<span class="qlbl ok" title="${esc(q.tip)}">${esc(q.tag)}</span> ` : "";
+  const body = q.mode === "edited" ? `${esc(q.text)}<span class="edtag" title="${esc(q.tip)}">${esc(q.tag)}</span>`
+    : q.mode === "none" ? `<b>Výslovná otázka ${GAP_F}.</b> ${p.purpose ? `Účel dle dokumentu: „${esc(p.purpose)}“` : ""}` : esc(q.text);
+  const quote = full && b && q.mode !== "edited" ? `<span class="note qbasis">${b.kind === "document_purpose" ? "Účel v dokumentu" : "Vychází z"}: „${esc(b.quote)}“ ${srcLinks([{ ...b.source, quote: b.quote }])}</span>` : "";
+  const confirm = full && q.mode === "draft" && isDoctor(S.user) ? `<button class="btn small" data-act="confirmq" style="margin-top:6px">Potvrdit otázku</button>` : "";
+  return { cls: q.mode === "none" ? "missing" : q.mode === "draft" ? "draft" : "", html: `${lbl}${body}`, quote, confirm, filled: q.mode !== "none" };
 }
 const briefPlain = () => edText("brief", (BRIEF_CS || "").replace(/\s*\[\d+\]/g, ""), CASE.file);
 function patientHeader(p, extraActions = "", withQuestion = false) {
@@ -1257,6 +1301,7 @@ function patientHeader(p, extraActions = "", withQuestion = false) {
       <div><div class="row"><span class="label">${p.id}</span>${statusMenu(p)}</div>
         <h1 style="margin-top:4px">${esc(surnameFirst(p))}<span class="idp">RČ: ${p.rc ? esc(p.rc) : DASH}</span><span class="idp">Věk: ${ageNum(p) ? esc(ageNum(p)) : DASH}</span></h1>
         ${p.warn ? `<div class="question missing" style="margin:8px 0 0;padding:6px 10px"><b>Ověřit identitu:</b> ${esc(p.warn)}</div>` : ""}
+        ${p.nameNote ? `<div class="muted small namenote">Pozn.: ${esc(p.nameNote.text)} ${p.nameNote.src ? srcLinks([p.nameNote.src]) : ""}</div>` : ""}
         <div class="facts">
           <span>Vlastník: <b>${esc(p.owner)}</b></span><span>Pracoviště: <b>${p.dept ? esc(p.dept) : DASH}</b></span><span>Příští MDT: <b>${esc(slotText(p))}</b></span></div></div>
       <div class="row">${extraActions}</div>
@@ -1267,11 +1312,11 @@ function patientHeader(p, extraActions = "", withQuestion = false) {
 /* The MDT question can be filled in by a doctor when the documents do not state one (Soňa, round 2). */
 /* Reason (why now) and the question in one box (Soňa, round 7). */
 function reasonQuestionBox(p, reg) {
-  const e = edOf("q", p.file), filled = p.explicit || e;
-  return `<div class="question ${filled ? "" : "missing"}"><span class="bh">Důvod a otázka pro MDT</span>
+  const qi = questionInner(p), orig = p.explicit ? p.question : p.draft || "";
+  return `<div class="question ${qi.cls}"><span class="bh">Důvod a otázka pro MDT</span>
     ${EXTRA.mdt_reason_v3_cs ? `<p>${reasonHtml(reg)}</p>` : ""}
-    <p style="margin-top:6px"><b>Otázka:</b> ${e ? `${esc(e.text)}<span class="edtag" title="Doplnil(a) ${esc(e.by)}, ${esc(e.when)}">doplněno lékařem</span>` : p.explicit ? esc(p.question) : DASH}
-    ${isDoctor(S.user) ? `<button class="edbtn" style="opacity:1" data-edit="${esc(EK("q", p.file))}" data-orig="${esc(p.explicit ? p.question : "")}" title="${filled ? "Upravit otázku" : "Doplnit otázku"}">✎ ${filled ? "" : "doplnit"}</button>` : ""}</p></div>`;
+    <p style="margin-top:6px"><b>Otázka:</b> ${qi.filled ? qi.html : DASH}
+    ${isDoctor(S.user) ? `<button class="edbtn" style="opacity:1" data-edit="${esc(EK("q", p.file))}" data-orig="${esc(orig)}" title="${qi.filled ? "Upravit otázku" : "Doplnit otázku"}">✎ ${qi.filled ? "" : "doplnit"}</button>` : ""}${qi.quote}</p>${qi.confirm}</div>`;
 }
 /* Missing and unclear data: a toggle, details on demand (round 7), no counts (round 19): numbers read as a score.
    Missing-document alerts are always on (CLAUDE.md), so when any document or datum is missing the button itself is
@@ -1289,11 +1334,10 @@ function gapsToggle(p) {
   return `<button class="btn small gapsbtn ${warn ? "warn" : ""}" data-act="gaps" aria-expanded="${!!S.gapsOpen}">⚠ Upozornění${warn ? " · chybí podklady" : ""} ${S.gapsOpen ? "▴" : "▾"}</button>`;
 }
 function questionBox(p) {
-  const e = edOf("q", p.file);
-  const filled = p.explicit || e;
-  return `<div class="question ${filled ? "" : "missing"}"><span class="label">Otázka pro MDT</span>
-    <p>${e ? `${esc(e.text)}<span class="edtag" title="Doplnil(a) ${esc(e.by)}, ${esc(e.when)}">doplněno lékařem</span>` : p.explicit ? esc(p.question) : `<b>Výslovná otázka ${GAP_F}.</b> ${p.purpose ? `Účel dle dokumentu: „${esc(p.purpose)}“` : ""}`}
-    ${isDoctor(S.user) ? `<button class="edbtn" data-edit="${esc(EK("q", p.file))}" data-orig="${esc(p.explicit ? p.question : "")}" title="${filled ? "Upravit otázku" : "Doplnit otázku"}">✎ ${filled ? "" : "doplnit"}</button>` : ""}</p></div>`;
+  const qi = questionInner(p), orig = p.explicit ? p.question : p.draft || "";
+  return `<div class="question ${qi.cls}"><span class="label">Otázka pro MDT</span>
+    <p>${qi.html}
+    ${isDoctor(S.user) ? `<button class="edbtn" data-edit="${esc(EK("q", p.file))}" data-orig="${esc(orig)}" title="${qi.filled ? "Upravit otázku" : "Doplnit otázku"}">✎ ${qi.filled ? "" : "doplnit"}</button>` : ""}${qi.quote}</p>${qi.confirm}</div>`;
 }
 const CLOSED_MSG = "Případ je uzavřen; znovu ho otevřete v menu stavu.";
 function conclusionBox(p) {
@@ -1897,7 +1941,7 @@ function reportHtml(p, pr, present) {
     : `<h4>Podklady</h4><p>Dokumentace případu není v maketě zpracovaná; anamnéza a nálezy se do reportu netisknou.</p>`}
     <h4>Přítomní</h4><p>${esc(present.join(", ") || "nezadáno")}</p>
     <h4>Diagnóza</h4><p><b>${esc(p.full ? dxHeadlineText(true) : p.diagnosis)}</b>${p.full && DXH()?.mkn_cs ? `<br>${esc(DXH().mkn_cs)}` : ""}</p>
-    <h4>Dotaz</h4><p>${esc(edOf("q", p.file) ? questionText(p) + (p.explicit ? " [upraveno lékařem]" : " [doplněno lékařem]") : p.explicit ? p.question : `Výslovná otázka ${GAP_F}. Účel dle dokumentu: ${p.purpose || ""}`)}</p>
+    <h4>Dotaz</h4><p>${esc(questionPlain(p))}</p>
     <h4>Závěr</h4><p id="rep-concl">${esc(pr.concl || "Zatím nezapsán.")}</p>
     <h4>Další kroky</h4>${pr.steps.filter(x => x.text.trim()).length ? `<ul>${pr.steps.filter(x => x.text.trim()).map(x => `<li>${esc(x.text)} · ${esc(x.who)} · do ${esc(fmtDate(x.due))}</li>`).join("")}</ul>` : "<p>Žádné.</p>"}
     ${p.full && S.guideOn && STMTS().length ? `<h4>Odchylky od doporučení</h4>${STMTS().filter(st => (pr.dev || {})[st.id]?.s).length ? `<ul>${STMTS().filter(st => (pr.dev || {})[st.id]?.s).map(st => { const d = pr.dev[st.id]; return `<li>${esc(st.quote)} <span class="src">(${esc(citeOf(st))})</span>: <b>${DEV[d.s]}</b>${d.s === "deviates" ? `, důvod: ${esc(d.why || "neuveden")}` : ""}</li>`; }).join("")}</ul>` : "<p>Nevyplněno.</p>"}` : ""}
@@ -2334,7 +2378,7 @@ function fhirBundle(p) {
     status: "preliminary", type: { text: "Podklady pro multidisciplinární tým (MDT)" }, subject: subj, date: now, author: [ref(assistant)],
     title: `Podklady pro MDT, ${p.id} (návrh asistenta, neověřeno lékařem)`,
     section: [
-      { title: "Otázka pro MDT", text: { status: "generated", div: `<div xmlns="http://www.w3.org/1999/xhtml">${esc(q.text_cs || `Neuvedeno v dostupné dokumentaci. ${q.note_cs || ""}`.trim())}</div>` } },
+      { title: "Otázka pro MDT", text: { status: "generated", div: `<div xmlns="http://www.w3.org/1999/xhtml">${esc(edOf("q", p.file) || (!q.text_cs && p.draft) ? questionPlain(p) : q.text_cs || `Neuvedeno v dostupné dokumentaci. ${q.note_cs || ""}`.trim())}</div>` } },
       { title: "Shrnutí", text: { status: "generated", div: lis((c.summary || []).map(s => s.text_cs), "s") } },
       tl.length ? { title: "Průběh onemocnění", text: { status: "generated", div: lis(tl.map(t => `${t.date}: ${t.label_cs}`), "t") } } : { title: "Průběh onemocnění", ...empty },
       sec("Diagnóza a přidružená onemocnění", ids.conditions), sec("Nálezy", ids.observations), sec("Léčba", ids.procedures),
@@ -2501,7 +2545,7 @@ document.addEventListener("error", e => {
 }, true);
 
 /* Tooltips for info and certainty icons: the title moves to data-tip so the browser does not show a second one. */
-const TIP_SEL = ".info, .mk, .edtag, .gapq, .chip[title], .chip[data-tip], .vf, .vbox, .dt[data-tip], .lpin[title], .lpin[data-tip]";
+const TIP_SEL = ".info, .mk, .edtag, .qlbl.ok, .gapq, .chip[title], .chip[data-tip], .vf, .vbox, .dt[data-tip], .lpin[title], .lpin[data-tip]";
 let tipEl = null;
 function showTip(el) {
   if (el.title) { el.dataset.tip = el.title; el.removeAttribute("title"); }
@@ -2694,6 +2738,14 @@ function action(a) {
   else if (a === "today") { S.week = mondayOf(TODAY); S.miniMonth = TODAY.slice(0, 7); render(); }
   else if (a === "upload") { S.overlay = { kind: "upload" }; renderOverlay(); }
   else if (a === "fakeupload2") { S.overlay.done = true; renderOverlay(); }
+  else if (a === "confirmq") {
+    /* Confirming stores who and when; the draft text itself is unchanged, and the confirmation goes to the edit log. */
+    const p = P(S.pid), when = new Date().toLocaleString("cs-CZ");
+    if (!p.draft || !isDoctor(S.user)) return;
+    S.qConfirm[p.file] = { by: S.user, when };
+    S.editLog.push({ pid: p.file, key: EK("q", p.file), orig: p.draft, text: `${p.draft} (návrh asistenta potvrzen)`, by: S.user, when });
+    logAccess(p.file, "potvrdil(a) návrh otázky pro MDT"); render(); toast("Otázka potvrzena");
+  }
   else if (a === "saveedit" || a === "revertedit") {
     const o = S.overlay, txt = document.getElementById("edtext")?.value.trim();
     const when = new Date().toLocaleString("cs-CZ"), pid = o.key.split("|")[0];

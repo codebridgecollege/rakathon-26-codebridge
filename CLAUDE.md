@@ -212,7 +212,10 @@ data (slide 21 notes).
 - **A draft is never shown as approved.** A conclusion or task the
   assistant drafts stays a draft until a named doctor confirms it. New
   documents may update drafts but never silently change content a doctor
-  confirmed.
+  confirmed. When the referral states no question for the MDT, the
+  assistant drafts one, labeled as a draft with the document passage it
+  rests on, until a doctor confirms or edits it (team decision
+  2026-10-17).
 - **MDT decisions are an append-only history.** A new decision supersedes
   an earlier one and never erases or edits it; the same patient can come
   to the MDT many times. Each decision records which doctor confirmed it

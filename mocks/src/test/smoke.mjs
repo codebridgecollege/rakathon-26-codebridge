@@ -22,6 +22,6 @@ click('[data-act="approve"]');
 console.log("approved:", doc.body.textContent.includes("Schváleno"), "mail:", doc.body.textContent.includes("nové úlohy"));
 click('[data-nav="tasks"]'); click('[data-scope="all"]'); console.log("tasks has new:", doc.body.textContent.includes("Objednat MR"));
 click('[data-open="10_pacient.pdf"]'); click('[data-go="protocol"]'); console.log("still approved:", doc.body.textContent.includes("Schváleno")); click('[data-act="newversion"]'); console.log("new draft:", doc.body.textContent.includes("Koncept nového závěru"));
-click('[data-nav="calendar"]'); click('[data-slot]'); click('[data-nav="patients"]'); click('[data-open="17_pacient.pdf"]'); console.log("identity warn:", doc.body.textContent.includes("Ověřit identitu"));
+click('[data-nav="calendar"]'); click('[data-slot]'); click('[data-nav="patients"]'); click('[data-open="17_pacient.pdf"]'); console.log("name note:", doc.body.textContent.includes("jméno a příjmení ve formuláři prohozené"));
 click('[data-open="2_pacient.pdf"]');
 console.log(errs.length ? "ERRORS:\n" + errs.join("\n") : "no errors");

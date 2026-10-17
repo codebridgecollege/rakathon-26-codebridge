@@ -9,7 +9,9 @@
   "mdt_question_explicit": true,
   "one_line_summary_cs": "Po kolapsu nalezena objemná expanze T vpravo s šířením do inzuly, thalamu a mesencefala; resekce 7.8.2026, histol. high grade gliový tumor (Ki67 až 70 %), pooperačně rozsáhlé reziduum; levostranná hemiparéza a neglect.",
   "page_count": 1,
-  "note": "Jméno v dokumentu zapsáno 'Kotěrova Jaroslava'."
+  "note": "Jméno v dokumentu zapsáno 'Kotěrova Jaroslava'.",
+  "question_draft_cs": null,
+  "question_basis": null
  },
  {
   "file": "9_pacient.pdf",
@@ -21,7 +23,16 @@
   "mdt_question_explicit": false,
   "one_line_summary_cs": "Ca levého prsu (2023, stp. mastektomii, RT, letrozol); 9/2026 progrese s mnohočetnými převážně osteolytickými MTS skeletu, patologická komprese Th2 až vertebra plana s měkkotkáňovou složkou do páteřního kanálu; od 7.9.2026 fulvestrant, od 22.9.2026 abemaciklib.",
   "page_count": 4,
-  "note": "Str. 4 nemá textovou vrstvu (prázdná nebo jen obraz). Jako otázku uvádíme větu o NCH semináři, výslovná otázka chybí."
+  "note": "Str. 4 nemá textovou vrstvu (prázdná nebo jen obraz). Jako otázku uvádíme větu o NCH semináři, výslovná otázka chybí.",
+  "question_draft_cs": "Je indikována neurochirurgická intervence pro nález na PET/CT (patologická komprese obratle Th2)?",
+  "question_basis": {
+   "kind": "document_purpose",
+   "quote": "Nález na PET/CT vyš. bude prezentován na NCH semináři k posouzení indikace NCH intervence, jinak příště objednáme analgetickou pal. RT.",
+   "source": {
+    "file": "9_pacient.pdf",
+    "page": 3
+   }
+  }
  },
  {
   "file": "11_pacient.pdf",
@@ -33,7 +44,16 @@
   "mdt_question_explicit": false,
   "one_line_summary_cs": "Náhlé vertigo se zvracením a zhoršením sluchu vlevo; MR mozku s KL: intrameatální tumor do 7 mm charakteru schwannomu n. VIII vlevo a drobný parafalcinní meningeom F vlevo do 6 mm; Fazekas III, atrofie.",
   "page_count": 2,
-  "note": "Formulář bez rodného čísla a bez otázky pro MDT."
+  "note": "Formulář bez rodného čísla a bez otázky pro MDT.",
+  "question_draft_cs": "Souhlasí radiolog s nálezem tumoru charakteru schwannomu n. VIII vlevo a drobného meningeomu F parafalcinně vlevo? Je indikováno operační (nebo radiochirurgické) řešení, nebo sledování?",
+  "question_basis": {
+   "kind": "assistant_inference",
+   "quote": "Homogenní solid. sycení intrameatal. TU popis. na minulém nativním MR vyš., vel. do 7mm.",
+   "source": {
+    "file": "11_pacient.pdf",
+    "page": 2
+   }
+  }
  },
  {
   "file": "13_pacient.pdf",
@@ -45,7 +65,9 @@
   "mdt_question_explicit": true,
   "one_line_summary_cs": "CT mozku 19.8.2026 (při akutní závrati): kalcifikovaný meningeom parietálně vlevo 12 x 9 mm, bez průkazu MTS; MR 8/2025 ložisko 10x6 mm, stacionární proti 10/2023; v anamnéze ca prsu (2002 až 2004, t.č. remise).",
   "page_count": 2,
-  "note": "Velikost ložiska se liší mezi CT 8/2026 (12 x 9 mm) a MR 8/2025 (10x6 mm); jde o různé modality, proto to samo o sobě není rozpor. Právě srovnání je předmětem dotazu."
+  "note": "Velikost ložiska se liší mezi CT 8/2026 (12 x 9 mm) a MR 8/2025 (10x6 mm); jde o různé modality, proto to samo o sobě není rozpor. Právě srovnání je předmětem dotazu.",
+  "question_draft_cs": null,
+  "question_basis": null
  },
  {
   "file": "15_pacient.pdf",
@@ -57,7 +79,16 @@
   "mdt_question_explicit": false,
   "one_line_summary_cs": "MR mozku: FLAIR hypersignální léze 7x6 mm na vnitřní stěně pravé postranní komory bez sycení, stacionární obraz v.s. ependymomu či subependymomu, bez poruchy cirkulace likvoru.",
   "page_count": 1,
-  "note": "Jen radiologický popis, bez data vyšetření, anamnézy a otázky. Číslo '111' je v poli pro pojišťovnu nebo RČ, přiřazení nejisté."
+  "note": "Jen radiologický popis, bez data vyšetření, anamnézy a otázky. Číslo '111' je v poli pro pojišťovnu nebo RČ, přiřazení nejisté.",
+  "question_draft_cs": "Souhlasí radiolog s obrazem v.s. ependymomu či subependymomu postranní komory vpravo? Je při stacionárním nálezu indikováno sledování, nebo operační řešení?",
+  "question_basis": {
+   "kind": "assistant_inference",
+   "quote": "Závěr: Stacionární obraz v.s. ependymomu či subependymomu postranní komory vpravo.",
+   "source": {
+    "file": "15_pacient.pdf",
+    "page": 1
+   }
+  }
  },
  {
   "file": "17_pacient.pdf",
@@ -69,7 +100,22 @@
   "mdt_question_explicit": false,
   "one_line_summary_cs": "Ca cekoascendens pT3 pN0 cM0, stp. pravostranné hemikolektomii, susp. Lynch syndrom; CT mozku 13.9.2026 při vestibulárním syndromu: intraoseální ložisko F vpravo s extraaxiální propagací 13x7 mm, DD intraoseální meningeom x MTS.",
   "page_count": 1,
-  "note": "Ve formuláři je 'Jméno: Jelen', 'Příjmení: Otakar', pole jsou pravděpodobně prohozená. Ověřit identitu."
+  "note": "Jméno a příjmení ve formuláři prohozené: 'Jméno pacienta: Jelen', 'Příjmení pacienta: Otakar'. Otakar je křestní jméno, příjmení Jelen.",
+  "question_draft_cs": "Jaký další postup doporučuje MDT u intraoseálního ložiska kalvy frontálně vpravo (DD intraoseální meningeom x MTS)? Doplnit MR mozku a scintigrafii skeletu?",
+  "question_basis": {
+   "kind": "document_purpose",
+   "quote": "V rámci MDT doporučena konzultace NCH, MR mozku a scinti skeletu (zobrazovací metody zatím nedoplněny, vyčkáme Vašeho doporučení).",
+   "source": {
+    "file": "17_pacient.pdf",
+    "page": 1
+   }
+  },
+  "name_note_cs": "jméno a příjmení ve formuláři prohozené",
+  "name_note_source": {
+   "file": "17_pacient.pdf",
+   "page": 1,
+   "quote": "Jméno pacienta: Jelen Příjmení pacienta: Otakar"
+  }
  },
  {
   "file": "18_pacient.pdf",
@@ -81,7 +127,16 @@
   "mdt_question_explicit": false,
   "one_line_summary_cs": "Opakované silné lumbalgie se zhoršením; MR Th páteře s KL: cystické okrsky míchy Th4 až Th12, rozšíření míchy max. v oblasti konu 15x17 mm se sytícími okrsky do 4,5x4 mm (drobný ependymom nelze vyloučit); protruze L3 až L5.",
   "page_count": 2,
-  "note": "Formulář bez RČ, pojišťovny a otázky pro MDT; data vyšetření neuvedena."
+  "note": "Formulář bez RČ, pojišťovny a otázky pro MDT; data vyšetření neuvedena.",
+  "question_draft_cs": "Jde o nádor míchy (drobný ependymom v oblasti konu nelze vyloučit), nebo jsou obtíže degenerativního původu (protruze L3 až L5)? Je indikováno operační řešení?",
+  "question_basis": {
+   "kind": "assistant_inference",
+   "quote": "zde drobný ependymom v terénu výrazné syringomyelie nevyloučím.",
+   "source": {
+    "file": "18_pacient.pdf",
+    "page": 1
+   }
+  }
  },
  {
   "file": "19_pacient.pdf",
@@ -93,7 +148,16 @@
   "mdt_question_explicit": false,
   "one_line_summary_cs": "Přijata 29.9. pro odeznělou monoparézu LHK po vysazení antikoagulace; fraktura baze dens axis po pádu 27.9. (konzervativně dle NCH); CTAG 13.10.2026: vlevo dvě výdutě ACI 2 a 3 mm pod bazí lební.",
   "page_count": 1,
-  "note": "OCR text je na pravém okraji useknutý (věty nedokončené). Formulář bez RČ, pojišťovny a otázky."
+  "note": "OCR text je na pravém okraji useknutý (věty nedokončené). Formulář bez RČ, pojišťovny a otázky.",
+  "question_draft_cs": "Je indikováno endovaskulární řešení (coiling) dvou výdutí ACI vlevo (cca 2 a 3 mm pod bazí lební)?",
+  "question_basis": {
+   "kind": "assistant_inference",
+   "quote": "vlevo dvě sousedící výdutě stěny ACI o vel. cca 2 mm a 3 mm pod bazí lebky",
+   "source": {
+    "file": "19_pacient.pdf",
+    "page": 1
+   }
+  }
  },
  {
   "file": "20_pacient.pdf",
@@ -105,6 +169,15 @@
   "mdt_question_explicit": false,
   "one_line_summary_cs": "4 měsíce po TURP (ca prostaty 5/2026) a sepsi; MR Cp 14.9.26: infiltrace obratlových těl C6/C7/Th1 se stenózou kanálu bez komprese míchy; scintigrafie: osteolytická ložiska C páteře, susp. okrsky kalvy, Th6 a LS-S1; NCH doporučilo nahlásit na NOCO a doplnit CT hrudníku a břicha.",
   "page_count": 1,
-  "note": "Výslovná otázka chybí; dokument uvádí jen doporučení NCH 'nahlásit na NOCO'. Formulář bez RČ a pojišťovny."
+  "note": "Výslovná otázka chybí; dokument uvádí jen doporučení NCH 'nahlásit na NOCO'. Formulář bez RČ a pojišťovny.",
+  "question_draft_cs": "Je indikováno neurochirurgické řešení infiltrace obratlových těl C6 až Th1 (resekce, náhrada obratlových těl, stabilizace)? Povaha infiltrace zatím nejasná (zánětlivé změny vs. maligní infiltrace).",
+  "question_basis": {
+   "kind": "assistant_inference",
+   "quote": "Dle rekonzultace NCH - nahlásit na NOCO a doplnit CT hrudníku a břicha s kontrastem.",
+   "source": {
+    "file": "20_pacient.pdf",
+    "page": 1
+   }
+  }
  }
 ]
