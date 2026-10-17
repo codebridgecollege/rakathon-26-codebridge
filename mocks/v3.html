@@ -7489,7 +7489,6 @@ const ocrCleared = f => !!(f && f.ocr_check && f.ocr_check.mark === false);
    The meaning is still shown on every fact, as CLAUDE.md requires; only the wording moved into the tooltip. */
 function marks(f) {
   let h = "";
-  if (f.negated) h += `<span class="mk neg" title="Zápor zapsaný v dokumentu">-</span>`;
   if ((f.certainty === "unclear_ocr" || f.ocr_note_cs) && !ocrCleared(f)) h += `<span class="mk ocr" title="Ověřit čtení: ${esc(f.ocr_note_cs || f.note || "text mohl být špatně přečten")}">!</span>`;
   if (f.certainty === "inferred") h += `<span class="mk obs" title="Pozorování asistenta, v dokumentu výslovně není">i</span>`;
   if (f.certainty === "planned" || f.change_status === "planned_unconfirmed" || /plánováno/i.test(f.change_cs || "")) h += `<span class="mk plan" title="Plánováno, dokument neuvádí, že se stalo${f.note_cs ? ": " + esc(f.note_cs) : ""}">?</span>`;
@@ -8209,7 +8208,7 @@ function tabAnamnesis() {
   return `<section class="card"><div class="head"><h2>Anamnéza</h2></div>
     <div class="anam3">${ANAM.map(([k, t]) => `<div>${t}</div><div>${body(k)}</div>`).join("")}</div>
     ${srcList(reg)}
-    <p class="muted small" style="margin:10px 0 0">Ikony: <span class="mk ocr">!</span> ověřit čtení · <span class="mk neg">-</span> zápor v dokumentu · <span class="mk plan">?</span> plánováno · <span class="mk ocr" style="background:var(--conflict-soft);color:var(--conflict)">≠</span> rozpor mezi dokumenty · <span class="mk obs">i</span> pozorování asistenta. Podrobnost ukáže najetí myší. Léky slouží pro informaci; při příjmu se kontrolují.</p></section>`;
+    <p class="muted small" style="margin:10px 0 0">Ikony: <span class="mk ocr">!</span> ověřit čtení · <span class="mk plan">?</span> plánováno · <span class="mk ocr" style="background:var(--conflict-soft);color:var(--conflict)">≠</span> rozpor mezi dokumenty · <span class="mk obs">i</span> pozorování asistenta. Podrobnost ukáže najetí myší. Léky slouží pro informaci; při příjmu se kontrolují.</p></section>`;
 }
 /* Documents (Soňa and Juro, round 2): a full-width table; upload is a button that opens a dialog. */
 /* "citace v ambulantní zprávě, původní popis v PDF není" becomes "citováno v ambulantní zprávě": the row adds
