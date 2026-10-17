@@ -31,9 +31,9 @@ flowchart LR
   subgraph FNO["FN Ostrava network"]
     DIR["Directory (AD)<br/>users, groups"]
     IDP["Identity provider<br/>(Entra ID / ADFS / Keycloak)"]
-    NIS["NIS<br/>patients, documents,<br/>staff"]
+    NIS["NIS (FHIR API)<br/>patients, documents,<br/>staff"]
     OTHER["LIS, PACS,<br/>pathology"]
-    ENG["InterSystems<br/>interface engine<br/>(assumption)"]
+    ENG["Integration engine<br/>(optional, e.g. InterSystems)"]
     subgraph CB["CodeBridge (on FNO servers)"]
       UI["Web app<br/>(doctors, coordinator)"]
       API["Backend API<br/>roles, case membership,<br/>audit log"]
@@ -51,7 +51,8 @@ flowchart LR
   UI --> API
   API --> DB
   API --> BLOB
-  API -- "FHIR R4, read only,<br/>on behalf of the user" --> ENG
+  API -- "FHIR R4, read only,<br/>on behalf of the user" --> NIS
+  API -. "or through" .-> ENG
   ENG --> NIS
   ENG --> OTHER
   BLOB --> AI
@@ -65,7 +66,7 @@ Three sources, three kinds of data:
 | Source | What it gives | How we connect |
 |---|---|---|
 | Directory, through the IdP | Who is logged in, their roles or groups | OIDC login |
-| NIS, through the InterSystems engine (*assumption*: or directly) | Patients, their documents and results, staff as clinical roles (who referred, who treats) | FHIR R4, read only |
+| NIS, directly or through the hospital's integration engine (for example InterSystems), whichever FNO uses for other apps | Patients, their documents and results, staff as clinical roles (who referred, who treats) | FHIR R4, read only |
 | CodeBridge's own database | MDT cases, who is on each case, protocols and decisions, tasks, audit log | Our backend API |
 
 The directory and the NIS are different systems with different data. They
@@ -125,7 +126,7 @@ The entities, and where each lives:
   That keeps the NIS's access checks and its own audit trail, which Czech
   law expects at every access to the record
   ([`docs/agent/INDEX.md`](../agent/INDEX.md#czech-legal-frame)). How
-  FNO's engine supports this is an open question. If only a service
+  FNO's FHIR endpoint supports this is an open question. If only a service
   account is possible, it is limited to read-only access to the resources
   below, over mutual TLS, and CodeBridge's audit log becomes the only
   record of who saw what.
@@ -242,7 +243,7 @@ What it does show, and what each stands for:
 
 - Does the NIS support SMART on FHIR app launch, or should the link from
   the record be a plain URL with the patient ID?
-- Is FHIR access through the InterSystems engine or directly from the NIS,
+- Is FHIR access directly from the NIS or through an integration engine,
   which FHIR version, and which resources does it expose (documents, labs,
   referrals, staff)?
 - Can the FHIR API act on behalf of the logged-in user (user token or
