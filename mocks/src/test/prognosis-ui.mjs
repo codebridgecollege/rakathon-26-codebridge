@@ -17,7 +17,7 @@ const context = vm.createContext({
   render: () => renders.push(context.S.pid),
   fetch: (url, options) => new Promise((resolve, reject) => { calls.push({ url, options, resolve }); options.signal.addEventListener('abort', () => reject(new DOMException('Aborted', 'AbortError'))); }),
 });
-vm.runInContext(code + '\nglobalThis.api = { PROGNOSIS, pgEntry, pgSearch, pgMetric, pgSimilarity, pgStudyRow, pgUrl, tabPrognosis, pgJson, pgLoadSaved, pgLoad, pgPanels: () => PG_PANELS };', context);
+vm.runInContext(code + '\nglobalThis.api = { PROGNOSIS, pgEntry, pgSearch, pgMetric, pgSimilarity, pgStudyRow, pgUrl, tabPrognosis, pgJson, pgLoadSaved, pgLoad, pgPanels: () => PG_PANELS, pgRefs: () => PG_REFS, pgRefsHtml };', context);
 const { api } = context;
 api.PROGNOSIS.config = { configured:true, models:[{ id:'model1', label:'Model 1' }] };
 api.pgEntry(patients.a).profile = { available:true, facts:[] };
@@ -43,8 +43,8 @@ assert.equal(api.pgUrl('https://user:pass@example.org'), '');
 assert.equal(api.pgUrl('https://pubmed.ncbi.nlm.nih.gov/123/'), 'https://pubmed.ncbi.nlm.nih.gov/123/');
 const metric = api.pgMetric({ value:'<img src=x onerror=alert(1)>', unit:'%', quote:'<script>bad</script>', source_url:'javascript:bad' });
 assert.doesNotMatch(metric, /<script>|<img|href="javascript/);
-assert.match(metric, /data-pgpanel/);
-const metricPanel = api.pgPanels().at(-1).html;
+assert.match(metric, /data-pgref/);
+const metricPanel = api.pgRefsHtml(api.pgRefs(), 1);
 assert.doesNotMatch(metricPanel, /<script>|<img|href="javascript/);
 assert.match(metricPanel, /&lt;script&gt;/);
 assert.match(api.pgMetric(null), /neuvedeno v dostupné dokumentaci/);

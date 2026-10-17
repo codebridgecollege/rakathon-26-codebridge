@@ -364,6 +364,11 @@ details.mdtcard[open] > summary::before { transform: rotate(90deg); }
 .drawer { position: fixed; top: 0; right: 0; bottom: 0; width: min(560px, 100%); background: var(--surface); z-index: 31; box-shadow: -8px 0 30px rgba(0,0,0,.12); display: grid; grid-template-rows: auto auto auto minmax(0, 1fr);
   padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); padding-right: env(safe-area-inset-right, 0px); }
 .drawer .pgpanel { padding: 4px 20px 20px; overflow: auto; border-top: 1px solid var(--line); }
+.pgrefs { list-style: none; margin: 0; padding: 8px 0 0; display: grid; gap: 4px; }
+.pgrefs li { display: grid; grid-template-columns: 34px 1fr; gap: 6px; padding: 10px 10px; border-radius: 8px; transition: background .4s; }
+.pgrefs li.hit { background: #fff3c4; box-shadow: inset 3px 0 0 var(--accent); }
+.pgrefs .n { font-weight: 700; color: var(--accent-ink); }
+.pgrefs blockquote { margin: 8px 0 4px !important; }
 .drawer .pgpanel blockquote { margin: 12px 0; padding: 8px 12px; border-left: 3px solid var(--accent); background: var(--sunk); }
 .drawer header { padding: 16px 20px 8px; display: flex; justify-content: space-between; gap: 10px; align-items: start; }
 .drawer .pages { display: flex; gap: 4px; flex-wrap: wrap; padding: 0 20px 10px; border-bottom: 1px solid var(--line); }
@@ -3209,6 +3214,11 @@ function renderOverlay() {
     if (!o.data) return;
     el.innerHTML = sourceHtml(o);
     document.getElementById("hit")?.scrollIntoView({ block: "center", inline: "center" });
+  } else if (o.kind === "pgrefs") {
+    el.innerHTML = `<div class="scrim" data-close="1"></div><aside class="drawer" role="dialog" aria-label="Zdroje prognózy" style="grid-template-rows: auto minmax(0, 1fr)">
+      <header><div><div class="label">Prognóza</div><h2 style="margin-top:4px">Zdroje (${o.refs.length})</h2></div><button class="btn small" data-close="1">Zavřít</button></header>
+      <div class="pgpanel">${pgRefsHtml(o.refs, o.hit)}</div></aside>`;
+    document.getElementById(`pgref-${o.hit}`)?.scrollIntoView({ block: "center" });
   } else if (o.kind === "pgpanel") {
     const pn = o.panel || {};
     el.innerHTML = `<div class="scrim" data-close="1"></div><aside class="drawer" role="dialog" aria-label="${esc(pn.title || "Prognóza")}" style="grid-template-rows: auto minmax(0, 1fr)">
@@ -3395,7 +3405,7 @@ document.addEventListener("click", e => {
   hideTip();
   if (S.colOpen && !e.target.closest(".fpop,[data-colopen]")) { S.colOpen = null; render(); return; }
   if (S.stOpen && !e.target.closest(".stpop,[data-stmenu]")) { S.stOpen = null; render(); return; }
-  const t = e.target.closest("[data-stmenu],[data-setst],[data-dbpage],[data-guide],[data-colopen],[data-colclose],[data-colall],[data-wk],[data-jump],[data-mm],[data-calclose],[data-labsel],[data-edit],[data-scope],[data-addatt],[data-delatt],[data-staffdel],[data-staffadd],[data-startday],[data-startgo],[data-sesgo],[data-nav],[data-open],[data-tab],[data-src],[data-close],[data-page],[data-vtab],[data-zoom],[data-zoomstep],[data-zoomhit],[data-tl-category],[data-tl],[data-alact],[data-sched],[data-pick],[data-free],[data-slot],[data-unsched],[data-act],[data-mode],[data-delstep],[data-delup],[data-recretry],[data-pgpanel],[data-done],[data-suggok],[data-suggno]");
+  const t = e.target.closest("[data-stmenu],[data-setst],[data-dbpage],[data-guide],[data-colopen],[data-colclose],[data-colall],[data-wk],[data-jump],[data-mm],[data-calclose],[data-labsel],[data-edit],[data-scope],[data-addatt],[data-delatt],[data-staffdel],[data-staffadd],[data-startday],[data-startgo],[data-sesgo],[data-nav],[data-open],[data-tab],[data-src],[data-close],[data-page],[data-vtab],[data-zoom],[data-zoomstep],[data-zoomhit],[data-tl-category],[data-tl],[data-alact],[data-sched],[data-pick],[data-free],[data-slot],[data-unsched],[data-act],[data-mode],[data-delstep],[data-delup],[data-recretry],[data-pgpanel],[data-pgref],[data-done],[data-suggok],[data-suggno]");
   if (!t) return;
   const d = t.dataset;
   if (d.stmenu) { S.stOpen = S.stOpen === d.stmenu ? null : d.stmenu; render(); }
@@ -3416,6 +3426,7 @@ document.addEventListener("click", e => {
   else if (d.calclose) { S.calPop = null; render(); }
   else if (d.labsel) { S.labSel = d.labsel; render(); }
   else if (d.dbpage !== undefined) { S.dbPage = +d.dbpage; render(); }
+  else if (d.pgref) { S.overlay = { kind: "pgrefs", refs: PG_REFS, hit: +d.pgref }; logAccess(S.pid, "otevřel(a) zdroje prognózy"); renderOverlay(); }
   else if (d.pgpanel !== undefined) { S.overlay = { kind: "pgpanel", panel: PG_PANELS[+d.pgpanel] }; logAccess(S.pid, "otevřel(a) zdroj prognózy"); renderOverlay(); }
   else if (d.guide) { S.overlay = { kind: "guide", id: d.guide }; logAccess(S.pid, "otevřel(a) doporučení"); renderOverlay(); }
   else if (d.edit) { S.overlay = { kind: "edit", key: d.edit, orig: d.orig }; renderOverlay(); }

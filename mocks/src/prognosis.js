@@ -85,15 +85,25 @@ function pgLink(url, label) { const safe = pgUrl(url); return safe ? `<a href="$
 const PG_DIMENSIONS = { histology:"Histologie", stage:"Stádium", biomarkers:"Biomarkery", treatment_line:"Linie léčby", prior_treatment:"Předchozí léčba", performance_status:"Výkonnostní stav", brain_metastases:"Mozkové metastázy", age:"Věk" };
 /* Sources and similarity explanations open in the right-hand drawer, like document sources elsewhere. Each render
    rebuilds the list of panels, and a button carries its index into it. */
-let PG_PANELS = [], pgCurRow = null;
+let PG_PANELS = [], PG_REFS = [], pgCurRow = null;
+/* Every reported value gets a reference number, in reading order; the same passage of the same source keeps one
+   number. The drawer lists them all, like a paper's reference list, and scrolls to the one clicked. */
+function pgRef(metric, name, value) {
+  const key = JSON.stringify([pgCurRow?.study_title || "", metric.quote || "", metric.source_url || "", metric.locator || ""]);
+  let i = PG_REFS.findIndex(r => r.key === key);
+  if (i < 0) i = PG_REFS.push({ key, study: pgCurRow?.study_title || "", what: [], quote: metric.quote || "", url: metric.source_url || "", locator: metric.locator || "" }) - 1;
+  const what = `${pgCurRow?.arm ? pgCurRow.arm + ", " : ""}${name ? name + ": " : ""}${value}`; if (!PG_REFS[i].what.includes(what)) PG_REFS[i].what.push(what);
+  return i + 1;
+}
 const pgPanel = (title, sub, html) => PG_PANELS.push({ title, sub, html, study: pgCurRow?.study_title || "" }) - 1;
 const pgMissing = () => `<span class="muted" title="neuvedeno v dostupné dokumentaci">-</span>`;
 function pgMetric(metric, label = "", name = label) {
   if (!metric || metric.value === null || metric.value === undefined || metric.value === "") return label ? `<div>${esc(label)}: ${pgMissing()}</div>` : pgMissing();
   const unit = metric.unit === "months" ? "měsíců" : metric.unit === "text" ? "" : metric.unit || "";
   const value = `${metric.value}${unit ? " " + unit : ""}`;
-  return `<div>${label ? `<span class="muted">${esc(label)}: </span>` : ""}<b>${esc(value)}</b>${metric.ci ? `<div class="muted small">${esc(metric.ci)}</div>` : ""}
-    <button class="linkbtn small" title="Ověřit údaj v původním zdroji" data-pgpanel="${pgPanel("Zdroj údaje", `${name ? name + ": " : ""}${value}`, `${metric.quote ? `<blockquote>${esc(metric.quote)}</blockquote>` : `<p>Pasáž nebyla dodána.</p>`}${metric.locator ? `<p class="muted small">${esc(metric.locator)}</p>` : ""}${metric.source_url ? `<p>${pgLink(metric.source_url, "Otevřít zdroj")}</p>` : ""}`)}">Zdroj</button></div>`;
+  const k = pgRef(metric, name, value);
+  return `<div>${label ? `<span class="muted">${esc(label)}: </span>` : ""}<b>${esc(value)}</b><button class="ref" data-pgref="${k}" title="Otevřít zdroj">[${k}]</button>${metric.ci ? `<div class="muted small">${esc(metric.ci)}</div>` : ""}
+</div>`;
 }
 function pgSimilarity(similarity) {
   if (!similarity) return pgMissing();
@@ -128,8 +138,14 @@ function pgProfile(profile) {
     <ul>${facts.map(f => `<li>${esc(typeof f === "string" ? f : f.text || f.text_cs || "")} <span class="muted small">${esc(f.date || "")}${f.source ? ` · ${esc(typeof f.source === "string" ? f.source : JSON.stringify(f.source))}` : ""}</span></li>`).join("")}</ul>
     ${(profile.warnings || []).map(w => `<p class="pg-warning small">${esc(w)}</p>`).join("")}</details>`;
 }
+function pgRefsHtml(refs, hit) {
+  return `<ol class="pgrefs">${refs.map((r, i) => `<li id="pgref-${i + 1}" class="${i + 1 === hit ? "hit" : ""}"><span class="n">[${i + 1}]</span><div>
+    <b>${esc(r.study || "Zdroj bez názvu")}</b><div class="muted small">${esc(r.what.join(" · "))}</div>
+    ${r.quote ? `<blockquote>${esc(r.quote)}</blockquote>` : `<p class="muted small">Pasáž nebyla dodána.</p>`}
+    ${r.locator ? `<div class="muted small">${esc(r.locator)}</div>` : ""}${r.url ? `<div>${pgLink(r.url, "Otevřít zdroj")}</div>` : ""}</div></li>`).join("")}</ol>`;
+}
 function tabPrognosis(p = P(S.pid)) {
-  pgLoad(p); PG_PANELS = []; pgCurRow = null;
+  pgLoad(p); PG_PANELS = []; PG_REFS = []; pgCurRow = null;
   const state = pgEntry(p), result = state.result, config = PROGNOSIS.config, day = p.slot?.day;
   const models = result?.models || config?.models || [];
   const canSearch = !!day && !state.pending && !state.savedPending && !!state.profile && state.profile.available !== false && !!config?.configured;

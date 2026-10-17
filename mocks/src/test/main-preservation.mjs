@@ -26,6 +26,10 @@ await page.locator('[data-pgpanel]').first().click();
 assert.equal(await page.locator('.drawer .pgpanel').count(),1);
 assert(await page.evaluate(()=>S.overlay.kind==='pgpanel'&&S.access.some(x=>x.what==='otevřel(a) zdroj prognózy')));
 await page.locator('.drawer [data-close]').click();
+await page.locator('[data-pgref]').first().click();
+assert.equal(await page.locator('.drawer .pgrefs li.hit').count(),1);
+assert(await page.evaluate(()=>S.overlay.kind==='pgrefs'&&S.overlay.refs.length>0));
+await page.locator('.drawer [data-close]').click();
 // Verify the same-origin transcript integration without a microphone or a paid model request.
 assert(await page.evaluate(async()=>{
  const original=window.fetch; let requested;
