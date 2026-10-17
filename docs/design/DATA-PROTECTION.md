@@ -133,8 +133,8 @@ quasi-identifiers, which is why the data stays personal data.
 ## Meeting audio
 
 The recording of an MDT discussion is patient data. In the demo, "AI
-záznam" is off until a doctor starts it and confirms the participants'
-consent. Words are filed only under the case the doctor has open, never
+záznam" is off until a doctor starts it; the demo assumes the
+participants agreed beforehand, which a pilot must record. Words are filed only under the case the doctor has open, never
 split by guessing. Audio from moments when no case can take it is
 replaced by silence before it leaves the browser, and a case's audio is
 deleted as soon as its speaker pass is done. Speakers are numbered, not

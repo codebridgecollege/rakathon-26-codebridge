@@ -105,11 +105,11 @@ redacted image is shown.
 ## AI záznam (live transcription)
 
 "AI záznam" in the "Projednání na MDT" card records the discussion and
-writes a live Czech transcript. It needs an ElevenLabs API key with
-speech-to-text permission: copy `stt-config.example.js` to
-`stt-config.js` (gitignored) next to `v3.html` and put the key there, or
-paste it into the start dialog, where it stays in the page's memory. Never
-commit the key. Open the page in Chrome, from a file or a web server; the
+writes a live Czech transcript. "Spustit záznam" starts it at once. The
+page carries a demo ElevenLabs key, published with the team's consent (it
+expires after three days and has a credit cap); a gitignored
+`stt-config.js` next to `v3.html` (see `stt-config.example.js`) overrides
+it. Open the page in Chrome, from a file or a web server; the
 claude.ai artifact viewer may block the microphone.
 
 - One recording runs for the whole meeting. Each word goes to the patient
