@@ -178,6 +178,38 @@ convincing to board-certified doctors. She endorsed this brief, called
 - "A tool made by doctors for doctors": calm, trustworthy, clearly
   structured.
 
+### Visual direction: flat variant (branch claude/glide-design)
+
+The product owner wanted to try a look closer to GLIDE, without the
+"rounded box in a box" of mock v3. The branch `claude/glide-design`
+holds that variant of `mocks/v3.html`; it changes only the stylesheet
+(one override block at the end of the `<style>` in
+`mocks/src/v3-template.html`, plus one inline style moved to the
+`.gapsbox` class), so every function, label and test hook stays the same.
+
+- Sections are open regions on the off-white page, separated by a
+  heading, whitespace and a hairline rule; a section under the tab strip
+  has no rule of its own. No card backgrounds, shadows or large radii.
+- Blocks that were pastel boxes (reason and question, MDT conclusion,
+  missing-originals note, guideline layer, synthetic-data and export
+  warnings, staff note, e-mails) are a left rule in the colour that
+  carries the meaning: accent, amber for missing, dashed violet for the
+  assistant's drafts and the guideline layer.
+- Lists of entries (alerts, guideline statements, retrospective
+  deviations, history, uploads) are rows with hairlines.
+- Chips are coloured text with a small dot; filters, segmented controls,
+  the session agenda and the main navigation are text with an underline
+  when on. Sub-headings inside the brief are small caps labels in the
+  accent colour.
+- Ink is a dark slate-teal (#12303a) and the accent a muted teal-green
+  (#237a6b), taken from the GLIDE website; headings are larger and set
+  tighter.
+- Kept as containers, since they float or hold a grid: the calendar week
+  grid, dialogs, the source viewer drawer, popovers, form inputs and
+  buttons (radius 3-4px). The filled amber "Upozornění" button and the
+  "nezkontrolovány" signal stay filled, because they are the always-on
+  missing-document signal.
+
 ## Reconciling Soňa's sections with FNO's items
 
 Soňa wants five sections: anamnéza (history), onkologický súhrn (oncology

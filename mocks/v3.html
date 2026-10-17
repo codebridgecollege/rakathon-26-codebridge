@@ -581,8 +581,169 @@ details.srcs .refs { border-top: 0; margin-top: 4px; padding-top: 0; }
 .gapsbtn { white-space: normal; text-align: left; border-color: var(--missing); color: var(--missing); }
 /* Missing documents or data: the button itself is the always-on signal (round 21), filled amber. */
 .gapsbtn.warn { background: var(--missing); color: #fff; }
+.gapsbox { border: 1px solid var(--line); border-radius: var(--r); padding: 10px 12px; margin-top: 10px; }
 .unchecked { display: inline-block; white-space: normal; font-size: 13px; font-weight: 600; padding: 4px 10px; border-radius: var(--r); background: var(--missing); color: #fff; }
 details.donegrp > summary { cursor: pointer; color: var(--muted); font-size: 13px; padding: 10px 0 4px; }
+/* Flat variant (branch claude/glide-design): the product owner asked for a layout closer to the GLIDE website, without
+   rounded boxes inside rounded boxes. This block overrides the shapes above: sections are separated by headings,
+   whitespace and hairline rules; a remaining container has at most a 4px radius and no shadow unless it floats
+   (popover, dialog, drawer). Colour keeps its meaning (warnings, drafts, the assistant's observations), but pastel
+   fills give way to a left rule, a small caps label or coloured text. */
+:root {
+  --bg: #f6f7f5;
+  --surface: #ffffff;
+  --sunk: #eef1ee;
+  --fg: #12303a;
+  --muted: #55666a;
+  --faint: #86959a;
+  --line: #e2e6e3;
+  --line-strong: #c8d1cd;
+  --accent: #237a6b;
+  --accent-ink: #15594d;
+  --accent-soft: #e4efeb;
+  --r: 3px;
+}
+body { font-size: 15px; }
+h1 { font-size: 30px; font-weight: 700; letter-spacing: -.02em; line-height: 1.15; }
+h2 { font-size: 19px; font-weight: 700; letter-spacing: -.012em; }
+.label { color: var(--accent-ink); letter-spacing: .1em; font-size: 11.5px; font-weight: 700; }
+
+/* Top bar: a white band with a hairline, the current area underlined instead of filled. */
+.top { padding-block: 0; min-height: 56px; }
+.brand { font-size: 17px; letter-spacing: -.01em; }
+.brand i { border-radius: 2px; }
+.nav button { border-radius: 0; padding: 18px 12px 16px; border-bottom: 2px solid transparent; }
+.nav button:hover { background: none; color: var(--fg); }
+.nav button[aria-current="true"] { background: none; color: var(--fg); border-bottom-color: var(--accent); }
+.nav .count { background: none; color: var(--accent-ink); padding: 0; font-size: 12px; }
+.who select { border-radius: var(--r); }
+.demo { background: none; padding: 0; border-radius: 0; }
+.demo::before { content: "● "; font-size: 9px; vertical-align: 1px; }
+
+/* Page: generous side margins; sections are open regions with a hairline on top, not cards. */
+.page { padding-left: max(16px, min(5vw, 56px), env(safe-area-inset-left, 0px)); padding-right: max(16px, min(5vw, 56px), env(safe-area-inset-right, 0px)); padding-top: 28px; gap: 36px; max-width: 1360px; }
+.card { background: none; border: 0; border-top: 1px solid var(--line-strong); border-radius: 0; padding: 18px 0 0; }
+.card > .head { margin-bottom: 14px; }
+/* The patient header is the page title, so it gets no rule above it. */
+.card:has(> .phead) { border-top: 0; padding-top: 0; }
+.grid2, .calwrap, .calwrap3, .stack { gap: 36px 48px; }
+.btn { border-radius: var(--r); }
+/* Hover tint only on plain buttons: the filled primary and warning buttons keep their colour. */
+.btn:not(.primary):not(.warn):not(:disabled):hover { background: var(--accent-soft); }
+.search, select.input, input.input, textarea.input { border-radius: var(--r); }
+.gapsbox { border: 0; border-left: 2px solid var(--missing); border-radius: 0; padding: 4px 0 4px 16px; margin-top: 14px; }
+
+/* Quiet chips: coloured text with a small dot, no filled pill. */
+.chip { background: none !important; padding: 0; border-radius: 0; font-size: 12.5px; }
+.chip::before { width: 7px; height: 7px; }
+.st-closed, button.chip.st-closed { border: 0; }
+.st-closed::before { background: none; border: 1.5px solid currentColor; }
+.chip.tier { border: 0; color: var(--fg); font-weight: 700; }
+.chip.tier::before { background: var(--faint); }
+.st-new { color: var(--muted); }
+.tag, .qlbl, .edtag { background: none !important; border: 1px solid currentColor; border-radius: 2px; }
+.tag.neg { border-color: var(--line-strong); }
+.qlbl.draft { border-style: dashed; }
+.tab .n { background: none; padding: 0; color: var(--faint); }
+.mk { border-radius: 50%; }
+
+/* Toggles (filters, segmented controls, agenda): text with an underline when on, no pill. */
+.filter, .tlfilter, .agenda button { border: 0; border-radius: 0; background: none; padding: 5px 2px; box-shadow: inset 0 -1px 0 transparent; }
+.filter:hover, .tlfilter:hover:not(:disabled), .agenda button:hover { color: var(--fg); box-shadow: inset 0 -1px 0 var(--line-strong); }
+.filter[aria-pressed="true"], .tlfilter[aria-pressed="true"], .agenda button[aria-current="true"] { background: none; color: var(--accent-ink); box-shadow: inset 0 -2px 0 var(--accent); }
+.toolbar, .tlfilters { gap: 4px 16px; }
+.agenda { gap: 16px; }
+.seg, .seg2 { display: inline-flex; gap: 18px; border: 0; border-radius: 0; background: none; padding: 0; }
+.seg2 { display: flex; border-bottom: 1px solid var(--line); }
+.seg button, .seg2 button { border-radius: 0; padding: 4px 0; background: none !important; box-shadow: none !important; border-bottom: 2px solid transparent; }
+.seg button[aria-pressed="true"], .seg2 button[aria-pressed="true"] { color: var(--fg); border-bottom-color: var(--accent); }
+.stepper { gap: 16px; }
+.stepper span { background: none; border-radius: 0; padding: 2px 0; border-bottom: 2px solid transparent; }
+.stepper span.on { background: none; color: var(--fg); border-bottom-color: var(--accent); }
+.pipeline { gap: 4px 18px; }
+.pipeline li { background: none !important; padding: 0; border-radius: 0; }
+.pipeline li::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+
+/* Tables: hairline rows, header in small caps. */
+.tbl th { border-bottom-color: var(--fg); color: var(--fg); font-size: 11px; letter-spacing: .09em; }
+.tbl tr.click:hover td { background: var(--accent-soft); }
+.labscroll .tbl th { background: var(--bg); }
+.lm tr.sel td { background: var(--accent-soft); }
+
+/* Calendar: the week grid is the one container; the selected case card is a ruled side panel. */
+.cal { border-radius: 0; background: var(--surface); }
+.slotbtn { border-radius: 2px; }
+.minicard { border: 0; border-top: 3px solid var(--accent); border-radius: 0; box-shadow: none; background: none; padding: 14px 0 0; }
+.dragrow { border: 0; border-bottom: 1px solid var(--line); border-radius: 0; background: none; padding: 7px 2px; }
+.dragrow.sel { border: 0; border-bottom: 1px solid var(--line); background: var(--accent-soft); box-shadow: inset 3px 0 0 var(--accent); padding-left: 10px; }
+.mini button { border-radius: 2px; }
+.mini button.today.today { border-radius: 50%; }
+
+/* Patient header and brief */
+.phead h1 { font-size: 32px; }
+.question, .concl { background: none; border-radius: 0; border-left-width: 2px; padding: 2px 0 2px 18px; }
+.question.missing { background: none; }
+.question.draft { background: none; border-left-width: 2px; }
+.concl.valid { background: none; }
+.question p, .concl p { font-size: 16px; }
+.bh { font: 700 11.5px/1.3 var(--font-body); text-transform: uppercase; letter-spacing: .1em; color: var(--accent-ink); margin-bottom: 6px; }
+.blk { gap: 22px; }
+.tabs { border-bottom-color: var(--line-strong); gap: 6px; }
+.tab { padding: 10px 10px; font-size: 14.5px; }
+.tab[aria-selected="true"] { color: var(--fg); }
+/* The tab strip already draws the rule, so the first section under it starts without its own. */
+.tabs + .card, .tabs + .grid2 > .stack > .card:first-child { border-top: 0; padding-top: 4px; }
+.tabs + * { margin-top: -12px; }
+.tlyear span { background: var(--bg); border-radius: 2px; border-color: var(--line); }
+.ev .pin, .lpin { background: var(--bg); }
+
+/* The MDT discussion: part of the brief, opened by its heading; while a session runs a left accent rule marks it. */
+details.mdtcard { border-top: 1px solid var(--line-strong); padding-top: 16px; }
+.mdtcard.live { border-color: var(--line-strong); box-shadow: inset 3px 0 0 var(--accent); padding-left: 18px; }
+.mdtcard .sub { padding-top: 16px; }
+.sesbar { border: 0; border-top: 2px solid var(--accent); border-bottom: 1px solid var(--line-strong); border-radius: 0; box-shadow: none; padding: 8px 2px; background: var(--bg); }
+
+/* Lists of entries (alerts, guideline statements, past decisions, history, e-mails): rows with hairlines. */
+.alerts { gap: 0; }
+.alert { background: none; border-radius: 0; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.alert:first-child { border-top: 1px solid var(--line); }
+.gl { background: none; border: 0; border-left: 2px dashed var(--unclear); border-radius: 0; padding: 4px 0 4px 18px; margin-top: 16px; }
+.gll { gap: 0 !important; }
+.gle details { border: 0; border-bottom: 1px solid var(--line); border-radius: 0; background: none; }
+.gle:first-child details { border-top: 1px solid var(--line); }
+.gle summary { padding: 10px 0; }
+.glbody { padding: 0 0 12px 22px; }
+.retrolist { gap: 0; }
+.retro { border: 0; border-top: 1px solid var(--line); border-left: 3px solid transparent; border-radius: 0; padding: 14px 0 14px 16px; }
+.retro.sev-major { border-left-color: #c0392b; } .retro.sev-moderate { border-left-color: #e08a1e; } .retro.sev-minor { border-left-color: #e3c21b; }
+.hist { gap: 0; }
+.hist li { border: 0; border-top: 1px solid var(--line); border-radius: 0; padding: 12px 0; }
+.mail { border: 0; border-left: 2px solid var(--line-strong); border-radius: 0; padding: 4px 0 4px 16px; background: none; }
+.mail + .mail { margin-top: 16px; }
+.uplist { gap: 0; }
+.uplist li { border: 0; border-bottom: 1px solid var(--line); border-radius: 0; padding: 7px 0; }
+.upzone, .drop { border-radius: var(--r); background: none; border-width: 1.5px; }
+.staffnote { background: none; border-radius: 0; border-left: 2px solid var(--line-strong); padding: 2px 0 2px 14px; }
+.synth { background: none; border: 0; border-left: 3px solid var(--missing); border-radius: 0; padding: 4px 0 4px 14px; }
+.vnote.warn { background: none; border-left: 3px solid var(--missing); border-radius: 0; padding: 2px 0 2px 12px; }
+
+/* Floating layers keep a hairline and a small shadow, since they sit over the page. */
+.popover, .fpop { border-radius: var(--r); box-shadow: 0 4px 16px rgba(18,48,58,.10); }
+.modal { border-radius: 4px; box-shadow: 0 16px 48px rgba(18,48,58,.18); padding: 26px 28px; }
+.drawer { box-shadow: -1px 0 0 var(--line-strong), -12px 0 32px rgba(18,48,58,.10); }
+.drawer .pages button { border-radius: 2px; }
+.zoomctl { border-radius: var(--r); box-shadow: none; }
+.zoomctl button { border-radius: 2px; }
+.pgimg { box-shadow: none; }
+.toast, .tip { border-radius: var(--r); }
+.sheet { box-shadow: none; }
+.unchecked { border-radius: var(--r); }
+@media (max-width: 640px) {
+  h1, .phead h1 { font-size: 24px; }
+  .page { gap: 28px; }
+  .nav button { padding: 10px 8px 8px; }
+  .top { padding-block: 4px; }
+}
 </style>
 
 <header class="top">
@@ -7264,7 +7425,7 @@ const srcLinks = refs => { const xs = refs || [], seen = {}; return xs.map(r => 
 function gapsBox() {
   const g = EXTRA.data_gaps_v3 || [];
   const { top } = topAlerts();
-  return `<div style="border:1px solid var(--line);border-radius:var(--r);padding:10px 12px;margin-top:10px">
+  return `<div class="gapsbox">
     <div class="row spread"><span class="label">Upozornění k dotazu na MDT</span><button class="linkbtn small" data-tab="alerts">Všechna upozornění</button></div>
     <div class="alerts" style="margin-top:6px">${top.map(f => alertRow(f, true)).join("")}</div>
     ${g.length ? `<span class="label" style="display:block;margin-top:12px">Chybějící a nejasné údaje v briefu</span><div class="alerts" style="margin-top:6px">${g.map(x => `<div class="alert" style="grid-template-columns:auto minmax(0,1fr)"><span class="chip plain ${ALERT[x.kind][1]}">${ALERT[x.kind][0]}</span><span>${esc(x.text_cs)} ${srcLinks(x.refs)}</span></div>`).join("")}</div>` : ""}
