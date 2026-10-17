@@ -993,4 +993,29 @@ rules) are not built.
   differences, 0 missing. Each sheet is "fair" (Tesseract misreads such as
   `mmol/1`). With the vision text as text of record (pytest) all 72 are
   documented.
-- Deploy: see the deploy note added below after the deploy.
+- Deploy (2026-10-17): migrations 0005 to 0007 applied to the remote D1;
+  the fixture registry (20 files, 12 fixture patients) and the 33
+  `fixtures/` objects (uploads, S02's prepared data and page assets) were
+  written to the remote D1 and the EU bucket without a reseed, so the
+  shared demo's state and access log stayed; `npm run deploy` registered
+  the Worker, the cron and both Workflows. `api/scripts/e2e-intake.mjs`
+  against https://codebridge-mdt.juraj-oravec-josefson.workers.dev passed
+  (unknown PDF refused, seven renamed PDFs, prepared data attached, no
+  identity in the stored extraction, the quote found on the uploaded
+  file's page, the wrong-patient result on NO-S01) and then ran
+  reset-demo (45 statements, nothing left in `uploads/`).
+- The PageKit container is not deployed, so the deployed Worker reports
+  `features.pipeline: false` and the pipeline answers 503 there. What
+  blocked it: `wrangler deploy` builds the image with the local Docker
+  daemon, and Docker Desktop on the deploying machine did not answer
+  (`docker ps` hung; it was not restarted). The account accepts
+  `wrangler containers list`. To deploy once Docker works: add
+  `@cloudflare/containers`, a `PageKit` class (`extends Container`,
+  `defaultPort = 8080`, `sleepAfter = "15m"`) exported from
+  `src/index.ts`, and in `wrangler.jsonc` a `containers` entry (`class_name:
+  "PageKit"`, `image: "../pipeline/container/Dockerfile"`,
+  `image_build_context: ".."`, `instance_type: "standard-1"`,
+  `max_instances: 2`, `constraints: { jurisdiction: "eu" }`), a durable
+  object binding `PAGEKIT` and a migration `new_sqlite_classes:
+  ["PageKit"]`; `services/pagekit.ts` already uses the binding when
+  `PAGEKIT_URL` is empty. Then run `POST /api/admin/pipeline/warm`.
