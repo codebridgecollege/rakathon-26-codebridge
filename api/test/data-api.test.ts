@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { call, testEnv } from "./helpers";
-import { accessLog, as, FAKE_NAME, loadFixture } from "./data";
+import { accessLog, as, FAKE_NAME, loadFixture, NAME_QUOTE } from "./data";
 import { setStoreFactory } from "../src/store";
 import { D1Audit, D1Cases, D1Directory } from "../src/store/d1";
 import { R2Blobs } from "../src/store/r2";
@@ -127,6 +127,20 @@ describe("case reads", () => {
       ["case.open", "NO-A", "doctor", "otevřel(a) případ"],
       ["case.open", "NO-A", "doctor", "otevřel(a) případ (odkazem nebo historií prohlížeče)"],
     ]);
+  });
+
+  // The FHIR export gives the Patient its Provenance from it; it comes only with a logged case open, never in the list,
+  // and not to a role that does not see clinical content.
+  it("names where the document names the patient in the case header only", async () => {
+    const head = await (await call("/api/cases/NO-A")).json<Record<string, unknown>>();
+    expect(head.identitySource).toEqual({ file: "A_pacient.pdf", page: 1, quote: NAME_QUOTE });
+    expect(JSON.stringify(await (await call("/api/patients")).json())).not.toContain(NAME_QUOTE);
+    expect(JSON.stringify(await (await call("/api/patients", as("admin"))).json())).not.toContain(NAME_QUOTE);
+    // The coordinator opens the header in the strict mode but reads no clinical content there.
+    const coord = await call("/api/cases/NO-A", as("coord"), strict);
+    expect(coord.status).toBe(200);
+    expect(await coord.json()).toMatchObject({ id: "NO-A", identitySource: null });
+    expect(JSON.stringify(await (await call("/api/cases/NO-A/extraction")).json())).not.toContain(NAME_QUOTE);
   });
 
   // The stripping itself happens in the seed (api/seed/seed.py, checked by its identity scan and key check); this

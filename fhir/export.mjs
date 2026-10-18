@@ -19,9 +19,12 @@ await p.goto(new URL(`/patient/${nr}/overview`, base).href);
 await p.getByRole("main").getByRole("button", { name: "Export FHIR" }).click();
 const download = p.waitForEvent("download");
 await p.getByRole("dialog", { name: "Export FHIR" }).getByRole("button", { name: "Stáhnout JSON" }).click();
-const json = JSON.parse(fs.readFileSync(await (await download).path(), "utf8"));
+// Saved as downloaded: parsing and writing it again would drop the lab values' written precision (4.130 to 4.13),
+// which the app keeps as bare JSON numbers (fhirJson()).
+const raw = fs.readFileSync(await (await download).path(), "utf8");
+const json = JSON.parse(raw);
 await b.close();
 if (errors.length) { console.error(errors.join("\n")); process.exit(1); }
 fs.mkdirSync(path.dirname(out), { recursive: true });
-fs.writeFileSync(out, JSON.stringify(json, null, 2) + "\n");
+fs.writeFileSync(out, raw.endsWith("\n") ? raw : raw + "\n");
 console.log(`wrote ${out}: ${json.entry.length} entries`);

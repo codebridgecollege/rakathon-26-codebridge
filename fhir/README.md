@@ -21,7 +21,7 @@ A `collection` Bundle, built by the pure function `fhirBundle()` in
 | Our data | FHIR R4 resource | Notes |
 |---|---|---|
 | The assistant | `Device` | Author of everything the assistant drafted |
-| Patient | `Patient` | Case ID as identifier; sex only when the document states it |
+| Patient | `Patient` | Case ID as identifier; sex only when the document states it; its Provenance is where the document names the patient, which the server keeps with the identity, not in the case data, and sends only with the logged case open (`identitySource` of `GET /api/cases/:id`, not in list rows) |
 | Source PDF | `DocumentReference` | One per document |
 | Diagnosis | `Condition` | MKN-10 code, system `https://uzis.cz/terminology/CodeSystem/mkn-10` (from the Czech core guide); onset from the timeline's diagnosis event, with its source |
 | Comorbidities | `Condition` | Text, category problem-list-item; the date next to it is the date of the exam that mentions it, so it stays a note, not an onset |
@@ -67,7 +67,9 @@ The rules from `CLAUDE.md` carry over:
   extensions on `Provenance.entity`,
 - `StructureDefinition-extraction-certainty.json` with
   `ValueSet-extraction-certainty.json`: the certainty extension on a resource,
-- `CodeSystem-extraction-certainty.json`, `CodeSystem-assistant-flag.json`,
+- `CodeSystem-extraction-certainty.json`, `CodeSystem-assistant-flag.json`
+  (the alert kinds: missing, contradiction, change, unclear, chronology; a
+  domain test fails when the case data uses a kind it lacks),
 - `CodeSystem-fno-local-lab-code.json`: a fragment with the lab codes in
   the challenge data.
 
@@ -77,7 +79,7 @@ The rules from `CLAUDE.md` carry over:
 `examples/case-10-validation.txt` its report from the official HL7
 validator (version 7.0.2, FHIR 4.0.1, with the Czech core guide 1.0.0
 loaded, codes checked against the HL7 terminology server). Result on
-2026-10-17: **0 errors**, 98 warnings, 113 informational messages. The
+2026-10-18 for the 240-entry export: **0 errors**, 98 warnings, 113 informational messages. The
 terminology server confirmed MKN-10 C64 with its Czech name. The warnings
 are honest gaps, not defects:
 

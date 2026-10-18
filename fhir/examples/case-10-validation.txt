@@ -1,4 +1,4 @@
-FHIR Validation tool Version 7.0.2 (Git# de3463393298). Built 2026-10-15T16:42:38.193Z (32 hours old)
+FHIR Validation tool Version 7.0.2 (Git# de3463393298). Built 2026-10-15T16:42:38.193Z (3 days old)
   Java:   21.0.12.1 from <java> on aarch64 (64bit). 6144MB available
   Paths:  Current = ., Package Cache = ~/.fhir/packages
   Params: fhir/examples/case-10-bundle.json -version 4.0.1 -ig fhir/definitions -ig hl7.fhir.cz.core#1.0.0 -output-style compact
@@ -6,251 +6,251 @@ FHIR Validation tool Version 7.0.2 (Git# de3463393298). Built 2026-10-15T16:42:3
   Jurisdiction: United States of America
 Loading
   Loading FHIR v4.0.1 from hl7.fhir.r4.core#4.0.1
-  Load hl7.terminology.r4#6.2.0 - 4288 resources (00:01.767)
-  Load hl7.fhir.uv.extensions.r4#5.2.0 - 759 resources (00:00.317)
+  Load hl7.terminology.r4#6.2.0 - 4288 resources (00:02.083)
+  Load hl7.fhir.uv.extensions.r4#5.2.0 - 759 resources (00:00.400)
   Loaded FHIR - 8265 resources (00:00.000)
   Terminology Cache at <tmp>
-  Terminology server https://tx.fhir.org - Version Connected to Terminology Server at https://tx.fhir.org (00:00.896)
-  Load hl7.terminology#7.4.0 - 4181 resources (00:00.661)
-  Load hl7.fhir.uv.extensions.r5#5.2.0 - 759 resources (00:00.165)
-  Load hl7.terminology.r5#7.1.0 - 4072 resources (00:00.033)
-  Load hl7.fhir.uv.extensions#5.3.0 - 856 resources (00:00.210)
-  Load fhir/definitions - 7 resources (00:00.006)
-  Load hl7.terminology.r4#7.1.0 - 4072 resources (00:00.076)
-  Load hl7.fhir.uv.extensions.r4#5.3.0 - 885 resources (00:00.101)
-  Load hl7.terminology.r4#7.3.0 - 4146 resources (00:00.061)
-  Load hl7.fhir.uv.xver-r5.r4#0.1.0 - 4707 resources (00:00.059)
+  Terminology server https://tx.fhir.org - Version Connected to Terminology Server at https://tx.fhir.org (00:01.553)
+  Load hl7.terminology#7.4.0 - 4181 resources (00:00.792)
+  Load hl7.fhir.uv.extensions.r5#5.2.0 - 759 resources (00:00.203)
+  Load hl7.terminology.r5#7.1.0 - 4072 resources (00:00.039)
+  Load hl7.fhir.uv.extensions#5.3.0 - 856 resources (00:00.237)
+  Load fhir/definitions - 7 resources (00:00.004)
+  Load hl7.terminology.r4#7.1.0 - 4072 resources (00:00.115)
+  Load hl7.fhir.uv.extensions.r4#5.3.0 - 885 resources (00:00.248)
+  Load hl7.terminology.r4#7.3.0 - 4146 resources (00:00.035)
+  Load hl7.fhir.uv.xver-r5.r4#0.1.0 - 4707 resources (00:00.086)
   Load hl7.fhir.eu.extensions.r4#1.3.0 - 11 resources (00:00.001)
-  Load hl7.terminology.r4#6.3.0 - 4339 resources (00:00.070)
-  Load ihe.pharm.mpd.r4#1.0.0-comment-2 - 40 resources (00:00.001)
+  Load hl7.terminology.r4#6.3.0 - 4339 resources (00:00.093)
+  Load ihe.pharm.mpd.r4#1.0.0-comment-2 - 40 resources (00:00.008)
   Load hl7.fhir.eu.base#2.0.0 - 31 resources (00:00.000)
-  Load hl7.fhir.cz.terminology#0.3.0 - 76 resources (00:00.001)
-  Load hl7.fhir.eu.mpd#1.0.0 - 5 resources (00:00.000)
-  Load hl7.fhir.eu.laboratory#2.0.0 - 35 resources (00:00.001)
+  Load hl7.fhir.cz.terminology#0.3.0 - 76 resources (00:00.003)
+  Load hl7.fhir.eu.mpd#1.0.0 - 5 resources (00:00.002)
+  Load hl7.fhir.eu.laboratory#2.0.0 - 35 resources (00:00.002)
   Load hl7.fhir.cz.core#1.0.0 - 62 resources (00:00.000)
   Package Summary: [hl7.fhir.r4.core#4.0.1, hl7.fhir.xver-extensions#0.1.0, hl7.terminology.r4#6.2.0, hl7.fhir.uv.extensions.r4#5.2.0, hl7.terminology#7.4.0, hl7.fhir.uv.extensions.r5#5.2.0, hl7.terminology.r5#7.1.0, hl7.fhir.uv.extensions#5.3.0, hl7.terminology.r4#7.1.0, hl7.fhir.uv.extensions.r4#5.3.0, hl7.terminology.r4#7.3.0, hl7.fhir.uv.xver-r5.r4#0.1.0, hl7.fhir.eu.extensions.r4#1.3.0, hl7.terminology.r4#6.3.0, ihe.pharm.mpd.r4#1.0.0-comment-2, hl7.fhir.eu.base#2.0.0, hl7.fhir.cz.terminology#0.3.0, hl7.fhir.eu.mpd#1.0.0, hl7.fhir.eu.laboratory#2.0.0, hl7.fhir.cz.core#1.0.0]
   Get set... 
-  ...go! (00:01.141)
+  ...go! (00:01.810)
 Cached new session. Cache size = 1
 Sources to validate: fhir/examples/case-10-bundle.json
 Validating
   Validate fhir/examples/case-10-bundle.json
- 00:00.936
-Done. Times: Loading: 00:05.608, validation: 00:00.936. Memory = 1Gb
+ 00:01.415
+Done. Times: Loading: 00:07.758, validation: 00:01.415. Memory = 986Mb
 
 
 ----------------------------------------------------------------------------------
-fhir/examples/case-10-bundle.json 01:17:46
-[527, 14] Bundle.entry[5].resource/*Condition/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
-[546, 10] Bundle.entry[5].resource/*Condition/null*/.code.coding[0].display: Information - There are no valid display names found for the code https://uzis.cz/terminology/CodeSystem/mkn-10#C64 for language(s) 'en'. The display is 'Zhoubnￃﾽ novotvar ledviny mimo pￃﾡnviￄﾍku' which is a valid display for the default language
-[639, 8] Bundle.entry[7].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
-[639, 8] Bundle.entry[7].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
-[644, 14] Bundle.entry[7].resource/*Observation/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
-[742, 8] Bundle.entry[9].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
-[742, 8] Bundle.entry[9].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
-[747, 14] Bundle.entry[9].resource/*Observation/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
-[842, 8] Bundle.entry[11].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
-[842, 8] Bundle.entry[11].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
-[847, 14] Bundle.entry[11].resource/*Observation/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
-[937, 8] Bundle.entry[13].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
-[937, 8] Bundle.entry[13].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
-[942, 14] Bundle.entry[13].resource/*Observation/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
-[1032, 8] Bundle.entry[15].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
-[1032, 8] Bundle.entry[15].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
-[1037, 14] Bundle.entry[15].resource/*Observation/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
-[1127, 8] Bundle.entry[17].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
-[1127, 8] Bundle.entry[17].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
-[1132, 14] Bundle.entry[17].resource/*Observation/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
-[1227, 8] Bundle.entry[19].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
-[1227, 8] Bundle.entry[19].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
-[1232, 14] Bundle.entry[19].resource/*Observation/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
-[1327, 8] Bundle.entry[21].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
-[1332, 14] Bundle.entry[21].resource/*Observation/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
-[1423, 8] Bundle.entry[23].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
-[1428, 14] Bundle.entry[23].resource/*Observation/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
-[1519, 8] Bundle.entry[25].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
-[1524, 14] Bundle.entry[25].resource/*Observation/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
-[1615, 8] Bundle.entry[27].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
-[1620, 14] Bundle.entry[27].resource/*Observation/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
-[1711, 8] Bundle.entry[29].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
-[1716, 14] Bundle.entry[29].resource/*Observation/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
-[1807, 8] Bundle.entry[31].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
-[1812, 14] Bundle.entry[31].resource/*Observation/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
-[1903, 8] Bundle.entry[33].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
-[1903, 8] Bundle.entry[33].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
-[1908, 14] Bundle.entry[33].resource/*Observation/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
-[2003, 8] Bundle.entry[35].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
-[2003, 8] Bundle.entry[35].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
-[2008, 14] Bundle.entry[35].resource/*Observation/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
-[2103, 8] Bundle.entry[37].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
-[2108, 14] Bundle.entry[37].resource/*Observation/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
-[2199, 8] Bundle.entry[39].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
-[2204, 14] Bundle.entry[39].resource/*Observation/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
-[2295, 8] Bundle.entry[41].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
-[2300, 14] Bundle.entry[41].resource/*Observation/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
-[2396, 8] Bundle.entry[43].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
-[2396, 8] Bundle.entry[43].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
-[2401, 14] Bundle.entry[43].resource/*Observation/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
-[2496, 8] Bundle.entry[45].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
-[2501, 14] Bundle.entry[45].resource/*Observation/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
-[2592, 8] Bundle.entry[47].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
-[2597, 14] Bundle.entry[47].resource/*Observation/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
-[2688, 8] Bundle.entry[49].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
-[2693, 14] Bundle.entry[49].resource/*Observation/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
-[2784, 8] Bundle.entry[51].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
-[2789, 14] Bundle.entry[51].resource/*Observation/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
-[2885, 8] Bundle.entry[53].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
-[2890, 14] Bundle.entry[53].resource/*Observation/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
-[2986, 8] Bundle.entry[55].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
-[2991, 14] Bundle.entry[55].resource/*Observation/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
-[3082, 8] Bundle.entry[57].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
-[3087, 14] Bundle.entry[57].resource/*Observation/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
-[3178, 8] Bundle.entry[59].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
-[3183, 14] Bundle.entry[59].resource/*Observation/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
-[3373, 14] Bundle.entry[63].resource/*Procedure/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
-[3458, 14] Bundle.entry[65].resource/*Procedure/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
-[3543, 14] Bundle.entry[67].resource/*Procedure/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
-[3633, 14] Bundle.entry[69].resource/*Procedure/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
-[3718, 14] Bundle.entry[71].resource/*Procedure/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
-[3803, 14] Bundle.entry[73].resource/*Procedure/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
-[3888, 14] Bundle.entry[75].resource/*Procedure/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
-[3973, 14] Bundle.entry[77].resource/*Procedure/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
-[4058, 14] Bundle.entry[79].resource/*Procedure/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
-[4142, 14] Bundle.entry[81].resource/*Procedure/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
-[4227, 14] Bundle.entry[83].resource/*Procedure/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
-[4312, 14] Bundle.entry[85].resource/*Procedure/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
-[4397, 14] Bundle.entry[87].resource/*Procedure/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
-[4477, 8] Bundle.entry[89].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
-[4477, 8] Bundle.entry[89].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
-[4482, 14] Bundle.entry[89].resource/*Observation/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
-[4572, 8] Bundle.entry[91].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
-[4572, 8] Bundle.entry[91].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
-[4577, 14] Bundle.entry[91].resource/*Observation/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
-[4667, 8] Bundle.entry[93].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
-[4667, 8] Bundle.entry[93].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
-[4672, 14] Bundle.entry[93].resource/*Observation/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
-[4762, 8] Bundle.entry[95].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
-[4767, 14] Bundle.entry[95].resource/*Observation/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
-[4858, 8] Bundle.entry[97].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
-[4858, 8] Bundle.entry[97].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
-[4863, 14] Bundle.entry[97].resource/*Observation/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
-[4958, 14] Bundle.entry[99].resource/*Condition/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
-[5051, 14] Bundle.entry[101].resource/*Condition/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
-[5144, 14] Bundle.entry[103].resource/*Condition/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
-[5242, 14] Bundle.entry[105].resource/*Condition/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
-[5340, 14] Bundle.entry[107].resource/*Condition/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
-[5438, 14] Bundle.entry[109].resource/*Condition/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
-[5536, 14] Bundle.entry[111].resource/*MedicationStatement/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
-[5621, 14] Bundle.entry[113].resource/*MedicationStatement/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
-[5705, 14] Bundle.entry[115].resource/*MedicationStatement/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
-[5789, 14] Bundle.entry[117].resource/*MedicationStatement/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
-[5878, 14] Bundle.entry[119].resource/*MedicationStatement/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
-[5962, 14] Bundle.entry[121].resource/*MedicationStatement/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
-[6047, 14] Bundle.entry[123].resource/*MedicationStatement/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
-[6132, 14] Bundle.entry[125].resource/*Flag/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
-[6310, 8] Bundle.entry[129].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
-[6310, 8] Bundle.entry[129].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
-[6315, 14] Bundle.entry[129].resource/*Observation/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
-[6335, 10] Bundle.entry[129].resource/*Observation/null*/.code: Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/fno-local-lab-code|0.1.0
-[6442, 8] Bundle.entry[131].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
-[6442, 8] Bundle.entry[131].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
-[6447, 14] Bundle.entry[131].resource/*Observation/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
-[6467, 10] Bundle.entry[131].resource/*Observation/null*/.code: Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/fno-local-lab-code|0.1.0
-[6571, 8] Bundle.entry[133].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
-[6571, 8] Bundle.entry[133].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
-[6576, 14] Bundle.entry[133].resource/*Observation/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
-[6596, 10] Bundle.entry[133].resource/*Observation/null*/.code: Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/fno-local-lab-code|0.1.0
-[6689, 8] Bundle.entry[135].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
-[6689, 8] Bundle.entry[135].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
-[6694, 14] Bundle.entry[135].resource/*Observation/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
-[6714, 10] Bundle.entry[135].resource/*Observation/null*/.code: Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/fno-local-lab-code|0.1.0
-[6807, 8] Bundle.entry[137].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
-[6807, 8] Bundle.entry[137].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
-[6812, 14] Bundle.entry[137].resource/*Observation/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
-[6832, 10] Bundle.entry[137].resource/*Observation/null*/.code: Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/fno-local-lab-code|0.1.0
-[6936, 8] Bundle.entry[139].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
-[6936, 8] Bundle.entry[139].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
-[6941, 14] Bundle.entry[139].resource/*Observation/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
-[6961, 10] Bundle.entry[139].resource/*Observation/null*/.code: Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/fno-local-lab-code|0.1.0
-[7054, 8] Bundle.entry[141].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
-[7054, 8] Bundle.entry[141].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
-[7059, 14] Bundle.entry[141].resource/*Observation/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
-[7079, 10] Bundle.entry[141].resource/*Observation/null*/.code: Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/fno-local-lab-code|0.1.0
-[7172, 8] Bundle.entry[143].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
-[7172, 8] Bundle.entry[143].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
-[7177, 14] Bundle.entry[143].resource/*Observation/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
-[7197, 10] Bundle.entry[143].resource/*Observation/null*/.code: Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/fno-local-lab-code|0.1.0
-[7290, 8] Bundle.entry[145].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
-[7290, 8] Bundle.entry[145].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
-[7295, 14] Bundle.entry[145].resource/*Observation/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
-[7315, 10] Bundle.entry[145].resource/*Observation/null*/.code: Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/fno-local-lab-code|0.1.0
-[7408, 8] Bundle.entry[147].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
-[7408, 8] Bundle.entry[147].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
-[7413, 14] Bundle.entry[147].resource/*Observation/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
-[7433, 10] Bundle.entry[147].resource/*Observation/null*/.code: Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/fno-local-lab-code|0.1.0
-[7526, 8] Bundle.entry[149].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
-[7526, 8] Bundle.entry[149].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
-[7531, 14] Bundle.entry[149].resource/*Observation/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
-[7551, 10] Bundle.entry[149].resource/*Observation/null*/.code: Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/fno-local-lab-code|0.1.0
-[7644, 8] Bundle.entry[151].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
-[7644, 8] Bundle.entry[151].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
-[7649, 14] Bundle.entry[151].resource/*Observation/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
-[7669, 10] Bundle.entry[151].resource/*Observation/null*/.code: Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/fno-local-lab-code|0.1.0
-[7762, 8] Bundle.entry[153].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
-[7762, 8] Bundle.entry[153].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
-[7767, 14] Bundle.entry[153].resource/*Observation/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
-[7787, 10] Bundle.entry[153].resource/*Observation/null*/.code: Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/fno-local-lab-code|0.1.0
-[7880, 8] Bundle.entry[155].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
-[7880, 8] Bundle.entry[155].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
-[7885, 14] Bundle.entry[155].resource/*Observation/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
-[7905, 10] Bundle.entry[155].resource/*Observation/null*/.code: Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/fno-local-lab-code|0.1.0
-[7998, 8] Bundle.entry[157].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
-[7998, 8] Bundle.entry[157].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
-[8003, 14] Bundle.entry[157].resource/*Observation/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
-[8023, 10] Bundle.entry[157].resource/*Observation/null*/.code: Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/fno-local-lab-code|0.1.0
-[8116, 8] Bundle.entry[159].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
-[8116, 8] Bundle.entry[159].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
-[8121, 14] Bundle.entry[159].resource/*Observation/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
-[8141, 10] Bundle.entry[159].resource/*Observation/null*/.code: Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/fno-local-lab-code|0.1.0
-[8245, 8] Bundle.entry[161].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
-[8245, 8] Bundle.entry[161].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
-[8250, 14] Bundle.entry[161].resource/*Observation/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
-[8270, 10] Bundle.entry[161].resource/*Observation/null*/.code: Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/fno-local-lab-code|0.1.0
-[8366, 8] Bundle.entry[163].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
-[8366, 8] Bundle.entry[163].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
-[8371, 14] Bundle.entry[163].resource/*Observation/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
-[8391, 10] Bundle.entry[163].resource/*Observation/null*/.code: Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/fno-local-lab-code|0.1.0
-[8498, 8] Bundle.entry[165].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
-[8498, 8] Bundle.entry[165].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
-[8503, 14] Bundle.entry[165].resource/*Observation/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
-[8523, 10] Bundle.entry[165].resource/*Observation/null*/.code: Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/fno-local-lab-code|0.1.0
-[8627, 8] Bundle.entry[167].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
-[8627, 8] Bundle.entry[167].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
-[8632, 14] Bundle.entry[167].resource/*Observation/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
-[8652, 10] Bundle.entry[167].resource/*Observation/null*/.code: Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/fno-local-lab-code|0.1.0
-[8756, 8] Bundle.entry[169].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
-[8756, 8] Bundle.entry[169].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
-[8761, 14] Bundle.entry[169].resource/*Observation/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
-[8781, 10] Bundle.entry[169].resource/*Observation/null*/.code: Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/fno-local-lab-code|0.1.0
-[8885, 8] Bundle.entry[171].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
-[8885, 8] Bundle.entry[171].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
-[8890, 14] Bundle.entry[171].resource/*Observation/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
-[8910, 10] Bundle.entry[171].resource/*Observation/null*/.code: Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/fno-local-lab-code|0.1.0
-[9014, 8] Bundle.entry[173].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
-[9014, 8] Bundle.entry[173].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
-[9019, 14] Bundle.entry[173].resource/*Observation/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
-[9039, 10] Bundle.entry[173].resource/*Observation/null*/.code: Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/fno-local-lab-code|0.1.0
-[9132, 8] Bundle.entry[175].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
-[9132, 8] Bundle.entry[175].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
-[9137, 14] Bundle.entry[175].resource/*Observation/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
-[9157, 10] Bundle.entry[175].resource/*Observation/null*/.code: Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/fno-local-lab-code|0.1.0
-[9250, 8] Bundle.entry[177].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
-[9250, 8] Bundle.entry[177].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
-[9255, 14] Bundle.entry[177].resource/*Observation/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
-[9275, 10] Bundle.entry[177].resource/*Observation/null*/.code: Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/fno-local-lab-code|0.1.0
-[9368, 8] Bundle.entry[179].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
-[9368, 8] Bundle.entry[179].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
-[9373, 14] Bundle.entry[179].resource/*Observation/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
-[9393, 10] Bundle.entry[179].resource/*Observation/null*/.code: Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/fno-local-lab-code|0.1.0
+fhir/examples/case-10-bundle.json 11:57:11
+[518, 14] Bundle.entry[5].resource/*Condition/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
+[537, 10] Bundle.entry[5].resource/*Condition/null*/.code.coding[0].display: Information - There are no valid display names found for the code https://uzis.cz/terminology/CodeSystem/mkn-10#C64 for language(s) 'en'. The display is 'Zhoubnￃﾽ novotvar ledviny mimo pￃﾡnviￄﾍku' which is a valid display for the default language
+[630, 8] Bundle.entry[7].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
+[630, 8] Bundle.entry[7].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
+[635, 14] Bundle.entry[7].resource/*Observation/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
+[733, 8] Bundle.entry[9].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
+[733, 8] Bundle.entry[9].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
+[738, 14] Bundle.entry[9].resource/*Observation/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
+[833, 8] Bundle.entry[11].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
+[833, 8] Bundle.entry[11].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
+[838, 14] Bundle.entry[11].resource/*Observation/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
+[928, 8] Bundle.entry[13].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
+[928, 8] Bundle.entry[13].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
+[933, 14] Bundle.entry[13].resource/*Observation/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
+[1023, 8] Bundle.entry[15].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
+[1023, 8] Bundle.entry[15].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
+[1028, 14] Bundle.entry[15].resource/*Observation/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
+[1118, 8] Bundle.entry[17].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
+[1118, 8] Bundle.entry[17].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
+[1123, 14] Bundle.entry[17].resource/*Observation/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
+[1218, 8] Bundle.entry[19].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
+[1218, 8] Bundle.entry[19].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
+[1223, 14] Bundle.entry[19].resource/*Observation/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
+[1318, 8] Bundle.entry[21].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
+[1323, 14] Bundle.entry[21].resource/*Observation/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
+[1414, 8] Bundle.entry[23].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
+[1419, 14] Bundle.entry[23].resource/*Observation/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
+[1510, 8] Bundle.entry[25].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
+[1515, 14] Bundle.entry[25].resource/*Observation/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
+[1606, 8] Bundle.entry[27].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
+[1611, 14] Bundle.entry[27].resource/*Observation/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
+[1702, 8] Bundle.entry[29].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
+[1707, 14] Bundle.entry[29].resource/*Observation/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
+[1798, 8] Bundle.entry[31].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
+[1803, 14] Bundle.entry[31].resource/*Observation/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
+[1894, 8] Bundle.entry[33].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
+[1894, 8] Bundle.entry[33].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
+[1899, 14] Bundle.entry[33].resource/*Observation/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
+[1994, 8] Bundle.entry[35].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
+[1994, 8] Bundle.entry[35].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
+[1999, 14] Bundle.entry[35].resource/*Observation/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
+[2094, 8] Bundle.entry[37].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
+[2099, 14] Bundle.entry[37].resource/*Observation/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
+[2190, 8] Bundle.entry[39].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
+[2195, 14] Bundle.entry[39].resource/*Observation/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
+[2286, 8] Bundle.entry[41].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
+[2291, 14] Bundle.entry[41].resource/*Observation/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
+[2387, 8] Bundle.entry[43].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
+[2387, 8] Bundle.entry[43].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
+[2392, 14] Bundle.entry[43].resource/*Observation/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
+[2487, 8] Bundle.entry[45].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
+[2492, 14] Bundle.entry[45].resource/*Observation/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
+[2583, 8] Bundle.entry[47].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
+[2588, 14] Bundle.entry[47].resource/*Observation/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
+[2679, 8] Bundle.entry[49].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
+[2684, 14] Bundle.entry[49].resource/*Observation/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
+[2775, 8] Bundle.entry[51].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
+[2780, 14] Bundle.entry[51].resource/*Observation/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
+[2876, 8] Bundle.entry[53].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
+[2881, 14] Bundle.entry[53].resource/*Observation/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
+[2977, 8] Bundle.entry[55].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
+[2982, 14] Bundle.entry[55].resource/*Observation/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
+[3073, 8] Bundle.entry[57].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
+[3078, 14] Bundle.entry[57].resource/*Observation/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
+[3169, 8] Bundle.entry[59].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
+[3174, 14] Bundle.entry[59].resource/*Observation/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
+[3364, 14] Bundle.entry[63].resource/*Procedure/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
+[3449, 14] Bundle.entry[65].resource/*Procedure/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
+[3534, 14] Bundle.entry[67].resource/*Procedure/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
+[3624, 14] Bundle.entry[69].resource/*Procedure/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
+[3709, 14] Bundle.entry[71].resource/*Procedure/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
+[3794, 14] Bundle.entry[73].resource/*Procedure/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
+[3879, 14] Bundle.entry[75].resource/*Procedure/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
+[3964, 14] Bundle.entry[77].resource/*Procedure/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
+[4049, 14] Bundle.entry[79].resource/*Procedure/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
+[4133, 14] Bundle.entry[81].resource/*Procedure/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
+[4218, 14] Bundle.entry[83].resource/*Procedure/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
+[4303, 14] Bundle.entry[85].resource/*Procedure/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
+[4388, 14] Bundle.entry[87].resource/*Procedure/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
+[4468, 8] Bundle.entry[89].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
+[4468, 8] Bundle.entry[89].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
+[4473, 14] Bundle.entry[89].resource/*Observation/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
+[4563, 8] Bundle.entry[91].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
+[4563, 8] Bundle.entry[91].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
+[4568, 14] Bundle.entry[91].resource/*Observation/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
+[4658, 8] Bundle.entry[93].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
+[4658, 8] Bundle.entry[93].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
+[4663, 14] Bundle.entry[93].resource/*Observation/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
+[4753, 8] Bundle.entry[95].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
+[4758, 14] Bundle.entry[95].resource/*Observation/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
+[4849, 8] Bundle.entry[97].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
+[4849, 8] Bundle.entry[97].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
+[4854, 14] Bundle.entry[97].resource/*Observation/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
+[4949, 14] Bundle.entry[99].resource/*Condition/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
+[5042, 14] Bundle.entry[101].resource/*Condition/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
+[5135, 14] Bundle.entry[103].resource/*Condition/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
+[5233, 14] Bundle.entry[105].resource/*Condition/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
+[5331, 14] Bundle.entry[107].resource/*Condition/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
+[5429, 14] Bundle.entry[109].resource/*Condition/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
+[5527, 14] Bundle.entry[111].resource/*MedicationStatement/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
+[5612, 14] Bundle.entry[113].resource/*MedicationStatement/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
+[5696, 14] Bundle.entry[115].resource/*MedicationStatement/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
+[5780, 14] Bundle.entry[117].resource/*MedicationStatement/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
+[5869, 14] Bundle.entry[119].resource/*MedicationStatement/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
+[5953, 14] Bundle.entry[121].resource/*MedicationStatement/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
+[6038, 14] Bundle.entry[123].resource/*MedicationStatement/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
+[6123, 14] Bundle.entry[125].resource/*Flag/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
+[6301, 8] Bundle.entry[129].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
+[6301, 8] Bundle.entry[129].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
+[6306, 14] Bundle.entry[129].resource/*Observation/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
+[6326, 10] Bundle.entry[129].resource/*Observation/null*/.code: Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/fno-local-lab-code|0.1.0
+[6433, 8] Bundle.entry[131].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
+[6433, 8] Bundle.entry[131].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
+[6438, 14] Bundle.entry[131].resource/*Observation/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
+[6458, 10] Bundle.entry[131].resource/*Observation/null*/.code: Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/fno-local-lab-code|0.1.0
+[6562, 8] Bundle.entry[133].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
+[6562, 8] Bundle.entry[133].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
+[6567, 14] Bundle.entry[133].resource/*Observation/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
+[6587, 10] Bundle.entry[133].resource/*Observation/null*/.code: Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/fno-local-lab-code|0.1.0
+[6680, 8] Bundle.entry[135].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
+[6680, 8] Bundle.entry[135].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
+[6685, 14] Bundle.entry[135].resource/*Observation/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
+[6705, 10] Bundle.entry[135].resource/*Observation/null*/.code: Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/fno-local-lab-code|0.1.0
+[6798, 8] Bundle.entry[137].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
+[6798, 8] Bundle.entry[137].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
+[6803, 14] Bundle.entry[137].resource/*Observation/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
+[6823, 10] Bundle.entry[137].resource/*Observation/null*/.code: Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/fno-local-lab-code|0.1.0
+[6927, 8] Bundle.entry[139].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
+[6927, 8] Bundle.entry[139].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
+[6932, 14] Bundle.entry[139].resource/*Observation/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
+[6952, 10] Bundle.entry[139].resource/*Observation/null*/.code: Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/fno-local-lab-code|0.1.0
+[7045, 8] Bundle.entry[141].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
+[7045, 8] Bundle.entry[141].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
+[7050, 14] Bundle.entry[141].resource/*Observation/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
+[7070, 10] Bundle.entry[141].resource/*Observation/null*/.code: Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/fno-local-lab-code|0.1.0
+[7163, 8] Bundle.entry[143].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
+[7163, 8] Bundle.entry[143].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
+[7168, 14] Bundle.entry[143].resource/*Observation/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
+[7188, 10] Bundle.entry[143].resource/*Observation/null*/.code: Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/fno-local-lab-code|0.1.0
+[7281, 8] Bundle.entry[145].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
+[7281, 8] Bundle.entry[145].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
+[7286, 14] Bundle.entry[145].resource/*Observation/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
+[7306, 10] Bundle.entry[145].resource/*Observation/null*/.code: Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/fno-local-lab-code|0.1.0
+[7399, 8] Bundle.entry[147].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
+[7399, 8] Bundle.entry[147].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
+[7404, 14] Bundle.entry[147].resource/*Observation/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
+[7424, 10] Bundle.entry[147].resource/*Observation/null*/.code: Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/fno-local-lab-code|0.1.0
+[7517, 8] Bundle.entry[149].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
+[7517, 8] Bundle.entry[149].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
+[7522, 14] Bundle.entry[149].resource/*Observation/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
+[7542, 10] Bundle.entry[149].resource/*Observation/null*/.code: Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/fno-local-lab-code|0.1.0
+[7635, 8] Bundle.entry[151].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
+[7635, 8] Bundle.entry[151].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
+[7640, 14] Bundle.entry[151].resource/*Observation/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
+[7660, 10] Bundle.entry[151].resource/*Observation/null*/.code: Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/fno-local-lab-code|0.1.0
+[7753, 8] Bundle.entry[153].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
+[7753, 8] Bundle.entry[153].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
+[7758, 14] Bundle.entry[153].resource/*Observation/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
+[7778, 10] Bundle.entry[153].resource/*Observation/null*/.code: Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/fno-local-lab-code|0.1.0
+[7871, 8] Bundle.entry[155].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
+[7871, 8] Bundle.entry[155].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
+[7876, 14] Bundle.entry[155].resource/*Observation/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
+[7896, 10] Bundle.entry[155].resource/*Observation/null*/.code: Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/fno-local-lab-code|0.1.0
+[7989, 8] Bundle.entry[157].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
+[7989, 8] Bundle.entry[157].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
+[7994, 14] Bundle.entry[157].resource/*Observation/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
+[8014, 10] Bundle.entry[157].resource/*Observation/null*/.code: Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/fno-local-lab-code|0.1.0
+[8107, 8] Bundle.entry[159].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
+[8107, 8] Bundle.entry[159].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
+[8112, 14] Bundle.entry[159].resource/*Observation/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
+[8132, 10] Bundle.entry[159].resource/*Observation/null*/.code: Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/fno-local-lab-code|0.1.0
+[8236, 8] Bundle.entry[161].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
+[8236, 8] Bundle.entry[161].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
+[8241, 14] Bundle.entry[161].resource/*Observation/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
+[8261, 10] Bundle.entry[161].resource/*Observation/null*/.code: Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/fno-local-lab-code|0.1.0
+[8357, 8] Bundle.entry[163].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
+[8357, 8] Bundle.entry[163].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
+[8362, 14] Bundle.entry[163].resource/*Observation/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
+[8382, 10] Bundle.entry[163].resource/*Observation/null*/.code: Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/fno-local-lab-code|0.1.0
+[8489, 8] Bundle.entry[165].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
+[8489, 8] Bundle.entry[165].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
+[8494, 14] Bundle.entry[165].resource/*Observation/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
+[8514, 10] Bundle.entry[165].resource/*Observation/null*/.code: Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/fno-local-lab-code|0.1.0
+[8618, 8] Bundle.entry[167].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
+[8618, 8] Bundle.entry[167].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
+[8623, 14] Bundle.entry[167].resource/*Observation/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
+[8643, 10] Bundle.entry[167].resource/*Observation/null*/.code: Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/fno-local-lab-code|0.1.0
+[8747, 8] Bundle.entry[169].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
+[8747, 8] Bundle.entry[169].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
+[8752, 14] Bundle.entry[169].resource/*Observation/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
+[8772, 10] Bundle.entry[169].resource/*Observation/null*/.code: Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/fno-local-lab-code|0.1.0
+[8876, 8] Bundle.entry[171].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
+[8876, 8] Bundle.entry[171].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
+[8881, 14] Bundle.entry[171].resource/*Observation/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
+[8901, 10] Bundle.entry[171].resource/*Observation/null*/.code: Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/fno-local-lab-code|0.1.0
+[9005, 8] Bundle.entry[173].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
+[9005, 8] Bundle.entry[173].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
+[9010, 14] Bundle.entry[173].resource/*Observation/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
+[9030, 10] Bundle.entry[173].resource/*Observation/null*/.code: Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/fno-local-lab-code|0.1.0
+[9123, 8] Bundle.entry[175].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
+[9123, 8] Bundle.entry[175].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
+[9128, 14] Bundle.entry[175].resource/*Observation/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
+[9148, 10] Bundle.entry[175].resource/*Observation/null*/.code: Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/fno-local-lab-code|0.1.0
+[9241, 8] Bundle.entry[177].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
+[9241, 8] Bundle.entry[177].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
+[9246, 14] Bundle.entry[177].resource/*Observation/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
+[9266, 10] Bundle.entry[177].resource/*Observation/null*/.code: Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/fno-local-lab-code|0.1.0
+[9359, 8] Bundle.entry[179].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
+[9359, 8] Bundle.entry[179].resource/*Observation/null*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
+[9364, 14] Bundle.entry[179].resource/*Observation/null*/.extension[0].value.ofType(Coding): Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/extraction-certainty|0.1.0
+[9384, 10] Bundle.entry[179].resource/*Observation/null*/.code: Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/fno-local-lab-code|0.1.0
 
-Done. Times: Loading: 00:05.608, validation: 00:00.936. Max Memory = 6Gb
+Done. Times: Loading: 00:07.758, validation: 00:01.415. Max Memory = 6Gb

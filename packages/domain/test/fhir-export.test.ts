@@ -16,7 +16,8 @@ const deps = () => {
 const src = (page: number, quote: string) => ({ file: "10_pacient.pdf", page, quote });
 const CASE: Item = {
   file: "10_pacient.pdf",
-  patient: { sex: "muž", sex_certainty: "inferred", source: src(1, "Pacient po nefrektomii") },
+  // As the server sends it: the case data is stripped of identity, so the name's source comes with the list row.
+  patient: { sex: "muž", sex_certainty: "inferred" },
   diagnosis: { code: "C64", text_cs: "Zhoubný novotvar ledviny mimo pánvičku", source: src(1, "C64 Zhoubný novotvar") },
   mdt_question: { text_cs: null, note_cs: "Otázka není formulována.", closest_source: src(3, "zadávám k projednáni") },
   summary: [{ text_cs: "Pacient po nefrektomii.", sources: [src(1, "nefrektomie vpravo")] }],
@@ -49,6 +50,7 @@ const row = (x: Partial<Row> = {}): Row => ({
   draft: "Jaký postup?",
   qkind: "document_purpose",
   basis: [{ role: "purpose", quote: "zadávám k projednáni", source: { file: "10_pacient.pdf", page: 3 } }],
+  identitySource: src(1, "Poláček Daniel"),
   ...x,
 });
 const build = (p = row(), edit?: Parameters<typeof qState>[1], confirm?: Parameters<typeof qState>[2]) =>
@@ -90,6 +92,23 @@ describe("fhirBundle", () => {
     const doc = { ...CASE, patient: { ...CASE.patient, sex: "žena", sex_certainty: "documented" } };
     const p = row();
     expect(all(fhirBundle({ p, cd: fromFullExtraction(CASE.file, p.id, doc, {}), q: qState(p, undefined, undefined) }, deps()), "Patient")[0].gender).toBe("female");
+  });
+
+  it("gives the Patient a Provenance from the row's identity source, with the name as quoted", () => {
+    const patientUrl = (x: typeof b) => x.entry.find((e: { resource: { resourceType: string } }) => e.resource.resourceType === "Patient").fullUrl;
+    const [pv] = provFor(b, patientUrl(b));
+    expect(pv.entity[0].extension).toEqual([
+      { url: "https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/StructureDefinition/source-page", valueInteger: 1 },
+      { url: "https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/StructureDefinition/source-quote", valueString: "Poláček Daniel" },
+    ]);
+    // No recorded source, no Provenance: the export never makes one up.
+    const none = build(row({ identitySource: null }));
+    expect(provFor(none, patientUrl(none))).toHaveLength(0);
+    // Case data that still holds the source (a local extraction, not stripped by the seed) is used when the row has none.
+    const p = row({ identitySource: null });
+    const local = { ...CASE, patient: { ...(CASE.patient as Item), source: src(1, "Pacient z místní extrakce") } };
+    const b2 = fhirBundle({ p, cd: fromFullExtraction(CASE.file, p.id, local, {}), q: qState(p, undefined, undefined) }, deps());
+    expect(provFor(b2, patientUrl(b2))[0].entity[0].extension[1].valueString).toBe("Pacient z místní extrakce");
   });
 
   it("exports the diagnosis with the MKN-10 system and the code as given, onset from the timeline", () => {

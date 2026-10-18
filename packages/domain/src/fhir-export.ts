@@ -12,8 +12,9 @@ import type { QState } from "./case-view";
 export type T = (id: string, args?: Record<string, string | number>) => string;
 export type FhirDeps = { now: string; uuid: () => string; t: T };
 
-// The list row's part the export reads: identity (kept apart from the case data) and the question's draft.
-export type FhirRow = { id: string; name: string; birth: string | null; explicit: boolean; draft: string | null; basis: unknown };
+// The list row's part the export reads: identity (kept apart from the case data), where the document names the
+// patient, and the question's draft.
+export type FhirRow = { id: string; name: string; birth: string | null; explicit: boolean; draft: string | null; basis: unknown; identitySource?: SourceRef | null };
 // q: the question's state, with the confirmation's time already formatted for reading (the server sends ISO).
 export type FhirInput = { p: FhirRow; cd: CaseData; q: QState };
 
@@ -155,7 +156,9 @@ export function fhirBundle(input: FhirInput, deps: FhirDeps): Json {
     },
     t("patient-fhir-patient-text", { name: String(c.patient.name), id: p.id }),
   );
-  prov(patient, [c.patient.source]);
+  // The server keeps the name's source with the identity (the list row), not in the case data, which is stripped of
+  // identity; case data that still carries one (a local extraction) is the fallback.
+  prov(patient, [p.identitySource ?? (c.patient.source as SourceRef | undefined)]);
   const subj = ref(patient);
   docRef(c.file);
   const ids = { observations: [] as string[], procedures: [] as string[], medications: [] as string[], conditions: [] as string[], labs: [] as string[], issues: [] as string[], flags: [] as string[] };
