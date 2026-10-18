@@ -61,8 +61,26 @@ for (const tab of ["overview", "alerts", "next", "dev", "documents"]) {
   await p.screenshot({ path: `${shots}/tab-${tab}.png` });
 }
 
+// The retrospective deviations table with long cells clamped to a few lines ending in "…", so one long column does
+// not leave the rest of the row empty; shot as the table's card alone.
+await open("#patient/10/overview");
+await p.click('[data-tab="dev"]');
+await p.waitForTimeout(700);
+await p.evaluate(() => {
+  for (const td of document.querySelectorAll(".findings-table td")) {
+    const box = document.createElement("div");
+    box.style.cssText = "display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:5;overflow:hidden";
+    box.append(...td.childNodes); td.append(box);
+  }
+});
+await (await p.$(".findings-table")).evaluate(t => t.closest("section").scrollIntoView());
+await p.waitForTimeout(300);
+await (await p.$(".findings-table")).evaluate(t => t.closest("section").style.margin = "0");
+const devCard = await p.$("section:has(.findings-table)");
+await devCard.screenshot({ path: `${shots}/dev-clamped.png` });
+
 // One cover per variant: "a" is the gallery cover (docs/submission/cover.jpg), the others are alternatives to compare.
-const variants = (process.env.COVER_VARIANTS || "a,b,c,d").split(",");
+const variants = (process.env.COVER_VARIANTS || "a,b,c,d,f").split(",");
 const cover = await browser.newPage({ viewport: { width: 1600, height: 900 }, deviceScaleFactor: 2 });
 for (const v of variants) {
   await cover.goto(`file://${here}/cover.html?v=${v}`);

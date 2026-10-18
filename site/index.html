@@ -65,11 +65,11 @@
   .shot img { width:100%; height:100%; object-fit:cover; }
   .stage .s1 { right:-60px; top:0; width:92%; height:76%; }
   .stage .s1 img { object-position:0 0; }
-  .stage .s2 { left:0; bottom:0; width:60%; height:58%; transform:rotate(-2.5deg); }
-  .stage .s2 img { width:150%; max-width:none; height:auto; margin-left:-40%; object-fit:initial; }
-  .stage .s3 { right:-30px; bottom:40px; width:46%; height:38%; }
-  .stage .s3 img { width:200%; max-width:none; height:auto; margin:-9% 0 0 -4%; object-fit:initial; }
-  .pill { position:absolute; z-index:3; left:36%; top:42%; background:#fff; border-radius:999px; padding:7px 14px; font-size:13px; font-weight:600; box-shadow:0 6px 18px rgba(16,44,57,.12); white-space:nowrap; }
+  .stage .s2 { left:0; bottom:0; width:54%; height:60%; transform:rotate(-2.5deg); z-index:2; }
+  .stage .s2 img { width:170%; max-width:none; height:auto; margin:-17% 0 0 -3%; object-fit:initial; }
+  .stage .s3 { right:-50px; bottom:40px; width:44%; height:46%; z-index:3; }
+  .stage .s3 img { width:230%; max-width:none; height:auto; object-fit:initial; }
+  .pill { position:absolute; z-index:4; left:36%; top:40%; background:#fff; border-radius:999px; padding:7px 14px; font-size:13px; font-weight:600; box-shadow:0 6px 18px rgba(16,44,57,.12); white-space:nowrap; }
   .pill i { color:#b38b00; font-style:normal; margin-right:6px; }
   @media (max-width:960px) { .hero .wrap { grid-template-columns:1fr; } .stage { height:clamp(240px,62vw,460px); } .stage .s1 { right:0; width:100%; height:80%; } .stage .s2, .stage .s3, .pill { display:none; } }
 
@@ -182,10 +182,10 @@
         <p class="note"><b>Lékař si informace ověří přímo ve zdroji.</b> Prototyp pro ostravský neuroonkologický tým.</p>
       </div>
       <div class="stage" aria-hidden="true">
-        <div class="shot s1"><img src="img/overview.jpg" alt="" loading="eager"></div>
-        <div class="shot s3"><img src="img/tab-alerts.jpg" alt=""></div>
-        <div class="shot s2"><img src="img/source.jpg" alt=""></div>
-        <div class="pill"><i>●</i>Ověření přímo v původním dokumentu</div>
+        <div class="shot s1"><img src="img/patients.jpg" alt="" loading="eager"></div>
+        <div class="shot s2"><img src="img/overview.jpg" alt=""></div>
+        <div class="shot s3"><img src="img/dev-clamped.jpg" alt=""></div>
+        <div class="pill"><i>●</i>Možné odchylky od doporučených postupů</div>
       </div>
     </div>
   </section>
