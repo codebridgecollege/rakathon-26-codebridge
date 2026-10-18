@@ -21,7 +21,7 @@ import {
   type PgWhat,
 } from "@codebridge/domain/prognosis";
 import { useApi } from "../lib/api";
-import type { T } from "../lib/format";
+import type { T } from "../lib/dates";
 
 // ---------- labels: the catalog IDs of the field, dimension and status names (every possible ID listed here) ----------
 
