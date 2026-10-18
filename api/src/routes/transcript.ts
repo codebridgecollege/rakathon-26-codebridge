@@ -1,5 +1,5 @@
 // The AI recording on the server (step-5.md "As implemented"): recordings, live transcript lines, per-case audio parts,
-// the stored transcript of a case, and the speaker pass jobs the page polls. Embedded mode never calls these.
+// the stored transcript of a case, and the speaker pass jobs the page polls.
 import { Hono, type Context } from "hono";
 import type { AppEnv } from "../types";
 import { D } from "@codebridge/domain/errors";

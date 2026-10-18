@@ -1,7 +1,6 @@
 <script setup lang="ts">
-// The "Export FHIR" dialog: the
-// case's FHIR R4 Bundle with its counts, the identity warning, download and copy. Copying is offered next to the
-// download because downloads can be blocked inside an embedded page.
+// The "Export FHIR" dialog: the case's FHIR R4 Bundle with its counts, the identity warning, download and copy.
+// Copying is offered next to the download for a browser or policy that blocks downloads.
 import { computed } from "vue";
 import { useFluent } from "fluent-vue";
 import { fhirJson } from "@codebridge/domain/fhir-export";

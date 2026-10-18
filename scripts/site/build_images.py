@@ -4,7 +4,7 @@
 # ///
 """Turn the app screenshots taken by scripts/cover/build.mjs into light JPEGs for the landing page (site/img).
 
-Usage: COVER_DEPS=... node scripts/cover/build.mjs, then `uv run scripts/site/build_images.py`.
+Usage: node scripts/cover/build.mjs (with a local Worker running), then `uv run scripts/site/build_images.py`.
 The screenshots are 2880 px wide (2x); 1600 px is enough for the largest card on the page.
 """
 import shutil
