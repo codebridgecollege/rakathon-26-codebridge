@@ -39,7 +39,7 @@ onMounted(() => void nextTick(() => hit.value?.scrollIntoView?.({ block: "center
       <div>
         <div class="label">{{ $t("patient-guide-drawer-label") }} · <span :lang="lang">{{ g.society || "" }} {{ g.year || "" }}</span></div>
         <h2 style="margin-top:4px" :lang="lang">{{ g.name || "" }}</h2>
-        <div class="muted small"><span :lang="lang">{{ g.version || "" }} · {{ st.section || "" }}</span> · <template v-if="st.pdf_page">{{ $t("patient-guide-drawer-page", { page: String(st.pdf_page) }) }}<template v-if="st.printed_page && st.printed_page !== st.pdf_page"> {{ $t("patient-guide-drawer-printed", { page: String(st.printed_page) }) }}</template></template><template v-else>{{ $t("patient-guide-drawer-abstract-only") }}</template></div>
+        <div class="muted small"><span :lang="lang">{{ g.version || "" }} · {{ st.section || "" }}</span> · <template v-if="st.pdf_page">{{ $t("patient-guide-drawer-page", { page: String(st.pdf_page) }) }}<template v-if="st.printed_page && st.printed_page !== st.pdf_page">{{ " " }}{{ $t("patient-guide-drawer-printed", { page: String(st.printed_page) }) }}</template></template><template v-else>{{ $t("patient-guide-drawer-abstract-only") }}</template></div>
       </div>
       <button class="btn small" @click="overlay.close()">{{ $t("patient-guide-drawer-close") }}</button>
     </header>

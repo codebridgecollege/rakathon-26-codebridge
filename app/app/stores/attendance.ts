@@ -108,5 +108,9 @@ export const useAttendanceStore = defineStore("attendance", () => {
     return was;
   }
 
-  return { local, rowsOf, present, setRow, addRow, removeRow, changed };
+  // Resolves once every change of the set sent so far is answered; approval waits for it, so the server's list is the
+  // one the frozen report names.
+  const settled = (key: string): Promise<void> => queues[key]?.chain ?? Promise.resolve();
+
+  return { local, rowsOf, present, setRow, addRow, removeRow, changed, settled };
 });

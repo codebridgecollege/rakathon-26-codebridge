@@ -1,7 +1,7 @@
 # Frontend: framework, language and rendering
 
-Status: decided 2026-10-18; step 2 of the migration (the scaffold) is built
-on a branch, see "As implemented (step 2)". This is work for after the
+Status: decided 2026-10-18; steps 2 to 12 of the migration are built on
+branches, see the "As implemented" sections. This is work for after the
 hackathon; the current page stays the demo until the new one matches it.
 
 The question: should the frontend move from one hand-written page to a
@@ -366,8 +366,9 @@ it: [`app/README.md`](../../app/README.md). Where it differs from the old page:
 - **A user switch** also closes a phone upload session for a case and drops the upload lists read under the previous
   user (the old page kept both).
 - **The patient view is not ported yet**, so a finished intake goes to `#/patient/<id>`, which has no route on this
-  branch; the specs that open the new patient pass only with the patient screens. The development harness
-  (`#/dev-intake`, never in a production build) and `e2e/harness/` check the rest.
+  branch; the specs that open the new patient pass only with the patient screens. A development harness
+  checked the rest until the patient screens landed; it is gone, and its extra checks are
+  `e2e/specs/intake-details.spec.ts`.
 
 ## As implemented (steps 3, 4 and part of 12)
 
@@ -409,14 +410,46 @@ today's page. Where it differs from the old page or the plan:
   its tooltip (TK/P, document dates, an unknown page count).
 - **Accessibility, nothing visible:** the source viewer's tabs set `aria-selected`; alerts are a list of list items;
   the edit dialog's text field has a name; toasts have a status role.
-- **Left for the screens that port next,** each marked `PORT(#13)` in the code: the discussion card "Projednání na
-  MDT" and the conclusion draft with autosave (step 8), the session bar (step 9), the report dialog (step 12; the
-  header's "Stáhnout report (PDF)" opens nothing until then), the "Možná jiný pacient" banner for uploaded documents,
-  and stopping the recorder when a case is closed.
-- **Zahájit MDT** from the case header opens the lists' start dialog, which starts the session on the day's first
-  case, not on the case it was opened from as the old page did.
+- **Ported later** (steps 8, 9 and the rest of 12, below): the discussion card and the conclusion draft, the session
+  bar, the report dialog, the "Možná jiný pacient" banner and stopping the recorder when a case is closed. "Zahájit
+  MDT" from the case header now starts the session on that case, as the old page did.
 - **Retrospective assessments** stay empty as on the old page (it never filled `S.retro`); `prior_assessments` from
   the guidance reply is not shown yet.
+
+## As implemented (steps 8, 9 and the rest of 12)
+
+Branch `port-discussion` (issue #13): the session bar (S-4), "Projednání na MDT" (S-5) with the conclusion draft, the
+AI recorder ("AI záznam"), the report dialog and its PDF, and the "Možná jiný pacient" banner. Where they live:
+[`app/README.md`](../../app/README.md). The whole e2e suite passes against the new app and stays green on today's page.
+Where it differs from the old page or the plan:
+
+- **The recorder runs in server mode only** (`features.transcripts`, which every seeded Worker reports): lines and
+  5 MiB audio parts go to the server while a case is discussed, approval starts the speaker pass there, and the page
+  polls the job. The in-browser speaker pass and summary of the Pages build (`wavOf`, `recPostPass`, `recSummarize`)
+  are not ported, because the app has no embedded mode. Without server storage the recorder shows live words and
+  holds no audio.
+- **Fixed on the way** (the old page had these too): stopping while the microphone, the server or the token was still
+  being asked for left a second microphone or socket running; a sentence arriving on a closing socket after a user
+  switch was shown and sent; transcript and job replies from before a user switch landed in the new user's view. A
+  failed transcript read is retried when the case is shown again instead of in a loop.
+- **Upload rows wrap** (old page and app): with a warning under a row, the file name shrank to zero width, so the
+  doctor saw that a document belonged to another patient but not which one.
+- **The report is a Czech record whatever the screen's language:** the snapshot frozen at approval, the preview and
+  the PDF read the Czech catalog, so one decision never mixes languages and the printed gap wording is the fixed Czech
+  one. An approved case without a stored snapshot prints the attendance frozen at approval, not today's.
+- **Approval stores again right before it is sent:** the recording's last words and an attendance change may take
+  seconds, and text typed meanwhile is stored first, so the frozen report and the tasks the server makes name the same
+  steps. A retry whose report changed gets a new idempotency key. (The old page sent the live fields.)
+- **A user switch waits for the drafts,** as the old page did: a draft that cannot be stored refuses the switch with the
+  old message, and nothing of the current user ends before that check. The recording stops on a switch also without
+  server storage, and audio parts still on their way stop retrying after a purge or a switch.
+- **The report** prints the old wording; a partial due date prints as a month ("3/2024", the old page printed
+  "NaN. 3. 2024"), and a source without a page number prints "s. " instead of "s. undefined".
+- **"Zahájit MDT" from a case header** starts the session on that case, as the old page did.
+- **Accessibility, nothing visible:** the card's summary sets `aria-expanded`; the "Koncept nového závěru" label is the
+  draft field's description; the report dialog has `aria-modal` and focus handling.
+- **The intake development harness is gone**; its checks that the screen specs lacked are
+  `e2e/specs/intake-details.spec.ts`, green on both pages.
 
 ## Decisions (2026-10-18)
 

@@ -43,9 +43,9 @@ function schedule() {
 function startMdt() {
   if (p.value.slot) overlay.open({ kind: "start", day: p.value.slot.day, from: p.value.file, attOnly: false });
 }
-// PORT(#13): the report dialog and PDF are ported in step 12; it draws this overlay kind.
+// The report dialog and its PDF (components/discussion/ReportDialog.vue).
 function report() {
-  overlay.open({ kind: "report" });
+  overlay.open({ kind: "report", file: c.p.value.file });
 }
 </script>
 

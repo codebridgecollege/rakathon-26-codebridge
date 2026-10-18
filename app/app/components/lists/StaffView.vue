@@ -30,7 +30,11 @@ const fields = computed<{ f: StaffField; label: string; ph: string }[]>(() => [
 
 // The typed values of each department's "Nová osoba" row and of the new department's name.
 const draft = reactive<Record<string, Record<StaffField, string>>>({});
-const newRow = (deptId: string) => (draft[deptId] ??= { pre: "", sur: "", post: "", fn: "" });
+// Read back through the reactive map: the value "??=" returns is the plain object, whose changes would not redraw.
+const newRow = (deptId: string) => {
+  draft[deptId] ??= { pre: "", sur: "", post: "", fn: "" };
+  return draft[deptId]!;
+};
 const newDept = ref("");
 
 async function write(send: () => ReturnType<ReturnType<typeof useApi>["resetStaff"]>, onOk?: () => void): Promise<boolean> {

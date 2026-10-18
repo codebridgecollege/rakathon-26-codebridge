@@ -1,6 +1,6 @@
 <script setup lang="ts">
 // "Stručný souhrn" (briefBlock() in the template): the extracted summary with every clause linked to its source, the
-// MDT question, the disease course, the sources, the conclusion and the discussion. A case without an extracted
+// MDT question, the disease course, the sources, the conclusion and the discussion card "Projednání na MDT". A case without an extracted
 // brief shows the list row's one-line summary, said to be that, with what the assistant processed.
 import { computed } from "vue";
 import { useFluent } from "fluent-vue";
@@ -15,6 +15,8 @@ import GapsBox from "./GapsBox.vue";
 import QuestionBox from "./QuestionBox.vue";
 import TimelineCard from "./TimelineCard.vue";
 import ConclusionBox from "./ConclusionBox.vue";
+import IdentityBanner from "../discussion/IdentityBanner.vue";
+import DiscussionCard from "../discussion/DiscussionCard.vue";
 
 const { $t } = useFluent();
 const c = usePatient();
@@ -47,8 +49,7 @@ const processed = computed(() => {
 </script>
 
 <template>
-  <!-- PORT(#13): the "Možná jiný pacient" banner for an uploaded document of another patient (identityBanner() in the
-       template) reads the case's uploads and is ported with the uploads (step 11). It goes here, above the card. -->
+  <IdentityBanner />
   <section class="card blk">
     <div class="head" style="margin:0">
       <h2>{{ $t("patient-brief-title") }}</h2>
@@ -69,8 +70,6 @@ const processed = computed(() => {
     <TimelineCard v-if="c.sec.value.timeline" inline />
     <SrcList :list="sources" />
     <ConclusionBox />
-    <!-- PORT(#13): the discussion card "Projednání na MDT" (S-5, mdtCard() in the template: notes, conclusion
-         approval, attendance, steps, uploads, recording) is ported next (step 8). It goes here, at the end of the card. -->
-    <slot name="discussion" />
+    <DiscussionCard />
   </section>
 </template>

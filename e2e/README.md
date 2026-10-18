@@ -82,10 +82,6 @@ health answer in the browser, so it runs the same with or without a key and neve
    helpers open routes relative to the base URL (`cd api && npm run dev:app`, then
    `E2E_BASE_URL=http://localhost:8787/app/ npm --prefix e2e test`). Both apps read `#patient/10/labs`; the new app's
    router rewrites it to `#/patient/10/labs`, so the one spec that reads the address accepts both.
-   - A part of a screen that is ported before the screen holding it (the "Nový pacient" dialog before the patient
-     list, the upload panel before "Projednání na MDT") is checked on the app's development harness first:
-     `e2e/harness/`, project `app-harness`, only with `E2E_APP_HARNESS=1` and an app built with `APP_DEV_PAGES=1`
-     (`app/README.md`). The harness specs mirror the screen specs; they never replace them.
 3. A screen counts as ported when its spec files (table below) pass against the new app without edits to the specs.
    A spec may change only where the old page was wrong (for example a missing `aria-selected`), and the commit says so.
 4. The Worker switches to the new app (step 13) only when the whole suite passes against it.
@@ -95,7 +91,9 @@ health answer in the browser, so it runs the same with or without a key and neve
 Known places where the old page's accessibility is weaker than the new app should be (the specs work around them and
 should be tightened once the new app is in):
 - The source viewer's tabs ("Stránka", "Přepis stránky") do not set `aria-selected` (the new app sets it).
-- The label "Koncept nového závěru (nahradí platný až po schválení)" is not tied to its text field.
+- The label "Koncept nového závěru (nahradí platný až po schválení)" is not tied to its text field. The new app ties it
+  as the field's description (`aria-describedby`), so the field keeps the name its placeholder gives and the specs
+  find it the same way on both.
 - The yellow box that marks the quote on the page image has no accessible name, so only the legend and the absence of
   "Citace nenalezena přesně" show that the quote was found on the image.
 - The calendar's patient card has no role and the toasts no status role in the old page. The new app names the card
@@ -105,7 +103,8 @@ should be tightened once the new app is in):
   by role; booking from the calendar goes through the patient list's "Naplánovat" and drag and drop instead. The new
   app makes the unscheduled panel a list; switch to it once the old page is retired.
 - The discussion card is a `<details>` without `aria-expanded`; `discussion.ts` decides whether to open it once the
-  case's tabs have rendered. The new app should expose the expanded state.
+  case's tabs have rendered. The new app sets `aria-expanded` on the card's summary; switch `expand()` to read it once
+  the old page is retired.
 
 ## Coverage
 
@@ -134,10 +133,10 @@ Screens and features from `docs/design/PRODUCT.md` against the spec files in `sp
 | F-31 PDF report | dialog, section picks, preview, gap wording in the report, draft PDF (file name and `%PDF-` bytes); frozen after approval | `report-export` |
 | FHIR export | dialog, identity warning, downloaded Bundle with provenance | `report-export` |
 | S-6, F-32 Tasks | drafts after approval, confirm and dismiss (doctor only), coordinator's read-only view, digest e-mail, done toggle and reopen across reload | `tasks` |
-| F-02 Case intake | required fields and format check, FHIR sample (consent never imported), S02 seven PDFs, processing stages, Přidat do databáze, new patient opens with documents and the CEA trend, discard on close | `new-patient` |
+| F-02 Case intake | required fields and format check, FHIR sample (consent never imported), S02 seven PDFs, processing stages, Přidat do databáze, new patient opens with documents and the CEA trend, discard on close, Escape and Zpět, a non-demo file, dropped files, a route change, the administrator's note | `new-patient`, `intake-details` |
 | F-04 Wrong patient and duplicates | duplicate birth number warning, link to the existing patient, "Přesto vytvořit nový záznam"; a document of another patient gets an identity warning on upload | `new-patient`, `uploads` |
 | F-34 Extra documents | upload in Projednání listed as Nahráno, kept across reload, removed; no upload zone for the administrator | `uploads` |
-| Phone upload (`docs/design/PHONE-UPLOAD.md`) | QR dialog, validity text, token never shown, phone page in a second context, file arrives on the desktop, Hotovo ends the link | `uploads` |
+| Phone upload (`docs/design/PHONE-UPLOAD.md`) | QR dialog, validity text, token never shown, phone page in a second context, file arrives on the desktop, Hotovo ends the link; a phone file into the intake | `uploads`, `intake-details` |
 | S-8, F-39 Staff | doctor reads only; coordinator adds (appears in the picker, survives reload), renames, removes | `staff-admin` |
 | S-7 Administrace | visible to the administrator only, access log with the doctor's earlier case view, demo reset from the UI | `staff-admin` |
 | Autosave conflicts | a second doctor's saved draft makes my save show "Koncept mezitím upravil(a) ..." with their name; "Načíst uloženou verzi" loads theirs | `conflicts` |

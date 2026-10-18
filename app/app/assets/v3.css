@@ -315,7 +315,7 @@ details.mdtcard[open] > summary::before { transform: rotate(90deg); }
 .upzone.drop, .upzone:hover { border-color: var(--accent); background: var(--sunk); }
 .upzone input { position: absolute; width: 1px; height: 1px; opacity: 0; }
 .uplist { list-style: none; padding: 0; margin: 10px 0 0; display: grid; gap: 6px; }
-.uplist li { display: flex; gap: 8px; align-items: center; padding: 6px 8px; border: 1px solid var(--line); border-radius: 0; }
+.uplist li { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 6px 8px; border: 1px solid var(--line); border-radius: 0; }
 .uplist .nm { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
 /* "Nahrát z telefonu" (issue #10): its dialog sits above the dialog it was opened from (the new patient's intake). */
 .phonelayer .scrim { z-index: 40; }

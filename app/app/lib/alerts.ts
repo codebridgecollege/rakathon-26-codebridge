@@ -17,7 +17,9 @@ export async function alertAct(c: PatientCtx, t: T, i: AlertKey, action: AlertAc
   const p = c.p.value;
   const before = alertState(c.alertHist.value, i).state;
   const wf = useWorkflowStore();
-  const cs = (wf.cases[p.id] ??= { case_id: p.id, file: p.file });
+  // Read back through the store: the value "??=" returns is the plain object, whose changes would not redraw.
+  wf.cases[p.id] ??= { case_id: p.id, file: p.file };
+  const cs = wf.cases[p.id]!;
   const entry: AlertEvent = { i, action, who: c.userName.value, when: new Date().toISOString() };
   cs.alertHist = [...((cs.alertHist ?? []) as AlertEvent[]), entry] as never;
   try {

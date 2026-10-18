@@ -45,20 +45,5 @@ export function removePerson(u: StaffUser, actorId: string): void {
   if (u.role === "coordinator" || u.role === "admin") throw D.roleForbidden();
 }
 
-// The fictional default staff, the same values as defaultStaff() in mocks/src/v3-template.html and STAFF_DEPTS in
-// api/seed/seed.py (test/domain/staff.test.ts checks it against the page's list).
-const DEPTS: [string, string[]][] = [
-  ["Neurochirurgie", ["Novák", "Dvořák"]],
-  ["Klinická onkologie", ["Svobodová", "Malá"]],
-  ["Radiační onkologie", ["Černý", "Horáková"]],
-  ["Radiologie", ["Šimek", "Veselá"]],
-  ["Neurologie", ["Beneš", "Pokorná"]],
-  ["Patologie", ["Králová", "Němcová"]],
-];
-export const DEFAULT_STAFF = DEPTS.map(([name, surs], i) => ({
-  id: `d${i + 1}`,
-  name,
-  sort: i,
-  people: surs.map((sur, j) => ({ id: `d${i + 1}p${j + 1}`, pre: "MUDr.", sur, position: j })),
-}));
-export const DEFAULT_COORDINATOR = { id: "coord", pre: "Bc.", sur: "Marková", post: "", fn: "koordinátorka MDT" };
+// The fictional default staff lives in the shared package, so the app reads the same list.
+export { DEFAULT_STAFF, DEFAULT_COORDINATOR } from "@codebridge/domain/staff-default";
