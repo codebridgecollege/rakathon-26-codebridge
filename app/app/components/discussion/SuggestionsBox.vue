@@ -95,6 +95,6 @@ const PENDING: Record<number, Promise<unknown>> = {};
         </li>
       </template>
     </ul>
-    <p class="muted small" style="margin:6px 0 0">{{ $t("discussion-sugg-note") }}<template v-if="!can"> {{ $t("discussion-sugg-note-doctor-only") }}</template></p>
+    <p class="muted small" style="margin:6px 0 0">{{ $t("discussion-sugg-note") }}<template v-if="!can">{{ " " }}{{ $t("discussion-sugg-note-doctor-only") }}</template></p>
   </div>
 </template>

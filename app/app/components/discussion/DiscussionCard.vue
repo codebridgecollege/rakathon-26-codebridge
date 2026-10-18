@@ -193,11 +193,10 @@ function closeCase() {
               <div v-if="pipelineOn && doc?.content_stored && canUpload && doc.state !== 'prepared'" style="flex-basis:100%"><DocPipeline :file="`${doc.id}.pdf`" /></div>
             </template>
           </CaseUploads>
-          <template v-else-if="mode === 'manual'">
-            <label class="label" for="notes" style="display:block;margin:12px 0 6px">{{ $t("discussion-notes-label") }}</label>
-            <textarea id="notes" class="input" :placeholder="$t('discussion-notes-placeholder')" :disabled="ro" :value="pr.notes" @input="onNotes" @change="onNotes" @focusout="flushNow" />
-          </template>
-          <RecorderPanel v-else :file="p.file" />
+          <RecorderPanel v-else-if="mode === 'ai'" :file="p.file" />
+          <!-- Two elements, not a fragment: a fragment's empty text anchors after the inline-block field add a line gap. -->
+          <label v-if="mode === 'manual'" class="label" for="notes" style="display:block;margin:12px 0 6px">{{ $t("discussion-notes-label") }}</label>
+          <textarea v-if="mode === 'manual'" id="notes" class="input" :placeholder="$t('discussion-notes-placeholder')" :disabled="ro" :value="pr.notes" @input="onNotes" @change="onNotes" @focusout="flushNow" />
         </div>
         <div class="sub">
           <div class="head">
@@ -249,7 +248,7 @@ function closeCase() {
             </p>
             <button class="btn primary" style="width:100%" :disabled="!(hasConcl && c.isDoctor.value && !approving)" @click="approve">{{ approving ? $t("discussion-approving") : $t("discussion-approve") }}</button>
             <p class="small approver" style="margin:6px 0 0"><template v-if="c.isDoctor.value">{{ $t("discussion-approver") }} <b>{{ userName }}</b></template><template v-else>{{ $t("discussion-approver-doctor") }}</template></p>
-            <p class="muted small" style="margin:4px 0 0"><template v-if="c.isDoctor.value && !present.includes(userName)">{{ $t("discussion-approve-join") }} </template>{{ $t("discussion-approve-note") }}</p>
+            <p class="muted small" style="margin:4px 0 0"><template v-if="c.isDoctor.value && !present.includes(userName)">{{ $t("discussion-approve-join") }}{{ " " }}</template>{{ $t("discussion-approve-note") }}</p>
           </template>
         </div>
         <SuggestionsBox />
