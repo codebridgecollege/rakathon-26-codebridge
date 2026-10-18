@@ -1,7 +1,7 @@
 # Frontend: framework, language and rendering
 
-Status: decided 2026-10-18; step 2 of the migration (the scaffold) is built
-on a branch, see "As implemented (step 2)". This is work for after the
+Status: decided 2026-10-18; steps 2 to 12 of the migration are built on
+branches, see the "As implemented" sections. This is work for after the
 hackathon; the current page stays the demo until the new one matches it.
 
 The question: should the frontend move from one hand-written page to a
@@ -415,6 +415,32 @@ today's page. Where it differs from the old page or the plan:
   MDT" from the case header now starts the session on that case, as the old page did.
 - **Retrospective assessments** stay empty as on the old page (it never filled `S.retro`); `prior_assessments` from
   the guidance reply is not shown yet.
+
+## As implemented (steps 8, 9 and the rest of 12)
+
+Branch `port-discussion` (issue #13): the session bar (S-4), "Projednání na MDT" (S-5) with the conclusion draft, the
+AI recorder ("AI záznam"), the report dialog and its PDF, and the "Možná jiný pacient" banner. Where they live:
+[`app/README.md`](../../app/README.md). The whole e2e suite passes against the new app and stays green on today's page.
+Where it differs from the old page or the plan:
+
+- **The recorder runs in server mode only** (`features.transcripts`, which every seeded Worker reports): lines and
+  5 MiB audio parts go to the server while a case is discussed, approval starts the speaker pass there, and the page
+  polls the job. The in-browser speaker pass and summary of the Pages build (`wavOf`, `recPostPass`, `recSummarize`)
+  are not ported, because the app has no embedded mode. Without server storage the recorder shows live words and
+  holds no audio.
+- **Fixed on the way** (the old page had these too): stopping while the microphone, the server or the token was still
+  being asked for left a second microphone or socket running; a sentence arriving on a closing socket after a user
+  switch was shown and sent; transcript and job replies from before a user switch landed in the new user's view. A
+  failed transcript read is retried when the case is shown again instead of in a loop.
+- **Upload rows wrap** (old page and app): with a warning under a row, the file name shrank to zero width, so the
+  doctor saw that a document belonged to another patient but not which one.
+- **The report** prints the old wording; a partial due date prints as a month ("3/2024", the old page printed
+  "NaN. 3. 2024"), and a source without a page number prints "s. " instead of "s. undefined".
+- **"Zahájit MDT" from a case header** starts the session on that case, as the old page did.
+- **Accessibility, nothing visible:** the card's summary sets `aria-expanded`; the "Koncept nového závěru" label is the
+  draft field's description; the report dialog has `aria-modal` and focus handling.
+- **The intake development harness is gone**; its checks that the screen specs lacked are
+  `e2e/specs/intake-details.spec.ts`, green on both pages.
 
 ## Decisions (2026-10-18)
 

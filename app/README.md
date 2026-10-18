@@ -3,7 +3,9 @@
 The new frontend for GLIDE MDT, built next to today's page (`mocks/src/v3-template.html`) and ported screen by screen
 (GitHub issue #13, design in `docs/design/FRONTEND.md`). Ported so far: the shell (header, user picker, stores, boot
 from the API) and the patient detail screen (`#/patient/<nr>/<tab>`: header, brief, MDT question, alerts, timeline,
-all tabs and the source viewer; `app/components/patient/`). Today's page stays the demo until the new one passes the
+all tabs and the source viewer; `app/components/patient/`), the lists (patients, calendar, tasks, staff,
+administration), "Nový pacient" with uploads and the phone QR, and the MDT itself: the session bar, "Projednání na
+MDT", the AI recorder and the report with its PDF (`app/components/discussion/`). Today's page stays the demo until the new one passes the
 DOM-only test suite.
 
 - **Nuxt 4 in SPA mode** (`ssr: false`), built with `nuxt generate` into static files.
@@ -48,6 +50,17 @@ DOM-only test suite.
   `APP_DEV_PAGES=1`, for parts of a screen checked before the screen holding them is ported. None exist now: the intake
   harness (`#/dev-intake`) went once "Projednání na MDT" was ported, and its extra checks became
   `e2e/specs/intake-details.spec.ts`.
+- **The MDT** (steps 8, 9 and the rest of 12): `components/discussion/` holds the card "Projednání na MDT"
+  (`DiscussionCard.vue`, mounted by `BriefBlock.vue` and by the patient view's error state), the conclusion draft under
+  "Závěr MDT" (`ConclusionDraft.vue`, mounted by `ConclusionBox.vue`), the session bar (`SessionBar.vue`, top of the
+  patient view), the recorder panel, the report dialog (an `overlay` kind) and the "Možná jiný pacient" banner. State:
+  `stores/discussion.ts` (the record per case, autosave, conflicts, approval, new version, view state),
+  `stores/recorder.ts` (one recording for the whole app, so it survives route changes; browser audio and the socket
+  in `lib/recorder-audio.ts`), `stores/report.ts` (the ticked sections). The report HTML is `lib/report.ts`
+  (`reportHtmlFor()`, also the snapshot an approval sends), the PDF `lib/report-pdf.ts`; jsPDF and the DejaVu subset are
+  the old page's vendored files (`mocks/src/vendor/`), loaded as separate assets only when the dialog opens. The
+  header's recording pill is `components/RecorderPill.vue`. Rules in `@codebridge/domain/discussion` and
+  `@codebridge/domain/recording`. Text in `i18n/*/discussion.ftl`.
 - **CSS** is today's page CSS, copied unchanged into `app/assets/v3.css` by `scripts/sync-css.mjs`; a test fails when
   the template's CSS changed and the copy did not. Do not edit `v3.css` by hand.
 

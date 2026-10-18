@@ -91,7 +91,9 @@ health answer in the browser, so it runs the same with or without a key and neve
 Known places where the old page's accessibility is weaker than the new app should be (the specs work around them and
 should be tightened once the new app is in):
 - The source viewer's tabs ("Stránka", "Přepis stránky") do not set `aria-selected` (the new app sets it).
-- The label "Koncept nového závěru (nahradí platný až po schválení)" is not tied to its text field.
+- The label "Koncept nového závěru (nahradí platný až po schválení)" is not tied to its text field. The new app ties it
+  as the field's description (`aria-describedby`), so the field keeps the name its placeholder gives and the specs
+  find it the same way on both.
 - The yellow box that marks the quote on the page image has no accessible name, so only the legend and the absence of
   "Citace nenalezena přesně" show that the quote was found on the image.
 - The calendar's patient card has no role and the toasts no status role in the old page. The new app names the card
@@ -101,7 +103,8 @@ should be tightened once the new app is in):
   by role; booking from the calendar goes through the patient list's "Naplánovat" and drag and drop instead. The new
   app makes the unscheduled panel a list; switch to it once the old page is retired.
 - The discussion card is a `<details>` without `aria-expanded`; `discussion.ts` decides whether to open it once the
-  case's tabs have rendered. The new app should expose the expanded state.
+  case's tabs have rendered. The new app sets `aria-expanded` on the card's summary; switch `expand()` to read it once
+  the old page is retired.
 
 ## Coverage
 
