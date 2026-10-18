@@ -3,9 +3,9 @@ import { defineConfig, devices } from "@playwright/test";
 // The suite drives the app the way a user does, against a running Worker (local `wrangler dev` or a deployed demo).
 // Every test starts from a freshly reset demo (fixtures.ts), so the tests share one server and must run one at a time.
 const baseURL = process.env.E2E_BASE_URL ?? "http://localhost:8787";
-// Routes open relative to the base URL (fixtures.ts). Without the trailing slash, ".../app" would resolve to the old
-// page at "/" and the suite would silently test the wrong app.
-if (new URL(baseURL).pathname !== "/" && !baseURL.endsWith("/")) throw new Error(`E2E_BASE_URL ${baseURL} needs a trailing slash (for example http://localhost:8787/app/).`);
+// Routes open relative to the base URL (fixtures.ts). Without the trailing slash, ".../legacy" would resolve to the app
+// at "/" and the suite would silently test the wrong app.
+if (new URL(baseURL).pathname !== "/" && !baseURL.endsWith("/")) throw new Error(`E2E_BASE_URL ${baseURL} needs a trailing slash (for example http://localhost:8787/legacy/).`);
 
 export default defineConfig({
   testDir: "./specs",

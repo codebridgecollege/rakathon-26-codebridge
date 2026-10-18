@@ -27,23 +27,27 @@ if (hashes.length !== 2) throw new Error(`expected 2 inline scripts in the app's
 // Every source is named for a reason:
 // - script-src: our bundles and the two inline scripts by hash; jsPDF and its fonts load as same-origin files.
 //   No 'unsafe-inline' and no 'unsafe-eval'.
-// - style-src-elem: our CSS and the Google Fonts stylesheet (the same fonts as the old page).
+// - style-src-elem: our CSS and the Google Fonts stylesheet (the same fonts as the old page). style-src repeats it for
+//   browsers without the split directives (Safari before 15.4, Firefox before 108), which would otherwise fall back to
+//   default-src 'none' and draw the app unstyled; browsers that know style-src-elem ignore it for elements.
 // - style-src-attr 'unsafe-inline': style attributes in templates and in HTML the app inserts (the report, the QR
 //   SVG). An attribute cannot load anything or run script; allowing it keeps the old page's markup unchanged.
 // - font-src: the font files the Google Fonts stylesheet points to.
-// - img-src: page images and the logo from our origin, data: for small inline images, blob: for object URLs.
+// - img-src: page images and the logo from our origin, data: for the report's inline logo.
 // - connect-src: our API, and the speech service's realtime socket (the server mints a token and returns a wss URL
-//   on api.elevenlabs.io, ELEVENLABS_API_BASE in wrangler.jsonc; change both together).
+//   on api.elevenlabs.io, ELEVENLABS_API_BASE in wrangler.jsonc; change both together). The browser makes no https
+//   call to the service: tokens and the speaker pass go through the Worker.
 // - frame-ancestors, base-uri, form-action, object-src: no framing, no <base> rewrites, no form posts elsewhere, no
 //   plugins.
 const csp = [
   "default-src 'none'",
   `script-src 'self' ${hashes.join(" ")}`,
+  "style-src 'self' https://fonts.googleapis.com",
   "style-src-elem 'self' https://fonts.googleapis.com",
   "style-src-attr 'unsafe-inline'",
   "font-src https://fonts.gstatic.com",
-  "img-src 'self' data: blob:",
-  "connect-src 'self' https://api.elevenlabs.io wss://api.elevenlabs.io",
+  "img-src 'self' data:",
+  "connect-src 'self' wss://api.elevenlabs.io",
   "manifest-src 'self'",
   "frame-ancestors 'none'",
   "base-uri 'none'",
@@ -52,7 +56,8 @@ const csp = [
 ].join("; ");
 
 // Rules for every file: no MIME sniffing, no referrer outside our origin, no framing (old browsers read
-// X-Frame-Options only), and only the microphone (the AI recorder) among the powerful features.
+// X-Frame-Options only); camera, location, payment and USB off, the microphone for our own pages (the AI recorder).
+// Nuxt's build files carry a content hash in their names, so they never change and may be cached for a year.
 // The policy itself is set on the app's page only: today's page at /legacy/, the phone page at /u and the 404 page run
 // inline scripts and styles throughout and get the common headers.
 const headers = `/*
@@ -60,6 +65,9 @@ const headers = `/*
   Referrer-Policy: same-origin
   X-Frame-Options: DENY
   Permissions-Policy: camera=(), geolocation=(), payment=(), usb=(), microphone=(self)
+
+/_nuxt/*
+  Cache-Control: public, max-age=31536000, immutable
 
 /
   Content-Security-Policy: ${csp}

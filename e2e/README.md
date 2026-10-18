@@ -150,7 +150,7 @@ Screens and features from `docs/design/PRODUCT.md` against the spec files in `sp
 | Autosave conflicts | a second doctor's saved draft makes my save show "Koncept mezitím upravil(a) ..." with their name; "Načíst uloženou verzi" loads theirs | `conflicts` |
 | Roles | picker, doctor may edit and approve, coordinator changes status but not clinical content, administrator only reads | `roles`, `discussion`, `tasks`, `calendar` |
 | F-36 Mobile web | no sideways scroll at 400 px on the list, calendar, tasks and patient tabs | `phone-width` |
-| Accessibility | axe (WCAG 2.1 A/AA, serious and critical) on the list screens, every tab of NO-010 and NO-S01, the discussion card and four dialogs; dialog focus and Tab trap | `accessibility` (app only) |
+| Accessibility | axe (WCAG 2.1 A/AA, serious and critical) on the list screens, every tab of NO-010 and NO-S01, the discussion card and four dialogs; dialog focus and Tab trap, also for the phone dialog stacked over another | `accessibility` (app only) |
 | Serving | security headers and the content security policy, `/u`, the 404, redirects of `/app/` and the old page's ZIP link, an old hash link | `serving` |
 
 Not covered, and why:

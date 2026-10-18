@@ -14,8 +14,8 @@ against it, and the Worker serves it at `/`; today's page is at `/legacy/` for a
 - **Content security policy and headers** come from `api/scripts/headers.mjs`, which pins the hashes of the two inline
   scripts in `index.html` at staging time. A new inline script, an outside script, style or font host, or a new
   connection target needs a change there (FRONTEND.md, "As implemented (step 13)").
-- **Size budget:** `npm run size` after `generate` fails when the first load exceeds 200 kB gzip or contains jsPDF,
-  its fonts or the QR library (`scripts/size-budget.mjs`). Slovak and English catalogs load only when chosen
+- **Size budget:** `npm run size` after `generate` fails when the first load exceeds 200 kB gzip or contains code of
+  jsPDF, its fonts or the QR library, found by a string from inside each (`scripts/size-budget.mjs`). Slovak and English catalogs load only when chosen
   (`loadLocale()` in `lib/i18n.ts`).
 - **Auto-imports are off.** Import every component and composable explicitly; Nuxt's own from `#imports`, `#app` or
   `#components`.

@@ -6,9 +6,10 @@ name: Deploy worker
 on:
   push:
     branches: [main, backend]
-    paths: ["api/**", "app/**", "packages/**", "i18n/**", "package.json", "package-lock.json", "mocks/v3.html", "mocks/pages/**", "mocks/ukazka/**", "mocks/src/phone-upload.html", "mocks/src/vendor/**", ".github/workflows/deploy-worker.yml"]
+    paths: ["api/**", "app/**", "packages/**", "i18n/**", "package.json", "package-lock.json", "mocks/v3.html", "mocks/pages/**", "mocks/ukazka/**", "mocks/src/phone-upload.html", "mocks/src/vendor/**", "mocks/src/data/**", "mocks/src/v3-template.html", "samples/**", "docs/NO-A/**", ".github/workflows/deploy-worker.yml"]
+  # The same files: the tests read the mock data, the samples and the template CSS, and the test job stages everything.
   pull_request:
-    paths: ["api/**", "app/**", "packages/**", "i18n/**", "package.json", "package-lock.json", "mocks/src/vendor/**", ".github/workflows/deploy-worker.yml"]
+    paths: ["api/**", "app/**", "packages/**", "i18n/**", "package.json", "package-lock.json", "mocks/v3.html", "mocks/pages/**", "mocks/ukazka/**", "mocks/src/phone-upload.html", "mocks/src/vendor/**", "mocks/src/data/**", "mocks/src/v3-template.html", "samples/**", "docs/NO-A/**", ".github/workflows/deploy-worker.yml"]
   workflow_dispatch:
 
 # One Worker, so one deploy at a time across branches; a newer push replaces a queued one.

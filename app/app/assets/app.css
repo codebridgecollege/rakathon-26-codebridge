@@ -13,6 +13,7 @@
    Two quirks show in the layout and are reproduced here:
    - a textarea (inline-block) sits on the text baseline, so standards mode adds the descender gap below it (about
      6 px under "Závěr MDT" and the notes field); quirks mode does not;
-   - quirks mode resets line-height to normal on tables, so table rows are shorter than with the inherited 1.55. */
+   - quirks mode resets line-height to normal on tables, so table rows are shorter than with the inherited 1.55 (it
+     resets font size, weight and alignment too; every table of the app sets those itself). */
 textarea { vertical-align: top; }
 table { line-height: normal; }

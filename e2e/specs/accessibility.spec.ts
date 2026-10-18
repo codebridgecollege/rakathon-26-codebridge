@@ -120,3 +120,25 @@ test("dialogs: new patient, report, source viewer, phone upload", async ({ app }
     () => d.card.getByRole("button", { name: "Nahrát z telefonu" }),
   );
 });
+
+test("the phone dialog over another dialog keeps Tab and Escape to itself", async ({ app, page }) => {
+  await app.open("patient/S01/documents");
+  await expect(app.main.getByRole("heading", { level: 1, name: /Křemínek Radovan/ })).toBeVisible();
+  await app.main.getByRole("button", { name: "+ Nahrát dokument" }).click();
+  const upload = app.dialog("Nahrát dokument");
+  await expect(upload).toBeVisible();
+  await upload.getByRole("button", { name: "Nahrát z telefonu" }).click();
+  const phone = app.dialog("Nahrát z telefonu");
+  await expect(phone).toBeVisible();
+  await expect.poll(() => phone.evaluate((el) => el.contains(document.activeElement))).toBe(true);
+  for (let i = 0; i < 20; i++) {
+    await page.keyboard.press(i % 5 === 4 ? "Shift+Tab" : "Tab");
+    expect(await phone.evaluate((el) => el.contains(document.activeElement)), `focus left the phone dialog after ${i + 1} presses`).toBe(true);
+  }
+  // Escape closes the top dialog only.
+  await page.keyboard.press("Escape");
+  await expect(phone).toBeHidden();
+  await expect(upload).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(upload).toBeHidden();
+});

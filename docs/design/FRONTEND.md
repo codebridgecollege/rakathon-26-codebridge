@@ -465,16 +465,24 @@ to it:
   not through `nuxt-security`: the SPA shell has exactly two inline scripts (the import map and Nuxt's config), and the
   script pins their SHA-256 at staging time, after each build, and stops when the count changes. The policy:
   `default-src 'none'`; `script-src 'self'` plus the two hashes (no `unsafe-inline`, no `unsafe-eval`; jsPDF and its
-  fonts load as same-origin files); `style-src-elem 'self' https://fonts.googleapis.com`; `style-src-attr
+  fonts load as same-origin files); `style-src-elem 'self' https://fonts.googleapis.com`, repeated as `style-src`
+  for browsers without the split directives (Safari before 15.4, Firefox before 108); `style-src-attr
   'unsafe-inline'` (style attributes in templates and in HTML the app inserts: the report and the QR SVG; an attribute
-  cannot load or run anything); `font-src https://fonts.gstatic.com`; `img-src 'self' data: blob:`; `connect-src 'self'
-  https://api.elevenlabs.io wss://api.elevenlabs.io` (the realtime socket the server's token points to,
-  `ELEVENLABS_API_BASE`); `manifest-src 'self'`; `frame-ancestors 'none'`; `base-uri 'none'`; `form-action 'self'`;
+  cannot load or run anything); `font-src https://fonts.gstatic.com`; `img-src 'self' data:` (data: for the report's
+  inline logo); `connect-src 'self' wss://api.elevenlabs.io` (the realtime socket the server's token points to,
+  `ELEVENLABS_API_BASE`; the browser makes no https call to the service); `manifest-src 'self'`; `frame-ancestors 'none'`; `base-uri 'none'`; `form-action 'self'`;
   `object-src 'none'`. No `media-src` or `frame-src`: the app plays no audio and frames nothing; the PDF and FHIR
   downloads are `blob:` links with `download`, which the policy does not govern. Every static file also gets
   `X-Content-Type-Options: nosniff`, `Referrer-Policy: same-origin`, `X-Frame-Options: DENY` and a
-  Permissions-Policy that allows only the microphone; the app's page gets `Cross-Origin-Opener-Policy: same-origin`;
-  `/api` answers get nosniff. The old page, `/u` and the 404 page have no policy (inline scripts throughout).
+  Permissions-Policy that turns off camera, location, payment and USB and keeps the microphone for our own pages; the
+  app's page gets `Cross-Origin-Opener-Policy: same-origin`; `/_nuxt/*` (file names carry a content hash) is cached
+  for a year; `/api` answers get nosniff. The old page, `/u` and the 404 page have no policy (inline scripts
+  throughout).
+- **Trade-off while `/legacy/` exists:** the old page runs inline scripts and Umami (`cloud.umami.is`) without a
+  policy on the same origin as the app and `/api`, so a script injected there would act with the app's origin; the
+  app's policy protects the app's page, not the origin. Retiring `/legacy/` (with Pages) ends this. Until then a
+  cheaper step would be a policy for `/legacy/` that allows inline script but limits `connect-src` to `'self'` and
+  Umami, and a hashed policy for `/u` (one inline script, and the page holds the upload token); not done.
 - **Checked in the browser:** the e2e fixture fails any test on a policy violation Chromium reports; the whole suite
   (97 tests) runs on `/` without one. A deliberately wrong hash makes the fixture fail, so the check is live. Not
   watched: pages in a second browser context (the phone, the second doctor in `conflicts`), and `?lang=sk`/`en`,
@@ -486,8 +494,11 @@ to it:
   lazy: jsPDF (132 kB gzip) and its fonts (173 kB) load with the report dialog, the QR library with the phone
   dialog; the patient screen adds 55 kB, the calendar 8 kB. The recorder's browser code (microphone and socket,
   about 1 kB) stays in the entry: the header's recording pill reads its store. Nuxt adds prefetch hints for the lazy
-  chunks, which the browser may fetch when idle. CI fails above 200 kB or when jsPDF, its fonts or the QR library
-  reach the first load (`npm run size -w @codebridge/app`).
+  chunks, which the browser may fetch when idle. CI fails above 200 kB, or when a first-load file contains a string
+  from inside jsPDF, its fonts or the QR library, so a static import that merges one of them into a first-load chunk
+  is caught as well (checked by importing the QR library statically: 183 kB, under the limit, but the check failed);
+  the script also fails when no built file holds a marker any more (`npm run size -w @codebridge/app`). The report's
+  inline logo (about 14 kB gzip of the entry) could load with the report later.
 - **Accessibility.** `e2e/specs/accessibility.spec.ts` runs axe-core 4.13.0 (WCAG 2.1 A and AA rules) on the list
   screens, every tab of NO-010 and NO-S01, the discussion card, and the dialogs "Nový pacient", "Záznam z MDT",
   "Původní dokument" and "Nahrát z telefonu", and fails on serious or critical violations; it also presses Tab and
@@ -498,7 +509,9 @@ to it:
   - the source viewer's tabs carried `aria-pressed` (not allowed on a tab); they keep `aria-selected`, and the page
     area scrolls from the keyboard (focusable region);
   - the patient screen's dialogs and drawers took no focus and did not return it; `OverlayHost.vue` now does both for
-    every overlay kind, keeps Tab inside, and the overlays say `aria-modal`.
+    every overlay kind, keeps Tab inside, and the overlays say `aria-modal`; when the phone dialog opens above one of
+    them (from "+ Nahrát dokument"), Tab and Escape stay with the phone dialog, and Escape closes it alone (a spec
+    checks this stack).
   Remaining, not failing: violations of moderate or minor impact are not listed by the spec; the old page at
   `/legacy/` is not checked. No skip link: the header has five controls before the main area.
 - **Layout parity.** The old page has no doctype (quirks mode); the app is in standards mode. Element boxes on nine
@@ -510,8 +523,9 @@ to it:
   that much.
 - **CI** (`deploy-worker.yml`): one root `npm ci`, then the Worker's types, type check and tests, type checks and tests
   of `packages/domain`, `packages/api-client` and the app, staging (which builds the app and writes the headers) and
-  the size budget; the deploy job stages from a root install. The workflow also runs on changes to `app/`, `i18n/`
-  and `packages/`. The e2e suite is not in CI (it needs the seeded local Worker); run it before merging.
+  the size budget; the deploy job stages again from a root install (the same sources, so the same hashes, but not the
+  tested bytes). The workflow also runs on changes to `app/`, `i18n/`, `packages/`, `samples/`, `mocks/src/data/`,
+  the template and the other files the tests read. The e2e suite is not in CI (it needs the seeded local Worker); run it before merging.
 - **Install scripts.** npm 11 lists `esbuild`, `workerd` and `vue-demi` as having unapproved install scripts. None is
   needed: the build and `wrangler dev` work without them (`app/README.md`). CI's npm 10 runs them as before.
 - **To go live:** merge into `main` (CI deploys the Worker); check `/`, `/legacy/`, `/u` and

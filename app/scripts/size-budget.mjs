@@ -5,7 +5,7 @@
 // and its fonts, the QR code, a chart) cannot slip into the first load unnoticed.
 //
 // Usage: node scripts/size-budget.mjs [--json]
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { gzipSync } from "node:zlib";
@@ -14,8 +14,15 @@ import { gzipSync } from "node:zlib";
 // (today's page is 712 kB gzip, 2.3 MB raw); the limit leaves about 25 kB for growth while catching any vendored
 // library (jsPDF alone is 132 kB gzip, its fonts 173 kB). Raise it only with a reason in the commit.
 const BUDGET_FIRST_LOAD = 200_000;
-// Files that must never be part of the first load: jsPDF, its fonts and the QR code library.
-const LAZY = [/jspdf/i, /pdf-fonts/i, /qrcode-generator/];
+// Libraries that must never be part of the first load, each found by a string of its own code, so a static import
+// that merges the library into a first-load chunk is caught too (the chunk's name would no longer tell). jsPDF and its
+// fonts are imported as ?url files and loaded by a script element, so they could only reach the first load by a
+// changed import; their marker strings come from inside the vendored files.
+const LAZY = [
+  ["the QR library", "bad maskPattern:"],
+  ["jsPDF", "jsPDF.API"],
+  ["the PDF fonts", "{\"normal\": \"AAEAAAAS"],
+];
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.join(here, "..");
@@ -66,9 +73,12 @@ let css = 0;
 for (const f of first) (f.endsWith(".css") ? (css += gz(f)) : (js += gz(f)));
 const total = html + js + css;
 
-// Which source modules ended up in first-load chunks: a lazy library must not be among them.
-const firstSources = [...closure(entryKey).keys(), ...closure(screenKey).keys()];
-const leaked = LAZY.filter((re) => firstSources.some((s) => re.test(s)) || [...first].some((f) => re.test(f)));
+const firstText = [...first].filter((f) => f.endsWith(".js")).map((f) => readFileSync(path.join(pub, "_nuxt", f), "utf8")).join("\n");
+const leaked = LAZY.filter(([, marker]) => firstText.includes(marker)).map(([name]) => name);
+// A marker that no built file contains would make the check pass forever; each must exist in some lazy file.
+const allText = readdirSync(path.join(pub, "_nuxt")).filter((f) => f.endsWith(".js")).map((f) => readFileSync(path.join(pub, "_nuxt", f), "utf8")).join("\n");
+const stale = LAZY.filter(([, marker]) => !allText.includes(marker)).map(([name]) => name);
+if (stale.length) throw new Error(`size budget: no built file contains the marker of ${stale.join(", ")}; update LAZY`);
 
 // For the report: the other screens and the lazy libraries, each on its own (gzip, not counting shared chunks twice).
 const extra = {};
@@ -86,7 +96,7 @@ for (const [name, re] of [
 }
 
 const kb = (n) => `${(n / 1000).toFixed(1)} kB`;
-const result = { html, js, css, total, budget: BUDGET_FIRST_LOAD, files: first.size, extra, leaked: leaked.map(String) };
+const result = { html, js, css, total, budget: BUDGET_FIRST_LOAD, files: first.size, extra, leaked };
 if (process.argv.includes("--json")) console.log(JSON.stringify(result, null, 2));
 else {
   console.log(`first load (index.html + entry + patient list), gzip: ${kb(total)} of ${kb(BUDGET_FIRST_LOAD)}`);

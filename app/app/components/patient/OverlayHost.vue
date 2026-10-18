@@ -19,7 +19,10 @@ import { trapTab } from "../../lib/dialog";
 const overlay = useOverlayStore();
 
 function onKey(e: KeyboardEvent) {
-  if (e.key === "Escape" && overlay.current) overlay.close();
+  // The phone dialog (#phoneup) can open above an overlay and handles its own keys; the overlay below must not close
+  // on its Escape or pull its Tab back down.
+  if (document.querySelector('#phoneup [role="dialog"]')) return;
+  if (e.key === "Escape" && overlay.current && !e.defaultPrevented) overlay.close();
   // Tab stays inside the open dialog or drawer (each has a scrim, so the page behind is out of reach for the mouse
   // too). A dialog that handles Tab itself has already prevented the default.
   else if (e.key === "Tab" && overlay.current && !e.defaultPrevented) {
