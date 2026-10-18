@@ -9,6 +9,7 @@ import { usePatient } from "../../composables/usePatient";
 import { usePatientViewStore } from "../../stores/patientView";
 import { useApi } from "../../lib/api";
 import { caseWrite } from "../../lib/writes";
+import { useRecorderStore } from "../../stores/recorder";
 import { toast } from "../../lib/toast";
 import { fmtWhen, slotText } from "../../lib/dates";
 
@@ -64,7 +65,8 @@ function move(to: Status) {
   void caseWrite($t, () => useApi().setStatus(p.id, { to, expected_status: status.value }), {
     busyKey: `status:${p.file}`,
     onOk: (r) => {
-      // PORT(#13): closing a case also stops its AI recording in the template (recPurge); the recorder port adds it.
+      // A closed case keeps no audio for a speaker pass (recPurge() in the template).
+      if (to === "closed") useRecorderStore().purge([p.file], "closed");
       if (to === "closed") toast(r.data?.slot_released ? $t("patient-status-closed-slot-freed", { slot: was }) : $t("patient-status-closed-toast"));
       else toast(reopen ? $t("patient-status-reopened-toast") : $t("patient-status-changed-toast", { status: label(to) }));
     },

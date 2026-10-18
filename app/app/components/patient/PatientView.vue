@@ -25,6 +25,8 @@ import TabDev from "./TabDev.vue";
 import TabPrognosis from "./TabPrognosis.vue";
 import AlertSignal from "./AlertSignal.vue";
 import OverlayHost from "./OverlayHost.vue";
+import SessionBar from "../discussion/SessionBar.vue";
+import DiscussionCard from "../discussion/DiscussionCard.vue";
 
 const props = defineProps<{ file: string; tab: string | null }>();
 const { $t } = useFluent();
@@ -98,8 +100,7 @@ function retry() {
 
 <template>
   <div class="page">
-    <!-- PORT(#13): the running MDT's session bar (sessionBar() in the template, S-4) is ported with the session (step 9).
-         It goes here, above the back link, for a case on the running seminar's day. -->
+    <SessionBar :tab="tab || current" />
     <div class="row"><button class="linkbtn" @click="backToList">{{ $t("patient-back") }}</button></div>
     <template v-if="state === 'absent' || state === 'loading'">
       <PatientHeader :with-report="false" />
@@ -116,7 +117,7 @@ function retry() {
         </p>
         <p class="prose" lang="cs">{{ c.p.value.summary || "" }}</p>
         <ConclusionBox />
-        <!-- PORT(#13): the discussion card goes here too (step 8). -->
+        <DiscussionCard />
       </section>
       <div class="tabs" role="tablist"><button class="tab" role="tab" aria-selected="true">{{ $t("patient-tab-prognosis") }}</button></div>
       <TabPrognosis />
