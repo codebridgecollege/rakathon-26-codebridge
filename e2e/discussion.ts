@@ -54,8 +54,10 @@ export class Discussion {
   }
 
   async approve(text: string): Promise<void> {
-    await this.conclusion.fill(text);
     await this.expand();
+    // The draft is saved first, as a user's pause would allow: a click on approve that also blurs the field starts
+    // the autosave, and on a slow runner (CI) the click was lost while that save was running.
+    await this.typeAndSave(this.conclusion, text);
     await this.approveButton.click();
     await expect(this.app.main.getByText(/Platný závěr č\. \d+ · schválil\(a\)/)).toBeVisible();
   }
