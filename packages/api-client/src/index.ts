@@ -13,7 +13,7 @@ import type {
 } from "@codebridge/domain/wire";
 import type { Status } from "@codebridge/domain/status";
 import type { Step } from "@codebridge/domain/protocol";
-import { createTransport, type ClientOptions, type RequestOptions, type Transport } from "./core";
+import { ApiError, createTransport, type ClientOptions, type RequestOptions, type Transport } from "./core";
 
 export { ApiError, CLIENT_ERROR_IDS, createTransport } from "./core";
 export type { ClientErrorCode, ClientOptions, RequestOptions, Transport } from "./core";
@@ -21,6 +21,45 @@ export type * from "@codebridge/domain/wire";
 
 const enc = (v: string | number) => encodeURIComponent(String(v));
 type Loose = Record<string, unknown>;
+
+// The prognosis search's shapes, as loose as the tab reads them: the rows are model extractions the tab shows field by
+// field (PgRow in @codebridge/domain/prognosis).
+export type PrognosisModel = { id: string; label?: string; error?: string | null; warnings?: string[] } & Loose;
+export type PrognosisConfig = { configured?: boolean; error?: string | null; models?: PrognosisModel[] } & Loose;
+export type PrognosisProfile = { available?: boolean; reason?: string | null; facts?: unknown[]; warnings?: string[] } & Loose;
+export type PrognosisResult = {
+  rows?: Loose[];
+  models?: PrognosisModel[];
+  profile?: PrognosisProfile;
+  searched_at?: string;
+  cache_hit?: boolean;
+  warnings?: string[];
+} & Loose;
+export type SavedPrognosis = { patient_id?: string; scheduled_date?: string; result?: PrognosisResult } & Loose;
+
+// Catalog IDs (i18n/cs/patient-prognosis.ftl) of the errors the prognosis calls raise themselves (pgJson() in
+// mocks/src/prognosis.js): the routes live on the local prognosis server, so a host without them says so, and a search
+// past its time limit is not restarted on its own.
+export const PROGNOSIS_ERROR_IDS = {
+  no_api: "patient-pg-error-no-server",
+  timeout: "patient-pg-error-timeout",
+  fallback: "patient-pg-error-request-failed",
+} as const;
+// The search runs model calls with web search and may take minutes; the config and the profile are quick reads.
+export const PROGNOSIS_TIMEOUTS = { get: 45000, search: 330000 } as const;
+
+// A server's Czech message passes through; the client's own errors get the prognosis wording instead of the general
+// one. A lost connection keeps the general message, which already says what happened.
+async function prognosisCall<T>(call: () => Promise<T>): Promise<T> {
+  try {
+    return await call();
+  } catch (e) {
+    if (!(e instanceof ApiError) || e.message_cs) throw e;
+    const id =
+      e.code === "no_api" ? PROGNOSIS_ERROR_IDS.no_api : e.code === "timeout" ? PROGNOSIS_ERROR_IDS.timeout : e.code === "network" ? e.message_id : PROGNOSIS_ERROR_IDS.fallback;
+    throw new ApiError(e.code, e.status, null, id, e.current, e.fields);
+  }
+}
 
 export type ApiClient = ReturnType<typeof createApiClient>;
 
@@ -68,7 +107,16 @@ export function createApiClient(opts: ClientOptions = {}) {
     decisions: (caseId: string) => t.get<Loose>(`/cases/${enc(caseId)}/decisions`),
     history: (caseId: string) => t.get<Loose>(`/cases/${enc(caseId)}/history`),
     guidance: (caseId: string) => t.get<Loose>(`/cases/${enc(caseId)}/guidance`),
-    prognosis: (caseId: string) => t.get<Loose>(`/cases/${enc(caseId)}/prognosis`),
+    // The saved study searches of a case, for every day; the server writes a "prognosis.view" access-log row.
+    prognosis: (caseId: string) => t.get<{ saved: SavedPrognosis[] }>(`/cases/${enc(caseId)}/prognosis`),
+    // The local prognosis server's routes (mocks/serve.py). The Worker has none of them, so there they fail and the
+    // tab shows the saved search only.
+    prognosisConfig: () => prognosisCall(() => t.get<PrognosisConfig>("/prognosis/config", { timeout: PROGNOSIS_TIMEOUTS.get })),
+    prognosisProfile: (q: { patient_id: string; scheduled_date: string }) =>
+      prognosisCall(() => t.get<{ profile?: PrognosisProfile } & Loose>("/prognosis/profile", { query: q, timeout: PROGNOSIS_TIMEOUTS.get })),
+    // One search per click; refresh asks the server not to answer from its cache.
+    prognosisSearch: (body: { patient_id: string; scheduled_date: string; refresh: boolean }) =>
+      prognosisCall(() => t.write<PrognosisResult>("POST", "/prognosis", body, { timeout: PROGNOSIS_TIMEOUTS.search })),
     documents: (caseId: string) => t.get<Loose>(`/cases/${enc(caseId)}/documents`),
     // Fetched for every view, never cached: each view of a page is an access the server records.
     page: (docId: string, n: number) => t.get<Loose>(`/documents/${enc(docId)}/pages/${enc(n)}`),

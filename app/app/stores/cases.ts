@@ -27,7 +27,13 @@ export type CaseEntry = {
   error: CaseError | null;
   gen: number;
   loadedAt: number;
+  // The guideline layer of a full case (GET /cases/:id/guidance), loaded once when the case is shown; it lives in the
+  // entry, so a reset or an eviction drops it with the case data.
+  guide?: Guidance;
 };
+// The guidance reply as it comes, or the load's state. Typed loosely: its screens read it by name.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type Guidance = { loading?: boolean; error?: { message_cs: string | null; message_id: string | null } } & Record<string, any>;
 
 const unprocessed = (p: Pick<PatientRow, "file" | "id">): CaseData => ({ file: p.file, id: p.id, extraction: null });
 
@@ -106,8 +112,48 @@ export const useCasesStore = defineStore("cases", () => {
     }
   }
 
+  // "Zkusit znovu": the case and its guideline layer load again.
   function retry(p: PatientRow) {
+    delete caseOf(p.file).guide;
     return loadCase(p);
+  }
+
+  // The guideline layer of a case, loaded once (ensureGuidance() in the template). The server logs "guidance.load"
+  // for it. A failed request keeps its message, so the panel says so instead of a spinner that never ends.
+  async function ensureGuidance(p: PatientRow): Promise<void> {
+    const e = entries.get(p.file);
+    if (!e || e.guide) return;
+    const gen = e.gen;
+    e.guide = { loading: true };
+    let res: Guidance;
+    try {
+      res = (await useApi().guidance(p.id)) as Guidance;
+    } catch (x) {
+      const err = x instanceof ApiError ? x : null;
+      res = { error: { message_cs: err?.message_cs ?? null, message_id: err?.message_id ?? "patient-guide-load-failed" } };
+    }
+    // A reply for a store that was reset since (user switch) or a newer request must not land in the current entry.
+    if (entries.get(p.file) !== e || e.gen !== gen) return;
+    e.guide = res;
+  }
+
+  // "Zkusit znovu" in the guideline panel: the next render loads it again.
+  function retryGuidance(file: string) {
+    const e = entries.get(file);
+    if (e) delete e.guide;
+  }
+
+  // The case that holds a source document: the case's own PDF, or one uploaded PDF per document (a case created by
+  // intake). Only loaded cases are searched, so a reference never causes a load (byDocFile in the template).
+  function caseFileOfDoc(docFile: string): string | null {
+    if (entries.get(docFile)?.state === "ready") return docFile;
+    for (const [f, e] of entries) {
+      if (e.state !== "ready" || !e.data) continue;
+      const d = e.data.extraction as { syn?: { documents?: { file?: string }[] }; extra?: { documents?: { file?: string }[] } } | null;
+      const docs = d?.syn?.documents ?? d?.extra?.documents ?? [];
+      if (docs.some((x) => x.file === docFile)) return f;
+    }
+    return null;
   }
 
   // Keeps at most CASE_CACHE_MAX loaded cases, the open one counted among them; the oldest loads go first. An evicted
@@ -138,5 +184,5 @@ export const useCasesStore = defineStore("cases", () => {
     now = fn;
   }
 
-  return { entries, openFile, caseOf, stateOf, readyData, ensureCase, loadCase, retry, evictOld, reset, setOpen, setClock };
+  return { entries, openFile, caseOf, stateOf, readyData, ensureCase, loadCase, retry, ensureGuidance, retryGuidance, caseFileOfDoc, evictOld, reset, setOpen, setClock };
 });

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { ApiError, CLIENT_ERROR_IDS, createApiClient } from "../src/index";
+import { ApiError, CLIENT_ERROR_IDS, PROGNOSIS_ERROR_IDS, createApiClient } from "../src/index";
 
 type Call = { url: string; init: RequestInit };
 
@@ -157,5 +157,76 @@ describe("writes", () => {
     expect(h.get("Content-Type")).toBe("application/pdf");
     expect(h.get("X-File-Name")).toBe(encodeURIComponent("zpráva ř.pdf"));
     expect(m.calls[0]!.init.body).toBe(file);
+  });
+});
+
+describe("prognosis search", () => {
+  // A fetch that never answers until its request is aborted, to read the time limit of a call.
+  function hangingFetch() {
+    return vi.fn(
+      (_url: string | URL | Request, init: RequestInit = {}) =>
+        new Promise<Response>((_, reject) => init.signal?.addEventListener("abort", () => reject(Object.assign(new Error("aborted"), { name: "AbortError" })))),
+    ) as unknown as typeof fetch;
+  }
+
+  it("reads the saved searches of a case, the config and the profile at their paths", async () => {
+    const m = mockFetch([200, { saved: [] }], [200, { configured: false }], [200, { profile: { available: true } }]);
+    const api = createApiClient({ fetch: m.fn });
+    expect(await api.prognosis("NO 010")).toEqual({ saved: [] });
+    await api.prognosisConfig();
+    await api.prognosisProfile({ patient_id: "10_pacient.pdf", scheduled_date: "2026-10-22" });
+    expect(m.calls.map((c) => c.url)).toEqual([
+      "/api/cases/NO%20010/prognosis",
+      "/api/prognosis/config",
+      "/api/prognosis/profile?patient_id=10_pacient.pdf&scheduled_date=2026-10-22",
+    ]);
+  });
+
+  it("posts the search with its body", async () => {
+    const m = mockFetch([200, { rows: [] }]);
+    await createApiClient({ fetch: m.fn }).prognosisSearch({ patient_id: "10_pacient.pdf", scheduled_date: "2026-10-22", refresh: true });
+    expect(m.calls[0]!.url).toBe("/api/prognosis");
+    expect(m.calls[0]!.init.method).toBe("POST");
+    expect(JSON.parse(String(m.calls[0]!.init.body))).toEqual({ patient_id: "10_pacient.pdf", scheduled_date: "2026-10-22", refresh: true });
+  });
+
+  it("gives the reads 45 s and the search 330 s, then a timeout ID", async () => {
+    vi.useFakeTimers();
+    try {
+      const api = createApiClient({ fetch: hangingFetch() });
+      let read: unknown = "pending";
+      void api.prognosisConfig().catch((e) => (read = e));
+      await vi.advanceTimersByTimeAsync(44999);
+      expect(read).toBe("pending");
+      await vi.advanceTimersByTimeAsync(1);
+      expect(read).toMatchObject({ code: "timeout", message_cs: null, message_id: PROGNOSIS_ERROR_IDS.timeout });
+
+      let search: unknown = "pending";
+      void api.prognosisSearch({ patient_id: "x", scheduled_date: "2026-10-22", refresh: false }).catch((e) => (search = e));
+      await vi.advanceTimersByTimeAsync(329999);
+      expect(search).toBe("pending");
+      await vi.advanceTimersByTimeAsync(1);
+      expect(search).toMatchObject({ code: "timeout", message_id: PROGNOSIS_ERROR_IDS.timeout });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("names a host without the prognosis server by a catalog ID, not text", async () => {
+    const m = mockFetch([200, "<!doctype html>", "text/html"], [404, "<p>404</p>", "text/html"]);
+    const api = createApiClient({ fetch: m.fn });
+    expect(await api.prognosisConfig().catch((x) => x)).toMatchObject({ code: "no_api", message_cs: null, message_id: PROGNOSIS_ERROR_IDS.no_api });
+    expect(await api.prognosisSearch({ patient_id: "x", scheduled_date: "d", refresh: false }).catch((x) => x)).toMatchObject({ message_id: PROGNOSIS_ERROR_IDS.no_api });
+  });
+
+  it("passes the Worker's Czech message through, and a refusal without one gets the prognosis fallback", async () => {
+    const m = mockFetch([404, { error: { code: "not_found", message_cs: "Neznámá adresa API." } }], [500, {}]);
+    const api = createApiClient({ fetch: m.fn });
+    expect(await api.prognosisConfig().catch((x) => x)).toMatchObject({ code: "not_found", message_cs: "Neznámá adresa API.", message_id: null });
+    expect(await api.prognosisProfile({ patient_id: "x", scheduled_date: "d" }).catch((x) => x)).toMatchObject({
+      status: 500,
+      message_cs: null,
+      message_id: PROGNOSIS_ERROR_IDS.fallback,
+    });
   });
 });
