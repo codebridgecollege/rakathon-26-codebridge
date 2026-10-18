@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// The guideline side of a past decision (pastPassage() in the template, round 21): only the edition valid on the
+// The guideline side of a past decision: only the edition valid on the
 // decision date is quoted, never a later one; its PDF opens online at the page. Without a passage in that edition the
 // item says so instead of quoting another edition.
 import { computed } from "vue";

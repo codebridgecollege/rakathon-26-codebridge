@@ -1,6 +1,6 @@
 // Type-level checks only (nothing here runs or is bundled): the objects the Worker builds must fit the reply types in
 // @codebridge/domain/wire, which the browser client (@codebridge/api-client) is typed with. A server change that
-// breaks the page's contract then fails `npm run typecheck` here instead of failing in the browser.
+// breaks the app's contract then fails `npm run typecheck` here instead of failing in the browser.
 import type * as W from "@codebridge/domain/wire";
 import type { patientRow } from "./domain/rows";
 import type { StaffDirectory } from "./store/types";

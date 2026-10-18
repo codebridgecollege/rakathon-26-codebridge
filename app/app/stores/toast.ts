@@ -1,4 +1,4 @@
-// Short notes at the bottom of the screen (toast() in the old page): shown for 2.6 s, newest on top. They carry
+// Short notes at the bottom of the screen: shown for 2.6 s, newest on top. They carry
 // confirmations and refusals; the actions themselves never wait for them.
 import { defineStore } from "pinia";
 import { ref } from "vue";

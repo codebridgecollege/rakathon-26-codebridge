@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// The main area (#app in the old page) with the startup states: a screen renders only once the server's data is in,
+// The main area with the startup states: a screen renders only once the server's data is in,
 // and a failed boot says why instead of showing an empty screen. A notice from the session (a refused user switch, a
 // data reset) shows above the screen, which stays usable.
 import { computed } from "vue";

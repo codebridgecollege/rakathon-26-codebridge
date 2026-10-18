@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// "Závěr MDT" under the brief (conclusionBox() in the template). The valid, approved conclusion stays on top with who
+// "Závěr MDT" under the brief. The valid, approved conclusion stays on top with who
 // approved it and when; earlier ones are superseded, never erased (append-only history), each with its frozen
 // report. A closed case takes no new conclusion until it is reopened from the status menu.
 import { computed } from "vue";
@@ -29,7 +29,7 @@ const draftable = computed(() => c.isDoctor.value && proto.value.state !== "appr
 const earlier = computed(() => decisions.value.slice(0, -1).reverse());
 
 // The frozen report is stored without identity; the identity line is filled in from the list row when shown. The
-// snapshot is the page's own HTML from approval time (reportHtml() escaped every value), stored on the server.
+// snapshot is the app's own HTML from approval time (every value escaped), stored on the server.
 const fillIdent = (html: string | undefined) => fillReportIdent(html, c.p.value, $t);
 </script>
 

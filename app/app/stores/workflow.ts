@@ -1,5 +1,5 @@
 // The stored workflow state of every case this user may read (GET /workflow) and the task list (GET /tasks). The
-// shell keeps the server's objects as they come; the per-case rules of applyCase() in the template (decisions before
+// shell keeps the server's objects as they come; the per-case rules (decisions before
 // protocol, typed text kept over an older answer) arrive with the screens that show them.
 import { defineStore } from "pinia";
 import { ref } from "vue";
@@ -14,7 +14,7 @@ export const useWorkflowStore = defineStore("workflow", () => {
   const tasks = ref<Task[]>([]);
 
   // GET /workflow and a user switch start from nothing, so a case the new user may not read keeps nothing from the
-  // previous user (resetWorkflow() in the template).
+  // previous user.
   function replace(wf: Workflow, list: Task[]) {
     cases.value = { ...wf.cases };
     att.value = { ...wf.att };

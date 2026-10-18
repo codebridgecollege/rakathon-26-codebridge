@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// Screen S-7, Administrace (viewAdmin() in the old page), for the administrator only: the server's access log (read
+// Screen S-7, Administrace, for the administrator only: the server's access log (read
 // each time the screen opens; reading it is logged too), the reset of the shared demo data where the server allows
 // it, and the doctors' edits of extracted facts.
 import { computed, onMounted, ref, watch } from "vue";

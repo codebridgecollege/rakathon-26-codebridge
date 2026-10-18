@@ -24,7 +24,7 @@ export function useListText() {
   const date = (iso: string | null | undefined) => (iso ? fmtDay(iso, loc()) : $t("lists-gap-not-stated"));
   const dateTime = (ts: string | null | undefined) => fmtDateTime(ts, loc());
 
-  // Where a due date came from (dueLabel() in the template).
+  // Where a due date came from.
   function dueLabel(t: Due): string {
     const src = dueSourceOf(t);
     if (src === "manual") return t.dueBy ? $t("tasks-due-manual", { name: t.dueBy }) : $t("tasks-due-manual-unknown");

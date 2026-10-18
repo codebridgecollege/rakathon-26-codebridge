@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// "Onkologický souhrn" (detailedCard() and compactRows() in the template): the diagnosis headline with the stage at
+// "Onkologický souhrn": the diagnosis headline with the stage at
 // diagnosis (never the current stage), then one short line per event in the clinicians' compact style (round 14),
 // each opening its first source, with the category pin of the timeline; planned lines get a dashed pin and never
 // read as performed. The body scrolls inside the card.
@@ -41,7 +41,7 @@ const dxMonth = computed(() => String(d.value?.histology_date_cs || "").replace(
 const first = (x: Item | null | undefined) => refAt(cd.value, (x?.refs || [])[0]);
 const pinLabel = (l: Item) => `${cat(compactKind(l))}${l.kind === "plan" ? $t("patient-onco-planned-suffix") : ""}`;
 
-// The card's sources in order of first use, as the template's registry numbers them while it renders.
+// The card's sources in order of first use, numbered by the source registry while it renders.
 const sources = computed(() => {
   const reg = refList();
   const x = cd.value;

@@ -1,5 +1,5 @@
 // The frontend (docs/design/FRONTEND.md): a browser-rendered SPA built with `nuxt generate` into static files that the
-// API Worker serves at /. Today's page stays reachable at /legacy/ for a transition period.
+// API Worker serves at /.
 import { defineNuxtConfig } from "nuxt/config";
 
 export default defineNuxtConfig({
@@ -19,7 +19,7 @@ export default defineNuxtConfig({
       htmlAttrs: { lang: "cs" },
       title: "GLIDE MDT",
       meta: [{ name: "viewport", content: "width=device-width, initial-scale=1" }],
-      // The same fonts as today's page, for visual parity.
+      // The fonts of the design.
       link: [
         { rel: "preconnect", href: "https://fonts.googleapis.com" },
         {

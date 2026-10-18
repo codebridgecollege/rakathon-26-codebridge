@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// Prose with [n] markers (linkProse() in the template): each clause before a marker opens that source; the markers
+// Prose with [n] markers: each clause before a marker opens that source; the markers
 // themselves are not shown (round 14). A line break in the text is a paragraph gap on screen, as the brief shows it.
 import { computed } from "vue";
 import type { ProsePart } from "@codebridge/domain/case-view";

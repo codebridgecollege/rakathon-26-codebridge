@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// The status chip in the case header opens a small menu (statusMenu() in the template): the allowed manual moves for
+// The status chip in the case header opens a small menu: the allowed manual moves for
 // doctors and the coordinator, and the status history for everyone. "Naplánován" and "Projednán" are never picked by
 // hand: booking and approval set them. Every change waits for the server and is written to the history and the log.
 import { computed, onBeforeUnmount, onMounted } from "vue";
@@ -65,7 +65,7 @@ function move(to: Status) {
   void caseWrite($t, () => useApi().setStatus(p.id, { to, expected_status: status.value }), {
     busyKey: `status:${p.file}`,
     onOk: (r) => {
-      // A closed case keeps no audio for a speaker pass (recPurge() in the template).
+      // A closed case keeps no audio for a speaker pass.
       if (to === "closed") useRecorderStore().purge([p.file], "closed");
       if (to === "closed") toast(r.data?.slot_released ? $t("patient-status-closed-slot-freed", { slot: was }) : $t("patient-status-closed-toast"));
       else toast(reopen ? $t("patient-status-reopened-toast") : $t("patient-status-changed-toast", { status: label(to) }));
@@ -73,7 +73,7 @@ function move(to: Status) {
   });
 }
 
-// A click outside the menu closes it, as in the template.
+// A click outside the menu closes it.
 function onDocClick(e: MouseEvent) {
   if (!open.value) return;
   const t = e.target as Element | null;

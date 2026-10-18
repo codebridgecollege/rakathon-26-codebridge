@@ -14,6 +14,6 @@ export const directory = new Hono<AppEnv>()
   })
   .get("/staff", async (c) => {
     const s = await c.var.stores.dir.staff();
-    // The STAFF object the page's validStaff() accepts, plus the administrator and each person's role.
+    // The staff object the app accepts as a user, plus the administrator and each person's role.
     return c.json({ ...s, seq: 0, source: "server" });
   });

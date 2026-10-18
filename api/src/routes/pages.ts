@@ -57,7 +57,7 @@ export const pages = new Hono<AppEnv>()
       mean_conf: pg.mean_conf,
       low_conf_words: pg.low_conf_words,
       words: pg.words,
-      // Raw: the page applies verifyOf() as it did on the embedded data.
+      // Raw: the app applies verifyOf() to it.
       verify: pg.verify,
       redacted: pg.redacted && page.redacted_r2_key ? { image: imageUrl(doc.id, n, true), ...pg.redacted } : null,
       pages: all.map((p) => ({ n: p.n, empty: p.is_empty === 1 })),

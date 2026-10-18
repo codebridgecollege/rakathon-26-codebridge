@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// The disease course (timelineCard() in the template): events in date order with their category icon and name, a
+// The disease course: events in date order with their category icon and name, a
 // filter per category (several at once, "Vše" for all), and one click straight to the event's source (round 13).
 // Partial dates stay as the document writes them ("4/2022"); a planned event has a dashed pin and says "plán".
 import { computed, nextTick, ref, watchEffect } from "vue";
@@ -55,7 +55,7 @@ watchEffect(() => {
 });
 
 // Exclusions make the initial view complete; changing one category never clears other choices. The track scrolls
-// back to the start, as the template does after a filter change.
+// back to the start, after a filter change.
 function setCategory(id: string, include: boolean) {
   const next = new Set(view.tlExcluded);
   if (id === "all") {

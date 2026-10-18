@@ -10,8 +10,8 @@ import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { gzipSync } from "node:zlib";
 
-// The limit in bytes after gzip, for index.html plus the first screen's JS and CSS. Measured 2026-10-18 at 176 kB
-// (today's page is 712 kB gzip, 2.3 MB raw); the limit leaves about 25 kB for growth while catching any vendored
+// The limit in bytes after gzip, for index.html plus the first screen's JS and CSS. Measured 2026-10-18 at 176 kB;
+// the limit leaves about 25 kB for growth while catching any vendored
 // library (jsPDF alone is 132 kB gzip, its fonts 173 kB). Raise it only with a reason in the commit.
 const BUDGET_FIRST_LOAD = 200_000;
 // Libraries that must never be part of the first load, each found by a string of its own code, so a static import

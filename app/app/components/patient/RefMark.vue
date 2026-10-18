@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// A numbered source marker for blocks where the text itself opens the edit dialog (reg.mark() in the template).
+// A numbered source marker for blocks where the text itself opens the edit dialog.
 import { useFluent } from "fluent-vue";
 import type { SourceRef } from "@codebridge/domain/case-data";
 import { usePatient } from "../../composables/usePatient";

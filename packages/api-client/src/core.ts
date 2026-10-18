@@ -1,5 +1,4 @@
-// The transport under every API call: the same headers, timeouts and error handling as apiGet() and apiWrite() in
-// mocks/src/v3-template.html, so the new app talks to the Worker exactly as today's page does.
+// The transport under every API call: the same headers, timeouts and error handling, so the app talks to the Worker in one way.
 import type { ApiErrorBody } from "@codebridge/domain/wire";
 
 // Errors the client raises itself (no answer from our API) carry a message ID for the app's catalog instead of Czech
@@ -27,7 +26,7 @@ export class ApiError extends Error {
   }
 }
 
-// Catalog IDs (i18n/cs/) of the client's own errors. GET and write differ as in the template: a failed write asks
+// Catalog IDs (i18n/cs/) of the client's own errors. GET and write differ: a failed write asks
 // the doctor to try again, because nothing was stored.
 export const CLIENT_ERROR_IDS = {
   get: { no_api: "api-error-no-api", timeout: "api-error-timeout", network: "api-error-network", fallback: "api-error-request-failed" },

@@ -70,7 +70,7 @@ describe("/api/me and /api/staff", () => {
 });
 
 describe("/api/patients", () => {
-  it("returns rows with the page's key set and one list.view audit row", async () => {
+  it("returns rows with the app's key set and one list.view audit row", async () => {
     const body = await (await call("/api/patients")).json<{ patients: Record<string, unknown>[]; total: number }>();
     expect(body.total).toBe(2);
     expect(Object.keys(body.patients[0]!).sort()).toEqual(

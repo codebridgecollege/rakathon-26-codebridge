@@ -1,9 +1,9 @@
-// Dates, times and MDT slots of the patient screen, as the old page prints them. Server times are ISO UTC and are
+// Dates, times and MDT slots of the patient screen. Server times are ISO UTC and are
 // formatted when shown, never stored as formatted text (I18N.md, "Formatted dates stored as data"). The weekday and the
 // date layout come from the catalog.
 import { slotEnd } from "./slot";
 
-// The Intl locale for the interface language: Czech prints "16. 10. 2026 14:03:22" as today's page does.
+// The Intl locale for the interface language: Czech prints "16. 10. 2026 14:03:22".
 const INTL: Record<string, string> = { cs: "cs-CZ", sk: "sk-SK", en: "en-GB" };
 export const intlLocale = () => INTL[document.documentElement.lang] ?? "cs-CZ";
 

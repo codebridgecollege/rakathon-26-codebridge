@@ -31,7 +31,7 @@ export async function mintRealtimeToken(env: Env): Promise<{ ws_url: string; exp
     throw E.upstreamError("přepisu");
   }
   if (typeof token !== "string" || !token) throw E.upstreamError("přepisu");
-  // audio_format must match REC_RATE (16000) in v3-template.html; the browser resamples to it.
+  // audio_format must match REC_RATE (16000) in app/app/lib/recorder-audio.ts; the browser resamples to it.
   const q = new URLSearchParams({
     model_id: env.STT_REALTIME_MODEL,
     language_code: env.STT_LANGUAGE,
@@ -151,7 +151,7 @@ export async function diarizeUpstream(
   };
 }
 
-// The synchronous route of step 0 (embedded mode on the Worker): the outcome as the page's error table.
+// The synchronous route of step 0 (served by the Worker itself): the outcome as the app's error table.
 export async function diarizeStream(env: Env, body: ReadableStream<Uint8Array>, length: number): Promise<DiarizeResult> {
   const r = await diarizeUpstream(env, body, length, { kind: "wav" }, "stt/diarize");
   if (r.ok) return r.result;

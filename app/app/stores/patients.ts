@@ -16,14 +16,14 @@ export const usePatientsStore = defineStore("patients", () => {
     total.value = count;
   }
 
-  // A row from a write's state: merged into the existing row, or added (upsertPatient() in the template).
+  // A row from a write's state: merged into the existing row, or added.
   function upsert(row: PatientRow) {
     const i = rows.value.findIndex((x) => x.file === row.file || x.id === row.id);
     if (i >= 0) rows.value[i] = { ...rows.value[i]!, ...row };
     else rows.value.push(row);
   }
 
-  // The list fields a case's stored state carries (the row part of applyCase() in the template); returns the row's
+  // The list fields a case's stored state carries; returns the row's
   // file, or null when the case is not in this user's list.
   function applyCase(cs: Partial<CaseState>): string | null {
     const p = (cs.case_id && byId(cs.case_id)) || (cs.file && byFile(cs.file));

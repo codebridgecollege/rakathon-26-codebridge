@@ -1,6 +1,6 @@
 <script setup lang="ts">
-// The "Nový pacient" dialog (renderOverlay() kind "new" in the old page), mounted once in app.vue and opened through
-// useNewPatient().open(). Same markup and classes as the old page, so the copied CSS styles it unchanged. The logic
+// The "Nový pacient" dialog, mounted once in app.vue and opened through
+// useNewPatient().open(). Same markup and classes, so the copied CSS styles it unchanged. The logic
 // and the requests are in stores/intake.ts.
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useFluent } from "fluent-vue";
@@ -57,7 +57,7 @@ const errOf = (id: FieldId) => s.errs[id];
 
 async function onNext() {
   const first = await s.next();
-  // The first refused field takes the focus, as in the old page.
+  // The first refused field takes the focus.
   if (first) {
     await nextTick();
     document.getElementById(first)?.focus();

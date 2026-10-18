@@ -1,4 +1,4 @@
-// Who is using the app and whether the server's data is loaded: the template's boot(), loadFromApi() and
+// Who is using the app and whether the server's data is loaded: boot,
 // switchApiUser(). The demo has no login; the user is picked by hand and travels as a staff id (X-Demo-User, and the
 // cb_demo_user cookie for page images). The UI says so in the picker's label.
 import { defineStore } from "pinia";
@@ -29,7 +29,7 @@ export const useSessionStore = defineStore("session", () => {
   const phase = ref<"booting" | "ready" | "failed">("booting");
   const health = ref<Health | null>(null);
   const me = ref<Me | null>(null);
-  // A failed boot or switch; shown in the main area. The new app has no embedded data to fall back to.
+  // A failed boot or switch; shown in the main area.
   const error = ref<Notice | null>(null);
   const resetting = ref(false);
   // Separate so tests can observe a reload instead of navigating away.
@@ -80,7 +80,7 @@ export const useSessionStore = defineStore("session", () => {
   }
 
   // Screens that hold something of the current user (an open intake, a phone upload session) register what to end
-  // before a user switch; the switch waits for them, as switchApiUser() in the old page does.
+  // before a user switch; the switch waits for them.
   const beforeSwitch: (() => Promise<void> | void)[] = [];
   function onBeforeUserSwitch(fn: () => Promise<void> | void) {
     beforeSwitch.push(fn);

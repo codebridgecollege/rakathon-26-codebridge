@@ -1,6 +1,5 @@
-// The case as a FHIR R4 Bundle (team decision 2026-10-17: produce FHIR, no server). Port of fhirDate(), fhirJson(),
-// fhirBundle(), questionPlain() and basisPlain() in mocks/src/v3-template.html; the Bundle must stay the same JSON
-// the old page writes, because fhir/validate.sh checked a saved copy with the official HL7 validator. Every fact gets
+// The case as a FHIR R4 Bundle (team decision 2026-10-17: produce FHIR, no server). The Bundle must stay the same JSON
+// as before, because fhir/validate.sh checked a saved copy with the official HL7 validator. Every fact gets
 // a Provenance that names the document, page and quote, so the export keeps the rule that each claim points to its
 // source. Mapping and profiles: fhir/README.md.
 //
@@ -65,7 +64,7 @@ export const basisPlain = (t: T, bs: unknown) =>
 // Plain text of the MDT question for the report and the FHIR export: a draft says it is a draft, a confirmation says
 // who confirmed it, a doctor's text says a doctor wrote it.
 export function questionPlain(t: T, q: QState): string {
-  // Any basis value, even an empty list, adds the space, as the old page wrote it.
+  // Any basis value, even an empty list, adds the space.
   const basis = "basis" in q && q.basis ? ` ${basisPlain(t, q.basis)}` : "";
   if (q.mode === "edited") return `${q.text} ${t("patient-fhir-q-edited", { explicit: q.explicit ? "yes" : "no" })}`;
   if (q.mode === "explicit") return q.text;

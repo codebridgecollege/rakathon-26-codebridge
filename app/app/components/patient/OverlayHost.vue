@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// The patient screen's dialogs and drawers, drawn into the page's #overlay layer (renderOverlay() in the template).
+// The patient screen's dialogs and drawers, drawn into the #overlay layer.
 // One at a time; Escape closes it, as the scrim and the "Zavřít" buttons do. The start and attendance dialog is the
 // lists' StartMdtDialog, which teleports itself.
 import { nextTick, onBeforeUnmount, onMounted, watch } from "vue";
@@ -80,7 +80,7 @@ onMounted(() => {
 onBeforeUnmount(() => {
   document.removeEventListener("keydown", onKey);
   layerObserver?.disconnect();
-  // Leaving the case closes what was open over it, as a route change does in the template (readHash).
+  // Leaving the case closes what was open over it, as a route change does.
   overlay.close();
 });
 </script>

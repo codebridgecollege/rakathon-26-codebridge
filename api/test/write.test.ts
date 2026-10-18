@@ -418,7 +418,7 @@ describe("reset-demo", () => {
 describe("review findings (step 4)", () => {
   const k = (n: number) => ({ "idempotency-key": `77777777-aaaa-bbbb-cccc-00000000000${n}` });
 
-  it("refuses report markup outside the page's own and a report carrying the patient's identity", async () => {
+  it("refuses report markup outside the app's own and a report carrying the patient's identity", async () => {
     await w("PUT", "/cases/NO-A/protocol", { version: 0, concl: "Závěr" });
     const xss = await w("POST", "/cases/NO-A/decisions", decisionsBody({ conclusion: "Závěr", report_html: `<img src="x" onerror="fetch('/api/admin/reset-demo')">` }), "d2p1", k(1));
     expect(xss.body.error?.code).toBe("invalid_input");

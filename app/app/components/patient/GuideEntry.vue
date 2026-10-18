@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// One guideline statement (stmtHtml() in the template, round 21): the headline is the verbatim quote and one strength
+// One guideline statement: the headline is the verbatim quote and one strength
 // chip on the common scale; a click opens "Proč" (the documented facts with their sources) and, in small print, the
 // full citation with the guideline's own grade. Long quotes clamp on screen only; the text is never shortened.
 import { computed } from "vue";

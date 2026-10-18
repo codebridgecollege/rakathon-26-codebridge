@@ -532,7 +532,7 @@ describe("the panel and the header pill", () => {
 });
 
 describe("browser audio messages", () => {
-  it("sends base64 PCM chunks and a final commit of 100 ms silence, as the old page does", async () => {
+  it("sends base64 PCM chunks and a final commit of 100 ms silence", async () => {
     const real = await vi.importActual<typeof import("../app/lib/recorder-audio")>("../app/lib/recorder-audio");
     const sent: string[] = [];
     const ws = { readyState: 1, send: (d: string) => void sent.push(d), close: () => {} };

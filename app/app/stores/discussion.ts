@@ -1,13 +1,11 @@
 // The discussion record "Projednání na MDT" (screen S-5) of every case: notes, the conclusion draft and the next steps,
-// their autosave with the version conflict bar, approval, a new version and the view state of the card (ensureProto(),
-// protoTouched(), flushProto(), applyProto(), approveApi() and the "newversion", "prototheirs" and "protomine" actions
-// in mocks/src/v3-template.html).
+// their autosave with the version conflict bar, approval, a new version and the view state of the card.
 //
 // - Typing never waits for the server: each field is stored 800 ms after the last keystroke, on leaving the field, and
 //   before approval; one request per case at a time, in order. The server answers with the new version only, so the
 //   fields are never redrawn from the answer (the conclusion field's IME rule).
 // - A version conflict shows a bar with both choices; nothing typed is overwritten silently.
-// - The server's protocol replaces the page's copy unless this page holds typed text it has not stored yet
+// - The server's protocol replaces the local copy unless this page holds typed text it has not stored yet
 //   (mergeProto() in @codebridge/domain/discussion).
 // - A draft stays a draft until a named doctor approves it; approval waits for every save, the recording's last words
 //   and audio, and any attendance change on its way, and sends one idempotency key per approval.
@@ -53,7 +51,7 @@ type Save = {
 };
 
 const AUTOSAVE_MS = 800;
-// A new step starts assigned to the coordinator with the old page's default date.
+// A new step starts assigned to the coordinator with the default date.
 const NEW_STEP_DUE = "2026-10-30";
 
 export const useDiscussionStore = defineStore("discussion", () => {
@@ -83,7 +81,7 @@ export const useDiscussionStore = defineStore("discussion", () => {
     return protos[file]!;
   }
 
-  // The server's protocol of one case, merged into the page's copy (applyProto()).
+  // The server's protocol of one case, merged into the local copy.
   function sync(file: string) {
     const sp = serverCase(file)?.protocol;
     if (!sp || !protos[file]) return;
@@ -220,7 +218,7 @@ export const useDiscussionStore = defineStore("discussion", () => {
   }
 
   // ---------- approval ----------
-  // The old page's approve action and approveApi(). Every guard repeats what the disabled button already says, for any
+  // The approve action. Every guard repeats what the disabled button already says, for any
   // other path here (a double click, a key press).
   async function approve(file: string, user: { name: string; isDoctor: boolean }) {
     const p = usePatientsStore().byFile(file);
@@ -355,9 +353,9 @@ export const useDiscussionStore = defineStore("discussion", () => {
     for (const f of Object.keys(protos)) delete protos[f];
   }
 
-  // Read without creating the page's copy, so a list of cases (the session bar, the recorder) writes nothing.
+  // Read without creating the local copy, so a list of cases (the session bar, the recorder) writes nothing.
   // Before a user switch, what was typed is stored under the user who typed it; the records then go, because the next
-  // user's access decides what they may read (switchApiUser() in the template).
+  // user's access decides what they may read.
   // A draft that could not be stored (no connection, a waiting conflict) refuses the switch, so nothing typed is lost.
   useSessionStore().onUserSwitchCheck(async () => {
     const saved = await Promise.all(Object.keys(saves).map((f) => flush(f)));

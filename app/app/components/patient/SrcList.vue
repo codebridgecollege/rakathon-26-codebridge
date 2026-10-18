@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// The card's source list, folded away (srcList() in the template): every source the card used, in order of first use,
+// The card's source list, folded away: every source the card used, in order of first use,
 // with its document, page and the start of the quote. Each entry opens the exact passage.
 import { useFluent } from "fluent-vue";
 import type { SourceRef } from "@codebridge/domain/case-data";

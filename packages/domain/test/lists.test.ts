@@ -1,4 +1,4 @@
-// The list screens' rules (patients, calendar, tasks, staff), against the old page's behaviour. Synthetic values only.
+// The list screens' rules (patients, calendar, tasks, staff), against the expected behaviour. Synthetic values only.
 import { describe, expect, it } from "vitest";
 import {
   DEFAULT_WEEK,
@@ -99,7 +99,7 @@ describe("calendar grid", () => {
     expect(cells.find((c) => c.iso === "2026-10-22")!.seminar).toBe(true);
     // October 2026 needs five rows; the sixth row would hold only November days and is left out.
     expect(cells).toHaveLength(35);
-    // August 2026 ends on a Monday in the sixth row: the row stops after the month's last day, as in the old page.
+    // August 2026 ends on a Monday in the sixth row: the row stops after the month's last day.
     expect(miniMonthCells("2026-08", "2026-08-03")).toHaveLength(36);
   });
 

@@ -38,7 +38,7 @@ export function fmtMonthName(month: string, locale: string): string {
   return dtf(locale, { month: "long", timeZone: "UTC" }).format(new Date(`${month}-15T12:00:00Z`));
 }
 
-// A server timestamp as the old page showed it (toLocaleString): "16. 10. 2026 14:03:05" in Czech, in the browser's
+// A server timestamp (toLocaleString): "16. 10. 2026 14:03:05" in Czech, in the browser's
 // time zone. Anything that is not a timestamp is shown as written.
 export function fmtDateTime(ts: string | null | undefined, locale: string): string {
   if (!ts) return "";
@@ -53,7 +53,7 @@ export const weekdayIndex = (iso: string) => noon(iso).getUTCDay();
 // The interface language the i18n plugin set on <html>; formatting follows it.
 export const uiLocale = () => (typeof document !== "undefined" && document.documentElement.lang) || "cs";
 
-// Sizes and clock times as the old page shows them (fmtSize, upWhen, hhmm), formatted with Intl in the interface
+// Sizes and clock times (fmtSize, upWhen, hhmm), formatted with Intl in the interface
 // language instead of a hand-written decimal comma (I18N.md, "Hand-written formats").
 
 const MB = 1024 * 1024;
@@ -65,7 +65,7 @@ export function sizeMsg(bytes: number, locale = "cs"): Msg {
   return msgId("upload-size-mb", { size: nf.format(bytes / MB) });
 }
 
-// "09:05" in the browser's local time, as the old page showed upload and expiry times.
+// "09:05" in the browser's local time, for upload and expiry times.
 export function clock(ms: number, locale = "cs"): string {
   try {
     return new Date(ms).toLocaleTimeString(locale === "cs" ? "cs-CZ" : locale, { hour: "2-digit", minute: "2-digit" });

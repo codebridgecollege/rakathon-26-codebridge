@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// The question for the MDT (questionBox() and reasonQuestionBox() in the template; team decision 2026-10-17): the
+// The question for the MDT (team decision 2026-10-17): the
 // referral's explicit question as written; otherwise the assistant's draft until a named doctor confirms or edits it;
 // the gap wording only when there is neither. A doctor edits it by clicking the text; a draft gets "Potvrdit otázku".
 // The server confirms only the draft this page showed (its hash), so a re-extracted draft is never confirmed unread.

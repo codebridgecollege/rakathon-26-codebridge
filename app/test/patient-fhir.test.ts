@@ -49,7 +49,7 @@ describe("Export FHIR dialog", () => {
     expect(w.get(".modal").attributes()).toMatchObject({ role: "dialog", "aria-label": "Export FHIR" });
     expect(w.get("h2").text()).toBe("Export FHIR R4 · NO-010");
     const n = o.bundle.entry.length;
-    // The old page counted with a plain object, so types are listed in order of first appearance.
+    // Types are counted in a plain object, so they are listed in order of first appearance.
     const counts: Record<string, number> = {};
     for (const e of o.bundle.entry) counts[e.resource.resourceType] = (counts[e.resource.resourceType] || 0) + 1;
     const list = Object.entries(counts).map(([k, v]) => `${k} ${v}`).join(", ");

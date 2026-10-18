@@ -233,7 +233,7 @@ tasks-mail-digest-to = Komu: { $to } · odeslal(a) { $by }
 tasks-mail-digest-note = Jen počet úloh a odkaz, žádná jména ani diagnózy. Ukázková interní adresa; v maketě se nic neodesílá.
 tasks-mail-approval-subject = ✉ MDT - nové úlohy ke zpracování
 tasks-mail-approval-to = Komu: { $to }
-# [0] keeps the old page's wording for an approval without tasks.
+# [0] is the wording for an approval without tasks.
 tasks-mail-approval-body = K případu { $id } { $n ->
     [0] byly přiřazeny { $n } nové úlohy
     [one] byla přiřazena { $n } nová úloha

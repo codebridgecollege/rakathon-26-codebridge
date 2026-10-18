@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// One alert (alertRow() in the template): its kind, the assistant's text with links to the passages it rests on, the
+// One alert: its kind, the assistant's text with links to the passages it rests on, the
 // note, who last acted on it and when, its history (in the full list), and the actions. Every alert list sits under a
 // header saying the alerts are the assistant's observations and never block the discussion.
 import { computed } from "vue";

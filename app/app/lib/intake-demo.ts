@@ -1,5 +1,5 @@
 // The intake demo patient (synthetic patient S02, samples/S02_pacient): what the "Nový pacient" dialog needs to guide
-// the presenter, exactly as the old page read it from its built-in data (intakeOf() in mocks/src/v3-template.html).
+// the presenter, read from the app's built-in data.
 // - Its FHIR referral is the "Vložit ukázku" sample.
 // - Its seven PDFs are the upload the server recognises by hash; the dialog counts the ones still missing.
 // - The closing sentence names its page count and data gaps once the server says the prepared data will attach.

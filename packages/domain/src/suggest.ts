@@ -1,7 +1,7 @@
-// Task drafts from an approved conclusion (mock v3 round 19), ported from suggestTasks() in mocks/src/v3-template.html.
+// Task drafts from an approved conclusion (demo round 19).
 // Simple phrase rules: a draft quotes the clause it came from, never adds a step the conclusion does not state, and
-// becomes a task only when a doctor confirms it. Due dates count from the approval day passed in (the mock used a
-// fixed TODAY); only "za N dní/týdnů/měsíců" with a single N gives a date, anything else keeps its wording and no date.
+// becomes a task only when a doctor confirms it. Due dates count from the approval day passed in (not a
+// fixed date); only "za N dní/týdnů/měsíců" with a single N gives a date, anything else keeps its wording and no date.
 import { addDays, addMonths } from "./time";
 
 const SUGG_RULES: [RegExp, string][] = [
@@ -50,7 +50,7 @@ export function dueFrom(clause: string, approvalDay: string): Due {
 
 // A negated clause ("radioterapie není indikována", "bez nutnosti doplnit") must not become a task. Negation is read
 // from whole words, not from a "ne" prefix, because "nefrektomie" or "neurochirurg" are not negations.
-// Server additions to the mock's list (review of step 4): contraindication, refusal, past negation, "not needed".
+// Server additions to the phrase list (review of step 4): contraindication, refusal, past negation, "not needed".
 const NEG_RE =
   /(?:^|[^\p{L}])(?:ne|není|nejsou|nebude|nebudou|nelze|bez|nedoporuč\p{L}*|neindik\p{L}*|neprovád\p{L}*|neplánuj\p{L}*|kontraindik\p{L}*|odmít\p{L}*|nebyl\p{L}*|netřeba|nevyžad\p{L}*|nepotřeb\p{L}*|nezbytn\p{L}*\s+není|zbytečn\p{L}*|upouští\p{L}*|upustit)(?![\p{L}])/iu;
 

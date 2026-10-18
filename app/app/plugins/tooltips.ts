@@ -1,4 +1,4 @@
-// Tooltips for info and certainty icons, as the old page shows them (showTip() and its listeners in the template): on
+// Tooltips for info and certainty icons: on
 // hover or keyboard focus the element's title moves to data-tip and a styled tip (.tip) appears, so the browser does
 // not show a second one. A click on such an icon shows its tip instead of acting, unless the icon sits in something
 // that opens a source, an edit, a tab or a menu (marked with data-src, data-edit, data-tab, data-stmenu or a clickable

@@ -5,8 +5,8 @@ readings of the page disagree, only the primary reading has it, or
 Tesseract read it with low confidence. Two modes:
 
 - `vision_vs_tesseract`: the primary text is the vision model's Markdown,
-  the second reading is Tesseract's words (the page index the mock viewer
-  loads today, built by scripts/build_page_index.py).
+  the second reading is Tesseract's words (the page index the source viewer
+  loads, built by scripts/build_page_index.py).
 - `tesseract_vs_layer`: slice 6b-1 has no vision model, so the primary
   text (the text of record) is Tesseract's text and the second reading is
   the PDF text layer. The layer is never the text of record: FNO's font

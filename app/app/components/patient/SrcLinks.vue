@@ -1,6 +1,6 @@
 <script setup lang="ts">
 // Source links named by page ("s. 2"), as in the labs table, so several links in one row are told apart: a second
-// link to the same page is "s. 2 (2)" (srcLinks() in the template). Each opens the exact passage.
+// link to the same page is "s. 2 (2)". Each opens the exact passage.
 import { computed } from "vue";
 import { useFluent } from "fluent-vue";
 import type { SourceRef } from "@codebridge/domain/case-data";

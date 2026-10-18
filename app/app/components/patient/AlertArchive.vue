@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// Resolved and acknowledged alerts in a collapsed list at the bottom (warningArchive() in the template). Its summary
+// Resolved and acknowledged alerts in a collapsed list at the bottom. Its summary
 // shows how many, as a list length, not a score; its open state is kept across re-renders and between the lists.
 import { useFluent } from "fluent-vue";
 import type { AlertEntry } from "@codebridge/domain/case-view";

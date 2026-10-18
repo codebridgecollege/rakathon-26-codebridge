@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// The trend of one lab test across the documented draws (labChart() in the template): the reference range as a green
+// The trend of one lab test across the documented draws: the reference range as a green
 // band, a dot per value that the document gives, red when outside the range. Fewer than two values draw no chart;
 // a point is never invented to fill one.
 import { computed } from "vue";

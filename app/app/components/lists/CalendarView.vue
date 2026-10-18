@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// Screen S-2, Kalendář MDT (viewCalendar() in the old page): a week of 10-minute slots around the weekly seminar,
+// Screen S-2, Kalendář MDT: a week of 10-minute slots around the weekly seminar,
 // the mini month, the patients waiting for a slot, and the card of a booked patient. Booking and freeing go by
 // buttons (pick a patient, then a free slot), by drag and drop, and from the card; a double click on a booked slot
 // opens the case. Slots a conclusion was approved on are locked.
@@ -192,7 +192,7 @@ let lastAt = 0;
 let scrollTimer: ReturnType<typeof setTimeout> | undefined;
 function openCase(file: string) {
   lastSlot = null;
-  // Opening a case closes the card, as the old page's openPatient() did.
+  // Opening a case closes the card.
   v.calPop = null;
   void router.push(caseRoute(file));
 }
@@ -257,7 +257,7 @@ function onDrop(e: DragEvent, target: { day: string; time: string } | "zone") {
   else void scheduleAt(file, target.day, target.time);
 }
 
-// A freed slot closes its card (applyCase() in the old page).
+// A freed slot closes its card.
 watch(pop, (p) => {
   if (p && !p.slot) v.calPop = null;
 });

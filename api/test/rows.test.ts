@@ -53,7 +53,7 @@ describe("access rules", () => {
     }
   });
 
-  it("formats names as the page does", () => {
+  it("formats staff names with title and degree", () => {
     expect(staffName({ pre: "MUDr.", sur: "Malá", post: "Ph.D." })).toBe("MUDr. Malá, Ph.D.");
     expect(staffName({ pre: "", sur: "Malá", post: "" })).toBe("Malá");
   });

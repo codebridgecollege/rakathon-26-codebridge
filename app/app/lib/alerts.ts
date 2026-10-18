@@ -1,4 +1,4 @@
-// Alert handling (alertAct() in the template, round 25): "Vzít na vědomí" and "Vyřešeno", both reversible with
+// Alert handling: "Vzít na vědomí" and "Vyřešeno", both reversible with
 // "Vrátit". Every action is a new history entry with who and when; nothing is edited or removed. The entry shows at
 // once; the server stores it against the state this page saw, and a refusal takes it out again.
 import { toRaw } from "vue";

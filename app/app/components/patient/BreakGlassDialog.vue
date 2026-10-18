@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// Break-the-glass (INTEGRATION.md; the breakglass branch of renderOverlay() and breakGlassApi() in the template): a
+// Break-the-glass (INTEGRATION.md): a
 // doctor outside the case's team opens it only with a stated reason, which the server keeps in the access log for
 // review; the grant expires. After the grant the case is opened again, so the server logs that opening and sends the
 // case data.

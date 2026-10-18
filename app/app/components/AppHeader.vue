@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// The top bar of today's page (header.top, renderNav() in the template): the brand button, the main areas and the
+// The top bar: the brand button, the main areas and the
 // user picker. Same markup and classes, so the copied CSS styles it unchanged.
 import { computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
@@ -36,12 +36,12 @@ const items = computed(() => [
   { key: "staff", label: $t("nav-staff") },
   ...(isAdmin.value ? [{ key: "admin", label: $t("nav-admin") }] : []),
 ]);
-// "patient" (one case) belongs to the patients area, as in the template.
+// "patient" (one case) belongs to the patients area.
 const current = (k: string): "true" | "false" => (view.value === k || (k === "patients" && view.value === "patient") ? "true" : "false");
 
 // By path, so each area's own page (pages/<area>.vue) answers; the calendar keeps its last week (list view store).
 function go(k: string) {
-  // A patient picked for booking is dropped on any move between areas, as in the old page.
+  // A patient picked for booking is dropped on any move between areas.
   listView.schedPick = null;
   void router.push(`/${k}`);
 }

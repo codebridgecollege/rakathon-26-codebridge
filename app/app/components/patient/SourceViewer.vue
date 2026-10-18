@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// The source viewer (PRODUCT.md F-18; openSource(), sourceHtml() and zoomCtl() in the template). A reference opens
+// The source viewer (PRODUCT.md F-18). A reference opens
 // the original page image with the quoted passage boxed in yellow; the transcription sits in a second tab (team
 // decision 2026-10-16), so the doctor reaches the exact original passage either way. The page image is the source of
 // truth: the legend says that unmarked text is not verified. The quote is matched here, in the browser, on the page
@@ -34,7 +34,7 @@ const d = computed(() => source.pageOf(o.value.file, o.value.page));
 const doc = computed(() => source.docOf(o.value.file));
 
 // The loading drawer shows only until this viewer has shown a page; switching pages keeps the current page on screen
-// until the next one arrives, as the template did.
+// until the next one arrives.
 // Shallow: a deep ref would hold a reactive proxy, which never equals the overlay object itself.
 const shownFor = shallowRef<SourceOverlay | null>(null);
 watch(

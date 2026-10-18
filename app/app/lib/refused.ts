@@ -1,4 +1,4 @@
-// A refused write (refused() in the old page): the server's message as a toast, and the page brought back to what the
+// A refused write: the server's message as a toast, and the page brought back to what the
 // server holds, so it never keeps showing a refused view.
 import { ApiError, type WorkflowState } from "@codebridge/api-client";
 import { useApi } from "./api";

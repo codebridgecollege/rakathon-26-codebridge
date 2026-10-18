@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// The month grid next to the calendar (miniMonth() in the old page): month arrows, a year picker, and a day button
+// The month grid next to the calendar: month arrows, a year picker, and a day button
 // that jumps to its week. Today is marked for screen readers too.
 import { computed } from "vue";
 import { YEARS, miniMonthCells, DEMO_TODAY } from "@codebridge/domain/calendar";

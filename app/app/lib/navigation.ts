@@ -1,5 +1,5 @@
 // How a case was reached, for the access log: by a click inside the app, or by a link, a reload or the browser's back
-// and forward ("otevřel(a) případ (odkazem nebo historií prohlížeče)", readHash() in the template). The first route
+// and forward ("otevřel(a) případ (odkazem nebo historií prohlížeče)"). The first route
 // of a page load and a route reached by popstate count as "by link or history". plugins/navigation.ts feeds it.
 let routes = 0;
 let popped = false;

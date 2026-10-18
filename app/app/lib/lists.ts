@@ -29,7 +29,7 @@ export const MINI_WEEKDAY_IDS = [1, 2, 3, 4, 5, 6, 0].map((i) => WEEKDAY_IDS[i]!
 export const SEMINAR_LABEL_IDS: Record<string, string> = { neuro: "calendar-seminar-neuro" };
 
 // The patient view's route. Kept in one place, so the patient screens (ported separately) can change it in one line.
-// The case number is the file's number (/patient/10/overview; the old page's #patient/10/overview).
+// The case number is the file's number (/patient/10/overview).
 export const caseNumber = (file: string) => String(file).replace("_pacient.pdf", "");
 export const caseRoute = (file: string) => `/patient/${encodeURIComponent(caseNumber(file))}/overview`;
 

@@ -1,6 +1,5 @@
 <script setup lang="ts">
-// The transcript of one case in the "AI záznam" segment (recTxHtml() and recLinesHtml() in
-// mocks/src/v3-template.html): stored and live lines with their clock time, numbered speakers after the speaker pass,
+// The transcript of one case in the "AI záznam" segment: stored and live lines with their clock time, numbered speakers after the speaker pass,
 // and the words not committed yet. Its own component, so the scroll position is kept across its own updates only.
 import { computed, onBeforeUpdate, onUpdated, ref } from "vue";
 import { clock, uiLocale } from "../../lib/format";

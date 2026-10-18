@@ -63,7 +63,7 @@ describe("source links", () => {
     const Host = defineComponent({ setup: () => () => h("div", [h(SrcLinks, { refs })]) });
     const w = mountInCase(Host, setupPatient());
     expect(w.findAll("button").map((b) => b.text())).toEqual(["s. 2 (1)", "s. 2 (2)", "s. 3"]);
-    // Links are separated by a space, as the old page joined them, so each one reads as its own target.
+    // Links are separated by a space, so each one reads as its own target.
     expect(w.get("div").element.textContent).toBe("s. 2 (1) s. 2 (2) s. 3");
     expect(w.findAll("button")[0]!.attributes("aria-label")).toBe("Otevřít zdroj, strana 2: A");
   });

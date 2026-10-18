@@ -87,7 +87,7 @@ describe("list catalog", () => {
     expect(ids.filter((id) => !cs.hasMessage(id))).toEqual([]);
   });
 
-  it("uses the Czech plural forms of the old page", () => {
+  it("uses the Czech plural forms", () => {
     expect([1, 3, 5, 0].map((n) => fmt("tasks-waiting", { n }))).toEqual(["1 úloha čeká na vyřízení", "3 úlohy čekají na vyřízení", "5 úloh čeká na vyřízení", "0 úloh čeká na vyřízení"]);
     expect([0, 1, 2].map((n) => fmt("tasks-open-count", { n }))).toEqual(["0 otevřených", "1 otevřená", "2 otevřené"]);
     expect([1, 2, 5].map((n) => fmt("staff-people-count", { n }))).toEqual(["1 osoba", "2 osoby", "5 osob"]);

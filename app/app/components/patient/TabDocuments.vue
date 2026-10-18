@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// The Dokumenty tab (tabDocuments() in the template): a full-width table of the case's documents with how readable
+// The Dokumenty tab: a full-width table of the case's documents with how readable
 // each one is, Excel-style column filters, a search, and the documents the PDF only cites listed as missing
 // originals (Soňa and Juro, round 2). The whole row opens the document's first page; "Otevřít" stays for keyboard
 // users.
@@ -74,9 +74,9 @@ function clearFilters() {
   view.docQuery = "";
 }
 
-// Which column's popup is open; one at a time, as in the old page.
+// Which column's popup is open; one at a time.
 const colOpen = ref<string | null>(null);
-// An outside click only closes the popup and does nothing else, as the old page's click handler returned early; a
+// An outside click only closes the popup and does nothing else; a
 // capture listener stops the click before it reaches the row it landed on.
 function onDocClick(e: MouseEvent) {
   if (!colOpen.value) return;

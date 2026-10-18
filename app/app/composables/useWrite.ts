@@ -1,4 +1,4 @@
-// One write to the API as the old page's caseApi() did it: a busy key ignores a second click while the first is on its
+// One write to the API a busy key ignores a second click while the first is on its
 // way, the answer's state replaces the parts it names, and a refusal goes through refused() (lib/refused.ts): the
 // server's message as a toast, and the conflict's state applied or the stored workflow read again.
 import { useFluent } from "fluent-vue";
@@ -8,7 +8,7 @@ import { refused } from "../lib/refused";
 import { useSessionStore } from "../stores/session";
 import { usePatientsStore } from "../stores/patients";
 
-// Shared across components: the busy keys of writes in flight (BUSY in the template).
+// Shared across components: the busy keys of writes in flight.
 const busy = new Set<string>();
 
 export function useWrite() {

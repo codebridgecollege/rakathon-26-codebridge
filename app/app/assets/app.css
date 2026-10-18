@@ -9,7 +9,7 @@
    this is base.css's look for a pressed .seg button. */
 .seg button[role="tab"][aria-selected="true"] { background: transparent; border-bottom-color: var(--accent); color: var(--accent-ink); box-shadow: none; }
 
-/* Layout parity with the old page, which has no doctype and so renders in quirks mode; the app is in standards mode.
+/* The screens were designed in quirks mode and the app is in standards mode.
    Two quirks show in the layout and are reproduced here:
    - a textarea (inline-block) sits on the text baseline, so standards mode adds the descender gap below it (about
      6 px under "Závěr MDT" and the notes field); quirks mode does not;

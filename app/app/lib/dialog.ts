@@ -1,4 +1,4 @@
-// Focus handling for the app's dialogs, which the old page did not have: focus moves into the dialog when it opens,
+// Focus handling for the app's dialogs, focus moves into the dialog when it opens,
 // Tab stays inside it, and focus goes back to where it was (the button that opened it) when it closes. Nothing visible
 // changes; keyboard and screen-reader users no longer land behind the scrim.
 import { nextTick, watch, type Ref } from "vue";

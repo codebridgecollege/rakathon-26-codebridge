@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// The guideline layer (guideBox() in the template, F-27): verbatim statements from the named guidelines that apply to
+// The guideline layer (F-27): verbatim statements from the named guidelines that apply to
 // the documented facts, one list per field, sorted by the strength the guideline itself states (round 19), never as
 // an order of options for this patient. Literature from PubMed comes after, labelled as literature. The layer can be
 // switched off; a failed load says so and offers "Zkusit znovu".
@@ -30,7 +30,7 @@ const errText = computed(() => {
   return e ? (e.message_cs ?? $t(e.message_id ?? "patient-guide-load-failed")) : "";
 });
 
-// The clamp note shows only when the browser really cut the quote at this width (markClamped() in the template).
+// The clamp note shows only when the browser really cut the quote at this width.
 const root = ref<HTMLElement | null>(null);
 function markClamped() {
   root.value?.querySelectorAll<HTMLElement>(".glq.clamp").forEach((q) => q.classList.toggle("isclamped", q.scrollHeight > q.clientHeight + 1));

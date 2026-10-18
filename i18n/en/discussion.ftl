@@ -209,7 +209,7 @@ discussion-report-failed = The PDF could not be created. Try again.
 discussion-report-unavailable = PDF export is not available. Reload the page and try again.
 discussion-report-no-content = The report content is missing.
 
-# The printed report. It is a record: the wording stays as the old page printed it.
+# The printed report. It is a record: the wording stays as it was first printed.
 discussion-report-title = MDT record
 discussion-report-meta = MDT date: { $date } · ID { $id }
 discussion-report-meta-draft = MDT date: { $date } · ID { $id } · Draft

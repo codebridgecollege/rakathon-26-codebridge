@@ -1,5 +1,5 @@
 // Fluent bundles for the app (docs/design/I18N.md). The catalogs are the shared .ftl files at the repository root
-// (i18n/<locale>/<area>.ftl), the same files the old page and the Worker read. One file per area keeps parallel work on
+// (i18n/<locale>/<area>.ftl), the same files the Worker reads. One file per area keeps parallel work on
 // different screens from colliding in one catalog. Czech is the source; Slovak and English fall back to it message by
 // message until they are translated.
 import { FluentBundle, FluentResource } from "@fluent/bundle";

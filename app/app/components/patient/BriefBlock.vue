@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// "Stručný souhrn" (briefBlock() in the template): the extracted summary with every clause linked to its source, the
+// "Stručný souhrn": the extracted summary with every clause linked to its source, the
 // MDT question, the disease course, the sources, the conclusion and the discussion card "Projednání na MDT". A case without an extracted
 // brief shows the list row's one-line summary, said to be that, with what the assistant processed.
 import { computed } from "vue";
@@ -24,7 +24,7 @@ const view = usePatientViewStore();
 
 const brief = computed(() => c.cd.value?.brief ?? null);
 const prose = computed(() => linkProse(brief.value?.text_cs, brief.value?.refs));
-// Sources are registered only while the doctor's edit does not replace the brief, as in the template.
+// Sources are registered only while the doctor's edit does not replace the brief.
 const sources = computed(() => {
   if (c.edOf("brief")) return [];
   const seen = new Set<string>();

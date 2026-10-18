@@ -1,5 +1,5 @@
 // "otevřít v doporučení": opens the guideline drawer at the quoted statement and records the view in the access log
-// (the old page's "otevřel(a) doporučení", sent as a fixed code with the case id, never free text).
+// ("otevřel(a) doporučení", sent as a fixed code with the case id, never free text).
 import type { PatientCtx } from "../composables/usePatient";
 import { useOverlayStore } from "../stores/overlay";
 import { useApi } from "./api";

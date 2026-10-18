@@ -1,7 +1,6 @@
 <script setup lang="ts">
-// The "AI záznam" segment of the discussion card (recPanel(), recCtlHtml(), recState(), recBodyHtml(),
-// recServerPassesHtml() and recTxHtml() in mocks/src/v3-template.html): start and stop, the state line, the speaker
-// passes and the summary draft, and the transcript. Same markup and classes as the old page, so the copied CSS styles
+// The "AI záznam" segment of the discussion card: start and stop, the state line, the speaker
+// passes and the summary draft, and the transcript. Same markup and classes, so the copied CSS styles
 // it. Vue updates only the nodes that change, so live words never steal focus from a doctor typing elsewhere.
 import { computed, watch } from "vue";
 import { useFluent } from "fluent-vue";

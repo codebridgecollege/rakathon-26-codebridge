@@ -1,11 +1,11 @@
-// View state of the patient screen that outlives a tab switch, as the fields of S in the template: which toggles are
+// View state of the patient screen that outlives a tab switch: which toggles are
 // open, the timeline's hidden categories, the picked lab test, the document filters and the guideline layer switch.
 // Nothing here is patient data or goes to browser storage.
 import { defineStore } from "pinia";
 import { ref } from "vue";
 
 export const usePatientViewStore = defineStore("patientView", () => {
-  // The case these per-case choices belong to; opening another case clears them (openPatient() in the template).
+  // The case these per-case choices belong to; opening another case clears them.
   const forFile = ref<string | null>(null);
   // The brief's "⚠ Upozornění" toggle (S.gapsOpen) and the resolved-alert list (S.resolvedOpen).
   const gapsOpen = ref(false);

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// Reading an uploaded document without AI (pipeHtml(), pipeLoad() and pipeRun() in the template; the server side is
+// Reading an uploaded document without AI (the server side is
 // api/src/routes/pipeline.ts): Tesseract with the PDF text layer as a second reading, the readability check and the
 // lab parser. The result is the assistant's reading, shown next to the prepared data; it never replaces what the case
 // shows. The parent renders this only when the server has the pipeline on and the document is an uploaded file.
@@ -25,7 +25,7 @@ type Run = {
   diff?: { same?: number; verify?: number; silent?: number; missing?: number };
 };
 
-// The poll interval and the number of polls the old page used: about three minutes, each poll a logged read.
+// The poll interval and the number of polls: about three minutes, each poll a logged read.
 const POLL_MS = 2000;
 const POLLS = 90;
 
@@ -50,7 +50,7 @@ async function load(): Promise<Run | null> {
     if (mine !== gen) return null;
     error.value = errorText($t, e);
   }
-  // A failed poll keeps the last run, as the old page did, so the loop goes on with what it knew.
+  // A failed poll keeps the last run, so the loop goes on with what it knew.
   return run.value;
 }
 

@@ -1,4 +1,4 @@
-// The one dialog or drawer open over the page (S.overlay in the template). One at a time, as today: opening another
+// The one dialog or drawer open over the page. One at a time, as today: opening another
 // replaces it, Escape and the scrim close it. Each kind carries its own state; screens that port later add their kinds.
 import { defineStore } from "pinia";
 import { shallowRef, triggerRef } from "vue";

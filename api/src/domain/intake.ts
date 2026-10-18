@@ -1,4 +1,4 @@
-// A new referral (Nový pacient): the form's checks with the page's messages, the duplicate birth-number rule and the
+// A new referral (Nový pacient): the form's checks with their Czech messages, the duplicate birth-number rule and the
 // one-time demo intake fixture. Czech hospitals hold duplicate records for one birth number, so a second record is
 // allowed only as a deliberate choice ("Přesto vytvořit nový záznam"), which the access log keeps (CLAUDE.md: do not
 // merge silently). A typed reason is optional and stays with the case.
@@ -109,8 +109,8 @@ export function evaluateIntake(x: IntakeInput): IntakeVerdict {
   if (!samePerson(x.patient, x.fixture.patient))
     return none("Jméno nebo rodné číslo v žádosti se neshoduje s dokumenty ukázkového pacienta. Dokumenty se k tomuto záznamu nepřipojí.", { expected: 0 });
   if (x.attachedElsewhere) return none("Ukázkový pacient už v databázi je; nový záznam zůstane bez zpracovaných dokumentů.", extra);
-  // Files that are not a fixture (listed only) do not stop the attach, as the page before the server ignored extra
-  // files; a fixture file that is not one of these uploads (another fixture's document) does.
+  // Files that are not a fixture (listed only) do not stop the attach, so extra
+  // files are ignored; a fixture file that is not one of these uploads (another fixture's document) does.
   const fixtureShas = new Set(x.fixture.files.map((f) => f.sha256));
   if (x.docs.some((d) => d.fixture_id && (!d.sha256 || !fixtureShas.has(d.sha256))))
     return none("Mezi nahranými dokumenty je soubor, který k ukázkovému pacientovi nepatří; předem připravená data se nepřipojí.", extra);
@@ -121,7 +121,7 @@ export function evaluateIntake(x: IntakeInput): IntakeVerdict {
   return { ...base, ...extra, ready: true, docByUpload, reason_cs: `Připojí se předem připravená data ukázkového pacienta: ${docsCs(present.length)} (${pages} s.), hledané podle otisku souborů.` };
 }
 
-// The case ID the intake gets: the fixture's own ID (NO-S02, as the embedded demo shows it) when the referral names a
+// The case ID the intake gets: the fixture's own ID (NO-S02) when the referral names a
 // fixture patient and that ID is free, else the next number. Cosmetic: the attach decides by documents and identity.
 export function intakeCaseId(fixtureId: string | null, taken: boolean, next: number) {
   if (fixtureId && !taken) return { id: `NO-${fixtureId}`, file: `${fixtureId}_pacient.pdf` };

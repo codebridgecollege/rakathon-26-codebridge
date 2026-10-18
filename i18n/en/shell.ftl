@@ -32,7 +32,7 @@ user-picker-other-roles = Other roles
 # A role holder shown with their function: the name, then the function in brackets.
 user-picker-with-function = { $name } ({ $fn })
 user-coordinator-function-default = MDT coordinator
-# The coordinator's tooltip when the staff list names no function (the old page words it differently from the label).
+# The coordinator's tooltip when the staff list names no function (it is worded differently from the label).
 user-coordinator-tooltip-default = MDT coordination
 user-admin-function = system administrator
 

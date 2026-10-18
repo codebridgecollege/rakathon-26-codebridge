@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// The Laboratoř tab (tabLabs() and labTrend() in the template, Soňa, round 2). With a series of at least two dated
+// The Laboratoř tab (Soňa, round 2). With a series of at least two dated
 // draws: rows are tests, columns are draws, and clicking a test draws its trend. Without one (case 10's single undated
 // panel) only the document's values are shown: a series is never invented to fill the chart (product owner, round
 // 24). Every value is the document's own text, with its unit, range and code as written, and opens its own line in

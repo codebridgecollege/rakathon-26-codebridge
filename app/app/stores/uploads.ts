@@ -1,5 +1,5 @@
 // Documents added to a case by hand (PRODUCT.md F-34: "Dokumenty" in "Projednání na MDT", and the documents tab's
-// upload dialog), as S.ups and addUploadsApi() in the old page. Each file goes to POST /cases/:id/documents as its own
+// upload dialog). Each file goes to POST /cases/:id/documents as its own
 // request. The server keeps the content of a prepared synthetic document only and lists any other file by name and
 // size, so every file shows as "Nahráno". A row appears at once and takes the server's answer when it comes; a file the
 // server did not take (unreachable, busy) stays listed in this tab only, so the meeting never sees an upload error.

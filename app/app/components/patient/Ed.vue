@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// A fact a doctor may correct (ed() in the template). An edit never changes the source document or the extracted
+// A fact a doctor may correct. An edit never changes the source document or the extracted
 // value; it is stored next to it with who and when, and the fact says it was edited, with the original in the
 // tooltip. The slot is the original's rich form (linked prose); an edited fact shows the doctor's text instead.
 import { computed } from "vue";

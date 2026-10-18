@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// The brief's alert panel behind "⚠ Upozornění" (gapsBox() in the template): the alerts for the MDT question first
+// The brief's alert panel behind "⚠ Upozornění": the alerts for the MDT question first
 // (CLAUDE.md: question-relevant alerts first), then the brief's own data gaps; the full list stays in the tab.
 import { computed } from "vue";
 import { useRouter } from "vue-router";

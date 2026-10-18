@@ -1,12 +1,12 @@
-// The per-case data cache, with the semantics of caseStore in mocks/src/v3-template.html:
-// - keyed by the list row's file, as every per-case map in the page is;
+// The per-case data cache, with these rules:
+// - keyed by the list row's file, as every per-case map is;
 // - an entry is "absent", "loading", "ready" or "error"; creating one never starts a load, so a list or a calendar
 //   card never causes an access;
 // - one request per case load (the server logs "case.data" for it), never a prefetch;
 // - a reply for an older request, a reset store or an evicted entry is dropped (gen counter and entry identity);
 // - at most CASE_CACHE_MAX loaded cases stay in memory, the open one counted among them, and nothing goes to browser
 //   storage.
-// The new app has no embedded mode, so nothing is ever "seeded" from the page itself.
+// Nothing is ever "seeded" from the page itself.
 import { defineStore } from "pinia";
 import { reactive, ref } from "vue";
 import { ApiError, type Extraction, type PatientRow } from "@codebridge/api-client";
@@ -93,7 +93,7 @@ export const useCasesStore = defineStore("cases", () => {
     try {
       const ex = await useApi().extraction(p.id);
       const d = ex.data ?? null;
-      // All knowledge of the reply's shape sits here, as in the template's fromApi(): data is null (no run) or holds
+      // All knowledge of the reply's shape sits here, data is null (no run) or holds
       // { case, extra } or { syn }. Anything else is an error on the case, never data that merely looks valid.
       if (d !== null && (typeof d !== "object" || (!("case" in d) && !("syn" in d)))) throw new ApiError("bad_shape", 200, null, "case-data-bad-shape");
       data = { file: p.file, id: p.id, extraction: d };
@@ -118,7 +118,7 @@ export const useCasesStore = defineStore("cases", () => {
     return loadCase(p);
   }
 
-  // The guideline layer of a case, loaded once (ensureGuidance() in the template). The server logs "guidance.load"
+  // The guideline layer of a case, loaded once. The server logs "guidance.load"
   // for it. A failed request keeps its message, so the panel says so instead of a spinner that never ends.
   async function ensureGuidance(p: PatientRow): Promise<void> {
     const e = entries.get(p.file);
@@ -144,7 +144,7 @@ export const useCasesStore = defineStore("cases", () => {
   }
 
   // The case that holds a source document: the case's own PDF, or one uploaded PDF per document (a case created by
-  // intake). Only loaded cases are searched, so a reference never causes a load (byDocFile in the template).
+  // intake). Only loaded cases are searched, so a reference never causes a load.
   function caseFileOfDoc(docFile: string): string | null {
     if (entries.get(docFile)?.state === "ready") return docFile;
     for (const [f, e] of entries) {

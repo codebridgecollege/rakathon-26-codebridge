@@ -1,4 +1,4 @@
-// Boot and user switch, against a mocked API: the same requests as the old page's boot(), nothing assigned from a
+// Boot and user switch, against a mocked API: the same requests as a normal boot, nothing assigned from a
 // failed load, and a switch that the server refuses keeps the previous user.
 import { beforeEach, describe, expect, it } from "vitest";
 import { createPinia, setActivePinia } from "pinia";

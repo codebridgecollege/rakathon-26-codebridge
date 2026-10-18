@@ -1,8 +1,8 @@
 <script setup lang="ts">
-// "Retrospektivní odchylky" (tabDev(), deviationFindings() and retroList() in the template). A read-only comparison of
+// "Retrospektivní odchylky". A read-only comparison of
 // documented decisions with guideline passages; listing a row does not establish a deviation. Severity and assessment
 // are set by doctors, never by the assistant: earlier doctor assessments stay readable, nothing here takes input
-// (user decision 2026-10-17). The old page never filled those assessments (S.retro stays empty), so every severity
+// (user decision 2026-10-17). Nothing fills those assessments here, so every severity
 // shows as not stated, as today. The protocol's own deviations table (devTable()) needs recorded deviations that the
 // server does not send, so it is left out.
 import { computed } from "vue";

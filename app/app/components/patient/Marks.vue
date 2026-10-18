@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// Quiet certainty markers next to a fact (marks() in the template): an icon with a tooltip instead of a grey comment
+// Quiet certainty markers next to a fact: an icon with a tooltip instead of a grey comment
 // line (round 2). Every fact still shows its certainty, as CLAUDE.md requires; only the wording sits in the tooltip.
 import { computed } from "vue";
 import { useFluent } from "fluent-vue";

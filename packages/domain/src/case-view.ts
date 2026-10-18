@@ -1,7 +1,6 @@
 // The clinical-trust rules of the patient view (screen S-3): alert states, the missing-document signal, the MDT
 // question, certainty marks and the timeline. Pure and free of interface text: they return codes, and the app picks
 // the catalog message. Ports of alertState(), warningEntries(), topAlerts(), hasMissing(), missingState(), qState(),
-// ocrCleared(), marks(), categoryOf() and the timeline sort in mocks/src/v3-template.html.
 import type { CaseData, DataGap, Flag, Item, SourceRef, TimelineEvent } from "./case-data";
 
 // ---------- alerts ----------

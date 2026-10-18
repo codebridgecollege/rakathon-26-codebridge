@@ -1,6 +1,6 @@
 // The MDT report "Záznam z MDT" (PRODUCT.md F-31) as one escaped HTML string: the dialog's preview, the PDF and the
-// snapshot frozen at approval (reportHtml(), reportBasis(), identLine() and fillIdent() in mocks/src/v3-template.html).
-// The markup and the printed Czech wording are the old page's: the report is a record, and the server accepts only
+// snapshot frozen at approval.
+// The markup and the printed Czech wording are fixed: the report is a record, and the server accepts only
 // that markup (api/src/domain/report.ts validateReportHtml: no other tags or attributes, no patient identity in a
 // stored snapshot). Every value is escaped here; nothing in the result comes from the data unescaped.
 import type { CaseState, PatientRow } from "@codebridge/api-client";
@@ -30,11 +30,11 @@ export const recordT: T = (id, args) => {
 
 export type ReportProto = { state: "draft" | "approved"; concl: string; steps: { text: string; who: string; due: string }[]; approver?: string | null };
 
-// The finding groups the report can print, in the old page's order (FIND); their titles are discussion-report-pick.
+// The finding groups the report can print, in a fixed order (FIND); their titles are discussion-report-pick.
 export const FIND = ["clinical_finding", "imaging", "histology", "past_treatment", "current_state"] as const;
 // The history sections in the order the Czech anamnesis is written (ANAM); labels are patient-anam-section.
 const ANAM = ["OA", "RA", "PA", "SA", "FA", "AA", "abusus", "EA", "preventive"] as const;
-// Gap kinds that print their kind before the text (ALERT in the old page); any other kind prints its text only.
+// Gap kinds that print their kind before the text; any other kind prints its text only.
 const GAP_KINDS = new Set(["missing", "contradiction", "chronology", "unclear"]);
 
 export const esc = (s: unknown) =>
@@ -109,7 +109,7 @@ export function reportHtmlFor(t: T, file: string, pr: ReportProto, present: stri
   // In the report an edited value is marked, so it is never read as if the cited source said it.
   const edRep = (k: string, orig: string) => (edOf(k) ? `${edOf(k)!.text}${tag("discussion-report-tag-edited")}` : orig);
 
-  // Paper-style references: numbered in order of first use while the report is built, in the old page's order
+  // Paper-style references: numbered in order of first use while the report is built, in a fixed order
   // (anamnesis, then the brief, then the finding groups).
   const list: SourceRef[] = [];
   const key = (r: SourceRef) => `${r.file}|${r.page}|${r.quote}`;

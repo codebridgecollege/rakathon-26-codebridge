@@ -1,4 +1,4 @@
-// A small synthetic fixture for the data routes. Tests never read data/ or mocks/; the seed has its own check.
+// A small synthetic fixture for the data routes. Tests never read data/ or fixtures/; the seed has its own check.
 import { env } from "cloudflare:workers";
 import { applyD1Migrations, reset } from "cloudflare:test";
 

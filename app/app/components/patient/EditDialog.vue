@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// "Upravit údaj" (the edit branch of renderOverlay() and the saveedit/revertedit actions in the template). An edit
+// "Upravit údaj". An edit
 // never changes the source document or the extracted value: it is stored next to it with who and when, and the
 // original stays in the case history. The server names the edit it replaces (expected_edit_id), so a colleague's
 // parallel edit is reported, not lost. Saving the original text or nothing means "back to the original".

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // Route /patients: screen S-1. "+ Nový pacient" opens the new-patient dialog (mounted once in app.vue); the dialog
 // itself refuses users who may not create patients. A finished intake that does not open the new patient returns to
-// this list with its column filters cleared, as the old page did.
+// this list with its column filters cleared.
 import { onMounted } from "vue";
 import { useRouter } from "vue-router";
 import AppMain from "../components/AppMain.vue";

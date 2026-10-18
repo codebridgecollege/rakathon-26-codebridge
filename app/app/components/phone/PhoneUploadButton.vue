@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// "Nahrát z telefonu" (phoneBtn() in the old page). The screen shows it only where this user could upload to the case
+// "Nahrát z telefonu". The screen shows it only where this user could upload to the case
 // (an open intake, an upload zone that is offered); the dialog itself is PhoneUploadDialog, mounted once in app.vue.
 import { useFluent } from "fluent-vue";
 import type { UploadTarget } from "@codebridge/api-client";

@@ -1,6 +1,6 @@
 // The JSON shapes the API sends and the page reads, as types only. The Worker builds these objects in its routes and
 // stores; api/src/wire-check.ts asserts at type-check time that what the Worker builds still fits these types, so the
-// browser client and the server cannot drift apart silently. Field names are the page's (see mocks/src/v3-template.html).
+// browser client and the server cannot drift apart silently. Field names are the ones the app reads.
 import type { Role } from "./access";
 import type { Status } from "./status";
 import type { Step } from "./protocol";
@@ -148,7 +148,7 @@ export type Workflow = {
 // The extraction itself is the largest shape in the app and is typed when its screens are ported.
 export type Extraction = { data: { case?: unknown; extra?: unknown; syn?: unknown } | null } & Record<string, unknown>;
 
-// Protocol steps travel in the page's shape.
+// Protocol steps travel in the app's shape.
 export type { Step };
 
 // ---------- new patient, uploads and the phone upload ----------

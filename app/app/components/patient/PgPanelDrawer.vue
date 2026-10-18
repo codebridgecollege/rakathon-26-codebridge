@@ -1,6 +1,5 @@
 <script setup lang="ts">
-// The similarity explanation of one study population (the pgpanel overlay of renderOverlay(), the panel built in
-// pgSimilarity() in prognosis.js): how the server's orientation score came about, dimension by dimension, with the
+// The similarity explanation of one study population: how the server's orientation score came about, dimension by dimension, with the
 // patient's and the study's own words. It says plainly that the score is not a survival probability.
 import { computed } from "vue";
 import { useFluent } from "fluent-vue";

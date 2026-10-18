@@ -1,4 +1,4 @@
-// Writes from the patient screen, with the old page's behaviour (caseApi() and refused() in the template): every write
+// Writes from the patient screen, every write
 // waits for the server and shows the state it answers with; a busy key ignores a second click while the first is on
 // its way; a refusal shows the server's message, and a conflict puts the server's state back on screen.
 import { ApiError, type WriteReply } from "@codebridge/api-client";
@@ -16,7 +16,7 @@ const isStateShape = (c: unknown) => !!c && typeof c === "object" && ["cases", "
 export const errorText = (t: T, e: unknown) =>
   e instanceof ApiError ? (e.message_cs ?? t(e.message_id ?? "api-error-write-failed")) : t("api-error-write-failed");
 
-// The stored state of every case again (reloadWorkflow() in the template), so the page never keeps showing a view the
+// The stored state of every case again, so the page never keeps showing a view the
 // server refused.
 export async function reloadWorkflow(): Promise<void> {
   try {

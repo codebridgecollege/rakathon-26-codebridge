@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// One patient view for every case, driven by what its data holds (viewPatient() in the template). The header always
+// One patient view for every case, driven by what its data holds. The header always
 // renders from the list row, so the doctor sees whose case it is while the data loads or after it failed. While the
 // data loads there are no tabs and no editable fields, so the one render when the data arrives cannot interrupt
 // typing; the tab from the address is kept, so a deep link lands on its tab once the data is there.
@@ -73,7 +73,7 @@ onBeforeUnmount(() => {
 });
 
 // Once the data is there, the address names the tab actually shown (a missing or unavailable tab falls back to the
-// first one), as writeHash() in the template keeps the hash in step with the view.
+// first one), so the hash stays in step with the view.
 watch(
   () => [state.value, current.value, props.tab] as const,
   ([st, cur, asked]) => {

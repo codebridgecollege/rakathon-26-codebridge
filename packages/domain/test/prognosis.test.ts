@@ -65,7 +65,7 @@ describe("reference numbering", () => {
   it("gives each similarity and variant its own panel, in row order", () => {
     const s1 = { score: 71 }, s2 = { score: 40 }, s3 = { score: 10 };
     const l = pgLayout([study({ similarity: s1, similarity_variants: [{ similarity: s2 }, { similarity: null }] }), study({ similarity: null }), study({ similarity: s3 })]);
-    // A variant without a nested similarity is itself the similarity, as the old page read it.
+    // A variant without a nested similarity is itself the similarity.
     expect(l.rows.map((r) => r.panel)).toEqual([0, null, 3]);
     expect(l.rows[0]!.variantPanels).toEqual([1, 2]);
     expect(l.panels.map((p) => p.similarity)).toEqual([s1, s2, { similarity: null }, s3]);

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// The conclusion draft under "Závěr MDT" (the draftable part of conclusionBox() and syncConcl() in the template). Only a
+// The conclusion draft under "Závěr MDT". Only a
 // doctor writes it; the assistant never proposes a conclusion. It stays a draft until it is approved in "Projednání na
 // MDT", and a new draft sits under the valid conclusion, so a draft is never read as the decision.
 //

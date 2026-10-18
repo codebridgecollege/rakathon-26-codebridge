@@ -1,4 +1,4 @@
-// "Nahrát z telefonu" (docs/design/PHONE-UPLOAD.md), as S.phone and phoneOpen()...phoneEnd() in the old page. The
+// "Nahrát z telefonu" (docs/design/PHONE-UPLOAD.md). The
 // server opens an upload session for one case and answers its token once; the QR code carries
 // <origin>/u#<token> (the part after "#" never reaches a server, and the token is never shown as text). While the
 // dialog is open the page asks every 1.5 s what the phone sent, and the files join the case's upload list (or the

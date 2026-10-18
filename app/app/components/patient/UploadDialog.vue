@@ -1,8 +1,8 @@
 <script setup lang="ts">
-// "+ Nahrát dokument" in the documents tab (the upload branch of renderOverlay() in the template). As today it is a
+// "+ Nahrát dokument" in the documents tab. As today it is a
 // demonstration: "Vybrat soubory" stores nothing and only shows what would follow (the readability check). The real
 // uploads of a case go through "Projednání na MDT" (CaseUploads) and "Nahrát z telefonu", offered here to a user who
-// may add documents to an open, unapproved case (canUpload() in the template).
+// may add documents to an open, unapproved case.
 import { computed, ref } from "vue";
 import { useFluent } from "fluent-vue";
 import { usePatientsStore } from "../../stores/patients";

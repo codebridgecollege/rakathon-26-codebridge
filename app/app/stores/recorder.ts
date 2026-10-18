@@ -1,5 +1,4 @@
-// The AI recorder "AI záznam" (PRODUCT.md F-25, screen S-5): live transcription of the MDT discussion, in server mode
-// (the old page's recServer() path in mocks/src/v3-template.html: recStart() to recRetry()).
+// The AI recorder "AI záznam" (PRODUCT.md F-25, screen S-5): live transcription of the MDT discussion, in server mode.
 //
 // - One recording runs for the whole meeting. Each word goes to the case that was open when it was spoken
 //   (recordingTarget() in @codebridge/domain/discussion), so moving to the next case moves the transcript with it, and
@@ -9,7 +8,7 @@
 //   is discussed; approval starts the speaker pass there, which deletes the audio and makes the summary draft. The page
 //   polls the job and shows what the server stored.
 // - Without server mode the recorder still shows live words, but stores nothing and holds no audio: the in-browser
-//   speaker pass of the old page ran only on Pages or from a file, and the app has no such mode.
+//   speaker pass runs only on the server, and the app has no mode without it.
 // - A Pinia store, so a recording survives route changes. The audio buffers and queues are plain, non-reactive state:
 //   they change four times a second and nothing on screen shows them.
 // - Nothing here logs transcript text or audio. The server audits its own recording routes.

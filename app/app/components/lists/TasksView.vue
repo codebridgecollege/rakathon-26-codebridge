@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// Screen S-6, Moje úlohy (viewTasks(), tasksHead() and mdtTasksCard() in the old page): the user's tasks, all tasks,
+// Screen S-6, Moje úlohy: the user's tasks, all tasks,
 // and the coordinator's "Úlohy po MDT" across all cases with the drafts the assistant made from approved conclusions.
 // A drafted task becomes a task only when a doctor confirms it; everyone else sees it read-only. The digest e-mail
 // carries a count and a link, never patient data.
@@ -53,7 +53,7 @@ function openCase(file: string) {
   void router.push(caseRoute(file));
 }
 
-// Done is shown at once and put back when the server refuses (taskDoneApi() in the old page).
+// Done is shown at once and put back when the server refuses.
 async function toggleDone(t: Task, ev: Event) {
   const box = ev.target as HTMLInputElement;
   if (!me.canRunCases.value) {

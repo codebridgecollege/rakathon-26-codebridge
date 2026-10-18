@@ -1,4 +1,4 @@
-// The page transcription as the source viewer's "Přepis stránky" tab shows it (pageTextHtml() in the old page). The
+// The page transcription as the source viewer's "Přepis stránky" tab shows it. The
 // vision transcription is Markdown: it is shown as text with headings and tables kept, and with the cited passage,
 // the "ověřit" tokens, the transcriber's own [notes] and unreadable characters marked by character ranges. This
 // module only cuts the text into pieces; the component renders them as text nodes, so the transcription is never

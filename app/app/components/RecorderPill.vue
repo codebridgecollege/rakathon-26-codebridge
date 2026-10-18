@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// The header's stop button while the AI recorder runs (recPill() in mocks/src/v3-template.html), so a recording can be
+// The header's stop button while the AI recorder runs, so a recording can be
 // stopped from anywhere in the app. It names the case that takes the words, or says that nothing is being stored when
 // no open case can take them.
 import { computed } from "vue";

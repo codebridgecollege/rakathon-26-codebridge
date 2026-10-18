@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// One population or arm of a study (pgStudyRow() in prognosis.js). It keeps the study's own population, treatment and
+// One population or arm of a study. It keeps the study's own population, treatment and
 // time origin next to its values, marks the row as a model extraction to verify, and lists conflicting extractions
 // apart from the main cells. Study text is English as published; the model's summaries are Czech.
 import { computed } from "vue";

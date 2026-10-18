@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// The "Nahrát z telefonu" dialog (renderPhone() in the old page), in its own layer (#phoneup) above the other dialogs,
+// The "Nahrát z telefonu" dialog, in its own layer (#phoneup) above the other dialogs,
 // so it opens over "Nový pacient" without closing it; Escape and "Zavřít" close only it. The QR library
 // (qrcode-generator, pinned) is loaded only when a code is shown. The token is only inside the QR image, never text.
 import { computed, onBeforeUnmount, onMounted, ref, shallowRef, watch } from "vue";

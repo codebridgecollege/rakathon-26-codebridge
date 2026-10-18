@@ -1,4 +1,4 @@
-// The staff screen's checks before a request (screen S-8, staffEdit() and staffAdd() in mocks/src/v3-template.html).
+// The staff screen's checks before a request (screen S-8,).
 // The server checks again (api/src/domain/staff.ts); these only let the page refuse at once with the same wording.
 import { staffName } from "./names";
 import type { StaffDirectory, StaffPerson } from "./wire";

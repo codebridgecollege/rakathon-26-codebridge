@@ -1,4 +1,4 @@
-// The "Nový pacient" store against a mocked API: the same requests and decisions as the old page's intake in API mode
+// The "Nový pacient" store against a mocked API: the same requests and decisions as in API mode
 // (newCaseApi, newUploadsApi, discardIntake, completeIntakeApi). Synthetic values only.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createPinia, setActivePinia } from "pinia";
@@ -58,7 +58,7 @@ async function openFilled(s = useIntakeStore()) {
 }
 
 describe("opening", () => {
-  it("is for doctors and the coordinator; others get the old page's note", async () => {
+  it("is for doctors and the coordinator; others get a note", async () => {
     server();
     useSessionStore().me = { user: { id: "admin", name: "Ing. Kovář", role: "admin", dept: null }, auth_mode: "demo", impersonating: false, notice_cs: null };
     const s = useIntakeStore();

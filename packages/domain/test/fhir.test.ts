@@ -1,5 +1,5 @@
-// The FHIR referral read into the "Nový pacient" form: the same fields as fhirToForm() in the old page, nothing
-// guessed, and the consent never imported. Synthetic bundle (the old page's built-in sample).
+// The FHIR referral read into the "Nový pacient" form: the same fields as the form expects, nothing
+// guessed, and the consent never imported. Synthetic bundle (the demo's built-in sample).
 import { describe, expect, it } from "vitest";
 import { FORM_FIELD, SID, fhirToForm } from "../src/fhir";
 import { DomainError } from "../src/errors";
@@ -78,7 +78,7 @@ describe("fhirToForm", () => {
     }
   });
 
-  it("maps the form keys to the page's field names", () => {
+  it("maps the form keys to the form's field names", () => {
     expect(FORM_FIELD).toMatchObject({ first_name: "nf0", last_name: "nf1", birth_number: "nf2", insurer: "nf3", anamnesis: "nfa", question: "nfq" });
   });
 });

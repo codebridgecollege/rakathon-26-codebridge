@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// A case's hand-added documents (uploadsApiHtml() in the old page): the drop zone, "Nahrát z telefonu", the list with
+// A case's hand-added documents: the drop zone, "Nahrát z telefonu", the list with
 // "Nahráno", and the note on what the demo keeps. Generic: "Projednání na MDT" (S-5) and the documents tab's dialog
 // pass the case and whether this user may add documents there (locked, with an optional reason shown above).
 // The pipeline's own controls for a stored document (when the server runs it) come through the "pipeline" slot.

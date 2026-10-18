@@ -1,7 +1,7 @@
 <script setup lang="ts">
-// Screen S-8, Personál pracoviště (viewStaff() in the old page): departments and their people for attendance and the
+// Screen S-8, Personál pracoviště: departments and their people for attendance and the
 // user picker. The coordinator and the administrator edit the list, doctors read it. Each change goes to the server,
-// whose answer (the whole list) replaces the page's copy; a rename or removal also changes draft steps and attendance
+// whose answer (the whole list) replaces the screen's copy; a rename or removal also changes draft steps and attendance
 // there, so the stored workflow is read again afterwards. A removed person stays in history under the stored name.
 import { computed, reactive, ref } from "vue";
 import { useFluent } from "fluent-vue";

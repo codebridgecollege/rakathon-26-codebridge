@@ -1,5 +1,5 @@
 <script lang="ts">
-// "fit" follows the drawer width; a number is a percentage of the page image's native size (zoomCtl() in the template).
+// "fit" follows the drawer width; a number is a percentage of the page image's native size.
 export const ZOOM_STEPS = [25, 50, 75, 100, 125, 150, 200, 300, 400] as const;
 
 // The next step up or down from the current percentage; null at either end. The 1 % margin keeps a fit width that

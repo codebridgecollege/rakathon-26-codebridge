@@ -1,9 +1,9 @@
-// Pure rules of the Prognóza tab (mocks/src/prognosis.js): the safe link check, the numbering of the reported values
+// Pure rules of the Prognóza tab: the safe link check, the numbering of the reported values
 // as a paper's reference list, the explanation panels, and the similarity dimensions in one shape. The tab shows the
 // study search the server recorded; nothing here computes a missing value or judges a prognosis. Labels are not here:
 // the app's catalog names the fields by the keys below.
 
-// The endpoint columns of the table, in their order (PG_ENDPOINTS in prognosis.js).
+// The endpoint columns of the table, in their order.
 export const PG_ENDPOINTS = ["os_6", "os_12", "os_36", "os_60", "pfs", "response", "toxicity", "burden"] as const;
 export type PgEndpoint = (typeof PG_ENDPOINTS)[number];
 // The cells that hold one value each; response and toxicity hold two named values (ORR and DoR, grade 3 and stopping).
@@ -127,7 +127,7 @@ export type PgRowLayout = {
 };
 export type PgLayout = { refs: PgRef[]; panels: PgPanel[]; rows: PgRowLayout[] };
 
-// The values of a row in reading order, as the old page wrote the row: the conflicts sit in the first column, so
+// The values of a row in reading order, the conflicts sit in the first column, so
 // their values are numbered before the endpoint cells.
 const ROW_CELLS: [cell: string, endpoint: string, name: PgNameKey][] = [
   ["os_6", "os_6", "os_6"],
@@ -165,7 +165,7 @@ export function pgLayout(rows: PgRow[] | null | undefined): PgLayout {
       whatKeys.push(new Set());
     }
     const what: PgWhat = { arm: row.arm || "", name, value: String(metric.value), unit: metric.unit || "" };
-    // A text value has no unit when shown, so it is the same entry as one without a unit (the old page compared the
+    // A text value has no unit when shown, so it is the same entry as one without a unit (entries are compared by the
     // shown text).
     const wk = JSON.stringify([what.arm, nameId(name), what.value, what.unit === "text" ? "" : what.unit]);
     if (!whatKeys[i]!.has(wk)) {
@@ -214,7 +214,7 @@ export function pgDimensions(similarity: PgSimilarity | null | undefined): PgDim
   return list.map((d) => ({
     label: str(d?.label),
     key: isPgDimension(d?.key) ? d.key : null,
-    // As the old page did, a key the catalog does not name falls through to the name or dimension field.
+    // A key the catalog does not name falls through to the name or dimension field.
     name: str(d?.name) ?? str(d?.dimension) ?? "",
     status: str(d?.status),
     reason: str(d?.reason) ?? str(d?.explanation),

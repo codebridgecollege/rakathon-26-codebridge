@@ -1,4 +1,4 @@
-// The patient database (screen S-1), as viewPatients() and the column filters in mocks/src/v3-template.html: search,
+// The patient database (screen S-1): search,
 // Excel-style column filters, the submitted-date range, newest referral first, and pages of 20.
 //
 // Column filters hold codes, not display text (docs/design/I18N.md, "Display strings used as keys"): the owner's name,

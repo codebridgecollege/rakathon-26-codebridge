@@ -4,7 +4,7 @@ import { pipelineOn } from "../services/pagekit";
 
 // Public: it holds no data and no key material; the booleans only say whether a secret is set, so the page
 // knows which features this host offers. features.data is true when the data API is switched on and the database
-// is seeded; the page then loads its data from the API instead of the copy embedded in the HTML.
+// is seeded; the app then loads its data from the API.
 async function seededAt(env: Env): Promise<string | null> {
   if (env.DATA_API !== "on" || !env.DB || !env.DOCS) return null;
   try {

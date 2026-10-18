@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// A fact whose text itself opens the edit dialog for doctors (edLink() in the template): used where a numbered
+// A fact whose text itself opens the edit dialog for doctors: used where a numbered
 // source marker sits next to the text, so the text and the source are two separate targets.
 import { computed } from "vue";
 import { useFluent } from "fluent-vue";

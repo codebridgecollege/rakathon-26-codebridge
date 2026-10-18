@@ -1,7 +1,5 @@
 // The case data of one case in the one shape the patient view reads, whatever produced it: a full extraction
-// ({ case, extra }, case 10), a synthetic patient ({ syn }), or nothing (no run). Port of fromFullExtraction(),
-// fromSyn(), unprocessedCase(), fromApi() and sectionsOf() in mocks/src/v3-template.html.
-//
+// ({ case, extra }, case 10), a synthetic patient ({ syn }), or nothing (no run).
 // Each part is null when the extraction has no such part; null means "not in the extraction", never "nothing found",
 // so a view shows a missing part as missing and never as empty. Identity (name, birth number) is not case data: it
 // stays on the list row. The extraction objects are kept by reference, not cloned.

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// "Projednání na MDT" (screen S-5, mdtCard() in the template): the discussion record (manual notes, the AI recording,
+// "Projednání na MDT" (screen S-5): the discussion record (manual notes, the AI recording,
 // documents brought to the meeting), the next steps, who is present and the approval, in the patient view itself.
 // Outside a session it is collapsed unless a draft or an approved conclusion exists; in a session it is open and
 // outlined. A conclusion is a draft until a named doctor approves it; approval freezes the attendance and the report.
@@ -77,7 +77,7 @@ const presentNote = computed(() => {
   return $t("discussion-present-case", { note: staffNote.value });
 });
 
-// The tooltip of a name: the person's function, when the staff list gives one (staffTip() in the template).
+// The tooltip of a name: the person's function, when the staff list gives one.
 const fnByName = computed(() => {
   const m = new Map<string, string>();
   for (const d of staff.depts) for (const x of d.people) if (x.fn) m.set(x.name, x.fn);

@@ -26,7 +26,7 @@
   "r2_buckets": [{ "binding": "DOCS", "bucket_name": "codebridge-mdt", "jurisdiction": "eu" }],
   "vars": {
     "AUTH_MODE": "demo",
-    // "on" lets /api/health report features.data once the database is seeded; "off" keeps the page on embedded data.
+    // "on" lets /api/health report features.data once the database is seeded; "off" leaves the data routes unconfigured.
     "DATA_API": "on",
     // Who may read clinical case content. "all_roles" keeps today's demo behaviour (coordinator and administrator
     // open every case); "doctors_only" applies INTEGRATION.md's rule. Open question: docs/agent/OPEN_QUESTIONS.md.

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// The drop zone of every upload in the app (label.upzone in the old page): files are dropped on it or picked with a
+// The drop zone of every upload in the app: files are dropped on it or picked with a
 // click, which opens the system file chooser through the hidden input. The input sits inside the label, so its
 // accessible name is the zone's text. Every file is passed on; nothing is refused here (the server decides what it
 // keeps, and the demo lists every file).
@@ -36,7 +36,7 @@ function onDrop(e: DragEvent) {
 function onChange(e: Event) {
   const input = e.target as HTMLInputElement;
   const list = [...(input.files ?? [])];
-  // Cleared, so picking the same file again is a new choice (the old page rebuilt the input after every pick).
+  // Cleared, so picking the same file again is a new choice (the input is reset after every pick).
   input.value = "";
   if (list.length) emit("files", list);
 }

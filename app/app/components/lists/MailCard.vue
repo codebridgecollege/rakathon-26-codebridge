@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// "Odeslané e-maily" (mailCard() and mailHtml() in the old page). Mails carry no medical text on the server either:
+// "Odeslané e-maily". Mails carry no medical text on the server either:
 // the page builds the count sentence and the link itself, and the approval mail names only the case ID.
 import { computed } from "vue";
 import { useListText } from "../../composables/useListText";
@@ -15,7 +15,7 @@ type MailWire = { kind?: string; to?: string | null; by?: string; when?: string;
 const text = useListText();
 const workflow = useWorkflowStore();
 const staff = useStaffStore();
-// Newest first, as the old page sorted them.
+// Newest first.
 const mails = computed(() => (workflow.mails as MailWire[]).slice().sort((a, b) => String(b.when).localeCompare(String(a.when))));
 </script>
 

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// "Zahájit MDT" from the calendar or a case header (the "start" overlay in the old page): the day's order of cases and
+// "Zahájit MDT" from the calendar or a case header: the day's order of cases and
 // who is present. While that day's session already runs, when opened from the discussion card ("Upravit"), or for a
 // case without a slot (key "case:<id>"), the same dialog only edits attendance ("Přítomní").
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from "vue";
@@ -35,7 +35,7 @@ const att = useAttendanceStore();
 
 const isDay = computed(() => isIsoDayShape(props.day));
 const agenda = computed(() => (isDay.value ? dayAgenda(patients.rows, props.day) : []));
-// The running seminar is the session that has not ended (applySessions() in the old page).
+// The running seminar is the session that has not ended.
 const running = computed(() => workflow.sessions.filter((s) => !s.ended_at).sort((a, b) => String(a.started_at).localeCompare(String(b.started_at))).at(-1) ?? null);
 const editOnly = computed(() => props.attOnly || !isDay.value || running.value?.day === props.day);
 const when = computed(() => (isDay.value ? text.dayLabel(props.day) : $t("discussion-attendance-no-slot")));

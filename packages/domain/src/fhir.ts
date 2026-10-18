@@ -1,5 +1,5 @@
-// The FHIR R4 referral ("žádost o konzultaci") read into the "Nový pacient" form (step 6). A port of fhirToForm() in
-// mocks/src/v3-template.html, so the browser and the server fill the same fields from the same bundle. Pure.
+// The FHIR R4 referral ("žádost o konzultaci") read into the "Nový pacient" form (step 6). Both
+// the browser and the server fill the same fields from the same bundle. Pure.
 import { DomainError } from "./errors";
 
 // Czech national identifier systems (NCEZ): the birth number and the insurer code.

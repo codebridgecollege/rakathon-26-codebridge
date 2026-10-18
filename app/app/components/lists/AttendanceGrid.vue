@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// Attendance selects for one seminar day (attGrid() in the old page): one row per present person and department,
+// Attendance selects for one seminar day: one row per present person and department,
 // "+ další" adds a row, "− odebrat" removes one. The server takes attendance only from doctors and the coordinator, so
 // anyone else reads the names.
 import { computed } from "vue";

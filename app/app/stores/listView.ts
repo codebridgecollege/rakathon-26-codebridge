@@ -1,4 +1,4 @@
-// View state of the list screens that outlives a visit to another screen, as the old page's global S did: the
+// View state of the list screens that outlives a visit to another screen: the
 // search and filters of the patient list, its page and column widths, the calendar's week, month and picked patient,
 // and the task screen's scope. Held in memory only; nothing goes to browser storage.
 import { defineStore } from "pinia";

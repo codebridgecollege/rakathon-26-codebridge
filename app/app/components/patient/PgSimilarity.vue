@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// The similarity of the patient to a study population (pgSimilarity() in prognosis.js): the server's orientation
+// The similarity of the patient to a study population: the server's orientation
 // score, how much of the weight the known facts cover, the critical differences, and a button to the explanation.
 // The score is shown only as the server reports it; it is not a survival probability.
 import { computed } from "vue";

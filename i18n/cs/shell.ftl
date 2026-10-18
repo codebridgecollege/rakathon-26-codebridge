@@ -22,7 +22,7 @@ user-picker-other-roles = Další role
 # A role holder shown with their function: the name, then the function in brackets.
 user-picker-with-function = { $name } ({ $fn })
 user-coordinator-function-default = koordinátorka MDT
-# The coordinator's tooltip when the staff list names no function (the old page words it differently from the label).
+# The coordinator's tooltip when the staff list names no function (it is worded differently from the label).
 user-coordinator-tooltip-default = koordinace MDT
 user-admin-function = správce systému
 

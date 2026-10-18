@@ -1,4 +1,4 @@
-// What the calendar card shows of a case (dxHeadlineText(), qState(), briefPlain() in the old page), read from the
+// What the calendar card shows of a case, read from the
 // list row, the doctor's edits and, only when the case is already loaded, its extraction. The card never starts a
 // load: opening the card is not opening the case.
 import type { CaseState, PatientRow } from "@codebridge/api-client";

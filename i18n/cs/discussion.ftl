@@ -206,7 +206,7 @@ discussion-report-failed = PDF se nepodařilo vytvořit. Zkuste to znovu.
 discussion-report-unavailable = PDF export není dostupný. Obnovte stránku a zkuste to znovu.
 discussion-report-no-content = Chybí obsah reportu.
 
-# The printed report. It is a record: the wording stays as the old page printed it.
+# The printed report. It is a record: the wording stays as it was first printed.
 discussion-report-title = Záznam z MDT
 discussion-report-meta = Datum MDT: { $date } · ID { $id }
 discussion-report-meta-draft = Datum MDT: { $date } · ID { $id } · Koncept

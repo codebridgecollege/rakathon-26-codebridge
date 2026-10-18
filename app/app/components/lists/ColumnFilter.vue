@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// One filterable column header with its Excel-style value list (colHead() in the old page). The values are codes; the
+// One filterable column header with its Excel-style value list. The values are codes; the
 // parent gives each its label and the order they are shown in.
 import { computed, nextTick, ref, watch } from "vue";
 import { useFluent } from "fluent-vue";

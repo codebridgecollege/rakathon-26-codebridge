@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// The Prognóza tab (tabPrognosis() in mocks/src/prognosis.js): outcomes of study populations similar to the patient,
+// The Prognóza tab: outcomes of study populations similar to the patient,
 // as of the scheduled MDT day, from the search the server recorded or a new search on the local prognosis server.
 // The values describe study groups; the doctor judges the individual prognosis, so the tab shows sources, model
 // attribution and missing values as missing, and computes nothing itself.
@@ -98,7 +98,7 @@ function openPanel(i: number) {
     .catch(() => {});
 }
 function schedule() {
-  // The calendar opens with this case picked for booking (S.schedPick in the template).
+  // The calendar opens with this case picked for booking.
   useListViewStore().schedPick = p.value.file;
   void router.push("/calendar");
 }

@@ -32,7 +32,7 @@ export function seminarWarning(s: Slot): string | null {
 export const slotLocked = (slot: Slot | null, decisions: DecisionSlot[]) =>
   !!slot && decisions.some((d) => d.slot_day === slot.day && d.slot_time === slot.time);
 
-// "Čt 22. 10. 2026 · 14:00", as the page's slotText() but without the end time.
+// "Čt 22. 10. 2026 · 14:00", without the end time.
 const WD = ["Ne", "Po", "Út", "St", "Čt", "Pá", "So"];
 export function slotText(s: Slot): string {
   const d = new Date(`${s.day}T12:00:00Z`);

@@ -1,6 +1,5 @@
 <script setup lang="ts">
-// The dialog "Záznam z MDT" behind the header's "Stáhnout report (PDF)" (the "report" overlay, refreshReport() and
-// downloadReport() in mocks/src/v3-template.html; PRODUCT.md F-31). Before approval the ticks choose what the draft
+// The dialog "Záznam z MDT" behind the header's "Stáhnout report (PDF)" (PRODUCT.md F-31). Before approval the ticks choose what the draft
 // prints and the preview follows every tick, the conclusion and the steps. After approval the report is the snapshot
 // frozen at approval, and the ticks show what was chosen then, disabled, so the dialog never suggests a change that
 // would not print.

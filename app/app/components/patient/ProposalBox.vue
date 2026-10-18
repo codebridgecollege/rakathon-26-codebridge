@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// What the referring doctor proposes for this MDT (proposalBox() in the template). The assistant never proposes the
+// What the referring doctor proposes for this MDT. The assistant never proposes the
 // management (CLAUDE.md): without the doctor's text the box says so, and a doctor's text is labelled as a proposal,
 // not as the MDT's decision.
 import { computed } from "vue";

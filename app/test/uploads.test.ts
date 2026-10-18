@@ -1,5 +1,5 @@
 // The case upload list and the phone upload session against a mocked API (S.ups, addUploadsApi and phoneOpen...phoneEnd
-// in the old page). Synthetic values only.
+// ). Synthetic values only.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createPinia, setActivePinia } from "pinia";
 import { setApi } from "../app/lib/api";

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// Text that opens its source (reg.wrap() in the template): no [n] markers in the text (round 14), the text itself is
+// Text that opens its source: no [n] markers in the text (round 14), the text itself is
 // the link. Without a source the text is shown as it is.
 import { useFluent } from "fluent-vue";
 import type { SourceRef } from "@codebridge/domain/case-data";

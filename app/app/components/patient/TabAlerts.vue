@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// The "Upozornění" tab (tabAlerts() in the template): alerts for the MDT question first (CLAUDE.md), then the rest
+// The "Upozornění" tab: alerts for the MDT question first (CLAUDE.md), then the rest
 // grouped by kind; headings carry no counts, so numbers never read as a score. Resolved ones sit at the bottom.
 import { computed } from "vue";
 import { useFluent } from "fluent-vue";

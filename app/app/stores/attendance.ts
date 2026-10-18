@@ -1,4 +1,4 @@
-// Attendance per seminar day ("Přítomní lékaři"), as attFor(), attChanged() and applyAtt() in the old page. A day's
+// Attendance per seminar day ("Přítomní lékaři"). A day's
 // list applies to every case that day; a case without a slot has its own list, keyed "case:<case id>" as on the
 // server. The server's sets live in the workflow store (att); this store holds only rows this page changed and has
 // not seen stored yet, plus empty rows added with "+ další", so the server stays the source of what is shown.
@@ -99,7 +99,7 @@ export const useAttendanceStore = defineStore("attendance", () => {
       (r[dept] ??= [""]).push("");
     });
   }
-  // Returns the removed name; an empty row is the page's own placeholder, so only removing a person changes the set.
+  // Returns the removed name; an empty row is a placeholder, so only removing a person changes the set.
   function removeRow(key: string, dept: string, k: number): string {
     let was = "";
     edit(key, (r) => {

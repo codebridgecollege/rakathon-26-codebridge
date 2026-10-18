@@ -113,7 +113,7 @@ describe("intake on the server (step 6)", () => {
     expect(compareIdentity({ full_name: "", birth_number: null }, p)).toBe("cannot_verify");
   });
 
-  it("reads the FHIR referral as the page does", () => {
+  it("reads the FHIR referral into the form fields", () => {
     const b = { resourceType: "Bundle", entry: [
       { fullUrl: "urn:p", resource: { resourceType: "Patient", identifier: [{ system: "https://ncez.mzcr.cz/fhir/sid/rcis", value: "585614/4019" }], name: [{ use: "official", family: "Lipenská", given: ["Věra"] }] } },
       { fullUrl: "urn:o", resource: { resourceType: "Organization", identifier: [{ system: "https://ncez.mzcr.cz/fhir/sid/kp", value: "111" }] } },

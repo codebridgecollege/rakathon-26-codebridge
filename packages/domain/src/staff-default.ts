@@ -20,7 +20,7 @@ export const DEFAULT_COORDINATOR = { id: "coord", pre: "Bc.", sur: "Marková", p
 type Person = { id: string; pre: string; sur: string; post?: string; fn?: string };
 type Dir = { depts: { id: string; name: string; people: Person[] }[]; coord: Person | null };
 
-// Whether the staff list is still the fictional default (isDefaultStaff() in the old page): then the attendance note
+// Whether the staff list is still the fictional default: then the attendance note
 // says the names are made up; after any edit it says they come from the staff screen.
 export function isDefaultStaff(d: Dir | null | undefined): boolean {
   if (!d) return false;

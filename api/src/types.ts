@@ -2,7 +2,7 @@ import type { Viewer } from "@codebridge/domain/access";
 import type { Stores } from "./store/types";
 
 // Who is calling, as the auth middleware established it. Demo mode has no login, so it carries no identity; the
-// data routes then resolve the person from the page's user picker (see middleware/viewer.ts).
+// data routes then resolve the person from the app's user picker (see middleware/viewer.ts).
 export type User = { mode: "demo"; email: null; sub: null } | { mode: "access"; email: string; sub: string };
 
 // body, epoch and audit* are set by the write middleware (middleware/write-guard.ts) for POST, PUT, PATCH, DELETE.

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// "Návrh úloh ze schváleného závěru" (suggHtml() and confirmSugg() in the template). After approval the assistant
+// "Návrh úloh ze schváleného závěru". After approval the assistant
 // drafts tasks from the conclusion's text; each draft quotes its clause and becomes a task only when a doctor confirms
 // it. Everyone else sees the drafts read-only, waiting for a doctor.
 import { computed } from "vue";
@@ -20,7 +20,7 @@ const text = useListText();
 const staff = useStaffStore();
 
 // A change of a draft's fields still on its way, per draft: a confirmation right after an edit waits for it and never
-// confirms the old values (SUGG_PENDING in the template). Shared by every mount of the box.
+// confirms the old values. Shared by every mount of the box.
 const pending = PENDING;
 
 const xs = computed(() => (c.wf.value.sugg ?? []) as unknown as Suggestion[]);

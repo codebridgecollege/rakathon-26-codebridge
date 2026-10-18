@@ -28,7 +28,7 @@ describe("protocol draft", () => {
     expect(() => validateSteps([{ text: "MR", who: "", due: "30.10.2026" }], staff)).toThrow(expect.objectContaining({ code: "invalid_input" }));
   });
 
-  it("starts a new draft only after approval, never over an unapproved draft (the mock's wipe bug)", () => {
+  it("starts a new draft only after approval, never over an unapproved draft", () => {
     expect(() => newDraft(draft({ state: "draft" }), "done", "dec-1", "dec-1")).toThrow(expect.objectContaining({ code: "not_approved_yet" }));
     expect(() => newDraft(draft({ state: "approved" }), "closed", "dec-1", "dec-1")).toThrow(expect.objectContaining({ code: "case_closed" }));
     expect(() => newDraft(draft({ state: "approved" }), "done", "dec-2", "dec-1")).toThrow(expect.objectContaining({ code: "decision_changed" }));

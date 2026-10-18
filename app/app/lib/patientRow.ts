@@ -4,7 +4,7 @@ import type { PatientRow } from "@codebridge/api-client";
 
 export { surnameFirst } from "@codebridge/domain/names";
 
-// The demo's fixed date (TODAY in the template): ages and the calendar must not move with the real clock while the
+// The demo's fixed date: ages and the calendar must not move with the real clock while the
 // app runs on the demo seed (e2e/README.md, "How the suite gates the port").
 export const TODAY = "2026-10-16";
 

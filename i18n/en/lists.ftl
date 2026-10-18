@@ -245,7 +245,7 @@ tasks-mail-digest-to = To: { $to } · sent by { $by }
 tasks-mail-digest-note = Only the task count and a link, no names or diagnoses. Sample internal address; the demo sends nothing.
 tasks-mail-approval-subject = ✉ MDT - new tasks to handle
 tasks-mail-approval-to = To: { $to }
-# [0] keeps the old page's wording for an approval without tasks.
+# [0] is the wording for an approval without tasks.
 tasks-mail-approval-body = Case { $id } { $n ->
     [0] has { $n } new tasks assigned
     [one] has { $n } new task assigned

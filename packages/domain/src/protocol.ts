@@ -1,6 +1,6 @@
 // The discussion record of a case: notes, the conclusion draft and the next steps, one row per case. It stays a draft
 // until a doctor approves it; an approved protocol is never edited, and "Nový závěr" starts an empty draft only after
-// approval (the mock wiped an unapproved draft here; fixed).
+// approval (an unapproved draft is never wiped).
 import { D } from "./errors";
 import type { Status } from "./status";
 import { isIsoDay } from "./time";

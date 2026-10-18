@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// "Obnovit ukázková data" (the "reset" overlay and resetDemoApi() in the old page): the shared demo goes back to the
+// "Obnovit ukázková data": the shared demo goes back to the
 // seed, and the page reloads so every screen shows it.
 import { nextTick, onBeforeUnmount, onMounted, ref } from "vue";
 import { useFluent } from "fluent-vue";

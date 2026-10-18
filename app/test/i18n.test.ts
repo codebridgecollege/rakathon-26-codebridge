@@ -1,5 +1,5 @@
 // The catalogs load with the settings I18N.md requires, every message ID the app uses exists in Czech, and the CSS is
-// still the old page's.
+// unchanged.
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import path from "node:path";
 import { beforeAll, describe, expect, it, vi } from "vitest";

@@ -1,10 +1,10 @@
-// The MDT calendar's grid (screen S-2), as viewCalendar() and miniMonth() in mocks/src/v3-template.html: a week of
+// The MDT calendar's grid (screen S-2): a week of
 // five working days, 10-minute slots from 8:00 to 18:00, the weekly seminar, and the month grid used to jump to a week.
 // Dates are ISO day strings handled at noon UTC, so no time zone can shift a day.
 import { addDays } from "./time";
 import { seminarHours } from "./slots";
 
-// The demo's fixed "today" (TODAY in the template): the calendar and report specs depend on it while the app runs on
+// The demo's fixed "today": the calendar and report specs depend on it while the app runs on
 // the demo seed (e2e/README.md, "How the suite gates the port").
 export const DEMO_TODAY = "2026-10-16";
 // The seeded seminar week, the calendar's first week in a fresh tab.

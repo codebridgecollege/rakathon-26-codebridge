@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// The case header (patientHeader() and headerActions() in the template). It renders from the list row, so the doctor
+// The case header. It renders from the list row, so the doctor
 // sees whose case it is while the data loads or after it failed. A missing birth number or age is a gap dash, never a
 // guess; a real identity doubt is shown, never merged away silently.
 import { computed } from "vue";
@@ -34,7 +34,7 @@ const live = computed(() => {
   return !!(open && p.value.slot && open.day === p.value.slot.day);
 });
 
-// The calendar opens with this case picked for booking (S.schedPick in the template).
+// The calendar opens with this case picked for booking.
 function schedule() {
   useListViewStore().schedPick = p.value.file;
   void router.push("/calendar");

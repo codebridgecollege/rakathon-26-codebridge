@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// The list of uploaded files (ul.uplist in the old page), shared by the intake, the case's upload panel and the phone
+// The list of uploaded files, shared by the intake, the case's upload panel and the phone
 // dialog: name, a line of size and origin, the state chip, an optional remove button, and warnings under the row (a
 // document of another patient, a poorly readable copy). Warnings inform and never block.
 import { useFluent } from "fluent-vue";

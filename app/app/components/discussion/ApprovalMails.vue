@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// "Odeslané upozornění" in an approved case (the mails part of mdtCard() and mailHtml() in the template). The mail to
+// "Odeslané upozornění" in an approved case. The mail to
 // the coordinator names only the case ID and the number of tasks, with a link: notifications carry a link, never
 // medical data. Without tasks no mail is sent, and the card says so.
 import { computed } from "vue";
@@ -14,7 +14,7 @@ type MailWire = { kind?: string; case_id?: string; n?: number; when?: string };
 const c = usePatient();
 const workflow = useWorkflowStore();
 const staff = useStaffStore();
-// Newest first, as the old page sorted them.
+// Newest first.
 const mails = computed(() =>
   (workflow.mails as MailWire[])
     .filter((m) => m.kind !== "digest" && m.case_id === c.p.value.id)

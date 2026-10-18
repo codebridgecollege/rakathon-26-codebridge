@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// The page transcription in the "Přepis stránky" tab (pageTextHtml() in the template): headings and tables kept, the
+// The page transcription in the "Přepis stránky" tab: headings and tables kept, the
 // cited passage in <mark>, "ověřit" tokens dotted, transcriber notes dimmed, unreadable characters as "?". The text is
 // rendered as text nodes from the segmentation in packages/domain, never as HTML, so a transcription cannot inject
 // markup.
@@ -11,7 +11,7 @@ import type { Verify } from "@codebridge/domain/quote-match";
 const props = defineProps<{ blocks: Block[]; verifyTitle: (v: Verify) => string }>();
 const { $t } = useFluent();
 
-// The nesting order is the template's (mark outermost, then the note, then the verify token), so the CSS applies the
+// The nesting order is fixed (mark outermost, then the note, then the verify token), so the CSS applies the
 // same way.
 function piece(p: Piece): VNodeChild {
   let n: VNodeChild = p.unreadable ? h("span", { class: "unr", title: $t("patient-src-unreadable", { n: p.text.length }) }, "?") : p.text;

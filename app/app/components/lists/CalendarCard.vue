@@ -1,9 +1,9 @@
 <script setup lang="ts">
-// The card of a booked patient next to the calendar (the minicard in viewCalendar()). It shows the extracted
+// The card of a booked patient next to the calendar. It shows the extracted
 // diagnosis and brief only when the case is already loaded: opening the card is not opening the case, so it never
-// starts a load and never writes a server access-log row. A named region lets screen readers find it (the old page's
-// card had no role; e2e/README.md lists the gap). The question is shown, not edited, here: the edit dialog belongs to
-// the patient screens (the old page let a doctor open it from the card). A drafted question carries the same
+// starts a load and never writes a server access-log row. A named region lets screen readers find it (the card has no role of
+// its own; e2e/README.md lists the gap). The question is shown, not edited, here: the edit dialog belongs to
+// the patient screens. A drafted question carries the same
 // "Návrh asistenta" label as on the patient screen.
 import { computed } from "vue";
 import { useFluent } from "fluent-vue";

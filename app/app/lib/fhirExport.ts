@@ -1,4 +1,4 @@
-// "Export FHIR" for the case on screen (the "fhirdlg" action in mocks/src/v3-template.html): builds the FHIR R4
+// "Export FHIR" for the case on screen: builds the FHIR R4
 // Bundle from the same data the screens show, opens the dialog with it and records the export in the audit log.
 // The builder is pure (packages/domain/src/fhir-export.ts); the clock, the ids and the catalog are supplied here.
 import { fhirBundle } from "@codebridge/domain/fhir-export";

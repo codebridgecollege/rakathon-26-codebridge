@@ -1,4 +1,4 @@
-// The source viewer's data (openSource(), gotoSourcePage() and srcFetch() in the template): each page comes from the
+// The source viewer's data: each page comes from the
 // Worker right before the viewer shows it, every time, because each view of a page is an access the server records.
 // Only the pages the viewer showed are held, in memory, never in browser storage.
 import { defineStore } from "pinia";
@@ -33,7 +33,7 @@ export const useSourceStore = defineStore("source", () => {
   const docOf = (file: string) => docs.get(file) ?? null;
 
   // Opens a reference: a reference without a file points into the open case. The cited page loads first; a cited page
-  // the document does not have opens its first page, as the embedded viewer did.
+  // the document does not have opens its first page.
   async function openSource(t: T, r: SourceRef, fallbackFile: string) {
     const ov = useOverlayStore();
     const o: SourceOverlay = { kind: "source", cite: r, file: r.file || fallbackFile, page: Number(r.page) || 1, tab: usePatientViewStore().srcTab, zoom: "fit", redacted: false, loading: true };

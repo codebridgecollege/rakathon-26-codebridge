@@ -1,5 +1,5 @@
-// D1 rows to the objects the page builds today (initialPatients() in mocks/src/v3-template.html), so the frontend
-// switch is a change of data source and nothing else. Pure; unit-tested in test/rows.test.ts.
+// D1 rows to the objects the frontend builds its screens from, so the data
+// source can change without touching the screens. Pure; unit-tested in test/rows.test.ts.
 
 export type CaseJoinRow = {
   id: string;

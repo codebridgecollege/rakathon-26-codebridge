@@ -1,6 +1,6 @@
-// Case lifecycle (mock v3 round 20): Nový -> Naplánován (booking) -> Připraven -> Projednán (approval) -> Uzavřen.
+// Case lifecycle (demo round 20): Nový -> Naplánován (booking) -> Připraven -> Projednán (approval) -> Uzavřen.
 // "Vyžaduje pozornost" is a side state. "Naplánován" and "Projednán" are never manual targets: only the booking and
-// the approval set them. Port of manualMoves() in mocks/src/v3-template.html.
+// the approval set them.
 import { D } from "./errors";
 
 export const STATUSES = ["new", "scheduled", "attention", "ready", "done", "closed"] as const;

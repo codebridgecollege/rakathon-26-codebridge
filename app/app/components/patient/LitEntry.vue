@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// A PubMed article (litHtml() in the template): the same entry as a statement, labelled as literature, never as a
+// A PubMed article: the same entry as a statement, labelled as literature, never as a
 // recommendation. Its headline is a verbatim abstract sentence.
 import { computed } from "vue";
 import { useFluent } from "fluent-vue";

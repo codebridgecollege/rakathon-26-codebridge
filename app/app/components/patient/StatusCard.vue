@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// "Aktuální stav pacienta" (statusCard() in the template, round 2 "status praesens"): the most recent exam, subjective
+// "Aktuální stav pacienta" (round 2 "status praesens"): the most recent exam, subjective
 // first, then the objective line led by TK/P, TT and PS (ECOG) as the clinicians write it (rounds 9 and 14). Regions
 // the record marks as not examined are left out. Every finding has a numbered source marker; the text itself opens
 // the edit dialog for doctors.
@@ -33,7 +33,7 @@ const exam = computed(() => {
   return `${s.exam_title_cs || ""} · ${s.exam_date_cs || $t("patient-state-exam-undated")}${s.exam_date_note_cs ? `. ${s.exam_date_note_cs}` : ""}`;
 });
 
-// Markers are numbered in reading order, subjective first, as the template's registry numbers them.
+// Markers are numbered in reading order, subjective first, as the source registry numbers them.
 const reg = computed(() => {
   const r = refList();
   for (const it of subj.value) r.add(first(it));

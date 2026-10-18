@@ -34,7 +34,7 @@ describe("alerts", () => {
     expect(missingSignal([{ kind: "missing", state: "open" }, { kind: "missing", state: "ack" }, { kind: "missing", state: "resolved" }, { kind: "unclear", state: "open" }])).toBe(2);
   });
 
-  it("parses the page's alert keys", () => {
+  it("parses the app's alert keys", () => {
     expect(parseAlertKey("3")).toEqual({ origin: "flag", position: 3 });
     expect(parseAlertKey("gap:1")).toEqual({ origin: "gap", position: 1 });
     expect(parseAlertKey("f.1")).toBeNull();

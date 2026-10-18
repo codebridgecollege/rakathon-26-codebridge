@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// The "Export FHIR" dialog (fhirHtml() and the "fhirdl" / "fhircopy" actions in mocks/src/v3-template.html): the
+// The "Export FHIR" dialog: the
 // case's FHIR R4 Bundle with its counts, the identity warning, download and copy. Copying is offered next to the
 // download because downloads can be blocked inside an embedded page.
 import { computed } from "vue";

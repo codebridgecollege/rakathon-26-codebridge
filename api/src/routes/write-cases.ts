@@ -24,7 +24,7 @@ import { validateReportHtml } from "../domain/report";
 
 const GAP = "neuvedeno v dostupné dokumentaci";
 
-// The status change and its history row, as the page's setStatus() wrote them.
+// The status change and its history row, written together.
 function writeStatus(t: Tx, caseId: string, ch: StatusChange, by: { id: string; name: string }, at: string) {
   t.run("UPDATE cases SET status = ?1 WHERE id = ?2", ch.to, caseId);
   t.run(
@@ -179,7 +179,7 @@ export const writeCases = new Hono<AppEnv>()
       c.env.DB.prepare("SELECT full_name, name_as_written, birth_number FROM patients WHERE id = ?1").bind(core.patient_id).first<{ full_name: string; name_as_written: string | null; birth_number: string | null }>(),
     ]);
     const exists = p.exists;
-    // Only the page's own report markup, and no patient identity in it (identity lives in the patients table only).
+    // Only the app's own report markup, and no patient identity in it (identity lives in the patients table only).
     const surnameFirst = (n: string) => (n.includes(" ") ? `${n.split(" ").slice(-1)[0]} ${n.split(" ").slice(0, -1).join(" ")}` : n);
     validateReportHtml(String(c.var.body.report_html ?? ""), {
       birthNumber: ident?.birth_number ?? null,

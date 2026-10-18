@@ -171,7 +171,7 @@ export const intake = new Hono<AppEnv>()
       );
       // Only the fixture's files are prepared; a listed extra file stays "nezpracováno".
       t.run("UPDATE documents SET state = 'prepared', processing = 'processed' WHERE case_id = ?1 AND origin = 'upload' AND fixture_id = ?2", id, fid);
-      // The question typed in the referral wins; without one, the documents' question with its source (as the page did).
+      // The question typed in the referral wins; without one, the documents' question with its source.
       t.run(
         `UPDATE cases SET intake_open = 0, intake_fixture = ?1, processing_level = 'partial', diagnosis_text = ?2, summary_one_line = ?3, page_count = ?4,
            question_text = COALESCE(question_text, ?5), question_explicit = CASE WHEN question_text IS NULL THEN ?6 ELSE question_explicit END,

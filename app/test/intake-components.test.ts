@@ -1,4 +1,4 @@
-// The step 11 components rendered with the Czech catalog: the old page's wording and structure, the accessibility
+// The step 11 components rendered with the Czech catalog: the wording and structure, the accessibility
 // they add (dialog role, aria-modal, aria-invalid tied to the message, aria-current on the step), drag and drop, and
 // the QR code from the lazily loaded library. Also keeps the intake demo descriptor equal to the committed fixture.
 import { readFileSync } from "node:fs";
@@ -37,7 +37,7 @@ beforeEach(() => {
 });
 
 describe("NewPatientDialog", () => {
-  it("renders the referral step with the old page's labels, marks and autocomplete tokens", async () => {
+  it("renders the referral step with its labels, marks and autocomplete tokens", async () => {
     mount(NewPatientDialog, { global: { plugins: plugins() }, attachTo: document.body });
     await useIntakeStore().open();
     await flushPromises();
@@ -157,7 +157,7 @@ describe("CaseUploads", () => {
 });
 
 describe("formats and the demo descriptor", () => {
-  it("formats sizes as the old page did", () => {
+  it("formats sizes", () => {
     expect(sizeMsg(10)).toEqual({ id: "upload-size-kb", args: { size: "1" } });
     expect(sizeMsg(1536 * 1024)).toEqual({ id: "upload-size-mb", args: { size: "1,5" } });
     expect(sizeMsg(2 * 1024 * 1024)).toEqual({ id: "upload-size-mb", args: { size: "2,0" } });

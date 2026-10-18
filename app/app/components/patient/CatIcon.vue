@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// The timeline's category icon. Lucide 0.468.0 icons (ISC licence, see mocks/src/v3-template.html), except the
+// The timeline's category icon. Lucide 0.468.0 icons (ISC licence), except the
 // scalpel, which is our own drawing in Lucide's style (Lucide has no scalpel; scissors read as "cut", not
 // "operation"). The paths are constants of the app, never data, so rendering them as markup is safe.
 import { computed } from "vue";
@@ -29,7 +29,7 @@ const ICON: Record<EventCategory, string> = {
   laboratory: '<path d="M21 7 6.82 21.18a2.83 2.83 0 0 1-3.99-.01a2.83 2.83 0 0 1 0-4L17 3" />\n  <path d="m16 2 6 6" />\n  <path d="M12 16H4" />',
   clinical: '<path d="M11 2v2" />\n  <path d="M5 2v2" />\n  <path d="M5 3H4a2 2 0 0 0-2 2v4a6 6 0 0 0 12 0V5a2 2 0 0 0-2-2h-1" />\n  <path d="M8 15a6 6 0 0 0 12 0v-3" />\n  <circle cx="20" cy="10" r="2" />',
 };
-// An unknown key draws the "clinical" icon, as the template's icon() does.
+// An unknown key draws the "clinical" icon.
 const key = computed<EventCategory>(() => ((EVENT_CATEGORIES as readonly string[]).includes(props.k) ? (props.k as EventCategory) : "clinical"));
 </script>
 

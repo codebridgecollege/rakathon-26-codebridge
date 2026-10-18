@@ -47,8 +47,8 @@ export type PrognosisResult = {
 } & Loose;
 export type SavedPrognosis = { patient_id?: string; scheduled_date?: string; result?: PrognosisResult } & Loose;
 
-// Catalog IDs (i18n/cs/patient.ftl) of the errors the prognosis calls raise themselves (pgJson() in
-// mocks/src/prognosis.js): the routes live on the local prognosis server, so a host without them says so, and a search
+// Catalog IDs (i18n/cs/patient.ftl) of the errors the prognosis calls raise themselves (the
+// routes live on the local prognosis server, so a host without them says so, and a search
 // past its time limit is not restarted on its own.
 export const PROGNOSIS_ERROR_IDS = {
   no_api: "patient-pg-error-no-server",
@@ -134,7 +134,7 @@ export function createApiClient(opts: ClientOptions = {}) {
     guidance: (caseId: string) => t.get<Loose>(`/cases/${enc(caseId)}/guidance`),
     // The saved study searches of a case, for every day; the server writes a "prognosis.view" access-log row.
     prognosis: (caseId: string) => t.get<{ saved: SavedPrognosis[] }>(`/cases/${enc(caseId)}/prognosis`),
-    // The local prognosis server's routes (mocks/serve.py). The Worker has none of them, so there they fail and the
+    // The local prognosis server's routes (prognosis/serve.py). The Worker has none of them, so there they fail and the
     // tab shows the saved search only.
     prognosisConfig: () => prognosisCall(() => t.get<PrognosisConfig>("/prognosis/config", { timeout: PROGNOSIS_TIMEOUTS.get })),
     prognosisProfile: (q: { patient_id: string; scheduled_date: string }) =>

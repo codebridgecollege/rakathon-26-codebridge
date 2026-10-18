@@ -3,7 +3,7 @@
 from conftest import REPO, compare_with_mock, mock_labs, needs_tesseract
 from pagekit import labs, layer, ocr, page_index as pi, readability as rd, render
 
-UPLOADS = {  # upload file -> page of that sheet in the combined S02 PDF (the mock's source page)
+UPLOADS = {  # upload file -> page of that sheet in the combined S02 PDF (the fixture's source page)
     "04-laborator-2026-03-10.pdf": 5, "05-laborator-2026-06-02.pdf": 6,
     "06-laborator-2026-09-15.pdf": 7, "07-laborator-2026-10-06.pdf": 8,
 }

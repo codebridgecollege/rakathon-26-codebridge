@@ -1,6 +1,4 @@
-// "Nový pacient" (PRODUCT.md F-02): the three-step dialog and the intake on the server, as the old page's overlay of
-// kind "new" in API mode (newCaseApi, newUploadsApi, intakeRefresh, completeIntakeApi, discardIntake in
-// mocks/src/v3-template.html).
+// "Nový pacient" (PRODUCT.md F-02): the three-step dialog and the intake on the server.
 // - Step 1, the referral: the form's checks before any request, the FHIR import through the server, a birth number
 //   already in the list warns with a link and needs "Přesto vytvořit nový záznam" (never a silent second record).
 //   "Pokračovat" creates the case open for intake (POST /cases, intake: true), visible only to this user until done.
@@ -24,7 +22,7 @@ import { useSessionStore } from "./session";
 import { useToastStore } from "./toast";
 import { usePhoneStore } from "./phone";
 
-// The form's fields under the old page's ids (nf0...), which are also the field names the server's FHIR import answers
+// The form's fields under fixed ids (nf0...), which are also the field names the server's FHIR import answers
 // with (FORM_FIELD in packages/domain/src/fhir.ts).
 export type IntakeForm = {
   nf0: string; nf1: string; nf2: string; nf3: string; nf4: string; nf5: string; nf6: string; nf7: string; nfa: string; nfq: string;
@@ -95,7 +93,7 @@ export const useIntakeStore = defineStore("intake", () => {
   );
   const dupRow = computed(() => (dup.value ? usePatientsStore().byFile(dup.value) ?? null : null));
 
-  // Only doctors and the coordinator create patients; anyone else gets the old page's note instead of the dialog.
+  // Only doctors and the coordinator create patients; anyone else gets a note instead of the dialog.
   async function open(): Promise<boolean> {
     const role = useSessionStore().me?.user.role;
     if (role !== "doctor" && role !== "coordinator") {
@@ -204,7 +202,7 @@ export const useIntakeStore = defineStore("intake", () => {
   }
 
   async function submitReferral(): Promise<FieldId | null> {
-    // Typed values are kept, trimmed as the old page kept them.
+    // Typed values are kept, trimmed.
     for (const k of Object.keys(form) as FieldId[]) if (k !== "nfg") (form as Record<string, unknown>)[k] = (form[k] as string).trim();
     const problems = referralProblems({ first_name: form.nf0, last_name: form.nf1, birth_number: form.nf2, consent: form.nfg });
     const e: Partial<Record<FieldId, Msg>> = {};
@@ -410,7 +408,7 @@ export const useIntakeStore = defineStore("intake", () => {
       }
       if (g === gen && caseId.value === id) verdict.value = v;
     });
-    // The stages are the old page's illustration of the server's steps; they tick by while the uploads finish.
+    // The stages illustrate the server's steps; they tick by while the uploads finish.
     const tick = () => {
       if (g !== gen) return;
       progress.value++;

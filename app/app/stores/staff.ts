@@ -1,4 +1,4 @@
-// The staff list from GET /staff and the name lists the screens derive from it (applyStaff() in the template). The
+// The staff list from GET /staff and the name lists the screens derive from it. The
 // server names each person's role, so doctors are the people with role "doctor", never guessed from a title.
 import { defineStore } from "pinia";
 import { computed, ref } from "vue";

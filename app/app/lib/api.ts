@@ -1,4 +1,4 @@
-// One API client for the whole app, so the demo user and the data epoch are held in one place (the template's DATA).
+// One API client for the whole app, so the demo user and the data epoch are held in one place.
 // Tests replace it with setApi() and a client over a mocked fetch.
 import { createApiClient, type ApiClient } from "@codebridge/api-client";
 

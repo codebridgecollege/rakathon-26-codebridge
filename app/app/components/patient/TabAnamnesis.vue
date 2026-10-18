@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// The Anamnéza tab (tabAnamnesis() in the template): one row per history section, each finding as the document
+// The Anamnéza tab: one row per history section, each finding as the document
 // states it, a drug per line as a doctor writes it, and the sources folded away at the bottom (Soňa, round 2). Every
 // fact a doctor may correct goes through Ed, so an edit is stored next to the extracted text and never replaces it.
 import { computed } from "vue";

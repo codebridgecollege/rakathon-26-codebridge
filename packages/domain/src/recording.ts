@@ -1,6 +1,5 @@
-// Pure rules of the AI recorder "AI záznam" (PRODUCT.md F-25, screen S-5) as the old page applies them in server mode
-// (spanPid(), recMessage(), recSendLines(), joinPcm(), recAudioPush(), recPutPart(), recLoad(), REC_ERR and REC_FINAL
-// in mocks/src/v3-template.html). The browser parts (microphone, socket) and the request loop live in the app; what is
+// Pure rules of the AI recorder "AI záznam" (PRODUCT.md F-25, screen S-5) in server mode.
+// The browser parts (microphone, socket) and the request loop live in the app; what is
 // here decides which words go where, what is sent in one request and how a server reply becomes the view.
 
 // Must match audio_format=pcm_16000, which the server puts in the socket URL.

@@ -1,6 +1,5 @@
 // Quote matching for the source viewer (PRODUCT.md F-18): where a source reference's quote sits on the page image
-// (Tesseract's word boxes) and in the page transcription (character offsets). Ported from the old page's
-// canon/lev/sim/align/bestWindow/matchImage/matchText. It runs in the browser on the page the Worker sent, so the
+// (Tesseract's word boxes) and in the page transcription (character offsets). It runs in the browser on the page the Worker sent, so the
 // quote (which can contain names) never travels to the server or its logs.
 //
 // Source references carry a quote from the PDF's old text layer, with its OCR errors ("MO" for "M0", "lmg/kg",

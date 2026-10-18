@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// The toasts of stores/toast.ts, styled by the old page's .toast. A status role (which the old page lacked) lets
+// The toasts of stores/toast.ts, styled by .toast. A status role lets
 // screen readers announce them without moving the focus.
 import { useToastStore } from "../stores/toast";
 import { useMsg } from "../lib/msg";

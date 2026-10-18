@@ -206,7 +206,7 @@ export function reportPdf(t: T, html: string, meta: PdfMeta): Pdf {
         y += 12;
       }
       text(title, { size: 17, bold: true, gap: 4, leading: 7 });
-      // The meta line alone; without one the header's text minus its title, as the old page read it.
+      // The meta line alone; without one the header's text minus its title.
       const m = plain(node.querySelector(".report-meta") || node);
       text(m.startsWith(title) ? m.slice(title.length).trimStart() : m, { size: 9, gap: 4, leading: 4.5 });
       return;

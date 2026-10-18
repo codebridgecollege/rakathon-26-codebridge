@@ -1,6 +1,4 @@
-// Rules of the running MDT (screen S-4) and of the discussion record "Projednání na MDT" (screen S-5), as the old page
-// applies them (sessionBar(), ensureProto(), applyProto(), protoEditable(), mdtCard(), recTarget() in
-// mocks/src/v3-template.html). Pure, so the app and its tests share one copy of each rule.
+// Rules of the running MDT (screen S-4) and of the discussion record "Projednání na MDT" (screen S-5). Pure, so the app and its tests share one copy of each rule.
 import type { Step } from "./protocol";
 
 export type SessionLike = { day: string; started_at: string; ended_at: string | null; started_by?: string | null };
@@ -56,7 +54,7 @@ const stepsOf = (x: unknown): Step[] =>
     return { text: String(o.text ?? ""), who: String(o.who ?? ""), due: String(o.due ?? "") };
   });
 
-// The server's protocol object (store/work.ts) in the page's shape; "conclusion" is the stored name of "concl".
+// The server's protocol object (store/work.ts) in the app's shape; "conclusion" is the stored name of "concl".
 export function protoFromServer(sp: Record<string, unknown> | null | undefined): Proto {
   const s = sp ?? {};
   return {

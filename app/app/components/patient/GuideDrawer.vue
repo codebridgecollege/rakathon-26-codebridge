@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// The guideline drawer (the guide branch of renderOverlay() in the template): the guideline's page text with the
+// The guideline drawer: the guideline's page text with the
 // quoted statement marked, the full citation, the original grade and why it applies, and links to the publisher's
 // PDF at that page. Without the page text it says so; the quote is marked only where it is found verbatim.
 import { computed, nextTick, onMounted, ref } from "vue";

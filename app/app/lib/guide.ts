@@ -1,4 +1,4 @@
-// Readers of the open case's guideline layer (GL, STMTS, PAST, anyStmt, citeOf and factRefs in the template). The
+// Readers of the open case's guideline layer. The
 // guidance reply is the server's JSON as it comes; these helpers only look things up in it.
 import { computed } from "vue";
 import { refAt, type Item, type SourceRef } from "@codebridge/domain/case-data";

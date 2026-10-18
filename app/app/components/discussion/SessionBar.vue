@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// The running MDT's session bar (screen S-4, sessionBar() in the template). While an MDT runs, the only thing that
+// The running MDT's session bar (screen S-4). While an MDT runs, the only thing that
 // changes in the patient view is this bar: the day's cases in order, so the team moves between them without leaving
 // the case they look at. A pill opens that case on the same tab; approved cases are ticked.
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";

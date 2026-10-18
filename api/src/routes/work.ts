@@ -16,7 +16,7 @@ export const work = new Hono<AppEnv>()
     if (!seesTasks(v, modeOf(c))) return c.json({ tasks: [] });
     const rows = await c.var.stores.cases.tasks(v, !listsAllCases(v), c.req.query("scope") === "mine");
     return c.json({
-      // The keys of S.tasks in the page.
+      // The task fields the app reads.
       tasks: rows.map((t) => ({
         id: t.id,
         pid: t.source_file,

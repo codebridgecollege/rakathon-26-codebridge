@@ -1,5 +1,4 @@
-// The browser-only parts of the AI recorder (recStart(), recConnect(), recChunk() and recStop() in
-// mocks/src/v3-template.html): the microphone at 16 kHz and the live socket to the speech service. The store decides
+// The browser-only parts of the AI recorder: the microphone at 16 kHz and the live socket to the speech service. The store decides
 // which case takes the audio and when to reconnect; this module only talks to the browser. Nothing here logs audio or
 // text.
 import { REC_RATE } from "@codebridge/domain/recording";

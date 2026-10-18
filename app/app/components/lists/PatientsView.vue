@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// Screen S-1, Databáze pacientů (viewPatients() in the old page): search, the submitted-date range, Excel-style column
+// Screen S-1, Databáze pacientů: search, the submitted-date range, Excel-style column
 // filters, column resize, pages of 20, booking from the list and opening a case. Same markup and classes as the old
 // page, so the copied CSS styles it unchanged.
 import { computed, onBeforeUnmount, onMounted, ref } from "vue";
@@ -105,7 +105,7 @@ function toggleCol(k: FilterColumn) {
 }
 
 // Column resize: the first drag freezes the current widths, then only the dragged column changes. The widths last for
-// the session (list view store), as in the old page.
+// the session (list view store).
 const table = ref<HTMLTableElement | null>(null);
 function onResizeStart(e: PointerEvent) {
   const h = (e.target as HTMLElement).closest(".colrs");
@@ -134,7 +134,7 @@ function onResizeStart(e: PointerEvent) {
 }
 const tableStyle = computed(() => (v.colWidths ? { tableLayout: "fixed" as const, width: `${v.colWidths.reduce((a, b) => a + b, 0)}px` } : undefined));
 
-// A click outside an open filter only closes it, as in the old page: it does not also open a patient or book one.
+// A click outside an open filter only closes it: it does not also open a patient or book one.
 function onDocClick(e: MouseEvent) {
   if (colOpen.value && !(e.target as HTMLElement).closest?.(".fpop,[data-colopen]")) {
     colOpen.value = null;

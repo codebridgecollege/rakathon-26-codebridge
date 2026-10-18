@@ -1,4 +1,4 @@
-// The task screens (S-6), as myTasks(), viewTasks() and mdtTasksCard() in mocks/src/v3-template.html.
+// The task screens (S-6).
 
 type TaskLike = { pid: string; who: string; done: boolean };
 type SuggLike = { pid: string; state: string };

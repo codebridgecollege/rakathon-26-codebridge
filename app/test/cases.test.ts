@@ -1,4 +1,4 @@
-// The case cache must keep the old page's semantics (caseStore in mocks/src/v3-template.html): no load without a
+// The case cache must keep these semantics: no load without a
 // request to show the case, one request per load, late replies dropped, at most five cases in memory.
 import { beforeEach, describe, expect, it } from "vitest";
 import { createPinia, setActivePinia } from "pinia";

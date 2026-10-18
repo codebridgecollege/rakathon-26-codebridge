@@ -1,4 +1,4 @@
-// Who is acting, and what the list screens let that role do (the old page's isDoctor(), canSetStatus(),
+// Who is acting, and what the list screens let that role do (isDoctor(), canSetStatus(),
 // canEditStaff() and canConfirmSugg()). The server checks every write again; these only decide which controls show.
 import { computed } from "vue";
 import { useSessionStore } from "../stores/session";

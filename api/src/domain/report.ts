@@ -1,5 +1,5 @@
 // The report snapshot the approving doctor's browser built. The server cannot render it itself yet, so it accepts
-// only the markup the page's reportHtml() produces (no script, no event handlers, no external URLs) and refuses a
+// only the markup the app's report builder produces (no script, no event handlers, no external URLs) and refuses a
 // snapshot that carries the patient's identity: identity lives in the patients table only, the page fills the
 // patient line from the patient row when it shows the report.
 import { D } from "@codebridge/domain/errors";

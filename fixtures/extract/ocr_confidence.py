@@ -3,7 +3,7 @@
 Usage:
     python3 fixtures/extract/ocr_confidence.py [--write]
 
-The "!" marks in mock v3 come from `ocr_note_cs` in `fixtures/data/mock-case-10-extra.json`: notes written
+The "!" marks in the app come from `ocr_note_cs` in `fixtures/data/mock-case-10-extra.json`: notes written
 when the facts were extracted from the PDF's old text layer, which misreads characters ("výbormně", "zyyšuji",
 "MO"). Since then every page has two independent readings in `data/derived/page-index.json`: the vision model's
 transcription (`text`) and Tesseract's words with confidence (`words`). A doctor asked why "!" shows on words
@@ -38,7 +38,7 @@ EXTRA_PATH = DATA / "mock-case-10-extra.json"
 INDEX = json.loads((ROOT / "data/derived/page-index.json").read_text())
 EXTRA = json.loads(EXTRA_PATH.read_text())
 FILE = "10_pacient.pdf"
-# Blocks of mock v3 whose facts carry ocr_note_cs; the same "!" mark is drawn for all of them.
+# Blocks whose facts carry ocr_note_cs; the same "!" mark is drawn for all of them.
 BLOCKS = ["status_praesens", "onco_compact_v3", "onco_detailed_v3", "timeline_cards_v3", "anamnesis_v3", "diagnosis_headline"]
 # The note doubts the content itself ("ověřit", "nečitelné" for an unreadable part); "nečitelný znak" only describes
 # the old text layer and is checked like any other token.

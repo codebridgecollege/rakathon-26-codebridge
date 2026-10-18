@@ -62,7 +62,7 @@ CREATE TABLE notifications (
 CREATE INDEX notifications_case ON notifications(case_id);
 
 -- ---------- attendance with a version per set ----------
--- A set is one seminar day ('2026-10-22') or one case without a slot ('case:NO-012'), as the page's attDay().
+-- A set is one seminar day ('2026-10-22') or one case without a slot ('case:NO-012').
 -- The step 2 table keyed by day only could not hold the second kind; it held no rows, so it is replaced.
 DROP TABLE attendance;
 CREATE TABLE attendance (

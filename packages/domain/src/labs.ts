@@ -1,6 +1,5 @@
 // The lab rules of the patient view (Laboratoř tab): reading a value as a number, reading a reference range, finding
-// a test's point at a draw, and the geometry of the trend chart. Pure and free of interface text. Ports of num(),
-// rangeOf(), pointAt() and labChart() in mocks/src/v3-template.html. The values a doctor sees are always the
+// a test's point at a draw, and the geometry of the trend chart. Pure and free of interface text. The values a doctor sees are always the
 // document's own text; the numbers here only place points on the chart.
 import type { LabDraw, LabPoint, LabTest } from "./case-data";
 
@@ -21,7 +20,7 @@ export function rangeOf(r: unknown): [number, number] | null {
 export const pointAt = (t: LabTest, d: LabDraw): LabPoint | undefined =>
   (t.points || []).find((x) => x.date === d.date && (x.time || "") === (d.time || ""));
 
-// The chart's size in SVG units, as in the old page.
+// The chart's size in SVG units.
 export const CHART = { W: 640, H: 220, L: 46, R: 16, T: 14, B: 34 } as const;
 
 export type ChartDot = { x: number; y: number; draw: number; out: boolean; point: LabPoint };

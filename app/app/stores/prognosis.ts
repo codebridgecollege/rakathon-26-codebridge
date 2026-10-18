@@ -1,4 +1,4 @@
-// The Prognóza tab's state (PROGNOSIS in mocks/src/prognosis.js). Each entry belongs to one patient and one scheduled
+// The Prognóza tab's state. Each entry belongs to one patient and one scheduled
 // day, and every reply writes into the entry it was asked for, so a late reply never replaces the result of another
 // case or day. The config is shared by all cases. The reference list and the panels of the tab on screen are held
 // here too, so the drawers read the same numbers the tab shows.
@@ -108,12 +108,12 @@ export type PgEntry = {
   error: PgError | null;
   savedChecked: boolean;
   // The saved searches are being read from the server: the tab neither offers a search nor reports the missing
-  // prognosis server yet, as the old page did while it looked up its built-in saved searches.
+  // prognosis server yet.
   savedChecking: boolean;
   savedPending: boolean;
 };
 
-// The old page showed a saved search after this delay ("Načítání uložené rešerše…"), so the tab reads the same as a
+// A saved search is shown after this delay ("Načítání uložené rešerše…"), so the tab reads the same as a
 // recorded search coming in; counted from the request, so a slow server adds no extra wait.
 export const SAVED_DELAY_MS = 2000;
 

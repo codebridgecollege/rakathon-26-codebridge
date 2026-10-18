@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// One reported value of a study (pgMetric() in prognosis.js): the value with its unit, its reference number that
+// One reported value of a study: the value with its unit, its reference number that
 // opens the source list at that entry, and the confidence interval as the source gives it. A value the source does not
 // report is "-" with the gap wording; nothing is computed in its place.
 import { computed } from "vue";

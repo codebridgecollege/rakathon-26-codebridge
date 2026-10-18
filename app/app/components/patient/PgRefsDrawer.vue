@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// The numbered source list of the Prognóza tab (the pgrefs overlay of renderOverlay(), pgRefsHtml() in prognosis.js),
+// The numbered source list of the Prognóza tab,
 // like a paper's reference list: each entry names the values it supports and quotes the passage verbatim. It opens
 // scrolled to the number the doctor clicked, which is highlighted.
 import { nextTick, onMounted, watch } from "vue";

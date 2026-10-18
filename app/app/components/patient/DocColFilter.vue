@@ -5,7 +5,7 @@ export type ColValue = { code: string; label: string; content?: boolean };
 </script>
 
 <script setup lang="ts">
-// One filterable column header of the documents table (colHead() in the template): an Excel-style list of the
+// One filterable column header of the documents table: an Excel-style list of the
 // column's values with "(Vše)" (Soňa, round 2). The parent owns the filter and which popup is open, so one popup is
 // open at a time and outside clicks and Escape close it in one place.
 import { useFluent } from "fluent-vue";
