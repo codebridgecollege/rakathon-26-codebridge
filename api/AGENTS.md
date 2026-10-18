@@ -40,7 +40,8 @@ app's size budget, and deploys `main` to production and `backend` to the `backen
 
 `scripts/headers.mjs` then writes `.assets/_headers` and `.assets/_redirects`, which the assets binding reads (neither
 is served). Every file gets `X-Content-Type-Options: nosniff`, `Referrer-Policy: same-origin`, `X-Frame-Options: DENY`
-and a Permissions-Policy that allows only the microphone; the app's page (`/`) also gets the content security policy,
+and a Permissions-Policy (camera, location, payment and USB off; the microphone for our own pages); `/_nuxt/*` is
+cached for a year (content-hashed names); the app's page (`/`) also gets the content security policy,
 with the SHA-256 of each inline script in its `index.html` (the script stops when the count is not two), and
 `Cross-Origin-Opener-Policy: same-origin`. The old page, `/u` and the 404 page get no policy: they run inline scripts.
 `/api` answers set nosniff in `src/index.ts`. Redirects: `/app/...` (the app's address during the port) to `/`, and
