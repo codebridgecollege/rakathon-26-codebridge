@@ -8,3 +8,11 @@
 /* The source viewer's "Stránka" and "Přepis stránky" are tabs, so aria-selected (not aria-pressed) marks the open one;
    this is v3.css's look for a pressed .seg button. */
 .seg button[role="tab"][aria-selected="true"] { background: transparent; border-bottom-color: var(--accent); color: var(--accent-ink); box-shadow: none; }
+
+/* Layout parity with the old page, which has no doctype and so renders in quirks mode; the app is in standards mode.
+   Two quirks show in the layout and are reproduced here:
+   - a textarea (inline-block) sits on the text baseline, so standards mode adds the descender gap below it (about
+     6 px under "Závěr MDT" and the notes field); quirks mode does not;
+   - quirks mode resets line-height to normal on tables, so table rows are shorter than with the inherited 1.55. */
+textarea { vertical-align: top; }
+table { line-height: normal; }
