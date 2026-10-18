@@ -19,12 +19,11 @@ import { useApi } from "../../lib/api";
 import { useDialogFocus } from "../../lib/dialog";
 import { fmtWhen } from "../../lib/dates";
 import { msgId } from "../../lib/msg";
-import { FIND, fillIdent, reportFileName, reportHtmlFor } from "../../lib/report";
+import { FIND, fillIdent, recordT, reportFileName, reportHtmlFor } from "../../lib/report";
 import { loadPdfLib, reportPdf } from "../../lib/report-pdf";
 
 const props = defineProps<{ o: { kind: "report"; file: string } }>();
 const { $t } = useFluent();
-const t = (id: string, args?: Record<string, string | number>) => $t(id, args);
 const overlay = useOverlayStore();
 const cases = useCasesStore();
 const discussion = useDiscussionStore();
@@ -48,8 +47,9 @@ const picked = computed<ReadonlySet<string>>(() => (locked.value && frozen.value
 // snapshot with the current identity filled in; anything else is built now, so it re-renders when its inputs change.
 const html = computed(() =>
   locked.value && frozen.value.reportSnap
-    ? fillIdent(frozen.value.reportSnap, p.value, t)
-    : reportHtmlFor(t, props.o.file, pr.value, attendance.present(attKey(p.value))),
+    ? fillIdent(frozen.value.reportSnap, p.value, recordT)
+    : // Without a stored snapshot an approved report still prints the attendance frozen at approval, never today's.
+      reportHtmlFor(recordT, props.o.file, pr.value, locked.value ? frozen.value.attSnap : attendance.present(attKey(p.value))),
 );
 
 function pick(key: string, e: Event) {
@@ -74,7 +74,7 @@ async function download() {
     // The library may still be loading from when the dialog opened; a failed load makes reportPdf() say so.
     await loadPdfLib();
     await new Promise((resolve) => setTimeout(resolve, 0));
-    const bytes = reportPdf(t, snapshot, { id: pt.id }).output("arraybuffer");
+    const bytes = reportPdf(recordT, snapshot, { id: pt.id }).output("arraybuffer");
     const url = URL.createObjectURL(new Blob([bytes], { type: "application/pdf" }));
     const link = document.createElement("a");
     link.href = url;

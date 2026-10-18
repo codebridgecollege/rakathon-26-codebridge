@@ -28,7 +28,7 @@ import { sectionsOf, fromExtraction } from "@codebridge/domain/case-data";
 import { useApi } from "../lib/api";
 import { errMsg, msgId, type Msg } from "../lib/msg";
 import { refused } from "../lib/refused";
-import { reportHtmlFor, type ReportProto } from "../lib/report";
+import { recordT, reportHtmlFor, type ReportProto } from "../lib/report";
 import { useAttendanceStore } from "./attendance";
 import { useCasesStore } from "./cases";
 import { usePatientsStore } from "./patients";
@@ -51,7 +51,6 @@ type Save = {
   approveKey: string | null;
   approveSig: string | null;
 };
-type T = (id: string, args?: Record<string, string | number>) => string;
 
 const AUTOSAVE_MS = 800;
 // A new step starts assigned to the coordinator with the old page's default date.
@@ -223,7 +222,7 @@ export const useDiscussionStore = defineStore("discussion", () => {
   // ---------- approval ----------
   // The old page's approve action and approveApi(). Every guard repeats what the disabled button already says, for any
   // other path here (a double click, a key press).
-  async function approve(file: string, t: T, user: { name: string; isDoctor: boolean }) {
+  async function approve(file: string, user: { name: string; isDoctor: boolean }) {
     const p = usePatientsStore().byFile(file);
     const pr = protoOf(file);
     const sv = saveOf(file);
@@ -262,6 +261,15 @@ export const useDiscussionStore = defineStore("discussion", () => {
       // An attendance change still on its way would make the server's list differ from the frozen one.
       const key = attKey(p);
       await useAttendanceStore().settled(key);
+      // Those waits may take seconds: what was typed meanwhile is stored too, so the approval and its frozen report
+      // name exactly the stored record (the server makes the tasks from its stored steps).
+      if (!(await flush(file)) || (pr.state as string) === "approved") return;
+      // The case data may have left the cache meanwhile (other cases opened); the report is never built without it.
+      const again = useCasesStore().stateOf(file);
+      if (again === "loading" || again === "absent") {
+        useToastStore().show(msgId("discussion-approve-wait-data"));
+        return;
+      }
       const present = approvalAttendance(useAttendanceStore().present(key), user.name);
       const picked = [...useReportStore().picked];
       const snap: ReportProto = { state: "approved", concl: pr.concl, steps: pr.steps, approver: user.name };
@@ -270,7 +278,7 @@ export const useDiscussionStore = defineStore("discussion", () => {
         conclusion: pr.concl,
         picked_sections: picked,
         // The server keeps the snapshot without name, birth number and age (it refuses a report holding them).
-        report_html: reportHtmlFor(t, file, snap, present, { withIdentity: false }),
+        report_html: reportHtmlFor(recordT, file, snap, present, { withIdentity: false }),
         attendance_expected: present,
       };
       const sig = approvalSignature(body);
@@ -350,10 +358,16 @@ export const useDiscussionStore = defineStore("discussion", () => {
   // Read without creating the page's copy, so a list of cases (the session bar, the recorder) writes nothing.
   // Before a user switch, what was typed is stored under the user who typed it; the records then go, because the next
   // user's access decides what they may read (switchApiUser() in the template).
-  useSessionStore().onBeforeUserSwitch(async () => {
-    await Promise.all(Object.keys(saves).map((f) => flush(f)));
-    reset();
+  // A draft that could not be stored (no connection, a waiting conflict) refuses the switch, so nothing typed is lost.
+  useSessionStore().onUserSwitchCheck(async () => {
+    const saved = await Promise.all(Object.keys(saves).map((f) => flush(f)));
+    if (saved.includes(false)) {
+      useToastStore().show(msgId("discussion-switch-unsaved"));
+      return false;
+    }
+    return true;
   });
+  useSessionStore().onUserSwitched(reset);
 
   const isApproved = (file: string) => (protos[file]?.state ?? protoFromServer(serverCase(file)?.protocol).state) === "approved";
   const isDirty = (file: string) => !!saves[file]?.dirty.size;

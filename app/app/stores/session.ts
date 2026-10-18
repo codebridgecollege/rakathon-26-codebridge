@@ -85,6 +85,21 @@ export const useSessionStore = defineStore("session", () => {
   function onBeforeUserSwitch(fn: () => Promise<void> | void) {
     beforeSwitch.push(fn);
   }
+  // Checks that may refuse a switch (resolve false; the check shows why), run once the new user is known.
+  const switchChecks: (() => Promise<boolean> | boolean)[] = [];
+  function onUserSwitchCheck(fn: () => Promise<boolean> | boolean) {
+    switchChecks.push(fn);
+  }
+  // What ends only when the switch goes ahead (the recording, which belongs to the user who started it).
+  const leaving: (() => Promise<void> | void)[] = [];
+  function onUserLeaving(fn: () => Promise<void> | void) {
+    leaving.push(fn);
+  }
+  // What was read under the previous user and goes once the new user's data is in.
+  const switched: (() => void)[] = [];
+  function onUserSwitched(fn: () => void) {
+    switched.push(fn);
+  }
 
   // A user switch reloads what the server lets the new user see, so the list, tasks and case data follow the new
   // role. A name the server does not know is refused rather than sent under the previous user's id.
@@ -94,6 +109,10 @@ export const useSessionStore = defineStore("session", () => {
       error.value = { message_cs: null, message_id: "user-switch-unknown" };
       return false;
     }
+    // A screen may refuse the switch (a draft that could not be stored under the user who typed it); nothing of the
+    // current user has been ended at this point, so a refusal leaves the view whole.
+    for (const check of switchChecks) if (!(await check())) return false;
+    await Promise.all(leaving.map((fn) => fn()));
     const prev = useApi().userId;
     setDemoUser(id);
     try {
@@ -106,6 +125,7 @@ export const useSessionStore = defineStore("session", () => {
     // The case data and the upload lists were read under the previous user's access; they go with the switch.
     useCasesStore().reset();
     useUploadsStore().reset();
+    for (const fn of switched) fn();
     error.value = null;
     return true;
   }
@@ -127,5 +147,5 @@ export const useSessionStore = defineStore("session", () => {
     reload = fn;
   }
 
-  return { phase, health, me, error, resetting, boot, switchUser, onBeforeUserSwitch, applyState, loadFromApi, setReload };
+  return { phase, health, me, error, resetting, boot, switchUser, onBeforeUserSwitch, onUserSwitchCheck, onUserLeaving, onUserSwitched, applyState, loadFromApi, setReload };
 });

@@ -122,8 +122,10 @@ export const approvalAttendance = (present: readonly string[], approver: string)
 
 // One idempotency key per approval: a retry after a lost answer sends the same body and reuses the key, so the server
 // replays its answer instead of making a second decision; a changed approval gets a new key.
-export const approvalSignature = (b: { protocol_version: number; conclusion: string; attendance_expected: string[]; picked_sections: string[] }) =>
-  JSON.stringify([b.protocol_version, b.conclusion, b.attendance_expected, b.picked_sections]);
+// The frozen report is part of the body, so a retry whose report changed (steps edited meanwhile) gets a new key
+// instead of a refusal for a different body under the same key.
+export const approvalSignature = (b: { protocol_version: number; conclusion: string; attendance_expected: string[]; picked_sections: string[]; report_html?: string }) =>
+  JSON.stringify([b.protocol_version, b.conclusion, b.attendance_expected, b.picked_sections, b.report_html ?? ""]);
 
 // Words of the AI recording go only to an open case still being discussed: the doctor's choice of case decides, never
 // a guess. During a seminar only its own cases take words; a patient opened to look something up does not (recTarget()).

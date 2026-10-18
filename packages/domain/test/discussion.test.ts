@@ -89,6 +89,7 @@ describe("who may write and approve", () => {
     const b = { protocol_version: 2, conclusion: "A", attendance_expected: ["X"], picked_sections: ["summary"] };
     expect(approvalSignature(b)).toBe(approvalSignature({ ...b }));
     expect(approvalSignature(b)).not.toBe(approvalSignature({ ...b, conclusion: "B" }));
+    expect(approvalSignature(b)).not.toBe(approvalSignature({ ...b, report_html: "<article>x</article>" }));
   });
 });
 

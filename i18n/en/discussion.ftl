@@ -14,7 +14,8 @@ discussion-approve-wait-guide = The guidelines are still loading, approve in a m
 discussion-approve-conflict-first = First decide on the concurrent edit of the draft (the bar in the MDT discussion section).
 discussion-approve-recording-partial = Part of the recording could not be saved; speakers will be told apart from the saved audio.
 discussion-approved = Conclusion approved
-discussion-approved-with-tasks = Conclusion approved, { $n ->
+discussion-switch-unsaved = The draft could not be saved; switch the user once it is saved.
+discussion-approved-with-tasks =Conclusion approved, { $n ->
     [one] 1 task sent
    *[other] { $n } tasks sent
 } to the coordinator

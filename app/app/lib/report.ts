@@ -16,6 +16,17 @@ import { useWorkflowStore } from "../stores/workflow";
 import { fmtDate, fmtWhen, slotText, type T } from "./dates";
 import { caseStateOf } from "./lists";
 import { ageNum, surnameFirst } from "./patientRow";
+import { makeBundle } from "./i18n";
+
+// The report is a record in Czech whatever language the doctor's screen uses: the snapshot frozen at approval, the
+// preview and the PDF all read the Czech catalog, so one decision never mixes languages and the printed gap wording is
+// the fixed Czech one (CLAUDE.md). Built once, on first use.
+let csBundle: ReturnType<typeof makeBundle> | null = null;
+export const recordT: T = (id, args) => {
+  csBundle ??= makeBundle("cs");
+  const m = csBundle.getMessage(id);
+  return m?.value ? csBundle.formatPattern(m.value, args) : id;
+};
 
 export type ReportProto = { state: "draft" | "approved"; concl: string; steps: { text: string; who: string; due: string }[]; approver?: string | null };
 

@@ -13,7 +13,8 @@ discussion-approve-wait-guide = Odporúčania sa načítavajú, schváľte o chv
 discussion-approve-conflict-first = Najprv rozhodnite o súbežnej úprave konceptu (lišta v časti Prerokovanie na MDT).
 discussion-approve-recording-partial = Časť záznamu sa nepodarilo uložiť; rozlíšenie rečníkov prebehne z uloženého zvuku.
 discussion-approved = Záver schválený
-discussion-approved-with-tasks = Záver schválený, koordinátorke { $n ->
+discussion-switch-unsaved = Koncept sa nepodarilo uložiť; používateľa zmeňte, až bude uložený.
+discussion-approved-with-tasks =Záver schválený, koordinátorke { $n ->
     [one] odoslaná 1 úloha
     [few] odoslané { $n } úlohy
     [many] odoslaných { $n } úloh

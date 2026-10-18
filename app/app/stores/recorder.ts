@@ -228,8 +228,10 @@ export const useRecorderStore = defineStore("recorder", () => {
           return;
         }
         status.value = "connecting";
+        // A stop and a new start within the delay make this timer stale; the new start opens its own socket.
+        const a = attempt;
         setTimeout(() => {
-          if (on.value && !live) connect().catch((e) => stop(reasonOf(e)));
+          if (a === attempt && on.value && !live) connect().catch((e) => stop(reasonOf(e)));
         }, reconnectDelay(fails));
       },
     });
@@ -441,7 +443,12 @@ export const useRecorderStore = defineStore("recorder", () => {
   function purge(files: string[], why: string) {
     void why;
     if (!serverMode.value) return;
-    for (const f of files) up.delete(f);
+    // Parts still on their way stop retrying: the server would refuse them for a closed case or a finished seminar.
+    for (const f of files) {
+      const u = up.get(f);
+      if (u) u.off = true;
+      up.delete(f);
+    }
     const open = useCasesStore().openFile;
     if (open && files.includes(open) && txs[open]) void load(open);
   }
@@ -542,10 +549,12 @@ export const useRecorderStore = defineStore("recorder", () => {
     gen.value++;
     for (const f of Object.keys(txs)) delete txs[f];
   }
-  useSessionStore().onBeforeUserSwitch(() => {
-    if (!serverMode.value) return;
+  // Stopped also without server storage: the microphone and the live words belong to the previous user.
+  useSessionStore().onUserLeaving(() => {
     if (on.value) stop(msgId("discussion-rec-stopped-user-switch"));
     forget();
+    // Retries of parts already on their way would otherwise go out under the next user's id.
+    for (const u of up.values()) u.off = true;
     up.clear();
     lq = [];
   });

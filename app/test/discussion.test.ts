@@ -11,6 +11,8 @@ import { useWorkflowStore } from "../app/stores/workflow";
 import { useStaffStore } from "../app/stores/staff";
 import { useOverlayStore } from "../app/stores/overlay";
 import { useUploadsStore } from "../app/stores/uploads";
+import { useRecorderStore } from "../app/stores/recorder";
+import { useSessionStore } from "../app/stores/session";
 import { lastToast, mountInCase, setupPatient } from "./patient";
 import { deferred } from "./helpers";
 
@@ -121,9 +123,8 @@ describe("discussion card", () => {
     });
     const w = mountInCase(DiscussionCard, s);
     const d = useDiscussionStore();
-    const t = (id: string) => id;
-    await d.approve(s.p.file, t, { name: "MUDr. Svobodová", isDoctor: true });
-    await d.approve(s.p.file, t, { name: "MUDr. Svobodová", isDoctor: true });
+    await d.approve(s.p.file, { name: "MUDr. Svobodová", isDoctor: true });
+    await d.approve(s.p.file, { name: "MUDr. Svobodová", isDoctor: true });
     await flushPromises();
     expect(keys).toHaveLength(2);
     expect(keys[0]).toBeTruthy();
@@ -140,7 +141,7 @@ describe("discussion card", () => {
     const calls: string[] = [];
     const s = setup({ wf: { protocol: { concl: "X", state: "approved", version: 2 } }, routes: { "/cases/NO-010/decisions": () => (calls.push("x"), ok()) } });
     mountInCase(DiscussionCard, s);
-    await useDiscussionStore().approve(s.p.file, (x) => x, { name: "MUDr. Svobodová", isDoctor: true });
+    await useDiscussionStore().approve(s.p.file, { name: "MUDr. Svobodová", isDoctor: true });
     expect(calls).toHaveLength(0);
   });
 
@@ -223,5 +224,84 @@ describe("identity banner", () => {
     await flushPromises();
     expect(useUploadsStore().docsOf(s.p.file)).toHaveLength(1);
     expect(w.get('[role="alert"]').text()).toContain("U 1 nahraného dokumentu se jméno nebo rodné číslo neshoduje");
+  });
+});
+
+describe("approval guards and what ends with a case", () => {
+  const doctor = { name: "MUDr. Svobodová", isDoctor: true };
+
+  it("never approves a closed case, a case whose data still loads, or for a non-doctor", async () => {
+    const calls: string[] = [];
+    const routes = { "/cases/NO-010/decisions": () => (calls.push("x"), ok()) };
+    const closed = setup({ p: { status: "closed" }, wf: { protocol: { concl: "A", state: "draft", version: 1 } }, routes });
+    await useDiscussionStore().approve(closed.p.file, doctor);
+    const coord = setup({ wf: { protocol: { concl: "A", state: "draft", version: 1 } }, routes });
+    await useDiscussionStore().approve(coord.p.file, { name: "Bc. Marková", isDoctor: false });
+    const loading = setupPatient({ p: { slot: { day: "2026-10-22", time: "14:00" }, status: "scheduled" }, wf: { protocol: { concl: "A", state: "draft", version: 1 } }, routes });
+    await useDiscussionStore().approve(loading.p.file, doctor);
+    expect(lastToast()).toBe("discussion-approve-wait-data");
+    expect(calls).toHaveLength(0);
+  });
+
+  it("a definite refusal drops the idempotency key, so the next approval is a new request", async () => {
+    const keys: (string | null)[] = [];
+    let n = 0;
+    const s = setup({
+      wf: { protocol: { concl: "A", state: "draft", version: 1 } },
+      routes: {
+        "/cases/NO-010/decisions": (_u: string, init: RequestInit) => {
+          keys.push(new Headers(init.headers).get("Idempotency-Key"));
+          return ++n === 1 ? [409, { error: { code: "attendance_changed", message_cs: "Přítomní se mezitím změnili." } }] : ok();
+        },
+        "/workflow": { data_epoch: null, cases: {}, att: {}, sessions: [], mails: [] },
+      },
+    });
+    await useDiscussionStore().approve(s.p.file, doctor);
+    await useDiscussionStore().approve(s.p.file, doctor);
+    expect(keys).toHaveLength(2);
+    expect(keys[1]).not.toBe(keys[0]);
+  });
+
+  it("only a doctor starts a new conclusion", async () => {
+    const sent: unknown[] = [];
+    const s = setup({ p: { status: "done" }, wf: { protocol: { concl: "A", state: "approved", version: 3 } }, routes: { "/cases/NO-010/decisions/new-version": () => (sent.push(1), ok()) } });
+    await useDiscussionStore().newVersion(s.p.file, false);
+    expect(sent).toHaveLength(0);
+  });
+
+  it("closing the case from the card purges its recording audio", async () => {
+    const s = setup({
+      p: { status: "done" },
+      wf: { protocol: { concl: "A", state: "approved", version: 3 } },
+      routes: { "/cases/NO-010/status": ok({ slot_released: false }) },
+    });
+    const purge = vi.spyOn(useRecorderStore(), "purge");
+    const w = mountInCase(DiscussionCard, s);
+    await w.findAll("button").find((b) => b.text() === "Uzavřít případ")!.trigger("click");
+    await flushPromises();
+    expect(purge).toHaveBeenCalledWith([s.p.file], "closed");
+  });
+
+  it("ending the seminar stops the recording and purges every case's audio", async () => {
+    const s = setup({ routes: { "/sessions/2026-10-22": ok() } });
+    useWorkflowStore().sessions = [{ day: "2026-10-22", started_by: null, started_at: "2026-10-22T12:00:00Z", ended_at: null }];
+    const purge = vi.spyOn(useRecorderStore(), "purge");
+    const w = mountInCase(SessionBar, s, { tab: "overview" });
+    await w.findAll("button").find((b) => b.text() === "Ukončit MDT")!.trigger("click");
+    await flushPromises();
+    expect(purge).toHaveBeenCalledWith([s.p.file], "session_end");
+    expect(lastToast()).toBe("MDT ukončeno");
+  });
+
+  it("a draft that cannot be stored refuses a user switch, so nothing typed is lost", async () => {
+    const s = setup({
+      wf: { protocol: { notes: "", state: "draft", version: 1 } },
+      routes: { "/cases/NO-010/protocol": () => [503, { error: { code: "unavailable", message_cs: "Server je přetížený." } }] },
+    });
+    const d = useDiscussionStore();
+    d.setText(s.p.file, "notes", "Rozepsáno");
+    expect(await useSessionStore().switchUser("coord")).toBe(false);
+    expect(lastToast()).toBe("discussion-switch-unsaved");
+    expect(d.protoOf(s.p.file).notes).toBe("Rozepsáno");
   });
 });

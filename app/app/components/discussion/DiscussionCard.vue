@@ -139,7 +139,7 @@ function focusConclusion() {
   }
 }
 function approve() {
-  void disc.approve(file.value, $t, { name: userName.value, isDoctor: c.isDoctor.value });
+  void disc.approve(file.value, { name: userName.value, isDoctor: c.isDoctor.value });
 }
 function newVersion() {
   void disc.newVersion(file.value, c.isDoctor.value);

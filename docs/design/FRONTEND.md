@@ -434,6 +434,15 @@ Where it differs from the old page or the plan:
   failed transcript read is retried when the case is shown again instead of in a loop.
 - **Upload rows wrap** (old page and app): with a warning under a row, the file name shrank to zero width, so the
   doctor saw that a document belonged to another patient but not which one.
+- **The report is a Czech record whatever the screen's language:** the snapshot frozen at approval, the preview and
+  the PDF read the Czech catalog, so one decision never mixes languages and the printed gap wording is the fixed Czech
+  one. An approved case without a stored snapshot prints the attendance frozen at approval, not today's.
+- **Approval stores again right before it is sent:** the recording's last words and an attendance change may take
+  seconds, and text typed meanwhile is stored first, so the frozen report and the tasks the server makes name the same
+  steps. A retry whose report changed gets a new idempotency key. (The old page sent the live fields.)
+- **A user switch waits for the drafts,** as the old page did: a draft that cannot be stored refuses the switch with the
+  old message, and nothing of the current user ends before that check. The recording stops on a switch also without
+  server storage, and audio parts still on their way stop retrying after a purge or a switch.
 - **The report** prints the old wording; a partial due date prints as a month ("3/2024", the old page printed
   "NaN. 3. 2024"), and a source without a page number prints "s. " instead of "s. undefined".
 - **"Zahájit MDT" from a case header** starts the session on that case, as the old page did.
