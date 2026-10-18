@@ -9,7 +9,7 @@ import { useFluent } from "fluent-vue";
 import { pgLayout, PG_ENDPOINTS, type PgRow } from "@codebridge/domain/prognosis";
 import { usePatient } from "../../composables/usePatient";
 import { useApi } from "../../lib/api";
-import { fmtDate } from "../../lib/format";
+import { fmtDate } from "../../lib/dates";
 import { useOverlayStore } from "../../stores/overlay";
 import { ENDPOINT_IDS, errText, OS_HEADER_IDS, usePrognosisStore } from "../../stores/prognosis";
 import PgStudyRow from "./PgStudyRow.vue";

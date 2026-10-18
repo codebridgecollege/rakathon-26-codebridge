@@ -8,7 +8,7 @@ import { useFluent } from "fluent-vue";
 import { refAt, type Item } from "@codebridge/domain/case-data";
 import { compactKind, refList, rowKind } from "@codebridge/domain/case-view";
 import { usePatient } from "../../composables/usePatient";
-import { fmtDate } from "../../lib/format";
+import { fmtDate } from "../../lib/dates";
 import Ed from "./Ed.vue";
 import Marks from "./Marks.vue";
 import SrcWrap from "./SrcWrap.vue";

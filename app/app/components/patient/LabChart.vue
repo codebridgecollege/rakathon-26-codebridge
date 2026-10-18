@@ -6,7 +6,7 @@ import { computed } from "vue";
 import { useFluent } from "fluent-vue";
 import type { LabDraw, LabTest } from "@codebridge/domain/case-data";
 import { CHART, chartGeometry } from "@codebridge/domain/labs";
-import { fmtDate, fmtNumber } from "../../lib/format";
+import { fmtDate, fmtNumber } from "../../lib/dates";
 
 const props = defineProps<{ t: LabTest; draws: LabDraw[] }>();
 const { $t } = useFluent();

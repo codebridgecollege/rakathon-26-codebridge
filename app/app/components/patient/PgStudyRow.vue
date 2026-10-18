@@ -6,7 +6,7 @@ import { computed } from "vue";
 import { useFluent } from "fluent-vue";
 import type { PrognosisModel } from "@codebridge/api-client";
 import { conflictName, isIsoDay, pgUrl, PG_SINGLE_CELLS, type PgRow, type PgRowLayout } from "@codebridge/domain/prognosis";
-import { fmtDate } from "../../lib/format";
+import { fmtDate } from "../../lib/dates";
 import { nameKeyText, nameText } from "../../stores/prognosis";
 import PgMetric from "./PgMetric.vue";
 import PgSimilarity from "./PgSimilarity.vue";

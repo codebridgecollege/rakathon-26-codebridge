@@ -10,7 +10,7 @@ import { usePatientViewStore } from "../../stores/patientView";
 import { useApi } from "../../lib/api";
 import { caseWrite } from "../../lib/writes";
 import { toast } from "../../lib/toast";
-import { fmtWhen, slotText } from "../../lib/format";
+import { fmtWhen, slotText } from "../../lib/dates";
 
 const { $t } = useFluent();
 const c = usePatient();

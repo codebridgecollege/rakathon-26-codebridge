@@ -11,7 +11,7 @@ import { useWorkflowStore } from "../stores/workflow";
 import { usePatientsStore } from "../stores/patients";
 import { useOverlayStore } from "../stores/overlay";
 import { useSourceStore } from "../stores/source";
-import { fmtWhen, type T } from "../lib/format";
+import { fmtWhen, type T } from "../lib/dates";
 
 export type PatientCtx = {
   p: ComputedRef<PatientRow>;

@@ -9,7 +9,7 @@ import { useApi } from "./api";
 import { refused } from "./writes";
 import { useSessionStore } from "../stores/session";
 import { useWorkflowStore } from "../stores/workflow";
-import type { T } from "./format";
+import type { T } from "./dates";
 
 export async function alertAct(c: PatientCtx, t: T, i: AlertKey, action: AlertAction): Promise<void> {
   // The administrator reads; the server refuses alert events from that role, so nothing is sent.

@@ -17,7 +17,7 @@ import EditDialog from "../app/components/patient/EditDialog.vue";
 import { useOverlayStore } from "../app/stores/overlay";
 import { useCasesStore } from "../app/stores/cases";
 import { useWorkflowStore } from "../app/stores/workflow";
-import { mountInCase, setupPatient, type PatientSetup } from "./patient";
+import { lastToast, mountInCase, setupPatient, type PatientSetup } from "./patient";
 
 const SRC = (page: number, quote: string) => ({ file: "10_pacient.pdf", page, quote });
 const reply = (state: unknown = {}) => ({ data: {}, data_epoch: 1, state });
@@ -126,7 +126,7 @@ describe("status menu", () => {
     const call = s.calls.find((c) => c.url.includes("/status"))!;
     expect(JSON.parse(String(call.init.body))).toEqual({ to: "attention", expected_status: "ready" });
     expect(w.get("button.chip").text()).toBe("Vyžaduje pozornost ▾");
-    expect(document.querySelector(".toast")?.textContent).toBe("Stav změněn na Vyžaduje pozornost");
+    expect(lastToast()).toBe("Stav změněn na Vyžaduje pozornost");
   });
 
   it("lets the administrator only read, with the history newest first", async () => {
@@ -159,7 +159,7 @@ describe("the MDT question", () => {
     await flushPromises();
     expect(JSON.parse(String(s.calls.find((c) => c.url.includes("confirm"))!.init.body))).toEqual({ draft_sha: "abc" });
     expect(w.find("button.btn").exists()).toBe(false);
-    expect(document.querySelector(".toast")?.textContent).toBe("Otázka potvrzena");
+    expect(lastToast()).toBe("Otázka potvrzena");
   });
 
   it("shows the coordinator the question as plain text without a confirm button", () => {
@@ -247,7 +247,7 @@ describe("alerts tab", () => {
     await flushPromises();
     expect(w.find("details.resolved").exists()).toBe(false);
     expect(useWorkflowStore().cases["NO-010"]?.alertHist).toEqual([]);
-    expect(document.querySelector(".toast")?.textContent).toBe("Upozornění mezitím změnil kolega.");
+    expect(lastToast()).toBe("Upozornění mezitím změnil kolega.");
   });
 
   it("offers no alert actions to the administrator", () => {

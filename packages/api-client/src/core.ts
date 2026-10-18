@@ -61,6 +61,9 @@ export type Transport = {
   write<T>(method: "POST" | "PUT" | "PATCH" | "DELETE", path: string, body?: unknown, o?: RequestOptions): Promise<T>;
   // A raw body (a document or an audio part), sent as is with its media type.
   upload<T>(method: "POST" | "PUT", path: string, body: Blob | ArrayBuffer | Uint8Array, contentType: string, o?: RequestOptions): Promise<T>;
+  // A write sent while the page goes away (pagehide): keepalive, not awaited, errors ignored. Only for clean-ups the
+  // server also does by itself later (an upload session expires within 15 minutes anyway).
+  sendOnUnload(method: "DELETE" | "POST", path: string, body?: unknown): void;
   newKey(): string;
 };
 
@@ -119,6 +122,24 @@ export function createTransport(opts: ClientOptions = {}): Transport {
 
     upload<T>(method: "POST" | "PUT", path: string, body: Blob | ArrayBuffer | Uint8Array, contentType: string, o: RequestOptions = {}): Promise<T> {
       return send<T>(method, path, body as BodyInit, contentType, o);
+    },
+
+    sendOnUnload(method: "DELETE" | "POST", path: string, body: unknown = {}): void {
+      try {
+        void doFetch(base + path, {
+          method,
+          keepalive: true,
+          credentials: "same-origin",
+          body: JSON.stringify(body ?? {}),
+          headers: {
+            "Content-Type": "application/json",
+            ...(t.userId ? { "X-Demo-User": t.userId } : {}),
+            ...(t.epoch != null ? { "X-Data-Epoch": String(t.epoch) } : {}),
+          },
+        }).catch(() => {});
+      } catch {
+        // A browser that refuses the request while unloading: the server's own expiry cleans up.
+      }
     },
   };
 

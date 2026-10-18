@@ -3,9 +3,10 @@
 // allowed only as a deliberate choice ("Přesto vytvořit nový záznam"), which the access log keeps (CLAUDE.md: do not
 // merge silently). A typed reason is optional and stays with the case.
 import { D } from "@codebridge/domain/errors";
+import { RC_RE, normalizeRc } from "@codebridge/domain/referral";
 
-export const RC_RE = /^\d{6}\/?\d{3,4}$/;
-export const normalizeRc = (rc: string) => rc.replace("/", "");
+// The format rule is shared with the browser's form check (packages/domain/src/referral.ts).
+export { RC_RE, normalizeRc };
 
 export type Referral = {
   first_name: string;

@@ -5,7 +5,7 @@
 import { computed } from "vue";
 import { useFluent } from "fluent-vue";
 import { usePatient } from "../../composables/usePatient";
-import { fmtWhen } from "../../lib/format";
+import { fmtWhen } from "../../lib/dates";
 import { ageNum, surnameFirst } from "../../lib/patientRow";
 
 type Decision = { id?: string; version?: number; text: string; by: string; when: string; reportSnap?: string };

@@ -17,11 +17,12 @@ request; the Worker checks every write again.
 | `protocol.ts` | the discussion record (notes, conclusion draft, steps), autosave with versions |
 | `suggest.ts` | task drafts from an approved conclusion, due dates |
 | `fhir.ts` | the FHIR R4 referral read into the "Nový pacient" form |
+| `referral.ts` | the referral form's required fields, the birth number format and the duplicate birth number lookup |
 | `edits.ts` | a doctor's correction of an extracted fact (edit keys, save, revert) |
 | `roles.ts`, `access.ts`, `config.ts` | the permission matrix, read rules and the undecided role constants |
 | `errors.ts` | `DomainError` and the refusal factories `D` |
-| `time.ts`, `names.ts` | ISO day arithmetic, the Prague calendar day, the display name of a person |
-| `wire.ts` | types of the JSON the API sends (health, me, staff, patients, tasks, workflow, the write envelope) |
+| `time.ts`, `names.ts` | ISO day arithmetic, the Prague calendar day, the display name of a person, a patient's name surname first |
+| `wire.ts` | types of the JSON the API sends (health, me, staff, patients, tasks, workflow, the write envelope, documents, intake, upload sessions) |
 | `case-data.ts` | the case data in the patient view's shape (full extraction, synthetic patient, unprocessed), which parts and tabs a case shows, document titles of references |
 | `case-view.ts` | the patient view's trust rules: alert states and archive, the missing-document signal, the MDT question (explicit, draft, confirmed, edited), certainty marks, timeline order and categories, prose linked to sources, source numbering |
 | `quote-match.ts`, `page-text.ts` | finding a quote on the page image and in the transcription despite OCR errors; the transcription split into lines, tables and marked spans for the source viewer |

@@ -10,6 +10,7 @@ import { toast } from "../lib/toast";
 import { errorText } from "../lib/writes";
 import { useOverlayStore, type SourceOverlay } from "./overlay";
 import { usePatientViewStore } from "./patientView";
+import { useSessionStore } from "./session";
 
 type T = (id: string, args?: Record<string, string | number>) => string;
 // GET /documents/:id/pages/:n as it comes: the page (image, size, text, words, verify items, redacted image) plus the
@@ -74,11 +75,15 @@ export const useSourceStore = defineStore("source", () => {
     ov.update(o, { loading: false, page: n });
   }
 
-  // A user switch: what the previous user saw goes with it.
+  // A user switch: what the previous user saw goes with it, and a viewer open over the case closes.
   function reset() {
     pages.clear();
     docs.clear();
   }
+  useSessionStore().onBeforeUserSwitch(() => {
+    reset();
+    useOverlayStore().close();
+  });
 
   return { pages, docs, pageOf, docOf, openSource, gotoPage, reset };
 });

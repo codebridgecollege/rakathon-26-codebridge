@@ -11,7 +11,7 @@ import { tagsOf } from "@codebridge/domain/case-view";
 import { pointAt } from "@codebridge/domain/labs";
 import { usePatient } from "../../composables/usePatient";
 import { usePatientViewStore } from "../../stores/patientView";
-import { fmtDate } from "../../lib/format";
+import { fmtDate } from "../../lib/dates";
 import Gap from "./Gap.vue";
 import LabChart from "./LabChart.vue";
 import Marks from "./Marks.vue";

@@ -12,6 +12,7 @@ import { usePatientsStore } from "../app/stores/patients";
 import { useSessionStore } from "../app/stores/session";
 import { useCasesStore } from "../app/stores/cases";
 import { useWorkflowStore } from "../app/stores/workflow";
+import { useToastStore } from "../app/stores/toast";
 import { mockApi, row } from "./helpers";
 
 export type PatientSetup = {
@@ -44,6 +45,12 @@ export function setupPatient(s: PatientSetup = {}) {
   }
   if (s.wf) useWorkflowStore().cases[p.id] = { case_id: p.id, file: p.file, ...s.wf };
   return { pinia, p, calls };
+}
+
+// The text of the newest toast the screen showed (the toast store; AppToasts draws it in the app).
+export function lastToast(): string | undefined {
+  const m = useToastStore().items.at(-1)?.msg;
+  return m && "text" in m ? m.text : m?.id;
 }
 
 const fluent = () => createFluentVue({ bundles: bundlesFor("cs") });

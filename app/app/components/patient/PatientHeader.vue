@@ -8,7 +8,7 @@ import { useFluent } from "fluent-vue";
 import { usePatient } from "../../composables/usePatient";
 import { useOverlayStore } from "../../stores/overlay";
 import { useWorkflowStore } from "../../stores/workflow";
-import { slotText } from "../../lib/format";
+import { slotText } from "../../lib/dates";
 import { ageNum, surnameFirst } from "../../lib/patientRow";
 import { openFhirExport } from "../../lib/fhirExport";
 import Gap from "./Gap.vue";

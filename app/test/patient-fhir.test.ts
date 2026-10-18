@@ -10,8 +10,8 @@ import { openFhirExport } from "../app/lib/fhirExport";
 import { useOverlayStore } from "../app/stores/overlay";
 import FhirDialog from "../app/components/patient/FhirDialog.vue";
 import { makeBundle } from "../app/lib/i18n";
-import { fmtWhen } from "../app/lib/format";
-import { mountInCase, setupPatient, type PatientSetup } from "./patient";
+import { fmtWhen } from "../app/lib/dates";
+import { lastToast, mountInCase, setupPatient, type PatientSetup } from "./patient";
 
 // Vitest runs from app/; the jsdom environment gives no file URL to resolve against.
 const read = (p: string) => readFileSync(resolve(process.cwd(), "..", p), "utf8");
@@ -96,10 +96,10 @@ describe("Export FHIR dialog", () => {
     await w.findAll("button")[2]!.trigger("click");
     await flushPromises();
     expect(writeText.mock.calls[0]![0]).toBe(w.get("pre").text());
-    expect(document.querySelector(".toast")!.textContent).toBe("Zkopírováno do schránky");
+    expect(lastToast()).toBe("Zkopírováno do schránky");
     await w.findAll("button")[2]!.trigger("click");
     await flushPromises();
-    expect([...document.querySelectorAll(".toast")].map((x) => x.textContent)).toContain("Kopírování se nepodařilo; označte text ručně");
+    expect(lastToast()).toBe("Kopírování se nepodařilo; označte text ručně");
   });
 
   it("closes on the scrim and on Zavřít", async () => {

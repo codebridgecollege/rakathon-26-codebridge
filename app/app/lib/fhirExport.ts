@@ -6,7 +6,7 @@ import { qState } from "@codebridge/domain/case-view";
 import type { PatientCtx } from "../composables/usePatient";
 import { useOverlayStore } from "../stores/overlay";
 import { useApi } from "./api";
-import { fmtWhen } from "./format";
+import { fmtWhen } from "./dates";
 
 export function openFhirExport(ctx: PatientCtx, t: (id: string, args?: Record<string, string | number>) => string): void {
   const p = ctx.p.value;
