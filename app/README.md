@@ -1,16 +1,22 @@
-# app: the Nuxt frontend (port in progress)
+# app: the Nuxt frontend
 
 The new frontend for GLIDE MDT, built next to today's page (`mocks/src/v3-template.html`) and ported screen by screen
 (GitHub issue #13, design in `docs/design/FRONTEND.md`). Ported so far: the shell (header, user picker, stores, boot
 from the API) and the patient detail screen (`#/patient/<nr>/<tab>`: header, brief, MDT question, alerts, timeline,
 all tabs and the source viewer; `app/components/patient/`), the lists (patients, calendar, tasks, staff,
 administration), "Nový pacient" with uploads and the phone QR, and the MDT itself: the session bar, "Projednání na
-MDT", the AI recorder and the report with its PDF (`app/components/discussion/`). Today's page stays the demo until the new one passes the
-DOM-only test suite.
+MDT", the AI recorder and the report with its PDF (`app/components/discussion/`). The whole DOM-only test suite passes
+against it, and the Worker serves it at `/`; today's page is at `/legacy/` for a transition period.
 
 - **Nuxt 4 in SPA mode** (`ssr: false`), built with `nuxt generate` into static files.
-- **Served by the API Worker at `/app/`** (`baseURL`), next to today's page at `/`. Routes are hash routes
-  (`/app/#/patients`).
+- **Served by the API Worker at `/`** (`baseURL`), with today's page at `/legacy/`. Routes are hash routes
+  (`/#/patients`); today's links (`/#patient/10/labs`) still land on the right screen, and `/app/...` redirects to `/`.
+- **Content security policy and headers** come from `api/scripts/headers.mjs`, which pins the hashes of the two inline
+  scripts in `index.html` at staging time. A new inline script, an outside script, style or font host, or a new
+  connection target needs a change there (FRONTEND.md, "As implemented (step 13)").
+- **Size budget:** `npm run size` after `generate` fails when the first load exceeds 200 kB gzip or contains jsPDF,
+  its fonts or the QR library (`scripts/size-budget.mjs`). Slovak and English catalogs load only when chosen
+  (`loadLocale()` in `lib/i18n.ts`).
 - **Auto-imports are off.** Import every component and composable explicitly; Nuxt's own from `#imports`, `#app` or
   `#components`.
 - **Stores** (Pinia, `app/stores/`): `session` (boot, user switch), `staff`, `patients`, `workflow` (tasks and the
@@ -62,7 +68,10 @@ DOM-only test suite.
   header's recording pill is `components/RecorderPill.vue`. Rules in `@codebridge/domain/discussion` and
   `@codebridge/domain/recording`. Text in `i18n/*/discussion.ftl`.
 - **CSS** is today's page CSS, copied unchanged into `app/assets/v3.css` by `scripts/sync-css.mjs`; a test fails when
-  the template's CSS changed and the copy did not. Do not edit `v3.css` by hand.
+  the template's CSS changed and the copy did not. Do not edit `v3.css` by hand. `app/assets/app.css`, loaded after it,
+  holds the app's own fixes (accessibility: contrast of faint text, the source viewer's tabs).
+- **Dialogs:** the overlay kinds (`stores/overlay.ts`) get focus handling from `OverlayHost.vue` (focus in, Tab kept
+  inside, focus back to the opener); dialogs mounted in `app.vue` use `useDialogFocus()` from `lib/dialog.ts`.
 
 ## Commands
 
@@ -75,25 +84,28 @@ npm run generate -w @codebridge/app      # static build into app/.output/public
 npm run typecheck -w @codebridge/app     # nuxt typecheck (app) and vue-tsc on the tests
 npm test -w @codebridge/app              # Vitest with happy-dom: stores, boot, catalogs, CSS copy
 npm run css:sync -w @codebridge/app      # refresh app/assets/v3.css from the template
+npm run size -w @codebridge/app          # first-load size budget of the last generate
 ```
 
-The app against a local Worker with the seeded demo data, side by side with today's page:
+The app against a local Worker with the seeded demo data, with today's page next to it:
 
 ```
 npm ci                                   # at the root; `npm ci` inside api/ installs the Worker's dependencies only
 cd api
 npm run seed:local                       # once; needs uv
-npm run dev:app                          # STAGE_APP=1: builds the app into .assets/app/, then wrangler dev
-# http://localhost:8787/      today's page
-# http://localhost:8787/app/  the new shell; /app/?dev=1 shows the patient count read from the server
+npm run dev                              # stages the app, today's page and the headers into .assets/, then wrangler dev
+# http://localhost:8787/          the app; /?dev=1 shows the patient count read from the server
+# http://localhost:8787/legacy/   today's page
 ```
 
-The end-to-end suite against the app (`e2e/README.md`); the base URL needs its trailing slash:
+The end-to-end suite runs against both (`e2e/README.md`); the base URL needs its trailing slash:
 
 ```
-cd api && STAGE_APP=1 npm run stage && npx wrangler dev   # the app at /app/, today's page at /
-E2E_BASE_URL=http://localhost:8787/app/ npm --prefix e2e test
+npm --prefix e2e test                                              # the app at /
+E2E_BASE_URL=http://localhost:8787/legacy/ npm --prefix e2e test   # today's page
 ```
 
-`npm run dev` and CI's `npm run stage` stage today's page only, so deploys do not include the app until the team
-switches it on.
+Install scripts: npm 11 blocks dependency install scripts until approved (`npm approve-scripts --allow-scripts-pending`
+lists `esbuild`, `workerd` and `vue-demi`). None is needed: esbuild's and workerd's binaries come as platform packages,
+and vue-demi's default files already target Vue 3. The app's own `postinstall` (`nuxt prepare`) is repeated by
+`generate` and `typecheck`, so nothing depends on it having run.

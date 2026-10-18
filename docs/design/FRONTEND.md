@@ -1,8 +1,9 @@
 # Frontend: framework, language and rendering
 
-Status: decided 2026-10-18; steps 2 to 12 of the migration are built on
-branches, see the "As implemented" sections. This is work for after the
-hackathon; the current page stays the demo until the new one matches it.
+Status: decided 2026-10-18; steps 2 to 13 of the migration are built on
+branches, see the "As implemented" sections. On branch `port-finish` the
+Worker serves the app at `/` and today's page at `/legacy/`; `main` (and so
+the demo) still serves today's page at `/` until the team merges it.
 
 The question: should the frontend move from one hand-written page to a
 framework, and if so to which one, in which language, and rendered where?
@@ -312,15 +313,12 @@ plan above, or adds to it:
   Czech `message_cs`, passed through unchanged; an error the client raises
   itself (no answer, timeout, an HTML page) carries `message_id`, which
   the app translates. The client holds no UI text.
-- **Staging is opt-in.** `stage-assets.sh` builds and stages the app only
-  with `STAGE_APP=1` (`npm run dev:app` in `api/`); CI does not set it, so
-  deploys are unchanged. Nuxt's own `404.html` and `200.html` are not
-  staged: the assets' 404 handling serves the nearest `404.html`, and
-  Nuxt's would answer every unknown `/app/...` path with the app.
-- **CI** installs from the root lockfile; `npm ci` inside `api/` installs
-  only the Worker's workspace dependencies, so the Worker job does not
-  download Nuxt. The Worker job also runs `packages/domain`'s type check
-  and tests. The app and the client have no CI job yet.
+- **Staging** (`stage-assets.sh`) always builds and stages the app (step
+  13 below). Nuxt's own `404.html` and `200.html` are not staged: the
+  assets' 404 handling serves the nearest `404.html`, and Nuxt's would
+  answer every unknown path with the app.
+- **CI** installs from the root lockfile and tests the Worker, the app and
+  both packages (step 13 below).
 - **Hash links** gain a slash: `#calendar` becomes `#/calendar` (Vue
   Router normalizes it). `#patient/10/labs` has no route yet; it comes
   with the patient screens.
@@ -450,6 +448,77 @@ Where it differs from the old page or the plan:
   draft field's description; the report dialog has `aria-modal` and focus handling.
 - **The intake development harness is gone**; its checks that the screen specs lacked are
   `e2e/specs/intake-details.spec.ts`, green on both pages.
+
+## As implemented (step 13)
+
+Branch `port-finish` (issue #13): the switch, the content security policy, the size budget, the accessibility checks
+and layout parity. Not deployed and not merged; the user decides when. Where it differs from the plan above or adds
+to it:
+
+- **The switch.** `api/scripts/stage-assets.sh` always builds the app (no `STAGE_APP` flag) and stages it at the root
+  of `.assets/` (Nuxt `baseURL` `/`); today's page is `mocks/v3.html` unchanged at `/legacy/`. `/u`, `/pages/`,
+  `/ukazka/`, the Czech 404 page and `/api/*` stay as they were. Redirects (`.assets/_redirects`): `/app/...` (the
+  app's address during the port) to `/`, and the old page's relative links under `/legacy/` (the S02 ZIP, embedded
+  page images) to the root copies. Old hash links (`/#patient/10/labs`, `/#calendar/2026-10-22`) reach the app's
+  screens; `e2e/specs/serving.spec.ts` checks one, and `list-links` the list screens.
+- **Content security policy,** set by `api/scripts/headers.mjs` in `.assets/_headers` for the app's page only (`/`),
+  not through `nuxt-security`: the SPA shell has exactly two inline scripts (the import map and Nuxt's config), and the
+  script pins their SHA-256 at staging time, after each build, and stops when the count changes. The policy:
+  `default-src 'none'`; `script-src 'self'` plus the two hashes (no `unsafe-inline`, no `unsafe-eval`; jsPDF and its
+  fonts load as same-origin files); `style-src-elem 'self' https://fonts.googleapis.com`; `style-src-attr
+  'unsafe-inline'` (style attributes in templates and in HTML the app inserts: the report and the QR SVG; an attribute
+  cannot load or run anything); `font-src https://fonts.gstatic.com`; `img-src 'self' data: blob:`; `connect-src 'self'
+  https://api.elevenlabs.io wss://api.elevenlabs.io` (the realtime socket the server's token points to,
+  `ELEVENLABS_API_BASE`); `manifest-src 'self'`; `frame-ancestors 'none'`; `base-uri 'none'`; `form-action 'self'`;
+  `object-src 'none'`. No `media-src` or `frame-src`: the app plays no audio and frames nothing; the PDF and FHIR
+  downloads are `blob:` links with `download`, which the policy does not govern. Every static file also gets
+  `X-Content-Type-Options: nosniff`, `Referrer-Policy: same-origin`, `X-Frame-Options: DENY` and a
+  Permissions-Policy that allows only the microphone; the app's page gets `Cross-Origin-Opener-Policy: same-origin`;
+  `/api` answers get nosniff. The old page, `/u` and the 404 page have no policy (inline scripts throughout).
+- **Checked in the browser:** the e2e fixture fails any test on a policy violation Chromium reports; the whole suite
+  (97 tests) runs on `/` without one. A deliberately wrong hash makes the fixture fail, so the check is live. Not
+  watched: pages in a second browser context (the phone, the second doctor in `conflicts`), and `?lang=sk`/`en`,
+  checked once by hand (catalogs load, no violation). The recorder spec now stubs the socket at
+  `wss://api.elevenlabs.io`, because the policy refuses any other host.
+- **Size.** First load, gzip, measured by `app/scripts/size-budget.mjs` (index.html, the entry and its static imports,
+  the patient list screen): 176 kB (JS 164 kB, CSS 11.5 kB, index.html 0.9 kB), against 712 kB gzip (2.3 MB raw) for
+  today's page. Slovak and English catalogs now load only when chosen (they were 52 kB of the first load). Already
+  lazy: jsPDF (132 kB gzip) and its fonts (173 kB) load with the report dialog, the QR library with the phone
+  dialog; the patient screen adds 55 kB, the calendar 8 kB. The recorder's browser code (microphone and socket,
+  about 1 kB) stays in the entry: the header's recording pill reads its store. Nuxt adds prefetch hints for the lazy
+  chunks, which the browser may fetch when idle. CI fails above 200 kB or when jsPDF, its fonts or the QR library
+  reach the first load (`npm run size -w @codebridge/app`).
+- **Accessibility.** `e2e/specs/accessibility.spec.ts` runs axe-core 4.13.0 (WCAG 2.1 A and AA rules) on the list
+  screens, every tab of NO-010 and NO-S01, the discussion card, and the dialogs "Nový pacient", "Záznam z MDT",
+  "Původní dokument" and "Nahrát z telefonu", and fails on serious or critical violations; it also presses Tab and
+  Shift+Tab 40 times in each dialog and checks focus stays in, Escape closes, and focus returns to the opener. Found
+  and fixed, no visible text changed:
+  - nested controls: an oncology fact's pencil sat inside its source link (`role="button"`); it now follows the link;
+  - faint text (calendar times, small labels) below 4.5:1; `--faint` is darker (`#5f7179`, in `app/assets/app.css`);
+  - the source viewer's tabs carried `aria-pressed` (not allowed on a tab); they keep `aria-selected`, and the page
+    area scrolls from the keyboard (focusable region);
+  - the patient screen's dialogs and drawers took no focus and did not return it; `OverlayHost.vue` now does both for
+    every overlay kind, keeps Tab inside, and the overlays say `aria-modal`.
+  Remaining, not failing: violations of moderate or minor impact are not listed by the spec; the old page at
+  `/legacy/` is not checked. No skip link: the header has five controls before the main area.
+- **Layout parity.** The old page has no doctype (quirks mode); the app is in standards mode. Element boxes on nine
+  screens were compared (old against new, 1440 px wide). Two quirks are reproduced in `app/assets/app.css`: a
+  textarea's baseline gap (the notes field and "Závěr MDT" sat 6 px lower) and the table line height (patient list
+  rows were up to 19 px taller). Now within 3 px: patient list, calendar, tasks, staff, NO-S01 labs, NO-010 next steps.
+  Left: the oncology diagnosis headline (`p.dxh`) is 7 px taller and the "Chybí originály" box on the documents tab
+  4 px taller, both from quirks mode's line height for inline text of a smaller size; everything below them moves by
+  that much.
+- **CI** (`deploy-worker.yml`): one root `npm ci`, then the Worker's types, type check and tests, type checks and tests
+  of `packages/domain`, `packages/api-client` and the app, staging (which builds the app and writes the headers) and
+  the size budget; the deploy job stages from a root install. The workflow also runs on changes to `app/`, `i18n/`
+  and `packages/`. The e2e suite is not in CI (it needs the seeded local Worker); run it before merging.
+- **Install scripts.** npm 11 lists `esbuild`, `workerd` and `vue-demi` as having unapproved install scripts. None is
+  needed: the build and `wrangler dev` work without them (`app/README.md`). CI's npm 10 runs them as before.
+- **To go live:** merge into `main` (CI deploys the Worker); check `/`, `/legacy/`, `/u` and
+  `curl -sI https://<worker-host>/` for the policy; run the e2e suite against a preview alias first
+  (`E2E_BASE_URL=https://<preview-host>/ E2E_ALLOW_RESET=<preview-host>`). Pages (`deploy-mock.yml`) keeps serving
+  the old page until it is retired. Umami is not in the app; adding it needs `script-src` and `connect-src` for its
+  host.
 
 ## Decisions (2026-10-18)
 

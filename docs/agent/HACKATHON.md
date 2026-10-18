@@ -244,7 +244,8 @@ Declare this list to the jury and mentors.
   4.1.11, happy-dom 21.0.3 and `@vue/test-utils` 2.5.1, type-checked with
   vue-tsc 3.3.13 and TypeScript 5.9.3. npm workspaces hold `api/`, `app/`,
   `packages/domain` (the case rules moved out of `api/src/domain`) and
-  `packages/api-client`.
+  `packages/api-client`. Its accessibility checks use `@axe-core/playwright`
+  4.13.0 with axe-core 4.13.0 (MPL-2.0, Deque, npm) in the e2e suite.
 - (Add the LLMs, libraries, and datasets as we adopt them.)
 
 

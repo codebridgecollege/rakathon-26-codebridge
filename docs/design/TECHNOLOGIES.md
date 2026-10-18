@@ -105,12 +105,13 @@ development and corrected by hand after two reviews
 | R2 multipart uploads, lifecycle rules, cron trigger | used (API Worker, step 5) | The page uploads a case's raw audio in 5 MiB parts while it is discussed; every 15 minutes `scheduled()` deletes audio that should already be gone; an R2 rule removes anything left under `audio/` after 7 days (the longest a failed pass keeps audio for a retry) | Keeps browser memory flat and the audio on our EU storage for as short a time as the pass needs, with two independent backstops for deletion |
 | Cloudflare AI Gateway | optional, off | Can sit in front of the Azure OpenAI call when `AI_GATEWAY_BASE` is set | Off until we check that it accepts the APIM host, whether it retries 429 itself, and that its logging is off |
 | Wrangler 4.147.0, TypeScript 5.9.3, Vitest 4.1.11 with `@cloudflare/vitest-plugin` 1.3.6 | used (API Worker) | Local run, deploy, type check, tests inside workerd | Tests run in the same runtime as production |
-| Nuxt 4.6.2 (Vue 3.5.44, Vue Router 5.4.0) in SPA mode | in progress (`app/`, issue #13) | The new frontend, ported screen by screen from mock v3; built with `nuxt generate` and served by the API Worker at `/app/` | Typed components instead of one 5,500-line page; per-route server rendering later for public pages without a second framework ([`FRONTEND.md`](FRONTEND.md)) |
+| Nuxt 4.6.2 (Vue 3.5.44, Vue Router 5.4.0) in SPA mode | used on the Worker (`app/`, issue #13; not yet on `main`) | The frontend, ported screen by screen from mock v3; built with `nuxt generate` and served by the API Worker at `/`, with mock v3 at `/legacy/` for a transition period | Typed components instead of one 5,500-line page; per-route server rendering later for public pages without a second framework ([`FRONTEND.md`](FRONTEND.md)) |
 | Pinia 4.1.0 with `@pinia/nuxt` 1.0.3 | in progress (`app/`) | Session, staff, patients, workflow and the per-case cache | Long-lived state that survives route changes (later the recorder) |
 | Fluent: `@fluent/bundle` 0.19.1, `fluent-vue` 3.8.2 | in progress (`app/`, `i18n/`) | Interface text from `i18n/cs/*.ftl` (Slovak and English fall back to Czech) | Plurals and variants per language, terms for the fixed clinical wording ([`I18N.md`](I18N.md)); `fluent-vue` is registered in a plain Nuxt plugin |
 | npm workspaces, `@codebridge/domain`, `@codebridge/api-client` | in progress (branch, issue #13) | One lockfile for `api/`, `app/` and `packages/*`; the pure case rules shared by the Worker and the app; a typed client for the API | A clinical rule exists once instead of being copied by hand between page and server |
 | Vitest 4.1.11 with happy-dom 21.0.3 and `@vue/test-utils` 2.5.1; vue-tsc 3.3.13 | in progress (`app/`, `packages/`) | Store, boot and catalog tests; type checks of the app | The same test runner as the Worker |
 | Google Fonts: Manrope, DM Sans | used | Headings and text | Soňa's visual brief (GLIDE-inspired clinical workspace) |
+| Content security policy and headers through the assets' `_headers` and `_redirects` files | used on the Worker (branch, issue #13) | `api/scripts/headers.mjs` pins the hashes of the app's two inline scripts and allows only our origin, Google Fonts and the speech service's socket; nosniff, same-origin referrer, no framing; redirects of old addresses | No inline or injected script can run in the app; written at staging so it follows each build, and with no extra module in the app (nuxt-security would add one for the same two hashes) |
 | claude.ai artifacts | dev only | Publishing the mocks as private links for the team | Quick sharing and comments |
 
 ## Standards and codes
@@ -132,6 +133,7 @@ development and corrected by hand after two reviews
 | ElevenLabs Scribe v2 (`scripts/transcribe.py`) | Transcribing the organizers' talks and the team's design discussions; no patient data in the audio |
 | uv | Running the Python scripts with pinned dependencies |
 | Node.js, jsdom, Playwright with Chrome | Click-through and layout checks of the mocks (`mocks/src/test/`) |
+| Playwright 1.64.1 with `@axe-core/playwright` 4.13.0 (axe-core 4.13.0) | The DOM-only end-to-end suite (`e2e/`) against the app and the old page; automated WCAG 2.1 A/AA checks of the app's screens and dialogs, a content security policy check on every test |
 | python-pptx, macOS `textutil` | Reading the organizers' decks and FNO's Word documents |
 | GitHub | Repository, shared by the team |
 | HL7 FHIR validator 7.0.2 with OpenJDK 21 (`fhir/validate.sh`) | Checking the FHIR export against FHIR R4 |

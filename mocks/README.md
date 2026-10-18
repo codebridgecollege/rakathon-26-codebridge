@@ -212,6 +212,10 @@ On load the page asks `GET /api/health` what the server offers; opened from
 a file, in the claude.ai viewer or under `serve.py` there is no such server,
 and the recorder shows as unavailable (the conclusion can still be typed).
 
+On the API Worker the page is served at `/legacy/` (`api/scripts/stage-assets.sh`), unchanged, for a transition
+period; the Worker's `/` is the Nuxt app (`app/`, `docs/design/FRONTEND.md`). Its relative links (the S02 ZIP) are
+redirected to the root copies. Pages below is unchanged until it is retired.
+
 The team's live copy is https://codebridge-mdt.pages.dev
 (Cloudflare Pages, HTTPS, so the browser allows the microphone);
 a push to main that changes `v3.html`, `pages/`, `ukazka/`, `functions/` or `pages-wrangler.toml` redeploys it
