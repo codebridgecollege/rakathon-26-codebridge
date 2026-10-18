@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { autoOnApprove, autoOnNewVersion, autoOnSchedule, autoOnUnschedule, manualMoves, moveStatus, statusLine } from "../../src/domain/status";
+import { autoOnApprove, autoOnNewVersion, autoOnSchedule, autoOnUnschedule, manualMoves, moveStatus, statusLine } from "../src/status";
 
 describe("manual status moves", () => {
   it.each([

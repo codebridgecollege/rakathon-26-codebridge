@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { dueFrom, suggestTasks } from "../../src/domain/suggest";
+import { dueFrom, suggestTasks } from "../src/suggest";
 
 // CLAUDE.md "a negated finding read as positive", "wrong or outdated date", partial dates stay partial.
 describe("task drafts from an approved conclusion", () => {

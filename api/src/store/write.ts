@@ -2,8 +2,8 @@
 // its change committed. D1 has no interactive transactions, so each guard re-checks inside the batch what the route
 // read before it: it inserts the condition's result into write_guards, whose CHECK (ok = 1) fails on a false
 // condition and rolls back the whole batch (verified in test/write.test.ts and on local D1 under wrangler dev).
-import type { Viewer } from "../domain/access";
-import { DomainError, D } from "../domain/errors";
+import type { Viewer } from "@codebridge/domain/access";
+import { DomainError, D } from "@codebridge/domain/errors";
 
 export type AuditLine = {
   action: string;

@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import type { AppEnv } from "../types";
-import { listsAllCases, seesTasks } from "../domain/access";
+import { listsAllCases, seesTasks } from "@codebridge/domain/access";
 import { modeOf } from "./access-check";
 
 const addDays = (iso: string, n: number) => {

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { env } from "cloudflare:workers";
 import { duplicateDecision, evaluateIntake, intakeCaseId, intakeFixtureOf, samePerson, validateReferral, type IntakeInput } from "../../src/domain/intake";
-import { fhirToForm } from "../../src/domain/fhir";
+import { fhirToForm } from "@codebridge/domain/fhir";
 import { compareIdentity } from "../../src/domain/documents";
 import { DEFAULT_STAFF, nameTaken, removePerson, renamePerson, validateDeptName, validatePerson, type StaffUser } from "../../src/domain/staff";
 

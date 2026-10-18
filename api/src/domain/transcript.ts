@@ -1,7 +1,7 @@
 // Rules for the AI recording on the server (step-5.md "As implemented"): which live lines and audio parts a case
 // accepts, how the speaker pass turns words into lines, and the fixed codes a failure may show. Pure: the routes and
 // the Workflow load the rows and pass them in.
-import { DomainError } from "./errors";
+import { DomainError } from "@codebridge/domain/errors";
 
 export const PCM_BYTES_PER_SECOND = 32_000; // 16 kHz, 16-bit, mono: what the page records (REC_RATE)
 export const MAX_LINES_PER_BATCH = 100;

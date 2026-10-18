@@ -102,11 +102,8 @@ export function patientRow(r: CaseJoinRow, statusHist: StatusHistItem[] = [], re
   };
 }
 
-// "<titul před> <příjmení>, <titul za>", as staffName() in the page.
-export function staffName(x: { pre: string; sur: string; post: string }): string {
-  const base = [x.pre, x.sur].map((s) => (s || "").trim()).filter(Boolean).join(" ");
-  return (x.post || "").trim() ? `${base}, ${x.post.trim()}` : base;
-}
+// The display name rule is shared with the browser (@codebridge/domain/names); re-exported for the row mappers' callers.
+export { staffName } from "@codebridge/domain/names";
 
 // The page's isEmptyPage().
 export const isEmptyPage = (text: string) => /^\s*\[prázdná stránka\]\s*$/.test(text);

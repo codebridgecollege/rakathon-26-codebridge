@@ -1,5 +1,5 @@
 {
-  "$schema": "./node_modules/wrangler/config-schema.json",
+  "$schema": "../node_modules/wrangler/config-schema.json",
   "name": "codebridge-mdt",
   "main": "src/index.ts",
   // Pinned so the runtime behaves the same on every deploy; not later than Wrangler 4.147.0's workerd.

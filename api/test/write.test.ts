@@ -5,8 +5,8 @@ import { env } from "cloudflare:workers";
 import { call, testEnv } from "./helpers";
 import { FAKE_NAME, SQL, loadFixture } from "./data";
 import { Tx } from "../src/store/write";
-import { D } from "../src/domain/errors";
-import { COORDINATOR_EDITS_PROTOCOL } from "../src/domain/config";
+import { D } from "@codebridge/domain/errors";
+import { COORDINATOR_EDITS_PROTOCOL } from "@codebridge/domain/config";
 
 type Body = { data?: Record<string, unknown>; data_epoch?: number; state?: Record<string, any>; error?: { code: string; message_cs: string; current?: any; fields?: any } };
 

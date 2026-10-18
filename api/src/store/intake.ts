@@ -1,6 +1,6 @@
 // Intake on the server (step 6): what decides an intake, and removing an intake that was never completed (the dialog
 // closed, "Zpět", or the cron sweep after 24 hours).
-import type { Viewer } from "../domain/access";
+import type { Viewer } from "@codebridge/domain/access";
 import { evaluateIntake, intakeFixtureOf, type IntakeDoc } from "../domain/intake";
 import { auditStatement } from "./write";
 import { actorFor } from "./audio";

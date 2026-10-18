@@ -2,8 +2,8 @@
 // trail since the last reset is archived to R2 first; nothing is deleted when the archive fails.
 import { Hono } from "hono";
 import type { AppEnv } from "../types";
-import { D } from "../domain/errors";
-import { assertCan } from "../domain/roles";
+import { D } from "@codebridge/domain/errors";
+import { assertCan } from "@codebridge/domain/roles";
 import { ApiError } from "../http/errors";
 import { auditStatement } from "../store/write";
 import { actorOf, answer, isoNow, label } from "./write-context";

@@ -1,7 +1,7 @@
 import type { MiddlewareHandler } from "hono";
 import type { AppEnv } from "../types";
 import { ApiError, E } from "../http/errors";
-import { D, DomainError } from "../domain/errors";
+import { D, DomainError } from "@codebridge/domain/errors";
 import { refusedLine } from "../domain/audit";
 import { auditStatement } from "../store/write";
 import { D1Work } from "../store/work";

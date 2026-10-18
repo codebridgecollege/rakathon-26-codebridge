@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { patientRow, staffName, type CaseJoinRow } from "../src/domain/rows";
-import { canReadCaseHeader, canReadClinical, clinicalAccessOf, redactsListFor, type Viewer } from "../src/domain/access";
+import { canReadCaseHeader, canReadClinical, clinicalAccessOf, redactsListFor, type Viewer } from "@codebridge/domain/access";
 
 const base: CaseJoinRow = {
   id: "NO-A", source_file: "A_pacient.pdf", status: "new", processing_level: "partial", question_text: null, question_explicit: 0,

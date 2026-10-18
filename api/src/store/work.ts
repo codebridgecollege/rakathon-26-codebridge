@@ -2,9 +2,9 @@
 // the page applies after a write (GET /api/workflow and each write's `state`). D1 implementation; a pilot store
 // implements the same functions over Postgres.
 import { staffName } from "../domain/rows";
-import type { Protocol, Step } from "../domain/protocol";
-import { emptyProtocol } from "../domain/protocol";
-import type { Status } from "../domain/status";
+import type { Protocol, Step } from "@codebridge/domain/protocol";
+import { emptyProtocol } from "@codebridge/domain/protocol";
+import type { Status } from "@codebridge/domain/status";
 import type { AttRow, StaffDept } from "../domain/attendance";
 import type { StaffUser } from "../domain/staff";
 

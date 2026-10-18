@@ -3,8 +3,8 @@
 import { Hono } from "hono";
 import type { Context } from "hono";
 import type { AppEnv } from "../types";
-import { D } from "../domain/errors";
-import { assertCan } from "../domain/roles";
+import { D } from "@codebridge/domain/errors";
+import { assertCan } from "@codebridge/domain/roles";
 import { removePerson, renamePerson, validateDeptName, validatePerson, DEFAULT_STAFF, DEFAULT_COORDINATOR } from "../domain/staff";
 import { staffName } from "../domain/rows";
 import type { Tx } from "../store/write";

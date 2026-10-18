@@ -2,10 +2,11 @@
 // { data, data_epoch, state } the page applies (step-4.md "As implemented").
 import type { Context } from "hono";
 import type { AppEnv } from "../types";
-import { D } from "../domain/errors";
-import { canReadClinical } from "../domain/access";
-import { assertCan, type Action, type Actor, type CaseAccess } from "../domain/roles";
-import { systemClock, type Clock } from "../domain/time";
+import { D } from "@codebridge/domain/errors";
+import { canReadClinical } from "@codebridge/domain/access";
+import { assertCan, type Action, type Actor, type CaseAccess } from "@codebridge/domain/roles";
+import type { Clock } from "@codebridge/domain/time";
+import { systemClock } from "../domain/clock";
 import { Tx } from "../store/write";
 import { D1Work, type CaseCore } from "../store/work";
 import { modeOf } from "./access-check";

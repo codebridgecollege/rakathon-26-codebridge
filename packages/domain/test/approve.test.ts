@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { approvalBlockers, approve, type ApproveInput } from "../../src/domain/approve";
-import { emptyProtocol } from "../../src/domain/protocol";
+import { approvalBlockers, approve, type ApproveInput } from "../src/approve";
+import { emptyProtocol } from "../src/protocol";
 
 const doctor = { id: "d2p1", name: "MUDr. Svobodová", role: "doctor" as const };
 const base = (o: Partial<ApproveInput> = {}, body: Partial<ApproveInput["body"]> = {}): ApproveInput => ({

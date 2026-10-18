@@ -1,7 +1,6 @@
-// The clock and ID source are injected, so the rules and their tests are deterministic.
+// The clock and ID source are injected, so the rules and their tests are deterministic. The system clock lives with
+// each runtime (api/src/domain/clock.ts), because crypto.randomUUID is a runtime global, not part of the language.
 export type Clock = { now(): Date; id(): string };
-
-export const systemClock: Clock = { now: () => new Date(), id: () => crypto.randomUUID() };
 
 export const isoTime = (d: Date) => d.toISOString();
 

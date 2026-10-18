@@ -2,7 +2,7 @@
 // one-time demo intake fixture. Czech hospitals hold duplicate records for one birth number, so a second record is
 // allowed only as a deliberate choice ("Přesto vytvořit nový záznam"), which the access log keeps (CLAUDE.md: do not
 // merge silently). A typed reason is optional and stays with the case.
-import { D } from "./errors";
+import { D } from "@codebridge/domain/errors";
 
 export const RC_RE = /^\d{6}\/?\d{3,4}$/;
 export const normalizeRc = (rc: string) => rc.replace("/", "");

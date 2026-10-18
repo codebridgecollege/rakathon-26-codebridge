@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { allowed, assertCan, type Action, type Actor } from "../../src/domain/roles";
-import { COORDINATOR_ACTS_ON_ALERTS, COORDINATOR_EDITS_PROTOCOL } from "../../src/domain/config";
+import { allowed, assertCan, type Action, type Actor } from "../src/roles";
+import { COORDINATOR_ACTS_ON_ALERTS, COORDINATOR_EDITS_PROTOCOL } from "../src/config";
 
 const doctor: Actor = { id: "d1p1", name: "MUDr. Novák", role: "doctor" };
 const coord: Actor = { id: "coord", name: "Bc. Marková", role: "coordinator" };

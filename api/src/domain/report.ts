@@ -2,7 +2,7 @@
 // only the markup the page's reportHtml() produces (no script, no event handlers, no external URLs) and refuses a
 // snapshot that carries the patient's identity: identity lives in the patients table only, the page fills the
 // patient line from the patient row when it shows the report.
-import { D } from "./errors";
+import { D } from "@codebridge/domain/errors";
 
 const TAGS = new Set(["article", "b", "i", "em", "strong", "small", "br", "div", "span", "p", "h1", "h2", "h3", "h4", "ul", "ol", "li", "img", "section", "table", "thead", "tbody", "tr", "td", "th", "sup", "sub"]);
 const ATTRS = new Set(["class", "id", "alt", "aria-label", "title", "style", "src"]);

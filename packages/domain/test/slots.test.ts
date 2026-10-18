@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { releasesOnClose, schedule, seminarWarning, slotLocked, unschedule, validateSlot } from "../../src/domain/slots";
-import { CLOSED_CASE_BOOKABLE } from "../../src/domain/config";
+import { releasesOnClose, schedule, seminarWarning, slotLocked, unschedule, validateSlot } from "../src/slots";
+import { CLOSED_CASE_BOOKABLE } from "../src/config";
 
 const dec = (day: string, time: string) => ({ slot_day: day, slot_time: time });
 

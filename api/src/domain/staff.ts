@@ -1,6 +1,6 @@
 // The staff list (mock round 23): departments of people entered as title and surname. Names are unique across the
 // list, the administrator included; removing a person is a soft delete, so history keeps the names it stored.
-import { D } from "./errors";
+import { D } from "@codebridge/domain/errors";
 import { staffName } from "./rows";
 
 export type StaffUser = { id: string; pre: string; sur: string; post: string; fn: string; role: string; active: number };

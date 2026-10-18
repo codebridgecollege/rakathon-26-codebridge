@@ -1,7 +1,7 @@
 // A drafted task waits for a doctor: edit, confirm (it becomes a task with who confirmed it) or dismiss. A decided
 // draft is never decided again (CLAUDE.md: a draft is never shown as approved; a doctor confirms).
-import { D } from "./errors";
-import { isIsoDay } from "./time";
+import { D } from "@codebridge/domain/errors";
+import { isIsoDay } from "@codebridge/domain/time";
 
 export type SuggestionRow = {
   id: number;

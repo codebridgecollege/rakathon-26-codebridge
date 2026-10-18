@@ -1,4 +1,4 @@
-import type { Viewer } from "./domain/access";
+import type { Viewer } from "@codebridge/domain/access";
 import type { Stores } from "./store/types";
 
 // Who is calling, as the auth middleware established it. Demo mode has no login, so it carries no identity; the

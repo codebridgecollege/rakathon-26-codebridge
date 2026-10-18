@@ -1,5 +1,5 @@
 // D1 implementation of the directory, case and audit stores. Every query binds its values; nothing is concatenated.
-import type { Viewer } from "../domain/access";
+import type { Viewer } from "@codebridge/domain/access";
 import type { CaseJoinRow, StatusHistItem } from "../domain/rows";
 import type {
   AlertRow,

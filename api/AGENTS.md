@@ -7,6 +7,10 @@ section "Issue: Step 1".
 
 ## Run, test, deploy
 
+`api/` is an npm workspace of the repository root (with `app/` and `packages/*`); the lockfile is the root
+`package-lock.json`, and `npm ci` here installs from it. The pure case rules come from `@codebridge/domain`
+(`packages/domain`).
+
 ```
 npm ci
 cp .dev.vars.example .dev.vars   # local keys, gitignored; agents never read it
@@ -49,7 +53,7 @@ uv run seed/seed.py --dry-run            # write seed/out/ only (SQL, R2 manifes
   patients, staff and tasks with the embedded ones (console). `?data=embedded`
   forces the embedded data on the Worker.
 - Routes that return case content check role and membership
-  (`src/domain/access.ts`) and write an `access_log` row before reading the content
+  (`packages/domain/src/access.ts`) and write an `access_log` row before reading the content
   (`src/middleware/audit.ts`); a failed insert answers 500 with no content.
 - `DATA_API` (`on`/`off`) switches the data API and `/api/health`'s `features.data`. `DEMO_RESET_ENABLED` (`true` on the
   demo Worker) allows reset-demo.
@@ -65,8 +69,9 @@ uv run seed/seed.py --dry-run            # write seed/out/ only (SQL, R2 manifes
 
 Design and the exact contract: `docs/research/backend-steps/step-4.md`, section "As implemented".
 
-- Rules live in `src/domain/` (pure, injected clock): `roles.ts` is the permission matrix; the role questions the team
-  has not decided are one constant each in `src/domain/config.ts` (open question in `docs/agent/OPEN_QUESTIONS.md`).
+- Rules live in `packages/domain/src` (`@codebridge/domain`, shared with the app) and `src/domain/` (server-only rules),
+  pure with an injected clock: `roles.ts` is the permission matrix; the role questions the team
+  has not decided are one constant each in `packages/domain/src/config.ts` (open question in `docs/agent/OPEN_QUESTIONS.md`).
 - A write route checks role and membership (`caseFor` in `src/routes/write-context.ts`), runs the domain rule, then
   commits one D1 batch through `src/store/write.ts`: guards first (each re-checks a value the route read; a false one
   fails `write_guards`' CHECK and rolls back the whole batch), the changes, the access-log rows. Map a constraint to a
@@ -136,7 +141,7 @@ Design and contract: `docs/research/backend-steps/step-6.md`, section "As implem
   document already there. Files live under R2 `uploads/<case>/`, which reset-demo and the intake
   discard delete. Rules in `src/domain/documents.ts`; the fixture's patient (`fixture_patients`, D1 only) is compared
   with the case's patient and only the result (`matches`, `conflicts`, `cannot_verify`) leaves the server.
-- Intake: `src/routes/intake.ts`, `src/store/intake.ts`, rules in `src/domain/intake.ts` and `src/domain/fhir.ts`. An
+- Intake: `src/routes/intake.ts`, `src/store/intake.ts`, rules in `src/domain/intake.ts` and `packages/domain/src/fhir.ts`. An
   open intake (`cases.intake_open = 1`) is hidden from lists and the workflow, takes uploads only, and is 404 to anyone
   but its creator; the cron sweep removes it after 24 hours. The attach reads `fixtures/<id>/prepared.json`, written by
   `seed.py` (identity scan strict, quotes checked on their page). Keep every new list or write route consistent with

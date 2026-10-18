@@ -1,7 +1,7 @@
 // Alerts, fact edits, the drafted question, drafted tasks, tasks, attendance, sessions, break-the-glass.
 import { describe, expect, it } from "vitest";
 import { alertState, missingSignal, parseAlertKey, transition } from "../../src/domain/alerts";
-import { revertEdit, saveEdit } from "../../src/domain/edits";
+import { revertEdit, saveEdit } from "@codebridge/domain/edits";
 import { confirmDraft } from "../../src/domain/question";
 import { confirmTask, editSuggestion, type SuggestionRow } from "../../src/domain/suggestions";
 import { setDone } from "../../src/domain/tasks";

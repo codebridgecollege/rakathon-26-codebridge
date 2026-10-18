@@ -1,0 +1,17 @@
+{
+  // No DOM and no Workers types: a file here that reaches for a runtime global (fetch, crypto, window) fails the
+  // type check, so the package stays loadable in the browser and in the Worker alike.
+  "compilerOptions": {
+    "target": "ES2023",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "lib": ["ES2023"],
+    "types": [],
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "skipLibCheck": true
+  },
+  "include": ["src/**/*.ts", "test/**/*.ts"]
+}

@@ -1,7 +1,7 @@
 // A case's audio in R2 and its bookkeeping in D1 (step-5.md "As implemented", section Audio). One upload per case and
 // recording, in parts while the case is discussed; the speaker pass completes, reads and deletes it, and every other
 // way a case ends (closed, seminar ended, demo reset, the cron sweep) deletes it here.
-import type { Viewer } from "../domain/access";
+import type { Viewer } from "@codebridge/domain/access";
 import { staffName } from "../domain/rows";
 import { PCM_BYTES_PER_SECOND, partsToComplete, type Mark } from "../domain/transcript";
 import { auditStatement } from "./write";

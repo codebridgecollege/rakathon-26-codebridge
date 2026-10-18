@@ -1,7 +1,7 @@
 import type { ErrorHandler, NotFoundHandler } from "hono";
 import type { ContentfulStatusCode } from "hono/utils/http-status";
 import type { AppEnv } from "../types";
-import { DomainError } from "../domain/errors";
+import { DomainError } from "@codebridge/domain/errors";
 
 // Every /api error has the same shape, { error: { code, message_cs } }, so the page can show message_cs as is.
 // Messages never carry the upstream status, upstream body or a key.

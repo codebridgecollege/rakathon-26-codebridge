@@ -165,11 +165,11 @@ experience.
   case; a closed case cannot be booked. Step 2 keeps today's demo behaviour
   behind the Worker var `CLINICAL_ACCESS` (`all_roles`, the default: every
   role reads clinical content); `doctors_only` applies INTEGRATION.md's rule
-  (`api/src/domain/access.ts`). In `all_roles` a doctor outside the case's
+  (`packages/domain/src/access.ts`). In `all_roles` a doctor outside the case's
   team is still refused while the coordinator and administrator read every
   case; the seed hides this because every department is on every case.
   Step 4 implements the other assumptions, each as one constant in
-  `api/src/domain/config.ts`: `COORDINATOR_EDITS_PROTOCOL = true`,
+  `packages/domain/src/config.ts`: `COORDINATOR_EDITS_PROTOCOL = true`,
   `COORDINATOR_ACTS_ON_ALERTS = true`, `CLOSED_CASE_BOOKABLE = false`,
   `NEW_CASE_MEMBERS = "all_mdt_departments"` (a new case gets every MDT
   department as a member, plus its creator and owner).

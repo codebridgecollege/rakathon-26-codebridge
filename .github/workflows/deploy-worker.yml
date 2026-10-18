@@ -5,9 +5,9 @@ name: Deploy worker
 on:
   push:
     branches: [main, backend]
-    paths: ["api/**", "mocks/v3.html", "mocks/pages/**", "mocks/ukazka/**", "mocks/src/phone-upload.html", ".github/workflows/deploy-worker.yml"]
+    paths: ["api/**", "packages/domain/**", "package.json", "package-lock.json", "mocks/v3.html", "mocks/pages/**", "mocks/ukazka/**", "mocks/src/phone-upload.html", ".github/workflows/deploy-worker.yml"]
   pull_request:
-    paths: ["api/**", ".github/workflows/deploy-worker.yml"]
+    paths: ["api/**", "packages/domain/**", "package.json", "package-lock.json", ".github/workflows/deploy-worker.yml"]
   workflow_dispatch:
 
 # One Worker, so one deploy at a time across branches; a newer push replaces a queued one.
@@ -27,7 +27,7 @@ jobs:
         with:
           node-version: "22"
           cache: npm
-          cache-dependency-path: api/package-lock.json
+          cache-dependency-path: package-lock.json
       - run: npm ci
       - name: Generated runtime types match wrangler.jsonc
         run: npm run types && git diff --exit-code src/worker-configuration.d.ts
@@ -50,7 +50,7 @@ jobs:
         with:
           node-version: "22"
           cache: npm
-          cache-dependency-path: api/package-lock.json
+          cache-dependency-path: package-lock.json
       - run: npm ci
       - run: npm run stage
       - name: Deploy production (main)

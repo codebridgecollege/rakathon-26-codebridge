@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import type { AppEnv } from "../types";
 import { E } from "../http/errors";
 import { audit } from "../middleware/audit";
-import { listsAllCases, redactsListFor } from "../domain/access";
+import { listsAllCases, redactsListFor } from "@codebridge/domain/access";
 import { patientRow } from "../domain/rows";
 import { modeOf, openCase } from "./access-check";
 

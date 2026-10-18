@@ -6,11 +6,11 @@
 import { Hono } from "hono";
 import type { AppEnv } from "../types";
 import { ApiError, E } from "../http/errors";
-import { D } from "../domain/errors";
-import { assertCan } from "../domain/roles";
-import { fhirToForm, FORM_FIELD } from "../domain/fhir";
+import { D } from "@codebridge/domain/errors";
+import { assertCan } from "@codebridge/domain/roles";
+import { fhirToForm, FORM_FIELD } from "@codebridge/domain/fhir";
 import { patientRow } from "../domain/rows";
-import { pragueDay } from "../domain/time";
+import { pragueDay } from "@codebridge/domain/time";
 import { audit } from "../middleware/audit";
 import { sha256Hex } from "../store/work";
 import { caseDocuments } from "../store/documents";

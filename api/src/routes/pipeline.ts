@@ -3,7 +3,7 @@
 import { Hono } from "hono";
 import type { AppEnv } from "../types";
 import { ApiError, E } from "../http/errors";
-import { assertCan } from "../domain/roles";
+import { assertCan } from "@codebridge/domain/roles";
 import { POOR_COPY_CS, READABILITY_CS } from "../domain/pipeline";
 import { audit } from "../middleware/audit";
 import { UNLOCKED_COND, documentRow, uploadContext } from "../store/documents";

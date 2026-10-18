@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { emptyProtocol, newDraft, patchProtocol, validateSteps, type Protocol } from "../../src/domain/protocol";
+import { emptyProtocol, newDraft, patchProtocol, validateSteps, type Protocol } from "../src/protocol";
 
 const staff = new Set(["Bc. Marková", "MUDr. Novák"]);
 const draft = (o: Partial<Protocol> = {}): Protocol => ({ ...emptyProtocol(), version: 3, conclusion: "Text", ...o });

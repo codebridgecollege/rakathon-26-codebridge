@@ -8,7 +8,7 @@ import { Hono, type Context, type MiddlewareHandler } from "hono";
 import type { AppEnv } from "../types";
 import { ApiError, E } from "../http/errors";
 import { sameOrigin } from "../http/origin";
-import { DomainError, D } from "../domain/errors";
+import { DomainError, D } from "@codebridge/domain/errors";
 import { staffName } from "../domain/rows";
 import { MAX_DOCUMENTS_PER_CASE, UP, fileNameOf } from "../domain/documents";
 import {

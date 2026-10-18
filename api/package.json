@@ -20,6 +20,7 @@
     "migrate:remote": "wrangler d1 migrations apply codebridge-mdt --remote"
   },
   "dependencies": {
+    "@codebridge/domain": "0.0.0",
     "hono": "4.13.13",
     "jose": "6.2.12"
   },

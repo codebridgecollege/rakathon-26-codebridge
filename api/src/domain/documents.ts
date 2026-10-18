@@ -1,7 +1,7 @@
 // Uploads (step 6, slice a-1): which files are stored and which are only listed, how a registered fixture's patient is
 // compared with the case's patient, and the Czech labels of a document's state. Pure: the route reads the body, the
 // registry and the case, and passes them in.
-import { DomainError, type DomainStatus } from "./errors";
+import { DomainError, type DomainStatus } from "@codebridge/domain/errors";
 
 // The shared demo stores the content of known synthetic files only (decision 2026-10-17): any other file would be data
 // without clearance in a database everyone can read. Such a file is still accepted and listed, by its name, size,

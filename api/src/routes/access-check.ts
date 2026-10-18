@@ -1,7 +1,7 @@
 import type { Context } from "hono";
 import type { AppEnv } from "../types";
 import { E } from "../http/errors";
-import { canReadCaseHeader, canReadClinical, clinicalAccessOf, type Decision } from "../domain/access";
+import { canReadCaseHeader, canReadClinical, clinicalAccessOf, type Decision } from "@codebridge/domain/access";
 import type { CaseJoinRow } from "../domain/rows";
 import { D1Work } from "../store/work";
 

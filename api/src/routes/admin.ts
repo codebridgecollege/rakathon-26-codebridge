@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import type { AppEnv } from "../types";
 import { E } from "../http/errors";
 import { audit } from "../middleware/audit";
-import { canReadAuditLog } from "../domain/access";
+import { canReadAuditLog } from "@codebridge/domain/access";
 
 // The server's access log for Administrace. Reading it is logged too.
 export const admin = new Hono<AppEnv>().get("/admin/access-log", async (c) => {

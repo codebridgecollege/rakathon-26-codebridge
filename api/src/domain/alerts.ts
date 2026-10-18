@@ -1,6 +1,6 @@
 // Alert state is the latest event: open, acknowledged or resolved. Nothing is edited or removed. Missing-document
 // alerts are always on: no event or setting switches the kind off (CLAUDE.md, team decision 2026-10-17).
-import { D } from "./errors";
+import { D } from "@codebridge/domain/errors";
 
 export type AlertAction = "ack" | "resolved" | "reopen";
 export type AlertState = "open" | "ack" | "resolved";

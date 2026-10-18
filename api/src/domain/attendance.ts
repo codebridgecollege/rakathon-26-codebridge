@@ -1,8 +1,8 @@
 // Who was at the MDT: one set per seminar day, or per case without a slot. Each person is active, in the department
 // they are listed under, and listed once. Approved decisions keep their own frozen copy, so later edits never change
 // an approved report.
-import { D } from "./errors";
-import { isIsoDay } from "./time";
+import { D } from "@codebridge/domain/errors";
+import { isIsoDay } from "@codebridge/domain/time";
 
 export type StaffDept = { id: string; name: string; people: { id: string; name: string }[] };
 

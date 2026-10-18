@@ -1,6 +1,6 @@
 // Storage the routes use, as interfaces, so a hospital pilot can swap D1/R2 for Postgres/S3 without touching
 // the routes or the access rules. The D1 and R2 implementations are in d1.ts and r2.ts.
-import type { Role, Viewer } from "../domain/access";
+import type { Role, Viewer } from "@codebridge/domain/access";
 import type { CaseJoinRow, StatusHistItem } from "../domain/rows";
 
 export type UserRow = { id: string; pre: string; sur: string; post: string; fn: string; role_id: Role; active: number };

@@ -2,9 +2,9 @@
 // the stored transcript of a case, and the speaker pass jobs the page polls. Embedded mode never calls these.
 import { Hono, type Context } from "hono";
 import type { AppEnv } from "../types";
-import { D } from "../domain/errors";
-import { assertCan } from "../domain/roles";
-import { isIsoDay } from "../domain/time";
+import { D } from "@codebridge/domain/errors";
+import { assertCan } from "@codebridge/domain/roles";
+import { isIsoDay } from "@codebridge/domain/time";
 import {
   CLIENT_ID,
   PCM_BYTES_PER_SECOND,
