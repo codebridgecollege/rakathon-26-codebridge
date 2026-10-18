@@ -80,3 +80,4 @@ api/seed/out/
 
 # Intermediate screenshots of scripts/cover/build.mjs (rebuilt each run).
 scripts/cover/shots/
+docs/submission/variants/*@2x.png

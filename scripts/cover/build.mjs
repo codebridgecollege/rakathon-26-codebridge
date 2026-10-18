@@ -46,12 +46,31 @@ await p.evaluate(() => window.scrollBy(0, 700));
 await p.waitForTimeout(300);
 await p.screenshot({ path: `${shots}/labs.png` });
 
-const cover = await browser.newPage({ viewport: { width: 1600, height: 900 }, deviceScaleFactor: 2 });
-await cover.goto(`file://${here}/cover.html`);
-await cover.waitForTimeout(1500); // web fonts
-await cover.screenshot({ path: `${out}/cover@2x.png` });
-await browser.close();
+// Further views for the cover variants and the landing page: the list, the calendar, and case 10's tabs with the
+// tab row scrolled to the top so the tab's content fills the shot.
+await open("#patients");
+await p.screenshot({ path: `${shots}/patients.png` });
+await open("#calendar");
+await p.screenshot({ path: `${shots}/calendar.png` });
+for (const tab of ["overview", "alerts", "next", "dev", "documents"]) {
+  await open("#patient/10/overview");
+  await p.click(`[data-tab="${tab}"]`);
+  await p.waitForTimeout(700);
+  await p.evaluate(() => { const t = document.querySelector(".tabs"); window.scrollTo(0, t.getBoundingClientRect().top + window.scrollY - 24); });
+  await p.waitForTimeout(300);
+  await p.screenshot({ path: `${shots}/tab-${tab}.png` });
+}
 
-// The gallery's covers are 1600x900 JPEGs.
-execFileSync("sips", ["-s", "format", "jpeg", "-s", "formatOptions", "88", "-z", "900", "1600", `${out}/cover@2x.png`, "--out", `${out}/cover.jpg`], { stdio: "ignore" });
-console.log(`wrote ${out}/cover.jpg and cover@2x.png`);
+// One cover per variant: "a" is the gallery cover (docs/submission/cover.jpg), the others are alternatives to compare.
+const variants = (process.env.COVER_VARIANTS || "a,b,c,d").split(",");
+const cover = await browser.newPage({ viewport: { width: 1600, height: 900 }, deviceScaleFactor: 2 });
+for (const v of variants) {
+  await cover.goto(`file://${here}/cover.html?v=${v}`);
+  await cover.waitForTimeout(1500); // web fonts
+  const name = v === "a" ? "cover" : `variants/cover-${v}`;
+  mkdirSync(`${out}/variants`, { recursive: true });
+  await cover.screenshot({ path: `${out}/${name}@2x.png` });
+  execFileSync("sips", ["-s", "format", "jpeg", "-s", "formatOptions", "88", "-z", "900", "1600", `${out}/${name}@2x.png`, "--out", `${out}/${name}.jpg`], { stdio: "ignore" });
+}
+await browser.close();
+console.log(`wrote covers for variants ${variants.join(", ")} in ${out}`);

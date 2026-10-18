@@ -67,7 +67,7 @@
   <div class="shot-card main"><div class="shot"></div></div>
   <div class="shot-card labs"><div class="shot"></div></div>
   <div class="shot-card src"><div class="shot"></div></div>
-  <div class="tag"><span style="color:#b38b00">●</span> Ověření přímo v původním dokumentu</div>
+  <div class="tag"><span style="color:#b38b00">●</span> <span class="txt"></span></div>
 
   <div class="steps">
     <div class="step"><div class="n">01</div><b>Jeden pacient na jednom místě</b><span>Strukturovaný souhrn a časová osa diagnostiky a léčby</span></div>
@@ -75,4 +75,25 @@
     <div class="step"><div class="n">03</div><b>Podpora rozhodování</b><span>Možné odchylky od doporučených postupů a relevantní klinické důkazy</span></div>
     <div class="step"><div class="n">04</div><b>Příprava závěrů MDT</b><span>Více času na kvalitní diskusi a pacienty</span></div>
   </div>
+
+  <script>
+    /* Variants swap what the three app cards show (?v=a|b|c|d); "a" is the gallery cover. Each entry gives a card
+       its screenshot, the width the shot is scaled to, and the offset of the visible part. */
+    const V = {
+      a: { tag: "Ověření přímo v původním dokumentu",
+           main: ["overview", 780, 0, 0], src: ["source", 660, -177, -2], labs: ["labs", 600, -13, -127] },
+      b: { tag: "Chybějící podklady vidíte hned",
+           main: ["calendar", 780, 0, 0], src: ["tab-alerts", 820, -12, -40], labs: ["patients", 640, -20, -70] },
+      c: { tag: "Doporučení citovaná doslovně, se zdrojem",
+           main: ["tab-next", 780, 0, 0], src: ["tab-dev", 820, -12, -40], labs: ["source", 560, -150, -110] },
+      d: { tag: "Časová osa diagnostiky a léčby",
+           main: ["tab-overview", 780, 0, -150], src: ["tab-documents", 820, -12, -40], labs: ["labs", 600, -13, -127] },
+    };
+    const cfg = V[new URLSearchParams(location.search).get("v") || "a"] || V.a;
+    for (const k of ["main", "src", "labs"]) {
+      const [img, w, x, y] = cfg[k], el = document.querySelector(`.${k} .shot`);
+      el.style.backgroundImage = `url(shots/${img}.png)`; el.style.backgroundSize = `${w}px auto`; el.style.backgroundPosition = `${x}px ${y}px`;
+    }
+    document.querySelector(".tag .txt").textContent = cfg.tag;
+  </script>
 </body></html>
