@@ -345,6 +345,30 @@ plan above, or adds to it:
   `node-forge`); none of them is shipped to the browser. Checked again
   before the app is switched on.
 
+## As implemented (step 11, part)
+
+Branch `port-intake` (issue #13): the "Nový pacient" dialog, the intake on the server, the generic upload
+components and the "Nahrát z telefonu" dialog. FHIR export is not part of it. Where it is and how other screens use
+it: [`app/README.md`](../../app/README.md). Where it differs from the old page:
+
+- **The intake demo hints come from a small descriptor, not from built-in data.** The old page read the synthetic
+  patient S02 from its embedded data for the presenter's hints (missing files, the ZIP link, "už v databázi je") and
+  the closing sentence (pages, data gaps). The app has no embedded data, so `app/app/lib/intake-demo.ts` holds those
+  few values; a test keeps them equal to `mocks/src/data/mock-case-S02.json`, and the module and the FHIR sample
+  load only with the dialog. Whether the prepared record attaches is still the server's verdict alone. Moving the
+  counts into the server's intake answer would remove the descriptor; the server deliberately does not name the
+  fixture's patient there, so the hints would then change wording.
+- **A document's kind** in the intake list ("· Ambulantní vyšetření ...") comes from the server's answer to the
+  upload (recognised by hash), not from the file name.
+- **Added, nothing visible:** focus moves into a dialog and back to its opener, Tab stays inside, `aria-modal`, the
+  current step is `aria-current="step"`, the closing sentence and the toasts have a status role, and an intake
+  created after its dialog closed is discarded at once.
+- **A user switch** also closes a phone upload session for a case and drops the upload lists read under the previous
+  user (the old page kept both).
+- **The patient view is not ported yet**, so a finished intake goes to `#/patient/<id>`, which has no route on this
+  branch; the specs that open the new patient pass only with the patient screens. The development harness
+  (`#/dev-intake`, never in a production build) and `e2e/harness/` check the rest.
+
 ## Decisions (2026-10-18)
 
 - **No offline demo is needed.** Embedded mode ends with the old page;

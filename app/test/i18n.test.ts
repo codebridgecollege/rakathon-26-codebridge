@@ -51,7 +51,10 @@ describe("catalogs", () => {
     for (const f of files(appDir).filter((f) => /\.(vue|ts)$/.test(f))) {
       for (const m of readFileSync(f, "utf8").matchAll(/\$t\(\s*["']([a-z0-9-]+)["']/g)) used.add(m[1]!);
       // IDs passed as data: message_id fields, an ApiError's fourth argument and fallbacks (`?? "id"`).
-      for (const m of readFileSync(f, "utf8").matchAll(/(?:message_id: |\?\? |null, )"([a-z0-9]+(?:-[a-z0-9]+)+)"/g)) used.add(m[1]!);
+      for (const m of readFileSync(f, "utf8").matchAll(/(?:message_id: |\?\? |null, |msgId\()"([a-z0-9]+(?:-[a-z0-9]+)+)"/g)) used.add(m[1]!);
+      // The <i18n> component's path, also when it picks one of two messages.
+      for (const m of readFileSync(f, "utf8").matchAll(/\bpath="([a-z0-9]+(?:-[a-z0-9]+)+)"/g)) used.add(m[1]!);
+      for (const m of readFileSync(f, "utf8").matchAll(/:path="[^"]*\? '([a-z0-9-]+)' : '([a-z0-9-]+)'"/g)) used.add(m[1]!).add(m[2]!);
     }
     for (const group of Object.values(CLIENT_ERROR_IDS)) for (const id of Object.values(group)) used.add(id);
     expect(used.size).toBeGreaterThan(20);

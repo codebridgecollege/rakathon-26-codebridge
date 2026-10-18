@@ -9,6 +9,7 @@ import { useCasesStore } from "./cases";
 import { usePatientsStore } from "./patients";
 import { useStaffStore } from "./staff";
 import { useWorkflowStore } from "./workflow";
+import { useUploadsStore } from "./uploads";
 
 export type Notice = { message_cs: string | null; message_id: string | null };
 
@@ -78,9 +79,17 @@ export const useSessionStore = defineStore("session", () => {
     }
   }
 
+  // Screens that hold something of the current user (an open intake, a phone upload session) register what to end
+  // before a user switch; the switch waits for them, as switchApiUser() in the old page does.
+  const beforeSwitch: (() => Promise<void> | void)[] = [];
+  function onBeforeUserSwitch(fn: () => Promise<void> | void) {
+    beforeSwitch.push(fn);
+  }
+
   // A user switch reloads what the server lets the new user see, so the list, tasks and case data follow the new
   // role. A name the server does not know is refused rather than sent under the previous user's id.
   async function switchUser(id: string | null): Promise<boolean> {
+    await Promise.all(beforeSwitch.map((fn) => fn()));
     if (!id) {
       error.value = { message_cs: null, message_id: "user-switch-unknown" };
       return false;
@@ -94,8 +103,9 @@ export const useSessionStore = defineStore("session", () => {
       error.value = noticeOf(e);
       return false;
     }
-    // The case data was read under the previous user's access; it goes with the switch.
+    // The case data and the upload lists were read under the previous user's access; they go with the switch.
     useCasesStore().reset();
+    useUploadsStore().reset();
     error.value = null;
     return true;
   }
@@ -117,5 +127,5 @@ export const useSessionStore = defineStore("session", () => {
     reload = fn;
   }
 
-  return { phase, health, me, error, resetting, boot, switchUser, applyState, loadFromApi, setReload };
+  return { phase, health, me, error, resetting, boot, switchUser, onBeforeUserSwitch, applyState, loadFromApi, setReload };
 });
