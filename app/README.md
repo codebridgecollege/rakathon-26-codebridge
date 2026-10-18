@@ -1,9 +1,10 @@
 # app: the Nuxt frontend (port in progress)
 
 The new frontend for GLIDE MDT, built next to today's page (`mocks/src/v3-template.html`) and ported screen by screen
-(GitHub issue #13, design in `docs/design/FRONTEND.md`). Today it is a shell: the header (brand, main areas, user
-picker), an empty main area, the stores and the boot from the API. Today's page stays the demo until the new one
-passes the DOM-only test suite.
+(GitHub issue #13, design in `docs/design/FRONTEND.md`). Ported so far: the shell (header, user picker, stores, boot
+from the API) and the patient detail screen (`#/patient/<nr>/<tab>`: header, brief, MDT question, alerts, timeline,
+all tabs and the source viewer; `app/components/patient/`). Today's page stays the demo until the new one passes the
+DOM-only test suite.
 
 - **Nuxt 4 in SPA mode** (`ssr: false`), built with `nuxt generate` into static files.
 - **Served by the API Worker at `/app/`** (`baseURL`), next to today's page at `/`. Routes are hash routes
@@ -18,6 +19,10 @@ passes the DOM-only test suite.
 - **Text** comes only from the Fluent catalogs at the repository root (`i18n/cs/*.ftl`, one file per area; `i18n/sk/` and `i18n/en/` fall back
   to Czech), through `fluent-vue` registered in `app/plugins/i18n.ts`. `?lang=sk` picks a language. Never write Czech
   UI text in a component; add a message with a semantic ID.
+- **Patient screen components** import nothing from Nuxt, so Vitest mounts them with the real Czech catalog
+  (`test/patient.ts`: `setupPatient()` fills the stores with a synthetic case, `mountInCase()` provides the case).
+  `PatientView` provides the case on screen through `composables/usePatient.ts`; dialogs and drawers go through the
+  `overlay` store and are drawn into `#overlay`.
 - **"Nový pacient", uploads and "Nahrát z telefonu"** (step 11 of the port):
   - `useNewPatient().open()` (`composables/useNewPatient.ts`) opens the dialog, which `app.vue` mounts once
     (`components/intake/NewPatientDialog.vue`, logic in `stores/intake.ts`). `setNavigation()` tells it where a finished

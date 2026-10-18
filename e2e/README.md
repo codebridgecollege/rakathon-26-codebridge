@@ -79,7 +79,9 @@ health answer in the browser, so it runs the same with or without a key and neve
    change to the suite in the same commit.
 2. The new app is served by the same Worker (`docs/design/FRONTEND.md`, "How it is set up"). While both exist, run the
    suite against the new app's URL with `E2E_BASE_URL`, with its trailing slash (`http://localhost:8787/app/`): the
-   helpers open routes relative to the base URL.
+   helpers open routes relative to the base URL (`cd api && npm run dev:app`, then
+   `E2E_BASE_URL=http://localhost:8787/app/ npm --prefix e2e test`). Both apps read `#patient/10/labs`; the new app's
+   router rewrites it to `#/patient/10/labs`, so the one spec that reads the address accepts both.
    - A part of a screen that is ported before the screen holding it (the "Nový pacient" dialog before the patient
      list, the upload panel before "Projednání na MDT") is checked on the app's development harness first:
      `e2e/harness/`, project `app-harness`, only with `E2E_APP_HARNESS=1` and an app built with `APP_DEV_PAGES=1`
@@ -92,7 +94,7 @@ health answer in the browser, so it runs the same with or without a key and neve
 
 Known places where the old page's accessibility is weaker than the new app should be (the specs work around them and
 should be tightened once the new app is in):
-- The source viewer's tabs ("Stránka", "Přepis stránky") do not set `aria-selected`.
+- The source viewer's tabs ("Stránka", "Přepis stránky") do not set `aria-selected` (the new app sets it).
 - The label "Koncept nového závěru (nahradí platný až po schválení)" is not tied to its text field.
 - The yellow box that marks the quote on the page image has no accessible name, so only the legend and the absence of
   "Citace nenalezena přesně" show that the quote was found on the image.
