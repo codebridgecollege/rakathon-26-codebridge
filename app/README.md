@@ -1,15 +1,14 @@
 # app: the Nuxt frontend
 
-The new frontend for GLIDE MDT, built next to today's page (`mocks/src/v3-template.html`) and ported screen by screen
-(GitHub issue #13, design in `docs/design/FRONTEND.md`). Ported so far: the shell (header, user picker, stores, boot
+The frontend of GLIDE MDT (GitHub issue #13, design in `docs/design/FRONTEND.md`). It holds the shell (header, user picker, stores, boot
 from the API) and the patient detail screen (`/patient/<nr>/<tab>`: header, brief, MDT question, alerts, timeline,
 all tabs and the source viewer; `app/components/patient/`), the lists (patients, calendar, tasks, staff,
 administration), "Nový pacient" with uploads and the phone QR, and the MDT itself: the session bar, "Projednání na
-MDT", the AI recorder and the report with its PDF (`app/components/discussion/`). The whole DOM-only test suite passes
-against it, and the Worker serves it at `/`; today's page is at `/legacy/` for a transition period.
+MDT", the AI recorder and the report with its PDF (`app/components/discussion/`). The Worker serves it at `/`; the
+DOM-only end-to-end suite (`e2e/`) runs against it.
 
 - **Nuxt 4 in SPA mode** (`ssr: false`), built with `nuxt generate` into static files.
-- **Served by the API Worker at `/`** (`baseURL`), with today's page at `/legacy/`. Routes are paths
+- **Served by the API Worker at `/`** (`baseURL`). Routes are paths
   (`/patients`, `/patient/10/labs`). The Worker serves the app's page only for the route paths in
   `api/scripts/app-routes.mjs` (every other path is a 404); a new page in `app/pages/` needs its path there, and
   `test/routes.test.ts` fails until it has one. Old hash links (`/#patient/10/labs`) are not supported: they open the patient list.
@@ -22,7 +21,7 @@ against it, and the Worker serves it at `/`; today's page is at `/legacy/` for a
 - **Auto-imports are off.** Import every component and composable explicitly; Nuxt's own from `#imports`, `#app` or
   `#components`.
 - **Stores** (Pinia, `app/stores/`): `session` (boot, user switch), `staff`, `patients`, `workflow` (tasks and the
-  stored workflow state) and `cases` (the per-case cache with today's semantics: keyed by file, absent, loading, ready
+  stored workflow state) and `cases` (the per-case cache: keyed by file, absent, loading, ready
   or error, late replies dropped, at most five cases in memory).
 - **API** through `@codebridge/api-client` (`packages/api-client`) and the shared rules from `@codebridge/domain`
   (`packages/domain`).
@@ -46,14 +45,14 @@ against it, and the Worker serves it at `/`; today's page is at `/legacy/` for a
     State in `stores/uploads.ts`.
   - `components/phone/PhoneUploadButton.vue` opens `PhoneUploadDialog.vue` (mounted once in `app.vue`, layer
     `#phoneup`); state and polling in `stores/phone.ts`. The QR library (`qrcode-generator`, pinned) loads only when a
-    code is shown. The phone page at `/u` is today's `mocks/src/phone-upload.html`.
+    code is shown. The phone page at `/u` is `api/public/phone-upload.html`, a separate small page.
   - Toasts: `stores/toast.ts` and `components/AppToasts.vue`.
 - **List screens** (steps 3, 4 and part of 12): `pages/patients.vue`, `pages/calendar/[[week]].vue` (the week's
   Monday in the address, so back and forward move between weeks), `pages/tasks.vue`, `pages/staff.vue` and
   `pages/admin.vue`, with their components in `components/lists/`. View state that outlives a visit (search, filters,
   column widths, week, picked patient, task scope) is in `stores/listView.ts`; attendance rows not yet stored are in
   `stores/attendance.ts`. Writes go through `composables/useWrite.ts`. A case opens at `lib/lists.ts` `caseRoute()`
-  (`/patient/<n>/overview`), the one place to change when the patient screens land. Text is in `i18n/cs/lists.ftl`.
+  (`/patient/<n>/overview`), the one place that builds a case address. Text is in `i18n/cs/lists.ftl`.
 - **Development pages.** `nuxt.config.ts` leaves pages named `pages/dev-*.vue` out of every build unless
   `APP_DEV_PAGES=1`, for parts of a screen checked before the screen holding them is ported. None exist now: the intake
   harness (`/dev-intake`) went once "Projednání na MDT" was ported, and its extra checks became
@@ -66,12 +65,10 @@ against it, and the Worker serves it at `/`; today's page is at `/legacy/` for a
   `stores/recorder.ts` (one recording for the whole app, so it survives route changes; browser audio and the socket
   in `lib/recorder-audio.ts`), `stores/report.ts` (the ticked sections). The report HTML is `lib/report.ts`
   (`reportHtmlFor()`, also the snapshot an approval sends), the PDF `lib/report-pdf.ts`; jsPDF and the DejaVu subset are
-  the old page's vendored files (`mocks/src/vendor/`), loaded as separate assets only when the dialog opens. The
+  vendored in `app/vendor/` with their licences, loaded as separate assets only when the dialog opens. The
   header's recording pill is `components/RecorderPill.vue`. Rules in `@codebridge/domain/discussion` and
   `@codebridge/domain/recording`. Text in `i18n/*/discussion.ftl`.
-- **CSS** is today's page CSS, copied unchanged into `app/assets/v3.css` by `scripts/sync-css.mjs`; a test fails when
-  the template's CSS changed and the copy did not. Do not edit `v3.css` by hand. `app/assets/app.css`, loaded after it,
-  holds the app's own fixes (accessibility: contrast of faint text, the source viewer's tabs).
+- **CSS:** `app/assets/base.css` holds the base styles; `app/assets/app.css`, loaded after it, holds the app's own fixes (accessibility: contrast of faint text, the source viewer's tabs).
 - **Dialogs:** the overlay kinds (`stores/overlay.ts`) get focus handling from `OverlayHost.vue` (focus in, Tab kept
   inside, focus back to the opener); dialogs mounted in `app.vue` use `useDialogFocus()` from `lib/dialog.ts`.
 
@@ -84,27 +81,24 @@ npm ci                                   # at the root: api, app and packages
 npm run dev -w @codebridge/app           # Nuxt dev server; proxies /api to wrangler dev at http://localhost:8787 (API_PROXY to change)
 npm run generate -w @codebridge/app      # static build into app/.output/public
 npm run typecheck -w @codebridge/app     # nuxt typecheck (app) and vue-tsc on the tests
-npm test -w @codebridge/app              # Vitest with happy-dom: stores, boot, catalogs, CSS copy
-npm run css:sync -w @codebridge/app      # refresh app/assets/v3.css from the template
+npm test -w @codebridge/app              # Vitest with happy-dom: stores, boot, catalogs, components
 npm run size -w @codebridge/app          # first-load size budget of the last generate
 ```
 
-The app against a local Worker with the seeded demo data, with today's page next to it:
+The app against a local Worker with the seeded demo data:
 
 ```
 npm ci                                   # at the root; `npm ci` inside api/ installs the Worker's dependencies only
 cd api
 npm run seed:local                       # once; needs uv
-npm run dev                              # stages the app, today's page and the headers into .assets/, then wrangler dev
+npm run dev                              # stages the app and the headers into .assets/, then wrangler dev
 # http://localhost:8787/          the app; /?dev=1 shows the patient count read from the server
-# http://localhost:8787/legacy/   today's page
 ```
 
-The end-to-end suite runs against both (`e2e/README.md`); the base URL needs its trailing slash:
+The end-to-end suite runs against it (`e2e/README.md`):
 
 ```
-npm --prefix e2e test                                              # the app at /
-E2E_BASE_URL=http://localhost:8787/legacy/ npm --prefix e2e test   # today's page
+npm --prefix e2e test
 ```
 
 Install scripts: npm 11 blocks dependency install scripts until approved (`npm approve-scripts --allow-scripts-pending`

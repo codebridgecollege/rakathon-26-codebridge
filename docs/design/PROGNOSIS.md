@@ -67,20 +67,21 @@ nor an individual probability of survival.
 
 ## Running and checking
 
-Run `python3 mocks/build.py`, then `python3 mocks/serve.py`. Open the generated v3
-page on port 8766. The local server owns the API key; a static deployment can
-display the tab but cannot run this backend. See `prognosis/README.md` for the API,
-configuration, retention and verification limits.
+`python3 prognosis/serve.py` runs the local prognosis API on port 8766 (loopback
+only); it owns the API key and serves no page. The app on the Worker shows the
+saved searches only: the Worker has no search route, so a new search there reports
+that the host does not offer it, and no page currently calls the local API. See
+`prognosis/README.md` for the API, configuration, retention and verification limits.
 
-Run the Python prognosis tests, the Node prognosis UI checks and timeline category
-regressions. Verify the scheduled date, profile, results, partial failures and
-navigation in the browser before claiming the search works live.
+Run the Python prognosis tests (`prognosis/tests/`) and the app's prognosis tests
+(`app/test/patient-prognosis.test.ts`).
 
 
 ## Saved results for the demo
 
 The user requested persistent playback for synthetic patient Poláček (case 10).
-The six saved Astra result rows are embedded from `prognosis-case-10.json` and
+The six saved Astra result rows come from `fixtures/data/prognosis-case-10.json`,
+which the seed stores on the server (`GET /api/cases/{id}/prognosis`), and
 appear automatically after 2000 ms when the Prognóza tab is first opened. Playback
 requires the same patient file and MDT date, 2026-10-22. It sends no model request.
 The UI labels the saved search and retains its original date; changed clinical

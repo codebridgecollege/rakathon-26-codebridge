@@ -27,16 +27,15 @@ came from, so a doctor can check it in one click.
 
 ## Status
 
-The demo is mock v3 (`mocks/`), served with its data by the API Worker
-(`api/`). A Nuxt frontend (`app/`) is being ported next to it on a branch
-(issue #13); the setup and run instructions are below.
+The demo is the Nuxt app (`app/`), served with its data by the API Worker
+(`api/`) at `/`. The setup and run instructions are below.
 
 ## Repository layout (npm workspaces)
 
 The root `package.json` holds npm workspaces with one lockfile:
 
 - `api/`: the API Worker (below);
-- `app/`: the Nuxt frontend being ported from the mock, served at `/app/` ([`app/README.md`](app/README.md));
+- `app/`: the Nuxt frontend, served by the Worker at `/` ([`app/README.md`](app/README.md));
 - `packages/domain`: the pure case rules shared by the Worker and the app ([`packages/domain/README.md`](packages/domain/README.md));
 - `packages/api-client`: the typed browser client for the API;
 - `i18n/`: the Fluent catalogs (`i18n/<locale>/<area>.ftl`; Czech is the source).
@@ -50,14 +49,14 @@ npm test            # every workspace (the api tests run inside workerd)
 ## API Worker
 
 `api/` is a Cloudflare Worker (TypeScript, Hono) that serves the built
-mock v3 as static files and the API under `/api`. Details, secrets and
+app as static files and the API under `/api`. Details, secrets and
 the Access runbook are in [`api/AGENTS.md`](api/AGENTS.md).
 
 ```
 cd api
 npm ci                           # installs api's workspace dependencies from the root lockfile
 cp .dev.vars.example .dev.vars   # fill in keys; gitignored
-npm run dev                      # stages mocks/ into .assets, serves http://localhost:8787
+npm run dev                      # builds the app, stages it into .assets, serves http://localhost:8787
 npm run typecheck                # tsc on src and tests
 npm test                         # Vitest inside workerd
 ```
@@ -66,7 +65,7 @@ CI (`.github/workflows/deploy-worker.yml`) runs the type check and tests,
 then deploys `main` to production and `backend` to the `backend` preview
 alias.
 
-On the Worker every change in the page (status, calendar, conclusion,
+Every change in the app (status, calendar, conclusion,
 approval, tasks, edits, alerts, attendance, new patient, staff) goes
 through the write API, which enforces the rules and writes the audit
 log. The data is shared by every visitor; the administrator restores
@@ -76,8 +75,8 @@ Administrace (`POST /api/admin/reset-demo`, on when
 
 ## End-to-end tests
 
-`e2e/` is a Playwright suite that drives the page only through what a user sees (roles, labels, Czech text) against
-a running Worker; it is the gate for the frontend port (issue #13). With the local demo seeded and running in `api/`
+`e2e/` is a Playwright suite that drives the app only through what a user sees (roles, labels, Czech text) against
+a running Worker. With the local demo seeded and running in `api/`
 (`cp .dev.vars.example .dev.vars`, `npm run seed:local`, `npm run dev`):
 
 ```
@@ -85,7 +84,11 @@ npm --prefix e2e ci && npm --prefix e2e run install-browsers   # once
 npm --prefix e2e test                                           # resets the local demo before every test
 ```
 
-Details, the deployed-Worker variant and the coverage table: [`e2e/README.md`](e2e/README.md).
+Or without a running Worker: after `npm --prefix api run stage`, `npm --prefix e2e run test:parallel` seeds a copy of
+the demo for each of four local Workers, runs the suite on all four at once and stops them (about 35 s instead of
+90 s; the first run seeds for about 1.5 minutes). CI runs it this way on every push to main and every pull request,
+and main deploys only when it passes. Details, the deployed-Worker variant and the coverage table:
+[`e2e/README.md`](e2e/README.md).
 
 ## Document pipeline
 
@@ -105,10 +108,10 @@ synthetic challenge data from the organizers. Put anything real in
 reading. See [`CLAUDE.md`](CLAUDE.md) for the
 full rules.
 
-## UI mocks
+## Demo data and product design
 
-Clickable mocks of the app are in [`mocks/`](mocks/README.md); open
-`mocks/v2.html` in a browser. The product design behind them is in
+The prepared demo data the seed loads, and the scripts that built it, are in
+[`fixtures/`](fixtures/README.md). The product design is in
 [`docs/design/PRODUCT.md`](docs/design/PRODUCT.md).
 
 ## Working with AI agents

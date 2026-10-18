@@ -80,7 +80,7 @@ page in `data/derived/pages/`. It covers the form fields, patterns (birth
 number, phone, e-mail, a value glued to its label such as
 "nar.:13.10.1961"), known patient names, and doctors' names after
 "MUDr." and similar titles. It found 54 identifiers on 10 of the 20
-pages; on the other 10 it found nothing, which the mock states as "kontrola
+pages; on the other 10 it found nothing, which the source viewer states as "kontrola
 je neúplná", not as "clean".
 
 What testing on FNO's pages taught us, useful for questions:
@@ -152,16 +152,12 @@ synthetic patients.
 - **This is not pseudonymization yet.** Quotes and page text are source
   evidence and stay verbatim (CLAUDE.md), so the page JSON and page images
   in R2 still show names. Removing them is the redaction step (option B).
-- **The page still embeds every fixture.** In this step the same HTML
-  serves Pages and the Worker, so the data-minimization gain arrives when
-  the page stops embedding data (backend steps 3 and 5). The Worker also
-  still serves the page images under `/pages/` as public static files for
-  that embedded fallback, without an access check or a log row. Since step
-  3 the page in API mode shows case data only from the server (per case,
-  when opened; at most five cases in memory, cleared on a user switch), but
-  the inlined JSON is still in the page source for anyone who opens it, and
-  if the data API fails at startup the page falls back to it (amber "Data"
-  chip, no server log row).
+- **The app holds no case data of its own.** It loads case data only from
+  the server (per case, when opened; at most five cases in memory, cleared
+  on a user switch), and page images through the logged
+  `/api/documents/.../image` route. The Worker still serves the synthetic
+  page images under `/pages/` as public static files, without an access
+  check or a log row; the app does not use them.
 - **Reads through the API are logged on the server** before the content
   is read (`access_log`, append-only): who, which role, which case,
   document and page, and a short Czech line. No quote or page text goes
@@ -169,8 +165,8 @@ synthetic patients.
   returns nothing. The admin view (Administrace) shows it. Opening a case
   writes `case.open`; its first load in this tab writes `case.data` (and
   `guidance.load` for the guideline layer); reopening a case still in
-  memory writes only `case.open`. The saved prognosis still comes from the
-  embedded data. Refused requests (403) are not logged. A search text in
+  memory writes only `case.open`. Opening the saved prognosis writes
+  `prognosis.view`. Refused requests (403) are not logged. A search text in
   `/api/patients?q=` would sit in the URL and so in Workers Logs; the
   page does not use it yet, and it should move to a request body first.
 - **Who may read what.** A doctor reads the cases whose team (department)
@@ -294,7 +290,7 @@ mints. ElevenLabs may keep request logs, because its zero-retention mode
 is offered only to enterprise customers; this is another reason the demo
 uses fictitious speech only.
 
-Where the case audio for the speaker pass lives depends on the host:
+Where the case audio for the speaker pass lives:
 
 - **On the Worker with the data API** (step 5,
   `docs/research/backend-steps/step-5.md` "As implemented"), the server
@@ -328,14 +324,6 @@ Where the case audio for the speaker pass lives depends on the host:
   Transcript lines and summaries stay with the case. Summaries are cached
   in R2 under `cache/summary/<case id>/` by a hash of the input, so the same
   transcript is not sent to the model twice.
-- **On Pages or opened from a file**, the browser keeps the case's audio in
-  memory until approval, the case audio for the speaker pass passes through
-  our server (Cloudflare) to ElevenLabs, and the server checks its origin,
-  type and size, stores nothing and logs no audio, transcript or token. A
-  case that ends without approval loses its audio in the browser. The
-  origin check stops other websites, not a script that forges the header,
-  and the Pages host cannot rate-limit, so the key's credit cap is the
-  guard against someone spending our quota.
 
 Open points are in [`docs/agent/OPEN_QUESTIONS.md`](../agent/OPEN_QUESTIONS.md).
 
@@ -349,16 +337,15 @@ The local prognosis API accepts only identifiers for two explicitly supported sy
 ## User-requested synthetic prognosis fixture
 
 The user explicitly requested saving Poláček's prognosis search for demo replay.
-`mocks/src/data/prognosis-case-10.json` contains the minimized synthetic profile
+`fixtures/data/prognosis-case-10.json` contains the minimized synthetic profile
 and six normalized Astra study rows, including their source evidence and original
-search timestamp. The generated page embeds them for a two-second replay matched
-to the patient and scheduled day. This fixture is persistent; the backend runtime
+search timestamp. The seed stores them in R2, and the app shows them through
+`GET /api/cases/{id}/prognosis` (logged as `prognosis.view`), matched to the
+patient and scheduled day. This fixture is persistent; the backend runtime
 cache remains memory-only. It contains no API key or real patient data.
 
 ## Visit analytics
 
-The demo (`codebridge-mdt.pages.dev` and the Worker host) and the landing page (`glidemdt.com`) count visits with
-Umami Cloud, which sets no cookies. On the demo, Umami receives only the bare path: `data-exclude-hash` and
-`data-exclude-search` keep the case number, the tab and the phone upload token (all after `#`) out of it, and the
-demo sends no events. The landing page sends button clicks as named events. In a hospital deployment the demo's
-analytics would be removed or replaced by FNO's own tooling.
+The landing page (`glidemdt.com`) counts visits with Umami Cloud, which sets no cookies, and sends button clicks as
+named events. The demo app on the Worker loads no analytics script, so the case number and tab in its paths reach no
+analytics service.

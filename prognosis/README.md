@@ -1,10 +1,10 @@
 # Local prognosis evidence search
 
-Run `python3 mocks/serve.py` from the repository root, then open
-`http://127.0.0.1:8766/v3.html`. The standard-library server serves the generated
-mock and a same-origin API bound only to loopback. Static hosting still displays
-the tab, but cannot call this local server implicitly. No browser receives the
-OpenRouter key.
+Run `python3 prognosis/serve.py` (from any directory). The standard-library server
+serves the API below on `127.0.0.1:8766`, bound only to loopback, and accepts only
+same-origin local requests; it serves no page. The app on the Worker shows the saved
+searches only (the Worker has no search route), so nothing in the demo calls this
+server today. No browser receives the OpenRouter key.
 
 Copy missing settings from `.env.example` into the gitignored `.env`. Existing
 process environment variables take precedence. The explicit GPT Astra model ID is
@@ -89,7 +89,7 @@ requests ask for providers with `data_collection:deny` and disable provider fall
 `python3 -m unittest discover -s prognosis/tests -v` exercises cutoff dates, partial
 precision, identifier removal, source requirements, unknown similarity, preserved
 conflicts, one model call, cached reuse, partial provider failure, malformed
-responses, concurrency, search-grounding evidence and local HTTP origin/host/static-file restrictions. Fixtures
+responses, concurrency, search-grounding evidence and local HTTP origin and host restrictions. Fixtures
 are explicitly synthetic and do not stand in for live clinical evidence.
 
 Official integration references checked on 2026-10-17:
@@ -101,9 +101,9 @@ Official integration references checked on 2026-10-17:
 
 ## Saved synthetic replay
 
-At the user's request, `mocks/src/data/prognosis-case-10.json` preserves the six
-actual Astra result rows for synthetic case 10 and its 2026-10-22 MDT. The generated
-page embeds this fixture and automatically displays it 2000 ms after the first
+At the user's request, `fixtures/data/prognosis-case-10.json` preserves the six
+actual Astra result rows for synthetic case 10 and its 2026-10-22 MDT. The seed
+stores this fixture on the server, and the app's Prognóza tab displays it 2000 ms after the first
 opening of the Prognóza tab. This replay makes no model API request, retains the
 original search timestamp and source evidence, and is explicitly labeled as a
 saved search. It is used only when both patient file and scheduled day match.

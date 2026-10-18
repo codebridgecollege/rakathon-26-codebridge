@@ -1,7 +1,6 @@
 # Upload from a phone (QR code)
 
-Status: built on the `backend` branch, 2026-10-18 (API mode on the
-Worker); see "As implemented". On Pages (embedded mode, no server) the feature is hidden.
+Status: built 2026-10-18 on the Worker; see "As implemented".
 
 A doctor or the coordinator often has the document on paper or on their
 phone, not on the computer that shows the case. The desktop shows a QR
@@ -10,9 +9,7 @@ sends appears in the desktop's upload list within a couple of seconds.
 
 Terms: an **upload session** is a short-lived permission, created by the
 desktop, to add files to one case; its **token** is the random value in
-the QR code that proves the permission. **API mode** means the page runs
-on the Worker with server data; **embedded mode** means the static page
-with built-in data (Pages, a file).
+the QR code that proves the permission.
 
 ## Where it appears
 
@@ -24,7 +21,7 @@ A "Nahrát z telefonu" button next to each existing upload area:
   meeting.
 - Documents tab, "+ Nahrát dokument" dialog (S-3).
 
-The button shows only in API mode and only where the desktop could upload
+The button shows only where the desktop could upload
 itself (same role and case-state rules as today's upload, `canUpload`).
 
 ## Flow
@@ -126,8 +123,9 @@ Built on the `backend` branch (issue #10, 2026-10-18). Code:
 `api/src/routes/upload-sessions.ts` (routes), `api/src/domain/upload-sessions.ts`
 (rules), migration `api/migrations/0010_upload_sessions.sql`, the shared
 upload path `receiveUpload` in `api/src/routes/documents.ts`, the phone
-page `mocks/src/phone-upload.html` (staged as `.assets/u.html`), and the
-dialog in `mocks/src/v3-template.html` ("upload from a phone").
+page `api/public/phone-upload.html` (staged as `.assets/u.html`), and in the
+app `app/components/phone/PhoneUploadButton.vue` and `PhoneUploadDialog.vue`
+(state and polling in `app/stores/phone.ts`).
 
 ### Contract
 
@@ -226,12 +224,11 @@ dialog in `mocks/src/v3-template.html` ("upload from a phone").
   "Zavřít" close only it. Closing first polls once more, so a file that
   arrived just before "Hotovo" is still listed, then ends the session. An
   expired or full code shows "Nový kód". Discarding the intake closes the
-  dialog. In the Documents tab the existing "+ Nahrát dokument" dialog is
-  still the mock's; its phone button sends files to the case's upload
+  dialog. In the Documents tab the "+ Nahrát dokument" dialog
+  (`app/components/patient/UploadDialog.vue`) has the phone button; it sends files to the case's upload
   list (the one in "Projednání na MDT", panel "Dokumenty").
-- **QR library.** qrcode-generator 2.0.4 (MIT, npm), vendored unchanged as
-  `mocks/src/vendor/qrcode-generator.js` with its license and inlined by
-  `mocks/build.py` (placeholder `/*QR_VENDOR*/`). Error correction M, SVG,
+- **QR library.** qrcode-generator 2.0.4 (MIT, npm), pinned in
+  `app/package.json` and loaded only when a code is shown. Error correction M, SVG,
   a white border of four modules.
 
 ### Checks
@@ -243,10 +240,10 @@ dialog in `mocks/src/v3-template.html` ("upload from a phone").
   uploads, the rate limits, the desktop user's lost access, a case locked
   meanwhile, the intake and its discard, reset and sweep, and no token,
   hash or file name in the access log or the Worker log.
-- `mocks/src/test/phone-upload.mjs` (jsdom, fake server): the button only
-  in API mode and where upload is allowed, the QR code drawn in the page
-  without the token as text, polling, the files in the upload and intake
-  lists marked "z telefonu", Hotovo, Escape, "Nový kód", intake discard.
+- `app/test/uploads.test.ts` (Vitest, mocked API): the session, the `/u`
+  link built from the token, polling, and the phone's files added to the
+  case list once each; the e2e suite (`e2e/specs/uploads.spec.ts`) drives the
+  dialog in the app.
 - `api/scripts/e2e-phone-upload.mjs` (Playwright against a running
   Worker): the desktop in Chromium starts the S02 intake and opens the QR
   dialog; an Android phone (Chromium, Pixel 7 emulation) opens `/u`

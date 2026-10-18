@@ -1,20 +1,22 @@
 # FHIR export
 
-Mock v3 exports a case as a FHIR R4 Bundle (FHIR is the HL7 standard for
+The app exports a case as a FHIR R4 Bundle (FHIR is the HL7 standard for
 exchanging health records as linked JSON records called resources). The
-"Export FHIR" button in the patient view builds it in the browser from the
-same data the screens show; there is no server. The team chose this on
+"Export FHIR" button in the patient header (`app/app/lib/fhirExport.ts`)
+builds it in the browser from the same data the screens show, opens it in a
+dialog with "Stáhnout JSON", and records the export in the access log
+(`fhir_exported`); the Bundle itself is not sent to the server. The team chose this on
 2026-10-17 (`docs/agent/HACKATHON.md`, "Team decisions"); how a pilot would
 exchange the same data with FNO's FHIR API is in
 [`docs/design/INTEGRATION.md`](../docs/design/INTEGRATION.md).
 
-Only the fully worked case (patient 10) has the button; the other patients
-in the mock have no extracted facts to export.
+Only a case with extracted finding groups (patient 10) has the button; the
+other patients have no extracted facts to export.
 
 ## What is in the Bundle
 
-A `collection` Bundle, built by `fhirBundle()` in
-`mocks/src/v3-template.html`:
+A `collection` Bundle, built by the pure function `fhirBundle()` in
+`packages/domain/src/fhir-export.ts`:
 
 | Our data | FHIR R4 resource | Notes |
 |---|---|---|
@@ -88,12 +90,13 @@ The informational messages say our own code systems are drafts. Czech
 characters in the report's console text are garbled by the validator's
 output encoding; the Bundle itself is UTF-8.
 
-To regenerate (needs Node with Playwright, Java 17+, the validator jar,
-and network access for the terminology server):
+To regenerate (needs a local Worker on the seeded demo, the e2e suite's
+Playwright from `npm --prefix e2e ci`, Java 17+, the validator jar, and
+network access for the terminology server). `fhir/export.mjs` clicks
+"Export FHIR" and "Stáhnout JSON" in the app, as a user does:
 
 ```sh
-uv run mocks/build.py
-PLAYWRIGHT_PATH=<node_modules/playwright-core> node fhir/export.mjs
+node fhir/export.mjs            # FHIR_BASE_URL defaults to http://localhost:8787
 VALIDATOR_JAR=<validator_cli.jar> sh fhir/validate.sh > fhir/examples/case-10-validation.txt
 ```
 

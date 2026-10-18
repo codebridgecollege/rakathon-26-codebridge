@@ -1,8 +1,7 @@
 # API Worker (`api/`)
 
 A Cloudflare Worker named `codebridge-mdt` (a Worker is a script on
-Cloudflare's runtime). It serves the Nuxt app (`app/`) at `/`, today's page
-(the built mock v3) at `/legacy/` for a transition period, both as static
+Cloudflare's runtime). It serves the Nuxt app (`app/`) at `/` as static
 files, and the API under `/api`. Design: `docs/research/backend-steps/step-0-1.md`,
 section "Issue: Step 1".
 
@@ -16,7 +15,7 @@ builds the Nuxt app, so it needs `npm ci` at the root first.
 ```
 npm ci
 cp .dev.vars.example .dev.vars   # local keys, gitignored; agents never read it
-npm run dev                      # stage-assets.sh builds the app and stages it with mocks/ into .assets, then wrangler dev
+npm run dev                      # stage-assets.sh builds the app and stages it into .assets, then wrangler dev
 npm run typecheck
 npm test                         # Vitest in workerd with local D1/R2 and the migrations; outbound fetch is mocked
 npm run types                    # after any wrangler.jsonc change; CI fails on a stale file
@@ -34,9 +33,9 @@ app's size budget, and deploys `main` to production and `backend` to the `backen
 |---|---|
 | `/`, `/_nuxt/*` | the Nuxt app (`app/.output/public`); Nuxt's own `404.html` and `200.html` are dropped |
 | `/patients`, `/calendar/:week`, `/patient/:nr/:tab`, ... | the app's page again, by a 200 rewrite for each route path in `scripts/app-routes.mjs` |
-| `/legacy/` | today's page, `mocks/v3.html` unchanged |
-| `/pages/`, `/ukazka/` | page images of the embedded mode, the S02 ZIP |
-| `/u` | the phone page (`mocks/src/phone-upload.html`) |
+| `/pages/<pdf stem>/p<n>.png`, `p<n>.redacted.png` | the page images, copied from `data/derived/pages` (images only, not the text layers or redaction records) |
+| `/ukazka/` | the S02 ZIP (`fixtures/ukazka`, written by `fixtures/prepare.py`) |
+| `/u` | the phone page (`public/phone-upload.html`) |
 | `/404.html` | the Czech 404 (`not_found_handling: 404-page`) |
 
 `scripts/headers.mjs` then writes `.assets/_headers` and `.assets/_redirects`, which the assets binding reads (neither
@@ -44,9 +43,8 @@ is served). Every file gets `X-Content-Type-Options: nosniff`, `Referrer-Policy:
 and a Permissions-Policy (camera, location, payment and USB off; the microphone for our own pages); `/_nuxt/*` is
 cached for a year (content-hashed names); the app's page (`/` and every route path, since the rules match the
 address asked for) also gets the content security policy, with the SHA-256 of each inline script in its `index.html`
-(the script stops when the count is not two), and `Cross-Origin-Opener-Policy: same-origin`. The old page, `/u` and
-the 404 page get no policy: they run inline scripts. `/api` answers set nosniff in `src/index.ts`. Redirects:
-`/legacy/ukazka/*` and `/legacy/pages/*` (the old page's relative links) to the root copies; rewrites (200): the
+(the script stops when the count is not two), and `Cross-Origin-Opener-Policy: same-origin`. The phone page at `/u` and
+the 404 page get no policy: they run inline scripts. `/api` answers set nosniff in `src/index.ts`. Rewrites (200): the
 app's route paths to `/`. Any other path is the 404 page, so there is no SPA fallback; the folders Nuxt prerenders
 for the static routes (`patients/index.html`, ...) are deleted, or `/patients/` would serve the app without the
 policy. These rules are checked with `run_worker_first: ["/api/*"]` only. Access mode (`true`, runbook below) routes
@@ -75,15 +73,13 @@ npm run seed:remote:reset                # wipe and reseed the shared demo; also
 uv run seed/seed.py --dry-run            # write seed/out/ only (SQL, R2 manifest, identity scan)
 ```
 
-- The seed reads only committed synthetic data (`mocks/src/data`, `data/derived`,
-  `data/rakathon-26`, `samples`), never `private/`. It reuses `mocks/build.py`'s
-  `page_index()` and `guidance()`, so the server holds what the page embeds.
+- The seed reads only committed synthetic data (`fixtures/data`, `data/derived`,
+  `data/rakathon-26`, `samples`), never `private/`. It imports `page_index()` and
+  `guidance()` from `fixtures/prepare.py` ([`fixtures/README.md`](../fixtures/README.md)).
 - Identity lives in the `patients` table only. The seed fails when a patient's name
   or birth number is left in stored JSON or case rows outside a `quote` field;
   `seed/out/identity-scan.txt` lists paths, never values.
-- After changing a fixture, reseed; the page's `?parity` check compares the server's
-  patients, staff and tasks with the embedded ones (console). `?data=embedded`
-  forces the embedded data on the Worker.
+- After changing a fixture, reseed.
 - Routes that return case content check role and membership
   (`packages/domain/src/access.ts`) and write an `access_log` row before reading the content
   (`src/middleware/audit.ts`); a failed insert answers 500 with no content.
@@ -207,7 +203,7 @@ Design and contract: `docs/design/PHONE-UPLOAD.md`, section "As implemented".
   `src/routes/documents.ts`, the same path as a desktop upload.
 - Only `token_hash` (SHA-256) is stored. Never log the token, its hash or a file name; `test/upload-sessions.test.ts`
   checks the access log and the console output.
-- The phone page is `mocks/src/phone-upload.html`, staged as `.assets/u.html` (`/u`; no Worker route).
+- The phone page is `api/public/phone-upload.html`, staged as `.assets/u.html` (`/u`; no Worker route).
 - End to end with real browsers (needs Playwright with Chromium and WebKit; it prints counts only):
 
   ```

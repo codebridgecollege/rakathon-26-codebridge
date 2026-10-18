@@ -39,8 +39,8 @@ and [FHIR workshop and PHOENIX](../research/2026-10-16-talk-fhir-workshop-and-ph
   our work made during the event, not FNO data and not derived from it:
   the Markdown sources and the rendered PDF are in
   [`samples/S01_pacient/`](../../samples/README.md), the page images and
-  Tesseract output in `data/derived/pages/S01_pacient/`, and the mock data
-  in `mocks/src/data/mock-case-S01.json`.
+  Tesseract output in `data/derived/pages/S01_pacient/`, and the fixture
+  data in `fixtures/data/mock-case-S01.json`.
 - **17 October 2026: our own synthetic patient `S02_pacient`.** A fully
   fictional rectal cancer patient (neoadjuvant chemoradiotherapy, low
   anterior resection, a rising CEA over four lab sheets) for the intake
@@ -49,7 +49,7 @@ and [FHIR workshop and PHOENIX](../research/2026-10-16-talk-fhir-workshop-and-ph
   data: the sources, the combined PDF, the upload PDFs and the FHIR
   referral are in [`samples/S02_pacient/`](../../samples/README.md), the
   page images and Tesseract output in `data/derived/pages/S02_pacient/`,
-  and the mock data in `mocks/src/data/mock-case-S02.json`.
+  and the fixture data in `fixtures/data/mock-case-S02.json`.
 
 ## Infrastructure
 
@@ -196,13 +196,19 @@ Declare this list to the jury and mentors.
 
 - ElevenLabs Scribe, for transcribing the pre-hack talks and the team's
   design discussions, and (Scribe v2 Realtime and Scribe v2) for the
-  live "AI záznam" demo in mock v3, with fictitious speech only.
+  live "AI záznam" demo, with fictitious speech only.
 - The hackathon's Azure OpenAI gateway (`gpt-6-luna-dz-eu`), for the
-  one-sentence summary of a recorded MDT discussion in mock v3.
-- Cloudflare Pages, hosting mock v3 at https://codebridge-mdt.pages.dev,
-  with Pages Functions for the speech and summary routes.
+  one-sentence summary of a recorded MDT discussion.
+- Cloudflare Pages, which during the event hosted mock v3 (the
+  single-file HTML page the demo started as) at
+  https://codebridge-mdt.pages.dev, with Pages Functions for the speech
+  and summary routes. On 2026-10-18 the page and its Pages deploy were
+  removed from the repository; the Pages project still exists but is no
+  longer deployed, so it shows its last deploy. The API Worker below is
+  the demo.
 - Cloudflare Workers (static assets, rate limiting binding, Workers
-  Logs), hosting the API Worker `codebridge-mdt` in `api/`, with Hono
+  Logs), hosting the API Worker `codebridge-mdt` in `api/`, which serves
+  the demo (the Nuxt app at `/` and the API under `/api`), with Hono
   4.13.13, `jose` 6.2.12, Wrangler 4.147.0, TypeScript 5.9.3, and Vitest
   4.1.11 with `@cloudflare/vitest-plugin` 1.3.6. Cloudflare AI Gateway is
   wired as an option but off.
@@ -222,7 +228,8 @@ Declare this list to the jury and mentors.
   not deployed on 2026-10-17: the build needs a running Docker daemon.
 - ChatGPT, used by Soňa for brainstorming and UI sketches
   (`docs/sources/design/`).
-- Claude artifacts (claude.ai), for publishing the UI mocks in `mocks/`.
+- Claude artifacts (claude.ai), for publishing the early UI mocks
+  (mock v1 to v3) to the team during the event.
 - PyMuPDF and Tesseract (Czech model), for rendering and reading the
   patient PDFs (`scripts/ocr_pages.py`); Claude Sonnet as the vision
   model for the fictitious data. Full list with reasons:
@@ -233,12 +240,12 @@ Declare this list to the jury and mentors.
   PyMuPDF and Python-Markdown 3.7 (`scripts/render_samples.py`).
 - Claude Code also wrote the synthetic patient `S02_pacient` the same way,
   with the Liberation Sans 2.1.5 fonts from the liberation-fonts release.
-- qrcode-generator 2.0.4 (MIT, Kazuhiko Arase, npm), vendored unchanged in
-  `mocks/src/vendor/qrcode-generator.js` with its license, draws the QR
-  code of "Nahrát z telefonu" in the browser (issue #10). A pre-existing
+- qrcode-generator 2.0.4 (MIT, Kazuhiko Arase, npm), pinned in
+  `app/package.json`, draws the QR code of "Nahrát z telefonu" in the browser (issue #10). A pre-existing
   third-party component; the dialog, the phone page and the server routes
   were written during the hackathon.
-- The Nuxt frontend in `app/` (issue #13, after the hackathon, on a branch):
+- The Nuxt frontend in `app/` (issue #13, after the hackathon), which
+  replaced mock v3 and is the only frontend since 2026-10-18:
   Nuxt 4.6.2, Vue 3.5.44, Vue Router 5.4.0, Pinia 4.1.0 with `@pinia/nuxt`
   1.0.3, `@fluent/bundle` 0.19.1 and `fluent-vue` 3.8.2, tested with Vitest
   4.1.11, happy-dom 21.0.3 and `@vue/test-utils` 2.5.1, type-checked with
@@ -253,7 +260,7 @@ Declare this list to the jury and mentors.
 ## Prognosis prototype work on 2026-10-17
 
 The team added a local prognosis evidence-search prototype during the event. It
-uses Python standard-library HTTP handling, the existing generated mock interface,
+uses Python standard-library HTTP handling, the mock v3 page of the time,
 and GPT Astra through OpenRouter with server-side web search. The source fixtures are
 the fictitious FNO case 10 and the team synthetic S01 sample. The clinical profile
 contains no patient names or birth numbers. Keys stay in the local gitignored
@@ -269,7 +276,7 @@ review; the prototype does not provide an individual survival prediction.
   Latin/Czech and common clinical symbols using fontTools, supplies embedded fonts.
   These are pre-existing third-party components; report composition, pagination and
   application integration were written during the hackathon. Licenses are stored in
-  `mocks/src/vendor/`. No patient text is sent to an external PDF service.
+  `app/vendor/`, next to the vendored files. No patient text is sent to an external PDF service.
 
 - GLIDE wordmark: existing brand asset reused from `sonicaopica/glide/GLIDE.svg`
   at blob `2a0eebad98a033b70f43c324b209fae760e3ff2a`, supplied by the team.

@@ -1,9 +1,9 @@
 # Frontend: framework, language and rendering
 
-Status: decided 2026-10-18; steps 2 to 13 of the migration are built on
-branches, see the "As implemented" sections. On branch `port-finish` the
-Worker serves the app at `/` and today's page at `/legacy/`; `main` (and so
-the demo) still serves today's page at `/` until the team merges it.
+Status: decided 2026-10-18; steps 2 to 13 of the migration are built, see
+the "As implemented" sections. The Worker serves the app at `/`; it is the
+only frontend since the old page was removed on 2026-10-18 ("As implemented
+(legacy removed)").
 
 The question: should the frontend move from one hand-written page to a
 framework, and if so to which one, in which language, and rendered where?
@@ -14,7 +14,8 @@ Terms used below:
 - **SSR**: rendering pages on the server; **hydration** is the browser taking over server-rendered HTML.
 - **Nuxt**: a framework on Vue; **Nitro** is its server engine.
 - **citry**: Juro's Python server-rendered framework, with a Rust core and, from 0.6.0, Vue in the browser.
-- **Embedded mode**: today's single-file page with built-in data that runs without a server (Pages, a file, claude.ai copies).
+- **The old page** (mock v3): the single-file HTML page the demo started as, which the app replaced; removed 2026-10-18.
+- **Embedded mode**: the old page with built-in data, run without a server (Pages, a file, claude.ai copies); removed with it.
 
 ## Summary
 
@@ -40,7 +41,7 @@ Terms used below:
    document pipeline, the build's data preparation and the seed.
 4. **Nuxt 4 (decided 2026-10-18), the app in SPA mode** (`ssr: false`),
    built as static files that the existing Worker serves next to its API
-   under `/api`, as it serves today's page. Nuxt was chosen over plain Vue
+   under `/api`, as it served the old page. Nuxt was chosen over plain Vue
    3 with Vite because public server-rendered pages are likely later, and
    Nuxt renders those per route without a second framework.
 5. **citry: not for this app.** Its i18n is the best of the options. But
@@ -52,14 +53,15 @@ Terms used below:
    - it has one maintainer;
    - coding agents have not seen its current syntax.
 6. **i18n uses Fluent** ([`I18N.md`](I18N.md)): the same `.ftl` catalogs
-   for the old page, the new app (through `fluent-vue`) and the Worker. Server and
-   refactor work from `I18N.md` can start now on the old page; the strings
-   of each screen move into the catalog as it is ported.
+   for the app (through `fluent-vue`) and the Worker; the strings of each
+   screen move into the catalog as it is ported.
 7. **The first step is a test suite that drives only the DOM,** run
    against the Worker. Today's browser tests reach into page internals, so
    they cannot judge a port.
 
-## Where the app stands
+## Where the app stood at the decision
+
+The old page as the decision found it (2026-10-18, before the port):
 
 - **One file,** `mocks/src/v3-template.html`: about 5,500 lines of HTML, CSS and plain JavaScript.
 - **Build:** `mocks/build.py` inlines data and vendored libraries into a static page of about 2.3 MB.
@@ -111,8 +113,8 @@ the marketing site (glidemdt.com) is separate.
 - **One language across page and API** gives typed request and reply
   shapes and one test stack (Vitest, Playwright).
 - **Coding agents** know TypeScript and Vue deeply.
-- **Python keeps** the pipeline (PyMuPDF, Tesseract), `build.py`'s data
-  preparation and the seed. Those produce JSON at build or seed time and
+- **Python keeps** the pipeline (PyMuPDF, Tesseract), the fixtures' data
+  preparation (`fixtures/`) and the seed. Those produce JSON at build or seed time and
   never run in the page.
 
 ## Framework: Nuxt 4 in SPA mode
@@ -142,10 +144,9 @@ the marketing site (glidemdt.com) is separate.
   - Pinia stores for the session, staff and the case cache;
   - the recorder as a store plus a composable, since it must survive route changes;
   - the shared domain package for the pure rules.
-- **i18n.** Fluent, as in `I18N.md`. `fluent-vue` (a Vue 3 plugin on `@fluent/bundle`) is registered in a Nuxt plugin and gives components `$t` and an `<i18n>` component that fills markup through named slots. The Worker uses `@fluent/bundle` with the same `.ftl` files.
+- **i18n.** Fluent, as in `I18N.md`. `fluent-vue` (a Vue 3 plugin on `@fluent/bundle`) is registered in a Nuxt plugin and gives components `$t` and an `<i18n>` component that fills markup through named slots. The Worker is to use `@fluent/bundle` with the same `.ftl` files (the server phase of `I18N.md`).
   - `@nuxtjs/i18n` is not used, because it is built on vue-i18n, a different message format.
-  - In `I18N.md`, the parts about inlining catalogs into the page apply to the old page only.
-- **Embedded mode is dropped in the new app.** `nuxt generate` writes many script chunks, which do not load from `file://`, and claude.ai copies need one file. The Worker is the demo. The old single-file page stays on Pages until Pages is retired, so the offline demo exists until then.
+- **No embedded mode.** `nuxt generate` writes many script chunks, which do not load from `file://`, and claude.ai copies need one file. The Worker is the demo, and there is no offline demo.
 - **Size.** The goal is a first load well under today's 2.3 MB: jsPDF with its font, the QR library and the recorder are loaded only when used.
 - **Content security policy.** There is none today. Nuxt's SPA output has an inline script, so a strict policy needs script hashes (for example through `nuxt-security`). This is a step of the port, not an afterthought.
 - **Accessibility.** The current page has about 100 `aria-*` attributes. Keyboard use, focus handling in dialogs and labels are checked in the new test suite, not assumed from the component library.
@@ -217,7 +218,7 @@ maturity alone.
 ## Migration
 
 **Strategy: a new app beside the old page, screen by screen.** Mounting
-Vue inside today's page is awkward, because its global `render()` would
+Vue inside the old page is awkward, because its global `render()` would
 fight Vue for the DOM. Instead:
 - a new Nuxt app grows next to it and reads the same API;
 - the old page stays the demo until the new one passes the DOM-only test suite screen by screen;
@@ -230,14 +231,10 @@ fight Vue for the DOM. Instead:
 - `packages/api-client` (typed requests and replies);
 - `i18n/` (the `.ftl` catalogs and the Fluent wrapper, shared).
 
-**What can start now, on the old page.** From `I18N.md`, these do not
-depend on the framework, and the port reuses them:
+**What does not depend on the framework.** From `I18N.md`:
 - the server phase: message keys for errors, codes for labels, the access log as action and parameters, PageKit reasons as codes (3-4 days);
 - the meeting language for recordings (1 day);
 - the Fluent catalogs and runtime wrapper.
-
-If the port slips, i18n is not blocked: the old page can take the
-catalogs too (`I18N.md` phases 0-2).
 
 **Order and rough effort** (one developer with agents):
 
@@ -259,8 +256,7 @@ catalogs too (`I18N.md` phases 0-2).
 | 14 | Slovak and English catalogs, clinician review (`I18N.md` phase 4) | 1 day plus review |
 
 That is about 18 days for the port, plus the `I18N.md` server phase and
-meeting language (about 4-5 days) if they have not been done on the old
-page already.
+meeting language (about 4-5 days).
 
 Each screen is built with its strings in the Czech catalog from the start,
 the `lang` marking of content in place, and the clinical-trust behaviour
@@ -271,7 +267,7 @@ drafts labelled as drafts) checked screen by screen.
 
 Branch `port-scaffold` (issue #13). Built: npm workspaces, `packages/domain`,
 `packages/api-client`, and the `app/` shell (header, empty main area,
-stores, boot, `fluent-vue`), served at `/app/` next to today's page.
+stores, boot, `fluent-vue`), served at `/app/` next to the old page.
 Commands: [`app/README.md`](../../app/README.md). Where it differs from the
 plan above, or adds to it:
 
@@ -288,7 +284,7 @@ plan above, or adds to it:
   not depend on npm's `allowScripts` setting.
 - **The Fluent wrapper** (bundles with `useIsolating: false`, the Czech
   fallback, the choice of language) is `app/app/lib/i18n.ts` for now, not a
-  shared `i18n/core.js`; it moves there when the old page or the Worker
+  shared `i18n/core.js`; it moves there when the Worker
   reads the catalogs too (`I18N.md` phase 0).
 - **What moved to `packages/domain`:** status moves, slots, approval,
   protocol, task drafts, FHIR referral import, fact edits, and their
@@ -322,7 +318,7 @@ plan above, or adds to it:
 - **No embedded mode and no fallback.** When `/api/health` does not report
   our Worker with data, the shell shows the error instead of falling back
   to built-in data.
-- **The user picker sends staff ids** as option values (today's page uses
+- **The user picker sends staff ids** as option values (the old page used
   display names), so no display string is used as a key (I18N.md,
   "Display strings used as keys").
 - **Not yet:** the language switcher in the header (the choice already
@@ -349,7 +345,7 @@ it: [`app/README.md`](../../app/README.md). Where it differs from the old page:
 - **The intake demo hints come from a small descriptor, not from built-in data.** The old page read the synthetic
   patient S02 from its embedded data for the presenter's hints (missing files, the ZIP link, "už v databázi je") and
   the closing sentence (pages, data gaps). The app has no embedded data, so `app/app/lib/intake-demo.ts` holds those
-  few values; a test keeps them equal to `mocks/src/data/mock-case-S02.json`, and the module and the FHIR sample
+  few values; a test keeps them equal to `fixtures/data/mock-case-S02.json`, and the module and the FHIR sample
   load only with the dialog. Whether the prepared record attaches is still the server's verdict alone. Moving the
   counts into the server's intake answer would remove the descriptor; the server deliberately does not name the
   fixture's patient there, so the hints would then change wording.
@@ -390,8 +386,8 @@ MDT question, brief, alerts, timeline, every tab, the guideline drawer, the prog
 source viewer. Components in `app/app/components/patient/`, rules in `packages/domain` (`case-data.ts`,
 `case-view.ts`, `quote-match.ts`, `page-text.ts`, `labs.ts`, `guideline.ts`, `prognosis.ts`, `fhir-export.ts`), text
 in `i18n/cs/patient.ftl` (IDs start with `patient-`). The e2e specs `patient-detail`, `patient-tabs`,
-`source-viewer`, the FHIR export of `report-export` and `phone-width` pass against the new app and stay green on
-today's page. Where it differs from the old page or the plan:
+`source-viewer`, the FHIR export of `report-export` and `phone-width` pass against the new app and stayed green on
+the old page. Where it differs from the old page or the plan:
 
 - **Routes.** `/patient/10/labs` and `/patient/10` both reach the screen; a missing or unavailable tab is replaced by
   the first one the case shows.
@@ -414,7 +410,7 @@ today's page. Where it differs from the old page or the plan:
 
 Branch `port-discussion` (issue #13): the session bar (S-4), "Projednání na MDT" (S-5) with the conclusion draft, the
 AI recorder ("AI záznam"), the report dialog and its PDF, and the "Možná jiný pacient" banner. Where they live:
-[`app/README.md`](../../app/README.md). The whole e2e suite passes against the new app and stays green on today's page.
+[`app/README.md`](../../app/README.md). The whole e2e suite passes against the new app and stayed green on the old page.
 Where it differs from the old page or the plan:
 
 - **The recorder runs in server mode only** (`features.transcripts`, which every seeded Worker reports): lines and
@@ -448,14 +444,12 @@ Where it differs from the old page or the plan:
 ## As implemented (step 13)
 
 Branch `port-finish` (issue #13): the switch, the content security policy, the size budget, the accessibility checks
-and layout parity. Not deployed and not merged; the user decides when. Where it differs from the plan above or adds
+and layout parity. Merged into `main` afterwards. Where it differs from the plan above or adds
 to it:
 
 - **The switch.** `api/scripts/stage-assets.sh` always builds the app (no `STAGE_APP` flag) and stages it at the root
-  of `.assets/` (Nuxt `baseURL` `/`); today's page is `mocks/v3.html` unchanged at `/legacy/`. `/u`, `/pages/`,
-  `/ukazka/`, the Czech 404 page and `/api/*` stay as they were. Redirects (`.assets/_redirects`): the old page's
-  relative links under `/legacy/` (the S02 ZIP, embedded page images) to the root copies. The app's route paths:
-  "As implemented (paths)" below.
+  of `.assets/` (Nuxt `baseURL` `/`). `/u`, `/pages/`, `/ukazka/`, the Czech 404 page and `/api/*` stay as they
+  were. The app's route paths: "As implemented (paths)" below.
 - **Content security policy,** set by `api/scripts/headers.mjs` in `.assets/_headers` for the app's page only (`/`),
   not through `nuxt-security`: the SPA shell has exactly two inline scripts (the import map and Nuxt's config), and the
   script pins their SHA-256 at staging time, after each build, and stops when the count changes. The policy:
@@ -471,13 +465,10 @@ to it:
   `X-Content-Type-Options: nosniff`, `Referrer-Policy: same-origin`, `X-Frame-Options: DENY` and a
   Permissions-Policy that turns off camera, location, payment and USB and keeps the microphone for our own pages; the
   app's page gets `Cross-Origin-Opener-Policy: same-origin`; `/_nuxt/*` (file names carry a content hash) is cached
-  for a year; `/api` answers get nosniff. The old page, `/u` and the 404 page have no policy (inline scripts
+  for a year; `/api` answers get nosniff. `/u` and the 404 page have no policy (inline scripts
   throughout).
-- **Trade-off while `/legacy/` exists:** the old page runs inline scripts and Umami (`cloud.umami.is`) without a
-  policy on the same origin as the app and `/api`, so a script injected there would act with the app's origin; the
-  app's policy protects the app's page, not the origin. Retiring `/legacy/` (with Pages) ends this. Until then a
-  cheaper step would be a policy for `/legacy/` that allows inline script but limits `connect-src` to `'self'` and
-  Umami, and a hashed policy for `/u` (one inline script, and the page holds the upload token); not done.
+- **Open:** `/u` runs its inline script without a policy on the same origin as the app and `/api`, and the page holds
+  the upload token. A hashed policy for `/u` (one inline script) would close this; not done.
 - **Checked in the browser:** the e2e fixture fails any test on a policy violation Chromium reports; the whole suite
   (97 tests) runs on `/` without one. A deliberately wrong hash makes the fixture fail, so the check is live. Not
   watched: pages in a second browser context (the phone, the second doctor in `conflicts`), and `?lang=sk`/`en`,
@@ -485,7 +476,7 @@ to it:
   `wss://api.elevenlabs.io`, because the policy refuses any other host.
 - **Size.** First load, gzip, measured by `app/scripts/size-budget.mjs` (index.html, the entry and its static imports,
   the patient list screen): 176 kB (JS 164 kB, CSS 11.5 kB, index.html 0.9 kB), against 712 kB gzip (2.3 MB raw) for
-  today's page. Slovak and English catalogs now load only when chosen (they were 52 kB of the first load). Already
+  the old page. Slovak and English catalogs now load only when chosen (they were 52 kB of the first load). Already
   lazy: jsPDF (132 kB gzip) and its fonts (173 kB) load with the report dialog, the QR library with the phone
   dialog; the patient screen adds 55 kB, the calendar 8 kB. The recorder's browser code (microphone and socket,
   about 1 kB) stays in the entry: the header's recording pill reads its store. Nuxt adds prefetch hints for the lazy
@@ -507,9 +498,8 @@ to it:
     every overlay kind, keeps Tab inside, and the overlays say `aria-modal`; when the phone dialog opens above one of
     them (from "+ Nahrát dokument"), Tab and Escape stay with the phone dialog, and Escape closes it alone (a spec
     checks this stack).
-  Remaining, not failing: violations of moderate or minor impact are not listed by the spec; the old page at
-  `/legacy/` is not checked. No skip link: the header has five controls before the main area.
-- **Layout parity.** The old page has no doctype (quirks mode); the app is in standards mode. Element boxes on nine
+  Remaining, not failing: violations of moderate or minor impact are not listed by the spec. No skip link: the header has five controls before the main area.
+- **Layout parity.** The old page had no doctype (quirks mode); the app is in standards mode. Element boxes on nine
   screens were compared (old against new, 1440 px wide). Two quirks are reproduced in `app/assets/app.css`: a
   textarea's baseline gap (the notes field and "Závěr MDT" sat 6 px lower) and the table line height (patient list
   rows were up to 19 px taller). Now within 3 px: patient list, calendar, tasks, staff, NO-S01 labs, NO-010 next steps.
@@ -519,14 +509,15 @@ to it:
 - **CI** (`deploy-worker.yml`): one root `npm ci`, then the Worker's types, type check and tests, type checks and tests
   of `packages/domain`, `packages/api-client` and the app, staging (which builds the app and writes the headers) and
   the size budget; the deploy job stages again from a root install (the same sources, so the same hashes, but not the
-  tested bytes). The workflow also runs on changes to `app/`, `i18n/`, `packages/`, `samples/`, `mocks/src/data/`,
-  the template and the other files the tests read. The e2e suite is not in CI (it needs the seeded local Worker); run it before merging.
+  tested bytes). The workflow also runs on changes to `app/`, `i18n/`, `packages/`, `samples/`, `fixtures/`,
+  `data/derived/`, `e2e/` and the other files the tests read. A second job runs the e2e suite on four local Workers
+  at once (`npm --prefix e2e run test:parallel`, no secrets) and uploads the report and traces when it fails; the
+  deploy job needs both jobs, so main deploys only when the unit tests and the browser suite pass.
 - **Install scripts.** npm 11 lists `esbuild`, `workerd` and `vue-demi` as having unapproved install scripts. None is
   needed: the build and `wrangler dev` work without them (`app/README.md`). CI's npm 10 runs them as before.
-- **To go live:** merge into `main` (CI deploys the Worker); check `/`, `/legacy/`, `/u` and
+- **After a deploy:** check `/`, `/u` and
   `curl -sI https://<worker-host>/` and `curl -sI https://<worker-host>/patient/10/labs` for the policy; run the e2e suite against a preview alias first
-  (`E2E_BASE_URL=https://<preview-host>/ E2E_ALLOW_RESET=<preview-host>`). Pages (`deploy-mock.yml`) keeps serving
-  the old page until it is retired. Umami is not in the app; adding it needs `script-src` and `connect-src` for its
+  (`E2E_BASE_URL=https://<preview-host>/ E2E_ALLOW_RESET=<preview-host>`). Umami is not in the app; adding it needs `script-src` and `connect-src` for its
   host.
 
 ## As implemented (paths)
@@ -536,7 +527,7 @@ Branch `port-paths` (issue #13): path routes instead of hash routes, and the dra
 - **History mode.** The app's addresses are paths: `/patients`, `/calendar/<Monday>`, `/tasks`, `/staff`, `/admin`,
   `/patient/<nr>/<tab>`; `/` opens the patient list. The old hash links (`#patient/10/labs`, `#/...`,
   `#present/<nr>`, `#protocol/<nr>`) and the `/app/...` redirect are gone: `/#patient/10/labs` opens the patient list,
-  `/app/` is a 404. The old page at `/legacy/` keeps its own hash links.
+  `/app/` is a 404.
 - **Serving the route paths, not a fallback.** `api/scripts/app-routes.mjs` lists the route paths (`/patients`,
   `/calendar`, `/calendar/:week`, `/tasks`, `/staff`, `/admin`, `/patient/:nr`, `/patient/:nr/:tab`). `headers.mjs`
   writes a 200 rewrite to `/` for each into `.assets/_redirects`, so the address stays and the assets serve the app's
@@ -568,15 +559,71 @@ Branch `port-paths` (issue #13): path routes instead of hash routes, and the dra
   confirmation of the shown text or a doctor's edit removes the label; a confirmation of an older draft text does not.
   The report, its PDF and the FHIR export print the draft with "[návrh otázky asistentem, neověřeno lékařem]" or
   "[otázka podle účelu v dokumentu, ...]" and its passages, as before. The patient list does not show the question.
-  The old page shows no label (since round 22) and is unchanged.
+
+## As implemented (legacy removed)
+
+2026-10-18. The old page and everything that only served it are removed; the app in `app/` is the only frontend,
+served by the API Worker at `/`.
+
+Removed:
+
+- the old page: `mocks/v1.html` to `mocks/v3.html`, their templates (`mocks/src/*-template.html`), `prognosis.js`,
+  `report-pdf.js`, `prognosis.css`, the vendored copy of qrcode-generator (the app pins it in `app/package.json`), and
+  the old page's tests in `mocks/src/test/`;
+- embedded mode (the old page with built-in data, opened from a file or a claude.ai artifact);
+- the Cloudflare Pages Functions (`mocks/functions/`: `/api/summarize`, `/api/stt/*`; the Worker has its own) and the
+  Pages deploy (`mocks/deploy.sh`, `mocks/pages-wrangler.toml`, `.github/workflows/deploy-mock.yml`). The Pages project
+  `codebridge-mdt.pages.dev` still exists but is no longer deployed, so it shows its last deploy;
+- `/legacy/` on the Worker, with its redirects of `/legacy/ukazka/*` and `/legacy/pages/*`;
+- `mocks/pages/` (a committed copy of the page images) and `app/scripts/sync-css.mjs` (the copy of the old page's CSS).
+
+Where the kept parts live now:
+
+| Was | Now | Used by |
+|---|---|---|
+| `mocks/src/data/` | `fixtures/data/` | the seed (`api/seed/seed.py`), app and pipeline tests, `prognosis/service.py` |
+| `mocks/src/extract/` | `fixtures/extract/` | run by hand to rebuild fixtures ([`fixtures/README.md`](../../fixtures/README.md)) |
+| `mocks/build.py` | `fixtures/prepare.py` | the seed imports `page_index()` and `guidance()`; run on its own (`uv run fixtures/prepare.py`) it writes the S02 ZIP |
+| `mocks/ukazka/` | `fixtures/ukazka/` | staged at `/ukazka/` |
+| `mocks/serve.py` | `prognosis/serve.py` | the local prognosis API only; it serves no page |
+| `mocks/src/phone-upload.html` | `api/public/phone-upload.html` | staged at `/u` |
+| `mocks/src/vendor/` (jsPDF, fonts, licences) | `app/vendor/` | the report PDF (`app/app/lib/report-pdf.ts`) |
+| `mocks/src/brand/glide.svg` | `scripts/brand/glide.svg` | the cover and the landing page images |
+| `app/app/assets/v3.css` | `app/app/assets/base.css` | the app's own base styles, edited directly |
+| `mocks/pages/` | none: `api/scripts/stage-assets.sh` copies `p<n>.png` and `p<n>.redacted.png` from `data/derived/pages/` to `/pages/` | |
+
+Consequences:
+
+- **Prognóza shows saved searches only.** `prognosis/serve.py` served the old page next to the prognosis API. Now it
+  serves the API only, and the app on the Worker, which has no search route, shows the saved search
+  (`GET /api/cases/{id}/prognosis`); no page calls the local API.
+- **The default staff test** checks `DEFAULT_STAFF` in `packages/domain` against the seed's `STAFF_DEPTS` instead of
+  the old page.
+- The Czech 404 page is unchanged.
+
+## As implemented (browser suite in CI)
+
+2026-10-18. The e2e suite runs in parallel and gates the deploy.
+
+- **Parallel run.** `npm --prefix e2e run test:parallel` (`e2e/run-parallel.mjs`) seeds one local state with
+  `api/seed/seed.py --persist-to` (reused while the seed's inputs are unchanged), copies it for each of N local
+  Workers (`E2E_WORKERS`, default 4; ports from 8801), starts them, waits for `/api/health`, runs Playwright with one
+  worker per Worker and stops them. `e2e/servers.ts` maps each Playwright worker's slot (`parallelIndex`) to its
+  Worker, so a test's demo reset touches only its own database. The single-Worker mode (`npm --prefix e2e test`
+  against a running Worker) is unchanged.
+- **Measured locally** (Apple Silicon, 100 tests): 31 s with four Workers against 1.4 min with one; seeding the
+  template takes about 1.5 minutes and is skipped when nothing it reads changed.
+- **CI.** The `e2e` job of `deploy-worker.yml` installs, stages, seeds and runs the parallel suite with no secrets,
+  caches Chromium, and uploads the HTML report, the traces and the Workers' logs when it fails. The deploy job needs
+  the unit tests and the browser suite, and deploys only from main and backend.
 
 ## Decisions (2026-10-18)
 
-- **No offline demo is needed.** Embedded mode ends with the old page;
-  Pages is retired when the new app takes over.
+- **No offline demo is needed.** Embedded mode ended with the old page
+  (removed 2026-10-18); the Pages deploy stopped with it.
 - **The port starts as soon as the team decides to do it.** The clinical
   behaviour of the ported screens is reviewed afterwards, against the
-  DOM-only test suite and the old page.
+  DOM-only test suite and the old page as kept in the repository history.
 - **i18n uses Fluent** (`I18N.md`).
 - **citry is not used,** and the spike is dropped (see "citry").
 - **Nuxt 4,** with auto-imports off; upgrade cost is not a concern for the team.

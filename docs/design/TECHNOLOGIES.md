@@ -39,7 +39,7 @@ source.
 | PyMuPDF 1.24.10 | used | Render each PDF page to an image (150 dpi for display, 300 dpi for OCR); inspect fonts and images | Renders exactly what a viewer shows, fast, no external service | Local |
 | Tesseract 5 with the Czech model (`ces`) | used | Local OCR of the rendered page; per-word confidence and position | Free, runs on the hospital's own server, gives confidences and boxes for "verify" marks and for highlighting the quote on the page image | Local |
 | Vision LLM | used for development (Claude Sonnet); planned for the product | Primary transcription of the rendered page: Czech medical print, tables kept as tables, stamps and blacked-out areas marked | It was correct at every problem spot in the evaluation, including the iRECIST table | Cloud unless run locally; see [data protection](DATA-PROTECTION.md) |
-| pypdf 5.1.0 | used, superseded for reading | First text extraction for the mock data; still useful for metadata | | Local |
+| pypdf 5.1.0 | used, superseded for reading | First text extraction for the fixture data (`fixtures/data/ocr.json`); still useful for metadata | | Local |
 | `scripts/ocr_pages.py` | used | Our pipeline: render, OCR with Tesseract, write images, text, and word boxes to `data/derived/pages/` | | Local |
 | `scripts/build_page_index.py` | used | Merge the vision text, Tesseract words, and disagreements into `data/derived/page-index.json` for the app | | Local |
 | `pipeline/pagekit` (Python package) | used | One implementation of render, Tesseract, the "ověřit" marks (also Tesseract against the PDF text layer), the readability check from the text and a deterministic parser for FNO-format lab sheets; `scripts/` and the PageKit service both use it | Scripts, server and tests cannot drift apart | Local |
@@ -81,21 +81,18 @@ read it and whether it was redacted. Evidence:
 | Pseudonymization step | planned | Replace name, birth number, and other direct identifiers with the case ID before any text or image leaves the hospital | See [data protection](DATA-PROTECTION.md) |
 | Rules and checklists | planned | Missing documents, contradictions (like with like), readability | Deterministic code, not the LLM, wherever a rule can decide |
 
-The mock's patient data was extracted by Claude sub-agents during
+The demo's patient data was extracted by Claude sub-agents during
 development and corrected by hand after two reviews
-([`mocks/README.md`](../../mocks/README.md)).
+([`fixtures/README.md`](../../fixtures/README.md)).
 
 ## User interface
 
 | Technology | Status | What we use it for | Why |
 |---|---|---|---|
-| Static HTML, CSS, plain JavaScript | used | The clickable mocks in `mocks/` | No build step; one file opens anywhere and can be published as a link |
-| Hash-based routing | used (v3) | Browser back and forward inside a single page | Soňa asked for back and forward; works without a server |
-| Page-image source view | used (v3) | A source reference opens the rendered page image (150 dpi) with the cited passage boxed from Tesseract's word positions, the vision transcription in a second tab with the same passage marked, and the "ověřit" tokens marked in both | Team decision 2026-10-16: show the actual page, so the doctor can check the original; the text tab keeps source links pointing at a passage |
-| ElevenLabs Scribe v2 Realtime and Scribe v2 | used (v3, demo) | "AI záznam": live Czech transcript of the MDT discussion, each word filed under the case open when it was spoken; after a case's conclusion is approved, its audio goes once through Scribe v2 with speaker separation ("Mluvčí 1, 2"), then the audio is deleted. Both go through our server: the live socket with a single-use token from `/api/stt/token`; the speaker pass on Pages through `/api/stt/diarize`, and on the Worker with the data API as a Workflow that reads the case's audio from R2 (step 5). The key stays on the server | The live model does not separate speakers, so speakers come from the second pass. Demo only, with fictitious speech; at FNO the same two passes would run on a speech server inside the hospital (a Whisper-class model with a diarization model), see [integration](INTEGRATION.md) |
-| Azure OpenAI (`gpt-6-luna-dz-eu`, hackathon gateway, EU) through a Cloudflare Pages Function | used (v3, demo) | "Shrnutí AI": one or two sentences of decisions and next steps from a case's speaker transcript, shown above the folded transcript | ElevenLabs has no text model; the function keeps the key off the page and fixes the prompt (`mocks/functions/api/summarize.js`) |
-| Cloudflare Pages | used (demo hosting) | https://codebridge-mdt.pages.dev, redeployed on push to main; Pages Functions for `/api/summarize` and `/api/stt/*` | HTTPS outside the claude.ai viewer, so the browser allows the microphone |
-| Cloudflare Workers with static assets | used (API Worker, `api/`) | One Worker `codebridge-mdt` serves the built mock as files and the API under `/api` (health, summary, speech token and speaker pass); CI deploys `main` to production and `backend` to a preview alias | One deploy for page and API, rate limiting bindings, and Cloudflare Access in front later; Pages Functions cannot bind a rate limiter |
+| Page-image source view | used | A source reference opens the rendered page image (150 dpi) with the cited passage boxed from Tesseract's word positions, the vision transcription in a second tab with the same passage marked, and the "ověřit" tokens marked in both | Team decision 2026-10-16: show the actual page, so the doctor can check the original; the text tab keeps source links pointing at a passage |
+| ElevenLabs Scribe v2 Realtime and Scribe v2 | used (demo) | "AI záznam": live Czech transcript of the MDT discussion, each word filed under the case open when it was spoken; after a case's conclusion is approved, its audio goes once through Scribe v2 with speaker separation ("Mluvčí 1, 2"), then the audio is deleted. Both go through our server: the live socket with a single-use token from `/api/stt/token`; the speaker pass as a Workflow that reads the case's audio from R2 (step 5). The key stays on the server | The live model does not separate speakers, so speakers come from the second pass. Demo only, with fictitious speech; at FNO the same two passes would run on a speech server inside the hospital (a Whisper-class model with a diarization model), see [integration](INTEGRATION.md) |
+| Azure OpenAI (`gpt-6-luna-dz-eu`, hackathon gateway, EU) through the API Worker | used (demo) | "Shrnutí AI": one or two sentences of decisions and next steps from a case's speaker transcript, shown above the folded transcript | ElevenLabs has no text model; the Worker route `/api/summarize` keeps the key off the page and fixes the prompt (`api/src/prompts/summarize-cs.ts`) |
+| Cloudflare Workers with static assets | used (demo hosting, `api/`) | One Worker `codebridge-mdt` serves the built app as files and the API under `/api`; CI deploys `main` to production and `backend` to a preview alias | One deploy for page and API, HTTPS so the browser allows the microphone, rate limiting bindings, and Cloudflare Access in front later |
 | Hono 4.13.13 | used (API Worker) | Routing and middleware: errors, `no-store`, auth, same-origin check, rate limits | Small, made for Workers, typed bindings |
 | `jose` 6.2.12 | used (API Worker) | Verifies the Cloudflare Access JWT (RS256 signature, issuer, audience, expiry) when `AUTH_MODE=access` | WebCrypto-only, runs in Workers; v6 instead of the planned v5 for that reason |
 | Workers rate limiting binding | used (API Worker) | Per-minute limits on summary, speech token and speaker pass, per Access user or per IP in demo mode | Caps cost and abuse of the shared hackathon endpoint; approximate, not a security control |
@@ -105,20 +102,20 @@ development and corrected by hand after two reviews
 | R2 multipart uploads, lifecycle rules, cron trigger | used (API Worker, step 5) | The page uploads a case's raw audio in 5 MiB parts while it is discussed; every 15 minutes `scheduled()` deletes audio that should already be gone; an R2 rule removes anything left under `audio/` after 7 days (the longest a failed pass keeps audio for a retry) | Keeps browser memory flat and the audio on our EU storage for as short a time as the pass needs, with two independent backstops for deletion |
 | Cloudflare AI Gateway | optional, off | Can sit in front of the Azure OpenAI call when `AI_GATEWAY_BASE` is set | Off until we check that it accepts the APIM host, whether it retries 429 itself, and that its logging is off |
 | Wrangler 4.147.0, TypeScript 5.9.3, Vitest 4.1.11 with `@cloudflare/vitest-plugin` 1.3.6 | used (API Worker) | Local run, deploy, type check, tests inside workerd | Tests run in the same runtime as production |
-| Nuxt 4.6.2 (Vue 3.5.44, Vue Router 5.4.0) in SPA mode | used on the Worker (`app/`, issue #13; not yet on `main`) | The frontend, ported screen by screen from mock v3; built with `nuxt generate` and served by the API Worker at `/`, with mock v3 at `/legacy/` for a transition period | Typed components instead of one 5,500-line page; per-route server rendering later for public pages without a second framework ([`FRONTEND.md`](FRONTEND.md)) |
-| Pinia 4.1.0 with `@pinia/nuxt` 1.0.3 | in progress (`app/`) | Session, staff, patients, workflow and the per-case cache | Long-lived state that survives route changes (later the recorder) |
-| Fluent: `@fluent/bundle` 0.19.1, `fluent-vue` 3.8.2 | in progress (`app/`, `i18n/`) | Interface text from `i18n/cs/*.ftl` (Slovak and English fall back to Czech) | Plurals and variants per language, terms for the fixed clinical wording ([`I18N.md`](I18N.md)); `fluent-vue` is registered in a plain Nuxt plugin |
-| npm workspaces, `@codebridge/domain`, `@codebridge/api-client` | in progress (branch, issue #13) | One lockfile for `api/`, `app/` and `packages/*`; the pure case rules shared by the Worker and the app; a typed client for the API | A clinical rule exists once instead of being copied by hand between page and server |
-| Vitest 4.1.11 with happy-dom 21.0.3 and `@vue/test-utils` 2.5.1; vue-tsc 3.3.13 | in progress (`app/`, `packages/`) | Store, boot and catalog tests; type checks of the app | The same test runner as the Worker |
+| Nuxt 4.6.2 (Vue 3.5.44, Vue Router 5.4.0) in SPA mode | used (`app/`, issue #13) | The frontend, with path routes so browser back and forward work; built with `nuxt generate` and served by the API Worker at `/` | Typed components instead of one 5,500-line page (mock v3, the single-file page it replaced); per-route server rendering later for public pages without a second framework ([`FRONTEND.md`](FRONTEND.md)) |
+| Pinia 4.1.0 with `@pinia/nuxt` 1.0.3 | used (`app/`) | Session, staff, patients, workflow and the per-case cache | Long-lived state that survives route changes (later the recorder) |
+| Fluent: `@fluent/bundle` 0.19.1, `fluent-vue` 3.8.2 | used (`app/`, `i18n/`) | Interface text from `i18n/cs/*.ftl` (Slovak and English fall back to Czech) | Plurals and variants per language, terms for the fixed clinical wording ([`I18N.md`](I18N.md)); `fluent-vue` is registered in a plain Nuxt plugin |
+| npm workspaces, `@codebridge/domain`, `@codebridge/api-client` | used (issue #13) | One lockfile for `api/`, `app/` and `packages/*`; the pure case rules shared by the Worker and the app; a typed client for the API | A clinical rule exists once instead of being copied by hand between page and server |
+| Vitest 4.1.11 with happy-dom 21.0.3 and `@vue/test-utils` 2.5.1; vue-tsc 3.3.13 | used (`app/`, `packages/`) | Store, boot and catalog tests; type checks of the app | The same test runner as the Worker |
 | Google Fonts: Manrope, DM Sans | used | Headings and text | Soňa's visual brief (GLIDE-inspired clinical workspace) |
-| Content security policy and headers through the assets' `_headers` and `_redirects` files | used on the Worker (branch, issue #13) | `api/scripts/headers.mjs` pins the hashes of the app's two inline scripts and allows only our origin, Google Fonts and the speech service's socket; nosniff, same-origin referrer, no framing; redirects of old addresses | No inline or injected script can run in the app; written at staging so it follows each build, and with no extra module in the app (nuxt-security would add one for the same two hashes) |
-| claude.ai artifacts | dev only | Publishing the mocks as private links for the team | Quick sharing and comments |
+| Content security policy and headers through the assets' `_headers` and `_redirects` files | used (Worker, issue #13) | `api/scripts/headers.mjs` pins the hashes of the app's two inline scripts and allows only our origin, Google Fonts and the speech service's socket; nosniff, same-origin referrer, no framing; rewrites of the app's route paths | No inline or injected script can run in the app; written at staging so it follows each build, and with no extra module in the app (nuxt-security would add one for the same two hashes) |
+| claude.ai artifacts | dev only, during the event | Publishing the early mocks as private links for the team | Quick sharing and comments |
 
 ## Standards and codes
 
 | Standard | Status | Use |
 |---|---|---|
-| HL7 FHIR R4 (4.0.1) | used (export) | Mock v3 exports a case as a FHIR R4 Bundle with a Provenance on every fact, built in the browser; reading FHIR from the hospital is planned ([`fhir/README.md`](../../fhir/README.md), [`INTEGRATION.md`](INTEGRATION.md)) |
+| HL7 FHIR R4 (4.0.1) | used (export) | The app exports a case as a FHIR R4 Bundle with a Provenance on every fact, built in the browser; reading FHIR from the hospital is planned ([`fhir/README.md`](../../fhir/README.md), [`INTEGRATION.md`](INTEGRATION.md)) |
 | HL7 Czech core guide (hl7.fhir.cz.core 1.0.0) | used (validation) | Loaded by the validator; the MKN-10 code system URI comes from it |
 | MKN-10 | used in data | Diagnosis codes as written in the documents; shown below the histology, because doctors read the histology and stage first |
 | TNM, ECOG PS, iRECIST | used in data | Kept exactly as written; TNM labeled as stage at diagnosis |
@@ -128,12 +125,11 @@ development and corrected by hand after two reviews
 
 | Technology | What for |
 |---|---|
-| Claude Code (Claude Opus and Sonnet) | Coding, research notes, data extraction for the mocks, reviews |
+| Claude Code (Claude Opus and Sonnet) | Coding, research notes, data extraction for the demo fixtures, reviews |
 | ChatGPT | Soňa's brainstorming and UI sketches (`docs/sources/design/`) |
 | ElevenLabs Scribe v2 (`scripts/transcribe.py`) | Transcribing the organizers' talks and the team's design discussions; no patient data in the audio |
 | uv | Running the Python scripts with pinned dependencies |
-| Node.js, jsdom, Playwright with Chrome | Click-through and layout checks of the mocks (`mocks/src/test/`) |
-| Playwright 1.64.1 with `@axe-core/playwright` 4.13.0 (axe-core 4.13.0) | The DOM-only end-to-end suite (`e2e/`) against the app and the old page; automated WCAG 2.1 A/AA checks of the app's screens and dialogs, a content security policy check on every test |
+| Playwright 1.64.1 with `@axe-core/playwright` 4.13.0 (axe-core 4.13.0) | The DOM-only end-to-end suite (`e2e/`) against the app; automated WCAG 2.1 A/AA checks of the app's screens and dialogs, a content security policy check on every test |
 | python-pptx, macOS `textutil` | Reading the organizers' decks and FNO's Word documents |
 | GitHub | Repository, shared by the team |
 | HL7 FHIR validator 7.0.2 with OpenJDK 21 (`fhir/validate.sh`) | Checking the FHIR export against FHIR R4 |

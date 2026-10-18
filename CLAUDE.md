@@ -362,7 +362,7 @@ Pick **one** location. All of these are in git, so the whole team sees them.
 | Operating rule (applies to any task) | `/CLAUDE.md` (this file) |
 | Problem, data, domain, or architecture fact | [`/docs/agent/INDEX.md`](docs/agent/INDEX.md) |
 | Product design: users, flows, screens, features and their tiers | [`/docs/design/PRODUCT.md`](docs/design/PRODUCT.md) |
-| UI mocks and their data | [`/mocks/`](mocks/README.md) |
+| Demo fixtures (the prepared data the demo shows) and their builders | [`/fixtures/`](fixtures/README.md) |
 | Technologies we use and why, per case (for presenting) | [`/docs/design/TECHNOLOGIES.md`](docs/design/TECHNOLOGIES.md) |
 | How patient data is protected (OCR, LLMs, redaction) | [`/docs/design/DATA-PROTECTION.md`](docs/design/DATA-PROTECTION.md) |
 | How the app connects to the hospital (login, roles, FHIR, deployment) | [`/docs/design/INTEGRATION.md`](docs/design/INTEGRATION.md) |

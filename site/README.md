@@ -10,9 +10,10 @@ web fonts, and images in `img/`. No build step and no JavaScript.
 
 ## Rebuild the images
 
+With a local Worker on the seeded demo (`e2e/README.md`) and the e2e suite's Playwright installed:
+
 ```
-uv run mocks/build.py                                   # the app page the screenshots come from
-COVER_DEPS=/tmp/cover-deps node scripts/cover/build.mjs # screenshots (see the script header for setup)
+node scripts/cover/build.mjs                            # screenshots of the app (see the script header for setup)
 uv run scripts/site/build_images.py                     # light JPEGs into site/img
 ```
 

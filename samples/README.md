@@ -53,7 +53,7 @@ Built-in cases to check the assistant against (expected behaviour):
 - **Lab trend from documents:** 13 tests at four draws; platelets 268, 54,
   131, 97 (10^9/l), creatinine 78, 91, 117, 142 (µmol/l), glucose 7,8,
   5,4, 12,9, 11,2 (mmol/l). Every value has its page and quote in
-  `mocks/src/data/mock-case-S01.json`.
+  `fixtures/data/mock-case-S01.json`.
 - **Missing document:** the MRI of 29.9.2026 is only quoted in the report
   ("popis z NIS"); the radiologist's report is not attached. Histology
   (9.12.2025) and the operation (2.12.2025) are also only quoted.
@@ -70,13 +70,13 @@ Built-in cases to check the assistant against (expected behaviour):
 
 The text is clean print, not a scan; it does not exercise OCR misreads.
 
-In mock v3 this patient is case `NO-S01` (route `#patient/S01`), marked
+In the app this patient is case `NO-S01` (route `/patient/S01/<tab>`), marked
 "syntetický pacient" in the database and the header. It shows the
 documents, the three missing-document alerts, the explicit MDT question,
 and the "Vývoj v čase" lab matrix and chart, where each value opens its
-line on its lab sheet. `mocks/src/test/v3.mjs` checks the four draws, the
-platelet row (268, 54, 131, 97) and that the 12.5.2026 value opens page 5
-at "B_PLT: 54 10^9/l [150 ... 400]".
+line on its lab sheet. The e2e suite (`e2e/specs/patient-tabs.spec.ts`) checks the four draws,
+the platelet value 54 of 12.5.2026, the chart following the picked test,
+and that the value opens page 5 in the source viewer.
 
 ## S02_pacient: rectal cancer imported through "Nový pacient"
 
@@ -85,7 +85,7 @@ presenter imports a FHIR referral ("Import z FHIR" in "Nový pacient") and
 then drags in the patient's documents, one PDF per document, as a doctor
 would receive them. S01 and FNO's patients arrive as one combined PDF, so
 this patient also has the documents as separate files in `upload/`. In the
-mock data (`mocks/src/data/mock-case-S02.json`) the case carries
+fixture data (`fixtures/data/mock-case-S02.json`) the case carries
 `"intake_demo": true`, so the app hides it from the patient list until it
 is created through "Nový pacient"; each document names its upload file
 (`upload_name`), and `fhir_referral` holds the same Bundle as
@@ -132,7 +132,7 @@ On the API Worker (step 6) these files are registered fixtures: the
 server recognises each one by the SHA-256 of its bytes, so a renamed copy
 works and an edited file does not. Regenerated PDFs (`render_samples.py`)
 are not guaranteed byte-identical, so the demo uses the committed files
-or `mocks/ukazka/S02-dokumenty.zip`; after regenerating, reseed. The
+or `fixtures/ukazka/S02-dokumenty.zip`; after regenerating, reseed. The
 prepared data attaches only when all seven PDFs are uploaded and the
 referral's name and birth number match; `api/scripts/e2e-intake.mjs`
 runs that path against a Worker.
@@ -198,9 +198,9 @@ as "u" (`ug/l`), which it does not mark because the unit has no digit.
    `data/derived/page-index.json`. Tesseract reads the unit `10^9/l` as
    `10"9/|` or `1099/1`, so those lines carry "ověřit" marks, as they would
    on a real printout.
-5. `python3 mocks/src/extract/build_case_s01.py` (S02:
+5. `python3 fixtures/extract/build_case_s01.py` (S02:
    `build_case_s02.py`) writes
-   `mocks/src/data/mock-case-S01.json` from the page texts and fails if a
+   `fixtures/data/mock-case-S01.json` from the page texts and fails if a
    quote is not verbatim on its page, if a bold value is not out of range
    (or the reverse), or if a test changes unit or reference range between
    draws.
@@ -213,7 +213,7 @@ missing, point `SAMPLE_FONTS` at a folder with Liberation Sans 2.1.5
 redacted on its own (`scripts/redact_pages.py --pages <folder holding
 only S02_pacient>`): its name and birth number are blacked out, the date
 after "nar." is not (same rule limitation as below). The redaction script
-reads the synthetic patients' names from `mocks/src/data/mock-case-S*.json`.
+reads the synthetic patients' names from `fixtures/data/mock-case-S*.json`.
 
 For S01 no redacted page images (`p<n>.redacted.png`) were produced:
 `scripts/redact_pages.py` blacks out the name but leaves "nar. 12.3.1964",

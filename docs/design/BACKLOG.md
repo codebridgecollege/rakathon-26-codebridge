@@ -15,7 +15,7 @@ anamnesis, flags) was built *some* way during the mocks; check whether it
 was built correctly and whether it can be made compliant.
 
 - How each part was generated: prompts, models, by hand, from which data
-  (`mocks/src/extract/`, `mocks/src/data/`, sub-agent briefs).
+  (`fixtures/extract/`, `fixtures/data/`, sub-agent briefs).
 - Whether every sentence traces to a source quote and page, and whether
   the assistant's inferences are labelled (`CLAUDE.md`, "Clinical trust").
 - Whether it can be reproduced: pinned model, prompt in the repo, fixed
