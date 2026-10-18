@@ -23,8 +23,8 @@ uv run scripts/site/build_images.py                     # light JPEGs into site/
 
 ## Analytics
 
-Umami Cloud, cookieless, counting only `glidemdt.com` and `www.glidemdt.com`. The script tag sits commented out
-in the page head until the site's website ID is filled in. Button clicks are sent as events through
+Umami Cloud, cookieless, counting only `glidemdt.com` and `www.glidemdt.com`. The script tag is in the page head
+(website ID `77af4838-ef34-4cdd-bb26-103f2f41a254`). Button clicks are sent as events through
 `data-umami-event` attributes: `header-kontakt`, `hero-chci-pilot`, `hero-jak-to-funguje` and
 `partneri-domluvit-pilot`.
 
