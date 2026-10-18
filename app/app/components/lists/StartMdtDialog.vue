@@ -9,6 +9,7 @@ import { surnameFirst } from "@codebridge/domain/names";
 import { useApi } from "../../lib/api";
 import { caseRoute } from "../../lib/lists";
 import { toast } from "../../lib/toast";
+import { useDialogFocus } from "../../lib/dialog";
 import { useCurrentUser } from "../../composables/useCurrentUser";
 import { useListText } from "../../composables/useListText";
 import { useWrite } from "../../composables/useWrite";
@@ -54,6 +55,8 @@ async function start() {
 // Focus moves into the dialog and back to what opened it; Escape closes it.
 const box = ref<HTMLElement | null>(null);
 const opener = document.activeElement as HTMLElement | null;
+// Tab and Shift+Tab stay inside the dialog (the app's shared dialog focus handling).
+const { onKeydown: keepTabInside } = useDialogFocus(box, ref(true));
 function onKey(e: KeyboardEvent) {
   if (e.key === "Escape") emit("close");
 }
@@ -71,7 +74,7 @@ onBeforeUnmount(() => {
 <template>
   <Teleport defer to="#overlay">
     <div class="scrim" @click="emit('close')" />
-    <div ref="box" class="modal" role="dialog" aria-modal="true" :aria-label="label" tabindex="-1">
+    <div ref="box" class="modal" role="dialog" aria-modal="true" @keydown="keepTabInside" :aria-label="label" tabindex="-1">
       <div class="row spread"><h2>{{ editOnly ? $t("start-mdt-heading-attendance", { day: text.dayLabel(day) }) : $t("start-mdt-heading-start", { day: text.dayLabel(day) }) }}</h2><button class="btn small" @click="emit('close')">{{ $t("lists-dialog-close") }}</button></div>
       <div v-if="!editOnly">
         <span class="label">{{ $t("start-mdt-order", { n: agenda.length }) }}</span>

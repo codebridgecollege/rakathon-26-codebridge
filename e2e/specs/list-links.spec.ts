@@ -8,6 +8,10 @@ test("old hash links open their screens, a calendar link opens that day's week",
   await app.open("calendar/2026-10-28");
   await expect(app.main.getByRole("heading", { level: 1, name: "Kalendář MDT" })).toBeVisible();
   await expect(app.main.getByText("26. 10. až 30. 10. 2026")).toBeVisible();
+  // A day whose Monday lies in the previous month: the week starts in November, the mini month shows December.
+  await app.open("calendar/2026-12-02");
+  await expect(app.main.getByText("30. 11. až 4. 12. 2026")).toBeVisible();
+  await expect(app.main.getByText("prosinec", { exact: true })).toBeVisible();
   await app.open("tasks");
   await expect(app.main.getByRole("heading", { level: 1, name: "Moje úlohy" })).toBeVisible();
   await app.open("staff");

@@ -8,6 +8,8 @@ import { defineStore } from "pinia";
 import { reactive, watch } from "vue";
 import { ApiError, type AttSet } from "@codebridge/api-client";
 import { useApi } from "../lib/api";
+import { errMsg } from "../lib/msg";
+import { useToastStore } from "./toast";
 import { useSessionStore } from "./session";
 import { useStaffStore } from "./staff";
 import { useWorkflowStore } from "./workflow";
@@ -76,12 +78,13 @@ export const useAttendanceStore = defineStore("attendance", () => {
       } catch (e) {
         q.n = 0;
         q.gen++;
-        // A conflict carries the set as the server holds it now (another user's edit).
+        delete local[key];
+        // A conflict carries the set as the server holds it now (another user's edit): it is shown with the server's
+        // message, and nothing else needs reloading.
         if (e instanceof ApiError && e.code === "attendance_conflict" && (e.current as AttSet | undefined)?.byName) {
           useWorkflowStore().applyState({ att: { [key]: e.current as AttSet } });
-        }
-        delete local[key];
-        onRefused(e);
+          useToastStore().show(errMsg(e));
+        } else onRefused(e);
       }
     });
   }

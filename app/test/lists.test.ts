@@ -6,7 +6,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { createPinia, setActivePinia } from "pinia";
 import { defineComponent, h, nextTick } from "vue";
 import { flushPromises, mount } from "@vue/test-utils";
-import { createRouter, createMemoryHistory } from "vue-router";
+import { RouterView, createRouter, createMemoryHistory } from "vue-router";
 import { createFluentVue } from "fluent-vue";
 import type { CaseState } from "@codebridge/api-client";
 import { bundlesFor, makeBundle } from "../app/lib/i18n";
@@ -23,6 +23,7 @@ import { useToastStore } from "../app/stores/toast";
 import { useWrite } from "../app/composables/useWrite";
 import PatientsView from "../app/components/lists/PatientsView.vue";
 import TasksView from "../app/components/lists/TasksView.vue";
+import CalendarView from "../app/components/lists/CalendarView.vue";
 import { deferred, mockApi, row } from "./helpers";
 
 const cs = makeBundle("cs");
@@ -176,6 +177,73 @@ describe("attendance", () => {
     await flushPromises();
     expect(seen).toHaveLength(1);
     expect(att.present("2026-10-22")).toEqual([]);
+  });
+});
+
+describe("attendance conflict", () => {
+  it("shows the set another user stored, with the server's message, without reloading the workflow", async () => {
+    const current = { key: "2026-10-22", version: 9, byName: { "Klinická onkologie": ["MUDr. Malá"] }, byId: {} };
+    const m = server({
+      "/attendance/2026-10-22": [409, { error: { code: "attendance_conflict", message_cs: "Docházku mezitím změnil někdo jiný.", current } }],
+    });
+    setApi(m.api);
+    await useSessionStore().boot();
+    const att = useAttendanceStore();
+    const refusedSeen: unknown[] = [];
+    att.setRow("2026-10-22", "Klinická onkologie", 0, "MUDr. Svobodová");
+    att.changed("2026-10-22", (e) => refusedSeen.push(e));
+    await flushPromises();
+    expect(att.present("2026-10-22")).toEqual(["MUDr. Malá"]);
+    expect(refusedSeen).toHaveLength(0);
+    expect(useToastStore().items.map((t) => t.msg)).toEqual([{ text: "Docházku mezitím změnil někdo jiný." }]);
+    expect(m.calls.filter((c) => c.url.startsWith("/api/workflow"))).toHaveLength(1);
+  });
+});
+
+describe("calendar screen", () => {
+  async function mountCalendar(me?: unknown) {
+    const m = server({
+      ...(me ? { "/me": me } : {}),
+      "/workflow": { data_epoch: 1, cases: { "NO-002": { case_id: "NO-002", file: "2_pacient.pdf", decisions: [{ slot: { day: "2026-10-22", time: "14:00" } }] } }, att: {}, sessions: [], mails: [] },
+    });
+    setApi(m.api);
+    await useSessionStore().boot();
+    const router = createRouter({ history: createMemoryHistory(), routes: [{ path: "/calendar/:week?", component: CalendarView }, { path: "/:p(.*)*", component: { render: () => null } }] });
+    await router.push("/calendar/2026-10-22");
+    const w = mount({ render: () => h(RouterView) }, { global: { plugins: [createFluentVue({ bundles: bundlesFor("cs") }), router] } });
+    await flushPromises();
+    return { m, w, router };
+  }
+
+  it("rewrites a link to any day to its Monday and shows that day's month", async () => {
+    const { router, w } = await mountCalendar();
+    expect(router.currentRoute.value.path).toBe("/calendar/2026-10-19");
+    expect(w.text()).toContain("19. 10. až 23. 10. 2026");
+    await router.push("/calendar/2026-12-02");
+    await flushPromises();
+    expect(router.currentRoute.value.path).toBe("/calendar/2026-11-30");
+    expect(useListViewStore().miniMonth).toBe("2026-12");
+  });
+
+  it("locks a slot an approved conclusion was made on: no move, no freeing", async () => {
+    const { w } = await mountCalendar();
+    await w.find('button.slotbtn.taken[aria-label^="Beta Eva"]').trigger("click");
+    const card = w.find('[role="region"]');
+    expect(card.text()).toContain("Případ je na tomto termínu projednán");
+    const free = card.findAll("button").find((b) => b.text() === "Uvolnit termín")!;
+    expect(free.attributes("disabled")).toBeDefined();
+    expect(card.findAll("button").some((b) => b.text() === "Změnit termín")).toBe(false);
+  });
+
+  it("refuses a booking by the administrator before any request", async () => {
+    const admin = { user: { id: "admin", name: "Ing. Kovář", role: "admin", dept: null }, auth_mode: "demo", impersonating: false, notice_cs: null };
+    const { w, m } = await mountCalendar(admin);
+    useListViewStore().schedPick = "1_pacient.pdf";
+    await nextTick();
+    await w.find('button[aria-label="Volný termín 14:10"]').trigger("click");
+    await flushPromises();
+    expect(useToastStore().items.map((t) => t.msg)).toEqual([{ text: "Termín plánuje lékař nebo koordinátorka." }]);
+    expect(m.calls.some((c) => c.url.includes("/slot"))).toBe(false);
   });
 });
 

@@ -52,6 +52,11 @@ const v = useListViewStore();
 // any day opens its week; the mini month then shows that day's month.
 let nextMonth: string | null = null;
 function goWeek(week: string, month: string | null = null) {
+  // The same week does not navigate (the watch would not run), so the month is set here.
+  if (week === v.week && route.params.week === week) {
+    if (month) v.miniMonth = month;
+    return;
+  }
   nextMonth = month;
   void router.push(`/calendar/${week}`);
 }
@@ -64,10 +69,14 @@ watch(
       return;
     }
     const monday = mondayOf(raw);
+    const month = nextMonth ?? raw.slice(0, 7);
     v.week = monday;
-    v.miniMonth = nextMonth ?? raw.slice(0, 7);
-    nextMonth = null;
-    if (monday !== raw) void router.replace(`/calendar/${monday}`);
+    v.miniMonth = month;
+    // A link to another day is rewritten to its Monday; that second run keeps the linked day's month.
+    if (monday !== raw) {
+      nextMonth = month;
+      void router.replace(`/calendar/${monday}`);
+    } else nextMonth = null;
   },
   { immediate: true },
 );
@@ -183,6 +192,8 @@ let lastAt = 0;
 let scrollTimer: ReturnType<typeof setTimeout> | undefined;
 function openCase(file: string) {
   lastSlot = null;
+  // Opening a case closes the card, as the old page's openPatient() did.
+  v.calPop = null;
   void router.push(caseRoute(file));
 }
 function onTaken(p: PatientRow) {

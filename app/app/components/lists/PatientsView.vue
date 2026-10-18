@@ -134,18 +134,23 @@ function onResizeStart(e: PointerEvent) {
 }
 const tableStyle = computed(() => (v.colWidths ? { tableLayout: "fixed" as const, width: `${v.colWidths.reduce((a, b) => a + b, 0)}px` } : undefined));
 
+// A click outside an open filter only closes it, as in the old page: it does not also open a patient or book one.
 function onDocClick(e: MouseEvent) {
-  if (colOpen.value && !(e.target as HTMLElement).closest?.(".fpop,[data-colopen]")) colOpen.value = null;
+  if (colOpen.value && !(e.target as HTMLElement).closest?.(".fpop,[data-colopen]")) {
+    colOpen.value = null;
+    e.stopPropagation();
+    e.preventDefault();
+  }
 }
 function onKey(e: KeyboardEvent) {
   if (e.key === "Escape" && colOpen.value) colOpen.value = null;
 }
 onMounted(() => {
-  document.addEventListener("click", onDocClick);
+  document.addEventListener("click", onDocClick, true);
   document.addEventListener("keydown", onKey);
 });
 onBeforeUnmount(() => {
-  document.removeEventListener("click", onDocClick);
+  document.removeEventListener("click", onDocClick, true);
   document.removeEventListener("keydown", onKey);
 });
 

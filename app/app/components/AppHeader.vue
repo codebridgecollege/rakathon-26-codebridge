@@ -9,6 +9,7 @@ import { useSessionStore } from "../stores/session";
 import { useStaffStore } from "../stores/staff";
 import { usePatientsStore } from "../stores/patients";
 import { useWorkflowStore } from "../stores/workflow";
+import { useListViewStore } from "../stores/listView";
 
 const { $t } = useFluent();
 const route = useRoute();
@@ -17,6 +18,7 @@ const session = useSessionStore();
 const staff = useStaffStore();
 const patients = usePatientsStore();
 const workflow = useWorkflowStore();
+const listView = useListViewStore();
 
 // The area is the first part of the path (/patients, /calendar/2026-10-19, /patient/10/labs).
 const view = computed(() => route.path.split("/")[1] || "patients");
@@ -38,6 +40,8 @@ const current = (k: string): "true" | "false" => (view.value === k || (k === "pa
 
 // By path, so each area's own page (pages/<area>.vue) answers; the calendar keeps its last week (list view store).
 function go(k: string) {
+  // A patient picked for booking is dropped on any move between areas, as in the old page.
+  listView.schedPick = null;
   void router.push(`/${k}`);
 }
 

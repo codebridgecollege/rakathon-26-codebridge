@@ -5,6 +5,7 @@ import { nextTick, onBeforeUnmount, onMounted, ref } from "vue";
 import { useFluent } from "fluent-vue";
 import { useApi } from "../../lib/api";
 import { toast } from "../../lib/toast";
+import { useDialogFocus } from "../../lib/dialog";
 import { useWrite } from "../../composables/useWrite";
 
 const emit = defineEmits<{ close: [] }>();
@@ -35,6 +36,8 @@ async function go() {
 
 const box = ref<HTMLElement | null>(null);
 const opener = document.activeElement as HTMLElement | null;
+// Tab and Shift+Tab stay inside the dialog (the app's shared dialog focus handling).
+const { onKeydown: keepTabInside } = useDialogFocus(box, ref(true));
 function onKey(e: KeyboardEvent) {
   if (e.key === "Escape") emit("close");
 }
@@ -52,7 +55,7 @@ onBeforeUnmount(() => {
 <template>
   <Teleport defer to="#overlay">
     <div class="scrim" @click="emit('close')" />
-    <div ref="box" class="modal" role="dialog" aria-modal="true" :aria-label="$t('admin-reset')" tabindex="-1">
+    <div ref="box" class="modal" role="dialog" aria-modal="true" @keydown="keepTabInside" :aria-label="$t('admin-reset')" tabindex="-1">
       <div class="row spread"><h2>{{ $t("admin-reset") }}</h2><button class="btn small" @click="emit('close')">{{ $t("lists-dialog-close") }}</button></div>
       <p style="margin:0">{{ $t("admin-reset-what") }}</p>
       <span v-if="err" class="ferr" role="alert">{{ err }}</span>

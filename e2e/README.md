@@ -96,10 +96,12 @@ should be tightened once the new app is in):
 - The label "Koncept nového závěru (nahradí platný až po schválení)" is not tied to its text field.
 - The yellow box that marks the quote on the page image has no accessible name, so only the legend and the absence of
   "Citace nenalezena přesně" show that the quote was found on the image.
-- The calendar's patient card and the toasts have no dialog or status role. Toasts vanish after 2.6 s, so specs check
-  them right after the action.
-- The calendar's unscheduled panel and the alerts are not lists, so their buttons cannot be told apart by role;
-  booking from the calendar goes through the patient list's "Naplánovat" and drag and drop instead.
+- The calendar's patient card has no role and the toasts no status role in the old page. The new app names the card
+  as a region (the patient's name) and gives toasts `role="status"`. Toasts vanish after 2.6 s, so specs check them
+  right after the action.
+- The calendar's unscheduled panel and the alerts are not lists in the old page, so their buttons cannot be told apart
+  by role; booking from the calendar goes through the patient list's "Naplánovat" and drag and drop instead. The new
+  app makes the unscheduled panel a list; switch to it once the old page is retired.
 - The discussion card is a `<details>` without `aria-expanded`; `discussion.ts` decides whether to open it once the
   case's tabs have rendered. The new app should expose the expanded state.
 
@@ -109,7 +111,7 @@ Screens and features from `docs/design/PRODUCT.md` against the spec files in `sp
 
 | PRODUCT.md | What is checked | Spec |
 |---|---|---|
-| S-1, F-01 Patient database | rows and columns, gap dash, search by name, ID and diagnosis, status and owner column filters, clear filters, submitted-from filter, paging state, open a row and back | `patients-list` |
+| S-1, F-01 Patient database | rows and columns, gap dash, search by name, ID and diagnosis, status and owner column filters, clear filters, submitted-from filter, paging state, open a row and back, column resize, old hash links to the list screens | `patients-list`, `list-links` |
 | S-2, F-11 MDT calendar | seminar week, booked and free slots, out-of-hours slots, week arrows, Dnes, mini month, browser back; card on click, Otevřít případ, close; double click opens; book with Naplánovat (persists), out-of-hours mark, Uvolnit termín, drag and drop both ways; coordinator books, administrator refused | `calendar` |
 | S-3, F-16 Patient detail and brief | header (ID, status, owner, slot, actions), "Stručný souhrn", current state, oncology summary, unprocessed case | `patient-detail` |
 | F-07 Missing-documents alert | always signalled on the brief, list one click away | `patient-detail`, `new-patient` |
@@ -151,7 +153,7 @@ Not covered, and why:
   the page never offers the button. The API tests cover the route.
 - **Stale tab after a reset:** a tab opened before a reset reloads on its next write; covered by the API tests.
 - The access log's content beyond one case view, and the exact report and FHIR content, are covered by the API tests.
-- **Not yet covered, worth adding with the port:** column resize in the patient list (FRONTEND.md step 3), paging
+- **Not yet covered, worth adding with the port:** paging
   across more than one page (the seed has 11 patients, 20 fit on a page), "Změnit termín" from the patient header,
   the guideline citation fields (society, version, section, page) and the "otevřít v doporučení" link target, and a
   label on drafted MDT questions (the old page shows the drafted question without a draft label since round 22).

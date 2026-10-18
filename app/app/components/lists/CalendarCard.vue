@@ -1,8 +1,9 @@
 <script setup lang="ts">
 // The card of a booked patient next to the calendar (the minicard in viewCalendar()). It shows the extracted
 // diagnosis and brief only when the case is already loaded: opening the card is not opening the case, so it never
-// starts a load and never writes a server access-log row. role="dialog" names it for screen readers (the old page's
-// card had no role; e2e/README.md lists the gap).
+// starts a load and never writes a server access-log row. A named region lets screen readers find it (the old page's
+// card had no role; e2e/README.md lists the gap). The question is shown, not edited, here: the edit dialog belongs to
+// the patient screens (the old page let a doctor open it from the card).
 import { computed } from "vue";
 import { useFluent } from "fluent-vue";
 import type { PatientRow } from "@codebridge/api-client";
@@ -12,7 +13,6 @@ import { DEMO_TODAY } from "@codebridge/domain/calendar";
 import { STATUS_CLASS, caseStateOf, isSlotLocked } from "../../lib/lists";
 import { briefOf, dxLine, questionOf } from "../../lib/case-brief";
 import { useListText } from "../../composables/useListText";
-import { useCurrentUser } from "../../composables/useCurrentUser";
 import { useWorkflowStore } from "../../stores/workflow";
 import { useCasesStore } from "../../stores/cases";
 
@@ -20,7 +20,6 @@ const props = defineProps<{ patient: PatientRow }>();
 const emit = defineEmits<{ open: []; pick: []; unschedule: []; close: [] }>();
 const { $t } = useFluent();
 const text = useListText();
-const me = useCurrentUser();
 const workflow = useWorkflowStore();
 const cases = useCasesStore();
 
@@ -45,7 +44,7 @@ const briefText = computed(() => (brief.value ? $t("calendar-card-brief", { text
 </script>
 
 <template>
-  <div id="minicard" class="minicard" role="dialog" :aria-label="name">
+  <div id="minicard" class="minicard" role="region" :aria-label="name">
     <div class="row spread"><span class="label">{{ $t("calendar-card-patient") }}</span><span class="chip" :class="STATUS_CLASS[p.status]">{{ text.statusLabel(p.status) }}</span></div>
     <h2>{{ name }}</h2>
     <div class="facts" style="margin:0">
@@ -58,8 +57,7 @@ const briefText = computed(() => (brief.value ? $t("calendar-card-brief", { text
     <div class="question" :class="{ missing: !question }" style="padding:8px 12px">
       <span class="label">{{ $t("calendar-card-question") }}</span>
       <p style="font-size:14px">
-        <span v-if="me.isDoctor.value" class="edl"><b v-if="!question">{{ $t("calendar-card-question-missing") }}</b><template v-else>{{ question }}</template></span>
-        <template v-else><b v-if="!question">{{ $t("calendar-card-question-missing") }}</b><template v-else>{{ question }}</template></template>
+        <b v-if="!question">{{ $t("calendar-card-question-missing") }}</b><template v-else>{{ question }}</template>
       </p>
     </div>
     <p class="small" style="margin:0">{{ briefText }}</p>
