@@ -22,6 +22,16 @@ request; the Worker checks every write again.
 | `errors.ts` | `DomainError` and the refusal factories `D` |
 | `time.ts`, `names.ts` | ISO day arithmetic, the Prague calendar day, the display name of a person |
 | `wire.ts` | types of the JSON the API sends (health, me, staff, patients, tasks, workflow, the write envelope) |
+| `case-data.ts` | the case data in the patient view's shape (full extraction, synthetic patient, unprocessed), which parts and tabs a case shows, document titles of references |
+| `case-view.ts` | the patient view's trust rules: alert states and archive, the missing-document signal, the MDT question (explicit, draft, confirmed, edited), certainty marks, timeline order and categories, prose linked to sources, source numbering |
+| `quote-match.ts`, `page-text.ts` | finding a quote on the page image and in the transcription despite OCR errors; the transcription split into lines, tables and marked spans for the source viewer |
+| `labs.ts` | lab values as written, reference ranges, the points of a series and the trend chart's geometry |
+| `guideline.ts` | the guideline layer's strength scale (tiers from each society's grade), sorting and quote clamping |
+| `prognosis.ts` | the prognosis tab's safe links, reference numbering and similarity details |
+| `fhir-export.ts` | the case as a FHIR R4 Bundle with provenance per fact; labels come in through a translate function |
+
+The patient-view files hold no interface text: they return codes, or take a translate function `t(id, args)` whose
+IDs live in `i18n/cs/patient.ftl`.
 
 What stays in `api/src/domain`: rules that are server-only by design (upload-session tokens, break-the-glass, audit,
 intake, documents, transcripts, database row mapping, and the system clock in `clock.ts`, because
