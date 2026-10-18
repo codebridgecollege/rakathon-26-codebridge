@@ -67,8 +67,11 @@ export const useSessionStore = defineStore("session", () => {
 
   // Only a demo server lists memberships; any failure (404 on an older server) falls back to the staff-based picker.
   async function loadPicker() {
-    picker.value = null;
-    if (health.value?.auth_mode !== "demo") return;
+    if (health.value?.auth_mode !== "demo") {
+      picker.value = null;
+      return;
+    }
+    // The list on screen stays until the new one arrives, so a refresh after a staff change does not flicker.
     try {
       picker.value = (await useApi().demoMemberships()).orgs;
     } catch {
@@ -149,7 +152,11 @@ export const useSessionStore = defineStore("session", () => {
   // also update its list row and the task list, so the header's badge and the list follow every write.
   function applyState(st: WorkflowState | null | undefined) {
     if (!st) return;
-    if (st.staff) useStaffStore().apply(st.staff);
+    if (st.staff) {
+      useStaffStore().apply(st.staff);
+      // A staff change adds, renames or removes picker entries; the picker is the server's list of memberships.
+      void loadPicker();
+    }
     if (st.patient) usePatientsStore().upsert(st.patient);
     for (const cs of Object.values(st.cases ?? {})) {
       const file = usePatientsStore().applyCase(cs);

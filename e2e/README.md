@@ -100,7 +100,9 @@ minutes with the seeded state cached and 4 to 6 minutes when it seeds.
 - `playwright.config.ts`: one Playwright worker per Worker (`servers.ts`: `E2E_BASE_URLS`, a comma-separated list
   that `run-parallel.mjs` sets, or `E2E_BASE_URL`, default `http://localhost:8787`), single tests spread over the
   workers when there are several, Chromium, `cs-CZ`, Europe/Prague.
-- `global-setup.ts` and `reset.ts`: check every Worker and reset its demo.
+- `global-setup.ts` and `reset.ts`: check every Worker and reset its demo. The reset runs as the administrator of demo
+  org A, so it resets org A only (the seed has two demo orgs, `docs/design/AUTH.md`); demo org B is only read, by
+  `specs/orgs.spec.ts`, which checks that an org B user sees none of org A.
 - `fixtures.ts`: the base URL of the test's Worker (from the Playwright worker's `parallelIndex`), an auto fixture that
   resets that demo before every test and fails a test on any uncaught page error or any content security policy
   violation Chromium reports in the console (pages opened in a second browser context, the phone and the second
