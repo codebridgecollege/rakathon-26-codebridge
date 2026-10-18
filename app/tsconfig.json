@@ -1,0 +1,10 @@
+{
+  // Nuxt 4 generates one config per context (app, server, shared, node) in .nuxt/ (`nuxt prepare`, run on install).
+  "files": [],
+  "references": [
+    { "path": "./.nuxt/tsconfig.app.json" },
+    { "path": "./.nuxt/tsconfig.server.json" },
+    { "path": "./.nuxt/tsconfig.shared.json" },
+    { "path": "./.nuxt/tsconfig.node.json" }
+  ]
+}

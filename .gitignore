@@ -31,6 +31,10 @@ node_modules/
 .next/
 .nuxt/
 .output/
+.nitro/
+.data/
+# nuxt generate links app/dist to .output/public (a symlink, so dist/ above does not match it).
+app/dist
 .vite/
 *.tsbuildinfo
 npm-debug.log*

@@ -1,0 +1,116 @@
+// Who is using the app and whether the server's data is loaded: the template's boot(), loadFromApi() and
+// switchApiUser(). The demo has no login; the user is picked by hand and travels as a staff id (X-Demo-User, and the
+// cb_demo_user cookie for page images). The UI says so in the picker's label.
+import { defineStore } from "pinia";
+import { ref } from "vue";
+import { ApiError, type Health, type Me, type WorkflowState } from "@codebridge/api-client";
+import { onDataReset, useApi } from "../lib/api";
+import { useCasesStore } from "./cases";
+import { usePatientsStore } from "./patients";
+import { useStaffStore } from "./staff";
+import { useWorkflowStore } from "./workflow";
+
+export type Notice = { message_cs: string | null; message_id: string | null };
+
+// Page images load through <img>, which cannot send a header, so the same staff id also goes in a cookie.
+function setDemoUserCookie(id: string) {
+  try {
+    document.cookie = `cb_demo_user=${encodeURIComponent(id)}; path=/; SameSite=Strict`;
+  } catch {
+    // Cookies blocked: images then load as the default demo user.
+  }
+}
+
+const noticeOf = (e: unknown): Notice =>
+  e instanceof ApiError ? { message_cs: e.message_cs, message_id: e.message_id } : { message_cs: null, message_id: "api-error-request-failed" };
+
+export const useSessionStore = defineStore("session", () => {
+  const phase = ref<"booting" | "ready" | "failed">("booting");
+  const health = ref<Health | null>(null);
+  const me = ref<Me | null>(null);
+  // A failed boot or switch; shown in the main area. The new app has no embedded data to fall back to.
+  const error = ref<Notice | null>(null);
+  const resetting = ref(false);
+  // Separate so tests can observe a reload instead of navigating away.
+  let reload = () => location.reload();
+
+  onDataReset(() => {
+    if (resetting.value) return;
+    resetting.value = true;
+    error.value = { message_cs: null, message_id: "data-reset-reload" };
+    setTimeout(() => reload(), 1500);
+  });
+
+  function setDemoUser(id: string | null) {
+    useApi().setUser(id);
+    if (id) setDemoUserCookie(id);
+  }
+
+  // Everything the shell needs from the server. Nothing is assigned until every request succeeded, so a failed
+  // switch leaves the previous user's view whole.
+  async function loadFromApi() {
+    const api = useApi();
+    const who = await api.me();
+    setDemoUser(who.user.id);
+    // Case data loads per case when a case is opened (cases store); /workflow is the stored state of every case this
+    // user may read, so a reload shows what the server holds.
+    const [staff, list, tasks, wf] = await Promise.all([api.staff(), api.patients(), api.tasks("all"), api.workflow()]);
+    useStaffStore().apply(staff);
+    usePatientsStore().replace(list.patients, list.total);
+    useWorkflowStore().replace(wf, tasks.tasks);
+    me.value = who;
+  }
+
+  async function boot() {
+    phase.value = "booting";
+    error.value = null;
+    try {
+      const h = await useApi().health();
+      // Only our Worker with a seeded database serves data; anything else (a static host, an unseeded server) has none.
+      if (h.service !== "codebridge-mdt" || h.features?.data !== true) throw new ApiError("no_data", 0, null, "api-error-no-api");
+      health.value = h;
+      await loadFromApi();
+      phase.value = "ready";
+    } catch (e) {
+      setDemoUser(null);
+      error.value = noticeOf(e);
+      phase.value = "failed";
+    }
+  }
+
+  // A user switch reloads what the server lets the new user see, so the list, tasks and case data follow the new
+  // role. A name the server does not know is refused rather than sent under the previous user's id.
+  async function switchUser(id: string | null): Promise<boolean> {
+    if (!id) {
+      error.value = { message_cs: null, message_id: "user-switch-unknown" };
+      return false;
+    }
+    const prev = useApi().userId;
+    setDemoUser(id);
+    try {
+      await loadFromApi();
+    } catch (e) {
+      setDemoUser(prev);
+      error.value = noticeOf(e);
+      return false;
+    }
+    // The case data was read under the previous user's access; it goes with the switch.
+    useCasesStore().reset();
+    error.value = null;
+    return true;
+  }
+
+  // A write's state: rows and staff to their stores, the rest to the workflow store.
+  function applyState(st: WorkflowState | null | undefined) {
+    if (!st) return;
+    if (st.staff) useStaffStore().apply(st.staff);
+    if (st.patient) usePatientsStore().upsert(st.patient);
+    useWorkflowStore().applyState(st);
+  }
+
+  function setReload(fn: () => void) {
+    reload = fn;
+  }
+
+  return { phase, health, me, error, resetting, boot, switchUser, applyState, loadFromApi, setReload };
+});
