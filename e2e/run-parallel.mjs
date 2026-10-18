@@ -45,7 +45,8 @@ function seedInputsHash() {
     // READMEs and notes do not reach the database.
     else if (!p.endsWith(".md")) h.update(path.relative(root, p)).update(readFileSync(p));
   };
-  for (const p of ["api/migrations", "api/seed/seed.py", "fixtures", "data/derived", "samples"]) {
+  // package-lock.json: a new Wrangler may store local state differently.
+  for (const p of ["package-lock.json", "api/migrations", "api/seed/seed.py", "fixtures", "data/derived", "data/rakathon-26", "samples"]) {
     const full = path.join(root, p);
     if (existsSync(full)) add(full);
   }
@@ -57,6 +58,8 @@ const want = seedInputsHash();
 const have = existsSync(stampFile) ? readFileSync(stampFile, "utf8").trim() : "";
 if (reseed || have !== want || !existsSync(path.join(template, "v3", "d1"))) {
   console.log("seeding the template state (api/.wrangler/e2e/seed) ...");
+  // The stamp goes first, so a seed that stops half way is never taken for a finished one.
+  rmSync(stampFile, { force: true });
   rmSync(template, { recursive: true, force: true });
   mkdirSync(template, { recursive: true });
   const r = spawnSync("uv", ["run", "seed/seed.py", "--target", "local", "--reset", "--persist-to", path.relative(api, template)], { cwd: api, stdio: "inherit" });
@@ -67,6 +70,16 @@ if (reseed || have !== want || !existsSync(path.join(template, "v3", "d1"))) {
   writeFileSync(stampFile, want + "\n");
   console.log(`seeded (${secs()})`);
 } else console.log("reusing the seeded template state (inputs unchanged; --reseed to force)");
+
+// A port that already answers belongs to another run or another Worker: the suite would reset that Worker's demo.
+for (let i = 0; i < workers; i++) {
+  const url = `http://127.0.0.1:${portBase + i}`;
+  const busy = await fetch(url, { signal: AbortSignal.timeout(2000) }).then(() => true, (e) => e.name === "TimeoutError");
+  if (busy) {
+    console.error(`port ${portBase + i} is in use (another run, or a Worker left over?); stop it or set E2E_PORT_BASE.`);
+    process.exit(1);
+  }
+}
 
 // One copy of the seeded state per Worker; a copy-on-write clone where the file system offers one.
 const children = [];
@@ -100,8 +113,19 @@ function stop() {
     } catch {}
   }
 }
+let pw;
 process.on("exit", stop);
-for (const sig of ["SIGINT", "SIGTERM"]) process.on(sig, () => { stop(); process.exit(130); });
+// While the suite runs, a signal goes to Playwright, which finishes its report and exits; the Workers stop after it.
+// Before that, the Workers stop at once.
+for (const sig of ["SIGINT", "SIGTERM", "SIGHUP"]) {
+  process.on(sig, () => {
+    if (pw && pw.exitCode === null) pw.kill(sig);
+    else {
+      stop();
+      process.exit(130);
+    }
+  });
+}
 
 async function waitHealthy(url, i) {
   const deadline = Date.now() + 180_000;
@@ -125,7 +149,7 @@ try {
 }
 console.log(`${workers} Workers ready (${secs()}): ${urls.join(" ")}`);
 
-const pw = spawn("npx", ["playwright", "test", ...playwrightArgs], { cwd: here, stdio: "inherit", env: { ...process.env, E2E_BASE_URLS: urls.join(",") } });
+pw = spawn("npx", ["playwright", "test", ...playwrightArgs], { cwd: here, stdio: "inherit", env: { ...process.env, E2E_BASE_URLS: urls.join(",") } });
 const code = await new Promise((res) => pw.on("exit", (c, sig) => res(c ?? (sig ? 1 : 0))));
 console.log(`suite finished with ${code} after ${secs()} in total`);
 stop();

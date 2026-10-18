@@ -3,7 +3,7 @@
 
 type Health = {
   service?: string;
-  features?: { data?: boolean; stt?: boolean; pipeline?: boolean };
+  features?: { data?: boolean; stt?: boolean; summarize?: boolean; pipeline?: boolean };
   demo?: { data_epoch?: number; reset_enabled?: boolean };
 };
 
@@ -30,10 +30,11 @@ export async function checkServer(base: string): Promise<void> {
   if (!local && process.env.E2E_ALLOW_RESET !== host) {
     throw new Error(`${base} is not local. The suite resets the demo before every test; set E2E_ALLOW_RESET=${host} if that is fine.`);
   }
-  // The specs expect no speech or pipeline service: the recorder spec stubs speech itself, and the upload specs
-  // expect no pipeline chips. A key in .dev.vars would change what the page shows.
-  if (h.features?.stt || h.features?.pipeline) {
-    throw new Error(`${base} reports features.stt or features.pipeline; run the suite against a Worker without those keys (e2e/README.md).`);
+  // The specs expect no speech, summary or pipeline service: the recorder spec stubs speech itself, and the upload
+  // specs expect no pipeline chips. A key in .dev.vars would change what the page shows and send synthetic test data
+  // to a paid service from every Worker of a parallel run.
+  if (h.features?.stt || h.features?.summarize || h.features?.pipeline) {
+    throw new Error(`${base} reports features.stt, features.summarize or features.pipeline; run the suite against a Worker without those keys (e2e/README.md).`);
   }
   if (!h.demo?.reset_enabled) {
     throw new Error(`${base} does not allow reset-demo (DEMO_RESET_ENABLED); the suite needs a resettable demo.`);

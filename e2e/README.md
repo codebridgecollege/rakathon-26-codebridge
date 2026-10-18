@@ -44,8 +44,9 @@ npm --prefix e2e run test:parallel                    # needs uv for the seed
 for each Worker (`api/.wrangler/e2e/w<i>`), starts the Workers with `wrangler dev` on ports 8801 to 8804, waits for
 `/api/health`, runs the suite with one Playwright worker per Worker and stops the Workers when the suite ends or is
 interrupted. Each test runs on its Playwright worker's Worker (`servers.ts`), so its demo reset touches no other test's
-data. The seeded state is reused while the files the seed reads (migrations, `seed.py`, `fixtures/`, the page index,
-`samples/`) are unchanged; `--reseed` forces a new seed. `E2E_WORKERS=2` changes the count, `E2E_PORT_BASE` the
+data. The seeded state is reused while the files the seed reads (migrations, `seed.py`, `fixtures/`, `data/derived/`,
+`data/rakathon-26/`, `samples/`) and `package-lock.json` are unchanged; `--reseed` forces a new seed. The runner stops
+when one of its ports already answers, so it never resets another run's Worker. `E2E_WORKERS=2` changes the count, `E2E_PORT_BASE` the
 first port; Playwright arguments go after `--` (`npm --prefix e2e run test:parallel -- specs/calendar.spec.ts`). The
 Workers' logs are `api/.wrangler/e2e/w<i>.log`.
 
@@ -81,15 +82,15 @@ host; use it on a preview alias, or on the shared demo only when nobody is using
 that. The Worker must have `DATA_API=on` and
 `DEMO_RESET_ENABLED=true`; the global setup checks `/api/health` and stops with a message otherwise.
 
-What the suite assumes about the server: the seed of `api/seed/seed.py`, `UPLOAD_POLICY=fixtures_only`, and no speech
-or pipeline keys (`features.stt` and `features.pipeline` false; the global setup stops if either is on). The recorder test turns `stt` on by rewriting the
-health answer in the browser, so it runs the same with or without a key and never calls ElevenLabs.
+What the suite assumes about the server: the seed of `api/seed/seed.py`, `UPLOAD_POLICY=fixtures_only`, and no speech,
+summary or pipeline keys (`features.stt`, `features.summarize` and `features.pipeline` false; the global setup stops if
+one is on). The recorder test turns `stt` on by rewriting the health answer in the browser, so it runs the same with or without a key and never calls ElevenLabs.
 
 ### In CI
 
 The `e2e` job of `.github/workflows/deploy-worker.yml` runs on pushes to main and backend and on pull requests that
 touch the app, the Worker, the fixtures or `e2e/`: it installs, stages, runs `npm --prefix e2e run test:parallel`
-with four Workers, caches Chromium by `e2e/package-lock.json`, and uploads `playwright-report/`, `test-results/`
+with four Workers, caches Chromium by `e2e/package-lock.json` and the seeded state by the seed's inputs, and uploads `playwright-report/`, `test-results/`
 (traces of failed tests) and the Workers' logs as the `playwright-report` artifact when it fails. The job has no
 secrets. The deploy job needs it and the unit tests, so main deploys only when both pass.
 

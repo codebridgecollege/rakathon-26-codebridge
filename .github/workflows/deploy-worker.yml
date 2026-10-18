@@ -13,10 +13,11 @@ on:
   # A manual run on any branch tests it; only main and backend deploy.
   workflow_dispatch:
 
-# One Worker, so one deploy at a time; a newer push replaces a queued one. Runs that cannot deploy (pull requests,
-# manual runs on other branches) queue per branch and never cancel a deploy.
+# One run per branch or pull request; a newer push replaces the older run. main (production) and backend (a preview
+# version) deploy to different targets, so neither cancels the other, and runs that cannot deploy (pull requests,
+# manual runs on other branches) never cancel a deploy.
 concurrency:
-  group: deploy-worker-${{ github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/backend') && 'deploy' || github.ref }}
+  group: deploy-worker-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -103,7 +104,7 @@ jobs:
           path: |
             api/.wrangler/e2e/seed
             api/.wrangler/e2e/seed.stamp
-          key: e2e-seed-${{ runner.os }}-${{ hashFiles('api/migrations/**', 'api/seed/seed.py', 'fixtures/**', 'data/derived/**', 'samples/**') }}
+          key: e2e-seed-${{ runner.os }}-${{ hashFiles('package-lock.json', 'api/migrations/**', 'api/seed/seed.py', 'fixtures/**', 'data/derived/**', 'data/rakathon-26/**', 'samples/**') }}
       # Seeds one local state, copies it per Worker, starts the Workers, runs the suite and stops them.
       - name: Browser suite
         run: npm --prefix e2e run test:parallel
