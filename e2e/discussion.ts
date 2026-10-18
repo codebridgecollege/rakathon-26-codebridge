@@ -1,7 +1,7 @@
 import { expect, type Locator } from "@playwright/test";
 import type { App } from "./fixtures";
 
-// The conclusion the old page test used: it names three next steps with timings, so approval drafts three tasks.
+// A conclusion that names three next steps with timings, so approval drafts three tasks.
 export const CONCLUSION =
   "Stereotaktická radioterapie ložiska v mozečku, kontrolní MR mozku za 3 měsíce, kontrola na onkologii za 4 týdny.";
 

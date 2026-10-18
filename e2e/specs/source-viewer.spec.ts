@@ -28,8 +28,7 @@ test("a reference opens the page image with the quoted passage", async ({ app })
   await expect(viewer.getByText("10_pacient.pdf · NO-010 · strana 4 z 5", { exact: false })).toBeVisible();
   await expect(viewer.getByText(`„${QUOTE}“`, { exact: false })).toBeVisible();
   await expect(viewer.getByRole("button", { name: "s. 4" })).toHaveAttribute("aria-pressed", "true");
-  // The old page does not set aria-selected on the viewer's tabs, so the visible content tells which one is open.
-  await expect(viewer.getByRole("tab", { name: "Stránka" })).toBeVisible();
+  await expect(viewer.getByRole("tab", { name: "Stránka" })).toHaveAttribute("aria-selected", "true");
   await expectImageLoaded(viewer.getByRole("img", { name: "Strana 4 dokumentu 10_pacient.pdf" }));
   // The passage was found on the image (the legend explains the yellow box) and no "not found" note shows.
   await expect(viewer.getByText(/^Žlutě: citovaná pasáž\./)).toBeVisible();

@@ -62,7 +62,6 @@ test("a click on a booked slot opens its card, Otevřít případ opens the case
 });
 
 test("the card labels an assistant's drafted MDT question as a draft", async ({ app }) => {
-  test.skip(app.legacy, "today's page shows no draft label since round 22");
   await slot(app, "Poláček Daniel", "14:00").click();
   const card = app.page.getByRole("region", { name: "Poláček Daniel" });
   await expect(card.getByText(/^Jaký postup doporučuje neurochirurgický seminář/)).toBeVisible();

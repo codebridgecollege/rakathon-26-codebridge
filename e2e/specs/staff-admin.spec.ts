@@ -77,8 +77,8 @@ test("the administrator resets the demo data from Administrace", async ({ app, p
   await expect(dlg.getByText("Vrátí případy, závěry, úlohy, docházku, personál a záznam přístupů do výchozího stavu.")).toBeVisible();
   await dlg.getByRole("button", { name: "Obnovit ukázková data" }).click();
   await expect(page.getByText("Data obnovena, stránka se znovu načte.")).toBeVisible();
-  // The old page reloads itself a moment later; a new app may refetch instead. Either way the user ends up seeing the
-  // seed again, so retry the visible check (a click made just before a reload is lost) instead of waiting for "load".
+  // The page reloads itself a moment later, so retry the visible check (a click made just before the reload is lost)
+  // instead of waiting for "load".
   await expect(async () => {
     await app.nav("Kalendář MDT").click();
     await expect(app.main.getByRole("heading", { level: 2, name: "Nenaplánovaní (4)" })).toBeVisible({ timeout: 1000 });

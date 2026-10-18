@@ -4,7 +4,7 @@
 """Seed the Worker's D1 database and R2 bucket from the synthetic fixtures in the repository.
 
 Usage (from the repository root or from api/):
-    uv run api/seed/seed.py --target local [--reset]     # wrangler dev state in api/.wrangler
+    uv run api/seed/seed.py --target local [--reset] [--persist-to DIR]   # wrangler dev state (api/.wrangler/state)
     uv run api/seed/seed.py --target remote [--reset]    # the EU database and bucket
     uv run api/seed/seed.py --dry-run                    # write api/seed/out/ only
 
@@ -411,8 +411,13 @@ def wrangler(args: list[str], capture=False) -> str:
     return r.stdout
 
 
+# Extra wrangler flags for --target local: --persist-to <dir> when the seed writes into a state directory other than
+# wrangler dev's default (.wrangler/state), as the parallel browser suite does (one copy per local Worker).
+LOCAL_STATE: list[str] = []
+
+
 def d1_query(target: str, sql: str):
-    out = wrangler(["d1", "execute", DB_NAME, f"--{target}", "--json", "--command", sql])
+    out = wrangler(["d1", "execute", DB_NAME, f"--{target}", *(LOCAL_STATE if target == "local" else []), "--json", "--command", sql])
     start = out.index("[")
     return json.loads(out[start:])[0]["results"]
 
@@ -422,9 +427,14 @@ def main() -> None:
     ap.add_argument("--target", choices=["local", "remote"])
     ap.add_argument("--reset", action="store_true", help="wipe every table (also the demo access log) and reseed")
     ap.add_argument("--dry-run", action="store_true")
+    ap.add_argument("--persist-to", help="with --target local: the wrangler state directory (default .wrangler/state), relative to api/")
     a = ap.parse_args()
     if not a.dry_run and not a.target:
         ap.error("--target is required unless --dry-run")
+    if a.persist_to and a.target != "local":
+        ap.error("--persist-to needs --target local")
+    if a.persist_to:
+        LOCAL_STATE.extend(["--persist-to", a.persist_to])
     OUT.mkdir(parents=True, exist_ok=True)
     build = load_build()
 
@@ -740,17 +750,21 @@ def main() -> None:
 
     t = a.target
     # Migrations are idempotent; applying them first means a fresh local state works with one command.
-    wrangler(["d1", "migrations", "apply", DB_NAME, f"--{t}"])
+    local = LOCAL_STATE if t == "local" else []
+    wrangler(["d1", "migrations", "apply", DB_NAME, f"--{t}", *local])
     if not a.reset and d1_query(t, "SELECT COUNT(*) AS n FROM seed_meta")[0]["n"]:
         sys.exit("seed: the database is already seeded; rerun with --reset to wipe it (this also deletes the demo access log)")
 
     # 11. R2 first, so D1 never points at a missing object. Unchanged objects are skipped on later runs.
-    state_file = OUT / f".seed-state-{t}.json"
+    # One record per state directory: each holds its own R2 objects.
+    state_dir = API / (a.persist_to or ".wrangler/state")
+    tag = t if not a.persist_to else f"{t}-{hashlib.sha256(str(state_dir.resolve()).encode()).hexdigest()[:12]}"
+    state_file = OUT / f".seed-state-{tag}.json"
     state = json.loads(state_file.read_text()) if state_file.exists() else {}
-    if t == "local" and not (API / ".wrangler" / "state" / "v3" / "r2").exists():
+    if t == "local" and not (state_dir / "v3" / "r2").exists():
         state = {}  # the local state was wiped, so the record of uploads no longer holds
     todo = [m for m in manifest if state.get(m["key"]) != m["sha256"]]
-    loc = ["--local"] if t == "local" else ["--remote", "--jurisdiction", "eu"]
+    loc = ["--local", *local] if t == "local" else ["--remote", "--jurisdiction", "eu"]
 
     def put(m):
         wrangler(["r2", "object", "put", f"{BUCKET}/{m['key']}", "--file", str(ROOT / m["file"]), "--content-type", m["content_type"], *loc])
@@ -764,7 +778,7 @@ def main() -> None:
     print(f"uploaded {len(todo)} R2 objects ({len(manifest) - len(todo)} unchanged)")
 
     # 12. D1.
-    r = subprocess.run(["npx", "wrangler", "d1", "execute", DB_NAME, f"--{t}", "--yes", "--file", str(OUT / "seed.sql")],
+    r = subprocess.run(["npx", "wrangler", "d1", "execute", DB_NAME, f"--{t}", *local, "--yes", "--file", str(OUT / "seed.sql")],
                        cwd=API, capture_output=True, text=True)
     if r.returncode != 0:
         # A reset that stops half way can leave the append-only triggers dropped; say so, since nothing else will.

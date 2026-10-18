@@ -65,8 +65,8 @@ test("a doctor confirms the drafted MDT question and the confirmation survives a
   await openCase(app);
   await expect(app.main.getByText("Otázka pro MDT", { exact: true })).toBeVisible();
   await expect(app.main.getByRole("button", { name: QUESTION })).toBeVisible();
-  // The app labels the assistant's draft until a doctor confirms it (today's page shows no label since round 22).
-  if (!app.legacy) await expect(app.main.getByText(DRAFT_LABEL, { exact: true })).toBeVisible();
+  // The app labels the assistant's draft until a doctor confirms it.
+  await expect(app.main.getByText(DRAFT_LABEL, { exact: true })).toBeVisible();
   await app.main.getByRole("button", { name: "Potvrdit otázku" }).click();
   await expect(page.getByText("Otázka potvrzena", { exact: true })).toBeVisible();
   await expect(app.main.getByRole("button", { name: "Potvrdit otázku" })).toHaveCount(0);
@@ -86,7 +86,7 @@ test("the coordinator cannot confirm the drafted question", async ({ app }) => {
   await expect(app.main.getByRole("button", { name: QUESTION })).toHaveCount(0);
   await expect(app.main.getByRole("button", { name: "Potvrdit otázku" })).toHaveCount(0);
   // The coordinator sees the draft label too: the question is still unconfirmed.
-  if (!app.legacy) await expect(app.main.getByText(DRAFT_LABEL, { exact: true })).toBeVisible();
+  await expect(app.main.getByText(DRAFT_LABEL, { exact: true })).toBeVisible();
 });
 
 test("a doctor edits the MDT question, the edit persists, and revert restores the original", async ({ app, page }) => {
@@ -112,8 +112,8 @@ test("a doctor edits the MDT question, the edit persists, and revert restores th
 test("a doctor edits a fact in the oncology summary and reverts it", async ({ app, page }) => {
   await openCase(app);
   const fact = app.main.getByRole("button", { name: /^3\. paliativní linie everolimus 5 mg denně/ });
-  // The pencil sits inside the fact's source link on the old page (a control nested in a control) and right after it
-  // in the new app, so it is found in the fact's parent, which holds it in both.
+  // The pencil sits right after the fact's source link (not inside it: no control nested in a control), so it is found
+  // in the fact's parent.
   const pencil = (f: typeof fact) => f.locator("..").getByRole("button", { name: "Upravit", exact: true });
   await pencil(fact).click();
   const dlg = app.dialog("Upravit údaj");

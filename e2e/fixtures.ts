@@ -1,17 +1,24 @@
 import { test as base, expect, type Page, type Locator } from "@playwright/test";
 import { resetDemo } from "./reset";
+import { BASE_URLS } from "./servers";
 
 // Helpers drive the app only through what a user sees: roles, accessible names, labels and Czech text. They never
-// read page globals or data-* attributes, so the same helpers work on the ported app as long as the wording stays.
+// read page globals or data-* attributes, so a change to markup that keeps what a user sees keeps the tests green.
 
 type Fixtures = {
-  // Auto fixture: resets the shared demo before every test and fails the test on an uncaught page error or a content
-  // security policy violation.
+  // Auto fixture: resets the demo of this test's Worker before every test and fails the test on an uncaught page
+  // error or a content security policy violation.
   fresh: void;
   app: App;
 };
 
 export const test = base.extend<Fixtures>({
+  // Each Playwright worker talks to its own Worker (servers.ts): parallelIndex is the worker's slot, from 0 to
+  // workers - 1, and a replacement worker after a failure takes over the slot, so no two running tests share a
+  // database. page, context and request all read this base URL.
+  baseURL: async ({}, use, testInfo) => {
+    await use(BASE_URLS[testInfo.parallelIndex % BASE_URLS.length]);
+  },
   fresh: [
     async ({ page, baseURL }, use) => {
       await resetDemo(baseURL!);
@@ -36,25 +43,15 @@ export const test = base.extend<Fixtures>({
 
 export { expect };
 
-// The old page at /legacy/ keeps its hash routes (#patient/10/labs); the app at / uses paths (/patient/10/labs).
-export const isLegacy = (baseURL: string) => new URL(baseURL).pathname.startsWith("/legacy/");
-
 export class App {
   constructor(
     readonly page: Page,
     readonly baseURL: string,
   ) {}
 
-  // True when this run checks the old page, which lacks some of the app's additions (for example the draft label on
-  // an assistant's drafted MDT question).
-  get legacy(): boolean {
-    return isLegacy(this.baseURL);
-  }
-
-  // The address of a route relative to the base URL: "./patient/10/labs" for the app, "./#patient/10/labs" for the
-  // old page.
+  // The address of a route relative to the base URL ("./patient/10/labs").
   url(route = ""): string {
-    return "./" + (route ? (this.legacy ? "#" : "") + route : "");
+    return "./" + route;
   }
 
   get main(): Locator {
@@ -70,14 +67,13 @@ export class App {
   }
 
   // Opens a route ("patient/10/labs", "calendar/2026-10-22") and waits until the patient list or the route's screen
-  // has data. The address is relative to the base URL (url()), so the same specs run against the app at / and today's
-  // page at /legacy/. The first call loads the page. Later calls change the address without a page load, as a hash
-  // link does on today's page: the demo user picked in the header lives in the page, and a load starts again as the
-  // default user. On the app that is the browser's own history API (pushState and the popstate a router listens to),
-  // not app state; a spec that needs a real load (a reload, a link opened anew) calls page.reload() or goto().
+  // has data. The first call loads the page. Later calls change the address without a page load, because the demo
+  // user picked in the header lives in the page and a load starts again as the default user. That is the browser's
+  // own history API (pushState and the popstate the router listens to), not app state; a spec that needs a real load
+  // (a reload, a link opened anew) calls page.reload() or goto().
   async open(route = ""): Promise<void> {
     const target = new URL(this.url(route), this.baseURL).href;
-    if (!this.legacy && this.page.url().startsWith(new URL("./", this.baseURL).href)) {
+    if (this.page.url().startsWith(new URL("./", this.baseURL).href)) {
       await this.page.evaluate((u) => {
         history.pushState(null, "", u);
         dispatchEvent(new PopStateEvent("popstate", { state: null }));

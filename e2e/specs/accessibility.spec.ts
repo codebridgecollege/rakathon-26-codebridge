@@ -1,17 +1,13 @@
 import AxeBuilder from "@axe-core/playwright";
 import type { Page } from "@playwright/test";
-import { test, expect, isLegacy, type App } from "../fixtures";
+import { test, expect, type App } from "../fixtures";
 import { Discussion } from "../discussion";
 import { openNewPatient } from "../intake";
 
 // Automated accessibility checks (axe-core, WCAG 2.1 A and AA rules) on the main screens and dialogs of the new app,
 // and keyboard checks for dialogs: focus moves in, Tab stays inside, Escape closes, focus returns to the opener.
 // Only violations of serious or critical impact fail a test; the rest are listed in FRONTEND.md ("As implemented
-// (step 13)"). The old page at /legacy/ is not held to these checks: it is retired, not fixed.
-
-test.beforeEach(({ baseURL }) => {
-  test.skip(isLegacy(baseURL!), "the old page is not held to the accessibility checks");
-});
+// (step 13)").
 
 // Rules that fail a test only above this impact.
 const FAILING = new Set(["serious", "critical"]);
@@ -53,8 +49,11 @@ for (const [nr, name] of [
   test(`patient ${nr}: every tab, and the discussion card open`, async ({ app, page }) => {
     await app.open(`patient/${nr}/overview`);
     await expect(app.main.getByRole("heading", { level: 1, name })).toBeVisible();
-    const tabs = await app.main.getByRole("tablist").getByRole("tab").allInnerTexts();
-    expect(tabs.length).toBeGreaterThan(3);
+    // allInnerTexts() does not wait: the heading can show before the case's tabs have rendered (seen on a Worker's
+    // first request), so wait for them first.
+    const tabRow = app.main.getByRole("tablist").getByRole("tab");
+    await expect.poll(() => tabRow.count()).toBeGreaterThan(3);
+    const tabs = await tabRow.allInnerTexts();
     for (const label of tabs) {
       await app.openTab(label.trim());
       await expectNoSeriousViolations(page, `patient ${nr}, tab ${label.trim()}`);

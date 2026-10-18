@@ -76,7 +76,7 @@ test("approval records the doctor, sets Projednán, and a new version supersedes
 
   await d.expand();
   await d.card.getByRole("button", { name: "Nový závěr (nahradí platný)" }).click();
-  // The old page shows this label next to the field without tying it to it, so the field keeps its usual name.
+  // The label describes the field (aria-describedby) and does not name it, so the field keeps its usual name.
   await expect(app.main.getByText("Koncept nového závěru (nahradí platný až po schválení)")).toBeVisible();
   const draft = d.conclusion;
   await expect(draft).toBeVisible();

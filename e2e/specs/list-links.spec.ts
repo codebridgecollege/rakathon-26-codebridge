@@ -1,8 +1,7 @@
 import { test, expect } from "../fixtures";
 
-// Links into the list screens (/patients, /calendar/<day>, /tasks, /staff, /admin; #patients and so on on today's
-// page) open their screens, and the patient table's columns can be resized by dragging their edge (FRONTEND.md step
-// 3). Both run against today's page and the new app.
+// Links into the list screens (/patients, /calendar/<day>, /tasks, /staff, /admin) open their screens, and the patient
+// table's columns can be resized by dragging their edge (FRONTEND.md step 3).
 
 test("links open their screens, a calendar link opens that day's week", async ({ app }) => {
   await app.open("calendar/2026-10-28");

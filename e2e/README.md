@@ -2,8 +2,8 @@
 
 A Playwright suite that drives the app the way a user does and reads only what a user sees: roles, accessible
 names, labels and visible Czech text. It runs against a running Worker (`api/`), which serves the app and the API
-together. It was step 1 of the frontend port (`docs/design/FRONTEND.md`, "Migration", issue #13) and stays green on
-both: the Nuxt app at `/` (the default base URL) and today's page (`mocks/v3.html` in API mode) at `/legacy/`.
+together, or against several local Workers at once (`npm run test:parallel`). It was step 1 of the frontend port
+(`docs/design/FRONTEND.md`, "Migration", issue #13) and now gates the deploy of main in CI.
 
 ## What the suite may and may not touch
 
@@ -12,32 +12,57 @@ both: the Nuxt app at `/` (the default base URL) and today's page (`mocks/v3.htm
   (`page.route`, `page.routeWebSocket`) for outside services (ElevenLabs, Azure); `page.waitForResponse` where the page
   gives no visible signal (autosave, the phone upload token, the end of an upload session); properties of a DOM element
   itself (`img.naturalWidth`, `document.documentElement.scrollWidth`).
-- **Not allowed:** `page.evaluate` into app state (`S`, `action()`, `render()`, `DATA`), `data-*` selectors, CSS class
-  selectors, ids. The ported app has none of these, so a test that used them could not judge it.
-- Structural reads that remain, each because the old page gives nothing better:
+- **Not allowed:** `page.evaluate` into app state (Pinia stores, component instances), `data-*` selectors, CSS class
+  selectors, ids. A test that used them would check markup, not what a user sees.
+- Structural reads that remain, each because the page gives nothing better yet:
   - `locator("mark")` in `source-viewer.spec.ts`, HTML's own element for highlighted text;
   - `alertEntry()` in `patient-detail.spec.ts` takes the smallest element holding an alert's text and its button,
     because alerts are not list items or articles;
   - the birth-number cell is taken by its column position in `patients-list.spec.ts`;
-  - the pencil of an oncology fact is found in the fact's parent (`locator("..")`) in `patient-detail.spec.ts`: the
-    old page nests it inside the fact's source link, the new app puts it right after the link (axe:
-    nested-interactive).
-  When the new app gives alerts a list or article role, switch these to roles.
+  - the pencil of an oncology fact is found in the fact's parent (`locator("..")`) in `patient-detail.spec.ts`: it
+    sits right after the fact's source link.
+  When the app gives alerts a list or article role, switch these to roles.
 
 ## Run it
 
-Locally, against `wrangler dev` with the seeded local D1 and R2 (`api/AGENTS.md`):
+Once, from the repository root:
 
 ```
-cd api && npm ci && cp .dev.vars.example .dev.vars   # once; the suite needs no keys
+npm ci                                                # the app and the Worker
+npm --prefix e2e ci
+npm --prefix e2e run install-browsers                 # Chromium for Playwright
+```
+
+### On four local Workers at once
+
+```
+npm --prefix api run stage                            # builds the app the Workers serve (again after app changes)
+npm --prefix e2e run test:parallel                    # needs uv for the seed
+```
+
+`run-parallel.mjs` seeds one local state (`api/.wrangler/e2e/seed`, with `api/seed/seed.py --persist-to`), copies it
+for each Worker (`api/.wrangler/e2e/w<i>`), starts the Workers with `wrangler dev` on ports 8801 to 8804, waits for
+`/api/health`, runs the suite with one Playwright worker per Worker and stops the Workers when the suite ends or is
+interrupted. Each test runs on its Playwright worker's Worker (`servers.ts`), so its demo reset touches no other test's
+data. The seeded state is reused while the files the seed reads (migrations, `seed.py`, `fixtures/`, the page index,
+`samples/`) are unchanged; `--reseed` forces a new seed. `E2E_WORKERS=2` changes the count, `E2E_PORT_BASE` the
+first port; Playwright arguments go after `--` (`npm --prefix e2e run test:parallel -- specs/calendar.spec.ts`). The
+Workers' logs are `api/.wrangler/e2e/w<i>.log`.
+
+Measured on an Apple Silicon laptop, 100 tests: 31 s on four Workers, 1.4 min on one; seeding takes about 1.5
+minutes and only happens when its inputs changed.
+
+### Against one running Worker
+
+Against `wrangler dev` with the seeded local D1 and R2 (`api/AGENTS.md`):
+
+```
+cd api && cp .dev.vars.example .dev.vars              # once; the suite needs no keys
 npm run seed:local                                    # needs uv; seeds .wrangler/ from committed synthetic data
-npm run dev                                           # stages the app and mocks/, serves http://localhost:8787
+npm run dev                                           # stages the app, serves http://localhost:8787
 
 # in a second terminal, from the repository root:
-npm --prefix e2e ci
-npm --prefix e2e run install-browsers                 # Chromium for Playwright, once
-npm --prefix e2e test                                                # the app at /
-E2E_BASE_URL=http://localhost:8787/legacy/ npm --prefix e2e test     # today's page
+npm --prefix e2e test
 ```
 
 `npm --prefix e2e run typecheck` type-checks the suite. `npx playwright show-report e2e/playwright-report` opens the
@@ -60,61 +85,57 @@ What the suite assumes about the server: the seed of `api/seed/seed.py`, `UPLOAD
 or pipeline keys (`features.stt` and `features.pipeline` false; the global setup stops if either is on). The recorder test turns `stt` on by rewriting the
 health answer in the browser, so it runs the same with or without a key and never calls ElevenLabs.
 
+### In CI
+
+The `e2e` job of `.github/workflows/deploy-worker.yml` runs on pushes to main and backend and on pull requests that
+touch the app, the Worker, the fixtures or `e2e/`: it installs, stages, runs `npm --prefix e2e run test:parallel`
+with four Workers, caches Chromium by `e2e/package-lock.json`, and uploads `playwright-report/`, `test-results/`
+(traces of failed tests) and the Workers' logs as the `playwright-report` artifact when it fails. The job has no
+secrets. The deploy job needs it and the unit tests, so main deploys only when both pass.
+
 ## How it is built
 
-- `playwright.config.ts`: one worker (the tests share one database), Chromium, `cs-CZ`, Europe/Prague, base URL from
-  `E2E_BASE_URL` (default `http://localhost:8787`).
-- `global-setup.ts` and `reset.ts`: check the server and reset the demo.
-- `fixtures.ts`: an auto fixture that resets the demo before every test and fails a test on any uncaught page error
-  or any content security policy violation Chromium reports in the console (pages opened in a second browser context,
-  the phone and the second doctor, are not watched), and the `App` helper (open a route, pick the user, open a patient, open a tab, find a dialog).
+- `playwright.config.ts`: one Playwright worker per Worker (`servers.ts`: `E2E_BASE_URLS`, a comma-separated list
+  that `run-parallel.mjs` sets, or `E2E_BASE_URL`, default `http://localhost:8787`), single tests spread over the
+  workers when there are several, Chromium, `cs-CZ`, Europe/Prague.
+- `global-setup.ts` and `reset.ts`: check every Worker and reset its demo.
+- `fixtures.ts`: the base URL of the test's Worker (from the Playwright worker's `parallelIndex`), an auto fixture that
+  resets that demo before every test and fails a test on any uncaught page error or any content security policy
+  violation Chromium reports in the console (pages opened in a second browser context, the phone and the second
+  doctor, are not watched), and the `App` helper (open a route, pick the user, open a patient, open a tab, find a
+  dialog).
 - `discussion.ts`, `intake.ts`, `files.ts`: helpers for the discussion card, the new patient dialog with the S02 files,
   and file choosing. Uploaded files are the committed synthetic S02 PDFs or generated bytes.
-- The page's demo date is fixed at 16. 10. 2026 (`TODAY` in the template) and the seed's seminar is Thursday
-  22. 10. 2026, so dates in assertions do not move with the real clock. Approval times do (they come from the server
-  clock) and are matched by pattern.
+- The app's demo date is fixed at 16. 10. 2026 and the seed's seminar is Thursday 22. 10. 2026, so dates in
+  assertions do not move with the real clock. Approval times do (they come from the server clock) and are matched by
+  pattern.
 - No sleeps: every wait is Playwright's auto-waiting on something visible, or on a named response. No retries
   either: a test that passes only on a second try is a flake to fix.
 - An absence check (`toHaveCount(0)`) always follows a check that the content it would be in has rendered, so it cannot
-  pass on a page that is still loading.
+  pass on a page that is still loading. A read that does not wait (`allInnerTexts()`) follows a wait for its content.
+- Every test starts from a reset demo and depends on no other test, so tests may run in any order and on any Worker.
 
-## How the suite gates the port
+## Rules for the specs
 
-1. The suite stays green on the old page until the old page is retired. A change to the old page's wording is a
-   change to the suite in the same commit.
-2. The Worker serves the app at `/` and the old page at `/legacy/` (`docs/design/FRONTEND.md`, "As implemented
-   (step 13)"). The helpers open routes relative to the base URL, which needs its trailing slash
-   (`E2E_BASE_URL=http://localhost:8787/legacy/`). Specs name routes without `#` (`app.open("patient/10/labs")`);
-   `App.url()` makes them paths for the app and hash links for the old page. The first `open()` loads the page; later
-   ones change the address without a load (the browser's history API on the app, a hash change on the old page),
-   because the demo user picked in the header lives in the page. `app.legacy` tells a spec which page it runs on.
-3. A screen counts as ported when its spec files (table below) pass against the new app without edits to the specs.
-   A spec may change only where the old page was wrong (for example a missing `aria-selected`), and the commit says so.
-4. The Worker switched to the new app (step 13) with the whole suite passing against it and the old page.
-5. The new app must keep the demo date fixed at 16. 10. 2026 while it runs on the demo seed, as the old page does;
-   the calendar and report specs depend on it.
-6. `accessibility.spec.ts` (axe-core through `@axe-core/playwright`, WCAG 2.1 A and AA) fails on violations of serious
+1. A change to the app's wording is a change to the suite in the same commit.
+2. Specs name routes without a leading slash (`app.open("patient/10/labs")`); the first `open()` loads the page,
+   later ones change the address with the browser's history API without a load, because the demo user picked in the
+   header lives in the page.
+3. A spec changes only where the app's behaviour changed on purpose, and the commit says so.
+4. The app keeps the demo date fixed at 16. 10. 2026 while it runs on the demo seed; the calendar and report specs
+   depend on it.
+5. `accessibility.spec.ts` (axe-core through `@axe-core/playwright`, WCAG 2.1 A and AA) fails on violations of serious
    or critical impact on the app's screens and dialogs, and checks that dialogs take focus, keep Tab inside, close on
-   Escape and give focus back. It skips on `/legacy/`: the old page is retired, not fixed. `serving.spec.ts` checks
-   the headers, `/u`, the 404 and the redirects on both.
+   Escape and give focus back. `serving.spec.ts` checks the headers, `/u`, the page images, the demo ZIP and the 404.
 
-Known places where the old page's accessibility is weaker than the new app should be (the specs work around them and
-should be tightened once the new app is in):
-- The source viewer's tabs ("Stránka", "Přepis stránky") do not set `aria-selected` (the new app sets it).
-- The label "Koncept nového závěru (nahradí platný až po schválení)" is not tied to its text field. The new app ties it
-  as the field's description (`aria-describedby`), so the field keeps the name its placeholder gives and the specs
-  find it the same way on both.
+Known gaps the specs work around (tighten them when the app changes):
 - The yellow box that marks the quote on the page image has no accessible name, so only the legend and the absence of
   "Citace nenalezena přesně" show that the quote was found on the image.
-- The calendar's patient card has no role and the toasts no status role in the old page. The new app names the card
-  as a region (the patient's name) and gives toasts `role="status"`. Toasts vanish after 2.6 s, so specs check them
-  right after the action.
-- The calendar's unscheduled panel and the alerts are not lists in the old page, so their buttons cannot be told apart
-  by role; booking from the calendar goes through the patient list's "Naplánovat" and drag and drop instead. The new
-  app makes the unscheduled panel a list; switch to it once the old page is retired.
-- The discussion card is a `<details>` without `aria-expanded`; `discussion.ts` decides whether to open it once the
-  case's tabs have rendered. The new app sets `aria-expanded` on the card's summary; switch `expand()` to read it once
-  the old page is retired.
+- Toasts vanish after 2.6 s, so specs check them right after the action.
+- Booking from the calendar goes through the patient list's "Naplánovat" and drag and drop; the unscheduled panel is
+  a list in the app, so a spec could book from it by role.
+- `discussion.ts` decides whether to open the discussion card once the case's tabs have rendered; the card's summary
+  sets `aria-expanded`, which `expand()` could read instead.
 
 ## Coverage
 
@@ -152,8 +173,8 @@ Screens and features from `docs/design/PRODUCT.md` against the spec files in `sp
 | Autosave conflicts | a second doctor's saved draft makes my save show "Koncept mezitím upravil(a) ..." with their name; "Načíst uloženou verzi" loads theirs | `conflicts` |
 | Roles | picker, doctor may edit and approve, coordinator changes status but not clinical content, administrator only reads | `roles`, `discussion`, `tasks`, `calendar` |
 | F-36 Mobile web | no sideways scroll at 400 px on the list, calendar, tasks and patient tabs | `phone-width` |
-| Accessibility | axe (WCAG 2.1 A/AA, serious and critical) on the list screens, every tab of NO-010 and NO-S01, the discussion card and four dialogs; dialog focus and Tab trap, also for the phone dialog stacked over another | `accessibility` (app only) |
-| Serving | security headers and the content security policy, also on every app route path, `/u`, the 404 for other paths (`/app/` included), the old page's ZIP redirect, `/api` and `/legacy/` untouched, a deep link after a reload | `serving` |
+| Accessibility | axe (WCAG 2.1 A/AA, serious and critical) on the list screens, every tab of NO-010 and NO-S01, the discussion card and four dialogs; dialog focus and Tab trap, also for the phone dialog stacked over another | `accessibility` |
+| Serving | security headers and the content security policy, also on every app route path, `/u`, the page images (not their text layers), the demo ZIP, the 404 for other paths (`/app/`, `/legacy/` and its old redirects included), `/api` untouched, a deep link after a reload | `serving` |
 
 Not covered, and why:
 - **Not built in the page:** F-08, F-10, F-13, F-14, F-20, F-26, F-28, F-29, F-30.
