@@ -12,9 +12,10 @@ const files = (d: string): string[] => readdirSync(d).flatMap((f) => (statSync(p
 const source = readFileSync(path.join(import.meta.dirname, "../../api/scripts/app-routes.mjs"), "utf8");
 const APP_ROUTES = JSON.parse(/APP_ROUTES = (\[[^\]]*\])/.exec(source)![1]!) as string[];
 
-// Cloudflare's rule match as headers.mjs uses it: a static path matches itself, a trailing splat any rest, also an
-// empty one (/patient/ is served too; the app shows its empty fallback there, checked against wrangler dev).
-const served = (p: string) => APP_ROUTES.some((r) => (r.endsWith("/*") ? p.startsWith(r.slice(0, -1)) : p === r));
+// Cloudflare's rule match as headers.mjs uses it: a static path matches itself, a placeholder (:nr) exactly one
+// non-empty path segment (generateRuleRegExp() in the asset Worker, checked against wrangler dev).
+const served = (p: string) =>
+  APP_ROUTES.some((r) => new RegExp(`^${r.replace(/:\w+/g, "[^/]+")}$`).test(p));
 
 // Example addresses of a page file: [x] becomes a value, [[x]] (optional) gives the address with and without it.
 function examples(file: string): string[] {
@@ -42,6 +43,7 @@ describe("app routes and the Worker", () => {
   });
 
   it("leaves other paths to the 404 page", () => {
-    for (const p of ["/", "/neexistuje", "/patient", "/patients/10", "/app/patients", "/legacy/", "/u", "/api/health"]) expect(served(p), p).toBe(false);
+    for (const p of ["/", "/neexistuje", "/patient", "/patient/", "/patients/", "/patients/10", "/patient/10/labs/x", "/calendar/a/b", "/app/patients", "/legacy/", "/u", "/api/health"])
+      expect(served(p), p).toBe(false);
   });
 });

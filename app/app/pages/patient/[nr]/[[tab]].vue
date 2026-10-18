@@ -1,6 +1,6 @@
 <script setup lang="ts">
 // The patient detail route, /patient/<nr>/<tab> (screen S-3). A reload or a link opens it directly: the Worker serves
-// the app's page for /patient/* (APP_ROUTES in api/scripts/headers.mjs).
+// the app's page for /patient/<nr> and /patient/<nr>/<tab> (APP_ROUTES in api/scripts/app-routes.mjs).
 // Opening a case is an access the server logs (GET /cases/:id); a refusal returns to the list, and a doctor outside
 // the case's team is offered break-the-glass instead.
 import { computed, watch } from "vue";

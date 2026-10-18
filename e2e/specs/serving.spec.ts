@@ -5,11 +5,11 @@ import { test, expect, isLegacy } from "../fixtures";
 // path, the old page's redirects, and a deep link that survives a reload. The app is at / and today's page at
 // /legacy/; the base URL says which one this run checks.
 
-// One address per route prefix the Worker serves the app's page for (APP_ROUTES in api/scripts/headers.mjs).
+// One address per route prefix the Worker serves the app's page for (APP_ROUTES in api/scripts/app-routes.mjs).
 const APP_PATHS = ["/patients", "/calendar", "/calendar/2026-10-22", "/tasks", "/staff", "/admin", "/patient/10", "/patient/10/labs"];
 // Paths that are no app route and must stay a real 404, never the app shell: near misses of the routes and the app's
 // address during the port (/app/), whose redirect is gone.
-const NOT_APP = ["/neexistuje", "/patient", "/patients/10", "/tasks/x", "/app", "/app/", "/app/patients"];
+const NOT_APP = ["/neexistuje", "/patient", "/patient/", "/patients/", "/tasks/", "/admin/", "/patients/10", "/tasks/x", "/patient/10/labs/x", "/calendar/a/b", "/app", "/app/", "/app/patients"];
 
 test("the page carries the security headers; the app's policy allows no inline or eval script", async ({ request, baseURL }) => {
   const res = await request.get(baseURL!);

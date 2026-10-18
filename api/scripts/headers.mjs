@@ -4,7 +4,7 @@
 //
 // Usage: node scripts/headers.mjs <assets dir>
 import { createHash } from "node:crypto";
-import { readFileSync, writeFileSync } from "node:fs";
+import { readFileSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { APP_ROUTES } from "./app-routes.mjs";
 
@@ -82,11 +82,17 @@ writeFileSync(path.join(dir, "_headers"), headers);
 // to its page at /; the target is / and not /index.html, which the assets would redirect to / first.
 // Static rules come first: Cloudflare matches them faster than rules with a splat.
 const rewrites = APP_ROUTES.map((r) => `${r} / 200`);
+const dynamic = (r) => r.includes(":") || r.includes("*");
 const redirects = [
-  ...rewrites.filter((r) => !r.includes("*")),
+  ...rewrites.filter((r) => !dynamic(r)),
   "/legacy/ukazka/* /ukazka/:splat 302",
   "/legacy/pages/* /pages/:splat 302",
-  ...rewrites.filter((r) => r.includes("*")),
+  ...rewrites.filter(dynamic),
   "",
 ].join("\n");
 writeFileSync(path.join(dir, "_redirects"), redirects);
+
+// nuxt generate also prerenders the static routes as folders (patients/index.html, tasks/index.html, ...). The assets
+// would serve those at /patients/ without the rules above (no policy), so they go: /patients/ is then a 404 like
+// every other path that is no route.
+for (const r of APP_ROUTES) if (!dynamic(r)) rmSync(path.join(dir, r), { recursive: true, force: true });

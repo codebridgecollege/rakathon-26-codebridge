@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // Any other one-segment path (every main area now has its own page). Only a navigation inside the app reaches it: the
 // Worker answers such an address with its 404 page, because it serves the app only for the route prefixes in
-// APP_ROUTES (api/scripts/headers.mjs). It shows the startup state, as the main area did before the screens were
+// APP_ROUTES (api/scripts/app-routes.mjs). It shows the startup state, as the main area did before the screens were
 // ported.
 import { computed } from "vue";
 import { useFluent } from "fluent-vue";
@@ -14,7 +14,7 @@ definePageMeta({ name: "view" });
 const { $t } = useFluent();
 const session = useSessionStore();
 const patients = usePatientsStore();
-// A development check that the shell reads the server, not shown to users: ?dev in the address before the "#".
+// A development check that the shell reads the server, not shown to users: ?dev in the address.
 const showDev = computed(() => import.meta.dev || new URLSearchParams(location.search).has("dev"));
 const errorText = computed(() => {
   const e = session.error;
