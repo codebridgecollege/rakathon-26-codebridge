@@ -27,7 +27,7 @@ export class ApiError extends Error {
   }
 }
 
-// Catalog IDs (i18n/cs.ftl) of the client's own errors. GET and write differ as in the template: a failed write asks
+// Catalog IDs (i18n/cs/) of the client's own errors. GET and write differ as in the template: a failed write asks
 // the doctor to try again, because nothing was stored.
 export const CLIENT_ERROR_IDS = {
   get: { no_api: "api-error-no-api", timeout: "api-error-timeout", network: "api-error-network", fallback: "api-error-request-failed" },

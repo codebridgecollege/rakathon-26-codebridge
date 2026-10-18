@@ -15,7 +15,7 @@ passes the DOM-only test suite.
   or error, late replies dropped, at most five cases in memory).
 - **API** through `@codebridge/api-client` (`packages/api-client`) and the shared rules from `@codebridge/domain`
   (`packages/domain`).
-- **Text** comes only from the Fluent catalogs at the repository root (`i18n/cs.ftl`; `sk.ftl` and `en.ftl` fall back
+- **Text** comes only from the Fluent catalogs at the repository root (`i18n/cs/*.ftl`, one file per area; `i18n/sk/` and `i18n/en/` fall back
   to Czech), through `fluent-vue` registered in `app/plugins/i18n.ts`. `?lang=sk` picks a language. Never write Czech
   UI text in a component; add a message with a semantic ID.
 - **CSS** is today's page CSS, copied unchanged into `app/assets/v3.css` by `scripts/sync-css.mjs`; a test fails when

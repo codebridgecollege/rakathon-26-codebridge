@@ -1,16 +1,23 @@
-// Fluent bundles for the app (docs/design/I18N.md). The catalogs are the shared .ftl files at the repository root, the
-// same files the old page and the Worker read. Czech is the source; Slovak and English fall back to it message by
+// Fluent bundles for the app (docs/design/I18N.md). The catalogs are the shared .ftl files at the repository root
+// (i18n/<locale>/<area>.ftl), the same files the old page and the Worker read. One file per area keeps parallel work on
+// different screens from colliding in one catalog. Czech is the source; Slovak and English fall back to it message by
 // message until they are translated.
 import { FluentBundle, FluentResource } from "@fluent/bundle";
-import cs from "../../../i18n/cs.ftl?raw";
-import sk from "../../../i18n/sk.ftl?raw";
-import en from "../../../i18n/en.ftl?raw";
 
 export const LOCALES = ["cs", "sk", "en"] as const;
 export type Locale = (typeof LOCALES)[number];
 // The deployment's default language: Czech today, Slovak for a Slovak hospital.
 export const DEFAULT_LOCALE: Locale = "cs";
-const SOURCES: Record<Locale, string> = { cs, sk, en };
+
+// Every area file of a locale, joined in file-name order; a message ID must be unique across the files of a locale.
+const FILES = import.meta.glob("../../../i18n/*/*.ftl", { query: "?raw", import: "default", eager: true }) as Record<string, string>;
+const sourceOf = (locale: Locale) =>
+  Object.keys(FILES)
+    .filter((p) => p.includes(`/i18n/${locale}/`))
+    .sort()
+    .map((p) => FILES[p])
+    .join("\n");
+const SOURCES: Record<Locale, string> = { cs: sourceOf("cs"), sk: sourceOf("sk"), en: sourceOf("en") };
 const STORAGE_KEY = "lang";
 
 const isLocale = (x: unknown): x is Locale => typeof x === "string" && (LOCALES as readonly string[]).includes(x);

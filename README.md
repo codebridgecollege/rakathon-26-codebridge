@@ -39,7 +39,7 @@ The root `package.json` holds npm workspaces with one lockfile:
 - `app/`: the Nuxt frontend being ported from the mock, served at `/app/` ([`app/README.md`](app/README.md));
 - `packages/domain`: the pure case rules shared by the Worker and the app ([`packages/domain/README.md`](packages/domain/README.md));
 - `packages/api-client`: the typed browser client for the API;
-- `i18n/`: the Fluent catalogs (`cs.ftl` is the source).
+- `i18n/`: the Fluent catalogs (`i18n/<locale>/<area>.ftl`; Czech is the source).
 
 ```
 npm ci              # at the root
