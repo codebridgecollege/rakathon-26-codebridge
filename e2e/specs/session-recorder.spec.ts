@@ -63,12 +63,14 @@ test("with a (stubbed) speech service the recorder starts, shows live words in t
     body.features = { ...body.features, stt: true };
     await route.fulfill({ response: res, json: body });
   });
-  // The token route would ask ElevenLabs; answer with a socket address that only this test serves.
+  // The token route would ask ElevenLabs; answer with the service's real socket host (the only one the app's content
+  // security policy lets the page connect to) and a fake token. routeWebSocket serves the socket here and never
+  // connects to the service.
   await page.route("**/api/stt/token", (route) =>
-    route.fulfill({ json: { ws_url: "wss://stt.e2e.invalid/v1/speech-to-text/realtime?token=e2e", expires_in_s: 900 } }),
+    route.fulfill({ json: { ws_url: "wss://api.elevenlabs.io/v1/speech-to-text/realtime?token=e2e", expires_in_s: 900 } }),
   );
   let chunks = 0;
-  await page.routeWebSocket("wss://stt.e2e.invalid/**", (ws) => {
+  await page.routeWebSocket("wss://api.elevenlabs.io/**", (ws) => {
     ws.onMessage((msg) => {
       const m = JSON.parse(String(msg)) as { message_type: string };
       if (m.message_type !== "input_audio_chunk") return;

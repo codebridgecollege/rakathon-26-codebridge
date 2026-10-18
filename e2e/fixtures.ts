@@ -5,7 +5,8 @@ import { resetDemo } from "./reset";
 // read page globals or data-* attributes, so the same helpers work on the ported app as long as the wording stays.
 
 type Fixtures = {
-  // Auto fixture: resets the shared demo before every test and fails the test on an uncaught page error.
+  // Auto fixture: resets the shared demo before every test and fails the test on an uncaught page error or a content
+  // security policy violation.
   fresh: void;
   app: App;
 };
@@ -16,8 +17,15 @@ export const test = base.extend<Fixtures>({
       await resetDemo(baseURL!);
       const errors: string[] = [];
       page.on("pageerror", (e) => errors.push(e.message));
+      // Chromium reports every blocked load, script, style or connection as a console error naming the policy; a
+      // violation means a screen depends on something the Worker's policy (api/scripts/headers.mjs) does not allow.
+      const violations: string[] = [];
+      page.on("console", (m) => {
+        if (m.type() === "error" && /Content Security Policy/i.test(m.text())) violations.push(m.text());
+      });
       await use();
       expect(errors, "uncaught errors in the page").toEqual([]);
+      expect(violations, "content security policy violations").toEqual([]);
     },
     { auto: true },
   ],

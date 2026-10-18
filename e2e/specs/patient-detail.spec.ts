@@ -102,7 +102,10 @@ test("a doctor edits the MDT question, the edit persists, and revert restores th
 test("a doctor edits a fact in the oncology summary and reverts it", async ({ app, page }) => {
   await openCase(app);
   const fact = app.main.getByRole("button", { name: /^3\. paliativní linie everolimus 5 mg denně/ });
-  await fact.getByRole("button", { name: "Upravit" }).click();
+  // The pencil sits inside the fact's source link on the old page (a control nested in a control) and right after it
+  // in the new app, so it is found in the fact's parent, which holds it in both.
+  const pencil = (f: typeof fact) => f.locator("..").getByRole("button", { name: "Upravit", exact: true });
+  await pencil(fact).click();
   const dlg = app.dialog("Upravit údaj");
   await dlg.getByRole("textbox").fill("3. paliativní linie everolimus 10 mg denně (upřesněno)");
   await dlg.getByRole("button", { name: "Uložit" }).click();
@@ -111,7 +114,7 @@ test("a doctor edits a fact in the oncology summary and reverts it", async ({ ap
   await expect(edited).toContainText("upraveno");
   await page.reload();
   await expect(edited).toBeVisible();
-  await edited.getByRole("button", { name: "Upravit" }).click();
+  await pencil(edited).click();
   await app.dialog("Upravit údaj").getByRole("button", { name: "Vrátit původní" }).click();
   const original = app.main.getByRole("button", { name: /^3\. paliativní linie everolimus 5 mg denně/ });
   await expect(original).toBeVisible();
