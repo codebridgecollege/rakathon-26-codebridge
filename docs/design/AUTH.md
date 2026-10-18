@@ -154,9 +154,10 @@ entries.
 - **Jobs and plumbing:** jobs, upload sessions, notifications, idempotency keys, write guards, demo state.
 - **Audit:** the access log.
 
-**Cross-org references are refused by the database.**
-- Every reference from an org table carries the org: `(org_id, case_id) REFERENCES cases(org_id, id)`. A row can therefore never point into another org, whatever a query does.
-- D1 has no row-level security, so this is the database-level guarantee.
+**Cross-org references are refused by the database, where a foreign key exists.**
+- Every reference from an org table carries the org: `(org_id, case_id) REFERENCES cases(org_id, id)`, backed by a unique key `(org_id, id)` on the parent. References to people go through `memberships(org_id, user_id)`.
+- Unique keys start with `org_id` (slots, seminar days, idempotency keys, document hashes, department names).
+- D1 has no row-level security, so this is the database-level guarantee. The columns without a foreign key are listed in [`DATABASE.md`](DATABASE.md); for those, the store functions and the isolation tests are the guard.
 
 **IDs:**
 - Internal IDs are unique across all orgs.
@@ -283,9 +284,10 @@ access runbook in `api/AGENTS.md` is replaced.
 | 4 | Frontend: account menu, role switcher, session-expired dialog, login redirect; mock OIDC spec and cross-org spec in the browser suite | 1-1.5 days |
 | 5 | Zitadel: EU instance, project, web app, demo accounts; secrets in the Worker; seed with two demo orgs; docs (CLAUDE.md, INTEGRATION.md, DATA-PROTECTION, TECHNOLOGIES, HACKATHON, api/AGENTS.md) | 1 day (needs Juro's Zitadel account) |
 
-## Open decisions
+## Decisions (2026-10-18)
 
-- **IdP:** Zitadel Cloud EU (recommended), Keycloak self-hosted, or Auth0 EU?
-- **Who creates the Zitadel account** (it needs an owner's e-mail and, for Pro, billing)?
-- **Two demo orgs** as proposed, or one?
-- **Session lifetimes:** 12 hours at most; 1 hour idle in hospital orgs, the full 12 hours in demo orgs?
+- **IdP: Zitadel Cloud in its EU region.** Keycloak self-hosted stays the fallback.
+- **Juro creates the Zitadel account** and gives the team the issuer, client ID and client secret (the secret only as a Wrangler secret).
+- **Two demo orgs:** "Ukázková nemocnice A" and "Ukázková nemocnice B".
+- **Session lifetimes:** 12 hours at most; 1 hour idle in hospital orgs, the full 12 hours in demo orgs.
+- **Shared tables for the MVP,** with the upgrade paths in [`DATABASE.md`](DATABASE.md).
