@@ -3,6 +3,7 @@
 // protocol, typed text kept over an older answer) arrive with the screens that show them.
 import { defineStore } from "pinia";
 import { ref } from "vue";
+import { myTasks } from "@codebridge/domain/task-list";
 import type { AttSet, CaseState, Mail, Session, Task, Workflow, WorkflowState } from "@codebridge/api-client";
 
 export const useWorkflowStore = defineStore("workflow", () => {
@@ -41,7 +42,7 @@ export const useWorkflowStore = defineStore("workflow", () => {
 
   // "Moje úlohy": assigned to the user, or (for a doctor) on a case they own; the nav badge counts the open ones.
   function openTaskCount(user: string, coordName: string | null, ownerOf: (file: string) => string | undefined) {
-    return tasks.value.filter((t) => !t.done && (t.who === user || (user !== coordName && ownerOf(t.pid) === user))).length;
+    return myTasks(tasks.value, user, coordName, ownerOf).filter((t) => !t.done).length;
   }
 
   return { cases, att, sessions, mails, tasks, replace, applyState, replaceTasksOf, openTaskCount };

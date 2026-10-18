@@ -18,7 +18,8 @@ const staff = useStaffStore();
 const patients = usePatientsStore();
 const workflow = useWorkflowStore();
 
-const view = computed(() => String(route.params.view ?? "patients"));
+// The area is the first part of the path (/patients, /calendar/2026-10-19, /patient/10/labs).
+const view = computed(() => route.path.split("/")[1] || "patients");
 const userName = computed(() => session.me?.user.name ?? "");
 const userId = computed(() => session.me?.user.id ?? "");
 const isAdmin = computed(() => session.me?.user.role === "admin");
@@ -35,8 +36,9 @@ const items = computed(() => [
 // "patient" (one case) belongs to the patients area, as in the template.
 const current = (k: string): "true" | "false" => (view.value === k || (k === "patients" && view.value === "patient") ? "true" : "false");
 
+// By path, so each area's own page (pages/<area>.vue) answers; the calendar keeps its last week (list view store).
 function go(k: string) {
-  router.push({ name: "view", params: { view: k } });
+  void router.push(`/${k}`);
 }
 
 async function onUser(ev: Event) {
