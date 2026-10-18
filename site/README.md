@@ -18,17 +18,18 @@ uv run scripts/site/build_images.py                     # light JPEGs into site/
 
 ## Before publishing
 
-- Replace `CONTACT_EMAIL` in the "Domluvit pilot" button.
+- Add the "Domluvit pilot" button with the team's contact address (commented out at the end of the partners section).
 - Check the GLIDE results figures and their caveat with the clinical lead.
 
 ## Deploy
 
-Cloudflare Pages, project `glidemdt`:
+Cloudflare Pages project `glidemdt`, live at https://glidemdt.com (and www.glidemdt.com,
+glidemdt.pages.dev). `.github/workflows/deploy-site.yml` redeploys on every push to `main` that
+changes `site/`. By hand:
 
 ```
-npx -y wrangler@4.147.0 pages deploy site --project-name glidemdt --branch main
+npx -y wrangler@4.147.0 pages deploy site --project-name glidemdt --branch main --force
 ```
 
-Then add `glidemdt.com` as a custom domain of the project in the Cloudflare dashboard (Workers &
-Pages, glidemdt, Custom domains). If the domain's DNS is on Cloudflare, the record is created
-automatically; otherwise point a CNAME at `glidemdt.pages.dev`.
+The custom domains are attached to the project (Workers & Pages, glidemdt, Custom domains); the
+domain's DNS is on Cloudflare, so the records and certificates are managed there.

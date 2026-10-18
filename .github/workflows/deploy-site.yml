@@ -1,0 +1,28 @@
+# Redeploys the glidemdt.com landing page (site/) on every push to main that changes it.
+name: Deploy site
+
+on:
+  push:
+    branches: [main]
+    paths: ["site/**", ".github/workflows/deploy-site.yml"]
+  workflow_dispatch:
+
+# One deploy at a time; a newer push replaces a queued one.
+concurrency:
+  group: deploy-site
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      # --force: Wrangler 4.147 otherwise tries to hand Pages commands to Workers and fails (see mocks/deploy.sh).
+      - name: Deploy to Cloudflare Pages (glidemdt)
+        run: npx -y wrangler@4.147.0 pages deploy site --project-name glidemdt --branch main --commit-dirty=true --force
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
