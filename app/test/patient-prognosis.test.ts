@@ -106,7 +106,7 @@ describe("Prognóza tab", () => {
     expect(w.get(".pg-warning").text()).toBe("Pacient nemá termín MDT. Pro vyhledání nejprve vyberte den v kalendáři.");
     const btn = w.findAll("button").find((b) => b.text() === "Naplánovat MDT")!;
     await btn.trigger("click");
-    expect(push).toHaveBeenCalledWith({ name: "view", params: { view: "calendar" } });
+    expect(push).toHaveBeenCalledWith("/calendar");
     expect(s.calls.some((c) => c.url.includes("/cases/"))).toBe(false);
     // Without a saved search the missing server is reported, with a retry.
     expect(w.get("[role=alert]").text()).toContain("Neznámá adresa API.");

@@ -56,7 +56,7 @@ async function go() {
 
 function back() {
   overlay.close();
-  void router.push({ name: "view", params: { view: "patients" } });
+  void router.push("/patients");
 }
 </script>
 

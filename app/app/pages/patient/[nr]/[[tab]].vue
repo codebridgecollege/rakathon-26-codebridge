@@ -43,7 +43,7 @@ watch(
     const p = row.value;
     if (!p) {
       // A case this user may not see, or a number that is no case: back to the list, as an unknown link does today.
-      void router.replace({ name: "view", params: { view: "patients" } });
+      void router.replace("/patients");
       return;
     }
     if (prev && prev[0] === "ready" && prev[1] === file && prev[2] === session.me?.user.id) return;
@@ -59,7 +59,7 @@ watch(
         toast(errorText($t, e));
         if (err && err.status >= 400 && err.status < 500 && row.value?.file === p.file) {
           overlay.close();
-          void router.push({ name: "view", params: { view: "patients" } });
+          void router.push("/patients");
         }
       });
   },

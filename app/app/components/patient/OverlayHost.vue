@@ -12,6 +12,7 @@ import FhirDialog from "./FhirDialog.vue";
 import PgRefsDrawer from "./PgRefsDrawer.vue";
 import PgPanelDrawer from "./PgPanelDrawer.vue";
 import UploadDialog from "./UploadDialog.vue";
+import StartMdtDialog from "../lists/StartMdtDialog.vue";
 
 const overlay = useOverlayStore();
 
@@ -39,4 +40,6 @@ onBeforeUnmount(() => {
       <UploadDialog v-else-if="overlay.current.kind === 'upload'" :o="overlay.current" />
     </template>
   </Teleport>
+  <!-- The lists' start dialog teleports itself into #overlay. -->
+  <StartMdtDialog v-if="overlay.current?.kind === 'start'" :day="overlay.current.day" @close="overlay.close()" />
 </template>

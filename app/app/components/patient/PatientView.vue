@@ -83,7 +83,7 @@ function openTab(t: Tab) {
   void router.push({ name: "patient", params: { nr: nrOf(props.file), tab: t } });
 }
 function backToList() {
-  void router.push({ name: "view", params: { view: "patients" } });
+  void router.push("/patients");
 }
 // A doctor outside the case's team may open it with a stated reason (break-the-glass) instead of being sent back.
 function openBreakGlass() {

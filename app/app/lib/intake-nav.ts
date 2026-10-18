@@ -9,6 +9,7 @@ const routeIdOf = (file: string) => String(file).replace("_pacient.pdf", "");
 export function defaultIntakeNavigation(router: Router): IntakeNavigation {
   return {
     openPatient: (file) => void router.push(`/patient/${encodeURIComponent(routeIdOf(file))}`),
-    showList: () => void router.push({ name: "view", params: { view: "patients" } }),
+    // By path: the list has its own page (pages/patients.vue), which a push by the "view" route's name would skip.
+    showList: () => void router.push("/patients"),
   };
 }

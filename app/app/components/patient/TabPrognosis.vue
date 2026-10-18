@@ -11,6 +11,7 @@ import { usePatient } from "../../composables/usePatient";
 import { useApi } from "../../lib/api";
 import { fmtDate } from "../../lib/dates";
 import { useOverlayStore } from "../../stores/overlay";
+import { useListViewStore } from "../../stores/listView";
 import { ENDPOINT_IDS, errText, OS_HEADER_IDS, usePrognosisStore } from "../../stores/prognosis";
 import PgStudyRow from "./PgStudyRow.vue";
 
@@ -97,8 +98,9 @@ function openPanel(i: number) {
     .catch(() => {});
 }
 function schedule() {
-  // PORT(#13): the calendar port picks the case to book (S.schedPick)
-  void router.push({ name: "view", params: { view: "calendar" } });
+  // The calendar opens with this case picked for booking (S.schedPick in the template).
+  useListViewStore().schedPick = p.value.file;
+  void router.push("/calendar");
 }
 </script>
 

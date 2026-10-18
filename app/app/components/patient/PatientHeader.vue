@@ -8,6 +8,7 @@ import { useFluent } from "fluent-vue";
 import { usePatient } from "../../composables/usePatient";
 import { useOverlayStore } from "../../stores/overlay";
 import { useWorkflowStore } from "../../stores/workflow";
+import { useListViewStore } from "../../stores/listView";
 import { slotText } from "../../lib/dates";
 import { ageNum, surnameFirst } from "../../lib/patientRow";
 import { openFhirExport } from "../../lib/fhirExport";
@@ -33,11 +34,12 @@ const live = computed(() => {
   return !!(open && p.value.slot && open.day === p.value.slot.day);
 });
 
-// PORT(#13): the calendar port takes the case to book (S.schedPick in the template); until then this opens the calendar.
+// The calendar opens with this case picked for booking (S.schedPick in the template).
 function schedule() {
-  void router.push({ name: "view", params: { view: "calendar" } });
+  useListViewStore().schedPick = p.value.file;
+  void router.push("/calendar");
 }
-// PORT(#13): the MDT start dialog with attendance is ported with the session (steps 8-9); it draws this overlay kind.
+// The lists' start dialog (order and attendance); the overlay host draws it.
 function startMdt() {
   if (p.value.slot) overlay.open({ kind: "start", day: p.value.slot.day, from: p.value.file, attOnly: false });
 }

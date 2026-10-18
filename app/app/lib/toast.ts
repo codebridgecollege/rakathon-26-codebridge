@@ -1,7 +1,7 @@
-// A toast with a text the patient screen already formatted (toast() in the template). It goes through the shared
-// toast store, so AppToasts draws it like every other toast: 2.6 s at the bottom, with a status role.
+// A toast with text the list screens already formatted (their messages mix catalog text with names and slots). It goes
+// through the app's one toast store, which AppToasts.vue shows.
 import { useToastStore } from "../stores/toast";
 
-export function toast(msg: string): void {
-  useToastStore().show({ text: msg });
+export function toast(text: string): void {
+  useToastStore().show({ text });
 }
