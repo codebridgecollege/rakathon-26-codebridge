@@ -24,7 +24,7 @@ const MEMBER = `EXISTS (SELECT 1 FROM case_members m WHERE m.case_id = c.id AND 
   OR m.dept_id IN (SELECT dm.dept_id FROM dept_members dm WHERE dm.user_id = ?1)))`;
 
 const CASE_SELECT = `SELECT c.*, p.full_name, p.name_as_written, p.birth_number, p.birth_as_written, p.age_as_written,
-  p.identity_warning, p.name_note_cs, p.name_note_source_json, p.data_origin, s.day AS slot_day, s.time AS slot_time
+  p.identity_warning, p.name_note_cs, p.name_note_source_json, p.identity_source_json, p.data_origin, s.day AS slot_day, s.time AS slot_time
   FROM cases c JOIN patients p ON p.id = c.patient_id LEFT JOIN slots s ON s.case_id = c.id`;
 
 export class D1Directory implements DirectoryStore {

@@ -2,8 +2,8 @@ import { Hono } from "hono";
 import type { AppEnv } from "../types";
 import { E } from "../http/errors";
 import { audit } from "../middleware/audit";
-import { listsAllCases, redactsListFor } from "@codebridge/domain/access";
-import { patientRow } from "../domain/rows";
+import { canReadClinical, listsAllCases, redactsListFor } from "@codebridge/domain/access";
+import { identitySource, patientRow } from "../domain/rows";
 import { modeOf, openCase } from "./access-check";
 
 type StoredExtraction = { schema?: string; case_id?: string; processing?: string; run_id?: string } & Record<string, unknown>;
@@ -49,8 +49,14 @@ export const cases = new Hono<AppEnv>()
     });
     const { cases: store } = c.var.stores;
     const [hist, members, run] = await Promise.all([store.statusHistory(id), store.memberDepts(id), store.currentRun(id)]);
+    const mode = modeOf(c);
     return c.json({
-      ...patientRow(row, hist, redactsListFor(c.var.viewer, modeOf(c))),
+      ...patientRow(row, hist, redactsListFor(c.var.viewer, mode)),
+      // Where the document names the patient, for the Patient's Provenance in the FHIR export. Only here, after the
+      // membership check and the case.open line: a list row would hand it to every role without a per-case log. A
+      // quote is document text, so a role that does not read clinical content does not get it (openCase passed, so a
+      // doctor here is a member).
+      identitySource: canReadClinical(c.var.viewer, true, mode) === "ok" ? identitySource(row) : null,
       members: members.map((dept) => ({ dept })),
       run: run ? { id: run.id, created_at: run.created_at, kind: run.kind } : null,
     });

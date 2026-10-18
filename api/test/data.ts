@@ -4,6 +4,8 @@ import { applyD1Migrations, reset } from "cloudflare:test";
 
 // The fake patient name sits in the page text so tests can prove it never reaches the access log.
 export const FAKE_NAME = "Testová Pacientka";
+// Where the fake document names the patient, written differently from the name, so a test can tell where it went.
+export const NAME_QUOTE = "TESTOVÁ Pacientka";
 // A 1x1 PNG.
 const PNG = Uint8Array.from(atob("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="), (ch) => ch.charCodeAt(0));
 
@@ -14,8 +16,9 @@ export const SQL = [
      ('coord','Bc.','Marková','coordinator'), ('admin','Ing.','Kovář','admin')`,
   "INSERT INTO users (id, pre, sur, role_id, active) VALUES ('gone','MUDr.','Bývalý','doctor',0)",
   "INSERT INTO dept_members (dept_id, user_id, position) VALUES ('d1','d1p1',0), ('d2','d2p1',0)",
-  `INSERT INTO patients (id, full_name, name_as_written, birth_number, data_origin) VALUES
-     ('pt-A','${FAKE_NAME}','Pacientka Testová','645312/1234','codebridge_synthetic'), ('pt-B','Druhý Testovací',NULL,NULL,'fno_challenge')`,
+  `INSERT INTO patients (id, full_name, name_as_written, birth_number, data_origin, identity_source_json) VALUES
+     ('pt-A','${FAKE_NAME}','Pacientka Testová','645312/1234','codebridge_synthetic','{"source":{"file":"A_pacient.pdf","page":1,"quote":"${NAME_QUOTE}"}}'),
+     ('pt-B','Druhý Testovací',NULL,NULL,'fno_challenge',NULL)`,
   `INSERT INTO cases (id, patient_id, source_file, list_order, status, processing_level, question_text, question_explicit,
      question_purpose, diagnosis_text, mkn10, summary_one_line, page_count, referring_dept, referring_dept_is_example, owner_user_id,
      owner_name, owner_is_example, submitted_on, submitted_is_example, updated_on) VALUES

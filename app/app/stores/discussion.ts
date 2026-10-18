@@ -7,8 +7,9 @@
 // - A version conflict shows a bar with both choices; nothing typed is overwritten silently.
 // - The server's protocol replaces the local copy unless this page holds typed text it has not stored yet
 //   (mergeProto() in @codebridge/domain/discussion).
-// - A draft stays a draft until a named doctor approves it; approval waits for every save, the recording's last words
-//   and audio, and any attendance change on its way, and sends one idempotency key per approval.
+// - A draft stays a draft until a named doctor approves it; approval waits for the case data and the guideline layer
+//   still loading, every save, the recording's last words and audio, and any attendance change on its way, and sends
+//   one idempotency key per approval.
 import { defineStore } from "pinia";
 import { reactive, watch } from "vue";
 import { ApiError, type CaseState, type PatientRow, type WriteReply } from "@codebridge/api-client";
@@ -51,6 +52,10 @@ type Save = {
 };
 
 const AUTOSAVE_MS = 800;
+// How long an approval click waits for the case data or the guideline layer before it gives up with a message. Long
+// enough for a slow Worker (the guideline layer took 0.6 s on the CI runner), short enough that the button never seems
+// stuck.
+const LOAD_WAIT_MS = 15_000;
 // A new step starts assigned to the coordinator with the default date.
 const NEW_STEP_DUE = "2026-10-30";
 
@@ -218,6 +223,59 @@ export const useDiscussionStore = defineStore("discussion", () => {
   }
 
   // ---------- approval ----------
+  // The case data has arrived or failed; a failed load does not block approval.
+  function caseDataSettled(file: string): boolean {
+    const ls = useCasesStore().stateOf(file);
+    return ls !== "loading" && ls !== "absent";
+  }
+  // The guideline layer is not needed (switched off, or a case without one), has arrived, or failed.
+  function guideSettled(file: string): boolean {
+    const data = useCasesStore().readyData(file);
+    const sec = sectionsOf(data ? fromExtraction(data.file, data.id, data.extraction) : null);
+    const g = useCasesStore().entries.get(file)?.guide;
+    return !(usePatientViewStore().guideOn && sec.guidance && (!g || g.loading || !(g.statements || g.error)));
+  }
+  // Resolves as soon as ok() holds, or after ms. ok() reads reactive state, so the watcher re-runs it whenever a load
+  // lands. A check that throws counts as "not yet", so the promise always settles and the button never sticks.
+  function until(ok: () => boolean, ms: number): Promise<void> {
+    const check = () => {
+      try {
+        return ok();
+      } catch {
+        return false;
+      }
+    };
+    if (check()) return Promise.resolve();
+    return new Promise((resolve) => {
+      const done = () => {
+        clearTimeout(timer);
+        stop();
+        resolve();
+      };
+      const timer = setTimeout(done, ms);
+      const stop = watch(check, (v) => {
+        if (v) done();
+      });
+    });
+  }
+  // Waits until the case data and the guideline layer have settled, or until the approval cannot go on anyway (a user
+  // switch dropped the records, a version conflict waits, the record was approved or the case closed meanwhile), or
+  // until the deadline. Says why it stopped.
+  async function waitLoads(file: string, sv: Save, deadline: number): Promise<"ready" | "data" | "guide" | "stop"> {
+    const stopped = () => saves[file] !== sv || !!sv.conflict || protos[file]?.state === "approved" || usePatientsStore().byFile(file)?.status === "closed";
+    await until(() => stopped() || (caseDataSettled(file) && guideSettled(file)), Math.max(0, deadline - Date.now()));
+    if (stopped()) return "stop";
+    if (!caseDataSettled(file)) return "data";
+    return guideSettled(file) ? "ready" : "guide";
+  }
+  // The message for a wait that did not end ready; a stop for any reason but a conflict is quiet, because the screen
+  // already shows it (the approved record, the closed case, the other user).
+  function loadWaitRefusal(w: "data" | "guide" | "stop", file: string, sv: Save) {
+    if (w === "data") useToastStore().show(msgId("discussion-approve-wait-data"));
+    else if (w === "guide") useToastStore().show(msgId("discussion-approve-wait-guide"));
+    else if (saves[file] === sv && sv.conflict) useToastStore().show(msgId("discussion-approve-conflict-first"));
+  }
+
   // The approve action. Every guard repeats what the disabled button already says, for any
   // other path here (a double click, a key press).
   async function approve(file: string, user: { name: string; isDoctor: boolean }) {
@@ -226,21 +284,6 @@ export const useDiscussionStore = defineStore("discussion", () => {
     const sv = saveOf(file);
     if (!p || pr.state === "approved") return;
     if (p.status === "closed" || !pr.concl.trim() || !user.isDoctor) return;
-    // The report frozen at approval must not be built from data still on its way; a failed load does not block.
-    const ls = useCasesStore().stateOf(file);
-    if (ls === "loading" || ls === "absent") {
-      useToastStore().show(msgId("discussion-approve-wait-data"));
-      return;
-    }
-    // The same for the guideline layer: the frozen report lists the recorded deviations from it.
-    const entry = useCasesStore().entries.get(file);
-    const data = useCasesStore().readyData(file);
-    const sec = sectionsOf(data ? fromExtraction(data.file, data.id, data.extraction) : null);
-    const g = entry?.guide;
-    if (usePatientViewStore().guideOn && sec.guidance && (!g || g.loading || !(g.statements || g.error))) {
-      useToastStore().show(msgId("discussion-approve-wait-guide"));
-      return;
-    }
     if (sv.approving) return;
     if (sv.conflict) {
       useToastStore().show(msgId("discussion-approve-conflict-first"));
@@ -249,6 +292,15 @@ export const useDiscussionStore = defineStore("discussion", () => {
     // Set before the first await, so a second click finds the approval running.
     sv.approving = true;
     try {
+      // The report frozen at approval must not be built from data still on its way, and it lists the recorded
+      // deviations from the guideline layer. Right after the case opens either may still be loading: the click waits
+      // for them (the button says "Schvaluji…") instead of being refused, so a doctor's click is never dropped. One
+      // deadline, LOAD_WAIT_MS from the click, bounds every such wait, so the button never hangs. A failed load does not
+      // block. A user switch while waiting dropped this page's records (reset()): the click belonged to the previous
+      // user, so the approval stops.
+      const deadline = Date.now() + LOAD_WAIT_MS;
+      const loaded = await waitLoads(file, sv, deadline);
+      if (loaded !== "ready") return loadWaitRefusal(loaded, file, sv);
       // The server approves what it stores, so everything typed is stored first.
       // The state may have changed while the saves were on their way (another doctor approved).
       if (!(await flush(file)) || (pr.state as string) === "approved") return;
@@ -262,12 +314,10 @@ export const useDiscussionStore = defineStore("discussion", () => {
       // Those waits may take seconds: what was typed meanwhile is stored too, so the approval and its frozen report
       // name exactly the stored record (the server makes the tasks from its stored steps).
       if (!(await flush(file)) || (pr.state as string) === "approved") return;
-      // The case data may have left the cache meanwhile (other cases opened); the report is never built without it.
-      const again = useCasesStore().stateOf(file);
-      if (again === "loading" || again === "absent") {
-        useToastStore().show(msgId("discussion-approve-wait-data"));
-        return;
-      }
+      // The case data may have left the cache meanwhile (other cases opened), the guideline layer been switched on or
+      // reloaded, or the user switched: the report is never built without them, and never sent for another user.
+      const again = await waitLoads(file, sv, deadline);
+      if (again !== "ready") return loadWaitRefusal(again, file, sv);
       const present = approvalAttendance(useAttendanceStore().present(key), user.name);
       const picked = [...useReportStore().picked];
       const snap: ReportProto = { state: "approved", concl: pr.concl, steps: pr.steps, approver: user.name };

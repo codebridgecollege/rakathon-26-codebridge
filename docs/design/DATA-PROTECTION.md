@@ -149,6 +149,12 @@ synthetic patients.
   extraction JSON and stops when a patient's name or birth number is
   still found outside a `quote` field (`api/seed/out/identity-scan.txt`
   lists paths, never values; it found no hits on 2026-10-17).
+  Where the document names the patient (file, page and the name as quoted)
+  is kept with the identity (`patients.identity_source_json`) and leaves
+  the server only in the case header (`GET /api/cases/:id`, membership
+  checked, `case.open` logged), for a role that reads clinical content;
+  never in the patient list. The FHIR export takes the Patient's Provenance
+  from it.
 - **This is not pseudonymization yet.** Quotes and page text are source
   evidence and stay verbatim (CLAUDE.md), so the page JSON and page images
   in R2 still show names. Removing them is the redaction step (option B).

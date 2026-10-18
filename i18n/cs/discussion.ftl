@@ -4,8 +4,8 @@
 
 ## Discussion card "Projednání na MDT" (S-5), session bar (S-4)
 
-discussion-approve-wait-data = Podklady případu se načítají, schvalte za okamžik.
-discussion-approve-wait-guide = Doporučení se načítají, schvalte za okamžik.
+discussion-approve-wait-data = Podklady případu se nepodařilo včas načíst, schvalte prosím znovu.
+discussion-approve-wait-guide = Doporučení se nepodařilo včas načíst, schvalte prosím znovu.
 discussion-approve-conflict-first = Nejdřív rozhodněte o souběžné úpravě konceptu (lišta v části Projednání na MDT).
 discussion-approve-recording-partial = Část záznamu se nepodařilo uložit; rozlišení mluvčích proběhne z uloženého zvuku.
 discussion-approved = Závěr schválen

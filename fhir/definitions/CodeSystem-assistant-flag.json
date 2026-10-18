@@ -25,7 +25,11 @@
     {
       "code": "unclear",
       "display": "A passage that could not be read reliably"
+    },
+    {
+      "code": "chronology",
+      "display": "Dates or the order of pages or events that do not fit together"
     }
   ],
-  "count": 4
+  "count": 5
 }

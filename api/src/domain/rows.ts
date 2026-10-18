@@ -1,5 +1,6 @@
 // D1 rows to the objects the frontend builds its screens from, so the data
 // source can change without touching the screens. Pure; unit-tested in test/rows.test.ts.
+import type { SourceRef } from "@codebridge/domain/case-data";
 
 export type CaseJoinRow = {
   id: string;
@@ -34,6 +35,8 @@ export type CaseJoinRow = {
   identity_warning: string | null;
   name_note_cs: string | null;
   name_note_source_json: string | null;
+  // Where the document names the patient ({ source: { file, page, quote } }); the quote holds the name.
+  identity_source_json?: string | null;
   data_origin: string;
   // slots
   slot_day: string | null;
@@ -45,6 +48,15 @@ export type CaseJoinRow = {
 export type StatusHistItem = { from: string; to: string; by: string; when: string; how: string };
 
 const json = (s: string | null): unknown => (s == null ? null : JSON.parse(s));
+
+// Where the document names the patient ({ file, page, quote }; the quote holds the name), or null. The seed keeps it
+// with the identity in `patients`, not in the case JSON, which is stripped of identity. It leaves the server only with
+// the case header (GET /cases/:id, which checks membership and logs case.open with the case id), never in a list row,
+// which every role loads without a per-case log line.
+export function identitySource(r: Pick<CaseJoinRow, "identity_source_json">): SourceRef | null {
+  const v = json(r.identity_source_json ?? null) as { source?: SourceRef } | null;
+  return v?.source && typeof v.source === "object" ? v.source : null;
+}
 
 // Keys absent from today's objects come back as null: the page tests them with !! or ||, so null and undefined
 // behave the same there.
