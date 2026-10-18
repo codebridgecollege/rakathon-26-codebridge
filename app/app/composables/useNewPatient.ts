@@ -1,6 +1,6 @@
 // How other screens open "Nový pacient": the patient list's "+ Nový pacient" calls useNewPatient().open(). The dialog
 // itself is mounted once in app.vue. setNavigation() lets the patient screens decide where a finished intake goes
-// (the new patient, or the list with its filters cleared); plugins/intake.ts sets a default on the hash routes.
+// (the new patient, or the list with its filters cleared); plugins/intake.ts sets a default on the app's routes.
 import { computed } from "vue";
 import { useIntakeStore, type IntakeNavigation } from "../stores/intake";
 

@@ -1,6 +1,8 @@
 <script setup lang="ts">
-// One route per main area (#/patients, #/calendar, ...). The screens are ported one by one (FRONTEND.md,
-// "Migration"); until then the main area shows only the startup state.
+// Any other one-segment path (every main area now has its own page). Only a navigation inside the app reaches it: the
+// Worker answers such an address with its 404 page, because it serves the app only for the route prefixes in
+// APP_ROUTES (api/scripts/headers.mjs). It shows the startup state, as the main area did before the screens were
+// ported.
 import { computed } from "vue";
 import { useFluent } from "fluent-vue";
 import { definePageMeta } from "#imports";

@@ -29,15 +29,33 @@ export const test = base.extend<Fixtures>({
     },
     { auto: true },
   ],
-  app: async ({ page }, use) => {
-    await use(new App(page));
+  app: async ({ page, baseURL }, use) => {
+    await use(new App(page, baseURL!));
   },
 });
 
 export { expect };
 
+// The old page at /legacy/ keeps its hash routes (#patient/10/labs); the app at / uses paths (/patient/10/labs).
+export const isLegacy = (baseURL: string) => new URL(baseURL).pathname.startsWith("/legacy/");
+
 export class App {
-  constructor(readonly page: Page) {}
+  constructor(
+    readonly page: Page,
+    readonly baseURL: string,
+  ) {}
+
+  // True when this run checks the old page, which lacks some of the app's additions (for example the draft label on
+  // an assistant's drafted MDT question).
+  get legacy(): boolean {
+    return isLegacy(this.baseURL);
+  }
+
+  // The address of a route relative to the base URL: "./patient/10/labs" for the app, "./#patient/10/labs" for the
+  // old page.
+  url(route = ""): string {
+    return "./" + (route ? (this.legacy ? "#" : "") + route : "");
+  }
 
   get main(): Locator {
     return this.page.getByRole("main");
@@ -51,13 +69,22 @@ export class App {
     return this.page.getByRole("navigation", { name: "Hlavní oblasti" }).getByRole("button", { name });
   }
 
-  // Opens the app at a hash route and waits until the patient list or the route's screen has data. The path is relative
-  // to the base URL, so the same specs run against today's page (E2E_BASE_URL=http://host/) and the new app under
-  // /app/ (E2E_BASE_URL=http://host/app/). The hash keeps today's form (#calendar/2026-10-22); the new app redirects it.
-  async open(hash = ""): Promise<void> {
-    await this.page.goto("./" + (hash ? "#" + hash : ""));
+  // Opens a route ("patient/10/labs", "calendar/2026-10-22") and waits until the patient list or the route's screen
+  // has data. The address is relative to the base URL (url()), so the same specs run against the app at / and today's
+  // page at /legacy/. The first call loads the page. Later calls change the address without a page load, as a hash
+  // link does on today's page: the demo user picked in the header lives in the page, and a load starts again as the
+  // default user. On the app that is the browser's own history API (pushState and the popstate a router listens to),
+  // not app state; a spec that needs a real load (a reload, a link opened anew) calls page.reload() or goto().
+  async open(route = ""): Promise<void> {
+    const target = new URL(this.url(route), this.baseURL).href;
+    if (!this.legacy && this.page.url().startsWith(new URL("./", this.baseURL).href)) {
+      await this.page.evaluate((u) => {
+        history.pushState(null, "", u);
+        dispatchEvent(new PopStateEvent("popstate", { state: null }));
+      }, target);
+    } else await this.page.goto(target);
     await expect(this.userPicker).toBeVisible();
-    if (!hash) await expect(this.patientRows().first()).toBeVisible();
+    if (!route) await expect(this.patientRows().first()).toBeVisible();
   }
 
   // The demo has no login: the user picker in the header stands in for it.

@@ -1,6 +1,6 @@
 <script setup lang="ts">
-// The patient detail route, #/patient/<nr>/<tab> (screen S-3). Old links without the slash (#patient/10/labs) reach
-// this route too: Vue Router reads the hash after "#" as the path, so "patient/10/labs" becomes "/patient/10/labs".
+// The patient detail route, /patient/<nr>/<tab> (screen S-3). A reload or a link opens it directly: the Worker serves
+// the app's page for /patient/* (APP_ROUTES in api/scripts/headers.mjs).
 // Opening a case is an access the server logs (GET /cases/:id); a refusal returns to the list, and a doctor outside
 // the case's team is offered break-the-glass instead.
 import { computed, watch } from "vue";

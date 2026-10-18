@@ -1,6 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import type { Page } from "@playwright/test";
-import { test, expect, type App } from "../fixtures";
+import { test, expect, isLegacy, type App } from "../fixtures";
 import { Discussion } from "../discussion";
 import { openNewPatient } from "../intake";
 
@@ -10,7 +10,7 @@ import { openNewPatient } from "../intake";
 // (step 13)"). The old page at /legacy/ is not held to these checks: it is retired, not fixed.
 
 test.beforeEach(({ baseURL }) => {
-  test.skip(new URL(baseURL!).pathname.startsWith("/legacy/"), "the old page is not held to the accessibility checks");
+  test.skip(isLegacy(baseURL!), "the old page is not held to the accessibility checks");
 });
 
 // Rules that fail a test only above this impact.

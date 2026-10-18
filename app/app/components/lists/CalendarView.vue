@@ -48,7 +48,7 @@ const patients = usePatientsStore();
 const workflow = useWorkflowStore();
 const v = useListViewStore();
 
-// The week lives in the address (#/calendar/<Monday>), so the browser's back button moves between weeks. A link to
+// The week lives in the address (/calendar/<Monday>), so the browser's back button moves between weeks. A link to
 // any day opens its week; the mini month then shows that day's month.
 let nextMonth: string | null = null;
 function goWeek(week: string, month: string | null = null) {

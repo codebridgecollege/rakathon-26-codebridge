@@ -6,6 +6,7 @@
 import { createHash } from "node:crypto";
 import { readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
+import { APP_ROUTES } from "./app-routes.mjs";
 
 const dir = process.argv[2];
 if (!dir) throw new Error("usage: node scripts/headers.mjs <assets dir>");
@@ -58,8 +59,12 @@ const csp = [
 // Rules for every file: no MIME sniffing, no referrer outside our origin, no framing (old browsers read
 // X-Frame-Options only); camera, location, payment and USB off, the microphone for our own pages (the AI recorder).
 // Nuxt's build files carry a content hash in their names, so they never change and may be cached for a year.
-// The policy itself is set on the app's page only: today's page at /legacy/, the phone page at /u and the 404 page run
-// inline scripts and styles throughout and get the common headers.
+// The policy itself is set on the app's page only, at / and at every route path that serves it (the assets match
+// _headers against the address the browser asked for, not the rewritten one): today's page at /legacy/, the phone page
+// at /u and the 404 page run inline scripts and styles throughout and get the common headers.
+const appPage = `  Content-Security-Policy: ${csp}
+  Cross-Origin-Opener-Policy: same-origin
+`;
 const headers = `/*
   X-Content-Type-Options: nosniff
   Referrer-Policy: same-origin
@@ -68,22 +73,20 @@ const headers = `/*
 
 /_nuxt/*
   Cache-Control: public, max-age=31536000, immutable
-
-/
-  Content-Security-Policy: ${csp}
-  Cross-Origin-Opener-Policy: same-origin
-`;
+${["/", ...APP_ROUTES].map((r) => `\n${r}\n${appPage}`).join("")}`;
 for (const line of headers.split("\n")) if (line.length > 2000) throw new Error("a _headers line exceeds Cloudflare's 2,000 characters");
 writeFileSync(path.join(dir, "_headers"), headers);
 
 // Today's page moved from / to /legacy/. Its relative links (the S02 ZIP, embedded page images) now resolve under
-// /legacy/, so they are sent to the one copy at the root. /app/ was the new app's address during the port; a
-// redirect keeps those bookmarks working (the browser keeps the #/route across a redirect without a fragment).
+// /legacy/, so they are sent to the one copy at the root. The app's route paths are rewritten (200, the address stays)
+// to its page at /; the target is / and not /index.html, which the assets would redirect to / first.
 // Static rules come first: Cloudflare matches them faster than rules with a splat.
-const redirects = `/app / 301
-/app/ / 301
-/legacy/ukazka/* /ukazka/:splat 302
-/legacy/pages/* /pages/:splat 302
-/app/* / 301
-`;
+const rewrites = APP_ROUTES.map((r) => `${r} / 200`);
+const redirects = [
+  ...rewrites.filter((r) => !r.includes("*")),
+  "/legacy/ukazka/* /ukazka/:splat 302",
+  "/legacy/pages/* /pages/:splat 302",
+  ...rewrites.filter((r) => r.includes("*")),
+  "",
+].join("\n");
 writeFileSync(path.join(dir, "_redirects"), redirects);

@@ -71,11 +71,14 @@ test("Escape and Zpět discard the intake too, so the birth number is free again
   await expect(again.getByText(/Pacient s tímto rodným číslem už v databázi je/)).toHaveCount(0);
 });
 
-test("moving to another screen by its address closes the dialog", async ({ app }) => {
+test("moving to another screen by the browser's back button closes the dialog", async ({ app }) => {
+  await app.nav("Kalendář MDT").click();
+  await expect(app.main.getByRole("heading", { level: 1, name: "Kalendář MDT" })).toBeVisible();
   const dlg = await openNewPatient(app);
-  // The dialog covers the navigation, so the move comes from the address (a link, the browser's back button).
-  await app.page.goto("./#calendar");
+  // The dialog covers the navigation, so the move comes from the browser: back to the calendar, without a page load.
+  await app.page.goBack();
   await expect(dlg).toBeHidden();
+  await expect(app.main.getByRole("heading", { level: 1, name: "Kalendář MDT" })).toBeVisible();
 });
 
 test("the administrator gets a note instead of the dialog", async ({ app, page }) => {

@@ -1,10 +1,10 @@
 import { test, expect } from "../fixtures";
 
-// Today's links into the list screens (#patients, #calendar/<day>, #tasks, #staff, #admin) keep working, and the
-// patient table's columns can be resized by dragging their edge (FRONTEND.md step 3; e2e/README.md listed both as not
-// covered yet). Both run against today's page and the new app.
+// Links into the list screens (/patients, /calendar/<day>, /tasks, /staff, /admin; #patients and so on on today's
+// page) open their screens, and the patient table's columns can be resized by dragging their edge (FRONTEND.md step
+// 3). Both run against today's page and the new app.
 
-test("old hash links open their screens, a calendar link opens that day's week", async ({ app }) => {
+test("links open their screens, a calendar link opens that day's week", async ({ app }) => {
   await app.open("calendar/2026-10-28");
   await expect(app.main.getByRole("heading", { level: 1, name: "Kalendář MDT" })).toBeVisible();
   await expect(app.main.getByText("26. 10. až 30. 10. 2026")).toBeVisible();

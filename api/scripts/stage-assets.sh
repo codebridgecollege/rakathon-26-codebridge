@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Stages the Worker's static files in api/.assets: the Nuxt app (app/, docs/design/FRONTEND.md) at /, today's page
 # (mocks/build.py's output) at /legacy/ for a transition period, and the files both read (page images, the S02 ZIP,
-# the phone page). scripts/headers.mjs then writes the security headers and redirects for these files.
+# the phone page). scripts/headers.mjs then writes the security headers, the redirects and the rewrites of the app's
+# route paths for these files.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 MOCKS=../mocks
@@ -14,8 +15,8 @@ npm run generate --workspace @codebridge/app
 rm -rf .assets && mkdir -p .assets
 cp -R ../app/.output/public/. .assets/
 # Nuxt writes its own 404.html and 200.html (both the SPA shell). The assets' 404-page handling serves the nearest
-# 404.html, so Nuxt's would answer every unknown path with the app instead of the Worker's real 404; the app's routes
-# are hash routes and need neither file.
+# 404.html, so Nuxt's would answer every unknown path with the app instead of the Worker's real 404. The app's route
+# paths are served by rewrites that headers.mjs writes for the prefixes in scripts/app-routes.mjs, never by a fallback.
 rm -f .assets/404.html .assets/200.html
 # Today's page, unchanged, at /legacy/ (legacy/index.html; the assets' default html_handling serves it there).
 mkdir -p .assets/legacy

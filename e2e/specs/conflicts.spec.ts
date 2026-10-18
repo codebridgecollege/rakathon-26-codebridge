@@ -12,7 +12,7 @@ test("two people editing the same draft: the later one is told and chooses whose
   const otherCtx = await browser.newContext({ baseURL, locale: "cs-CZ", timezoneId: "Europe/Prague", viewport: { width: 1440, height: 900 } });
   try {
     const otherPage = await otherCtx.newPage();
-    const other = new App(otherPage);
+    const other = new App(otherPage, baseURL!);
     await other.open();
     await other.loginAs("MUDr. Malá");
     await other.open("patient/10/overview");

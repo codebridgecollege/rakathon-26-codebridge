@@ -2,7 +2,7 @@
 // readHash() and switchApiUser() did:
 // - back or forward away from the dialog closes it and discards the open intake, as closing it does;
 // - a user switch first ends the intake and the phone upload session, which belong to the previous user;
-// - a finished intake opens the new patient (#/patient/<id>) or the patient list. The patient screens may replace
+// - a finished intake opens the new patient (/patient/<id>) or the patient list. The patient screens may replace
 //   this with useNewPatient().setNavigation().
 import { defineNuxtPlugin } from "#app";
 import type { Router } from "vue-router";
