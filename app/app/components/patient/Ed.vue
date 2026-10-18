@@ -6,7 +6,13 @@ import { computed } from "vue";
 import { useFluent } from "fluent-vue";
 import { usePatient } from "../../composables/usePatient";
 
-const props = defineProps<{ k: string; orig: string | null | undefined }>();
+// withButton false leaves the pencil out, for a fact inside a source link: a button inside the link's role="button"
+// would be a control nested in a control, which screen readers cannot reach. The caller then puts <Ed button-only>
+// right after the link, so the pencil sits where it sat before.
+const props = withDefaults(defineProps<{ k: string; orig: string | null | undefined; withButton?: boolean; buttonOnly?: boolean }>(), {
+  withButton: true,
+  buttonOnly: false,
+});
 const { $t } = useFluent();
 const c = usePatient();
 const e = computed(() => c.edOf(props.k));
@@ -14,7 +20,9 @@ const tip = computed(() => (e.value ? $t("patient-edit-tag-tooltip", { by: e.val
 </script>
 
 <template>
-  <span :class="e ? 'edited' : ''" lang="cs"><template v-if="e">{{ e.text }}</template><slot v-else-if="$slots.default" /><template v-else>{{ orig ?? "" }}</template></span>
-  <span v-if="e" class="edtag" :title="tip">{{ $t("patient-edit-tag") }}</span>
-  <button v-if="c.isDoctor.value" class="edbtn" data-edit :aria-label="$t('patient-edit-button')" :title="$t('patient-edit-button')" @click.stop.prevent="c.openEdit(k, orig)">✎</button>
+  <template v-if="!buttonOnly">
+    <span :class="e ? 'edited' : ''" lang="cs"><template v-if="e">{{ e.text }}</template><slot v-else-if="$slots.default" /><template v-else>{{ orig ?? "" }}</template></span>
+    <span v-if="e" class="edtag" :title="tip">{{ $t("patient-edit-tag") }}</span>
+  </template>
+  <button v-if="c.isDoctor.value && (withButton || buttonOnly)" class="edbtn" data-edit :aria-label="$t('patient-edit-button')" :title="$t('patient-edit-button')" @click.stop.prevent="c.openEdit(k, orig)">✎</button>
 </template>

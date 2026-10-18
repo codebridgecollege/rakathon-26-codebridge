@@ -1,0 +1,10 @@
+/* App-only rules on top of v3.css (today's page CSS, copied unchanged by scripts/sync-css.mjs). They fix what the
+   accessibility checks (e2e/specs/accessibility.spec.ts) found; the old page at /legacy/ keeps its CSS as it was. */
+
+/* Faint text (calendar times, small labels) at 4.5:1 or better on white, --sunk and --accent-soft (WCAG AA). The old
+   #6c818a reached 4.1:1 on white and 3.8:1 on --sunk. */
+:root { --faint: #5f7179; }
+
+/* The source viewer's "Stránka" and "Přepis stránky" are tabs, so aria-selected (not aria-pressed) marks the open one;
+   this is v3.css's look for a pressed .seg button. */
+.seg button[role="tab"][aria-selected="true"] { background: transparent; border-bottom-color: var(--accent); color: var(--accent-ink); box-shadow: none; }

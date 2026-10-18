@@ -34,7 +34,7 @@ onMounted(() => void nextTick(() => hit.value?.scrollIntoView?.({ block: "center
 
 <template>
   <div class="scrim" @click="overlay.close()" />
-  <aside class="drawer" role="dialog" :aria-label="$t('patient-guide-drawer-label')">
+  <aside class="drawer" role="dialog" aria-modal="true" :aria-label="$t('patient-guide-drawer-label')">
     <header>
       <div>
         <div class="label">{{ $t("patient-guide-drawer-label") }} · <span :lang="lang">{{ g.society || "" }} {{ g.year || "" }}</span></div>

@@ -179,7 +179,7 @@ function zoomToHit() {
 <template>
   <template v-if="showLoading">
     <div class="scrim" @click="close"></div>
-    <aside class="drawer" role="dialog" :aria-label="$t('patient-src-loading-dialog')">
+    <aside class="drawer" role="dialog" aria-modal="true" :aria-label="$t('patient-src-loading-dialog')">
       <header>
         <div><div class="label">{{ $t("patient-src-loading-label") }}</div></div>
         <button class="btn small" @click="close">{{ $t("patient-src-close") }}</button>
@@ -189,7 +189,7 @@ function zoomToHit() {
   </template>
   <template v-else-if="d">
     <div class="scrim" @click="close"></div>
-    <aside ref="root" class="drawer wide" role="dialog" :aria-label="$t('patient-src-dialog')">
+    <aside ref="root" class="drawer wide" role="dialog" aria-modal="true" :aria-label="$t('patient-src-dialog')">
       <header>
         <div style="min-width: 0">
           <div class="label vlabel">{{ $t("patient-src-kind") }}</div>
@@ -205,7 +205,7 @@ function zoomToHit() {
         <button v-for="p in doc?.pages || []" :key="p.n" :aria-pressed="p.n === d.n" :title="p.empty ? $t('patient-src-page-empty-tooltip') : ''" @click="gotoPage(p.n)">{{ $t("patient-src-page-button", { n: p.n }) }}{{ p.empty ? $t("patient-src-page-empty") : "" }}</button>
       </div>
       <div class="vbar">
-        <span v-if="!red" class="seg" role="tablist" :aria-label="$t('patient-src-tabs')"><button role="tab" :aria-pressed="tab !== 'text'" :aria-selected="tab !== 'text'" @click="setTab('image')">{{ $t("patient-src-tab-image") }}</button><button role="tab" :aria-pressed="tab === 'text'" :aria-selected="tab === 'text'" @click="setTab('text')">{{ $t("patient-src-tab-text") }}</button></span>
+        <span v-if="!red" class="seg" role="tablist" :aria-label="$t('patient-src-tabs')"><button role="tab" :aria-selected="tab !== 'text'" @click="setTab('image')">{{ $t("patient-src-tab-image") }}</button><button role="tab" :aria-selected="tab === 'text'" @click="setTab('text')">{{ $t("patient-src-tab-text") }}</button></span>
         <label v-if="tab !== 'text' && d.redacted" class="small" style="display: inline-flex; gap: 6px; align-items: center"><input type="checkbox" :checked="red" @change="ov.update(props.o, { redacted: ($event.target as HTMLInputElement).checked })" /> {{ $t("patient-src-redact") }}</label>
         <button v-if="tab !== 'text' && !red && imgHit" class="btn small" @click="zoomToHit">{{ $t("patient-src-zoom-hit") }}</button>
         <span class="muted small vengine row" style="gap: 6px">{{ nv ? $t("patient-src-verify-count", { n: nv }) : "" }}<button class="info" :title="engineTip" :aria-label="engineTip">i</button></span>
@@ -213,7 +213,8 @@ function zoomToHit() {
       <div v-if="note" :class="note.warn ? 'vnote warn' : 'vnote'">{{ note.text }}</div>
       <div class="vwrap">
         <ZoomControl v-if="tab !== 'text'" :zoom="o.zoom" @step="zoomStep" @fit="setZoom('fit')" />
-        <div id="vbody" class="vbody">
+        <!-- Focusable, so the page image and the transcription scroll from the keyboard too. -->
+        <div id="vbody" class="vbody" tabindex="0" role="region" :aria-label="$t('patient-src-tabs')">
           <template v-if="red">
             <p class="synth" style="margin: 0 0 12px; border-style: solid">
               {{ $t("patient-src-redact-intro") + " " }}<i18n v-if="d.redacted.count" path="patient-src-redact-count" :tag="false" :args="{ n: Number(d.redacted.count) }"><template #reasons><span lang="cs">{{ reasons }}</span></template></i18n><template v-else>{{ $t("patient-src-redact-none") }}</template>{{ " " + $t("patient-src-redact-outro") }}

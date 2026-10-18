@@ -27,7 +27,7 @@ const coverage = computed(() => {
 
 <template>
   <div class="scrim" @click="overlay.close()"></div>
-  <aside class="drawer" role="dialog" :aria-label="pn ? $t('patient-pg-sim-explain') : $t('patient-pg-title')" style="grid-template-rows: auto minmax(0, 1fr)">
+  <aside class="drawer" role="dialog" aria-modal="true" :aria-label="pn ? $t('patient-pg-sim-explain') : $t('patient-pg-title')" style="grid-template-rows: auto minmax(0, 1fr)">
     <header>
       <div>
         <div class="label">{{ $t("patient-pg-panel-label") }}</div>

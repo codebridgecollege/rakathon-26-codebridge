@@ -60,20 +60,20 @@ const sources = computed(() => {
     <div class="head"><h2>{{ $t("patient-onco-title") }} <button class="info" :title="$t('patient-onco-pin-help')" :aria-label="$t('patient-onco-pin-help')">i</button></h2></div>
     <div class="ocbody" tabindex="0" role="region" :aria-label="$t('patient-onco-region')">
       <template v-if="d">
-        <p class="dxh"><SrcWrap :r="first(d)"><Ed k="dx" :orig="dxBase" /></SrcWrap><template v-if="d.histology_date_cs">{{ " " }}<span class="muted" style="font-size:13px;font-weight:600" :title="d.tnm_context_cs || ''">{{ $t("patient-onco-ptnm", { month: dxMonth }) }}</span></template><Marks :f="d" /></p>
+        <p class="dxh"><SrcWrap :r="first(d)"><Ed k="dx" :orig="dxBase" :with-button="false" /></SrcWrap><Ed k="dx" :orig="dxBase" button-only /><template v-if="d.histology_date_cs">{{ " " }}<span class="muted" style="font-size:13px;font-weight:600" :title="d.tnm_context_cs || ''">{{ $t("patient-onco-ptnm", { month: dxMonth }) }}</span></template><Marks :f="d" /></p>
         <p class="dxs" lang="cs">{{ d.mkn_cs || "" }}</p>
       </template>
       <template v-if="compact">
         <div v-for="(l, i) in compact.lines || []" :key="i" class="orow cpt">
           <span class="dt" :data-tip="l.kind === 'systemic' ? $t('patient-onco-start') : undefined" :tabindex="l.kind === 'systemic' ? 0 : undefined">{{ l.date_sort ? fmtDate($t, l.date_sort) : "" }}<span :class="['lpin', `kind-${compactKind(l)}`, l.kind === 'plan' ? 'planned' : '']" :title="pinLabel(l)" role="img" :aria-label="pinLabel(l)" tabindex="0"><CatIcon :k="compactKind(l)" /></span></span>
-          <span><SrcWrap :r="first(l)"><Ed :k="`oc:${i}`" :orig="l.text_cs" /></SrcWrap><Marks :f="l" /></span>
+          <span><SrcWrap :r="first(l)"><Ed :k="`oc:${i}`" :orig="l.text_cs" :with-button="false" /></SrcWrap><Ed :k="`oc:${i}`" :orig="l.text_cs" button-only /><Marks :f="l" /></span>
         </div>
         <p v-if="compact.other_dx_cs" class="otherdx" style="margin:10px 0 0;font-size:14px;font-style:italic"><SrcWrap :r="refAt(cd, (compact.other_dx_refs || [])[0])"><span lang="cs">{{ compact.other_dx_cs }}</span></SrcWrap></p>
       </template>
       <template v-else>
         <div v-for="(r, i) in rows" :key="i" class="orow" :title="cat(rowKind(r)) || ''">
           <span class="dt" lang="cs">{{ r.date_cs || r.date_label_cs || "" }}</span>
-          <span><b><SrcWrap :r="first(r)"><Ed :k="`od:${i}:e`" :orig="r.event_cs" /></SrcWrap></b><template v-if="r.comment_cs"><br><Ed :k="`od:${i}:c`" :orig="r.comment_cs" /></template><Marks :f="r" /></span>
+          <span><b><SrcWrap :r="first(r)"><Ed :k="`od:${i}:e`" :orig="r.event_cs" :with-button="false" /></SrcWrap><Ed :k="`od:${i}:e`" :orig="r.event_cs" button-only /></b><template v-if="r.comment_cs"><br><Ed :k="`od:${i}:c`" :orig="r.comment_cs" /></template><Marks :f="r" /></span>
         </div>
       </template>
     </div>

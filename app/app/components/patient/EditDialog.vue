@@ -58,7 +58,7 @@ function save(revertAsked: boolean) {
 
 <template>
   <div class="scrim" @click="overlay.close()" />
-  <div class="modal" role="dialog" :aria-label="$t('patient-edit-dialog')">
+  <div class="modal" role="dialog" aria-modal="true" :aria-label="$t('patient-edit-dialog')">
     <div class="row spread"><h2>{{ o.isQuestion ? $t("patient-question-title") : $t("patient-edit-dialog") }}</h2><button class="btn small" @click="overlay.close()">{{ $t("patient-close") }}</button></div>
     <div v-if="o.orig" class="small"><span class="label">{{ $t("patient-edit-original") }}</span><p style="margin:2px 0 0" lang="cs">{{ o.orig }}</p></div>
     <textarea ref="box" v-model="text" class="input" lang="cs" :aria-label="o.isQuestion ? $t('patient-question-title') : $t('patient-edit-dialog')" />

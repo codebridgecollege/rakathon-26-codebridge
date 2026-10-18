@@ -44,7 +44,7 @@ function copy() {
 
 <template>
   <div class="scrim" @click="overlay.close()" />
-  <div class="modal" role="dialog" :aria-label="$t('patient-fhir-dialog-label')">
+  <div class="modal" role="dialog" aria-modal="true" :aria-label="$t('patient-fhir-dialog-label')">
     <div class="row spread">
       <h2>{{ $t("patient-fhir-dialog-title", { id: o.id }) }}</h2>
       <button class="btn small" @click="overlay.close()">{{ $t("patient-fhir-close") }}</button>

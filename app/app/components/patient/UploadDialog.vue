@@ -26,7 +26,7 @@ const canUpload = computed(() => {
 
 <template>
   <div class="scrim" @click="overlay.close()" />
-  <div class="modal" role="dialog" :aria-label="$t('patient-upload-title')">
+  <div class="modal" role="dialog" aria-modal="true" :aria-label="$t('patient-upload-title')">
     <div class="row spread"><h2>{{ $t("patient-upload-heading", { id: p?.id ?? "" }) }}</h2><button class="btn small" @click="overlay.close()">{{ $t("patient-close") }}</button></div>
     <div class="drop">{{ $t("patient-upload-drop") }}<br><button class="btn small" style="margin-top:8px" @click="done = true">{{ $t("patient-upload-pick") }}</button></div>
     <PhoneUploadButton v-if="canUpload && p" target="documents" :case-id="p.id" :file="p.file" />

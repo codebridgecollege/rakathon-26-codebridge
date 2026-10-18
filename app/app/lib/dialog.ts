@@ -22,23 +22,30 @@ export function useDialogFocus(el: Ref<HTMLElement | null>, open: Ref<boolean>) 
     { immediate: true },
   );
 
-  // Keeps Tab and Shift+Tab inside the dialog. The upload zone's input is transparent but laid out, so it counts: it is
-  // how the file chooser is reached from the keyboard. An input with the hidden attribute cannot take focus.
   function onKeydown(e: KeyboardEvent) {
-    if (e.key !== "Tab" || !el.value) return;
-    const items = [...el.value.querySelectorAll<HTMLElement>(FOCUSABLE)].filter((x) => x.offsetParent !== null && !x.hidden);
-    if (!items.length) return;
-    const first = items[0]!;
-    const last = items[items.length - 1]!;
-    const at = document.activeElement;
-    if (e.shiftKey && (at === first || at === el.value)) {
-      e.preventDefault();
-      last.focus();
-    } else if (!e.shiftKey && at === last) {
-      e.preventDefault();
-      first.focus();
-    }
+    if (e.key === "Tab" && el.value) trapTab(e, el.value);
   }
 
   return { onKeydown };
+}
+
+// Keeps Tab and Shift+Tab inside a dialog. The upload zone's input is transparent but laid out, so it counts: it is
+// how the file chooser is reached from the keyboard. An input with the hidden attribute cannot take focus. Focus
+// outside the dialog (after a click on the scrim's edge, say) is brought back in.
+export function trapTab(e: KeyboardEvent, dlg: HTMLElement): void {
+  const items = [...dlg.querySelectorAll<HTMLElement>(FOCUSABLE)].filter((x) => x.offsetParent !== null && !x.hidden);
+  if (!items.length) return;
+  const first = items[0]!;
+  const last = items[items.length - 1]!;
+  const at = document.activeElement;
+  if (!at || !dlg.contains(at)) {
+    e.preventDefault();
+    (e.shiftKey ? last : first).focus();
+  } else if (e.shiftKey && (at === first || at === dlg)) {
+    e.preventDefault();
+    last.focus();
+  } else if (!e.shiftKey && at === last) {
+    e.preventDefault();
+    first.focus();
+  }
 }

@@ -107,7 +107,8 @@ describe("source viewer", () => {
     expect(text!.attributes("aria-selected")).toBe("false");
     await text!.trigger("click");
     expect(text!.attributes("aria-selected")).toBe("true");
-    expect(text!.attributes("aria-pressed")).toBe("true");
+    // Tabs carry aria-selected only: aria-pressed is not allowed on a tab (axe, aria-allowed-attr).
+    expect(text!.attributes("aria-pressed")).toBeUndefined();
     expect(image!.attributes("aria-selected")).toBe("false");
     expect(usePatientViewStore().srcTab).toBe("text");
     expect(w.find(".pgimg").exists()).toBe(false);

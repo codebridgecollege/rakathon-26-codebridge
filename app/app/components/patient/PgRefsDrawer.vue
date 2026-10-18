@@ -22,7 +22,7 @@ watch(() => props.o.hit, scrollToHit);
 
 <template>
   <div class="scrim" @click="overlay.close()"></div>
-  <aside class="drawer" role="dialog" :aria-label="$t('patient-pg-refs-label')" style="grid-template-rows: auto minmax(0, 1fr)">
+  <aside class="drawer" role="dialog" aria-modal="true" :aria-label="$t('patient-pg-refs-label')" style="grid-template-rows: auto minmax(0, 1fr)">
     <header>
       <div>
         <div class="label">{{ $t("patient-pg-title") }}</div>

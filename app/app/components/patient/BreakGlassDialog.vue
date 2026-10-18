@@ -62,7 +62,7 @@ function back() {
 
 <template>
   <div class="scrim" @click="overlay.close()" />
-  <div class="modal" role="dialog" :aria-label="$t('patient-bg-title')">
+  <div class="modal" role="dialog" aria-modal="true" :aria-label="$t('patient-bg-title')">
     <div class="row spread"><h2>{{ $t("patient-bg-heading", { id: p?.id ?? "" }) }}</h2><button class="btn small" @click="overlay.close()">{{ $t("patient-close") }}</button></div>
     <p style="margin:0">{{ $t("patient-bg-intro") }}</p>
     <label class="label" for="bgwhy">{{ $t("patient-bg-reason") }}</label>
