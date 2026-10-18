@@ -9,6 +9,7 @@ import { useSessionStore } from "../stores/session";
 import { useStaffStore } from "../stores/staff";
 import { usePatientsStore } from "../stores/patients";
 import { useWorkflowStore } from "../stores/workflow";
+import { useListViewStore } from "../stores/listView";
 
 const { $t } = useFluent();
 const route = useRoute();
@@ -17,8 +18,10 @@ const session = useSessionStore();
 const staff = useStaffStore();
 const patients = usePatientsStore();
 const workflow = useWorkflowStore();
+const listView = useListViewStore();
 
-const view = computed(() => String(route.params.view ?? "patients"));
+// The area is the first part of the path (/patients, /calendar/2026-10-19, /patient/10/labs).
+const view = computed(() => route.path.split("/")[1] || "patients");
 const userName = computed(() => session.me?.user.name ?? "");
 const userId = computed(() => session.me?.user.id ?? "");
 const isAdmin = computed(() => session.me?.user.role === "admin");
@@ -35,8 +38,11 @@ const items = computed(() => [
 // "patient" (one case) belongs to the patients area, as in the template.
 const current = (k: string): "true" | "false" => (view.value === k || (k === "patients" && view.value === "patient") ? "true" : "false");
 
+// By path, so each area's own page (pages/<area>.vue) answers; the calendar keeps its last week (list view store).
 function go(k: string) {
-  router.push({ name: "view", params: { view: k } });
+  // A patient picked for booking is dropped on any move between areas, as in the old page.
+  listView.schedPick = null;
+  void router.push(`/${k}`);
 }
 
 async function onUser(ev: Event) {

@@ -369,6 +369,24 @@ it: [`app/README.md`](../../app/README.md). Where it differs from the old page:
   branch; the specs that open the new patient pass only with the patient screens. The development harness
   (`#/dev-intake`, never in a production build) and `e2e/harness/` check the rest.
 
+## As implemented (steps 3, 4 and part of 12)
+
+Branch `port-lists` (issue #13): the patient list, the calendar, tasks, staff and administration. Where they live:
+[`app/README.md`](../../app/README.md). Text and markup match the old page (compared screen by screen: visible text
+and the tag and class structure of the main area). Where it differs:
+
+- **Routes per area by path:** `#/patients`, `#/calendar/<Monday>`, `#/tasks`, `#/staff`, `#/admin`. Today's links
+  (`#calendar/2026-10-22`) land on them, a link to any day is rewritten to its Monday, and the header navigates by
+  path. The `[view]` route remains for areas not ported yet.
+- **Column filters hold codes** (owner, department or "", the slot's day, the status code), not display text.
+- **The calendar card does not edit the MDT question.** The old page let a doctor open the edit dialog from the
+  card; that dialog belongs to the patient screens, so the card shows the question as text until they land.
+- **Added, nothing visible:** the card is a named region, the waiting list a list, toasts have a status role, the
+  filter popover's button says it opens a dialog and gets the focus back, both dialogs keep Tab inside, and "Vybráno"
+  is a pressed button.
+- **Opening a case** goes to `#/patient/<n>/overview` (`caseRoute()` in `app/app/lib/lists.ts`), which has no route
+  on this branch; the specs that open a case pass only with the patient screens.
+
 ## Decisions (2026-10-18)
 
 - **No offline demo is needed.** Embedded mode ends with the old page;
