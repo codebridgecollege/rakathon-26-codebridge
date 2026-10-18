@@ -6,6 +6,8 @@ import type { Locator } from "@playwright/test";
 
 const PATIENT = "Poláček Daniel";
 const QUESTION = /^Jaký postup doporučuje neurochirurgický seminář u solitárního sytícího se ložiska/;
+// The label of an MDT question the assistant drafted, shown until a doctor confirms or edits it (app only).
+const DRAFT_LABEL = "Návrh asistenta";
 
 // The smallest element that holds both the alert text and its action button: one alert entry.
 function alertEntry(scope: Locator, text: string | RegExp, button = "Vyřešeno"): Locator {
@@ -63,12 +65,16 @@ test("a doctor confirms the drafted MDT question and the confirmation survives a
   await openCase(app);
   await expect(app.main.getByText("Otázka pro MDT", { exact: true })).toBeVisible();
   await expect(app.main.getByRole("button", { name: QUESTION })).toBeVisible();
+  // The app labels the assistant's draft until a doctor confirms it (today's page shows no label since round 22).
+  if (!app.legacy) await expect(app.main.getByText(DRAFT_LABEL, { exact: true })).toBeVisible();
   await app.main.getByRole("button", { name: "Potvrdit otázku" }).click();
   await expect(page.getByText("Otázka potvrzena", { exact: true })).toBeVisible();
   await expect(app.main.getByRole("button", { name: "Potvrdit otázku" })).toHaveCount(0);
+  await expect(app.main.getByText(DRAFT_LABEL, { exact: true })).toHaveCount(0);
   await page.reload();
   await expect(app.main.getByRole("button", { name: QUESTION })).toBeVisible();
   await expect(app.main.getByRole("button", { name: "Potvrdit otázku" })).toHaveCount(0);
+  await expect(app.main.getByText(DRAFT_LABEL, { exact: true })).toHaveCount(0);
 });
 
 test("the coordinator cannot confirm the drafted question", async ({ app }) => {
@@ -79,6 +85,8 @@ test("the coordinator cannot confirm the drafted question", async ({ app }) => {
   await expect(app.main.getByText(QUESTION)).toBeVisible();
   await expect(app.main.getByRole("button", { name: QUESTION })).toHaveCount(0);
   await expect(app.main.getByRole("button", { name: "Potvrdit otázku" })).toHaveCount(0);
+  // The coordinator sees the draft label too: the question is still unconfirmed.
+  if (!app.legacy) await expect(app.main.getByText(DRAFT_LABEL, { exact: true })).toBeVisible();
 });
 
 test("a doctor edits the MDT question, the edit persists, and revert restores the original", async ({ app, page }) => {
@@ -92,6 +100,8 @@ test("a doctor edits the MDT question, the edit persists, and revert restores th
   await expect(dlg).toBeHidden();
   const edited = app.main.getByRole("button", { name: /^Je indikována stereotaktická radiochirurgie ložiska v mozečku\?/ });
   await expect(edited).toBeVisible();
+  // A doctor's text is no longer the assistant's draft.
+  await expect(app.main.getByText(DRAFT_LABEL, { exact: true })).toHaveCount(0);
   await page.reload();
   await expect(edited).toBeVisible();
   await edited.click();

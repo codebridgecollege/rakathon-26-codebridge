@@ -159,6 +159,8 @@ patient-question-edit = Upraviť otázku
 patient-question-none = Výslovná otázka { -gap-not-stated-f }.
 patient-question-confirm = Potvrdiť otázku
 patient-question-confirmed = Otázka potvrdená
+patient-question-draft = Návrh asistenta
+patient-question-draft-tip = Žiadanka výslovnú otázku neuvádza. Otázku navrhol asistent; platí, až keď ju lekár potvrdí alebo upraví. { $basis }
 
 ## Edit dialog
 

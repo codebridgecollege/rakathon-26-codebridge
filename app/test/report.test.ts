@@ -44,6 +44,18 @@ afterEach(() => {
 });
 
 describe("reportHtmlFor", () => {
+  it("prints an assistant's drafted question as a draft with its passage, and a confirmed one with who confirmed it", () => {
+    const p = { explicit: false, question: null, draft: "Jaký postup u ložiska?", qkind: "assistant_inference", basis: [{ role: "finding", quote: "ložisko v mozečku", source: { file, page: 3 } }] };
+    setup({ p });
+    expect(reportHtmlFor(t, file, draft, [])).toContain(
+      "<h4>Prezentován pro</h4><p>Jaký postup u ložiska? [návrh otázky asistentem, neověřeno lékařem] Vychází z: „ložisko v mozečku“ (10_pacient.pdf, s. 3).</p>",
+    );
+    setup({ p, wf: { qConfirm: { text: p.draft, by: "MUDr. Svobodová", when: "2026-10-16T10:00:00Z" } } });
+    const html = reportHtmlFor(t, file, draft, []);
+    expect(html).toMatch(/<p>Jaký postup u ložiska\? \[návrh asistenta, potvrdil\(a\) MUDr\. Svobodová, [^\]]+\]/);
+    expect(html).not.toContain("neověřeno lékařem] Vychází");
+  });
+
   it("prints a draft with its mark, the identity, the attendees and the default ticks", () => {
     setup();
     const html = reportHtmlFor(t, file, draft, ["MUDr. A", "MUDr. B"]);

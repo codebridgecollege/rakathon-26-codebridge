@@ -3,7 +3,8 @@
 // diagnosis and brief only when the case is already loaded: opening the card is not opening the case, so it never
 // starts a load and never writes a server access-log row. A named region lets screen readers find it (the old page's
 // card had no role; e2e/README.md lists the gap). The question is shown, not edited, here: the edit dialog belongs to
-// the patient screens (the old page let a doctor open it from the card).
+// the patient screens (the old page let a doctor open it from the card). A drafted question carries the same
+// "Návrh asistenta" label as on the patient screen.
 import { computed } from "vue";
 import { useFluent } from "fluent-vue";
 import type { PatientRow } from "@codebridge/api-client";
@@ -57,7 +58,7 @@ const briefText = computed(() => (brief.value ? $t("calendar-card-brief", { text
     <div class="question" :class="{ missing: !question }" style="padding:8px 12px">
       <span class="label">{{ $t("calendar-card-question") }}</span>
       <p style="font-size:14px">
-        <b v-if="!question">{{ $t("calendar-card-question-missing") }}</b><template v-else>{{ question }}</template>
+        <b v-if="!question">{{ $t("calendar-card-question-missing") }}</b><template v-else>{{ question.text }}<template v-if="question.draft">{{ " " }}<span class="qlbl draft">{{ $t("patient-question-draft") }}</span></template></template>
       </p>
     </div>
     <p class="small" style="margin:0">{{ briefText }}</p>

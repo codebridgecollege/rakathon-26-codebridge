@@ -153,6 +153,8 @@ describe("the MDT question", () => {
     expect(w.get(".bh").text()).toBe("Otázka pro MDT");
     const text = w.get('.edl[role="button"]');
     expect(text.text()).toBe("Jaký postup u ložiska?");
+    // The draft is labelled as the assistant's, outside the edit button.
+    expect(w.get(".qlbl.draft").text()).toBe("Návrh asistenta");
     await text.trigger("click");
     expect(useOverlayStore().current).toMatchObject({ kind: "edit", key: "q", orig: "Jaký postup u ložiska?", isQuestion: true });
     await w.get("button.btn").trigger("click");
@@ -160,6 +162,8 @@ describe("the MDT question", () => {
     expect(JSON.parse(String(s.calls.find((c) => c.url.includes("confirm"))!.init.body))).toEqual({ draft_sha: "abc" });
     expect(w.find("button.btn").exists()).toBe(false);
     expect(lastToast()).toBe("Otázka potvrzena");
+    // Once a doctor confirmed it, the question is no longer labelled a draft.
+    expect(w.find(".qlbl").exists()).toBe(false);
   });
 
   it("shows the coordinator the question as plain text without a confirm button", () => {
@@ -167,6 +171,30 @@ describe("the MDT question", () => {
     expect(w.find('[role="button"]').exists()).toBe(false);
     expect(w.find("button").exists()).toBe(false);
     expect(w.text()).toContain("Jaký postup u ložiska?");
+    expect(w.get(".qlbl.draft").text()).toBe("Návrh asistenta");
+  });
+
+  it("quotes the passage a draft rests on in the label's tooltip", () => {
+    const basis = [{ role: "purpose", quote: "k posouzení dalšího postupu", source: { file: "NO-010_A.pdf", page: 2 } }];
+    const w = mountInCase(QuestionBox, setupPatient({ p: { ...draft, basis } }));
+    const tip = w.get(".qlbl.draft").attributes("title") ?? "";
+    expect(tip).toContain("Žádanka výslovnou otázku neuvádí.");
+    expect(tip).toContain("Účel v dokumentu: „k posouzení dalšího postupu“ (NO-010_A.pdf, s. 2).");
+  });
+
+  it("labels no question a doctor edited or confirmed, and never the referral's explicit question", () => {
+    const edited = mountInCase(QuestionBox, setupPatient({ p: draft, wf: { edits: { q: { text: "Upravená otázka?", by: "MUDr. A", when: "t" } } } }));
+    expect(edited.text()).toContain("Upravená otázka?");
+    expect(edited.find(".qlbl").exists()).toBe(false);
+    const confirmed = mountInCase(QuestionBox, setupPatient({ p: draft, wf: { qConfirm: { text: draft.draft, by: "MUDr. A", when: "t" } } }));
+    expect(confirmed.text()).toContain("Jaký postup u ložiska?");
+    expect(confirmed.find(".qlbl").exists()).toBe(false);
+    // A confirmation of an older draft text does not cover a re-extracted draft: that one is labelled again.
+    const stale = mountInCase(QuestionBox, setupPatient({ p: draft, wf: { qConfirm: { text: "Starší návrh?", by: "MUDr. A", when: "t" } } }));
+    expect(stale.get(".qlbl.draft").text()).toBe("Návrh asistenta");
+    const explicit = mountInCase(QuestionBox, setupPatient({ p: { explicit: true, question: "Výslovná otázka?", draft: null } }));
+    expect(explicit.text()).toContain("Výslovná otázka?");
+    expect(explicit.find(".qlbl").exists()).toBe(false);
   });
 
   it("says the question is not stated when there is neither a question nor a draft", () => {

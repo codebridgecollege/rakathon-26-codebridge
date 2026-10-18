@@ -61,6 +61,14 @@ test("a click on a booked slot opens its card, Otevřít případ opens the case
   await expect(app.main.getByRole("heading", { level: 1, name: /Kotěrová Jaroslava/ })).toBeVisible();
 });
 
+test("the card labels an assistant's drafted MDT question as a draft", async ({ app }) => {
+  test.skip(app.legacy, "today's page shows no draft label since round 22");
+  await slot(app, "Poláček Daniel", "14:00").click();
+  const card = app.page.getByRole("region", { name: "Poláček Daniel" });
+  await expect(card.getByText(/^Jaký postup doporučuje neurochirurgický seminář/)).toBeVisible();
+  await expect(card.getByText("Návrh asistenta", { exact: true })).toBeVisible();
+});
+
 test("the card closes with its close button", async ({ app }) => {
   await slot(app, "Kotěrová Jaroslava", "14:10").click();
   const card = app.page.getByRole("heading", { level: 2, name: "Kotěrová Jaroslava" });

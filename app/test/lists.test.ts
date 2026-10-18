@@ -111,9 +111,14 @@ describe("calendar card data", () => {
     const edited: Partial<CaseState> = { edits: { dx: { text: "Opraveno", by: "MUDr. X", when: "" }, q: { text: "Upravená otázka", by: "MUDr. X", when: "" } } };
     // An edit replaces the base text and drops the OCR mark it answered.
     expect(dxLine(p, edited, cd)).toMatchObject({ text: "Opraveno", edited: true, verify: false });
-    expect(questionOf(p, undefined)).toBe("Indikace k radioterapii?");
-    expect(questionOf(p, edited)).toBe("Upravená otázka");
+    expect(questionOf(p, undefined)).toEqual({ text: "Indikace k radioterapii?", draft: true });
+    expect(questionOf(p, edited)).toEqual({ text: "Upravená otázka", draft: false });
     expect(questionOf(row(11), undefined)).toBeNull();
+    // A doctor's confirmation of the shown draft removes the draft label; one of an older draft text does not.
+    expect(questionOf(p, { qConfirm: { text: "Indikace k radioterapii?", by: "MUDr. X", when: "" } })).toEqual({ text: "Indikace k radioterapii?", draft: false });
+    expect(questionOf(p, { qConfirm: { text: "Starší návrh?", by: "MUDr. X", when: "" } })).toEqual({ text: "Indikace k radioterapii?", draft: true });
+    // The referral's explicit question is never a draft.
+    expect(questionOf(row(12, { explicit: true, question: "Výslovná otázka?", draft: null }), undefined)).toEqual({ text: "Výslovná otázka?", draft: false });
     expect(briefOf(undefined, cd)).toEqual({ text: "Souhrn případu.", edited: false });
     // A synthetic patient's extraction has no brief.
     expect(briefOf(undefined, { file: p.file, id: p.id, extraction: { syn: {} } })).toBeNull();

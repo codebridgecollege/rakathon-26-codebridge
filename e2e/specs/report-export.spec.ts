@@ -22,6 +22,8 @@ test("the report dialog picks sections, previews them and downloads a draft PDF"
   await dlg.getByText("Náhled reportu").click();
   await expect(dlg.getByRole("heading", { level: 1, name: "Záznam z MDT" })).toBeVisible();
   await expect(dlg.getByText(/· Koncept$/)).toBeVisible();
+  // The assistant's drafted MDT question reads as a draft in the report, with the passage it rests on.
+  await expect(dlg.getByText(/\[otázka podle účelu v dokumentu, návrh asistenta, neověřeno lékařem\] Účel v dokumentu: „/)).toBeVisible();
   await expect(dlg.getByText("Alergologická anamnéza: neuvedeno v dostupné dokumentaci")).toHaveCount(0);
   await dlg.getByRole("checkbox", { name: "Anamnéza" }).check();
   // A gap in the printed report uses the full fixed wording.

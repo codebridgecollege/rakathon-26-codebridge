@@ -129,6 +129,11 @@ patient-question-edit = Upravit otázku
 patient-question-none = Výslovná otázka { -gap-not-stated-f }.
 patient-question-confirm = Potvrdit otázku
 patient-question-confirmed = Otázka potvrzena
+# The label of a question the assistant drafted (the referral states none), shown until a doctor confirms or edits it;
+# the same wording as the assistant's drafted tasks (discussion-sugg-chip).
+patient-question-draft = Návrh asistenta
+# Its tooltip; { $basis } is the passages the draft rests on, quoted verbatim with their pages (patient-fhir-basis).
+patient-question-draft-tip = Žádanka výslovnou otázku neuvádí. Otázku navrhl asistent; platí, až ji lékař potvrdí nebo upraví. { $basis }
 
 ## Edit dialog
 

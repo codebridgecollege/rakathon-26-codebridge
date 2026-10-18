@@ -3,6 +3,7 @@
 // load: opening the card is not opening the case.
 import type { CaseState, PatientRow } from "@codebridge/api-client";
 import type { CaseData } from "../stores/cases";
+import { qState } from "@codebridge/domain/case-view";
 import { editOf } from "./lists";
 
 type DxHeadline = { histology_cs?: string; grade_cs?: string; tnm_cs?: string; tnm_context_cs?: string; ocr_note_cs?: string; ocr_check?: { mark?: boolean } };
@@ -26,13 +27,12 @@ export function dxLine(p: PatientRow, cs: Partial<CaseState> | undefined, cd: Ca
   return { text: e ? e.text : base, edited: !!e, context: d.tnm_context_cs || null, verify: !!d.ocr_note_cs && !cleared && !e };
 }
 
-// The MDT question as the card shows it: the doctor's edit, the referral's explicit question, the assistant's draft
-// (confirmed or not), or nothing (shown with the gap wording).
-export function questionOf(p: PatientRow, cs: Partial<CaseState> | undefined): string | null {
-  const e = editOf(cs, "q");
-  if (e) return e.text;
-  if (p.explicit) return p.question;
-  return p.draft || null;
+// The MDT question as the card shows it, by the same rule as the patient screen (qState()): the doctor's edit, the
+// referral's explicit question, the assistant's draft, or null (shown with the gap wording). draft is true only for an
+// assistant's draft no doctor has confirmed or edited, which the card labels as a draft.
+export function questionOf(p: PatientRow, cs: Partial<CaseState> | undefined): { text: string; draft: boolean } | null {
+  const q = qState(p, editOf(cs, "q"), cs?.qConfirm);
+  return q.mode === "none" ? null : { text: q.text, draft: q.mode === "draft" };
 }
 
 // The brief without its [n] reference marks, cut for the card; null when the case is not loaded or has none.
