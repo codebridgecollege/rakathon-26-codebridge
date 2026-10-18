@@ -90,5 +90,10 @@ for (const v of variants) {
   await cover.screenshot({ path: `${out}/${name}@2x.png` });
   execFileSync("sips", ["-s", "format", "jpeg", "-s", "formatOptions", "88", "-z", "900", "1600", `${out}/${name}@2x.png`, "--out", `${out}/${name}.jpg`], { stdio: "ignore" });
 }
+// The landing page's link preview (og:image): cover "a" without the event line in the header.
+await cover.goto(`file://${here}/cover.html?v=a&site=1`);
+await cover.waitForTimeout(1500);
+await cover.screenshot({ path: `${out}/og@2x.png` });
+execFileSync("sips", ["-s", "format", "jpeg", "-s", "formatOptions", "88", "-z", "900", "1600", `${out}/og@2x.png`, "--out", `${out}/og.jpg`], { stdio: "ignore" });
 await browser.close();
 console.log(`wrote covers for variants ${variants.join(", ")} in ${out}`);

@@ -24,7 +24,7 @@ def main() -> None:
         im.thumbnail((1600, 1600 * im.height // im.width))
         im.save(OUT / f"{png.stem}.jpg", "JPEG", quality=82, optimize=True, progressive=True)
     shutil.copy(ROOT / "mocks/src/brand/glide.svg", OUT / "glide.svg")
-    shutil.copy(ROOT / "docs/submission/cover.jpg", OUT / "og.jpg")  # link preview image
+    shutil.copy(ROOT / "docs/submission/og.jpg", OUT / "og.jpg")  # link preview image, without the event line
     print(f"wrote {len(list(OUT.glob('*.jpg')))} images to {OUT}")
 
 

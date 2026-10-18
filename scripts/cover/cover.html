@@ -95,7 +95,12 @@
       d: { tag: "Časová osa diagnostiky a léčby",
            main: ["tab-overview", 780, 0, -150], src: ["tab-documents", 820, -12, -40], labs: ["labs", 600, -13, -127] },
     };
-    const cfg = V[new URLSearchParams(location.search).get("v") || "a"] || V.a;
+    const q = new URLSearchParams(location.search), cfg = V[q.get("v") || "a"] || V.a;
+    /* ?site=1 renders the landing page's link preview: the same cover without the event line in the header. */
+    if (q.get("site")) {
+      document.querySelector(".top .right").remove();
+      document.querySelector(".note").innerHTML = "<b>Lékař si informace ověří přímo ve zdroji.</b> Vzniká s neuroonkologickým týmem v Ostravě.";
+    }
     for (const k of ["main", "src", "labs"]) {
       const [img, w, x, y, box] = cfg[k], el = document.querySelector(`.${k} .shot`);
       if (box) for (const [prop, val] of Object.entries(box)) el.parentElement.style[prop] = `${val}px`;
