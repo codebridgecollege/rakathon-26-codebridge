@@ -449,8 +449,10 @@ The runbook is in `api/AGENTS.md`, section "Login".
   routes (health, the phone upload): unknown, expired or idle answers 401
   `unauthenticated`; `last_used_at` is written when older than 5 minutes,
   so the idle limit can end a session up to 5 minutes early. The viewer
-  middleware reads the memberships again on every request, so an ended
-  membership counts at once (401 `unknown_user`). The cron sweep clears
+  middleware reads the memberships again on every request, and the auth
+  middleware the person's own one (for the speech and summary routes,
+  which have no viewer), so an ended membership counts at once (401
+  `unknown_user`). The cron sweep clears
   the ID token of expired sessions and deletes rows 30 days after expiry.
 - **Switches.** `POST /api/session/org {org_id}` (only into an active
   membership of the person) and `POST /api/session/role {membership_id}`
@@ -494,15 +496,25 @@ The runbook is in `api/AGENTS.md`, section "Login".
   hands a 401 `unauthenticated` or `unknown_user` to the app and sends the
   request again (at most twice) when the app says so; the request was
   refused before anything ran, and an idempotency key is kept. The app:
-  a request that left before an org or role switch took effect is sent
-  again at once; with nothing unsaved (no dirty, in-flight or approving
+  a read that left before an org or role switch took effect is sent
+  again at once, a write is not (it belongs to the identity that made
+  it); with nothing unsaved (no dirty, in-flight or approving
   draft, no running recording or unsent recording parts) the page goes to
   `/auth/login?to=<path>`; otherwise `SessionExpiredDialog.vue`
   ("Přihlášení vypršelo") opens the login in a second window
   (`?popup=1`, which ends on "Přihlášení obnoveno"), and "Zkusit znovu"
-  (or the window getting focus back) checks `/api/me`. The waiting
+  (or the window getting focus back) checks `/api/me`. A new login lands
+  in the person's first org as themselves, so the store first switches
+  the same person back to the org and role the unsaved work belongs to
+  (the account menu's switches, with their server checks). The waiting
   requests go out again only when the same person acts as the same
   membership; another login shows "Načíst stránku znovu" instead.
+- **One session, several tabs.** The cookie serves every tab of the
+  browser, so each request names whom its tab shows (`X-Acting-As:
+  <membership>:<person>`, from `/api/me`, which is sent without it). After
+  a switch or another login in a second tab, the viewer middleware answers
+  409 `session_changed` before the request reads or writes anything, and
+  the tab says so and reloads.
 - Strings in `i18n/*/shell.ftl` and `lists.ftl`; tests in
   `app/test/login.test.ts` and `packages/api-client/test/client.test.ts`.
 
@@ -530,10 +542,19 @@ The runbook is in `api/AGENTS.md`, section "Login".
   the ID token ("User Info inside ID Token" off), the Worker calls the
   userinfo endpoint once per login with that login's access token, then
   drops it. Turning the setting on avoids that call.
-- **Automatic steps after a role switch.** Rows that a Workflow or the
-  cron job writes later (the speaker pass, the document pipeline) act for
-  the person stored with the job (`created_by`), which after a role switch
-  is the membership acted as, without `impersonating`. The request that
-  started the job is logged with the real person.
+- **Steps that finish later.** Work a request starts and a Workflow, the
+  cron sweep or the phone of an upload session finishes acts for its
+  `created_by` (after a role switch, the person acted as). Migration 0012
+  adds `created_by_actor` to `jobs`, `pipeline_runs`, `audio_uploads`,
+  `upload_sessions` and `cases`, and `actorFor` builds the real person and
+  `impersonating = 1` from it, so those rows name the person logged in too.
+- **Trust in the IdP's verified e-mail.** The first login links by the
+  e-mail the IdP marks verified. In Zitadel an organization or instance
+  administrator can create an account with any e-mail marked verified, so
+  whoever administers the Zitadel instance can take over a provisioned
+  person who has not logged in yet. A unique index allows one identity per
+  person and IdP, so a second account cannot link once the person has
+  logged in. Requiring Zitadel's resource-owner claim or a project role is
+  a later step.
 - **Hospital orgs** exist only in tests; both seeded orgs are demo orgs.
 
