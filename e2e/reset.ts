@@ -23,6 +23,13 @@ export async function checkServer(base: string): Promise<void> {
   if (h.service !== "codebridge-mdt" || !h.features?.data) {
     throw new Error(`${base} is not the CodeBridge Worker with the data API on (features.data). See e2e/README.md.`);
   }
+  // Every test resets the demo, which wipes what other people did on a shared deployment. A remote base URL therefore
+  // needs an explicit yes.
+  const host = new URL(base).hostname;
+  const local = host === "localhost" || host === "127.0.0.1" || host === "::1";
+  if (!local && process.env.E2E_ALLOW_RESET !== "1") {
+    throw new Error(`${base} is not local. The suite resets the demo before every test; set E2E_ALLOW_RESET=1 if that is fine.`);
+  }
   if (!h.demo?.reset_enabled) {
     throw new Error(`${base} does not allow reset-demo (DEMO_RESET_ENABLED); the suite needs a resettable demo.`);
   }

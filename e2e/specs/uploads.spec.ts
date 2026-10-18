@@ -1,6 +1,7 @@
 import { test, expect } from "../fixtures";
 import { Discussion } from "../discussion";
 import { chooseFiles, syntheticFile } from "../files";
+import { S02_FILES } from "../intake";
 
 // Uploads in "Projednání na MDT" (PRODUCT.md F-34) and "Nahrát z telefonu" (docs/design/PHONE-UPLOAD.md): any file is
 // listed at once as "Nahráno"; the phone page at /u sends files into the case through a one-time link from the QR
@@ -34,6 +35,17 @@ test("files chosen in the discussion card are listed as Nahráno and stay after 
   await expect(again.card.getByText("kontrola-mr.pdf")).toBeVisible();
   await again.card.getByRole("button", { name: "Odebrat kontrola-mr.pdf" }).click();
   await expect(again.card.getByText("kontrola-mr.pdf")).toHaveCount(0);
+});
+
+test("a document of another patient is flagged, never merged silently", async ({ app, page }) => {
+  const d = await openDocsSegment(app);
+  // A prepared document of synthetic patient S02 uploaded into the case of S01: the server compares the identities.
+  await chooseFiles(page, d.card.getByRole("button", { name: /^Přetáhněte soubory sem/ }), [S02_FILES[0]]);
+  await expect(d.card.getByText("01-ambulantni-zprava-2026-10-08.pdf")).toBeVisible();
+  const row = d.card.getByRole("listitem").filter({ hasText: "01-ambulantni-zprava-2026-10-08.pdf" });
+  await expect(row.getByRole("alert")).toHaveText(
+    "Jméno nebo rodné číslo v dokumentu se neshoduje s pacientem případu; ověřte, zda dokument patří tomuto pacientovi.",
+  );
 });
 
 test("the administrator gets no upload zone", async ({ app }) => {
