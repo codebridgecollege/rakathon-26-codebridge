@@ -42,14 +42,14 @@ Terms used below:
    under `/api`, as it serves today's page. Nuxt was chosen over plain Vue
    3 with Vite because public server-rendered pages are likely later, and
    Nuxt renders those per route without a second framework.
-5. **citry: not for this app now.** Its i18n is the best of the options,
-   and dogfooding it would help citry. But:
+5. **citry: not for this app.** Its i18n is the best of the options. But
+   this app renders in the browser and its rules and API are TypeScript,
+   so a Python server-rendered framework solves a problem the app does not
+   have, and:
    - its Vue runtime (0.6.0) is unreleased and mid-migration;
    - it needs a Python process next to the Worker;
    - it has one maintainer;
    - coding agents have not seen its current syntax.
-   
-   A bounded spike after 0.6.0 is tagged is worth doing (see "citry").
 6. **i18n uses Fluent** ([`I18N.md`](I18N.md)): the same `.ftl` catalogs
    for the old page, the new app (through `fluent-vue`) and the Worker. Server and
    refactor work from `I18N.md` can start now on the old page; the strings
@@ -194,11 +194,11 @@ to Vue components and the browser hydrates them.
 - **i18n.** Fluent catalogs with CLDR plurals, typed translation, and extract and check commands. That covers `I18N.md` better than any of the other options.
 - **Security.** Strict content security policy and CSRF protection built in.
 - **A component library** (Citry UI) with dialogs, drawers, a calendar, a data grid, tabs, toasts and tooltips.
-- **Speed.** Its own browser benchmark puts it in the same range as the other stacks it tests. Those runs are single, on one machine, from unreleased builds, and its reports say they give no ranking. The spike below is where to measure it against browser-rendered Nuxt (the variant proposed here).
+- **Speed.** Its own browser benchmark puts it in the same range as the other stacks it tests. Those runs are single, on one machine, from unreleased builds, and its reports say they give no ranking.
 
 **Why not now:**
 - **Moving target.** It is pre-1.0. 0.6.0 (the Vue runtime, which removes the earlier Alpine runtime) is unreleased, and its migration plan lists the core runtime as in progress and integration as pending.
-- **A second process.** It needs a Python process. Cloudflare Workers and Pages cannot run it today. citry already builds a Pyodide wheel for its playground, so a Python Worker is worth testing in the spike; until then it means a Container or another host next to the Worker. If citry only reads the API, access checks and the audit log stay in the API. The costs are still real:
+- **A second process.** It needs a Python process. Cloudflare Workers and Pages cannot run it today. citry already builds a Pyodide wheel for its playground, but a Python Worker running it is untested, so in practice it means a Container or another host next to the Worker. If citry only reads the API, access checks and the audit log stay in the API. The costs are still real:
   - a second EU-hosted process with patient data passing through it (logs, caches, crash dumps);
   - forwarding the user's session to the API;
   - a second deploy.
@@ -208,17 +208,10 @@ to Vue components and the browser hydrates them.
 - **No help where the app is hardest.** The recorder, the lab chart, the PDF and the QR dialog stay hand-written browser JavaScript.
 - **Rules in a third language.** The browser-side copy of the clinical rules would be Python, next to TypeScript in the API and Python in the pipeline, unless the page asks the API for every rule.
 
-**What would change the answer:**
-- 0.6.0 tagged with its integration done;
-- a tested deployment next to the Worker in the EU (or on Python Workers);
-- a second person able to maintain it.
-
-**A spike worth doing after 0.6.0:** one screen (the patient brief, in
-cs, sk and en) served by citry behind the Worker, reading the same API,
-tried on Python Workers first and a Container second. It gives citry its
-first real case study and settles the comparison with measurements. If
-the team ever adopts it, it is recorded as pre-existing, author-owned
-code in `docs/agent/HACKATHON.md`.
+**Decision (2026-10-18):** citry is not used, and no spike is planned. The
+research above settles it for this app: the reasons are the app's shape
+(browser-rendered, TypeScript rules and API), not citry's speed or
+maturity alone.
 
 ## Migration
 
@@ -281,6 +274,5 @@ drafts labelled as drafts) checked screen by screen.
   behaviour of the ported screens is reviewed afterwards, against the
   DOM-only test suite and the old page.
 - **i18n uses Fluent** (`I18N.md`).
-- **The citry spike is on:** the patient brief in cs, sk and en, built in
-  citry next to the Nuxt version, after citry 0.6.0 is tagged (see "citry").
+- **citry is not used,** and the spike is dropped (see "citry").
 - **Nuxt 4,** with auto-imports off; upgrade cost is not a concern for the team.
