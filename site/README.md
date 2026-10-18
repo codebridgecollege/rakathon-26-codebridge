@@ -16,17 +16,12 @@ COVER_DEPS=/tmp/cover-deps node scripts/cover/build.mjs # screenshots (see the s
 uv run scripts/site/build_images.py                     # light JPEGs into site/img
 ```
 
-## Before publishing
-
-- Add the "Domluvit pilot" button with the team's contact address (commented out at the end of the partners section).
-- Check the GLIDE results figures and their caveat with the clinical lead.
-
 ## Analytics
 
 Umami Cloud, cookieless, counting only `glidemdt.com` and `www.glidemdt.com`. The script tag is in the page head
 (website ID `77af4838-ef34-4cdd-bb26-103f2f41a254`). Button clicks are sent as events through
 `data-umami-event` attributes: `header-kontakt`, `hero-chci-pilot`, `hero-jak-to-funguje` and
-`partneri-domluvit-pilot`.
+`footer-email`. The contact buttons open an e-mail to sona.hudecova@codebridgecollege.com.
 
 ## Deploy
 

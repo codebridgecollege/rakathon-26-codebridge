@@ -129,36 +129,13 @@
   @media (max-width:860px) { .steps { grid-template-columns:1fr 1fr; } }
   @media (max-width:520px) { .steps { grid-template-columns:1fr; } }
 
-  /* Numbers */
-  .nums { display:grid; grid-template-columns:repeat(2,1fr); border-top:1px solid var(--line); margin-top:clamp(36px,5vw,56px); }
-  .num { padding:28px 32px 28px 0; }
-  .num + .num { border-left:1px solid var(--line); padding-left:32px; }
-  .num .big { font-family:var(--head); font-weight:600; font-size:clamp(44px,5.5vw,68px); letter-spacing:-0.06em; line-height:1; }
-  .num .big small { font-size:.42em; letter-spacing:-0.02em; color:var(--muted); font-weight:500; margin-left:6px; }
-  .num .arrow { color:var(--muted); font-weight:400; margin:0 10px; }
-  .num p { margin-top:12px; color:var(--muted); }
-  .caveat { margin-top:28px; font-size:15px; color:var(--muted); max-width:760px; padding-left:16px; border-left:2px solid var(--line); }
-  @media (max-width:760px) { .nums { grid-template-columns:1fr; } .num + .num { border-left:none; border-top:1px solid var(--line); padding-left:0; } }
-
-  .calc { display:grid; grid-template-columns:repeat(3,auto) 1fr; align-items:end; gap:18px 32px; margin-top:clamp(32px,4vw,48px); }
-  .calc .k { font-family:var(--head); font-weight:600; font-size:clamp(34px,4vw,52px); letter-spacing:-0.05em; line-height:1; }
-  .calc .k small { display:block; font-family:var(--body); font-size:14px; letter-spacing:0; color:var(--muted); font-weight:500; margin-top:8px; }
-  .calc .res { color:var(--teal); }
-  @media (max-width:760px) { .calc { grid-template-columns:1fr 1fr; } }
-
   /* Mint quote band */
   .band { background:var(--mint); padding:clamp(56px,7vw,96px) 0; }
   .band .wrap { display:flex; flex-wrap:wrap; justify-content:space-between; align-items:baseline; gap:20px; }
   .band blockquote { font-family:var(--head); font-weight:500; font-size:clamp(24px,2.8vw,36px); letter-spacing:-0.04em; line-height:1.25; max-width:900px; }
 
-  /* Partners CTA */
-  .cta { text-align:left; }
-  .cta .row { display:flex; flex-wrap:wrap; gap:28px; align-items:center; margin-top:34px; }
-  .areas { display:flex; flex-wrap:wrap; gap:10px; margin-top:26px; }
-  .areas span { border:1px solid var(--line); border-radius:999px; padding:6px 14px; font-size:14px; color:var(--muted); background:#fff; }
-  .areas span.on { border-color:var(--teal); color:var(--teal); font-weight:600; }
-
   footer { border-top:1px solid var(--line); padding:32px 0 40px; font-size:14px; color:var(--muted); }
+  footer a { color:var(--ink); }
   footer .wrap { display:flex; flex-wrap:wrap; justify-content:space-between; gap:16px; }
 </style>
 </head>
@@ -167,8 +144,8 @@
 <header>
   <div class="wrap">
     <a class="brand" href="#" aria-label="GLIDE MDT"><img src="img/glide.svg" alt="GLIDE" width="98" height="24"><span class="div"></span><span>MDT</span></a>
-    <nav aria-label="Hlavní navigace"><a href="#problem">Proč</a><a href="#produkt">Jak to funguje</a><a href="#vysledky">Výsledky</a><a href="#partneri">Partneři</a></nav>
-    <a class="btn dark" href="#partneri" data-umami-event="header-kontakt">Kontakt <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 15 15 5M7 5h8v8"/></svg></a>
+    <nav aria-label="Hlavní navigace"><a href="#problem">Proč</a><a href="#produkt">Jak to funguje</a></nav>
+    <a class="btn dark" href="mailto:sona.hudecova@codebridgecollege.com?subject=GLIDE%20MDT" data-umami-event="header-kontakt">Kontakt <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 15 15 5M7 5h8v8"/></svg></a>
   </div>
 </header>
 
@@ -179,7 +156,7 @@
         <h1>Od informací<br><span class="t">k lepším klinickým rozhodnutím.</span></h1>
         <p class="lede">Jeden pacient. Všechny podstatné informace. Strukturovaný souhrn, časová osa diagnostiky a léčby a odkazy na původní dokumenty.</p>
         <div class="ctas">
-          <a class="btn mint" href="#partneri" data-umami-event="hero-chci-pilot">Chci pilot <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 15 15 5M7 5h8v8"/></svg></a>
+          <a class="btn mint" href="mailto:sona.hudecova@codebridgecollege.com?subject=GLIDE%20MDT%20pilot" data-umami-event="hero-chci-pilot">Chci pilot <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 15 15 5M7 5h8v8"/></svg></a>
           <a class="link" href="#produkt" data-umami-event="hero-jak-to-funguje">Jak to funguje&nbsp; ↓</a>
         </div>
         <p class="note"><b>Lékař si informace ověří přímo ve zdroji.</b> Vzniká s neuroonkologickým týmem v Ostravě.</p>
@@ -268,32 +245,6 @@
     </div>
   </section>
 
-  <section id="vysledky">
-    <div class="wrap">
-      <span class="eyebrow">Předchozí projekt GLIDE</span>
-      <h2>Víme, že identifikace problémů<br><span class="t">má smysl.</span></h2>
-      <p class="lede" style="max-width:760px">V projektu GLIDE jsme systematicky identifikovali možné odchylky od guidelines a výsledky diskutovali s klinickým týmem.</p>
-      <div class="nums">
-        <div class="num"><div class="big">65 <span class="arrow">→</span> 42 <small>dní</small></div><p>Medián času od operace po radioterapii</p></div>
-        <div class="num"><div class="big">49,5 <span class="arrow">→</span> 19,5 <small>dne</small></div><p>Medián času od doporučení MDT po zahájení radioterapie</p></div>
-      </div>
-      <p class="caveat">Pozorováno v následujícím období na malém vzorku. Není to důkaz kauzality ani výsledek nástroje GLIDE MDT, ale povzbudivý signál, že systematická zpětná vazba může být součástí zlepšování péče.</p>
-    </div>
-  </section>
-
-  <section class="surface">
-    <div class="wrap">
-      <span class="eyebrow">Čas lékařů</span>
-      <h2>Kolik času můžeme<br><span class="t">vrátit lékařům?</span></h2>
-      <div class="calc">
-        <div class="k">30<small>pacientů na jednom MDT</small></div>
-        <div class="k">20 → 5<small>minut přípravy na pacienta</small></div>
-        <div class="k res">7,5 h<small>ušetřeného času na jednom zasedání</small></div>
-      </div>
-      <p class="caveat">Modelový odhad, který potřebujeme klinicky ověřit. Ještě důležitější je, co s tímto časem uděláme: věnovat ho kvalitnější diskusi a pacientům.</p>
-    </div>
-  </section>
-
   <div class="band">
     <div class="wrap">
       <blockquote>„Chceme pomoci zajistit, aby kvalita onkologického rozhodování nezávisela na tom, ve které nemocnici se pacient léčí.“</blockquote>
@@ -301,21 +252,11 @@
     </div>
   </div>
 
-  <section id="partneri" class="cta">
-    <div class="wrap">
-      <span class="eyebrow">Z Ostravy do celé onkologie</span>
-      <h2>Hledáme klinické partnery.</h2>
-      <p class="lede">Začali jsme neuroonkologií v Ostravě. Stejné problémy řeší týmy u karcinomu plic, prsu, kolorektálního karcinomu i dalších diagnóz. Hledáme klinické partnery, se kterými tento potenciál bezpečně ověříme v reálné praxi.</p>
-      <div class="areas"><span class="on">Neuroonkologie</span><span>Karcinom plic</span><span>Karcinom prsu</span><span>Kolorektální karcinom</span><span>Další diagnózy</span></div>
-      <!-- CONTACT: the "Domluvit pilot" button goes here once the team gives the contact address:
-      <div class="row"><a class="btn mint" href="mailto:ADDRESS?subject=GLIDE%20MDT%20pilot" data-umami-event="partneri-domluvit-pilot">Domluvit pilot <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 15 15 5M7 5h8v8"/></svg></a></div> -->
-    </div>
-  </section>
 </main>
 
 <footer>
   <div class="wrap">
-    <span>© 2026 GLIDE MDT</span>
+    <span>© 2026 GLIDE MDT · <a href="mailto:sona.hudecova@codebridgecollege.com" data-umami-event="footer-email">sona.hudecova@codebridgecollege.com</a></span>
     <span>Od informací k lepším klinickým rozhodnutím.</span>
   </div>
 </footer>
