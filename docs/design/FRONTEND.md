@@ -259,9 +259,16 @@ the `lang` marking of content in place, and the clinical-trust behaviour
 of the old page (gap wording, "ověřit" marks, frozen approved reports,
 drafts labelled as drafts) checked screen by screen.
 
+## Decisions (2026-10-18)
+
+- **No offline demo is needed.** Embedded mode ends with the old page;
+  Pages is retired when the new app takes over.
+- **The port starts as soon as the team decides to do it.** The clinical
+  behaviour of the ported screens is reviewed afterwards, against the
+  DOM-only test suite and the old page.
+
 ## Open questions
 
 - **Nuxt or plain Vue 3 with Vite?** Juro leans to Nuxt; both are workable.
-- **Is an offline single-file demo needed** after Pages is retired? If yes, plain Vue with a single-file build is the way to get it.
-- **When does the port start,** and who reviews the clinical behaviour of each ported screen?
-- **The citry spike:** after 0.6.0 is tagged, and with which screen?
+- **Fluent or JSON catalogs for i18n?** See `I18N.md`.
+- **The citry spike:** whether to do it, after 0.6.0 is tagged, and with which screen.
