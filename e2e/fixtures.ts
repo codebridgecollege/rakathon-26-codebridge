@@ -43,9 +43,11 @@ export class App {
     return this.page.getByRole("navigation", { name: "Hlavní oblasti" }).getByRole("button", { name });
   }
 
-  // Opens the app at a hash route and waits until the patient list or the route's screen has data.
+  // Opens the app at a hash route and waits until the patient list or the route's screen has data. The path is
+  // relative to the base URL, so the same specs run against today's page at / and the new app at /app/ (give
+  // E2E_BASE_URL with its trailing slash). Both read "#patient/10/labs"; the new app rewrites it to "#/patient/...".
   async open(hash = ""): Promise<void> {
-    await this.page.goto("/" + (hash ? "#" + hash : ""));
+    await this.page.goto("./" + (hash ? "#" + hash : ""));
     await expect(this.userPicker).toBeVisible();
     if (!hash) await expect(this.patientRows().first()).toBeVisible();
   }

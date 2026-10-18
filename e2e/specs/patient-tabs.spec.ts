@@ -21,7 +21,8 @@ test("case 10 shows all eight tabs and a click selects one", async ({ app }) => 
     "Prognóza",
   ]);
   await app.openTab("Anamnéza");
-  await expect(app.page).toHaveURL(/#patient\/10\/anamnesis$/);
+  // Today's page writes "#patient/10/anamnesis", the new app's router "#/patient/10/anamnesis"; both are the same link.
+  await expect(app.page).toHaveURL(/#\/?patient\/10\/anamnesis$/);
 });
 
 test("the synthetic patient shows only the tabs its data supports", async ({ app }) => {
