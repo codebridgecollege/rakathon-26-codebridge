@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="cs"><head><meta charset="utf-8">
+<!-- Preview of slide 06 with diagnoses instead of hospitals; the text is also in TEXT.md. -->
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@600;700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing:border-box; margin:0; }
+  body { width:1600px; height:900px; font-family:"DM Sans",Arial,sans-serif; color:#102c39; background:#fff; padding:56px 80px; position:relative; }
+  .top { border-bottom:1px solid #dce5e8; padding-bottom:16px; }
+  .top img { height:32px; }
+  h1 { font-family:Manrope; font-weight:700; font-size:52px; letter-spacing:-0.03em; margin:84px 0 44px; }
+  .grid { display:grid; grid-template-columns:repeat(3,438px); gap:40px; }
+  .card { background:#f3f7f8; border:1px solid #dce5e8; border-radius:6px; height:242px; padding:24px 26px; position:relative; }
+  .card img { width:56px; height:56px; }
+  .code { position:absolute; right:26px; top:28px; font-size:15px; font-weight:600; letter-spacing:.06em; color:#2c7a72; }
+  .card h3 { font-family:"DM Sans"; font-weight:600; font-size:26px; letter-spacing:-0.01em; margin-top:18px; }
+  .card p { font-size:18px; color:#5d707a; margin-top:8px; line-height:1.4; }
+  .card.now { background:#e8f5f1; border-color:#b7e2d6; }
+  .num { position:absolute; right:80px; bottom:40px; color:#5d707a; font-size:16px; }
+</style></head>
+<body>
+  <div class="top"><img src="../../../mocks/src/brand/glide.svg" alt="GLIDE"></div>
+  <h1>GLIDE MDT nekončí u jedné diagnózy</h1>
+  <div class="grid">
+    <div class="card now"><img src="svg/mozek.svg" alt=""><span class="code">C71 · NYNÍ</span><h3>Nádory mozku</h3><p>IDH, MGMT a nálezy MR v čase</p></div>
+    <div class="card"><img src="svg/prs.svg" alt=""><span class="code">C50</span><h3>Karcinom prsu</h3><p>ER, PR, HER2, Ki-67 a stadium TNM</p></div>
+    <div class="card"><img src="svg/prostata.svg" alt=""><span class="code">C61</span><h3>Karcinom prostaty</h3><p>PSA v čase, Gleason / ISUP a staging</p></div>
+    <div class="card"><img src="svg/kolorektum.svg" alt=""><span class="code">C18–C20</span><h3>Kolorektální karcinom</h3><p>CEA v čase, MMR / MSI, RAS a BRAF</p></div>
+    <div class="card"><img src="svg/plice.svg" alt=""><span class="code">C34</span><h3>Karcinom plic</h3><p>PD-L1, EGFR, ALK a stadium TNM</p></div>
+    <div class="card"><img src="svg/ledviny.svg" alt=""><span class="code">C64</span><h3>Karcinom ledviny</h3><p>Histologický typ, ISUP grade a IMDC</p></div>
+  </div>
+  <span class="num">06</span>
+</body></html>
