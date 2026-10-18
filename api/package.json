@@ -8,7 +8,6 @@
   "scripts": {
     "stage": "bash scripts/stage-assets.sh",
     "dev": "npm run stage && wrangler dev",
-    "dev:app": "STAGE_APP=1 npm run stage && wrangler dev",
     "types": "wrangler types src/worker-configuration.d.ts --strict-vars=false --env-file .dev.vars.example",
     "typecheck": "tsc --noEmit && tsc --noEmit -p test",
     "pretest": "node -e \"require('fs').mkdirSync('.assets',{recursive:true})\"",

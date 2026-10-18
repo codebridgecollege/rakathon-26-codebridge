@@ -7,6 +7,7 @@ describe("GET /api/health", () => {
     const res = await call("/api/health", {}, testEnv({ DATA_API: "off" }));
     expect(res.status).toBe(200);
     expect(res.headers.get("cache-control")).toBe("no-store");
+    expect(res.headers.get("x-content-type-options")).toBe("nosniff");
     expect(await res.json()).toEqual({
       ok: true,
       service: "codebridge-mdt",

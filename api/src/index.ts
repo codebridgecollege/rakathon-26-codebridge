@@ -43,6 +43,9 @@ app.use("*", async (c, next) => {
   await next();
   // A route may set its own private policy (page images); everything else is never stored.
   if (!c.res.headers.get("Cache-Control")) c.header("Cache-Control", "no-store");
+  // Page images and uploaded originals come from here too: the browser must take the declared type, never guess one.
+  // The static files get the same header from .assets/_headers (scripts/headers.mjs).
+  c.header("X-Content-Type-Options", "nosniff");
 });
 app.route("/health", health); // public: no data, tells the page which features this host has
 // The phone of an upload session is not logged in; its token is the credential (routes/upload-sessions.ts). Its two

@@ -1,5 +1,5 @@
-// The new frontend (docs/design/FRONTEND.md): a browser-rendered SPA built with `nuxt generate` into static files that
-// the API Worker serves next to today's page, under /app/ while the port is in progress.
+// The frontend (docs/design/FRONTEND.md): a browser-rendered SPA built with `nuxt generate` into static files that the
+// API Worker serves at /. Today's page stays reachable at /legacy/ for a transition period.
 import { defineNuxtConfig } from "nuxt/config";
 
 export default defineNuxtConfig({
@@ -12,8 +12,8 @@ export default defineNuxtConfig({
   components: { dirs: [] },
   modules: ["@pinia/nuxt"],
   app: {
-    // Side by side with today's page at /; the Worker serves this build from .assets/app/.
-    baseURL: "/app/",
+    // The Worker serves this build at the root of .assets/ (api/scripts/stage-assets.sh).
+    baseURL: "/",
     head: {
       // Static lang for screen readers and hyphenation before the i18n plugin runs; the plugin keeps it in step.
       htmlAttrs: { lang: "cs" },
@@ -29,7 +29,8 @@ export default defineNuxtConfig({
       ],
     },
   },
-  css: ["~/assets/v3.css"],
+  // v3.css is the old page's CSS, unchanged; app.css (after it) holds the app's own accessibility fixes.
+  css: ["~/assets/v3.css", "~/assets/app.css"],
   router: {
     // Hash history keeps today's links (#patient/10/labs) working, and the Worker needs no fallback route that would
     // swallow its 404 page.
