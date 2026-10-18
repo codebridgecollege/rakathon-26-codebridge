@@ -16,9 +16,12 @@ DOM-only test suite.
   or error, late replies dropped, at most five cases in memory).
 - **API** through `@codebridge/api-client` (`packages/api-client`) and the shared rules from `@codebridge/domain`
   (`packages/domain`).
-- **Text** comes only from the Fluent catalogs at the repository root (`i18n/cs/*.ftl`, one file per area; `i18n/sk/` and `i18n/en/` fall back
-  to Czech), through `fluent-vue` registered in `app/plugins/i18n.ts`. `?lang=sk` picks a language. Never write Czech
-  UI text in a component; add a message with a semantic ID.
+- **Text** comes only from the Fluent catalogs at the repository root (`i18n/cs/*.ftl`, one file per area, Czech is the
+  source; `i18n/sk/` and `i18n/en/` hold the same files and IDs, with a glossary for clinician review at the top of each,
+  and fall back to Czech message by message), through `fluent-vue` registered in `app/plugins/i18n.ts`. `?lang=sk` or
+  `?lang=en` picks a language. Never write Czech UI text in a component; add a message with a semantic ID to the Czech
+  file and its Slovak and English twins: `test/i18n.test.ts` fails when a Czech message is missing in sk or en, has
+  other placeholders, or lacks a plural category of its language.
 - **Patient screen components** import nothing from Nuxt, so Vitest mounts them with the real Czech catalog
   (`test/patient.ts`: `setupPatient()` fills the stores with a synthetic case, `mountInCase()` provides the case).
   `PatientView` provides the case on screen through `composables/usePatient.ts`; dialogs and drawers go through the

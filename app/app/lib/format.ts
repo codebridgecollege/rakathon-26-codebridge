@@ -3,12 +3,16 @@
 // broken date is returned as written, never turned into a made-up day (CLAUDE.md, "Preserve the original values").
 import { msgId, type Msg } from "./msg";
 
+// Plain "en" would format as US English (month first, "10/19"), while the catalogs and the patient screen
+// (lib/dates.ts) write the day first; one screen must never mix the two orders, so English dates use en-GB.
+const INTL: Record<string, string> = { en: "en-GB" };
+
 const cache = new Map<string, Intl.DateTimeFormat>();
 function dtf(locale: string, o: Intl.DateTimeFormatOptions): Intl.DateTimeFormat {
   const key = `${locale}|${JSON.stringify(o)}`;
   let f = cache.get(key);
   if (!f) {
-    f = new Intl.DateTimeFormat(locale, o);
+    f = new Intl.DateTimeFormat(INTL[locale] ?? locale, o);
     cache.set(key, f);
   }
   return f;
