@@ -18,6 +18,12 @@ patient S01 (mock v3, case ID `NO-S01`), whom the team invented
 The published copies are private claude.ai artifacts owned by Juro; ask him
 to share them. To view a mock locally, open the `.html` file in a browser.
 
+## Visit counts
+
+Mock v3 loads Umami Cloud (cookieless) and counts visits on `codebridge-mdt.pages.dev` and the Worker host only.
+It sends the bare path: `data-exclude-hash` and `data-exclude-search` keep the case number, the tab and the phone
+upload token (all after `#`) out of the analytics. No clicks or case data are sent as events.
+
 ## How to change a mock
 
 Do not edit `v1.html` to `v3.html` or `pages/` directly; they are generated.

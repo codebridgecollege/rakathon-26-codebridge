@@ -354,3 +354,11 @@ and six normalized Astra study rows, including their source evidence and origina
 search timestamp. The generated page embeds them for a two-second replay matched
 to the patient and scheduled day. This fixture is persistent; the backend runtime
 cache remains memory-only. It contains no API key or real patient data.
+
+## Visit analytics
+
+The demo (`codebridge-mdt.pages.dev` and the Worker host) and the landing page (`glidemdt.com`) count visits with
+Umami Cloud, which sets no cookies. On the demo, Umami receives only the bare path: `data-exclude-hash` and
+`data-exclude-search` keep the case number, the tab and the phone upload token (all after `#`) out of it, and the
+demo sends no events. The landing page sends button clicks as named events. In a hospital deployment the demo's
+analytics would be removed or replaced by FNO's own tooling.
