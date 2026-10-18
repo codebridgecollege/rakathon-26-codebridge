@@ -78,7 +78,12 @@ health answer in the browser, so it runs the same with or without a key and neve
 1. The suite stays green on the old page until the new app replaces it. A change to the old page's wording is a
    change to the suite in the same commit.
 2. The new app is served by the same Worker (`docs/design/FRONTEND.md`, "How it is set up"). While both exist, run the
-   suite against the new app's URL with `E2E_BASE_URL`.
+   suite against the new app's URL with `E2E_BASE_URL`, with its trailing slash (`http://localhost:8787/app/`): the
+   helpers open routes relative to the base URL.
+   - A part of a screen that is ported before the screen holding it (the "Nový pacient" dialog before the patient
+     list, the upload panel before "Projednání na MDT") is checked on the app's development harness first:
+     `e2e/harness/`, project `app-harness`, only with `E2E_APP_HARNESS=1` and an app built with `APP_DEV_PAGES=1`
+     (`app/README.md`). The harness specs mirror the screen specs; they never replace them.
 3. A screen counts as ported when its spec files (table below) pass against the new app without edits to the specs.
    A spec may change only where the old page was wrong (for example a missing `aria-selected`), and the commit says so.
 4. The Worker switches to the new app (step 13) only when the whole suite passes against it.

@@ -19,6 +19,7 @@ import { usePatientsStore } from "../app/stores/patients";
 import { useWorkflowStore } from "../app/stores/workflow";
 import { useAttendanceStore } from "../app/stores/attendance";
 import { useListViewStore } from "../app/stores/listView";
+import { useToastStore } from "../app/stores/toast";
 import { useWrite } from "../app/composables/useWrite";
 import PatientsView from "../app/components/lists/PatientsView.vue";
 import TasksView from "../app/components/lists/TasksView.vue";
@@ -192,8 +193,7 @@ describe("refusals", () => {
 
   it("shows the server's message and reloads the workflow after a conflict without state", async () => {
     const m = await refuse({ error: { code: "task_changed", message_cs: "Úlohu mezitím změnil někdo jiný." } }, 409);
-    expect(document.querySelector(".toast")?.textContent).toBe("Úlohu mezitím změnil někdo jiný.");
-    expect(document.querySelector(".toast")?.getAttribute("role")).toBe("status");
+    expect(useToastStore().items.map((t) => t.msg)).toEqual([{ text: "Úlohu mezitím změnil někdo jiný." }]);
     expect(m.calls.filter((c) => c.url.startsWith("/api/workflow"))).toHaveLength(2);
   });
 
@@ -254,7 +254,7 @@ describe("tasks screen", () => {
     expect(useWorkflowStore().tasks.find((t) => t.id === 1)?.done).toBe(true);
     await flushPromises();
     expect(useWorkflowStore().tasks.find((t) => t.id === 1)?.done).toBe(false);
-    expect(document.querySelector(".toast")?.textContent).toBe("Úlohu mezitím změnil někdo jiný.");
+    expect(useToastStore().items.map((t) => t.msg)).toEqual([{ text: "Úlohu mezitím změnil někdo jiný." }]);
   });
 
   it("does not let the administrator tick a task", async () => {

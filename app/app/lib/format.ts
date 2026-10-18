@@ -1,6 +1,8 @@
 // Dates and numbers through Intl (docs/design/I18N.md, "fmt.*"), with formatters cached per locale and options. The
 // day functions take ISO day strings and format them at noon UTC, so no time zone can shift a day; a partial or
 // broken date is returned as written, never turned into a made-up day (CLAUDE.md, "Preserve the original values").
+import { msgId, type Msg } from "./msg";
+
 const cache = new Map<string, Intl.DateTimeFormat>();
 function dtf(locale: string, o: Intl.DateTimeFormatOptions): Intl.DateTimeFormat {
   const key = `${locale}|${JSON.stringify(o)}`;
@@ -46,3 +48,24 @@ export const weekdayIndex = (iso: string) => noon(iso).getUTCDay();
 
 // The interface language the i18n plugin set on <html>; formatting follows it.
 export const uiLocale = () => (typeof document !== "undefined" && document.documentElement.lang) || "cs";
+
+// Sizes and clock times as the old page shows them (fmtSize, upWhen, hhmm), formatted with Intl in the interface
+// language instead of a hand-written decimal comma (I18N.md, "Hand-written formats").
+
+const MB = 1024 * 1024;
+
+// "12 kB" below a megabyte (never "0 kB"), "1,5 MB" above, one decimal as before.
+export function sizeMsg(bytes: number, locale = "cs"): Msg {
+  if (bytes < MB) return msgId("upload-size-kb", { size: String(Math.max(1, Math.round(bytes / 1024))) });
+  const nf = new Intl.NumberFormat(locale, { minimumFractionDigits: 1, maximumFractionDigits: 1, useGrouping: false });
+  return msgId("upload-size-mb", { size: nf.format(bytes / MB) });
+}
+
+// "09:05" in the browser's local time, as the old page showed upload and expiry times.
+export function clock(ms: number, locale = "cs"): string {
+  try {
+    return new Date(ms).toLocaleTimeString(locale === "cs" ? "cs-CZ" : locale, { hour: "2-digit", minute: "2-digit" });
+  } catch {
+    return "";
+  }
+}

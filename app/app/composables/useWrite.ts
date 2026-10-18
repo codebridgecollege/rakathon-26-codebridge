@@ -1,19 +1,15 @@
-// One write to the API as the old page's caseApi() and refused() did it: a busy key ignores a second click while the
-// first is on its way, the answer's state replaces the parts it names, and a refusal shows the server's Czech message.
-// A conflict's state is applied; a conflict without one reloads the stored workflow, so the page never keeps showing a
-// view the server refused.
+// One write to the API as the old page's caseApi() did it: a busy key ignores a second click while the first is on its
+// way, the answer's state replaces the parts it names, and a refusal goes through refused() (lib/refused.ts): the
+// server's message as a toast, and the conflict's state applied or the stored workflow read again.
 import { useFluent } from "fluent-vue";
-import { ApiError, type WorkflowState, type WriteReply } from "@codebridge/api-client";
+import { ApiError, type WriteReply } from "@codebridge/api-client";
 import { useApi } from "../lib/api";
-import { toast } from "../lib/toast";
+import { refused } from "../lib/refused";
 import { useSessionStore } from "../stores/session";
 import { usePatientsStore } from "../stores/patients";
 
 // Shared across components: the busy keys of writes in flight (BUSY in the template).
 const busy = new Set<string>();
-
-const STATE_KEYS = ["cases", "att", "sessions", "mails", "patient", "staff"];
-const isStateShape = (c: unknown): c is WorkflowState => !!c && typeof c === "object" && STATE_KEYS.some((k) => k in (c as object));
 
 export function useWrite() {
   const { $t } = useFluent();
@@ -23,7 +19,8 @@ export function useWrite() {
   const errorText = (e: unknown) =>
     e instanceof ApiError ? (e.message_cs ?? $t(e.message_id ?? "api-error-write-failed")) : $t("api-error-write-failed");
 
-  // The stored state of every case again (reloadWorkflow() in the template).
+  // The stored state of every case again, through the session store so list rows and tasks follow (a staff rename or
+  // removal changes draft steps and attendance on the server).
   async function reloadWorkflow() {
     try {
       const wf = await useApi().workflow();
@@ -46,15 +43,6 @@ export function useWrite() {
     } catch {
       // The refusal toast already told the user; the next action reloads.
     }
-  }
-
-  function refused(e: unknown) {
-    const code = e instanceof ApiError ? e.code : "";
-    // A data reset reloads the page (session store); its own message says so.
-    if (code !== "data_reset") toast(errorText(e));
-    const cur = e instanceof ApiError ? e.current : undefined;
-    if (isStateShape(cur)) session.applyState(cur);
-    else if (e instanceof ApiError && e.status === 409 && code !== "data_reset") void reloadWorkflow();
   }
 
   async function run<T>(

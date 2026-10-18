@@ -24,7 +24,6 @@ import {
   columnValues,
   filterPatients,
   pageRange,
-  surnameFirst,
   toggleFilterAll,
   toggleFilterValue,
   type ListRow,
@@ -166,9 +165,7 @@ describe("patient list", () => {
     expect(pageRange(45, 1, true)).toMatchObject({ start: 0, end: 45 });
   });
 
-  it("shows the surname first and the age as a number", () => {
-    expect(surnameFirst({ name: "Jan Novák", nameAsWritten: null })).toBe("Novák Jan");
-    expect(surnameFirst({ name: "Jan Novák", nameAsWritten: "NOVÁK Jan" })).toBe("NOVÁK Jan");
+  it("shows the age as a number", () => {
     expect(ageOf({ age: "57 let", birth: null }, "2026-10-16")).toEqual({ n: "57", computed: false });
     expect(ageOf({ age: null, birth: "17.10.1960" }, "2026-10-16")).toEqual({ n: "65", computed: true });
     expect(ageOf({ age: null, birth: "16.10.1960" }, "2026-10-16")).toEqual({ n: "66", computed: true });

@@ -38,7 +38,6 @@ lists-dialog-cancel = Zrušit
 patients-title = Databáze pacientů
 patients-subtitle = Pacienti odeslaní k projednání na neuroonkologickém MDT
 patients-new = + Nový pacient
-patients-new-refused = Pacienta zakládá lékař nebo koordinátorka.
 patients-search-placeholder = Hledat ID, jméno, diagnózu
 patients-search-label = Hledat
 patients-submitted-from = Podáno od

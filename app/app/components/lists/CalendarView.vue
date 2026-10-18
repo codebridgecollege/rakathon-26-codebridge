@@ -24,7 +24,7 @@ import {
   weekDays,
 } from "@codebridge/domain/calendar";
 import { addDays } from "@codebridge/domain/time";
-import { surnameFirst } from "@codebridge/domain/patient-list";
+import { surnameFirst } from "@codebridge/domain/names";
 import { useApi } from "../../lib/api";
 import { SEMINAR_LABEL_IDS, STATUS_DOT, caseRoute, isSlotLocked } from "../../lib/lists";
 import { toast } from "../../lib/toast";

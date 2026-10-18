@@ -6,7 +6,8 @@
 import { computed } from "vue";
 import { useFluent } from "fluent-vue";
 import type { PatientRow } from "@codebridge/api-client";
-import { ageOf, surnameFirst } from "@codebridge/domain/patient-list";
+import { ageOf } from "@codebridge/domain/patient-list";
+import { surnameFirst } from "@codebridge/domain/names";
 import { DEMO_TODAY } from "@codebridge/domain/calendar";
 import { STATUS_CLASS, caseStateOf, isSlotLocked } from "../../lib/lists";
 import { briefOf, dxLine, questionOf } from "../../lib/case-brief";

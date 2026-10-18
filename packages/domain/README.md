@@ -17,15 +17,16 @@ request; the Worker checks every write again.
 | `protocol.ts` | the discussion record (notes, conclusion draft, steps), autosave with versions |
 | `suggest.ts` | task drafts from an approved conclusion, due dates |
 | `fhir.ts` | the FHIR R4 referral read into the "Nový pacient" form |
+| `referral.ts` | the referral form's required fields, the birth number format and the duplicate birth number lookup |
 | `edits.ts` | a doctor's correction of an extracted fact (edit keys, save, revert) |
 | `roles.ts`, `access.ts`, `config.ts` | the permission matrix, read rules and the undecided role constants |
 | `errors.ts` | `DomainError` and the refusal factories `D` |
 | `calendar.ts` | the calendar grid: seminar hours, slot rows shown, week and month steps, the mini month, the agenda |
-| `patient-list.ts` | the patient list: search, column filters (as codes), date range, order, paging, surname first, age |
+| `patient-list.ts` | the patient list: search, column filters (as codes), date range, order, paging, age |
 | `task-list.ts` | "Moje úlohy", the coordinator's "Úlohy po MDT" groups and the digest count |
 | `staff-edit.ts` | the staff screen's checks before a request (taken names, empty surname, the role of a new person) |
-| `time.ts`, `names.ts` | ISO day arithmetic, the Prague calendar day, the display name of a person |
-| `wire.ts` | types of the JSON the API sends (health, me, staff, patients, tasks, workflow, the write envelope) |
+| `time.ts`, `names.ts` | ISO day arithmetic, the Prague calendar day, the display name of a person, a patient's name surname first |
+| `wire.ts` | types of the JSON the API sends (health, me, staff, patients, tasks, workflow, the write envelope, documents, intake, upload sessions) |
 
 What stays in `api/src/domain`: rules that are server-only by design (upload-session tokens, break-the-glass, audit,
 intake, documents, transcripts, database row mapping, and the system clock in `clock.ts`, because

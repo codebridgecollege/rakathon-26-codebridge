@@ -2,7 +2,17 @@
 // @codebridge/domain/wire where the shape is shared; bodies and replies of screens not ported yet are kept loose
 // (Record<string, unknown>) and get their types when their screen is ported. Paths escape every parameter.
 import type {
+  CaseDocuments,
+  CreatedCase,
+  CreatedUploadSession,
   Extraction,
+  FhirReferral,
+  IntakeCompleted,
+  IntakeStatus,
+  UploadDoc,
+  UploadSession,
+  UploadSessionPoll,
+  UploadTarget,
   Health,
   Me,
   PatientList,
@@ -23,6 +33,21 @@ const enc = (v: string | number) => encodeURIComponent(String(v));
 type Loose = Record<string, unknown>;
 
 export type ApiClient = ReturnType<typeof createApiClient>;
+
+// POST /cases from the referral form. The override confirms a second record for a birth number already in the database;
+// it holds only for the number it was given.
+export type NewCaseBody = {
+  first_name: string;
+  last_name: string;
+  birth_number: string;
+  consent: boolean;
+  question?: string;
+  owner?: string;
+  dept?: string;
+  intake?: boolean;
+  referral_sha256?: string;
+  duplicate_override?: { birth_number: string; reason?: string };
+};
 
 export function createApiClient(opts: ClientOptions = {}) {
   const t: Transport = createTransport(opts);
@@ -69,16 +94,18 @@ export function createApiClient(opts: ClientOptions = {}) {
     history: (caseId: string) => t.get<Loose>(`/cases/${enc(caseId)}/history`),
     guidance: (caseId: string) => t.get<Loose>(`/cases/${enc(caseId)}/guidance`),
     prognosis: (caseId: string) => t.get<Loose>(`/cases/${enc(caseId)}/prognosis`),
-    documents: (caseId: string) => t.get<Loose>(`/cases/${enc(caseId)}/documents`),
+    documents: (caseId: string) => t.get<CaseDocuments>(`/cases/${enc(caseId)}/documents`),
     // Fetched for every view, never cached: each view of a page is an access the server records.
     page: (docId: string, n: number) => t.get<Loose>(`/documents/${enc(docId)}/pages/${enc(n)}`),
     // The image URL for an <img>, which cannot send a header; the demo user then travels in the cb_demo_user cookie.
     pageImageUrl: (docId: string, n: number) => `${opts.base ?? "/api"}/documents/${enc(docId)}/pages/${enc(n)}/image`,
     pipeline: (docId: string) => t.get<Loose>(`/documents/${enc(docId)}/pipeline`),
-    intake: (caseId: string) => t.get<Loose>(`/cases/${enc(caseId)}/intake`),
+    // The server's verdict on an open intake's uploads; each read is an access-log row ("intake.view").
+    intake: (caseId: string) => t.get<IntakeStatus>(`/cases/${enc(caseId)}/intake`),
     transcript: (caseId: string) => t.get<Loose>(`/cases/${enc(caseId)}/transcript`),
     job: (jobId: string) => t.get<Loose>(`/jobs/${enc(jobId)}`),
-    uploadSession: (id: string) => t.get<Loose>(`/upload-sessions/${enc(id)}`),
+    // The desktop's poll of a phone upload; not logged per request on the server.
+    uploadSession: (id: string) => t.get<UploadSessionPoll>(`/upload-sessions/${enc(id)}`),
     accessLog: () => t.get<Loose>("/admin/access-log"),
 
     // ---------- case writes ----------
@@ -112,21 +139,27 @@ export function createApiClient(opts: ClientOptions = {}) {
     auditEvent: (body: { code: string; case_id?: string; target?: string }) => w("POST", "/audit/events", body),
 
     // ---------- new patient and intake ----------
-    createCase: (body: Loose, idem: string) => w("POST", "/cases", body, { idem }),
-    fhirReferral: (bundle: unknown) => w("POST", "/fhir/referral", bundle),
-    completeIntake: (caseId: string) => w("POST", `/cases/${enc(caseId)}/intake/complete`, {}),
-    discardIntake: (caseId: string) => w("DELETE", `/cases/${enc(caseId)}/intake`, {}),
+    // A referral from "Nový pacient". With intake: true the case opens for intake (visible to its creator only); the
+    // idempotency key makes a retry after a lost answer return the same case instead of a second one.
+    createCase: (body: NewCaseBody, idem: string) => w<CreatedCase>("POST", "/cases", body, { idem }),
+    // The bundle holds identity; the server logs the import and keeps only its hash.
+    fhirReferral: (bundle: unknown) => w<FhirReferral>("POST", "/fhir/referral", bundle),
+    completeIntake: (caseId: string) => w<IntakeCompleted>("POST", `/cases/${enc(caseId)}/intake/complete`, {}),
+    discardIntake: (caseId: string) => w<{ discarded: string }>("DELETE", `/cases/${enc(caseId)}/intake`, {}),
     // One file per request, raw body (api/src/routes/documents.ts); the file name travels URI-encoded in X-File-Name,
     // because a header carries ASCII only.
     uploadDocument: (caseId: string, file: Blob, fileName: string) =>
-      t.upload<WriteReply<Loose>>("POST", `/cases/${enc(caseId)}/documents`, file, file.type || "application/octet-stream", {
+      t.upload<WriteReply<{ document: UploadDoc }>>("POST", `/cases/${enc(caseId)}/documents`, file, file.type || "application/octet-stream", {
         headers: { "X-File-Name": encodeURIComponent(fileName) },
         timeout: 120000,
       }),
-    deleteDocument: (docId: string) => w("DELETE", `/documents/${enc(docId)}`, {}),
+    deleteDocument: (docId: string) => w<{ removed: string }>("DELETE", `/documents/${enc(docId)}`, {}),
     processDocument: (docId: string) => w("POST", `/documents/${enc(docId)}/process`, {}),
-    createUploadSession: (body: { case_id: string; target: string }) => w<{ id: string } & Loose>("POST", "/upload-sessions", body),
-    deleteUploadSession: (id: string) => w("DELETE", `/upload-sessions/${enc(id)}`, {}),
+    // The answer carries the session's token once; it goes only into the QR code, never into text or logs.
+    createUploadSession: (body: { case_id: string; target: UploadTarget }) => w<CreatedUploadSession>("POST", "/upload-sessions", body),
+    deleteUploadSession: (id: string) => w<UploadSession>("DELETE", `/upload-sessions/${enc(id)}`, {}),
+    // The same end of a session, sent while the tab closes (pagehide), so the code does not stay valid for 15 minutes.
+    deleteUploadSessionOnUnload: (id: string) => t.sendOnUnload("DELETE", `/upload-sessions/${enc(id)}`, {}),
 
     // ---------- recording ----------
     startRecording: (body: { session_day: string | null; case_id: string | null }) => w("POST", "/recordings", body),

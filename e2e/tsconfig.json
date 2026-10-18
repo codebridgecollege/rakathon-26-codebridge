@@ -8,5 +8,5 @@
     "skipLibCheck": true,
     "types": ["node"]
   },
-  "include": ["*.ts", "specs/**/*.ts"]
+  "include": ["*.ts", "specs/**/*.ts", "harness/**/*.ts"]
 }

@@ -150,3 +150,77 @@ export type Extraction = { data: { case?: unknown; extra?: unknown; syn?: unknow
 
 // Protocol steps travel in the page's shape.
 export type { Step };
+
+// ---------- new patient, uploads and the phone upload ----------
+
+// One document as the upload routes and lists send it (docOut() in api/src/routes/documents.ts). A listed file (the
+// demo keeps only its name and size) has no content on the server; a registered synthetic fixture carries its title
+// (type_cs). identity "conflicts" means the document names another patient; it is flagged, never blocked.
+export type UploadDoc = {
+  id: string;
+  file: string;
+  name: string;
+  origin: string;
+  size: number | null;
+  sha256: string | null;
+  page_count: number;
+  processing: string;
+  note: string | null;
+  type_cs: string | null;
+  doc_type: string | null;
+  doc_date: string | null;
+  fixture: boolean;
+  content_stored: boolean;
+  state: string | null;
+  state_cs: string | null;
+  state_detail_cs: string | null;
+  identity: string | null;
+  identity_cs: string | null;
+  readability: string | null;
+  readability_reasons_cs: string[];
+  uploaded_by: string | null;
+  uploaded_at: string;
+  source: string | null;
+};
+// GET /cases/:id/documents.
+export type CaseDocuments = { case_id: string; processing_level: "full" | "partial" | "none"; documents: (UploadDoc & { parts?: unknown[] })[] };
+
+// POST /fhir/referral: the referral read into the form. fields uses the form's field names (nf0...), so the page fills
+// the form without a mapping of its own; the bundle itself is never stored, only its hash.
+export type FhirReferral = {
+  form: Record<string, string>;
+  fields: Record<string, string>;
+  found: string[];
+  missing_cs: string[];
+  referral_sha256: string;
+};
+// POST /cases with intake: true opens the case for intake, visible only to its creator until it is completed.
+export type CreatedCase = { case_id: string; file: string; intake: boolean };
+// GET /cases/:id/intake: the server's verdict on the uploads (it recognises the prepared fixtures by hash).
+export type IntakeStatus = {
+  case_id: string;
+  ready: boolean;
+  fixture_id: string | null;
+  expected: number;
+  present: number;
+  missing_cs: string[];
+  reason_cs: string;
+  documents: UploadDoc[];
+};
+// POST /cases/:id/intake/complete.
+export type IntakeCompleted = { case_id: string; attached: boolean; run_id: string | null; reason_cs: string; documents: number };
+
+export type UploadTarget = "intake" | "discussion" | "documents";
+// An upload session as the desktop sees it; the token is only in the answer that created the session.
+export type UploadSession = {
+  id: string;
+  case_id: string;
+  target: string;
+  state: "open" | "full" | "expired" | "closed";
+  expires_at: string;
+  file_count: number;
+  max_files: number;
+};
+export type CreatedUploadSession = UploadSession & { token: string };
+// GET /upload-sessions/:id (the desktop's poll): the files this session added.
+export type UploadSessionPoll = UploadSession & { documents: UploadDoc[] };

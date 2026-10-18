@@ -5,6 +5,7 @@ import type * as W from "@codebridge/domain/wire";
 import type { patientRow } from "./domain/rows";
 import type { StaffDirectory } from "./store/types";
 import type { AttSet, CaseState, Session, taskOut } from "./store/work";
+import type { docOut } from "./routes/documents";
 
 type Fits<A extends B, B> = A;
 
@@ -15,4 +16,5 @@ export type WireChecks = [
   Fits<CaseState, W.CaseState>,
   Fits<AttSet, W.AttSet>,
   Fits<Session, W.Session>,
+  Fits<ReturnType<typeof docOut>, W.UploadDoc>,
 ];

@@ -85,10 +85,6 @@ export function pageRange(total: number, page: number, showAll: boolean) {
   return { page: p, pages, start: p * PAGE_SIZE, end: Math.min(total, p * PAGE_SIZE + PAGE_SIZE) };
 }
 
-// "Kotěrová Jaroslava": the MDT team reads the surname first. The name as written on the referral wins.
-export const surnameFirst = (p: { name: string; nameAsWritten: string | null }) =>
-  p.nameAsWritten || (p.name.includes(" ") ? `${p.name.split(" ").slice(-1)[0]} ${p.name.split(" ").slice(0, -1).join(" ")}` : p.name);
-
 export const surnameOf = (p: { name: string }) => p.name.split(" ").slice(-1)[0]!;
 
 // Age as a bare number: a stated age ("57 let"), or computed from a stated birth date ("d.m.yyyy") on the given day.

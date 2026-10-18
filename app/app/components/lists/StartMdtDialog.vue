@@ -5,7 +5,7 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import { useFluent } from "fluent-vue";
 import { dayAgenda } from "@codebridge/domain/calendar";
-import { surnameFirst } from "@codebridge/domain/patient-list";
+import { surnameFirst } from "@codebridge/domain/names";
 import { useApi } from "../../lib/api";
 import { caseRoute } from "../../lib/lists";
 import { toast } from "../../lib/toast";

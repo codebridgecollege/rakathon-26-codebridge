@@ -1,12 +1,7 @@
-// The old page's toast (toast() in mocks/src/v3-template.html): a short message at the bottom for 2.6 s, styled by
-// the copied CSS. role="status" lets screen readers announce it (the old page had none; e2e/README.md lists the gap).
-export const TOAST_MS = 2600;
+// A toast with text the list screens already formatted (their messages mix catalog text with names and slots). It goes
+// through the app's one toast store, which AppToasts.vue shows.
+import { useToastStore } from "../stores/toast";
 
-export function toast(msg: string): void {
-  const t = document.createElement("div");
-  t.className = "toast";
-  t.setAttribute("role", "status");
-  t.textContent = msg;
-  document.body.appendChild(t);
-  setTimeout(() => t.remove(), TOAST_MS);
+export function toast(text: string): void {
+  useToastStore().show({ text });
 }

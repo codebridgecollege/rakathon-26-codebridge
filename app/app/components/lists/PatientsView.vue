@@ -14,12 +14,12 @@ import {
   columnValues,
   filterPatients,
   pageRange,
-  surnameFirst,
   toggleFilterAll,
   toggleFilterValue,
   type FilterColumn,
 } from "@codebridge/domain/patient-list";
 import { DEMO_TODAY } from "@codebridge/domain/calendar";
+import { surnameFirst } from "@codebridge/domain/names";
 import { STATUS_CLASS, caseRoute } from "../../lib/lists";
 import { useListText } from "../../composables/useListText";
 import { usePatientsStore } from "../../stores/patients";

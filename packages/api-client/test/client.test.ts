@@ -158,4 +158,28 @@ describe("writes", () => {
     expect(h.get("X-File-Name")).toBe(encodeURIComponent("zpráva ř.pdf"));
     expect(m.calls[0]!.init.body).toBe(file);
   });
+
+  it("sends a new referral with its idempotency key", async () => {
+    const m = mockFetch([201, { data: { case_id: "NO-012", file: "12_novy.pdf", intake: true }, data_epoch: 1, state: {} }]);
+    const r = await createApiClient({ fetch: m.fn }).createCase({ first_name: "A", last_name: "B", birth_number: "111111/1111", consent: true, intake: true }, "key-1");
+    expect(r.data.case_id).toBe("NO-012");
+    expect(headersOf(m.calls[0]!).get("Idempotency-Key")).toBe("key-1");
+    expect(m.calls[0]!.url).toBe("/api/cases");
+  });
+
+  it("ends an upload session on unload with keepalive and the demo user, never throwing", async () => {
+    const m = mockFetch([200, { data: {}, data_epoch: 4, state: {} }]);
+    const api = createApiClient({ fetch: m.fn });
+    api.setUser("d2p1");
+    api.transport.epoch = 4;
+    api.deleteUploadSessionOnUnload("us-1");
+    expect(m.calls[0]!.url).toBe("/api/upload-sessions/us-1");
+    expect(m.calls[0]!.init.method).toBe("DELETE");
+    expect(m.calls[0]!.init.keepalive).toBe(true);
+    expect(headersOf(m.calls[0]!).get("X-Demo-User")).toBe("d2p1");
+    expect(headersOf(m.calls[0]!).get("X-Data-Epoch")).toBe("4");
+    // No answer at all (the tab is gone): nothing is thrown or left unhandled.
+    const dead = mockFetch();
+    expect(() => createApiClient({ fetch: dead.fn }).deleteUploadSessionOnUnload("us-2")).not.toThrow();
+  });
 });

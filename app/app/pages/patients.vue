@@ -1,29 +1,33 @@
 <script setup lang="ts">
-// Route /patients: screen S-1. "+ Nový pacient" opens the new-patient dialog, which is ported separately (issue #13,
-// step 11): it mounts here, under newPatientOpen.
-import { ref } from "vue";
-import { useFluent } from "fluent-vue";
+// Route /patients: screen S-1. "+ Nový pacient" opens the new-patient dialog (mounted once in app.vue); the dialog
+// itself refuses users who may not create patients. A finished intake that does not open the new patient returns to
+// this list with its column filters cleared, as the old page did.
+import { onMounted } from "vue";
+import { useRouter } from "vue-router";
 import AppMain from "../components/AppMain.vue";
 import PatientsView from "../components/lists/PatientsView.vue";
-import { toast } from "../lib/toast";
-import { useCurrentUser } from "../composables/useCurrentUser";
+import { useNewPatient } from "../composables/useNewPatient";
+import { defaultIntakeNavigation } from "../lib/intake-nav";
+import { useListViewStore } from "../stores/listView";
 
-const { $t } = useFluent();
-const me = useCurrentUser();
-const newPatientOpen = ref(false);
+const router = useRouter();
+const newPatient = useNewPatient();
+const v = useListViewStore();
 
-function openNewPatient() {
-  // The administrator only reads; the server refuses the case too.
-  if (!me.canRunCases.value) {
-    toast($t("patients-new-refused"));
-    return;
-  }
-  newPatientOpen.value = true;
-}
+onMounted(() => {
+  const nav = defaultIntakeNavigation(router);
+  newPatient.setNavigation({
+    openPatient: nav.openPatient,
+    showList: () => {
+      v.filters = {};
+      void router.push("/patients");
+    },
+  });
+});
 </script>
 
 <template>
   <AppMain>
-    <PatientsView @open-new-patient="openNewPatient" />
+    <PatientsView @open-new-patient="newPatient.open()" />
   </AppMain>
 </template>
