@@ -3,13 +3,16 @@
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import path from "node:path";
 import { execFileSync } from "node:child_process";
-import { describe, expect, it, vi } from "vitest";
+import { beforeAll, describe, expect, it, vi } from "vitest";
 import { defineComponent, h } from "vue";
 import { mount } from "@vue/test-utils";
 import { FluentResource } from "@fluent/bundle";
 import { createFluentVue, useFluent } from "fluent-vue";
 import { CLIENT_ERROR_IDS } from "@codebridge/api-client";
-import { bundlesFor, chooseLocale, makeBundle } from "../app/lib/i18n";
+import { bundlesFor, chooseLocale, loadLocale, makeBundle } from "../app/lib/i18n";
+
+// Slovak and English load on demand in the app, as here.
+beforeAll(() => Promise.all([loadLocale("sk"), loadLocale("en")]));
 
 const appDir = path.join(import.meta.dirname, "../app");
 const files = (d: string): string[] => readdirSync(d).flatMap((f) => (statSync(path.join(d, f)).isDirectory() ? files(path.join(d, f)) : [path.join(d, f)]));

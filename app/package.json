@@ -10,7 +10,8 @@
     "postinstall": "nuxt prepare",
     "typecheck": "nuxt typecheck && vue-tsc --noEmit -p test",
     "test": "vitest run",
-    "css:sync": "node scripts/sync-css.mjs"
+    "css:sync": "node scripts/sync-css.mjs",
+    "size": "node scripts/size-budget.mjs"
   },
   "dependencies": {
     "@codebridge/api-client": "0.0.0",

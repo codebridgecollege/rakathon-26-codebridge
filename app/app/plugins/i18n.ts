@@ -3,10 +3,18 @@
 import { defineNuxtPlugin } from "#app";
 import { useHead } from "#imports";
 import { createFluentVue } from "fluent-vue";
-import { bundlesFor, chooseLocale, storedLocale } from "../lib/i18n";
+import { bundlesFor, chooseLocale, DEFAULT_LOCALE, loadLocale, storedLocale } from "../lib/i18n";
 
-export default defineNuxtPlugin((nuxtApp) => {
-  const locale = chooseLocale(location.search, storedLocale());
+export default defineNuxtPlugin(async (nuxtApp) => {
+  let locale = chooseLocale(location.search, storedLocale());
+  // Slovak and English load on demand; Nuxt waits for this plugin before it mounts the app. If the catalog cannot be
+  // fetched, the app opens in the default language rather than not at all.
+  try {
+    await loadLocale(locale);
+  } catch {
+    console.warn(`i18n: the ${locale} catalog did not load; showing ${DEFAULT_LOCALE}`);
+    locale = DEFAULT_LOCALE;
+  }
   const fluent = createFluentVue({
     bundles: bundlesFor(locale),
     // A message missing from every bundle shows its ID; in development the console says which one.

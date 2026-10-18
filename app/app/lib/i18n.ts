@@ -10,19 +10,33 @@ export type Locale = (typeof LOCALES)[number];
 export const DEFAULT_LOCALE: Locale = "cs";
 
 // Every area file of a locale, joined in file-name order; a message ID must be unique across the files of a locale.
-const FILES = import.meta.glob("../../../i18n/*/*.ftl", { query: "?raw", import: "default", eager: true }) as Record<string, string>;
-const sourceOf = (locale: Locale) =>
-  Object.keys(FILES)
+// Czech is built into the first load: it is the default and every other language falls back to it. Slovak and English
+// load as separate files only when chosen, which keeps them out of the first load (FRONTEND.md, size budget).
+const CS_FILES = import.meta.glob("../../../i18n/cs/*.ftl", { query: "?raw", import: "default", eager: true }) as Record<string, string>;
+const LAZY_FILES = import.meta.glob(["../../../i18n/sk/*.ftl", "../../../i18n/en/*.ftl"], { query: "?raw", import: "default" }) as Record<
+  string,
+  () => Promise<string>
+>;
+const pathsOf = (files: Record<string, unknown>, locale: Locale) =>
+  Object.keys(files)
     .filter((p) => p.includes(`/i18n/${locale}/`))
-    .sort()
-    .map((p) => FILES[p])
-    .join("\n");
-const SOURCES: Record<Locale, string> = { cs: sourceOf("cs"), sk: sourceOf("sk"), en: sourceOf("en") };
+    .sort();
+const SOURCES: Partial<Record<Locale, string>> = { cs: pathsOf(CS_FILES, "cs").map((p) => CS_FILES[p]).join("\n") };
+
+// Fetches a language's catalog once; Czech is always there. Call it before makeBundle() or bundlesFor() for sk or en.
+export async function loadLocale(locale: Locale): Promise<void> {
+  if (SOURCES[locale] !== undefined) return;
+  const texts = await Promise.all(pathsOf(LAZY_FILES, locale).map((p) => LAZY_FILES[p]!()));
+  SOURCES[locale] = texts.join("\n");
+}
+
 const STORAGE_KEY = "lang";
 
 const isLocale = (x: unknown): x is Locale => typeof x === "string" && (LOCALES as readonly string[]).includes(x);
 
 export function makeBundle(locale: Locale, source = SOURCES[locale]): FluentBundle {
+  // A catalog that was never loaded is a programming mistake; an empty bundle would show message IDs instead of text.
+  if (source === undefined) throw new Error(`i18n: the ${locale} catalog is not loaded; await loadLocale() first`);
   // useIsolating off: otherwise every placeholder is wrapped in invisible direction marks, which break copy-paste and
   // text comparisons in tests.
   const b = new FluentBundle(locale, { useIsolating: false });
