@@ -150,6 +150,11 @@ the marketing site (glidemdt.com) is separate.
 ### Risks
 
 - **Nuxt 5 and Nitro v3.** Nitro v3 is in beta. In SPA mode with static output the impact is small; any server code written later uses the `nuxt/server` API, which Nuxt 4.6 offers for exactly this move.
+- **fluent-vue on Nuxt 4 is unverified.** Its Nuxt integration
+  (`unplugin-fluent-vue/nuxt`) declares `@nuxt/kit ^3`, and the project
+  has one maintainer. Registering `fluent-vue` in a plain Nuxt plugin,
+  without that integration, avoids the question; the first scaffold step
+  checks it. On plain Vue with Vite the question does not arise.
 - **Build magic.** Auto-imports and layered configuration (Nuxt, Vite, Nitro) are harder to debug than plain Vite. If that hurts, plain Vue 3 with Vite is a short step back, because components, stores and the router stay the same.
 - **Not the hackathon.** Porting about 25 rounds of clinical-trust fixes in the template invites regressions. The old page stays the demo until the new one passes the DOM-only test suite.
 
