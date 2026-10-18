@@ -191,6 +191,23 @@ test.describe("new patient", () => {
     await expect(app.main.getByText("Would open: patient S02_pacient.pdf")).toBeVisible();
   });
 
+  test("moving to another route closes the dialog, also on the referral step", async ({ app, page }) => {
+    const dlg = await openNewPatient(app);
+    await page.goto("./#/patients");
+    await expect(dlg).toBeHidden();
+  });
+
+  test("after a step change the focus stays in the dialog", async ({ app, page }) => {
+    const dlg = await openNewPatient(app);
+    await importFhirSample(dlg);
+    await dlg.getByRole("checkbox", { name: CONSENT }).check();
+    await dlg.getByRole("button", { name: "Pokračovat" }).click();
+    await expect(dlg.getByRole("button", { name: "Zpracovat" })).toBeVisible();
+    for (let i = 0; i < 6; i++) await page.keyboard.press("Tab");
+    // Every element Tab reached is inside the dialog.
+    await expect(dlg.locator(":focus")).toHaveCount(1);
+  });
+
   test("the administrator gets a note instead of the dialog", async ({ app, page }) => {
     await app.loginAs("Ing. Kovář (správce systému)");
     await app.main.getByRole("button", { name: "+ Nový pacient" }).click();

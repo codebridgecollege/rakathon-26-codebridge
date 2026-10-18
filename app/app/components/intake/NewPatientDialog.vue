@@ -2,7 +2,7 @@
 // The "Nový pacient" dialog (renderOverlay() kind "new" in the old page), mounted once in app.vue and opened through
 // useNewPatient().open(). Same markup and classes as the old page, so the copied CSS styles it unchanged. The logic
 // and the requests are in stores/intake.ts.
-import { computed, nextTick, onBeforeUnmount, onMounted, ref } from "vue";
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useFluent } from "fluent-vue";
 import { surnameFirst } from "@codebridge/domain/names";
 import { useIntakeStore, type FieldId } from "../../stores/intake";
@@ -24,6 +24,14 @@ const lang = () => document.documentElement.lang || "cs";
 const modal = ref<HTMLElement | null>(null);
 const isOpen = computed(() => s.isOpen);
 const { onKeydown } = useDialogFocus(modal, isOpen);
+// A step change removes the button that had the focus; the focus goes back to the dialog, so Tab stays inside it.
+watch(
+  () => s.step,
+  async () => {
+    await nextTick();
+    if (modal.value && !modal.value.contains(document.activeElement)) modal.value.focus();
+  },
+);
 
 // The FNO form "Konzultace pacienta": only identity and the GDPR consent are required (round 20). The referring
 // doctor's fields carry autocomplete tokens; the patient's are "off", so the browser never offers the doctor's own

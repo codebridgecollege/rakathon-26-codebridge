@@ -345,7 +345,38 @@ describe("processing and completion", () => {
   });
 });
 
+describe("closing while busy", () => {
+  it("does not complete an intake whose dialog was closed during Ukládám…", async () => {
+    vi.useFakeTimers();
+    const hold = deferred<unknown>();
+    const m = server({ "/cases/NO-012/documents": () => hold.promise.then(() => [201, ok({ document: doc("doc1", "a.pdf") })]) });
+    const s = await openFilled();
+    await s.next();
+    s.addFiles([new File(["x"], "a.pdf")]);
+    const p = s.complete();
+    s.close();
+    hold.resolve(null);
+    await p;
+    expect(m.calls.some((c) => path(c) === "/cases/NO-012/intake/complete")).toBe(false);
+    expect(nav.openPatient).not.toHaveBeenCalled();
+    expect(useToastStore().items).toHaveLength(0);
+  });
+});
+
 describe("user switch", () => {
+  it("discards a referral still on its way under the user who made it", async () => {
+    const hold = deferred<unknown>();
+    const m = server({ "/cases": () => hold.promise.then(() => [201, ok({ case_id: "NO-012", file: "12_novy.pdf", intake: true })]) });
+    m.api.setUser("d2p1");
+    const s = await openFilled();
+    void s.next();
+    const sw = s.closeForUserSwitch();
+    hold.resolve(null);
+    await sw;
+    const del = m.calls.find((c) => method(c) === "DELETE" && path(c) === "/cases/NO-012/intake");
+    expect(new Headers(del!.init.headers).get("X-Demo-User")).toBe("d2p1");
+  });
+
   it("discards the open intake and waits for it before the switch", async () => {
     const m = server();
     const s = await openFilled();

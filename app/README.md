@@ -32,7 +32,7 @@ passes the DOM-only test suite.
   - Toasts: `stores/toast.ts` and `components/AppToasts.vue`.
 - **Development harness.** `pages/dev-*.vue` open parts of screens outside the screens that will hold them
   (`#/dev-intake`: a stand-in patient table with "+ Nový pacient", the upload panel of NO-S01 and the phone dialog).
-  `nuxt.config.ts` leaves them out of every build unless `APP_DEV_PAGES=1` (or `nuxt dev`). The e2e harness specs
+  `nuxt.config.ts` leaves them out unless `APP_DEV_PAGES=1` (also for `nuxt dev`). The e2e harness specs
   (`e2e/harness/`) drive them.
 - **CSS** is today's page CSS, copied unchanged into `app/assets/v3.css` by `scripts/sync-css.mjs`; a test fails when
   the template's CSS changed and the copy did not. Do not edit `v3.css` by hand.

@@ -107,7 +107,7 @@ export const usePhoneStore = defineStore("phone", () => {
     for (const d of fresh) if (d.identity === "conflicts" && d.identity_cs) useToastStore().show({ text: d.identity_cs });
   }
 
-  // "Hotovo" and "Zavřít": the session ends on the server after one more look.
+  // "Hotovo", "Zavřít" and a user switch: the session ends on the server, then the page looks once more.
   function close() {
     const ph = current.value;
     if (!ph) return;
@@ -116,10 +116,13 @@ export const usePhoneStore = defineStore("phone", () => {
   }
 
   async function end(ph: PhoneSession) {
-    await look(ph);
-    await useApi().deleteUploadSession(ph.id!).catch(() => {
+    // Sent before anything is awaited, so it leaves under the user who opened the session: a user switch changes the
+    // demo user right after this call, and the server treats another user's session as missing.
+    const ended = useApi().deleteUploadSession(ph.id!).catch(() => {
       // It expires within 15 minutes anyway.
     });
+    await ended;
+    await look(ph);
     await sleep(PHONE_LAST_LOOK_MS);
     await look(ph);
     if (ph.target !== "intake" && ph.file) void useUploadsStore().load({ file: ph.file, id: ph.caseId }, true);

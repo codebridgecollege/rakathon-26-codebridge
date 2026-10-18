@@ -79,6 +79,8 @@ export const useIntakeStore = defineStore("intake", () => {
   let pending: Promise<unknown> = Promise.resolve();
   // A new referral waits for the discard of the previous intake, so it never meets its own discarded draft.
   let discarding: Promise<unknown> | null = null;
+  // The POST /cases on its way, if any.
+  let creating: Promise<unknown> | null = null;
   let fileSeq = 0;
   // Bumped on every open and close, so a timer or reply of an earlier dialog cannot write into this one.
   let gen = 0;
@@ -148,7 +150,10 @@ export const useIntakeStore = defineStore("intake", () => {
   // A user switch: the open intake belongs to the user who opened it, so it goes first, and the switch waits for it.
   async function closeForUserSwitch() {
     if (!isOpen.value) return;
+    // A referral on its way is answered first, so its case is discarded under the user who made it.
+    const inFlight = creating;
     close();
+    await inFlight;
     await discarding;
   }
 
@@ -257,10 +262,12 @@ export const useIntakeStore = defineStore("intake", () => {
     }
     busy.value = true;
     try {
-      const r = await useApi().createCase(body, idem!);
+      const req = useApi().createCase(body, idem!);
+      creating = req.catch(() => {});
+      const r = await req;
       if (g !== gen) {
         // The dialog was closed while the case was being made: it goes at once.
-        if (r.data.intake) void useApi().discardIntake(r.data.case_id).catch(() => {});
+        if (r.data.intake) discarding = useApi().discardIntake(r.data.case_id).catch(() => {});
         return;
       }
       busy.value = false;
@@ -424,12 +431,20 @@ export const useIntakeStore = defineStore("intake", () => {
     busy.value = true;
     // A removal made after "Zpracovat" lands before the intake is completed.
     await pending;
+    // Closed meanwhile: the intake was discarded, so it is not completed behind the user's back.
+    if (g !== gen) return;
     let r;
     try {
       r = await useApi().completeIntake(id);
     } catch (e) {
-      if (g === gen) busy.value = false;
+      if (g !== gen) return;
+      busy.value = false;
       refused(e);
+      return;
+    }
+    // Closed while the answer was on its way: the list shows what the server holds, without a note or a navigation.
+    if (g !== gen) {
+      useSessionStore().applyState(r.state);
       return;
     }
     completed.value = true;

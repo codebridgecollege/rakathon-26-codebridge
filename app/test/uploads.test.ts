@@ -183,6 +183,19 @@ describe("phone upload", () => {
     expect(intake.files.map((x) => [x.name, x.doc?.source])).toEqual([["zadanka.jpg", "phone"]]);
   });
 
+  it("a user switch ends the session under the user who opened it", async () => {
+    const m = phoneServer([poll([])]);
+    setApi(m.api);
+    m.api.setUser("d2p1");
+    const ph = usePhoneStore();
+    await ph.open("discussion", "NO-S01", "S01_pacient.pdf");
+    // What the switch hook does (plugins/intake.ts): close, then the session store sets the new user.
+    ph.close();
+    m.api.setUser("coord");
+    const del = m.calls.find((c) => method(c) === "DELETE" && path(c) === "/upload-sessions/us1");
+    expect(new Headers(del!.init.headers).get("X-Demo-User")).toBe("d2p1");
+  });
+
   it("a closed tab ends the session with a keepalive request", async () => {
     const m = phoneServer([poll([])]);
     setApi(m.api);
