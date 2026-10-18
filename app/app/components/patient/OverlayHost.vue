@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // The patient screen's dialogs and drawers, drawn into the page's #overlay layer (renderOverlay() in the template).
 // One at a time; Escape closes it, as the scrim and the "Zavřít" buttons do. Kinds of screens ported later (the
-// report, the upload, the MDT start dialog) are drawn by those screens.
+// report, the MDT start dialog) are drawn by those screens.
 import { onBeforeUnmount, onMounted } from "vue";
 import { useOverlayStore } from "../../stores/overlay";
 import EditDialog from "./EditDialog.vue";
@@ -11,6 +11,7 @@ import GuideDrawer from "./GuideDrawer.vue";
 import FhirDialog from "./FhirDialog.vue";
 import PgRefsDrawer from "./PgRefsDrawer.vue";
 import PgPanelDrawer from "./PgPanelDrawer.vue";
+import UploadDialog from "./UploadDialog.vue";
 
 const overlay = useOverlayStore();
 
@@ -35,6 +36,7 @@ onBeforeUnmount(() => {
       <FhirDialog v-else-if="overlay.current.kind === 'fhir'" :o="overlay.current" />
       <PgRefsDrawer v-else-if="overlay.current.kind === 'pgrefs'" :o="overlay.current" />
       <PgPanelDrawer v-else-if="overlay.current.kind === 'pgpanel'" :o="overlay.current" />
+      <UploadDialog v-else-if="overlay.current.kind === 'upload'" :o="overlay.current" />
     </template>
   </Teleport>
 </template>

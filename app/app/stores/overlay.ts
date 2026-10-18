@@ -22,6 +22,7 @@ export type Overlay =
   | { kind: "pgrefs"; hit: number }
   | { kind: "pgpanel"; panel: number }
   | { kind: "breakglass"; file: string; msg: string }
+  | { kind: "upload"; file: string }
   // PORT(#13): opened from the patient header, drawn by the screens ported next (the MDT start dialog with attendance,
   // steps 8-9; the report dialog, step 12). Until then opening them shows nothing.
   | { kind: "start"; day: string; from: string | null; attOnly: boolean }

@@ -110,8 +110,8 @@ const uploaded = computed(() => all.value.some((d) => d.file));
 const citedIn = (t: string) => String(t).replace(/,\s*původní popis v PDF není/i, "").replace(/^citace v\b/i, "citováno v");
 const firstPage = (d: DocumentInfo) => ({ file: d.file || dd.value.file, page: (d.pages || [1])[0]! });
 const openDoc = (d: DocumentInfo) => c.openSource(firstPage(d));
-// PORT(#13): the upload dialog (step 11) draws this kind.
-const openUpload = () => overlay.open({ kind: "upload" } as never);
+// The "+ Nahrát dokument" dialog (UploadDialog.vue), drawn by the patient screen's overlay host.
+const openUpload = () => overlay.open({ kind: "upload", file: c.p.value.file });
 </script>
 
 <template>

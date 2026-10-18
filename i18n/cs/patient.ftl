@@ -250,6 +250,16 @@ patient-state-tt = TT
 patient-state-ps = PS (ECOG)
 patient-state-exam-undated = datum neuvedeno
 
+## "+ Nahrát dokument" (a demonstration dialog: it stores nothing)
+
+patient-upload-title = Nahrát dokument
+patient-upload-heading = Nahrát dokument · { $id }
+patient-upload-drop = Přetáhněte PDF, DOCX nebo fotografii zprávy
+patient-upload-pick = Vybrat soubory
+patient-upload-done-label = Nahráno:
+patient-upload-done = kontrola čitelnosti proběhla, dokument se přidá do seznamu. V maketě se nic neukládá.
+patient-upload-note = Po nahrání proběhne kontrola čitelnosti; při špatné kvalitě aplikace požádá o lepší kopii.
+
 ## Break-the-glass (a doctor outside the case's team, with a stated reason)
 
 patient-bg-title = Otevřít mimo tým
