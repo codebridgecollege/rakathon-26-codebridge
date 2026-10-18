@@ -10,9 +10,9 @@ against it, and the Worker serves it at `/`; today's page is at `/legacy/` for a
 
 - **Nuxt 4 in SPA mode** (`ssr: false`), built with `nuxt generate` into static files.
 - **Served by the API Worker at `/`** (`baseURL`), with today's page at `/legacy/`. Routes are paths
-  (`/patients`, `/patient/10/labs`). The Worker serves the app's page only for the prefixes in
-  `api/scripts/app-routes.mjs` (every other path is a 404); a new page in `app/pages/` needs its prefix there, and
-  `test/routes.test.ts` fails until it has one. Old hash links (`/#patient/10/labs`) are not supported.
+  (`/patients`, `/patient/10/labs`). The Worker serves the app's page only for the route paths in
+  `api/scripts/app-routes.mjs` (every other path is a 404); a new page in `app/pages/` needs its path there, and
+  `test/routes.test.ts` fails until it has one. Old hash links (`/#patient/10/labs`) are not supported: they open the patient list.
 - **Content security policy and headers** come from `api/scripts/headers.mjs`, which pins the hashes of the two inline
   scripts in `index.html` at staging time. A new inline script, an outside script, style or font host, or a new
   connection target needs a change there (FRONTEND.md, "As implemented (step 13)").

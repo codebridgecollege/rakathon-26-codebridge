@@ -166,6 +166,7 @@ Not covered, and why:
   the page never offers the button. The API tests cover the route.
 - **Stale tab after a reset:** a tab opened before a reset reloads on its next write; covered by the API tests.
 - The access log's content beyond one case view, and the exact report and FHIR content, are covered by the API tests.
-- **Not yet covered, worth adding with the port:** paging
-  across more than one page (the seed has 11 patients, 20 fit on a page), "Změnit termín" from the patient header,
-  and the guideline citation fields (society, version, section, page) and the "otevřít v doporučení" link target.
+- **Not yet covered, worth adding with the port:**
+  - paging across more than one page (the seed has 11 patients, 20 fit on a page);
+  - "Změnit termín" from the patient header;
+  - the guideline citation fields (society, version, section, page) and the "otevřít v doporučení" link target.

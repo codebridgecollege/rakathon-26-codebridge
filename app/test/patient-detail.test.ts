@@ -153,8 +153,11 @@ describe("the MDT question", () => {
     expect(w.get(".bh").text()).toBe("Otázka pro MDT");
     const text = w.get('.edl[role="button"]');
     expect(text.text()).toBe("Jaký postup u ložiska?");
-    // The draft is labelled as the assistant's, outside the edit button.
-    expect(w.get(".qlbl.draft").text()).toBe("Návrh asistenta");
+    // The draft is labelled as the assistant's, outside the edit button, which names the label as its description.
+    const label = w.get(".qlbl.draft");
+    expect(label.text()).toBe("Návrh asistenta");
+    expect(label.attributes("tabindex")).toBe("0");
+    expect(text.attributes("aria-describedby")).toBe(label.attributes("id"));
     await text.trigger("click");
     expect(useOverlayStore().current).toMatchObject({ kind: "edit", key: "q", orig: "Jaký postup u ložiska?", isQuestion: true });
     await w.get("button.btn").trigger("click");

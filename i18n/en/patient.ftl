@@ -158,7 +158,7 @@ patient-question-none = Explicit question { -gap-not-stated-f }.
 patient-question-confirm = Confirm question
 patient-question-confirmed = Question confirmed
 patient-question-draft = Assistant's draft
-patient-question-draft-tip = The referral states no explicit question. The assistant drafted this one; it holds once a doctor confirms or edits it. { $basis }
+patient-question-draft-tip = The referral states no explicit question. The assistant drafted this one; it applies once a doctor confirms or edits it. { $basis }
 
 ## Edit dialog
 

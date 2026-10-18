@@ -5,7 +5,7 @@
 // table row). The meaning of every mark stays in its title, so the e2e suite and screen readers can read it.
 import { defineNuxtPlugin } from "#app";
 
-const TIP_SEL = ".info, .mk, .edtag, .qlbl.ok, .gapq, .chip[title], .chip[data-tip], .vf, .vbox, .dt[data-tip], .lpin[title], .lpin[data-tip]";
+const TIP_SEL = ".info, .mk, .edtag, .qlbl.ok, .qlbl.draft, .gapq, .chip[title], .chip[data-tip], .vf, .vbox, .dt[data-tip], .lpin[title], .lpin[data-tip]";
 const ACTS = "[data-src],[data-edit],[data-act],[data-tab],[data-open],[data-stmenu],tr.click";
 
 export default defineNuxtPlugin(() => {

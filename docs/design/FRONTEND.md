@@ -319,8 +319,6 @@ plan above, or adds to it:
   answer every unknown path with the app.
 - **CI** installs from the root lockfile and tests the Worker, the app and
   both packages (step 13 below).
-- **Routes** were hash routes on this branch; they are paths now
-  ("As implemented (paths)" below).
 - **No embedded mode and no fallback.** When `/api/health` does not report
   our Worker with data, the shell shows the error instead of falling back
   to built-in data.
@@ -539,19 +537,22 @@ Branch `port-paths` (issue #13): path routes instead of hash routes, and the dra
   `/patient/<nr>/<tab>`; `/` opens the patient list. The old hash links (`#patient/10/labs`, `#/...`,
   `#present/<nr>`, `#protocol/<nr>`) and the `/app/...` redirect are gone: `/#patient/10/labs` opens the patient list,
   `/app/` is a 404. The old page at `/legacy/` keeps its own hash links.
-- **Serving the route paths, not a fallback.** `api/scripts/app-routes.mjs` lists the route prefixes (`/patients`,
-  `/calendar`, `/calendar/*`, `/tasks`, `/staff`, `/admin`, `/patient/*`). `headers.mjs` writes a 200 rewrite to `/`
-  for each into `.assets/_redirects`, so the address stays and the assets serve the app's `index.html` without any
-  Worker code; `run_worker_first` stays `["/api/*"]`. Every other path keeps the Czech 404 page
-  (`not_found_handling: 404-page`); no SPA fallback. A splat also matches its empty rest, so `/patient/` serves the
-  app, which shows its empty fallback there.
+- **Serving the route paths, not a fallback.** `api/scripts/app-routes.mjs` lists the route paths (`/patients`,
+  `/calendar`, `/calendar/:week`, `/tasks`, `/staff`, `/admin`, `/patient/:nr`, `/patient/:nr/:tab`). `headers.mjs`
+  writes a 200 rewrite to `/` for each into `.assets/_redirects`, so the address stays and the assets serve the app's
+  `index.html` without any Worker code; `run_worker_first` stays `["/api/*"]`. A placeholder matches exactly one path
+  segment, so every other path, a trailing slash and a deeper path included (`/patients/`, `/patient/`,
+  `/patient/10/labs/x`), keeps the Czech 404 page (`not_found_handling: 404-page`); no SPA fallback. `nuxt generate`
+  also prerenders the static routes as folders (`patients/index.html`, ...), which would answer `/patients/` without
+  the policy; `headers.mjs` deletes them.
 - **Headers on deep links.** The assets match `_headers` against the address the browser asked for, not the
-  rewritten one (checked in the asset Worker's code, `attachCustomHeaders()`, which `wrangler dev` runs as production
-  does), so `headers.mjs` writes the content security policy and `Cross-Origin-Opener-Policy` for `/` and for each
-  route prefix. `e2e/specs/serving.spec.ts` checks that every route path returns the same page as `/` with the same
-  policy, and that near misses (`/patient`, `/patients/10`, `/tasks/x`, `/app/`) are 404.
-- **A new page needs its prefix.** `app/test/routes.test.ts` derives example addresses from `app/app/pages/` and
-  fails when no prefix in `app-routes.mjs` covers one, so a page that opens by a click but 404s on a reload is caught.
+  rewritten one (`attachCustomHeaders()` in the shared asset Worker code that `wrangler dev` runs; the deployed version
+  may differ, so check with `curl -sI` after a deploy), so `headers.mjs` writes the content security policy and
+  `Cross-Origin-Opener-Policy` for `/` and for each route path. `e2e/specs/serving.spec.ts` checks that every route
+  path returns the same page as `/` with the same policy, and that near misses (`/patient`, `/patients/`,
+  `/patients/10`, `/patient/10/labs/x`, `/app/`) are 404.
+- **A new page needs its path.** `app/test/routes.test.ts` derives example addresses from `app/app/pages/` and fails
+  when no path in `app-routes.mjs` covers one, so a page that opens by a click but 404s on a reload is caught.
 - **Fixed on the way:** a fresh load of a calendar link to a day that is not a Monday (`/calendar/2026-12-02`) showed
   the wrong month in the mini month: Nuxt remounted the page on the rewrite to the Monday. The calendar page now keeps
   one key for every week.
@@ -559,9 +560,11 @@ Branch `port-paths` (issue #13): path routes instead of hash routes, and the dra
   address without a load afterwards (pushState and popstate, as a hash link did), because the demo user picked in
   the header lives in the page.
 - **Drafted MDT question.** An assistant's draft (the referral states no explicit question, no doctor confirmed or
-  edited it) carries the label "Návrh asistenta" (`patient-question-draft`, the wording of the assistant's drafted
-  tasks) in the question box of the patient header and the brief, and on the calendar card; the box's tooltip quotes
-  the passages the draft rests on (they stay off the screen otherwise, as the team's design keeps the box short). A
+  edited it) carries the label "Návrh asistenta" (`patient-question-draft`, the same words as the chip over the
+  assistant's drafted tasks) in the question box of the patient header and the brief, and on the calendar card. In
+  the box the label is the edit button's description and takes keyboard focus; its tooltip quotes the passages the
+  draft rests on (they stay off the screen otherwise, as the team's design keeps the box short; the calendar card
+  shows the label only). A
   confirmation of the shown text or a doctor's edit removes the label; a confirmation of an older draft text does not.
   The report, its PDF and the FHIR export print the draft with "[návrh otázky asistentem, neověřeno lékařem]" or
   "[otázka podle účelu v dokumentu, ...]" and its passages, as before. The patient list does not show the question.
