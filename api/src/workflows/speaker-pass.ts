@@ -15,8 +15,12 @@ import { ApiError } from "../http/errors";
 import { actorFor, concatObjects, deleteForPass, finalizeForPass, joinedAudio } from "../store/audio";
 import { Tx } from "../store/write";
 import { sha256Hex } from "../store/work";
+import { orgKey, orgStmt } from "../store/sql";
+import { LEGACY_ORG } from "../domain/orgs";
 
-export type SpeakerPassParams = { caseId: string; passId: string; jobId: string };
+// org: the case's org. The Workflow runs without a request, so the org comes with its parameters; an instance started
+// before orgs existed has none, and all data of that time is demo org A's.
+export type SpeakerPassParams = { org: string; caseId: string; passId: string; jobId: string };
 
 const FAST = { retries: { limit: 3, delay: "2 seconds", backoff: "exponential" }, timeout: "1 minute" } as const;
 const DELETE = { retries: { limit: 10, delay: "5 seconds", backoff: "exponential" }, timeout: "1 minute" } as const;
@@ -39,41 +43,41 @@ const partBytes = (env: Env) => Number(env.AUDIO_PART_BYTES) || 5_242_880;
 
 type JobRow = { id: string; case_id: string; created_by: string; state: string };
 
-async function jobOf(env: Env, jobId: string): Promise<JobRow> {
-  const j = await env.DB.prepare("SELECT id, case_id, created_by, state FROM jobs WHERE id = ?1").bind(jobId).first<JobRow>();
+async function jobOf(env: Env, p: SpeakerPassParams): Promise<JobRow> {
+  const j = await orgStmt(env.DB, p.org, "SELECT id, case_id, created_by, state FROM jobs WHERE org_id = ?org AND id = ?1", p.jobId).first<JobRow>();
   if (!j) throw new NonRetryableError("internal");
   return j;
 }
 
-async function actor(env: Env, jobId: string) {
-  const j = await jobOf(env, jobId);
-  return actorFor(env.DB, j.created_by, env.AUTH_MODE === "access" ? "access" : "demo");
+async function actor(env: Env, p: SpeakerPassParams) {
+  const j = await jobOf(env, p);
+  return actorFor(env.DB, p.org, j.created_by, env.AUTH_MODE === "access" ? "access" : "demo");
 }
 
-const phase = (env: Env, jobId: string, ph: string) =>
-  env.DB.prepare("UPDATE jobs SET state = 'running', phase = ?1, updated_at = ?2 WHERE id = ?3 AND state IN ('queued','running')").bind(ph, iso(), jobId).run();
+const phase = (env: Env, p: SpeakerPassParams, ph: string) =>
+  orgStmt(env.DB, p.org, "UPDATE jobs SET state = 'running', phase = ?1, updated_at = ?2 WHERE org_id = ?org AND id = ?3 AND state IN ('queued','running')", ph, iso(), p.jobId).run();
 
 // ---------- steps ----------
 
 async function markRunning(env: Env, p: SpeakerPassParams) {
   await env.DB.batch([
-    env.DB.prepare("UPDATE jobs SET state = 'running', phase = 'audio', error_code = NULL, updated_at = ?1 WHERE id = ?2").bind(iso(), p.jobId),
+    orgStmt(env.DB, p.org, "UPDATE jobs SET state = 'running', phase = 'audio', error_code = NULL, updated_at = ?1 WHERE org_id = ?org AND id = ?2", iso(), p.jobId),
     // A pass purged before it started stays purged; a retried error pass runs again.
-    env.DB.prepare("UPDATE transcript_passes SET state = 'running', error_code = NULL, updated_at = ?1 WHERE id = ?2 AND state IN ('queued','error','running')").bind(iso(), p.passId),
+    orgStmt(env.DB, p.org, "UPDATE transcript_passes SET state = 'running', error_code = NULL, updated_at = ?1 WHERE org_id = ?org AND id = ?2 AND state IN ('queued','error','running')", iso(), p.passId),
   ]);
   return { state: "running" };
 }
 
-async function passState(env: Env, passId: string) {
-  return env.DB.prepare("SELECT state, from_wall_ms, cutoff_wall_ms FROM transcript_passes WHERE id = ?1").bind(passId).first<{ state: string; from_wall_ms: number; cutoff_wall_ms: number }>();
+async function passState(env: Env, p: SpeakerPassParams) {
+  return orgStmt(env.DB, p.org, "SELECT state, from_wall_ms, cutoff_wall_ms FROM transcript_passes WHERE org_id = ?org AND id = ?1", p.passId).first<{ state: string; from_wall_ms: number; cutoff_wall_ms: number }>();
 }
 
 // Words to staged lines. Staged lines are invisible; a retry starts by deleting what an earlier attempt staged.
 async function diarizeToStaged(env: Env, p: SpeakerPassParams) {
-  await phase(env, p.jobId, "diarize");
-  const ps = await passState(env, p.passId);
+  await phase(env, p, "diarize");
+  const ps = await passState(env, p);
   if (!ps || ps.state !== "running") throw new NonRetryableError("audio_purged");
-  const { objects, total, marks } = await joinedAudio(env, p.passId);
+  const { objects, total, marks } = await joinedAudio(env, p.org, p.passId);
   if (!total) throw new NonRetryableError("audio_missing");
   for (const o of objects) {
     const h = await env.DOCS.head(o.key);
@@ -92,8 +96,8 @@ async function diarizeToStaged(env: Env, p: SpeakerPassParams) {
   // Only the speech this audio holds is replaced: a lost part or a tail that never arrived keeps its live lines.
   const covered = coveredIntervals(marks, total / PCM_BYTES_PER_SECOND);
   const stmts: D1PreparedStatement[] = [
-    db.prepare("DELETE FROM transcript_lines WHERE pass_id = ?1 AND state = 'staged'").bind(p.passId),
-    db.prepare("UPDATE transcript_passes SET covered_json = ?1 WHERE id = ?2").bind(JSON.stringify(covered), p.passId),
+    orgStmt(db, p.org, "DELETE FROM transcript_lines WHERE org_id = ?org AND pass_id = ?1 AND state = 'staged'", p.passId),
+    orgStmt(db, p.org, "UPDATE transcript_passes SET covered_json = ?1 WHERE org_id = ?org AND id = ?2", JSON.stringify(covered), p.passId),
   ];
   // Many rows per statement through json_each; chunks keep each bound value well under D1's limits.
   let chunk: { id: string; s: number; w: number; t: string }[] = [];
@@ -101,13 +105,9 @@ async function diarizeToStaged(env: Env, p: SpeakerPassParams) {
   const flush = () => {
     if (!chunk.length) return;
     stmts.push(
-      db
-        .prepare(
-          `INSERT INTO transcript_lines (id, case_id, source, pass_id, speaker, wall_ms, text, state, created_by, created_at)
-           SELECT json_extract(value, '$.id'), ?1, 'speaker_pass', ?2, json_extract(value, '$.s'), json_extract(value, '$.w'), json_extract(value, '$.t'), 'staged', 'speaker_pass', ?3
-           FROM json_each(?4)`,
-        )
-        .bind(p.caseId, p.passId, at, JSON.stringify(chunk)),
+      orgStmt(db, p.org, `INSERT INTO transcript_lines (org_id, id, case_id, source, pass_id, speaker, wall_ms, text, state, created_by, created_at)
+           SELECT ?org, json_extract(value, '$.id'), ?1, 'speaker_pass', ?2, json_extract(value, '$.s'), json_extract(value, '$.w'), json_extract(value, '$.t'), 'staged', 'speaker_pass', ?3
+           FROM json_each(?4)`, p.caseId, p.passId, at, JSON.stringify(chunk)),
     );
     chunk = [];
     size = 0;
@@ -126,35 +126,35 @@ async function diarizeToStaged(env: Env, p: SpeakerPassParams) {
 // One batch: the live lines the pass covers become superseded, the staged lines current, the pass done. Guarded on the
 // pass still running, so a case closed meanwhile (purged) keeps its live lines. Re-running changes nothing.
 async function activatePass(env: Env, p: SpeakerPassParams, counts: { lineCount: number; speakerCount: number }) {
-  const ps = await passState(env, p.passId);
+  const ps = await passState(env, p);
   if (ps?.state === "done") return { activated: true };
   const db = env.DB;
   // No words (silence, or a provider that heard nothing): keep the live text instead of replacing it with nothing.
   if (!ps || ps.state !== "running" || counts.lineCount === 0) {
     await db.batch([
-      db.prepare("DELETE FROM transcript_lines WHERE pass_id = ?1 AND state = 'staged'").bind(p.passId),
-      db.prepare("UPDATE transcript_passes SET state = 'empty', line_count = 0, speaker_count = 0, updated_at = ?1 WHERE id = ?2 AND state = 'running'").bind(iso(), p.passId),
+      orgStmt(db, p.org, "DELETE FROM transcript_lines WHERE org_id = ?org AND pass_id = ?1 AND state = 'staged'", p.passId),
+      orgStmt(db, p.org, "UPDATE transcript_passes SET state = 'empty', line_count = 0, speaker_count = 0, updated_at = ?1 WHERE org_id = ?org AND id = ?2 AND state = 'running'", iso(), p.passId),
     ]);
     return { activated: false };
   }
-  const t = new Tx(db, await actor(env, p.jobId), { requestId: null, epoch: null });
+  const t = new Tx(db, await actor(env, p), { requestId: null, epoch: null });
   const at = iso();
-  t.guard("pass_running", "(SELECT state FROM transcript_passes WHERE id = ?) = 'running'", [p.passId], () => new Error("audio_purged"));
+  t.guard("pass_running", "(SELECT state FROM transcript_passes WHERE org_id = ?org AND id = ?) = 'running'", [p.passId], () => new Error("audio_purged"));
   t.run(
     `UPDATE transcript_lines SET state = 'superseded', superseded_by_pass = ?1
-     WHERE case_id = ?2 AND source = 'live' AND state = 'current' AND wall_ms > ?3 AND wall_ms <= ?4
-       AND EXISTS (SELECT 1 FROM json_each((SELECT covered_json FROM transcript_passes WHERE id = ?1)) j
+     WHERE org_id = ?org AND case_id = ?2 AND source = 'live' AND state = 'current' AND wall_ms > ?3 AND wall_ms <= ?4
+       AND EXISTS (SELECT 1 FROM json_each((SELECT covered_json FROM transcript_passes WHERE org_id = ?org AND id = ?1)) j
                    WHERE transcript_lines.wall_ms BETWEEN json_extract(j.value, '$[0]') AND json_extract(j.value, '$[1]'))`,
     p.passId, p.caseId, ps.from_wall_ms, ps.cutoff_wall_ms,
   );
-  t.run("UPDATE transcript_lines SET state = 'current' WHERE pass_id = ?1 AND state = 'staged'", p.passId);
-  t.run("UPDATE transcript_passes SET state = 'done', line_count = ?1, speaker_count = ?2, updated_at = ?3 WHERE id = ?4", counts.lineCount, counts.speakerCount, at, p.passId);
+  t.run("UPDATE transcript_lines SET state = 'current' WHERE org_id = ?org AND pass_id = ?1 AND state = 'staged'", p.passId);
+  t.run("UPDATE transcript_passes SET state = 'done', line_count = ?1, speaker_count = ?2, updated_at = ?3 WHERE org_id = ?org AND id = ?4", counts.lineCount, counts.speakerCount, at, p.passId);
   t.audit({ action: "recording.speaker_pass", what_cs: "AI záznam: rozlišení mluvčích po schválení závěru", case_id: p.caseId });
   try {
     await t.commit();
   } catch (e) {
     if (e instanceof Error && e.message === "audio_purged") {
-      await db.prepare("DELETE FROM transcript_lines WHERE pass_id = ?1 AND state = 'staged'").bind(p.passId).run();
+      await orgStmt(db, p.org, "DELETE FROM transcript_lines WHERE org_id = ?org AND pass_id = ?1 AND state = 'staged'", p.passId).run();
       return { activated: false };
     }
     throw e;
@@ -163,16 +163,16 @@ async function activatePass(env: Env, p: SpeakerPassParams, counts: { lineCount:
 }
 
 async function setPassState(env: Env, p: SpeakerPassParams, state: "empty" | "purged") {
-  await env.DB.prepare("UPDATE transcript_passes SET state = ?1, updated_at = ?2 WHERE id = ?3 AND state = 'running'").bind(state, iso(), p.passId).run();
+  await orgStmt(env.DB, p.org, "UPDATE transcript_passes SET state = ?1, updated_at = ?2 WHERE org_id = ?org AND id = ?3 AND state = 'running'", state, iso(), p.passId).run();
   return { state };
 }
 
 async function passError(env: Env, p: SpeakerPassParams, code: PassErrorCode) {
   const db = env.DB;
   await db.batch([
-    db.prepare("DELETE FROM transcript_lines WHERE pass_id = ?1 AND state = 'staged'").bind(p.passId),
+    orgStmt(db, p.org, "DELETE FROM transcript_lines WHERE org_id = ?org AND pass_id = ?1 AND state = 'staged'", p.passId),
     // A pass purged meanwhile keeps that state: the audio is gone, so "Zkusit znovu" must not be offered.
-    db.prepare("UPDATE transcript_passes SET state = 'error', error_code = ?1, updated_at = ?2 WHERE id = ?3 AND state = 'running'").bind(code, iso(), p.passId),
+    orgStmt(db, p.org, "UPDATE transcript_passes SET state = 'error', error_code = ?1, updated_at = ?2 WHERE org_id = ?org AND id = ?3 AND state = 'running'", code, iso(), p.passId),
   ]);
   return { code };
 }
@@ -180,37 +180,31 @@ async function passError(env: Env, p: SpeakerPassParams, code: PassErrorCode) {
 async function deleteAudio(env: Env, p: SpeakerPassParams, failed: PassErrorCode | null) {
   const what = failed ? "AI záznam: zvuk smazán po neúspěšném rozlišení mluvčích" : "AI záznam: zvuk po rozlišení mluvčích smazán";
   // The audit row is in the same batch as the state change, so a retried step cannot lose it.
-  const n = await deleteForPass(env, p.passId, { actor: await actor(env, p.jobId), what_cs: what, case_id: p.caseId });
+  const n = await deleteForPass(env, p.org, p.passId, { actor: await actor(env, p), what_cs: what, case_id: p.caseId });
   return { deleted: n };
 }
 
 async function summarize(env: Env, p: SpeakerPassParams, basis: "speaker_pass" | "live_only", summaryId: string) {
-  await phase(env, p.jobId, "summary");
+  await phase(env, p, "summary");
   const db = env.DB;
-  const done = await db.prepare("SELECT state FROM transcript_summaries WHERE id = ?1").bind(summaryId).first<{ state: string }>();
+  const done = await orgStmt(db, p.org, "SELECT state FROM transcript_summaries WHERE org_id = ?org AND id = ?1", summaryId).first<{ state: string }>();
   if (done) return { summaryId, state: done.state };
-  const ps = await passState(env, p.passId);
+  const ps = await passState(env, p);
   // The pass is gone (reset-demo) or the case was closed: nothing is sent to the model for it any more.
   if (!ps) return { summaryId, state: "skipped" };
-  const closed = await db.prepare("SELECT 1 AS x FROM cases WHERE id = ?1 AND status = 'closed'").bind(p.caseId).first();
+  const closed = await orgStmt(db, p.org, "SELECT 1 AS x FROM cases WHERE org_id = ?org AND id = ?1 AND status = 'closed'", p.caseId).first();
   // This approval's discussion only: an earlier MDT of the same case has its own summary.
   const lines = closed
     ? []
     : (
-        await db
-          .prepare("SELECT speaker, text FROM transcript_lines WHERE case_id = ?1 AND state = 'current' AND wall_ms > ?2 AND wall_ms <= ?3 ORDER BY wall_ms, created_at, id")
-          .bind(p.caseId, ps.from_wall_ms, ps.cutoff_wall_ms)
+        await orgStmt(db, p.org, "SELECT speaker, text FROM transcript_lines WHERE org_id = ?org AND case_id = ?1 AND state = 'current' AND wall_ms > ?2 AND wall_ms <= ?3 ORDER BY wall_ms, created_at, id", p.caseId, ps.from_wall_ms, ps.cutoff_wall_ms)
           .all<{ speaker: number | null; text: string }>()
       ).results;
   const at = iso();
   const model = env.AZURE_OPENAI_MODEL;
   const row = (state: string, o: { text?: string | null; error_code?: string | null; input_sha?: string | null; cache_hit?: boolean } = {}) =>
-    db
-      .prepare(
-        `INSERT OR REPLACE INTO transcript_summaries (id, case_id, pass_id, state, basis, text, error_code, model, prompt_version, input_sha, cache_hit, created_at)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)`,
-      )
-      .bind(summaryId, p.caseId, p.passId, state, basis, o.text ?? null, o.error_code ?? null, model, PROMPT_VERSION, o.input_sha ?? null, o.cache_hit ? 1 : 0, at);
+    orgStmt(db, p.org, `INSERT OR REPLACE INTO transcript_summaries (org_id, id, case_id, pass_id, state, basis, text, error_code, model, prompt_version, input_sha, cache_hit, created_at)
+         VALUES (?org, ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)`, summaryId, p.caseId, p.passId, state, basis, o.text ?? null, o.error_code ?? null, model, PROMPT_VERSION, o.input_sha ?? null, o.cache_hit ? 1 : 0, at);
   if (!lines.length) {
     await row("skipped").run();
     return { summaryId, state: "skipped" };
@@ -222,8 +216,8 @@ async function summarize(env: Env, p: SpeakerPassParams, basis: "speaker_pass" |
     return { summaryId, state: "error" };
   }
   const inputSha = await sha256Hex(`${model}\n${PROMPT_VERSION}\n${await sha256Hex(PROMPT)}\n${text}`);
-  // Case-scoped prefix, so a case's cache can go with the case; reset-demo deletes cache/summary/.
-  const key = `cache/summary/${p.caseId}/${inputSha}.json`;
+  // Under the org and the case, so a case's cache can go with the case; reset-demo deletes the org's cache/summary/.
+  const key = orgKey(p.org, `cache/summary/${p.caseId}/${inputSha}.json`);
   const cached = await (await env.DOCS.get(key))?.json<{ summary: string }>().catch(() => null);
   let summary: string;
   if (cached && typeof cached.summary === "string") summary = cached.summary;
@@ -239,10 +233,10 @@ async function summarize(env: Env, p: SpeakerPassParams, basis: "speaker_pass" |
     }
     await env.DOCS.put(key, JSON.stringify({ summary, model, prompt_version: PROMPT_VERSION, created_at: at }), { httpMetadata: { contentType: "application/json" } });
   }
-  const t = new Tx(db, await actor(env, p.jobId), { requestId: null, epoch: null });
+  const t = new Tx(db, await actor(env, p), { requestId: null, epoch: null });
   t.run(
-    `INSERT OR REPLACE INTO transcript_summaries (id, case_id, pass_id, state, basis, text, error_code, model, prompt_version, input_sha, cache_hit, created_at)
-     VALUES (?1, ?2, ?3, 'done', ?4, ?5, NULL, ?6, ?7, ?8, ?9, ?10)`,
+    `INSERT OR REPLACE INTO transcript_summaries (org_id, id, case_id, pass_id, state, basis, text, error_code, model, prompt_version, input_sha, cache_hit, created_at)
+     VALUES (?org, ?1, ?2, ?3, 'done', ?4, ?5, NULL, ?6, ?7, ?8, ?9, ?10)`,
     summaryId, p.caseId, p.passId, basis, summary, model, PROMPT_VERSION, inputSha, cached ? 1 : 0, at,
   );
   t.audit({ action: "recording.summary", what_cs: "AI záznam: shrnutí diskuse", case_id: p.caseId });
@@ -251,18 +245,14 @@ async function summarize(env: Env, p: SpeakerPassParams, basis: "speaker_pass" |
 }
 
 async function summaryError(env: Env, p: SpeakerPassParams, basis: string, summaryId: string, code: PassErrorCode) {
-  await env.DB.prepare(
-    `INSERT OR REPLACE INTO transcript_summaries (id, case_id, pass_id, state, basis, error_code, model, prompt_version, created_at)
-     VALUES (?1, ?2, ?3, 'error', ?4, ?5, ?6, ?7, ?8)`,
-  )
-    .bind(summaryId, p.caseId, p.passId, basis, code, env.AZURE_OPENAI_MODEL, PROMPT_VERSION, iso())
+  await orgStmt(env.DB, p.org, `INSERT OR REPLACE INTO transcript_summaries (org_id, id, case_id, pass_id, state, basis, error_code, model, prompt_version, created_at)
+     VALUES (?org, ?1, ?2, ?3, 'error', ?4, ?5, ?6, ?7, ?8)`, summaryId, p.caseId, p.passId, basis, code, env.AZURE_OPENAI_MODEL, PROMPT_VERSION, iso())
     .run();
   return { code };
 }
 
 async function finish(env: Env, p: SpeakerPassParams, failed: PassErrorCode | null) {
-  await env.DB.prepare("UPDATE jobs SET state = ?1, phase = NULL, error_code = ?2, updated_at = ?3 WHERE id = ?4")
-    .bind(failed ? "error" : "done", failed, iso(), p.jobId)
+  await orgStmt(env.DB, p.org, "UPDATE jobs SET state = ?1, phase = NULL, error_code = ?2, updated_at = ?3 WHERE org_id = ?org AND id = ?4", failed ? "error" : "done", failed, iso(), p.jobId)
     .run();
   return { state: failed ? "error" : "done" };
 }
@@ -270,13 +260,13 @@ async function finish(env: Env, p: SpeakerPassParams, failed: PassErrorCode | nu
 export class SpeakerPassWorkflow extends WorkflowEntrypoint<Env, SpeakerPassParams> {
   async run(event: WorkflowEvent<SpeakerPassParams>, step: WorkflowStep) {
     const env = this.env;
-    const p = event.payload;
+    const p: SpeakerPassParams = { ...event.payload, org: event.payload.org ?? LEGACY_ORG };
     await step.do("mark running", FAST, () => markRunning(env, p));
 
     let basis: "speaker_pass" | "live_only" = "live_only";
     let failed: PassErrorCode | null = null;
     try {
-      const audio = await step.do("finalize audio", FAST, () => finalizeForPass(env, p.passId, partBytes(env)));
+      const audio = await step.do("finalize audio", FAST, () => finalizeForPass(env, p.org, p.passId, partBytes(env)));
       if (audio.state === "ready" && audio.seconds >= 0.5) {
         const counts = await step.do("diarize", DIARIZE, () => diarizeToStaged(env, p));
         const act = await step.do("activate pass lines", FAST, () => activatePass(env, p, counts));

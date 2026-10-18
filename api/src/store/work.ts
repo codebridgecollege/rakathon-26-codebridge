@@ -7,6 +7,7 @@ import { emptyProtocol } from "@codebridge/domain/protocol";
 import type { Status } from "@codebridge/domain/status";
 import type { AttRow, StaffDept } from "../domain/attendance";
 import type { StaffUser } from "../domain/staff";
+import { assertOrg, orgStmt } from "./sql";
 
 export type CaseCore = {
   id: string;
@@ -39,27 +40,35 @@ export async function sha256Hex(s: string): Promise<string> {
   return [...new Uint8Array(b)].map((x) => x.toString(16).padStart(2, "0")).join("");
 }
 
+// Bound to one org: a case, person or set of another org reads as missing.
 export class D1Work {
-  constructor(private db: D1Database) {}
+  constructor(
+    private db: D1Database,
+    readonly org: string,
+  ) {
+    assertOrg(org);
+  }
+
+  private q(sql: string, ...args: unknown[]) {
+    return orgStmt(this.db, this.org, sql, ...args);
+  }
 
   caseCore(id: string) {
-    return this.db
-      .prepare(
-        `SELECT c.id, c.source_file, c.status, c.updated_on, c.question_draft, c.processing_level, c.patient_id,
-           c.intake_open, c.created_by, s.day AS slot_day, s.time AS slot_time
-         FROM cases c LEFT JOIN slots s ON s.case_id = c.id WHERE c.id = ?1`,
-      )
-      .bind(id)
-      .first<CaseCore>();
+    return this.q(
+      `SELECT c.id, c.source_file, c.status, c.updated_on, c.question_draft, c.processing_level, c.patient_id,
+         c.intake_open, c.created_by, s.day AS slot_day, s.time AS slot_time
+       FROM cases c LEFT JOIN slots s ON s.case_id = c.id AND s.org_id = c.org_id WHERE c.org_id = ?org AND c.id = ?1`,
+      id,
+    ).first<CaseCore>();
   }
 
   async statusHist(id: string): Promise<{ from: Status; to: Status }[]> {
-    const r = await this.db.prepare("SELECT from_status AS 'from', to_status AS 'to' FROM status_history WHERE case_id = ?1 ORDER BY at, id").bind(id).all<{ from: Status; to: Status }>();
+    const r = await this.q("SELECT from_status AS 'from', to_status AS 'to' FROM status_history WHERE org_id = ?org AND case_id = ?1 ORDER BY at, id", id).all<{ from: Status; to: Status }>();
     return r.results;
   }
 
   async protocol(id: string): Promise<Protocol & { exists: boolean }> {
-    const r = await this.db.prepare("SELECT * FROM protocols WHERE case_id = ?1").bind(id).first<Record<string, unknown>>();
+    const r = await this.q("SELECT * FROM protocols WHERE org_id = ?org AND case_id = ?1", id).first<Record<string, unknown>>();
     if (!r) return { ...emptyProtocol(), exists: false };
     return {
       exists: true,
@@ -74,23 +83,30 @@ export class D1Work {
 
 
   async decisions(id: string) {
-    const r = await this.db.prepare("SELECT id, version, slot_day, slot_time FROM decisions WHERE case_id = ?1 ORDER BY version").bind(id).all<{ id: string; version: number; slot_day: string | null; slot_time: string | null }>();
+    const r = await this.q("SELECT id, version, slot_day, slot_time FROM decisions WHERE org_id = ?org AND case_id = ?1 ORDER BY version", id).all<{ id: string; version: number; slot_day: string | null; slot_time: string | null }>();
     return r.results;
   }
 
   async attendance(key: string): Promise<{ rows: AttRow[]; version: number }> {
     const [rows, set] = await this.db.batch([
-      this.db.prepare("SELECT dept_id, position, user_id, user_name FROM attendance WHERE set_key = ?1 ORDER BY dept_id, position").bind(key),
-      this.db.prepare("SELECT version FROM attendance_sets WHERE set_key = ?1").bind(key),
+      this.q("SELECT dept_id, position, user_id, user_name FROM attendance WHERE org_id = ?org AND set_key = ?1 ORDER BY dept_id, position", key),
+      this.q("SELECT version FROM attendance_sets WHERE org_id = ?org AND set_key = ?1", key),
     ]);
     return { rows: rows!.results as AttRow[], version: ((set!.results[0] as { version: number } | undefined)?.version) ?? 0 };
   }
 
   async staff(): Promise<Staff> {
     const [users, depts, members] = await this.db.batch([
-      this.db.prepare("SELECT id, pre, sur, post, fn, role_id AS role, active FROM users ORDER BY id"),
-      this.db.prepare("SELECT id, name, sort FROM departments ORDER BY sort, id"),
-      this.db.prepare("SELECT dm.dept_id, dm.user_id FROM dept_members dm JOIN users u ON u.id = dm.user_id WHERE u.active = 1 ORDER BY dm.position, u.id"),
+      // Everyone this org has had, also those who left (their names stay in history); active as of the membership.
+      this.q(
+        `SELECT u.id, u.pre, u.sur, u.post, m.fn, m.role_id AS role, CASE WHEN u.active = 1 AND m.active_until IS NULL THEN 1 ELSE 0 END AS active
+         FROM memberships m JOIN users u ON u.id = m.user_id WHERE m.org_id = ?org ORDER BY u.id`,
+      ),
+      this.q("SELECT id, name, sort FROM departments WHERE org_id = ?org ORDER BY sort, id"),
+      this.q(
+        `SELECT dm.dept_id, dm.user_id FROM dept_members dm JOIN memberships m ON m.org_id = dm.org_id AND m.user_id = dm.user_id
+         JOIN users u ON u.id = dm.user_id WHERE dm.org_id = ?org AND u.active = 1 AND m.active_until IS NULL ORDER BY dm.position, u.id`,
+      ),
     ]);
     const us = users!.results as StaffUser[];
     const nameById = new Map(us.map((u) => [u.id, staffName(u)]));
@@ -113,14 +129,16 @@ export class D1Work {
   }
 
   async validGrant(caseId: string, userId: string, nowIso: string) {
-    return this.db
-      .prepare("SELECT id, reason, expires_at FROM case_access_grants WHERE case_id = ?1 AND user_id = ?2 AND expires_at > ?3 ORDER BY expires_at DESC LIMIT 1")
-      .bind(caseId, userId, nowIso)
-      .first<{ id: string; reason: string; expires_at: string }>();
+    return this.q("SELECT id, reason, expires_at FROM case_access_grants WHERE org_id = ?org AND case_id = ?1 AND user_id = ?2 AND expires_at > ?3 ORDER BY expires_at DESC LIMIT 1", caseId, userId, nowIso).first<{
+      id: string;
+      reason: string;
+      expires_at: string;
+    }>();
   }
 
+  // This org's demo state: a reset of another org does not change it.
   async epoch(): Promise<{ data_epoch: number; reset_in_progress: number; reset_at: string | null; seed_version: string | null } | null> {
-    return this.db.prepare("SELECT data_epoch, reset_in_progress, reset_at, seed_version FROM demo_state WHERE id = 1").first();
+    return this.q("SELECT data_epoch, reset_in_progress, reset_at, seed_version FROM demo_state WHERE org_id = ?org").first();
   }
 
   // ---------- the workflow state the page applies ----------
@@ -128,21 +146,21 @@ export class D1Work {
   async caseStates(ids: string[], clinical: boolean): Promise<Record<string, CaseState>> {
     if (!ids.length) return {};
     const j = JSON.stringify(ids);
-    const q = (sql: string) => this.db.prepare(sql).bind(j);
+    const q = (sql: string) => this.q(sql, j);
     const [cases, hist, protos, decs, tasks, suggs, edits, elog, qc, aev] = await this.db.batch([
       q(`SELECT c.id, c.source_file, c.status, c.updated_on, c.question_draft, s.day AS slot_day, s.time AS slot_time
-         FROM cases c LEFT JOIN slots s ON s.case_id = c.id WHERE c.id IN (${IN_IDS})`),
-      q(`SELECT case_id, from_status, to_status, by_name, at, how FROM status_history WHERE case_id IN (${IN_IDS}) ORDER BY at, id`),
-      q(`SELECT * FROM protocols WHERE case_id IN (${IN_IDS})`),
-      q(`SELECT * FROM decisions WHERE case_id IN (${IN_IDS}) ORDER BY version`),
-      q(`SELECT t.*, c.source_file FROM tasks t JOIN cases c ON c.id = t.case_id WHERE t.case_id IN (${IN_IDS}) ORDER BY t.id`),
-      q(`SELECT g.*, c.source_file FROM task_suggestions g JOIN cases c ON c.id = g.case_id WHERE g.case_id IN (${IN_IDS}) ORDER BY g.id`),
-      q(`SELECT * FROM fact_edits WHERE case_id IN (${IN_IDS})`),
-      q(`SELECT * FROM edit_log WHERE case_id IN (${IN_IDS}) ORDER BY at, id`),
-      q(`SELECT * FROM question_confirmations WHERE case_id IN (${IN_IDS}) ORDER BY at, id`),
+         FROM cases c LEFT JOIN slots s ON s.case_id = c.id AND s.org_id = c.org_id WHERE c.org_id = ?org AND c.id IN (${IN_IDS})`),
+      q(`SELECT case_id, from_status, to_status, by_name, at, how FROM status_history WHERE org_id = ?org AND case_id IN (${IN_IDS}) ORDER BY at, id`),
+      q(`SELECT * FROM protocols WHERE org_id = ?org AND case_id IN (${IN_IDS})`),
+      q(`SELECT * FROM decisions WHERE org_id = ?org AND case_id IN (${IN_IDS}) ORDER BY version`),
+      q(`SELECT t.*, c.source_file FROM tasks t JOIN cases c ON c.id = t.case_id AND c.org_id = t.org_id WHERE t.org_id = ?org AND t.case_id IN (${IN_IDS}) ORDER BY t.id`),
+      q(`SELECT g.*, c.source_file FROM task_suggestions g JOIN cases c ON c.id = g.case_id AND c.org_id = g.org_id WHERE g.org_id = ?org AND g.case_id IN (${IN_IDS}) ORDER BY g.id`),
+      q(`SELECT * FROM fact_edits WHERE org_id = ?org AND case_id IN (${IN_IDS})`),
+      q(`SELECT * FROM edit_log WHERE org_id = ?org AND case_id IN (${IN_IDS}) ORDER BY at, id`),
+      q(`SELECT * FROM question_confirmations WHERE org_id = ?org AND case_id IN (${IN_IDS}) ORDER BY at, id`),
       q(`SELECT e.action, e.by_name, e.at, a.case_id, a.origin, a.position FROM alert_events e
-         JOIN alerts a ON a.id = e.alert_id JOIN extraction_runs r ON r.id = a.run_id AND r.is_current = 1
-         WHERE a.case_id IN (${IN_IDS}) ORDER BY e.at, e.id`),
+         JOIN alerts a ON a.id = e.alert_id AND a.org_id = e.org_id JOIN extraction_runs r ON r.id = a.run_id AND r.org_id = a.org_id AND r.is_current = 1
+         WHERE e.org_id = ?org AND a.case_id IN (${IN_IDS}) ORDER BY e.at, e.id`),
     ]);
     type R = Record<string, unknown>;
     const rows = (x: D1Result | undefined) => (x?.results ?? []) as R[];
@@ -238,11 +256,11 @@ export class D1Work {
 
   async attSets(keys?: string[]): Promise<Record<string, AttSet>> {
     const staff = await this.staff();
-    const where = keys ? `WHERE set_key IN (SELECT value FROM json_each(?1))` : "WHERE ?1 = ?1";
+    const where = keys ? `WHERE org_id = ?org AND set_key IN (SELECT value FROM json_each(?1))` : "WHERE org_id = ?org AND ?1 = ?1";
     const arg = keys ? JSON.stringify(keys) : "";
     const [rows, sets] = await this.db.batch([
-      this.db.prepare(`SELECT * FROM attendance ${where} ORDER BY set_key, dept_id, position`).bind(arg),
-      this.db.prepare(`SELECT * FROM attendance_sets ${where}`).bind(arg),
+      this.q(`SELECT * FROM attendance ${where} /* org-scope: where names org_id */ ORDER BY set_key, dept_id, position`, arg),
+      this.q(`SELECT * FROM attendance_sets ${where} /* org-scope: where names org_id */`, arg),
     ]);
     const out: Record<string, AttSet> = {};
     const ensure = (k: string) => (out[k] ??= { key: k, version: 0, byName: {}, byId: {} });
@@ -258,17 +276,21 @@ export class D1Work {
   }
 
   async sessions(): Promise<Session[]> {
-    const r = await this.db.prepare("SELECT day, started_by_name, started_at, ended_at FROM sessions ORDER BY started_at").all<{ day: string; started_by_name: string | null; started_at: string; ended_at: string | null }>();
+    const r = await this.q("SELECT day, started_by_name, started_at, ended_at FROM sessions WHERE org_id = ?org ORDER BY started_at").all<{
+      day: string;
+      started_by_name: string | null;
+      started_at: string;
+      ended_at: string | null;
+    }>();
     return r.results.map((s) => ({ day: s.day, started_by: s.started_by_name, started_at: s.started_at, ended_at: s.ended_at }));
   }
 
   async mails(caseIds: string[] | null): Promise<Mail[]> {
-    const r = await this.db
-      .prepare(
-        `SELECT n.*, c.source_file, u.pre, u.sur, u.post FROM notifications n LEFT JOIN cases c ON c.id = n.case_id
-         LEFT JOIN users u ON u.id = n.to_user_id ORDER BY n.created_at DESC, n.id`,
-      )
-      .all<Record<string, unknown>>();
+    const r = await this.q(
+      `SELECT n.*, c.source_file, u.pre, u.sur, u.post FROM notifications n LEFT JOIN cases c ON c.id = n.case_id AND c.org_id = n.org_id
+       LEFT JOIN memberships m ON m.org_id = n.org_id AND m.user_id = n.to_user_id LEFT JOIN users u ON u.id = m.user_id
+       WHERE n.org_id = ?org ORDER BY n.created_at DESC, n.id`,
+    ).all<Record<string, unknown>>();
     return r.results
       .filter((n) => n.kind === "digest" || !caseIds || caseIds.includes(n.case_id as string))
       .map((n) =>

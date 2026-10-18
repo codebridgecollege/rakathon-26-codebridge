@@ -11,7 +11,8 @@ import { assertUnlocked } from "./documents";
 import { UP } from "../domain/documents";
 import { PageKitError, pagekit, pipelineOn } from "../services/pagekit";
 import { openCase } from "./access-check";
-import { actorOf, answer, caseFor, isoNow, label, newId, tx } from "./write-context";
+import { actorOf, answer, caseFor, isoNow, label, newId, orgQuery, tx } from "./write-context";
+import { orgKey } from "../store/sql";
 import type { ProcessDocumentParams } from "../workflows/process-document";
 
 const off = () => new ApiError(503, "pipeline_off", "Zpracování dokumentů není na tomto serveru zapnuté (služba pro čtení stránek chybí).");
@@ -30,12 +31,12 @@ type RunRow = {
 export const pipeline = new Hono<AppEnv>()
   .post("/documents/:id/process", async (c) => {
     const docId = c.req.param("id");
-    const d = await documentRow(c.env.DB, docId);
+    const d = await documentRow(c.env.DB, c.var.viewer.org, docId);
     label(c, "zpracování dokumentu", d?.case_id ?? null);
     if (!d) throw E.pageNotFound();
     const { breakGlass } = await caseFor(c, d.case_id, "document.process");
     // A closed case or an approved conclusion: the record must not change under it, as for uploads.
-    const u = await uploadContext(c.env.DB, d.case_id);
+    const u = await uploadContext(c.env.DB, c.var.viewer.org, d.case_id);
     if (!u) throw E.caseNotFound();
     assertUnlocked(u);
     if (!pipelineOn(c.env)) throw off();
@@ -46,21 +47,21 @@ export const pipeline = new Hono<AppEnv>()
     const t = tx(c, breakGlass).onConstraint(/pipeline_runs_active|UNIQUE constraint failed: pipeline_runs\.document_id/, running);
     t.guard("unlocked", UNLOCKED_COND, [d.case_id, d.case_id], () => UP.locked());
     t.run(
-      `INSERT INTO pipeline_runs (id, document_id, case_id, state, pipeline_version, input_sha256, output_prefix, created_by, created_by_name, created_at, updated_at)
-       VALUES (?1, ?2, ?3, 'queued', ?4, ?5, ?6, ?7, ?8, ?9, ?9)`,
-      runId, docId, d.case_id, c.env.GIT_SHA || "dev", d.sha256, `uploads/${d.case_id}/${docId}/${runId}/`, v.id, v.name, at,
+      `INSERT INTO pipeline_runs (org_id, id, document_id, case_id, state, pipeline_version, input_sha256, output_prefix, created_by, created_by_name, created_at, updated_at)
+       VALUES (?org, ?1, ?2, ?3, 'queued', ?4, ?5, ?6, ?7, ?8, ?9, ?9)`,
+      runId, docId, d.case_id, c.env.GIT_SHA || "dev", d.sha256, orgKey(v.org, `uploads/${d.case_id}/${docId}/${runId}/`), v.id, v.name, at,
     );
     // Only an upload without prepared data shows the run's state; seeded documents and prepared ones keep theirs.
-    t.run("UPDATE documents SET state = 'queued', state_detail_cs = NULL WHERE id = ?1 AND origin = 'upload' AND state <> 'prepared'", docId);
+    t.run("UPDATE documents SET state = 'queued', state_detail_cs = NULL WHERE org_id = ?org AND id = ?1 AND origin = 'upload' AND state <> 'prepared'", docId);
     t.audit({ action: "pipeline.start", what_cs: "spustil(a) zpracování dokumentu bez AI (čtení stránek, čitelnost, laboratorní hodnoty)", case_id: d.case_id, target_type: "document", target_id: docId });
     await t.commit();
-    const params: ProcessDocumentParams = { runId, docId, caseId: d.case_id };
+    const params: ProcessDocumentParams = { org: v.org, runId, docId, caseId: d.case_id };
     try {
       await c.env.PROCESS_DOCUMENT.create({ id: runId, params, retention: RETENTION });
     } catch {
       await c.env.DB.batch([
-        c.env.DB.prepare("UPDATE pipeline_runs SET state = 'error', error_code = 'start_failed', updated_at = ?1 WHERE id = ?2").bind(isoNow(), runId),
-        c.env.DB.prepare("UPDATE documents SET state = 'failed', state_detail_cs = 'zpracování se nespustilo' WHERE id = ?1 AND origin = 'upload' AND state <> 'prepared'").bind(docId),
+        orgQuery(c, "UPDATE pipeline_runs SET state = 'error', error_code = 'start_failed', updated_at = ?1 WHERE org_id = ?org AND id = ?2", isoNow(), runId),
+        orgQuery(c, "UPDATE documents SET state = 'failed', state_detail_cs = 'zpracování se nespustilo' WHERE org_id = ?org AND id = ?1 AND origin = 'upload' AND state <> 'prepared'", docId),
       ]);
       throw new ApiError(503, "start_failed", "Zpracování se nespustilo; zkuste to znovu.");
     }
@@ -68,11 +69,11 @@ export const pipeline = new Hono<AppEnv>()
   })
   .get("/documents/:id/pipeline", async (c) => {
     const docId = c.req.param("id");
-    const d = await documentRow(c.env.DB, docId);
+    const d = await documentRow(c.env.DB, c.var.viewer.org, docId);
     if (!d) throw E.pageNotFound();
     await openCase(c, d.case_id, "clinical");
     await audit(c, { action: "pipeline.view", case_id: d.case_id, document_id: docId, what_cs: "zobrazil(a) výsledek zpracování dokumentu bez AI" });
-    const r = await c.env.DB.prepare("SELECT * FROM pipeline_runs WHERE document_id = ?1 ORDER BY created_at DESC, id DESC LIMIT 1").bind(docId).first<RunRow>();
+    const r = await orgQuery(c, "SELECT * FROM pipeline_runs WHERE org_id = ?org AND document_id = ?1 ORDER BY created_at DESC, id DESC LIMIT 1", docId).first<RunRow>();
     if (!r) return c.json({ document_id: docId, run: null, enabled: pipelineOn(c.env) });
     const out = r.state === "done";
     const get = async (name: string) => (out ? ((await (await c.env.DOCS.get(`${r.output_prefix}${name}`))?.json<Record<string, unknown>>()) ?? null) : null);

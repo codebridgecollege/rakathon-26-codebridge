@@ -1,5 +1,5 @@
 import path from "node:path";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { cloudflareTest, readD1Migrations } from "@cloudflare/vitest-plugin";
 import { defineConfig } from "vitest/config";
 
@@ -11,6 +11,14 @@ export default defineConfig(async () => {
   // writes into D1 (workerd cannot read files outside the Worker).
   const seed = readFileSync(path.join(import.meta.dirname, "seed/seed.py"), "utf8");
   const staffBlock = /^STAFF_DEPTS = \[[\s\S]*?\n\]/m.exec(seed)?.[0] ?? "";
+  const staffBlockB = /^STAFF_DEPTS_B = \[[\s\S]*?\n\]/m.exec(seed)?.[0] ?? "";
+  // The Worker's own source, for the reminder test that flags SQL on org tables without org_id (test/org-sql.test.ts).
+  const src = path.join(import.meta.dirname, "src");
+  const sources = Object.fromEntries(
+    (readdirSync(src, { recursive: true }) as string[])
+      .filter((f) => f.endsWith(".ts") && !f.endsWith("worker-configuration.d.ts"))
+      .map((f) => [f, readFileSync(path.join(src, f), "utf8")]),
+  );
   return {
     plugins: [
       cloudflareTest({
@@ -21,6 +29,8 @@ export default defineConfig(async () => {
           bindings: {
             TEST_MIGRATIONS: migrations,
             TEST_SEED_STAFF: staffBlock,
+            TEST_SEED_STAFF_B: staffBlockB,
+            TEST_SOURCES: sources,
             ELEVENLABS_API_KEY: "test-el",
             AZURE_OPENAI_KEY: "test-az",
             AI_GATEWAY_TOKEN: "",

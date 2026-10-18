@@ -1,6 +1,10 @@
 import { Hono } from "hono";
 import type { AppEnv } from "../types";
 import { pipelineOn } from "../services/pagekit";
+import { orgStmt } from "../store/sql";
+import { demoMembership } from "../store/people";
+import { demoUserOf } from "../middleware/viewer";
+import { LEGACY_ORG } from "../domain/orgs";
 
 // Public: it holds no data and no key material; the booleans only say whether a secret is set, so the page
 // knows which features this host offers. features.data is true when the data API is switched on and the database
@@ -16,11 +20,18 @@ async function seededAt(env: Env): Promise<string | null> {
   }
 }
 
-// The shared demo's state for the "ukázková data" banner and the write header X-Data-Epoch. No data, no identity.
-async function demoState(env: Env) {
+// A demo org's state for the "ukázková data" banner and the write header X-Data-Epoch. No data, no identity. Each org
+// has its own epoch; this route answers before any login, so it uses the org of the picked demo user (AUTH_MODE=demo)
+// or demo org A. /api/me and every write answer carry the epoch of the org the request acts in.
+async function demoState(env: Env, demoUser: string | null) {
   if (!(await seededAt(env))) return null;
   try {
-    return await env.DB.prepare("SELECT data_epoch, reset_at, seed_version FROM demo_state WHERE id = 1").first<{ data_epoch: number; reset_at: string | null; seed_version: string | null }>();
+    const m = demoUser ? await demoMembership(env.DB, demoUser) : null;
+    return await orgStmt(env.DB, m?.org_id ?? LEGACY_ORG, "SELECT data_epoch, reset_at, seed_version FROM demo_state WHERE org_id = ?org").first<{
+      data_epoch: number;
+      reset_at: string | null;
+      seed_version: string | null;
+    }>();
   } catch {
     return null;
   }
@@ -28,7 +39,7 @@ async function demoState(env: Env) {
 
 export const health = new Hono<AppEnv>().get("/", async (c) => {
   const seeded = await seededAt(c.env);
-  const demo = await demoState(c.env);
+  const demo = await demoState(c.env, c.env.AUTH_MODE === "demo" ? demoUserOf(c) : null);
   return c.json({
     ok: true,
     service: "codebridge-mdt",

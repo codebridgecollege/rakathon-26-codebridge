@@ -46,4 +46,4 @@ export function removePerson(u: StaffUser, actorId: string): void {
 }
 
 // The fictional default staff lives in the shared package, so the app reads the same list.
-export { DEFAULT_STAFF, DEFAULT_COORDINATOR } from "@codebridge/domain/staff-default";
+export { DEFAULT_STAFF, DEFAULT_COORDINATOR, STAFF_DEFAULTS } from "@codebridge/domain/staff-default";

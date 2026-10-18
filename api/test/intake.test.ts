@@ -10,7 +10,8 @@ import { sweep } from "../src/scheduled";
 
 type Body = { data?: Record<string, any>; state?: Record<string, any>; error?: { code: string; message_cs: string } };
 const q = async <T = Record<string, unknown>>(sql: string, ...args: unknown[]) => (await env.DB.prepare(sql).bind(...args).all<T>()).results;
-const count = async (table: string, where = "1") => (await q<{ n: number }>(`SELECT COUNT(*) AS n FROM ${table} WHERE ${where}`))[0]!.n;
+// Org A's rows: the fixture's org B look-alikes must stay as they are, and never count here.
+const count = async (table: string, where = "1", org = "demo-a") => (await q<{ n: number }>(`SELECT COUNT(*) AS n FROM ${table} WHERE org_id = '${org}' AND (${where})`))[0]!.n;
 
 const NAME = ["Věra", "Lipenská"] as const;
 const RC = "585614/4019";
@@ -221,13 +222,13 @@ describe("abandoned intakes", () => {
   it("are removed with their files by the creator, by the 24-hour sweep and by the reset trigger", async () => {
     await startIntake();
     await upload("NO-FX", FILES[0]!);
-    expect((await env.DOCS.list({ prefix: "uploads/NO-FX/" })).objects).toHaveLength(1);
+    expect((await env.DOCS.list({ prefix: "org/demo-a/uploads/NO-FX/" })).objects).toHaveLength(1);
     const d = await w("DELETE", "/cases/NO-FX/intake");
     expect(d.status).toBe(200);
     expect(await count("cases", "id = 'NO-FX'")).toBe(0);
     expect(await count("patients", "id = 'pt-NO-FX'")).toBe(0);
     expect(await count("documents", "case_id = 'NO-FX'")).toBe(0);
-    expect((await env.DOCS.list({ prefix: "uploads/NO-FX/" })).objects).toHaveLength(0);
+    expect((await env.DOCS.list({ prefix: "org/demo-a/uploads/NO-FX/" })).objects).toHaveLength(0);
 
     await startIntake();
     await upload("NO-FX", FILES[0]!);
@@ -235,7 +236,7 @@ describe("abandoned intakes", () => {
     expect(await count("cases", "id = 'NO-FX'")).toBe(1);
     await sweep(env, Date.now() + 25 * 3600_000);
     expect(await count("cases", "id = 'NO-FX'")).toBe(0);
-    expect((await env.DOCS.list({ prefix: "uploads/NO-FX/" })).objects).toHaveLength(0);
+    expect((await env.DOCS.list({ prefix: "org/demo-a/uploads/NO-FX/" })).objects).toHaveLength(0);
     expect((await q<{ what_cs: string }>("SELECT what_cs FROM access_log WHERE action = 'intake.discard'")).map((r) => r.what_cs)).toEqual([
       "zrušil(a) rozpracovaný příjem pacienta (dokumenty smazány)",
       "rozpracovaný příjem pacienta smazán po 24 hodinách (dokumenty smazány)",
@@ -244,12 +245,12 @@ describe("abandoned intakes", () => {
     await startIntake();
     for (const f of FILES) await upload("NO-FX", f);
     await w("POST", "/cases/NO-FX/intake/complete");
-    await env.DB.prepare("INSERT INTO alert_events (alert_id, action, by_user_id, by_name) SELECT id, 'ack', 'd2p1', 'x' FROM alerts WHERE case_id = 'NO-FX'").run();
-    await env.DB.prepare("UPDATE demo_state SET reset_in_progress = 1 WHERE id = 1").run();
+    await env.DB.prepare("INSERT INTO alert_events (org_id, alert_id, action, by_user_id, by_name) SELECT org_id, id, 'ack', 'd2p1', 'x' FROM alerts WHERE case_id = 'NO-FX'").run();
+    await env.DB.prepare("UPDATE demo_state SET reset_in_progress = 1 WHERE org_id = 'demo-a'").run();
     expect(await count("extraction_runs", "producer IS NOT NULL")).toBe(0);
     expect(await count("alerts", "case_id = 'NO-FX'")).toBe(0);
     expect(await count("documents", "origin = 'upload'")).toBe(0);
     expect(await count("extraction_runs", "producer IS NULL")).toBe(1);
-    await env.DB.prepare("UPDATE demo_state SET reset_in_progress = 0 WHERE id = 1").run();
+    await env.DB.prepare("UPDATE demo_state SET reset_in_progress = 0 WHERE org_id = 'demo-a'").run();
   });
 });

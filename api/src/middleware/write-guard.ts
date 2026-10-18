@@ -42,7 +42,7 @@ export const writeGuard = (): MiddlewareHandler<AppEnv> => async (c, next) => {
     c.set("body", body as Record<string, unknown>);
   }
 
-  const st = await new D1Work(c.env.DB).epoch();
+  const st = await new D1Work(c.env.DB, c.var.viewer.org).epoch();
   if (!st) throw E.notConfigured();
   if (st.reset_in_progress) throw D.resetting();
   // A tab opened before a reset-demo would write into data it never saw; it reloads instead.

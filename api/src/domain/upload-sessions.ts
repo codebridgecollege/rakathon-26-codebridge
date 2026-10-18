@@ -11,6 +11,7 @@ export const isUploadTarget = (v: unknown): v is UploadTarget => typeof v === "s
 
 export type SessionRow = {
   id: string;
+  org_id: string; // the org of the case; the phone acts in it and nowhere else
   token_hash: string;
   case_id: string;
   target: UploadTarget;

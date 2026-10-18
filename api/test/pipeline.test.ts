@@ -68,8 +68,8 @@ const get = async (path: string, user = "d2p1") => {
 beforeEach(async () => {
   await loadFixture();
   await env.DB.prepare(
-    `INSERT INTO documents (id, case_id, file_name, page_count, original_r2_key, sha256, size_bytes, origin, processing, uploaded_by, state, fixture_id, identity)
-     VALUES (?1, 'NO-A', 'lab.pdf', 0, 'uploads/NO-A/up-test-1.pdf', ?2, 10, 'upload', 'unprocessed', 'd2p1', 'stored', NULL, NULL)`,
+    `INSERT INTO documents (org_id, id, case_id, file_name, page_count, original_r2_key, sha256, size_bytes, origin, processing, uploaded_by, state, fixture_id, identity)
+     VALUES ('demo-a', ?1, 'NO-A', 'lab.pdf', 0, 'uploads/NO-A/up-test-1.pdf', ?2, 10, 'upload', 'unprocessed', 'd2p1', 'stored', NULL, NULL)`,
   ).bind(DOC, SHA).run();
   await env.DOCS.put("uploads/NO-A/up-test-1.pdf", "%PDF-1.4 test");
   // The case's prepared data holds the two values of this document, so the run is compared with them.
@@ -130,8 +130,8 @@ describe("ProcessDocumentWorkflow", () => {
       "dokument zpracován bez AI (čitelnost: špatná; laboratorní hodnoty: 2, k ověření 1; s předem připravenými daty: 1 shodných, 1 k ověření, 0 jinak bez označení)",
       "zobrazil(a) výsledek zpracování dokumentu bez AI",
     ]);
-    // Outputs live under uploads/, which reset-demo clears.
-    const keys = (await env.DOCS.list({ prefix: `uploads/NO-A/${DOC}/${runId}/` })).objects.map((o) => o.key.split("/").pop());
+    // Outputs live under the org's uploads/, which reset-demo clears.
+    const keys = (await env.DOCS.list({ prefix: `org/demo-a/uploads/NO-A/${DOC}/${runId}/` })).objects.map((o) => o.key.split("/").pop());
     expect(keys.sort()).toEqual(["diff.json", "labs.json", "p1.json", "p1.png", "p1.raw.json", "p2.json", "p2.png", "p2.raw.json", "readability.json"]);
   });
 
@@ -163,13 +163,13 @@ describe("starting a run", () => {
   });
 
   it("refuses a run on an approved case and marks a run the engine no longer runs as failed", async () => {
-    await env.DB.prepare("INSERT INTO protocols (case_id, conclusion, state) VALUES ('NO-A', 'x', 'approved')").run();
+    await env.DB.prepare("INSERT INTO protocols (org_id, case_id, conclusion, state) VALUES ('demo-a', 'NO-A', 'x', 'approved')").run();
     const r = await w("POST", `/documents/${DOC}/process`);
     expect([r.status, r.body.error.code]).toEqual([409, "case_locked"]);
     const old = new Date(Date.now() - 3600_000).toISOString();
     await env.DB.prepare(
-      `INSERT INTO pipeline_runs (id, document_id, case_id, state, pipeline_version, input_sha256, output_prefix, created_by, created_by_name, created_at, updated_at)
-       VALUES ('pl-stuck', ?1, 'NO-A', 'running', 'dev', ?2, 'uploads/x/', 'd2p1', 'x', ?3, ?3)`,
+      `INSERT INTO pipeline_runs (org_id, id, document_id, case_id, state, pipeline_version, input_sha256, output_prefix, created_by, created_by_name, created_at, updated_at)
+       VALUES ('demo-a', 'pl-stuck', ?1, 'NO-A', 'running', 'dev', ?2, 'uploads/x/', 'd2p1', 'x', ?3, ?3)`,
     ).bind(DOC, SHA, old).run();
     await env.DB.prepare("UPDATE documents SET state = 'processing' WHERE id = ?1").bind(DOC).run();
     await sweep(env);

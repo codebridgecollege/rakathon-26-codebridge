@@ -24,7 +24,9 @@ import {
 import { audit } from "../middleware/audit";
 import { UNLOCKED_COND, caseDocuments, documentRow, fixtureByHash, uploadContext, type DocRow, type FixtureRow } from "../store/documents";
 import { openCase } from "./access-check";
-import { answer, caseFor, isoNow, label, newId, tx } from "./write-context";
+import { answer, caseFor, isoNow, label, newId, orgQuery, tx } from "./write-context";
+import { orgKey } from "../store/sql";
+import { LEGACY_ORG } from "../domain/orgs";
 
 const hex = (b: ArrayBuffer) => [...new Uint8Array(b)].map((x) => x.toString(16).padStart(2, "0")).join("");
 
@@ -130,18 +132,14 @@ export async function receiveUpload(c: Context<AppEnv>, id: string, u: UploadCtx
   // there, so the page never shows a refusal for it. Seeded documents are not repeats: they are the case's own record.
   // From a phone, a listed file is a repeat only within its own session: phones name every camera photo "image.jpg",
   // so a later photo with an earlier one's name is a new file (stored as "image (2).jpg" below).
-  const dup = await db
-    .prepare(
-      `SELECT id FROM documents WHERE case_id = ?1 AND origin = 'upload' AND ((?2 IS NOT NULL AND sha256 = ?2)
-         OR (?2 IS NULL AND sha256 IS NULL AND file_name = ?3 AND (?4 IS NULL OR upload_session_id = ?4))) LIMIT 1`,
-    )
-    .bind(id, sha, name, via?.sessionId ?? null)
+  const dup = await orgQuery(c, `SELECT id FROM documents WHERE org_id = ?org AND case_id = ?1 AND origin = 'upload' AND ((?2 IS NOT NULL AND sha256 = ?2)
+         OR (?2 IS NULL AND sha256 IS NULL AND file_name = ?3 AND (?4 IS NULL OR upload_session_id = ?4))) LIMIT 1`, id, sha, name, via?.sessionId ?? null)
     .first<{ id: string }>();
-  if (dup) return { document: docOut((await documentRow(db, dup.id))!), status: 200 as const };
+  if (dup) return { document: docOut((await documentRow(db, c.var.viewer.org, dup.id))!), status: 200 as const };
   // A different file under a name the case already has is kept under "name (2)", so it is stored, logged and checked
   // for the wrong patient like any other (UNIQUE(case_id, file_name)).
   const taken = new Set(
-    (await db.prepare("SELECT file_name FROM documents WHERE case_id = ?1").bind(id).all<{ file_name: string }>()).results.map((r) => r.file_name),
+    (await orgQuery(c, "SELECT file_name FROM documents WHERE org_id = ?org AND case_id = ?1", id).all<{ file_name: string }>()).results.map((r) => r.file_name),
   );
   const dot = name.lastIndexOf(".");
   const [stem, ext] = dot > 0 ? [name.slice(0, dot), name.slice(dot)] : [name, ""];
@@ -150,18 +148,18 @@ export async function receiveUpload(c: Context<AppEnv>, id: string, u: UploadCtx
 
   const identity: Identity | null = fx && fx.fx_full_name ? compareIdentity({ full_name: fx.fx_full_name, birth_number: fx.fx_birth_number }, u) : fx ? "cannot_verify" : null;
   const docId = `up-${newId()}`;
-  const key = keep ? `uploads/${id}/${docId}.pdf` : null;
+  const key = keep ? orgKey(c.var.viewer.org, `uploads/${id}/${docId}.pdf`) : null;
   const at = isoNow();
   // R2 first, so D1 never points at a missing object; the batch below deletes nothing if it fails, so the object is
   // removed here (and the reset clears uploads/ in any case).
   if (key && bytes) await c.env.DOCS.put(key, bytes, { httpMetadata: { contentType: "application/pdf" }, sha256: sha! });
-  const t = tx(c, breakGlass).onConstraint(/UNIQUE constraint failed: documents\.case_id|documents_case_sha/, () => UP.duplicate());
+  const t = tx(c, breakGlass).onConstraint(/UNIQUE constraint failed: documents\.org_id, documents\.case_id|documents_case_sha/, () => UP.duplicate());
   t.guard("unlocked", UNLOCKED_COND, [id, id], () => UP.locked());
-  t.guard("count", "(SELECT COUNT(*) FROM documents WHERE case_id = ?) < ?", [id, MAX_DOCUMENTS_PER_CASE], () => UP.tooMany());
+  t.guard("count", "(SELECT COUNT(*) FROM documents WHERE org_id = ?org AND case_id = ?) < ?", [id, MAX_DOCUMENTS_PER_CASE], () => UP.tooMany());
   t.run(
-    `INSERT INTO documents (id, case_id, file_name, media_type, page_count, original_r2_key, sha256, size_bytes, origin, processing,
+    `INSERT INTO documents (org_id, id, case_id, file_name, media_type, page_count, original_r2_key, sha256, size_bytes, origin, processing,
        uploaded_by, created_at, state, fixture_id, identity, title_cs, doc_type, doc_date, source, upload_session_id)
-     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, 'upload', 'unprocessed', ?9, ?10, 'stored', ?11, ?12, ?13, ?14, ?15, ?16, ?17)`,
+     VALUES (?org, ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, 'upload', 'unprocessed', ?9, ?10, 'stored', ?11, ?12, ?13, ?14, ?15, ?16, ?17)`,
     docId, id, fileName, keep ? "application/pdf" : mediaTypeOf(c.req.header("content-type")), fx?.page_count ?? 0, key, sha, declared, c.var.viewer.id, at,
     fx?.fixture_id ?? null, identity, fx?.title_cs ?? null, fx?.doc_type ?? null, fx?.doc_date ?? null, via?.source ?? null, via?.sessionId ?? null,
   );
@@ -176,7 +174,7 @@ export async function receiveUpload(c: Context<AppEnv>, id: string, u: UploadCtx
     if (key) await c.env.DOCS.delete(key).catch(() => {});
     throw e;
   }
-  const row = await documentRow(db, docId);
+  const row = await documentRow(db, c.var.viewer.org, docId);
   return { document: docOut(row!), status: 201 as const };
 }
 
@@ -185,7 +183,7 @@ export const documents = new Hono<AppEnv>()
     const id = c.req.param("id");
     label(c, "nahrání dokumentu", id);
     const { breakGlass } = await caseFor(c, id, "document.upload");
-    const u = await uploadContext(c.env.DB, id);
+    const u = await uploadContext(c.env.DB, c.var.viewer.org, id);
     if (!u) throw E.caseNotFound();
     assertUnlocked(u);
     if (u.doc_count >= MAX_DOCUMENTS_PER_CASE) throw UP.tooMany();
@@ -197,7 +195,7 @@ export const documents = new Hono<AppEnv>()
     const id = c.req.param("id");
     await openCase(c, id, "header");
     await audit(c, { action: "case.documents", case_id: id, what_cs: "zobrazil(a) seznam dokumentů" });
-    const docs = await caseDocuments(c.env.DB, id);
+    const docs = await caseDocuments(c.env.DB, c.var.viewer.org, id);
     const parts = await c.var.stores.cases.documents(id);
     return c.json({
       case_id: id,
@@ -207,33 +205,37 @@ export const documents = new Hono<AppEnv>()
   })
   .delete("/documents/:id", async (c) => {
     const docId = c.req.param("id");
-    const d = await documentRow(c.env.DB, docId);
+    const d = await documentRow(c.env.DB, c.var.viewer.org, docId);
     label(c, "odebrání nahraného dokumentu", d?.case_id ?? null);
     if (!d) throw UP.notFound();
     const { breakGlass } = await caseFor(c, d.case_id, "document.upload");
-    const u = await uploadContext(c.env.DB, d.case_id);
+    const u = await uploadContext(c.env.DB, c.var.viewer.org, d.case_id);
     if (!u) throw E.caseNotFound();
     assertUnlocked(u);
     // A prepared or processed document is part of what the case shows; removing it would change the record under it.
     if (d.origin !== "upload" || d.state !== "stored") throw UP.notRemovable();
     const t = tx(c, breakGlass);
     t.guard("unlocked", UNLOCKED_COND, [d.case_id, d.case_id], () => UP.locked());
-    t.guard("stored", "(SELECT state FROM documents WHERE id = ?) = 'stored'", [docId], () => UP.notRemovable());
-    t.run("DELETE FROM pages WHERE document_id = ?1", docId);
-    t.run("DELETE FROM document_parts WHERE document_id = ?1", docId);
-    t.run("DELETE FROM documents WHERE id = ?1", docId);
+    t.guard("stored", "(SELECT state FROM documents WHERE org_id = ?org AND id = ?) = 'stored'", [docId], () => UP.notRemovable());
+    t.run("DELETE FROM pages WHERE org_id = ?org AND document_id = ?1", docId);
+    t.run("DELETE FROM document_parts WHERE org_id = ?org AND document_id = ?1", docId);
+    t.run("DELETE FROM documents WHERE org_id = ?org AND id = ?1", docId);
     t.audit({ action: "document.remove", what_cs: "odebral(a) nahraný dokument", case_id: d.case_id, target_type: "document", target_id: docId });
     await t.commit();
-    // The file goes with its row; a failed delete is left to the reset, which clears uploads/.
-    await deleteUploadObjects(c, d).catch(() => console.error(JSON.stringify({ route: "document.remove", r2: "delete_failed" })));
+    // The file goes with its row; a failed delete is left to the reset, which clears the org's uploads/.
+    await deleteUploadObjects(c, c.var.viewer.org, d).catch(() => console.error(JSON.stringify({ route: "document.remove", r2: "delete_failed" })));
     return answer(c, { removed: docId });
   });
 
-export async function deleteUploadObjects(c: Context<AppEnv> | { env: Env }, d: Pick<DocRow, "id" | "case_id" | "original_r2_key">) {
+// The document's own objects: its file (by the key its row stores) and the pipeline's outputs under its prefix, under
+// the org and, for demo org A, also under the prefix used before orgs.
+export async function deleteUploadObjects(c: Context<AppEnv> | { env: Env }, org: string, d: Pick<DocRow, "id" | "case_id" | "original_r2_key">) {
   const keys: string[] = d.original_r2_key ? [d.original_r2_key] : [];
-  const prefix = `uploads/${d.case_id}/${d.id}/`;
-  const listed = await c.env.DOCS.list({ prefix, limit: 1000 });
-  keys.push(...listed.objects.map((o) => o.key));
+  const prefixes = [orgKey(org, `uploads/${d.case_id}/${d.id}/`), ...(org === LEGACY_ORG ? [`uploads/${d.case_id}/${d.id}/`] : [])];
+  for (const prefix of prefixes) {
+    const listed = await c.env.DOCS.list({ prefix, limit: 1000 });
+    keys.push(...listed.objects.map((o) => o.key));
+  }
   if (keys.length) await c.env.DOCS.delete(keys);
 }
 

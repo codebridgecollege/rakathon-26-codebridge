@@ -24,7 +24,7 @@ export async function openCase(c: Context<AppEnv>, id: string, level: "header" |
   // membership until it expires, and every read under it carries the reason in the access log.
   let member = v.role === "doctor" ? await cases.isMember(id, v) : false;
   if (v.role === "doctor" && !member) {
-    const g = await new D1Work(c.env.DB).validGrant(id, v.id, new Date().toISOString());
+    const g = await new D1Work(c.env.DB, v.org).validGrant(id, v.id, new Date().toISOString());
     if (g) {
       member = true;
       c.set("breakGlass", `přístup mimo tým (povolení ${g.id.slice(0, 8)})`);

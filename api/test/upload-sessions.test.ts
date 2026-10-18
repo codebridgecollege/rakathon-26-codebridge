@@ -149,7 +149,7 @@ describe("the phone", () => {
     // The case's own list has them too, as any upload.
     const list = await get("/cases/NO-A/documents");
     expect(list.body.documents.filter((d: any) => d.source === "phone")).toHaveLength(2);
-    expect((await env.DOCS.list({ prefix: "uploads/NO-A/" })).objects).toHaveLength(1);
+    expect((await env.DOCS.list({ prefix: "org/demo-a/uploads/NO-A/" })).objects).toHaveLength(1);
     const lines = (await log()).filter((l) => l.action === "document.upload").map((l) => l.what_cs);
     expect(lines[0]).toMatch(/^nahrál\(a\) dokument k případu z telefonu \(PDF, 1 kB, otisk [0-9a-f]{12}\)$/);
     expect(lines[1]).toBe("nahrál(a) soubor k případu z telefonu (uložen jen název a velikost, 1 kB)");
@@ -279,9 +279,9 @@ describe("the intake from a phone", () => {
 describe("clean-up", () => {
   it("reset-demo's flag removes every session; the sweep removes sessions a day after expiry", async () => {
     const a = (await open()).body.data!;
-    await env.DB.prepare("UPDATE demo_state SET reset_in_progress = 1 WHERE id = 1").run();
+    await env.DB.prepare("UPDATE demo_state SET reset_in_progress = 1 WHERE org_id = 'demo-a'").run();
     expect(await q("SELECT id FROM upload_sessions")).toEqual([]);
-    await env.DB.prepare("UPDATE demo_state SET reset_in_progress = 0 WHERE id = 1").run();
+    await env.DB.prepare("UPDATE demo_state SET reset_in_progress = 0 WHERE org_id = 'demo-a'").run();
     expect((await phoneGet(a.token)).status).toBe(410);
     const b = (await open()).body.data!;
     await sweep(env);

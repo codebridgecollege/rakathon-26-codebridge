@@ -33,7 +33,7 @@ export { ProcessDocumentWorkflow } from "./workflows/process-document";
 const DATA_PATHS = [
   "/me", "/staff/*", "/patients", "/cases/*", "/documents/*", "/tasks/*", "/calendar", "/admin/*",
   "/workflow", "/audit/*", "/suggestions/*", "/notifications/*", "/sessions/*", "/attendance/*", "/recordings/*", "/jobs/*", "/fhir/*",
-  "/upload-sessions/*",
+  "/upload-sessions/*", "/demo/*",
 ];
 
 // Static files (the built mock) are served by the assets binding before this code runs; only /api/* reaches it.

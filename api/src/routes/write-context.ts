@@ -9,6 +9,7 @@ import type { Clock } from "@codebridge/domain/time";
 import { systemClock } from "../domain/clock";
 import { Tx } from "../store/write";
 import { D1Work, type CaseCore } from "../store/work";
+import { orgStmt } from "../store/sql";
 import { modeOf } from "./access-check";
 
 let clock: Clock = systemClock;
@@ -19,7 +20,11 @@ export function setClock(c: Clock | null) {
 export const now = () => clock.now();
 export const newId = () => clock.id();
 
-export const work = (c: Context<AppEnv>) => new D1Work(c.env.DB);
+// The org-bound stores of the request: the viewer's org reaches every query (store/sql.ts).
+export const work = (c: Context<AppEnv>) => new D1Work(c.env.DB, c.var.viewer.org);
+
+// A read in the viewer's org: sql names the org as ?org and uses numbered parameters.
+export const orgQuery = (c: Context<AppEnv>, sql: string, ...args: unknown[]) => orgStmt(c.env.DB, c.var.viewer.org, sql, ...args);
 
 export const actorOf = (c: Context<AppEnv>): Actor => ({ id: c.var.viewer.id, name: c.var.viewer.name, role: c.var.viewer.role });
 

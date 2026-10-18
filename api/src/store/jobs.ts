@@ -2,9 +2,11 @@
 // engine's own status is read only when the row looks stuck, and its error text is never copied out.
 import { engineToJob } from "../domain/transcript";
 import type { SpeakerPassParams } from "../workflows/speaker-pass";
+import { orgStmt } from "./sql";
 
 export type JobRow = {
   id: string;
+  org_id: string;
   kind: string;
   case_id: string;
   workflow: string;
@@ -23,15 +25,17 @@ const RETENTION = { successRetention: "1 day", errorRetention: "3 days" } as con
 // A row not touched for this long while queued or running is checked against the engine.
 export const STALE_MS = 2 * 60_000;
 
-export const jobById = (db: D1Database, id: string) =>
-  db.prepare("SELECT id, kind, case_id, workflow, instance_id, attempt, state, phase, error_code, result_ref, created_by, updated_at FROM jobs WHERE id = ?1").bind(id).first<JobRow>();
+// A job of another org reads as missing.
+export const jobById = (db: D1Database, org: string, id: string) =>
+  orgStmt(db, org, "SELECT id, org_id, kind, case_id, workflow, instance_id, attempt, state, phase, error_code, result_ref, created_by, updated_at FROM jobs WHERE org_id = ?org AND id = ?1", id).first<JobRow>();
 
 // Creates the job's Workflow instance. The instance id is fixed by the job row, so a second start of the same attempt
 // finds the instance already there and does nothing. A failure leaves the job as error/start_failed for a retry.
-export async function startJob(env: Env, jobId: string): Promise<boolean> {
-  const j = await jobById(env.DB, jobId);
+// The Workflow gets the org in its parameters: it runs without a request, so nothing else would tell it.
+export async function startJob(env: Env, org: string, jobId: string): Promise<boolean> {
+  const j = await jobById(env.DB, org, jobId);
   if (!j || !j.result_ref) return false;
-  const params: SpeakerPassParams = { caseId: j.case_id, passId: j.result_ref, jobId: j.id };
+  const params: SpeakerPassParams = { org, caseId: j.case_id, passId: j.result_ref, jobId: j.id };
   try {
     await env.SPEAKER_PASS.create({ id: j.instance_id, params, retention: RETENTION, locationHint: "weur" });
     return true;
@@ -44,8 +48,8 @@ export async function startJob(env: Env, jobId: string): Promise<boolean> {
     // treat its audio as not in use.
     const at = new Date().toISOString();
     await env.DB.batch([
-      env.DB.prepare("UPDATE jobs SET state = 'error', error_code = 'start_failed', updated_at = ?1 WHERE id = ?2 AND instance_id = ?3").bind(at, jobId, j.instance_id),
-      env.DB.prepare("UPDATE transcript_passes SET state = 'error', error_code = 'start_failed', updated_at = ?1 WHERE id = ?2 AND state = 'queued'").bind(at, j.result_ref),
+      orgStmt(env.DB, org, "UPDATE jobs SET state = 'error', error_code = 'start_failed', updated_at = ?1 WHERE org_id = ?org AND id = ?2 AND instance_id = ?3", at, jobId, j.instance_id),
+      orgStmt(env.DB, org, "UPDATE transcript_passes SET state = 'error', error_code = 'start_failed', updated_at = ?1 WHERE org_id = ?org AND id = ?2 AND state = 'queued'", at, j.result_ref),
     ]);
     return false;
   }
@@ -54,6 +58,7 @@ export async function startJob(env: Env, jobId: string): Promise<boolean> {
 // Brings a stuck row in line with the engine: a dead instance (errored, terminated) or one that finished without
 // writing its last step. The engine's error message is not stored or returned.
 export async function reconcile(env: Env, j: JobRow, now = Date.now()): Promise<JobRow> {
+  const org = j.org_id;
   if (j.state !== "queued" && j.state !== "running") return j;
   if (now - Date.parse(j.updated_at) < STALE_MS) return j;
   let status: string;
@@ -68,8 +73,8 @@ export async function reconcile(env: Env, j: JobRow, now = Date.now()): Promise<
   const code = status === "missing" ? "start_failed" : mapped === "error" ? `workflow_${status}` : "workflow_incomplete";
   const at = new Date(now).toISOString();
   await env.DB.batch([
-    env.DB.prepare("UPDATE jobs SET state = 'error', phase = NULL, error_code = ?1, updated_at = ?2 WHERE id = ?3 AND state IN ('queued','running')").bind(code, at, j.id),
-    env.DB.prepare("UPDATE transcript_passes SET state = 'error', error_code = ?1, updated_at = ?2 WHERE job_id = ?3 AND state IN ('queued','running')").bind(code, at, j.id),
+    orgStmt(env.DB, org, "UPDATE jobs SET state = 'error', phase = NULL, error_code = ?1, updated_at = ?2 WHERE org_id = ?org AND id = ?3 AND state IN ('queued','running')", code, at, j.id),
+    orgStmt(env.DB, org, "UPDATE transcript_passes SET state = 'error', error_code = ?1, updated_at = ?2 WHERE org_id = ?org AND job_id = ?3 AND state IN ('queued','running')", code, at, j.id),
   ]);
   return { ...j, state: "error", phase: null, error_code: code, updated_at: at };
 }

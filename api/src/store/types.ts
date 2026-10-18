@@ -3,7 +3,8 @@
 import type { Role, Viewer } from "@codebridge/domain/access";
 import type { CaseJoinRow, StatusHistItem } from "../domain/rows";
 
-export type UserRow = { id: string; pre: string; sur: string; post: string; fn: string; role_id: Role; active: number };
+// A person as one org knows them (store/d1.ts ORG_USER): role, function and activity are those of the membership.
+export type UserRow = { id: string; pre: string; sur: string; post: string; fn: string; role_id: Role; active: number; membership_id: string };
 
 export type StaffPerson = { id: string; pre: string; sur: string; post: string; fn: string };
 export type StaffDirectory = {
@@ -108,7 +109,6 @@ export type AuditRow = {
 
 export interface DirectoryStore {
   userById(id: string): Promise<UserRow | null>;
-  userByEmail(email: string): Promise<UserRow | null>;
   firstDeptOf(userId: string): Promise<{ id: string; name: string } | null>;
   staff(): Promise<StaffDirectory>;
 }
@@ -143,4 +143,5 @@ export interface BlobStore {
   listKeys(prefix: string): Promise<string[]>;
 }
 
-export type Stores = { dir: DirectoryStore; cases: CaseStore; audit: AuditStore; blobs: BlobStore };
+// One set per request, bound to the org the request acts in.
+export type Stores = { org: string; dir: DirectoryStore; cases: CaseStore; audit: AuditStore; blobs: BlobStore };

@@ -1,42 +1,52 @@
-import type { MiddlewareHandler } from "hono";
+import type { Context, MiddlewareHandler } from "hono";
 import { getCookie } from "hono/cookie";
 import type { AppEnv } from "../types";
+import type { Viewer } from "@codebridge/domain/access";
 import { E } from "../http/errors";
 import { makeStores } from "../store";
+import { actsInApp, activeMembershipsOfEmail, demoMembership, type MemberRow } from "../store/people";
 import { staffName } from "../domain/rows";
 
-// The demo opens as the first doctor of "Klinická onkologie" (the demo case is an oncology patient).
+// The demo opens as the first doctor of "Klinická onkologie" in demo org A (the demo case is an oncology patient).
 export const DEFAULT_DEMO_USER = "d2p1";
 export const DEMO_USER_COOKIE = "cb_demo_user";
 
-// Resolves the person a data request acts for, from the users table, and builds the stores once per request.
+// The membership a demo request names: X-Demo-User, or the cookie for <img> requests, which cannot carry a header.
+// The value is a membership id (a person's id still works, meaning their first membership). It is not a credential
+// and the UI says so. Ids, not names, because browsers refuse non-Latin-1 header values.
+export function demoUserOf(c: Context): string {
+  return (c.req.header("x-demo-user") || getCookie(c, DEMO_USER_COOKIE) || DEFAULT_DEMO_USER).slice(0, 64);
+}
+
+// The viewer a membership acts as. The stores are bound to the membership's org, so the org reaches every query.
+export async function viewerOf(stores: ReturnType<typeof makeStores>, m: MemberRow & { role_id: Viewer["role"] }, authMode: Viewer["authMode"]): Promise<Viewer> {
+  return {
+    id: m.user_id,
+    name: staffName(m),
+    role: m.role_id,
+    dept: await stores.dir.firstDeptOf(m.user_id),
+    authMode,
+    impersonating: false,
+    org: m.org_id,
+    membershipId: m.id,
+  };
+}
+
+// Resolves the membership a data request acts with, then builds the stores for its org once per request.
 export const viewer = (): MiddlewareHandler<AppEnv> => async (c, next) => {
   // The data routes need both bindings and the switch; without them the routes answer "not configured".
   if (c.env.DATA_API !== "on" || !c.env.DB || !c.env.DOCS) throw E.notConfigured();
-  const stores = makeStores(c.env);
-  c.set("stores", stores);
   const user = c.get("user");
-  let row;
-  if (user.mode === "demo") {
-    // Demo mode has no login (CLAUDE.md): the app's user picker names the person by staff id, in a header, or in a
-    // cookie for <img> requests, which cannot carry a header. The id is not a credential and the UI says so.
-    // Ids, not names, because browsers refuse non-Latin-1 header values and staff names contain "ř" and "š".
-    const id = (c.req.header("x-demo-user") || getCookie(c, DEMO_USER_COOKIE) || DEFAULT_DEMO_USER).slice(0, 64);
-    row = await stores.dir.userById(id);
-  } else {
-    // Access mode: the verified e-mail picks the directory entry; a client header cannot change who you are.
-    row = await stores.dir.userByEmail(user.email);
-  }
-  // Role "staff" is a directory entry for attendance (step 4), not a user of the app.
-  if (!row || row.active !== 1 || row.role_id === ("staff" as string)) throw E.unknownUser();
-  c.set("viewer", {
-    id: row.id,
-    name: staffName(row),
-    role: row.role_id,
-    dept: await stores.dir.firstDeptOf(row.id),
-    authMode: user.mode,
-    impersonating: false,
-  });
+  let m: MemberRow | null;
+  if (user.mode === "demo") m = await demoMembership(c.env.DB, demoUserOf(c));
+  // Access mode: the verified e-mail picks the person; a client header cannot change who you are. A person in several
+  // orgs acts in the first one until the login of step 3 lets them choose (AUTH.md).
+  else m = (await activeMembershipsOfEmail(c.env.DB, user.email))[0] ?? null;
+  // Role "staff" is a directory entry for attendance, not a user of the app; an ended membership acts nowhere.
+  if (!actsInApp(m)) throw E.unknownUser();
+  const stores = makeStores(c.env, m.org_id);
+  c.set("stores", stores);
+  c.set("viewer", await viewerOf(stores, m, user.mode));
   c.set("breakGlass", null);
   return next();
 };
