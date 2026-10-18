@@ -5,6 +5,7 @@ import type {
   CaseDocuments,
   CreatedCase,
   CreatedUploadSession,
+  DemoPicker,
   Extraction,
   FhirReferral,
   IntakeCompleted,
@@ -113,7 +114,14 @@ export function createApiClient(opts: ClientOptions = {}) {
       if (h.demo?.data_epoch != null) t.epoch = h.demo.data_epoch;
       return h;
     },
-    me: () => t.get<Me>("/me"),
+    async me() {
+      const who = await t.get<Me>("/me");
+      // The epoch of the org the request acts in; writes send it back (see workflow()).
+      if (who.data_epoch != null) t.epoch = who.data_epoch;
+      return who;
+    },
+    // The demo picker's entries, grouped by org (404 unless the server runs in demo mode).
+    demoMemberships: () => t.get<DemoPicker>("/demo/memberships"),
     staff: () => t.get<StaffDirectory>("/staff"),
     patients: (q: { q?: string; status?: string; dept?: string; from?: string; to?: string; page?: number; page_size?: number } = {}) =>
       t.get<PatientList>("/patients", { query: q }),

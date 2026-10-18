@@ -52,7 +52,7 @@ export type RequestOptions = {
 };
 
 export type Transport = {
-  // The demo user (a staff id) sent as X-Demo-User; null sends none and the server uses its default.
+  // The demo user (a membership id) sent as X-Demo-User; null sends none and the server uses its default.
   userId: string | null;
   // The reset epoch of the shared demo data, sent as X-Data-Epoch on writes and refreshed from every answer.
   epoch: number | null;
@@ -98,7 +98,7 @@ export function createTransport(opts: ClientOptions = {}): Transport {
           signal: ctl.signal,
           credentials: "same-origin",
           cache: "no-store",
-          // The demo has no login: the picked user travels as a staff id (ASCII; a name with "ř" cannot be a header).
+          // The demo has no login: the picked user travels as a membership id (ASCII; a name with "ř" cannot be a header).
           headers: { Accept: "application/json", ...(t.userId ? { "X-Demo-User": t.userId } : {}) },
         });
         // A static host answers unknown paths with an HTML page; only a JSON answer comes from our API.

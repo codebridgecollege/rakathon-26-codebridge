@@ -8,7 +8,7 @@ import { useStaffStore } from "../app/stores/staff";
 import { usePatientsStore } from "../app/stores/patients";
 import { useWorkflowStore } from "../app/stores/workflow";
 import { useCasesStore } from "../app/stores/cases";
-import { mockApi, row } from "./helpers";
+import { mockApi, row, meOrg } from "./helpers";
 
 const staff = {
   depts: [{ id: "d2", name: "Klinická onkologie", people: [{ id: "d2p1", pre: "MUDr.", sur: "Svobodová", post: "", fn: "" }, { id: "d2p3", pre: "Bc.", sur: "Sestra", post: "", fn: "" }] }],
@@ -17,7 +17,7 @@ const staff = {
   roles: { d2p1: "doctor", d2p3: "staff", coord: "coordinator", admin: "admin" },
 };
 const health = { ok: true, service: "codebridge-mdt", features: { data: true }, demo: { data_epoch: 2 } };
-const meOf = (id: string, name: string, role = "doctor") => ({ user: { id, name, role, dept: null }, auth_mode: "demo", impersonating: false, notice_cs: null });
+const meOf = (id: string, name: string, role = "doctor") => ({ user: { id, name, role, dept: null }, ...meOrg(id), auth_mode: "demo", impersonating: false, notice_cs: null });
 
 function server(over: Record<string, unknown> = {}) {
   return mockApi({

@@ -63,3 +63,12 @@ export const row = (n: number, extra: Partial<PatientRow> = {}): PatientRow => (
   statusHist: [],
   ...extra,
 });
+
+// The /me fields every answer carries besides the user: the membership the request acts with (equal to the person's id
+// in demo org A), its org and the epoch (null here: tests that need one set it).
+export const meOrg = (membership: string) => ({
+  membership_id: membership,
+  memberships: [],
+  org: { id: "org-a", name: "Ukázková nemocnice A", short_name: "A", is_demo: true },
+  data_epoch: null,
+});

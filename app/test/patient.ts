@@ -13,7 +13,7 @@ import { useSessionStore } from "../app/stores/session";
 import { useCasesStore } from "../app/stores/cases";
 import { useWorkflowStore } from "../app/stores/workflow";
 import { useToastStore } from "../app/stores/toast";
-import { mockApi, row } from "./helpers";
+import { mockApi, row, meOrg } from "./helpers";
 
 export type PatientSetup = {
   p?: Partial<PatientRow>;
@@ -35,7 +35,7 @@ export function setupPatient(s: PatientSetup = {}) {
   const p = row(10, s.p ?? {});
   usePatientsStore().replace([p], 1);
   const session = useSessionStore();
-  session.me = { user: { id: "u1", name: s.userName ?? "MUDr. Svobodová", role: s.role ?? "doctor", dept: null }, auth_mode: "demo", impersonating: false, notice_cs: null };
+  session.me = { user: { id: "u1", name: s.userName ?? "MUDr. Svobodová", role: s.role ?? "doctor", dept: null }, ...meOrg("u1"), auth_mode: "demo", impersonating: false, notice_cs: null };
   session.phase = "ready";
   const cases = useCasesStore();
   if (s.extraction !== undefined) {
