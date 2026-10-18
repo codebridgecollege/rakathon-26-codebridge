@@ -387,6 +387,37 @@ and the tag and class structure of the main area). Where it differs:
 - **Opening a case** goes to `#/patient/<n>/overview` (`caseRoute()` in `app/app/lib/lists.ts`), which has no route
   on this branch; the specs that open a case pass only with the patient screens.
 
+## As implemented (steps 5, 6, 7 and 10)
+
+Branch `port-patient` (issue #13): the patient detail screen (S-3) at `#/patient/<nr>/<tab>`: header, status menu,
+MDT question, brief, alerts, timeline, every tab, the guideline drawer, the prognosis drawers, the FHIR export and the
+source viewer. Components in `app/app/components/patient/`, rules in `packages/domain` (`case-data.ts`,
+`case-view.ts`, `quote-match.ts`, `page-text.ts`, `labs.ts`, `guideline.ts`, `prognosis.ts`, `fhir-export.ts`), text
+in `i18n/cs/patient.ftl` (IDs start with `patient-`). The e2e specs `patient-detail`, `patient-tabs`,
+`source-viewer`, the FHIR export of `report-export` and `phone-width` pass against the new app and stay green on
+today's page. Where it differs from the old page or the plan:
+
+- **Routes.** `#patient/10/labs` and `#/patient/10` both reach the screen; a missing or unavailable tab is replaced by
+  the first one the case shows. `#present/<nr>` and `#protocol/<nr>` redirect to the overview. The address shows
+  `#/patient/...`, so the one spec that reads the address accepts both forms.
+- **Case data in the view's shape** comes from `fromExtraction()` in `packages/domain/src/case-data.ts`, computed
+  from the cases store's raw reply; the guideline layer lives in the store's case entry, as in the template.
+- **Saved prognosis from the API.** The old page embedded the saved study search; the app reads
+  `GET /api/cases/:id/prognosis` (an audited read) once per case and day.
+- **Small text changes,** all in plurals that read wrongly for some counts before (for example "z 1 události",
+  "1 strana", "1 odběr"); the demo's counts read as today. Some bare "-" became the gap dash with the fixed wording in
+  its tooltip (TK/P, document dates, an unknown page count).
+- **Accessibility, nothing visible:** the source viewer's tabs set `aria-selected`; alerts are a list of list items;
+  the edit dialog's text field has a name; toasts have a status role.
+- **Left for the screens that port next,** each marked `PORT(#13)` in the code: the discussion card "Projednání na
+  MDT" and the conclusion draft with autosave (step 8), the session bar (step 9), the report dialog (step 12; the
+  header's "Stáhnout report (PDF)" opens nothing until then), the "Možná jiný pacient" banner for uploaded documents,
+  and stopping the recorder when a case is closed.
+- **Zahájit MDT** from the case header opens the lists' start dialog, which starts the session on the day's first
+  case, not on the case it was opened from as the old page did.
+- **Retrospective assessments** stay empty as on the old page (it never filled `S.retro`); `prior_assessments` from
+  the guidance reply is not shown yet.
+
 ## Decisions (2026-10-18)
 
 - **No offline demo is needed.** Embedded mode ends with the old page;
