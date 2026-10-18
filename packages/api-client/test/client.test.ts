@@ -253,3 +253,38 @@ describe("prognosis search", () => {
     });
   });
 });
+
+describe("a lost login session (401)", () => {
+  const lost = [401, { error: { code: "unauthenticated", message_cs: "Přihlášení chybí nebo vypršelo. Obnovte stránku." } }] as [number, unknown];
+
+  it("sends a write again, with the same idempotency key, once the app has a session back", async () => {
+    const m = mockFetch(lost, [200, { data: { id: "x" }, data_epoch: 3, state: {} }]);
+    const seen: number[] = [];
+    const api = createApiClient({ fetch: m.fn, onUnauthenticated: async ({ sentAt }) => (seen.push(sentAt), true) });
+    const r = await api.transport.write("POST", "/cases/NO-A/decisions", { a: 1 }, { idem: "k1" });
+    expect(r).toMatchObject({ data: { id: "x" } });
+    expect(m.calls).toHaveLength(2);
+    expect(m.calls.map((c) => headersOf(c).get("Idempotency-Key"))).toEqual(["k1", "k1"]);
+    expect(m.calls.map((c) => c.init.body)).toEqual(['{"a":1}', '{"a":1}']);
+    expect(seen).toHaveLength(1);
+  });
+
+  it("fails when the app says no, when the request asks not to wait, and after two new logins at most", async () => {
+    const no = mockFetch(lost);
+    await expect(createApiClient({ fetch: no.fn, onUnauthenticated: async () => false }).me()).rejects.toMatchObject({ code: "unauthenticated", status: 401 });
+    const hook = vi.fn(async () => true);
+    const skip = mockFetch(lost);
+    await expect(createApiClient({ fetch: skip.fn, onUnauthenticated: hook }).me({ retryAfterLogin: false })).rejects.toBeInstanceOf(ApiError);
+    expect(hook).not.toHaveBeenCalled();
+    const loop = mockFetch(lost, lost, lost, lost);
+    await expect(createApiClient({ fetch: loop.fn, onUnauthenticated: hook }).me()).rejects.toMatchObject({ code: "unauthenticated" });
+    expect(loop.calls).toHaveLength(3);
+  });
+
+  it("leaves other refusals alone", async () => {
+    const hook = vi.fn(async () => true);
+    const m = mockFetch([403, { error: { code: "bad_origin", message_cs: "x" } }]);
+    await expect(createApiClient({ fetch: m.fn, onUnauthenticated: hook }).me()).rejects.toMatchObject({ code: "bad_origin" });
+    expect(hook).not.toHaveBeenCalled();
+  });
+});

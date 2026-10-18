@@ -26,6 +26,33 @@ user-coordinator-function-default = koordinátorka MDT
 user-coordinator-tooltip-default = koordinace MDT
 user-admin-function = správce systému
 
+## Account menu (with a login, in place of the user picker; docs/design/AUTH.md)
+
+account-button-aria = Účet: { $name }
+account-menu = Účet
+account-role-doctor = lékař
+account-role-coordinator = koordinátor
+account-role-admin = správce systému
+# After a role switch in a demo org: who is really logged in.
+account-logged-in-as = Přihlášen(a): { $name }
+account-switch-org = Přepnout organizaci
+account-switch-role = Přepnout roli
+account-switch-role-help = Jen v ukázkové organizaci. Záznam přístupů uvádí vás i roli, za kterou jednáte.
+# A role-switch entry: the person, then the role.
+account-role-entry = { $name } ({ $role })
+account-logout = Odhlásit
+
+## Lost login while something is unsaved
+
+session-expired-title = Přihlášení vypršelo
+session-expired-body = Neuložené změny zůstaly na této stránce. Přihlaste se v novém okně a pak klikněte na „Zkusit znovu“; změny se uloží.
+session-expired-login = Přihlásit se v novém okně
+session-expired-retry = Zkusit znovu
+session-expired-checking = Ověřuji přihlášení…
+session-expired-still = Přihlášení se zatím neobnovilo.
+session-expired-other = V novém okně se přihlásil jiný uživatel nebo jiná role. Neuložené změny pod ním uložit nelze.
+session-expired-reload = Načíst stránku znovu
+
 ## Startup
 
 app-loading = Načítám…

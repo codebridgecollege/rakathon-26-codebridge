@@ -36,6 +36,31 @@ user-coordinator-function-default = MDT coordinator
 user-coordinator-tooltip-default = MDT coordination
 user-admin-function = system administrator
 
+## Account menu (with a login, in place of the user picker; docs/design/AUTH.md)
+
+account-button-aria = Account: { $name }
+account-menu = Account
+account-role-doctor = doctor
+account-role-coordinator = coordinator
+account-role-admin = system administrator
+account-logged-in-as = Signed in: { $name }
+account-switch-org = Switch organization
+account-switch-role = Switch role
+account-switch-role-help = Demo organizations only. The access log records you and the role you act in.
+account-role-entry = { $name } ({ $role })
+account-logout = Sign out
+
+## Lost login while something is unsaved
+
+session-expired-title = Your sign-in has expired
+session-expired-body = Your unsaved changes are still on this page. Sign in in a new window, then click "Try again"; the changes will be stored.
+session-expired-login = Sign in in a new window
+session-expired-retry = Try again
+session-expired-checking = Checking the sign-in…
+session-expired-still = You are not signed in again yet.
+session-expired-other = Another user or role signed in in the new window. Your unsaved changes cannot be stored under them.
+session-expired-reload = Reload the page
+
 ## Startup
 
 app-loading = Loading…

@@ -1,10 +1,14 @@
-// Who is using the app and whether the server's data is loaded: boot,
-// switchApiUser(). The demo has no login; the user is picked by hand and travels as a membership id (X-Demo-User, and the
-// cb_demo_user cookie for page images). The UI says so in the picker's label.
+// Who is using the app and whether the server's data is loaded: boot, switches, the login.
+// - Demo mode (AUTH_MODE=demo, local work and the browser suite): no login; the user is picked by hand and travels as a
+//   membership id (X-Demo-User, and the cb_demo_user cookie for page images). The picker's label says so.
+// - OIDC mode (the deployed hosts): the Worker's login session (an HttpOnly cookie) says who it is. The account menu
+//   switches org and, in a demo org, role; a lost session leads to the login, or to the "Přihlášení vypršelo"
+//   dialog while something is unsaved (docs/design/AUTH.md, "Losing the session mid-work").
 import { defineStore } from "pinia";
-import { ref } from "vue";
+import { computed, ref } from "vue";
 import { ApiError, type DemoPicker, type Health, type Me, type WorkflowState } from "@codebridge/api-client";
-import { onDataReset, useApi } from "../lib/api";
+import { onDataReset, onUnauthenticated, useApi } from "../lib/api";
+import { chooseLocale, storedLocale } from "../lib/i18n";
 import { useCasesStore } from "./cases";
 import { usePatientsStore } from "./patients";
 import { useStaffStore } from "./staff";
@@ -12,6 +16,9 @@ import { useWorkflowStore } from "./workflow";
 import { useUploadsStore } from "./uploads";
 
 export type Notice = { message_cs: string | null; message_id: string | null };
+// The dialog's states: waiting for the user to log in, checking, the login is not back yet, or another person or role
+// logged in, under whom the unsaved work must not be stored.
+export type ExpiredState = "waiting" | "checking" | "still" | "other";
 
 // Page images load through <img>, which cannot send a header, so the same membership id also goes in a cookie.
 function setDemoUserCookie(id: string) {
@@ -25,6 +32,14 @@ function setDemoUserCookie(id: string) {
 const noticeOf = (e: unknown): Notice =>
   e instanceof ApiError ? { message_cs: e.message_cs, message_id: e.message_id } : { message_cs: null, message_id: "api-error-request-failed" };
 
+// The address of the login with the way back to where the user is, in the language the app shows.
+export function loginUrl(path: string, search: string, popup = false): string {
+  const lang = chooseLocale(search, storedLocale());
+  const q = new URLSearchParams(popup ? { popup: "1" } : { to: path + search });
+  if (lang !== "cs") q.set("lang", lang);
+  return `/auth/login?${q}`;
+}
+
 export const useSessionStore = defineStore("session", () => {
   const phase = ref<"booting" | "ready" | "failed">("booting");
   const health = ref<Health | null>(null);
@@ -35,8 +50,15 @@ export const useSessionStore = defineStore("session", () => {
   // such list, and the header then builds today's picker from the staff store.
   const picker = ref<DemoPicker["orgs"] | null>(null);
   const resetting = ref(false);
-  // Separate so tests can observe a reload instead of navigating away.
+  const oidc = computed(() => health.value?.auth_mode === "oidc");
+  // The "Přihlášení vypršelo" dialog; null when closed.
+  const expired = ref<ExpiredState | null>(null);
+  // Set while the page goes to the login, so nothing else is drawn over the way out.
+  const leavingForLogin = ref(false);
+  // Separate so tests can observe a reload or a navigation instead of leaving the page.
   let reload = () => location.reload();
+  let navigate = (url: string) => location.assign(url);
+  let openWindow = (url: string): void => void window.open(url, "_blank", "noopener");
 
   onDataReset(() => {
     if (resetting.value) return;
@@ -46,6 +68,8 @@ export const useSessionStore = defineStore("session", () => {
   });
 
   function setDemoUser(id: string | null) {
+    // With a login the session cookie says who it is; a picked id would only be ignored by the server.
+    if (oidc.value) id = null;
     useApi().setUser(id);
     if (id) setDemoUserCookie(id);
   }
@@ -91,6 +115,8 @@ export const useSessionStore = defineStore("session", () => {
       await loadPicker();
       phase.value = "ready";
     } catch (e) {
+      // On the way to the login page: no error flashes before the page goes.
+      if (leavingForLogin.value) return;
       setDemoUser(null);
       error.value = noticeOf(e);
       phase.value = "failed";
@@ -118,25 +144,36 @@ export const useSessionStore = defineStore("session", () => {
   function onUserSwitched(fn: () => void) {
     switched.push(fn);
   }
+  // Whether something would be lost by leaving the page now (a draft not yet stored, a running recording).
+  const unsavedChecks: (() => boolean)[] = [];
+  function onUnsavedCheck(fn: () => boolean) {
+    unsavedChecks.push(fn);
+  }
+  const hasUnsaved = () => unsavedChecks.some((fn) => fn());
 
-  // A user switch reloads what the server lets the new user see, so the list, tasks and case data follow the new
-  // role. A name the server does not know is refused rather than sent under the previous user's id.
-  async function switchUser(id: string | null): Promise<boolean> {
+  // A switch of who acts (the demo picker, or the login's org or role switch): the same protocol for each. Screens
+  // store what was typed first and may refuse; the recording stops; the server switches; then everything the new
+  // user may see is read again.
+  // The org or role switch request while it is on its way, and when the last one took effect: a request that left
+  // before then carried the session ID the switch replaced, and is sent again rather than taken for a lost login.
+  let rotating: Promise<unknown> | null = null;
+  let switchedAt = 0;
+  async function runSwitch(serverSwitch: () => Promise<void>, undo: () => void): Promise<boolean> {
     await Promise.all(beforeSwitch.map((fn) => fn()));
-    if (!id) {
-      error.value = { message_cs: null, message_id: "user-switch-unknown" };
-      return false;
-    }
     // A screen may refuse the switch (a draft that could not be stored under the user who typed it); nothing of the
     // current user has been ended at this point, so a refusal leaves the view whole.
     for (const check of switchChecks) if (!(await check())) return false;
     await Promise.all(leaving.map((fn) => fn()));
-    const prev = useApi().userId;
-    setDemoUser(id);
     try {
+      await serverSwitch();
       await loadFromApi();
     } catch (e) {
-      setDemoUser(prev);
+      undo();
+      // The session itself is gone; what was typed is stored and the recording has stopped, so the login can come.
+      if (oidc.value && e instanceof ApiError && e.status === 401) {
+        goToLogin();
+        return false;
+      }
       error.value = noticeOf(e);
       return false;
     }
@@ -146,6 +183,122 @@ export const useSessionStore = defineStore("session", () => {
     for (const fn of switched) fn();
     error.value = null;
     return true;
+  }
+
+  // A user switch reloads what the server lets the new user see, so the list, tasks and case data follow the new
+  // role. A name the server does not know is refused rather than sent under the previous user's id.
+  async function switchUser(id: string | null): Promise<boolean> {
+    if (!id) {
+      await Promise.all(beforeSwitch.map((fn) => fn()));
+      error.value = { message_cs: null, message_id: "user-switch-unknown" };
+      return false;
+    }
+    const prev = useApi().userId;
+    return runSwitch(
+      async () => setDemoUser(id),
+      () => setDemoUser(prev),
+    );
+  }
+
+  // The login's switches (OIDC mode). The server issues a new session cookie; a refusal leaves the old session.
+  async function rotate(call: () => Promise<unknown>) {
+    const p = call();
+    rotating = p;
+    try {
+      await p;
+      switchedAt = Date.now();
+    } finally {
+      rotating = null;
+    }
+  }
+  const switchOrg = (orgId: string) => runSwitch(() => rotate(() => useApi().switchOrg(orgId)), () => {});
+  const switchRole = (membershipId: string) => runSwitch(() => rotate(() => useApi().switchRole(membershipId)), () => {});
+
+  // "Odhlásit": what was typed is stored first (a refusal keeps the user here), the recording stops, then the Worker
+  // ends the session and names the IdP's logout to go to.
+  async function logout(): Promise<boolean> {
+    await Promise.all(beforeSwitch.map((fn) => fn()));
+    for (const check of switchChecks) if (!(await check())) return false;
+    await Promise.all(leaving.map((fn) => fn()));
+    let next = "/";
+    try {
+      const r = await fetch("/auth/logout", { method: "POST", credentials: "same-origin", headers: { accept: "application/json" } });
+      const body = (await r.json()) as { redirect?: unknown };
+      if (typeof body.redirect === "string") next = body.redirect;
+    } catch {
+      // The server did not answer: the app's own page then shows whether the session is still there.
+    }
+    leavingForLogin.value = true;
+    navigate(next);
+    return true;
+  }
+
+  function goToLogin() {
+    if (leavingForLogin.value) return;
+    leavingForLogin.value = true;
+    navigate(loginUrl(location.pathname, location.search));
+  }
+
+  // The dialog's way back: the person who was here, acting as the same membership.
+  let expiredFor: { user: string; membership: string } | null = null;
+  let resume: ((retry: boolean) => void) | null = null;
+  let resumed: Promise<boolean> | null = null;
+
+  // Every 401 of the API comes here (lib/api.ts). True sends the refused request again.
+  async function handleUnauthenticated(info: { sentAt: number }): Promise<boolean> {
+    if (!oidc.value) return false;
+    // The request left with the session ID that a switch is replacing or has replaced: send it again.
+    if (rotating) {
+      await rotating.catch(() => undefined);
+      return true;
+    }
+    if (info.sentAt < switchedAt) return true;
+    if (!me.value || !hasUnsaved()) {
+      goToLogin();
+      return false;
+    }
+    if (!resumed) {
+      expiredFor = { user: me.value.real_user?.id ?? me.value.user.id, membership: me.value.membership_id };
+      expired.value = "waiting";
+      resumed = new Promise<boolean>((res) => (resume = res)).finally(() => {
+        resumed = null;
+        resume = null;
+      });
+    }
+    return resumed;
+  }
+  onUnauthenticated(handleUnauthenticated);
+
+  // "Přihlásit se v novém okně": the login in a second window, which ends on the Worker's "Přihlášení obnoveno" page.
+  function openLoginWindow() {
+    openWindow(loginUrl(location.pathname, location.search, true));
+  }
+
+  // "Zkusit znovu" (also when the window gets focus back): is the same login back? Then the waiting requests go again.
+  async function checkLogin(): Promise<void> {
+    if (!expired.value || expired.value === "checking" || expired.value === "other") return;
+    expired.value = "checking";
+    let who: Me;
+    try {
+      who = await useApi().me({ retryAfterLogin: false });
+    } catch {
+      expired.value = "still";
+      return;
+    }
+    const same = expiredFor && (who.real_user?.id ?? who.user.id) === expiredFor.user && who.membership_id === expiredFor.membership;
+    if (!same) {
+      expired.value = "other";
+      return;
+    }
+    expired.value = null;
+    resume?.(true);
+  }
+
+  // "Načíst stránku znovu" after another login: the unsaved work cannot be stored under someone else.
+  function reloadAfterOtherLogin() {
+    resume?.(false);
+    expired.value = null;
+    reload();
   }
 
   // A write's state: rows and staff to their stores, the rest to the workflow store. A case's status, slot and tasks
@@ -168,6 +321,40 @@ export const useSessionStore = defineStore("session", () => {
   function setReload(fn: () => void) {
     reload = fn;
   }
+  function setNavigate(fn: (url: string) => void) {
+    navigate = fn;
+  }
+  function setOpenWindow(fn: (url: string) => void) {
+    openWindow = fn;
+  }
 
-  return { phase, health, me, picker, error, resetting, boot, switchUser, onBeforeUserSwitch, onUserSwitchCheck, onUserLeaving, onUserSwitched, applyState, loadFromApi, setReload };
+  return {
+    phase,
+    health,
+    me,
+    picker,
+    error,
+    resetting,
+    oidc,
+    expired,
+    leavingForLogin,
+    boot,
+    switchUser,
+    switchOrg,
+    switchRole,
+    logout,
+    openLoginWindow,
+    checkLogin,
+    reloadAfterOtherLogin,
+    onBeforeUserSwitch,
+    onUserSwitchCheck,
+    onUserLeaving,
+    onUserSwitched,
+    onUnsavedCheck,
+    applyState,
+    loadFromApi,
+    setReload,
+    setNavigate,
+    setOpenWindow,
+  };
 });

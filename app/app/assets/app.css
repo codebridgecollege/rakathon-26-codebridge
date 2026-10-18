@@ -17,3 +17,9 @@
      resets font size, weight and alignment too; every table of the app sets those itself). */
 textarea { vertical-align: top; }
 table { line-height: normal; }
+
+/* The account menu (with a login) opens under its button at the right end of the header, like the status menu. */
+.acctwrap { position: relative; }
+.acctpop { right: 0; top: 100%; min-width: 260px; max-width: min(340px, calc(100vw - 32px)); white-space: normal; }
+.acctpop .btn { text-align: left; white-space: normal; }
+.acctpop .btn[aria-pressed="true"] { border-color: var(--accent); color: var(--accent-ink); }
