@@ -79,6 +79,9 @@ export type PatientRow = {
   synthetic: boolean;
   warn: string | null;
   nameNote: { text: string; src: unknown } | null;
+  // Where the document names the patient (file, page, the name as quoted). Not in list rows: only the case header
+  // (GET /cases/:id) carries it, and the patient page copies it onto the row; absent until then, null when not recorded.
+  identitySource?: { file?: string; page: number | string; quote?: string } | null;
   diagnosis: string | null;
   diagnosisNote: string | null;
   mkn10: string | null;

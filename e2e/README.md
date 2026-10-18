@@ -9,7 +9,8 @@ together, or against several local Workers at once (`npm run test:parallel`). It
 
 - **Allowed:** `getByRole`, `getByLabel`, `getByText`, accessible names, `aria-*` states (`aria-pressed`,
   `aria-expanded`, `aria-current`, `aria-invalid`); downloads and their bytes; file choosers; network stubs
-  (`page.route`, `page.routeWebSocket`) for outside services (ElevenLabs, Azure); `page.waitForResponse` where the page
+  (`page.route`, `page.routeWebSocket`) for outside services (ElevenLabs, Azure); holding back (never changing) an
+  answer of our own API until a click has happened, to fix an order that timing alone does not (`approve-pending.spec.ts`); `page.waitForResponse` where the page
   gives no visible signal (autosave, the phone upload token, the end of an upload session); properties of a DOM element
   itself (`img.naturalWidth`, `document.documentElement.scrollWidth`).
 - **Not allowed:** `page.evaluate` into app state (Pinia stores, component instances), `data-*` selectors, CSS class
@@ -163,7 +164,7 @@ Screens and features from `docs/design/PRODUCT.md` against the spec files in `sp
 | F-18 Source view | reference opens the page image (really loaded), quote text, page switcher, zoom, close, transcription tab with the quote marked, redaction demo, alert page link | `source-viewer`, `patient-tabs` |
 | S-4, F-15 MDT session | start dialog (order, attendance), session bar, current pill, next and pill navigation, reload keeps it, end | `session-recorder` |
 | S-5, F-22, F-23 Projednání na MDT | sections, draft label, notes and conclusion autosave across reload, attendance per department across reload, next step across reload | `discussion` |
-| F-24 Decision history | approval names the doctor, approver joins attendance, new version supersedes and keeps the previous one | `discussion` |
+| F-24 Decision history | approval names the doctor, approver joins attendance, new version supersedes and keeps the previous one; a click right after typing, or while the guideline layer still loads, still approves (after the save) | `discussion`, `approve-pending` |
 | F-25 Live listening | unavailable state without a speech service; with a stubbed token and socket: start, live words in the case, stop | `session-recorder` |
 | F-31 PDF report | dialog, section picks, preview, gap wording in the report, draft PDF (file name and `%PDF-` bytes); frozen after approval | `report-export` |
 | FHIR export | dialog, identity warning, downloaded Bundle with provenance | `report-export` |

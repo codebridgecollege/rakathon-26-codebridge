@@ -8,8 +8,8 @@
 
 ## Discussion card "Prerokovanie na MDT" (S-5), session bar (S-4)
 
-discussion-approve-wait-data = Podklady prípadu sa načítavajú, schváľte o chvíľu.
-discussion-approve-wait-guide = Odporúčania sa načítavajú, schváľte o chvíľu.
+discussion-approve-wait-data = Podklady prípadu sa nepodarilo včas načítať, schváľte prosím znova.
+discussion-approve-wait-guide = Odporúčania sa nepodarilo včas načítať, schváľte prosím znova.
 discussion-approve-conflict-first = Najprv rozhodnite o súbežnej úprave konceptu (lišta v časti Prerokovanie na MDT).
 discussion-approve-recording-partial = Časť záznamu sa nepodarilo uložiť; rozlíšenie rečníkov prebehne z uloženého zvuku.
 discussion-approved = Záver schválený

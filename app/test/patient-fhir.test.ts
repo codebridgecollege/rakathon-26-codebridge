@@ -25,7 +25,7 @@ const t = (id: string, args?: Record<string, string | number>) => cs.formatPatte
 // Opens the export for the set-up case and returns the dialog mounted from the overlay it opened.
 function exportCase(s: PatientSetup = {}) {
   const setup = setupPatient({
-    p: { name: "Daniel Poláček", draft: mq.question_draft_cs, qkind: mq.question_kind, basis: mq.question_basis, ...s.p },
+    p: { name: "Daniel Poláček", draft: mq.question_draft_cs, qkind: mq.question_kind, basis: mq.question_basis, identitySource: null, ...s.p },
     extraction: { case: seed.case, extra: seed.extra },
     routes: { "/audit/events": { ok: true } },
     ...s,
@@ -74,6 +74,24 @@ describe("Export FHIR dialog", () => {
     const call = setup.calls.find((c) => c.url.endsWith("/audit/events"))!;
     expect(call.init.method).toBe("POST");
     expect(JSON.parse(String(call.init.body))).toEqual({ code: "fhir_exported", case_id: "NO-010" });
+  });
+
+  // A click right after the case opens, before the case header's answer: the export reads the header itself, so the
+  // Patient still gets its Provenance (where the document names the patient).
+  it("reads the case header first when the name's source has not arrived yet", async () => {
+    const setup = setupPatient({
+      p: { name: "Daniel Poláček", draft: mq.question_draft_cs, qkind: mq.question_kind, basis: mq.question_basis },
+      extraction: { case: seed.case, extra: seed.extra },
+      routes: { "/audit/events": { ok: true }, "/cases/NO-010": { id: "NO-010", identitySource: { file: "10_pacient.pdf", page: 1, quote: "Poláček Daniel" } } },
+    });
+    let ctx!: PatientCtx;
+    mountInCase(defineComponent({ setup: () => ((ctx = usePatient()), () => h("div")) }), setup);
+    await openFhirExport(ctx, t);
+    const o = useOverlayStore().current as { kind: "fhir"; bundle: any };
+    const patient = o.bundle.entry.find((e: any) => e.resource.resourceType === "Patient").fullUrl;
+    const pv = o.bundle.entry.filter((e: any) => e.resource.resourceType === "Provenance" && e.resource.target.some((x: any) => x.reference === patient));
+    expect(pv).toHaveLength(1);
+    expect(pv[0].resource.entity[0].extension.at(-1).valueString).toBe("Poláček Daniel");
   });
 
   it("downloads the JSON as application/fhir+json named after the case", async () => {
@@ -152,6 +170,29 @@ describe("the Bundle's Czech labels", () => {
     const hs = o.bundle.entry.find((e: any) => e.resource.code?.text === "hsCRP").resource;
     expect(hs.interpretation[0].text).toBe("Nad rozmezím (vyhodnotil asistent podle uvedeného rozmezí)");
     expect(hs.note[0].text).toBe("V dokumentu: 9,5 mg/l");
+  });
+});
+
+describe("our code systems", () => {
+  // The validator checks the assistant-flag CodeSystem as complete, so an alert kind it lacks makes the Bundle invalid.
+  // The kinds come straight from the case data, so the committed case and the committed example are checked against it.
+  it("the alert kinds of case 10 and of the committed example are all defined", () => {
+    const defined = new Set((JSON.parse(read("fhir/definitions/CodeSystem-assistant-flag.json")).concept as { code: string }[]).map((c) => c.code));
+    const kinds = new Set<string>();
+    const walk = (o: unknown): void => {
+      if (Array.isArray(o)) return o.forEach(walk);
+      if (!o || typeof o !== "object") return;
+      const r = o as Record<string, unknown>;
+      if (Array.isArray(r.flags)) for (const f of r.flags as { kind?: string }[]) if (f.kind) kinds.add(f.kind);
+      Object.values(r).forEach(walk);
+    };
+    walk(seed);
+    for (const e of JSON.parse(read("fhir/examples/case-10-bundle.json")).entry as { resource: any }[]) {
+      if (e.resource.resourceType !== "DetectedIssue") continue;
+      for (const c of e.resource.code.coding as { system: string; code: string }[]) if (c.system.endsWith("/assistant-flag")) kinds.add(c.code);
+    }
+    expect(kinds.size).toBeGreaterThan(0);
+    expect([...kinds].filter((k) => !defined.has(k))).toEqual([]);
   });
 });
 

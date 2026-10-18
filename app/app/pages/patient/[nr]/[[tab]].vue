@@ -7,7 +7,7 @@ import { computed, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useFluent } from "fluent-vue";
 import { definePageMeta } from "#imports";
-import { ApiError } from "@codebridge/api-client";
+import { ApiError, type PatientRow } from "@codebridge/api-client";
 import { nrOf } from "@codebridge/domain/case-data";
 import PatientView from "../../../components/patient/PatientView.vue";
 import { useSessionStore } from "../../../stores/session";
@@ -50,6 +50,11 @@ watch(
     const viaLink = consumeViaLink();
     useApi()
       .caseHeader(p.id, viaLink)
+      .then((h) => {
+        // The header alone names where the document names the patient (the FHIR export's Provenance of the Patient);
+        // a reply for a case no longer on screen is dropped.
+        if (row.value?.file === p.file) p.identitySource = (h.identitySource as PatientRow["identitySource"]) ?? null;
+      })
       .catch((e: unknown) => {
         const err = e instanceof ApiError ? e : null;
         if (err?.code === "not_member" && session.me?.user.role === "doctor" && row.value?.file === p.file) {

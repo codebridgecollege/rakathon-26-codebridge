@@ -7,6 +7,8 @@ import { applyD1Migrations, reset } from "cloudflare:test";
 
 // The fake patient name sits in the page text so tests can prove it never reaches the access log.
 export const FAKE_NAME = "Testová Pacientka";
+// Where the fake document names the patient, written differently from the name, so a test can tell where it went.
+export const NAME_QUOTE = "TESTOVÁ Pacientka";
 // Org B's patient: never on any answer to org A.
 export const B_NAME = "Béčková Organizace";
 // A 1x1 PNG.
@@ -60,9 +62,10 @@ export const SQL = [
   "INSERT INTO roles (id, label_cs) VALUES ('doctor','lékař'), ('coordinator','koordinátor(ka) MDT'), ('admin','správce systému'), ('staff','personál pracoviště')",
   "INSERT INTO orgs (id, name, short_name, is_demo, case_id_prefix) VALUES ('demo-b','Ukázková nemocnice B','Nemocnice B',1,'B-')",
   "INSERT INTO demo_state (org_id, data_epoch) VALUES ('demo-b', 1)",
-  `INSERT INTO patients (id, org_id, full_name, name_as_written, birth_number, data_origin) VALUES
-     ('pt-A','demo-a','${FAKE_NAME}','Pacientka Testová','645312/1234','codebridge_synthetic'), ('pt-B','demo-a','Druhý Testovací',NULL,NULL,'fno_challenge'),
-     ('pt-BA','demo-b','${B_NAME}',NULL,'645312/1234','codebridge_synthetic')`,
+  `INSERT INTO patients (id, org_id, full_name, name_as_written, birth_number, data_origin, identity_source_json) VALUES
+     ('pt-A','demo-a','${FAKE_NAME}','Pacientka Testová','645312/1234','codebridge_synthetic','{"source":{"file":"A_pacient.pdf","page":1,"quote":"${NAME_QUOTE}"}}'),
+     ('pt-B','demo-a','Druhý Testovací',NULL,NULL,'fno_challenge',NULL),
+     ('pt-BA','demo-b','${B_NAME}',NULL,'645312/1234','codebridge_synthetic',NULL)`,
   ...MUTABLE_A,
   ENDED_A,
   ...MUTABLE_B,

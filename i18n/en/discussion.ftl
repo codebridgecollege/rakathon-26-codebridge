@@ -9,8 +9,8 @@
 
 ## Discussion card "MDT discussion" (S-5), session bar (S-4)
 
-discussion-approve-wait-data = The case material is still loading, approve in a moment.
-discussion-approve-wait-guide = The guidelines are still loading, approve in a moment.
+discussion-approve-wait-data = The case material did not load in time, please approve again.
+discussion-approve-wait-guide = The guidelines did not load in time, please approve again.
 discussion-approve-conflict-first = First decide on the concurrent edit of the draft (the bar in the MDT discussion section).
 discussion-approve-recording-partial = Part of the recording could not be saved; speakers will be told apart from the saved audio.
 discussion-approved = Conclusion approved

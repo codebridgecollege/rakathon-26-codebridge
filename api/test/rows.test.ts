@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { patientRow, staffName, type CaseJoinRow } from "../src/domain/rows";
+import { identitySource, patientRow, staffName, type CaseJoinRow } from "../src/domain/rows";
 import { canReadCaseHeader, canReadClinical, clinicalAccessOf, redactsListFor, type Viewer } from "@codebridge/domain/access";
 
 const base: CaseJoinRow = {
@@ -56,5 +56,15 @@ describe("access rules", () => {
   it("formats staff names with title and degree", () => {
     expect(staffName({ pre: "MUDr.", sur: "Malá", post: "Ph.D." })).toBe("MUDr. Malá, Ph.D.");
     expect(staffName({ pre: "", sur: "Malá", post: "" })).toBe("Malá");
+  });
+});
+
+describe("identitySource", () => {
+  it("reads where the document names the patient, and never puts it in a list row", () => {
+    const row = { ...base, identity_source_json: '{"source":{"file":"A_pacient.pdf","page":1,"quote":"Pacientka T. Zdrojová"}}' };
+    expect(identitySource(row)).toEqual({ file: "A_pacient.pdf", page: 1, quote: "Pacientka T. Zdrojová" });
+    expect(identitySource(base)).toBeNull();
+    expect(identitySource({ identity_source_json: "{}" })).toBeNull();
+    expect(JSON.stringify(patientRow(row))).not.toContain("Zdrojová");
   });
 });
