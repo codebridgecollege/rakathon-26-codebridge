@@ -30,6 +30,22 @@ came from, so a doctor can check it in one click.
 Kickoff. The tech stack is not chosen yet; this section will hold the
 setup and run instructions once it is.
 
+## Repository layout (npm workspaces)
+
+The root `package.json` holds npm workspaces with one lockfile:
+
+- `api/`: the API Worker (below);
+- `app/`: the Nuxt frontend being ported from the mock, served at `/app/` ([`app/README.md`](app/README.md));
+- `packages/domain`: the pure case rules shared by the Worker and the app ([`packages/domain/README.md`](packages/domain/README.md));
+- `packages/api-client`: the typed browser client for the API;
+- `i18n/`: the Fluent catalogs (`cs.ftl` is the source).
+
+```
+npm ci              # at the root
+npm run typecheck   # every workspace
+npm test            # every workspace (the api tests run inside workerd)
+```
+
 ## API Worker
 
 `api/` is a Cloudflare Worker (TypeScript, Hono) that serves the built
@@ -38,7 +54,7 @@ the Access runbook are in [`api/AGENTS.md`](api/AGENTS.md).
 
 ```
 cd api
-npm ci
+npm ci                           # installs api's workspace dependencies from the root lockfile
 cp .dev.vars.example .dev.vars   # fill in keys; gitignored
 npm run dev                      # stages mocks/ into .assets, serves http://localhost:8787
 npm run typecheck                # tsc on src and tests

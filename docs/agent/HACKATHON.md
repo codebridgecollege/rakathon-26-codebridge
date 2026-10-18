@@ -238,6 +238,13 @@ Declare this list to the jury and mentors.
   code of "Nahrát z telefonu" in the browser (issue #10). A pre-existing
   third-party component; the dialog, the phone page and the server routes
   were written during the hackathon.
+- The Nuxt frontend in `app/` (issue #13, after the hackathon, on a branch):
+  Nuxt 4.6.2, Vue 3.5.44, Vue Router 5.4.0, Pinia 4.1.0 with `@pinia/nuxt`
+  1.0.3, `@fluent/bundle` 0.19.1 and `fluent-vue` 3.8.2, tested with Vitest
+  4.1.11, happy-dom 21.0.3 and `@vue/test-utils` 2.5.1, type-checked with
+  vue-tsc 3.3.13 and TypeScript 5.9.3. npm workspaces hold `api/`, `app/`,
+  `packages/domain` (the case rules moved out of `api/src/domain`) and
+  `packages/api-client`.
 - (Add the LLMs, libraries, and datasets as we adopt them.)
 
 

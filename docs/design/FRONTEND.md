@@ -266,6 +266,68 @@ the `lang` marking of content in place, and the clinical-trust behaviour
 of the old page (gap wording, "ověřit" marks, frozen approved reports,
 drafts labelled as drafts) checked screen by screen.
 
+## As implemented (step 2)
+
+Branch `port-scaffold` (issue #13). Built: npm workspaces, `packages/domain`,
+`packages/api-client`, and the `app/` shell (header, empty main area,
+stores, boot, `fluent-vue`), served at `/app/` next to today's page.
+Commands: [`app/README.md`](../../app/README.md). Where it differs from the
+plan above, or adds to it:
+
+- **`fluent-vue` on Nuxt 4 works** registered in a plain Nuxt plugin
+  (`app/app/plugins/i18n.ts`): `$t` in templates, `useFluent()` in setup,
+  `useIsolating: false`, the Slovak bundle falling back to Czech per
+  message. Checked by the app's tests and in the browser on `wrangler dev`.
+  `unplugin-fluent-vue` is not used (no `<fluent>` blocks in components;
+  messages live in `i18n/*.ftl`), so its `@nuxt/kit ^3` declaration does not
+  matter. `fluent-vue` pulls in `vue-demi`, whose install script npm 11
+  skips under `allowScripts`; its default files already target Vue 3.
+- **What moved to `packages/domain`:** status moves, slots, approval,
+  protocol, task drafts, FHIR referral import, fact edits, and their
+  dependencies (roles, read rules, the undecided role constants, errors,
+  time, the display name rule). Staff validation, alerts, questions,
+  suggestions, sessions and attendance stay in `api/` for now: they are
+  pure too, but not on the list for this step. The system clock stays in
+  `api/src/domain/clock.ts`, because `crypto.randomUUID` is a runtime
+  global; the package's type check has no DOM or Workers types, so a
+  runtime global fails it.
+- **Wire types.** `packages/domain/src/wire.ts` types the API's replies;
+  `api/src/wire-check.ts` fails the Worker's type check when a route builds
+  an object that no longer fits them. Bodies and replies of screens not
+  ported yet are loose (`Record<string, unknown>`) and get their types with
+  their screen.
+- **Client errors carry a catalog ID.** An answer from the API keeps its
+  Czech `message_cs`, passed through unchanged; an error the client raises
+  itself (no answer, timeout, an HTML page) carries `message_id`, which
+  the app translates. The client holds no UI text.
+- **Staging is opt-in.** `stage-assets.sh` builds and stages the app only
+  with `STAGE_APP=1` (`npm run dev:app` in `api/`); CI does not set it, so
+  deploys are unchanged. Nuxt's own `404.html` and `200.html` are not
+  staged: the assets' 404 handling serves the nearest `404.html`, and
+  Nuxt's would answer every unknown `/app/...` path with the app.
+- **CI** installs from the root lockfile; `npm ci` inside `api/` installs
+  only the Worker's workspace dependencies, so the Worker job does not
+  download Nuxt.
+- **Hash links** gain a slash: `#calendar` becomes `#/calendar` (Vue
+  Router normalizes it). `#patient/10/labs` has no route yet; it comes
+  with the patient screens.
+- **No embedded mode and no fallback.** When `/api/health` does not report
+  our Worker with data, the shell shows the error instead of falling back
+  to built-in data.
+- **The user picker sends staff ids** as option values (today's page uses
+  display names), so no display string is used as a key (I18N.md,
+  "Display strings used as keys").
+- **Not yet:** the language switcher in the header (the choice already
+  follows `?lang=` and a stored choice), Umami analytics (left out of the
+  app until the team decides it for `/app/`), the per-case rules of
+  `applyCase()` (decisions before the protocol, typed text kept over an
+  older answer), which come with the screens that show them, and the
+  `byDocFile` index of the case cache, which comes with the source viewer.
+- **Dependency audit.** `npm audit` reports high-severity advisories in
+  build-time dependencies of Nuxt and Wrangler (for example `braces`,
+  `node-forge`); none of them is shipped to the browser. Checked again
+  before the app is switched on.
+
 ## Decisions (2026-10-18)
 
 - **No offline demo is needed.** Embedded mode ends with the old page;
