@@ -21,7 +21,6 @@ test("approval drafts tasks; a doctor confirms one and dismisses another", async
   await expect(drafts.first()).toContainText("Ze závěru: „");
 
   const first = drafts.first();
-  const firstText = (await first.locator("b").first().innerText()).trim();
   await first.getByRole("button", { name: "Potvrdit" }).click();
   await expect(drafts).toHaveCount(2);
   await expect(d.card.getByText(/Potvrdil\(a\) MUDr\. Svobodová/)).toBeVisible();
@@ -37,7 +36,8 @@ test("approval drafts tasks; a doctor confirms one and dismisses another", async
   // The confirmed task is now a task in "Moje úlohy" (scope "Všechny").
   await app.nav(/^Moje úlohy/).click();
   await app.main.getByRole("button", { name: "Všechny", exact: true }).click();
-  await expect(app.main.getByText(firstText, { exact: true }).first()).toBeVisible();
+  // The seed holds one open task; the confirmed draft is the second.
+  await expect(app.main.getByText("2 otevřené", { exact: true })).toBeVisible();
 });
 
 test("the coordinator sees drafts read-only in Úlohy po MDT and sends the digest", async ({ app }) => {
@@ -54,7 +54,9 @@ test("the coordinator sees drafts read-only in Úlohy po MDT and sends the diges
   await app.main.getByRole("button", { name: "Odeslat přehled e-mailem" }).click();
   await expect(app.page.getByText("Přehled odeslán (jen počet a odkaz)")).toBeVisible();
   // The e-mail carries a count and a link, never patient data.
-  await expect(app.main.getByText(/úloh[ay]? (čeká|čekají) na vyřízení/).first()).toBeVisible();
+  const digest = app.main.getByText(/^\d+ úloh[ay]? (čeká|čekají) na vyřízení/).first();
+  await expect(digest).toBeVisible();
+  for (const identifying of ["Poláček", "NO-010", "renální"]) await expect(digest).not.toContainText(identifying);
 });
 
 test("the coordinator cannot confirm a draft in the case either", async ({ app }) => {

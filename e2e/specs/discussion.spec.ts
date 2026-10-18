@@ -68,7 +68,8 @@ test("approval records the doctor, sets Projednán, and a new version supersedes
   await expect(app.main.getByText(/Platný závěr č\. 1 · schválil\(a\) MUDr\. Svobodová/)).toBeVisible();
   await expect(app.main.getByRole("button", { name: "Projednán ▾" })).toBeVisible();
   // The approver joins the attendance.
-  await expect(d.card.getByRole("heading", { level: 3, name: /^Přítomní \([1-9]\d*\)$/ })).toBeVisible();
+  await expect(d.card.getByRole("heading", { level: 3, name: "Přítomní (1)" })).toBeVisible();
+  await expect(d.card.getByText(/MUDr\. Svobodová/).first()).toBeVisible();
   await expect(d.approveButton).toHaveCount(0);
   await page.reload();
   await expect(app.main.getByText(/Platný závěr č\. 1 · schválil\(a\) MUDr\. Svobodová/)).toBeVisible();
@@ -85,6 +86,13 @@ test("approval records the doctor, sets Projednán, and a new version supersedes
   await d.approveButton.click();
   await expect(app.main.getByText(/Platný závěr č\. 2 · schválil\(a\) MUDr\. Svobodová/)).toBeVisible();
   await expect(app.main.getByText(/Předchozí závěry \(1\)/)).toBeVisible();
+  // Append-only: the first conclusion is still there, word for word, also after a reload.
+  await page.reload();
+  await expect(app.main.getByText(/Platný závěr č\. 2/).first()).toBeVisible();
+  await app.main.getByText(/Předchozí závěry \(1\)/).click();
+  const previous = app.main.getByRole("listitem").filter({ hasText: /^Závěr č\. 1 · nahrazen/ });
+  await expect(previous).toContainText("MUDr. Svobodová");
+  await expect(previous).toContainText(CONCLUSION);
 });
 
 test("a discussed case is closed from the card and reopened from the status menu", async ({ app, page }) => {

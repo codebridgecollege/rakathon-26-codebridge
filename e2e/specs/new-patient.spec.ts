@@ -56,7 +56,8 @@ test("S02: seven PDFs are uploaded, processed and added; the patient opens with 
   await expect(app.main.getByRole("heading", { level: 1, name: /Lipenská Věra/ })).toBeVisible();
 
   await app.openTab("Dokumenty");
-  await expect(app.main.getByRole("heading", { level: 2, name: /^Dokumenty \(\d+\)$/ })).toBeVisible();
+  // The seven uploaded PDFs are the patient's documents.
+  await expect(app.main.getByRole("heading", { level: 2, name: "Dokumenty (7)" })).toBeVisible();
   await app.openTab("Laboratoř");
   // The CEA trend from the four lab sheets: 14,8 -> 5,8 -> 2,9 -> 9,6 µg/l.
   const cea = app.main.getByRole("row", { name: /^CEA/ });

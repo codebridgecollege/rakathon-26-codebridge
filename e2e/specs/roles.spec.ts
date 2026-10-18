@@ -21,7 +21,7 @@ test("the picker says the demo has no login and lists doctors and the two other 
   await app.open();
   await expect(app.page.getByRole("banner").getByText("Uživatel:")).toBeVisible();
   await expect(app.userPicker).toHaveAccessibleName("Aktuální uživatel (maketa bez přihlášení)");
-  await expect(app.userPicker.locator("option:checked")).toHaveText(DOCTOR);
+  await expect(app.userPicker.getByRole("option", { selected: true })).toHaveText(DOCTOR);
   for (const label of [COORD, ADMIN, "MUDr. Novák", "MUDr. Němcová"]) {
     await expect(app.userPicker.getByRole("option", { name: label, exact: true })).toHaveCount(1);
   }
@@ -43,8 +43,8 @@ test("the coordinator changes status and schedules but edits no clinical content
   await expect(app.main.getByRole("button", { name: "Potvrdit otázku" })).toHaveCount(0);
   await expect(app.main.getByRole("button", { name: "Změnit termín" })).toBeVisible();
   await app.main.getByRole("button", { name: "Připraven ▾" }).click();
-  await expect(app.dialog("Stav případu").getByRole("button", { name: "Změnit na: Vyžaduje pozornost" })).toBeVisible();
-  await app.dialog("Stav případu").getByRole("button", { name: "Zavřít", exact: true }).click();
+  await app.dialog("Stav případu").getByRole("button", { name: "Změnit na: Vyžaduje pozornost" }).click();
+  await expect(app.main.getByRole("button", { name: "Vyžaduje pozornost ▾" })).toBeVisible();
   const d = new Discussion(app);
   await d.expand();
   await expect(d.approveButton).toBeDisabled();

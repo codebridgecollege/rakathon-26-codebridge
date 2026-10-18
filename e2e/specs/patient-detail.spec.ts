@@ -31,8 +31,10 @@ test("header shows the case ID, status, owner, slot and the case actions", async
   for (const name of ["Změnit termín", "Zahájit MDT", "Export FHIR", "Stáhnout report (PDF)"]) {
     await expect(app.main.getByRole("button", { name, exact: true })).toBeVisible();
   }
-  // A missing birth number and age show as a dash, never as a guess.
-  await expect(app.main.getByRole("heading", { level: 1 })).toContainText("RČ: -");
+  // A missing birth number and age show as a dash whose tooltip is the fixed gap wording, never as a guess.
+  const heading = app.main.getByRole("heading", { level: 1 });
+  await expect(heading).toContainText("RČ: -");
+  await expect(heading.getByTitle("neuvedeno v dostupné dokumentaci", { exact: true }).first()).toHaveText("-");
 });
 
 test("brief shows the summary, the current state and the missing-documents warning", async ({ app }) => {
@@ -111,7 +113,9 @@ test("a doctor edits a fact in the oncology summary and reverts it", async ({ ap
   await expect(edited).toBeVisible();
   await edited.getByRole("button", { name: "Upravit" }).click();
   await app.dialog("Upravit údaj").getByRole("button", { name: "Vrátit původní" }).click();
-  await expect(app.main.getByRole("button", { name: /^3\. paliativní linie everolimus 5 mg denně/ })).toBeVisible();
+  const original = app.main.getByRole("button", { name: /^3\. paliativní linie everolimus 5 mg denně/ });
+  await expect(original).toBeVisible();
+  await expect(original).not.toContainText("upraveno");
 });
 
 test("alerts: acknowledge, resolve and reopen, and the history survives a reload", async ({ app, page }) => {

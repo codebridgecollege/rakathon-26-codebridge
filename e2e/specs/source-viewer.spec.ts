@@ -67,7 +67,9 @@ test("the page switcher, zoom and close work", async ({ app }) => {
 test("the redaction demo swaps in the redacted image and hides the quote", async ({ app }) => {
   const viewer = await openFirstReference(app);
   await viewer.getByRole("checkbox", { name: "Cenzurovat (demo)" }).check();
-  await expectImageLoaded(viewer.getByRole("img").first());
+  await expectImageLoaded(viewer.getByRole("img", { name: "Strana 4 po začernění identifikátorů" }));
+  await expect(viewer.getByRole("img", { name: "Strana 4 dokumentu 10_pacient.pdf" })).toHaveCount(0);
+  await expect(viewer.getByText(/^Ukázka místního začernění/)).toBeVisible();
   await expect(viewer.getByText(`„${QUOTE}“`, { exact: false })).toHaveCount(0);
 });
 
@@ -76,5 +78,7 @@ test("an alert's page link opens the cited page", async ({ app }) => {
   await app.main.getByRole("button", { name: /^Otevřít zdroj, strana 2: Další restaging\. 3\/2022/ }).click();
   const viewer = app.dialog("Původní dokument");
   await expect(viewer.getByRole("button", { name: "s. 2" })).toHaveAttribute("aria-pressed", "true");
+  await expectImageLoaded(viewer.getByRole("img", { name: "Strana 2 dokumentu 10_pacient.pdf" }));
+  await expect(viewer.getByText(/^Žlutě: citovaná pasáž\./)).toBeVisible();
   await expect(viewer.getByText("Citace nenalezena přesně, zobrazena celá stránka.")).toHaveCount(0);
 });

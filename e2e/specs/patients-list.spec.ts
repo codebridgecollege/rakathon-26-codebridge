@@ -16,8 +16,8 @@ test("lists the seeded patients with their key columns", async ({ app }) => {
   await expect(row.getByRole("cell", { name: /Čt 22\. 10\. 2026 · 14:00-14:10/ })).toBeVisible();
   // The synthetic patient is marked as such in the list.
   await expect(app.patientRow("Křemínek Radovan")).toContainText("syntetický pacient");
-  // A missing birth number is a dash, never an invented value.
-  await expect(row.getByRole("cell", { name: "-", exact: true }).first()).toBeVisible();
+  // A missing birth number (third column, "RČ") is a dash, never an invented value.
+  await expect(row.getByRole("cell").nth(2)).toHaveText("-");
   // An unscheduled patient offers booking from the list.
   await expect(app.patientRow("Zápotocký Luděk").getByRole("button", { name: "Naplánovat" })).toBeVisible();
 });

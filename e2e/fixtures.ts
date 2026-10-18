@@ -53,7 +53,7 @@ export class App {
   // The demo has no login: the user picker in the header stands in for it.
   async loginAs(label: string): Promise<void> {
     await this.userPicker.selectOption({ label });
-    await expect(this.userPicker.locator("option:checked")).toHaveText(label);
+    await expect(this.userPicker.getByRole("option", { selected: true })).toHaveText(label);
   }
 
   patientTable(): Locator {
@@ -86,9 +86,5 @@ export class App {
 
   dialog(name?: string | RegExp): Locator {
     return name ? this.page.getByRole("dialog", { name }) : this.page.getByRole("dialog");
-  }
-
-  toast(text: string | RegExp): Locator {
-    return this.page.getByRole("status").filter({ hasText: text }).or(this.page.getByText(text)).first();
   }
 }

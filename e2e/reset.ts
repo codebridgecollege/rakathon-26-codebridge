@@ -3,7 +3,7 @@
 
 type Health = {
   service?: string;
-  features?: { data?: boolean };
+  features?: { data?: boolean; stt?: boolean; pipeline?: boolean };
   demo?: { data_epoch?: number; reset_enabled?: boolean };
 };
 
@@ -26,9 +26,14 @@ export async function checkServer(base: string): Promise<void> {
   // Every test resets the demo, which wipes what other people did on a shared deployment. A remote base URL therefore
   // needs an explicit yes.
   const host = new URL(base).hostname;
-  const local = host === "localhost" || host === "127.0.0.1" || host === "::1";
-  if (!local && process.env.E2E_ALLOW_RESET !== "1") {
-    throw new Error(`${base} is not local. The suite resets the demo before every test; set E2E_ALLOW_RESET=1 if that is fine.`);
+  const local = host === "localhost" || host === "127.0.0.1" || host === "[::1]";
+  if (!local && process.env.E2E_ALLOW_RESET !== host) {
+    throw new Error(`${base} is not local. The suite resets the demo before every test; set E2E_ALLOW_RESET=${host} if that is fine.`);
+  }
+  // The specs expect no speech or pipeline service: the recorder spec stubs speech itself, and the upload specs
+  // expect no pipeline chips. A key in .dev.vars would change what the page shows.
+  if (h.features?.stt || h.features?.pipeline) {
+    throw new Error(`${base} reports features.stt or features.pipeline; run the suite against a Worker without those keys (e2e/README.md).`);
   }
   if (!h.demo?.reset_enabled) {
     throw new Error(`${base} does not allow reset-demo (DEMO_RESET_ENABLED); the suite needs a resettable demo.`);

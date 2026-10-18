@@ -9,7 +9,7 @@ test("two people editing the same draft: the later one is told and chooses whose
   await mine.expand();
 
   // A colleague (another browser, another doctor) saves a draft first.
-  const otherCtx = await browser.newContext({ baseURL, locale: "cs-CZ", viewport: { width: 1440, height: 900 } });
+  const otherCtx = await browser.newContext({ baseURL, locale: "cs-CZ", timezoneId: "Europe/Prague", viewport: { width: 1440, height: 900 } });
   try {
     const otherPage = await otherCtx.newPage();
     const other = new App(otherPage);

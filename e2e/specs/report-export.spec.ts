@@ -20,7 +20,8 @@ test("the report dialog picks sections, previews them and downloads a draft PDF"
   await expect(dlg.getByText("Závěr zatím není schválený; report se stáhne jako koncept.")).toBeVisible();
 
   await dlg.getByText("Náhled reportu").click();
-  await expect(dlg.getByText(/Koncept/).first()).toBeVisible();
+  await expect(dlg.getByRole("heading", { level: 1, name: "Záznam z MDT" })).toBeVisible();
+  await expect(dlg.getByText(/· Koncept$/)).toBeVisible();
   await expect(dlg.getByText("Alergologická anamnéza: neuvedeno v dostupné dokumentaci")).toHaveCount(0);
   await dlg.getByRole("checkbox", { name: "Anamnéza" }).check();
   // A gap in the printed report uses the full fixed wording.
@@ -29,10 +30,11 @@ test("the report dialog picks sections, previews them and downloads a draft PDF"
   const download = page.waitForEvent("download");
   await dlg.getByRole("button", { name: "Stáhnout PDF" }).click();
   const file = await download;
+  // The toast lasts a few seconds; check it before the slower file read.
+  await expect(page.getByText("PDF připraveno ke stažení")).toBeVisible();
   expect(file.suggestedFilename()).toBe("GLIDE-MDT-NO-010-2026-10-22-koncept.pdf");
   const bytes = await readFile((await file.path())!);
   expect(bytes.subarray(0, 5).toString("latin1")).toBe("%PDF-");
-  await expect(page.getByText("PDF připraveno ke stažení")).toBeVisible();
 });
 
 test("after approval the report is frozen and downloads without the draft mark", async ({ app, page }) => {
@@ -40,6 +42,7 @@ test("after approval the report is frozen and downloads without the draft mark",
   await app.main.getByRole("button", { name: "Stáhnout report (PDF)" }).click();
   const dlg = app.dialog("Záznam z MDT");
   await expect(dlg.getByText(/^Report je uzamčen ve stavu při schválení/)).toBeVisible();
+  await expect(dlg.getByRole("checkbox")).toHaveCount(7);
   for (const box of await dlg.getByRole("checkbox").all()) await expect(box).toBeDisabled();
   await dlg.getByText("Náhled reportu").click();
   await expect(dlg.getByText(/Stereotaktická radioterapie ložiska v mozečku/).first()).toBeVisible();

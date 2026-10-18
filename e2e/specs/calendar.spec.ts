@@ -7,6 +7,13 @@ const slot = (app: App, who: string, time: string) =>
   app.main.getByRole("button", { name: new RegExp(`^${who}, RČ .*, ${time}$`) });
 const freeSlot = (app: App, time: string, outOfHours = false) =>
   app.main.getByRole("button", { name: `Volný termín ${time}${outOfHours ? ", mimo čas semináře" : ""}`, exact: true });
+// "Naplánovat" in the patient list picks the patient and opens the calendar to choose a slot. (The calendar's own
+// unscheduled list has no list or row roles to tell its "Naplánovat" buttons apart; drag and drop covers it below.)
+async function pickFromList(app: App, name: string): Promise<void> {
+  await app.nav("Databáze pacientů").click();
+  await app.patientRow(name).getByRole("button", { name: "Naplánovat" }).click();
+  await expect(app.main.getByRole("heading", { level: 1, name: "Kalendář MDT" })).toBeVisible();
+}
 const unscheduledHeading = (app: App) => app.main.getByRole("heading", { level: 2, name: /^Nenaplánovaní \(\d+\)$/ });
 
 test.beforeEach(async ({ app }) => {
@@ -68,8 +75,7 @@ test("a double click on a booked slot opens the case directly", async ({ app }) 
 });
 
 test("booking with Naplánovat and a free slot persists after reload", async ({ app, page }) => {
-  const item = app.main.getByText(/Zápotocký Luděk/).locator("xpath=ancestor-or-self::*[.//button][1]");
-  await item.getByRole("button", { name: "Naplánovat" }).click();
+  await pickFromList(app, "Zápotocký Luděk");
   await freeSlot(app, "15:10").click();
   await expect(slot(app, "Zápotocký Luděk", "15:10")).toBeVisible();
   await expect(unscheduledHeading(app)).toHaveText("Nenaplánovaní (3)");
@@ -79,8 +85,7 @@ test("booking with Naplánovat and a free slot persists after reload", async ({ 
 });
 
 test("booking out of the seminar hours marks the slot", async ({ app }) => {
-  const item = app.main.getByText(/Opletal Libor/).locator("xpath=ancestor-or-self::*[.//button][1]");
-  await item.getByRole("button", { name: "Naplánovat" }).click();
+  await pickFromList(app, "Opletal Libor");
   await freeSlot(app, "16:30", true).click();
   const booked = slot(app, "Opletal Libor", "16:30");
   await expect(booked).toBeVisible();
@@ -115,8 +120,7 @@ test("the coordinator may book, the administrator may not", async ({ app }) => {
   await expect(slot(app, "Kotěrová Jaroslava", "14:10")).toBeVisible();
   await app.loginAs("Bc. Marková (koordinátorka MDT)");
   await app.nav("Kalendář MDT").click();
-  const item = app.main.getByText(/Zápotocký Luděk/).locator("xpath=ancestor-or-self::*[.//button][1]");
-  await item.getByRole("button", { name: "Naplánovat" }).click();
+  await pickFromList(app, "Zápotocký Luděk");
   await freeSlot(app, "15:30").click();
   await expect(slot(app, "Zápotocký Luděk", "15:30")).toBeVisible();
 });

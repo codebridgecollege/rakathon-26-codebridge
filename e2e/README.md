@@ -14,7 +14,12 @@ page (`mocks/v3.html` in API mode), and the gate every ported screen of the Nuxt
   itself (`img.naturalWidth`, `document.documentElement.scrollWidth`).
 - **Not allowed:** `page.evaluate` into app state (`S`, `action()`, `render()`, `DATA`), `data-*` selectors, CSS class
   selectors, ids. The ported app has none of these, so a test that used them could not judge it.
-- One structural selector remains: `locator("mark")` in `source-viewer.spec.ts`, HTML's element for highlighted text.
+- Structural reads that remain, each because the old page gives nothing better:
+  - `locator("mark")` in `source-viewer.spec.ts`, HTML's own element for highlighted text;
+  - `alertEntry()` in `patient-detail.spec.ts` takes the smallest element holding an alert's text and its button,
+    because alerts are not list items or articles;
+  - the birth-number cell is taken by its column position in `patients-list.spec.ts`.
+  When the new app gives alerts a list or article role, switch these to roles.
 
 ## Run it
 
@@ -37,16 +42,18 @@ HTML report; failures keep a trace (`npx playwright show-trace <trace.zip>`).
 Against another Worker (a preview alias or the demo):
 
 ```
-E2E_BASE_URL=https://<worker-host> E2E_ALLOW_RESET=1 npm --prefix e2e test
+E2E_BASE_URL=https://<worker-host> E2E_ALLOW_RESET=<worker-host> npm --prefix e2e test
 ```
 
 Every test resets the demo through `POST /api/admin/reset-demo` before it starts (`fixtures.ts`), which wipes what
-other people did on that Worker. The suite therefore refuses a non-local URL unless `E2E_ALLOW_RESET=1` is set; use it
-on a preview alias, or on the shared demo only when nobody is using it. The Worker must have `DATA_API=on` and
+other people did on that Worker. The suite therefore refuses a non-local URL unless `E2E_ALLOW_RESET` names that
+host; use it on a preview alias, or on the shared demo only when nobody is using it. The local check cannot see
+`wrangler dev --remote`, which serves on localhost but writes to the deployed D1 and R2: never run the suite against
+that. The Worker must have `DATA_API=on` and
 `DEMO_RESET_ENABLED=true`; the global setup checks `/api/health` and stops with a message otherwise.
 
 What the suite assumes about the server: the seed of `api/seed/seed.py`, `UPLOAD_POLICY=fixtures_only`, and no speech
-or pipeline keys (`features.stt` and `features.pipeline` false). The recorder test turns `stt` on by rewriting the
+or pipeline keys (`features.stt` and `features.pipeline` false; the global setup stops if either is on). The recorder test turns `stt` on by rewriting the
 health answer in the browser, so it runs the same with or without a key and never calls ElevenLabs.
 
 ## How it is built
@@ -61,7 +68,10 @@ health answer in the browser, so it runs the same with or without a key and neve
 - The page's demo date is fixed at 16. 10. 2026 (`TODAY` in the template) and the seed's seminar is Thursday
   22. 10. 2026, so dates in assertions do not move with the real clock. Approval times do (they come from the server
   clock) and are matched by pattern.
-- No sleeps: every wait is Playwright's auto-waiting on something visible, or on a named response.
+- No sleeps: every wait is Playwright's auto-waiting on something visible, or on a named response. No retries
+  either: a test that passes only on a second try is a flake to fix.
+- An absence check (`toHaveCount(0)`) always follows a check that the content it would be in has rendered, so it cannot
+  pass on a page that is still loading.
 
 ## How the suite gates the port
 
@@ -72,6 +82,8 @@ health answer in the browser, so it runs the same with or without a key and neve
 3. A screen counts as ported when its spec files (table below) pass against the new app without edits to the specs.
    A spec may change only where the old page was wrong (for example a missing `aria-selected`), and the commit says so.
 4. The Worker switches to the new app (step 13) only when the whole suite passes against it.
+5. The new app must keep the demo date fixed at 16. 10. 2026 while it runs on the demo seed, as the old page does;
+   the calendar and report specs depend on it.
 
 Known places where the old page's accessibility is weaker than the new app should be (the specs work around them and
 should be tightened once the new app is in):
@@ -79,7 +91,12 @@ should be tightened once the new app is in):
 - The label "Koncept nového závěru (nahradí platný až po schválení)" is not tied to its text field.
 - The yellow box that marks the quote on the page image has no accessible name, so only the legend and the absence of
   "Citace nenalezena přesně" show that the quote was found on the image.
-- The calendar's patient card and the toasts have no dialog or status role.
+- The calendar's patient card and the toasts have no dialog or status role. Toasts vanish after 2.6 s, so specs check
+  them right after the action.
+- The calendar's unscheduled panel and the alerts are not lists, so their buttons cannot be told apart by role;
+  booking from the calendar goes through the patient list's "Naplánovat" and drag and drop instead.
+- The discussion card is a `<details>` without `aria-expanded`; `discussion.ts` decides whether to open it once the
+  case's tabs have rendered. The new app should expose the expanded state.
 
 ## Coverage
 
@@ -129,3 +146,7 @@ Not covered, and why:
   the page never offers the button. The API tests cover the route.
 - **Stale tab after a reset:** a tab opened before a reset reloads on its next write; covered by the API tests.
 - The access log's content beyond one case view, and the exact report and FHIR content, are covered by the API tests.
+- **Not yet covered, worth adding with the port:** column resize in the patient list (FRONTEND.md step 3), paging
+  across more than one page (the seed has 11 patients, 20 fit on a page), "Změnit termín" from the patient header,
+  the guideline citation fields (society, version, section, page) and the "otevřít v doporučení" link target, and a
+  label on drafted MDT questions (the old page shows the drafted question without a draft label since round 22).

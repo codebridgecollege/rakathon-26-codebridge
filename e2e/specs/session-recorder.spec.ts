@@ -97,7 +97,7 @@ test("with a (stubbed) speech service the recorder starts, shows live words in t
   await expect(d.card.getByText("Nahrávám.", { exact: false })).toBeVisible();
   await expect(d.card.getByText(/Ložisko v mozečku doporučujeme ozářit\./)).toBeVisible();
   // The header pill offers a stop from anywhere in the app.
-  await expect(page.getByRole("button", { name: /Zastavit/ }).first()).toBeVisible();
+  await expect(page.getByRole("banner").getByRole("button", { name: /Zastavit/ })).toBeVisible();
 
   await d.card.getByRole("button", { name: "■ Zastavit záznam" }).click();
   await expect(d.card.getByRole("button", { name: "● Spustit záznam" })).toBeEnabled();

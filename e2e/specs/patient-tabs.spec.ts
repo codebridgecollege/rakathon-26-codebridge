@@ -50,7 +50,8 @@ test("Dokumenty lists the documents with readability, and the column filter narr
   const filter = app.page.getByRole("dialog", { name: "Filtr Čitelnost" });
   await filter.getByRole("checkbox", { name: "Částečně čitelné" }).uncheck();
   await filter.getByRole("button", { name: "Hotovo" }).click();
-  expect(await rows.count()).toBeLessThan(13);
+  await expect.poll(() => rows.count()).toBeLessThan(13);
+  await expect(rows.getByRole("cell", { name: "Částečně čitelné", exact: true })).toHaveCount(0);
   await app.main.getByRole("button", { name: /^Zrušit filtry/ }).click();
   await expect(rows).toHaveCount(13);
   await app.main.getByRole("textbox", { name: "Hledat v dokumentech" }).fill("Laboratorní");
@@ -99,7 +100,7 @@ test("Navrhovaný postup quotes guideline statements that open to their reason a
   await expect(app.main.getByText("ne pořadí možností pro tohoto pacienta", { exact: false })).toBeVisible();
   // The assistant does not propose the management.
   await expect(app.main.getByText("asistent postup nenavrhuje", { exact: false })).toBeVisible();
-  const entry = app.main.getByRole("group").filter({ hasText: /SRS is recommended for patients with a limited number/ }).first();
+  const entry = app.main.getByRole("group").filter({ hasText: /SRS is recommended for patients with a limited number/ }).last();
   await expect(entry).toContainText("síla: silné");
   await entry.getByText(/SRS is recommended for patients with a limited number/).first().click();
   await expect(entry.getByText(/^Proč:/)).toBeVisible();

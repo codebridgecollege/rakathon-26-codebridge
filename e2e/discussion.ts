@@ -17,7 +17,8 @@ export class Discussion {
   get card(): Locator {
     // `has` is resolved inside each group, so it takes a locator without the main landmark in front.
     const heading = this.app.page.getByRole("heading", { level: 2, name: "Projednání na MDT" });
-    return this.app.main.getByRole("group").filter({ has: heading }).first();
+    // The innermost group holding the heading is the card itself, also if the page wraps it in more groups.
+    return this.app.main.getByRole("group").filter({ has: heading }).last();
   }
 
   get conclusion(): Locator {

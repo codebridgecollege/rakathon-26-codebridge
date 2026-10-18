@@ -50,6 +50,8 @@ test("only the administrator sees Administrace with the access log", async ({ ap
   await expect(app.nav("Administrace")).toHaveCount(0);
   await app.openPatient("Poláček Daniel");
   await app.loginAs(COORD);
+  await app.nav("Personál").click();
+  await expect(app.main.getByRole("button", { name: "Obnovit výchozí (smyšlená jména)" })).toBeVisible();
   await expect(app.nav("Administrace")).toHaveCount(0);
   await app.loginAs(ADMIN);
   await app.nav("Administrace").click();
@@ -73,11 +75,12 @@ test("the administrator resets the demo data from Administrace", async ({ app, p
   await app.main.getByRole("button", { name: "Obnovit ukázková data" }).click();
   const dlg = app.dialog("Obnovit ukázková data");
   await expect(dlg.getByText("Vrátí případy, závěry, úlohy, docházku, personál a záznam přístupů do výchozího stavu.")).toBeVisible();
-  // The page reloads by itself after the reset; listen before clicking so the reload cannot slip past.
-  const reloaded = page.waitForEvent("load");
   await dlg.getByRole("button", { name: "Obnovit ukázková data" }).click();
   await expect(page.getByText("Data obnovena, stránka se znovu načte.")).toBeVisible();
-  await reloaded;
-  await app.nav("Kalendář MDT").click();
-  await expect(app.main.getByRole("heading", { level: 2, name: "Nenaplánovaní (4)" })).toBeVisible();
+  // The old page reloads itself a moment later; a new app may refetch instead. Either way the user ends up seeing the
+  // seed again, so retry the visible check (a click made just before a reload is lost) instead of waiting for "load".
+  await expect(async () => {
+    await app.nav("Kalendář MDT").click();
+    await expect(app.main.getByRole("heading", { level: 2, name: "Nenaplánovaní (4)" })).toBeVisible({ timeout: 1000 });
+  }).toPass({ timeout: 15_000 });
 });

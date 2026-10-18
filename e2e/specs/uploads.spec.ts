@@ -75,7 +75,7 @@ test("phone upload: the QR dialog's link opens /u on a phone, a sent file arrive
   // The token is a credential: it never shows as text.
   await expect(dlg).not.toContainText(token);
 
-  const phoneCtx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, locale: "cs-CZ" });
+  const phoneCtx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, locale: "cs-CZ", timezoneId: "Europe/Prague" });
   try {
     const phone = await phoneCtx.newPage();
     await phone.goto(new URL(`/u#${token}`, baseURL).toString());
