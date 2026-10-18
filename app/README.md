@@ -30,6 +30,12 @@ passes the DOM-only test suite.
     `#phoneup`); state and polling in `stores/phone.ts`. The QR library (`qrcode-generator`, pinned) loads only when a
     code is shown. The phone page at `/u` is today's `mocks/src/phone-upload.html`.
   - Toasts: `stores/toast.ts` and `components/AppToasts.vue`.
+- **List screens** (steps 3, 4 and part of 12): `pages/patients.vue`, `pages/calendar/[[week]].vue` (the week's
+  Monday in the address, so back and forward move between weeks), `pages/tasks.vue`, `pages/staff.vue` and
+  `pages/admin.vue`, with their components in `components/lists/`. View state that outlives a visit (search, filters,
+  column widths, week, picked patient, task scope) is in `stores/listView.ts`; attendance rows not yet stored are in
+  `stores/attendance.ts`. Writes go through `composables/useWrite.ts`. A case opens at `lib/lists.ts` `caseRoute()`
+  (`/patient/<n>/overview`), the one place to change when the patient screens land. Text is in `i18n/cs/lists.ftl`.
 - **Development harness.** `pages/dev-*.vue` open parts of screens outside the screens that will hold them
   (`#/dev-intake`: a stand-in patient table with "+ Nový pacient", the upload panel of NO-S01 and the phone dialog).
   `nuxt.config.ts` leaves them out unless `APP_DEV_PAGES=1` (also for `nuxt dev`). The e2e harness specs
