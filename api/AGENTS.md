@@ -33,6 +33,7 @@ app's size budget, and deploys `main` to production and `backend` to the `backen
 | Path | What |
 |---|---|
 | `/`, `/_nuxt/*` | the Nuxt app (`app/.output/public`); Nuxt's own `404.html` and `200.html` are dropped |
+| `/patients`, `/calendar/*`, `/patient/*`, ... | the app's page again, by a 200 rewrite for each prefix in `scripts/app-routes.mjs` |
 | `/legacy/` | today's page, `mocks/v3.html` unchanged |
 | `/pages/`, `/ukazka/` | page images of the embedded mode, the S02 ZIP |
 | `/u` | the phone page (`mocks/src/phone-upload.html`) |
@@ -41,14 +42,16 @@ app's size budget, and deploys `main` to production and `backend` to the `backen
 `scripts/headers.mjs` then writes `.assets/_headers` and `.assets/_redirects`, which the assets binding reads (neither
 is served). Every file gets `X-Content-Type-Options: nosniff`, `Referrer-Policy: same-origin`, `X-Frame-Options: DENY`
 and a Permissions-Policy (camera, location, payment and USB off; the microphone for our own pages); `/_nuxt/*` is
-cached for a year (content-hashed names); the app's page (`/`) also gets the content security policy,
+cached for a year (content-hashed names); the app's page (`/` and every route prefix, since the rules match the address asked for) also gets the content security policy,
 with the SHA-256 of each inline script in its `index.html` (the script stops when the count is not two), and
 `Cross-Origin-Opener-Policy: same-origin`. The old page, `/u` and the 404 page get no policy: they run inline scripts.
-`/api` answers set nosniff in `src/index.ts`. Redirects: `/app/...` (the app's address during the port) to `/`, and
-`/legacy/ukazka/*` and `/legacy/pages/*` (the old page's relative links) to the root copies. These rules are checked
+`/api` answers set nosniff in `src/index.ts`. Redirects: `/legacy/ukazka/*` and `/legacy/pages/*` (the old page's relative
+links) to the root copies; rewrites (200): the app's route prefixes to `/`. Any other path is the 404 page, so there
+is no SPA fallback. These rules are checked
 with `run_worker_first: ["/api/*"]` only. Access mode (`true`, runbook below) routes every request through the Worker,
 whose Hono app answers only `/api`; that switch needs a forward to `env.ASSETS.fetch` and a fresh check that the
-headers and redirects still arrive. Check after any change: `curl -sI http://localhost:8787/` and `npm --prefix e2e test`
+headers and redirects still arrive. Check after any change: `curl -sI http://localhost:8787/`, `curl -sI http://localhost:8787/patient/10/labs` and
+`npm --prefix e2e test`
 (`specs/serving.spec.ts`).
 
 ## Data: D1, R2 and the seed (step 2)

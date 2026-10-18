@@ -84,8 +84,10 @@ health answer in the browser, so it runs the same with or without a key and neve
    change to the suite in the same commit.
 2. The Worker serves the app at `/` and the old page at `/legacy/` (`docs/design/FRONTEND.md`, "As implemented
    (step 13)"). The helpers open routes relative to the base URL, which needs its trailing slash
-   (`E2E_BASE_URL=http://localhost:8787/legacy/`). Both read `#patient/10/labs`; the app's router rewrites it to
-   `#/patient/10/labs`, so the one spec that reads the address accepts both.
+   (`E2E_BASE_URL=http://localhost:8787/legacy/`). Specs name routes without `#` (`app.open("patient/10/labs")`);
+   `App.url()` makes them paths for the app and hash links for the old page. The first `open()` loads the page; later
+   ones change the address without a load (the browser's history API on the app, a hash change on the old page),
+   because the demo user picked in the header lives in the page. `app.legacy` tells a spec which page it runs on.
 3. A screen counts as ported when its spec files (table below) pass against the new app without edits to the specs.
    A spec may change only where the old page was wrong (for example a missing `aria-selected`), and the commit says so.
 4. The Worker switched to the new app (step 13) with the whole suite passing against it and the old page.
@@ -120,13 +122,13 @@ Screens and features from `docs/design/PRODUCT.md` against the spec files in `sp
 
 | PRODUCT.md | What is checked | Spec |
 |---|---|---|
-| S-1, F-01 Patient database | rows and columns, gap dash, search by name, ID and diagnosis, status and owner column filters, clear filters, submitted-from filter, paging state, open a row and back, column resize, old hash links to the list screens | `patients-list`, `list-links` |
+| S-1, F-01 Patient database | rows and columns, gap dash, search by name, ID and diagnosis, status and owner column filters, clear filters, submitted-from filter, paging state, open a row and back, column resize, links to the list screens | `patients-list`, `list-links` |
 | S-2, F-11 MDT calendar | seminar week, booked and free slots, out-of-hours slots, week arrows, Dnes, mini month, browser back; card on click, Otevřít případ, close; double click opens; book with Naplánovat (persists), out-of-hours mark, Uvolnit termín, drag and drop both ways; coordinator books, administrator refused | `calendar` |
 | S-3, F-16 Patient detail and brief | header (ID, status, owner, slot, actions), "Stručný souhrn", current state, oncology summary, unprocessed case | `patient-detail` |
 | F-07 Missing-documents alert | always signalled on the brief, list one click away | `patient-detail`, `new-patient` |
 | F-09 Conflicting and outdated alerts | grouped alerts, assistant's observation label, acknowledge, resolve, reopen, history after reload | `patient-detail`, `patient-tabs` |
 | F-12 Case status | status menu change and history; close from the card and reopen; Projednán on approval | `patient-detail`, `discussion` |
-| F-38 Doctor edits | edit the MDT question and a summary fact, "upraveno" mark, persistence, "Vrátit původní"; confirm the drafted question | `patient-detail` |
+| F-38 Doctor edits | edit the MDT question and a summary fact, "upraveno" mark, persistence, "Vrátit původní"; confirm the drafted question; the "Návrh asistenta" label on a drafted question until it is confirmed or edited, also on the calendar card (app only) | `patient-detail` |
 | F-19 Timeline categories | category checkboxes, counts, "Vše" on and off, partial date kept | `patient-detail` |
 | F-05, F-03 Documents and readability | document list with readability, column filter, search, missing originals | `patient-tabs` |
 | F-06 Structured anamnesis | the Anamnéza tab with edit buttons | `patient-tabs` |
@@ -151,7 +153,7 @@ Screens and features from `docs/design/PRODUCT.md` against the spec files in `sp
 | Roles | picker, doctor may edit and approve, coordinator changes status but not clinical content, administrator only reads | `roles`, `discussion`, `tasks`, `calendar` |
 | F-36 Mobile web | no sideways scroll at 400 px on the list, calendar, tasks and patient tabs | `phone-width` |
 | Accessibility | axe (WCAG 2.1 A/AA, serious and critical) on the list screens, every tab of NO-010 and NO-S01, the discussion card and four dialogs; dialog focus and Tab trap, also for the phone dialog stacked over another | `accessibility` (app only) |
-| Serving | security headers and the content security policy, `/u`, the 404, redirects of `/app/` and the old page's ZIP link, an old hash link | `serving` |
+| Serving | security headers and the content security policy, also on every app route path, `/u`, the 404 for other paths (`/app/` included), the old page's ZIP redirect, `/api` and `/legacy/` untouched, a deep link after a reload | `serving` |
 
 Not covered, and why:
 - **Not built in the page:** F-08, F-10, F-13, F-14, F-20, F-26, F-28, F-29, F-30.
@@ -166,5 +168,4 @@ Not covered, and why:
 - The access log's content beyond one case view, and the exact report and FHIR content, are covered by the API tests.
 - **Not yet covered, worth adding with the port:** paging
   across more than one page (the seed has 11 patients, 20 fit on a page), "Změnit termín" from the patient header,
-  the guideline citation fields (society, version, section, page) and the "otevřít v doporučení" link target, and a
-  label on drafted MDT questions (the old page shows the drafted question without a draft label since round 22).
+  and the guideline citation fields (society, version, section, page) and the "otevřít v doporučení" link target.

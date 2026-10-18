@@ -2,15 +2,17 @@
 
 The new frontend for GLIDE MDT, built next to today's page (`mocks/src/v3-template.html`) and ported screen by screen
 (GitHub issue #13, design in `docs/design/FRONTEND.md`). Ported so far: the shell (header, user picker, stores, boot
-from the API) and the patient detail screen (`#/patient/<nr>/<tab>`: header, brief, MDT question, alerts, timeline,
+from the API) and the patient detail screen (`/patient/<nr>/<tab>`: header, brief, MDT question, alerts, timeline,
 all tabs and the source viewer; `app/components/patient/`), the lists (patients, calendar, tasks, staff,
 administration), "Nový pacient" with uploads and the phone QR, and the MDT itself: the session bar, "Projednání na
 MDT", the AI recorder and the report with its PDF (`app/components/discussion/`). The whole DOM-only test suite passes
 against it, and the Worker serves it at `/`; today's page is at `/legacy/` for a transition period.
 
 - **Nuxt 4 in SPA mode** (`ssr: false`), built with `nuxt generate` into static files.
-- **Served by the API Worker at `/`** (`baseURL`), with today's page at `/legacy/`. Routes are hash routes
-  (`/#/patients`); today's links (`/#patient/10/labs`) still land on the right screen, and `/app/...` redirects to `/`.
+- **Served by the API Worker at `/`** (`baseURL`), with today's page at `/legacy/`. Routes are paths
+  (`/patients`, `/patient/10/labs`). The Worker serves the app's page only for the prefixes in
+  `api/scripts/app-routes.mjs` (every other path is a 404); a new page in `app/pages/` needs its prefix there, and
+  `test/routes.test.ts` fails until it has one. Old hash links (`/#patient/10/labs`) are not supported.
 - **Content security policy and headers** come from `api/scripts/headers.mjs`, which pins the hashes of the two inline
   scripts in `index.html` at staging time. A new inline script, an outside script, style or font host, or a new
   connection target needs a change there (FRONTEND.md, "As implemented (step 13)").
@@ -37,7 +39,7 @@ against it, and the Worker serves it at `/`; today's page is at `/legacy/` for a
 - **"Nový pacient", uploads and "Nahrát z telefonu"** (step 11 of the port):
   - `useNewPatient().open()` (`composables/useNewPatient.ts`) opens the dialog, which `app.vue` mounts once
     (`components/intake/NewPatientDialog.vue`, logic in `stores/intake.ts`). `setNavigation()` tells it where a finished
-    intake goes; `plugins/intake.ts` sets the default (`#/patient/<id>` or the list), discards the intake on back or
+    intake goes; `plugins/intake.ts` sets the default (`/patient/<id>` or the list), discards the intake on back or
     forward, and ends the intake and the phone session before a user switch.
   - `components/uploads/CaseUploads.vue` is a case's upload panel for "Projednání na MDT" and the documents tab
     (props: the case, `locked`, `why`, the phone target); `UploadZone.vue` and `UploadList.vue` are its generic parts.
@@ -54,7 +56,7 @@ against it, and the Worker serves it at `/`; today's page is at `/legacy/` for a
   (`/patient/<n>/overview`), the one place to change when the patient screens land. Text is in `i18n/cs/lists.ftl`.
 - **Development pages.** `nuxt.config.ts` leaves pages named `pages/dev-*.vue` out of every build unless
   `APP_DEV_PAGES=1`, for parts of a screen checked before the screen holding them is ported. None exist now: the intake
-  harness (`#/dev-intake`) went once "Projednání na MDT" was ported, and its extra checks became
+  harness (`/dev-intake`) went once "Projednání na MDT" was ported, and its extra checks became
   `e2e/specs/intake-details.spec.ts`.
 - **The MDT** (steps 8, 9 and the rest of 12): `components/discussion/` holds the card "Projednání na MDT"
   (`DiscussionCard.vue`, mounted by `BriefBlock.vue` and by the patient view's error state), the conclusion draft under

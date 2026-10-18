@@ -137,7 +137,7 @@ the marketing site (glidemdt.com) is separate.
 - **Serving: the same Worker as today.** It serves the Nuxt output instead of `v3.html`, keeps the Hono API under `/api` (`run_worker_first`), and its staging script keeps:
   - `/u` (the phone page), `pages/` and `ukazka/`;
   - the custom 404 page, which must not be overwritten by Nuxt's own `404.html` or `200.html`.
-- **Routes.** Vue Router uses hash history, so today's links (`#patient/10/labs`) keep working and the Worker needs no fallback rule that would swallow the 404 page. Moving to path routes later means adding that fallback.
+- **Routes.** Vue Router uses path routes (history mode: `/patient/10/labs`). The Worker serves the app's page only for the app's route prefixes, so every other path keeps its real 404 ("As implemented (paths)" below).
 - **State:**
   - Pinia stores for the session, staff and the case cache;
   - the recorder as a store plus a composable, since it must survive route changes;
@@ -319,9 +319,8 @@ plan above, or adds to it:
   answer every unknown path with the app.
 - **CI** installs from the root lockfile and tests the Worker, the app and
   both packages (step 13 below).
-- **Hash links** gain a slash: `#calendar` becomes `#/calendar` (Vue
-  Router normalizes it). `#patient/10/labs` has no route yet; it comes
-  with the patient screens.
+- **Routes** were hash routes on this branch; they are paths now
+  ("As implemented (paths)" below).
 - **No embedded mode and no fallback.** When `/api/health` does not report
   our Worker with data, the shell shows the error instead of falling back
   to built-in data.
@@ -363,7 +362,7 @@ it: [`app/README.md`](../../app/README.md). Where it differs from the old page:
   created after its dialog closed is discarded at once.
 - **A user switch** also closes a phone upload session for a case and drops the upload lists read under the previous
   user (the old page kept both).
-- **The patient view is not ported yet**, so a finished intake goes to `#/patient/<id>`, which has no route on this
+- **The patient view is not ported yet**, so a finished intake goes to `/patient/<id>`, which has no screen on this
   branch; the specs that open the new patient pass only with the patient screens. A development harness
   checked the rest until the patient screens landed; it is gone, and its extra checks are
   `e2e/specs/intake-details.spec.ts`.
@@ -374,21 +373,21 @@ Branch `port-lists` (issue #13): the patient list, the calendar, tasks, staff an
 [`app/README.md`](../../app/README.md). Text and markup match the old page (compared screen by screen: visible text
 and the tag and class structure of the main area). Where it differs:
 
-- **Routes per area by path:** `#/patients`, `#/calendar/<Monday>`, `#/tasks`, `#/staff`, `#/admin`. Today's links
-  (`#calendar/2026-10-22`) land on them, a link to any day is rewritten to its Monday, and the header navigates by
-  path. The `[view]` route remains for areas not ported yet.
+- **Routes per area by path:** `/patients`, `/calendar/<Monday>`, `/tasks`, `/staff`, `/admin`. A link to any day
+  is rewritten to its Monday, and the header navigates by path. The `[view]` route remains as the in-app fallback for
+  any other one-segment path.
 - **Column filters hold codes** (owner, department or "", the slot's day, the status code), not display text.
 - **The calendar card does not edit the MDT question.** The old page let a doctor open the edit dialog from the
   card; that dialog belongs to the patient screens, so the card shows the question as text until they land.
 - **Added, nothing visible:** the card is a named region, the waiting list a list, toasts have a status role, the
   filter popover's button says it opens a dialog and gets the focus back, both dialogs keep Tab inside, and "Vybráno"
   is a pressed button.
-- **Opening a case** goes to `#/patient/<n>/overview` (`caseRoute()` in `app/app/lib/lists.ts`), which has no route
+- **Opening a case** goes to `/patient/<n>/overview` (`caseRoute()` in `app/app/lib/lists.ts`), which has no screen
   on this branch; the specs that open a case pass only with the patient screens.
 
 ## As implemented (steps 5, 6, 7 and 10)
 
-Branch `port-patient` (issue #13): the patient detail screen (S-3) at `#/patient/<nr>/<tab>`: header, status menu,
+Branch `port-patient` (issue #13): the patient detail screen (S-3) at `/patient/<nr>/<tab>`: header, status menu,
 MDT question, brief, alerts, timeline, every tab, the guideline drawer, the prognosis drawers, the FHIR export and the
 source viewer. Components in `app/app/components/patient/`, rules in `packages/domain` (`case-data.ts`,
 `case-view.ts`, `quote-match.ts`, `page-text.ts`, `labs.ts`, `guideline.ts`, `prognosis.ts`, `fhir-export.ts`), text
@@ -396,9 +395,8 @@ in `i18n/cs/patient.ftl` (IDs start with `patient-`). The e2e specs `patient-det
 `source-viewer`, the FHIR export of `report-export` and `phone-width` pass against the new app and stay green on
 today's page. Where it differs from the old page or the plan:
 
-- **Routes.** `#patient/10/labs` and `#/patient/10` both reach the screen; a missing or unavailable tab is replaced by
-  the first one the case shows. `#present/<nr>` and `#protocol/<nr>` redirect to the overview. The address shows
-  `#/patient/...`, so the one spec that reads the address accepts both forms.
+- **Routes.** `/patient/10/labs` and `/patient/10` both reach the screen; a missing or unavailable tab is replaced by
+  the first one the case shows.
 - **Case data in the view's shape** comes from `fromExtraction()` in `packages/domain/src/case-data.ts`, computed
   from the cases store's raw reply; the guideline layer lives in the store's case entry, as in the template.
 - **Saved prognosis from the API.** The old page embedded the saved study search; the app reads
@@ -457,10 +455,9 @@ to it:
 
 - **The switch.** `api/scripts/stage-assets.sh` always builds the app (no `STAGE_APP` flag) and stages it at the root
   of `.assets/` (Nuxt `baseURL` `/`); today's page is `mocks/v3.html` unchanged at `/legacy/`. `/u`, `/pages/`,
-  `/ukazka/`, the Czech 404 page and `/api/*` stay as they were. Redirects (`.assets/_redirects`): `/app/...` (the
-  app's address during the port) to `/`, and the old page's relative links under `/legacy/` (the S02 ZIP, embedded
-  page images) to the root copies. Old hash links (`/#patient/10/labs`, `/#calendar/2026-10-22`) reach the app's
-  screens; `e2e/specs/serving.spec.ts` checks one, and `list-links` the list screens.
+  `/ukazka/`, the Czech 404 page and `/api/*` stay as they were. Redirects (`.assets/_redirects`): the old page's
+  relative links under `/legacy/` (the S02 ZIP, embedded page images) to the root copies. The app's route paths:
+  "As implemented (paths)" below.
 - **Content security policy,** set by `api/scripts/headers.mjs` in `.assets/_headers` for the app's page only (`/`),
   not through `nuxt-security`: the SPA shell has exactly two inline scripts (the import map and Nuxt's config), and the
   script pins their SHA-256 at staging time, after each build, and stops when the count changes. The policy:
@@ -529,10 +526,46 @@ to it:
 - **Install scripts.** npm 11 lists `esbuild`, `workerd` and `vue-demi` as having unapproved install scripts. None is
   needed: the build and `wrangler dev` work without them (`app/README.md`). CI's npm 10 runs them as before.
 - **To go live:** merge into `main` (CI deploys the Worker); check `/`, `/legacy/`, `/u` and
-  `curl -sI https://<worker-host>/` for the policy; run the e2e suite against a preview alias first
+  `curl -sI https://<worker-host>/` and `curl -sI https://<worker-host>/patient/10/labs` for the policy; run the e2e suite against a preview alias first
   (`E2E_BASE_URL=https://<preview-host>/ E2E_ALLOW_RESET=<preview-host>`). Pages (`deploy-mock.yml`) keeps serving
   the old page until it is retired. Umami is not in the app; adding it needs `script-src` and `connect-src` for its
   host.
+
+## As implemented (paths)
+
+Branch `port-paths` (issue #13): path routes instead of hash routes, and the draft label on the MDT question.
+
+- **History mode.** The app's addresses are paths: `/patients`, `/calendar/<Monday>`, `/tasks`, `/staff`, `/admin`,
+  `/patient/<nr>/<tab>`; `/` opens the patient list. The old hash links (`#patient/10/labs`, `#/...`,
+  `#present/<nr>`, `#protocol/<nr>`) and the `/app/...` redirect are gone: `/#patient/10/labs` opens the patient list,
+  `/app/` is a 404. The old page at `/legacy/` keeps its own hash links.
+- **Serving the route paths, not a fallback.** `api/scripts/app-routes.mjs` lists the route prefixes (`/patients`,
+  `/calendar`, `/calendar/*`, `/tasks`, `/staff`, `/admin`, `/patient/*`). `headers.mjs` writes a 200 rewrite to `/`
+  for each into `.assets/_redirects`, so the address stays and the assets serve the app's `index.html` without any
+  Worker code; `run_worker_first` stays `["/api/*"]`. Every other path keeps the Czech 404 page
+  (`not_found_handling: 404-page`); no SPA fallback. A splat also matches its empty rest, so `/patient/` serves the
+  app, which shows its empty fallback there.
+- **Headers on deep links.** The assets match `_headers` against the address the browser asked for, not the
+  rewritten one (checked in the asset Worker's code, `attachCustomHeaders()`, which `wrangler dev` runs as production
+  does), so `headers.mjs` writes the content security policy and `Cross-Origin-Opener-Policy` for `/` and for each
+  route prefix. `e2e/specs/serving.spec.ts` checks that every route path returns the same page as `/` with the same
+  policy, and that near misses (`/patient`, `/patients/10`, `/tasks/x`, `/app/`) are 404.
+- **A new page needs its prefix.** `app/test/routes.test.ts` derives example addresses from `app/app/pages/` and
+  fails when no prefix in `app-routes.mjs` covers one, so a page that opens by a click but 404s on a reload is caught.
+- **Fixed on the way:** a fresh load of a calendar link to a day that is not a Monday (`/calendar/2026-12-02`) showed
+  the wrong month in the mini month: Nuxt remounted the page on the rewrite to the Monday. The calendar page now keeps
+  one key for every week.
+- **The e2e helper** `App.open(route)` takes a route without `#`; it loads the page on its first call and changes the
+  address without a load afterwards (pushState and popstate, as a hash link did), because the demo user picked in
+  the header lives in the page.
+- **Drafted MDT question.** An assistant's draft (the referral states no explicit question, no doctor confirmed or
+  edited it) carries the label "Návrh asistenta" (`patient-question-draft`, the wording of the assistant's drafted
+  tasks) in the question box of the patient header and the brief, and on the calendar card; the box's tooltip quotes
+  the passages the draft rests on (they stay off the screen otherwise, as the team's design keeps the box short). A
+  confirmation of the shown text or a doctor's edit removes the label; a confirmation of an older draft text does not.
+  The report, its PDF and the FHIR export print the draft with "[návrh otázky asistentem, neověřeno lékařem]" or
+  "[otázka podle účelu v dokumentu, ...]" and its passages, as before. The patient list does not show the question.
+  The old page shows no label (since round 22) and is unchanged.
 
 ## Decisions (2026-10-18)
 
