@@ -154,7 +154,7 @@ describe("the Bundle's Czech labels", () => {
 });
 
 describe("catalog use", () => {
-  const ftl = read("i18n/cs/patient-fhir.ftl");
+  const ftl = read("i18n/cs/patient.ftl");
 
   it("passes only literal patient-fhir- IDs, and every one is in the catalog", () => {
     const builder = read("packages/domain/src/fhir-export.ts");

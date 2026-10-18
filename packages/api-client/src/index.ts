@@ -47,7 +47,7 @@ export type PrognosisResult = {
 } & Loose;
 export type SavedPrognosis = { patient_id?: string; scheduled_date?: string; result?: PrognosisResult } & Loose;
 
-// Catalog IDs (i18n/cs/patient-prognosis.ftl) of the errors the prognosis calls raise themselves (pgJson() in
+// Catalog IDs (i18n/cs/patient.ftl) of the errors the prognosis calls raise themselves (pgJson() in
 // mocks/src/prognosis.js): the routes live on the local prognosis server, so a host without them says so, and a search
 // past its time limit is not restarted on its own.
 export const PROGNOSIS_ERROR_IDS = {
