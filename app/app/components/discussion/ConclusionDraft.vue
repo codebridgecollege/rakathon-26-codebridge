@@ -17,9 +17,12 @@ const disc = useDiscussionStore();
 const file = computed(() => c.p.value.file);
 const pr = computed(() => disc.protoOf(file.value));
 const has = computed(() => !!pr.value.concl.trim());
+// While an approval runs (it may wait for loads and saves), the field is read-only: the doctor approves the text they
+// clicked on, never a later edit without a second click. readonly keeps the element, so the IME rule above holds.
+const approving = computed(() => disc.approving(file.value));
 
 function sync(e: Event) {
-  if (pr.value.state === "approved" || c.p.value.status === "closed") return;
+  if (pr.value.state === "approved" || c.p.value.status === "closed" || approving.value) return;
   disc.setText(file.value, "concl", (e.target as HTMLTextAreaElement).value);
 }
 // Leaving the field stores it at once instead of after the pause.
@@ -38,6 +41,7 @@ function flushNow() {
     :aria-describedby="props.hasValid ? 'concl-new-label' : undefined"
     style="min-height:70px;margin-top:4px"
     :value="pr.concl"
+    :readonly="approving"
     @input="sync"
     @change="sync"
     @compositionend="sync"

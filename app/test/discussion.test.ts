@@ -13,6 +13,7 @@ import { useOverlayStore } from "../app/stores/overlay";
 import { useUploadsStore } from "../app/stores/uploads";
 import { useRecorderStore } from "../app/stores/recorder";
 import { useSessionStore } from "../app/stores/session";
+import { useCasesStore } from "../app/stores/cases";
 import { lastToast, mountInCase, setupPatient } from "./patient";
 import { deferred } from "./helpers";
 
@@ -26,6 +27,8 @@ const STAFF = {
   roles: { d1p1: "doctor", u1: "doctor", coord: "coordinator" } as Record<string, "doctor" | "coordinator" | "admin">,
 };
 const ok = (data: unknown = {}, state: unknown = {}) => ({ data, data_epoch: null, state });
+// An extraction of the "full" level, the one that has a guideline layer (sectionsOf().guidance).
+const FULL = { case: { sections: {} }, extra: { refs: [{ file: "10_pacient.pdf", page: 1, quote: "MR mozku" }], onco_detailed_v3: [{ refs: [0] }] } };
 const reply = (init: RequestInit) => JSON.parse(String(init.body ?? "{}"));
 
 function setup(o: Parameters<typeof setupPatient>[0] = {}) {
@@ -230,17 +233,153 @@ describe("identity banner", () => {
 describe("approval guards and what ends with a case", () => {
   const doctor = { name: "MUDr. Svobodová", isDoctor: true };
 
-  it("never approves a closed case, a case whose data still loads, or for a non-doctor", async () => {
+  it("never approves a closed case or for a non-doctor", async () => {
     const calls: string[] = [];
     const routes = { "/cases/NO-010/decisions": () => (calls.push("x"), ok()) };
     const closed = setup({ p: { status: "closed" }, wf: { protocol: { concl: "A", state: "draft", version: 1 } }, routes });
     await useDiscussionStore().approve(closed.p.file, doctor);
     const coord = setup({ wf: { protocol: { concl: "A", state: "draft", version: 1 } }, routes });
     await useDiscussionStore().approve(coord.p.file, { name: "Bc. Marková", isDoctor: false });
-    const loading = setupPatient({ p: { slot: { day: "2026-10-22", time: "14:00" }, status: "scheduled" }, wf: { protocol: { concl: "A", state: "draft", version: 1 } }, routes });
-    await useDiscussionStore().approve(loading.p.file, doctor);
-    expect(lastToast()).toBe("discussion-approve-wait-data");
     expect(calls).toHaveLength(0);
+  });
+
+  // A click right after the case opens, while its data is still on its way, used to be refused with a toast and was
+  // lost (seen on CI). It now waits and approves once the data lands.
+  it("a click while the case data still loads waits for it, then approves once", async () => {
+    const calls: string[] = [];
+    const s = setupPatient({ p: { slot: { day: "2026-10-22", time: "14:00" }, status: "scheduled" }, wf: { protocol: { concl: "A", state: "draft", version: 1 } }, routes: { "/cases/NO-010/decisions": () => (calls.push("x"), ok()) } });
+    useCasesStore().caseOf(s.p.file).state = "loading";
+    const d = useDiscussionStore();
+    const done = d.approve(s.p.file, doctor);
+    await flushPromises();
+    expect(d.approving(s.p.file)).toBe(true);
+    // A second click while it waits is the same approval, not a second one.
+    await d.approve(s.p.file, doctor);
+    expect(calls).toHaveLength(0);
+    Object.assign(useCasesStore().caseOf(s.p.file), { state: "ready", data: { file: s.p.file, id: s.p.id, extraction: null }, loadedAt: 1 });
+    await done;
+    expect(calls).toHaveLength(1);
+    expect(d.approving(s.p.file)).toBe(false);
+  });
+
+  it("a click while the guideline layer still loads waits for it, then approves", async () => {
+    const calls: string[] = [];
+    const s = setupPatient({
+      p: { slot: { day: "2026-10-22", time: "14:00" }, status: "scheduled" },
+      extraction: FULL,
+      guide: { loading: true },
+      wf: { protocol: { concl: "A", state: "draft", version: 1 } },
+      routes: { "/cases/NO-010/decisions": () => (calls.push("x"), ok()) },
+    });
+    const d = useDiscussionStore();
+    const done = d.approve(s.p.file, doctor);
+    await flushPromises();
+    expect(d.approving(s.p.file)).toBe(true);
+    expect(calls).toHaveLength(0);
+    useCasesStore().caseOf(s.p.file).guide = { statements: [] };
+    await done;
+    expect(calls).toHaveLength(1);
+  });
+
+  it("gives up with the message when the guideline layer does not arrive in time, and sends nothing", async () => {
+    vi.useFakeTimers();
+    const calls: string[] = [];
+    const s = setupPatient({
+      p: { slot: { day: "2026-10-22", time: "14:00" }, status: "scheduled" },
+      extraction: FULL,
+      guide: { loading: true },
+      wf: { protocol: { concl: "A", state: "draft", version: 1 } },
+      routes: { "/cases/NO-010/decisions": () => (calls.push("x"), ok()) },
+    });
+    const d = useDiscussionStore();
+    const done = d.approve(s.p.file, doctor);
+    await vi.advanceTimersByTimeAsync(15_000);
+    await done;
+    expect(lastToast()).toBe("discussion-approve-wait-guide");
+    expect(calls).toHaveLength(0);
+    expect(d.approving(s.p.file)).toBe(false);
+  });
+
+  it("a user switch while the click waits ends the approval quietly, with nothing sent", async () => {
+    const calls: string[] = [];
+    const s = setupPatient({
+      p: { slot: { day: "2026-10-22", time: "14:00" }, status: "scheduled" },
+      extraction: FULL,
+      guide: { loading: true },
+      wf: { protocol: { concl: "A", state: "draft", version: 1 } },
+      routes: { "/cases/NO-010/decisions": () => (calls.push("x"), ok()) },
+    });
+    const d = useDiscussionStore();
+    const done = d.approve(s.p.file, doctor);
+    await flushPromises();
+    d.reset();
+    await done;
+    expect(calls).toHaveLength(0);
+    expect(lastToast()).toBeUndefined();
+  });
+
+  it("stops waiting at once when a version conflict appears meanwhile, and says so", async () => {
+    const calls: string[] = [];
+    const save = deferred<unknown>();
+    const s = setupPatient({
+      p: { slot: { day: "2026-10-22", time: "14:00" }, status: "scheduled" },
+      extraction: FULL,
+      // The guideline layer never arrives in this test: only the conflict can end the wait before the deadline.
+      guide: { loading: true },
+      wf: { protocol: { concl: "A", state: "draft", version: 1 } },
+      routes: {
+        "/cases/NO-010/protocol": async () => {
+          await save.promise;
+          return [409, { error: { code: "protocol_conflict", message_cs: "Koncept mezitím upravil(a) MUDr. Malá.", current: { notes: "", conclusion: "C", steps: [], version: 2 } } }];
+        },
+        "/cases/NO-010/decisions": () => (calls.push("x"), ok()),
+      },
+    });
+    const d = useDiscussionStore();
+    d.setText(s.p.file, "concl", "B");
+    // The blur's save, then the click; the save comes back with a colleague's newer draft.
+    const saved = d.flush(s.p.file);
+    const done = d.approve(s.p.file, doctor);
+    save.resolve(null);
+    await saved;
+    await done;
+    expect(d.conflictOf(s.p.file)).not.toBeNull();
+    expect(lastToast()).toBe("discussion-approve-conflict-first");
+    expect(calls).toHaveLength(0);
+    expect(d.approving(s.p.file)).toBe(false);
+  });
+
+  it("a click that also blurs the conclusion field approves after that field's save, with the saved version", async () => {
+    const order: string[] = [];
+    const save = deferred<unknown>();
+    let approved: Record<string, unknown> | null = null;
+    const s = setup({
+      wf: { protocol: { notes: "", concl: "", steps: [], state: "draft", version: 4 } },
+      routes: {
+        "/cases/NO-010/protocol": async () => {
+          order.push("save");
+          await save.promise;
+          return ok({ version: 5 });
+        },
+        "/cases/NO-010/decisions": (_u: string, init: RequestInit) => {
+          order.push("approve");
+          approved = reply(init);
+          return ok();
+        },
+      },
+    });
+    const d = useDiscussionStore();
+    d.setText(s.p.file, "concl", "Kontrolní MR mozku za 3 měsíce.");
+    // The blur's save starts first (focusout), then the click's approval.
+    void d.flush(s.p.file);
+    const done = d.approve(s.p.file, doctor);
+    await flushPromises();
+    expect(order).toEqual(["save"]);
+    expect(d.approving(s.p.file)).toBe(true);
+    save.resolve(null);
+    await done;
+    expect(order).toEqual(["save", "approve"]);
+    expect(approved).toMatchObject({ protocol_version: 5, conclusion: "Kontrolní MR mozku za 3 měsíce." });
   });
 
   it("a definite refusal drops the idempotency key, so the next approval is a new request", async () => {
