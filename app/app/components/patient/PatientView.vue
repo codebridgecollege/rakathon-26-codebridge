@@ -111,7 +111,7 @@ function retry() {
         <div class="head" style="margin:0"><h2>{{ $t("patient-brief-title") }}</h2><span class="row"><AlertSignal /></span></div>
         <div class="question missing" role="alert"><b>{{ $t("patient-load-failed") }}</b> {{ c.entry.value.error?.message_cs ?? (c.entry.value.error?.message_id ? $t(c.entry.value.error.message_id) : "") }}</div>
         <p>
-          <template v-if="c.entry.value.error?.code === 'not_member' && c.isDoctor.value"><button class="btn primary" @click="openBreakGlass">{{ $t("patient-bg-title") }}</button> </template>
+          <template v-if="c.entry.value.error?.code === 'not_member' && c.isDoctor.value"><button class="btn primary" @click="openBreakGlass">{{ $t("patient-bg-title") }}</button>{{ " " }}</template>
           <button class="btn" @click="retry">{{ $t("patient-retry") }}</button>
         </p>
         <p class="prose" lang="cs">{{ c.p.value.summary || "" }}</p>

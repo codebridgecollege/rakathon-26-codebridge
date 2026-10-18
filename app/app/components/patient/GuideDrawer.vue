@@ -21,7 +21,7 @@ const st = computed<Item>(() => anyStmt(props.o.id) || {});
 const g = computed(() => GL(st.value.guideline_id));
 const lang = computed(() => quoteLang(g.value));
 const page = computed(() => ((G.value.pages || []) as Item[]).find((x) => x.guideline_id === st.value.guideline_id && x.pdf_page === st.value.pdf_page));
-const marked = computed(() => (page.value ? markQuote(String(page.value.text), st.value.quote) : null));
+const marked = computed(() => (page.value?.text != null ? markQuote(String(page.value.text), st.value.quote) : null));
 const pdfHref = computed(() => {
   const u = String(g.value.pdf_url || "");
   return st.value.pdf_page && /\.pdf($|\?)/i.test(u) ? `${u}#page=${st.value.pdf_page}` : u;
@@ -43,7 +43,7 @@ onMounted(() => void nextTick(() => hit.value?.scrollIntoView?.({ block: "center
       </div>
       <button class="btn small" @click="overlay.close()">{{ $t("patient-guide-drawer-close") }}</button>
     </header>
-    <div class="pages"><a v-if="g.pdf_url" class="btn small" :href="pdfHref" target="_blank" rel="noopener">{{ st.pdf_page ? $t("patient-guide-drawer-open-pdf-page", { page: String(st.pdf_page) }) : $t("patient-guide-drawer-open-pdf") }}</a><template v-if="g.url"> <a class="btn small" :href="g.url" target="_blank" rel="noopener">{{ $t("patient-guide-drawer-publisher") }}</a></template></div>
+    <div class="pages"><a v-if="g.pdf_url" class="btn small" :href="pdfHref" target="_blank" rel="noopener">{{ st.pdf_page ? $t("patient-guide-drawer-open-pdf-page", { page: String(st.pdf_page) }) : $t("patient-guide-drawer-open-pdf") }}</a><template v-if="g.url">{{ " " }}<a class="btn small" :href="g.url" target="_blank" rel="noopener">{{ $t("patient-guide-drawer-publisher") }}</a></template></div>
     <div class="synth" style="margin:10px 20px 0;border-style:solid">
       <template v-if="st.evidence">{{ $t("patient-guide-drawer-grade") }} <span :lang="lang">{{ st.evidence }}</span><br></template>
       <template v-if="st.relation_cs">{{ $t("patient-guide-drawer-relation") }} <span lang="cs">{{ st.relation_cs }}</span><template v-if="st.edition"><br>{{ $t("patient-guide-drawer-edition", { year: String(st.edition.year), range: edRange(st.edition) }) }}</template></template>

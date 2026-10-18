@@ -292,7 +292,7 @@ describe("overview cards", () => {
   it("shows the stage at diagnosis with its date and the OCR doubt, and the compact lines with pins", () => {
     const w = mountInCase(OncoCard, setupPatient({ extraction: fullCase() }));
     expect(w.get(".dxh").text()).toContain("Světlobuněčný karcinom, G2, pT2a pN1 M0");
-    expect(w.get(".dxh").text()).toContain("(pTNM při diagnóze, 6/2022)");
+    expect(w.get(".dxh").text()).toContain("pT2a pN1 M0✎ (pTNM při diagnóze, 6/2022)");
     expect(w.get(".dxh .mk.ocr").attributes("title")).toBe("Ověřit čtení: V OCR „MO“.");
     expect(w.findAll(".orow .dt").map((d) => d.text())).toEqual(["2. 6. 2022", ""]);
     expect(w.findAll(".lpin").map((p) => p.attributes("aria-label"))).toEqual(["Chirurgie a výkony", "Klinický stav a ostatní, plánováno"]);

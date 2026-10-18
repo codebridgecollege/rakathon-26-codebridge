@@ -24,6 +24,8 @@ export type T = (id: string, args?: Record<string, string | number>) => string;
 export function fmtDate(t: T, iso: string | null | undefined): string {
   if (!iso) return t("patient-gap-not-stated");
   const [y, m, d] = iso.split("-");
+  // A month without a day stays a month ("3/2024"), never a made-up day (CLAUDE.md).
+  if (!d) return m ? `${Number(m)}/${y}` : String(y);
   return t("patient-date-dmy", { d: Number(d), m: Number(m), y: String(y) });
 }
 

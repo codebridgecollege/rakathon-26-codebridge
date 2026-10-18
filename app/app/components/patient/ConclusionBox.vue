@@ -56,7 +56,8 @@ const fillIdent = (html: string | undefined) => String(html || "").replace(/<p c
         </ul>
       </details>
     </template>
-    <p v-else-if="!draftable" class="muted" style="font-size:14px">{{ $t("patient-concl-none") }}</p>
+    <!-- Until the discussion card fills the draft slot, a doctor sees the same "not discussed" line as everyone. -->
+    <p v-else-if="!draftable || !$slots.draft" class="muted" style="font-size:14px">{{ $t("patient-concl-none") }}</p>
     <template v-if="closed">
       <p v-if="proto.state !== 'approved' && String(proto.concl ?? '').trim()" class="muted small" style="margin:6px 0 0">{{ $t("patient-concl-unapproved") }} <span lang="cs">{{ proto.concl }}</span></p>
       <p class="small closedmsg" style="margin:6px 0 0">{{ $t("patient-concl-closed") }}</p>

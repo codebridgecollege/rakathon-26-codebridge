@@ -21,7 +21,7 @@ const links = computed(() => {
 </script>
 
 <template>
-  <template v-for="(l, i) in links" :key="i"><template v-if="i"> </template><button
+  <template v-for="(l, i) in links" :key="i"><template v-if="i">{{ " " }}</template><button
     class="linkbtn small"
     data-src
     :title="$t('patient-src-quote', { quote: l.q })"

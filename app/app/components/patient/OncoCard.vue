@@ -60,7 +60,7 @@ const sources = computed(() => {
     <div class="head"><h2>{{ $t("patient-onco-title") }} <button class="info" :title="$t('patient-onco-pin-help')" :aria-label="$t('patient-onco-pin-help')">i</button></h2></div>
     <div class="ocbody" tabindex="0" role="region" :aria-label="$t('patient-onco-region')">
       <template v-if="d">
-        <p class="dxh"><SrcWrap :r="first(d)"><Ed k="dx" :orig="dxBase" /></SrcWrap><template v-if="d.histology_date_cs"> <span class="muted" style="font-size:13px;font-weight:600" :title="d.tnm_context_cs || ''">{{ $t("patient-onco-ptnm", { month: dxMonth }) }}</span></template><Marks :f="d" /></p>
+        <p class="dxh"><SrcWrap :r="first(d)"><Ed k="dx" :orig="dxBase" /></SrcWrap><template v-if="d.histology_date_cs">{{ " " }}<span class="muted" style="font-size:13px;font-weight:600" :title="d.tnm_context_cs || ''">{{ $t("patient-onco-ptnm", { month: dxMonth }) }}</span></template><Marks :f="d" /></p>
         <p class="dxs" lang="cs">{{ d.mkn_cs || "" }}</p>
       </template>
       <template v-if="compact">
