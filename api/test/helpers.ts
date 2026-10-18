@@ -22,8 +22,11 @@ export function testEnv(over: Record<string, unknown> = {}): Env {
     AUTH_MODE: "demo",
     DATA_API: "on",
     CLINICAL_ACCESS: "all_roles",
-    ACCESS_TEAM_DOMAIN: "",
-    ACCESS_AUD: "",
+    // The login is off unless a test turns it on (test/oidc.test.ts); a developer's .dev.vars never reaches a test.
+    OIDC_ISSUER: "",
+    OIDC_CLIENT_ID: "",
+    OIDC_CLIENT_SECRET: "",
+    SESSION_KEY: "",
     AZURE_OPENAI_BASE: "https://apim-rakathon-q7146n.azure-api.net/openai/v1",
     AZURE_OPENAI_MODEL: "gpt-6-luna-dz-eu",
     ELEVENLABS_API_BASE: "https://api.elevenlabs.io",

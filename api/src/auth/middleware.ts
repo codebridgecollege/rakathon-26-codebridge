@@ -1,37 +1,32 @@
 import type { MiddlewareHandler } from "hono";
+import { getCookie } from "hono/cookie";
 import type { AppEnv } from "../types";
 import { E } from "../http/errors";
-import { isKeySetUnavailable, verifyAccessJwt } from "./access";
+import { SESSION_COOKIE, sessionLive, sessionOf, touchSession } from "./session";
 
 export const auth = (): MiddlewareHandler<AppEnv> => async (c, next) => {
   const mode = c.env.AUTH_MODE;
   if (mode === "demo") {
     // Demo mode trusts no client claim: there is no login, and the UI says roles are a stand-in.
-    c.set("user", { mode: "demo", email: null, sub: null });
+    c.set("user", { mode: "demo" });
     return next();
   }
-  if (mode === "access") {
-    // Fail closed: a half-configured Access check must not let requests through.
-    if (!c.env.ACCESS_TEAM_DOMAIN?.startsWith("https://") || !c.env.ACCESS_AUD) throw E.misconfigured();
-    // Header only, not the CF_Authorization cookie: Access always adds the header on requests it lets through.
-    const token = c.req.header("cf-access-jwt-assertion");
-    if (!token) throw E.unauthenticated();
-    let p;
-    try {
-      p = await verifyAccessJwt(token, c.env.ACCESS_TEAM_DOMAIN, c.env.ACCESS_AUD);
-    } catch (e) {
-      if (isKeySetUnavailable(e)) {
-        console.log(JSON.stringify({ route: c.req.path, auth: "jwks_unavailable" }));
-        throw E.upstreamBusy();
-      }
-      // The reason (expired, wrong aud, bad signature) is not echoed to the caller.
-      throw E.unauthenticated();
-    }
-    // Access service tokens carry no email; they are not users of this app, so they are refused too.
-    if (typeof p.email !== "string" || typeof p.sub !== "string" || !p.sub) throw E.unauthenticated();
-    const email = p.email.toLowerCase();
-    const sub = p.sub;
-    c.set("user", { mode: "access", email, sub });
+  if (mode === "oidc") {
+    // The session cookie is the only credential; a header cannot name another person or org.
+    const s = await sessionOf(c.env.DB, getCookie(c, SESSION_COOKIE));
+    // A missing, unknown, expired or idle session reads the same to the caller: log in again. The row stays for the
+    // sweep (auth/session.ts, sweepSessions).
+    if (!s || !sessionLive(s)) throw E.unauthenticated();
+    await touchSession(c.env.DB, s);
+    c.set("user", {
+      mode: "oidc",
+      userId: s.user_id,
+      org: s.org_id,
+      membershipId: s.membership_id,
+      actingMembershipId: s.acting_membership_id,
+      isDemoOrg: s.is_demo === 1,
+      sessionHash: s.id_hash,
+    });
     return next();
   }
   // An unknown mode never falls back to open.

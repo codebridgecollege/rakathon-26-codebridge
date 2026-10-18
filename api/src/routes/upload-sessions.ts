@@ -143,7 +143,7 @@ async function actAsCreator(c: Context<AppEnv>, s: SessionRow): Promise<string |
     name: staffName(row),
     role: row.role_id,
     dept: await stores.dir.firstDeptOf(row.id),
-    authMode: c.env.AUTH_MODE === "access" ? "access" : "demo",
+    authMode: c.env.AUTH_MODE === "oidc" ? "oidc" : "demo",
     impersonating: false,
     org: s.org_id,
     membershipId: row.membership_id,

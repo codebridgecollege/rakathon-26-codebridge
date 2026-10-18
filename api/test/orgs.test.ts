@@ -381,6 +381,9 @@ describe("every route, acting in org B with org A's IDs", () => {
       "GET /upload-sessions/current", "POST /upload-sessions/current/files",
       // No org data: the speech-to-text token and diarization, the summary of text the page sends.
       "POST /token", "POST /diarize", "POST /",
+      // The login and the session switches (OIDC mode); test/oidc.test.ts refuses a switch into another org or to
+      // another org's membership.
+      "GET /login", "GET /callback", "POST /logout", "POST /session/org", "POST /session/role",
     ]);
     const norm = (p: string) =>
       p

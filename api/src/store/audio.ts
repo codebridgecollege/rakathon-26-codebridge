@@ -29,7 +29,7 @@ export const audioKey = (org: string, caseId: string, uploadId: string) => orgKe
 // The person an automatic step acts for in the access log: the doctor who approved (Workflow) or who recorded (cron),
 // with their membership in the org the step works in. The log's role column needs a real role, so the row names a
 // person, and the line says it was the AI recording.
-export async function actorFor(db: D1Database, org: string, userId: string, authMode: "demo" | "access"): Promise<Viewer> {
+export async function actorFor(db: D1Database, org: string, userId: string, authMode: "demo" | "oidc"): Promise<Viewer> {
   const u = await orgStmt(
     db,
     org,
@@ -40,7 +40,7 @@ export async function actorFor(db: D1Database, org: string, userId: string, auth
   return { id: userId, name: u ? staffName(u) : userId, role, dept: null, authMode, impersonating: false, org, membershipId: u?.membership_id ?? userId };
 }
 
-const authModeOf = (env: Env): "demo" | "access" => (env.AUTH_MODE === "access" ? "access" : "demo");
+const authModeOf = (env: Env): "demo" | "oidc" => (env.AUTH_MODE === "oidc" ? "oidc" : "demo");
 
 // Removes the R2 side of one upload. An open multipart upload is aborted; a completed object is deleted. Both are
 // retried by the caller (Workflow step, cron) when they throw; a missing object or upload counts as gone.

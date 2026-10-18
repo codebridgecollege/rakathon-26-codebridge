@@ -313,6 +313,7 @@ admin-reset-what = Resets cases, conclusions, tasks, attendance, staff and the a
 admin-reset-done = Data reset; the page will reload.
 admin-col-time = Time
 admin-col-user = User
+admin-log-acting-as = { $who } (as { $as })
 admin-col-case = Case
 admin-col-action = Action
 admin-log-empty = No access yet.

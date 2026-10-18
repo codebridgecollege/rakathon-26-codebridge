@@ -13,7 +13,8 @@ import { useSessionStore } from "../../stores/session";
 import { useWorkflowStore } from "../../stores/workflow";
 import ResetDemoDialog from "./ResetDemoDialog.vue";
 
-type LogEntry = { at: string; who: string; case_id: string | null; what: string };
+// acted_as: after a role switch in a demo org, the person acted as; who stays the person logged in.
+type LogEntry = { at: string; who: string; acted_as?: string | null; case_id: string | null; what: string };
 
 const { $t } = useFluent();
 const me = useCurrentUser();
@@ -68,7 +69,7 @@ const caseIdOf = (file: string) => patients.byFile(file)?.id ?? file;
             <tr v-if="log === null || loading"><td colspan="4" class="muted" role="status">{{ $t("app-loading") }}</td></tr>
             <tr v-else-if="failed || !log.length"><td colspan="4" class="muted">{{ $t("admin-log-empty") }}</td></tr>
             <template v-else>
-              <tr v-for="(a, i) in log" :key="i"><td class="num">{{ text.dateTime(a.at) }}</td><td>{{ a.who }}</td><td class="id">{{ a.case_id || "-" }}</td><td>{{ a.what }}</td></tr>
+              <tr v-for="(a, i) in log" :key="i"><td class="num">{{ text.dateTime(a.at) }}</td><td>{{ a.acted_as ? $t("admin-log-acting-as", { who: a.who, as: a.acted_as }) : a.who }}</td><td class="id">{{ a.case_id || "-" }}</td><td>{{ a.what }}</td></tr>
             </template>
           </tbody>
         </table>

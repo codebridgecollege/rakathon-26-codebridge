@@ -51,7 +51,7 @@ async function jobOf(env: Env, p: SpeakerPassParams): Promise<JobRow> {
 
 async function actor(env: Env, p: SpeakerPassParams) {
   const j = await jobOf(env, p);
-  return actorFor(env.DB, p.org, j.created_by, env.AUTH_MODE === "access" ? "access" : "demo");
+  return actorFor(env.DB, p.org, j.created_by, env.AUTH_MODE === "oidc" ? "oidc" : "demo");
 }
 
 const phase = (env: Env, p: SpeakerPassParams, ph: string) =>

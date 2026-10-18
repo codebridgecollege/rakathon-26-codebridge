@@ -185,7 +185,7 @@ export class ProcessDocumentWorkflow extends WorkflowEntrypoint<Env, ProcessDocu
     const db = env.DB;
     const run = await runOf(env, p.org, p.runId);
     if (run.state === "done") return;
-    const who = await actorFor(db, p.org, run.created_by, env.AUTH_MODE === "access" ? "access" : "demo");
+    const who = await actorFor(db, p.org, run.created_by, env.AUTH_MODE === "oidc" ? "oidc" : "demo");
     const doc = await orgStmt(db, p.org, "SELECT state, origin, (SELECT COUNT(*) FROM pages WHERE org_id = ?org AND document_id = ?1) AS pages FROM documents WHERE org_id = ?org AND id = ?1", p.docId).first<{ state: string | null; origin: string; pages: number }>();
     const stmts: D1PreparedStatement[] = [
       orgStmt(db, p.org, "UPDATE pipeline_runs SET state = 'done', stage = NULL, stages_json = ?1, finished_at = ?2, updated_at = ?2 WHERE org_id = ?org AND id = ?3", JSON.stringify(stages), iso(), p.runId),
@@ -222,7 +222,7 @@ export class ProcessDocumentWorkflow extends WorkflowEntrypoint<Env, ProcessDocu
     const env = this.env;
     const db = env.DB;
     const run = await orgStmt(db, p.org, "SELECT created_by FROM pipeline_runs WHERE org_id = ?org AND id = ?1", p.runId).first<{ created_by: string }>();
-    const who = await actorFor(db, p.org, run?.created_by ?? "system", env.AUTH_MODE === "access" ? "access" : "demo");
+    const who = await actorFor(db, p.org, run?.created_by ?? "system", env.AUTH_MODE === "oidc" ? "oidc" : "demo");
     await db.batch([
       orgStmt(db, p.org, "UPDATE pipeline_runs SET state = 'error', error_code = ?1, finished_at = ?2, updated_at = ?2 WHERE org_id = ?org AND id = ?3", code, iso(), p.runId),
       orgStmt(db, p.org, "UPDATE documents SET state = 'failed', state_detail_cs = ?1 WHERE org_id = ?org AND id = ?2 AND origin = 'upload' AND state <> 'prepared'", pipelineErrorCs(code), p.docId),

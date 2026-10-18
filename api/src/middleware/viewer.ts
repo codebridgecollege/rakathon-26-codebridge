@@ -4,7 +4,7 @@ import type { AppEnv } from "../types";
 import type { Viewer } from "@codebridge/domain/access";
 import { E } from "../http/errors";
 import { makeStores } from "../store";
-import { actsInApp, activeMembershipsOfEmail, demoMembership, type MemberRow } from "../store/people";
+import { actsInApp, demoMembership, membershipById, type MemberRow } from "../store/people";
 import { staffName } from "../domain/rows";
 
 // The demo opens as the first doctor of "Klinická onkologie" in demo org A (the demo case is an oncology patient).
@@ -37,16 +37,34 @@ export const viewer = (): MiddlewareHandler<AppEnv> => async (c, next) => {
   // The data routes need both bindings and the switch; without them the routes answer "not configured".
   if (c.env.DATA_API !== "on" || !c.env.DB || !c.env.DOCS) throw E.notConfigured();
   const user = c.get("user");
-  let m: MemberRow | null;
-  if (user.mode === "demo") m = await demoMembership(c.env.DB, demoUserOf(c));
-  // Access mode: the verified e-mail picks the person; a client header cannot change who you are. A person in several
-  // orgs acts in the first one until the login of step 3 lets them choose (AUTH.md).
-  else m = (await activeMembershipsOfEmail(c.env.DB, user.email))[0] ?? null;
-  // Role "staff" is a directory entry for attendance, not a user of the app; an ended membership acts nowhere.
-  if (!actsInApp(m)) throw E.unknownUser();
-  const stores = makeStores(c.env, m.org_id);
-  c.set("stores", stores);
-  c.set("viewer", await viewerOf(stores, m, user.mode));
+  if (user.mode === "demo") {
+    const m = await demoMembership(c.env.DB, demoUserOf(c));
+    // Role "staff" is a directory entry for attendance, not a user of the app; an ended membership acts nowhere.
+    if (!actsInApp(m)) throw E.unknownUser();
+    const stores = makeStores(c.env, m.org_id);
+    c.set("stores", stores);
+    c.set("viewer", await viewerOf(stores, m, "demo"));
+  } else {
+    // OIDC: the session names the org and the person's own membership there. A membership ended in the app counts at
+    // the next request, so it is read again every time.
+    const own = await membershipById(c.env.DB, user.membershipId);
+    if (!actsInApp(own) || own.user_id !== user.userId || own.org_id !== user.org) throw E.unknownUser();
+    let m: MemberRow & { role_id: Viewer["role"] } = own;
+    if (user.actingMembershipId && user.actingMembershipId !== own.id) {
+      // A role switch holds only in a demo org and only for a membership of that same org that can still act.
+      const a = await membershipById(c.env.DB, user.actingMembershipId);
+      if (!user.isDemoOrg || !actsInApp(a) || a.org_id !== user.org) throw E.unknownUser();
+      m = a;
+    }
+    const stores = makeStores(c.env, m.org_id);
+    const v = await viewerOf(stores, m, "oidc");
+    if (m !== own) {
+      v.impersonating = true;
+      v.actor = { id: own.user_id, name: staffName(own) };
+    }
+    c.set("stores", stores);
+    c.set("viewer", v);
+  }
   c.set("breakGlass", null);
   return next();
 };

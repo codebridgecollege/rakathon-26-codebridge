@@ -5,9 +5,9 @@ import { E } from "./errors";
 // Limits are per Cloudflare location and approximate; they cap abuse and cost, they are not a security control.
 const keyOf = (c: Context<AppEnv>) => {
   const u = c.get("user");
-  // Access mode limits per person; demo mode has no identity, so the client IP is the best key available.
-  // sub rather than email, so no e-mail address sits in the limiter's keys.
-  return u.mode === "access" ? `u:${u.sub}` : `ip:${c.req.header("cf-connecting-ip") ?? "unknown"}`;
+  // A login limits per person; demo mode has no identity, so the client IP is the best key available.
+  // The person's id rather than the e-mail, so no e-mail address sits in the limiter's keys.
+  return u.mode === "oidc" ? `u:${u.userId}` : `ip:${c.req.header("cf-connecting-ip") ?? "unknown"}`;
 };
 
 // The same check inside a route, after the cheap refusals (role, case state) have run.

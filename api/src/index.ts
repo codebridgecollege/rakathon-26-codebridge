@@ -23,6 +23,8 @@ import { intake } from "./routes/intake";
 import { pipeline } from "./routes/pipeline";
 import { phoneUpload, uploadSessions } from "./routes/upload-sessions";
 import { sweep } from "./scheduled";
+import { authRoutes } from "./routes/auth";
+import { session } from "./routes/session";
 
 export { SpeakerPassWorkflow } from "./workflows/speaker-pass";
 export { ProcessDocumentWorkflow } from "./workflows/process-document";
@@ -36,7 +38,8 @@ const DATA_PATHS = [
   "/upload-sessions/*", "/demo/*",
 ];
 
-// Static files (the built mock) are served by the assets binding before this code runs; only /api/* reaches it.
+// Static files (the built app) are served by the assets binding before this code runs; only /api/* and /auth/* reach it
+// (wrangler.jsonc, run_worker_first).
 const app = new Hono<AppEnv>().basePath("/api");
 // Nothing under /api may be cached by the browser or an intermediary: answers can carry case text.
 app.use("*", async (c, next) => {
@@ -53,6 +56,8 @@ app.route("/health", health); // public: no data, tells the page which features 
 app.route("/", phoneUpload);
 app.use("*", auth()); // everything below needs a user (demo: anonymous demo user)
 app.use("*", sameOrigin()); // non-GET from another origin is refused (CSRF and quota abuse)
+// The org and role switches of a login session (OIDC mode); they act on the session, not on case data.
+app.route("/", session);
 app.route("/summarize", summarize);
 app.route("/stt", stt);
 for (const p of DATA_PATHS) app.use(p, viewer());
@@ -75,8 +80,13 @@ app.route("/", uploadSessions);
 app.notFound(notFound);
 app.onError(onError);
 
-// fetch serves the page and the API; scheduled runs the audio sweep (step 5).
+// The login (docs/design/AUTH.md): redirects and a few fixed pages, no JSON data, so it sits apart from /api.
+const login = new Hono<AppEnv>().basePath("/auth").route("/", authRoutes);
+login.notFound(notFound);
+login.onError(onError);
+
+// fetch serves the login and the API; scheduled runs the sweeps (audio, step 5; expired sessions).
 export default {
-  fetch: (req: Request, env: Env, ctx: ExecutionContext) => app.fetch(req, env, ctx),
+  fetch: (req: Request, env: Env, ctx: ExecutionContext) => (new URL(req.url).pathname.startsWith("/auth/") ? login : app).fetch(req, env, ctx),
   scheduled: (_ev: ScheduledController, env: Env, ctx: ExecutionContext) => ctx.waitUntil(sweep(env).then(() => undefined)),
 } satisfies ExportedHandler<Env>;

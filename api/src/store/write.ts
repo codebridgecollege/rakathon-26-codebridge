@@ -149,8 +149,9 @@ export function auditStatement(
     `INSERT INTO access_log (org_id, actor_user_id, actor_name, acted_as_role, acted_as_membership, impersonating, auth_mode, case_id, action, what_cs,
        target_type, target_id, break_glass_reason, request_id, data_epoch, at)
      VALUES (?org, ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, strftime('%Y-%m-%dT%H:%M:%fZ','now'))`,
-    v.id,
-    v.name,
+    // The real person, also after a role switch; the membership acted as is the next columns.
+    v.actor?.id ?? v.id,
+    v.actor?.name ?? v.name,
     v.role,
     v.membershipId,
     v.impersonating ? 1 : 0,

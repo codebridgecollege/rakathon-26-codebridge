@@ -71,4 +71,6 @@ export const meOrg = (membership: string) => ({
   memberships: [],
   org: { id: "org-a", name: "Ukázková nemocnice A", short_name: "A", is_demo: true },
   data_epoch: null,
+  real_user: null,
+  role_switch: null,
 });
