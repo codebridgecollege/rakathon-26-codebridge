@@ -41,10 +41,10 @@ DOM-only test suite.
   column widths, week, picked patient, task scope) is in `stores/listView.ts`; attendance rows not yet stored are in
   `stores/attendance.ts`. Writes go through `composables/useWrite.ts`. A case opens at `lib/lists.ts` `caseRoute()`
   (`/patient/<n>/overview`), the one place to change when the patient screens land. Text is in `i18n/cs/lists.ftl`.
-- **Development harness.** `pages/dev-*.vue` open parts of screens outside the screens that will hold them
-  (`#/dev-intake`: a stand-in patient table with "+ Nový pacient", the upload panel of NO-S01 and the phone dialog).
-  `nuxt.config.ts` leaves them out unless `APP_DEV_PAGES=1` (also for `nuxt dev`). The e2e harness specs
-  (`e2e/harness/`) drive them.
+- **Development pages.** `nuxt.config.ts` leaves pages named `pages/dev-*.vue` out of every build unless
+  `APP_DEV_PAGES=1`, for parts of a screen checked before the screen holding them is ported. None exist now: the intake
+  harness (`#/dev-intake`) went once "Projednání na MDT" was ported, and its extra checks became
+  `e2e/specs/intake-details.spec.ts`.
 - **CSS** is today's page CSS, copied unchanged into `app/assets/v3.css` by `scripts/sync-css.mjs`; a test fails when
   the template's CSS changed and the copy did not. Do not edit `v3.css` by hand.
 
@@ -72,12 +72,11 @@ npm run dev:app                          # STAGE_APP=1: builds the app into .ass
 # http://localhost:8787/app/  the new shell; /app/?dev=1 shows the patient count read from the server
 ```
 
-The end-to-end suite against the app (`e2e/README.md`); the base URL needs its trailing slash. With the harness pages:
+The end-to-end suite against the app (`e2e/README.md`); the base URL needs its trailing slash:
 
 ```
-cd api && STAGE_APP=1 APP_DEV_PAGES=1 npm run stage && npx wrangler dev   # the app at /app/ with #/dev-intake
-E2E_BASE_URL=http://localhost:8787/app/ npm --prefix e2e test                              # the screen specs
-E2E_APP_HARNESS=1 E2E_BASE_URL=http://localhost:8787/app/ npm --prefix e2e test -- --project app-harness
+cd api && STAGE_APP=1 npm run stage && npx wrangler dev   # the app at /app/, today's page at /
+E2E_BASE_URL=http://localhost:8787/app/ npm --prefix e2e test
 ```
 
 `npm run dev` and CI's `npm run stage` stage today's page only, so deploys do not include the app until the team

@@ -32,10 +32,5 @@ export default defineConfig({
   },
   projects: [
     { name: "chromium", use: { ...devices["Desktop Chrome"], viewport: { width: 1440, height: 900 } } },
-    // The new app's development harness (app/app/pages/dev-intake.vue, built only with APP_DEV_PAGES=1): parts of a
-    // screen checked before the screen that holds them is ported. Only with E2E_APP_HARNESS=1.
-    ...(process.env.E2E_APP_HARNESS === "1"
-      ? [{ name: "app-harness", testDir: "./harness", use: { ...devices["Desktop Chrome"], viewport: { width: 1440, height: 900 } } }]
-      : []),
   ],
 });

@@ -36,8 +36,8 @@ export default defineNuxtConfig({
     options: { hashMode: true },
   },
   hooks: {
-    // Development harness pages (pages/dev-*.vue) open screens' parts outside the screens that hold them, for the e2e
-    // harness specs. They are left out unless APP_DEV_PAGES=1, also under `nuxt dev`, so a stray NODE_ENV cannot ship them.
+    // Development pages (pages/dev-*.vue) open parts of a screen before the screen that holds them is ported. They are
+    // left out unless APP_DEV_PAGES=1, also under `nuxt dev`, so a stray NODE_ENV cannot ship them.
     "pages:extend"(pages) {
       if (process.env.APP_DEV_PAGES === "1") return;
       for (let i = pages.length - 1; i >= 0; i--) if (pages[i]!.path.startsWith("/dev-")) pages.splice(i, 1);

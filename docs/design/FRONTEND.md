@@ -366,8 +366,9 @@ it: [`app/README.md`](../../app/README.md). Where it differs from the old page:
 - **A user switch** also closes a phone upload session for a case and drops the upload lists read under the previous
   user (the old page kept both).
 - **The patient view is not ported yet**, so a finished intake goes to `#/patient/<id>`, which has no route on this
-  branch; the specs that open the new patient pass only with the patient screens. The development harness
-  (`#/dev-intake`, never in a production build) and `e2e/harness/` check the rest.
+  branch; the specs that open the new patient pass only with the patient screens. A development harness
+  checked the rest until the patient screens landed; it is gone, and its extra checks are
+  `e2e/specs/intake-details.spec.ts`.
 
 ## As implemented (steps 3, 4 and part of 12)
 
@@ -409,12 +410,9 @@ today's page. Where it differs from the old page or the plan:
   its tooltip (TK/P, document dates, an unknown page count).
 - **Accessibility, nothing visible:** the source viewer's tabs set `aria-selected`; alerts are a list of list items;
   the edit dialog's text field has a name; toasts have a status role.
-- **Left for the screens that port next,** each marked `PORT(#13)` in the code: the discussion card "Projednání na
-  MDT" and the conclusion draft with autosave (step 8), the session bar (step 9), the report dialog (step 12; the
-  header's "Stáhnout report (PDF)" opens nothing until then), the "Možná jiný pacient" banner for uploaded documents,
-  and stopping the recorder when a case is closed.
-- **Zahájit MDT** from the case header opens the lists' start dialog, which starts the session on the day's first
-  case, not on the case it was opened from as the old page did.
+- **Ported later** (steps 8, 9 and the rest of 12, below): the discussion card and the conclusion draft, the session
+  bar, the report dialog, the "Možná jiný pacient" banner and stopping the recorder when a case is closed. "Zahájit
+  MDT" from the case header now starts the session on that case, as the old page did.
 - **Retrospective assessments** stay empty as on the old page (it never filled `S.retro`); `prior_assessments` from
   the guidance reply is not shown yet.
 
