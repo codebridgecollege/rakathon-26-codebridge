@@ -42,19 +42,22 @@ DB_NAME = "codebridge-mdt"
 BUCKET = "codebridge-mdt"
 MAX_STATEMENT = 90_000  # D1 refuses SQL statements over 100 KB; keep a margin.
 
-# Tables in dependency order (parents first). DELETE runs in the reverse order.
+# Tables in dependency order (parents first). --reset deletes them in the reverse order. orgs, demo_state, users and
+# user_identities are not in it: orgs and people are upserted, never deleted (AUTH.md, "Demo reset is per org"), and
+# each org keeps its data epoch across a reseed.
 TABLES = [
-    "roles", "departments", "users", "dept_members", "patients", "cases", "case_members", "status_history",
+    "roles", "memberships", "departments", "dept_members", "patients", "cases", "case_members", "status_history",
     "slots", "sessions", "attendance", "protocols", "decisions", "task_suggestions", "tasks",
     "question_confirmations", "fact_edits", "edit_log", "extraction_runs", "alerts", "alert_events",
     "documents", "document_parts", "pages", "fixture_files", "fixture_patients", "recordings", "jobs", "transcript_passes",
     "transcript_lines", "transcript_summaries", "audio_uploads", "audio_parts", "audio_segments", "access_log", "seed_meta", "attendance_sets", "notifications", "case_access_grants", "idempotency_keys",
-    "write_guards",
+    "write_guards", "auth_sessions",
 ]
-# What the app writes (step 4). POST /api/admin/reset-demo empties these and reinserts their seed rows from the
-# R2 object seed/reset.json, which this script writes; the other tables change only through this script.
+# What the app writes (step 4). POST /api/admin/reset-demo empties these in one org and reinserts that org's seed rows
+# from the R2 object seed/reset.json, which this script writes (a section per demo org); the other tables change only
+# through this script. users and memberships are upserted there, never deleted.
 MUTABLE = [
-    "users", "departments", "dept_members", "cases", "case_members", "status_history", "slots", "sessions",
+    "users", "memberships", "departments", "dept_members", "cases", "case_members", "status_history", "slots", "sessions",
     "attendance", "attendance_sets", "protocols", "decisions", "task_suggestions", "tasks", "question_confirmations",
     "fact_edits", "edit_log", "alert_events", "notifications", "case_access_grants", "idempotency_keys", "write_guards",
     "recordings", "jobs", "transcript_passes", "transcript_lines", "transcript_summaries", "audio_uploads", "audio_parts",
@@ -96,6 +99,33 @@ STAFF_DEPTS = [
 ]
 COORD = {"id": "coord", "pre": "Bc.", "sur": "Marková", "post": "", "fn": "koordinátorka MDT", "role": "coordinator"}
 ADMIN = {"id": "admin", "pre": "Ing.", "sur": "Kovář", "post": "", "fn": "správce systému", "role": "admin"}
+# Demo org B: the same values as DEFAULT_STAFF_B in packages/domain/src/staff-default.ts.
+STAFF_DEPTS_B = [
+    ("Onkologie", ["Vlčková"]),
+    ("Radiologie", ["Zeman"]),
+]
+COORD_B = {"id": "b-coord", "pre": "Bc.", "sur": "Holubová", "post": "", "fn": "koordinátorka MDT", "role": "coordinator"}
+ADMIN_B = {"id": "b-admin", "pre": "Ing.", "sur": "Pospíšil", "post": "", "fn": "správce systému", "role": "admin"}
+
+# Organizations (docs/design/AUTH.md): demo org A holds the hackathon demo, demo org B one synthetic patient (S01). The
+# case ID prefix keeps internal IDs unique across orgs; each org counts its case numbers (case_no) on its own.
+ORG_A, ORG_B = "demo-a", "demo-b"
+ORGS = [
+    {"id": ORG_A, "name": "Ukázková nemocnice A", "short_name": "Nemocnice A", "is_demo": 1, "case_id_prefix": ""},
+    {"id": ORG_B, "name": "Ukázková nemocnice B", "short_name": "Nemocnice B", "is_demo": 1, "case_id_prefix": "B-"},
+]
+# The demo accounts' e-mails (AUTH.md, "Demo accounts"): the first login of step 3 links the IdP account by it.
+EMAILS = {
+    "d2p1": "lekar1.a@codebridge.demo", "d1p1": "lekar2.a@codebridge.demo", "coord": "koordinator.a@codebridge.demo",
+    "admin": "admin.a@codebridge.demo", "b-d1p1": "lekar1.b@codebridge.demo", "b-d2p1": "lekar2.b@codebridge.demo",
+    "b-coord": "koordinator.b@codebridge.demo", "b-admin": "admin.b@codebridge.demo",
+}
+ACTIVE_FROM = "2026-01-01T00:00:00.000Z"
+
+
+def org_key(org: str, rest: str) -> str:
+    """R2 keys of org data live under org/<org id>/ (DATABASE.md, R2 prefixes); guidance/ and fixtures/ stay global."""
+    return f"org/{org}/{rest}"
 
 
 def staff_name(x) -> str:
@@ -103,17 +133,27 @@ def staff_name(x) -> str:
     return base + (f", {x['post'].strip()}" if x["post"].strip() else "")
 
 
-def staff():
+def staff(org=ORG_A, spec=None, prefix="", coord=None, admin=None):
+    """One org's departments, people (users rows are the person), memberships and department members."""
+    spec = STAFF_DEPTS if spec is None else spec
+    coord, admin = coord or COORD, admin or ADMIN
     depts, users, members = [], [], []
-    for i, (name, surs) in enumerate(STAFF_DEPTS):
-        did = f"d{i + 1}"
-        depts.append({"id": did, "name": name, "sort": i})
+    for i, (name, surs) in enumerate(spec):
+        did = f"{prefix}d{i + 1}"
+        depts.append({"id": did, "org_id": org, "name": name, "sort": i})
         for j, sur in enumerate(surs):
             u = {"id": f"{did}p{j + 1}", "pre": "MUDr.", "sur": sur, "post": "", "fn": "", "role": "doctor"}
             users.append(u)
-            members.append({"dept_id": did, "user_id": u["id"], "position": j})
-    users += [COORD, ADMIN]
+            members.append({"org_id": org, "dept_id": did, "user_id": u["id"], "position": j})
+    users += [coord, admin]
     return depts, users, members
+
+
+def person_rows(org, users):
+    """users rows (the person) and memberships rows (role and function in this org; the membership id is the person's)."""
+    people = [{"id": u["id"], "pre": u["pre"], "sur": u["sur"], "post": u["post"], "email": EMAILS.get(u["id"])} for u in users]
+    ms = [{"id": u["id"], "org_id": org, "user_id": u["id"], "role_id": u["role"], "fn": u["fn"], "active_from": ACTIVE_FROM} for u in users]
+    return people, ms
 
 
 # ---------- the patient list: a port of initialPatients() and listPatient() ----------
@@ -366,35 +406,49 @@ def lit(v) -> str:
 ROWS: list[tuple[str, dict]] = []  # every seeded row, for the grouped statements of seed/reset.json
 
 
+# The reset's upserts: people and memberships are restored, never deleted (AUTH.md, "Demo reset is per org"). A
+# membership row is updated only when it belongs to the org being reset.
+CONFLICT = {
+    "users": "ON CONFLICT(id) DO UPDATE SET pre = excluded.pre, sur = excluded.sur, post = excluded.post, email = excluded.email, active = 1",
+    "memberships": "ON CONFLICT(id) DO UPDATE SET role_id = excluded.role_id, fn = excluded.fn, active_until = NULL WHERE memberships.org_id = excluded.org_id",
+}
+
+
+def sql_cols(row: dict) -> dict:
+    """The columns of a row; keys starting with "_" are bookkeeping (the org of a users row) and never reach SQL."""
+    return {k: v for k, v in row.items() if not k.startswith("_")}
+
+
 def insert(table: str, row: dict) -> str:
     ROWS.append((table, row))
-    cols = ", ".join(row)
-    vals = ", ".join(lit(v) for v in row.values())
-    stmt = f"INSERT INTO {table} ({cols}) VALUES ({vals});"
+    cols = ", ".join(sql_cols(row))
+    vals = ", ".join(lit(v) for v in sql_cols(row).values())
+    stmt = f"INSERT INTO {table} ({cols}) VALUES ({vals}){' ' + CONFLICT[table] if table in CONFLICT else ''};"
     if len(stmt.encode()) > MAX_STATEMENT:
         sys.exit(f"seed: statement for {table} is {len(stmt.encode())} bytes, over the D1 limit")
     return stmt
 
 
-def grouped_inserts(tables: list[str]) -> list[str]:
-    """Multi-row INSERTs per table, each under the D1 statement limit, so the reset fits few statements."""
+def grouped_inserts(tables: list[str], org: str) -> list[str]:
+    """One org's multi-row INSERTs per table, each under the D1 statement limit, so the reset fits few statements."""
     out = []
     for t in tables:
-        rows = [r for tt, r in ROWS if tt == t]
+        rows = [sql_cols(r) for tt, r in ROWS if tt == t and (r.get("org_id") or r.get("_org")) == org]
         by_cols: dict[tuple, list[dict]] = {}
         for r in rows:
             by_cols.setdefault(tuple(r), []).append(r)
+        tail = f" {CONFLICT[t]}" if t in CONFLICT else ""
         for cols, rs in by_cols.items():
             head = f"INSERT INTO {t} ({', '.join(cols)}) VALUES "
             chunk: list[str] = []
             for r in rs:
                 v = "(" + ", ".join(lit(x) for x in r.values()) + ")"
-                if chunk and len((head + ", ".join(chunk + [v])).encode()) > MAX_STATEMENT:
-                    out.append(head + ", ".join(chunk))
+                if chunk and len((head + ", ".join(chunk + [v]) + tail).encode()) > MAX_STATEMENT:
+                    out.append(head + ", ".join(chunk) + tail)
                     chunk = []
                 chunk.append(v)
             if chunk:
-                out.append(head + ", ".join(chunk))
+                out.append(head + ", ".join(chunk) + tail)
     return out
 
 
@@ -459,8 +513,9 @@ def main() -> None:
         if (DATA / name).exists():
             hashes[f"fixtures/data/{name}"] = sha256_file(DATA / name)
 
-    # 2. Staff.
+    # 2. Staff of both demo orgs: departments, people and their memberships.
     depts, users, members = staff()
+    depts_b, users_b, members_b = staff(ORG_B, STAFF_DEPTS_B, "b-", COORD_B, ADMIN_B)
     depts_people = [{"people": [u for u in users if u["id"].startswith(d["id"] + "p")]} for d in depts]
 
     # 3. Patients and cases.
@@ -470,9 +525,19 @@ def main() -> None:
     r2: list[dict] = []  # {key, body (bytes) or file (Path), content_type}
 
     sql += [insert("roles", {"id": r, "label_cs": l}) for r, l in (("doctor", "lékař"), ("coordinator", "koordinátor(ka) MDT"), ("admin", "správce systému"), ("staff", "personál pracoviště"))]
-    sql += [insert("departments", d) for d in depts]
-    sql += [insert("users", {k: u[k] for k in ("id", "pre", "sur", "post", "fn")} | {"role_id": u["role"]}) for u in users]
-    sql += [insert("dept_members", m) for m in members]
+    # orgs and their demo state are upserted, never deleted: memberships, data and (from step 3) logins point at them,
+    # and each org keeps counting its data epoch.
+    for o in ORGS:
+        sql.append(f"INSERT INTO orgs (id, name, short_name, is_demo, case_id_prefix) VALUES ({lit(o['id'])}, {lit(o['name'])}, {lit(o['short_name'])},"
+                   f" {o['is_demo']}, {lit(o['case_id_prefix'])}) ON CONFLICT(id) DO UPDATE SET name = excluded.name, short_name = excluded.short_name,"
+                   " is_demo = excluded.is_demo, case_id_prefix = excluded.case_id_prefix;")
+        sql.append(f"INSERT INTO demo_state (org_id, data_epoch) VALUES ({lit(o['id'])}, 1) ON CONFLICT(org_id) DO NOTHING;")
+    for org, us, ds, dms in ((ORG_A, users, depts, members), (ORG_B, users_b, depts_b, members_b)):
+        people, mems = person_rows(org, us)
+        sql += [insert("users", x | {"_org": org}) for x in people]
+        sql += [insert("memberships", m) for m in mems]
+        sql += [insert("departments", d) for d in ds]
+        sql += [insert("dept_members", m) for m in dms]
 
     patients, cases = [], []
     for i, p in enumerate(rows):
@@ -480,7 +545,7 @@ def main() -> None:
         processing = "full" if p.get("full") else "partial" if p["file"] in syn_by_file else "none"
         nn = p.get("nameNote")
         patients.append({
-            "id": pid, "full_name": p["name"], "name_as_written": p.get("nameAsWritten"), "birth_number": p.get("rc"),
+            "id": pid, "org_id": ORG_A, "full_name": p["name"], "name_as_written": p.get("nameAsWritten"), "birth_number": p.get("rc"),
             "birth_as_written": p.get("birth"), "age_as_written": p.get("age"), "insurer": p.get("_insurer"),
             "sex": case["patient"].get("sex") if p.get("full") else None,
             "sex_certainty": case["patient"].get("sex_certainty") if p.get("full") else None,
@@ -490,7 +555,7 @@ def main() -> None:
             "data_origin": "codebridge_synthetic" if p.get("synthetic") else "fno_challenge",
         })
         cases.append({
-            "id": p["id"], "patient_id": pid, "source_file": p["file"], "list_order": i, "status": p["status"],
+            "id": p["id"], "org_id": ORG_A, "case_no": p["id"], "patient_id": pid, "source_file": p["file"], "list_order": i, "status": p["status"],
             "processing_level": processing, "question_text": p.get("question"), "question_explicit": bool(p.get("explicit")),
             "question_purpose": p.get("purpose"), "question_source_json": p.get("_question_source"),
             "question_draft": p.get("draft"), "question_kind": p.get("qkind"), "question_basis_json": p.get("basis"),
@@ -506,10 +571,10 @@ def main() -> None:
 
     # 4. Every department is on every seeded case's team, as in the shared demo where every doctor opens every case.
     for c in cases:
-        sql += [insert("case_members", {"case_id": c["id"], "dept_id": d["id"], "reason": "seed: oddělení MDT"}) for d in depts]
+        sql += [insert("case_members", {"org_id": ORG_A, "case_id": c["id"], "dept_id": d["id"], "reason": "seed: oddělení MDT"}) for d in depts]
     for p in rows:
         if p.get("slot"):
-            sql.append(insert("slots", {"day": p["slot"]["day"], "time": p["slot"]["time"], "case_id": p["id"]}))
+            sql.append(insert("slots", {"org_id": ORG_A, "day": p["slot"]["day"], "time": p["slot"]["time"], "case_id": p["id"]}))
 
     # 5. Documents, their logical parts and pages.
     doc_parts = {case["file"]: (extra.get("documents") or [], extra.get("documents_note_cs"))}
@@ -523,16 +588,16 @@ def main() -> None:
         if not pdf.exists():
             sys.exit(f"seed: missing source PDF for {p['id']}")
         pages = page_index.get(f, {}).get("pages", [])
-        r2.append({"key": f"docs/{p['id']}/{stem}.pdf", "file": pdf, "content_type": "application/pdf"})
+        r2.append({"key": org_key(ORG_A, f"docs/{p['id']}/{stem}.pdf"), "file": pdf, "content_type": "application/pdf"})
         parts, note = doc_parts.get(f, ([], None))
         sql.append(insert("documents", {
-            "id": stem, "case_id": p["id"], "file_name": f, "page_count": len(pages), "original_r2_key": f"docs/{p['id']}/{stem}.pdf",
+            "id": stem, "org_id": ORG_A, "case_id": p["id"], "file_name": f, "page_count": len(pages), "original_r2_key": org_key(ORG_A, f"docs/{p['id']}/{stem}.pdf"),
             "sha256": sha256_file(pdf), "size_bytes": pdf.stat().st_size, "origin": "seed",
             "processing": "processed" if f in doc_parts else "unprocessed", "note_cs": note,
         }))
         for k, d in enumerate(parts):
             sql.append(insert("document_parts", {
-                "document_id": stem, "ordinal": k, "title_cs": d["title_cs"], "type": d.get("type"), "date": d.get("date"),
+                "org_id": ORG_A, "document_id": stem, "ordinal": k, "title_cs": d["title_cs"], "type": d.get("type"), "date": d.get("date"),
                 "date_note_cs": d.get("date_note_cs"), "pages_json": d.get("pages") or [], "readability": d.get("readability"),
                 "reason_cs": d.get("reason_cs"), "upload_name": d.get("upload_name"),
             }))
@@ -543,13 +608,14 @@ def main() -> None:
             body = {"n": n, "size": pg["size"], "text": pg["text"], "engine": pg["engine"], "words": pg["words"],
                     "mean_conf": pg.get("mean_conf"), "low_conf_words": pg.get("low_conf_words"), "verify": pg.get("verify") or [],
                     "redacted": {"count": red["count"], "reasons": red["reasons"]} if red else None}
-            r2.append({"key": f"pages/{stem}/p{n}.json", "body": jdump(body).encode(), "content_type": "application/json"})
-            r2.append({"key": f"pages/{stem}/p{n}.png", "file": folder / f"p{n}.png", "content_type": "image/png"})
+            base = org_key(ORG_A, f"pages/{stem}/p{n}")
+            r2.append({"key": f"{base}.json", "body": jdump(body).encode(), "content_type": "application/json"})
+            r2.append({"key": f"{base}.png", "file": folder / f"p{n}.png", "content_type": "image/png"})
             if red:
-                r2.append({"key": f"pages/{stem}/p{n}.redacted.png", "file": folder / f"p{n}.redacted.png", "content_type": "image/png"})
+                r2.append({"key": f"{base}.redacted.png", "file": folder / f"p{n}.redacted.png", "content_type": "image/png"})
             sql.append(insert("pages", {
-                "document_id": stem, "n": n, "json_r2_key": f"pages/{stem}/p{n}.json", "image_r2_key": f"pages/{stem}/p{n}.png",
-                "redacted_r2_key": f"pages/{stem}/p{n}.redacted.png" if red else None,
+                "org_id": ORG_A, "document_id": stem, "n": n, "json_r2_key": f"{base}.json", "image_r2_key": f"{base}.png",
+                "redacted_r2_key": f"{base}.redacted.png" if red else None,
                 "width": pg["size"][0], "height": pg["size"][1], "engine": pg["engine"], "mean_conf": pg.get("mean_conf"),
                 "low_conf_words": pg.get("low_conf_words"), "is_empty": bool(re.fullmatch(r"\s*\[prázdná stránka\]\s*", pg["text"])),
                 "verify_count": len(pg.get("verify") or []), "redaction_count": red["count"] if red else None,
@@ -558,7 +624,7 @@ def main() -> None:
             page_count_total += 1
 
     # 6. Extraction runs and alerts (case 10 and the synthetic patient S01).
-    def alert_rows(cid, flags, gaps):
+    def alert_rows(cid, flags, gaps, org=ORG_A):
         out, ids = [], {"flag": [], "gap": []}
         for origin, items in (("flag", flags), ("gap", gaps)):
             for pos, it in enumerate(items):
@@ -566,25 +632,91 @@ def main() -> None:
                 basis = f"{src.get('file')}:{src.get('page')}:{src.get('quote')}"
                 aid = "al-" + sha256_bytes(f"{cid}|{origin}|{it['kind']}|{it['text_cs']}|{basis}".encode())[:16]
                 ids[origin].append(aid)
-                out.append({"id": aid, "case_id": cid, "origin": origin, "position": pos, "kind": it["kind"],
+                out.append({"id": aid, "org_id": org, "case_id": cid, "origin": origin, "position": pos, "kind": it["kind"],
                             "text_cs": it["text_cs"], "relevant": bool(it.get("relevant"))})
         return out, ids
 
     extractions = []  # (case id, json object)
     c10, e10 = strip_case10(case, extra)
     al10, ids10 = alert_rows("NO-010", case.get("flags") or [], extra.get("data_gaps_v3") or [])
-    extractions.append(("NO-010", {"case": c10, "extra": e10, "alert_ids": ids10}, al10, "full"))
+    extractions.append(("NO-010", {"case": c10, "extra": e10, "alert_ids": ids10}, al10, "full", ORG_A))
     for s in syn:
         if s.get("intake_demo"):
             continue  # S02 enters through "Nový pacient" (Step 6); only its upload files are stored below.
         cid = case_id(s["file"])
         al, ids = alert_rows(cid, [], s.get("data_gaps") or [])
-        extractions.append((cid, {"syn": strip_syn(s), "alert_ids": ids}, al, "partial"))
+        extractions.append((cid, {"syn": strip_syn(s), "alert_ids": ids}, al, "partial", ORG_A))
+
+    # 3b. Demo org B: one synthetic patient (S01), its own case, document, pages and extraction. Its internal IDs differ
+    # from org A's copy of the same synthetic patient (IDs are unique across orgs); the case number is the same,
+    # because each org counts its own. Source references point at org B's document by its id ("<doc id>.pdf"), as an
+    # intake's prepared data does, so the source view opens org B's pages.
+    s01 = next(x for x in syn if x["file"] == "S01_pacient.pdf")
+    b_case, b_doc, b_pid = "B-NO-S01", "b-S01_pacient", "pt-B-S01"
+    a_s01 = next(c for c in cases if c["id"] == "NO-S01")
+    a_s01_pt = next(x for x in patients if x["id"] == "pt-S01")
+    patients.append({**a_s01_pt, "id": b_pid, "org_id": ORG_B})
+    b_owner = users_b[0]
+    cases.append({**a_s01, "id": b_case, "org_id": ORG_B, "case_no": "NO-S01", "patient_id": b_pid, "list_order": 0, "status": "scheduled",
+                  "owner_user_id": b_owner["id"], "owner_name": staff_name(b_owner), "owner_is_example": True,
+                  "referring_dept": "Ukázková nemocnice B, onkologie", "referring_dept_is_example": True})
+
+    def to_b_doc(o):
+        if isinstance(o, dict):
+            o = {k: to_b_doc(v) for k, v in o.items()}
+            if o.get("file") == "S01_pacient.pdf" and "page" in o:
+                o["file"] = f"{b_doc}.pdf"
+            return o
+        if isinstance(o, list):
+            return [to_b_doc(v) for v in o]
+        return o
+    al_b, ids_b = alert_rows(b_case, [], s01.get("data_gaps") or [], ORG_B)
+    extractions.append((b_case, {"syn": to_b_doc(strip_syn(s01)), "alert_ids": ids_b}, al_b, "partial", ORG_B))
+    sql.append(insert("patients", patients[-1]))
+    sql.append(insert("cases", cases[-1]))
+    sql += [insert("case_members", {"org_id": ORG_B, "case_id": b_case, "dept_id": d["id"], "reason": "seed: oddělení MDT"}) for d in depts_b]
+    # The same day and time as org A's first slot: each org books its own calendar.
+    sql.append(insert("slots", {"org_id": ORG_B, "day": "2026-10-22", "time": "14:00", "case_id": b_case}))
+    pdf_b = SAMPLES / "S01_pacient" / "S01_pacient.pdf"
+    pages_b = page_index.get("S01_pacient.pdf", {}).get("pages", [])
+    r2.append({"key": org_key(ORG_B, f"docs/{b_case}/S01_pacient.pdf"), "file": pdf_b, "content_type": "application/pdf"})
+    sql.append(insert("documents", {
+        "id": b_doc, "org_id": ORG_B, "case_id": b_case, "file_name": "S01_pacient.pdf", "page_count": len(pages_b),
+        "original_r2_key": org_key(ORG_B, f"docs/{b_case}/S01_pacient.pdf"), "sha256": sha256_file(pdf_b), "size_bytes": pdf_b.stat().st_size,
+        "origin": "seed", "processing": "processed", "note_cs": None,
+    }))
+    for k, d in enumerate(doc_parts["S01_pacient.pdf"][0]):
+        sql.append(insert("document_parts", {
+            "org_id": ORG_B, "document_id": b_doc, "ordinal": k, "title_cs": d["title_cs"], "type": d.get("type"), "date": d.get("date"),
+            "date_note_cs": d.get("date_note_cs"), "pages_json": d.get("pages") or [], "readability": d.get("readability"),
+            "reason_cs": d.get("reason_cs"), "upload_name": d.get("upload_name"),
+        }))
+    for pg in pages_b:
+        n = pg["n"]
+        folder = DERIVED / "pages" / "S01_pacient"
+        red = pg.get("redacted")
+        body = {"n": n, "size": pg["size"], "text": pg["text"], "engine": pg["engine"], "words": pg["words"],
+                "mean_conf": pg.get("mean_conf"), "low_conf_words": pg.get("low_conf_words"), "verify": pg.get("verify") or [],
+                "redacted": {"count": red["count"], "reasons": red["reasons"]} if red else None}
+        base = org_key(ORG_B, f"pages/{b_doc}/p{n}")
+        r2.append({"key": f"{base}.json", "body": jdump(body).encode(), "content_type": "application/json"})
+        r2.append({"key": f"{base}.png", "file": folder / f"p{n}.png", "content_type": "image/png"})
+        if red:
+            r2.append({"key": f"{base}.redacted.png", "file": folder / f"p{n}.redacted.png", "content_type": "image/png"})
+        sql.append(insert("pages", {
+            "org_id": ORG_B, "document_id": b_doc, "n": n, "json_r2_key": f"{base}.json", "image_r2_key": f"{base}.png",
+            "redacted_r2_key": f"{base}.redacted.png" if red else None,
+            "width": pg["size"][0], "height": pg["size"][1], "engine": pg["engine"], "mean_conf": pg.get("mean_conf"),
+            "low_conf_words": pg.get("low_conf_words"), "is_empty": bool(re.fullmatch(r"\s*\[prázdná stránka\]\s*", pg["text"])),
+            "verify_count": len(pg.get("verify") or []), "redaction_count": red["count"] if red else None,
+            "redaction_reasons_json": red["reasons"] if red else None,
+        }))
+        page_count_total += 1
 
     # 9 (before anything is written). Identity scan over every case-side JSON and every case row.
     pats = identity_patterns(patients)
     stored_json = {}
-    for cid, data, _, processing in extractions:
+    for cid, data, _, processing, _org in extractions:
         stored_json[f"extract/{cid}"] = {"schema": "codebridge.extraction/1", "case_id": cid, "processing": processing, **data}
     stored_json["guidance/NO-010"] = guidance
     stored_json["prognosis/NO-010"] = prognosis
@@ -623,16 +755,16 @@ def main() -> None:
     if bad:
         sys.exit("seed: identity found outside quotes; see api/seed/out/identity-scan.txt")
 
-    for cid, data, al, processing in extractions:
+    for cid, data, al, processing, org in extractions:
         doc = stored_json[f"extract/{cid}"]
         body = jdump(doc).encode()
         run_id = f"seed-{cid}-{sha256_bytes(body)[:8]}"
         doc = {**doc, "run_id": run_id}
         body = jdump(doc).encode()
-        key = f"extract/{cid}/{run_id}.json"
+        key = org_key(org, f"extract/{cid}/{run_id}.json")
         r2.append({"key": key, "body": body, "content_type": "application/json"})
         sql.append(insert("extraction_runs", {
-            "id": run_id, "case_id": cid, "kind": "seed_fixture", "model": None, "prompt_version": None, "temperature": None,
+            "id": run_id, "org_id": org, "case_id": cid, "kind": "seed_fixture", "model": None, "prompt_version": None, "temperature": None,
             "input_hashes_json": hashes, "r2_key": key, "sha256": sha256_bytes(body), "is_current": True,
         }))
         sql += [insert("alerts", {**x, "run_id": run_id}) for x in al]
@@ -643,7 +775,7 @@ def main() -> None:
     # 7. The two example tasks of the mock, assigned to the coordinator.
     for t in ({"id": 1, "case_id": "NO-002", "text": "doplnit pooperační MR do podkladů", "done": False},
               {"id": 2, "case_id": "NO-013", "text": "vyžádat snímky MR 8/2025 ke srovnání", "done": True}):
-        sql.append(insert("tasks", {**t, "assignee_user_id": "coord", "assignee_name": staff_name(COORD), "due": "2026-10-21"}))
+        sql.append(insert("tasks", {**t, "org_id": ORG_A, "assignee_user_id": "coord", "assignee_name": staff_name(COORD), "due": "2026-10-21"}))
 
     # 8. Fixture registry (step 6): every synthetic file the upload route accepts, matched by the SHA-256 of its bytes.
     # Each fixture names its patient in fixture_patients (D1 only), so a file uploaded into another patient's case is
@@ -662,7 +794,7 @@ def main() -> None:
         pt = pat_by_id["pt-" + p["id"].removeprefix("NO-")]
         fixture_pats.append({"fixture_id": fid, "full_name": pt["full_name"], "birth_number": pt["birth_number"],
                              "birth_as_written": pt.get("birth_as_written"), "data_origin": pt["data_origin"]})
-        fixture_rows.append({"sha256": sha256_file(pdf), "fixture_id": fid, "file_name": f, "r2_prefix": f"docs/{p['id']}/",
+        fixture_rows.append({"sha256": sha256_file(pdf), "fixture_id": fid, "file_name": f, "r2_prefix": org_key(ORG_A, f"docs/{p['id']}/"),
                              "kind": "combined", "size_bytes": pdf.stat().st_size, "title_cs": None, "doc_type": None, "doc_date": None,
                              "page_count": len(page_index.get(f, {}).get("pages", [])), "combined_pages_json": None})
     for s in syn:
@@ -717,20 +849,24 @@ def main() -> None:
     now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.") + f"{datetime.now(timezone.utc).microsecond // 1000:03d}Z"
     sql.append(insert("seed_meta", {"id": 1, "seeded_at": now, "git_commit": git, "fixtures_json": hashes}))
 
-    # 10. The SQL file. A reset empties every table inside the demo_state flag that lets the append-only triggers
-    # through (migration 0003), then reseeds and bumps data_epoch, so every open tab reloads instead of writing into
-    # data it never saw. Without --reset the database must be empty (checked below).
+    # 10. The SQL file. A reset empties every table of every org inside the demo_state flag that lets the append-only
+    # triggers through (migration 0011, per org), then reseeds and bumps each org's data_epoch, so every open tab
+    # reloads instead of writing into data it never saw. People, orgs and their demo state are upserted, never deleted.
+    # Without --reset the database must be empty (checked below).
     prefix = []
     if a.reset:
-        prefix += ["UPDATE demo_state SET reset_in_progress = 1 WHERE id = 1;"]
+        prefix += ["UPDATE demo_state SET reset_in_progress = 1;"]
         prefix += [f"DELETE FROM {t};" for t in reversed(TABLES)]
         prefix += ["DELETE FROM sqlite_sequence WHERE name <> 'demo_state';"]
     suffix = [f"UPDATE demo_state SET reset_in_progress = 0, data_epoch = data_epoch + {1 if a.reset else 0}, seed_version = {lit(git)},"
-              f" reset_at = {lit(now) if a.reset else 'reset_at'}, reset_by = {lit('seed.py') if a.reset else 'reset_by'} WHERE id = 1;"]
+              f" reset_at = {lit(now) if a.reset else 'reset_at'}, reset_by = {lit('seed.py') if a.reset else 'reset_by'};"]
     sql = sql + suffix
-    # seed/reset.json: the mutable tables' rows for reset-demo, grouped so the reset stays one small D1 batch.
-    reset_doc = {"seed_version": git, "seeded_at": now, "tables": MUTABLE, "statements": grouped_inserts(MUTABLE),
-                 "patient_ids": [x["id"] for x in patients]}
+    # seed/reset.json: per demo org, the mutable tables' rows for reset-demo, grouped so the reset stays one small D1
+    # batch, the seeded patients (kept) and the seeded memberships (restored; any other membership of the org ends).
+    reset_doc = {"seed_version": git, "seeded_at": now, "tables": MUTABLE, "orgs": {
+        org: {"statements": grouped_inserts(MUTABLE, org), "patient_ids": [x["id"] for x in patients if x["org_id"] == org],
+              "membership_ids": [r["id"] for t, r in ROWS if t == "memberships" and r["org_id"] == org]}
+        for org in (ORG_A, ORG_B)}}
     r2.append({"key": RESET_KEY, "body": jdump(reset_doc).encode(), "content_type": "application/json"})
     (OUT / "seed.sql").write_text("\n".join(prefix + sql) + "\n")
     # The manifest lists keys, local source files and hashes only; generated bodies are written next to it.
