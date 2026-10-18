@@ -92,7 +92,8 @@ The `e2e` job of `.github/workflows/deploy-worker.yml` runs on pushes to main an
 touch the app, the Worker, the fixtures or `e2e/`: it installs, stages, runs `npm --prefix e2e run test:parallel`
 with four Workers, caches Chromium by `e2e/package-lock.json` and the seeded state by the seed's inputs, and uploads `playwright-report/`, `test-results/`
 (traces of failed tests) and the Workers' logs as the `playwright-report` artifact when it fails. The job has no
-secrets. The deploy job needs it and the unit tests, so main deploys only when both pass.
+secrets. The deploy job needs it and the unit tests, so main deploys only when both pass. The job takes about 2.5
+minutes with the seeded state cached and 4 to 6 minutes when it seeds.
 
 ## How it is built
 

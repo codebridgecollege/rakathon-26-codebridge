@@ -616,7 +616,9 @@ Consequences:
   template takes about 1.5 minutes and is skipped when nothing it reads changed.
 - **CI.** The `e2e` job of `deploy-worker.yml` installs, stages, seeds and runs the parallel suite with no secrets,
   caches Chromium, and uploads the HTML report, the traces and the Workers' logs when it fails. The deploy job needs
-  the unit tests and the browser suite, and deploys only from main and backend.
+  the unit tests and the browser suite, and deploys only from main and backend. On the GitHub runner the job takes
+  about 2.5 minutes with the seeded state cached (the suite itself 1.1 to 1.7 minutes) and about 4 to 6 minutes when
+  it has to seed.
 
 ## Decisions (2026-10-18)
 
