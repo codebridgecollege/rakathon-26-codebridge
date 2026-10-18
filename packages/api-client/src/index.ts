@@ -210,6 +210,9 @@ export function createApiClient(opts: ClientOptions = {}) {
     deleteUploadSessionOnUnload: (id: string) => t.sendOnUnload("DELETE", `/upload-sessions/${enc(id)}`, {}),
 
     // ---------- recording ----------
+    // Our server mints the speech service's single-use realtime token and builds the socket URL, so the speech key
+    // never reaches the page. The answer is not a write reply: it is the address alone.
+    sttToken: () => t.write<{ ws_url: string; expires_in_s: number }>("POST", "/stt/token", {}),
     startRecording: (body: { session_day: string | null; case_id: string | null }) => w("POST", "/recordings", body),
     endRecording: (id: string, body: { end_reason: string; case_id: string | null }) => w("PATCH", `/recordings/${enc(id)}`, body),
     transcriptLines: (caseId: string, body: { recording_id: string; lines: unknown[] }) => w("POST", `/cases/${enc(caseId)}/transcript/lines`, body),

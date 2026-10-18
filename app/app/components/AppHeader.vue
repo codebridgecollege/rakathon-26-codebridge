@@ -10,6 +10,7 @@ import { useStaffStore } from "../stores/staff";
 import { usePatientsStore } from "../stores/patients";
 import { useWorkflowStore } from "../stores/workflow";
 import { useListViewStore } from "../stores/listView";
+import RecorderPill from "./RecorderPill.vue";
 
 const { $t } = useFluent();
 const route = useRoute();
@@ -64,7 +65,7 @@ async function onUser(ev: Event) {
         {{ it.label }}<span v-if="it.count !== undefined" class="count">{{ it.count }}</span>
       </button>
     </nav>
-    <span id="recpill" />
+    <span id="recpill"><RecorderPill /></span>
     <span class="who"><span class="lbl">{{ $t("user-picker-label") }}</span>
       <select id="user" :aria-label="$t('user-picker-aria')" :value="userId" @change="onUser">
         <optgroup v-for="d in staff.doctorsByDept" :key="d.id" :label="d.name">
