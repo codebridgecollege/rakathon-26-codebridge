@@ -48,8 +48,8 @@ Terms used below:
    - coding agents have not seen its current syntax.
    
    A bounded spike after 0.6.0 is tagged is worth doing (see "citry").
-6. **i18n keeps one catalog format and one `t()`** ([`I18N.md`](I18N.md)),
-   used by the old page, the new app and the Worker alike. Server and
+6. **i18n uses Fluent** ([`I18N.md`](I18N.md)): the same `.ftl` catalogs
+   for the old page, the new app (through `fluent-vue`) and the Worker. Server and
    refactor work from `I18N.md` can start now on the old page; the strings
    of each screen move into the catalog as it is ported.
 7. **The first step is a test suite that drives only the DOM,** run
@@ -139,9 +139,9 @@ the marketing site (glidemdt.com) is separate.
   - Pinia stores for the session, staff and the case cache;
   - the recorder as a store plus a composable, since it must survive route changes;
   - the shared domain package for the pure rules.
-- **i18n.** The catalogs and the `t()` module from `I18N.md` stay the single mechanism, exposed to Vue as a small plugin with a reactive locale. The Worker uses the same `t()` for its own text.
-  - `@nuxtjs/i18n` is not used: vue-i18n has its own plural syntax (`a | b | c`), needs custom rules for Czech and Slovak, and treats `@ { } | $` as special characters, so an e-mail address in a message breaks.
-  - In `I18N.md`, the parts about inlining catalogs into the page apply to the old page only. The escaping rule and the markup allow-list stay: `t()` returns escaped text with only allowed tags, and Vue renders it with `v-html`.
+- **i18n.** Fluent, as in `I18N.md`. `fluent-vue` (a Vue 3 plugin on `@fluent/bundle`) is registered in a Nuxt plugin and gives components `$t` and an `<i18n>` component that fills markup through named slots. The Worker uses `@fluent/bundle` with the same `.ftl` files.
+  - `@nuxtjs/i18n` is not used, because it is built on vue-i18n, a different message format.
+  - In `I18N.md`, the parts about inlining catalogs into the page apply to the old page only.
 - **Embedded mode is dropped in the new app.** `nuxt generate` writes many script chunks, which do not load from `file://`, and claude.ai copies need one file. The Worker is the demo. The old single-file page stays on Pages until Pages is retired, so the offline demo exists until then.
 - **Size.** The goal is a first load well under today's 2.3 MB: jsPDF with its font, the QR library and the recorder are loaded only when used.
 - **Content security policy.** There is none today. Nuxt's SPA output has an inline script, so a strict policy needs script hashes (for example through `nuxt-security`). This is a step of the port, not an afterthought.
@@ -155,8 +155,8 @@ the marketing site (glidemdt.com) is separate.
 
 ### Runner-up: plain Vue 3 with Vite
 
-The same SPA without Nuxt: Vue Router, Pinia and the `t()` plugin set up
-by hand. It has fewer moving parts and is easier to debug, but gives up
+The same SPA without Nuxt: Vue Router, Pinia and `fluent-vue` set up by
+hand. It has fewer moving parts and is easier to debug, but gives up
 Nuxt's module setup, test utilities and file-based routing. With a
 single-file build plugin it could also produce a one-file embedded page,
 if that mode turns out to be needed. It is the fallback if Nuxt's build
@@ -220,13 +220,13 @@ fight Vue for the DOM. Instead:
 - `app/` (Nuxt);
 - `packages/domain` (the pure part of `api/src/domain`);
 - `packages/api-client` (typed requests and replies);
-- `i18n/` (catalogs and `t()`, shared).
+- `i18n/` (the `.ftl` catalogs and the Fluent wrapper, shared).
 
 **What can start now, on the old page.** From `I18N.md`, these do not
 depend on the framework, and the port reuses them:
 - the server phase: message keys for errors, codes for labels, the access log as action and parameters, PageKit reasons as codes (3-4 days);
 - the meeting language for recordings (1 day);
-- the catalog format and `t()` module.
+- the Fluent catalogs and runtime wrapper.
 
 If the port slips, i18n is not blocked: the old page can take the
 catalogs too (`I18N.md` phases 0-2).
@@ -236,7 +236,7 @@ catalogs too (`I18N.md` phases 0-2).
 | Step | What | Effort |
 |---|---|---|
 | 1 | DOM-only end-to-end suite against the Worker (from today's test expectations), green on the old page: the gate for every ported screen | 3 days |
-| 2 | Scaffold, workspaces, `packages/domain` split, typed API client, stores, boot, the `t()` plugin with the Czech catalog | 2 days |
+| 2 | Scaffold, workspaces, `packages/domain` split, typed API client, stores, boot, `fluent-vue` with the Czech catalog | 2 days |
 | 3 | Patients list (filters, column resize, paging) | 0.5 day |
 | 4 | Calendar (drag and drop, double click, mini month) | 1 day |
 | 5 | Patient header, brief, alerts, the MDT question and edits | 1.5 days |
@@ -266,9 +266,10 @@ drafts labelled as drafts) checked screen by screen.
 - **The port starts as soon as the team decides to do it.** The clinical
   behaviour of the ported screens is reviewed afterwards, against the
   DOM-only test suite and the old page.
+- **i18n uses Fluent** (`I18N.md`).
+- **The citry spike is on:** the patient brief in cs, sk and en, built in
+  citry next to the Nuxt version, after citry 0.6.0 is tagged (see "citry").
 
 ## Open questions
 
 - **Nuxt or plain Vue 3 with Vite?** Juro leans to Nuxt; both are workable.
-- **Fluent or JSON catalogs for i18n?** See `I18N.md`.
-- **The citry spike:** whether to do it, after 0.6.0 is tagged, and with which screen.
