@@ -20,10 +20,14 @@ rm -f .assets/404.html .assets/200.html
 # The rendered pages of the synthetic documents (data/derived/pages/<pdf stem>/p<n>.png and the p<n>.redacted.png that
 # scripts/redact_pages.py writes), served at /pages/<pdf stem>/. Only the page images: the text layers, word boxes and
 # redaction records next to them stay out of the public files.
-(cd "$ROOT/data/derived/pages" && find . -type f -regex '.*/p[0-9][0-9]*\(\.redacted\)\{0,1\}\.png' -print) | while read -r f; do
+# The name test is bash's own regex, not find -regex, whose syntax differs between BSD (macOS) and GNU (CI) find.
+(cd "$ROOT/data/derived/pages" && find . -type f -name 'p*.png') | while read -r f; do
+  [[ "$(basename "$f")" =~ ^p[0-9]+(\.redacted)?\.png$ ]] || continue
   mkdir -p ".assets/pages/$(dirname "$f")"
   cp "$ROOT/data/derived/pages/$f" ".assets/pages/$f"
 done
+# The source view and serving.spec.ts expect them; an empty folder would only show up as broken images.
+[ -n "$(find .assets/pages -name '*.png' -print -quit 2>/dev/null)" ] || { echo "no page images staged from data/derived/pages" >&2; exit 1; }
 # The intake demo patient's documents as a ZIP (fixtures/prepare.py), linked from the "Nový pacient" dialog.
 cp -R "$ROOT/fixtures/ukazka" .assets/ukazka
 # The phone page of "Nahrát z telefonu" (docs/design/PHONE-UPLOAD.md): served at /u (u.html, the assets' default

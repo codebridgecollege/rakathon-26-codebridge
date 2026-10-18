@@ -45,7 +45,7 @@ function seedInputsHash() {
     // READMEs and notes do not reach the database.
     else if (!p.endsWith(".md")) h.update(path.relative(root, p)).update(readFileSync(p));
   };
-  for (const p of ["api/migrations", "api/seed/seed.py", "fixtures", "data/derived/page-index.json", "samples"]) {
+  for (const p of ["api/migrations", "api/seed/seed.py", "fixtures", "data/derived", "samples"]) {
     const full = path.join(root, p);
     if (existsSync(full)) add(full);
   }
