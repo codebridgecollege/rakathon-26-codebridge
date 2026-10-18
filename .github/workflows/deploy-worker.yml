@@ -1,13 +1,14 @@
-# Tests the API Worker and deploys it: main -> production (codebridge-mdt.<subdomain>.workers.dev),
-# backend -> preview alias "backend". Pages (deploy-mock.yml) keeps deploying main until the Worker replaces it.
+# Tests the API Worker, the Nuxt app and the shared packages, then deploys the Worker with the app at / and today's
+# page at /legacy/: main -> production (codebridge-mdt.<subdomain>.workers.dev), backend -> preview alias "backend".
+# Pages (deploy-mock.yml) keeps deploying main until the Worker replaces it.
 name: Deploy worker
 
 on:
   push:
     branches: [main, backend]
-    paths: ["api/**", "packages/domain/**", "package.json", "package-lock.json", "mocks/v3.html", "mocks/pages/**", "mocks/ukazka/**", "mocks/src/phone-upload.html", ".github/workflows/deploy-worker.yml"]
+    paths: ["api/**", "app/**", "packages/**", "i18n/**", "package.json", "package-lock.json", "mocks/v3.html", "mocks/pages/**", "mocks/ukazka/**", "mocks/src/phone-upload.html", "mocks/src/vendor/**", ".github/workflows/deploy-worker.yml"]
   pull_request:
-    paths: ["api/**", "packages/domain/**", "package.json", "package-lock.json", ".github/workflows/deploy-worker.yml"]
+    paths: ["api/**", "app/**", "packages/**", "i18n/**", "package.json", "package-lock.json", "mocks/src/vendor/**", ".github/workflows/deploy-worker.yml"]
   workflow_dispatch:
 
 # One Worker, so one deploy at a time across branches; a newer push replaces a queued one.
@@ -18,9 +19,6 @@ concurrency:
 jobs:
   test:
     runs-on: ubuntu-24.04
-    defaults:
-      run:
-        working-directory: api
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -28,15 +26,27 @@ jobs:
           node-version: "22"
           cache: npm
           cache-dependency-path: package-lock.json
+      # The root install: the Worker, the app and the packages are workspaces of one lockfile.
       - run: npm ci
       - name: Generated runtime types match wrangler.jsonc
+        working-directory: api
         run: npm run types && git diff --exit-code src/worker-configuration.d.ts
-      - run: npm run typecheck
-      - run: npm test
-      # The case rules the Worker imports from packages/domain, with their own tests and the type check that keeps
-      # runtime globals out of the package (the Worker's tsconfig would not catch them).
+      - run: npm run typecheck -w codebridge-api
+      - run: npm test -w codebridge-api
+      # The case rules the Worker and the app import from packages/domain, with their own tests and the type check that
+      # keeps runtime globals out of the package (the Worker's tsconfig would not catch them); then the typed client.
       - run: npm run typecheck -w @codebridge/domain
       - run: npm test -w @codebridge/domain
+      - run: npm run typecheck -w @codebridge/api-client
+      - run: npm test -w @codebridge/api-client
+      - run: npm run typecheck -w @codebridge/app
+      - run: npm test -w @codebridge/app
+      # Builds the app, stages every file the Worker serves and writes the security headers (it fails when the app's
+      # inline scripts are not the two the content security policy expects), then checks the first-load size.
+      - name: Stage the Worker's files
+        working-directory: api
+        run: npm run stage
+      - run: npm run size -w @codebridge/app
 
   deploy:
     needs: test
@@ -55,7 +65,9 @@ jobs:
           node-version: "22"
           cache: npm
           cache-dependency-path: package-lock.json
+      # At the root: staging builds the app, which needs Nuxt (an `npm ci` inside api/ installs the Worker's only).
       - run: npm ci
+        working-directory: .
       - run: npm run stage
       - name: Deploy production (main)
         if: github.ref == 'refs/heads/main'
