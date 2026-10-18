@@ -15,7 +15,8 @@ builds the Nuxt app, so it needs `npm ci` at the root first.
 ```
 npm ci
 cp .dev.vars.example .dev.vars   # local keys, gitignored; agents never read it
-npm run dev                      # stage-assets.sh builds the app and stages it into .assets, then wrangler dev
+npm run dev                      # stage-assets.sh builds the app and stages it into .assets, then wrangler dev (demo mode)
+npm run dev:oidc                 # the same with the login (AUTH_MODE=oidc); needs OIDC_CLIENT_SECRET and SESSION_KEY in .dev.vars
 npm run typecheck
 npm test                         # Vitest in workerd with local D1/R2 and the migrations; outbound fetch is mocked
 npm run types                    # after any wrangler.jsonc change; CI fails on a stale file
@@ -47,9 +48,8 @@ address asked for) also gets the content security policy, with the SHA-256 of ea
 the 404 page get no policy: they run inline scripts. `/api` answers set nosniff in `src/index.ts`. Rewrites (200): the
 app's route paths to `/`. Any other path is the 404 page, so there is no SPA fallback; the folders Nuxt prerenders
 for the static routes (`patients/index.html`, ...) are deleted, or `/patients/` would serve the app without the
-policy. These rules are checked with `run_worker_first: ["/api/*"]` only. Access mode (`true`, runbook below) routes
-every request through the Worker, whose Hono app answers only `/api`; that switch needs a forward to
-`env.ASSETS.fetch` and a fresh check that the headers and redirects still arrive. Check after any change:
+policy. `run_worker_first` lists `/api/*` and `/auth/*` only (the login, section "Login"), so every static file comes
+from the assets binding with these headers; the login pages set their own (`src/auth/pages.ts`). Check after any change:
 `curl -sI http://localhost:8787/`, `curl -sI http://localhost:8787/patient/10/labs` and `npm --prefix e2e test`
 (`specs/serving.spec.ts`).
 
@@ -89,8 +89,8 @@ uv run seed/seed.py --dry-run            # write seed/out/ only (SQL, R2 manifes
   or `doctors_only` (INTEGRATION.md); open question in `docs/agent/OPEN_QUESTIONS.md`.
 - Demo mode takes the membership from `X-Demo-User: <membership id>` or the `cb_demo_user` cookie
   (page images cannot send a header); default `d2p1` (demo org A). A person's id still works and means their first
-  active membership. Access mode maps the verified e-mail to `users.email`, then to the person's first active
-  membership (the login of step 3 lets a person in several orgs choose). See "Organizations" below.
+  active membership. OIDC mode ignores the header: the session cookie names the person, the org and the membership
+  (section "Login"). See "Organizations" below.
 - D1 limits: GLOB/LIKE patterns at most 50 bytes, 100 KB per SQL statement, and an
   unused bound value is an error.
 
@@ -250,7 +250,7 @@ Design: `docs/design/AUTH.md` and `docs/design/DATABASE.md`, each with a section
 
 - **Schema (migration 0011).** `orgs`; `users` is the person (name, titles, e-mail, active); `memberships` holds a
   person's role, function and activity in one org (one per person and org; in demo org A its id is the person's id);
-  `user_identities` and `auth_sessions` exist for the login of step 3 and are unused. Every org table has `org_id NOT
+  `user_identities` and `auth_sessions` (migration 0012) hold the login (section "Login"). Every org table has `org_id NOT
   NULL` with no default, `UNIQUE (org_id, id)` on parents, composite foreign keys `(org_id, x_id)`, references to people
   through `memberships(org_id, user_id)`, and unique keys that start with `org_id`. `cases.case_no` is the number people
   see, counted per org; `cases.id` is unique across orgs (`orgs.case_id_prefix`: none in demo org A, `B-` in org B).
@@ -283,7 +283,8 @@ Design: `docs/design/AUTH.md` and `docs/design/DATABASE.md`, each with a section
 
 - Vars (endpoints, models, language, limits, `AUTH_MODE`) in `wrangler.jsonc`.
 - Keys only as secrets: `npx wrangler secret put ELEVENLABS_API_KEY`,
-  `AZURE_OPENAI_KEY`, optionally `AI_GATEWAY_TOKEN`. Locally in `.dev.vars`.
+  `AZURE_OPENAI_KEY`, `OIDC_CLIENT_SECRET`, `SESSION_KEY`, optionally
+  `AI_GATEWAY_TOKEN`. Locally in `.dev.vars`.
   Never in code, CI, logs or git.
 - `.dev.vars.example` lists the secret names; `src/worker-configuration.d.ts`
   is generated from it and `wrangler.jsonc`.
@@ -297,30 +298,49 @@ Design: `docs/design/AUTH.md` and `docs/design/DATABASE.md`, each with a section
 - Every `/api` answer carries `Cache-Control: no-store`.
 - The rate limiter namespace ids (26101 to 26104) must stay unique in the account.
 
-## Access runbook (when the team switches on login)
+## Login (AUTH.md steps 3 and 4)
 
-1. In Zero Trust, protect `codebridge-mdt.<subdomain>.workers.dev` and the
-   preview URLs (`*-codebridge-mdt.<subdomain>.workers.dev`): the Workers
-   settings "Cloudflare Access" toggle, or a self-hosted application.
-2. Policy: team e-mails, mentors and jury, by one-time PIN or GitHub.
-3. Copy the application's AUD tag.
-4. In `wrangler.jsonc` set `ACCESS_TEAM_DOMAIN` (`https://<team>.cloudflareaccess.com`),
-   `ACCESS_AUD`, `AUTH_MODE=access`, and `assets.run_worker_first: true`
-   (so the Worker checks every request, not only `/api`). Run `npm run types`.
-5. Add a bypass policy for `/u` and `/api/upload-sessions/current*`: the
-   phone of "Nahrát z telefonu" is not logged in, and the session token is
-   those routes' credential (`docs/design/PHONE-UPLOAD.md`).
-6. Redeploy, then check that both the production and the preview URL ask
-   for login and that `/api/health` shows `auth_mode: "access"`.
-7. Check in Workers Logs that invocation logs do not record request
-   headers; the `Cf-Access-Jwt-Assertion` header is a bearer credential
-   that carries the user's e-mail, and the phone's `Authorization` header
-   carries an upload token.
+Design and what was built: `docs/design/AUTH.md`, "How login works" and "As implemented (steps 3-4)". The Worker is an
+OIDC client (OpenID Connect, the login protocol) of Zitadel Cloud in the EU region; the IdP (identity provider) only
+proves who someone is, and orgs, memberships and roles stay in D1.
 
-Access service tokens carry no e-mail and are refused (401); the app has
-no machine clients. If the team's key set cannot be fetched, the API
-answers 503 `upstream_busy` instead of 401, so users are not sent into a
-login loop by our outage.
+- **Modes.** `AUTH_MODE=oidc` in `wrangler.jsonc`, so production and the `backend` preview log in. `npm run dev`, the
+  tests (`test/helpers.ts`, `vitest.config.ts`) and the browser suite (`e2e/run-parallel.mjs`) set `AUTH_MODE=demo`,
+  the user picker without a login. Any other value answers 500 `misconfigured`.
+- **Configuration.** Vars `OIDC_ISSUER` (`https://glide-mdt--dev-dybk0r.eu1.zitadel.cloud`) and `OIDC_CLIENT_ID`
+  (`395716705399111846`, the web app of project "GLIDE MDT", CODE with PKCE). Secrets `OIDC_CLIENT_SECRET` (from the
+  Zitadel app; in the team's password manager) and `SESSION_KEY` (32 random bytes, base64, the key of the
+  login-transaction cookies; a new one only logs out logins in progress). Set them without printing them:
+  `openssl rand -base64 32 | npx wrangler secret put SESSION_KEY`. Locally, `api/.dev.vars` holds both for
+  `npm run dev:oidc` (`.dev.vars.example`); use your own `SESSION_KEY`.
+- **Zitadel settings** (issue #15). Redirect URIs: `/auth/callback` on the production host, on the `backend` preview
+  host and on `http://localhost:8787` (Zitadel takes no wildcards, so a new host needs its own entry); post-logout URIs:
+  the same origins with a trailing `/`. Self-registration off. Development mode is on for localhost; before a hospital
+  uses the instance, localhost moves to a separate development app. Turning on "User Info inside ID Token" for the app
+  saves the Worker one userinfo call per login (`src/auth/oidc.ts`).
+- **Demo accounts.** `node api/scripts/zitadel-demo-accounts.mjs` creates the eight accounts (`lekar1.a`, `lekar2.a`,
+  `koordinator.a`, `admin.a` `@codebridge.demo`, and the same with `.b`) with verified e-mails through Zitadel's user
+  API. It reads a service user's token from `~/.config/zitadel/glide-mdt.pat` (`ZITADEL_PAT_FILE`) and writes the
+  passwords only to `~/.config/zitadel/glide-mdt-demo-accounts.txt` (`ZITADEL_ACCOUNTS_FILE`, mode 600), both outside
+  the repository; move them to the password manager and delete the file. Existing accounts are skipped. The seed gives
+  the matching people the same e-mails (`seed/seed.py`, `EMAILS`), and the first login links them. Never use these
+  passwords in automated tests: the browser suite logs in at its mock IdP (`e2e/mock-oidc.mjs`).
+- **Deploying the login.** It needs migration 0012 (`auth_sessions` with the membership acted as) and both secrets
+  before the code runs: set `SESSION_KEY` (and check `OIDC_CLIENT_SECRET` with `npx wrangler secret list`), deploy
+  with the migration as in "Migrating a deployed database" above (0011 and 0012 go together when #14 and this merge at
+  once), then check by hand against the real Zitadel instance: `/api/health` shows `auth_mode: "oidc"`; the app at `/`
+  goes to Zitadel's Czech login page; `admin.a` logs in and lands where it started; "Přepnout roli" to a doctor and
+  back; Administrace shows "Ing. Kovář (jako MUDr. ...)"; "Odhlásit" ends at Zitadel and back on the login page; repeat
+  on the `backend` preview host. The phone upload (`/u`) needs no login: its routes answer before the session check.
+- **Logs.** Failed logins appear in Workers Logs as `{route, auth, reason}` with a short code (`no_person`,
+  `no_membership`, `unverified_email`, `nonce`, `jwks`, `token_refused`); tokens, e-mails and subjects are never
+  logged. Check that invocation logs do not record request headers: the session cookie is a bearer credential.
+- **When the IdP is down,** discovery serves its cached copy for up to an hour, and a login that cannot reach the
+  IdP's keys or token endpoint shows "Přihlašovací služba je nedostupná" (503) instead of starting again, so nobody is
+  sent round a login loop. Sessions already running are not affected: the Worker calls the IdP only during a login and
+  a logout.
+- **Removing someone.** Ending the membership on the staff screen stops their session at the next request. Disabling
+  the account in Zitadel takes effect at their next login (up to 12 hours; AUTH.md, "Session rules").
 
 ## AI Gateway (off)
 

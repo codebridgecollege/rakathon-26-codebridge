@@ -11,7 +11,7 @@ Terms used below:
 - **Organization (org)**: a hospital or other customer; every patient, case and document belongs to exactly one.
 - **D1**: Cloudflare's SQLite database. **R2**: Cloudflare's file storage.
 - **Tenancy**: how the data of several orgs shares, or does not share, storage.
-- **`sessions`** are MDT seminar days. **`auth_sessions`** (planned) are logins; the two are unrelated.
+- **`sessions`** are MDT seminar days. **`auth_sessions`** are logins; the two are unrelated.
 
 ## Summary
 
@@ -66,7 +66,7 @@ The tables fall into groups (the full list is in `api/migrations/`):
 
 | Group | Tables | Notes |
 |---|---|---|
-| People | `users` (exists: the person, with e-mail and active), planned `orgs`, `memberships`, `user_identities`, `auth_sessions` | See `AUTH.md` |
+| People | `users` (the person, with e-mail and active), `orgs`, `memberships`, `user_identities`, `auth_sessions` | See `AUTH.md` |
 | Staff | `departments`, `dept_members`, `roles` | Departments become per org |
 | Patients and cases | `patients` (identity only), `cases`, `case_members`, `case_access_grants` (break-the-glass), `status_history` | Identity is kept apart from case data, so case data can be pseudonymous |
 | Planning | `slots`, `sessions`, `attendance`, `attendance_sets` | One slot per day and time |
@@ -180,7 +180,10 @@ shared tables" above holds, with these details:
 - **Tables with `org_id`:** every table in the groups above except
   `users`, `roles`, `orgs`, `user_identities` and the global demo data
   (`fixture_files`, `fixture_patients`, `seed_meta`). `auth_sessions` has
-  one for step 3. `demo_state` is keyed by `org_id`.
+  one: the org the login session acts in (migration 0012 adds the
+  membership acted as after a role switch, with a foreign key into the same
+  org; `AUTH.md`, "As implemented (steps 3-4)"). `demo_state` is keyed
+  by `org_id`.
 - **Unique keys per org:** `slots (org_id, day, time)` and `(org_id,
   case_id)`, `sessions (org_id, day)`, attendance sets and rows by `(org_id,
   set_key, ...)`, `idempotency_keys (org_id, user_id, key)`, documents

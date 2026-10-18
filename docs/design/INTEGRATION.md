@@ -224,15 +224,17 @@ The entities, and where each lives:
 
 ## What the demo shows
 
-The demo runs as one static HTML page with fictitious data, so it has no
-login and no connection to FNO. The InterSystems mentors advised against
-spending hackathon time on OAuth (FHIR workshop, rec2 02:04:31, in
-[`docs/research/2026-10-16-talk-fhir-workshop-and-phoenix.md`](../research/2026-10-16-talk-fhir-workshop-and-phoenix.md)).
-What it does show, and what each stands for:
+The demo runs on our Cloudflare Worker with fictitious data and no
+connection to FNO. During the hackathon it had no login, as the
+InterSystems mentors advised against spending hackathon time on OAuth
+(FHIR workshop, rec2 02:04:31, in
+[`docs/research/2026-10-16-talk-fhir-workshop-and-phoenix.md`](../research/2026-10-16-talk-fhir-workshop-and-phoenix.md));
+the login came after it ([`AUTH.md`](AUTH.md)). What the demo shows,
+and what each stands for:
 
 | In the demo | Stands for |
 |---|---|
-| User picker, labelled as a stand-in for login | OIDC login with roles from the IdP |
+| OIDC login at Zitadel (EU) with roles from our own memberships, an account menu and, in a demo org, "Přepnout roli" logged with the real person ([`AUTH.md`](AUTH.md)); the user picker only in local demo mode | OIDC login at the hospital's IdP (Entra ID or its own), with the IdP's roles mapped onto memberships |
 | Different screens per role (Administrace only for the administrator) | Role checks in the backend |
 | Access log in Administrace | The audit log |
 | Fictitious PDFs read by Tesseract and a vision model | Documents from the NIS over FHIR, read by the local pipeline |
@@ -240,7 +242,7 @@ What it does show, and what each stands for:
 | "Export FHIR" in the patient view: a validated FHIR R4 Bundle with a Provenance on every fact ([`fhir/README.md`](../../fhir/README.md)) | What CodeBridge sends to and reads from FNO's FHIR API |
 | On the API Worker, every change goes through the server: role and team membership, the clinical rules (one decision per approval, drafts stay drafts, alerts never block), and the access-log row in the same database transaction ([`step-4.md`](../research/backend-steps/step-4.md)) | The backend's rules and audit; the browser is never the only place a rule lives |
 | "Otevřít mimo tým" with a reason, valid 12 hours, every read logged with the reason | Break-the-glass access for a doctor outside the case's team |
-| "Obnovit ukázková data" in Administrace (anyone who picks the administrator role can reset the shared demo; the audit trail is archived first) | Nothing in production: a pilot runs without the reset (`DEMO_RESET_ENABLED` unset) |
+| "Obnovit ukázková data" in Administrace (an administrator of a demo org, or anyone acting as one after "Přepnout roli", resets that org; the audit trail is archived first) | Nothing in production: a pilot runs without the reset (`DEMO_RESET_ENABLED` unset) |
 
 ## Questions for FNO
 
