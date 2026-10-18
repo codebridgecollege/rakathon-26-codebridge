@@ -196,20 +196,26 @@ shared tables" above holds, with these details:
 - **Columns without a foreign key**, guarded by the store functions and the
   isolation tests: `access_log.org_id` and `case_id`, `notifications.case_id`
   and `to_user_id`, `idempotency_keys`, `upload_sessions.case_id`, and the
-  `created_by` columns of jobs, pipeline runs, transcript lines, audio
-  uploads and upload sessions.
+  person columns that had no foreign key before either: `created_by` of
+  cases, jobs, pipeline runs, transcript lines, audio uploads, upload
+  sessions and notifications, `case_members.added_by`,
+  `attendance_sets.updated_by` and `tasks.confirmed_by`.
+- **AUTOINCREMENT IDs** (tasks, drafted tasks, the edit log) count across
+  all orgs, so their gaps show how much other orgs write; a known leak
+  (AUTH.md).
 - **Case numbers:** `cases.case_no` counts per org (`NO-100`, ...);
   `cases.id` is `orgs.case_id_prefix` plus the number (no prefix in demo
   org A, `B-` in org B), so it is unique across orgs.
 - **R2:** the seed writes org A's objects under `org/demo-a/` and org B's
-  under `org/demo-b/`; new uploads, audio, pipeline outputs, extraction
+  under `org/demo-b/` (guideline and prognosis data stay global, keyed by
+  the case ID, which is unique across orgs); new uploads, audio, pipeline outputs, extraction
   outputs, summary caches and audit archives go under the org. Rows
   written before keep their keys (`docs/`, `pages/`, `uploads/`, `audio/`,
   `extract/`), which stay readable; demo org A's reset also clears the old
   `uploads/`, `audio/`, `jobs/` and `cache/summary/` prefixes. R2 lifecycle
   rules match a prefix, so each org needs its own rules (`api/AGENTS.md`).
-- **The demo reset** is one D1 batch for one org, about 47 statements with
-  today's seed: the org's rows are deleted with `WHERE org_id`, the
+- **The demo reset** is one D1 batch for one org, 45 statements for org A
+  with today's seed: the org's rows are deleted with `WHERE org_id`, the
   triggers delete that org's uploaded rows, and the append-only triggers let
   a row go only while its own org's reset runs.
 

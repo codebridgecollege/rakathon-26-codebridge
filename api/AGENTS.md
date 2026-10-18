@@ -117,8 +117,8 @@ Design and the exact contract: `docs/research/backend-steps/step-4.md`, section 
   in it, seeded patient rows stay in D1), bumps that org's `demo_state.data_epoch`, aborts its open audio uploads and
   deletes R2 `org/<org>/uploads/`, `audio/`, `jobs/`, `cache/summary/` (for demo org A also the same prefixes without
   `org/`, used before orgs). People (`users`) are never deleted: the reset upserts the seeded people and memberships
-  and ends any other membership of the org. Row ids are not reset (`sqlite_sequence` is shared by all orgs). About 47
-  statements with today's seed (step 6 rows go through a trigger, see below).
+  and ends any other membership of the org. Row ids are not reset (`sqlite_sequence` is shared by all orgs). 45
+  statements for org A with today's seed (step 6 rows go through a trigger, see below).
 - Append-only triggers allow DELETE of a row only while its own org's `demo_state.reset_in_progress = 1` (migration
   0011), so a reset of one org cannot delete another org's history. A pilot database must not have that exception.
 - Deviation assessments have no write route (user decision 2026-10-17).
@@ -260,14 +260,19 @@ Design: `docs/design/AUTH.md` and `docs/design/DATABASE.md`, each with a section
   `orgQuery(c, sql, ...args)` (`src/routes/write-context.ts`) reads in the viewer's org. The org-bound stores
   (`D1Directory`, `D1Cases`, `D1Audit`, `D1Work`) take the org in their constructor. Routes take the org from the viewer
   (the membership), workflows get it in their parameters (`org`; an instance started before orgs has none and means
-  demo org A, `src/domain/orgs.ts`), and the cron job loops over the orgs. A record of another org answers 404.
+  demo org A, `src/domain/orgs.ts`), and the cron job loops over the orgs. A record of another org answers as if it did
+  not exist (404, or the route's own "not found" refusal).
 - **Checks.** `test/org-sql.test.ts` flags any SQL string in `src/` that touches an org table without naming `org_id`
   (a reminder: joins and subqueries escape it; mark a statement that is global by design, or a fragment whose caller
   adds the org, with `/* org-scope: <reason> */`). `test/orgs.test.ts` acts in org B with org A's IDs on every route and
   requires 404 or empty answers and org A unchanged. `test/data.ts` seeds a look-alike org B for every test.
 - **Migrating a deployed database.** 0011 rebuilds every org table, and old and new code do not run on each other's
-  schema, so: `npm run migrate:remote`, `npm run deploy` straight after, then `npm run seed:remote:reset` (the reset
-  document's format changed, and org B and the demo e-mails come from the seed). Rows written before keep their R2 keys
+  schema. CI deploys `main` (and uploads the `backend` preview, which uses the same database) without migrating, so
+  merging this needs a person at the keyboard: first check that no job or pipeline run is queued or running (a step of
+  an old Workflow that runs after the migration fails for good), merge, and as soon as the `main` deploy job starts run
+  `npm run migrate:remote`; once it has deployed, `npm run seed:remote:reset` (the reset document's format changed, and
+  org B and the demo e-mails come from the seed), and redeploy `backend` from a branch with these changes. The demo is
+  down in between. Rows written before keep their R2 keys
   (`docs/`, `pages/`, `uploads/`, `audio/` without the `org/` prefix), which stay readable. Add the per-org lifecycle
   rules above.
 - **Adding an org.** A row in `orgs` (a short lowercase id, a unique `case_id_prefix`), its `demo_state` row,

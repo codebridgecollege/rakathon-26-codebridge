@@ -304,7 +304,9 @@ section "Organizations".
   `auth_sessions` (the last two unused until step 3), rebuilds every org
   table with `org_id NOT NULL` and no default, composite foreign keys
   `(org_id, x_id)`, references to people through `memberships(org_id,
-  user_id)`, unique keys that start with `org_id`, and re-creates the
+  user_id)`, unique keys that start with `org_id` wherever orgs could share
+  a value (keys on IDs that are unique across orgs, such as a decision's
+  version per case, stay as they were), and re-creates the
   append-only and demo-reset triggers scoped to the row's org. Today's
   data goes to demo org A (`demo-a`). `access_log.auth_mode` accepts
   `'oidc'`, and a new column `acted_as_membership` names the membership
@@ -320,7 +322,8 @@ section "Organizations".
   one function (`orgStmt`, `src/store/sql.ts`) that the org-bound stores,
   the write batch (`Tx`) and the route helper `orgQuery` use. Routes take
   the org from the viewer's membership, workflows from their parameters,
-  the cron job loops over the orgs. A record of another org answers 404.
+  the cron job loops over the orgs. A record of another org answers as if
+  it did not exist (404, or the route's own "not found" refusal).
 - **Scoped places:** idempotency keys by org, person and key;
   break-the-glass and team checks by org; the phone upload acts with the
   membership of the upload session's org; the duplicate birth-number
@@ -363,7 +366,12 @@ section "Organizations".
   internal ID, so org B's case reads `B-NO-S01`; showing `case_no` belongs
   to the frontend step.
 - **Names are the person's.** Renaming someone on one org's staff screen
-  renames them in every org they belong to; their function is per org.
+  would rename them in every org they belong to, and the name check sees
+  only the acting org; their function is per org. Nothing can give a
+  person a second membership yet (every writer uses the person's id as the
+  membership id), so this and "acts in another org" below only apply once
+  step 3 provisions memberships; fix the rename then (check names across
+  the person's orgs, or keep the name per membership).
 - **The data epoch on `/api/health`** is the picked demo user's org (demo
   mode) or demo org A, since that route answers before any login; the app
   takes the epoch of its own org from `/api/me` and every answer.
@@ -379,4 +387,15 @@ section "Organizations".
   its org.
 - **The access log's `org_id`** has no foreign key, like its other IDs: the
   audit must outlive the rows it names.
+- **Known leak: shared counters.** Task, drafted-task and edit-log IDs are
+  AUTOINCREMENT numbers shared by all orgs and reach the browser, so a user
+  who writes twice can count another org's writes in between. Opaque or
+  per-org IDs would close it.
+- **Guideline and prognosis data** stay global R2 keys by case ID
+  (`guidance/`, `prognosis/`): the case ID is unique across orgs and the
+  case is opened (with its org check) before they are read.
+- **Deploying needs a coordinated migration.** CI deploys `main` without
+  migrating, and old and new code do not run on each other's schema, so
+  merging needs the steps in `api/AGENTS.md` ("Migrating a deployed
+  database") right after the deploy.
 
