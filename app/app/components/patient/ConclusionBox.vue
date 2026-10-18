@@ -5,8 +5,10 @@
 import { computed } from "vue";
 import { useFluent } from "fluent-vue";
 import { usePatient } from "../../composables/usePatient";
+import { useDiscussionStore } from "../../stores/discussion";
+import ConclusionDraft from "../discussion/ConclusionDraft.vue";
 import { fmtWhen } from "../../lib/dates";
-import { ageNum, surnameFirst } from "../../lib/patientRow";
+import { fillIdent as fillReportIdent } from "../../lib/report";
 
 type Decision = { id?: string; version?: number; text: string; by: string; when: string; reportSnap?: string };
 
@@ -20,20 +22,15 @@ const decisions = computed(() =>
     .map((d) => ({ ...d, when: fmtWhen(d.when) })),
 );
 const last = computed(() => decisions.value.at(-1) ?? null);
-const proto = computed(() => (c.wf.value.protocol ?? {}) as { state?: string; concl?: string });
+// The page's copy of the record: it holds typed text the server has not stored yet.
+const proto = computed(() => useDiscussionStore().protoOf(c.p.value.file));
 const closed = computed(() => c.p.value.status === "closed");
 const draftable = computed(() => c.isDoctor.value && proto.value.state !== "approved" && !closed.value);
 const earlier = computed(() => decisions.value.slice(0, -1).reverse());
 
 // The frozen report is stored without identity; the identity line is filled in from the list row when shown. The
 // snapshot is the page's own HTML from approval time (reportHtml() escaped every value), stored on the server.
-const identLine = computed(() => {
-  const p = c.p.value;
-  const gap = $t("patient-gap-not-stated");
-  return $t("patient-concl-ident", { name: surnameFirst(p), rc: p.rc || gap, age: ageNum(p) || gap, id: p.id });
-});
-const esc = (s: string) => s.replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[ch]!);
-const fillIdent = (html: string | undefined) => String(html || "").replace(/<p class="pt-ident"><\/p>/g, () => `<p class="pt-ident">${esc(identLine.value)}</p>`);
+const fillIdent = (html: string | undefined) => fillReportIdent(html, c.p.value, $t);
 </script>
 
 <template>
@@ -56,14 +53,11 @@ const fillIdent = (html: string | undefined) => String(html || "").replace(/<p c
         </ul>
       </details>
     </template>
-    <!-- Until the discussion card fills the draft slot, a doctor sees the same "not discussed" line as everyone. -->
-    <p v-else-if="!draftable || !$slots.draft" class="muted" style="font-size:14px">{{ $t("patient-concl-none") }}</p>
+    <p v-else-if="!draftable" class="muted" style="font-size:14px">{{ $t("patient-concl-none") }}</p>
     <template v-if="closed">
       <p v-if="proto.state !== 'approved' && String(proto.concl ?? '').trim()" class="muted small" style="margin:6px 0 0">{{ $t("patient-concl-unapproved") }} <span lang="cs">{{ proto.concl }}</span></p>
       <p class="small closedmsg" style="margin:6px 0 0">{{ $t("patient-concl-closed") }}</p>
     </template>
-    <!-- PORT(#13): the conclusion draft (label "Koncept nového závěru", textarea #concl with autosave, the draft note)
-         belongs to the discussion record and is ported with the discussion card (step 8). It goes here, when draftable. -->
-    <slot v-if="draftable" name="draft" :has-valid="!!last" />
+    <ConclusionDraft v-if="draftable" :has-valid="!!last" />
   </div>
 </template>

@@ -23,10 +23,9 @@ export type Overlay =
   | { kind: "pgpanel"; panel: number }
   | { kind: "breakglass"; file: string; msg: string }
   | { kind: "upload"; file: string }
-  // PORT(#13): opened from the patient header, drawn by the screens ported next (the MDT start dialog with attendance,
-  // steps 8-9; the report dialog, step 12). Until then opening them shows nothing.
   | { kind: "start"; day: string; from: string | null; attOnly: boolean }
-  | { kind: "report" };
+  // The report dialog of one case: the header that opened it names the case, so a report never follows another case.
+  | { kind: "report"; file: string };
 
 export const useOverlayStore = defineStore("overlay", () => {
   // Shallow: an overlay's own fields change through update(), so the dialog redraws exactly when they do.
