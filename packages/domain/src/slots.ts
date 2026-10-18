@@ -22,8 +22,10 @@ export function validateSlot(day: unknown, time: unknown): Slot {
 
 // Seminars repeat weekly (example schedule: Thursday 14:00-16:00). Booking outside is allowed, with a warning.
 const SEMINAR_BY_WEEKDAY: Record<number, [string, string]> = { 4: ["14:00", "16:00"] };
+// The seminar hours of a day ([from, to), "HH:MM"), or null on a day without a seminar; the calendar grid reads it too.
+export const seminarHours = (day: string): [string, string] | null => SEMINAR_BY_WEEKDAY[new Date(`${day}T12:00:00Z`).getUTCDay()] ?? null;
 export function seminarWarning(s: Slot): string | null {
-  const sem = SEMINAR_BY_WEEKDAY[new Date(`${s.day}T12:00:00Z`).getUTCDay()];
+  const sem = seminarHours(s.day);
   return !sem || s.time < sem[0] || s.time >= sem[1] ? "mimo čas semináře" : null;
 }
 
