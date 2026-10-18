@@ -16,13 +16,15 @@ const PNG = Uint8Array.from(atob("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAA
 
 const FROM = "2026-01-01T00:00:00.000Z";
 // The reset restores people and memberships with an upsert; they are never deleted (AUTH.md).
-const USERS_UPSERT = "ON CONFLICT(id) DO UPDATE SET pre = excluded.pre, sur = excluded.sur, post = excluded.post, active = 1";
+// As seed.py writes it: a person is restored only when they have a membership in the org being reset.
+const USERS_UPSERT = (org: string) =>
+  `ON CONFLICT(id) DO UPDATE SET pre = excluded.pre, sur = excluded.sur, post = excluded.post, active = 1 WHERE EXISTS (SELECT 1 FROM memberships m WHERE m.org_id = '${org}' AND m.user_id = users.id)`;
 const MEMBERSHIPS_UPSERT = "ON CONFLICT(id) DO UPDATE SET role_id = excluded.role_id, fn = excluded.fn, active_until = NULL WHERE memberships.org_id = excluded.org_id";
 
 // The rows reset-demo restores, per org (seed/reset.json); the rest of the fixture is seed-only.
 export const MUTABLE_A = [
   `INSERT INTO users (id, pre, sur) VALUES ('d1p1','MUDr.','Novák'), ('d2p1','MUDr.','Svobodová'), ('coord','Bc.','Marková'), ('admin','Ing.','Kovář'),
-     ('gone','MUDr.','Bývalý') ${USERS_UPSERT}`,
+     ('gone','MUDr.','Bývalý') ${USERS_UPSERT("demo-a")}`,
   `INSERT INTO memberships (id, org_id, user_id, role_id, active_from) VALUES ('d1p1','demo-a','d1p1','doctor','${FROM}'), ('d2p1','demo-a','d2p1','doctor','${FROM}'),
      ('coord','demo-a','coord','coordinator','${FROM}'), ('admin','demo-a','admin','admin','${FROM}') ${MEMBERSHIPS_UPSERT}`,
   "INSERT INTO departments (id, org_id, name, sort) VALUES ('d1','demo-a','Neurochirurgie',0), ('d2','demo-a','Klinická onkologie',1)",
@@ -42,7 +44,7 @@ export const MUTABLE_A = [
 const ENDED_A = `INSERT INTO memberships (id, org_id, user_id, role_id, active_from, active_until) VALUES ('gone','demo-a','gone','doctor','${FROM}','2026-02-01T00:00:00.000Z')`;
 
 export const MUTABLE_B = [
-  `INSERT INTO users (id, pre, sur) VALUES ('b-doc','MUDr.','Bédoktorová'), ('b-coord','Bc.','Békoordinátorová'), ('b-admin','Ing.','Béspráva') ${USERS_UPSERT}`,
+  `INSERT INTO users (id, pre, sur) VALUES ('b-doc','MUDr.','Bédoktorová'), ('b-coord','Bc.','Békoordinátorová'), ('b-admin','Ing.','Béspráva') ${USERS_UPSERT("demo-b")}`,
   `INSERT INTO memberships (id, org_id, user_id, role_id, active_from) VALUES ('b-doc','demo-b','b-doc','doctor','${FROM}'),
      ('b-coord','demo-b','b-coord','coordinator','${FROM}'), ('b-admin','demo-b','b-admin','admin','${FROM}') ${MEMBERSHIPS_UPSERT}`,
   // The same department name as org A's: names are unique per org.

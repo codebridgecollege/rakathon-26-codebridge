@@ -42,11 +42,11 @@ DB_NAME = "codebridge-mdt"
 BUCKET = "codebridge-mdt"
 MAX_STATEMENT = 90_000  # D1 refuses SQL statements over 100 KB; keep a margin.
 
-# Tables in dependency order (parents first). --reset deletes them in the reverse order. orgs, demo_state, users and
-# user_identities are not in it: orgs and people are upserted, never deleted (AUTH.md, "Demo reset is per org"), and
-# each org keeps its data epoch across a reseed.
+# Tables in dependency order (parents first). --reset deletes them in the reverse order. orgs, demo_state, users,
+# memberships, roles and user_identities are not in it: orgs, people and memberships are upserted, never deleted (AUTH.md,
+# "Demo reset is per org"; a membership outside the seed is ended), and each org keeps its data epoch across a reseed.
 TABLES = [
-    "roles", "memberships", "departments", "dept_members", "patients", "cases", "case_members", "status_history",
+    "departments", "dept_members", "patients", "cases", "case_members", "status_history",
     "slots", "sessions", "attendance", "protocols", "decisions", "task_suggestions", "tasks",
     "question_confirmations", "fact_edits", "edit_log", "extraction_runs", "alerts", "alert_events",
     "documents", "document_parts", "pages", "fixture_files", "fixture_patients", "recordings", "jobs", "transcript_passes",
@@ -409,7 +409,11 @@ ROWS: list[tuple[str, dict]] = []  # every seeded row, for the grouped statement
 # The reset's upserts: people and memberships are restored, never deleted (AUTH.md, "Demo reset is per org"). A
 # membership row is updated only when it belongs to the org being reset.
 CONFLICT = {
-    "users": "ON CONFLICT(id) DO UPDATE SET pre = excluded.pre, sur = excluded.sur, post = excluded.post, email = excluded.email, active = 1",
+    # roles are global and referenced by memberships, which a reseed keeps.
+    "roles": "ON CONFLICT(id) DO UPDATE SET label_cs = excluded.label_cs",
+    # {org} is filled per org: a person is renamed only when they have a membership in the org being reset.
+    "users": "ON CONFLICT(id) DO UPDATE SET pre = excluded.pre, sur = excluded.sur, post = excluded.post, email = excluded.email, active = 1"
+             " WHERE EXISTS (SELECT 1 FROM memberships m WHERE m.org_id = {org} AND m.user_id = users.id)",
     "memberships": "ON CONFLICT(id) DO UPDATE SET role_id = excluded.role_id, fn = excluded.fn, active_until = NULL WHERE memberships.org_id = excluded.org_id",
 }
 
@@ -423,7 +427,8 @@ def insert(table: str, row: dict) -> str:
     ROWS.append((table, row))
     cols = ", ".join(sql_cols(row))
     vals = ", ".join(lit(v) for v in sql_cols(row).values())
-    stmt = f"INSERT INTO {table} ({cols}) VALUES ({vals}){' ' + CONFLICT[table] if table in CONFLICT else ''};"
+    org = row.get("org_id") or row.get("_org")
+    stmt = f"INSERT INTO {table} ({cols}) VALUES ({vals}){' ' + CONFLICT[table].format(org=lit(org)) if table in CONFLICT else ''};"
     if len(stmt.encode()) > MAX_STATEMENT:
         sys.exit(f"seed: statement for {table} is {len(stmt.encode())} bytes, over the D1 limit")
     return stmt
@@ -437,7 +442,7 @@ def grouped_inserts(tables: list[str], org: str) -> list[str]:
         by_cols: dict[tuple, list[dict]] = {}
         for r in rows:
             by_cols.setdefault(tuple(r), []).append(r)
-        tail = f" {CONFLICT[t]}" if t in CONFLICT else ""
+        tail = f" {CONFLICT[t].format(org=lit(org))}" if t in CONFLICT else ""
         for cols, rs in by_cols.items():
             head = f"INSERT INTO {t} ({', '.join(cols)}) VALUES "
             chunk: list[str] = []
@@ -858,6 +863,8 @@ def main() -> None:
         prefix += ["UPDATE demo_state SET reset_in_progress = 1;"]
         prefix += [f"DELETE FROM {t};" for t in reversed(TABLES)]
         prefix += ["DELETE FROM sqlite_sequence WHERE name <> 'demo_state';"]
+        seeded = jdump([r["id"] for t, r in ROWS if t == "memberships"])
+        prefix += [f"UPDATE memberships SET active_until = {lit(now)} WHERE active_until IS NULL AND id NOT IN (SELECT value FROM json_each({lit(seeded)}));"]
     suffix = [f"UPDATE demo_state SET reset_in_progress = 0, data_epoch = data_epoch + {1 if a.reset else 0}, seed_version = {lit(git)},"
               f" reset_at = {lit(now) if a.reset else 'reset_at'}, reset_by = {lit('seed.py') if a.reset else 'reset_by'};"]
     sql = sql + suffix

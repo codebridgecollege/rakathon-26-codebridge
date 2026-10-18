@@ -85,7 +85,12 @@ export class App {
 
   // The demo has no login: the user picker in the header stands in for it.
   async loginAs(label: string): Promise<void> {
+    // A switch reloads the new user's data; the role the page acts on is set once that is in, and the page shows no
+    // signal for it, so the suite waits for the last read of the switch (the workflow) when the user really changes.
+    const selected = await this.userPicker.getByRole("option", { selected: true }).textContent();
+    const loaded = selected?.trim() === label ? null : this.page.waitForResponse((r) => new URL(r.url()).pathname === "/api/workflow");
     await this.userPicker.selectOption({ label });
+    await loaded;
     await expect(this.userPicker.getByRole("option", { selected: true })).toHaveText(label);
   }
 

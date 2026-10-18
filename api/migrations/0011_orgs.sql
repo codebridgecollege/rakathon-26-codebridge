@@ -101,7 +101,9 @@ CREATE TABLE memberships (
   active_from   TEXT NOT NULL CHECK (active_from GLOB '[0-9][0-9][0-9][0-9]-*Z'),
   active_until  TEXT CHECK (active_until IS NULL OR active_until GLOB '[0-9][0-9][0-9][0-9]-*Z'),
   created_at    TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')) CHECK (created_at GLOB '[0-9][0-9][0-9][0-9]-*Z'),
-  UNIQUE (org_id, user_id)
+  UNIQUE (org_id, user_id),
+  -- The target of a login session's reference: the membership, its org and its person always belong together.
+  UNIQUE (id, org_id, user_id)
 );
 
 -- Step 3 (login): issuer and subject of a person at the IdP. Two during a move from one IdP to another.
@@ -120,11 +122,13 @@ CREATE TABLE auth_sessions (
   id_hash        TEXT PRIMARY KEY CHECK (length(id_hash) = 64),
   user_id        TEXT NOT NULL REFERENCES users(id),
   org_id         TEXT NOT NULL REFERENCES orgs(id),
-  membership_id  TEXT NOT NULL REFERENCES memberships(id),  -- the membership acted as (a role switch in a demo org)
+  membership_id  TEXT NOT NULL,                             -- the membership acted as (a role switch in a demo org)
   id_token       TEXT,                                      -- only as long as the logout hint needs it
   created_at     TEXT NOT NULL CHECK (created_at GLOB '[0-9][0-9][0-9][0-9]-*Z'),
   last_used_at   TEXT NOT NULL CHECK (last_used_at GLOB '[0-9][0-9][0-9][0-9]-*Z'),
-  expires_at     TEXT NOT NULL CHECK (expires_at GLOB '[0-9][0-9][0-9][0-9]-*Z')
+  expires_at     TEXT NOT NULL CHECK (expires_at GLOB '[0-9][0-9][0-9][0-9]-*Z'),
+  -- A session cannot name one org and act with a membership of another.
+  FOREIGN KEY (membership_id, org_id, user_id) REFERENCES memberships(id, org_id, user_id)
 );
 CREATE INDEX auth_sessions_expiry ON auth_sessions(expires_at);
 
@@ -798,7 +802,7 @@ CREATE TABLE write_guards (
 -- the new data, and a reset of one org never reloads a demo running in another. reset_in_progress is 1 only inside
 -- that org's reset batch; the append-only triggers let deletes of that org's rows through only then.
 CREATE TABLE demo_state (
-  org_id             TEXT PRIMARY KEY REFERENCES orgs(id),
+  org_id             TEXT NOT NULL PRIMARY KEY REFERENCES orgs(id),
   seed_version       TEXT,
   data_epoch         INTEGER NOT NULL DEFAULT 1,
   reset_at           TEXT,

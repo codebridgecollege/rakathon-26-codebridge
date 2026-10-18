@@ -277,7 +277,10 @@ export const writeWork = new Hono<AppEnv>()
     ).first<{ n: number | null; o: number | null }>();
     const lastOrder = (await orgQuery(c, "SELECT MAX(list_order) AS o FROM cases WHERE org_id = ?org").first<{ o: number | null }>())?.o ?? 0;
     const n = Math.max(100, (max?.n ?? 0) + 1);
-    const prefix = (await orgById(c.env.DB, c.var.viewer.org))?.case_id_prefix ?? "";
+    // An org without its row would fall back to org A's empty prefix and could take org A's IDs; refuse instead.
+    const org = await orgById(c.env.DB, c.var.viewer.org);
+    if (!org) throw E.notConfigured();
+    const prefix = org.case_id_prefix;
     const { id: caseNo, file } = intakeCaseId(fixtureId, fixtureTaken, n);
     const id = `${prefix}${caseNo}`;
     const v = c.var.viewer;
