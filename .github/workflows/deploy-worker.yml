@@ -1,20 +1,22 @@
-# Tests the API Worker, the Nuxt app and the shared packages, then deploys the Worker with the app at / and today's
-# page at /legacy/: main -> production (codebridge-mdt.<subdomain>.workers.dev), backend -> preview alias "backend".
-# Pages (deploy-mock.yml) keeps deploying main until the Worker replaces it.
+# Tests the API Worker, the Nuxt app and the shared packages, runs the browser suite (e2e/) against local Workers,
+# then deploys the Worker with the app at /: main -> production (codebridge-mdt.<subdomain>.workers.dev), backend ->
+# preview alias "backend". The deploy runs only when the unit tests and the browser suite both pass.
 name: Deploy worker
 
+# The browser suite reads e2e/ and drives everything the Worker serves; the tests read the fixtures and the samples.
 on:
   push:
     branches: [main, backend]
-    paths: ["api/**", "app/**", "packages/**", "i18n/**", "package.json", "package-lock.json", "fixtures/**", "data/derived/**", "samples/**", "docs/NO-A/**", ".github/workflows/deploy-worker.yml"]
-  # The same files: the tests read the mock data, the samples and the template CSS, and the test job stages everything.
+    paths: ["api/**", "app/**", "packages/**", "i18n/**", "e2e/**", "package.json", "package-lock.json", "fixtures/**", "data/derived/**", "samples/**", "docs/NO-A/**", ".github/workflows/deploy-worker.yml"]
   pull_request:
-    paths: ["api/**", "app/**", "packages/**", "i18n/**", "package.json", "package-lock.json", "fixtures/**", "data/derived/**", "samples/**", "docs/NO-A/**", ".github/workflows/deploy-worker.yml"]
+    paths: ["api/**", "app/**", "packages/**", "i18n/**", "e2e/**", "package.json", "package-lock.json", "fixtures/**", "data/derived/**", "samples/**", "docs/NO-A/**", ".github/workflows/deploy-worker.yml"]
+  # A manual run on any branch tests it; only main and backend deploy.
   workflow_dispatch:
 
-# One Worker, so one deploy at a time across branches; a newer push replaces a queued one.
+# One Worker, so one deploy at a time; a newer push replaces a queued one. Runs that cannot deploy (pull requests,
+# manual runs on other branches) queue per branch and never cancel a deploy.
 concurrency:
-  group: deploy-worker-${{ github.event_name == 'pull_request' && github.ref || 'deploy' }}
+  group: deploy-worker-${{ github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/backend') && 'deploy' || github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -49,9 +51,67 @@ jobs:
         run: npm run stage
       - run: npm run size -w @codebridge/app
 
+  # The browser suite (e2e/README.md) on four local Workers at once, each with its own seeded local D1 and R2. The job
+  # gets no secrets: the Workers run without speech, model or pipeline keys, as the suite requires (it stops when
+  # /api/health reports either), and nothing here talks to Cloudflare.
+  e2e:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      E2E_WORKERS: "4"
+      WRANGLER_SEND_METRICS: "false"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            e2e/package-lock.json
+      # The seed (api/seed/seed.py) is a uv script with no dependencies.
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.12.0"
+      - run: npm ci
+      - run: npm ci
+        working-directory: e2e
+      # Chromium for the pinned Playwright, cached by the lockfile; the system libraries it needs are installed on
+      # every run (apt packages are not in the cache).
+      - name: Cache the Playwright browser
+        id: pw-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('e2e/package-lock.json') }}
+      - name: Install Chromium
+        if: steps.pw-cache.outputs.cache-hit != 'true'
+        working-directory: e2e
+        run: npx playwright install --with-deps chromium
+      - name: Install Chromium's system libraries
+        if: steps.pw-cache.outputs.cache-hit == 'true'
+        working-directory: e2e
+        run: npx playwright install-deps chromium
+      - name: Stage the Worker's files
+        working-directory: api
+        run: npm run stage
+      # Seeds one local state, copies it per Worker, starts the Workers, runs the suite and stops them.
+      - name: Browser suite
+        run: npm --prefix e2e run test:parallel
+      - name: Upload the report, traces and Worker logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            e2e/playwright-report/
+            e2e/test-results/
+            api/.wrangler/e2e/*.log
+          retention-days: 7
+
   deploy:
-    needs: test
-    if: github.event_name != 'pull_request'
+    needs: [test, e2e]
+    if: github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/backend')
     runs-on: ubuntu-24.04
     defaults:
       run:
