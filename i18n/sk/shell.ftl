@@ -78,6 +78,7 @@ api-error-write-timeout = Server neodpovedal včas. Skúste to znova.
 api-error-write-network = Server neodpovedá. Skontrolujte pripojenie a skúste to znova.
 api-error-write-failed = Zmenu sa nepodarilo uložiť.
 data-reset-reload = Ukážkové údaje boli obnovené, stránka sa znova načíta.
+session-changed-reload = Prihlásenie sa v inom okne zmenilo, stránka sa znova načíta.
 user-switch-unknown = Tento používateľ nie je v zozname na serveri.
 case-data-bad-shape = Server vrátil údaje prípadu v neznámom tvare.
 

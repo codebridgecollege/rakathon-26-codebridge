@@ -3,6 +3,7 @@ import { getCookie } from "hono/cookie";
 import type { AppEnv } from "../types";
 import { E } from "../http/errors";
 import { SESSION_COOKIE, sessionLive, sessionOf, touchSession } from "./session";
+import { actsInApp, membershipById } from "../store/people";
 
 export const auth = (): MiddlewareHandler<AppEnv> => async (c, next) => {
   const mode = c.env.AUTH_MODE;
@@ -17,6 +18,8 @@ export const auth = (): MiddlewareHandler<AppEnv> => async (c, next) => {
     // A missing, unknown, expired or idle session reads the same to the caller: log in again. The row stays for the
     // sweep (auth/session.ts, sweepSessions).
     if (!s || !sessionLive(s)) throw E.unauthenticated();
+    // The routes without a viewer (speech, summary) must not outlive a membership ended in the app either.
+    if (!actsInApp(await membershipById(c.env.DB, s.membership_id))) throw E.unknownUser();
     await touchSession(c.env.DB, s);
     c.set("user", {
       mode: "oidc",

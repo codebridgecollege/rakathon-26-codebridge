@@ -7,7 +7,7 @@
 import { defineStore } from "pinia";
 import { computed, ref } from "vue";
 import { ApiError, type DemoPicker, type Health, type Me, type WorkflowState } from "@codebridge/api-client";
-import { onDataReset, onUnauthenticated, useApi } from "../lib/api";
+import { onDataReset, onSessionChanged, onUnauthenticated, useApi } from "../lib/api";
 import { chooseLocale, storedLocale } from "../lib/i18n";
 import { useCasesStore } from "./cases";
 import { usePatientsStore } from "./patients";
@@ -66,6 +66,13 @@ export const useSessionStore = defineStore("session", () => {
     error.value = { message_cs: null, message_id: "data-reset-reload" };
     setTimeout(() => reload(), 1500);
   });
+  // Another tab switched org or role, or another person logged in: this tab shows someone the session no longer is.
+  onSessionChanged(() => {
+    if (resetting.value) return;
+    resetting.value = true;
+    error.value = { message_cs: null, message_id: "session-changed-reload" };
+    setTimeout(() => reload(), 1500);
+  });
 
   function setDemoUser(id: string | null) {
     // With a login the session cookie says who it is; a picked id would only be ignored by the server.
@@ -74,12 +81,19 @@ export const useSessionStore = defineStore("session", () => {
     if (id) setDemoUserCookie(id);
   }
 
+  // With a login, every request names whom this tab shows, so a switch or another login in a second tab (one session
+  // cookie serves them all) is refused instead of acting as someone else here (409 session_changed, then a reload).
+  function setShown(who: Me | null) {
+    useApi().setActingAs(oidc.value && who ? `${who.membership_id}:${who.real_user?.id ?? who.user.id}` : null);
+  }
+
   // Everything the shell needs from the server. Nothing is assigned until every request succeeded, so a failed
   // switch leaves the previous user's view whole.
   async function loadFromApi() {
     const api = useApi();
     const who = await api.me();
     setDemoUser(who.membership_id);
+    setShown(who);
     // Case data loads per case when a case is opened (cases store); /workflow is the stored state of every case this
     // user may read, so a reload shows what the server holds.
     const [staff, list, tasks, wf] = await Promise.all([api.staff(), api.patients(), api.tasks("all"), api.workflow()]);
@@ -206,7 +220,7 @@ export const useSessionStore = defineStore("session", () => {
     rotating = p;
     try {
       await p;
-      switchedAt = Date.now();
+      switchedAt = performance.now();
     } finally {
       rotating = null;
     }
@@ -240,25 +254,27 @@ export const useSessionStore = defineStore("session", () => {
   }
 
   // The dialog's way back: the person who was here, acting as the same membership.
-  let expiredFor: { user: string; membership: string } | null = null;
+  let expiredFor: { user: string; membership: string; org: string } | null = null;
   let resume: ((retry: boolean) => void) | null = null;
   let resumed: Promise<boolean> | null = null;
 
   // Every 401 of the API comes here (lib/api.ts). True sends the refused request again.
-  async function handleUnauthenticated(info: { sentAt: number }): Promise<boolean> {
+  async function handleUnauthenticated(info: { sentAt: number; method: string }): Promise<boolean> {
     if (!oidc.value) return false;
-    // The request left with the session ID that a switch is replacing or has replaced: send it again.
+    // The request left with the session ID that a switch is replacing or has replaced. A read goes again under the new
+    // identity; a write does not, because it belongs to the user who made it (the switch protocol stored what it could
+    // before the switch).
     if (rotating) {
       await rotating.catch(() => undefined);
-      return true;
+      return info.method === "GET";
     }
-    if (info.sentAt < switchedAt) return true;
+    if (info.sentAt <= switchedAt) return info.method === "GET";
     if (!me.value || !hasUnsaved()) {
       goToLogin();
       return false;
     }
     if (!resumed) {
-      expiredFor = { user: me.value.real_user?.id ?? me.value.user.id, membership: me.value.membership_id };
+      expiredFor = { user: me.value.real_user?.id ?? me.value.user.id, membership: me.value.membership_id, org: me.value.org.id };
       expired.value = "waiting";
       resumed = new Promise<boolean>((res) => (resume = res)).finally(() => {
         resumed = null;
@@ -285,7 +301,19 @@ export const useSessionStore = defineStore("session", () => {
       expired.value = "still";
       return;
     }
-    const same = expiredFor && (who.real_user?.id ?? who.user.id) === expiredFor.user && who.membership_id === expiredFor.membership;
+    // A new login lands in the person's first org as themselves; the same person gets the org and role back that the
+    // unsaved work belongs to, with the same switches (and server checks) as the account menu.
+    const want = expiredFor;
+    if (want && (who.real_user?.id ?? who.user.id) === want.user && who.membership_id !== want.membership) {
+      try {
+        if (who.org.id !== want.org) await rotate(() => useApi().switchOrg(want.org));
+        if (want.membership !== (await useApi().me({ retryAfterLogin: false })).membership_id) await rotate(() => useApi().switchRole(want.membership));
+        who = await useApi().me({ retryAfterLogin: false });
+      } catch {
+        // Not possible any more (a membership ended): the check below shows the other-login state.
+      }
+    }
+    const same = want && (who.real_user?.id ?? who.user.id) === want.user && who.membership_id === want.membership;
     if (!same) {
       expired.value = "other";
       return;

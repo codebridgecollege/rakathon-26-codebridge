@@ -11,7 +11,7 @@ import { setApi } from "../app/lib/api";
 import { loginUrl, useSessionStore } from "../app/stores/session";
 import AppHeader from "../app/components/AppHeader.vue";
 import SessionExpiredDialog from "../app/components/SessionExpiredDialog.vue";
-import { mockApi, row } from "./helpers";
+import { deferred, mockApi, row } from "./helpers";
 
 const orgA = { id: "demo-a", name: "Ukázková nemocnice A", short_name: "Nemocnice A", is_demo: true };
 const orgH = { id: "hosp", name: "Nemocnice H", short_name: "H", is_demo: false };
@@ -215,27 +215,78 @@ describe("a lost session", () => {
     expect(reloaded).toBe(1);
   });
 
-  it("sends again, without the dialog, a request that still carried the session ID a switch replaced", async () => {
-    let first = true;
+  it("after a switch, sends a read refused with the old session ID again, but never a write under the new identity", async () => {
+    const hold = deferred<void>();
+    let writes = 0;
+    let reads = 0;
     const m = server({
-      "/cases/NO-1/protocol": () => {
-        if (first) {
-          first = false;
-          return LOST;
-        }
-        return { data: {}, data_epoch: 4, state: {} };
+      "/cases/NO-1/protocol": async () => {
+        writes++;
+        await hold.promise;
+        return LOST;
+      },
+      "/calendar": async () => {
+        reads++;
+        if (reads > 1) return { days: [] };
+        await hold.promise;
+        return LOST;
       },
     });
     setApi(m.api);
     const s = useSessionStore();
     await s.boot();
     s.onUnsavedCheck(() => true);
-    // The write leaves, then the role switch takes effect, then the write's 401 arrives.
-    const sent = m.api.transport.write("PUT", "/cases/NO-1/protocol", { notes: "x" });
-    await s.switchRole("d2p1");
-    await expect(sent).resolves.toBeTruthy();
+    // Both leave with the old session ID; their 401s arrive only after the role switch took effect.
+    const write = m.api.transport.write("PUT", "/cases/NO-1/protocol", { notes: "x" });
+    const read = m.api.transport.get("/calendar");
+    await flushPromises();
+    expect(await s.switchRole("d2p1")).toBe(true);
+    hold.resolve();
+    await expect(read).resolves.toEqual({ days: [] });
+    await expect(write).rejects.toMatchObject({ code: "unauthenticated" });
+    expect(writes).toBe(1);
     expect(s.expired).toBeNull();
     expect(navigated).toEqual([]);
+  });
+
+  it("names whom the tab shows on every request but /me, and reloads when another tab changed the session", async () => {
+    const m = server({ "/patients": (_u: string, init: RequestInit) => (new Headers(init.headers).get("X-Acting-As") === "admin:admin" ? { patients: [row(1)], total: 1, page: 0 } : [409, { error: { code: "session_changed", message_cs: "x" } }]) });
+    setApi(m.api);
+    const s = useSessionStore();
+    let reloaded = 0;
+    s.setReload(() => reloaded++);
+    await s.boot();
+    expect(s.phase).toBe("ready");
+    const sent = (p: string) => m.calls.filter((c) => c.url.startsWith(`/api/${p}`)).map((c) => new Headers(c.init.headers).get("X-Acting-As"));
+    expect(sent("me")).toEqual([null]);
+    expect(sent("staff")).toEqual(["admin:admin"]);
+    // A second tab switched role: the server now acts as the doctor, this tab still shows the administrator.
+    m.api.setActingAs("d2p1:admin");
+    vi.useFakeTimers();
+    await expect(m.api.patients()).rejects.toMatchObject({ code: "session_changed" });
+    expect(s.error?.message_id).toBe("session-changed-reload");
+    vi.advanceTimersByTime(1500);
+    vi.useRealTimers();
+    expect(reloaded).toBe(1);
+  });
+
+  it("after a new login in the second window, switches the same person back to the role the unsaved work belongs to", async () => {
+    const m = server({ "/cases/NO-1/protocol": () => (session === meActing ? { data: {}, data_epoch: 4, state: {} } : LOST) });
+    setApi(m.api);
+    const s = useSessionStore();
+    await s.boot();
+    await s.switchRole("d2p1");
+    s.onUnsavedCheck(() => true);
+    session = null;
+    const write = m.api.transport.write("PUT", "/cases/NO-1/protocol", { notes: "x" });
+    await flushPromises();
+    expect(s.expired).toBe("waiting");
+    // The new login acts as the administrator again; the store switches back to the doctor, then sends the write.
+    session = meAdmin;
+    await s.checkLogin();
+    await expect(write).resolves.toMatchObject({ data_epoch: 4 });
+    expect(m.calls.filter((c) => c.url === "/api/session/role").length).toBe(2);
+    expect(s.expired).toBeNull();
   });
 
   it("does nothing special in demo mode", async () => {

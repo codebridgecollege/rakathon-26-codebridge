@@ -91,7 +91,7 @@ export const demo = new Hono<AppEnv>().post("/admin/reset-demo", async (c) => {
     // Memberships added after the seed end (the people stay); the seeded ones are restored by the statements below.
     q("UPDATE memberships SET active_until = ?1 WHERE org_id = ?org AND active_until IS NULL AND id NOT IN (SELECT value FROM json_each(?2))", resetAt, JSON.stringify(sec.membership_ids)),
     ...sec.statements.map((s) => db.prepare(s)),
-    q("UPDATE demo_state SET reset_in_progress = 0, data_epoch = data_epoch + 1, reset_at = ?1, reset_by = ?2, seed_version = ?3 WHERE org_id = ?org", resetAt, v.name, doc.seed_version),
+    q("UPDATE demo_state SET reset_in_progress = 0, data_epoch = data_epoch + 1, reset_at = ?1, reset_by = ?2, seed_version = ?3 WHERE org_id = ?org", resetAt, v.actor?.name ?? v.name, doc.seed_version),
   ];
   const epochAfter = (c.var.epoch ?? 0) + 1;
   stmts.push(

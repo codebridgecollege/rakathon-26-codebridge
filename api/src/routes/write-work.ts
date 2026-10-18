@@ -307,11 +307,11 @@ export const writeWork = new Hono<AppEnv>()
     t.run(
       `INSERT INTO cases (org_id, id, case_no, patient_id, source_file, list_order, status, processing_level, question_text, question_explicit, question_purpose,
          diagnosis_text, summary_one_line, owner_user_id, owner_name, referring_dept, submitted_on, updated_on, duplicate_override_reason, created_by, created_at,
-         intake_open, referral_sha256)
-       VALUES (?org, ?1, ?17, ?2, ?3, ?4, 'new', 'none', ?5, ?6, NULL, ?7, NULL, ?8, ?9, ?10, ?11, ?11, ?12, ?13, ?14, ?15, ?16)`,
+         intake_open, referral_sha256, created_by_actor)
+       VALUES (?org, ?1, ?17, ?2, ?3, ?4, 'new', 'none', ?5, ?6, NULL, ?7, NULL, ?8, ?9, ?10, ?11, ?11, ?12, ?13, ?14, ?15, ?16, ?18)`,
       id, `pt-${id}`, file, lastOrder + 1, ref.question, ref.question ? 1 : 0,
       // The documents decide the diagnosis; until a doctor reviews them the list says so instead of guessing.
-      "Čeká na kontrolu lékařem", staff.idByName.get(owner) ?? null, owner, ref.dept, day, override?.reason ?? null, v.id, at, intake ? 1 : 0, referralSha, caseNo,
+      "Čeká na kontrolu lékařem", staff.idByName.get(owner) ?? null, owner, ref.dept, day, override?.reason ?? null, v.id, at, intake ? 1 : 0, referralSha, caseNo, v.actor?.id ?? null,
     );
     if (NEW_CASE_MEMBERS === "all_mdt_departments")
       t.run("INSERT INTO case_members (org_id, case_id, dept_id, reason, added_by, added_at) SELECT ?org, ?1, id, 'nový případ: oddělení MDT', ?2, ?3 FROM departments WHERE org_id = ?org", id, v.id, at);

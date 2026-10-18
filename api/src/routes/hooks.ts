@@ -56,9 +56,9 @@ export const hooks = {
     const id = passIdFor(decisionId);
     const v = c.var.viewer;
     t.run(
-      `INSERT INTO jobs (org_id, id, kind, case_id, workflow, instance_id, attempt, state, phase, result_ref, created_by, created_by_name, created_by_role, created_at, updated_at)
-       VALUES (?org, ?1, 'speaker_pass', ?2, 'SPEAKER_PASS', ?1, 1, 'queued', NULL, ?1, ?3, ?4, ?5, ?6, ?6)`,
-      id, caseId, v.id, v.name, v.role, atIso,
+      `INSERT INTO jobs (org_id, id, kind, case_id, workflow, instance_id, attempt, state, phase, result_ref, created_by, created_by_name, created_by_role, created_by_actor, created_at, updated_at)
+       VALUES (?org, ?1, 'speaker_pass', ?2, 'SPEAKER_PASS', ?1, 1, 'queued', NULL, ?1, ?3, ?4, ?5, ?7, ?6, ?6)`,
+      id, caseId, v.id, v.name, v.role, atIso, v.actor?.id ?? null,
     );
     t.run(
       `INSERT INTO transcript_passes (org_id, id, case_id, decision_id, job_id, from_wall_ms, cutoff_wall_ms, state, created_at, updated_at)

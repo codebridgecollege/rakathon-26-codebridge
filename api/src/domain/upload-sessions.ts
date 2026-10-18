@@ -16,6 +16,8 @@ export type SessionRow = {
   case_id: string;
   target: UploadTarget;
   created_by: string;
+  // The person logged in when the session was opened under a role switch (demo orgs); null otherwise.
+  created_by_actor: string | null;
   created_at: string;
   expires_at: string;
   closed_at: string | null;

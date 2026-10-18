@@ -56,6 +56,11 @@ export const viewer = (): MiddlewareHandler<AppEnv> => async (c, next) => {
       if (!user.isDemoOrg || !actsInApp(a) || a.org_id !== user.org) throw E.unknownUser();
       m = a;
     }
+    // One session cookie serves every tab of the browser. A tab names whom it shows (X-Acting-As: membership and
+    // person, set from /api/me); after a switch or another login in a second tab, it is refused before it reads or
+    // writes anything as the new identity, and reloads.
+    const shown = c.req.header("x-acting-as");
+    if (shown && shown !== `${m.id}:${own.user_id}`) throw E.sessionChanged();
     const stores = makeStores(c.env, m.org_id);
     const v = await viewerOf(stores, m, "oidc");
     if (m !== own) {

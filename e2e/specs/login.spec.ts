@@ -106,11 +106,15 @@ test("a lost session with nothing unsaved goes through the login and back to whe
   await logInAtIdp(page, DOCTOR_A);
   await expect(app.patientRows().first()).toBeVisible();
   await context.clearCookies({ name: "__Host-cb_session" });
-  await app.nav("Kalendář MDT").click();
-  // The IdP still has its own session, so the login passes without its page, as with Zitadel.
-  await expect(app.main.getByRole("heading", { level: 1, name: "Kalendář MDT" })).toBeVisible();
-  await expect(page).toHaveURL(/\/calendar/);
+  // Opening a case reads it from the server, which refuses the request without a session; the page goes through the
+  // login. The IdP still has its own session, so the login passes without its page, as with Zitadel.
+  const relogin = page.waitForResponse((r) => new URL(r.url()).pathname === "/auth/callback");
+  await app.patientRow("Poláček Daniel").getByRole("cell", { name: "Poláček Daniel", exact: false }).first().click();
+  await relogin;
+  await expect(app.main.getByRole("heading", { level: 1, name: /Poláček Daniel/ })).toBeVisible();
+  await expect(page).toHaveURL(/\/patient\/10\//);
   await expect(account(page, "MUDr. Svobodová")).toBeVisible();
+  expect((await context.cookies()).some((c) => c.name === "__Host-cb_session")).toBe(true);
 });
 
 test("a lost session with an unsaved draft keeps the page, logs in in a second window and stores the draft", async ({ app, page, context }) => {

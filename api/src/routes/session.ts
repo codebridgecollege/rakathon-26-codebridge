@@ -53,8 +53,9 @@ export const session = new Hono<AppEnv>()
     const b = await bodyOf(c);
     const target = (await activeMembershipsOfUser(c.env.DB, u.userId)).filter(actsInApp).find((m) => m.org_id === b.org_id);
     if (!target) throw orgNotFound();
-    await rotated(c, { org: target.org_id, membershipId: target.id, actingMembershipId: null });
+    // Logged first: a switch must never happen without its row (a failed insert stops it with a 500).
     await logSessionEvent(c.env, target, null, "session.org", "přepnul(a) organizaci", c.req.header("cf-ray") ?? null);
+    await rotated(c, { org: target.org_id, membershipId: target.id, actingMembershipId: null });
     return c.json({ ok: true });
   })
   // "Přepnout roli" (demo orgs only): act as one of the org's demo accounts, or back as oneself. The access log keeps
@@ -72,7 +73,6 @@ export const session = new Hono<AppEnv>()
       if (!t || !actsInApp(t)) throw memberNotFound();
       target = t;
     }
-    await rotated(c, { org: u.org, membershipId: own.id, actingMembershipId: target.id === own.id ? null : target.id });
     await logSessionEvent(
       c.env,
       target,
@@ -81,5 +81,6 @@ export const session = new Hono<AppEnv>()
       `přepnul(a) roli: ${staffName(target)} (${ROLE_CS[target.role_id] ?? target.role_id})`,
       c.req.header("cf-ray") ?? null,
     );
+    await rotated(c, { org: u.org, membershipId: own.id, actingMembershipId: target.id === own.id ? null : target.id });
     return c.json({ ok: true });
   });

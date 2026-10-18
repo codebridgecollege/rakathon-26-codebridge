@@ -10,6 +10,7 @@ import { randomToken, sha256hex, TOKEN_SHAPE } from "./oidc";
 export const SESSION_COOKIE = "__Host-cb_session";
 const TX_PREFIX = "__Host-cb_tx_";
 export const txCookieName = (state: string) => TX_PREFIX + state;
+export const isTxCookie = (name: string) => name.startsWith(TX_PREFIX);
 
 // A login at the IdP has ten minutes, after which the transaction cookie is gone and the callback refuses it.
 export const TX_MAX_AGE_S = 600;
@@ -58,12 +59,13 @@ export async function openTx(sealed: string | undefined, state: string, key: Uin
 }
 
 // Where a login may return to: a path on this host. "/" followed by anything but "/" or "\" (which browsers read as
-// another host), no control characters or spaces (browsers drop tabs and newlines, so "/\t/evil" would become
-// "//evil"), and not the login's own routes. Anything else becomes "/".
+// another host), printable ASCII only (browsers drop tabs and newlines, so "/\t/evil" would become "//evil"), no
+// backslash, and not the login's own routes. Anything else becomes "/".
 export function safeReturnPath(to: string | undefined | null): string {
   if (typeof to !== "string" || to.length > 2000) return "/";
   if (!/^\/(?![/\\])/.test(to)) return "/";
-  if (/[\x00-\x20\x7f\\]/.test(to)) return "/";
+  // ASCII only: the app sends an encoded path, and a raw "ř" could not go into the Location header.
+  if (/[^\x21-\x7e]|\\/.test(to)) return "/";
   if (/^\/auth(?:[/?#]|$)/i.test(to)) return "/";
   return to;
 }
@@ -164,11 +166,17 @@ export async function rotateSession(
   return ins?.meta.changes ? id : null;
 }
 
-// The cron sweep: an expired session loses its ID token at once (it was only the logout hint and names the person),
-// and its row goes 30 days after it expired (AUTH.md, "Retention").
+// The cron sweep: a session that ended (its 12 hours, or its org's idle limit) loses its ID token at once (it was only
+// the logout hint and names the person), and its row goes 30 days after it expired (AUTH.md, "Retention").
 export async function sweepSessions(db: D1Database, now = Date.now()): Promise<void> {
   await db.batch([
-    db.prepare("UPDATE auth_sessions SET id_token = NULL WHERE id_token IS NOT NULL AND expires_at <= ?1 /* org-scope: every org's sessions */").bind(isoAt(now)),
+    db
+      .prepare(
+        `UPDATE auth_sessions SET id_token = NULL WHERE id_token IS NOT NULL AND (expires_at <= ?1 OR EXISTS (
+           SELECT 1 FROM orgs o WHERE o.id = auth_sessions.org_id AND o.session_idle_min IS NOT NULL
+             AND julianday(auth_sessions.last_used_at) + o.session_idle_min / 1440.0 <= julianday(?1))) /* org-scope: every org's sessions */`,
+      )
+      .bind(isoAt(now)),
     db.prepare("DELETE FROM auth_sessions WHERE expires_at <= ?1 /* org-scope: every org's sessions */").bind(isoAt(now - 30 * 24 * 3600_000)),
   ]);
 }

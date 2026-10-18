@@ -99,6 +99,9 @@ export function createApiClient(opts: ClientOptions = {}) {
     setUser(id: string | null) {
       t.userId = id;
     },
+    setActingAs(who: string | null) {
+      t.actingAs = who;
+    },
     get userId() {
       return t.userId;
     },
@@ -116,7 +119,8 @@ export function createApiClient(opts: ClientOptions = {}) {
     },
     // retryAfterLogin false: the session-expired dialog's check whether the login is back, which must not wait for itself.
     async me(o: RequestOptions = {}) {
-      const who = await t.get<Me>("/me", o);
+      // Without X-Acting-As: this answer is what the tab then shows.
+      const who = await t.get<Me>("/me", { ...o, sendIdentity: false });
       // The epoch of the org the request acts in; writes send it back (see workflow()).
       if (who.data_epoch != null) t.epoch = who.data_epoch;
       return who;

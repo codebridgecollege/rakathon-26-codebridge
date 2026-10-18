@@ -281,6 +281,25 @@ describe("a lost login session (401)", () => {
     expect(loop.calls).toHaveLength(3);
   });
 
+  it("tells the app the method of the refused request", async () => {
+    const seen: string[] = [];
+    const m = mockFetch(lost);
+    await expect(createApiClient({ fetch: m.fn, onUnauthenticated: async ({ method }) => (seen.push(method), false) }).transport.write("PATCH", "/x", {})).rejects.toBeInstanceOf(ApiError);
+    expect(seen).toEqual(["PATCH"]);
+  });
+
+  it("names whom the tab shows on every request but /me, and reports a changed session once", async () => {
+    const changed = vi.fn();
+    const m = mockFetch([200, { user: { id: "d2p1" } }], [409, { error: { code: "session_changed", message_cs: "x" } }], [409, { error: { code: "session_changed", message_cs: "x" } }]);
+    const api = createApiClient({ fetch: m.fn, onSessionChanged: changed });
+    api.setActingAs("d2p1:d2p1");
+    await api.me();
+    await expect(api.staff()).rejects.toMatchObject({ code: "session_changed" });
+    await expect(api.transport.write("POST", "/x", {})).rejects.toMatchObject({ code: "session_changed" });
+    expect(m.calls.map((c) => headersOf(c).get("X-Acting-As"))).toEqual([null, "d2p1:d2p1", "d2p1:d2p1"]);
+    expect(changed).toHaveBeenCalledTimes(1);
+  });
+
   it("leaves other refusals alone", async () => {
     const hook = vi.fn(async () => true);
     const m = mockFetch([403, { error: { code: "bad_origin", message_cs: "x" } }]);

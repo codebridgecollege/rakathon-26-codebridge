@@ -47,6 +47,8 @@ export const E = {
   upstreamTimeout: () => new ApiError(504, "upstream_timeout", "Služba neodpověděla včas."),
   // Step 4: a tab opened before a reset-demo must not write into the new data; the page reloads.
   dataReset: () => new ApiError(409, "data_reset", "Ukázková data byla obnovena, stránka se znovu načte."),
+  // The login: another tab switched org or role, or another person logged in; this tab's view is someone else's.
+  sessionChanged: () => new ApiError(409, "session_changed", "Přihlášení se v jiném okně změnilo, stránka se znovu načte."),
   bodyTooLarge: () => new ApiError(413, "too_large", "Požadavek je příliš velký."),
   idempotencyKeyRequired: () => new ApiError(422, "invalid_input", "Chybí klíč opakování požadavku (Idempotency-Key)."),
 };

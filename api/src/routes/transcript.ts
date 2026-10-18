@@ -208,7 +208,7 @@ export const transcript = new Hono<AppEnv>()
       // No custom metadata: it would be one more copy of when the case was discussed.
       const mpu = await c.env.DOCS.createMultipartUpload(key, { httpMetadata: { contentType: "application/octet-stream" } });
       try {
-        await orgQuery(c, "INSERT INTO audio_uploads (org_id, id, case_id, recording_id, r2_key, r2_upload_id, state, bytes, created_by, created_at) VALUES (?org, ?1, ?2, ?3, ?4, ?5, 'open', 0, ?6, ?7)", uploadId, id, rec.id, key, mpu.uploadId, c.var.viewer.id, isoNow())
+        await orgQuery(c, "INSERT INTO audio_uploads (org_id, id, case_id, recording_id, r2_key, r2_upload_id, state, bytes, created_by, created_at, created_by_actor) VALUES (?org, ?1, ?2, ?3, ?4, ?5, 'open', 0, ?6, ?7, ?8)", uploadId, id, rec.id, key, mpu.uploadId, c.var.viewer.id, isoNow(), c.var.viewer.actor?.id ?? null)
           .run();
         up = { id: uploadId, r2_key: key, r2_upload_id: mpu.uploadId };
         created = true;

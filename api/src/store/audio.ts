@@ -18,6 +18,7 @@ export type UploadRow = {
   state: "open" | "completed" | "deleted" | "aborted";
   bytes: number;
   created_by: string;
+  created_by_actor: string | null;
   created_at: string;
 };
 
@@ -28,8 +29,9 @@ export const audioKey = (org: string, caseId: string, uploadId: string) => orgKe
 
 // The person an automatic step acts for in the access log: the doctor who approved (Workflow) or who recorded (cron),
 // with their membership in the org the step works in. The log's role column needs a real role, so the row names a
-// person, and the line says it was the AI recording.
-export async function actorFor(db: D1Database, org: string, userId: string, authMode: "demo" | "oidc"): Promise<Viewer> {
+// person, and the line says it was the AI recording. realUserId is the person logged in when the step was started under
+// a role switch (created_by_actor): the row then names that person, as every row of the request did (AUTH.md).
+export async function actorFor(db: D1Database, org: string, userId: string, authMode: "demo" | "oidc", realUserId: string | null = null): Promise<Viewer> {
   const u = await orgStmt(
     db,
     org,
@@ -37,7 +39,14 @@ export async function actorFor(db: D1Database, org: string, userId: string, auth
     userId,
   ).first<{ id: string; pre: string; sur: string; post: string; role_id: string; membership_id: string }>();
   const role = u && ["doctor", "coordinator", "admin"].includes(u.role_id) ? (u.role_id as Viewer["role"]) : "doctor";
-  return { id: userId, name: u ? staffName(u) : userId, role, dept: null, authMode, impersonating: false, org, membershipId: u?.membership_id ?? userId };
+  return { id: userId, name: u ? staffName(u) : userId, role, dept: null, authMode, org, membershipId: u?.membership_id ?? userId, ...(await realActor(db, userId, realUserId)) };
+}
+
+// The access-log fields of a step started under a role switch: impersonating, and the person logged in as the actor.
+export async function realActor(db: D1Database, userId: string, realUserId: string | null): Promise<Pick<Viewer, "impersonating" | "actor">> {
+  if (!realUserId || realUserId === userId) return { impersonating: false };
+  const r = await db.prepare("SELECT pre, sur, post FROM users WHERE id = ?1").bind(realUserId).first<{ pre: string; sur: string; post: string }>();
+  return { impersonating: true, actor: { id: realUserId, name: r ? staffName(r) : realUserId } };
 }
 
 const authModeOf = (env: Env): "demo" | "oidc" => (env.AUTH_MODE === "oidc" ? "oidc" : "demo");
@@ -86,14 +95,15 @@ export async function purgeUploads(env: Env, org: string, uploads: UploadRow[], 
   const cases = [...new Set(live.map((u) => u.case_id))];
   const mode = authModeOf(env);
   for (const caseId of cases) {
-    const who = actor ?? (await actorFor(db, org, live.find((u) => u.case_id === caseId)!.created_by, mode));
+    const first = live.find((u) => u.case_id === caseId)!;
+    const who = actor ?? (await actorFor(db, org, first.created_by, mode, first.created_by_actor));
     stmts.push(auditStatement(db, who, { action: "recording.audio_deleted", what_cs: what_cs ?? `AI záznam: zvuk smazán bez rozlišení mluvčích (${reason_cs})`, case_id: caseId }, { requestId, epoch: null }));
   }
   await db.batch(stmts);
   return { deleted: live.length, cases };
 }
 
-const UPLOAD_COLS = "u.id, u.org_id, u.case_id, u.recording_id, u.pass_id, u.r2_key, u.r2_upload_id, u.state, u.bytes, u.created_by, u.created_at";
+const UPLOAD_COLS = "u.id, u.org_id, u.case_id, u.recording_id, u.pass_id, u.r2_key, u.r2_upload_id, u.state, u.bytes, u.created_by, u.created_by_actor, u.created_at";
 
 // Every stored audio of a case: it was closed, so nothing will process it.
 export async function uploadsOfCase(db: D1Database, org: string, caseId: string): Promise<UploadRow[]> {

@@ -25,6 +25,7 @@ import {
   createSession,
   deleteSession,
   isoAt,
+  isTxCookie,
   openTx,
   safeReturnPath,
   sealTx,
@@ -82,7 +83,11 @@ export const authRoutes = new Hono<AppEnv>()
         locale: locale === "en" ? "en" : "cs",
         promptLogin: q.prompt === "login",
       });
-      return redirect(url, [cookie(txCookieName(tx.state), await sealTx(tx, cfg.sessionKey), TX_MAX_AGE_S)]);
+      // Abandoned logins leave their cookies for ten minutes; past a handful they are cleared, so the cookie header
+      // stays small (two tabs logging in at once still keep theirs).
+      const stale = Object.keys(getCookie(c)).filter(isTxCookie);
+      const drop = stale.length >= 5 ? stale.map(clearCookie) : [];
+      return redirect(url, [...drop, cookie(txCookieName(tx.state), await sealTx(tx, cfg.sessionKey), TX_MAX_AGE_S)]);
     } catch (e) {
       if (!(e instanceof OidcError)) throw e;
       logFailure(c, e);

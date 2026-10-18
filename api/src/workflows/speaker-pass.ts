@@ -41,17 +41,17 @@ const SUMMARY = { retries: { limit: 6, delay: providerDelay, backoff: "constant"
 const iso = () => new Date().toISOString();
 const partBytes = (env: Env) => Number(env.AUDIO_PART_BYTES) || 5_242_880;
 
-type JobRow = { id: string; case_id: string; created_by: string; state: string };
+type JobRow = { id: string; case_id: string; created_by: string; created_by_actor: string | null; state: string };
 
 async function jobOf(env: Env, p: SpeakerPassParams): Promise<JobRow> {
-  const j = await orgStmt(env.DB, p.org, "SELECT id, case_id, created_by, state FROM jobs WHERE org_id = ?org AND id = ?1", p.jobId).first<JobRow>();
+  const j = await orgStmt(env.DB, p.org, "SELECT id, case_id, created_by, created_by_actor, state FROM jobs WHERE org_id = ?org AND id = ?1", p.jobId).first<JobRow>();
   if (!j) throw new NonRetryableError("internal");
   return j;
 }
 
 async function actor(env: Env, p: SpeakerPassParams) {
   const j = await jobOf(env, p);
-  return actorFor(env.DB, p.org, j.created_by, env.AUTH_MODE === "oidc" ? "oidc" : "demo");
+  return actorFor(env.DB, p.org, j.created_by, env.AUTH_MODE === "oidc" ? "oidc" : "demo", j.created_by_actor);
 }
 
 const phase = (env: Env, p: SpeakerPassParams, ph: string) =>

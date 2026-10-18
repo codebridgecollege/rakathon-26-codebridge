@@ -1,4 +1,4 @@
-// Access-log rows for the login itself: a login, an org switch, a role switch and a logout. Each row names the real
+// Access-log rows for the login itself: a login, an org switch and a role switch. Each row names the real
 // person; after a role switch it also names the membership acted as (impersonating = 1), as every later row does.
 import type { Viewer } from "@codebridge/domain/access";
 import { makeStores } from "../store";

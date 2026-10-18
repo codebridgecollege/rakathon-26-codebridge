@@ -9,6 +9,7 @@ import { loadFixture } from "./data";
 import { clearDiscoveryCache, sha256hex } from "../src/auth/oidc";
 import { parseCatalog } from "../src/auth/pages";
 import { safeReturnPath, sweepSessions } from "../src/auth/session";
+import { actorFor } from "../src/store/audio";
 
 const ISS = "https://idp.test";
 const CLIENT = "client-1";
@@ -219,7 +220,7 @@ describe("GET /auth/login", () => {
 describe("return paths (open redirect)", () => {
   it("accepts only a path on this host", () => {
     expect(safeReturnPath("/patient/10/labs?x=1#a")).toBe("/patient/10/labs?x=1#a");
-    for (const bad of ["//evil.test", "/\\evil.test", "https://evil.test", "evil.test", "/\t/evil.test", "/\n/evil.test", "/ /x", "", null, undefined, "/auth/logout", "/AUTH/login?x", "/x\\y", "/" + "a".repeat(2001)])
+    for (const bad of ["//evil.test", "/\\evil.test", "https://evil.test", "evil.test", "/\t/evil.test", "/\n/evil.test", "/ /x", "", null, undefined, "/auth/logout", "/AUTH/login?x", "/x\\y", "/x?q=Dvořák", "/x\u00a0y", "/" + "a".repeat(2001)])
       expect(safeReturnPath(bad as string)).toBe("/");
   });
 
@@ -512,6 +513,20 @@ describe("sessions", () => {
     const rows = await sessions();
     expect(rows.map((r) => [r.org_id, r.id_token])).toEqual([["demo-b", null]]);
   });
+
+  it("clears the ID token of a session that ended by the idle limit", async () => {
+    const { sid } = await login();
+    const h = cookieValue(await post("/api/session/org", sid, { org_id: "hosp" }), "__Host-cb_session");
+    expect(h).toBeTruthy();
+    await env.DB.prepare("UPDATE auth_sessions SET last_used_at = ?1").bind(new Date(Date.now() - 61 * 60_000).toISOString()).run();
+    await sweepSessions(env.DB);
+    expect((await sessions()).map((r) => r.id_token)).toEqual([null]);
+  });
+
+  it("keeps one identity per person and IdP in the database", async () => {
+    await login();
+    await expect(env.DB.prepare("INSERT INTO user_identities (issuer, subject, user_id, created_at) VALUES (?1, 'other', 'd2p1', '2026-10-19T00:00:00.000Z')").bind(ISS).run()).rejects.toThrow(/UNIQUE/);
+  });
 });
 
 describe("POST /auth/logout", () => {
@@ -597,17 +612,63 @@ describe("org and role switch", () => {
     expect((await sessions()).filter((s) => s.acting_membership_id)).toEqual([]);
   });
 
-  it("drops the role switch when the org stops being a demo org or the membership acted as ends", async () => {
+  it("drops the role switch when the org stops being a demo org", async () => {
+    const { sid } = await login({ sub: "sub-admin", email: "admin.a@codebridge.demo" });
+    const next = cookieValue(await post("/api/session/role", sid, { membership_id: "d2p1" }), "__Host-cb_session");
+    expect((await me(next)).status).toBe(200);
+    await env.DB.prepare("UPDATE orgs SET is_demo = 0 WHERE id = 'demo-a'").run();
+    expect((await me(next)).status).toBe(401);
+  });
+
+  it("drops the role switch when the membership acted as ends", async () => {
     const { sid } = await login({ sub: "sub-admin", email: "admin.a@codebridge.demo" });
     const next = cookieValue(await post("/api/session/role", sid, { membership_id: "d2p1" }), "__Host-cb_session");
     await env.DB.prepare("UPDATE memberships SET active_until = '2026-02-01T00:00:00.000Z' WHERE id = 'd2p1'").run();
     expect((await me(next)).status).toBe(401);
   });
 
+  it("keeps the real person on work that finishes later (phone upload, Workflows, sweeps) after a role switch", async () => {
+    const { sid } = await login({ sub: "sub-admin", email: "admin.a@codebridge.demo" });
+    const next = cookieValue(await post("/api/session/role", sid, { membership_id: "d2p1" }), "__Host-cb_session");
+    const r = await call(
+      "/api/upload-sessions",
+      withSession(next, { method: "POST", headers: { "content-type": "application/json", "x-data-epoch": "1" }, body: JSON.stringify({ case_id: "NO-A", target: "documents" }) }),
+      E(),
+    );
+    expect(r.status).toBe(201);
+    expect(await q1("SELECT created_by, created_by_actor FROM upload_sessions")).toEqual({ created_by: "d2p1", created_by_actor: "admin" });
+    // What a Workflow, the cron sweep and the phone build from such a row.
+    const v = await actorFor(env.DB, "demo-a", "d2p1", "oidc", "admin");
+    expect(v).toMatchObject({ id: "d2p1", role: "doctor", impersonating: true, actor: { id: "admin", name: "Ing. Kovář" } });
+    expect(await actorFor(env.DB, "demo-a", "d2p1", "oidc", null)).toMatchObject({ impersonating: false });
+  });
+
+  it("refuses a tab that still shows another identity after a switch in a second tab (409 session_changed)", async () => {
+    const { sid } = await login({ sub: "sub-admin", email: "admin.a@codebridge.demo" });
+    const shows = (sid2: string | null, who: string) => call("/api/patients", withSession(sid2, { headers: { "x-acting-as": who } }), E());
+    expect((await shows(sid, "admin:admin")).status).toBe(200);
+    const next = cookieValue(await post("/api/session/role", sid, { membership_id: "d2p1" }), "__Host-cb_session");
+    const r = await shows(next, "admin:admin");
+    expect(r.status).toBe(409);
+    expect((await r.json<{ error: { code: string } }>()).error.code).toBe("session_changed");
+    expect((await shows(next, "d2p1:admin")).status).toBe(200);
+    // The doctor's own login acts as the same membership, but is another person.
+    expect((await shows((await login()).sid, "d2p1:admin")).status).toBe(409);
+  });
+
+  it("stops the speech and summary routes too once the membership ended", async () => {
+    const { sid } = await login();
+    await env.DB.prepare("UPDATE memberships SET active_until = '2026-02-01T00:00:00.000Z' WHERE id = 'd2p1'").run();
+    const r = await call("/api/stt/token", withSession(sid, { method: "POST" }), E());
+    expect(r.status).toBe(401);
+  });
+
   it("refuses switches from another site and in demo mode", async () => {
     const { sid } = await login();
     const r = await call("/api/session/org", withSession(sid, { method: "POST", headers: { "content-type": "application/json", origin: "https://evil.test" }, body: '{"org_id":"hosp"}' }), E());
     expect(r.status).toBe(403);
+    const role = await call("/api/session/role", withSession(sid, { method: "POST", headers: { "content-type": "application/json", origin: "https://evil.test" }, body: '{"membership_id":"admin"}' }), E());
+    expect(role.status).toBe(403);
     const demo = await call("/api/session/org", { method: "POST", headers: { "content-type": "application/json" }, body: '{"org_id":"demo-b"}' }, testEnv());
     expect(demo.status).toBe(404);
   });
