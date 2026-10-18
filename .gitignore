@@ -77,3 +77,6 @@ api/.assets/
 
 # Seed output (generated SQL, R2 bodies, identity scan, upload state); rebuilt by api/seed/seed.py.
 api/seed/out/
+
+# Intermediate screenshots of scripts/cover/build.mjs (rebuilt each run).
+scripts/cover/shots/

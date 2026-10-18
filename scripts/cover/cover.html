@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="cs"><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root { --ink:#102c39; --muted:#5d707a; --accent:#007f78; --accent-ink:#00665f; --line:#dce5e8; --soft:#e8f5f1; --warn:#8f5a06; }
+  * { box-sizing:border-box; margin:0; }
+  body { width:1600px; height:900px; overflow:hidden; font-family:"DM Sans",sans-serif; color:var(--ink);
+    background: radial-gradient(1200px 700px at 85% 10%, #e6f2ef 0%, rgba(230,242,239,0) 60%), linear-gradient(180deg,#f7fafa 0%, #eef4f4 100%); position:relative; }
+  .arc { position:absolute; border:1.5px solid #cfe2de; border-radius:50%; }
+  .logo { position:absolute; left:80px; top:52px; display:flex; align-items:center; gap:10px; }
+  .logo img { height:26px; }
+  .logo span { font-family:Manrope; font-weight:800; font-size:24px; letter-spacing:.5px; }
+  .left { position:absolute; left:80px; top:160px; width:520px; }
+  .eyebrow { font-size:14px; letter-spacing:4px; color:var(--muted); text-transform:uppercase; }
+  h1 { font-family:Manrope; font-weight:800; font-size:58px; line-height:1.06; margin-top:26px; letter-spacing:-1px; }
+  .sub { font-size:20px; line-height:1.5; color:#3f5560; margin-top:26px; }
+  .ctas { display:flex; gap:16px; margin-top:38px; }
+  .btn { height:56px; padding:0 22px; display:flex; align-items:center; gap:10px; font-size:18px; font-weight:600; border-radius:6px; }
+  .primary { background:var(--accent-ink); color:#fff; }
+  .ghost { border:1.5px solid #bdcfd5; background:#fff; color:var(--ink); }
+  .card { position:absolute; background:#fff; border-radius:14px; overflow:hidden; box-shadow:0 24px 60px rgba(16,44,57,.14), 0 2px 6px rgba(16,44,57,.06); border:1px solid #e3ecee; }
+  .card .shot { position:absolute; background-repeat:no-repeat; }
+  .main { left:690px; top:56px; width:860px; height:560px; }
+  .main .shot { left:0; top:0; width:860px; height:560px; background-image:url(shots/overview.png); background-size:860px auto; background-position:0 0; }
+  .src { left:660px; top:350px; width:500px; height:370px; transform:rotate(-2.5deg); }
+  .src .shot { inset:0; background-image:url(shots/source.png); background-size:700px auto; background-position:-188px -2px; }
+  .labs { left:1200px; top:450px; width:360px; height:240px; }
+  .labs .shot { inset:0; background-image:url(shots/labs.png); background-size:640px auto; background-position:-14px -150px; }
+  .tag { position:absolute; font-size:13px; font-weight:600; padding:6px 12px; border-radius:999px; background:#fff; box-shadow:0 6px 18px rgba(16,44,57,.12); display:flex; gap:8px; align-items:center; }
+  .feats { position:absolute; left:80px; right:80px; bottom:44px; display:grid; grid-template-columns:repeat(4,1fr); }
+  .feat { display:flex; gap:18px; align-items:flex-start; padding:0 24px; border-left:1px solid var(--line); }
+  .feat:first-child { border-left:none; padding-left:0; }
+  .ico { flex:none; width:56px; height:56px; border-radius:50%; background:var(--soft); display:grid; place-items:center; }
+  .ico svg { width:26px; height:26px; stroke:var(--accent-ink); fill:none; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
+  .feat b { display:block; font-family:Manrope; font-weight:700; font-size:19px; margin-top:4px; }
+  .feat span { display:block; font-size:15px; color:var(--muted); margin-top:4px; line-height:1.4; }
+</style></head>
+<body>
+  <div class="arc" style="width:900px;height:900px;left:-420px;top:420px"></div>
+  <div class="arc" style="width:700px;height:700px;left:1180px;top:-420px"></div>
+
+  <div class="logo"><img src="../../mocks/src/brand/glide.svg" alt=""><span>MDT</span></div>
+
+  <div class="left">
+    <div class="eyebrow">Pro multidisciplinární týmy</div>
+    <h1>Celý případ připravený na&nbsp;MDT</h1>
+    <p class="sub">Asistent přečte dokumentaci pacienta, sestaví souhrn, časovou osu a&nbsp;vývoj laboratoře a&nbsp;upozorní na chybějící podklady. Každý údaj vede ke zdroji.</p>
+    <div class="ctas"><div class="btn primary">Otevřít demo <span>→</span></div><div class="btn ghost">Jak to funguje</div></div>
+  </div>
+
+  <div class="card main"><div class="shot"></div></div>
+  <div class="card labs"><div class="shot"></div></div>
+  <div class="card src"><div class="shot"></div></div>
+  <div class="tag" style="left:1000px;top:318px"><span style="color:#b38b00">●</span> Citace zvýrazněná v původní stránce</div>
+
+  <div class="feats">
+    <div class="feat"><div class="ico"><svg viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></svg></div><div><b>Každý údaj se zdrojem</b><span>Klik otevře původní stránku s&nbsp;citací</span></div></div>
+    <div class="feat"><div class="ico"><svg viewBox="0 0 24 24"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg></div><div><b>Chybějící podklady</b><span>Co v dokumentaci chybí, vidíte hned</span></div></div>
+    <div class="feat"><div class="ico"><svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="m7 15 4-4 3 3 5-6"/></svg></div><div><b>Vývoj v čase</b><span>Laboratoř a léčba na časové ose</span></div></div>
+    <div class="feat"><div class="ico"><svg viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M19 10a7 7 0 0 1-14 0M12 17v5M8 22h8"/></svg></div><div><b>Záznam diskuse</b><span>Přepis a shrnutí závěru MDT</span></div></div>
+  </div>
+</body></html>

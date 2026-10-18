@@ -1,0 +1,57 @@
+// Builds the project's cover image (the hero shown in the Rakathon project gallery, 1600x900).
+//
+// Usage, from the repository root, after `uv run mocks/build.py`:
+//   npm i --prefix /tmp/cover-deps playwright@1.64.0 && npx --prefix /tmp/cover-deps playwright install chromium
+//   COVER_DEPS=/tmp/cover-deps node scripts/cover/build.mjs
+//
+// It screenshots the built page (mocks/v3.html, embedded synthetic data, no network), lays the shots out in
+// cover.html and renders docs/submission/cover.jpg (1600x900) and cover@2x.png. Real screenshots instead of a
+// generated picture keep the UI on the cover the UI the jury will see.
+import { createRequire } from "node:module";
+import { execFileSync } from "node:child_process";
+import { mkdirSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+
+// Playwright lives outside the repo (no package.json at the root); ESM ignores NODE_PATH, so load it from there.
+const { chromium } = createRequire(resolve(process.env.COVER_DEPS || "/tmp/cover-deps", "node_modules") + "/")("playwright");
+const here = dirname(fileURLToPath(import.meta.url));
+const root = resolve(here, "../..");
+const page = `file://${root}/mocks/v3.html`;
+const shots = resolve(here, "shots");
+const out = resolve(root, "docs/submission");
+mkdirSync(shots, { recursive: true });
+mkdirSync(out, { recursive: true });
+
+const browser = await chromium.launch();
+// The app at a laptop width, captured at 2x so the shots stay sharp when the cover scales them down.
+const p = await browser.newPage({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 2 });
+const open = async hash => { await p.goto(page + hash); await p.waitForTimeout(1000); };
+
+await open("#patient/10/overview");
+await p.screenshot({ path: `${shots}/overview.png` });
+
+// The source view: the first reference in the brief opens the original page with the quote boxed.
+await p.click(".ref");
+await p.waitForTimeout(1500);
+await p.screenshot({ path: `${shots}/source.png` });
+
+// S01 has four lab draws; the platelet row shows the trend chart under the table.
+await open("#patient/S01/overview");
+await p.click('[data-tab="labs"]');
+await p.waitForTimeout(600);
+await p.evaluate(() => [...document.querySelectorAll("[data-labsel], button")].find(x => /Trombocyty/.test(x.textContent))?.click());
+await p.waitForTimeout(600);
+await p.evaluate(() => window.scrollBy(0, 700));
+await p.waitForTimeout(300);
+await p.screenshot({ path: `${shots}/labs.png` });
+
+const cover = await browser.newPage({ viewport: { width: 1600, height: 900 }, deviceScaleFactor: 2 });
+await cover.goto(`file://${here}/cover.html`);
+await cover.waitForTimeout(1500); // web fonts
+await cover.screenshot({ path: `${out}/cover@2x.png` });
+await browser.close();
+
+// The gallery's covers are 1600x900 JPEGs.
+execFileSync("sips", ["-s", "format", "jpeg", "-s", "formatOptions", "88", "-z", "900", "1600", `${out}/cover@2x.png`, "--out", `${out}/cover.jpg`], { stdio: "ignore" });
+console.log(`wrote ${out}/cover.jpg and cover@2x.png`);
