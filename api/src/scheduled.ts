@@ -6,15 +6,17 @@ import { reconcile, startJob, type JobRow } from "./store/jobs";
 import { transcriptsOn } from "./routes/hooks";
 import { reconcilePipelineRuns, sweepIntakes } from "./store/intake";
 
-// Audio older than this goes whatever its state: no case is discussed for six hours.
+// Audio no pass has claimed goes after six hours: no case is discussed that long. Audio a failed pass kept for
+// "Zkusit znovu" goes after seven days at the latest, the same as the R2 lifecycle rule (user decision 2026-10-18).
 export const AUDIO_MAX_AGE_MS = 6 * 3600_000;
+export const KEPT_AUDIO_MAX_AGE_MS = 7 * 24 * 3600_000;
 
 export async function sweep(env: Env, nowMs = Date.now()): Promise<{ purged: number; failed: number; restarted: number }> {
   // Deletion depends on the storage only, not on the feature switch: switching the recorder off must not keep audio.
   if (!env.DB || !env.DOCS) return { purged: 0, failed: 0, restarted: 0 };
   let ups: Awaited<ReturnType<typeof uploadsForSweep>>;
   try {
-    ups = await uploadsForSweep(env.DB, new Date(nowMs - AUDIO_MAX_AGE_MS).toISOString());
+    ups = await uploadsForSweep(env.DB, new Date(nowMs - AUDIO_MAX_AGE_MS).toISOString(), new Date(nowMs - KEPT_AUDIO_MAX_AGE_MS).toISOString());
   } catch {
     // An unmigrated database has no audio tables, so nothing to delete.
     return { purged: 0, failed: 1, restarted: 0 };

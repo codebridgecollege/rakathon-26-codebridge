@@ -285,18 +285,19 @@ Where the case audio for the speaker pass lives depends on the host:
   lines with speaker lines, makes the summary draft and deletes the audio.
   The pass replaces only live lines whose audio it received, so speech whose
   audio never arrived keeps its live text. The audio is deleted when its
-  speaker pass ends; when the pass fails it
-  is kept for "Zkusit znovu" until the case is closed or the seminar ends
-  (setting `SPEAKER_PASS_AUDIO_ON_FAILURE`; `delete` removes it at once;
-  open question in `docs/agent/OPEN_QUESTIONS.md`); when its case is closed
-  or the seminar ends without approval; by a check every 15 minutes for
-  anything older than 6 hours, left by a finished pass, kept by a failed
-  pass after its seminar ended, or belonging to a closed case (this check
-  and the close and seminar-end deletions run even with the recorder
-  switched off); and by an R2
-  storage rule that removes any remaining audio under `audio/` within
-  about 2 days (rules count whole days, and R2 removes expired objects
-  typically within a day). Each deletion is in the access log. The
+  speaker pass succeeds. When the pass fails, the audio is kept so
+  "Zkusit znovu" can run the pass again, until a pass succeeds or the case
+  is closed, and at most 7 days (user decision 2026-10-18); the summary is
+  made from the live text meanwhile, and a retry after the audio is gone
+  runs nothing and leaves the live text and its summary. Audio is also
+  deleted when its case is closed or the seminar ends without approval;
+  by a check every 15 minutes for unapproved audio older than 6 hours,
+  any audio older than 7 days, audio left by a finished pass, or audio
+  of a closed case (this check and the close and seminar-end deletions
+  run even with the recorder switched off); and by an R2 storage rule
+  that removes any remaining audio under `audio/` within about 8 days
+  (rules count whole days, and R2 removes expired objects typically
+  within a day). Each deletion is in the access log. The
   Workflow's own stored state holds case and job ids and counts only,
   never transcript text or audio, and is kept 1 day (3 after an error).
   Transcript lines and summaries stay with the case. Summaries are cached

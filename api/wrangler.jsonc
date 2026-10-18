@@ -52,10 +52,6 @@
     // Audio parts the page uploads while a case is discussed: exactly this size except the last (R2 multipart minimum).
     "AUDIO_PART_BYTES": "5242880",
     "AUDIO_MAX_MINUTES_PER_CASE": "120",
-    // Open question "Speaker pass on failure" (docs/agent/OPEN_QUESTIONS.md): "keep_until_close" keeps a failed pass's
-    // audio for "Zkusit znovu" until the case closes or the seminar ends (today's behaviour in the page); "delete"
-    // deletes it in the pass's last step. The cron sweep and the R2 lifecycle rule apply in both.
-    "SPEAKER_PASS_AUDIO_ON_FAILURE": "keep_until_close",
     // Step 6: what the upload route does with a file that is not a registered synthetic fixture. "fixtures_only"
     // refuses it and stores nothing (the shared demo); "store_unprocessed" stores it as "nezpracováno" (team staging,
     // local work). The page promises 20 MB per file.

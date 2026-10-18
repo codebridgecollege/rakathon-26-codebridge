@@ -7,7 +7,6 @@ import type { AppEnv } from "../types";
 import type { Tx } from "../store/write";
 import { purgeUploads, uploadsAtSessionEnd, uploadsOfCase } from "../store/audio";
 import { startJob } from "../store/jobs";
-import { audioOnFailure } from "../domain/transcript";
 
 // The speaker pass needs the Workflow binding and the data API; without them approval works as before (no pass).
 export const transcriptsOn = (env: Env) => env.DATA_API === "on" && !!env.SPEAKER_PASS && !!env.DB && !!env.DOCS;
@@ -66,9 +65,9 @@ export const hooks = {
       id, caseId, v.id, v.name, v.role, atIso,
     );
     t.run(
-      `INSERT INTO transcript_passes (id, case_id, decision_id, job_id, from_wall_ms, cutoff_wall_ms, state, audio_on_failure, created_at, updated_at)
-       VALUES (?1, ?2, ?3, ?1, ?4, ?5, 'queued', ?6, ?7, ?7)`,
-      id, caseId, decisionId, from, Math.max(from, atMs), audioOnFailure(c.env.SPEAKER_PASS_AUDIO_ON_FAILURE), atIso,
+      `INSERT INTO transcript_passes (id, case_id, decision_id, job_id, from_wall_ms, cutoff_wall_ms, state, created_at, updated_at)
+       VALUES (?1, ?2, ?3, ?1, ?4, ?5, 'queued', ?6, ?6)`,
+      id, caseId, decisionId, from, Math.max(from, atMs), atIso,
     );
     t.run("UPDATE audio_uploads SET pass_id = ?1 WHERE case_id = ?2 AND pass_id IS NULL AND state = 'open'", id, caseId);
     t.audit({ action: "recording.speaker_pass_queued", what_cs: "AI záznam: rozlišení mluvčích naplánováno po schválení závěru", case_id: caseId, target_type: "job", target_id: id });

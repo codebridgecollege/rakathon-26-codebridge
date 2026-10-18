@@ -415,14 +415,15 @@ describe("SpeakerPassWorkflow", () => {
     expect((await one("SELECT state FROM transcript_summaries")).state).toBe("done");
   });
 
-  it("keep_until_close: a 401 is not retried, the audio stays for Zkusit znovu, the summary uses the live lines", async () => {
+  it("a failed pass: a 401 is not retried, the audio stays for Zkusit znovu, the summary uses the live lines", async () => {
     await recordCase();
     const { wf, inst, jobId, calls } = await runPass({ eleven: [() => new Response('{"detail":"Testová Pacientka invalid"}', { status: 401 })], azure: [() => azure("Ze živého přepisu.")] });
     await using _ = wf;
     await inst.waitForStatus("complete");
     expect(calls.filter((c) => c.url.includes("elevenlabs.test"))).toHaveLength(1);
     const tr = await get("/cases/NO-A/transcript");
-    expect(tr.body.passes[0]).toMatchObject({ state: "error", error_code: "eleven_4xx", audio_kept: true, audio_on_failure: "keep_until_close" });
+    expect(tr.body.passes[0]).toMatchObject({ state: "error", error_code: "eleven_4xx", audio_kept: true });
+    expect(tr.body.passes[0]).not.toHaveProperty("audio_on_failure");
     expect(tr.body.lines.map((l: any) => l.text)).toEqual(LINES);
     expect(tr.body.summaries[0]).toMatchObject({ state: "done", basis: "live_only" });
     expect((await env.DOCS.list({ prefix: "audio/" })).objects).toHaveLength(1);
@@ -449,16 +450,39 @@ describe("SpeakerPassWorkflow", () => {
     expect((await w("POST", `/jobs/${jobId}/retry`, {})).body.error?.code).toBe("not_retryable");
   });
 
-  it("delete: after a failure the audio is deleted in the last step and no retry is offered", async () => {
+  it("a retry after the kept audio vanished from R2 runs nothing: the audio is marked gone, the live summary stays", async () => {
     await recordCase();
-    const del = testEnv({ SPEAKER_PASS_AUDIO_ON_FAILURE: "delete" });
-    const { wf, inst, jobId } = await runPass({ eleven: [() => new Response("x", { status: 400 })], azure: [() => azure("Ze živého přepisu.")] }, del);
+    const { wf, inst, jobId, calls } = await runPass({ eleven: [() => new Response("x", { status: 400 })], azure: [() => azure("Ze živého přepisu.")] });
     await using _ = wf;
     await inst.waitForStatus("complete");
-    expect((await env.DOCS.list({ prefix: "audio/" })).objects).toEqual([]);
-    expect((await get("/cases/NO-A/transcript")).body.passes[0]).toMatchObject({ state: "error", audio_kept: false });
+    expect((await get("/cases/NO-A/transcript")).body.passes[0]).toMatchObject({ state: "error", audio_kept: true });
+    // The lifecycle rule removed the object before the cron sweep recorded it.
+    for (const o of (await env.DOCS.list({ prefix: "audio/" })).objects) await env.DOCS.delete(o.key);
+    const before = calls.length;
     expect((await w("POST", `/jobs/${jobId}/retry`, {})).body.error?.code).toBe("not_retryable");
-    expect((await log()).map((l) => l.what_cs)).toContain("AI záznam: zvuk smazán po neúspěšném rozlišení mluvčích");
+    expect(await wf.get()).toHaveLength(1);
+    expect(calls.length).toBe(before);
+    const tr = await get("/cases/NO-A/transcript");
+    expect(tr.body.passes[0]).toMatchObject({ state: "error", audio_kept: false });
+    expect(tr.body.lines.map((l: any) => l.text)).toEqual(LINES);
+    expect(tr.body.summaries[0]).toMatchObject({ state: "done", basis: "live_only" });
+    expect((await log()).map((l) => l.what_cs)).toContain("AI záznam: zvuk smazán (už není k dispozici)");
+  });
+
+  it("audio missing when the pass runs: the pass deletes the bookkeeping, so no retry is offered", async () => {
+    await recordCase();
+    const wf = await introspectWorkflow(env.SPEAKER_PASS);
+    await using _ = wf;
+    providers({ eleven: [() => elevenWords([["x", 0.1, "a"]])], azure: [() => azure("Ze živého přepisu.")] });
+    // The part object disappears between the recording and the pass (finalize completes it, diarize finds it gone).
+    const head = vi.spyOn(env.DOCS, "head").mockResolvedValue(null);
+    await approve();
+    const [inst] = await wf.get();
+    await inst!.waitForStatus("complete");
+    head.mockRestore();
+    const tr = await get("/cases/NO-A/transcript");
+    expect(tr.body.passes[0]).toMatchObject({ state: "error", error_code: "audio_missing", audio_kept: false });
+    expect(tr.body.summaries[0]).toMatchObject({ state: "done", basis: "live_only" });
   });
 
   it("a case closed before the pass ran: the pass is purged, ElevenLabs is not called, the live lines stay", async () => {
@@ -512,7 +536,7 @@ describe("SpeakerPassWorkflow", () => {
     expect(late.body.data.accepted).toEqual([lid(5)]);
   });
 
-  it("the sweep deletes kept audio of a failed pass once its seminar ended, and audio of a closed case", async () => {
+  it("kept audio of a failed pass outlives the seminar end and the six-hour limit, and goes after seven days or with the case", async () => {
     await recordCase();
     const { wf, inst } = await runPass({ eleven: [() => new Response("x", { status: 400 })], azure: [() => azure("S.")] });
     await using _ = wf;
@@ -520,7 +544,9 @@ describe("SpeakerPassWorkflow", () => {
     expect((await one("SELECT state FROM audio_uploads")).state).toBe("completed");
     expect((await sweep(env)).purged).toBe(0);
     await env.DB.prepare("UPDATE sessions SET ended_at = ?1").bind(new Date().toISOString()).run();
-    expect((await sweep(env)).purged).toBe(1);
+    expect((await sweep(env)).purged).toBe(0);
+    expect((await sweep(env, Date.now() + 6 * 24 * 3600_000)).purged).toBe(0);
+    expect((await sweep(env, Date.now() + 7 * 24 * 3600_000 + 60_000)).purged).toBe(1);
     // Closed case: an upload a race left open after the close.
     await env.DB.batch([
       env.DB.prepare("UPDATE cases SET status = 'closed' WHERE id = 'NO-B'"),

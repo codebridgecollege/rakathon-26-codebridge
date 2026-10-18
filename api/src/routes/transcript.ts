@@ -287,7 +287,7 @@ export const transcript = new Hono<AppEnv>()
     const [lines, passes, sums] = await db.batch([
       db.prepare("SELECT id, client_line_id, source, speaker, wall_ms, text FROM transcript_lines WHERE case_id = ?1 AND state = 'current' ORDER BY wall_ms, created_at, id").bind(id),
       db.prepare(
-        `SELECT p.id, p.state, p.error_code, p.purge_reason, p.audio_on_failure, p.cutoff_wall_ms, p.line_count, p.speaker_count, p.created_at, p.audio_deleted_at,
+        `SELECT p.id, p.state, p.error_code, p.purge_reason, p.cutoff_wall_ms, p.line_count, p.speaker_count, p.created_at, p.audio_deleted_at,
                 j.id AS job_id, j.state AS job_state, j.phase AS job_phase, j.error_code AS job_error,
                 EXISTS (SELECT 1 FROM audio_uploads u WHERE u.pass_id = p.id AND u.state IN ('open','completed')) AS audio_kept
          FROM transcript_passes p JOIN jobs j ON j.id = p.job_id WHERE p.case_id = ?1 ORDER BY p.cutoff_wall_ms`,
@@ -318,8 +318,8 @@ export const transcript = new Hono<AppEnv>()
     const ctx = await caseFor(c, j.case_id, "transcript.write");
     if (j.state !== "error" || !j.result_ref) throw T.notRetryable();
     const startFailed = j.error_code === "start_failed";
-    // A failed pass can run again only on audio it kept (keep_until_close); a start that failed reuses its instance id.
-    if (!startFailed && !(await passKeepsAudio(c.env.DB, j.result_ref))) throw T.notRetryable();
+    // A failed pass can run again only on audio it kept; a start that failed reuses its instance id.
+    if (!startFailed && !(await passKeepsAudio(c.env, j.result_ref, c.req.header("cf-ray") ?? null))) throw T.notRetryable();
     const attempt = startFailed ? j.attempt : j.attempt + 1;
     const instance = attempt === 1 ? j.id : `${j.id}-${attempt}`;
     const at = isoNow();

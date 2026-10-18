@@ -7,7 +7,7 @@
 // outside our EU jurisdiction setting, so transcript text, audio and prompts never pass through them.
 import { WorkflowEntrypoint, type WorkflowEvent, type WorkflowStep } from "cloudflare:workers";
 import { NonRetryableError } from "cloudflare:workflows";
-import { PCM_BYTES_PER_SECOND, audioOnFailure, coveredIntervals, safeCode, transcriptText, wordsToLines, type PassErrorCode } from "../domain/transcript";
+import { PCM_BYTES_PER_SECOND, coveredIntervals, keepsAudioAfter, safeCode, transcriptText, wordsToLines, type PassErrorCode } from "../domain/transcript";
 import { diarizeUpstream } from "../services/elevenlabs";
 import { summarizeTranscript } from "../services/azure-openai";
 import { PROMPT, PROMPT_VERSION } from "../prompts/summarize-cs";
@@ -61,8 +61,7 @@ async function markRunning(env: Env, p: SpeakerPassParams) {
     // A pass purged before it started stays purged; a retried error pass runs again.
     env.DB.prepare("UPDATE transcript_passes SET state = 'running', error_code = NULL, updated_at = ?1 WHERE id = ?2 AND state IN ('queued','error','running')").bind(iso(), p.passId),
   ]);
-  const r = await env.DB.prepare("SELECT audio_on_failure FROM transcript_passes WHERE id = ?1").bind(p.passId).first<{ audio_on_failure: string }>();
-  return { audioOnFailure: audioOnFailure(r?.audio_on_failure) };
+  return { state: "running" };
 }
 
 async function passState(env: Env, passId: string) {
@@ -272,8 +271,7 @@ export class SpeakerPassWorkflow extends WorkflowEntrypoint<Env, SpeakerPassPara
   async run(event: WorkflowEvent<SpeakerPassParams>, step: WorkflowStep) {
     const env = this.env;
     const p = event.payload;
-    const started = await step.do("mark running", FAST, () => markRunning(env, p));
-    const keepFailed = started.audioOnFailure === "keep_until_close";
+    await step.do("mark running", FAST, () => markRunning(env, p));
 
     let basis: "speaker_pass" | "live_only" = "live_only";
     let failed: PassErrorCode | null = null;
@@ -290,10 +288,10 @@ export class SpeakerPassWorkflow extends WorkflowEntrypoint<Env, SpeakerPassPara
       const code = safeCode(err);
       failed = (await step.do("mark pass error", FAST, () => passError(env, p, code))).code;
     }
-    // Success and an empty pass always delete. After a failure the audio is kept for "Zkusit znovu" only when the
-    // team chose so; the close and session-end routes, the cron sweep and the R2 lifecycle rule still delete it.
-    // A terminated instance skips this step; the cron sweep and the lifecycle rule cover that case.
-    if (!failed || !keepFailed) await step.do("delete audio", DELETE, () => deleteAudio(env, p, failed));
+    // Success and an empty pass always delete. After a failure the audio is kept for "Zkusit znovu" (user decision
+    // 2026-10-18) unless it is already unusable; closing the case, the cron sweep (at most 7 days) and the R2 lifecycle
+    // rule still delete it. A terminated instance skips this step; the cron sweep and the lifecycle rule cover that case.
+    if (!failed || !keepsAudioAfter(failed)) await step.do("delete audio", DELETE, () => deleteAudio(env, p, failed));
 
     // One summary per run, so a manual retry makes a new draft next to the old one.
     const summaryId = `sum-${event.instanceId}`;

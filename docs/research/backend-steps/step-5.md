@@ -1102,15 +1102,17 @@ steps 2 to 4 existed, and the contract the page uses.
   same instance id; a failed pass whose audio was kept runs again as a new
   instance `<job id>-<attempt>` (guarded on the attempt number, so a double
   click starts one). The cron sweep also restarts `start_failed` jobs.
-- **Speaker pass on failure is a setting.** The open question
-  "Speaker pass on failure" is not decided, so both behaviours exist behind
-  `SPEAKER_PASS_AUDIO_ON_FAILURE`: `keep_until_close` (default, today's page
-  behaviour: the failed pass keeps its audio for "Zkusit znovu" until the
-  case closes, the seminar ends, the six-hour sweep or the lifecycle rule)
-  or `delete` (the pass's last step deletes it whatever happened). The value
-  is copied onto the pass row when the approval plans it
-  (`transcript_passes.audio_on_failure`), so changing the setting does not
-  change a running pass. An unknown value means `delete`.
+- **A failed pass keeps its audio** (user decision 2026-10-18, recorded in
+  DATA-PROTECTION.md "Meeting audio"): the audio stays for "Zkusit znovu"
+  until a pass succeeds or the case closes, at most 7 days; the seminar end
+  and the six-hour limit no longer delete it. A failure whose audio is
+  already unusable (`audio_missing`, `audio_purged`) deletes it in the last
+  step, so no retry is offered. The retry route checks the objects in R2
+  first; when they are gone it marks the audio deleted ("AI záznam: zvuk
+  smazán (už není k dispozici)") and answers 409 `not_retryable`, which the
+  page takes without a toast: the reload shows the live transcript and the
+  summary already made from it. Migration 0009 dropped the former per-pass
+  column `audio_on_failure`.
 - **No words, no replacement.** When ElevenLabs returns no words (silence),
   the pass ends `empty` and the live lines stay; the page's old path
   replaced them with nothing.
@@ -1181,12 +1183,13 @@ or sent.
 | When | What | Audit line |
 |---|---|---|
 | Pass succeeded or found no audio | last step deletes or aborts the pass's uploads | "AI záznam: zvuk po rozlišení mluvčích smazán" |
-| Pass failed, `delete` | same | "AI záznam: zvuk smazán po neúspěšném rozlišení mluvčích" |
+| Pass failed with the audio unusable (`audio_missing`, `audio_purged`) | same | "AI záznam: zvuk smazán po neúspěšném rozlišení mluvčích" |
+| Retry finds the kept objects gone from R2 | the pass's uploads marked deleted | "AI záznam: zvuk smazán (už není k dispozici)" |
 | Case closed | every upload of the case (a waiting pass becomes `purged`) | "AI záznam: zvuk smazán bez rozlišení mluvčích (případ uzavřen)" |
-| Seminar ended | uploads of its cases that no queued or running pass uses | "... (konec MDT)" |
+| Seminar ended | uploads of its cases that no pass claimed (kept failed audio stays) | "... (konec MDT)" |
 | Reset-demo | open multipart uploads aborted, `audio/` and `cache/summary/` deleted | the reset line |
-| Cron, every 15 min | uploads older than 6 hours; of a finished pass; of a failed pass in `delete` mode; of a recording whose seminar ended that no running pass uses (also kept failed audio); of a closed case | "AI záznam: zvuk smazán (kontrola uchování)" |
-| R2 lifecycle on `audio/` | objects after 1 day, incomplete multipart uploads after 1 day | none (backstop) |
+| Cron, every 15 min | unclaimed uploads older than 6 hours; any upload older than 7 days; of a finished pass; unclaimed uploads of a recording whose seminar ended; of a closed case | "AI záznam: zvuk smazán (kontrola uchování)" |
+| R2 lifecycle on `audio/` (`audio-backstop-7d`) | objects after 7 days, incomplete multipart uploads after 7 days | none (backstop) |
 
 Close, seminar end and the cron sweep need only D1 and R2, not the feature
 switch, so switching the recorder off never keeps audio.
@@ -1231,7 +1234,7 @@ page no longer sends them as view events in server mode.
 
 ### Checks
 
-- `api/test/transcript.test.ts` (26 tests, Vitest with the Workflows test
+- `api/test/transcript.test.ts` (27 tests, Vitest with the Workflows test
   helpers, ElevenLabs and Azure mocked at fetch).
 - `mocks/src/test/recorder-server.mjs` (jsdom, fake server).
 - A browser run on `wrangler dev`: Chromium with a fake microphone playing
@@ -1240,7 +1243,9 @@ page no longer sends them as view events in server mode.
   speaker lines replacing the live lines, the audio deleted, no page errors.
 - Deployed (`npm run deploy`, 2026-10-17; the account's plan accepted the
   Workflow and the cron trigger): remote D1 migrated, R2 lifecycle rules
-  `audio-backstop-1d` and `summary-cache-30d` applied and listed, and the
+  `audio-backstop-1d` (replaced by `audio-backstop-7d` on 2026-10-18, when a
+  failed pass started keeping its audio until the case closes) and
+  `summary-cache-30d` applied and listed, and the
   same API run against the deployed Worker on the shared demo case NO-020
   (no slot, chosen so the demo's main cases stay untouched): the instance
   completed in about 20 s, the audio object is gone, the access log has the

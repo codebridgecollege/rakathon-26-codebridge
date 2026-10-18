@@ -91,8 +91,8 @@ export async function uploadsOfCase(db: D1Database, caseId: string): Promise<Upl
   return (await db.prepare(`SELECT ${UPLOAD_COLS} FROM audio_uploads u WHERE u.case_id = ?1 AND u.state IN ('open','completed')`).bind(caseId).all<UploadRow>()).results;
 }
 
-// The seminar ended: audio of its cases that no running pass is about to use (unapproved, or kept after a failed
-// pass for "Zkusit znovu").
+// The seminar ended: audio of its cases that no pass will use. Audio a failed pass kept for "Zkusit znovu" stays
+// until the case closes (user decision 2026-10-18); the cron sweep's age limit still applies to it.
 export async function uploadsAtSessionEnd(db: D1Database, day: string): Promise<UploadRow[]> {
   return (
     await db
@@ -101,17 +101,17 @@ export async function uploadsAtSessionEnd(db: D1Database, day: string): Promise<
          LEFT JOIN transcript_passes p ON p.id = u.pass_id
          WHERE u.state IN ('open','completed')
            AND (u.case_id IN (SELECT case_id FROM slots WHERE day = ?1) OR u.recording_id IN (SELECT id FROM recordings WHERE session_day = ?1))
-           AND (u.pass_id IS NULL OR p.state NOT IN ('queued','running'))`,
+           AND (u.pass_id IS NULL OR p.state NOT IN ('queued','running','error'))`,
       )
       .bind(day)
       .all<UploadRow>()
   ).results;
 }
 
-// The cron sweep: (a) anything older than the hard limit, (b) audio of a pass that ended (an error pass only when
-// failed audio is deleted), (c) audio no running pass needs of a recording whose seminar has ended, (d) audio of a
-// closed case.
-export async function uploadsForSweep(db: D1Database, olderThan: string): Promise<UploadRow[]> {
+// The cron sweep: (a) audio no pass has claimed older than the short limit, (b) any audio older than the long limit
+// (what a failed pass kept for "Zkusit znovu"), (c) audio of a pass that ended well, (d) unclaimed audio of a recording
+// whose seminar has ended, (e) audio of a closed case.
+export async function uploadsForSweep(db: D1Database, unclaimedBefore: string, keptBefore: string): Promise<UploadRow[]> {
   return (
     await db
       .prepare(
@@ -120,16 +120,16 @@ export async function uploadsForSweep(db: D1Database, olderThan: string): Promis
          LEFT JOIN recordings r ON r.id = u.recording_id
          LEFT JOIN sessions s ON s.day = r.session_day
          WHERE u.state IN ('open','completed') AND (
-           u.created_at < ?1
+           (u.created_at < ?1 AND u.pass_id IS NULL)
+           OR u.created_at < ?2
            OR p.state IN ('done','empty','purged')
-           OR (p.state = 'error' AND p.audio_on_failure = 'delete')
-           -- No running pass needs it and its seminar has ended (also audio a failed pass kept for "Zkusit znovu").
-           OR ((u.pass_id IS NULL OR p.state = 'error') AND r.session_day IS NOT NULL AND s.ended_at IS NOT NULL AND s.ended_at > r.started_at)
+           -- Unapproved audio of a seminar that has ended: no pass will use it.
+           OR (u.pass_id IS NULL AND r.session_day IS NOT NULL AND s.ended_at IS NOT NULL AND s.ended_at > r.started_at)
            -- A closed case takes no audio; whatever a race left behind goes.
            OR (u.case_id IN (SELECT id FROM cases WHERE status = 'closed') AND (u.pass_id IS NULL OR p.state NOT IN ('queued','running')))
          ) LIMIT 200`,
       )
-      .bind(olderThan)
+      .bind(unclaimedBefore, keptBefore)
       .all<UploadRow>()
   ).results;
 }
@@ -246,8 +246,19 @@ export async function deleteForPass(env: Env, passId: string, audit: { actor: Vi
   return ups.length;
 }
 
-// Audio a failed pass kept for "Zkusit znovu" (SPEAKER_PASS_AUDIO_ON_FAILURE = keep_until_close).
-export async function passKeepsAudio(db: D1Database, passId: string): Promise<boolean> {
-  const r = await db.prepare("SELECT COUNT(*) AS n FROM audio_uploads WHERE pass_id = ?1 AND state IN ('open','completed')").bind(passId).first<{ n: number }>();
-  return (r?.n ?? 0) > 0;
+// Audio a failed pass kept for "Zkusit znovu", checked in R2 as well as in D1: the lifecycle rule may have removed an
+// object the cron sweep had not recorded yet. Audio that is partly gone is deleted here, so the page stops offering a
+// retry and the case keeps its live transcript and the summary made from it.
+export async function passKeepsAudio(env: Env, passId: string, requestId: string | null): Promise<boolean> {
+  const ups = (await uploadsOfPass(env.DB, passId)).filter((u) => u.state === "open" || u.state === "completed");
+  if (!ups.length) return false;
+  for (const u of ups) {
+    if (u.state !== "completed") continue;
+    const h = await env.DOCS.head(u.r2_key);
+    if (!h || h.size !== u.bytes) {
+      await purgeUploads(env, ups, "zvuk už není k dispozici", null, requestId, "AI záznam: zvuk smazán (už není k dispozici)");
+      return false;
+    }
+  }
+  return true;
 }

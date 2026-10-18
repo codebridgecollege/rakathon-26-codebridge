@@ -3502,7 +3502,9 @@ async function jobPoll(pid, jobId) {
 }
 async function recRetry(pid, i) {
   const ps = S.rec.tx[pid]?.passes[i]; if (!ps?.jobId) return;
-  try { await apiWrite("POST", `/jobs/${enc(ps.jobId)}/retry`, {}); } catch (e) { refused(e); recLoad(pid); return; }
+  /* not_retryable: the kept audio is gone (closed case, age limit); the reload shows the live transcript and its
+     summary instead of a refusal. */
+  try { await apiWrite("POST", `/jobs/${enc(ps.jobId)}/retry`, {}); } catch (e) { if (e.code !== "not_retryable") refused(e); recLoad(pid); return; }
   ps.state = "running"; ps.err = null; recUI(); jobPoll(pid, ps.jobId);
 }
 const recP = html => `<p class="small" style="margin:10px 0 0">${html}</p>`;

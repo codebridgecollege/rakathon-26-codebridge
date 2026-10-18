@@ -46,7 +46,6 @@ export function testEnv(over: Record<string, unknown> = {}): Env {
     STT_BATCH_SEED: "1",
     AUDIO_PART_BYTES: "5242880",
     AUDIO_MAX_MINUTES_PER_CASE: "120",
-    SPEAKER_PASS_AUDIO_ON_FAILURE: "keep_until_close",
     ...over,
   } as unknown as Env;
 }

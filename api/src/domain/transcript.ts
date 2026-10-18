@@ -205,11 +205,11 @@ export function transcriptText(lines: { speaker: number | null; text: string }[]
   return lines.map((l) => `${l.speaker !== null ? `Mluvčí ${l.speaker + 1}: ` : ""}${l.text}`).join("\n");
 }
 
-// What the server does with a case's audio when its speaker pass fails (open question "Speaker pass on failure").
-// "keep_until_close": keep it for "Zkusit znovu" until the case closes or the seminar ends (cron and lifecycle apply);
-// "delete": delete it in the pass's last step whatever happened. An unknown value deletes: the stricter choice.
-export type AudioOnFailure = "keep_until_close" | "delete";
-export const audioOnFailure = (v: string | undefined): AudioOnFailure => (v === "keep_until_close" ? "keep_until_close" : "delete");
+// A failed speaker pass keeps its audio for "Zkusit znovu" until the case closes or a pass succeeds, at most
+// KEPT_AUDIO_MAX_AGE_MS (user decision 2026-10-18, DATA-PROTECTION.md "Meeting audio"). These failures leave nothing
+// worth keeping: the audio is gone already, or the pass was purged.
+export const FAILURES_WITHOUT_AUDIO: readonly PassErrorCode[] = ["audio_missing", "audio_purged"];
+export const keepsAudioAfter = (code: PassErrorCode): boolean => !FAILURES_WITHOUT_AUDIO.includes(code);
 
 // The fixed codes a failed step may show. Provider text never reaches the database, the page or the logs.
 export const PASS_ERROR_CODES = ["eleven_429", "eleven_5xx", "eleven_4xx", "network", "audio_missing", "audio_purged", "transcript_too_long", "azure_429", "azure_5xx", "azure_4xx", "internal"] as const;

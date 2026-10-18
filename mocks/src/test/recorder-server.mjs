@@ -42,7 +42,7 @@ const H = JSON.parse(harvest.ev(`JSON.stringify({ patients: S.patients.map(p => 
 const json = (status, body) => ({ ok: status < 400, status, headers: { get: () => "application/json" }, json: async () => structuredClone(body) });
 
 // Only the routes the recorder touches, shaped as the Worker answers them.
-function fakeServer({ pass = "done", audioKept = false, code = "eleven_4xx" } = {}) {
+function fakeServer({ pass = "done", audioKept = false, code = "eleven_4xx", audioGone = false } = {}) {
   const st = { epoch: 3, writes: [], lines: [], parts: [], recs: [], jobs: {}, transcript: null, retries: 0 };
   const cases = {};
   const roles = Object.fromEntries([...H.staff.depts.flatMap(d => d.people.map(x => [x.id, "doctor"])), ["coord", "coordinator"], ["admin", "admin"]]);
@@ -98,6 +98,8 @@ function fakeServer({ pass = "done", audioKept = false, code = "eleven_4xx" } = 
       if (j.polls >= 1) Object.assign(j, pass === "done" ? { state: "done", phase: null } : { state: "error", phase: null, error_code: code });
       return json(200, { id: m[1], kind: "speaker_pass", state: j.state, phase: j.phase, error_code: j.error_code || null });
     }
+    // The kept audio vanished (age limit, lifecycle rule): the Worker marks it deleted and refuses the retry.
+    if ((m = path.match(/^\/api\/jobs\/([^/]+)\/retry$/)) && method === "POST" && audioGone) { st.retries++; audioKept = false; return err(409, "not_retryable", "Zpracování nelze zopakovat: zvuk už byl smazán nebo zpracování běží."); }
     if ((m = path.match(/^\/api\/jobs\/([^/]+)\/retry$/)) && method === "POST") { st.retries++; st.jobs[m[1]] = { state: "running", phase: "diarize", polls: 0 }; pass = "done"; return ok({ id: m[1], state: "queued", attempt: 2 }); }
     if ((m = path.match(/^\/api\/cases\/([^/]+)\/transcript$/))) {
       const j = st.jobs["sp-dec-1"];
@@ -210,5 +212,29 @@ const said = (ev, words) => ev(`recMessage({ message_type: "committed_transcript
   ev(`recStop()`); ev(`clearInterval(S.rec.timer)`);
 }
 
-console.log("Recorder server mode: lines with client ids, audio parts, flush before approval, job polling, speaker lines, draft summary, retry and a failed start passed.");
+// 4. "Zkusit znovu" after the kept audio is gone: no refusal toast, the button goes, the live summary stays.
+{
+  const srv = fakeServer({ pass: "error", audioKept: true, audioGone: true });
+  const { w, ev, errors } = await apiOpen(srv);
+  ev(`openPatient("S01_pacient.pdf")`); await sleep(100);
+  ev(`curProto().mode = "ai"; render()`); await sleep(50);
+  startFake(ev);
+  said(ev, ["souhlasím"]);
+  typeConcl(w, "Adjuvance neindikována.");
+  w.document.querySelector('[data-act="approve"]').click();
+  await sleep(2900);
+  const toasts = (w.__toasts || []).length;
+  w.document.querySelector("[data-recretry]").click();
+  await sleep(400);
+  assert.equal(srv.st.retries, 1);
+  assert.equal((w.__toasts || []).length, toasts);
+  const body = w.document.getElementById("recbody").innerHTML;
+  assert.ok(!w.document.querySelector("[data-recretry]"));
+  assert.match(body, /zůstává živý přepis/);
+  assert.match(body, /ze živého přepisu bez rozlišení mluvčích/);
+  assert.deepEqual(errors, []);
+  ev(`recStop()`); ev(`clearInterval(S.rec.timer)`);
+}
+
+console.log("Recorder server mode: lines with client ids, audio parts, flush before approval, job polling, speaker lines, draft summary, retry, a failed start and a quiet retry without audio passed.");
 process.exit(0);

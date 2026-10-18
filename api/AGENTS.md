@@ -99,21 +99,23 @@ built.
   case and ending a seminar purge audio there too.
 - Workflow params and step results carry ids and counts only, never transcript text, audio or prompts;
   `test/transcript.test.ts` checks every step result. Keep it so when adding a step.
-- `SPEAKER_PASS_AUDIO_ON_FAILURE` (`keep_until_close` | `delete`) is the open question "Speaker pass on failure"; the
-  value is copied onto the pass when approval plans it.
-- `scheduled()` (`src/scheduled.ts`, cron every 15 minutes) deletes audio older than 6 hours or left by a finished
-  pass and restarts passes whose start failed.
+- A failed pass keeps its audio for "Zkusit znovu" until a pass succeeds or the case closes, at most 7 days (user
+  decision 2026-10-18, DATA-PROTECTION.md "Meeting audio"); the seminar end does not delete it. The retry route checks
+  the objects in R2 and, if they are gone, marks the audio deleted and answers 409 `not_retryable`, which the page
+  takes quietly (it reloads the transcript, no toast).
+- `scheduled()` (`src/scheduled.ts`, cron every 15 minutes) deletes unapproved audio older than 6 hours, any audio
+  older than 7 days, and audio left by a finished pass, and restarts passes whose start failed.
 - R2 lifecycle backstop, applied once per bucket (check with `npx wrangler r2 bucket lifecycle list codebridge-mdt -J eu`):
 
   ```
-  npx wrangler r2 bucket lifecycle add codebridge-mdt audio-backstop-1d audio/ --expire-days 1 --abort-multipart-days 1 -J eu -y
+  npx wrangler r2 bucket lifecycle add codebridge-mdt audio-backstop-7d audio/ --expire-days 7 --abort-multipart-days 7 -J eu -y
   npx wrangler r2 bucket lifecycle add codebridge-mdt summary-cache-30d cache/summary/ --expire-days 30 -J eu -y
   ```
 - Deploying: the Workflow and the cron trigger are registered only by `wrangler deploy` (`npm run deploy`), not by
   `wrangler versions upload`, which CI uses for the `backend` preview alias. A preview's approvals start instances of
   the Workflow as the last `wrangler deploy` registered it, so deploy after changing `src/workflows/`.
 - `seed.py --reset` empties the audio tables but does not delete R2 `audio/` objects (nor step 6's `uploads/`); reset-demo does, and the
-  lifecycle rule removes the rest within about two days.
+  lifecycle rule removes the rest within about eight days.
 - Workflow tests: `introspectWorkflow(env.SPEAKER_PASS)` with `await using`, `disableRetryDelays()`. The Workflow runs
   with the Worker's bindings, not the per-test env, so `vitest.config.ts` pins its secrets and endpoints to `.test`
   hosts. A test that approves a case with audio or lines starts a pass; let it finish inside the test (`settle`).
