@@ -43,6 +43,8 @@ test("the administrator gets no upload zone", async ({ app }) => {
   const d = new Discussion(app);
   await d.expand();
   await d.card.getByRole("button", { name: /^Dokumenty( \(\d+\))?$/ }).click();
+  // The segment is open (so an absent zone means "not offered", not "not rendered yet").
+  await expect(d.card.getByRole("button", { name: /^Dokumenty( \(\d+\))?$/ })).toHaveAttribute("aria-pressed", "true");
   await expect(d.card.getByRole("button", { name: /^Přetáhněte soubory sem/ })).toHaveCount(0);
 });
 

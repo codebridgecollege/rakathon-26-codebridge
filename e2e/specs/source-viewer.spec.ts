@@ -41,7 +41,8 @@ test("the transcription tab marks the quoted passage", async ({ app }) => {
   const viewer = await openFirstReference(app);
   await viewer.getByRole("tab", { name: "Přepis stránky" }).click();
   await expect(viewer.getByRole("img", { name: /^Strana 4 dokumentu/ })).toHaveCount(0);
-  await expect(viewer.getByRole("mark").filter({ hasText: QUOTE })).toBeVisible();
+  // <mark> is HTML's own element for highlighted text (role "mark", which Playwright's role typing does not list yet).
+  await expect(viewer.locator("mark").filter({ hasText: QUOTE })).toBeVisible();
   await expect(viewer.getByText(/Na cílený dotaz neguje závratě či poruchy rovnováhy/)).toBeVisible();
 });
 
