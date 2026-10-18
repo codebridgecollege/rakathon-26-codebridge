@@ -1,0 +1,32 @@
+# Deploys api/pages-redirect to the Cloudflare Pages project codebridge-mdt (https://codebridge-mdt.pages.dev) on
+# every push to main that changes it. The Pages site once hosted the old page; colleagues still open its address, so
+# it now only redirects every path (with its query) to the app on the Worker (api/AGENTS.md, "The old Pages address").
+name: Deploy Pages redirect
+
+on:
+  push:
+    branches: [main]
+    paths: ["api/pages-redirect/**", ".github/workflows/deploy-pages-redirect.yml"]
+  workflow_dispatch:
+
+# One deploy at a time; a newer push replaces a queued one.
+concurrency:
+  group: deploy-pages-redirect
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      # A deploy with no functions/ folder replaces the old Pages Functions too. --force: Wrangler 4.147 otherwise
+      # tries to hand Pages commands to Workers and fails.
+      - name: Deploy to Cloudflare Pages (codebridge-mdt)
+        run: npx -y wrangler@4.147.0 pages deploy api/pages-redirect --project-name codebridge-mdt --branch main --commit-dirty=true --force
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

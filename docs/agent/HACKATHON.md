@@ -203,8 +203,10 @@ Declare this list to the jury and mentors.
   single-file HTML page the demo started as) at
   https://codebridge-mdt.pages.dev, with Pages Functions for the speech
   and summary routes. On 2026-10-18 the page and its Pages deploy were
-  removed from the repository; the Pages project still exists but is no
-  longer deployed, so it shows its last deploy. The API Worker below is
+  removed from the repository. Colleagues still use the address, so the
+  Pages project now only redirects every path to the app on the Worker
+  (`api/pages-redirect/`, deployed by
+  `.github/workflows/deploy-pages-redirect.yml`). The API Worker below is
   the demo.
 - Cloudflare Workers (static assets, rate limiting binding, Workers
   Logs), hosting the API Worker `codebridge-mdt` in `api/`, which serves

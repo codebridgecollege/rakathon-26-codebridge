@@ -573,7 +573,8 @@ Removed:
 - embedded mode (the old page with built-in data, opened from a file or a claude.ai artifact);
 - the Cloudflare Pages Functions (`mocks/functions/`: `/api/summarize`, `/api/stt/*`; the Worker has its own) and the
   Pages deploy (`mocks/deploy.sh`, `mocks/pages-wrangler.toml`, `.github/workflows/deploy-mock.yml`). The Pages project
-  `codebridge-mdt.pages.dev` still exists but is no longer deployed, so it shows its last deploy;
+  `codebridge-mdt.pages.dev` now serves only a 302 redirect of every path to the app on the Worker
+  (`api/pages-redirect/`, `api/AGENTS.md`, "The old Pages address");
 - `/legacy/` on the Worker, with its redirects of `/legacy/ukazka/*` and `/legacy/pages/*`;
 - `mocks/pages/` (a committed copy of the page images) and `app/scripts/sync-css.mjs` (the copy of the old page's CSS).
 
@@ -620,7 +621,7 @@ Consequences:
 ## Decisions (2026-10-18)
 
 - **No offline demo is needed.** Embedded mode ended with the old page
-  (removed 2026-10-18); the Pages deploy stopped with it.
+  (removed 2026-10-18); the Pages address redirects to the Worker.
 - **The port starts as soon as the team decides to do it.** The clinical
   behaviour of the ported screens is reviewed afterwards, against the
   DOM-only test suite and the old page as kept in the repository history.

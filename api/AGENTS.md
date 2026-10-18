@@ -212,6 +212,24 @@ Design and contract: `docs/design/PHONE-UPLOAD.md`, section "As implemented".
   ```
   `--reset` runs reset-demo before (the S02 patient can be added once per seeded state) and after.
 
+## The old Pages address
+
+`https://codebridge-mdt.pages.dev` (Cloudflare Pages project `codebridge-mdt`) hosted the old single-file page, and
+colleagues still open it. It now serves only `api/pages-redirect/`: a `_redirects` file that sends every path, with
+its query string, to the app on the Worker (`/* https://codebridge-mdt.juraj-oravec-josefson.workers.dev/:splat
+302`), and an `index.html` with a link for a client that ignores the redirect. The browser keeps the fragment, so a
+phone link `/u#<token>` still works. 302 and not 301, so browsers do not cache it and the target can change later
+(for example to a custom domain): edit the one line in `_redirects`.
+
+`.github/workflows/deploy-pages-redirect.yml` deploys the folder on every push to main that changes it (or by hand,
+`workflow_dispatch`), with the repository's `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`. The deploy has no
+`functions/` folder, so it also retires the old Pages Functions. Try it locally:
+
+```
+npx --prefix api wrangler pages dev api/pages-redirect --port 8860
+curl -sI 'http://localhost:8860/patient/10/labs?x=1'   # 302, location .../patient/10/labs?x=1
+```
+
 ## Where configuration lives
 
 - Vars (endpoints, models, language, limits, `AUTH_MODE`) in `wrangler.jsonc`.
