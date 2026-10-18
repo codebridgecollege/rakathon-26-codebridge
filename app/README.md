@@ -27,7 +27,7 @@ Install from the repository root (npm workspaces):
 
 ```
 npm ci                                   # at the root: api, app and packages
-npm run dev -w @codebridge/app           # Nuxt dev server; proxies /api to http://localhost:8799 (API_PROXY to change)
+npm run dev -w @codebridge/app           # Nuxt dev server; proxies /api to wrangler dev at http://localhost:8787 (API_PROXY to change)
 npm run generate -w @codebridge/app      # static build into app/.output/public
 npm run typecheck -w @codebridge/app     # nuxt typecheck (app) and vue-tsc on the tests
 npm test -w @codebridge/app              # Vitest with happy-dom: stores, boot, catalogs, CSS copy
@@ -37,6 +37,7 @@ npm run css:sync -w @codebridge/app      # refresh app/assets/v3.css from the te
 The app against a local Worker with the seeded demo data, side by side with today's page:
 
 ```
+npm ci                                   # at the root; `npm ci` inside api/ installs the Worker's dependencies only
 cd api
 npm run seed:local                       # once; needs uv
 npm run dev:app                          # STAGE_APP=1: builds the app into .assets/app/, then wrangler dev

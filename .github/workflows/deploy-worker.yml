@@ -33,6 +33,10 @@ jobs:
         run: npm run types && git diff --exit-code src/worker-configuration.d.ts
       - run: npm run typecheck
       - run: npm test
+      # The case rules the Worker imports from packages/domain, with their own tests and the type check that keeps
+      # runtime globals out of the package (the Worker's tsconfig would not catch them).
+      - run: npm run typecheck -w @codebridge/domain
+      - run: npm test -w @codebridge/domain
 
   deploy:
     needs: test

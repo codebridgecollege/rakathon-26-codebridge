@@ -100,11 +100,16 @@ export const useSessionStore = defineStore("session", () => {
     return true;
   }
 
-  // A write's state: rows and staff to their stores, the rest to the workflow store.
+  // A write's state: rows and staff to their stores, the rest to the workflow store. A case's status, slot and tasks
+  // also update its list row and the task list, so the header's badge and the list follow every write.
   function applyState(st: WorkflowState | null | undefined) {
     if (!st) return;
     if (st.staff) useStaffStore().apply(st.staff);
     if (st.patient) usePatientsStore().upsert(st.patient);
+    for (const cs of Object.values(st.cases ?? {})) {
+      const file = usePatientsStore().applyCase(cs);
+      if (file && cs.tasks) useWorkflowStore().replaceTasksOf(file, cs.tasks);
+    }
     useWorkflowStore().applyState(st);
   }
 

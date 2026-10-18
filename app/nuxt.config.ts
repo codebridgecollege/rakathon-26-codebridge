@@ -39,7 +39,7 @@ export default defineNuxtConfig({
   telemetry: false,
   typescript: { strict: true },
   vite: {
-    // `nuxt dev` on its own has no API; it proxies /api to a local `wrangler dev` (see app/README.md).
-    server: { proxy: { "/api": { target: process.env.API_PROXY ?? "http://localhost:8799", changeOrigin: false } } },
+    // `nuxt dev` on its own has no API; it proxies /api to a local `wrangler dev` (default port 8787; see app/README.md).
+    server: { proxy: { "/api": { target: process.env.API_PROXY ?? "http://localhost:8787", changeOrigin: false } } },
   },
 });

@@ -90,6 +90,28 @@ describe("boot", () => {
   });
 });
 
+describe("write state", () => {
+  it("updates the case's list row and its tasks, so the nav badge follows the write", async () => {
+    setApi(server().api);
+    const s = useSessionStore();
+    await s.boot();
+    const owner = (f: string) => usePatientsStore().byFile(f)?.owner;
+    expect(useWorkflowStore().openTaskCount("Bc. Marková", "Bc. Marková", owner)).toBe(1);
+    s.applyState({
+      cases: {
+        "NO-002": {
+          case_id: "NO-002",
+          status: "scheduled",
+          slot: { day: "2026-10-22", time: "14:00" },
+          tasks: [{ id: 1, pid: "2_pacient.pdf", case_id: "NO-002", text: "x", who: "Bc. Marková", due: null, done: true, dueSrc: null, dueBy: null, timing: null, fromSugg: null, confirmedBy: null }],
+        },
+      },
+    });
+    expect(usePatientsStore().byFile("2_pacient.pdf")).toMatchObject({ status: "scheduled", slot: { day: "2026-10-22", time: "14:00" } });
+    expect(useWorkflowStore().openTaskCount("Bc. Marková", "Bc. Marková", owner)).toBe(0);
+  });
+});
+
 describe("user switch", () => {
   it("reloads under the new user and empties the case cache", async () => {
     const m = server();
@@ -118,6 +140,10 @@ describe("user switch", () => {
     expect(refusing.api.userId).toBe("d2p1");
     expect(s.error?.message_cs).toBe("Neznámý uživatel. Vyberte uživatele znovu.");
     expect(useCasesStore().entries.size).toBe(1);
+    // The previous user's view stays whole: who is acting, the list and the staff.
+    expect(s.me?.user.id).toBe("d2p1");
+    expect(usePatientsStore().total).toBe(2);
+    expect(useStaffStore().coord?.id).toBe("coord");
   });
 
   it("refuses a name the server does not know without a request", async () => {

@@ -99,15 +99,43 @@ describe("case cache", () => {
   });
 
   it("drops the late reply of an evicted case", async () => {
+    // Case 9 loads, a retry is held back, and six newer loads evict it; the held reply must not bring it back.
+    let n9 = 0;
     const held = deferred<unknown>();
-    const m = mockApi({ "/cases/NO-009/extraction": () => held.promise, ...Object.fromEntries(Array.from({ length: 6 }, (_, i) => [`/cases/NO-00${i + 1}/extraction`, (u: string) => extraction(caseIdOf(u))])) });
+    const m = mockApi({
+      "/cases/NO-009/extraction": () => (++n9 === 1 ? extraction("NO-009") : held.promise),
+      ...Object.fromEntries(Array.from({ length: 6 }, (_, i) => [`/cases/NO-00${i + 1}/extraction`, (u: string) => extraction(caseIdOf(u))])),
+    });
     setApi(m.api);
     const s = useCasesStore();
-    const late = s.loadCase(row(9));
-    // Reset stands in for any drop of the entry; the reply must not recreate it.
-    s.entries.delete("9_pacient.pdf");
+    let t = 0;
+    s.setClock(() => ++t);
+    await s.ensureCase(row(9));
+    const late = s.retry(row(9));
+    // Eviction drops ready entries only, and a loading one has its request in flight, so a ready entry with a request
+    // on its way is what a later per-entry load (the guideline layer) produces. The test builds that state by hand,
+    // then loads six newer cases.
+    Object.assign(s.caseOf("9_pacient.pdf"), { state: "ready", loadedAt: 0 });
+    for (let i = 1; i <= 6; i++) await s.ensureCase(row(i));
+    expect(s.entries.has("9_pacient.pdf")).toBe(false);
     held.resolve(extraction("NO-009"));
     await late;
     expect(s.entries.has("9_pacient.pdf")).toBe(false);
+  });
+
+  it("refuses a reply of unknown shape instead of showing it as data", async () => {
+    const m = mockApi({ "/cases/NO-008/extraction": { data: { something: 1 } } });
+    setApi(m.api);
+    const s = useCasesStore();
+    await s.ensureCase(row(8));
+    expect(s.caseOf("8_pacient.pdf")).toMatchObject({ state: "error", error: { code: "bad_shape", message_id: "case-data-bad-shape" } });
+    expect(s.readyData("8_pacient.pdf")).toBeNull();
+  });
+
+  it("reads a case's state without creating an entry", () => {
+    setApi(mockApi({}).api);
+    const s = useCasesStore();
+    expect(s.stateOf("1_pacient.pdf")).toBe("absent");
+    expect(s.entries.size).toBe(0);
   });
 });

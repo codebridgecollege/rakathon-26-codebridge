@@ -17,6 +17,11 @@ cp "$MOCKS/src/phone-upload.html" .assets/u.html
 # A real 404 keeps old links from looking alive (not_found_handling: 404-page).
 printf '<!doctype html><meta charset="utf-8"><title>Stránka nenalezena</title><p>Stránka nenalezena. Aplikace je na <a href="/">úvodní stránce</a>.</p>\n' > .assets/404.html
 if [ "${STAGE_APP:-0}" = "1" ]; then
+  # `npm ci` inside api/ installs the Worker's dependencies only; the app needs the root install.
+  if [ ! -d ../node_modules/nuxt ]; then
+    echo "STAGE_APP=1 needs the app's dependencies: run npm ci at the repository root first." >&2
+    exit 1
+  fi
   npm run generate --workspace @codebridge/app
   mkdir -p .assets/app
   cp -R ../app/.output/public/. .assets/app/

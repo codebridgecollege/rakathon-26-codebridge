@@ -23,17 +23,21 @@ request; the Worker checks every write again.
 | `time.ts`, `names.ts` | ISO day arithmetic, the Prague calendar day, the display name of a person |
 | `wire.ts` | types of the JSON the API sends (health, me, staff, patients, tasks, workflow, the write envelope) |
 
-What stays in `api/src/domain`: sessions, attendance, upload-session tokens, break-the-glass, audit, alerts, intake,
-documents, transcripts, database row mapping, and the system clock (`clock.ts`, because `crypto.randomUUID` is a
-runtime global). Those either need server state or have no browser use yet.
+What stays in `api/src/domain`: rules that are server-only by design (upload-session tokens, break-the-glass, audit,
+intake, documents, transcripts, database row mapping, and the system clock in `clock.ts`, because
+`crypto.randomUUID` is a runtime global), and pure rules that were not part of the first split (staff validation,
+alerts, questions, suggestions, tasks, sessions, attendance, the report snapshot, the pipeline rules). The latter move
+here when a ported screen needs them.
 
 ## Rules for code here
 
 - **No runtime globals.** `tsconfig.json` has no DOM and no Workers types, so `fetch`, `crypto`, `window` or a
   Cloudflare binding fail the type check. Clocks and ID sources are injected (`Clock` in `time.ts`).
 - **No server imports.** Nothing here imports from `api/`. The Worker imports from here (`@codebridge/domain/<file>`).
-- **Wire types are checked against the Worker.** `api/src/wire-check.ts` fails `npm run typecheck` in `api/` when a
-  route builds an object that no longer fits `wire.ts`.
+- **Wire types are checked against the Worker, in part.** `api/src/wire-check.ts` fails `npm run typecheck` in `api/`
+  when the patient row, staff list, task, case state, attendance set or session the Worker builds no longer fits
+  `wire.ts`. The envelopes the routes build inline (health, me, the lists, the workflow, the write answer) are not
+  checked yet.
 
 ## Commands
 
@@ -53,7 +57,8 @@ Moving these out is phase 3 of `docs/design/I18N.md` (message keys and codes), n
 - [ ] `fhir.ts`: `LABEL_CS` (the `missing_cs` field names) and the `fhir_invalid` messages.
 - [ ] `protocol.ts`, `edits.ts`, `approve.ts`: the `fields` messages of `invalidInput`; `approve.ts` also the
       assignee fallback `"neurčeno"`.
-- [ ] `slots.ts`: the seminar warning text.
+- [ ] `slots.ts`: the seminar warning text, and `WD` and `slotText` (Czech weekday abbreviations and the date format
+      that go into access-log sentences).
 - [ ] `suggest.ts`: the draft task verbs (`"Objednat"`, `"Domluvit radioterapii"`, ...). The Czech month names and
       phrase patterns that parse a conclusion are content rules, not interface text, and stay (I18N.md, "What stays
       Czech-only on purpose").

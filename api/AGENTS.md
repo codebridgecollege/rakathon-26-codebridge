@@ -8,8 +8,9 @@ section "Issue: Step 1".
 ## Run, test, deploy
 
 `api/` is an npm workspace of the repository root (with `app/` and `packages/*`); the lockfile is the root
-`package-lock.json`, and `npm ci` here installs from it. The pure case rules come from `@codebridge/domain`
-(`packages/domain`).
+`package-lock.json`, and `npm ci` here installs the Worker's dependencies from it (not the app's). The pure case
+rules come from `@codebridge/domain` (`packages/domain`). `npm run dev:app` also builds the Nuxt app into
+`.assets/app/` (served at `/app/`); it needs `npm ci` at the root first.
 
 ```
 npm ci

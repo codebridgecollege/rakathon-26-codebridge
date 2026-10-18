@@ -108,7 +108,9 @@ describe("writes", () => {
     expect(headersOf(m.calls[0]!).has("Idempotency-Key")).toBe(false);
   });
 
-  it("refreshes the epoch from every answer, refusals included", async () => {
+  it("refreshes the epoch from every answer that carries one, a refusal included", async () => {
+    // The server's refusals carry no epoch today; apiWrite() in the template reads it from any answer, and so does
+    // the client.
     const m = mockFetch([200, { data: {}, data_epoch: 5, state: {} }], [409, { error: { code: "slot_taken", message_cs: "Termín mezitím obsadil jiný případ. Vyberte jiný." }, data_epoch: 6 }]);
     const api = createApiClient({ fetch: m.fn });
     await api.putSlot("NO-010", { day: "2026-10-22", time: "14:00" });

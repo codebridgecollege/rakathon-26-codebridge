@@ -65,7 +65,7 @@ async function onUser(ev: Event) {
           <option v-for="p in d.people" :key="p.id" :value="p.id" :title="[p.fn, d.name].filter(Boolean).join(', ')">{{ p.name }}</option>
         </optgroup>
         <optgroup :label="$t('user-picker-other-roles')">
-          <option v-if="staff.coord" :value="staff.coord.id" :title="staff.coord.fn || $t('user-coordinator-function-default')">
+          <option v-if="staff.coord" :value="staff.coord.id" :title="staff.coord.fn || $t('user-coordinator-tooltip-default')">
             {{ $t("user-picker-with-function", { name: staff.coord.name, fn: staff.coord.fn || $t("user-coordinator-function-default") }) }}
           </option>
           <option v-if="staff.admin" :value="staff.admin.id" :title="$t('user-admin-function')">

@@ -3,7 +3,6 @@
 
 ## App shell: header and navigation
 
-app-title = GLIDE MDT
 brand-logo-alt = GLIDE
 brand-mark = MDT
 brand-button-title = Databáze pacientů
@@ -20,9 +19,11 @@ nav-admin = Administrace
 user-picker-label = Uživatel:
 user-picker-aria = Aktuální uživatel (maketa bez přihlášení)
 user-picker-other-roles = Další role
-# A role holder shown with their function, for example "Bc. Marková (koordinátorka MDT)".
+# A role holder shown with their function: the name, then the function in brackets.
 user-picker-with-function = { $name } ({ $fn })
 user-coordinator-function-default = koordinátorka MDT
+# The coordinator's tooltip when the staff list names no function (the old page words it differently from the label).
+user-coordinator-tooltip-default = koordinace MDT
 user-admin-function = správce systému
 
 ## Startup
@@ -42,6 +43,7 @@ api-error-write-network = Server neodpovídá. Zkontrolujte připojení a zkuste
 api-error-write-failed = Změnu se nepodařilo uložit.
 data-reset-reload = Ukázková data byla obnovena, stránka se znovu načte.
 user-switch-unknown = Tento uživatel není v seznamu na serveru.
+case-data-bad-shape = Server vrátil data případu v neznámém tvaru.
 
 ## Development only (shown with ?dev in the address)
 

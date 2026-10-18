@@ -4,11 +4,12 @@
 //   card never causes an access;
 // - one request per case load (the server logs "case.data" for it), never a prefetch;
 // - a reply for an older request, a reset store or an evicted entry is dropped (gen counter and entry identity);
-// - at most CASE_CACHE_MAX loaded cases stay in memory besides the open one, and nothing goes to browser storage.
+// - at most CASE_CACHE_MAX loaded cases stay in memory, the open one counted among them, and nothing goes to browser
+//   storage.
 // The new app has no embedded mode, so nothing is ever "seeded" from the page itself.
 import { defineStore } from "pinia";
 import { reactive, ref } from "vue";
-import type { ApiError, Extraction, PatientRow } from "@codebridge/api-client";
+import { ApiError, type Extraction, type PatientRow } from "@codebridge/api-client";
 import { useApi } from "../lib/api";
 
 // It bounds how much patient data one tab holds. A privacy-for-convenience trade-off: a larger cache would make
@@ -37,7 +38,8 @@ export const useCasesStore = defineStore("cases", () => {
   // Injectable for tests, so eviction order is deterministic.
   let now = () => Date.now();
 
-  // The entry of a case, created as "absent". Pure: safe to call while rendering.
+  // The entry of a case, created as "absent". It starts no load, but creating the entry writes to the reactive map, so
+  // render code reads with readyData() or stateOf(), which never write.
   function caseOf(file: string): CaseEntry {
     let e = entries.get(file);
     if (!e) {
@@ -51,6 +53,11 @@ export const useCasesStore = defineStore("cases", () => {
   function readyData(file: string | null | undefined): CaseData | null {
     const e = file ? entries.get(file) : undefined;
     return e && e.state === "ready" ? e.data : null;
+  }
+
+  // The state of a case for a view: "absent" without creating an entry.
+  function stateOf(file: string | null | undefined): CaseEntry["state"] {
+    return (file && entries.get(file)?.state) || "absent";
   }
 
   function setReady(file: string, data: CaseData) {
@@ -79,16 +86,20 @@ export const useCasesStore = defineStore("cases", () => {
     let err: ApiError | null = null;
     try {
       const ex = await useApi().extraction(p.id);
-      data = { file: p.file, id: p.id, extraction: ex.data ?? null };
+      const d = ex.data ?? null;
+      // All knowledge of the reply's shape sits here, as in the template's fromApi(): data is null (no run) or holds
+      // { case, extra } or { syn }. Anything else is an error on the case, never data that merely looks valid.
+      if (d !== null && (typeof d !== "object" || (!("case" in d) && !("syn" in d)))) throw new ApiError("bad_shape", 200, null, "case-data-bad-shape");
+      data = { file: p.file, id: p.id, extraction: d };
     } catch (x) {
-      err = x as ApiError;
+      err = x instanceof ApiError ? x : new ApiError("network", 0, null, "api-error-network");
     }
     // A reply for an older request (a retry, a user switch, an eviction) must not overwrite newer state.
     if (e.gen !== gen || entries.get(p.file) !== e) return;
     if (err) {
       // A refusal shows on the case itself, never as "not processed".
       e.state = "error";
-      e.error = { code: err.code || "network", status: err.status ?? null, message_cs: err.message_cs ?? null, message_id: err.message_id ?? null };
+      e.error = { code: err.code || "network", status: err.status || null, message_cs: err.message_cs ?? null, message_id: err.message_id ?? null };
     } else {
       setReady(p.file, data!);
       evictOld();
@@ -127,5 +138,5 @@ export const useCasesStore = defineStore("cases", () => {
     now = fn;
   }
 
-  return { entries, openFile, caseOf, readyData, ensureCase, loadCase, retry, evictOld, reset, setOpen, setClock };
+  return { entries, openFile, caseOf, stateOf, readyData, ensureCase, loadCase, retry, evictOld, reset, setOpen, setClock };
 });

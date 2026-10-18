@@ -34,10 +34,15 @@ export const useWorkflowStore = defineStore("workflow", () => {
     if (st.mails) mails.value = [...st.mails];
   }
 
+  // A case's tasks from a write's state replace that case's tasks, so the nav badge follows every write.
+  function replaceTasksOf(file: string, list: Task[]) {
+    tasks.value = [...tasks.value.filter((t) => t.pid !== file), ...list.map((t) => ({ ...t, pid: file }))];
+  }
+
   // "Moje úlohy": assigned to the user, or (for a doctor) on a case they own; the nav badge counts the open ones.
   function openTaskCount(user: string, coordName: string | null, ownerOf: (file: string) => string | undefined) {
     return tasks.value.filter((t) => !t.done && (t.who === user || (user !== coordName && ownerOf(t.pid) === user))).length;
   }
 
-  return { cases, att, sessions, mails, tasks, replace, applyState, openTaskCount };
+  return { cases, att, sessions, mails, tasks, replace, applyState, replaceTasksOf, openTaskCount };
 });

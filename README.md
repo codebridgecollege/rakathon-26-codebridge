@@ -27,8 +27,9 @@ came from, so a doctor can check it in one click.
 
 ## Status
 
-Kickoff. The tech stack is not chosen yet; this section will hold the
-setup and run instructions once it is.
+The demo is mock v3 (`mocks/`), served with its data by the API Worker
+(`api/`). A Nuxt frontend (`app/`) is being ported next to it on a branch
+(issue #13); the setup and run instructions are below.
 
 ## Repository layout (npm workspaces)
 
