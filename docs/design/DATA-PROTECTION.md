@@ -142,8 +142,8 @@ synthetic patients.
   registry of synthetic fixtures names each fixture's patient in
   `fixture_patients` (step 6, for the wrong-patient check; only its result
   leaves the server). The intake demo's upload files in R2,
-  `fixtures/S02/`, and uploaded PDFs under `uploads/` are documents, so
-  they carry identity by nature. Case
+  `fixtures/S02/`, and uploaded PDFs under `org/<org>/uploads/` are
+  documents, so they carry identity by nature. Case
   rows, alerts and the extraction JSON in R2 refer to a case ID
   (`NO-010`). The seed (`api/seed/seed.py`) removes identity from the
   extraction JSON and stops when a patient's name or birth number is
@@ -181,16 +181,36 @@ synthetic patients.
   Even in `doctors_only` mode, the coordinator's "header" routes still
   carry some clinical text: the question's source quote, decision report
   snapshots and the edit log.
-- **Demo mode has no login.** The page sends the picked user's staff ID
+- **Organizations keep their data apart** (`AUTH.md`, `DATABASE.md`).
+  Every patient, case, document, recording, task and access-log row
+  belongs to one organization (org): demo org A ("Ukázková nemocnice A")
+  and demo org B ("Ukázková nemocnice B") share one database, with an
+  `org_id` on every row. A request acts in the org of the membership it
+  acts with; a record of another org answers 404, the same as an unknown
+  ID, so its existence is not confirmed. The database refuses a row that
+  points at another org's case or person (composite foreign keys), unique
+  keys are per org (a slot booked in one org does not block or reveal the
+  same time in another), case numbers count per org, and files go under
+  `org/<org id>/` in R2. Isolation tests in `api/test/orgs.test.ts` act in
+  org B with org A's IDs on every route. Not separated: the person record
+  (`users`: name, titles, e-mail) is shared by all of a person's orgs, and
+  the synthetic fixture registry, guideline data and seed bookkeeping are
+  global. Time Travel restores the whole database, so one org's data
+  cannot be restored alone (`DATABASE.md`, known gap).
+- **Demo mode has no login.** The page sends the picked membership's ID
   (header `X-Demo-User`, or the `cb_demo_user` cookie for page images);
-  the server trusts it, as the UI says. With Cloudflare Access on, the
-  verified e-mail decides who the user is and the header is ignored.
+  the server trusts it, as the UI says. The picker lists every demo org's
+  memberships (`/api/demo/memberships`, demo mode only). With Cloudflare
+  Access on, the verified e-mail decides who the user is and the header
+  is ignored.
 - **Retention.** The demo data and its access log stay until someone
-  reseeds with `--reset` or an administrator runs "Obnovit ukázková
-  data" (`POST /api/admin/reset-demo`). The reset first archives the
-  access log and the append-only histories (decisions, edits, alert
-  events, status history, question confirmations) to the private EU R2
-  bucket under `audit-archive/`, then reseeds. Decisions go to the
+  reseeds with `--reset` or an org's administrator runs "Obnovit ukázková
+  data" (`POST /api/admin/reset-demo`), which resets that org only. The
+  reset first archives the org's access log and append-only histories
+  (decisions, edits, alert events, status history, question
+  confirmations) to the private EU R2 bucket under
+  `org/<org id>/audit-archive/`, then reseeds the org; people are never
+  deleted, a membership added after the seed is ended. Decisions go to the
   archive without their report HTML (ID, approver, time, report hash),
   and an R2 lifecycle rule deletes archives after 30 days. Edit-log rows
   keep the edited text, which can be clinical. Nothing else is kept.
