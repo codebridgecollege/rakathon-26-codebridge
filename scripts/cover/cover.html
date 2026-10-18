@@ -2,8 +2,8 @@
 <html lang="cs"><head><meta charset="utf-8">
 <!-- Cover image for the project gallery, 1600x900. Rendered by scripts/cover/build.mjs.
      Design follows glideanalysis.com: its tokens (ink, teal, mint, navy, line, surface), Manrope with tight tracking,
-     a two-tone headline, a ruled subtitle, a mint button with a thin arrow, uppercase teal labels, an evidence card,
-     numbered steps under thin rules, and a photo faded into white (here: a real screen of the app). -->
+     a two-tone headline, a ruled subtitle, a mint button with a thin arrow, and numbered steps under thin rules.
+     The right side shows real screens of the app as floating cards. -->
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   :root { --ink:#102c39; --muted:#5d707a; --navy:#092d3b; --teal:#007f78; --mint:#74ebcc; --line:#dce5e8; --surface:#f3f7f8; --amber:#8f5a06; --amber-soft:#fbf0dc; }
@@ -18,11 +18,19 @@
   .top .right { margin-left:auto; display:flex; align-items:center; gap:28px; font-size:15px; font-weight:500; }
   .top .dark { background:var(--navy); color:#fff; font-weight:600; padding:14px 20px; border-radius:5px; display:flex; gap:22px; align-items:center; }
 
-  /* The app screen, faded into white from the left like the photo in GLIDE's hero. */
-  .screen { position:absolute; left:640px; top:84px; width:960px; height:606px; background:url(shots/overview.png) 0 0/1100px auto no-repeat; }
-  .screen::after { content:""; position:absolute; inset:0; background:linear-gradient(90deg,#fff 0%,rgba(255,255,255,.94) 25%,rgba(255,255,255,.7) 60%,rgba(255,255,255,.55) 100%); }
+  /* Real app screens as floating cards (the earlier version's right side): the case overview, the source view
+     with the boxed quote in front, and the platelet trend of S01. */
+  .shot-card { position:absolute; background:#fff; border-radius:14px; overflow:hidden; border:1px solid #e3ecee; box-shadow:0 24px 60px rgba(16,44,57,.14), 0 2px 6px rgba(16,44,57,.06); }
+  .shot-card .shot { position:absolute; inset:0; background-repeat:no-repeat; }
+  .main { left:770px; top:116px; width:780px; height:470px; z-index:1; }
+  .main .shot { background-image:url(shots/overview.png); background-size:780px auto; background-position:0 0; }
+  .src { left:705px; top:330px; width:470px; height:340px; transform:rotate(-2.5deg); z-index:2; }
+  .src .shot { background-image:url(shots/source.png); background-size:660px auto; background-position:-177px -2px; }
+  .labs { left:1215px; top:420px; width:335px; height:225px; z-index:2; }
+  .labs .shot { background-image:url(shots/labs.png); background-size:600px auto; background-position:-13px -118px; }
+  .tag { position:absolute; left:985px; top:300px; z-index:3; font-size:13px; font-weight:600; padding:6px 12px; border-radius:999px; background:#fff; box-shadow:0 6px 18px rgba(16,44,57,.12); display:flex; gap:8px; align-items:center; }
 
-  .hero { position:absolute; left:80px; top:150px; width:640px; z-index:2; }
+  .hero { position:absolute; left:80px; top:150px; width:640px; z-index:4; }
   h1 { font-family:Manrope,Arial,sans-serif; font-weight:600; font-size:62px; line-height:1.06; letter-spacing:-0.065em; }
   h1 .t { color:var(--teal); }
   .lede { margin-top:34px; padding-left:16px; border-left:2px solid var(--teal); font-size:19px; font-weight:600; line-height:1.55; max-width:560px; }
@@ -32,26 +40,6 @@
   .link { font-weight:600; font-size:16px; padding-bottom:8px; border-bottom:1px solid var(--ink); }
   .note { margin-top:30px; font-size:15px; color:var(--muted); line-height:1.5; max-width:560px; }
   .note b { color:var(--ink); }
-
-  /* Evidence card, after GLIDE's "Every finding comes with its evidence": tabs, a finding with a badge,
-     labelled sections, and the closing check. Content is a real observation from case 10. */
-  .card { position:absolute; left:870px; top:122px; width:650px; background:#fff; border:1px solid #cfdbdf; border-radius:6px; box-shadow:0 30px 70px rgba(9,45,59,.13); z-index:2; overflow:hidden; }
-  .tabs { display:grid; grid-template-columns:repeat(4,1fr); gap:6px; padding:7px; background:var(--surface); border-bottom:1px solid var(--line); }
-  .tabs span { text-align:center; font-size:14px; color:var(--muted); padding:10px 0; border-radius:3px; }
-  .tabs .on { background:var(--navy); color:#fff; }
-  .body { padding:22px 24px 18px; }
-  .row1 { display:flex; justify-content:space-between; gap:20px; }
-  .row1 h3 { font-family:Manrope; font-weight:600; font-size:19px; letter-spacing:-0.02em; line-height:1.3; }
-  .sev { text-align:right; flex:none; }
-  .sev small { display:block; font-size:11px; letter-spacing:.14em; color:var(--muted); font-weight:600; }
-  .badge { display:inline-block; margin-top:6px; font-size:12.5px; padding:5px 9px; border-radius:3px; background:var(--amber-soft); color:var(--amber); border:1px solid #efd9ae; }
-  .sec { padding:15px 0 13px; border-bottom:1px solid var(--line); }
-  .sec:last-of-type { border-bottom:none; }
-  .lab { font-size:11.5px; letter-spacing:.14em; font-weight:600; color:var(--teal); text-transform:uppercase; }
-  .sec p { margin-top:7px; font-size:14.5px; line-height:1.5; color:#3f5560; }
-  .sec mark { background:#fff0a8; color:var(--ink); padding:0 2px; }
-  .ok { display:flex; align-items:center; gap:10px; padding-top:13px; border-top:1px solid var(--line); font-size:13.5px; color:var(--teal); }
-  .ok i { width:24px; height:24px; border-radius:50%; background:#e1f4ee; display:grid; place-items:center; font-style:normal; font-size:13px; }
 
   /* Numbered steps under thin rules, as in GLIDE's "How it works". */
   .steps { position:absolute; left:0; right:0; bottom:0; height:210px; background:var(--surface); border-top:1px solid var(--line); padding:38px 80px 0; display:grid; grid-template-columns:repeat(4,1fr); gap:40px; }
@@ -66,8 +54,6 @@
     <div class="right"><span>Rakathon 2026</span><span class="div" style="margin:0"></span><span>Výzva 2: AI asistent pro multidisciplinární tým</span><span class="div" style="margin:0"></span><span>FN Ostrava</span></div>
   </div>
 
-  <div class="screen"></div>
-
   <div class="hero">
     <h1>Celý případ<br>připravený na MDT,<br><span class="t">každý údaj<br>se zdrojem.</span></h1>
     <p class="lede">Asistent připraví souhrn, časovou osu, vývoj laboratoře a chybějící podklady. Lékař rozhoduje.</p>
@@ -78,17 +64,10 @@
     <p class="note"><b>Pro multidisciplinární týmy.</b> Původní stránka dokumentu je vždy o jeden klik dál.</p>
   </div>
 
-  <div class="card">
-    <div class="tabs"><span class="on">Souhrn</span><span>Zdroje</span><span>Chybějící</span><span>Laboratoř</span></div>
-    <div class="body">
-      <div class="row1"><h3>Stadium M0 v dokumentu zapsáno jako „MO“</h3>
-        <div class="sev"><small>STAV</small><span class="badge">Ověřit čtení</span></div></div>
-      <div class="sec"><div class="lab">Záznam</div><p>„Histol. světlobuněčný renální adenokarcinom G2, pT2a pN1(3+/5) <mark>MO</mark>“</p></div>
-      <div class="sec"><div class="lab">Zdroj</div><p>Ambulantní zpráva · 10_pacient.pdf, strana 1 · otevře se na citaci</p></div>
-      <div class="sec"><div class="lab">Pozorování asistenta</div><p>M0 jen dle vstupní dokumentace; nejistý znak je označen k ověření, nikdy se nedoplňuje odhadem.</p></div>
-      <div class="ok"><i>✓</i>Asistent připravuje, rozhoduje lékař</div>
-    </div>
-  </div>
+  <div class="shot-card main"><div class="shot"></div></div>
+  <div class="shot-card labs"><div class="shot"></div></div>
+  <div class="shot-card src"><div class="shot"></div></div>
+  <div class="tag"><span style="color:#b38b00">●</span> Citace zvýrazněná v původní stránce</div>
 
   <div class="steps">
     <div class="step"><div class="n">01</div><b>Dokumentace</b><span>PDF z počítače nebo z telefonu, žádost o konzultaci přes FHIR</span></div>
