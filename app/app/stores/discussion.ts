@@ -73,7 +73,9 @@ export const useDiscussionStore = defineStore("discussion", () => {
   };
 
   function saveOf(file: string): Save {
-    return (saves[file] ??= { timer: null, dirty: new Set(), inflight: null, conflict: null, approving: false, approveKey: null, approveSig: null });
+    // Read back through the reactive map: the value "??=" returns is the plain object, whose changes would not redraw.
+    saves[file] ??= { timer: null, dirty: new Set(), inflight: null, conflict: null, approving: false, approveKey: null, approveSig: null };
+    return saves[file]!;
   }
 
   // The record of a case. Created from the stored state on first read; later answers are merged by sync().
@@ -251,7 +253,8 @@ export const useDiscussionStore = defineStore("discussion", () => {
     sv.approving = true;
     try {
       // The server approves what it stores, so everything typed is stored first.
-      if (!(await flush(file)) || pr.state === "approved") return;
+      // The state may have changed while the saves were on their way (another doctor approved).
+      if (!(await flush(file)) || (pr.state as string) === "approved") return;
       // The last words and audio of the case go first, so the speaker pass covers them. Approval never waits on them for
       // long and never fails because of them (alerts inform, they never block).
       const rec = useRecorderStore();
