@@ -1,1 +1,63 @@
-# English. Empty until I18N.md phase 4; every message falls back to Czech (i18n/cs/) until it is translated.
+# English, translated from the Czech source catalog (i18n/cs/, docs/design/I18N.md). Message IDs are the same as in Czech.
+# The catalog holds interface text only: no patient names or examples, synthetic or not. A message missing here falls
+# back to Czech.
+#
+## Glossary (Czech -> English), for clinician review; the other en files use the same terms
+# Databáze pacientů -> Patient database
+# Kalendář MDT -> MDT calendar
+# Moje úlohy -> My tasks
+# Personál -> Staff
+# Administrace -> Administration
+# koordinátorka MDT -> MDT coordinator
+# správce systému -> system administrator
+
+## App shell: header and navigation
+
+brand-logo-alt = GLIDE
+brand-mark = MDT
+brand-button-title = Patient database
+brand-button-label = GLIDE MDT, open the patient database
+nav-label = Main areas
+nav-patients = Patient database
+nav-calendar = MDT calendar
+nav-tasks = My tasks
+nav-staff = Staff
+nav-admin = Administration
+
+## User picker (the demo has no login; the user is picked by hand)
+
+user-picker-label = User:
+user-picker-aria = Current user (demo without login)
+user-picker-other-roles = Other roles
+# A role holder shown with their function: the name, then the function in brackets.
+user-picker-with-function = { $name } ({ $fn })
+user-coordinator-function-default = MDT coordinator
+# The coordinator's tooltip when the staff list names no function (the old page words it differently from the label).
+user-coordinator-tooltip-default = MDT coordination
+user-admin-function = system administrator
+
+## Startup
+
+app-loading = Loading…
+boot-failed = Could not load the data: { $reason }
+
+## Errors the API client raises itself (an answer from the API brings its own Czech message)
+
+api-error-no-api = The server is not responding.
+api-error-timeout = The server did not respond in time.
+api-error-network = The server is not responding. Please try again.
+api-error-request-failed = The request could not be completed.
+api-error-write-no-api = The server did not send a valid response. Please try again.
+api-error-write-timeout = The server did not respond in time. Please try again.
+api-error-write-network = The server is not responding. Check your connection and try again.
+api-error-write-failed = The change could not be saved.
+data-reset-reload = The demo data were reset; the page will reload.
+user-switch-unknown = This user is not in the server's list.
+case-data-bad-shape = The server sent case data in an unknown shape.
+
+## Development only (shown with ?dev in the address)
+
+dev-patient-count = { $n ->
+    [one] { $n } patient from the server
+   *[other] { $n } patients from the server
+}
