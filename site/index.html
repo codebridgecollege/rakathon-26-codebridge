@@ -11,6 +11,10 @@
 <meta property="og:url" content="https://glidemdt.com/">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="img/glide.svg" type="image/svg+xml">
+<!-- Analytics: Umami Cloud, cookieless (no consent banner needed), as on codebridgecollege.com. It counts only the
+     production hostnames, so glidemdt.pages.dev previews and local files stay out of the numbers. Turned on once the
+     site exists in the Umami dashboard: put its website ID in data-website-id and uncomment.
+<script defer src="https://cloud.umami.is/script.js" data-website-id="UMAMI_WEBSITE_ID" data-domains="glidemdt.com,www.glidemdt.com"></script> -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
@@ -165,7 +169,7 @@
   <div class="wrap">
     <a class="brand" href="#" aria-label="GLIDE MDT"><img src="img/glide.svg" alt="GLIDE" width="98" height="24"><span class="div"></span><span>MDT</span></a>
     <nav aria-label="Hlavní navigace"><a href="#problem">Proč</a><a href="#produkt">Jak to funguje</a><a href="#vysledky">Výsledky</a><a href="#partneri">Partneři</a></nav>
-    <a class="btn dark" href="#partneri">Kontakt <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 15 15 5M7 5h8v8"/></svg></a>
+    <a class="btn dark" href="#partneri" data-umami-event="header-kontakt">Kontakt <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 15 15 5M7 5h8v8"/></svg></a>
   </div>
 </header>
 
@@ -176,8 +180,8 @@
         <h1>Od informací<br><span class="t">k lepším klinickým rozhodnutím.</span></h1>
         <p class="lede">Jeden pacient. Všechny podstatné informace. Strukturovaný souhrn, časová osa diagnostiky a léčby a odkazy na původní dokumenty.</p>
         <div class="ctas">
-          <a class="btn mint" href="#partneri">Chci pilot <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 15 15 5M7 5h8v8"/></svg></a>
-          <a class="link" href="#produkt">Jak to funguje&nbsp; ↓</a>
+          <a class="btn mint" href="#partneri" data-umami-event="hero-chci-pilot">Chci pilot <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 15 15 5M7 5h8v8"/></svg></a>
+          <a class="link" href="#produkt" data-umami-event="hero-jak-to-funguje">Jak to funguje&nbsp; ↓</a>
         </div>
         <p class="note"><b>Lékař si informace ověří přímo ve zdroji.</b> Vzniká s neuroonkologickým týmem v Ostravě.</p>
       </div>
@@ -305,7 +309,7 @@
       <p class="lede">Začali jsme neuroonkologií v Ostravě. Stejné problémy řeší týmy u karcinomu plic, prsu, kolorektálního karcinomu i dalších diagnóz. Hledáme klinické partnery, se kterými tento potenciál bezpečně ověříme v reálné praxi.</p>
       <div class="areas"><span class="on">Neuroonkologie</span><span>Karcinom plic</span><span>Karcinom prsu</span><span>Kolorektální karcinom</span><span>Další diagnózy</span></div>
       <!-- CONTACT: the "Domluvit pilot" button goes here once the team gives the contact address:
-      <div class="row"><a class="btn mint" href="mailto:ADDRESS?subject=GLIDE%20MDT%20pilot">Domluvit pilot <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 15 15 5M7 5h8v8"/></svg></a></div> -->
+      <div class="row"><a class="btn mint" href="mailto:ADDRESS?subject=GLIDE%20MDT%20pilot" data-umami-event="partneri-domluvit-pilot">Domluvit pilot <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 15 15 5M7 5h8v8"/></svg></a></div> -->
     </div>
   </section>
 </main>

@@ -21,6 +21,13 @@ uv run scripts/site/build_images.py                     # light JPEGs into site/
 - Add the "Domluvit pilot" button with the team's contact address (commented out at the end of the partners section).
 - Check the GLIDE results figures and their caveat with the clinical lead.
 
+## Analytics
+
+Umami Cloud, cookieless, counting only `glidemdt.com` and `www.glidemdt.com`. The script tag sits commented out
+in the page head until the site's website ID is filled in. Button clicks are sent as events through
+`data-umami-event` attributes: `header-kontakt`, `hero-chci-pilot`, `hero-jak-to-funguje` and
+`partneri-domluvit-pilot`.
+
 ## Deploy
 
 Cloudflare Pages project `glidemdt`, live at https://glidemdt.com (and www.glidemdt.com,
