@@ -1,0 +1,322 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GLIDE MDT · Od informací k lepším klinickým rozhodnutím</title>
+<meta name="description" content="GLIDE MDT připraví pacienta na multidisciplinární tým: strukturovaný souhrn, časová osa diagnostiky a léčby a odkazy na původní dokumenty. Lékař si informace ověří přímo ve zdroji.">
+<meta property="og:title" content="GLIDE MDT · Od informací k lepším klinickým rozhodnutím">
+<meta property="og:description" content="Jeden pacient. Všechny podstatné informace. Prototyp pro ostravský neuroonkologický tým.">
+<meta property="og:image" content="https://glidemdt.com/img/og.jpg">
+<meta property="og:url" content="https://glidemdt.com/">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="img/glide.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<!-- Teaser landing page for glidemdt.com. The design follows glideanalysis.com (the GLIDE clinical audit site):
+     same tokens, Manrope with tight tracking, two-tone headlines, ruled ledes, mint buttons, uppercase teal labels,
+     evidence cards and numbered steps. The copy is the team's pitch, in Czech. Screens are real screenshots of the
+     prototype with synthetic data (scripts/cover/build.mjs, scripts/site/build_images.py). -->
+<style>
+  :root { --ink:#102c39; --muted:#5d707a; --navy:#092d3b; --deep:#062330; --teal:#007f78; --mint:#74ebcc; --line:#dce5e8; --surface:#f3f7f8; --amber:#8f5a06; --amber-soft:#fbf0dc;
+    --head:"Manrope",Arial,sans-serif; --body:"DM Sans",Arial,sans-serif; --wrap:1180px; --gut:clamp(16px,5vw,40px); --space:clamp(72px,8vw,128px); }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  html { scroll-behavior:smooth; }
+  body { font-family:var(--body); color:var(--ink); background:#fff; font-size:16px; line-height:1.65; -webkit-font-smoothing:antialiased; overflow-x:hidden; }
+  a { color:inherit; }
+  img { display:block; max-width:100%; }
+  .wrap { max-width:calc(var(--wrap) + 2 * var(--gut)); margin:0 auto; padding:0 var(--gut); }
+  h1, h2, h3 { font-family:var(--head); font-weight:600; letter-spacing:-0.06em; line-height:1.06; }
+  h1 { font-size:clamp(40px,5vw,66px); }
+  h2 { font-size:clamp(34px,4.4vw,52px); }
+  h3 { font-size:20px; letter-spacing:-0.03em; line-height:1.3; }
+  .t { color:var(--teal); }
+  .eyebrow { font-family:var(--body); font-weight:600; font-size:17px; color:var(--muted); letter-spacing:0; margin-bottom:22px; display:block; }
+  .lab { font-size:12px; letter-spacing:.14em; font-weight:600; color:var(--teal); text-transform:uppercase; }
+  .lede { margin-top:30px; padding-left:16px; border-left:2px solid var(--teal); font-size:clamp(17px,1.5vw,19px); font-weight:600; line-height:1.55; max-width:600px; }
+  .muted { color:var(--muted); }
+  .btn { display:inline-flex; align-items:center; gap:28px; height:60px; padding:0 24px; border-radius:5px; font-weight:600; font-size:17px; text-decoration:none; }
+  .btn svg { width:18px; height:18px; stroke:currentColor; stroke-width:1.4; fill:none; }
+  .btn.mint { background:var(--mint); color:var(--ink); }
+  .btn.dark { background:var(--navy); color:#fff; height:48px; font-size:15px; gap:20px; padding:0 18px; }
+  .link { font-weight:600; text-decoration:none; padding-bottom:6px; border-bottom:1px solid currentColor; }
+  section { padding:var(--space) 0; }
+
+  /* Header */
+  header { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.96); border-bottom:1px solid var(--line); backdrop-filter:saturate(1.4) blur(6px); }
+  header .wrap { display:flex; align-items:center; height:76px; gap:16px; }
+  .brand { display:flex; align-items:center; text-decoration:none; }
+  .brand img { height:24px; width:auto; }
+  .brand .div { width:1px; height:20px; background:var(--line); margin:0 14px; }
+  .brand span { font-size:15px; font-weight:500; }
+  nav { margin-left:auto; display:flex; gap:28px; font-size:14px; font-weight:500; }
+  nav a { text-decoration:none; }
+  @media (max-width:860px) { nav { display:none; } header .btn.dark { margin-left:auto; } }
+
+  /* Hero: text left, real screens right, as in the gallery cover */
+  .hero { padding:clamp(48px,7vw,96px) 0 clamp(56px,7vw,96px); overflow:hidden; }
+  .hero .wrap { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.05fr); gap:40px; align-items:center; }
+  .ctas { display:flex; flex-wrap:wrap; align-items:center; gap:28px; margin-top:34px; }
+  .note { margin-top:28px; font-size:15px; color:var(--muted); max-width:560px; }
+  .note b { color:var(--ink); }
+  .stage { position:relative; height:520px; }
+  .shot { position:absolute; background:#fff; border-radius:12px; overflow:hidden; border:1px solid #e3ecee; box-shadow:0 24px 60px rgba(16,44,57,.14), 0 2px 6px rgba(16,44,57,.06); }
+  .shot img { width:100%; height:100%; object-fit:cover; }
+  .stage .s1 { right:-60px; top:0; width:92%; height:76%; }
+  .stage .s1 img { object-position:0 0; }
+  .stage .s2 { left:0; bottom:0; width:60%; height:58%; transform:rotate(-2.5deg); }
+  .stage .s2 img { width:150%; max-width:none; height:auto; margin-left:-40%; object-fit:initial; }
+  .stage .s3 { right:-30px; bottom:40px; width:46%; height:38%; }
+  .stage .s3 img { width:200%; max-width:none; height:auto; margin:-9% 0 0 -4%; object-fit:initial; }
+  .pill { position:absolute; z-index:3; left:36%; top:42%; background:#fff; border-radius:999px; padding:7px 14px; font-size:13px; font-weight:600; box-shadow:0 6px 18px rgba(16,44,57,.12); white-space:nowrap; }
+  .pill i { color:#b38b00; font-style:normal; margin-right:6px; }
+  @media (max-width:960px) { .hero .wrap { grid-template-columns:1fr; } .stage { height:clamp(240px,62vw,460px); } .stage .s1 { right:0; width:100%; height:80%; } .stage .s2, .stage .s3, .pill { display:none; } }
+
+  /* Dark problem section, after GLIDE's "origin" block */
+  .dark-sec { background:var(--deep); color:#fff; }
+  .dark-sec .wrap { display:grid; grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr); gap:clamp(32px,6vw,96px); }
+  .dark-sec .lab { color:var(--mint); }
+  .dark-sec h2 { margin-top:18px; }
+  .dark-sec p { color:#cfe0e3; font-size:clamp(17px,1.6vw,19px); line-height:1.7; }
+  .dark-sec p + p { margin-top:18px; }
+  .dark-sec .who { margin-top:26px; color:#fff; font-weight:600; }
+  @media (max-width:860px) { .dark-sec .wrap { grid-template-columns:1fr; } }
+
+  /* Product section */
+  .split { display:grid; grid-template-columns:minmax(0,.85fr) minmax(0,1.15fr); gap:clamp(32px,5vw,72px); align-items:center; }
+  .split.rev { grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr); }
+  .split p.body { margin-top:22px; color:var(--muted); font-size:17px; max-width:520px; }
+  .frame { border-radius:10px; overflow:hidden; border:1px solid #d6e2e5; box-shadow:0 24px 60px rgba(16,44,57,.12); background:#fff; }
+  .frame.crop { aspect-ratio: 16 / 10; }
+  .frame.crop img { width:100%; height:100%; object-fit:cover; object-position:top left; }
+  /* The source view is a drawer over the page; showing only the drawer keeps the dimmed page out of the frame. */
+  /* Shift a full-width shot up so the part worth showing starts at the top of the frame (margin % is of width). */
+  .frame.shift img { height:auto; object-fit:initial; margin-top:-20%; }
+  .frame.zoom img { width:136%; max-width:none; margin-left:-36%; height:auto; object-fit:initial; }
+  ul.ticks { list-style:none; margin-top:26px; display:grid; gap:12px; }
+  ul.ticks li { padding-left:30px; position:relative; font-weight:500; }
+  ul.ticks li::before { content:"✓"; position:absolute; left:0; top:1px; width:20px; height:20px; border-radius:50%; background:#e1f4ee; color:var(--teal); font-size:12px; display:grid; place-items:center; }
+  @media (max-width:860px) { .split, .split.rev { grid-template-columns:1fr; } .split.rev .frame { order:2; } }
+
+  /* Evidence card (GLIDE's "Every finding comes with its evidence"); a real observation from the demo case */
+  .surface { background:var(--surface); border-top:1px solid var(--line); border-bottom:1px solid var(--line); }
+  .card { background:#fff; border:1px solid #cfdbdf; border-radius:6px; box-shadow:0 30px 70px rgba(9,45,59,.10); overflow:hidden; }
+  .tabs { display:grid; grid-template-columns:repeat(4,1fr); gap:6px; padding:7px; background:var(--surface); border-bottom:1px solid var(--line); }
+  .tabs span { text-align:center; font-size:14px; color:var(--muted); padding:9px 0; border-radius:3px; }
+  .tabs .on { background:var(--navy); color:#fff; }
+  .cbody { padding:22px 24px 18px; }
+  .row1 { display:flex; justify-content:space-between; gap:20px; }
+  .sev { text-align:right; flex:none; }
+  .sev small { display:block; font-size:11px; letter-spacing:.14em; color:var(--muted); font-weight:600; }
+  .badge { display:inline-block; margin-top:6px; font-size:12.5px; padding:5px 9px; border-radius:3px; background:var(--amber-soft); color:var(--amber); border:1px solid #efd9ae; }
+  .sec { padding:14px 0 12px; border-bottom:1px solid var(--line); }
+  .sec p { margin-top:6px; font-size:15px; line-height:1.55; color:#3f5560; }
+  .sec mark { background:#fff0a8; color:var(--ink); padding:0 2px; }
+  .ok { display:flex; align-items:center; gap:10px; padding-top:13px; font-size:14px; color:var(--teal); }
+  .ok i { width:24px; height:24px; border-radius:50%; background:#e1f4ee; display:grid; place-items:center; font-style:normal; font-size:13px; }
+  .soon { display:inline-block; margin-left:8px; font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--teal); border:1px solid #bfe3d9; border-radius:3px; padding:2px 6px; vertical-align:2px; }
+
+  /* Steps */
+  .steps { display:grid; grid-template-columns:repeat(4,1fr); gap:clamp(20px,3vw,40px); margin-top:clamp(40px,5vw,64px); }
+  .step { border-top:1px solid #c9d6da; padding-top:18px; }
+  .step .n { font-family:var(--head); font-size:30px; color:var(--teal); letter-spacing:-0.02em; }
+  .step h3 { margin-top:12px; }
+  .step p { margin-top:8px; color:var(--muted); font-size:15px; }
+  @media (max-width:860px) { .steps { grid-template-columns:1fr 1fr; } }
+  @media (max-width:520px) { .steps { grid-template-columns:1fr; } }
+
+  /* Numbers */
+  .nums { display:grid; grid-template-columns:repeat(2,1fr); border-top:1px solid var(--line); margin-top:clamp(36px,5vw,56px); }
+  .num { padding:28px 32px 28px 0; }
+  .num + .num { border-left:1px solid var(--line); padding-left:32px; }
+  .num .big { font-family:var(--head); font-weight:600; font-size:clamp(44px,5.5vw,68px); letter-spacing:-0.06em; line-height:1; }
+  .num .big small { font-size:.42em; letter-spacing:-0.02em; color:var(--muted); font-weight:500; margin-left:6px; }
+  .num .arrow { color:var(--muted); font-weight:400; margin:0 10px; }
+  .num p { margin-top:12px; color:var(--muted); }
+  .caveat { margin-top:28px; font-size:15px; color:var(--muted); max-width:760px; padding-left:16px; border-left:2px solid var(--line); }
+  @media (max-width:760px) { .nums { grid-template-columns:1fr; } .num + .num { border-left:none; border-top:1px solid var(--line); padding-left:0; } }
+
+  .calc { display:grid; grid-template-columns:repeat(3,auto) 1fr; align-items:end; gap:18px 32px; margin-top:clamp(32px,4vw,48px); }
+  .calc .k { font-family:var(--head); font-weight:600; font-size:clamp(34px,4vw,52px); letter-spacing:-0.05em; line-height:1; }
+  .calc .k small { display:block; font-family:var(--body); font-size:14px; letter-spacing:0; color:var(--muted); font-weight:500; margin-top:8px; }
+  .calc .res { color:var(--teal); }
+  @media (max-width:760px) { .calc { grid-template-columns:1fr 1fr; } }
+
+  /* Mint quote band */
+  .band { background:var(--mint); padding:clamp(56px,7vw,96px) 0; }
+  .band .wrap { display:flex; flex-wrap:wrap; justify-content:space-between; align-items:baseline; gap:20px; }
+  .band blockquote { font-family:var(--head); font-weight:500; font-size:clamp(24px,2.8vw,36px); letter-spacing:-0.04em; line-height:1.25; max-width:900px; }
+
+  /* Partners CTA */
+  .cta { text-align:left; }
+  .cta .row { display:flex; flex-wrap:wrap; gap:28px; align-items:center; margin-top:34px; }
+  .areas { display:flex; flex-wrap:wrap; gap:10px; margin-top:26px; }
+  .areas span { border:1px solid var(--line); border-radius:999px; padding:6px 14px; font-size:14px; color:var(--muted); background:#fff; }
+  .areas span.on { border-color:var(--teal); color:var(--teal); font-weight:600; }
+
+  footer { border-top:1px solid var(--line); padding:32px 0 40px; font-size:14px; color:var(--muted); }
+  footer .wrap { display:flex; flex-wrap:wrap; justify-content:space-between; gap:16px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <a class="brand" href="#" aria-label="GLIDE MDT"><img src="img/glide.svg" alt="GLIDE" width="98" height="24"><span class="div"></span><span>MDT</span></a>
+    <nav aria-label="Hlavní navigace"><a href="#problem">Proč</a><a href="#produkt">Jak to funguje</a><a href="#vysledky">Výsledky</a><a href="#partneri">Partneři</a></nav>
+    <a class="btn dark" href="#partneri">Kontakt <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 15 15 5M7 5h8v8"/></svg></a>
+  </div>
+</header>
+
+<main>
+  <section class="hero">
+    <div class="wrap">
+      <div>
+        <h1>Od informací<br><span class="t">k lepším klinickým rozhodnutím.</span></h1>
+        <p class="lede">Jeden pacient. Všechny podstatné informace. Strukturovaný souhrn, časová osa diagnostiky a léčby a odkazy na původní dokumenty.</p>
+        <div class="ctas">
+          <a class="btn mint" href="#partneri">Chci pilot <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 15 15 5M7 5h8v8"/></svg></a>
+          <a class="link" href="#produkt">Jak to funguje&nbsp; ↓</a>
+        </div>
+        <p class="note"><b>Lékař si informace ověří přímo ve zdroji.</b> Prototyp pro ostravský neuroonkologický tým.</p>
+      </div>
+      <div class="stage" aria-hidden="true">
+        <div class="shot s1"><img src="img/overview.jpg" alt="" loading="eager"></div>
+        <div class="shot s3"><img src="img/tab-alerts.jpg" alt=""></div>
+        <div class="shot s2"><img src="img/source.jpg" alt=""></div>
+        <div class="pill"><i>●</i>Ověření přímo v původním dokumentu</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="dark-sec" id="problem">
+    <div class="wrap">
+      <div>
+        <span class="lab">Proč GLIDE MDT</span>
+        <h2>Co když nám unikne důležitá informace?</h2>
+      </div>
+      <div>
+        <p>Představte si, že jste onkologický pacient. O vaší další léčbě rozhoduje tým odborníků, který má před sebou desítky stran dokumentace a jen několik minut na diskusi.</p>
+        <p>Co když v dokumentaci zůstane přehlédnutá informace, která může ovlivnit další postup? Nebo existuje klinická studie, kterou nikdo nestihl prověřit?</p>
+        <p class="who">Příprava jednoho pacienta trvá někdy i 20 minut. Na jednom MDT jich přitom může být 20 až 40.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="produkt">
+    <div class="wrap">
+      <div class="split">
+        <div>
+          <span class="eyebrow">Jak to funguje</span>
+          <h2>Jeden pacient.<br><span class="t">Všechny podstatné informace.</span></h2>
+          <p class="body">Na jednom místě strukturovaný souhrn, časová osa diagnostiky a léčby, vývoj laboratorních hodnot a chybějící podklady. Prototyp vznikl pro ostravský neuroonkologický tým.</p>
+          <ul class="ticks">
+            <li>Souhrn a časová osa z dokumentace pacienta</li>
+            <li>Laboratorní hodnoty v čase, s původními jednotkami</li>
+            <li>Chybějící podklady vidíte hned</li>
+          </ul>
+        </div>
+        <div class="frame crop shift" style="aspect-ratio:2/1"><img src="img/tab-overview.jpg" alt="Přehled pacienta v GLIDE MDT: onkologický souhrn s časovou osou a aktuální stav pacienta" loading="lazy"></div>
+      </div>
+
+      <div class="split rev" style="margin-top:clamp(64px,8vw,112px)">
+        <div class="frame crop zoom"><img src="img/source.jpg" alt="Původní stránka dokumentu se zvýrazněnou citací" loading="lazy"></div>
+        <div>
+          <span class="eyebrow">Ověření ve zdroji</span>
+          <h2>Každý údaj<br><span class="t">vede k původnímu dokumentu.</span></h2>
+          <p class="body">Klik na odkaz otevře původní stránku se zvýrazněnou citací. Nejistá místa ze skenů jsou označená k ověření a nic se nedoplňuje odhadem.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="surface">
+    <div class="wrap">
+      <div class="split">
+        <div>
+          <span class="eyebrow">Podpora rozhodování</span>
+          <h2>Nejen sumarizace.<br><span class="t">Podpora rozhodování.</span></h2>
+          <p class="body">Nechceme vytvořit jen další AI sumarizátor. GLIDE MDT upozorňuje na možné odchylky od doporučených postupů, zpřístupňuje relevantní klinické důkazy a pomáhá s přípravou závěrů MDT. Rozhoduje vždy lékař.</p>
+          <ul class="ticks">
+            <li>Doporučení citovaná doslovně, se zdrojem</li>
+            <li>Možné odchylky od doporučených postupů</li>
+            <li>Párování pacientů s klinickými studiemi <span class="soon">připravujeme</span></li>
+          </ul>
+        </div>
+        <div class="card">
+          <div class="tabs"><span class="on">Souhrn</span><span>Zdroje</span><span>Chybějící</span><span>Laboratoř</span></div>
+          <div class="cbody">
+            <div class="row1"><h3>Stadium M0 v dokumentu zapsáno jako „MO“</h3><div class="sev"><small>STAV</small><span class="badge">Ověřit čtení</span></div></div>
+            <div class="sec"><div class="lab">Záznam</div><p>„Histol. světlobuněčný renální adenokarcinom G2, pT2a pN1(3+/5) <mark>MO</mark>“</p></div>
+            <div class="sec"><div class="lab">Zdroj</div><p>Ambulantní zpráva, strana 1 · otevře se na citaci</p></div>
+            <div class="sec" style="border-bottom:none"><div class="lab">Pozorování asistenta</div><p>M0 jen dle vstupní dokumentace; nejistý znak je označen k ověření, nikdy se nedoplňuje odhadem.</p></div>
+            <div class="ok"><i>✓</i>Asistent připravuje, rozhoduje lékař</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="steps">
+        <div class="step"><div class="n">01</div><h3>Dokumentace</h3><p>PDF z počítače nebo z telefonu, žádost o konzultaci přes FHIR</p></div>
+        <div class="step"><div class="n">02</div><h3>Čtení a ověření</h3><p>Nejistá místa označená k ověření, citlivé údaje začerněné</p></div>
+        <div class="step"><div class="n">03</div><h3>Souhrn se zdroji</h3><p>Časová osa, laboratoř v čase, chybějící podklady</p></div>
+        <div class="step"><div class="n">04</div><h3>Závěr MDT</h3><p>Lékař schválí závěr, úkoly a report vzniknou z něj</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="vysledky">
+    <div class="wrap">
+      <span class="eyebrow">Předchozí projekt GLIDE</span>
+      <h2>Víme, že identifikace problémů<br><span class="t">má smysl.</span></h2>
+      <p class="lede" style="max-width:760px">V projektu GLIDE jsme systematicky identifikovali možné odchylky od guidelines a výsledky diskutovali s klinickým týmem.</p>
+      <div class="nums">
+        <div class="num"><div class="big">65 <span class="arrow">→</span> 42 <small>dní</small></div><p>Medián času od operace po radioterapii</p></div>
+        <div class="num"><div class="big">49,5 <span class="arrow">→</span> 19,5 <small>dne</small></div><p>Medián času od doporučení MDT po zahájení radioterapie</p></div>
+      </div>
+      <p class="caveat">Pozorováno v následujícím období na malém vzorku. Není to důkaz kauzality ani výsledek tohoto prototypu, ale povzbudivý signál, že systematická zpětná vazba může být součástí zlepšování péče.</p>
+    </div>
+  </section>
+
+  <section class="surface">
+    <div class="wrap">
+      <span class="eyebrow">Čas lékařů</span>
+      <h2>Kolik času můžeme<br><span class="t">vrátit lékařům?</span></h2>
+      <div class="calc">
+        <div class="k">30<small>pacientů na jednom MDT</small></div>
+        <div class="k">20 → 5<small>minut přípravy na pacienta</small></div>
+        <div class="k res">7,5 h<small>ušetřeného času na jednom zasedání</small></div>
+      </div>
+      <p class="caveat">Modelový odhad, který potřebujeme klinicky ověřit. Ještě důležitější je, co s tímto časem uděláme: věnovat ho kvalitnější diskusi a pacientům.</p>
+    </div>
+  </section>
+
+  <div class="band">
+    <div class="wrap">
+      <blockquote>„Chceme pomoci zajistit, aby kvalita onkologického rozhodování nezávisela na tom, ve které nemocnici se pacient léčí.“</blockquote>
+      <span style="font-weight:600;font-size:14px">Tým GLIDE MDT</span>
+    </div>
+  </div>
+
+  <section id="partneri" class="cta">
+    <div class="wrap">
+      <span class="eyebrow">Z Ostravy do celé onkologie</span>
+      <h2>Hledáme klinické partnery.</h2>
+      <p class="lede">Začali jsme neuroonkologií v Ostravě. Stejné problémy řeší týmy u karcinomu plic, prsu, kolorektálního karcinomu i dalších diagnóz. Hledáme klinické partnery, se kterými tento potenciál bezpečně ověříme v reálné praxi.</p>
+      <div class="areas"><span class="on">Neuroonkologie</span><span>Karcinom plic</span><span>Karcinom prsu</span><span>Kolorektální karcinom</span><span>Další diagnózy</span></div>
+      <div class="row">
+        <!-- CONTACT: replace the address below before publishing. -->
+        <a class="btn mint" href="mailto:CONTACT_EMAIL?subject=GLIDE%20MDT%20pilot">Domluvit pilot <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 15 15 5M7 5h8v8"/></svg></a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>GLIDE MDT · Rakathon 2026 · výzva FN Ostrava</span>
+    <span>Prototyp, ne zdravotnický prostředek. Ukázky obsahují jen syntetická data.</span>
+  </div>
+</footer>
+</body>
+</html>
