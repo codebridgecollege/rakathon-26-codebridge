@@ -12,7 +12,7 @@ import redact_pages  # noqa: E402
 
 def test_redaction_boxes_equal_committed(monkeypatch):
     monkeypatch.chdir(REPO)  # the script resolves the mock case files relative to the repository
-    names = redact_pages.known_names(REPO / "mocks/src/data/mock-patient-list.json")
+    names = redact_pages.known_names(REPO / "fixtures/data/mock-patient-list.json")
     committed = sorted(PAGES.glob("*/p*.redactions.json"))
     assert len(committed) >= 28
     for f in committed:

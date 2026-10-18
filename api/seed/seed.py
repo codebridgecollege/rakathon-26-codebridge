@@ -8,7 +8,7 @@ Usage (from the repository root or from api/):
     uv run api/seed/seed.py --target remote [--reset]    # the EU database and bucket
     uv run api/seed/seed.py --dry-run                    # write api/seed/out/ only
 
-Reads only synthetic data that is committed: mocks/src/data/, data/derived/, data/rakathon-26/ (the organizers'
+Reads only synthetic data that is committed: fixtures/data/, data/derived/, data/rakathon-26/ (the organizers'
 synthetic challenge PDFs) and samples/. It never opens private/.
 
 Identity (name, birth number, birth date, age, insurer) goes to the D1 `patients` table only. The case-side JSON
@@ -33,7 +33,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 API = ROOT / "api"
 OUT = API / "seed" / "out"
-DATA = ROOT / "mocks" / "src" / "data"
+DATA = ROOT / "fixtures" / "data"
 DERIVED = ROOT / "data" / "derived"
 FNO_PDFS = ROOT / "data" / "rakathon-26" / "2_AI asistent MDT"
 SAMPLES = ROOT / "samples"
@@ -66,8 +66,8 @@ RESET_KEY = "seed/reset.json"
 
 
 def load_build():
-    """mocks/build.py's page_index() and guidance(), so the seeded data is byte-for-byte what the mock embeds."""
-    spec = importlib.util.spec_from_file_location("mock_build", ROOT / "mocks" / "build.py")
+    """fixtures/prepare.py's page_index() and guidance(), the one merge of the fixture JSON and the page index."""
+    spec = importlib.util.spec_from_file_location("fixtures_prepare", ROOT / "fixtures" / "prepare.py")
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)  # main() is guarded, so importing builds nothing
     return mod
@@ -85,7 +85,7 @@ def jdump(o) -> str:
     return json.dumps(o, ensure_ascii=False, separators=(",", ":"))
 
 
-# ---------- staff: the same values as defaultStaff() in mocks/src/v3-template.html ----------
+# ---------- staff: the same values as DEFAULT_STAFF in packages/domain/src/staff-default.ts ----------
 STAFF_DEPTS = [
     ("Neurochirurgie", ["Novák", "Dvořák"]),
     ("Klinická onkologie", ["Svobodová", "Malá"]),
@@ -447,7 +447,7 @@ def main() -> None:
                  "guidelines-case-10-past-historic.json", "guideline-fact-refs-case-10.json", "literature-case-10.json",
                  "deviations-case-10.json"):
         if (DATA / name).exists():
-            hashes[f"mocks/src/data/{name}"] = sha256_file(DATA / name)
+            hashes[f"fixtures/data/{name}"] = sha256_file(DATA / name)
 
     # 2. Staff.
     depts, users, members = staff()

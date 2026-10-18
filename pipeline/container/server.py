@@ -43,7 +43,7 @@ POST /v1/labs               body: {"pages": [{"n", "text", "layer_text", "readab
                                    "document": {"doc_id": str}}
   200 {"name_note", "draws": [...], "tests": [...], "indices": [...], "unparsed": [{"n", "doc_id", "line_no",
        "start", "end", "reason", "reason_cs"}], "counts": {...}}
-  The labs_series shape of mocks/src/data/mock-case-S02.json; see pagekit/labs.py for the rules.
+  The labs_series shape of fixtures/data/mock-case-S02.json; see pagekit/labs.py for the rules.
   unparsed reasons: "lab_like_not_parsed", "draw_date_not_parsed" (offsets into "text"), and
   "only_second_reading" (a result only the text layer has; offsets into "layer_text", with "in", "code"
   and "quote"). A page without readability_level counts as not readable: its points are unclear_ocr.

@@ -28,11 +28,11 @@ if (hashes.length !== 2) throw new Error(`expected 2 inline scripts in the app's
 // Every source is named for a reason:
 // - script-src: our bundles and the two inline scripts by hash; jsPDF and its fonts load as same-origin files.
 //   No 'unsafe-inline' and no 'unsafe-eval'.
-// - style-src-elem: our CSS and the Google Fonts stylesheet (the same fonts as the old page). style-src repeats it for
+// - style-src-elem: our CSS and the Google Fonts stylesheet. style-src repeats it for
 //   browsers without the split directives (Safari before 15.4, Firefox before 108), which would otherwise fall back to
 //   default-src 'none' and draw the app unstyled; browsers that know style-src-elem ignore it for elements.
 // - style-src-attr 'unsafe-inline': style attributes in templates and in HTML the app inserts (the report, the QR
-//   SVG). An attribute cannot load anything or run script; allowing it keeps the old page's markup unchanged.
+//   SVG). An attribute cannot load anything or run script.
 // - font-src: the font files the Google Fonts stylesheet points to.
 // - img-src: page images and the logo from our origin, data: for the report's inline logo.
 // - connect-src: our API, and the speech service's realtime socket (the server mints a token and returns a wss URL
@@ -60,8 +60,8 @@ const csp = [
 // X-Frame-Options only); camera, location, payment and USB off, the microphone for our own pages (the AI recorder).
 // Nuxt's build files carry a content hash in their names, so they never change and may be cached for a year.
 // The policy itself is set on the app's page only, at / and at every route path that serves it (the assets match
-// _headers against the address the browser asked for, not the rewritten one): today's page at /legacy/, the phone page
-// at /u and the 404 page run inline scripts and styles throughout and get the common headers.
+// _headers against the address the browser asked for, not the rewritten one): the phone page at /u and the 404 page
+// run inline scripts and styles throughout and get the common headers.
 const appPage = `  Content-Security-Policy: ${csp}
   Cross-Origin-Opener-Policy: same-origin
 `;
@@ -77,16 +77,13 @@ ${["/", ...APP_ROUTES].map((r) => `\n${r}\n${appPage}`).join("")}`;
 for (const line of headers.split("\n")) if (line.length > 2000) throw new Error("a _headers line exceeds Cloudflare's 2,000 characters");
 writeFileSync(path.join(dir, "_headers"), headers);
 
-// Today's page moved from / to /legacy/. Its relative links (the S02 ZIP, embedded page images) now resolve under
-// /legacy/, so they are sent to the one copy at the root. The app's route paths are rewritten (200, the address stays)
-// to its page at /; the target is / and not /index.html, which the assets would redirect to / first.
+// The app's route paths are rewritten (200, the address stays) to its page at /; the target is / and not /index.html,
+// which the assets would redirect to / first.
 // Static rules come first: Cloudflare matches them faster than rules with a splat.
 const rewrites = APP_ROUTES.map((r) => `${r} / 200`);
 const dynamic = (r) => r.includes(":") || r.includes("*");
 const redirects = [
   ...rewrites.filter((r) => !dynamic(r)),
-  "/legacy/ukazka/* /ukazka/:splat 302",
-  "/legacy/pages/* /pages/:splat 302",
   ...rewrites.filter(dynamic),
   "",
 ].join("\n");

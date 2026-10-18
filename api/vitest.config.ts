@@ -7,10 +7,10 @@ import { defineConfig } from "vitest/config";
 // runtime as production. The migrations are read here in Node and applied inside the tests (test/data.ts).
 export default defineConfig(async () => {
   const migrations = await readD1Migrations(path.join(import.meta.dirname, "migrations"));
-  // The page's defaultStaff() block, so the domain test can check the server's default staff against it (workerd
-  // cannot read files outside the Worker).
-  const page = readFileSync(path.join(import.meta.dirname, "../mocks/src/v3-template.html"), "utf8");
-  const staffBlock = /function defaultStaff\(\) \{[\s\S]*?\n\}/.exec(page)?.[0] ?? "";
+  // The seed's STAFF_DEPTS block, so the domain test can check the server's default staff against what the seed
+  // writes into D1 (workerd cannot read files outside the Worker).
+  const seed = readFileSync(path.join(import.meta.dirname, "seed/seed.py"), "utf8");
+  const staffBlock = /^STAFF_DEPTS = \[[\s\S]*?\n\]/m.exec(seed)?.[0] ?? "";
   return {
     plugins: [
       cloudflareTest({
@@ -20,7 +20,7 @@ export default defineConfig(async () => {
         miniflare: {
           bindings: {
             TEST_MIGRATIONS: migrations,
-            TEST_PAGE_DEFAULT_STAFF: staffBlock,
+            TEST_SEED_STAFF: staffBlock,
             ELEVENLABS_API_KEY: "test-el",
             AZURE_OPENAI_KEY: "test-az",
             AI_GATEWAY_TOKEN: "",

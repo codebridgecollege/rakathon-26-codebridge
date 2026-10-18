@@ -20,7 +20,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      # --force: Wrangler 4.147 otherwise tries to hand Pages commands to Workers and fails (see mocks/deploy.sh).
+      # --force: Wrangler 4.147 otherwise tries to hand Pages commands to Workers and fails.
       - name: Deploy to Cloudflare Pages (glidemdt)
         run: npx -y wrangler@4.147.0 pages deploy site --project-name glidemdt --branch main --commit-dirty=true --force
         env:

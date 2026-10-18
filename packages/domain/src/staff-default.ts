@@ -1,6 +1,6 @@
-// The fictional default staff, the same values as defaultStaff() in mocks/src/v3-template.html and STAFF_DEPTS in
-// api/seed/seed.py (api/test/domain/staff.test.ts checks it against the page's list). Shared, so the Worker's reset and
-// the app's "Jména jsou smyšlená." note read one list.
+// The fictional default staff, the same values as STAFF_DEPTS in api/seed/seed.py (api/test/domain/intake-staff.test.ts
+// checks it against the seed's list). Shared, so the Worker's reset and the app's "Jména jsou smyšlená." note read one
+// list.
 const DEPTS: [string, string[]][] = [
   ["Neurochirurgie", ["Novák", "Dvořák"]],
   ["Klinická onkologie", ["Svobodová", "Malá"]],

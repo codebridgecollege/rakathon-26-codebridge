@@ -5,7 +5,7 @@
 // - The closing sentence names its page count and data gaps once the server says the prepared data will attach.
 // The server stays the authority on whether the prepared record attaches (GET /cases/:id/intake); this only words the
 // hints. Synthetic data only; it loads with the dialog, not with the app (test/intake-components.test.ts keeps it equal to
-// mocks/src/data/mock-case-S02.json).
+// fixtures/data/mock-case-S02.json).
 export type IntakeDemo = {
   // The birth number and name of the synthetic patient, to recognise a referral for them.
   rc: string;

@@ -17,7 +17,7 @@ import { lastToast, mountInCase, setupPatient, type PatientSetup } from "./patie
 const read = (p: string) => readFileSync(resolve(process.cwd(), "..", p), "utf8");
 // The committed fixtures the seed builds case NO-010's extraction from (api/seed/out is gitignored, so a clean
 // checkout or CI has no seed output to read).
-const seed = { case: JSON.parse(read("mocks/src/data/mock-case-10.json")), extra: JSON.parse(read("mocks/src/data/mock-case-10-extra.json")) };
+const seed = { case: JSON.parse(read("fixtures/data/mock-case-10.json")), extra: JSON.parse(read("fixtures/data/mock-case-10-extra.json")) };
 const mq = seed.case.mdt_question;
 const cs = makeBundle("cs");
 const t = (id: string, args?: Record<string, string | number>) => cs.formatPattern(cs.getMessage(id)!.value!, args);

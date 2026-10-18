@@ -12,11 +12,11 @@ from pagekit.page_index import same_unit
 
 REPO = Path(__file__).resolve().parents[2]
 PAGES = REPO / "data/derived/pages"
-MOCKS = REPO / "mocks/src/data"
+MOCKS = REPO / "fixtures/data"
 HAS_TESSERACT = shutil.which("tesseract") is not None
 needs_tesseract = pytest.mark.skipif(not HAS_TESSERACT, reason="tesseract not installed")
 
-# Lab pages per synthetic patient, as in the builders (mocks/src/extract/build_case_s0*.py).
+# Lab pages per synthetic patient, as in the builders (fixtures/extract/build_case_s0*.py).
 LAB_PAGES = {"S01_pacient": [3, 4, 5, 7], "S02_pacient": [5, 6, 7, 8]}
 
 

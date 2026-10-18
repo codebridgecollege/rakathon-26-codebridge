@@ -55,11 +55,11 @@ describe("staff", () => {
     expect(() => validateDeptName("neurochirurgie", [{ name: "Neurochirurgie" }])).toThrow(expect.objectContaining({ code: "dept_name_taken" }));
   });
 
-  it("has the same default staff as the page's defaultStaff()", () => {
-    const html = env.TEST_PAGE_DEFAULT_STAFF;
-    expect(html).toContain("function defaultStaff()");
+  it("has the same default staff as the seed's STAFF_DEPTS", () => {
+    const seed = env.TEST_SEED_STAFF;
+    expect(seed).toContain("STAFF_DEPTS = [");
     for (const d of DEFAULT_STAFF) {
-      expect(html).toContain(`["${d.name}", [${d.people.map((p) => `"${p.sur}"`).join(", ")}]]`);
+      expect(seed).toContain(`("${d.name}", [${d.people.map((p) => `"${p.sur}"`).join(", ")}])`);
     }
   });
 });

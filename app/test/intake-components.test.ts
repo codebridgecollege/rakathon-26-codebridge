@@ -163,8 +163,8 @@ describe("formats and the demo descriptor", () => {
     expect(sizeMsg(2 * 1024 * 1024)).toEqual({ id: "upload-size-mb", args: { size: "2,0" } });
   });
 
-  it("matches the committed S02 fixture (mocks/src/data/mock-case-S02.json)", () => {
-    const s = JSON.parse(readFileSync(path.join(repo, "mocks/src/data/mock-case-S02.json"), "utf8"));
+  it("matches the committed S02 fixture (fixtures/data/mock-case-S02.json)", () => {
+    const s = JSON.parse(readFileSync(path.join(repo, "fixtures/data/mock-case-S02.json"), "utf8"));
     expect(INTAKE_DEMO.rc).toBe(s.list_entry.rc);
     expect(INTAKE_DEMO.name).toBe(s.list_entry.name);
     expect(`${INTAKE_DEMO.folder}.pdf`).toBe(s.file);

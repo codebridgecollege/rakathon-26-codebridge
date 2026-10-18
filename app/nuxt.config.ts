@@ -29,8 +29,8 @@ export default defineNuxtConfig({
       ],
     },
   },
-  // v3.css is the old page's CSS, unchanged; app.css (after it) holds the app's own accessibility fixes.
-  css: ["~/assets/v3.css", "~/assets/app.css"],
+  // base.css holds the base styles; app.css (after it) holds the accessibility fixes on top of them.
+  css: ["~/assets/base.css", "~/assets/app.css"],
   // Routes are paths (/patient/10/labs), Vue Router's default history mode. The Worker serves index.html only for the
   // app's route prefixes (APP_ROUTES in api/scripts/app-routes.mjs), so every other path keeps its real 404; a new
   // top-level page needs its prefix there too.

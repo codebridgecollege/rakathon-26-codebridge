@@ -638,7 +638,7 @@ patient-pg-found-cached = {" "}· z vyrovnávacej pamäte
 
 ## Errors the client raises itself (the prognosis server is a separate local server)
 
-patient-pg-error-no-server = Vyhľadávanie vyžaduje spustený lokálny server Prognózy (python3 mocks/serve.py).
+patient-pg-error-no-server = Vyhľadávanie vyžaduje spustený lokálny server Prognózy (python3 prognosis/serve.py).
 patient-pg-error-timeout = Vypršal časový limit. Ďalšie vyhľadávanie sa nespustí automaticky.
 patient-pg-error-request-failed = Požiadavku sa nepodarilo dokončiť.
 

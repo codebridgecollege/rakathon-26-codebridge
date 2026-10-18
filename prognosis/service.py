@@ -14,7 +14,7 @@ import urllib.request
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-DATA = ROOT / 'mocks' / 'src' / 'data'
+DATA = ROOT / 'fixtures' / 'data'
 PROMPT = (Path(__file__).parent / 'prompt.txt').read_text()
 ENDPOINTS = ('os_6','os_12','os_36','os_60','pfs','orr','dor','toxicity_grade3','discontinuation_toxicity','burden')
 WEIGHTS = {'histology':25,'stage':15,'biomarkers':15,'treatment_line':15,'prior_treatment':10,'performance_status':10,'brain_metastases':5,'age':5}

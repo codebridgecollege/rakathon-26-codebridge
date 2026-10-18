@@ -1,12 +1,11 @@
-// The local, text-based A4 export of the report (reportPdf() in mocks/src/report-pdf.js). The HTML it reads is the
-// same draft or frozen snapshot as the preview. No patient text is sent to a server, and no print popup or canvas
-// screenshot is used.
+// The local, text-based A4 export of the report. The HTML it reads is the same draft or frozen snapshot as the
+// preview. No patient text is sent to a server, and no print popup or canvas screenshot is used.
 //
-// jsPDF and the DejaVu font subset are the old page's vendored files, byte for byte (jsPDF 4.2.1; no npm copy, so the
-// version stays the one the old page prints with). They are large (about 730 kB together), so they are emitted as
-// separate same-origin files and loaded as scripts only when the report dialog opens, never with the main bundle.
-import jspdfUrl from "../../../mocks/src/vendor/jspdf.umd.min.js?url";
-import fontsUrl from "../../../mocks/src/vendor/pdf-fonts.js?url";
+// jsPDF and the DejaVu font subset are vendored in app/vendor/ (jsPDF 4.2.1, licences next to them), so the PDF output
+// does not move with an npm release. They are large (about 730 kB together), so they are emitted as separate
+// same-origin files and loaded as scripts only when the report dialog opens, never with the main bundle.
+import jspdfUrl from "../../vendor/jspdf.umd.min.js?url";
+import fontsUrl from "../../vendor/pdf-fonts.js?url";
 import type { T } from "./dates";
 
 // The part of jsPDF's API the layout uses; the UMD build puts the class on window.jspdf.

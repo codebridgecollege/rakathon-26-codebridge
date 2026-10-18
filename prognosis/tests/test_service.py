@@ -11,7 +11,7 @@ from unittest.mock import patch
 from pathlib import Path
 from prognosis.service import Service,Problem,date_end,profile_for,normalize_row,deduplicate,safe_url,excerpt_citations,recover_complete_rows
 
-spec=importlib.util.spec_from_file_location('serve',Path(__file__).resolve().parents[2]/'mocks'/'serve.py')
+spec=importlib.util.spec_from_file_location('serve',Path(__file__).resolve().parents[2]/'prognosis'/'serve.py')
 serve=importlib.util.module_from_spec(spec);spec.loader.exec_module(serve)
 ENV={'OPENROUTER_API_KEY':'test-secret','OPENROUTER_MODEL_ASTRA':'a'}
 
@@ -27,7 +27,7 @@ class Tests(unittest.TestCase):
   self.assertFalse(any('do 29.12.2025' in x['text'] for x in p['facts']))
   before=profile_for('10_pacient.pdf','2023-09-15');self.assertFalse(any(x['date']=='9/23' for x in before['facts']))
  def test_source_quote_future_cutoff(self):
-  original=json.loads((Path(__file__).resolve().parents[2]/'mocks/src/data/mock-case-10.json').read_text())
+  original=json.loads((Path(__file__).resolve().parents[2]/'fixtures/data/mock-case-10.json').read_text())
   original['timeline']=[{'date':'1.1.2023','label_cs':'Historical treatment','source':{'page':1,'quote':'Started 1.1.2023; progression 3.9.2026'}}]
   original['sections']={}
   real_load=json.loads
@@ -164,7 +164,7 @@ class Tests(unittest.TestCase):
   base='http://127.0.0.1:'+str(server.server_address[1])
   try:
    with urllib.request.urlopen(base+'/api/prognosis/config') as response:self.assertEqual(response.status,200);self.assertNotIn('test-secret',response.read().decode())
-   for path in ['/../.env','/src/data/mock-case-10.json','/%2Fsrc/data/mock-case-10.json','/']:
+   for path in ['/../.env','/data/mock-case-10.json','/%2Fdata/mock-case-10.json','/']:
     with self.assertRaises(urllib.error.HTTPError):urllib.request.urlopen(base+path)
    with self.assertRaises(urllib.error.HTTPError) as cm:urllib.request.urlopen(urllib.request.Request(base+'/api/prognosis/config',headers={'Host':'evil.example'}))
    self.assertEqual(cm.exception.code,403)

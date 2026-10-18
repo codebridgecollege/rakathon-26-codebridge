@@ -620,7 +620,7 @@ patient-pg-found-cached = {" "}· from cache
 
 ## Errors the client raises itself (the prognosis server is a separate local server)
 
-patient-pg-error-no-server = The search needs the local Prognosis server running (python3 mocks/serve.py).
+patient-pg-error-no-server = The search needs the local Prognosis server running (python3 prognosis/serve.py).
 patient-pg-error-timeout = The request timed out. Another search will not start automatically.
 patient-pg-error-request-failed = The request could not be completed.
 

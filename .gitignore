@@ -65,18 +65,17 @@ Thumbs.db
 
 # Guideline PDFs are downloaded only to extract quotes; they are copyrighted and the app opens them online.
 docs/sources/guidelines/
-mocks/guidelines/
 
 # Temporary git worktrees that review agents use
 .claude/worktrees/
 .wrangler/
 
-# Local secrets for wrangler dev (Workers and Pages Functions).
+# Local secrets for wrangler dev (the API Worker).
 .dev.vars
 .dev.vars.*
 !.dev.vars.example
 
-# Static files the API Worker serves, staged from mocks/ by api/scripts/stage-assets.sh.
+# Static files the API Worker serves, staged by api/scripts/stage-assets.sh.
 api/.assets/
 
 # Seed output (generated SQL, R2 bodies, identity scan, upload state); rebuilt by api/seed/seed.py.

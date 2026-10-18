@@ -2,7 +2,6 @@
 // still the old page's.
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import path from "node:path";
-import { execFileSync } from "node:child_process";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import { defineComponent, h } from "vue";
 import { mount } from "@vue/test-utils";
@@ -160,11 +159,5 @@ describe.each(["sk", "en"] as const)("%s catalog", (locale) => {
     expect(f("calendar-card-verify-suffix")).toBe(want.verify);
     expect([1, 3, 11].map((n) => f("dev-patient-count", { n }))).toEqual(want.count);
     expect(f("patient-tl-status", { shown: 1, all: 1, cats: 9, total: 9 })).toBe(want.events);
-  });
-});
-
-describe("page CSS", () => {
-  it("is the old page's CSS unchanged (node app/scripts/sync-css.mjs to refresh)", () => {
-    expect(() => execFileSync(process.execPath, [path.join(import.meta.dirname, "../scripts/sync-css.mjs"), "--check"])).not.toThrow();
   });
 });

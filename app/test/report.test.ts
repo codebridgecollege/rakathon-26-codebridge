@@ -18,7 +18,7 @@ import ReportDialog from "../app/components/discussion/ReportDialog.vue";
 import { lastToast, mountInCase, setupPatient, type PatientSetup } from "./patient";
 
 const read = (p: string) => readFileSync(resolve(process.cwd(), "..", p), "utf8");
-const seed = { case: JSON.parse(read("mocks/src/data/mock-case-10.json")), extra: JSON.parse(read("mocks/src/data/mock-case-10-extra.json")) };
+const seed = { case: JSON.parse(read("fixtures/data/mock-case-10.json")), extra: JSON.parse(read("fixtures/data/mock-case-10-extra.json")) };
 const cs = makeBundle("cs");
 const t = (id: string, args?: Record<string, string | number>) => cs.formatPattern(cs.getMessage(id)!.value!, args);
 
