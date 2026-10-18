@@ -35,6 +35,14 @@ export default defineNuxtConfig({
     // swallow its 404 page.
     options: { hashMode: true },
   },
+  hooks: {
+    // Development harness pages (pages/dev-*.vue) open screens' parts outside the screens that hold them, for the e2e
+    // harness specs. They are left out of every build unless APP_DEV_PAGES=1 or the dev server runs.
+    "pages:extend"(pages) {
+      if (process.env.APP_DEV_PAGES === "1" || process.env.NODE_ENV === "development") return;
+      for (let i = pages.length - 1; i >= 0; i--) if (pages[i]!.path.startsWith("/dev-")) pages.splice(i, 1);
+    },
+  },
   devtools: { enabled: false },
   telemetry: false,
   typescript: { strict: true },

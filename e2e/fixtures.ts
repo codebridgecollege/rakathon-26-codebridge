@@ -45,7 +45,8 @@ export class App {
 
   // Opens the app at a hash route and waits until the patient list or the route's screen has data.
   async open(hash = ""): Promise<void> {
-    await this.page.goto("/" + (hash ? "#" + hash : ""));
+    // Relative, so the base URL may be the old page (/) or the new app (/app/).
+    await this.page.goto("./" + (hash ? "#" + hash : ""));
     await expect(this.userPicker).toBeVisible();
     if (!hash) await expect(this.patientRows().first()).toBeVisible();
   }
