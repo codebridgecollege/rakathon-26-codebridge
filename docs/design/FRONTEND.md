@@ -37,9 +37,11 @@ Terms used below:
    moves, approval checks, task drafting, FHIR import) can be one shared
    package instead of hand-copied code. Python stays where it fits: the
    document pipeline, the build's data preparation and the seed.
-4. **Nuxt 4 in SPA mode** (`ssr: false`), built as static files. The
-   existing Worker keeps serving them next to its API under `/api`, as it
-   serves today's page. Plain Vue 3 with Vite is the close runner-up.
+4. **Nuxt 4 (decided 2026-10-18), the app in SPA mode** (`ssr: false`),
+   built as static files that the existing Worker serves next to its API
+   under `/api`, as it serves today's page. Nuxt was chosen over plain Vue
+   3 with Vite because public server-rendered pages are likely later, and
+   Nuxt renders those per route without a second framework.
 5. **citry: not for this app now.** Its i18n is the best of the options,
    and dogfooding it would help citry. But:
    - its Vue runtime (0.6.0) is unreleased and mid-migration;
@@ -152,10 +154,17 @@ the marketing site (glidemdt.com) is separate.
 - **Nuxt 5 and Nitro v3.** Nitro v3 is in beta. In SPA mode with static output the impact is small; any server code written later uses the `nuxt/server` API, which Nuxt 4.6 offers for exactly this move.
 - **fluent-vue on Nuxt 4 is unverified.** Its Nuxt integration
   (`unplugin-fluent-vue/nuxt`) declares `@nuxt/kit ^3`, and the project
-  has one maintainer. Registering `fluent-vue` in a plain Nuxt plugin,
-  without that integration, avoids the question; the first scaffold step
-  checks it. On plain Vue with Vite the question does not arise.
-- **Build magic.** Auto-imports and layered configuration (Nuxt, Vite, Nitro) are harder to debug than plain Vite. If that hurts, plain Vue 3 with Vite is a short step back, because components, stores and the router stay the same.
+  has one maintainer. The libraries are small (about 130 KB of TypeScript
+  for `fluent-vue` including tests, about 30 KB for the build plugin), so
+  if anything breaks we fork and update them. Registering `fluent-vue` in
+  a plain Nuxt plugin avoids the integration altogether; the first
+  scaffold step checks it.
+- **Auto-imports are off.** `imports: { autoImport: false }` and
+  `components: { dirs: [] }` in `nuxt.config.ts` make every component and
+  composable an explicit `import`, which is easier to read, search and
+  test. Nuxt's own composables are then imported from `#imports`.
+- **Layered configuration** (Nuxt, Vite, Nitro) is harder to debug than plain Vite; with auto-imports off, most of the "magic" is gone.
+- **Public pages later.** When server-rendered public pages come, they are switched on per route (`routeRules`), and a Nitro server joins the Worker for those routes only; the app itself stays a browser-rendered SPA.
 - **Not the hackathon.** Porting about 25 rounds of clinical-trust fixes in the template invites regressions. The old page stays the demo until the new one passes the DOM-only test suite.
 
 ### Runner-up: plain Vue 3 with Vite
@@ -274,7 +283,4 @@ drafts labelled as drafts) checked screen by screen.
 - **i18n uses Fluent** (`I18N.md`).
 - **The citry spike is on:** the patient brief in cs, sk and en, built in
   citry next to the Nuxt version, after citry 0.6.0 is tagged (see "citry").
-
-## Open questions
-
-- **Nuxt or plain Vue 3 with Vite?** Juro leans to Nuxt; both are workable.
+- **Nuxt 4,** with auto-imports off; upgrade cost is not a concern for the team.
