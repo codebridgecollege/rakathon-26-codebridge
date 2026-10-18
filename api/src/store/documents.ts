@@ -41,13 +41,14 @@ export type DocRow = {
   doc_date: string | null;
   readability: string | null;
   readability_reasons_json: string | null;
+  source: string | null;
 };
 
 // The uploader's display name comes from the directory, so a renamed user shows their current name.
 const DOC_SELECT = `SELECT d.id, d.case_id, d.file_name, d.page_count, d.size_bytes, d.sha256, d.origin, d.processing, d.note_cs,
   d.original_r2_key, d.uploaded_by, trim(u.pre || ' ' || u.sur || CASE WHEN u.post <> '' THEN ', ' || u.post ELSE '' END) AS uploaded_by_name,
   d.created_at, d.state, d.state_detail_cs, d.fixture_id, d.identity, d.title_cs, d.doc_type, d.doc_date, d.readability,
-  d.readability_reasons_json
+  d.readability_reasons_json, d.source
   FROM documents d LEFT JOIN users u ON u.id = d.uploaded_by`;
 
 export function fixtureByHash(db: D1Database, sha: string) {
@@ -70,6 +71,11 @@ export function fixtureFiles(db: D1Database, fixtureId: string, kind: FixtureRow
 
 export async function caseDocuments(db: D1Database, caseId: string) {
   return (await db.prepare(`${DOC_SELECT} WHERE d.case_id = ?1 ORDER BY d.created_at, d.id`).bind(caseId).all<DocRow>()).results;
+}
+
+// The documents a phone sent through one upload session, for the desktop's poll.
+export async function sessionDocuments(db: D1Database, sessionId: string) {
+  return (await db.prepare(`${DOC_SELECT} WHERE d.upload_session_id = ?1 ORDER BY d.created_at, d.id`).bind(sessionId).all<DocRow>()).results;
 }
 
 export function documentRow(db: D1Database, id: string) {

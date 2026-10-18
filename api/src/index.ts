@@ -21,6 +21,7 @@ import { transcript } from "./routes/transcript";
 import { documents } from "./routes/documents";
 import { intake } from "./routes/intake";
 import { pipeline } from "./routes/pipeline";
+import { phoneUpload, uploadSessions } from "./routes/upload-sessions";
 import { sweep } from "./scheduled";
 
 export { SpeakerPassWorkflow } from "./workflows/speaker-pass";
@@ -32,6 +33,7 @@ export { ProcessDocumentWorkflow } from "./workflows/process-document";
 const DATA_PATHS = [
   "/me", "/staff/*", "/patients", "/cases/*", "/documents/*", "/tasks/*", "/calendar", "/admin/*",
   "/workflow", "/audit/*", "/suggestions/*", "/notifications/*", "/sessions/*", "/attendance/*", "/recordings/*", "/jobs/*", "/fhir/*",
+  "/upload-sessions/*",
 ];
 
 // Static files (the built mock) are served by the assets binding before this code runs; only /api/* reaches it.
@@ -43,6 +45,9 @@ app.use("*", async (c, next) => {
   if (!c.res.headers.get("Cache-Control")) c.header("Cache-Control", "no-store");
 });
 app.route("/health", health); // public: no data, tells the page which features this host has
+// The phone of an upload session is not logged in; its token is the credential (routes/upload-sessions.ts). Its two
+// routes answer before the login and viewer middleware, which would otherwise act as the default demo user.
+app.route("/", phoneUpload);
 app.use("*", auth()); // everything below needs a user (demo: anonymous demo user)
 app.use("*", sameOrigin()); // non-GET from another origin is refused (CSRF and quota abuse)
 app.route("/summarize", summarize);
@@ -63,6 +68,7 @@ app.route("/", transcript);
 app.route("/", documents);
 app.route("/", intake);
 app.route("/", pipeline);
+app.route("/", uploadSessions);
 app.notFound(notFound);
 app.onError(onError);
 

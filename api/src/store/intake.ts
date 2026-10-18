@@ -46,6 +46,8 @@ export async function discardIntake(env: Env, caseId: string, actor: Viewer | nu
     db.prepare("DELETE FROM case_access_grants WHERE case_id = ?1").bind(caseId),
     db.prepare("DELETE FROM pipeline_runs WHERE case_id = ?1").bind(caseId),
     db.prepare("DELETE FROM cases WHERE id = ?1").bind(caseId),
+    // A phone still holding this intake's QR code must not reach a later case that reuses the ID (PHONE-UPLOAD.md).
+    db.prepare("UPDATE upload_sessions SET closed_at = ?2 WHERE case_id = ?1 AND closed_at IS NULL").bind(caseId, new Date().toISOString()),
     // The patient row was created with this intake; another case never shares it (POST /cases makes one per case).
     db.prepare("DELETE FROM patients WHERE id = ?1 AND NOT EXISTS (SELECT 1 FROM cases WHERE patient_id = ?1)").bind(c.patient_id),
     auditStatement(db, who, { action: "intake.discard", what_cs: why === "user" ? "zrušil(a) rozpracovaný příjem pacienta (dokumenty smazány)" : "rozpracovaný příjem pacienta smazán po 24 hodinách (dokumenty smazány)", case_id: caseId }, { requestId, epoch: null }),

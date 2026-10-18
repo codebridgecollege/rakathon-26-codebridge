@@ -82,6 +82,8 @@ export function docOut(d: DocRow) {
     readability_reasons_cs: reasons,
     uploaded_by: d.uploaded_by_name,
     uploaded_at: d.created_at,
+    // "phone" for a file sent through an upload session; the page shows "z telefonu" next to who and when.
+    source: d.source,
   };
 }
 
@@ -98,83 +100,98 @@ export function assertUnlocked(u: UploadCtx) {
   if (u.status === "closed" || u.approved) throw UP.locked();
 }
 
+// Where a file came from: the desktop's own upload, or a phone through an upload session (PHONE-UPLOAD.md). A phone
+// file is stored and listed exactly as a desktop one, under the desktop user who opened the session.
+export type UploadVia = { source: "phone"; sessionId: string } | null;
+
+// The upload itself, after the route checked who may upload to the case and applied its rate limit: reads the body,
+// keeps a registered fixture's bytes, lists anything else, and commits the row with its access-log line.
+export async function receiveUpload(c: Context<AppEnv>, id: string, u: UploadCtx, breakGlass: string | null, via: UploadVia) {
+  const db = c.env.DB;
+  const max = numVar(c.env.UPLOAD_MAX_BYTES);
+  const len = c.req.header("content-length");
+  if (!len || !/^\d+$/.test(len)) throw UP.lengthRequired();
+  const declared = Number(len);
+  const name = fileNameOf(c.req.header("x-file-name"));
+  // An oversized file is listed without reading its body; an empty one has nothing to read.
+  let bytes: Uint8Array | null = null;
+  if (declared > 0 && declared <= max) bytes = await readLimited(c.req.raw.body, max);
+  else await c.req.raw.body?.cancel().catch(() => {});
+  if (bytes && bytes.length !== declared) throw E.badRequest();
+  const kind = bytes ? fileKind(bytes) : null;
+  // Only a PDF can be a fixture; matching is by the bytes, so a renamed copy matches and an edited file does not.
+  const sha0 = bytes && kind === "pdf" ? hex(await crypto.subtle.digest("SHA-256", bytes)) : null;
+  const fx0 = sha0 ? await fixtureByHash(db, sha0) : null;
+  const keep = keepsContent(uploadPolicy(c.env.UPLOAD_POLICY), kind, fx0);
+  // Nothing derived from a file that is not kept stays on the server, not even its hash.
+  const sha = keep ? sha0 : null;
+  const fx = keep ? fx0 : null;
+  // A repeat upload (the same stored bytes, or a listed file of the same name) answers with the document already
+  // there, so the page never shows a refusal for it. Seeded documents are not repeats: they are the case's own record.
+  // From a phone, a listed file is a repeat only within its own session: phones name every camera photo "image.jpg",
+  // so a later photo with an earlier one's name is a new file (stored as "image (2).jpg" below).
+  const dup = await db
+    .prepare(
+      `SELECT id FROM documents WHERE case_id = ?1 AND origin = 'upload' AND ((?2 IS NOT NULL AND sha256 = ?2)
+         OR (?2 IS NULL AND sha256 IS NULL AND file_name = ?3 AND (?4 IS NULL OR upload_session_id = ?4))) LIMIT 1`,
+    )
+    .bind(id, sha, name, via?.sessionId ?? null)
+    .first<{ id: string }>();
+  if (dup) return { document: docOut((await documentRow(db, dup.id))!), status: 200 as const };
+  // A different file under a name the case already has is kept under "name (2)", so it is stored, logged and checked
+  // for the wrong patient like any other (UNIQUE(case_id, file_name)).
+  const taken = new Set(
+    (await db.prepare("SELECT file_name FROM documents WHERE case_id = ?1").bind(id).all<{ file_name: string }>()).results.map((r) => r.file_name),
+  );
+  const dot = name.lastIndexOf(".");
+  const [stem, ext] = dot > 0 ? [name.slice(0, dot), name.slice(dot)] : [name, ""];
+  let fileName = name;
+  for (let n = 2; taken.has(fileName); n++) fileName = `${stem} (${n})${ext}`;
+
+  const identity: Identity | null = fx && fx.fx_full_name ? compareIdentity({ full_name: fx.fx_full_name, birth_number: fx.fx_birth_number }, u) : fx ? "cannot_verify" : null;
+  const docId = `up-${newId()}`;
+  const key = keep ? `uploads/${id}/${docId}.pdf` : null;
+  const at = isoNow();
+  // R2 first, so D1 never points at a missing object; the batch below deletes nothing if it fails, so the object is
+  // removed here (and the reset clears uploads/ in any case).
+  if (key && bytes) await c.env.DOCS.put(key, bytes, { httpMetadata: { contentType: "application/pdf" }, sha256: sha! });
+  const t = tx(c, breakGlass).onConstraint(/UNIQUE constraint failed: documents\.case_id|documents_case_sha/, () => UP.duplicate());
+  t.guard("unlocked", UNLOCKED_COND, [id, id], () => UP.locked());
+  t.guard("count", "(SELECT COUNT(*) FROM documents WHERE case_id = ?) < ?", [id, MAX_DOCUMENTS_PER_CASE], () => UP.tooMany());
+  t.run(
+    `INSERT INTO documents (id, case_id, file_name, media_type, page_count, original_r2_key, sha256, size_bytes, origin, processing,
+       uploaded_by, created_at, state, fixture_id, identity, title_cs, doc_type, doc_date, source, upload_session_id)
+     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, 'upload', 'unprocessed', ?9, ?10, 'stored', ?11, ?12, ?13, ?14, ?15, ?16, ?17)`,
+    docId, id, fileName, keep ? "application/pdf" : mediaTypeOf(c.req.header("content-type")), fx?.page_count ?? 0, key, sha, declared, c.var.viewer.id, at,
+    fx?.fixture_id ?? null, identity, fx?.title_cs ?? null, fx?.doc_type ?? null, fx?.doc_date ?? null, via?.source ?? null, via?.sessionId ?? null,
+  );
+  const phone = via?.source === "phone";
+  t.audit({ action: "document.upload", what_cs: sha ? uploadLine(declared, sha, phone) : listedLine(declared, phone), case_id: id, target_type: "document", target_id: docId });
+  // The reviewer sees that a document of another patient reached this case; the line names no one.
+  if (identity === "conflicts")
+    t.audit({ action: "document.identity_conflict", what_cs: "nahraný dokument patří podle registru ukázkových dat jinému pacientovi", case_id: id, target_type: "document", target_id: docId });
+  try {
+    await t.commit();
+  } catch (e) {
+    if (key) await c.env.DOCS.delete(key).catch(() => {});
+    throw e;
+  }
+  const row = await documentRow(db, docId);
+  return { document: docOut(row!), status: 201 as const };
+}
+
 export const documents = new Hono<AppEnv>()
   .post("/cases/:id/documents", async (c) => {
     const id = c.req.param("id");
     label(c, "nahrání dokumentu", id);
     const { breakGlass } = await caseFor(c, id, "document.upload");
-    const db = c.env.DB;
-    const u = await uploadContext(db, id);
+    const u = await uploadContext(c.env.DB, id);
     if (!u) throw E.caseNotFound();
     assertUnlocked(u);
     if (u.doc_count >= MAX_DOCUMENTS_PER_CASE) throw UP.tooMany();
     await limitOrThrow(c, "RL_UPLOAD");
-    const max = numVar(c.env.UPLOAD_MAX_BYTES);
-    const len = c.req.header("content-length");
-    if (!len || !/^\d+$/.test(len)) throw UP.lengthRequired();
-    const declared = Number(len);
-    const name = fileNameOf(c.req.header("x-file-name"));
-    // An oversized file is listed without reading its body; an empty one has nothing to read.
-    let bytes: Uint8Array | null = null;
-    if (declared > 0 && declared <= max) bytes = await readLimited(c.req.raw.body, max);
-    else await c.req.raw.body?.cancel().catch(() => {});
-    if (bytes && bytes.length !== declared) throw E.badRequest();
-    const kind = bytes ? fileKind(bytes) : null;
-    // Only a PDF can be a fixture; matching is by the bytes, so a renamed copy matches and an edited file does not.
-    const sha0 = bytes && kind === "pdf" ? hex(await crypto.subtle.digest("SHA-256", bytes)) : null;
-    const fx0 = sha0 ? await fixtureByHash(db, sha0) : null;
-    const keep = keepsContent(uploadPolicy(c.env.UPLOAD_POLICY), kind, fx0);
-    // Nothing derived from a file that is not kept stays on the server, not even its hash.
-    const sha = keep ? sha0 : null;
-    const fx = keep ? fx0 : null;
-    // A repeat upload (the same stored bytes, or a listed file of the same name) answers with the document already
-    // there, so the page never shows a refusal for it. Seeded documents are not repeats: they are the case's own record.
-    const dup = await db
-      .prepare(
-        "SELECT id FROM documents WHERE case_id = ?1 AND origin = 'upload' AND ((?2 IS NOT NULL AND sha256 = ?2) OR (?2 IS NULL AND sha256 IS NULL AND file_name = ?3)) LIMIT 1",
-      )
-      .bind(id, sha, name)
-      .first<{ id: string }>();
-    if (dup) return answer(c, { document: docOut((await documentRow(db, dup.id))!) }, {}, 200);
-    // A different file under a name the case already has is kept under "name (2)", so it is stored, logged and checked
-    // for the wrong patient like any other (UNIQUE(case_id, file_name)).
-    const taken = new Set(
-      (await db.prepare("SELECT file_name FROM documents WHERE case_id = ?1").bind(id).all<{ file_name: string }>()).results.map((r) => r.file_name),
-    );
-    const dot = name.lastIndexOf(".");
-    const [stem, ext] = dot > 0 ? [name.slice(0, dot), name.slice(dot)] : [name, ""];
-    let fileName = name;
-    for (let n = 2; taken.has(fileName); n++) fileName = `${stem} (${n})${ext}`;
-
-    const identity: Identity | null = fx && fx.fx_full_name ? compareIdentity({ full_name: fx.fx_full_name, birth_number: fx.fx_birth_number }, u) : fx ? "cannot_verify" : null;
-    const docId = `up-${newId()}`;
-    const key = keep ? `uploads/${id}/${docId}.pdf` : null;
-    const at = isoNow();
-    // R2 first, so D1 never points at a missing object; the batch below deletes nothing if it fails, so the object is
-    // removed here (and the reset clears uploads/ in any case).
-    if (key && bytes) await c.env.DOCS.put(key, bytes, { httpMetadata: { contentType: "application/pdf" }, sha256: sha! });
-    const t = tx(c, breakGlass).onConstraint(/UNIQUE constraint failed: documents\.case_id|documents_case_sha/, () => UP.duplicate());
-    t.guard("unlocked", UNLOCKED_COND, [id, id], () => UP.locked());
-    t.guard("count", "(SELECT COUNT(*) FROM documents WHERE case_id = ?) < ?", [id, MAX_DOCUMENTS_PER_CASE], () => UP.tooMany());
-    t.run(
-      `INSERT INTO documents (id, case_id, file_name, media_type, page_count, original_r2_key, sha256, size_bytes, origin, processing,
-         uploaded_by, created_at, state, fixture_id, identity, title_cs, doc_type, doc_date)
-       VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, 'upload', 'unprocessed', ?9, ?10, 'stored', ?11, ?12, ?13, ?14, ?15)`,
-      docId, id, fileName, keep ? "application/pdf" : mediaTypeOf(c.req.header("content-type")), fx?.page_count ?? 0, key, sha, declared, c.var.viewer.id, at,
-      fx?.fixture_id ?? null, identity, fx?.title_cs ?? null, fx?.doc_type ?? null, fx?.doc_date ?? null,
-    );
-    t.audit({ action: "document.upload", what_cs: sha ? uploadLine(declared, sha) : listedLine(declared), case_id: id, target_type: "document", target_id: docId });
-    // The reviewer sees that a document of another patient reached this case; the line names no one.
-    if (identity === "conflicts")
-      t.audit({ action: "document.identity_conflict", what_cs: "nahraný dokument patří podle registru ukázkových dat jinému pacientovi", case_id: id, target_type: "document", target_id: docId });
-    try {
-      await t.commit();
-    } catch (e) {
-      if (key) await c.env.DOCS.delete(key).catch(() => {});
-      throw e;
-    }
-    const row = await documentRow(db, docId);
-    return answer(c, { document: docOut(row!) }, {}, 201);
+    const r = await receiveUpload(c, id, u, breakGlass, null);
+    return answer(c, { document: r.document }, {}, r.status);
   })
   .get("/cases/:id/documents", async (c) => {
     const id = c.req.param("id");

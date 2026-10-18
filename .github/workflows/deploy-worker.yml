@@ -5,7 +5,7 @@ name: Deploy worker
 on:
   push:
     branches: [main, backend]
-    paths: ["api/**", "mocks/v3.html", "mocks/pages/**", "mocks/ukazka/**", ".github/workflows/deploy-worker.yml"]
+    paths: ["api/**", "mocks/v3.html", "mocks/pages/**", "mocks/ukazka/**", "mocks/src/phone-upload.html", ".github/workflows/deploy-worker.yml"]
   pull_request:
     paths: ["api/**", ".github/workflows/deploy-worker.yml"]
   workflow_dispatch:

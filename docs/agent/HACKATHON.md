@@ -233,6 +233,11 @@ Declare this list to the jury and mentors.
   PyMuPDF and Python-Markdown 3.7 (`scripts/render_samples.py`).
 - Claude Code also wrote the synthetic patient `S02_pacient` the same way,
   with the Liberation Sans 2.1.5 fonts from the liberation-fonts release.
+- qrcode-generator 2.0.4 (MIT, Kazuhiko Arase, npm), vendored unchanged in
+  `mocks/src/vendor/qrcode-generator.js` with its license, draws the QR
+  code of "Nahrát z telefonu" in the browser (issue #10). A pre-existing
+  third-party component; the dialog, the phone page and the server routes
+  were written during the hackathon.
 - (Add the LLMs, libraries, and datasets as we adopt them.)
 
 

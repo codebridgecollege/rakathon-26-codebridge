@@ -844,6 +844,10 @@ rules) are not built.
   a velikost, 48 kB)"), and for a wrong patient a second line naming no
   one. A failed batch deletes the object. The answer carries
   `content_stored`; the pipeline refuses a listed file (`no_file`).
+  Since issue #10 the answer also carries `source` (`"phone"` for a file
+  sent through an upload session, otherwise null), and the same path
+  (`receiveUpload`) serves uploads from a phone
+  (`docs/design/PHONE-UPLOAD.md`).
 - Registry: `fixture_files` (step 2) gained `kind` (`upload`, `combined`,
   `referral`), size, title, type, date, page count and the pages of the
   combined PDF; a new table `fixture_patients` holds each fixture's

@@ -99,5 +99,7 @@ export const STATE_CS: Record<string, string> = {
 
 // What the access log keeps of an upload: size and the start of the hash, never the name or the content.
 export const sizeCs = (n: number) => (n < 1024 * 1024 ? `${Math.max(1, Math.round(n / 1024))} kB` : `${(n / 1024 / 1024).toFixed(1).replace(".", ",")} MB`);
-export const uploadLine = (size: number, sha: string) => `nahrál(a) dokument k případu (PDF, ${sizeCs(size)}, otisk ${sha.slice(0, 12)})`;
-export const listedLine = (size: number) => `nahrál(a) soubor k případu (uložen jen název a velikost, ${sizeCs(size)})`;
+export const uploadLine = (size: number, sha: string, phone = false) =>
+  `nahrál(a) dokument k případu${phone ? " z telefonu" : ""} (PDF, ${sizeCs(size)}, otisk ${sha.slice(0, 12)})`;
+export const listedLine = (size: number, phone = false) =>
+  `nahrál(a) soubor k případu${phone ? " z telefonu" : ""} (uložen jen název a velikost, ${sizeCs(size)})`;

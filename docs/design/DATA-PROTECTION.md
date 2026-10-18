@@ -253,6 +253,31 @@ synthetic patients.
   container is deployed; today it runs locally, see step-6.md "As
   implemented"). Nothing in slice 6b-1 sends a page to a cloud model.
 
+### Upload from a phone (issue #10)
+
+[`PHONE-UPLOAD.md`](PHONE-UPLOAD.md). The desktop opens an upload
+session; its token is the phone's only credential, so it is kept narrow:
+one case, add files only, 15 minutes or until the desktop closes the
+dialog, at most 30 files. The phone sees the case ID and the names and
+sizes of the files sent with that code, nothing about the patient or the
+case's other documents. The token travels after `#` in the QR
+code (browsers never send that part to a server), then in the
+`Authorization` header; the server stores only its SHA-256, and neither
+the access log nor our own Worker log lines hold the token, its hash or a
+file name. Cloudflare's request logs record request headers: `wrangler
+tail` showed `Authorization` as `REDACTED` but `X-File-Name` in full
+(2026-10-18); the stored Workers Logs need the same check before a pilot,
+as for the Access header (`api/AGENTS.md`). The
+phone page removes the token from the address bar and keeps it in the
+tab's `sessionStorage`; the browser history and the QR scanner app may
+still keep the full URL until it expires. Files take the same upload path as a
+desktop upload (fixtures stored, anything else listed by name and size),
+logged under the desktop user. Session rows are deleted by reset-demo and
+a day after their expiry. The trade-off: whoever holds the QR code (a
+photo of the screen, a shoulder-surfer) can add files to that case until
+it expires, and see the names of the files sent with that code; they
+cannot read anything about the patient.
+
 ## Meeting audio
 
 The recording of an MDT discussion is patient data. In the demo, "AI

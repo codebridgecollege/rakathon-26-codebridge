@@ -109,8 +109,12 @@ built.
 
   ```
   npx wrangler r2 bucket lifecycle add codebridge-mdt audio-backstop-7d audio/ --expire-days 7 --abort-multipart-days 7 -J eu -y
+  npx wrangler r2 bucket lifecycle remove codebridge-mdt --name audio-backstop-1d -J eu   # a bucket set up before 2026-10-18
   npx wrangler r2 bucket lifecycle add codebridge-mdt summary-cache-30d cache/summary/ --expire-days 30 -J eu -y
   ```
+- Deploy before migrating when a migration drops what old code reads: migration 0009 drops
+  `transcript_passes.audio_on_failure`, which the previous Worker's Workflow and cron query read, while the new code
+  works on either schema. So `npm run deploy` first, then `npm run migrate:remote`.
 - Deploying: the Workflow and the cron trigger are registered only by `wrangler deploy` (`npm run deploy`), not by
   `wrangler versions upload`, which CI uses for the `backend` preview alias. A preview's approvals start instances of
   the Workflow as the last `wrangler deploy` registered it, so deploy after changing `src/workflows/`.
@@ -153,6 +157,28 @@ Design and contract: `docs/research/backend-steps/step-6.md`, section "As implem
   ```
 - Python tests of the pipeline: `cd pipeline && uv run pytest -q`.
 
+## Upload from a phone (issue #10)
+
+Design and contract: `docs/design/PHONE-UPLOAD.md`, section "As implemented".
+
+- Routes in `src/routes/upload-sessions.ts`, rules in `src/domain/upload-sessions.ts`, table `upload_sessions`
+  (migration 0010). The desktop routes (`POST /upload-sessions`, `GET` and `DELETE /upload-sessions/:id`) run behind
+  the viewer and write middleware like any write. The phone's two routes (`/upload-sessions/current` and
+  `/upload-sessions/current/files`) are mounted before `auth()`: the phone is not logged in, the token in
+  `Authorization: Bearer` is the credential, and the request acts for the session's creator (`actAsCreator`), whose
+  role, membership and case state are checked again for every file. Files go through `receiveUpload` in
+  `src/routes/documents.ts`, the same path as a desktop upload.
+- Only `token_hash` (SHA-256) is stored. Never log the token, its hash or a file name; `test/upload-sessions.test.ts`
+  checks the access log and the console output.
+- The phone page is `mocks/src/phone-upload.html`, staged as `.assets/u.html` (`/u`; no Worker route).
+- End to end with real browsers (needs Playwright with Chromium and WebKit; it prints counts only):
+
+  ```
+  cd api && npm run seed:local && npm run stage && npx wrangler dev --port 8799
+  PLAYWRIGHT_PATH=<dir>/node_modules/playwright node api/scripts/e2e-phone-upload.mjs http://localhost:8799 --reset
+  ```
+  `--reset` runs reset-demo before (the S02 patient can be added once per seeded state) and after.
+
 ## Where configuration lives
 
 - Vars (endpoints, models, language, limits, `AUTH_MODE`) in `wrangler.jsonc`.
@@ -181,11 +207,15 @@ Design and contract: `docs/research/backend-steps/step-6.md`, section "As implem
 4. In `wrangler.jsonc` set `ACCESS_TEAM_DOMAIN` (`https://<team>.cloudflareaccess.com`),
    `ACCESS_AUD`, `AUTH_MODE=access`, and `assets.run_worker_first: true`
    (so the Worker checks every request, not only `/api`). Run `npm run types`.
-5. Redeploy, then check that both the production and the preview URL ask
+5. Add a bypass policy for `/u` and `/api/upload-sessions/current*`: the
+   phone of "Nahrát z telefonu" is not logged in, and the session token is
+   those routes' credential (`docs/design/PHONE-UPLOAD.md`).
+6. Redeploy, then check that both the production and the preview URL ask
    for login and that `/api/health` shows `auth_mode: "access"`.
-6. Check in Workers Logs that invocation logs do not record request
+7. Check in Workers Logs that invocation logs do not record request
    headers; the `Cf-Access-Jwt-Assertion` header is a bearer credential
-   that carries the user's e-mail.
+   that carries the user's e-mail, and the phone's `Authorization` header
+   carries an upload token.
 
 Access service tokens carry no e-mail and are refused (401); the app has
 no machine clients. If the team's key set cannot be fetched, the API

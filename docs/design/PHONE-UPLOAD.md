@@ -1,7 +1,7 @@
 # Upload from a phone (QR code)
 
-Status: design, 2026-10-18; built on the `backend` branch (API mode on
-the Worker). On Pages (embedded mode, no server) the feature is hidden.
+Status: built on the `backend` branch, 2026-10-18 (API mode on the
+Worker); see "As implemented". On Pages (embedded mode, no server) the feature is hidden.
 
 A doctor or the coordinator often has the document on paper or on their
 phone, not on the computer that shows the case. The desktop shows a QR
@@ -70,8 +70,9 @@ itself (same role and case-state rules as today's upload, `canUpload`).
   Durable Object with a WebSocket would deliver instantly, at the cost of
   more moving parts for about a second of difference.
 - **No login on the phone.** The token is the permission, so it is narrow:
-  one case, add files only, nothing readable (the phone sees only the case
-  ID and its own files), valid 15 minutes or until the desktop closes the
+  one case, add files only, nothing readable about the patient (the phone
+  sees only the case ID and the names and sizes of the files sent with
+  that code), valid 15 minutes or until the desktop closes the
   dialog, at most 30 files per session.
 
 ## Server
@@ -118,3 +119,157 @@ itself (same role and case-state rules as today's upload, `canUpload`).
   as uploaded).
 - Push notifications or a native app.
 - Uploading to a case from a phone without the desktop starting it.
+
+## As implemented
+
+Built on the `backend` branch (issue #10, 2026-10-18). Code:
+`api/src/routes/upload-sessions.ts` (routes), `api/src/domain/upload-sessions.ts`
+(rules), migration `api/migrations/0010_upload_sessions.sql`, the shared
+upload path `receiveUpload` in `api/src/routes/documents.ts`, the phone
+page `mocks/src/phone-upload.html` (staged as `.assets/u.html`), and the
+dialog in `mocks/src/v3-template.html` ("upload from a phone").
+
+### Contract
+
+- `POST /api/upload-sessions` `{ case_id, target }` (desktop, write
+  middleware): the same checks as `POST /api/cases/:id/documents`
+  (`caseFor(..., "document.upload")`, an unlocked case, the upload rate
+  limit). Answers 201 `{ data: { id, case_id, target, state, expires_at,
+  file_count, max_files, token } }`. The token appears only in this
+  answer.
+- `GET /api/upload-sessions/:id` (desktop poll): only the creator (anyone
+  else gets 404), with the case's header access check. Answers `{ id,
+  case_id, target, state, expires_at, file_count, max_files, documents }`,
+  `state` one of `open`, `expired`, `closed`, `full`; `documents` are the
+  session's files in the shape of the case's document list, with
+  `source: "phone"`.
+- `DELETE /api/upload-sessions/:id` (desktop): ends the session; a second
+  call changes and logs nothing.
+- `GET /api/upload-sessions/current` (phone): `{ case_id, expires_at,
+  max_files, files: [{ name, size, uploaded_at }] }`, the session's own
+  files only.
+- `POST /api/upload-sessions/current/files` (phone): the file as the raw
+  body with `X-File-Name` (URI-encoded) and `Content-Length`; answers 201
+  (or 200 for a repeat) `{ data: { name, size } }`.
+- The phone sends the token as `Authorization: Bearer <token>`. An
+  unknown, missing, expired, closed or full session answers 410
+  `upload_session_closed`, "Platnost odkazu skončila, naskenujte kód
+  znovu."
+
+### Differences from the design
+
+- **One answer for every ended link.** Expired, closed, full (30 files),
+  an unknown token, a discarded intake and a desktop user who may no
+  longer upload to the case all answer the same 410 (on both phone
+  routes), so the phone learns nothing about which sessions exist.
+- **The phone never shows any other error.** A busy or unreachable server
+  (network, 408, 429, 5xx) is retried quietly with backoff until the link
+  expires, the row showing "Odesílám…"; any other answer counts as sent
+  ("✓ Odesláno"), because the server lists every file it receives. A case
+  approved or closed while the code is open refuses the file
+  (`case_locked`), and so does a case that already holds 40 documents
+  (`too_many_documents`): the phone still shows the file as sent, and the
+  desktop does not list it. A fixture the case already holds is answered
+  as the document already there: the desktop lists it once, not in the
+  dialog's "Přijato z telefonu".
+- **Repeated names.** Phones name every camera photo `image.jpg`. From a
+  phone, a listed file counts as a repeat of a same-named file only within
+  its own session, so a photo named like an earlier one (another session,
+  or a desktop upload) is stored as a new file, `image (2).jpg`; the phone
+  page also gives a repeated name its own suffix within one session. The
+  phone's answer carries the name it sent, never the name of a document
+  already in the case.
+- **The token leaves the address bar.** The phone page moves the token to
+  `sessionStorage` (this tab only, so a reload still works) and removes
+  the `#` part with `history.replaceState`. The browser history and the
+  phone's QR scanner app may still keep the full URL until it expires.
+- **Audit wording.** The upload lines are the normal upload lines with "z
+  telefonu": "nahrál(a) dokument k případu z telefonu (PDF, 1 kB, otisk
+  …)" for a stored fixture, "nahrál(a) soubor k případu z telefonu
+  (uložen jen název a velikost, …)" otherwise, under the desktop user.
+  Opening and ending are `upload_session.open` "otevřel(a) nahrávání z
+  telefonu" and `upload_session.close` "ukončil(a) nahrávání z telefonu".
+  The desktop's poll is not logged per request (every 1.5 s): it returns
+  only the files this user's own session added, and the opening is in the
+  log.
+- **Documents.** `documents.source = 'phone'` and
+  `documents.upload_session_id` mark a phone's file; the case's document
+  list carries `source`, and the page shows "z telefonu" after who and
+  when.
+- **Rate limits.** The existing `RL_UPLOAD` binding with two keys per
+  phone upload, `us:<session id>` and `ip:<client IP>`, checked before a
+  file takes one of the 30 slots. The slot is claimed with one conditional
+  `UPDATE ... RETURNING`, so parallel uploads cannot pass the cap or a
+  close that already landed. A file whose slot was claimed just before
+  the close still finishes; the desktop looks once more 3 s after the
+  close and reloads the case's list.
+- **Clean-up.** reset-demo removes every session (trigger
+  `demo_reset_upload_sessions` on the reset flag, so the reset batch keeps
+  its size); discarding an intake closes its sessions in the same batch,
+  so a later case that reuses the ID is never reachable through an old
+  code; the cron sweep deletes sessions a day after their expiry.
+- **The phone acts as the desktop user.** Each phone upload re-checks
+  that user's role and membership and the case state, then runs the same
+  `receiveUpload` as a desktop upload. In demo mode the phone sends no
+  `X-Demo-User` and no cookie (`credentials: "omit"`).
+- **Routing.** The phone routes are mounted before the login and viewer
+  middleware (they would act as the default demo user) and keep the
+  same-origin check. `/u` is the static file `u.html`; the assets'
+  default `html_handling` serves it without the extension and redirects
+  `/u.html` to `/u`, so `run_worker_first` stays `["/api/*"]` and unknown
+  paths still get the 404 page.
+- **A closed tab ends its session.** The desktop sends the close with
+  `fetch(..., { keepalive: true })` on `pagehide`, so the code does not
+  stay valid for 15 minutes after the tab is gone.
+- **Desktop dialog.** A layer of its own (`#phoneup`) above the page's
+  dialogs, so it opens over "Nový pacient" without closing it; Escape and
+  "Zavřít" close only it. Closing first polls once more, so a file that
+  arrived just before "Hotovo" is still listed, then ends the session. An
+  expired or full code shows "Nový kód". Discarding the intake closes the
+  dialog. In the Documents tab the existing "+ Nahrát dokument" dialog is
+  still the mock's; its phone button sends files to the case's upload
+  list (the one in "Projednání na MDT", panel "Dokumenty").
+- **QR library.** qrcode-generator 2.0.4 (MIT, npm), vendored unchanged as
+  `mocks/src/vendor/qrcode-generator.js` with its license and inlined by
+  `mocks/build.py` (placeholder `/*QR_VENDOR*/`). Error correction M, SVG,
+  a white border of four modules.
+
+### Checks
+
+- `api/test/upload-sessions.test.ts` (Vitest in workerd): token format and
+  hashing, the token only in the create answer, who may open, poll and
+  end, the phone's view, uploads through the normal path, add-only, the
+  same-origin check, expiry, close, the 30-file cap under parallel
+  uploads, the rate limits, the desktop user's lost access, a case locked
+  meanwhile, the intake and its discard, reset and sweep, and no token,
+  hash or file name in the access log or the Worker log.
+- `mocks/src/test/phone-upload.mjs` (jsdom, fake server): the button only
+  in API mode and where upload is allowed, the QR code drawn in the page
+  without the token as text, polling, the files in the upload and intake
+  lists marked "z telefonu", Hotovo, Escape, "Nový kód", intake discard.
+- `api/scripts/e2e-phone-upload.mjs` (Playwright against a running
+  Worker): the desktop in Chromium starts the S02 intake and opens the QR
+  dialog; an Android phone (Chromium, Pixel 7 emulation) opens `/u`
+  and sends the seven S02 PDFs; the desktop lists them, the prepared data
+  attach and the patient is added; the ended link shows its message; an
+  iPhone (WebKit, iPhone 13 emulation) sends two camera photos named
+  `image.png` to the discussion panel. Run locally on `wrangler dev` and
+  against the deployed Worker on 2026-10-18, each followed by reset-demo.
+
+### Open risks
+
+- Cloudflare's request logs record request headers. In `wrangler tail`
+  during the deployed run (2026-10-18) the `Authorization` header showed
+  as `REDACTED`, which is why the token travels there; `X-File-Name` (the
+  file name, on desktop uploads too) showed in full. Workers Logs, the
+  stored copy, was not checked; do so before a pilot (api/AGENTS.md,
+  Access runbook step 7).
+- Emulated phones are not real devices: the camera itself and the iOS
+  photo picker were not exercised, and nothing decodes the drawn QR code
+  (the e2e compares it with the code drawn for the session URL).
+- The code is valid for any phone that scans it. A QR code on the
+  projector can be scanned by anyone in the room, who can then add up to
+  30 files to that case and see the names of the files sent with that
+  code; they appear live in the projected dialog. Binding the session to
+  the first phone that opens it was left out because a second scan by the
+  same doctor (a new browser tab) would then fail during the demo.

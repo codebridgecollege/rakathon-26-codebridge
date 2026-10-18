@@ -86,7 +86,8 @@ export const hooks = {
     await safely("purge_on_close", async () => purgeUploads(c.env, await uploadsOfCase(c.env.DB, caseId), "případ uzavřen", c.var.viewer, c.req.header("cf-ray") ?? null));
   },
 
-  // The seminar ended: its recordings end, and audio no running pass needs goes (unapproved cases, failed passes).
+  // The seminar ended: its recordings end, and unapproved audio goes. Audio a failed pass kept for "Zkusit znovu" stays
+  // until the case closes (user decision 2026-10-18).
   async onSessionEnded(c: Context<AppEnv>, day: string): Promise<void> {
     if (!storageOn(c.env)) return;
     await safely("end_recordings", () =>

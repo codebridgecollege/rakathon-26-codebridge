@@ -14,15 +14,15 @@ export const KEPT_AUDIO_MAX_AGE_MS = 7 * 24 * 3600_000;
 export async function sweep(env: Env, nowMs = Date.now()): Promise<{ purged: number; failed: number; restarted: number }> {
   // Deletion depends on the storage only, not on the feature switch: switching the recorder off must not keep audio.
   if (!env.DB || !env.DOCS) return { purged: 0, failed: 0, restarted: 0 };
-  let ups: Awaited<ReturnType<typeof uploadsForSweep>>;
+  let ups: Awaited<ReturnType<typeof uploadsForSweep>> = [];
+  let purged = 0;
+  let failed = 0;
   try {
     ups = await uploadsForSweep(env.DB, new Date(nowMs - AUDIO_MAX_AGE_MS).toISOString(), new Date(nowMs - KEPT_AUDIO_MAX_AGE_MS).toISOString());
   } catch {
-    // An unmigrated database has no audio tables, so nothing to delete.
-    return { purged: 0, failed: 1, restarted: 0 };
+    // A failed audio query must not skip the other clean-ups below (intakes, upload sessions, pipeline runs).
+    failed += 1;
   }
-  let purged = 0;
-  let failed = 0;
   // One at a time, so one stuck object does not keep the others.
   for (const u of ups) {
     try {
@@ -34,6 +34,12 @@ export async function sweep(env: Env, nowMs = Date.now()): Promise<{ purged: num
   // Step 6: an intake nobody completed within 24 hours goes with its uploaded files.
   try {
     await sweepIntakes(env, nowMs);
+  } catch {
+    failed += 1;
+  }
+  // Issue #10: upload sessions are permissions, not records; a day after their expiry nothing needs the row.
+  try {
+    await env.DB.prepare("DELETE FROM upload_sessions WHERE expires_at < ?1").bind(new Date(nowMs - 24 * 3600_000).toISOString()).run();
   } catch {
     failed += 1;
   }

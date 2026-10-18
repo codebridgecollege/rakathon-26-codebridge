@@ -9,5 +9,8 @@ cp "$MOCKS/v3.html" .assets/index.html
 cp -R "$MOCKS/pages" .assets/pages
 # The intake demo patient's documents as a ZIP, linked from the "Nový pacient" dialog.
 cp -R "$MOCKS/ukazka" .assets/ukazka
+# The phone page of "Nahrát z telefonu" (docs/design/PHONE-UPLOAD.md): served at /u (u.html, the assets' default
+# html_handling drops the extension), a few kB on its own, never the app.
+cp "$MOCKS/src/phone-upload.html" .assets/u.html
 # A real 404 keeps old links from looking alive (not_found_handling: 404-page).
 printf '<!doctype html><meta charset="utf-8"><title>Stránka nenalezena</title><p>Stránka nenalezena. Aplikace je na <a href="/">úvodní stránce</a>.</p>\n' > .assets/404.html

@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="referrer" content="no-referrer">
+<meta name="robots" content="noindex">
+<title>Nahrát dokumenty · GLIDE MDT</title>
+<style>
+/* The phone page of "Nahrát z telefonu" (issue #10, docs/design/PHONE-UPLOAD.md). A separate few-kB page, not the
+   app: one big button and the list of what this phone sent. System fonts, so nothing loads from another host. */
+:root {
+  --bg: #ffffff; --sunk: #f3f7f8; --fg: #102c39; --muted: #5d707a; --line: #dce5e8;
+  --accent: #007f78; --accent-ink: #00665f; --accent-soft: #e8f5f1; --ok: #2d7650; --missing: #8f5a06; --missing-soft: #fbf0dc;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+body { margin: 0; background: var(--bg); color: var(--fg); font: 17px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, system-ui, sans-serif; }
+main { max-width: 560px; margin: 0 auto; padding: max(20px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(28px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left)); display: grid; gap: 18px; }
+.brand { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 15px; color: var(--muted); }
+.brand i { width: 22px; height: 22px; background: var(--accent); color: #fff; font-style: normal; font-size: 12px; display: inline-grid; place-items: center; }
+h1 { font-size: 24px; line-height: 1.25; margin: 0; }
+.case { font-size: 28px; font-weight: 800; letter-spacing: .01em; }
+.muted { color: var(--muted); }
+.small { font-size: 15px; }
+p { margin: 0; }
+/* The button is a label for the hidden input, so iOS Safari and Android Chrome open their own picker
+   (camera, photo library, files) on a plain tap. */
+.pick { display: flex; align-items: center; justify-content: center; gap: 10px; min-height: 72px; padding: 16px 20px; background: var(--accent); color: #fff; font-size: 20px; font-weight: 700; text-align: center; cursor: pointer; -webkit-tap-highlight-color: transparent; user-select: none; }
+.pick:active { background: var(--accent-ink); }
+.pick input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+.pick:focus-within { outline: 3px solid var(--fg); outline-offset: 3px; }
+ul { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line); }
+li { display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; align-items: center; padding: 14px 0; border-bottom: 1px solid var(--line); min-height: 60px; }
+.nm { overflow-wrap: anywhere; font-weight: 600; }
+.st { font-size: 15px; white-space: nowrap; color: var(--muted); }
+.st.ok { color: var(--ok); font-weight: 700; }
+.sz { grid-column: 1; font-size: 14px; color: var(--muted); }
+.note { background: var(--missing-soft); color: var(--missing); padding: 16px; font-weight: 600; font-size: 18px; }
+.done { background: var(--accent-soft); color: var(--accent-ink); padding: 14px 16px; font-weight: 600; }
+[hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<main>
+  <div class="brand"><i aria-hidden="true">G</i> GLIDE MDT</div>
+  <h1>Nahrát dokumenty z telefonu</h1>
+  <p id="loading" class="muted" role="status">Načítám…</p>
+  <section id="ready" hidden style="display:grid;gap:18px">
+    <div><div class="muted small">Případ</div><div class="case" id="case"></div><p class="muted small" id="exp"></p></div>
+    <label class="pick"><input type="file" id="file" multiple accept="image/*,application/pdf,.pdf,.doc,.docx,.xls,.xlsx,.odt,.zip">Vyfotit nebo vybrat soubory</label>
+    <p class="muted small">Dokumenty se objeví na počítači, ze kterého jste kód naskenovali.</p>
+  </section>
+  <p id="ended" class="note" role="alert" hidden>Platnost odkazu skončila, naskenujte kód znovu.</p>
+  <p id="alldone" class="done" role="status" hidden></p>
+  <ul id="list" aria-label="Odeslané soubory" hidden></ul>
+</main>
+<script>
+"use strict";
+/* The token comes after "#", which the browser never sends to a server. It is kept for this tab only (a reload
+   still works) and removed from the address bar, so a screenshot or a shared tab does not carry it. */
+const KEY = "cb-upload-token";
+let token = "";
+try { token = location.hash.slice(1) || sessionStorage.getItem(KEY) || ""; if (location.hash.length > 1) sessionStorage.setItem(KEY, token); } catch (e) { token = location.hash.slice(1); }
+if (location.hash) try { history.replaceState(null, "", location.pathname); } catch (e) { /* the address bar keeps it; nothing else changes */ }
+
+const $ = id => document.getElementById(id);
+const files = [];
+let ended = false, busy = false, expiresAt = 0;
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const size = n => n < 1024 * 1024 ? `${Math.max(1, Math.round(n / 1024))} kB` : `${(n / 1024 / 1024).toFixed(1).replace(".", ",")} MB`;
+const hhmm = ms => new Date(ms).toLocaleTimeString("cs-CZ", { hour: "2-digit", minute: "2-digit" });
+
+function show() {
+  $("loading").hidden = true;
+  $("ready").hidden = ended;
+  $("ended").hidden = !ended;
+  $("list").hidden = !files.length;
+  $("list").innerHTML = files.map(f => `<li><span class="nm">${esc(f.name)}</span><span class="st ${f.sent ? "ok" : ""}">${f.sent ? "✓ Odesláno" : "Odesílám…"}</span><span class="sz">${esc(size(f.size))}</span></li>`).join("");
+  const sent = files.filter(f => f.sent).length;
+  $("alldone").hidden = ended || !sent || sent < files.length;
+  $("alldone").textContent = `Odesláno: ${sent} ${sent === 1 ? "soubor" : sent < 5 ? "soubory" : "souborů"}. Můžete přidat další.`;
+  if (expiresAt) $("exp").textContent = `Odkaz platí do ${hhmm(expiresAt)}.`;
+}
+function end() { ended = true; show(); }
+
+/* A stalled request on venue Wi-Fi is cut off and retried; a resent fixture, or a resent file whose name was not changed, is answered as the one already there.
+   AbortController and a timer rather than AbortSignal.timeout, which older iOS Safari lacks. */
+async function api(path, init = {}, ms = 15000) {
+  const ctl = new AbortController(), t = setTimeout(() => ctl.abort(), ms);
+  try { return await fetch(`/api/upload-sessions/current${path}`, { ...init, signal: ctl.signal, cache: "no-store", credentials: "omit", headers: { Accept: "application/json", Authorization: `Bearer ${token}`, ...(init.headers || {}) } }); }
+  finally { clearTimeout(t); }
+}
+
+async function load() {
+  if (!token) return end();
+  for (let i = 0; ; i++) {
+    let r;
+    try { r = await api(""); } catch (e) { r = null; }
+    if (r && r.status === 410) return end();
+    if (r && r.ok) {
+      const d = await r.json();
+      $("case").textContent = d.case_id;
+      expiresAt = Date.parse(d.expires_at) || 0;
+      /* After a reload, the files this phone already sent are listed again. */
+      if (!files.length) for (const f of d.files || []) files.push({ name: f.name, size: f.size || 0, sent: true });
+      return show();
+    }
+    /* Venue Wi-Fi or mobile data drops out: wait and ask again, without an error on screen. */
+    await sleep(Math.min(8000, 1000 * 2 ** i));
+  }
+}
+
+/* Phones name every camera photo "image.jpg"; the server takes a repeated name as the same file, so a second photo
+   gets its own name. */
+function uniqueName(name) {
+  const taken = new Set(files.map(f => f.name));
+  if (!taken.has(name)) return name;
+  const dot = name.lastIndexOf("."), stem = dot > 0 ? name.slice(0, dot) : name, ext = dot > 0 ? name.slice(dot) : "";
+  for (let n = 2; ; n++) if (!taken.has(`${stem} (${n})${ext}`)) return `${stem} (${n})${ext}`;
+}
+
+/* One file per request, one after another. A busy or unreachable server is retried quietly until the link expires;
+   any other answer counts as sent, as on the desktop: the server lists every file it receives. */
+async function send(f) {
+  for (let i = 0; !ended; i++) {
+    let r = null;
+    /* Two minutes per attempt: a 20 MB photo on slow mobile data. */
+    try { r = await api("/files", { method: "POST", body: f.file, headers: { "Content-Type": f.file.type || "application/octet-stream", "X-File-Name": encodeURIComponent(f.name) } }, 120000); } catch (e) { r = null; }
+    if (r && r.status === 410) return end();
+    if (r && !(r.status === 408 || r.status === 429 || r.status >= 500)) { f.sent = true; f.file = null; return show(); }
+    if (expiresAt && Date.now() > expiresAt + 60000) return end();
+    await sleep(Math.min(15000, 1000 * 2 ** i));
+  }
+}
+async function drain() {
+  if (busy) return;
+  busy = true;
+  try { for (let f; (f = files.find(x => !x.sent && x.file)) && !ended;) await send(f); }
+  finally { busy = false; }
+}
+
+$("file").addEventListener("change", e => {
+  const picked = [...(e.target.files || [])];
+  /* The same input is reused, so choosing the same photo again fires a change. */
+  e.target.value = "";
+  for (const file of picked) files.push({ name: uniqueName(file.name || "soubor"), size: file.size, file, sent: false });
+  show();
+  drain();
+});
+/* Back from the camera or another app after a while: the link may have expired meanwhile. */
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && !ended && expiresAt && Date.now() > expiresAt) load(); });
+load();
+</script>
+</body>
+</html>

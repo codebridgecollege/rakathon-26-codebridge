@@ -323,6 +323,11 @@ details.mdtcard[open] > summary::before { transform: rotate(90deg); }
 .uplist { list-style: none; padding: 0; margin: 10px 0 0; display: grid; gap: 6px; }
 .uplist li { display: flex; gap: 8px; align-items: center; padding: 6px 8px; border: 1px solid var(--line); border-radius: 0; }
 .uplist .nm { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+/* "Nahrát z telefonu" (issue #10): its dialog sits above the dialog it was opened from (the new patient's intake). */
+.phonelayer .scrim { z-index: 40; }
+.phonelayer .modal { z-index: 41; width: min(520px, calc(100% - 32px)); }
+.phoneqr { justify-self: center; width: min(260px, 70vw); background: #fff; padding: 4px; border: 1px solid var(--line); }
+.phoneqr svg { display: block; width: 100%; height: auto; }
 .recbar { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; margin-top: 12px; }
 .recbtn.on { background: #b3261e; border-color: #b3261e; color: #fff; }
 .recdot { display: inline-block; width: 9px; height: 9px; border-radius: 0; background: #b3261e; margin-right: 6px; animation: recblink 1.2s infinite; }
@@ -846,6 +851,7 @@ h3 { letter-spacing: -.02em; }
 </header>
 <main id="app"><p class="muted" role="status" style="padding:32px">Načítám…</p></main>
 <div id="overlay"></div>
+<div id="phoneup" class="phonelayer"></div>
 
 <script id="case-data" type="application/json">/*CASE*/</script>
 <script id="list-data" type="application/json">/*LIST*/</script>
@@ -855,6 +861,7 @@ h3 { letter-spacing: -.02em; }
 <script id="guide-data" type="application/json">/*GUIDE*/</script>
 <script>/*PDF_VENDOR*/</script>
 <script>/*PDF_FONTS*/</script>
+<script>/*QR_VENDOR*/</script>
 <script>
 "use strict";
 /* The template has no <html> tag of its own (the publisher wraps it), so the language is set here: Czech date
@@ -3090,11 +3097,11 @@ const PIPE_STATES = ["queued", "processing", "processed", "failed"];
 function uploadsApiHtml(p, locked, why) {
   const u = upsOf(p); if (!u.loaded) loadUploads(p);
   const when = d => { if (d.when) return d.when; try { return new Date(d.uploaded_at).toLocaleTimeString("cs-CZ", { hour: "2-digit", minute: "2-digit" }); } catch (e) { return ""; } };
-  const item = d => `<li><span class="nm" title="${esc(d.name)}">${esc(d.name)}</span><span class="small muted">${esc(fmtSize(d.size || 0))} · ${esc(d.uploaded_by || "")}, ${esc(when(d))}</span>${S.api.pipeline && PIPE_STATES.includes(d.state) ? `<span class="chip plain ${d.state === "failed" ? "k-contradiction" : "st-done"}" title="${esc(d.state_detail_cs || "")}">${esc(d.state_cs)}</span>` : `<span class="chip plain st-done">Nahráno</span>`}${locked || (d.state && d.state !== "stored") || (d.origin && d.origin !== "upload") ? "" : `<button class="btn small" data-delupapi="${esc(d.id)}" aria-label="Odebrat ${esc(d.name)}">✕</button>`}
+  const item = d => `<li><span class="nm" title="${esc(d.name)}">${esc(d.name)}</span><span class="small muted">${esc(fmtSize(d.size || 0))} · ${esc(d.uploaded_by || "")}, ${esc(when(d))}${d.source === "phone" ? " · z telefonu" : ""}</span>${S.api.pipeline && PIPE_STATES.includes(d.state) ? `<span class="chip plain ${d.state === "failed" ? "k-contradiction" : "st-done"}" title="${esc(d.state_detail_cs || "")}">${esc(d.state_cs)}</span>` : `<span class="chip plain st-done">Nahráno</span>`}${locked || (d.state && d.state !== "stored") || (d.origin && d.origin !== "upload") ? "" : `<button class="btn small" data-delupapi="${esc(d.id)}" aria-label="Odebrat ${esc(d.name)}">✕</button>`}
     ${d.identity === "conflicts" ? `<p class="fwarn" role="alert" style="margin:4px 0 0;flex-basis:100%">${esc(d.identity_cs)}</p>` : ""}
     ${d.readability === "poor" || d.readability === "empty" ? `<p class="fwarn" role="alert" style="margin:4px 0 0;flex-basis:100%">Dokument je špatně čitelný, vyžádejte lepší kopii.${(d.readability_reasons_cs || []).length ? ` (${esc(d.readability_reasons_cs.join("; "))})` : ""}</p>` : ""}
     ${S.api.pipeline && d.content_stored && !locked && d.state !== "prepared" ? `<div style="flex-basis:100%">${pipeHtml({ file: `${d.id}.pdf` })}</div>` : ""}</li>`;
-  return `${why ? `<p class="muted small" style="margin:12px 0 0">${esc(why)}</p>` : ""}${locked ? "" : `<label class="upzone" data-upzone="1"><input type="file" multiple data-upload="1"><b>Přetáhněte soubory sem</b><span class="small muted">nebo klikněte a vyberte (PDF, obrázky, Word)</span></label>`}
+  return `${why ? `<p class="muted small" style="margin:12px 0 0">${esc(why)}</p>` : ""}${locked ? "" : `<label class="upzone" data-upzone="1"><input type="file" multiple data-upload="1"><b>Přetáhněte soubory sem</b><span class="small muted">nebo klikněte a vyberte (PDF, obrázky, Word)</span></label>${phoneBtn("discussion", "margin-top:8px")}`}
     ${u.docs.length ? `<ul class="uplist">${u.docs.map(item).join("")}</ul>` : locked ? `<p class="muted small" style="margin:12px 0 0">Žádné dokumenty nenahrány.</p>` : ""}
     <p class="muted small" style="margin:8px 0 0">Ukázka: ${S.api.pipeline ? "" : "asistent nahrané soubory nečte; "}kromě připravených ukázkových dokumentů se ukládá jen název a velikost souboru. Ve skutečném provozu se uloží k případu a projdou kontrolou čitelnosti.</p>`;
 }
@@ -3105,6 +3112,116 @@ function addUploads(files) {
   pr.uploads = [...(pr.uploads || []), ...[...files].map(f => ({ name: f.name, size: f.size, who: S.user, when }))];
   logAccess(S.pid, `nahrál(a) ${plural(files.length, "dokument", "dokumenty", "dokumentů")} k projednání`);
   toast(`Nahráno: ${plural(files.length, "soubor", "soubory", "souborů")}`); render();
+}
+/* ---------- upload from a phone (issue #10, docs/design/PHONE-UPLOAD.md) ----------
+   API mode only, and only where this user could upload (canUpload, an open intake). The server opens an upload session
+   for the one case and answers its token once; the QR code carries https://<host>/u#<token> (the part after "#" never
+   reaches a server). While the dialog is open the page asks every 1.5 s what the phone sent, and the files join the
+   case's upload list (or the intake's), marked "z telefonu". Closing the dialog ends the session. */
+S.phone = null;
+const PHONE_POLL_MS = 1500;
+const phoneBtn = (target, style = "") => `<div class="row"${style ? ` style="${style}"` : ""}><button class="btn small" data-act="phoneup-${target}">Nahrát z telefonu</button></div>`;
+/* Error correction M keeps the code small enough for a quick scan at arm's length; the URL is about 70 characters. The
+   white border is four modules wide, as the QR standard asks, so phone cameras find it on a busy screen. */
+function phoneQr(url) {
+  const q = qrcode(0, "M"); q.addData(url); q.make();
+  return q.createSvgTag({ cellSize: 4, margin: 16, scalable: true, alt: "QR kód pro nahrání z telefonu" });
+}
+async function phoneOpen(target) {
+  if (!isApi() || S.phone) return;
+  const o = S.overlay, p = target === "intake" ? null : P(S.pid);
+  const caseId = target === "intake" ? (o?.kind === "new" ? o.caseId : null) : p && canUpload(p) ? p.id : null;
+  if (!caseId) return;
+  const ph = S.phone = { target, caseId, file: p?.file || null, state: "loading", docs: [], seen: new Set() };
+  renderPhone();
+  let r;
+  /* A short outage at the venue is retried before the dialog gives up. */
+  for (let i = 0; i < 3 && !r; i++) {
+    try { r = await apiWrite("POST", "/upload-sessions", { case_id: caseId, target }); }
+    catch (e) { if (e.status || i === 2) { if (S.phone === ph) { S.phone = null; renderPhone(); refused(e); } return; } await sleep(800 * (i + 1)); }
+  }
+  /* Closed while the code was being made: the session goes at once. */
+  if (S.phone !== ph) { apiWrite("DELETE", `/upload-sessions/${enc(r.data.id)}`, {}).catch(() => {}); return; }
+  Object.assign(ph, { id: r.data.id, url: `${location.origin}/u#${r.data.token}`, expires: Date.parse(r.data.expires_at), state: "open" });
+  renderPhone();
+  phonePoll(ph);
+}
+async function phonePoll(ph) {
+  while (S.phone === ph && ph.state === "open") {
+    await sleep(PHONE_POLL_MS);
+    if (S.phone !== ph) return;
+    await phoneFetch(ph);
+  }
+}
+async function phoneFetch(ph) {
+  let d; try { d = await apiGet(`/upload-sessions/${enc(ph.id)}`); } catch (e) { return; }
+  phoneMerge(ph, d.documents || []);
+  if (S.phone !== ph) return;
+  /* An intake discarded elsewhere ends the session; the dialog simply closes. */
+  if (d.state === "closed") { phoneClose(); return; }
+  if (d.state !== ph.state) { ph.state = d.state; renderPhone(); }
+}
+/* New files from the phone join the list the desktop already shows, once each. */
+function phoneMerge(ph, docs) {
+  const fresh = docs.filter(d => !ph.seen.has(d.id));
+  if (!fresh.length) return;
+  fresh.forEach(d => ph.seen.add(d.id));
+  ph.docs.push(...fresh);
+  if (ph.target === "intake") {
+    const o = S.overlay;
+    if (o?.kind === "new" && o.caseId === ph.caseId) {
+      for (const d of fresh) if (!o.files.some(f => f.doc?.id === d.id)) o.files.push({ name: d.name, size: d.size || 0, doc: d });
+      renderOverlay();
+    }
+  } else {
+    const p = S.patients.find(x => x.file === ph.file);
+    if (p) { const u = upsOf(p); for (const d of fresh) if (!u.docs.some(x => x.id === d.id)) u.docs.push(d); if (S.pid === p.file) render(); }
+  }
+  for (const d of fresh) if (d.identity === "conflicts") toast(d.identity_cs);
+  renderPhone();
+}
+/* "Hotovo" and "Zavřít": the session ends on the server after one more look. A file whose upload was already under way
+   still lands, so the page looks again a moment later and reads the case's list once more. */
+function phoneClose() {
+  const ph = S.phone; if (!ph) return;
+  S.phone = null; renderPhone();
+  if (ph.id) phoneEnd(ph);
+}
+async function phoneEnd(ph) {
+  await phoneFetch(ph);
+  await apiWrite("DELETE", `/upload-sessions/${enc(ph.id)}`, {}).catch(() => { /* it expires within 15 minutes anyway */ });
+  await sleep(3000);
+  await phoneFetch(ph);
+  const p = ph.target !== "intake" && S.patients.find(x => x.file === ph.file);
+  if (p) loadUploads(p, true);
+}
+/* A closed tab ends its session too, instead of leaving the code valid for 15 minutes. */
+window.addEventListener("pagehide", () => {
+  const ph = S.phone; if (!ph?.id) return;
+  try { fetch(`/api/upload-sessions/${enc(ph.id)}`, { method: "DELETE", keepalive: true, credentials: "same-origin", body: "{}",
+    headers: { "Content-Type": "application/json", ...(DATA.userId ? { "X-Demo-User": DATA.userId } : {}), ...(DATA.epoch != null ? { "X-Data-Epoch": String(DATA.epoch) } : {}) } }); } catch (e) { /* expires anyway */ }
+});
+function phoneRenew() {
+  const ph = S.phone; if (!ph) return;
+  const { target } = ph; S.phone = null;
+  if (ph.id) apiWrite("DELETE", `/upload-sessions/${enc(ph.id)}`, {}).catch(() => {});
+  phoneOpen(target);
+}
+function renderPhone() {
+  const el = document.getElementById("phoneup"), ph = S.phone;
+  if (!el) return;
+  if (!ph) { el.innerHTML = ""; return; }
+  const body = ph.state === "loading" ? `<p class="muted" role="status" style="margin:0">Připravuji kód…</p>`
+    : ph.state === "open" ? `<div class="phoneqr">${phoneQr(ph.url)}</div>
+      <p style="margin:0">Naskenujte kód fotoaparátem telefonu. Otevře se stránka, kde dokument vyfotíte nebo vyberete.</p>
+      <p class="muted small" style="margin:0">Platí 15 minut (do ${esc(hhmm(ph.expires))}), jen pro nahrání k případu ${esc(ph.caseId)}.</p>`
+    : `<p style="margin:0">${ph.state === "full" ? "Kód už přijal nejvíce souborů." : "Platnost kódu skončila."}</p><div class="row"><button class="btn" data-phonenew="1">Nový kód</button></div>`;
+  const list = ph.docs.length ? `<div><span class="label">Přijato z telefonu (${ph.docs.length})</span><ul class="uplist">${ph.docs.map(d => `<li><span class="nm" title="${esc(d.name)}">${esc(d.name)}</span><span class="small muted">${esc(fmtSize(d.size || 0))}</span><span class="chip plain st-done">Nahráno</span></li>`).join("")}</ul></div>`
+    : ph.state === "open" ? `<p class="muted small" style="margin:0" role="status">Čekám na soubory z telefonu…</p>` : "";
+  el.innerHTML = `<div class="scrim" data-phoneclose="1"></div><div class="modal" role="dialog" aria-modal="true" aria-label="Nahrát z telefonu">
+    <div class="row spread"><h2>Nahrát z telefonu · ${esc(ph.caseId)}</h2><button class="btn small" data-phoneclose="1">Zavřít</button></div>
+    ${body}${list}
+    <div class="row" style="justify-content:flex-end"><button class="btn primary" data-phoneclose="1">Hotovo</button></div></div>`;
 }
 /* ---------- AI záznam: live transcription of the MDT discussion ----------
    One recording runs for the whole meeting. Each word goes to the patient whose case was open when it was spoken,
@@ -4301,7 +4418,8 @@ function newFilesHtml(o) {
   /* API mode: a document of another patient (by the server's fixture registry) is flagged on its row, never blocked. */
   const wrong = f => f.doc?.identity === "conflicts" ? `<p class="fwarn" role="alert" style="margin:4px 0 0;flex-basis:100%">${esc(f.doc.identity_cs)}</p>` : "";
   return `<label class="upzone" data-upzone="new" style="margin:0"><input type="file" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.odt,.zip,application/pdf" data-newupload="1"><b>Přetáhněte dokumenty sem</b><span class="small muted">nebo klikněte a vyberte (PDF, DOC/DOCX, XLS/XLSX, ODT nebo ZIP, nejvýše 20 MB)</span></label>
-    ${fs.length ? `<ul class="uplist">${fs.map((f, i) => `<li><span class="nm" title="${esc(f.name)}">${esc(f.name)}</span><span class="small muted">${esc(fmtSize(f.size))}${kind(f) ? ` · ${esc(kind(f))}` : ""}</span><span class="chip plain st-done">Nahráno</span><button class="btn small" data-delnew="${i}" aria-label="Odebrat ${esc(f.name)}">✕</button>${wrong(f)}</li>`).join("")}</ul>` : ""}
+    ${isApi() && o.caseId ? phoneBtn("intake") : ""}
+    ${fs.length ? `<ul class="uplist">${fs.map((f, i) => `<li><span class="nm" title="${esc(f.name)}">${esc(f.name)}</span><span class="small muted">${esc(fmtSize(f.size))}${kind(f) ? ` · ${esc(kind(f))}` : ""}${f.doc?.source === "phone" ? " · z telefonu" : ""}</span><span class="chip plain st-done">Nahráno</span><button class="btn small" data-delnew="${i}" aria-label="Odebrat ${esc(f.name)}">✕</button>${wrong(f)}</li>`).join("")}</ul>` : ""}
     ${!ik ? "" : !ik.nameOk ? `<p class="fwarn" role="alert" style="margin:0">Jméno v žádosti se neshoduje se jménem v dokumentech ukázkového pacienta (${esc(ik.s.list_entry.name)}). Dokumenty se k tomuto záznamu nepřipojí.</p>`
       : ik.exists ? `<p class="fwarn" role="alert" style="margin:0">Ukázkový pacient ${esc(ik.s.list_entry.name)} už v databázi je; nový záznam zůstane bez zpracovaných dokumentů.</p>`
       : ik.missing.length ? `<p class="muted small" style="margin:0">Ukázkový pacient: ${ik.have.length ? `chybí ještě ${ik.missing.length} z ${ik.docs.length} dokumentů` : `nahrajte ${ik.docs.length} dokumentů (PDF)`} ze složky samples/${esc(ik.s.file.replace(/\.pdf$/, ""))}/upload, nebo <a href="ukazka/${esc(ik.s.file.split("_")[0])}-dokumenty.zip" download>stáhněte ZIP</a>, rozbalte ho a nahrajte jednotlivé PDF.</p>` : ""}`;
@@ -4369,6 +4487,7 @@ function renderOverlay() {
     el.innerHTML = `<div class="scrim" data-close="1"></div><div class="modal" role="dialog" aria-label="Nahrát dokument">
       <div class="row spread"><h2>Nahrát dokument · ${esc(P(S.pid).id)}</h2><button class="btn small" data-close="1">Zavřít</button></div>
       <div class="drop">Přetáhněte PDF, DOCX nebo fotografii zprávy<br><button class="btn small" style="margin-top:8px" data-act="fakeupload2">Vybrat soubory</button></div>
+      ${isApi() && canUpload(P(S.pid)) ? phoneBtn("documents") : ""}
       ${o.done ? `<p class="small" style="margin:0"><b>Nahráno:</b> kontrola čitelnosti proběhla, dokument se přidá do seznamu. V maketě se nic neukládá.</p>` : `<p class="muted small" style="margin:0">Po nahrání proběhne kontrola čitelnosti; při špatné kvalitě aplikace požádá o lepší kopii.</p>`}</div>`;
   } else if (o.kind === "edit") {
     el.innerHTML = `<div class="scrim" data-close="1"></div><div class="modal" role="dialog" aria-label="Upravit údaj">
@@ -4546,7 +4665,7 @@ document.addEventListener("click", e => {
   hideTip();
   if (S.colOpen && !e.target.closest(".fpop,[data-colopen]")) { S.colOpen = null; render(); return; }
   if (S.stOpen && !e.target.closest(".stpop,[data-stmenu]")) { S.stOpen = null; render(); return; }
-  const t = e.target.closest("[data-stmenu],[data-setst],[data-dbpage],[data-guide],[data-colopen],[data-colclose],[data-colall],[data-wk],[data-jump],[data-mm],[data-calclose],[data-labsel],[data-edit],[data-scope],[data-addatt],[data-delatt],[data-staffdel],[data-staffadd],[data-startday],[data-startgo],[data-sesgo],[data-nav],[data-open],[data-tab],[data-src],[data-close],[data-page],[data-vtab],[data-zoom],[data-zoomstep],[data-zoomhit],[data-tl-category],[data-tl],[data-alact],[data-sched],[data-pick],[data-free],[data-slot],[data-unsched],[data-act],[data-mode],[data-delstep],[data-delup],[data-delupapi],[data-delnew],[data-piperun],[data-recretry],[data-pgpanel],[data-pgref],[data-done],[data-suggok],[data-suggno]");
+  const t = e.target.closest("[data-stmenu],[data-setst],[data-dbpage],[data-guide],[data-colopen],[data-colclose],[data-colall],[data-wk],[data-jump],[data-mm],[data-calclose],[data-labsel],[data-edit],[data-scope],[data-addatt],[data-delatt],[data-staffdel],[data-staffadd],[data-startday],[data-startgo],[data-sesgo],[data-nav],[data-open],[data-tab],[data-src],[data-close],[data-page],[data-vtab],[data-zoom],[data-zoomstep],[data-zoomhit],[data-tl-category],[data-tl],[data-alact],[data-sched],[data-pick],[data-free],[data-slot],[data-unsched],[data-act],[data-mode],[data-delstep],[data-delup],[data-delupapi],[data-delnew],[data-piperun],[data-recretry],[data-pgpanel],[data-pgref],[data-done],[data-suggok],[data-suggno],[data-phoneclose],[data-phonenew]");
   if (!t) return;
   const d = t.dataset;
   if (d.stmenu) { S.stOpen = S.stOpen === d.stmenu ? null : d.stmenu; render(); }
@@ -4596,6 +4715,8 @@ document.addEventListener("click", e => {
   else if (d.tab) { S.tab = d.tab.replace(/<.*$/, ""); render(); }
   else if (d.piperun) { e.preventDefault(); e.stopPropagation(); if (!S.pipe[d.piperun]?.busy) pipeRun(d.piperun); }
   else if (d.src) { e.preventDefault(); openSource(JSON.parse(d.src)); }
+  else if (d.phoneclose) phoneClose();
+  else if (d.phonenew) phoneRenew();
   else if (d.close) { if (S.overlay?.kind === "new") discardIntake(S.overlay); S.overlay = null; renderOverlay(); }
   else if (d.page) { gotoSourcePage(S.overlay, +d.page); }
   /* The chosen tab is remembered for the next source the doctor opens. */
@@ -4866,6 +4987,7 @@ function removeNewUploadApi(o, i) {
 function discardIntake(o) {
   if (!o?.caseId || o.completed) return;
   const id = o.caseId; o.caseId = null; o.files = []; o.ik = null; o.pending = null;
+  if (S.phone?.caseId === id) phoneClose();
   /* A new referral waits for this, so it never meets its own discarded draft. */
   o.discarding = apiWrite("DELETE", `/cases/${enc(id)}/intake`, {}).catch(() => { /* the server removes it after 24 hours anyway */ });
 }
@@ -4911,6 +5033,7 @@ async function copyText(text, what) {
   try { await navigator.clipboard.writeText(text); toast(`${what} zkopírováno`); } catch (e) { toast("Kopírování není v tomto prohlížeči dostupné"); }
 }
 function action(a) {
+  if (a.startsWith("phoneup-")) { phoneOpen(a.slice(8)); return; }
   const pr = S.view === "patient" ? curProto() : null;
   if (a === "pgsearch") pgSearch();
   else if (a === "pgrefresh") pgSearch(true);
@@ -5276,7 +5399,7 @@ document.addEventListener("keydown", e => {
 });
 /* Enter in a "Nová osoba" field adds the person, Enter in the department name adds the department. */
 document.addEventListener("keydown", e => { if (e.key !== "Enter") return; if (e.target.dataset?.newin) { e.preventDefault(); staffAdd(e.target.dataset.newin); } else if (e.target.id === "newdept") { e.preventDefault(); action("staffadddept"); } });
-document.addEventListener("keydown", e => { if (e.key === "Escape" && S.overlay) { if (S.overlay.kind === "new") discardIntake(S.overlay); S.overlay = null; renderOverlay(); } else if (e.key === "Escape" && S.colOpen) { S.colOpen = null; render(); } else if (e.key === "Escape" && S.stOpen) { S.stOpen = null; render(); } });
+document.addEventListener("keydown", e => { if (e.key === "Escape" && S.phone) phoneClose(); else if (e.key === "Escape" && S.overlay) { if (S.overlay.kind === "new") discardIntake(S.overlay); S.overlay = null; renderOverlay(); } else if (e.key === "Escape" && S.colOpen) { S.colOpen = null; render(); } else if (e.key === "Escape" && S.stOpen) { S.stOpen = null; render(); } });
 
 /* Startup. On the Worker (health says features.data) the data comes from the API before the first render; on Pages,
    from a file, or with ?data=embedded the embedded data is used as before. A failed load assigns nothing, so the

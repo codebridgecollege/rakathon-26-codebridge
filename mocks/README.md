@@ -300,6 +300,13 @@ Lucide 0.468.0 paths are embedded in the template, with the ISC notice in
   removal; FHIR read on the server, the intake opened at "Pokračovat", the
   pre-server animation closed by the server's verdict, completion, and
   discard when the dialog closes.
+- `src/test/phone-upload.mjs`: "Nahrát z telefonu" (issue #10) in jsdom
+  against a fake server (same setup as `case-store.mjs`): the button only
+  in API mode and where upload is allowed, the QR code drawn in the page
+  without the token as text, polling, the phone's files in the upload and
+  intake lists marked "z telefonu", Hotovo, Escape, "Nový kód", intake
+  discard. The end-to-end run with real browsers and the phone page is
+  `api/scripts/e2e-phone-upload.mjs` (`api/AGENTS.md`).
 - `node mocks/src/test/timeline-categories.mjs`: category filters, preserved source indexes, partial and missing dates, planned status, and escaped labels.
 
 - `src/test/v3.mjs`: clicks through mock v3 in Chromium with Playwright at
@@ -404,7 +411,11 @@ navigation cannot change it. Font and PDF errors are shown and permit retry.
 
 `mocks/src/report-pdf.js` renders selectable text with embedded Czech-capable
 DejaVu Sans subsets and jsPDF 4.2.1, vendored under `mocks/src/vendor/` with licenses.
-`mocks/build.py` embeds all three components into the self-contained v3 HTML.
+The QR code of "Nahrát z telefonu" comes from qrcode-generator 2.0.4 (MIT), vendored
+the same way and inlined by `build.py` (`/*QR_VENDOR*/`). The phone page itself is
+`src/phone-upload.html`, a standalone page the Worker serves at `/u`
+(`api/scripts/stage-assets.sh`); it is not part of the Pages build.
+`mocks/build.py` embeds these components into the self-contained v3 HTML.
 Run `node mocks/src/test/report-pdf.mjs` to exercise actual downloads, snapshot
 invariance, field selection and error recovery. Test outputs go to `tmp/pdfs/`.
 

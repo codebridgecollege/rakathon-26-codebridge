@@ -10,9 +10,10 @@ beforeEach(() => loadFixture());
 describe("D1 schema", () => {
   it("has every append-only trigger after the migrations", async () => {
     const r = await env.DB.prepare("SELECT name FROM sqlite_master WHERE type = 'trigger'").all<{ name: string }>();
-    // 13 append-only triggers, and the reset trigger that removes uploads (migration 0005).
-    expect(r.results.filter((t) => t.name !== "demo_reset_uploads")).toHaveLength(13);
-    expect(r.results.map((t) => t.name)).toContain("demo_reset_uploads");
+    // 13 append-only triggers, and the reset triggers that remove uploads (migration 0005) and upload sessions (0010).
+    const RESET = ["demo_reset_uploads", "demo_reset_upload_sessions"];
+    expect(r.results.filter((t) => !RESET.includes(t.name))).toHaveLength(13);
+    for (const t of RESET) expect(r.results.map((x) => x.name)).toContain(t);
   });
 
   it("refuses UPDATE and DELETE on every append-only table", async () => {
