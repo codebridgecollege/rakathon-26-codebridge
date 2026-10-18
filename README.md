@@ -74,6 +74,19 @@ the seed with "Obnovit ukázková data" in
 Administrace (`POST /api/admin/reset-demo`, on when
 `DEMO_RESET_ENABLED=true`). See [`api/AGENTS.md`](api/AGENTS.md).
 
+## End-to-end tests
+
+`e2e/` is a Playwright suite that drives the page only through what a user sees (roles, labels, Czech text) against
+a running Worker; it is the gate for the frontend port (issue #13). With the local demo seeded and running in `api/`
+(`cp .dev.vars.example .dev.vars`, `npm run seed:local`, `npm run dev`):
+
+```
+npm --prefix e2e ci && npm --prefix e2e run install-browsers   # once
+npm --prefix e2e test                                           # resets the local demo before every test
+```
+
+Details, the deployed-Worker variant and the coverage table: [`e2e/README.md`](e2e/README.md).
+
 ## Document pipeline
 
 `pipeline/` holds the deterministic page logic (render, Tesseract, the
