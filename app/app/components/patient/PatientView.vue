@@ -56,7 +56,8 @@ const current = computed<Tab>(() => (tabs.value.find((t) => t === props.tab) ?? 
 view.enterCase(props.file);
 cases.setOpen(props.file);
 watch(
-  () => [props.file, state.value] as const,
+  // The guide entry is watched too: "Zkusit znovu" in the guideline panel drops it, and this loads it again.
+  () => [props.file, state.value, c.entry.value.guide] as const,
   () => {
     const p = patients.byFile(props.file);
     if (!p) return;
