@@ -84,14 +84,20 @@ function originSeg(fact: Pick<Fact, "sources">, sources: ReadonlyMap<string, Sou
   return docs.size ? [...docs].sort().join("+") : "doc:none";
 }
 
-/** A hash of the passages a fact is quoted from (document sources only; originSeg already names a NIS record). */
-function passageSeg(fact: Pick<Fact, "sources">, sources: ReadonlyMap<string, Source>): string | null {
-  const quotes: string[] = [];
+/**
+ * For a lab value whose key it shares with another value of the run: a hash of the passages it is quoted from
+ * (`src:<hash>`), appended by assignKeys so the two never depend on a "#2" ordered by content, which a re-read value
+ * could swap together with a doctor's confirmation. Null when the value names its draw by a requisition (then the
+ * shared key is the same draw) or has no document source (a NIS record is already in the key).
+ */
+export function passageSuffix(fact: DraftFact | Fact, sources: ReadonlyMap<string, Source>): string | null {
+  if (fact.kind !== "lab_result" || fact.value.draw.requisition) return null;
+  const quotes = new Set<string>();
   for (const id of fact.sources) {
     const s = sources.get(id);
-    if (s?.type === "document") quotes.push(normText(s.quote));
+    if (s?.type === "document") quotes.add(normText(s.quote));
   }
-  return quotes.length ? `src:${fnv1a32(quotes.sort().join("\n"))}` : null;
+  return quotes.size ? `src:${fnv1a32([...quotes].sort().join("\n"))}` : null;
 }
 
 /** The document parts a fact is quoted from (the document when a source names no part, the record for NIS). */
@@ -131,14 +137,9 @@ export function buildFactKey(fact: DraftFact | Fact, sources: ReadonlyMap<string
       const parts = [fact.kind, what, `draw:${draw}`];
       if (v.draw.requisition) parts.push(`req:${normText(v.draw.requisition)}`);
       parts.push(originSeg(fact, sources));
-      // Without a draw date or a requisition, two values of one test in one document would share this key, and a
-      // collision suffix ordered by content could swap their IDs (and a doctor's confirmation) when one value is
-      // re-read. The quoted passage tells them apart instead: never a position, and a re-read that changes the quote
-      // re-keys the fact, so the matcher carries its ID only when the match is unambiguous.
-      if (draw === "undated" && !v.draw.requisition) {
-        const passage = passageSeg(fact, sources);
-        if (passage) parts.push(passage);
-      }
+      // Two values of one test sharing this key (no readable draw date, no requisition) are told apart in assignKeys by
+      // their quoted passage (passageSuffix), only then: a lone value keeps a key without its quote, so a re-read quote
+      // ("mg/1" read as "mg/l") does not cost it its ID.
       return join(...parts);
     }
     case "diagnosis":
@@ -242,12 +243,25 @@ function contentOrder(fact: DraftFact | Fact, sources: ReadonlyMap<string, Sourc
 export function assignKeys<F extends DraftFact | Fact>(facts: readonly F[], sources: readonly Source[]): (F & { key: string })[] {
   const byId = new Map(sources.map((s) => [s.id, s]));
   const keyed = facts.map((f, i) => ({ f, i, key: buildFactKey(f, byId), order: contentOrder(f, byId) }));
-  const groups = new Map<string, typeof keyed>();
-  for (const k of keyed) {
-    const g = groups.get(k.key);
-    if (g) g.push(k);
-    else groups.set(k.key, [k]);
+  const group = (list: typeof keyed) => {
+    const groups = new Map<string, typeof keyed>();
+    for (const k of list) {
+      const g = groups.get(k.key);
+      if (g) g.push(k);
+      else groups.set(k.key, [k]);
+    }
+    return groups;
+  };
+  // Lab values that share a key take their quoted passage into it first (passageSuffix); only values that still
+  // share one (the same passage) fall back to "#2".
+  for (const members of group(keyed).values()) {
+    if (members.length < 2) continue;
+    for (const k of members) {
+      const passage = passageSuffix(k.f, byId);
+      if (passage) k.key = `${k.key}|${passage}`;
+    }
   }
+  const groups = group(keyed);
   const out: string[] = new Array(facts.length);
   for (const [key, group] of groups) {
     // Compared by UTF-16 code units (Python compares the UTF-16 encoding to match). Identical content falls back to

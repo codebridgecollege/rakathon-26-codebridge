@@ -105,7 +105,7 @@ def test_vectors_cover_every_fact_kind():
 def test_worked_example_keys():
     run = example()
     src = {s["id"]: s for s in run["sources"]}
-    assert build_fact_key(run["facts"][0], src) == "lab_result|S_HSCRP|draw:undated|doc:10_pacient|src:7e986229"
+    assert build_fact_key(run["facts"][0], src) == "lab_result|S_HSCRP|draw:undated|doc:10_pacient"
     assert build_fact_key(run["facts"][1], src) == "stage|pathological|2022-06-02"
 
 
@@ -113,6 +113,7 @@ def test_collision_suffix_by_content_not_position():
     run = example()
     lab = run["facts"][0]
     second = {**lab, "value": {**lab["value"], "value_as_written": "12,0", "value_numeric": 12}}
+    # One passage for both values: "#2" by content on top of the passage hash.
     plain = "lab_result|S_HSCRP|draw:undated|doc:10_pacient|src:7e986229"
     for facts, sources in (([lab, second], run["sources"]), ([second, lab], list(reversed(run["sources"])))):
         keyed = {f["value"]["value_as_written"]: f["key"] for f in assign_keys(facts, sources)}

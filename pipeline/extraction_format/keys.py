@@ -122,13 +122,15 @@ def _origin_seg(fact: Mapping[str, Any], sources: Mapping[str, Mapping[str, Any]
     return "+".join(sorted(docs)) if docs else "doc:none"
 
 
-def _passage_seg(fact: Mapping[str, Any], sources: Mapping[str, Mapping[str, Any]]) -> str | None:
-    """A hash of the passages a fact is quoted from (passageSeg in keys.ts)."""
-    quotes = []
+def passage_suffix(fact: Mapping[str, Any], sources: Mapping[str, Mapping[str, Any]]) -> str | None:
+    """For a lab value sharing its key with another: a hash of its quoted passages (passageSuffix in keys.ts)."""
+    if fact["kind"] != "lab_result" or fact["value"]["draw"].get("requisition"):
+        return None
+    quotes: set[str] = set()
     for sid in fact["sources"]:
         s = sources.get(sid)
         if s is not None and s["type"] == "document":
-            quotes.append(norm_text(s["quote"]))
+            quotes.add(norm_text(s["quote"]))
     # Sorted by UTF-16 code units, as JS sorts strings.
     return f"src:{fnv1a32(chr(10).join(sorted(quotes, key=_utf16)))}" if quotes else None
 
@@ -176,11 +178,7 @@ def build_fact_key(fact: Mapping[str, Any], sources: Mapping[str, Mapping[str, A
         if v["draw"].get("requisition"):
             parts.append(f"req:{norm_text(v['draw']['requisition'])}")
         parts.append(_origin_seg(fact, sources))
-        # Undated values of one test in one document are told apart by their quoted passage (see keys.ts).
-        if draw == "undated" and not v["draw"].get("requisition"):
-            passage = _passage_seg(fact, sources)
-            if passage:
-                parts.append(passage)
+        # Values sharing this key get their quoted passage in assign_keys, only then (see keys.ts).
         return _join(*parts)
     if kind == "diagnosis":
         return _join(kind, _code_or(fact, norm_text(v["text"])), "status:none" if v["disease_status"] is None else v["disease_status"], date_seg(d))
@@ -264,9 +262,21 @@ def _content_order(fact: Mapping[str, Any], sources: Mapping[str, Mapping[str, A
 def assign_keys(facts: Sequence[Mapping[str, Any]], sources: Sequence[Mapping[str, Any]]) -> list[dict[str, Any]]:
     """Keys for all facts of a run; facts sharing a key get "#2", "#3" in the order of their content."""
     by_id = {s["id"]: s for s in sources}
+    keys = [build_fact_key(f, by_id) for f in facts]
+    first: dict[str, list[int]] = {}
+    for i, k in enumerate(keys):
+        first.setdefault(k, []).append(i)
+    # Lab values that share a key take their quoted passage into it first; only those that still share one get "#2".
+    for members in first.values():
+        if len(members) < 2:
+            continue
+        for i in members:
+            passage = passage_suffix(facts[i], by_id)
+            if passage:
+                keys[i] = f"{keys[i]}|{passage}"
     groups: dict[str, list[int]] = {}
-    for i, f in enumerate(facts):
-        groups.setdefault(build_fact_key(f, by_id), []).append(i)
+    for i, k in enumerate(keys):
+        groups.setdefault(k, []).append(i)
     out: list[str] = [""] * len(facts)
     for key, members in groups.items():
         # UTF-16 bytes compare like JS strings; identical content falls back to the input order, as in keys.ts.

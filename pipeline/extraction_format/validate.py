@@ -18,7 +18,7 @@ from jsonschema import Draft7Validator
 from jsonschema.exceptions import ValidationError
 
 from .backing import Evidence, backing_problems
-from .keys import alert_id, base_key, build_fact_key, value_text, view_line_id
+from .keys import alert_id, base_key, build_fact_key, passage_suffix, value_text, view_line_id
 from .types import EXTRACTION_SCHEMA, FACT_KINDS, VIEW_NAMES
 
 # The schema lives with the TypeScript types. A container that does not copy packages/ sets the path explicitly.
@@ -243,7 +243,10 @@ def reference_issues(run: Mapping[str, Any]) -> list[Issue]:
                     push(f"{p}/value/{end}", "unknown_fact", f"unknown fact {v[end]}")
         resolved = bool(f["sources"]) or f["origin"] == "assistant"
         want = build_fact_key(f, sources)
-        if resolved and all(s in sources for s in f["sources"]) and base_key(f["key"]) != want:
+        # A lab value that shares its key with another one carries its passage in the key as well (assign_keys).
+        passage = passage_suffix(f, sources)
+        key_ok = base_key(f["key"]) == want or (passage is not None and base_key(f["key"]) == f"{want}|{passage}")
+        if resolved and all(s in sources for s in f["sources"]) and not key_ok:
             # The message names no key: keys hold clinical text, and issues may be logged.
             push(f"{p}/key", "key_mismatch", f"the key of fact {f['id']} does not follow from its kind and values")
 

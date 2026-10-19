@@ -40,12 +40,12 @@ const frame = {
 
 const facts: DraftFact[] = [
   { ...frame, kind: "lab_result", date: undated, codes: [{ system: "fno-local-lab", code: "S_HSCRP", assigned_by: "source" }], value: { name_as_written: "hsCRP", value_as_written: "9,5", value_numeric: 9.5, unit_as_written: "mg/1", unit: "mg/l", reference_range: "0 ... 5", reference_low: 0, reference_high: 5, out_of_range: "high", out_of_range_origin: "assistant", draw: { as_written: null, requisition: null, specimen: null } } },
-  // A second undated hsCRP in the same document: its quoted passage keeps it apart from the first (no "#2").
+  // A second undated hsCRP in the same document: alone it builds the first one's key; assignKeys then adds the passage (see collisions).
   { ...frame, kind: "lab_result", date: undated, sources: ["src-d"], codes: [{ system: "fno-local-lab", code: "S_HSCRP", assigned_by: "source" }], value: { name_as_written: "hsCRP", value_as_written: "12,0", value_numeric: 12, unit_as_written: "mg/l", unit: "mg/l", reference_range: "0 ... 5", reference_low: 0, reference_high: 5, out_of_range: "high", out_of_range_origin: "assistant", draw: { as_written: null, requisition: null, specimen: null } } },
   // Undated but with a requisition (the requisition names the draw), and undated from a NIS record only: no passage.
   { ...frame, kind: "lab_result", date: undated, sources: ["src-d"], codes: [{ system: "fno-local-lab", code: "S_HSCRP", assigned_by: "source" }], value: { name_as_written: "hsCRP", value_as_written: "12,0", value_numeric: 12, unit_as_written: "mg/l", unit: "mg/l", reference_range: null, reference_low: null, reference_high: null, out_of_range: null, out_of_range_origin: null, draw: { as_written: null, requisition: "Ž 2611|05", specimen: null } } },
   { ...frame, kind: "lab_result", date: undated, sources: ["src-n"], codes: [{ system: "fno-local-lab", code: "S_CREA", assigned_by: "source" }], value: { name_as_written: "Kreatinin", value_as_written: "107", value_numeric: 107, unit_as_written: "µmol/l", unit: "µmol/l", reference_range: null, reference_low: null, reference_high: null, out_of_range: null, out_of_range_origin: null, draw: { as_written: null, requisition: null, specimen: null } } },
-  // Two passages: their order in the fact does not change the key.
+  // Two passages on one value: still the plain key; on a collision the passage hash ignores their order.
   { ...frame, kind: "lab_result", date: undated, sources: ["src-d", "src-a"], codes: [{ system: "fno-local-lab", code: "S_HSCRP", assigned_by: "source" }], value: { name_as_written: "hsCRP", value_as_written: "12,0", value_numeric: 12, unit_as_written: "mg/l", unit: "mg/l", reference_range: null, reference_low: null, reference_high: null, out_of_range: null, out_of_range_origin: null, draw: { as_written: null, requisition: null, specimen: null } } },
   { ...frame, kind: "lab_result", date: day("17.9.2026 7:40", "2026-09-17"), sources: ["src-b", "src-n"], value: { name_as_written: "Kreatinin  ", value_as_written: "107", value_numeric: 107, unit_as_written: "µmol/l", unit: "µmol/l", reference_range: "59 ... 104", reference_low: 59, reference_high: 104, out_of_range: "high", out_of_range_origin: "document", draw: { as_written: "17.9.2026  7:40", requisition: "Ž 2611|04", specimen: "sérum" } } },
   { ...frame, kind: "diagnosis", date: day("2.6.2022", "2022-06-02"), codes: [{ system: "mkn-10", code: "C64", assigned_by: "source" }], value: { text: "Světlobuněčný karcinom ledviny", disease_status: "confirmed_histology", primary: true } },
@@ -104,6 +104,10 @@ const flipped = draftsOf(prev);
 flipped[4] = { ...flipped[4]!, negated: false } as DraftFact;
 const lab = draftsOf(prev)[0] as Extract<DraftFact, { kind: "lab_result" }>;
 const twoDraws: DraftFact[] = [lab, { ...lab, value: { ...lab.value, value_as_written: "12,0", value_numeric: 12 } }];
+// A second undated hsCRP of the same document with its own passage, and the first one's passage re-read by OCR.
+const srcX = { ...prev.sources.find((s) => s.id === lab.sources[0])!, id: "src-x2", quote: "S_HSCRP: 12,0 mg/l [0 ... 5]" } as Source;
+const secondDraw = { ...lab, sources: ["src-x2"], value: { ...lab.value, value_as_written: "12,0", value_numeric: 12 } } as DraftFact;
+const reRead = prev.sources.map((s) => (s.id === lab.sources[0] && s.type === "document" ? { ...s, quote: "S_HSCRP: 9,5 mg/l [0 ... 5]" } : s));
 const moved = draftsOf(prev).map((f) => ({ ...f, date: { as_written: "1.1.2030", precision: "day", sort: "2030-01-01" } }) as DraftFact);
 const matches = [
   scenario("first run", null, draftsOf(prev), prev.sources),
@@ -115,6 +119,8 @@ const matches = [
   scenario("issued IDs", null, draftsOf(prev), prev.sources, { issuedIds: [prev.facts[0]!.id] }),
   scenario("all dates moved", prev, moved, prev.sources),
   scenario("two draws, sources reversed", null, twoDraws, [...prev.sources].reverse()),
+  scenario("lone undated lab, quote re-read", prev, draftsOf(prev), reRead),
+  scenario("second undated draw of the same test appears", prev, [...draftsOf(prev), secondDraw], [...prev.sources, srcX]),
 ];
 
 const vectors = {
@@ -131,7 +137,12 @@ const vectors = {
   ].map((d) => [d, datePrecisionProblem(d as FactDate) !== null]),
   // Numbers as JavaScript writes them: they feed the similarity score and the collision order.
   value_text: [{ b: 1e-7, a: 1e21, c: [0.1, 2, true, null] }, { x: 123456789012345680000, y: 0.000001, z: 1.5e-10 }, { t: "Žluť", n: 107, f: 9.5 }].map((v) => [v, valueText(v)]),
-  collisions: [{ facts: twoDraws, sources: [...prev.sources].reverse(), keys: assignKeys(twoDraws, [...prev.sources].reverse()).map((f) => f.key) }],
+  collisions: [
+    // The same passage for both draws: the passage cannot tell them apart, so "#2" by content.
+    { facts: twoDraws, sources: [...prev.sources].reverse(), keys: assignKeys(twoDraws, [...prev.sources].reverse()).map((f) => f.key) },
+    // Two passages: each value takes its passage into the key.
+    { facts: [secondDraw, lab], sources: [...prev.sources, srcX], keys: assignKeys([secondDraw, lab], [...prev.sources, srcX]).map((f) => f.key) },
+  ],
   matches,
   fact_keys: facts.map((fact) => ({ fact, sources, key: buildFactKey(fact, byId) })),
   alert_ids: [
