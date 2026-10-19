@@ -956,9 +956,10 @@ rules) are not built.
   `/v1/analyze` (page records with "ověřit" items from Tesseract against
   the PDF text layer, readability per page and document), `/v1/labs`, and
   since issue #18 `/v1/convert` (a photo into a one-page PDF).
-  No `/v1/identity`, `/v1/redact` or `/v1/page-index` endpoints: the
-  identity check stays the registry's (uploads are fixtures), redaction is
-  for the LLM slices, and the page index is part of `/v1/analyze`.
+  No `/v1/page-index` endpoint: the page index is part of `/v1/analyze`.
+  `/v1/redact` (for the LLM slices) and `/v1/identity` came later (issue
+  #18; see "Page reader 0.2.0" below); the Worker's identity check is still
+  the registry's.
 - Differences from this design in the deterministic logic (`page_reader`): the
   "ověřit" share that makes a page poor is 25 %, not 10 % (clean pages
   reach 11 %, FNO's broken text layers up to 29 %; with the text layer as
@@ -1179,3 +1180,91 @@ rules) are not built.
   row shows "Odebráno z případu" with the reason in its tooltip.
 - Not covered yet: model answers cached under `cache/model/<case>/` (stream D) are keyed by input hash, not by
   document; once pages are sent to a model, withdraw must purge them too.
+### Parts, identity and document alerts (issue #18)
+
+- **Splitting.** After the labs, the Workflow's `parts` step sends each page's text of record and readability to the
+  page reader's `/v1/parts` (`pipeline/page_reader/parts.py`, deterministic header and layout rules) and keeps the
+  answer in the run's `parts.json`. The `write` step replaces the document's `document_parts` rows with
+  `producer = 'pipeline'` (migration 0016): title as printed (without one, the type's name, which is our label),
+  type in the fixtures' Czech words ("neurčeno" for the doctor to set), `date` with the printed precision and
+  `date_as_written` exactly as printed, the pages, readability as the worst page ("empty" as "unreadable"), and
+  `certainty` with a Czech note when the split is unsure. A document with prepared or seeded parts keeps them.
+  Measured on the hand labels: S01 6/6 and S02 7/7 documents with pages, type and date exact; case 10's three
+  top-level documents found, the two report parts marked "verify"; FNO's ten PDFs give 14 parts, none with a date
+  (none prints a labelled one).
+- **Identity.** The `identity` step reads the case's patient (name, birth number, birth date as written) inside the
+  step, sends it with the page texts to `/v1/identity`, and keeps only the result and the per-page results in the
+  run's `identity.json`; the step result is the code. `write` sets `documents.identity` for an upload the fixture
+  registry did not decide; a conflict also writes an access-log line that names no one.
+- **Document alerts.** `document_alerts` (migration 0016) holds what one document's latest run found: `poor_copy`
+  (pages read poor or empty) and `identity_conflict` (pages that show another patient), each with a Fluent message id
+  and page numbers only, replaced on every finished run. It is an interim store until the case merge publishes a
+  pipeline run: the ids already follow the format's `alertId` (rule plus subject), so they become that run's alert
+  instances. `GET /cases/:id/documents` lists them per document with the parts.
+- An older page reader without `/v1/parts` or `/v1/identity` answers 404, and any other failure of these two checks
+  is recorded in the step result ("missing" or "error"); the run then finishes without them, since pages, readability
+  and labs stand on their own. One page that shows another patient makes the document a conflict whatever the overall
+  answer, and a later reading never clears an identity conflict or its alert: a doctor resolves it.
+- In the app, the upload list shows each document's parts (pages, title, type, date as printed, "ověřit") where
+  the pipeline runs for the org; the identity and poor-copy warnings on the row come from the document fields, as
+  before.
+
+### Page reader 0.2.0: readability, unreadable regions, identity (issue #18)
+
+Python side only (`pipeline/`); the Worker does not use the new fields yet.
+Contract additions are in `pipeline/container/server.py`'s docstring.
+
+- **Lab parser never drops a lab line silently.** S03's scan reads `S_UREA`
+  as `. S. ÚUŘEA: 7,9 mmolll (2.9. 82:`; `LAB_LIKE` took only A-Z in a
+  code and needed `[` or `...`, so the line vanished. A sheet code with a
+  separator may now carry Czech capitals and a quote mark as separator, an
+  NČLP code with its underscore and a colon is lab-like whatever the value,
+  and a line that starts with an NČLP code and a number, or with a
+  sheet-style code ("S UREA") and a `(` range or a lab unit, is lab-like.
+  A sweep over the 43 pages of `data/derived` and `samples/derived`
+  (tested) finds no other lab line left out; report headings ("ZÁVĚR: 1.",
+  "CT HRUDNÍKU (2. 9. 2024)"), doses per m² and prose such as "CEA 9,6
+  ug/l" in a letter stay out (stage 9 reads those).
+- **Readability without a word list.** `readability.garbage_tokens` counts
+  tokens with a shape no Czech or medical word has (letters outside the
+  Latin alphabets of Czech, Slovak, Polish, Hungarian, German and French
+  names, four small letters without a vowel or syllabic r/l, five
+  consonants in a row, a capital inside a small word with three small
+  letters on one side, impossible sequences such as `ÚU` or a tripled
+  letter, a digit between small letters); stages, units and assays such as
+  `ypTis`, `mGy`, `hsTnT` are not counted. Fair from
+  2 %, poor above 10 %. Clean pages reach 0.8 % at most, S03 p3 2.7 %. It
+  catches character-level garbage only: S03's word-shaped misreads
+  (`opnotamém`, `PLUTO`) pass it, and S03 is poor through the confidence
+  rules. Levels on the 43 calibration pages are unchanged by it.
+- **Unreadable regions.** `/v1/pages` returns `unreadable` per page:
+  ink that no word read with confidence 60 or more explains, found with the
+  redaction's ink detection (`redact._ink_boxes`, shared with `ink_marks`):
+  a second pass keeps thin and grey strokes where no low-confidence word
+  lies, no upper size limit, and near-solid areas (photos, QR codes,
+  barcodes, logos), ruled frames and grids, areas without white paper and
+  areas narrower than 160 px left out; the lines of one note are joined.
+  Low-confidence print (even every second word) gives no region. `/v1/analyze` keeps the regions on the
+  page record, marks tokens inside as "ověřit" (reason `unreadable`) and
+  makes the page fair (poor above 10 % of the page). No region on any of the
+  43 calibration pages (S03's degraded scan included); synthetic handwriting
+  (1-3 px strokes, black to grey 100) and a stamp are found, also through
+  live Tesseract. Not found: handwriting lines under about 5 mm that do not
+  touch, and short words or initials. The app's source viewer does not yet
+  label the `unreadable` reason (`app/`, left for the team).
+- **Identity check** (`page_reader/identity.py`, `POST /v1/identity`):
+  matches, conflicts or cannot_verify per page and document, with offsets
+  and field kinds only. Conflicts need a valid differing birth number
+  (mod 11 and a possible date) after a birth-number label or on the header
+  line, or a clearly different full name in a form field or the page's
+  header line ("Surname Given, nar. d.m.yyyy", FNO's "..., poj." and
+  "... r.č."); damage, diacritics, one misread letter, a relative's or
+  contact person's number or name, a sender heading, a capitalized phrase
+  after "Pacient:" and a differing birth date give cannot_verify, and a
+  birth date alone never makes a match. Two review rounds probed these
+  rules with constructed Czech text (tests/test_identity.py); remaining
+  false conflicts are capitalized phrases after "Jméno:" or a line-final
+  "Pacient: X Y, ..." that is not a name. S01-S03 match, S04 conflicts on
+  page 4 only, FNO patient 2 (`Kotěrova`) cannot be verified, the other FNO
+  patients match by name. `eval.py` does not run it yet (its adapter writes
+  `identity: cannot_verify` on every source).

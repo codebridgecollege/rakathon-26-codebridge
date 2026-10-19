@@ -34,6 +34,9 @@ export type DocumentRow = {
     pages: number[];
     readability: string | null;
     reason_cs: string | null;
+    // Issue #18: set on the page reader's parts (producer 'pipeline'), null on prepared ones.
+    date_as_written: string | null;
+    certainty: string | null;
   }[];
 };
 

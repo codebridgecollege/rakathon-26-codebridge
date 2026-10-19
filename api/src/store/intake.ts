@@ -42,6 +42,7 @@ export async function discardIntake(env: Env, org: string, caseId: string, actor
     orgStmt(db, org, "INSERT INTO write_guards (org_id, batch_id, code, ok) SELECT ?org, ?1, 'intake_open', CASE WHEN (SELECT intake_open FROM cases WHERE org_id = ?org AND id = ?2) = 1 THEN 1 ELSE 0 END", `discard-${caseId}`, caseId),
     orgStmt(db, org, "DELETE FROM pages WHERE org_id = ?org AND document_id IN (SELECT id FROM documents WHERE org_id = ?org AND case_id = ?1)", caseId),
     orgStmt(db, org, "DELETE FROM document_parts WHERE org_id = ?org AND document_id IN (SELECT id FROM documents WHERE org_id = ?org AND case_id = ?1)", caseId),
+    orgStmt(db, org, "DELETE FROM document_alerts WHERE org_id = ?org AND case_id = ?1", caseId),
     orgStmt(db, org, "DELETE FROM documents WHERE org_id = ?org AND case_id = ?1", caseId),
     orgStmt(db, org, "DELETE FROM case_members WHERE org_id = ?org AND case_id = ?1", caseId),
     // Grants cannot be made on an open intake today; removed anyway so a stray row never blocks the discard.

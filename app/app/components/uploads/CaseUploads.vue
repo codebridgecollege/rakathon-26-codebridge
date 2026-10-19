@@ -13,6 +13,7 @@ import { useMsg } from "../../lib/msg";
 import UploadZone from "./UploadZone.vue";
 import UploadList from "./UploadList.vue";
 import WithdrawActions from "./WithdrawActions.vue";
+import Gap from "../patient/Gap.vue";
 import PhoneUploadButton from "../phone/PhoneUploadButton.vue";
 import type { UploadListItem } from "./types";
 
@@ -82,6 +83,8 @@ const byKey = computed(() => new Map(docs.value.map((d) => [d.id, d])));
 // org A looks as before); a stored one is removed with the ✕ instead, and a prepared one waits for the case merge.
 const withdrawable = (d: UploadRow | undefined) =>
   !!d && pipeline.value && !props.locked && d.origin === "upload" && d.lifecycle === "current" && ["processed", "failed"].includes(d.state ?? "");
+// "1-3" for a run of pages, "1, 3" otherwise; the pages of one part are always listed in order.
+const pagesOf = (ps: number[]) => (ps.length > 1 && ps.every((p, i) => i === 0 || p === ps[i - 1]! + 1) ? `${ps[0]}-${ps[ps.length - 1]}` : ps.join(", "));
 </script>
 
 <template>
@@ -98,6 +101,11 @@ const withdrawable = (d: UploadRow | undefined) =>
         :name="item.name"
         @withdraw="(r, done) => uploads.withdraw(props.caseRef, String(item.key), r).finally(done)"
       />
+      <ul v-if="pipeline && byKey.get(String(item.key))?.parts?.length" class="small muted" style="flex-basis:100%;margin:4px 0 0;padding-left:18px">
+        <li v-for="(pt, i) in byKey.get(String(item.key))!.parts" :key="i">
+          {{ $t("upload-part-pages", { pages: pagesOf(pt.pages) }) }}{{ " " }}<span lang="cs">{{ pt.title_cs }}<template v-if="pt.type && pt.type !== pt.title_cs"> ({{ pt.type }})</template></span><template v-if="pt.date_as_written">, <span lang="cs">{{ pt.date_as_written }}</span></template><template v-else>, <Gap /></template><template v-if="pt.readability === 'poor' || pt.readability === 'unreadable'">, {{ $t("upload-part-poor") }}</template><template v-if="pt.certainty === 'verify'">, <span :title="pt.reason_cs || ''">{{ $t("upload-part-verify") }}</span></template>
+        </li>
+      </ul>
     </template>
   </UploadList>
   <p v-else-if="props.locked" class="muted small" style="margin:12px 0 0">{{ $t("uploads-none") }}</p>

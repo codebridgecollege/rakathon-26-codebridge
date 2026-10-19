@@ -16,6 +16,8 @@ import { actorFor } from "../store/audio";
 import { orgStmt } from "../store/sql";
 import { LEGACY_ORG } from "../domain/orgs";
 import { auditStatement } from "../store/write";
+import { documentAlerts, partRows, type PagePart } from "../domain/document-checks";
+import type { Identity } from "../domain/documents";
 import { diffLabs, pipelineErrorCs, PIPELINE_BATCH, READABILITY_CS, type PreparedPoint } from "../domain/pipeline";
 import { EXTRACTION_SCHEMA, type ExtractionRun, type LabResultFact } from "@codebridge/domain/extraction/types";
 
@@ -72,6 +74,8 @@ const getJson = async <T>(env: Env, key: string): Promise<T> => {
   if (!o) throw new NonRetryableError("output_missing");
   return o.json<T>();
 };
+// An output a step may not have written (an older page reader without that endpoint, or a step that did not apply).
+const optionalJson = async <T>(env: Env, key: string): Promise<T | null> => ((await env.DOCS.get(key))?.json<T>() ?? null);
 const putJson = (env: Env, key: string, v: unknown) => env.DOCS.put(key, JSON.stringify(v), { httpMetadata: { contentType: "application/json" } });
 
 // A page reader refusal of the file itself (not a PDF, encrypted, too many pages) will not change on a retry.
@@ -91,6 +95,37 @@ const stage = (env: Env, org: string, runId: string, s: string, detail: string) 
     // A document with prepared data keeps its state; the run is shown next to it.
     orgStmt(env.DB, org, "UPDATE documents SET state = 'processing', state_detail_cs = ?1 WHERE org_id = ?org AND id = (SELECT document_id FROM pipeline_runs WHERE org_id = ?org AND id = ?2) AND origin = 'upload' AND state <> 'prepared'", detail, runId),
   ]);
+
+// The page reader's add-on checks (/v1/parts, /v1/identity): pages, readability and labs stand without them, so a
+// failure of these never fails the run. An image from before them answers 404 ("missing"); any other failure is
+// recorded as "error" in the step result and the run goes on without that result.
+async function optional<T>(f: () => Promise<T>): Promise<{ ok: T } | { skipped: "missing" | "error" }> {
+  try {
+    return { ok: await kit(f) };
+  } catch (e) {
+    return { skipped: e instanceof Error && /(^|: )(not_found|http_404)$/.test(e.message) ? "missing" : "error" };
+  }
+}
+const IDENTITIES = new Set(["matches", "conflicts", "cannot_verify"]);
+
+// Each page's text of record and readability level, from the run's page records.
+async function pageTexts(env: Env, run: RunRow, n: number) {
+  const out: { n: number; text: string; level: string }[] = [];
+  for (let k = 1; k <= n; k++) {
+    const rec = await getJson<PageRecord & { readability: Readability }>(env, `${run.output_prefix}p${k}.json`);
+    out.push({ n: k, text: rec.text, level: rec.readability.level });
+  }
+  return out;
+}
+
+// Whether the pipeline's split may describe this document: an upload without prepared data, whose parts (if any)
+// came from an earlier run. The seed's and the intake's prepared parts are never replaced.
+async function ownParts(env: Env, org: string, docId: string) {
+  const r = await orgStmt(env.DB, org,
+    `SELECT d.origin, d.state, (SELECT COUNT(*) FROM document_parts dp WHERE dp.org_id = ?org AND dp.document_id = ?1 AND dp.producer IS NULL) AS other
+     FROM documents d WHERE d.org_id = ?org AND d.id = ?1`, docId).first<{ origin: string; state: string | null; other: number }>();
+  return !!r && r.origin === "upload" && r.state !== "prepared" && r.other === 0;
+}
 
 const b64 = (s: string) => Uint8Array.from(atob(s), (ch) => ch.charCodeAt(0));
 
@@ -186,6 +221,40 @@ export class ProcessDocumentWorkflow extends WorkflowEntrypoint<Env, ProcessDocu
           return { tests: l.tests.length, points, unclear, unparsed: l.unparsed.length };
         }),
       ));
+      // The clinical documents inside the file (title, type, date as printed), for an upload without prepared data;
+      // the rows are written with the run's result in "write". An older page reader without /v1/parts skips it.
+      keep(await step.do("parts", STEP, () =>
+        timed("parts", async () => {
+          const run = await runOf(this.env, p.org, p.runId);
+          if (!(await ownParts(this.env, p.org, p.docId))) return { parts: "skipped" };
+          const pages = await pageTexts(this.env, run, n);
+          const r = await optional(() => pageReader.parts(this.env, poolInstance(p.caseId), pages.map((x) => ({ n: x.n, text: x.text, readability_level: x.level }))));
+          if (!("ok" in r) || !Array.isArray(r.ok.parts)) return { parts: "skipped" in r ? r.skipped : "error" };
+          await putJson(this.env, `${run.output_prefix}parts.json`, { parts: r.ok.parts });
+          return { parts: r.ok.parts.length, verify: r.ok.parts.filter((x) => x.certainty === "verify").length };
+        }),
+      ));
+      // Whose document it is, from the page text against the case's patient, for an upload the fixture registry did
+      // not already decide. Only the result leaves this step; the name and birth number stay inside it.
+      keep(await step.do("identity", STEP, () =>
+        timed("identity", async () => {
+          const run = await runOf(this.env, p.org, p.runId);
+          const who = await orgStmt(this.env.DB, p.org,
+            `SELECT d.origin, d.fixture_id, pt.full_name, pt.birth_number, pt.birth_as_written FROM documents d
+             JOIN cases c ON c.org_id = d.org_id AND c.id = d.case_id JOIN patients pt ON pt.org_id = c.org_id AND pt.id = c.patient_id
+             WHERE d.org_id = ?org AND d.id = ?1`, p.docId).first<{ origin: string; fixture_id: string | null; full_name: string; birth_number: string | null; birth_as_written: string | null }>();
+          if (!who || who.origin !== "upload" || who.fixture_id) return { identity: "skipped" };
+          const pages = await pageTexts(this.env, run, n);
+          const r = await optional(() => pageReader.identity(this.env, poolInstance(p.caseId), pages.map((x) => ({ n: x.n, text: x.text })),
+            { name: who.full_name, birth_number: who.birth_number, birth_date: who.birth_as_written }));
+          if (!("ok" in r)) return { identity: r.skipped };
+          // Only known codes go on; the evidence (offsets) is not kept here.
+          const pagesOk = (Array.isArray(r.ok.pages) ? r.ok.pages : []).filter((x) => IDENTITIES.has(x.result)).map((x) => ({ n: Number(x.n), result: x.result }));
+          if (!IDENTITIES.has(r.ok.result)) return { identity: "error" };
+          await putJson(this.env, `${run.output_prefix}identity.json`, { result: r.ok.result, pages: pagesOk });
+          return { identity: r.ok.result };
+        }),
+      ));
       const diff = keep(await step.do("compare with prepared data", STEP, () =>
         timed("compare", async () => {
           const run = await runOf(this.env, p.org, p.runId);
@@ -230,6 +299,50 @@ export class ProcessDocumentWorkflow extends WorkflowEntrypoint<Env, ProcessDocu
       stmts.push(
         orgStmt(db, p.org, "UPDATE documents SET state = 'processed', state_detail_cs = NULL, processing = 'processed', page_count = ?1, readability = ?2, readability_reasons_json = ?3 WHERE org_id = ?org AND id = ?4", n, rb.document.level, JSON.stringify(rb.document.reasons_cs), p.docId),
       );
+      const pageLevels = (await getJson<{ pages: { n: number; level: string }[] }>(env, `${run.output_prefix}readability.json`)).pages;
+      const before = await orgStmt(db, p.org, "SELECT identity FROM documents WHERE org_id = ?org AND id = ?1", p.docId).first<{ identity: string | null }>();
+      const levelOf = (k: number) => pageLevels.find((x) => x.n === k)?.level;
+      // The split replaces the previous run's split of this document (ownParts checked that no prepared part exists).
+      const split = await optionalJson<{ parts: PagePart[] }>(env, `${run.output_prefix}parts.json`);
+      if (split) {
+        stmts.push(orgStmt(db, p.org, "DELETE FROM document_parts WHERE org_id = ?org AND document_id = ?1 AND producer = 'pipeline'", p.docId));
+        const rows = partRows(split.parts, levelOf);
+        if (rows.length)
+          stmts.push(
+            orgStmt(db, p.org, `INSERT INTO document_parts (org_id, document_id, ordinal, title_cs, type, date, date_note_cs, pages_json, readability, reason_cs, date_as_written, certainty, producer)
+                 SELECT ?org, ?1, json_extract(value, '$.ordinal'), json_extract(value, '$.title_cs'), json_extract(value, '$.type'), json_extract(value, '$.date'), NULL,
+                   json_extract(value, '$.pages_json'), json_extract(value, '$.readability'), json_extract(value, '$.reason_cs'), json_extract(value, '$.date_as_written'),
+                   json_extract(value, '$.certainty'), 'pipeline' FROM json_each(?2)`, p.docId, JSON.stringify(rows)),
+          );
+      }
+      // The identity the pages show, when the registry did not decide it; only the result is stored. One page of another
+      // patient makes the document a conflict whatever the overall answer says (a mixed-up page inside a PDF).
+      const ident = await optionalJson<{ result: Identity; pages: { n: number; result: Identity }[] }>(env, `${run.output_prefix}identity.json`);
+      const flagged = ident?.pages.filter((x) => x.result === "conflicts").map((x) => x.n) ?? [];
+      const found: Identity | null = ident ? (flagged.length ? "conflicts" : ident.result) : null;
+      // A conflict a doctor has not resolved is never cleared by a later reading: the earlier one saw another patient.
+      const keepsConflict = before?.identity === "conflicts" && found !== "conflicts";
+      if (found && !keepsConflict) {
+        stmts.push(orgStmt(db, p.org, "UPDATE documents SET identity = ?1 WHERE org_id = ?org AND id = ?2 AND fixture_id IS NULL", found, p.docId));
+        if (found === "conflicts")
+          stmts.push(auditStatement(db, who, { action: "document.identity_conflict", what_cs: "zpracovaný dokument podle textu stránek možná patří jinému pacientovi", case_id: p.caseId, target_type: "document", target_id: p.docId }, { requestId: null, epoch: null }));
+      }
+      // The document's alerts as this run found them: they replace the previous run's.
+      const poor = pageLevels.filter((x) => x.level === "poor" || x.level === "empty").map((x) => x.n);
+      // The pages that show another patient; a document-level conflict without a page named counts every page.
+      const conflictPages = found === "conflicts" ? (flagged.length ? flagged : pageLevels.map((x) => x.n)) : [];
+      const alerts = documentAlerts(p.docId, poor, conflictPages);
+      // Replaced with this run's findings, except an identity alert this run could not confirm or clear (no identity
+      // result, or a kept conflict): that one stays as it was.
+      stmts.push(orgStmt(db, p.org, `DELETE FROM document_alerts WHERE org_id = ?org AND document_id = ?1 AND (rule <> 'identity_conflict' OR ?2 = 1)`,
+        p.docId, found && !keepsConflict ? 1 : 0));
+      if (alerts.length)
+        stmts.push(
+          orgStmt(db, p.org, `INSERT OR REPLACE INTO document_alerts (id, org_id, case_id, document_id, rule, subject, kind, message_id, args_json, run_id, created_at)
+               SELECT json_extract(value, '$.id'), ?org, ?1, ?2, json_extract(value, '$.rule'), json_extract(value, '$.subject'), json_extract(value, '$.kind'),
+                 json_extract(value, '$.message_id'), json_extract(value, '$.args'), ?3, ?4 FROM json_each(?5)`,
+            p.caseId, p.docId, p.runId, iso(), JSON.stringify(alerts)),
+        );
       // A document without prepared data gets the run's pages for the source view (Tesseract's text with its marks).
       if (!doc.pages) {
         const rows = [];

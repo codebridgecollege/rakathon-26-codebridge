@@ -21,7 +21,7 @@ import re
 import unicodedata
 from pathlib import Path
 
-from PIL import ImageDraw
+from PIL import ImageDraw, ImageFilter
 
 SCALE = 150 / 300  # Tesseract read 300 dpi renders; the page image is 150 dpi
 PAD = 2  # a little margin, so letter edges do not show around the box
@@ -174,12 +174,30 @@ INK_MAX_WORDS = 2  # a box over more OCR words is printed content (a framed tabl
 
 def ink_marks(img, words: list[dict]) -> list[dict]:
     """Boxes (150 dpi) of dark areas that no OCR word covers, as hits with the reason "podpis, razítko"."""
+    boxes = []
+    for box in _ink_boxes(img, words, INK_MAX_AREA):
+        if sum(1 for w in words if _within(w["b"], box)) > INK_MAX_WORDS:
+            continue
+        boxes.append({"reason": "podpis, razítko nebo rukopis (odhad)", "box": box})
+    return boxes
+
+
+def _ink_boxes(img, masked: list[dict], max_area: float | None, keep_thin: bool = False,
+               with_fill: bool = False) -> list:
+    """Boxes (150 dpi) of the dark areas left after blanking the boxes of the `masked` words: at least INK_MIN,
+    at most max_area of the page (None: any size), and at least INK_MIN_FILL dark. keep_thin widens strokes by a
+    pixel before the quarter-size reduction, so a 1 px or grey ballpoint line still reads as ink there. with_fill
+    returns (box, fill) pairs."""
     s = INK_SCALE
-    small = img.convert("L").resize((max(1, img.width // s), max(1, img.height // s)))
+    gray = img.convert("L")
+    if keep_thin:
+        gray = gray.filter(ImageFilter.MinFilter(3))
+    small = gray.resize((max(1, img.width // s), max(1, img.height // s)))
     W, H = small.size
     data = small.tobytes()
-    dark = bytearray(1 if v < INK_DARK else 0 for v in data)
-    for w in words:  # printed words are read by OCR and handled by find(); only uncovered ink is left
+    limit = THIN_DARK if keep_thin else INK_DARK
+    dark = bytearray(1 if v < limit else 0 for v in data)
+    for w in masked:  # words OCR read are handled as text; only the ink they do not explain is left
         x, y, wd, h = w["b"]
         for yy in range(max(0, int(y // s) - 1), min(H, int((y + h) // s) + 2)):
             x0, x1 = max(0, int(x // s) - 1), min(W, int((x + wd) // s) + 2)
@@ -211,13 +229,133 @@ def ink_marks(img, words: list[dict]) -> list[dict]:
                             seen[j] = 1
                             stack.append(j)
         bw, bh = x1 - x0 + 1, y1 - y0 + 1
-        if bw < INK_MIN[0] or bh < INK_MIN[1] or bw * bh > INK_MAX_AREA * W * H or n / (bw * bh) < INK_MIN_FILL:
+        if bw < INK_MIN[0] or bh < INK_MIN[1] or n / (bw * bh) < INK_MIN_FILL:
+            continue
+        if max_area is not None and bw * bh > max_area * W * H:
             continue
         box = [x0 * s, y0 * s, bw * s, bh * s]
-        if sum(1 for w in words if _within(w["b"], box)) > INK_MAX_WORDS:
-            continue
-        boxes.append({"reason": "podpis, razítko nebo rukopis (odhad)", "box": box})
+        boxes.append((box, n / (bw * bh)) if with_fill else box)
     return boxes
+
+
+# Unreadable regions: ink that no confidently read word explains. Handwriting, a signature, a stamp, or print too
+# damaged to read; the page reader cannot tell them apart and never fills them in. The ink detection is
+# ink_marks', with these differences:
+# - Only words read with confidence UNREADABLE_CONF or more are blanked, so ink under Tesseract's low-confidence
+#   guesses (it reads handwriting as garbage words) still counts.
+# - Two passes. The first is ink_marks' detection (strokes of about 3 px). The second keeps thin and grey strokes
+#   (keep_thin, THIN_DARK: a 1 px line at grey 60 or a 2 px line at grey 100, as a ballpoint pen writes) but only
+#   where no low-confidence word lies: widening the strokes also thickens print, and low-confidence print with its
+#   neighbour line would otherwise read as handwriting.
+# - No upper size limit, since a handwritten paragraph is large. Instead these are left out: areas filled more
+#   than UNREADABLE_MAX_FILL at quarter size (photos, barcodes, QR codes, logos, dark bands: 0.8-1.0 in
+#   tests/test_unreadable.py; handwriting 0.2-0.46, a stamp's rings 0.09); areas whose ink lies mostly on long
+#   straight lines (an empty table grid, a frame, a signature box: UNREADABLE_MAX_LINE_SHARE); areas with less
+#   than UNREADABLE_MIN_PAPER of white paper (a light photo or a grey band); and areas narrower than
+#   UNREADABLE_MIN_WIDTH.
+# - Not found: handwriting lines lower than INK_MIN (32 px, about 5 mm) that do not touch each other; initials or
+#   a single short word; thin handwriting that Tesseract read as low-confidence words (the first pass then needs
+#   strokes of about 3 px).
+UNREADABLE_CONF = 60  # page_index.LOW_CONF, the confidence below which every Tesseract error in the evaluation fell
+UNREADABLE_MAX_WORDS = INK_MAX_WORDS  # more confident words inside the box: printed content, as in ink_marks
+THIN_DARK = 160  # a pixel darker than this at quarter size is ink, once strokes were widened by a pixel
+UNREADABLE_MAX_FILL = 0.6
+# Small marks: on the 43 calibration pages (2026-10-19) the thin pass found page marks and brackets 40-120 px wide;
+# a signature or a line of handwriting is wider than 160 px (27 mm).
+UNREADABLE_MIN_WIDTH = 160
+UNREADABLE_MAX_LINE_SHARE = 0.5  # of the dark pixels, on rows or columns crossing 60 % of the box: a ruled frame
+UNREADABLE_MIN_PAPER = 0.5  # of the box's pixels lighter than 200 at 150 dpi: handwriting sits on paper
+FULL_DARK = 160  # ink at 150 dpi for the line and paper measures
+
+
+def unreadable_regions(img, words: list[dict]) -> list[dict]:
+    """Regions (150 dpi boxes) of ink with no confidently read word: {"b": [x, y, w, h], "reason"}, where reason
+    is "low_conf" when a word Tesseract read below UNREADABLE_CONF overlaps it, else "no_text" (at most
+    UNREADABLE_MAX_WORDS confident words, such as a printed name under a signature, may lie inside)."""
+    sure = [w for w in words if w["c"] >= UNREADABLE_CONF]
+    doubtful = [w for w in words if w["c"] < UNREADABLE_CONF]
+    gray = img.convert("L")
+    found = _ink_boxes(gray, sure, None, with_fill=True)
+    found += [(b, f) for b, f in _ink_boxes(gray, sure, None, keep_thin=True, with_fill=True)
+              if not any(_overlaps(w["b"], b) for w in doubtful)]
+    boxes = [b for b, fill in found
+             if fill <= UNREADABLE_MAX_FILL and sum(1 for w in sure if _within(w["b"], b)) <= UNREADABLE_MAX_WORDS
+             and _handwriting_like(gray, b)]
+    out = []
+    for box in _join_lines(boxes):
+        if box[2] < UNREADABLE_MIN_WIDTH:
+            continue
+        low = any(_overlaps(w["b"], box) for w in doubtful)
+        out.append({"b": box, "reason": "low_conf" if low else "no_text"})
+    return out
+
+
+def _handwriting_like(gray, box: list[int]) -> bool:
+    """Ink on white paper and not ruled lines: at least UNREADABLE_MIN_PAPER of the box is paper, and at most
+    UNREADABLE_MAX_LINE_SHARE of its ink lies on rows or columns that a dark run crosses for 60 % of the box."""
+    x, y, w, h = (int(v) for v in box)
+    crop = gray.crop((x, y, min(gray.width, x + w), min(gray.height, y + h)))
+    cw, ch = crop.size
+    if not cw or not ch:
+        return False
+    px = crop.tobytes()
+    if sum(v > 200 for v in px) < UNREADABLE_MIN_PAPER * cw * ch:
+        return False
+    dark = [v < FULL_DARK for v in px]
+    total = sum(dark)
+    if not total:
+        return False
+
+    def longest(cells) -> int:
+        best = run = 0
+        for d in cells:
+            run = run + 1 if d else 0
+            best = max(best, run)
+        return best
+
+    on_line = bytearray(cw * ch)
+    for r in range(ch):
+        row = dark[r * cw:(r + 1) * cw]
+        if longest(row) >= 0.6 * cw:
+            for c in range(cw):
+                on_line[r * cw + c] = row[c]
+    for c in range(cw):
+        col = dark[c::cw]
+        if longest(col) >= 0.6 * ch:
+            for r in range(ch):
+                on_line[r * cw + c] |= col[r]
+    return sum(on_line) <= UNREADABLE_MAX_LINE_SHARE * total
+
+
+UNREADABLE_JOIN = 24  # px at 150 dpi: the gap between two lines of handwriting; a printed line needs more room
+
+
+def _join_lines(boxes: list[list[int]]) -> list[list[int]]:
+    """Join boxes that overlap side to side and lie at most UNREADABLE_JOIN apart vertically: the lines of one
+    handwritten note are one region for the doctor, not one per line."""
+    boxes = [list(b) for b in boxes]
+    joined = True
+    while joined:
+        joined = False
+        for i in range(len(boxes)):
+            for j in range(i + 1, len(boxes)):
+                a, b = boxes[i], boxes[j]
+                side = a[0] < b[0] + b[2] and b[0] < a[0] + a[2]
+                gap = max(a[1], b[1]) - min(a[1] + a[3], b[1] + b[3])
+                if side and gap <= UNREADABLE_JOIN:
+                    x0, y0 = min(a[0], b[0]), min(a[1], b[1])
+                    boxes[i] = [x0, y0, max(a[0] + a[2], b[0] + b[2]) - x0, max(a[1] + a[3], b[1] + b[3]) - y0]
+                    del boxes[j]
+                    joined = True
+                    break
+            if joined:
+                break
+    return sorted(boxes, key=lambda b: (b[1], b[0]))
+
+
+def _overlaps(b, box) -> bool:
+    x, y, w, h = b
+    return x < box[0] + box[2] and box[0] < x + w and y < box[1] + box[3] and box[1] < y + h
 
 
 def _within(b, box) -> bool:

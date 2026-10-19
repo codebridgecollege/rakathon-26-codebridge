@@ -74,7 +74,7 @@ The tables fall into groups (the full list is in `api/migrations/`):
 | Patients and cases | `patients` (identity only), `cases`, `case_members`, `case_access_grants` (break-the-glass), `status_history` | Identity is kept apart from case data, so case data can be pseudonymous |
 | Planning | `slots`, `sessions`, `attendance`, `attendance_sets` | One slot per day and time |
 | The MDT record | `protocols` (drafts), `decisions`, `tasks`, `task_suggestions`, `question_confirmations`, `fact_edits`, `edit_log`, `fact_confirmations`, `alert_events`, `alert_events_v1` | Decisions, confirmations and events are append-only |
-| Documents | `documents`, `document_parts`, `pages`, `extraction_runs`, `fact_ids`, `alert_identities`, `alerts`, `pipeline_runs`, `upload_sessions` | The files and the runs themselves are in R2; see "Extraction runs" below |
+| Documents | `documents`, `document_parts`, `pages`, `extraction_runs`, `fact_ids`, `alert_identities`, `alerts`, `pipeline_runs`, `upload_sessions`, `document_alerts` (one document's poor-copy and identity alerts until the case merge, migration 0017) | The files and the runs themselves are in R2; see "Extraction runs" below |
 | Recording | `recordings`, `transcript_lines`, `transcript_passes`, `transcript_summaries`, `audio_uploads`, `audio_parts`, `audio_segments`, `jobs` | Audio is temporary |
 | Audit and plumbing | `access_log`, `idempotency_keys`, `write_guards`, `notifications`, `demo_state` | The access log is append-only |
 | Global demo data | `fixture_files`, `fixture_patients`, `seed_meta` | The synthetic fixtures; not org data |

@@ -81,10 +81,39 @@ TIME_LIKE = re.compile(r"\s+[\dOolI]{1,2}[:.][\dOolI]{2}")
 DATE_UNREADABLE_CS = "Datum odběru nečitelné, ověřte v originálu."
 DATE_PREVIOUS_PAGE_CS = "Datum odběru je na předchozí straně; ověřte v originálu."
 REQUISITION = re.compile(r"Č\. žádanky: \S+")
-# What makes a line look like a lab result even when no record parsed: a reference range, or a code-like
-# token followed by a colon and a number.
+# Upper-case letters of a code as OCR may read them: Tesseract's Czech model turns worn Latin capitals into
+# Czech ones ("S_UREA" read as "S. ÚUŘEA" on S03's scan), so a code-like token allows them.
+_UP = "A-ZÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ"
+# A code as OCR may garble it: Czech capitals, and a separator that may also be a quote mark or an asterisk
+# ("B „LKC", "S. ÚUŘEA"). The separator is required: a sheet prints "S UREA" or "B_HB", while a heading such as
+# "ZÁVĚR:" or "ČSK:" is one word.
+_SEP_LIKE = r"[ _.\-„“\"'*]"
+_CODE_SEP = rf"(?<![\w(])[{_UP}]{{1,5}}(?:[(C][{_UP}]{{1,5}}\))?{_SEP_LIKE}{{1,4}}[{_UP}][{_UP}0-9]{{0,11}}"
+# An NČLP code with its underscore: "S_K", "PT(KIDN)_EGFRCKDE".
+_NCLP = r"(?<![\w(])[A-Z]{1,5}(?:\([A-Z]{1,5}\))?_[A-Z0-9]{1,12}"
+# What makes a line look like a lab result even when no record parsed: a reference range; an ASCII code-like token
+# (with or without a separator, "BMI: 24" included) or a garbled sheet code followed by a colon (or a dot OCR made
+# of it) and a number; or an NČLP code with its colon whatever the value ("U_BIL: negat", a qualitative value
+# RECORD does not take).
+# A date after the colon is a heading with its exam date ("CT HRUDNÍKU: 2.9.2024", "PET CT: 12.3.2024"), not a value.
+_NOT_DATE = r"(?!\d{1,2}\.\s?\d{1,2}\.\s?\d{2,4})"
 LAB_LIKE = re.compile(r"\[\s*" + _NUM + r"\s*\.{1,4}|\.{2,4}\s*" + _NUM + r"\s*[\])]"
-                      r"|(?<![\w(])[A-Z]{1,5}(?:[(C][A-Z]{1,5}\))?[ _.\-]{0,4}[A-Z][A-Z0-9]{0,11}\s*[:.]\s*[\dOlI]")
+                      r"|(?<![\w(])[A-Z]{1,5}(?:[(C][A-Z]{1,5}\))?[ _.\-]{0,4}[A-Z][A-Z0-9]{0,11}\s*[:.]\s*"
+                      + _NOT_DATE + r"[\dOlI]"
+                      r"|" + _CODE_SEP + r"\s*[:.]\s*" + _NOT_DATE + r"[\dOlI]"
+                      r"|" + _NCLP + r"\s*:")
+# A line that starts with a lab sheet's code (after bullets or stray marks) is lab-like also when its colon and
+# square bracket are lost: an NČLP code and a number ("S_K 4,1", "S_CRP < 5"); a range opened with "(" and its
+# dots read as one dot or a space ("(2.9. 82"), but not a date ("CT HRUDNÍKU (2. 9. 2024)"); or a number followed
+# by a lab unit ("S UREA 7,9 mmol/l", "B HB 141 gl"), but not a dose per body surface ("CAPOX C1 1000 mg/m2").
+# Only at the line start, so "CEA 9,6 ug/l" in a letter (stage 9's job) or "KPS 70 %" is not taken for a result;
+# % is left out of the units for the same reason.
+_LAB_UNIT = r"(?:[µunm]?mo[l1I|]|[µunmk]?g\s*/(?!\s*m)|[µunmk]?g[l1I|]\b|[µu]?kat|10\s*[\^*A\"]\s*\d|f[l1I]\b|pg\b|kU|IU|mU|ml/s)"
+_NOT_YEAR = r"(?!(?:19|20)\d\d\b)"
+LAB_LIKE_AT_START = re.compile(
+    r"^[\W_]{0,4}(?:" + _NCLP + r"\s*[:.]?\s*[<>]?\s*[\dOlI]"
+    r"|" + _CODE_SEP + r".{0,12}?(?:[\[(]\s*" + _NUM + r"(?:\s*\.{1,4}\s*|\s+)" + _NOT_YEAR + _NUM + r"(?!\s*\.\s*\d)"
+    r"|\d(?:[.,]\d+)?\s*" + _LAB_UNIT + r"))")
 
 
 def _number(tok: str) -> tuple[float | None, bool]:
@@ -146,7 +175,7 @@ def unparsed_lines(text: str, spans: list[tuple[int, int]]) -> list[dict]:
         if DRAW_LIKE.search(rest):
             out.append({"line_no": line_no, "start": pos, "end": pos + len(line), "reason": "draw_date_not_parsed",
                         "reason_cs": "Řádek vypadá jako datum odběru, ale nepodařilo se ho přečíst; ověřte v originálu."})
-        elif LAB_LIKE.search(rest):
+        elif LAB_LIKE.search(rest) or LAB_LIKE_AT_START.search(rest):
             out.append({"line_no": line_no, "start": pos, "end": pos + len(line),
                         "reason": "lab_like_not_parsed",
                         "reason_cs": "Řádek vypadá jako laboratorní výsledek, ale nepodařilo se ho přečíst; ověřte v originálu."})

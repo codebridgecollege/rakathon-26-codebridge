@@ -216,10 +216,18 @@ export const documents = new Hono<AppEnv>()
     await audit(c, { action: "case.documents", case_id: id, what_cs: "zobrazil(a) seznam dokumentů" });
     const docs = await caseDocuments(c.env.DB, c.var.viewer.org, id);
     const parts = await c.var.stores.cases.documents(id);
+    // The documents' own alerts (document_alerts: poor copy, another patient's identity), as Fluent ids with page
+    // numbers; the case view will take them from the case run once the case merge exists.
+    const alerts = (await orgQuery(c, "SELECT document_id, kind, message_id, args_json FROM document_alerts WHERE org_id = ?org AND case_id = ?1 ORDER BY document_id, rule", id)
+      .all<{ document_id: string; kind: string; message_id: string; args_json: string }>()).results;
     return c.json({
       case_id: id,
       processing_level: levelOf(docs),
-      documents: docs.map((d) => ({ ...docOut(d), parts: parts.find((p) => p.id === d.id)?.parts ?? [] })),
+      documents: docs.map((d) => ({
+        ...docOut(d),
+        parts: parts.find((p) => p.id === d.id)?.parts ?? [],
+        alerts: alerts.filter((a) => a.document_id === d.id).map((a) => ({ kind: a.kind, message: { id: a.message_id, args: JSON.parse(a.args_json) as Record<string, string> } })),
+      })),
     });
   })
   .delete("/documents/:id", async (c) => {
@@ -276,6 +284,8 @@ export const documents = new Hono<AppEnv>()
     t.guard("not_prepared", "(SELECT state FROM documents WHERE org_id = ?org AND id = ?) <> 'prepared'", [docId], () => UP.preparedNotYet());
     t.run("DELETE FROM pages WHERE org_id = ?org AND document_id = ?1", docId);
     t.run("DELETE FROM document_parts WHERE org_id = ?org AND document_id = ?1", docId);
+    // The document's own alerts said what its pages showed; out of the case, they no longer apply.
+    t.run("DELETE FROM document_alerts WHERE org_id = ?org AND document_id = ?1", docId);
     // The name gets a neutral stand-in that stays unique in the case (UNIQUE(case_id, file_name)).
     t.run(
       `UPDATE documents SET lifecycle = 'withdrawn', lifecycle_reason_cs = ?1, lifecycle_changed_at = ?2, lifecycle_changed_by = ?3,

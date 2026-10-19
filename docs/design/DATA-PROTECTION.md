@@ -303,6 +303,12 @@ OpenID Connect (OIDC, the standard login protocol); design and details in
 
 ## Uploads and the document pipeline (step 6)
 
+- **The identity check sends the case's identity to the page reader.** To tell whether an uploaded document is the
+  case's patient's, the document Workflow sends the patient's name, birth number and birth date as written, with the
+  page texts, to the page reader's `/v1/identity` (issue #18). That is the same service that already reads the pages:
+  the Cloudflare Container in the EU (or `PAGE_READER_URL` locally), with no storage and no body in its logs. Only
+  the result (`matches`, `conflicts`, `cannot_verify`, per page) comes back and is stored; the Workflow's step results
+  hold the code only. A registered fixture's identity is never sent (the registry decides it).
 - **The shared demo stores the content of known synthetic files only.**
   The upload route hashes a PDF in memory and stores its bytes only when
   the hash is a registered fixture (`UPLOAD_POLICY=fixtures_only`). Any
