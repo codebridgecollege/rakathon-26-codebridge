@@ -31,6 +31,7 @@ import { UNLOCKED_COND, caseDocuments, documentRow, fixtureByHash, uploadContext
 import { openCase } from "./access-check";
 import { answer, caseFor, isoNow, label, newId, orgQuery, tx } from "./write-context";
 import { orgKey } from "../store/sql";
+import { cachePrefixesOf } from "../services/model-cache";
 import { autoStart } from "./pipeline-start";
 import { LEGACY_ORG } from "../domain/orgs";
 
@@ -305,12 +306,17 @@ export async function deleteUploadObjects(c: Context<AppEnv> | { env: Env }, org
   if (keys.length) await c.env.DOCS.delete(keys);
 }
 
-// Everything R2 holds for one uploaded document, by prefix: the file itself (uploads/<case>/<doc>.pdf|.jpg|.png) and
+// Everything R2 holds for one uploaded document, by prefix (and the model's cached answers about it, below): the file itself (uploads/<case>/<doc>.pdf|.jpg|.png) and
 // every run output and page copy (uploads/<case>/<doc>/...), under the org and, for demo org A, also under the prefix
 // used before orgs. Document ids are unique ("up-" and a UUID), so the prefix without a slash catches nothing else.
 // Listed page by page: a document read several times holds hundreds of objects.
 export async function deleteDocumentObjects(env: Env, org: string, caseId: string, docId: string) {
-  const prefixes = [orgKey(org, `uploads/${caseId}/${docId}`), ...(org === LEGACY_ORG ? [`uploads/${caseId}/${docId}`] : [])];
+  const prefixes = [
+    orgKey(org, `uploads/${caseId}/${docId}`),
+    ...(org === LEGACY_ORG ? [`uploads/${caseId}/${docId}`] : []),
+    // Issue #20: the language model's cached answers about the document (they quote it, pseudonymized).
+    ...cachePrefixesOf(org, caseId, docId),
+  ];
   for (const prefix of prefixes) {
     let cursor: string | undefined;
     do {

@@ -4,7 +4,7 @@ import { env } from "cloudflare:workers";
 import { NonRetryableError } from "cloudflare:workflows";
 import { accessLog, FAKE_NAME, loadFixture } from "./data";
 import { mockFetch, sequence, testEnv } from "./helpers";
-import { cacheKey, callModel, forStep, ModelError, type ModelRequest } from "../src/services/model";
+import { cacheKey, cacheScope, callModel, forStep, ModelError, type ModelRequest } from "../src/services/model";
 import { PROMPTS, loadPrompt } from "../src/prompts";
 import { redactPages, RedactedPage } from "../src/services/redaction";
 import { loadCaseIdentity } from "../src/store/identity";
@@ -142,7 +142,7 @@ describe("callModel", () => {
     expect(again.meta.input_sha256).toBe(first.meta.input_sha256);
     expect(await modelLog()).toHaveLength(1);
     const prompt = await loadPrompt("read-page-cs");
-    const key = cacheKey("demo-a", "NO-A", "test-model", prompt, first.meta.input_sha256);
+    const key = cacheKey("demo-a", "NO-A", cacheScope(["A_pacient"]), "test-model", prompt, first.meta.input_sha256);
     const stored = await (await env.DOCS.get(key))!.text();
     expect(stored).not.toContain("Testová");
   });
@@ -150,8 +150,8 @@ describe("callModel", () => {
   it("keeps the cache per org: the same input in another org is sent again and cached apart", async () => {
     const prompt = await loadPrompt("read-page-cs");
     const sha = "f".repeat(64);
-    const a = cacheKey("demo-a", "NO-A", "test-model", prompt, sha);
-    const b = cacheKey("demo-b", "NO-A", "test-model", prompt, sha);
+    const a = cacheKey("demo-a", "NO-A", cacheScope(["x"]), "test-model", prompt, sha);
+    const b = cacheKey("demo-b", "NO-A", cacheScope(["x"]), "test-model", prompt, sha);
     expect(a.startsWith(orgKey("demo-a", "cache/model/"))).toBe(true);
     expect(b.startsWith(orgKey("demo-b", "cache/model/"))).toBe(true);
     expect(a).not.toBe(b);

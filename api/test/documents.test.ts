@@ -7,6 +7,7 @@ import { call, testEnv } from "./helpers";
 import { fileKind, imageType, uploadPolicy } from "../src/domain/documents";
 import { FAKE_NAME, loadFixture } from "./data";
 import { sweep } from "../src/scheduled";
+import { cacheKey, cacheScope } from "../src/services/model-cache";
 
 type Body = { data?: Record<string, any>; data_epoch?: number; state?: Record<string, any>; error?: { code: string; message_cs: string } };
 
@@ -258,8 +259,21 @@ describe("withdrawing another patient's processed upload", () => {
 
   it("keeps a neutral row with its reason and the run's history, deletes everything of the other patient, and lets the file come again", async () => {
     const { id, key, prefix } = await processedOther();
+    // The model's cached answers: one about this document, one over several documents of the case, one about another
+    // document of the case and one in another case. The first two go with the withdraw, the others stay.
+    const cached = {
+      own: cacheKey("demo-a", "NO-A", cacheScope([id]), "m", { ref: "p@1", sha256: "a".repeat(64) }, "1".repeat(64)),
+      multi: cacheKey("demo-a", "NO-A", cacheScope([id, "A_pacient"]), "m", { ref: "p@1", sha256: "a".repeat(64) }, "2".repeat(64)),
+      other: cacheKey("demo-a", "NO-A", cacheScope(["A_pacient"]), "m", { ref: "p@1", sha256: "a".repeat(64) }, "3".repeat(64)),
+      otherCase: cacheKey("demo-a", "NO-B", cacheScope([id]), "m", { ref: "p@1", sha256: "a".repeat(64) }, "4".repeat(64)),
+    };
+    for (const k of Object.values(cached)) await env.DOCS.put(k, "{}");
     const r = await withdraw(id);
     expect(r.status).toBe(200);
+    expect(await env.DOCS.head(cached.own)).toBeNull();
+    expect(await env.DOCS.head(cached.multi)).toBeNull();
+    expect(await env.DOCS.head(cached.other)).not.toBeNull();
+    expect(await env.DOCS.head(cached.otherCase)).not.toBeNull();
     expect(r.body.data!.document).toMatchObject({ lifecycle: "withdrawn", lifecycle_reason_cs: "dokument jiného pacienta", content_stored: false, sha256: null, type_cs: null, doc_date: null, fixture: false });
     expect(r.body.data!.document.name).toBe(`odebraný dokument ${id.slice(-6)}`);
     const row = (await q<Record<string, unknown>>("SELECT lifecycle, lifecycle_changed_by, original_r2_key, sha256, file_name, title_cs FROM documents WHERE id = ?1", id))[0]!;
