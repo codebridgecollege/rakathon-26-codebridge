@@ -515,13 +515,15 @@ def run_frame(case_id: str, document: str, n_parts: int) -> dict[str, Any]:
 
 
 def committed_run(case_id: str) -> dict[str, Any] | None:
-    """The run as committed at HEAD, or None outside a checkout or for a run not committed yet."""
-    rel = (RUNS / f"{case_id}.json").relative_to(REPO).as_posix()
+    """The run as committed at HEAD; where there is no git checkout (the pipeline image copies files only), the file on
+    disk, which there is the committed one; None for a run that does not exist yet."""
+    path = RUNS / f"{case_id}.json"
+    rel = path.relative_to(REPO).as_posix()
     try:
         out = subprocess.run(["git", "-C", str(REPO), "show", f"HEAD:{rel}"], capture_output=True, check=True)
+        return json.loads(out.stdout.decode("utf-8"))
     except (OSError, subprocess.CalledProcessError):
-        return None
-    return json.loads(out.stdout.decode("utf-8"))
+        return json.loads(path.read_text(encoding="utf-8")) if path.exists() else None
 
 
 def finish(b: Builder, frame: dict[str, Any]) -> tuple[dict[str, Any], dict[str, str]]:

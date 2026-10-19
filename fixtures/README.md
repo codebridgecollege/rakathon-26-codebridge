@@ -40,7 +40,8 @@ patients the team invented ([`samples/README.md`](../samples/README.md)); nothin
   when a run fails the validator, or when a patient identifier ends up in a run. Fact IDs are carried over from the run committed at
   HEAD by the format's matcher (a new fact's ID is minted from the case and its key), so a rerun, a converter change or
   a key-rule change keeps every ID the matcher can match. `--check` compares with the working files, so a hand edit of
-  a run is caught. A conversion outside a checkout (no committed runs) mints different IDs. It also re-keys the guideline and deviation files, so rerun it after
+  a run is caught. Without git (the pipeline image copies files only) the runs on disk serve as the
+  previous runs; without any previous run, IDs are minted new. It also re-keys the guideline and deviation files, so rerun it after
   `guidelines_case_10.py`, which writes `patient_facts` as plain text.
 
 After any change, reseed the Worker (see [`api/AGENTS.md`](../api/AGENTS.md)).
