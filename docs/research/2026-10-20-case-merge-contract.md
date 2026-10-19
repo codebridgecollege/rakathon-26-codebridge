@@ -23,7 +23,7 @@ facts drafted (no `key` or `id`) and alerts without IDs: the `DraftRun` parts th
 | Written by | ProcessDocumentWorkflow, `write` step | ExtractDocumentWorkflow, last step |
 | `producer` | `pipeline` | `ai` |
 | `draft_id` | `pipeline:<doc>:<n>` | `ai:<doc>:<n>` |
-| Source IDs | `src-pl-<doc>-<n>` | `src-ai-<doc>-<n>` |
+| Source IDs | `sourceIdFor` (hash of document, part, page, quote) | the same, so one passage has one ID across producers and reruns |
 | Facts | `lab_result` from lab sheets | every other kind (`api/src/domain/extract/schema.ts`), never lab sheet values |
 | Checks | `lab_result`: found, or `not_run` (the parser reads FNO lab sheets only, so it never claims nothing found) | each kind it looks for: found or nothing_found; `unreadable` holds the pages the model was not allowed to read (content filter, budget) |
 | Alerts | `poor_copy` (subject: document), `identity_conflict` (subject: document, args `{document, page}`) | none; the same-date contradiction is a mark on the facts, not an alert |
@@ -53,8 +53,11 @@ IDs (`alertId(rule|subject)`), so acknowledgements carry over.
 - a withdraw;
 - D's ExtractDocumentWorkflow, at its end.
 
-For each current document (lifecycle current, with a done pipeline run), it composes the latest fragment of each
-producer. A missing AI fragment is simply absent, so the no-AI view appears first. It retries on `run_stale`. It only
+For each current upload it takes the newest done pipeline run that has `fragment-pipeline.json`, and that run's
+`fragment-ai.json` if present (D writes under the output prefix of the run it read, and stops when a newer one is
+done). A check says `nothing_found` in the run only when every current document's fragments said so for that kind; a
+document without its AI fragment makes it `not_run`. Alerts are deduplicated per rule and subject across producers.
+The merge is started with `startCaseMerge(env, {org, caseId, by, byActor})` (`api/src/workflows/process-case.ts`). A missing AI fragment is simply absent, so the no-AI view appears first. It retries on `run_stale`. It only
 stores when the case's current run is absent or has producer `pipeline`, and only for orgs in `PIPELINE_ORGS`.
 
 The steps:
