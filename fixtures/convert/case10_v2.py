@@ -207,12 +207,17 @@ FACTS: list[Spec] = [
     Spec("ae_hepat", "adverse_event", ae("hepatopatie, důvod redukce dávky od 25.2.2026", "G2", "sunitinib"), quotes=[R(56)], not_stated=["date"]),
     # ----- medication (anamnesis FA) -----
     Spec("med_pred", "medication", med("prednison", "1 mg/kg/den", None, "od 12.5.2023 postupné snižování dávky, ukončen 26.7.2023", "plicní toxicita (IPP)",
-                                       "prednison 1 mg/kg/den od 28.4.2023; od 12.5.2023 snižování, ukončen 26.7.2023"),
+                                       "prednison 1 mg/kg/den od 28.4.2023; od 12.5.2023 snižování, ukončen 26.7.2023", "ukončen 26.7.2023"),
          date="28.4.2023", status="stopped", quotes=[R(46), R(11)]),
-    Spec("med_evero5", "medication", med("Everolimus Sandoz", "5 mg", "1-0-0"), quotes=[Q(2, "Everolimus sandoz 5mg 1-0-0")]),
-    Spec("med_evero10", "medication", med("Everolimus Sandoz", "5 mg", "2-0-0", "navýšení z 1-0-0 na 2-0-0 (10 mg denně) od 19.9.2026; při netoleranci návrat k 1-0-0", None,
-                                          "navýšení na 2-0-0 od 19.9.2026 dle nejnovějšího závěru; při netoleranci návrat k 1-0-0"),
-         date="19.9.2026", status="planned", quotes=[R(67), R(69)], **verify("V OCR „zyyšuji“, čteno jako zvyšuji.")),
+    # Everolimus in the medication list (page 2) is the anticancer therapy, so systemic_therapy, never medication
+    # (EXTRACTION-FORMAT.md). The list entry states the brand and the dosing, which the 3rd-line fact (t_evero, from the
+    # oncology history on page 1) does not, so it is its own fact rather than a further source of t_evero; the dose
+    # increase from 19.9.2026 is its own planned fact with its own start. Neither entry states the line.
+    Spec("t_evero_5", "systemic_therapy", ther("Everolimus Sandoz 5 mg 1-0-0", None, None, None, None, "everolimus 5 mg denně, seznam medikace"),
+         quotes=[Q(2, "Everolimus sandoz 5mg 1-0-0")], not_stated=["line", "start"]),
+    Spec("t_evero_10", "systemic_therapy", ther("Everolimus Sandoz 5 mg 2-0-0", None, "19.9.2026", None, None,
+                                                "navýšení z 1-0-0 na 2-0-0 (10 mg denně) od 19.9.2026; při netoleranci návrat k 1-0-0"),
+         date="19.9.2026", status="planned", quotes=[R(67), R(69)], not_stated=["line"], **verify("V OCR „zyyšuji“, čteno jako zvyšuji.")),
     Spec("med_kapidin", "medication", med("Kapidin", "20 mg", "1-0-0"), quotes=[R(85)]),
     Spec("med_spiriva_a", "medication", med("Spiriva (inhalačně)", None, "1-0-1", None, None, "seznam chronické medikace"), quotes=[R(85)],
          **verify("Plicní vyšetření (str. 4 a 5) uvádí Spiriva 2-0-0; dávkování se mezi částmi dokumentu liší.", "sources_disagree")),
@@ -363,7 +368,7 @@ ALERTS: list[AlertSpec] = [
               "Nemusí jít o rozpor (první progrese dle iRECIST je iUPD), potvrzena 1/2026 jako iCPD.", ["flags[5]"]),
     AlertSpec("cycles_differ", "unclear", "t_nivoipi", ["t_nivoipi", "d_koc_nivo"], {"fact": "t_nivoipi"},
               "Z textu plyne přechod na udržovací nivolumab od 27.6.2023; výslovné ukončení kombinace v textu chybí.", ["flags[6]"]),
-    AlertSpec("page_order_unclear", "chronology", "10_pacient", ["med_evero10", "pl_evero", "t_evero", "pl_cabo"], {"document": "10_pacient"},
+    AlertSpec("page_order_unclear", "chronology", "10_pacient", ["t_evero_10", "pl_evero", "t_evero", "pl_cabo"], {"document": "10_pacient"},
               CASE["flags"][7]["text_cs"] + " " + CASE["flags"][7]["note"], ["flags[7]"]),
     AlertSpec("dosing_differs", "unclear", ("med_spiriva_a", "med_spiriva_b"), ["med_spiriva_a", "med_spiriva_b"],
               {"fact_a": "med_spiriva_a", "fact_b": "med_spiriva_b"},
@@ -402,9 +407,9 @@ ONCO_LINES = [
     ["i_ctag", "dx_pe_neg", "i_osteo"],
     ["i_ct2604"],
     ["i_ct2608"],
-    ["t_evero", "d_koc_evero", "pl_cabo", "med_evero5"],
+    ["t_evero", "d_koc_evero", "pl_cabo", "t_evero_5"],
     ["i_mr", "m_cereb", "m_intracran_neg", "c_fazekas"],
-    ["med_evero5", "med_evero10", "pl_evero"],
+    ["t_evero_5", "t_evero_10", "pl_evero"],
     ["req_nch", "vis_next", "pl_ct", "vis_pulm_next", "pl_colo"],
 ]
 TIMELINE_CARDS = [
@@ -420,7 +425,7 @@ TIMELINE_CARDS = [
     ["d_koc_suni", "t_suni", "ae_renal", "ae_mineral", "ae_thrombo", "ae_hepat", "i_ct2608"],
     ["i_ct2604"],
     ["i_ct2608", "t_suni"],
-    ["t_evero", "d_koc_evero", "pl_cabo", "med_evero5", "med_evero10", "pl_evero"],
+    ["t_evero", "d_koc_evero", "pl_cabo", "t_evero_5", "t_evero_10", "pl_evero"],
     ["i_mr", "m_cereb", "m_intracran_neg", "c_fazekas"],
     ["req_nch"],
     ["vis_next", "pl_bp"],
@@ -494,7 +499,7 @@ VISITS = [
 GUIDE_FACTS = {
     "MR mozku 14. 9. 2026: solitární sytící se ložisko v pravé hemisféře mozečku do 3 mm, susp. metastáza": ["i_mr", "m_cereb"],
     "ECOG PS 1, bez klinických známek mozkových metastáz (občasné mžitky před očima)": ["perf_ecog", "m_brain_clin_neg", "sym_scotoma"],
-    "Everolimus 5 mg denně od 3. 9. 2026 (3. linie); dle nejnovějšího ambulantního závěru navýšení na 10 mg denně od 19. 9. 2026": ["t_evero", "med_evero5", "med_evero10"],
+    "Everolimus 5 mg denně od 3. 9. 2026 (3. linie); dle nejnovějšího ambulantního závěru navýšení na 10 mg denně od 19. 9. 2026": ["t_evero", "t_evero_5", "t_evero_10"],
     "světlobuněčný renální karcinom G2, nefrektomie vpravo 6/2022, pT2a pN1 M0": ["h_neph", "p_neph", "stage"],
     "1. linie nivolumab + ipilimumab, progrese (iRECIST potvrzena 1/2026)": ["t_nivoipi", "i_ct2601"],
     "2. linie sunitinib 1-8/2026, progrese": ["t_suni", "i_ct2608"],
@@ -543,7 +548,7 @@ PAST_STATEMENTS = {
 
 # Curated deviation observations (deviations-case-10.json): source_refs (indexes into extra.refs) -> facts.
 DEVIATION_FACTS = {
-    "hbv-prophylaxis-not-documented": ["rf_hbsag", "t_evero", "med_evero5", "med_evero10"],
+    "hbv-prophylaxis-not-documented": ["rf_hbsag", "t_evero", "t_evero_5", "t_evero_10"],
     "blood-pressure-above-general-target": ["c_dyspnea", "v_bp_int", "v_bp_home", "med_orcal", "ex_bp_not_measured", "v_bp", "ci_acei"],
     "shortened-induction-with-toxicity": ["d_koc_nivo", "t_nivoipi", "ae_git", "ae_pneu", "med_pred", "i_ct2306", "t_nivo_maint"],
     "nch-result-not-documented": ["i_mr", "m_cereb", "req_nch"],

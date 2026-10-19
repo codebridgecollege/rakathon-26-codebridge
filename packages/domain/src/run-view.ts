@@ -403,31 +403,76 @@ function termComment(text: string): { term_cs: string; comment_cs: string } {
   return i > 0 ? { term_cs: text.slice(0, i), comment_cs: text.slice(i + 2) } : { term_cs: text, comment_cs: "" };
 }
 
+// Anticancer drugs are systemic_therapy facts even where the medication list names them (EXTRACTION-FORMAT.md). The
+// list is the pages (with their part) the current medication facts are quoted from (a stopped drug is quoted from the
+// history, as prednison on page 1); a current or planned therapy with no stop, quoted from such a page, is an entry of
+// that list. A therapy quoted only from the oncology history, or done or stopped, is not.
+function listTherapies(x: Ctx): Set<string> {
+  const all = x.run.facts.filter((f) => x.facts.has(f.id));
+  const placeOf = (sid: string) => {
+    const s = x.sources.get(sid);
+    return s?.type === "document" ? `${s.part ?? s.document_id}|${s.page}` : null;
+  };
+  const listPlaces = new Set(
+    all.filter((f) => f.kind === "medication" && f.status !== "stopped" && f.status !== "interrupted").flatMap((f) => f.sources.map(placeOf)).filter(Boolean),
+  );
+  return new Set(
+    all
+      .filter(
+        (f) =>
+          f.kind === "systemic_therapy" && (f.status === "documented" || f.status === "planned") && !f.value.stop && f.sources.some((sid) => listPlaces.has(placeOf(sid))),
+      )
+      .map((f) => f.id),
+  );
+}
+
 function anamnesis(x: Ctx): Record<string, Item[]> {
   const all = x.run.facts.filter((f) => x.facts.has(f.id));
   const item = (f: Fact, text: string) => ({ ...marksFrom([f], undefined, isPlanned(f)), ...termComment(text), negation_label: negationLabel(f, text), refs: refsOf(x, [f]), fact_ids: [f.id], key: `f:${f.id}`, fact_kind: f.kind });
   const risk = (types: string[]) => all.filter((f) => f.kind === "risk_factor" && types.includes(f.value.type));
+  const listed = listTherapies(x);
   return {
     // A comorbidity the documents deny is listed with its negation, never dropped into silence.
     OA: all.filter((f) => f.kind === "comorbidity").map((f) => item(f, factText(f))),
     RA: all.filter((f) => f.kind === "family_history").map((f) => item(f, factText(f))),
     PA: [],
     SA: risk(["social"]).map((f) => item(f, factText(f))),
-    // Current medication: a stopped or interrupted drug is history, shown in the timeline, not in the list.
+    // Current medication: a stopped or interrupted drug is history, shown in the timeline, not in the list. The list
+    // also shows the anticancer therapies quoted from the list itself (listTherapies), in document order with the drugs.
     FA: all
-      .filter((f): f is Extract<Fact, { kind: "medication" }> => f.kind === "medication" && f.status !== "stopped" && f.status !== "interrupted")
-      .map((f) => ({
-        ...marksFrom([f], undefined, isPlanned(f)),
-        drug_cs: f.value.drug,
-        strength_cs: f.value.strength,
-        dosing_cs: f.value.dosing,
-        indication_cs: f.value.indication,
-        change_cs: f.value.change,
-        comment_line_cs: [f.value.indication, f.value.change].filter(Boolean).join("; ") || f.value.text || "",
-        refs: refsOf(x, [f]),
-        fact_ids: [f.id],
-        key: `f:${f.id}`,
-      })),
+      .filter(
+        (f): f is Extract<Fact, { kind: "medication" | "systemic_therapy" }> =>
+          (f.kind === "medication" || listed.has(f.id)) && f.status !== "stopped" && f.status !== "interrupted",
+      )
+      .map((f) =>
+        f.kind === "medication"
+          ? {
+              ...marksFrom([f], undefined, isPlanned(f)),
+              drug_cs: f.value.drug,
+              strength_cs: f.value.strength,
+              dosing_cs: f.value.dosing,
+              indication_cs: f.value.indication,
+              change_cs: f.value.change,
+              comment_line_cs: [f.value.indication, f.value.change].filter(Boolean).join("; ") || f.value.text || "",
+              refs: refsOf(x, [f]),
+              fact_ids: [f.id],
+              key: `f:${f.id}`,
+            }
+          : {
+              // The regimen as the list writes it ("Everolimus Sandoz 5 mg 1-0-0") is the drug line; the fact's text
+              // (a stated change, "navýšení na 2-0-0 od 19.9.2026") is the note.
+              ...marksFrom([f], undefined, isPlanned(f)),
+              drug_cs: f.value.regimen,
+              strength_cs: null,
+              dosing_cs: null,
+              indication_cs: null,
+              change_cs: f.value.start && isPlanned(f) ? f.value.text : null,
+              comment_line_cs: f.value.text && f.value.start ? f.value.text : "",
+              refs: refsOf(x, [f]),
+              fact_ids: [f.id],
+              key: `f:${f.id}`,
+            },
+      ),
     FA_warnings: all.filter((f) => f.kind === "contraindication").map((f) => item(f, factText(f))),
     AA: all.filter((f) => f.kind === "allergy").map((f) => item(f, factText(f))),
     abusus: risk(["smoking", "alcohol"]).map((f) => ({ ...item(f, factText(f)), pack_years_cs: f.kind === "risk_factor" && f.value.pack_years != null ? String(f.value.pack_years) : null })),
@@ -448,11 +493,19 @@ function findingSections(x: Ctx): Record<string, Item[]> {
     comorbidities: ["comorbidity"],
   };
   const out: Record<string, Item[]> = {};
-  for (const [k, kinds] of Object.entries(groups)) {
+  // "Prodělaná léčba" is treatment given: an anticancer drug from the medication list belongs with the medication
+  // (as a MedicationStatement in the FHIR export), and a planned or requested therapy with what is planned.
+  const listed = listTherapies(x);
+  const groupOf = (f: Fact): string | null => {
+    if (f.kind === "systemic_therapy" && listed.has(f.id)) return "medication";
+    if (f.kind === "systemic_therapy" && (f.status === "planned" || f.status === "requested")) return "current_state";
+    return Object.entries(groups).find(([, kinds]) => kinds.includes(f.kind))?.[0] ?? null;
+  };
+  for (const k of Object.keys(groups)) {
     out[k] = x.run.facts
       // The primary diagnosis is the record's diagnosis; other diagnoses, an excluded one included ("bez plicní
       // embolie"), are findings.
-      .filter((f) => x.facts.has(f.id) && kinds.includes(f.kind) && !(f.kind === "diagnosis" && f.value.primary))
+      .filter((f) => x.facts.has(f.id) && groupOf(f) === k && !(f.kind === "diagnosis" && f.value.primary))
       .map((f) => ({ ...marksFrom([f], undefined, isPlanned(f)), date: f.date.as_written, text_cs: factText(f), negation_label: negationLabel(f, factText(f)), note: f.note, source: firstRef(x, [f]), fact_ids: [f.id], key: `f:${f.id}`, fact_kind: f.kind }));
   }
   return out;

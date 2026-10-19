@@ -137,7 +137,11 @@ export function buildFactKey(fact: DraftFact | Fact, sources: ReadonlyMap<string
     case "systemic_therapy": {
       const v = fact.value;
       const start = normText(v.start) || dateSeg(d);
-      return join(fact.kind, normText(v.regimen), `line:${v.line ?? "none"}`, `start:${start}`);
+      const parts = [fact.kind, normText(v.regimen), `line:${v.line ?? "none"}`, `start:${start}`];
+      // As for medication: an anticancer drug listed undated in two visits' medication lists gives two facts, told
+      // apart by the document part, never by a position.
+      if (start === "undated") parts.push(partSeg(fact, sources));
+      return join(...parts);
     }
     case "stage":
       return join(fact.kind, fact.value.stage_kind, dateSeg(d));

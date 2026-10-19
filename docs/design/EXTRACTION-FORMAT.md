@@ -246,7 +246,7 @@ changes between runs, their link breaks.
 | `lab_result` | code (or name as written), draw date and time as written, requisition number if any, document |
 | `diagnosis` | code or normalised text, disease status, date |
 | `medication` | drug, period start (a dose change starts a new medication fact with its own start, so "Prednison 1 mg/kg/den" and "Prednison 0,5 mg/kg od 12.5.2023" are two facts); for an entry with no start, also the document part it is listed in, so the same drug listed undated at two visits gives two facts (the part ID is stable, never a position) |
-| `systemic_therapy` | drug or regimen, line, start |
+| `systemic_therapy` | drug or regimen, line, start; for an entry with no start (an anticancer drug in a medication list), also the document part it is listed in, as for `medication` |
 | `stage` | stage kind, date |
 | `imaging`, `procedure`, `histology` | type and region, date |
 | `request`, `plan` | what, date as written |
@@ -280,7 +280,7 @@ JSON Schema defines them exactly).
 | `stage` | TNM as written and normalised, stage kind (`clinical`, `pathological`, `post_neoadjuvant`), TNM edition if stated, `as_of` (the date it describes), `at_diagnosis` (true or false) | 1 |
 | `metastasis` | site, status (`suspected`, `confirmed`, `excluded`) | 5 |
 | `procedure` | name (surgery, implant, biopsy) | 4 |
-| `systemic_therapy` | drug or regimen, line, start, stop, reason for stopping | 4 lines |
+| `systemic_therapy` | drug or regimen, line, start, stop, reason for stopping | 6 (4 lines, plus the everolimus entry and its planned dose increase from the medication list) |
 | `radiotherapy` | target, dose, fractions | 0 |
 | `imaging` | modality, region, finding text, response category (iRECIST, RECIST) if stated | 16 |
 | `lab_result` | name as written, value as written, `value_numeric`, `unit_as_written`, `unit`, reference range as written with `reference_low` and `reference_high`, out of range (`high`, `low`) with `out_of_range_origin` (`document` when the lab printed it, `assistant` when computed from the range), draw (date and time as written, requisition number, specimen) | 26 |
@@ -289,7 +289,7 @@ JSON Schema defines them exactly).
 | `exam_finding` | body region, finding text | 13 |
 | `symptom` | text | 5 (2 negated) |
 | `comorbidity` | text, MKN-10 code if given | 11 |
-| `medication` | drug, strength, dosing, change, indication, `stop_as_written` (when the document says the drug was stopped, as written; the fact then has `status: stopped`); not for anticancer drugs, see below | 13 |
+| `medication` | drug, strength, dosing, change, indication, `stop_as_written` (when the document says the drug was stopped, as written; the fact then has `status: stopped`); not for anticancer drugs, see below | 14 |
 | `contraindication` | what (a drug interaction, for example an ACE inhibitor with everolimus), stated by the document or inferred by the assistant | 1 |
 | `allergy` | substance, reaction | 0 |
 | `adverse_event` | text, grade if stated, related therapy | about 4 |

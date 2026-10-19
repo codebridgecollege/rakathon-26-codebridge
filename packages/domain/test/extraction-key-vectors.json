@@ -7656,6 +7656,81 @@
     "note": null,
     "quarantined": false,
     "sources": [
+     "src-a"
+    ],
+    "kind": "systemic_therapy",
+    "date": {
+     "as_written": null,
+     "precision": null,
+     "sort": null
+    },
+    "value": {
+     "regimen": "Everolimus Sandoz 5 mg 1-0-0",
+     "line": null,
+     "start": null,
+     "stop": null,
+     "reason_stopped": null,
+     "text": null
+    }
+   },
+   "sources": [
+    {
+     "id": "src-a",
+     "type": "document",
+     "document_id": "10_pacient",
+     "part": "10_pacient/p2",
+     "page": 3,
+     "quote": "S_HSCRP: 9,5 mg/1 [O ... 5]",
+     "quote_text": "tesseract",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
+     "id": "src-b",
+     "type": "document",
+     "document_id": "10_lab",
+     "part": null,
+     "page": 1,
+     "quote": "Kreatinin 107",
+     "quote_text": "pdf_text",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
+     "id": "src-n",
+     "type": "nis",
+     "system": "https://nis.fno.example/fhir",
+     "resource": "Observation/8812",
+     "version": "3",
+     "last_updated": null
+    },
+    {
+     "id": "src-e",
+     "type": "nis",
+     "system": "https://nis.fno.example/fhir",
+     "resource": "Encounter/301",
+     "version": "1",
+     "last_updated": null
+    }
+   ],
+   "key": "systemic_therapy|everolimus sandoz 5 mg 1-0-0|line:none|start:undated|part:10_pacient/p2"
+  },
+  {
+   "fact": {
+    "subject": "patient",
+    "status": "documented",
+    "negated": false,
+    "not_stated": [],
+    "origin": "document",
+    "certainty": "clear",
+    "codes": [],
+    "note": null,
+    "quarantined": false,
+    "sources": [
      "src-b"
     ],
     "kind": "medication",

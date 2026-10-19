@@ -110,7 +110,7 @@ describe("validator: case 10's composed lines", () => {
     const run = run10();
     expect(codes(run)).toEqual([]);
     const line = run.views!.onco_lines!.find((l) => l.text.startsWith("3. paliativní linie everolimus 5 mg"))!;
-    const dose = run.facts.find((f) => f.kind === "medication" && f.value.strength === "5 mg" && f.value.dosing === "1-0-0")!;
+    const dose = run.facts.find((f) => f.kind === "systemic_therapy" && f.value.regimen === "Everolimus Sandoz 5 mg 1-0-0")!;
     line.facts = line.facts.filter((id) => id !== dose.id);
     line.id = viewLineId("onco_lines", line.facts);
     expect(validateRun(run).issues.map((i) => i.message)).toEqual(["a number in the line's text is not in its facts"]);

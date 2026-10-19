@@ -178,7 +178,10 @@ def build_fact_key(fact: Mapping[str, Any], sources: Mapping[str, Mapping[str, A
     if kind == "systemic_therapy":
         start = norm_text(v["start"]) or date_seg(d)
         line = "none" if v["line"] is None else js_str(v["line"])
-        return _join(kind, norm_text(v["regimen"]), f"line:{line}", f"start:{start}")
+        parts = [kind, norm_text(v["regimen"]), f"line:{line}", f"start:{start}"]
+        if start == "undated":
+            parts.append(_part_seg(fact, sources))
+        return _join(*parts)
     if kind == "stage":
         return _join(kind, v["stage_kind"], date_seg(d))
     if kind == "imaging":
