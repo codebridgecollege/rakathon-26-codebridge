@@ -23,6 +23,9 @@ export const EXTRACT_KINDS = [
   "symptom",
   "performance_status",
   "comorbidity",
+  "allergy",
+  "risk_factor",
+  "exam_finding",
 ] as const;
 export type ExtractKind = (typeof EXTRACT_KINDS)[number];
 
@@ -59,6 +62,9 @@ export type ModelFact = {
   decision_body: "mdt" | "koc" | "consultation" | "other" | null;
   scale: string | null;
   value_as_written: string | null;
+  reaction: string | null;
+  risk_type: "smoking" | "alcohol" | "social" | "epidemiology" | null;
+  pack_years: number | null;
   reported_as: "original" | "cited";
   certainty: "clear" | "verify";
   uncertainty: string | null;
@@ -100,6 +106,9 @@ const FACT_PROPS: Record<keyof ModelFact, Record<string, unknown>> = {
   decision_body: en(["mdt", "koc", "consultation", "other"]),
   scale: str,
   value_as_written: str,
+  reaction: str,
+  risk_type: en(["smoking", "alcohol", "social", "epidemiology"]),
+  pack_years: { type: ["number", "null"] },
   reported_as: { type: "string", enum: ["original", "cited"] },
   certainty: { type: "string", enum: ["clear", "verify"] },
   uncertainty: str,

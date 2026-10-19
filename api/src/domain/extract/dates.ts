@@ -3,7 +3,9 @@
 import type { FactDate } from "@codebridge/domain/extraction/types";
 
 const pad = (n: number) => String(n).padStart(2, "0");
-const valid = (y: number, m: number, d?: number) => y >= 1900 && y <= 2100 && m >= 1 && m <= 12 && (d === undefined || (d >= 1 && d <= 31));
+// A real calendar date: "31.2.2026" is a misread, not the 3rd of March.
+const valid = (y: number, m: number, d?: number) =>
+  y >= 1900 && y <= 2100 && m >= 1 && m <= 12 && (d === undefined || (d >= 1 && new Date(Date.UTC(y, m - 1, d)).getUTCDate() === d));
 
 // Two-digit years ("12.3.26") are read as 20yy up to the current year + 1, else 19yy; such a date is still kept as
 // written, and the sort form only orders it.

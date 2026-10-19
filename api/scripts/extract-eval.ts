@@ -1,6 +1,6 @@
 // Offline fact extraction over the synthetic sample cases, for pipeline/eval.py (issue #20 phase 2).
 //
-//   cd api && npm run extract:eval -- [--out DIR] [--case S04] [--cache-only] [--dev-vars PATH]
+//   cd api && npm run extract:eval -- [--out DIR] [--case S04] [--cache-only] [--dev-vars PATH] [--effort medium] [--whole]
 //
 // It sends exactly what the Worker sends (services/model-payload.ts: pseudonymized text, the gate) to the model named
 // in wrangler.jsonc, with the key from api/.dev.vars (never printed), and turns the answers into run fragments with
@@ -9,10 +9,11 @@
 //
 // Only synthetic data: data/derived/pages (FNO's synthetic patients and ours) and samples/derived/pages. The patient
 // identities below are the synthetic ones printed on those pages; they only drive the pseudonymization.
+import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { buildFromAnswer, sha256Hex, type PageReading } from "../src/domain/extract/build";
+import { buildFromAnswer, sha256Hex, type CallAnswer, type PageReading } from "../src/domain/extract/build";
 import { pageIdentity } from "../src/domain/extract/identity";
 import type { ModelAnswer } from "../src/domain/extract/schema";
 import type { CaseIdentity } from "../src/domain/pseudonymize";
@@ -82,6 +83,16 @@ function readPage(dir: string, n: number): Omit<PageReading, "identity"> {
   return { ...base, text: readFileSync(f("tess.txt"), "utf8"), quoteText: "tesseract", engine: "tesseract (stored output)" };
 }
 
+// Each page's readability as the page reader judges it (pipeline/eval.py read_document, the container's /v1/analyze),
+// from the stored Tesseract output. It describes the scan, so it applies to the text layer and Tesseract readings; the
+// stored vision transcriptions are judged by phase 2's page reading instead.
+function readability(dir: string): Record<number, PageReading["readability"]> {
+  const code = "import json,sys; from pathlib import Path; from eval import read_document; " +
+    "d = read_document('x', Path(sys.argv[1])); print(json.dumps({p['n']: p['level'] for p in d['pages']}))";
+  const out = execFileSync("uv", ["run", "--quiet", "python", "-c", code, dir], { cwd: join(REPO, "pipeline"), encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] });
+  return JSON.parse(out.trim().split("\n").pop()!);
+}
+
 async function main() {
   const args = process.argv.slice(2);
   const out = resolve(args[args.indexOf("--out") + 1] ?? join(REPO, "samples/derived/runs-ai"));
@@ -96,7 +107,11 @@ async function main() {
   const key = readVar(devVars, "AZURE_OPENAI_KEY");
   const base = wranglerVar("MODEL_BASE");
   const model = wranglerVar("MODEL_NAME");
-  const effort = wranglerVar("MODEL_REASONING_EFFORT") || null;
+  // --effort overrides the configured reasoning effort, to measure whether "low" holds quality.
+  const effort = (args.includes("--effort") ? args[args.indexOf("--effort") + 1] : wranglerVar("MODEL_REASONING_EFFORT")) || null;
+  // Page by page by default: on case 10 one call over the whole document returned 21 to 49 facts depending on the run,
+  // page by page 105 (docs/research/2026-10-19-extraction-eval.md). --whole sends the document in one call.
+  const perPage = !args.includes("--whole");
   const prompt = await loadPrompt(PROMPT_ID);
   const staff = seedStaff();
 
@@ -108,35 +123,62 @@ async function main() {
     }
     const ns = readdirSync(dir).flatMap((f) => /^p(\d+)\.tess\.txt$/.exec(f)?.[1] ?? []).map(Number).sort((a, b) => a - b);
     const identity: CaseIdentity = { patientNames: c.patientNames, birthNumber: c.birthNumber, birthDate: null, staffNames: staff };
+    const levels = readability(dir);
     const pages: PageReading[] = ns.map((n) => {
       const r = readPage(dir, n);
-      return { ...r, identity: pageIdentity(r.text, identity) };
+      return { ...r, readability: r.quoteText === "vision" ? null : (levels[n] ?? null), identity: pageIdentity(r.text, identity) };
     });
-    const { body, parts } = buildPayload({ prompt, text: pages.map((p) => ({ ref: p.page, text: p.text })), imagesBase64: [], identity, model, maxOutputTokens: MAX_OUTPUT_TOKENS, reasoningEffort: effort, maxInputChars: 200000, purpose: "extract_facts" });
-    const payload = JSON.stringify(body);
-    const inputSha = await sha256Hex(payload);
-    const cacheFile = join(cacheDir, `${prompt.ref}-${prompt.sha256.slice(0, 12)}-${inputSha}.json`);
-    let output: string;
-    let ms = 0;
-    if (existsSync(cacheFile)) output = JSON.parse(readFileSync(cacheFile, "utf8")).output;
-    else if (cacheOnly || !key) {
-      console.log(`${c.id}: no cached answer${key ? "" : " and no key"}, skipped`);
-      continue;
-    } else {
-      const t0 = Date.now();
-      const { res, attempts } = await fetchWithRetry(`${base.replace(/\/+$/, "")}/chat/completions`, { method: "POST", headers: { "api-key": key, "content-type": "application/json" }, body: payload }, { attempts: 4, baseMs: 2000, maxDelayMs: 20000, timeoutMs: 300000, deadlineMs: 600000 });
-      ms = Date.now() - t0;
-      const d = (await res.json().catch(() => null)) as { choices?: { message?: { content?: string }; finish_reason?: string }[]; usage?: unknown } | null;
-      const choice = d?.choices?.[0];
-      if (!res.ok || !choice?.message?.content || choice.finish_reason !== "stop") {
-        console.log(`${c.id}: model answered ${res.status}, finish ${choice?.finish_reason ?? "-"}, attempts ${attempts}; nothing kept`);
-        continue;
+    // One call over the given pages. "filtered" when the provider's content filter refuses it; null on another failure.
+    const extract = async (idx: number[]): Promise<CallAnswer | "filtered" | null> => {
+      const { body, parts } = buildPayload({ prompt, text: idx.map((i) => ({ ref: pages[i]!.page, text: pages[i]!.text })), imagesBase64: [], identity, model, maxOutputTokens: MAX_OUTPUT_TOKENS, reasoningEffort: effort, maxInputChars: 200000, purpose: "extract_facts" });
+      const payload = JSON.stringify(body);
+      const inputSha = await sha256Hex(payload);
+      const cacheFile = join(cacheDir, `${prompt.ref}-${prompt.sha256.slice(0, 12)}-${inputSha}.json`);
+      let output: string;
+      if (existsSync(cacheFile)) {
+        const hit = JSON.parse(readFileSync(cacheFile, "utf8"));
+        if (hit.filtered) return "filtered";
+        output = hit.output;
+      } else if (cacheOnly || !key) {
+        console.log(`${c.id} pages ${idx.map((i) => i + 1).join(",")}: no cached answer${key ? "" : " and no key"}`);
+        return null;
+      } else {
+        const t0 = Date.now();
+        const { res, attempts } = await fetchWithRetry(`${base.replace(/\/+$/, "")}/chat/completions`, { method: "POST", headers: { "api-key": key, "content-type": "application/json" }, body: payload }, { attempts: 4, baseMs: 2000, maxDelayMs: 20000, timeoutMs: 300000, deadlineMs: 600000 });
+        seconds += (Date.now() - t0) / 1000;
+        const d = (await res.json().catch(() => null)) as { choices?: { message?: { content?: string }; finish_reason?: string }[]; usage?: unknown } | null;
+        const choice = d?.choices?.[0];
+        if (choice?.finish_reason === "content_filter") {
+          writeFileSync(cacheFile, JSON.stringify({ filtered: true, model, prompt: prompt.ref }));
+          return "filtered";
+        }
+        if (!res.ok || !choice?.message?.content || choice.finish_reason !== "stop") {
+          console.log(`${c.id} pages ${idx.map((i) => i + 1).join(",")}: model answered ${res.status}, finish ${choice?.finish_reason ?? "-"}, attempts ${attempts}`);
+          return null;
+        }
+        output = choice.message.content;
+        writeFileSync(cacheFile, JSON.stringify({ output, model, prompt: prompt.ref, usage: d?.usage ?? null }));
       }
-      output = choice.message.content;
-      writeFileSync(cacheFile, JSON.stringify({ output, model, prompt: prompt.ref, usage: d?.usage ?? null }));
-    }
-    const answer = JSON.parse(output) as ModelAnswer;
-    const built = await buildFromAnswer({ caseId: c.id, doc: { documentId: c.documentId, part: null, pages }, parts: parts.map((x) => x.p), answer });
+      return { pages: idx, parts: parts.map((x) => x.p), answer: JSON.parse(output) as ModelAnswer };
+    };
+
+    // Page by page (or, with --whole, the document in one call, falling back to pages when the content filter
+    // refuses it); a page still refused is listed as not read.
+    let seconds = 0;
+    const calls: CallAnswer[] = [];
+    const unreadPages: number[] = [];
+    const all = pages.map((_, i) => i);
+    const whole = perPage ? "filtered" : await extract(all);
+    if (whole === null) continue;
+    if (whole !== "filtered") calls.push(whole);
+    else
+      for (const i of all) {
+        const one = await extract([i]);
+        if (one && one !== "filtered") calls.push(one);
+        else unreadPages.push(i);
+      }
+    const built = await buildFromAnswer({ caseId: c.id, doc: { documentId: c.documentId, part: null, pages }, calls, unreadPages });
+    const fromModel = calls.reduce((n, x) => n + x.answer.facts.length, 0);
     const run = {
       schema: "codebridge.extraction/2",
       case_id: c.id,
@@ -152,7 +194,8 @@ async function main() {
     };
     writeFileSync(join(out, `${c.id}.json`), JSON.stringify(run, null, 1));
     const ids = pages.map((p) => `p${p.page}:${p.identity}`).join(" ");
-    console.log(`${c.id}: ${answer.facts.length} from the model, kept ${built.report.kept} (verify ${built.report.verify}, quarantined ${built.report.quarantined}), dropped ${JSON.stringify(built.report.dropped)}, reasons ${JSON.stringify(built.report.reasons)}${ms ? `, ${(ms / 1000).toFixed(1)} s` : ", cached"}; ${ids}`);
+    const filtered = unreadPages.length ? `, not read (content filter) p${unreadPages.map((i) => i + 1).join(",")}` : "";
+    console.log(`${c.id}: ${fromModel} from the model in ${calls.length} call(s)${filtered}, kept ${built.report.kept} (verify ${built.report.verify}, quarantined ${built.report.quarantined}), dropped ${JSON.stringify(built.report.dropped)}, reasons ${JSON.stringify(built.report.reasons)}${seconds ? `, ${seconds.toFixed(1)} s` : ", cached"}; ${ids}`);
   }
 }
 

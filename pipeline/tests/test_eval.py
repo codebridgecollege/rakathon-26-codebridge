@@ -125,6 +125,31 @@ def test_s03_planted_misreads(page, truth, misread):
     assert truth.replace("**", "") not in tess
 
 
+def test_ai_runs_are_merged_and_judged(tmp_path):
+    """--ai-runs adds an AI run fragment: its checks replace the adapter's, so an expectation that needed them runs,
+    and a clear wrong fact fails it."""
+    spec = next(s for s in (ev.load_expected(p) for p in sorted(ev.EXPECTED_DIR.glob("*.json"))) if s["case"] == "S03")
+    src = {"id": "src-x", "type": "document", "document_id": "S03_pacient", "part": None, "page": 2,
+           "quote": "Metastatické postižení. jater  prokázáno.", "quote_text": "tesseract", "anchor": None,
+           "reported_as": "original", "identity": "matches", "reading_check": None}
+    fact = {"id": "f-x", "key": "metastasis|játra|2026-09-16", "kind": "metastasis", "subject": "patient",
+            "value": {"site": "játra", "status": "confirmed", "basis": None, "text": None},
+            "date": {"as_written": None, "precision": None, "sort": None}, "status": "documented", "negated": False,
+            "not_stated": [], "origin": "document", "certainty": "clear", "codes": [], "note": None,
+            "quarantined": False, "sources": ["src-x"]}
+    check = {"id": "chk-metastasis", "looks_for": "metastasis", "expected": None, "covered": [], "unreadable": [],
+             "result": "found"}
+    run = {"sources": [src], "facts": [fact], "checks": [check], "alerts": [], "run": {"stages": []}}
+    (tmp_path / "S03.json").write_text(json.dumps(run, ensure_ascii=False))
+    out = {r["id"]: r["outcome"] for r in ev.evaluate_case(spec, tmp_path)["results"]}
+    assert out["S03-D2-no-proven-liver-metastases"] == "fail"
+    assert out["S03-D2-liver-excluded-or-marked"] == "pass"
+    fact["certainty"] = "verify"
+    (tmp_path / "S03.json").write_text(json.dumps(run, ensure_ascii=False))
+    out = {r["id"]: r["outcome"] for r in ev.evaluate_case(spec, tmp_path)["results"]}
+    assert out["S03-D2-no-proven-liver-metastases"] == "pass"
+
+
 def test_damage_spec_names_every_defect():
     spec = json.loads((REPO / "samples/S03_pacient/damage.json").read_text())
     assert [d["id"] for d in spec["defects"]] == ["D1", "D2", "D3", "D4", "D5"]
