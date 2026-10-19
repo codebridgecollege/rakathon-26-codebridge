@@ -190,17 +190,14 @@ export function createTransport(opts: ClientOptions = {}): Transport {
     };
   }
 
-  // The answers after which the whole page reloads, reported once each.
-  let changedSignalled = false;
+  // The answers after which the whole page may reload.
   function signal(err: ApiError): ApiError {
     if (err.code === "data_reset" && !resetSignalled) {
       resetSignalled = true;
       opts.onDataReset?.();
     }
-    if (err.code === "session_changed" && !changedSignalled) {
-      changedSignalled = true;
-      opts.onSessionChanged?.();
-    }
+    // Reported every time: the app ignores the ones it expects (the lost-login dialog) and reloads once otherwise.
+    if (err.code === "session_changed") opts.onSessionChanged?.();
     return err;
   }
 

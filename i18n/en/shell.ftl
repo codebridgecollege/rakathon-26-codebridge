@@ -24,7 +24,7 @@ nav-tasks = My tasks
 nav-staff = Staff
 nav-admin = Administration
 
-## User picker (the demo has no login; the user is picked by hand)
+## User picker (demo mode has no login; the user is picked by hand)
 
 user-picker-label = User:
 user-picker-aria = Current user (demo without login)
@@ -77,7 +77,7 @@ api-error-write-timeout = The server did not respond in time. Please try again.
 api-error-write-network = The server is not responding. Check your connection and try again.
 api-error-write-failed = The change could not be saved.
 data-reset-reload = The demo data were reset; the page will reload.
-session-changed-reload = The sign-in changed in another window; the page will reload.
+session-changed-reload = The sign-in changed (another user or role in another window); the page will reload.
 user-switch-unknown = This user is not in the server's list.
 case-data-bad-shape = The server sent case data in an unknown shape.
 

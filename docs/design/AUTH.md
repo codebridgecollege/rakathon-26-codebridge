@@ -96,7 +96,7 @@ which has no EU placement guarantee and no persistent disk.
 3. **Login at the IdP.** Self-registration is off; only provisioned accounts can log in.
 4. **`GET /auth/callback`:**
    - It reads and deletes the transaction cookie (one use), checks the state, exchanges the code as a confidential client, and verifies the ID token with `jose`: issuer, audience, nonce, expiry and `email_verified`.
-   - The key cache, the "IdP keys unreachable gives 503" behaviour and the 30 s clock tolerance are reused from `api/src/auth/access.ts`.
+   - The key cache, the "IdP keys unreachable gives 503" behaviour and the 30 s clock tolerance come from `api/src/auth/jwks.ts`.
    - A failed callback shows a fixed page with "Zkusit znovu" instead of redirecting again, so it cannot loop.
 5. **Linking the person, never auto-creating one:**
    - The first login links issuer and subject to the provisioned person with the same verified e-mail.
@@ -105,7 +105,7 @@ which has no EU placement guarantee and no persistent disk.
 6. **Session:**
    - A new session ID is issued at every login (no session fixation). It is stored in D1 only as a hash, with the person, the active org, and the acting membership.
    - The browser gets `__Host-cb_session`: HttpOnly, Secure, SameSite=Lax, path `/`, no domain.
-   - No IdP access or refresh tokens are kept: the Worker calls no IdP API. The ID token is kept only as long as the logout hint needs it.
+   - No IdP access or refresh tokens are kept, and outside the login and the logout the Worker calls no IdP API. The ID token is kept only as long as the logout hint needs it.
 7. **`POST /auth/logout`:** covered by the existing same-origin check. It deletes the session and redirects to the IdP's end-session endpoint with `id_token_hint` and a registered post-logout address.
 
 **Session rules:**
@@ -424,12 +424,13 @@ The runbook is in `api/AGENTS.md`, section "Login".
   with `client_secret_basic`, and the ID token check with `jose` (RS256
   only, issuer from discovery, audience, `azp` when several audiences,
   nonce, `exp`/`iat`/`sub`/`nonce` required, 30 s tolerance) on the key-set
-  cache of `src/auth/jwks.ts`, which the Cloudflare Access check used.
+  cache of `src/auth/jwks.ts`.
 - **Transactions** (`src/auth/session.ts`): state, nonce and verifier are
   32 random bytes each; the transaction is a JWE (`dir`, A256GCM with
   `SESSION_KEY`, 10 minutes) in `__Host-cb_tx_<state>`, opened only for
-  the state in the query and deleted by every callback answer. The return
-  path rule above, plus no control characters, spaces or backslashes, at
+  the state in the query and deleted by every callback answer;
+  `/auth/login` clears abandoned ones once five have piled up. The return
+  path rule above, plus printable ASCII only and no backslash, at
   most 2000 characters, and nothing under `/auth`.
 - **Linking.** Issuer and subject first; otherwise the provisioned person
   whose `users.email` matches the verified e-mail case-insensitively,
@@ -453,7 +454,8 @@ The runbook is in `api/AGENTS.md`, section "Login".
   middleware the person's own one (for the speech and summary routes,
   which have no viewer), so an ended membership counts at once (401
   `unknown_user`). The cron sweep clears
-  the ID token of expired sessions and deletes rows 30 days after expiry.
+  the ID token of sessions that ended (12 hours, or the idle limit) and
+  deletes rows 30 days after expiry.
 - **Switches.** `POST /api/session/org {org_id}` (only into an active
   membership of the person) and `POST /api/session/role {membership_id}`
   (demo orgs only: the org's demo accounts, which are its memberships
@@ -511,10 +513,12 @@ The runbook is in `api/AGENTS.md`, section "Login".
   membership; another login shows "Načíst stránku znovu" instead.
 - **One session, several tabs.** The cookie serves every tab of the
   browser, so each request names whom its tab shows (`X-Acting-As:
-  <membership>:<person>`, from `/api/me`, which is sent without it). After
+  <membership>:<person>`, from `/api/me`, which is sent without it; page
+  images loaded by `<img>` cannot send it and are not compared, nor are
+  requests during a switch). After
   a switch or another login in a second tab, the viewer middleware answers
   409 `session_changed` before the request reads or writes anything, and
-  the tab says so and reloads.
+  the tab says so and reloads (not while the lost-login dialog waits).
 - Strings in `i18n/*/shell.ftl` and `lists.ftl`; tests in
   `app/test/login.test.ts` and `packages/api-client/test/client.test.ts`.
 
@@ -537,7 +541,7 @@ The runbook is in `api/AGENTS.md`, section "Login".
 - **No org picker at login.** A person with several memberships lands in
   the oldest org and switches in the account menu.
 - **The ID token is kept with the session** (12 hours at most) as the
-  logout hint, and cleared by the sweep once the session expired.
+  logout hint, and cleared by the sweep once the session ended.
 - **Userinfo fallback.** If the Zitadel app does not put the e-mail into
   the ID token ("User Info inside ID Token" off), the Worker calls the
   userinfo endpoint once per login with that login's access token, then

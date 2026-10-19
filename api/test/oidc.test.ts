@@ -627,7 +627,7 @@ describe("org and role switch", () => {
     expect((await me(next)).status).toBe(401);
   });
 
-  it("keeps the real person on work that finishes later (phone upload, Workflows, sweeps) after a role switch", async () => {
+  it("stores the real person with an upload session opened after a role switch, and builds the access-log actor of later steps from it", async () => {
     const { sid } = await login({ sub: "sub-admin", email: "admin.a@codebridge.demo" });
     const next = cookieValue(await post("/api/session/role", sid, { membership_id: "d2p1" }), "__Host-cb_session");
     const r = await call(

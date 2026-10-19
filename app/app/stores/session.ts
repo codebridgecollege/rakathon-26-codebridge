@@ -67,8 +67,11 @@ export const useSessionStore = defineStore("session", () => {
     setTimeout(() => reload(), 1500);
   });
   // Another tab switched org or role, or another person logged in: this tab shows someone the session no longer is.
+  // While the lost-login dialog waits, the new login acts as the person's first membership until checkLogin switches
+  // it back: a request refused in that gap fails like any other (the recorder and the drafts send again) instead of
+  // reloading the page the dialog exists to keep.
   onSessionChanged(() => {
-    if (resetting.value) return;
+    if (resetting.value || expired.value !== null) return;
     resetting.value = true;
     error.value = { message_cs: null, message_id: "session-changed-reload" };
     setTimeout(() => reload(), 1500);
@@ -215,12 +218,18 @@ export const useSessionStore = defineStore("session", () => {
   }
 
   // The login's switches (OIDC mode). The server issues a new session cookie; a refusal leaves the old session.
+  // From the switch request until the new /me arrives, requests name no identity: the server then does not compare
+  // (X-Acting-As is a check between tabs), and a read resent with the new cookie is not refused as "changed".
   async function rotate(call: () => Promise<unknown>) {
+    useApi().setActingAs(null);
     const p = call();
     rotating = p;
     try {
       await p;
       switchedAt = performance.now();
+    } catch (e) {
+      setShown(me.value);
+      throw e;
     } finally {
       rotating = null;
     }

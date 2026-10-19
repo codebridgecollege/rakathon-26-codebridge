@@ -277,7 +277,7 @@ OpenID Connect (OIDC, the standard login protocol); design and details in
     Worker secret `SESSION_KEY`) and is deleted by the callback.
 - **Retention.** A session ends 12 hours after the login at the latest; in
   a hospital org also after 1 hour without use; logout deletes it at once.
-  The cron sweep clears the ID token of an expired session within 15
+  The cron sweep clears the ID token of a session that ended within 15
   minutes and deletes the row 30 days after it expired. Identities stay
   while the person has a membership; deleting them with the person's last
   membership, after the access-log retention FNO sets, is not built yet.

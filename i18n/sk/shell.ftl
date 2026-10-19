@@ -25,7 +25,7 @@ nav-tasks = Moje úlohy
 nav-staff = Personál
 nav-admin = Administrácia
 
-## User picker (the demo has no login; the user is picked by hand)
+## User picker (demo mode has no login; the user is picked by hand)
 
 user-picker-label = Používateľ:
 user-picker-aria = Aktuálny používateľ (ukážka bez prihlásenia)
@@ -78,7 +78,7 @@ api-error-write-timeout = Server neodpovedal včas. Skúste to znova.
 api-error-write-network = Server neodpovedá. Skontrolujte pripojenie a skúste to znova.
 api-error-write-failed = Zmenu sa nepodarilo uložiť.
 data-reset-reload = Ukážkové údaje boli obnovené, stránka sa znova načíta.
-session-changed-reload = Prihlásenie sa v inom okne zmenilo, stránka sa znova načíta.
+session-changed-reload = Prihlásenie sa zmenilo (iný používateľ alebo rola v inom okne), stránka sa znova načíta.
 user-switch-unknown = Tento používateľ nie je v zozname na serveri.
 case-data-bad-shape = Server vrátil údaje prípadu v neznámom tvare.
 

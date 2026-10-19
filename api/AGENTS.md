@@ -325,9 +325,12 @@ proves who someone is, and orgs, memberships and roles stay in D1.
   the repository; move them to the password manager and delete the file. Existing accounts are skipped. The seed gives
   the matching people the same e-mails (`seed/seed.py`, `EMAILS`), and the first login links them. Never use these
   passwords in automated tests: the browser suite logs in at its mock IdP (`e2e/mock-oidc.mjs`).
-- **Deploying the login.** It needs migration 0012 (`auth_sessions` with the membership acted as) and both secrets
-  before the code runs: set `SESSION_KEY` (and check `OIDC_CLIENT_SECRET` with `npx wrangler secret list`), deploy
-  with the migration as in "Migrating a deployed database" above (0011 and 0012 go together when #14 and this merge at
+- **Deploying the login.** The deployed hosts ask for a login from the moment `main` deploys, so before merging:
+  register the redirect and post-logout addresses of both hosts in Zitadel (above); create the demo accounts and hand
+  out their passwords (below the list, `zitadel-demo-accounts.mjs`); set `SESSION_KEY`; check with
+  `npx wrangler secret list` that `OIDC_CLIENT_SECRET` is there, and if not, `npx wrangler secret put
+  OIDC_CLIENT_SECRET` from the password manager. It also needs migration 0012 (`auth_sessions` with the membership
+  acted as, `created_by_actor`) before the code runs: deploy with the migration as in "Migrating a deployed database" above (0011 and 0012 go together when #14 and this merge at
   once), then check by hand against the real Zitadel instance: `/api/health` shows `auth_mode: "oidc"`; the app at `/`
   goes to Zitadel's Czech login page; `admin.a` logs in and lands where it started; "Přepnout roli" to a doctor and
   back; Administrace shows "Ing. Kovář (jako MUDr. ...)"; "Odhlásit" ends at Zitadel and back on the login page; repeat
@@ -335,8 +338,9 @@ proves who someone is, and orgs, memberships and roles stay in D1.
 - **Logs.** Failed logins appear in Workers Logs as `{route, auth, reason}` with a short code (`no_person`,
   `no_membership`, `unverified_email`, `nonce`, `jwks`, `token_refused`); tokens, e-mails and subjects are never
   logged. Check that invocation logs do not record request headers: the session cookie is a bearer credential.
-- **When the IdP is down,** discovery serves its cached copy for up to an hour, and a login that cannot reach the
-  IdP's keys or token endpoint shows "Přihlašovací služba je nedostupná" (503) instead of starting again, so nobody is
+- **When the IdP is down,** discovery keeps serving its last copy (fresh for an hour, stale after that), but `jose`
+  fetches the key set again after about ten minutes and the token endpoint is called every time, so a login that
+  cannot reach them shows "Přihlašovací služba je nedostupná" (503) instead of starting again, so nobody is
   sent round a login loop. Sessions already running are not affected: the Worker calls the IdP only during a login and
   a logout.
 - **Removing someone.** Ending the membership on the staff screen stops their session at the next request. Disabling

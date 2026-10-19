@@ -225,9 +225,10 @@ describe("a lost session", () => {
         await hold.promise;
         return LOST;
       },
-      "/calendar": async () => {
+      "/calendar": async (_u: string, init: RequestInit) => {
         reads++;
-        if (reads > 1) return { days: [] };
+        // The resent read must not name the identity of before the switch, or the server would call it changed.
+        if (reads > 1) return new Headers(init.headers).get("X-Acting-As") === "admin:admin" ? [409, { error: { code: "session_changed", message_cs: "x" } }] : { days: [] };
         await hold.promise;
         return LOST;
       },
@@ -287,6 +288,20 @@ describe("a lost session", () => {
     await expect(write).resolves.toMatchObject({ data_epoch: 4 });
     expect(m.calls.filter((c) => c.url === "/api/session/role").length).toBe(2);
     expect(s.expired).toBeNull();
+  });
+
+  it("does not reload while the lost-login dialog waits, when a request meets the new login's other identity", async () => {
+    const m = server({ "/cases/NO-1/protocol": () => LOST, "/calendar": [409, { error: { code: "session_changed", message_cs: "x" } }] });
+    setApi(m.api);
+    const s = useSessionStore();
+    await s.boot();
+    s.onUnsavedCheck(() => true);
+    void m.api.transport.write("PUT", "/cases/NO-1/protocol", { notes: "x" }).catch(() => {});
+    await flushPromises();
+    expect(s.expired).toBe("waiting");
+    await expect(m.api.transport.get("/calendar")).rejects.toMatchObject({ code: "session_changed" });
+    expect(s.resetting).toBe(false);
+    expect(s.error).toBeNull();
   });
 
   it("does nothing special in demo mode", async () => {

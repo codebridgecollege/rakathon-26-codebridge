@@ -4,7 +4,7 @@ import { Hono, type Context } from "hono";
 import { getCookie } from "hono/cookie";
 import type { AppEnv, SessionUser } from "../types";
 import { ApiError, E } from "../http/errors";
-import { cookie, rotateSession, SESSION_COOKIE, SESSION_MAX_MS, sessionOf } from "../auth/session";
+import { cookie, rotateSession, SESSION_COOKIE, SESSION_MAX_MS, sessionOf, type SessionRow } from "../auth/session";
 import { actsInApp, activeMembershipsOfUser, membershipById, roleSwitchMemberships } from "../store/people";
 import { logSessionEvent } from "../auth/events";
 import { staffName } from "../domain/rows";
@@ -31,9 +31,14 @@ function sessionUser(c: Context<AppEnv>): SessionUser {
   return u;
 }
 
-async function rotated(c: Context<AppEnv>, next: { org: string; membershipId: string; actingMembershipId: string | null }) {
+// The session row of this request; read before the log row, so a switch of a session already gone logs nothing.
+async function currentSession(c: Context<AppEnv>) {
   const old = await sessionOf(c.env.DB, getCookie(c, SESSION_COOKIE));
   if (!old) throw E.unauthenticated();
+  return old;
+}
+
+async function rotated(c: Context<AppEnv>, old: SessionRow, next: { org: string; membershipId: string; actingMembershipId: string | null }) {
   const id = await rotateSession(c.env.DB, old, next);
   // Logged out in another tab between the check and the switch.
   if (!id) throw E.unauthenticated();
@@ -54,8 +59,9 @@ export const session = new Hono<AppEnv>()
     const target = (await activeMembershipsOfUser(c.env.DB, u.userId)).filter(actsInApp).find((m) => m.org_id === b.org_id);
     if (!target) throw orgNotFound();
     // Logged first: a switch must never happen without its row (a failed insert stops it with a 500).
+    const old = await currentSession(c);
     await logSessionEvent(c.env, target, null, "session.org", "přepnul(a) organizaci", c.req.header("cf-ray") ?? null);
-    await rotated(c, { org: target.org_id, membershipId: target.id, actingMembershipId: null });
+    await rotated(c, old, { org: target.org_id, membershipId: target.id, actingMembershipId: null });
     return c.json({ ok: true });
   })
   // "Přepnout roli" (demo orgs only): act as one of the org's demo accounts, or back as oneself. The access log keeps
@@ -73,6 +79,7 @@ export const session = new Hono<AppEnv>()
       if (!t || !actsInApp(t)) throw memberNotFound();
       target = t;
     }
+    const old = await currentSession(c);
     await logSessionEvent(
       c.env,
       target,
@@ -81,6 +88,6 @@ export const session = new Hono<AppEnv>()
       `přepnul(a) roli: ${staffName(target)} (${ROLE_CS[target.role_id] ?? target.role_id})`,
       c.req.header("cf-ray") ?? null,
     );
-    await rotated(c, { org: u.org, membershipId: own.id, actingMembershipId: target.id === own.id ? null : target.id });
+    await rotated(c, old, { org: u.org, membershipId: own.id, actingMembershipId: target.id === own.id ? null : target.id });
     return c.json({ ok: true });
   });

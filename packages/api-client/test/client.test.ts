@@ -288,7 +288,7 @@ describe("a lost login session (401)", () => {
     expect(seen).toEqual(["PATCH"]);
   });
 
-  it("names whom the tab shows on every request but /me, and reports a changed session once", async () => {
+  it("names whom the tab shows on every request but /me, and reports every changed-session answer", async () => {
     const changed = vi.fn();
     const m = mockFetch([200, { user: { id: "d2p1" } }], [409, { error: { code: "session_changed", message_cs: "x" } }], [409, { error: { code: "session_changed", message_cs: "x" } }]);
     const api = createApiClient({ fetch: m.fn, onSessionChanged: changed });
@@ -297,7 +297,7 @@ describe("a lost login session (401)", () => {
     await expect(api.staff()).rejects.toMatchObject({ code: "session_changed" });
     await expect(api.transport.write("POST", "/x", {})).rejects.toMatchObject({ code: "session_changed" });
     expect(m.calls.map((c) => headersOf(c).get("X-Acting-As"))).toEqual([null, "d2p1:d2p1", "d2p1:d2p1"]);
-    expect(changed).toHaveBeenCalledTimes(1);
+    expect(changed).toHaveBeenCalledTimes(2);
   });
 
   it("leaves other refusals alone", async () => {
