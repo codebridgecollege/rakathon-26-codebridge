@@ -1,4 +1,5 @@
 {
+ "run_id": "fixture-NO-010-v2",
  "guidelines": [
   {
    "id": "cos-mk-2026",
@@ -25,10 +26,13 @@
    "evidence": "bez stupně",
    "evidence_cs": "text kapitoly, bez stupně",
    "type": "guideline_text",
-   "row_index": 0,
    "decision_cs": "Nefrektomie vpravo 2.6.2022",
    "relation_cs": "Pasáž popisuje volbu chirurgického výkonu podle kategorie T; zpráva uvádí pT2a pN1 M0 (v textu „MO“).",
-   "edition_note_cs": "Aktuální vydání 2026, ne vydání platné v době rozhodnutí (2022)."
+   "edition_note_cs": "Aktuální vydání 2026, ne vydání platné v době rozhodnutí (2022).",
+   "row_fact_id": "f-5acde13c",
+   "decision_fact_ids": [
+    "f-5acde13c"
+   ]
   },
   {
    "id": "past-lymphadenectomy",
@@ -40,10 +44,13 @@
    "evidence": "bez stupně",
    "evidence_cs": "text kapitoly, bez stupně",
    "type": "guideline_text",
-   "row_index": 0,
    "decision_cs": "Retroperitoneální lymfadenektomie 2.6.2022",
    "relation_cs": "Pasáž popisuje, kdy je regionální lymfadenektomie možná a k čemu slouží; u pacienta histologie uvádí pN1 (3 z 5 uzlin).",
-   "edition_note_cs": "Aktuální vydání 2026, ne vydání platné v době rozhodnutí (2022)."
+   "edition_note_cs": "Aktuální vydání 2026, ne vydání platné v době rozhodnutí (2022).",
+   "row_fact_id": "f-5acde13c",
+   "decision_fact_ids": [
+    "f-5acde13c"
+   ]
   },
   {
    "id": "past-metastasectomy-node",
@@ -55,10 +62,13 @@
    "evidence": "ČOS 2A",
    "evidence_cs": "ČOS 2A",
    "type": "recommendation",
-   "row_index": 2,
    "decision_cs": "Exstirpace paraaortální uzliny 25.10.2022",
    "relation_cs": "Pasáž popisuje chirurgickou léčbu metastáz RCC; histologie uvádí „MTS světlobuněčného renálního karcinomu G2, R0“ v paraaortální uzlině vlevo.",
-   "edition_note_cs": "Aktuální vydání 2026, ne vydání platné v době rozhodnutí (2022)."
+   "edition_note_cs": "Aktuální vydání 2026, ne vydání platné v době rozhodnutí (2022).",
+   "row_fact_id": "f-eee2606f",
+   "decision_fact_ids": [
+    "f-eee2606f"
+   ]
   },
   {
    "id": "past-1l-intermediate",
@@ -70,10 +80,14 @@
    "evidence": "stupeň ČOS u každého režimu: 1, 1, 1, 1, 2A, 2A, 2A, 2A, 2B",
    "evidence_cs": "ČOS 1 / 2A / 2B (podle režimu)",
    "type": "recommendation",
-   "row_index": 5,
    "decision_cs": "1. linie nivolumab + ipilimumab 3/2023",
    "relation_cs": "Pasáž (sloupec algoritmu) uvádí možnosti 1. linie u světlobuněčného mRCC se střední prognózou; pacient měl dle dokumentace střední prognózu IMDC (1 faktor: interval pod 1 rok od diagnózy do systémové léčby).",
-   "edition_note_cs": "Aktuální vydání 2026, ne vydání platné v době rozhodnutí (2023)."
+   "edition_note_cs": "Aktuální vydání 2026, ne vydání platné v době rozhodnutí (2023).",
+   "row_fact_id": "f-08bf0d6d",
+   "decision_fact_ids": [
+    "f-08bf0d6d",
+    "f-8ad6cbe7"
+   ]
   },
   {
    "id": "past-nivo-ipi-regimen",
@@ -85,11 +99,14 @@
    "evidence": "bez stupně",
    "evidence_cs": "řádek tabulky režimů, bez stupně",
    "type": "guideline_text",
-   "row_index": 5,
    "decision_cs": "Udržovací nivolumab 6/2023-12/2025",
    "relation_cs": "Řádek tabulky popisuje dávkování nivolumabu s ipilimumabem a následnou fázi nivolumabu; dle dokumentace podány 2 cykly (27.3. a 17.4.2023), poté gastrointestinální a plicní toxicita; dále nivolumab 240 mg každé 2 týdny.",
    "edition_note_cs": "Aktuální vydání 2026, ne vydání platné v době rozhodnutí (2023).",
-   "decision_ref": 13
+   "row_fact_id": "f-08bf0d6d",
+   "decision_fact_ids": [
+    "f-08bf0d6d",
+    "f-49b84a6d"
+   ]
   },
   {
    "id": "past-skin-metastasectomy",
@@ -101,10 +118,13 @@
    "evidence": "ČOS 2A",
    "evidence_cs": "ČOS 2A",
    "type": "recommendation",
-   "row_index": 8,
    "decision_cs": "Excize suspektního névu brady vlevo (histologicky kožní metastáza)",
    "relation_cs": "Excize byla podle zprávy rozhodnuta jako odstranění suspektního iritovaného névu, ne jako metastasektomie; kožní metastázu světlobuněčného RCC (odstraněnou kompletně) ukázala až histologie. Pasáž o chirurgické léčbě metastáz je proto jen kontext, ne měřítko pro srovnání tohoto rozhodnutí.",
-   "edition_note_cs": "Aktuální vydání 2026, ne vydání platné v době rozhodnutí (2023)."
+   "edition_note_cs": "Aktuální vydání 2026, ne vydání platné v době rozhodnutí (2023).",
+   "row_fact_id": "f-c8f97b8a",
+   "decision_fact_ids": [
+    "f-c8f97b8a"
+   ]
   },
   {
    "id": "past-2l-after-io",
@@ -116,11 +136,14 @@
    "evidence": "stupeň ČOS u každého léku: 2A, 2A, 2A, 2A, 2B",
    "evidence_cs": "ČOS 2A / 2B (podle léku)",
    "type": "recommendation",
-   "row_index": 12,
    "decision_cs": "2. linie sunitinib 1/2026",
    "relation_cs": "Pasáž (sloupec algoritmu) uvádí možnosti 2. linie po předchozí moderní imunoterapii; pacient měl dle dokumentace v 1. linii nivolumab + ipilimumab a dosud žádný VEGF-TKI.",
    "edition_note_cs": "Aktuální vydání 2026 (platné od 1. 3. 2026), ne vydání platné v době rozhodnutí (1/2026).",
-   "decision_ref": 55
+   "row_fact_id": "f-7f0d261e",
+   "decision_fact_ids": [
+    "f-7f0d261e",
+    "f-c1194c3e"
+   ]
   },
   {
    "id": "past-3l-after-io-tki",
@@ -132,11 +155,14 @@
    "evidence": "stupeň ČOS u každého léku: 2A, 2A, 2B, 2B, 2B",
    "evidence_cs": "ČOS 2A / 2B (podle léku)",
    "type": "recommendation",
-   "row_index": 16,
    "decision_cs": "3. linie everolimus 9/2026",
    "relation_cs": "Pasáž (sloupec algoritmu) uvádí možnosti 3. linie po IO a VEGF-TKI; pacient měl dle dokumentace nivolumab + ipilimumab a sunitinib, záznam uvádí kabozantinib ponechaný do 4. linie.",
    "edition_note_cs": "Vydání 2026 (platné od 1. 3. 2026) platilo i v době rozhodnutí (9/2026).",
-   "decision_ref": 33
+   "row_fact_id": "f-2cb5d3e3",
+   "decision_fact_ids": [
+    "f-2cb5d3e3",
+    "f-15dfed8f"
+   ]
   }
  ],
  "pages": [

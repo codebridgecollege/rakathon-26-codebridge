@@ -1,4 +1,5 @@
 {
+  "run_id": "fixture-NO-010-v2",
   "guidelines": [
     {
       "id": "eano-esmo-2021-bm",
@@ -40,7 +41,13 @@
       "evidence": "EANO: I, A; ESMO: I, A",
       "applies_because_cs": "Jediné ložisko podezřelé z metastázy (počet 1, tedy v rozmezí 1-4). Metastáza zatím není potvrzena.",
       "patient_facts": [
-        "MR mozku 14. 9. 2026: solitární sytící se ložisko v pravé hemisféře mozečku do 3 mm, susp. metastáza"
+        {
+          "text": "MR mozku 14. 9. 2026: solitární sytící se ložisko v pravé hemisféře mozečku do 3 mm, susp. metastáza",
+          "fact_ids": [
+            "f-5f20f17f",
+            "f-a0522e68"
+          ]
+        }
       ],
       "kind": "brain_metastasis",
       "type": "recommendation",
@@ -56,8 +63,21 @@
       "evidence": "bez stupně (text kapitoly, ne doporučení)",
       "applies_because_cs": "Věta srovnává SRS s chirurgickou léčbou (ne se sledováním). Ložisko v pravé hemisféře mozečku do 3 mm je suspektní z metastázy; dostupnost pro operaci a operační riziko dokumentace nehodnotí.",
       "patient_facts": [
-        "MR mozku 14. 9. 2026: solitární sytící se ložisko v pravé hemisféře mozečku do 3 mm, susp. metastáza",
-        "ECOG PS 1, bez klinických známek mozkových metastáz (občasné mžitky před očima)"
+        {
+          "text": "MR mozku 14. 9. 2026: solitární sytící se ložisko v pravé hemisféře mozečku do 3 mm, susp. metastáza",
+          "fact_ids": [
+            "f-5f20f17f",
+            "f-a0522e68"
+          ]
+        },
+        {
+          "text": "ECOG PS 1, bez klinických známek mozkových metastáz (občasné mžitky před očima)",
+          "fact_ids": [
+            "f-3cfe8dd6",
+            "f-816154af",
+            "f-39129d76"
+          ]
+        }
       ],
       "kind": "brain_metastasis",
       "type": "guideline_text",
@@ -73,9 +93,29 @@
       "evidence": "bez stupně (text kapitoly, ne doporučení)",
       "applies_because_cs": "Onkolog zapsal ‚bez klin. známek mozkových mts‘; pacient uvádí občasné mžitky před očima, jejich souvislost s ložiskem dokumentace nehodnotí. Pacient je na systémové léčbě (everolimus od 3. 9. 2026).",
       "patient_facts": [
-        "MR mozku 14. 9. 2026: solitární sytící se ložisko v pravé hemisféře mozečku do 3 mm, susp. metastáza",
-        "ECOG PS 1, bez klinických známek mozkových metastáz (občasné mžitky před očima)",
-        "Everolimus 5 mg denně od 3. 9. 2026 (3. linie); dle nejnovějšího ambulantního závěru navýšení na 10 mg denně od 19. 9. 2026"
+        {
+          "text": "MR mozku 14. 9. 2026: solitární sytící se ložisko v pravé hemisféře mozečku do 3 mm, susp. metastáza",
+          "fact_ids": [
+            "f-5f20f17f",
+            "f-a0522e68"
+          ]
+        },
+        {
+          "text": "ECOG PS 1, bez klinických známek mozkových metastáz (občasné mžitky před očima)",
+          "fact_ids": [
+            "f-3cfe8dd6",
+            "f-816154af",
+            "f-39129d76"
+          ]
+        },
+        {
+          "text": "Everolimus 5 mg denně od 3. 9. 2026 (3. linie); dle nejnovějšího ambulantního závěru navýšení na 10 mg denně od 19. 9. 2026",
+          "fact_ids": [
+            "f-2cb5d3e3",
+            "f-460c4602",
+            "f-c4b6586a"
+          ]
+        }
       ],
       "kind": "brain_metastasis",
       "type": "guideline_text",
@@ -91,8 +131,19 @@
       "evidence": "EANO: IV, n/a; ESMO: V, B",
       "applies_because_cs": "MR mozku 14. 9. 2026 popisuje suspekci na solitérní metastázu v pravé hemisféře mozečku; ošetřující lékař ve zprávě píše: „Nález při MR vyš. mozku zadávám k projednáni na NCH semináři.“",
       "patient_facts": [
-        "MR mozku 14. 9. 2026: solitární sytící se ložisko v pravé hemisféře mozečku do 3 mm, susp. metastáza",
-        "Nález MR mozku zadán k projednání na NCH semináři"
+        {
+          "text": "MR mozku 14. 9. 2026: solitární sytící se ložisko v pravé hemisféře mozečku do 3 mm, susp. metastáza",
+          "fact_ids": [
+            "f-5f20f17f",
+            "f-a0522e68"
+          ]
+        },
+        {
+          "text": "Nález MR mozku zadán k projednání na NCH semináři",
+          "fact_ids": [
+            "f-e7f16bae"
+          ]
+        }
       ],
       "kind": "brain_metastasis",
       "type": "recommendation",
@@ -108,8 +159,21 @@
       "evidence": "EANO: IV, C; ESMO: IV, B",
       "applies_because_cs": "Doporučení platí pro sledování pacientů s mozkovými metastázami; u pacienta je metastáza zatím jen suspektní (MR 14. 9. 2026).",
       "patient_facts": [
-        "MR mozku 14. 9. 2026: solitární sytící se ložisko v pravé hemisféře mozečku do 3 mm, susp. metastáza",
-        "ECOG PS 1, bez klinických známek mozkových metastáz (občasné mžitky před očima)"
+        {
+          "text": "MR mozku 14. 9. 2026: solitární sytící se ložisko v pravé hemisféře mozečku do 3 mm, susp. metastáza",
+          "fact_ids": [
+            "f-5f20f17f",
+            "f-a0522e68"
+          ]
+        },
+        {
+          "text": "ECOG PS 1, bez klinických známek mozkových metastáz (občasné mžitky před očima)",
+          "fact_ids": [
+            "f-3cfe8dd6",
+            "f-816154af",
+            "f-39129d76"
+          ]
+        }
       ],
       "kind": "brain_metastasis",
       "type": "recommendation",
@@ -125,10 +189,36 @@
       "evidence": "EANO: IV, n/a; ESMO: IV, B",
       "applies_because_cs": "Primární nádor: světlobuněčný karcinom ledviny G2; dvě předchozí linie systémové léčby (nivolumab + ipilimumab, sunitinib), nyní 3. linie everolimus.",
       "patient_facts": [
-        "světlobuněčný renální karcinom G2, nefrektomie vpravo 6/2022, pT2a pN1 M0",
-        "1. linie nivolumab + ipilimumab, progrese (iRECIST potvrzena 1/2026)",
-        "2. linie sunitinib 1-8/2026, progrese",
-        "Everolimus 5 mg denně od 3. 9. 2026 (3. linie); dle nejnovějšího ambulantního závěru navýšení na 10 mg denně od 19. 9. 2026"
+        {
+          "text": "světlobuněčný renální karcinom G2, nefrektomie vpravo 6/2022, pT2a pN1 M0",
+          "fact_ids": [
+            "f-645cb30b",
+            "f-5acde13c",
+            "f-76e20da5"
+          ]
+        },
+        {
+          "text": "1. linie nivolumab + ipilimumab, progrese (iRECIST potvrzena 1/2026)",
+          "fact_ids": [
+            "f-08bf0d6d",
+            "f-42bdd4a3"
+          ]
+        },
+        {
+          "text": "2. linie sunitinib 1-8/2026, progrese",
+          "fact_ids": [
+            "f-7f0d261e",
+            "f-77039580"
+          ]
+        },
+        {
+          "text": "Everolimus 5 mg denně od 3. 9. 2026 (3. linie); dle nejnovějšího ambulantního závěru navýšení na 10 mg denně od 19. 9. 2026",
+          "fact_ids": [
+            "f-2cb5d3e3",
+            "f-460c4602",
+            "f-c4b6586a"
+          ]
+        }
       ],
       "kind": "systemic_therapy",
       "type": "recommendation",
@@ -144,10 +234,34 @@
       "evidence": "EANO: IV, A; ESMO: IV, B",
       "applies_because_cs": "Vedle ložiska v mozečku (suspekce na metastázu) uvádí dokumentace aktivní extrakraniální onemocnění: dle CT 8/2026 velikostní progrese uzlin v levém plicním hilu a v retroperitoneu paraaortálně vlevo. Histologicky ověřené metastázy v paraaortální uzlině (exstirpace 10/2022) a v kůži brady (excize 11/2023) byly v minulosti odstraněny. CT AG plicnice 10. 2. 2026 popisuje drobná osteoplastická ložiska v přechodu Th/L; jejich povahu dokumentace neuvádí. Pacient je ve 3. linii systémové léčby (everolimus).",
       "patient_facts": [
-        "MR mozku 14. 9. 2026: solitární sytící se ložisko v pravé hemisféře mozečku do 3 mm, susp. metastáza",
-        "CT 8/2026: velikostní progrese uzlin v levém plicním hilu a v retroperitoneu paraaortálně vlevo",
-        "histologicky ověřené metastázy (paraaortální uzlina, kůže)",
-        "CT AG plicnice 10. 2. 2026: drobná osteoplastická ložiska do 7 mm v přechodu Th/L (povaha neuvedena)"
+        {
+          "text": "MR mozku 14. 9. 2026: solitární sytící se ložisko v pravé hemisféře mozečku do 3 mm, susp. metastáza",
+          "fact_ids": [
+            "f-5f20f17f",
+            "f-a0522e68"
+          ]
+        },
+        {
+          "text": "CT 8/2026: velikostní progrese uzlin v levém plicním hilu a v retroperitoneu paraaortálně vlevo",
+          "fact_ids": [
+            "f-77039580"
+          ]
+        },
+        {
+          "text": "histologicky ověřené metastázy (paraaortální uzlina, kůže)",
+          "fact_ids": [
+            "f-868a242f",
+            "f-72b56a3a",
+            "f-1cc45871",
+            "f-ffb46a12"
+          ]
+        },
+        {
+          "text": "CT AG plicnice 10. 2. 2026: drobná osteoplastická ložiska do 7 mm v přechodu Th/L (povaha neuvedena)",
+          "fact_ids": [
+            "f-a14d6c6a"
+          ]
+        }
       ],
       "kind": "systemic_therapy",
       "type": "recommendation",
@@ -163,9 +277,28 @@
       "evidence": "stupeň ČOS u každého léku: 2A, 2A, 2B, 2B, 2B",
       "applies_because_cs": "Pacient měl IO (nivolumab + ipilimumab) a VEGF-TKI (sunitinib); everolimus ze stejného boxu už dostává. Algoritmus nemá box pro 4. linii.",
       "patient_facts": [
-        "1. linie nivolumab + ipilimumab, progrese (iRECIST potvrzena 1/2026)",
-        "2. linie sunitinib 1-8/2026, progrese",
-        "Everolimus 5 mg denně od 3. 9. 2026 (3. linie); dle nejnovějšího ambulantního závěru navýšení na 10 mg denně od 19. 9. 2026"
+        {
+          "text": "1. linie nivolumab + ipilimumab, progrese (iRECIST potvrzena 1/2026)",
+          "fact_ids": [
+            "f-08bf0d6d",
+            "f-42bdd4a3"
+          ]
+        },
+        {
+          "text": "2. linie sunitinib 1-8/2026, progrese",
+          "fact_ids": [
+            "f-7f0d261e",
+            "f-77039580"
+          ]
+        },
+        {
+          "text": "Everolimus 5 mg denně od 3. 9. 2026 (3. linie); dle nejnovějšího ambulantního závěru navýšení na 10 mg denně od 19. 9. 2026",
+          "fact_ids": [
+            "f-2cb5d3e3",
+            "f-460c4602",
+            "f-c4b6586a"
+          ]
+        }
       ],
       "kind": "systemic_therapy",
       "type": "recommendation",
@@ -181,10 +314,34 @@
       "evidence": "ČOS 2A",
       "applies_because_cs": "Pacient je ve 3. linii systémové léčby mRCC (everolimus od 3. 9. 2026) a dokumentace uvádí ECOG PS 1.",
       "patient_facts": [
-        "1. linie nivolumab + ipilimumab, progrese (iRECIST potvrzena 1/2026)",
-        "2. linie sunitinib 1-8/2026, progrese",
-        "Everolimus 5 mg denně od 3. 9. 2026 (3. linie); dle nejnovějšího ambulantního závěru navýšení na 10 mg denně od 19. 9. 2026",
-        "ECOG PS 1"
+        {
+          "text": "1. linie nivolumab + ipilimumab, progrese (iRECIST potvrzena 1/2026)",
+          "fact_ids": [
+            "f-08bf0d6d",
+            "f-42bdd4a3"
+          ]
+        },
+        {
+          "text": "2. linie sunitinib 1-8/2026, progrese",
+          "fact_ids": [
+            "f-7f0d261e",
+            "f-77039580"
+          ]
+        },
+        {
+          "text": "Everolimus 5 mg denně od 3. 9. 2026 (3. linie); dle nejnovějšího ambulantního závěru navýšení na 10 mg denně od 19. 9. 2026",
+          "fact_ids": [
+            "f-2cb5d3e3",
+            "f-460c4602",
+            "f-c4b6586a"
+          ]
+        },
+        {
+          "text": "ECOG PS 1",
+          "fact_ids": [
+            "f-3cfe8dd6"
+          ]
+        }
       ],
       "kind": "systemic_therapy",
       "type": "recommendation",
@@ -200,9 +357,28 @@
       "evidence": "bez stupně",
       "applies_because_cs": "Metastatický světlobuněčný RCC po vyčerpání IO a VEGF-TKI.",
       "patient_facts": [
-        "1. linie nivolumab + ipilimumab, progrese (iRECIST potvrzena 1/2026)",
-        "2. linie sunitinib 1-8/2026, progrese",
-        "Everolimus 5 mg denně od 3. 9. 2026 (3. linie); dle nejnovějšího ambulantního závěru navýšení na 10 mg denně od 19. 9. 2026"
+        {
+          "text": "1. linie nivolumab + ipilimumab, progrese (iRECIST potvrzena 1/2026)",
+          "fact_ids": [
+            "f-08bf0d6d",
+            "f-42bdd4a3"
+          ]
+        },
+        {
+          "text": "2. linie sunitinib 1-8/2026, progrese",
+          "fact_ids": [
+            "f-7f0d261e",
+            "f-77039580"
+          ]
+        },
+        {
+          "text": "Everolimus 5 mg denně od 3. 9. 2026 (3. linie); dle nejnovějšího ambulantního závěru navýšení na 10 mg denně od 19. 9. 2026",
+          "fact_ids": [
+            "f-2cb5d3e3",
+            "f-460c4602",
+            "f-c4b6586a"
+          ]
+        }
       ],
       "kind": "systemic_therapy",
       "type": "guideline_text",
@@ -218,7 +394,13 @@
       "evidence": "ČOS 2A",
       "applies_because_cs": "Věta platí obecně pro metastázy RCC, mozek nejmenuje. U pacienta je v mozečku solitární ložisko suspektní z metastázy (MR 14. 9. 2026).",
       "patient_facts": [
-        "MR mozku 14. 9. 2026: solitární sytící se ložisko v pravé hemisféře mozečku do 3 mm, susp. metastáza"
+        {
+          "text": "MR mozku 14. 9. 2026: solitární sytící se ložisko v pravé hemisféře mozečku do 3 mm, susp. metastáza",
+          "fact_ids": [
+            "f-5f20f17f",
+            "f-a0522e68"
+          ]
+        }
       ],
       "kind": "brain_metastasis",
       "type": "recommendation",
@@ -234,8 +416,19 @@
       "evidence": "EANO: III, C; ESMO: IV, B",
       "applies_because_cs": "Ložisko je zatím jen suspektní z metastázy (MR), histologicky nepotvrzené, tedy povaha ložiska není jistá. Primární nádor je znám (světlobuněčný RCC).",
       "patient_facts": [
-        "MR mozku 14. 9. 2026: solitární sytící se nodulus v pravé hemisféře mozečku do 3 mm, suspekce na solitérní metastázu",
-        "Histologie primárního nádoru: světlobuněčný renální adenokarcinom G2"
+        {
+          "text": "MR mozku 14. 9. 2026: solitární sytící se nodulus v pravé hemisféře mozečku do 3 mm, suspekce na solitérní metastázu",
+          "fact_ids": [
+            "f-5f20f17f",
+            "f-a0522e68"
+          ]
+        },
+        {
+          "text": "Histologie primárního nádoru: světlobuněčný renální adenokarcinom G2",
+          "fact_ids": [
+            "f-645cb30b"
+          ]
+        }
       ],
       "kind": "brain_metastasis",
       "type": "recommendation",
@@ -251,7 +444,13 @@
       "evidence": "bez stupně (text kapitoly, ne doporučení)",
       "applies_because_cs": "Ložisko je jen suspektní z metastázy (pochybnost o jeho povaze). Velikost do 3 mm; masový efekt ani léčba kortikoidy: neuvedeno v dostupné dokumentaci.",
       "patient_facts": [
-        "MR mozku 14. 9. 2026: solitární sytící se nodulus v pravé hemisféře mozečku do 3 mm, suspekce na solitérní metastázu"
+        {
+          "text": "MR mozku 14. 9. 2026: solitární sytící se nodulus v pravé hemisféře mozečku do 3 mm, suspekce na solitérní metastázu",
+          "fact_ids": [
+            "f-5f20f17f",
+            "f-a0522e68"
+          ]
+        }
       ],
       "kind": "brain_metastasis",
       "type": "guideline_text",
