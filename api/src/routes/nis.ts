@@ -22,6 +22,7 @@ type LinkRow = { nis_system: string; nis_patient_id: string; nis_version: string
 const PULL_CS: Record<Pull["op"], string> = {
   search: "hledal(a) pacienta v NIS",
   read: "otevřel(a) záznam pacienta v NIS",
+  record: "načítal(a) zdravotní záznam pacienta z NIS",
 };
 const LINK_CS = {
   matches: "propojil(a) pacienta se záznamem v NIS (rodné číslo i jméno souhlasí)",

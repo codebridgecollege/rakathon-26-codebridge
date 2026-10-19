@@ -572,6 +572,60 @@ another. These become two `medication` facts, each with its own source
 and `certainty: "verify"`. A `contradiction` alert has the pair as its
 subject. Neither value wins silently.
 
+## The NIS producer
+
+A run with producer `nis` comes from the hospital system (NIS) over FHIR R4
+(issue #22). `packages/domain/src/nis-map.ts` maps the resources of one
+linked patient; `api/src/services/fhir.ts` (`patientRecord`) pulls them.
+Every fact has `origin: "nis"` and one source of type `nis` naming the
+record (system, `Type/id`, version, last updated). Codes, units, ranges and
+dates are kept as the NIS gives them, and the NIS's statuses are mapped
+only as far as the record states them.
+
+| FHIR resource | Fact | Notes |
+|---|---|---|
+| `Observation`, category `laboratory` | `lab_result` | `value_as_written` is the NIS's number (so neither a decimal comma nor trailing zeros: "0,40" on the sheet is "0.4"), `value_numeric` the same number; a comparator stays in the text ("<0.5") and leaves `value_numeric` empty; unit, first reference range text and limits (several ranges give "verify"); codes as given (FNO's own lab codes as `fno-local-lab`, any other system, NČLP included, under its URI); `out_of_range` only from the record's own interpretation (`out_of_range_origin: document`); the draw is the Prague wall time of the record's instant, so another offset for the same instant keeps the fact's key; a lab without a name is not mapped; a dateless one has `not_stated: ["draw"]` |
+| `Observation` stating a stage group | `stage` | `stage_kind` from LOINC 21908-9 (clinical) or 21902-2 (pathological), or the NIS's own label naming one kind only (cTNM, pTNM, ypTNM for `post_neoadjuvant`); a label naming two kinds, disagreeing with the code, or naming ycTNM is skipped as ambiguous; the separate T, N and M observations are skipped, because as facts they would read as several stages of one day; `tnm_as_written` as given, `tnm` left null; `as_of` the effective date |
+| `Condition` | `diagnosis` | text and MKN-10 code as given; `disease_status` only from what the record states (`provisional` and the like give `suspected`, clinical status `recurrence` or `remission`); a confirmed diagnosis stays without a status, because the record does not say it was confirmed by histology; `refuted` is a negated fact; `entered-in-error` is not mapped; `resolved`, `inactive` or an abatement give "verify" with the end date in the reason; the date is the onset only (never `recordedDate`, which is when the entry was made) |
+| `Procedure` | `procedure` | `completed` is `done`; `in-progress` stays `documented` with "probíhá (dle NIS)" in the text, because the format has no "in progress"; `not-done` is a negated fact |
+| `MedicationStatement` | `medication` | drug and dosage text as given; `unknown` and `active` are `documented`; `completed` and `stopped` are both `stopped`, with the text saying which, and the end date in the text |
+| `ServiceRequest` | `request` | `active` is `requested` (a sent request is not a done exam); `completed` is `done`; `unknown` is `documented`; `result_fact` only when a report of this NIS names the request in `basedOn` (a versioned or absolute reference counts; when several reports do, the final one with the lowest ID) |
+| `DiagnosticReport`, category RAD | `imaging` | modality from the start of the report's name, the rest is the region; the conclusion is the finding |
+| `DiagnosticReport`, category PAT | `histology` | the report's name as the specimen, the conclusion as the result |
+| `DocumentReference` | none | listed for the document import (status, `relatesTo` `replaces`, the attachment), which goes through the upload path |
+
+**One rule of ours: `primary`.** The diagnosis the MDT discusses is marked
+`primary` when exactly one non-negated diagnosis has a primary cancer code
+(MKN-10 C00-C76, C80-C97 or D00-D09; C77-C79 are secondary). With none or
+several, no diagnosis is marked. This is the assistant's rule on the code,
+not something the NIS states.
+
+**Not mapped**, and reported by the mapping with a reason: a lab report's
+grouping (its Observations are mapped one by one), an `Encounter`
+(extraction/2 has no fact kind for a visit), other Observations, a report
+or condition without text, and identity and insurance (`Patient`,
+`Coverage`), which stay in D1. A record marked `entered-in-error` or
+`cancelled` is left out; a `preliminary` one is mapped with certainty
+`verify`.
+
+**Checks.** The NIS answers for its structured records, not for the
+documents, so a NIS run's checks say only `found` (the kind has facts and
+nothing of its kind was skipped or cut off by the paging limit) or
+`not_run` (everything else, every kind listed). It never says
+`nothing_found`, which the view shows as "neuvedeno v dostupné
+dokumentaci". A done request without a result is visible in the run
+(`status: done`, `result_fact: null`); the missing-report check belongs to
+the case rules over the merged facts.
+
+**Refresh.** The refresh asks the NIS what changed at or after the newest
+`meta.lastUpdated` it saw (`_lastUpdated=ge`, the NIS's own clock, so a
+record of the same instant is not missed). When anything changed, it pulls
+the whole record again and maps it, matched against the previous NIS run,
+so a fact keeps its ID and a doctor's confirmation stays on it; a changed
+value shows under the same ID with the record's new version, and a record
+deleted in the NIS drops out with the full pull. Storing the runs and the
+refresh route come with the run publishing (stream A part 2, stream B).
+
 ## Validation and versioning
 
 - **JSON Schema.** The format is defined in `packages/domain`: TypeScript types, a JSON Schema generated from them, and the same schema checked by the Python pipeline. Every run is validated before it is stored. The validator rejects:

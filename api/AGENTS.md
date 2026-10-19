@@ -477,5 +477,14 @@ structured data comes next. Test server and test data: [`fhir/nis/README.md`](..
   `matches_name_differs` or `cannot_verify`; the last two only after the person confirmed). It is its own table
   because the app never changes a seeded patient row; the trigger `demo_reset_nis_links` removes an org's links on
   reset-demo.
+- **Record pull** (phase 2, `patientRecord`): the clinical record of a linked patient, one GET search per resource type
+  (`Condition`, `Observation`, `Procedure`, `MedicationStatement`, `ServiceRequest`, `DiagnosticReport`,
+  `DocumentReference`) by the NIS patient ID, with `_lastUpdated=ge<instant>` (the newest `meta.lastUpdated` seen) to
+  ask what changed; up to 40 pages and 2000 records per type, a truncated type is reported, 120 s per pull. Records
+  that are not about this patient are dropped and counted (`foreign`), duplicates once. One access-log row per pull
+  ("načítal(a) zdravotní záznam pacienta z NIS"), written by the caller's `onPull`; no route calls it yet.
+  `packages/domain/src/nis-map.ts` turns the resources into a codebridge.extraction/2 run with producer `nis`
+  (EXTRACTION-FORMAT.md, "The NIS producer"). Storing that run waits for `extraction_runs.producer` to allow `nis`.
 - **Tests.** `test/nis.test.ts` runs the connector and the routes against `fhir/nis/memory-server.ts` loaded with the
-  test Bundles (no PDF bytes); `test/orgs.test.ts` probes the four routes from org B.
+  test Bundles (no PDF bytes); `test/nis-map.test.ts` pulls S01, S02, case 10 and F01-F04 and checks the runs, with
+  S01's and S02's lab values against their prepared fixtures; `test/orgs.test.ts` probes the four routes from org B.

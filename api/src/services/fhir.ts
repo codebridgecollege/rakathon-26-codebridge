@@ -96,7 +96,7 @@ export function nisConfigured(env: Env, org: string): boolean {
   }
 }
 
-export type Pull = { op: "search" | "read"; resource: string };
+export type Pull = { op: "search" | "read" | "record"; resource: string };
 
 // Backend-services tokens per isolate, until shortly before they expire. Keyed by org and client, never by user.
 const tokens = new Map<string, { token: string; until: number }>();
@@ -104,8 +104,21 @@ export const clearNisTokens = () => tokens.clear();
 
 // deadlineMs is the budget of one whole operation (token, search and its pages), not of one request.
 const RETRY: Omit<RetryOpts, "fetcher"> = { attempts: 3, baseMs: 500, maxDelayMs: 4000, timeoutMs: 15000, deadlineMs: 30000 };
-const MAX_PAGES = 5;
-const MAX_ENTRIES = 50;
+// A patient search: a handful of candidates at most. A record pull: a patient's whole history of one type (labs over
+// years), still bounded, and a truncated type is reported.
+const SEARCH_LIMITS = { pages: 5, entries: 50 };
+const RECORD_LIMITS = { pages: 40, entries: 2000 };
+const RECORD_DEADLINE_MS = 120000;
+
+// The patient a record belongs to (subject, patient or beneficiary), as a reference relative to the NIS base or
+// absolute within it, without a version.
+function aboutPatient(r: R, nisPatientId: string, base: string): boolean {
+  const ref = String((r.subject ?? r.patient ?? r.beneficiary)?.reference ?? "").replace(/\/_history\/[^/]+$/, "");
+  const local = ref.startsWith(`${base}/`) ? ref.slice(base.length + 1) : ref;
+  return local === `Patient/${nisPatientId}`;
+}
+// What a patient record pull reads: the types the mapping turns into facts or documents.
+export const RECORD_TYPES = ["Condition", "Observation", "Procedure", "MedicationStatement", "ServiceRequest", "DiagnosticReport", "DocumentReference"] as const;
 // A logical id as FHIR allows it, but not "." or "..", which would turn a read into a path to something else.
 const FHIR_ID = /^(?!\.+$)[A-Za-z0-9\-.]{1,64}$/;
 
@@ -128,8 +141,9 @@ export class NisClient {
     return this.cfg.base_url;
   }
 
-  private begin() {
-    this.until = Date.now() + (this.retry.deadlineMs ?? 30000);
+  // ms: the budget of this operation; a record pull reads up to seven types with their pages, so it gets more.
+  private begin(ms = this.retry.deadlineMs ?? 30000) {
+    this.until = Date.now() + ms;
   }
 
   private fetcher(): RetryOpts["fetcher"] {
@@ -242,10 +256,12 @@ export class NisClient {
     return next.origin === base.origin && (next.pathname === bp || next.pathname === `${bp}/` || next.pathname.startsWith(`${bp}/`));
   }
 
-  // Follows the searchset's next links up to MAX_PAGES pages and MAX_ENTRIES resources of the asked type. A next link
+  // Follows the searchset's next links up to the limits' pages and resources of the asked type. A next link
   // that carries one of `secret` (a server may copy the search parameters into it) is not followed: it would put the
   // birth number into a URL.
-  private async collect(first: R, type: string, secret: string[]): Promise<Collected> {
+  private async collect(first: R, type: string, secret: string[], limits = SEARCH_LIMITS): Promise<Collected> {
+    const MAX_PAGES = limits.pages;
+    const MAX_ENTRIES = limits.entries;
     const resources: R[] = [];
     let page: R = first;
     for (let n = 1; ; n++) {
@@ -284,6 +300,44 @@ export class NisClient {
       body,
     });
     return this.collect(await this.json(res, "search"), "Patient", secret);
+  }
+
+  // The clinical record of one NIS patient: every resource type the mapping reads (packages/domain/src/nis-map.ts),
+  // searched by the NIS patient ID (an internal ID, never the birth number). `since` asks only for what changed at or
+  // after an instant (_lastUpdated=ge), for the refresh's "has anything changed?": the caller passes the newest
+  // meta.lastUpdated it saw, the NIS's own clock, and "ge" so a record of the same instant is not missed. A refresh
+  // that finds changes pulls the whole record again, which is also how a deleted record disappears. One access-log row
+  // covers the whole pull; each type has the record limits (RECORD_LIMITS) and a truncated type is reported.
+  async patientRecord(nisPatientId: string, since: string | null = null): Promise<{ resources: R[]; truncated: string[]; foreign: number }> {
+    if (!FHIR_ID.test(nisPatientId)) throw E.badRequest();
+    if (since !== null && !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2})$/.test(since)) throw E.badRequest();
+    this.begin(RECORD_DEADLINE_MS);
+    await this.onPull({ op: "record", resource: "Patient" });
+    const resources: R[] = [];
+    const truncated: string[] = [];
+    const seen = new Set<string>();
+    let foreign = 0;
+    for (const type of RECORD_TYPES) {
+      const q = new URLSearchParams({ patient: `Patient/${nisPatientId}`, _count: "100" });
+      if (since) q.set("_lastUpdated", `ge${since}`);
+      const res = await this.fhir("record", `${this.cfg.base_url}/${type}?${q}`, { method: "GET", headers: { prefer: "handling=strict" } });
+      const got = await this.collect(await this.json(res, "record"), type, [], RECORD_LIMITS);
+      for (const r of got.resources) {
+        // Only this patient's records, once each: a server that matched loosely, or a page boundary that shifted
+        // during paging, must not put another patient's record or a duplicate into the run.
+        if (!aboutPatient(r, nisPatientId, this.cfg.base_url)) {
+          foreign++;
+          continue;
+        }
+        const key = `${r.resourceType}/${r.id}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        resources.push(r);
+      }
+      if (got.truncated) truncated.push(type);
+    }
+    console.log(JSON.stringify({ route: "nis", op: "record", n: resources.length, truncated: truncated.length, foreign }));
+    return { resources, truncated, foreign };
   }
 
   // One resource by its logical id; null when the NIS has none (404 or 410).

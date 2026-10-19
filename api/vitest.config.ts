@@ -42,6 +42,12 @@ export default defineConfig(async () => {
             TEST_SEED_STAFF_B: staffBlockB,
             TEST_SOURCES: sources,
             TEST_NIS_BUNDLES: JSON.stringify(nisBundles),
+            // The lab values of S01 and S02 as their prepared fixtures hold them, the reference the NIS mapping is
+            // compared with (test/nis-map.test.ts).
+            TEST_NIS_LAB_REFERENCE: JSON.stringify({
+              S01: json("fixtures/data/mock-case-S01.json").labs_series,
+              S02: json("fixtures/data/mock-case-S02.json").labs_series,
+            }),
             ELEVENLABS_API_KEY: "test-el",
             AZURE_OPENAI_KEY: "test-az",
             AI_GATEWAY_TOKEN: "",
