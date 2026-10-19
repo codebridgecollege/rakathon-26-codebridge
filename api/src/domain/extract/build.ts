@@ -463,11 +463,18 @@ export async function buildFromAnswer(o: {
   // carries, which no reading can catch.
   for (const d of drafts) {
     if (d.kind !== "metastasis" || d.quarantined || d.negated || d.value.status === "excluded" || !d.date.sort) continue;
-    const site = fold(d.value.site);
-    const denied = drafts.filter(
-      (x) => x !== d && !x.quarantined && x.date.sort === d.date.sort && (x.kind === "metastasis" || x.kind === "imaging") && x.negated &&
-        (/metast/.test(fold(valueText(x.value))) && (/vzdalen|vsech|zadn/.test(fold(valueText(x.value))) || fold(valueText(x.value)).includes(site.slice(0, 4)))),
-    );
+    // A positive metastasis without a date is not compared: "the same time" cannot be told.
+    const site = fold(d.value.site).trim();
+    // Regional nodes are not distant metastases: "metastatické postižení uzlin" and "bez vzdálených metastáz" is N1 M0.
+    const regional = /uzl|lymf/.test(site);
+    const denied = drafts.filter((x) => {
+      if (x === d || x.quarantined || x.date.sort !== d.date.sort || (x.kind !== "metastasis" && x.kind !== "imaging")) return false;
+      if (!(x.negated || (x.kind === "metastasis" && x.value.status === "excluded"))) return false;
+      const said = fold(valueText(x.value));
+      if (!/metast/.test(said)) return false;
+      const distant = /vzdalen|vsech|zadn/.test(said);
+      return (distant && !regional) || (site.length >= 4 && said.includes(site.slice(0, 4)));
+    });
     if (!denied.length) continue;
     const doubt = { code: "contradicts_same_date", text: "Tentýž den dokumentace metastázy jednou uvádí a jednou vylučuje; ověřte ve zdroji." };
     d._doubts.push(doubt);

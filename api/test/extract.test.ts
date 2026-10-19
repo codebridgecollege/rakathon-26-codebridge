@@ -318,6 +318,26 @@ describe("one report against itself", () => {
     );
     expect(r.facts.map((f) => f.certainty_reason?.code)).toEqual(["contradicts_same_date", "contradicts_same_date"]);
   });
+
+  it("does not take nodes for distant metastases or one organ for another, and sees an exclusion without the negated flag", async () => {
+    const text = "CT 16.9.2026\nMetastatické postižení mediastinálních uzlin.\nMetastázy jater prokázány.\nBez metastáz v plicích.\nZávěr: bez známek vzdálených metastáz.";
+    const at = (quote: string, o: Partial<ModelFact>) => fact({ kind: "metastasis", quote, date_as_written: "16.9.2026", ...o });
+    const nodes = await build([
+      at("Metastatické postižení mediastinálních uzlin.", { text: "metastázy uzlin", site: "mediastinální uzliny", metastasis_status: "confirmed" }),
+      at("Závěr: bez známek vzdálených metastáz.", { text: "bez známek vzdálených metastáz", site: "vzdálené", metastasis_status: "excluded", negated: true }),
+    ], [page(1, text)]);
+    expect(nodes.facts.map((f) => f.certainty)).toEqual(["clear", "clear"]);
+    const organs = await build([
+      at("Metastázy jater prokázány.", { text: "metastázy jater", site: "játra", metastasis_status: "confirmed" }),
+      at("Bez metastáz v plicích.", { text: "bez metastáz v plicích", site: "plíce", metastasis_status: "excluded", negated: true }),
+    ], [page(1, text)]);
+    expect(organs.facts.map((f) => f.certainty)).toEqual(["clear", "clear"]);
+    const flagless = await build([
+      at("Metastázy jater prokázány.", { text: "metastázy jater", site: "játra", metastasis_status: "confirmed" }),
+      at("Závěr: bez známek vzdálených metastáz.", { text: "bez známek vzdálených metastáz", site: "vzdálené", metastasis_status: "excluded", negated: false }),
+    ], [page(1, text)]);
+    expect(flagless.facts[0]!.certainty_reason?.code).toBe("contradicts_same_date");
+  });
 });
 
 describe("medication", () => {
