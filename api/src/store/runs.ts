@@ -252,3 +252,40 @@ export async function storeRun(
   );
   return { r2_key: key, sha256: sha };
 }
+
+/** One row of the case's question basis as the question box shows it (cases.question_basis_json). */
+export type QuestionBasisRow = { role: string; quote: string; source: { file: string; page: number } };
+
+/**
+ * The drafted question's basis as quotes: for each basis fact, its first passage in a document, so the question box
+ * shows what the draft rests on and can open it. `fileOf` names a document's file as the case view keys it.
+ */
+export function questionBasisRows(run: ExtractionRun, fileOf: (documentId: string) => string): QuestionBasisRow[] {
+  const facts = new Map(run.facts.map((f) => [f.id, f]));
+  const sources = new Map(run.sources.map((s) => [s.id, s]));
+  return (run.question_draft?.basis ?? []).flatMap((b) =>
+    b.facts.flatMap((id) => {
+      const src = facts.get(id)?.sources.map((s) => sources.get(s)).find((s) => s?.type === "document");
+      return src?.type === "document" ? [{ role: b.role, quote: src.quote, source: { file: fileOf(src.document_id), page: src.page } }] : [];
+    }),
+  );
+}
+
+/**
+ * Queues the run's drafted MDT question onto the case (cases.question_draft, shown as a draft until a doctor confirms
+ * it). Only for a case whose referral states no question, and never over a draft a doctor has confirmed: new documents
+ * may update a draft, never confirmed content (CLAUDE.md). A run without a draft leaves the case as it is.
+ */
+export function queueQuestionDraft(t: Tx, run: ExtractionRun, fileOf: (documentId: string) => string): void {
+  const d = run.question_draft;
+  if (!d) return;
+  t.run(
+    `UPDATE cases SET question_draft = ?2, question_kind = ?3, question_basis_json = ?4
+     WHERE org_id = ?org AND id = ?1 AND question_explicit = 0
+       AND NOT EXISTS (SELECT 1 FROM question_confirmations q WHERE q.org_id = cases.org_id AND q.case_id = cases.id AND q.text = cases.question_draft)`,
+    run.case_id,
+    d.text,
+    d.question_kind,
+    JSON.stringify(questionBasisRows(run, fileOf)),
+  );
+}

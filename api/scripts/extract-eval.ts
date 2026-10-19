@@ -1,6 +1,7 @@
 // Offline fact extraction over the synthetic sample cases, for pipeline/eval.py (issue #20 phase 2).
 //
 //   cd api && npm run extract:eval -- [--out DIR] [--case S04] [--cache-only] [--dev-vars PATH] [--effort medium] [--whole]
+//                                       [--brief]
 //
 // It sends exactly what the Worker sends (services/model-payload.ts: pseudonymized text, the gate) to the model named
 // in wrangler.jsonc, with the key from api/.dev.vars (never printed), and turns the answers into run fragments with
@@ -14,6 +15,8 @@ import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { acceptBrief, briefFacts, briefPrompt, withWithheldAlert, type BriefAnswer } from "@codebridge/domain/extraction/brief";
+import { composeViews } from "@codebridge/domain/extraction/compose";
 import { applyCaseRules } from "@codebridge/domain/extraction/rules";
 import { aiFragmentIds, draftDocument, sha256Hex, type CallAnswer, type PageReading } from "../src/domain/extract/build";
 import { prepareRun, type DraftRun } from "../src/store/runs";
@@ -269,11 +272,37 @@ async function main() {
     const { run: prepared } = prepareRun({ caseId: c.id, previous: null, currentRunId: null, retiredDocuments: [], issuedIds: [] }, draft);
     // The case rules run as the case merge runs them over the published run (missing reports, requests without a
     // result, contradictions, chronology), so eval.py judges the alerts a doctor would see.
-    const run = applyCaseRules(prepared);
+    let run = applyCaseRules(prepared);
     const v = validateRun(run);
     if (!v.ok) {
       console.log(`${c.id}: the run does not validate: ${v.issues.map((i) => `${i.code} ${i.path}`).slice(0, 5).join("; ")}`);
       process.exitCode = 1;
+    }
+    // --brief: the composed views and the brief with the drafted question, as the case merge will add them, through
+    // the same payload (pseudonymization and gate) and the same answer checks as the Worker (domain/brief.ts).
+    if (args.includes("--brief")) {
+      run = { ...run, views: composeViews(run) };
+      const facts = briefFacts(run);
+      const { parts: bparts, refs } = briefPrompt(facts, run.sources, true);
+      const bprompt = await loadPrompt("compose-brief-cs");
+      const { body } = buildPayload({ prompt: bprompt, text: bparts.map((p) => ({ ref: p.documentId, text: p.text })), imagesBase64: [], identity, model, maxOutputTokens: 8000, reasoningEffort: effort, maxInputChars: 200000, purpose: "compose_brief" });
+      const payload = JSON.stringify(body);
+      const cacheFile = join(cacheDir, `${bprompt.ref}-${bprompt.sha256.slice(0, 12)}-${await sha256Hex(payload)}.json`);
+      let output: string | null = existsSync(cacheFile) ? JSON.parse(readFileSync(cacheFile, "utf8")).output : null;
+      if (!output && !cacheOnly && key) {
+        const { res } = await fetchWithRetry(`${base.replace(/\/+$/, "")}/chat/completions`, { method: "POST", headers: { "api-key": key, "content-type": "application/json" }, body: payload }, { attempts: 4, baseMs: 2000, maxDelayMs: 20000, timeoutMs: 300000, deadlineMs: 600000 });
+        const d = (await res.json().catch(() => null)) as { choices?: { message?: { content?: string }; finish_reason?: string }[] } | null;
+        if (res.ok && d?.choices?.[0]?.finish_reason === "stop") {
+          output = d.choices[0].message?.content ?? null;
+          if (output) writeFileSync(cacheFile, JSON.stringify({ output, model, prompt: bprompt.ref }));
+        } else console.log(`${c.id} brief: model answered ${res.status}, finish ${d?.choices?.[0]?.finish_reason ?? "-"}`);
+      }
+      if (output) {
+        const accepted = acceptBrief(JSON.parse(output) as BriefAnswer, run, facts, refs, { model, prompt: bprompt.ref });
+        run = { ...(accepted.brief ? withWithheldAlert(run, facts) : run), brief: accepted.brief, question_draft: accepted.question };
+        const offered = JSON.parse(output) as BriefAnswer;
+        console.log(`${c.id} brief: ${facts.length} verified facts offered, ${accepted.brief?.sentences.length ?? 0} of ${offered.sentences.length} sentences kept, question ${accepted.question ? "kept" : offered.question ? "dropped" : "none"}; dropped ${JSON.stringify(accepted.dropped)}`);
+      } else console.log(`${c.id} brief: no answer${key ? "" : " and no key"}`);
     }
     writeFileSync(join(out, `${c.id}.json`), JSON.stringify(run, null, 1));
     const ids = pages.map((p) => `p${p.page}:${p.identity}`).join(" ");

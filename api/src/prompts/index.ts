@@ -5,6 +5,7 @@
 import { PROMPT as SUMMARIZE_CS } from "./summarize-cs";
 import { TEXT as READ_PAGE_CS } from "./read-page-cs";
 import { TEXT as EXTRACT_FACTS_CS } from "./extract-facts-cs";
+import { BRIEF_SCHEMA, TEXT as COMPOSE_BRIEF_CS } from "./compose-brief-cs";
 import { EXTRACT_SCHEMA } from "../domain/extract/schema";
 import { sha256Hex } from "../store/work";
 
@@ -22,6 +23,7 @@ export const PROMPTS = {
   "summarize-cs": { version: 1, text: SUMMARIZE_CS },
   "read-page-cs": { version: 1, text: READ_PAGE_CS, images: true },
   "extract-facts-cs": { version: 7, text: EXTRACT_FACTS_CS, schema: EXTRACT_SCHEMA },
+  "compose-brief-cs": { version: 1, text: COMPOSE_BRIEF_CS, schema: BRIEF_SCHEMA },
 } satisfies Record<string, PromptDef>;
 
 export type PromptId = keyof typeof PROMPTS;

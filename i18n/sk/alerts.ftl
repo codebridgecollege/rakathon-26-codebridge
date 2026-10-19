@@ -58,6 +58,8 @@ alert-date-after-processing = Dátum prebehnutej udalosti je neskorší ako dát
 
 alert-result-before-request = Výsledok je datovaný skôr ako požiadavka: { $fact_a }; { $fact_b }
 
+alert-brief-unverified-withheld = Zhrnutie uvádza len overené údaje; údaje na overenie v ňom nie sú, počet: { $count }
+
 alert-poor-copy = Zle čitateľný dokument, vyžiadajte lepšiu kópiu: { $document }
 
 alert-identity-conflict = Strana patrí inému pacientovi; jej údaje nie sú zobrazené: { $document }, s. { $page }

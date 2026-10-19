@@ -113,7 +113,7 @@ const NOT_DRUG = new Set([
 ]);
 // Endings of international drug names (INN), with up to four letters of Czech declension after them ("sunitinibem",
 // "temozolomidu"): a word that ends so is a drug whatever words surround it.
-const INN = /(?:mab|nib|lib|limus|platin[a-z]?|taxel|rubicin|citabin|zolomid|mustin|trexat|parib|ciclib|lutamid|relin|rozol|xifen|fosfamid|tecan|posid|mycin|uracil|kinib|stat|cept)[a-z]{0,4}$/;
+export const INN = /(?:mab|nib|lib|rolim|platin[a-z]?|taxel|rubicin|citabin|zolomid|mustin|trexat|parib|ciclib|lutamid|relin|rozol|xifen|fosfamid|tecan|posid|mycin|uracil|kinib|stat|cept)[a-z]{0,4}$/;
 /**
  * The drugs a regimen names, as five-letter stems: the words that look like drug names (INN endings), else every word
  * that is not a known word around a drug (an abbreviation such as "FOLFOX").

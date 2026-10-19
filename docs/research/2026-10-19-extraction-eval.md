@@ -226,6 +226,20 @@ contradicts. So on a poor scan the vision reading does not make a value trustwor
 the disagreement marks do the work. The second run (after the review's fixes) gave the same pass / fail table as the
 first.
 
+## The brief over the v5 runs (compose-brief-cs@1, issue #21)
+
+`extract:eval --brief` composes the brief from the verified facts of each run, one model call per case. Kept
+sentences: case 10 5 of 5, S01 3 of 5, S02 5 of 5, S03 3 of 3, S04 3 of 4. Every brief and composed view passes
+`validateRun`. What was dropped:
+- S01: a sentence stating a gap ("stadium není uvedeno": a negation no fact holds), and one with an unbacked number.
+- S04: "CT ... neprokázalo vzdálené metastázy", because the fact it named says it with another negation word.
+
+The drafted question was kept in 4 cases. S03 has none: only 6 facts are verified on its poor scan.
+
+Case 10's brief does not mention the brain MR of 14.9.2026. Its facts are marked "verify" (negation unclear, date
+outside the quote), so they are not offered. The `brief_unverified_withheld` alert lists them (28 facts in case 10) until a
+doctor confirms them.
+
 ## Open
 
 - Medication extraction (the S03 bisoprolol dose misread needs it).
