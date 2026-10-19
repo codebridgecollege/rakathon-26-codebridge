@@ -572,12 +572,13 @@ export async function buildFromAnswer(o: {
     ...d.checks,
     { id: "chk-identity", looks_for: "identity", expected: null, covered: first.covered, unreadable: first.unreadable, result: doc.pages.some((p) => p.identity === "conflicts") ? "found" : "nothing_found" },
   ];
-  const identityAlerts: Alert[] = doc.pages
-    .filter((p) => p.identity === "conflicts")
-    .map((p) => {
-      const subject = `${doc.documentId}/p${p.page}`;
-      const onPage = facts.filter((f: Fact) => f.sources.some((sid) => sources.get(sid)?.page === p.page)).map((f) => f.id);
-      return { id: alertId({ rule: "identity_page_conflict", subject }), rule: "identity_page_conflict", subject, kind: "identity", facts: onPage, message: { id: "alert-identity-page", args: { document: doc.documentId, page: p.page } }, note: null };
-    });
+  // One identity alert per document, as the case merge raises it (packages/domain fragments.ts: rule
+  // "identity_conflict", subject the document, the Fluent message "alert-identity-conflict" with the pages), so the
+  // offline runs and the Worker's runs carry the same alert.
+  const conflicting = doc.pages.filter((p) => p.identity === "conflicts").map((p) => p.page);
+  const held = facts.filter((f: Fact) => f.quarantined && f.sources.some((sid) => conflicting.includes(sources.get(sid)?.page ?? -1))).map((f) => f.id);
+  const identityAlerts: Alert[] = conflicting.length
+    ? [{ id: alertId({ rule: "identity_conflict", subject: doc.documentId }), rule: "identity_conflict", subject: doc.documentId, kind: "identity", facts: held, message: { id: "alert-identity-conflict", args: { document: doc.documentId, page: conflicting.join(", ") } }, note: null }]
+    : [];
   return { sources: d.sources as Source[], facts, checks, alerts: [...requestsWithoutResult(facts), ...identityAlerts], report: d.report };
 }
