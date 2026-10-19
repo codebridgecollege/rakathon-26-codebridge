@@ -1326,4 +1326,11 @@ Contract with stream D (#20) and stream E (#21): `docs/research/2026-10-20-case-
   conditionally on the object it read (two withdraws at once never restore each other's document), and the cron
   sweep repeats it for a week. On read, an alert resting on any fact of a withdrawn document goes (one side of a
   contradiction), an interval that points at one goes, and a request loses that result.
+- **The AI part.** After its `fragment` step a document run starts stream D's `ExtractDocumentWorkflow`
+  (`startExtraction`, instance `ai-<run>`) where the model runs for the org (`MODEL_ORGS`, empty by default; the
+  model configured), and the case merge at once, so the view without AI appears first; D's workflow writes
+  `fragment-ai.json` and starts the merge again. A failed start of the AI part changes nothing for the document (its
+  code goes to the log). It fails closed on identity: a document D1 marks as another patient's, or one whose pages were
+  not checked (no `identity.json`: a registered fixture, a failed identity check), never goes to a model, because the
+  pseudonymizer knows only the case's own patient; and never in demo org A, whatever MODEL_ORGS says.
 

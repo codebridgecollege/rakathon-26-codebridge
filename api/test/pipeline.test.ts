@@ -472,6 +472,9 @@ describe("the case merge (ProcessCase)", () => {
     await merge!.waitForStatus("complete");
     // Step results: codes and counts only.
     expect(await merge!.waitForStepResult({ name: "compose and store" })).toEqual({ result: "stored", documents: 1, facts: 2 });
+    // The AI part is not started: the model is not configured and MODEL_ORGS lists no org.
+    const [docRun] = await docs.get();
+    expect(await docRun!.waitForStepResult({ name: "start extraction" })).toEqual({ started: false });
 
     const run = await one("SELECT id, producer, seeded, is_current, r2_key FROM extraction_runs WHERE org_id = 'demo-b' AND case_id = 'B-NO-A' AND is_current = 1");
     expect(run).toMatchObject({ producer: "pipeline", seeded: 0, is_current: 1 });
@@ -535,6 +538,9 @@ describe("the case merge (ProcessCase)", () => {
     const run = await one("SELECT r2_key FROM extraction_runs WHERE org_id = 'demo-b' AND case_id = 'B-NO-A' AND is_current = 1");
     const stored = (await (await env.DOCS.get(run.r2_key))!.json()) as any;
     expect(stored.facts.every((f: any) => f.quarantined)).toBe(true);
+    // A document of another patient never goes to a model, whatever MODEL_ORGS says.
+    const [docRun] = await docs.get();
+    expect(await docRun!.waitForStepResult({ name: "start extraction" })).toEqual({ started: false, reason: "identity" });
     const identity = stored.alerts.find((a: any) => a.rule === "identity_conflict");
     expect(identity).toMatchObject({ kind: "identity", message: { id: "alert-identity-conflict", args: { document: BDOC, page: "1" } } });
     expect(identity.facts.sort()).toEqual(stored.facts.map((f: any) => f.id).sort());
