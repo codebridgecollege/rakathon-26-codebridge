@@ -31,6 +31,7 @@ import { UNLOCKED_COND, caseDocuments, documentRow, fixtureByHash, uploadContext
 import { openCase } from "./access-check";
 import { answer, caseFor, isoNow, label, newId, orgQuery, tx } from "./write-context";
 import { orgKey } from "../store/sql";
+import { cachePrefixesOf } from "../services/model-cache";
 import { autoStart } from "./pipeline-start";
 import { LEGACY_ORG } from "../domain/orgs";
 
@@ -275,6 +276,7 @@ export const documents = new Hono<AppEnv>()
     // yet; taking it out now would leave another patient's facts in the brief with sources that no longer open.
     if (d.state === "prepared") throw UP.preparedNotYet();
     const v = c.var.viewer;
+    const withdrawnAt = isoNow();
     const t = tx(c, breakGlass).onConstraint(/a superseded or withdrawn document stays so/, () => UP.notWithdrawable());
     t.guard("unlocked", UNLOCKED_COND, [d.case_id, d.case_id], () => UP.locked());
     t.guard("current", "(SELECT lifecycle FROM documents WHERE org_id = ?org AND id = ?) = 'current'", [docId], () => UP.notWithdrawable());
@@ -292,13 +294,13 @@ export const documents = new Hono<AppEnv>()
          original_r2_key = NULL, sha256 = NULL, file_name = ?5, title_cs = NULL, doc_type = NULL, doc_date = NULL,
          readability_reasons_json = NULL, fixture_id = NULL, note_cs = NULL, state_detail_cs = NULL
        WHERE org_id = ?org AND id = ?4`,
-      WITHDRAW_REASONS[reason], isoNow(), v.actor?.id ?? v.id, docId, `odebraný dokument ${docId.slice(-6)}`,
+      WITHDRAW_REASONS[reason], withdrawnAt, v.actor?.id ?? v.id, docId, `odebraný dokument ${docId.slice(-6)}`,
     );
     t.audit({ action: "document.withdraw", what_cs: "odebral(a) dokument z případu jako dokument jiného pacienta (obsah smazán)", case_id: d.case_id, target_type: "document", target_id: docId });
     await t.commit();
     // After the commit, so a refused withdraw deletes nothing. A failed delete is done again by the cron sweep
     // (sweepWithdrawn in scheduled.ts), so the log line's "obsah smazán" holds.
-    await deleteDocumentObjects(c.env, v.org, d.case_id, docId).catch(() => console.error(JSON.stringify({ route: "document.withdraw", r2: "delete_failed" })));
+    await deleteDocumentObjects(c.env, v.org, d.case_id, docId, withdrawnAt).catch(() => console.error(JSON.stringify({ route: "document.withdraw", r2: "delete_failed" })));
     const row = await documentRow(c.env.DB, v.org, docId);
     return answer(c, { document: docOut(row!) });
   });
@@ -319,13 +321,20 @@ export async function deleteUploadObjects(c: Context<AppEnv> | { env: Env }, org
 // every run output and page copy (uploads/<case>/<doc>/...), under the org and, for demo org A, also under the prefix
 // used before orgs. Document ids are unique ("up-" and a UUID), so the prefix without a slash catches nothing else.
 // Listed page by page: a document read several times holds hundreds of objects.
-export async function deleteDocumentObjects(env: Env, org: string, caseId: string, docId: string) {
-  const prefixes = [orgKey(org, `uploads/${caseId}/${docId}`), ...(org === LEGACY_ORG ? [`uploads/${caseId}/${docId}`] : [])];
-  for (const prefix of prefixes) {
+//
+// Issue #20: also the language model's cached answers about the document (they quote it, pseudonymized): its own
+// folder, and the case's multi-document answers written up to `withdrawnAt`. A multi-document answer written after the
+// withdraw cannot have read the document, so the cron retry of this delete leaves it.
+export async function deleteDocumentObjects(env: Env, org: string, caseId: string, docId: string, withdrawnAt: string) {
+  const [own, multi] = cachePrefixesOf(org, caseId, docId);
+  const prefixes = [orgKey(org, `uploads/${caseId}/${docId}`), ...(org === LEGACY_ORG ? [`uploads/${caseId}/${docId}`] : []), own!];
+  const until = Date.parse(withdrawnAt);
+  for (const [prefix, keep] of [...prefixes.map((p) => [p, null] as const), [multi!, until] as const]) {
     let cursor: string | undefined;
     do {
       const listed = await env.DOCS.list({ prefix, limit: 1000, ...(cursor ? { cursor } : {}) });
-      if (listed.objects.length) await env.DOCS.delete(listed.objects.map((o) => o.key));
+      const gone = listed.objects.filter((o) => keep === null || !(o.uploaded.getTime() > keep)).map((o) => o.key);
+      if (gone.length) await env.DOCS.delete(gone);
       cursor = listed.truncated ? listed.cursor : undefined;
     } while (cursor);
   }

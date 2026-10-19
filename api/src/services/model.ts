@@ -24,7 +24,8 @@ import type { Viewer } from "@codebridge/domain/access";
 import type { CaseIdentity, Pseudonymized } from "../domain/pseudonymize";
 import { buildPayload, ModelError, type ModelErrorCode } from "./model-payload";
 import { loadPrompt, type LoadedPrompt, type PromptId } from "../prompts";
-import { orgKey, orgStmt } from "../store/sql";
+import { orgStmt } from "../store/sql";
+import { cacheKey, cacheScope } from "./model-cache";
 import { sha256Hex } from "../store/work";
 import { Tx } from "../store/write";
 import { RedactedPage, toBase64 } from "./redaction";
@@ -86,6 +87,8 @@ export function modelConfig(env: Env) {
   };
 }
 
+// docId is the `documents.id` of the case's document (never a file name, fixture or part ID): the cache folder and the
+// purge on withdraw (model-cache.ts) go by it.
 export type PageRef = { docId: string; page: number | null };
 
 export type ModelRequest = {
@@ -124,13 +127,7 @@ export type ModelResult = {
   meta: ModelMeta;
 };
 
-const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9._@-]+/g, "_").slice(0, 80);
-
-// R2 key of a cached answer. The org prefix keeps one org from ever reading another's cache; the case folder lets a
-// case's cache go with the case; reset-demo deletes the org's cache/model/.
-export function cacheKey(org: string, caseId: string, model: string, prompt: Pick<LoadedPrompt, "ref" | "sha256">, inputSha: string): string {
-  return orgKey(org, `cache/model/${slug(caseId)}/${slug(model)}/${slug(prompt.ref)}/${prompt.sha256.slice(0, 16)}/${inputSha}.json`);
-}
+export { cacheKey, cachePrefixesOf, cacheScope } from "./model-cache";
 
 const iso = () => new Date().toISOString();
 
@@ -159,7 +156,8 @@ export async function callModel(env: Env, req: ModelRequest): Promise<ModelResul
 
   const payload = JSON.stringify(body);
   const inputSha = await sha256Hex(payload);
-  const key = cacheKey(req.org, req.caseId, cfg.model, prompt, inputSha);
+  const scope = cacheScope([...(req.text ?? []).map((t) => t.ref.docId), ...images.map((im) => im.docId)]);
+  const key = cacheKey(req.org, req.caseId, scope, cfg.model, prompt, inputSha);
   const meta: ModelMeta = { provider: cfg.provider, model: cfg.model, prompt: prompt.ref, prompt_sha256: prompt.sha256, temperature: null, input_sha256: inputSha, cached: false, call_id: null };
 
   const hit = await (await env.DOCS.get(key))?.json<{ output: string }>().catch(() => null);

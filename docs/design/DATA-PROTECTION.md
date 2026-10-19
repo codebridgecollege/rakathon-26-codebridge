@@ -429,9 +429,14 @@ it yet that sends real documents; the extraction prompts come in phase 2.
   (`MODEL_BUDGET_*`) is checked in the same D1 batch, so a call over budget
   is refused before anything is sent.
 - **Cache.** Model answers are cached in the EU R2 bucket under
-  `org/<org>/cache/model/<case>/<model>/<prompt>@<version>/<prompt hash>/<input hash>.json`,
+  `org/<org>/cache/model/<case>/<document>/<model>/<prompt>@<version>/<prompt hash>/<input hash>.json`
+  (a call over several documents: `<case>/multi-...`),
   so one org never reads another's. The cached answer is the pseudonymized
-  one. Reset-demo deletes the org's `cache/model/`; a lifecycle rule
+  one. Withdrawing a document as another patient's deletes its answers
+  and the case's multi-document ones with its other content (the offline
+  evaluation harness's local cache in `api/.cache/`, synthetic data only,
+  is outside this purge). Reset-demo
+  deletes the org's `cache/model/`; a lifecycle rule
   expires it after 30 days (`api/AGENTS.md`).
 
 **Known limits of the pseudonymization**, to state to FNO and the jury:

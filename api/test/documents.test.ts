@@ -7,6 +7,8 @@ import { call, testEnv } from "./helpers";
 import { fileKind, imageType, uploadPolicy } from "../src/domain/documents";
 import { FAKE_NAME, loadFixture } from "./data";
 import { sweep } from "../src/scheduled";
+import { cacheKey, cacheScope } from "../src/services/model-cache";
+import { deleteDocumentObjects } from "../src/routes/documents";
 
 type Body = { data?: Record<string, any>; data_epoch?: number; state?: Record<string, any>; error?: { code: string; message_cs: string } };
 
@@ -258,8 +260,29 @@ describe("withdrawing another patient's processed upload", () => {
 
   it("keeps a neutral row with its reason and the run's history, deletes everything of the other patient, and lets the file come again", async () => {
     const { id, key, prefix } = await processedOther();
+    // The model's cached answers: one about this document, one over several documents of the case, one about another
+    // document of the case and one in another case. The first two go with the withdraw, the others stay.
+    const cached = {
+      own: cacheKey("demo-a", "NO-A", cacheScope([id]), "m", { ref: "p@1", sha256: "a".repeat(64) }, "1".repeat(64)),
+      multi: cacheKey("demo-a", "NO-A", cacheScope([id, "A_pacient"]), "m", { ref: "p@1", sha256: "a".repeat(64) }, "2".repeat(64)),
+      other: cacheKey("demo-a", "NO-A", cacheScope(["A_pacient"]), "m", { ref: "p@1", sha256: "a".repeat(64) }, "3".repeat(64)),
+      otherCase: cacheKey("demo-a", "NO-B", cacheScope([id]), "m", { ref: "p@1", sha256: "a".repeat(64) }, "4".repeat(64)),
+      // A document whose ID starts with the withdrawn one's: its folder must not match the prefix.
+      longerId: cacheKey("demo-a", "NO-A", cacheScope([`${id}0`]), "m", { ref: "p@1", sha256: "a".repeat(64) }, "5".repeat(64)),
+    };
+    for (const k of Object.values(cached)) await env.DOCS.put(k, "{}");
     const r = await withdraw(id);
     expect(r.status).toBe(200);
+    expect(await env.DOCS.head(cached.own)).toBeNull();
+    expect(await env.DOCS.head(cached.multi)).toBeNull();
+    expect(await env.DOCS.head(cached.other)).not.toBeNull();
+    expect(await env.DOCS.head(cached.otherCase)).not.toBeNull();
+    expect(await env.DOCS.head(cached.longerId)).not.toBeNull();
+    // The cron retry leaves a multi-document answer written after the withdraw (it cannot have read the document).
+    const later = cacheKey("demo-a", "NO-A", cacheScope(["A_pacient", "B_pacient"]), "m", { ref: "p@1", sha256: "a".repeat(64) }, "6".repeat(64));
+    await env.DOCS.put(later, "{}");
+    await deleteDocumentObjects(env, "demo-a", "NO-A", id, "2000-01-01T00:00:00.000Z");
+    expect(await env.DOCS.head(later)).not.toBeNull();
     expect(r.body.data!.document).toMatchObject({ lifecycle: "withdrawn", lifecycle_reason_cs: "dokument jiného pacienta", content_stored: false, sha256: null, type_cs: null, doc_date: null, fixture: false });
     expect(r.body.data!.document.name).toBe(`odebraný dokument ${id.slice(-6)}`);
     const row = (await q<Record<string, unknown>>("SELECT lifecycle, lifecycle_changed_by, original_r2_key, sha256, file_name, title_cs FROM documents WHERE id = ?1", id))[0]!;
