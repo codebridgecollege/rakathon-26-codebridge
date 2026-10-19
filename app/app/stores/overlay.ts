@@ -2,7 +2,7 @@
 // replaces it, Escape and the scrim close it. Each kind carries its own state; screens that port later add their kinds.
 import { defineStore } from "pinia";
 import { shallowRef, triggerRef } from "vue";
-import type { SourceRef } from "@codebridge/domain/case-data";
+import type { NisRef, SourceRef } from "@codebridge/domain/case-data";
 
 export type SourceOverlay = {
   kind: "source";
@@ -21,6 +21,8 @@ export type Overlay =
   | { kind: "fhir"; id: string; bundle: unknown }
   // "Import z NIS" of one case (issue #22): search the hospital system and link the patient's record.
   | { kind: "nis"; caseId: string }
+  // "Záznam z NIS": the source viewer for a fact that rests on a NIS record instead of a page.
+  | { kind: "nisrecord"; caseId: string; ref: NisRef }
   | { kind: "pgrefs"; hit: number }
   | { kind: "pgpanel"; panel: number }
   | { kind: "breakglass"; file: string; msg: string }

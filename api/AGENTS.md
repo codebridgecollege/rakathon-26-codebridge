@@ -568,7 +568,11 @@ structured data comes next. Test server and test data: [`fhir/nis/README.md`](..
   call), `POST /cases/:id/nis/search` (body `birth_number` only when the patient row has none; a typed number that
   differs from the row's is refused, and so is a row number that does not parse), `POST /cases/:id/nis/link`
   (`nis_patient_id`, and `confirm_unverified: true` when the row has no birth number or the name differs),
-  `DELETE /cases/:id/nis/link` (works without a configured NIS, so a link can always be removed). Search answers only
+  `DELETE /cases/:id/nis/link` (works without a configured NIS, so a link can always be removed). `GET /cases/:id/nis/record?resource=<Type>/<id>` is the
+  "záznam z NIS" source panel: it reads one record of a type the import reads (`RECORD_TYPES`), only when the case's
+  patient is linked and the record is about that patient (anything else answers 404 `nis_record_not_found`, so the
+  route cannot browse the NIS), with an access-log row; it answers the record's own fields
+  (`packages/domain/src/nis-record.ts`) and the whole record. Search answers only
   the records that carry the searched birth number; any other record the NIS sent is counted in `other_records_hidden`
   and never shown. Link reads the Patient again from the NIS and refuses a different birth number, an inactive record
   and one the NIS merged into another (`Patient.link` `replaced-by`; the answer names the survivor). Candidates carry

@@ -238,7 +238,7 @@ const byDate = (a: Fact, b: Fact) => (a.date.sort ? 0 : 1) - (b.date.sort ? 0 : 
  */
 function refOf(s: Source, fileOf: (documentId: string) => string): SourceRef {
   if (s.type === "document") return { file: fileOf(s.document_id), page: s.page, quote: s.quote, part: s.part };
-  return { page: "NIS", quote: s.resource, nis: { system: s.system, resource: s.resource, version: s.version, last_updated: s.last_updated } } as SourceRef;
+  return { page: "NIS", quote: s.resource, nis: { system: s.system, resource: s.resource, version: s.version, last_updated: s.last_updated } };
 }
 
 // The event category of a fact, for the computed timeline and onco lines.

@@ -264,6 +264,40 @@ describe("linking", () => {
   });
 });
 
+describe("záznam z NIS", () => {
+  // NO-B's patient linked to S01's NIS record (the link route needs a typed birth number; the row is what it writes).
+  const linkS01 = () =>
+    env.DB.prepare(
+      "INSERT INTO patient_nis_links (org_id, patient_id, nis_system, nis_patient_id, identity_check, by_user_id, by_name) VALUES ('demo-a','pt-B',?1,'cb-s01','cannot_verify','d2p1','x')",
+    ).bind(BASE).run();
+  const lab = "Observation/cb-s01-lab-2026-10-06-s-creae";
+
+  it("reads the cited record of the linked patient, logged, with its fields as the record gives them", async () => {
+    server();
+    await linkS01();
+    const r = await get(`/cases/NO-B/nis/record?resource=${encodeURIComponent(lab)}`);
+    expect(r.status).toBe(200);
+    expect(r.body).toMatchObject({ resource: lab, version: "1", label_cs: "Testovací NIS" });
+    expect(r.body.fields).toEqual(expect.arrayContaining([{ field: "value", value: "142 µmol/l" }, { field: "reference_range", value: "59 ... 104" }]));
+    expect(r.body.record.resourceType).toBe("Observation");
+    expect((await accessLog()).map((x) => [x.action, x.case_id])).toEqual([["nis.read", "NO-B"]]);
+  });
+
+  it("answers not found for a record of another patient, and refuses other types, no link, other roles and orgs", async () => {
+    server();
+    await linkS01();
+    expect((await get(`/cases/NO-B/nis/record?resource=${encodeURIComponent("Observation/cb-s02-lab-2026-10-06-s-cea")}`)).body.error?.code).toBe("nis_record_not_found");
+    expect((await get("/cases/NO-B/nis/record?resource=Patient%2Fcb-s01")).body.error?.code).toBe("invalid_input");
+    expect((await get("/cases/NO-B/nis/record?resource=Observation%2F..")).body.error?.code).toBe("invalid_input");
+    expect((await get(`/cases/NO-A/nis/record?resource=${encodeURIComponent(lab)}`)).body.error?.code).toBe("nis_not_linked");
+    expect((await get(`/cases/NO-B/nis/record?resource=${encodeURIComponent(lab)}`, "admin")).status).toBe(403);
+    const both = nisEnv({ NIS_CONFIG: JSON.stringify({ "demo-a": JSON.parse(CONFIG)["demo-a"], "demo-b": JSON.parse(CONFIG)["demo-a"] }) });
+    expect((await get(`/cases/NO-B/nis/record?resource=${encodeURIComponent(lab)}`, "b-doc", both)).status).toBe(404);
+    // Only the one read of the other patient's record reached the NIS; it was refused after the subject check.
+    expect(fhir.requests.filter((x) => x.method === "GET")).toHaveLength(1);
+  });
+});
+
 describe("FHIR connector", () => {
   const cfg = { base_url: BASE, label_cs: "x", auth: { mode: "none" as const } };
   const fast = { attempts: 3, baseMs: 1, maxDelayMs: 5, timeoutMs: 2000, deadlineMs: 5000 };

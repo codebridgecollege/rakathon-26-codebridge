@@ -958,3 +958,33 @@ patient-check-hidden = items not shown, see the alerts
 patient-orphan-revert = Remove the edit
 patient-edit-source-changed = source changed
 patient-edit-source-changed-tip = When edited, the item read: { $then }. Now: { $now }.
+
+# English, "Záznam z NIS" (issue #22). See the Czech file for what each message is.
+
+patient-src-nis = NIS record
+patient-nisrec-title = NIS record
+patient-nisrec-cited = Taken from record { $resource }, version { $version }, changed { $updated }.
+patient-nisrec-loading = Loading the NIS record…
+patient-nisrec-source = Source: { $label } (read now, read only)
+patient-nisrec-newer = The NIS now holds version { $now }; the fact was taken from version { $cited }. Opening the record does not change the fact.
+patient-nisrec-show-record = Show the whole record
+patient-nisrec-hide-record = Hide the whole record
+patient-nisrec-field-status = Status
+patient-nisrec-field-verification = Verification
+patient-nisrec-field-clinical_status = Clinical status
+patient-nisrec-field-category = Category
+patient-nisrec-field-class = Encounter class
+patient-nisrec-field-name = Name
+patient-nisrec-field-codes = Codes
+patient-nisrec-field-value = Value
+patient-nisrec-field-interpretation = Interpretation
+patient-nisrec-field-reference_range = Reference range
+patient-nisrec-field-date = Date
+patient-nisrec-field-onset = Onset
+patient-nisrec-field-abatement = Ended
+patient-nisrec-field-dosage = Dosage
+patient-nisrec-field-reason = Reason
+patient-nisrec-field-department = Department
+patient-nisrec-field-conclusion = Conclusion
+patient-nisrec-field-note = Note
+patient-nisrec-field-issued = Issued

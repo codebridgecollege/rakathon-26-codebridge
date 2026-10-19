@@ -12,7 +12,8 @@ import type { AppEnv } from "../types";
 import { D } from "@codebridge/domain/errors";
 import { candidateFrom, hasDuplicates, identityCheckOf, normalizeBirthNumber, rcisSearchValue } from "@codebridge/domain/nis";
 import { audit } from "../middleware/audit";
-import { isFhirId, NATIONAL_REGISTER_STUB, NisClient, nisConfig, type Pull } from "../services/fhir";
+import { aboutPatient, isFhirId, NATIONAL_REGISTER_STUB, NisClient, nisConfig, RECORD_TYPES, type Pull } from "../services/fhir";
+import { nisRecordFields } from "@codebridge/domain/nis-record";
 import { answer, caseFor, isoNow, label, orgQuery, tx } from "./write-context";
 
 type PatientRow = { id: string; full_name: string | null; birth_number: string | null };
@@ -77,6 +78,28 @@ function client(c: Context<AppEnv>, cfg: NonNullable<ReturnType<typeof nisConfig
 }
 
 export const nis = new Hono<AppEnv>()
+  // "Záznam z NIS": the record a fact rests on, read from the NIS when the doctor opens it in the source viewer. Only a
+  // record of a type the import reads and of the patient linked to this case: a record of anyone else answers as not
+  // found, so the route cannot be used to browse the NIS.
+  .get("/cases/:id/nis/record", async (c) => {
+    const id = c.req.param("id");
+    const { cfg, link } = await context(c, id, "záznam z NIS");
+    if (!link) throw D.nisNotLinked();
+    const m = /^([A-Za-z]+)\/([^/]+)$/.exec(c.req.query("resource") ?? "");
+    if (!m || !(RECORD_TYPES as readonly string[]).includes(m[1]!) || !isFhirId(m[2]!)) throw D.invalidInput();
+    // A record cited from another NIS than the one configured now is not read from this one.
+    if (link.nis_system !== cfg!.base_url) throw D.nisRecordNotFound();
+    const r = await client(c, cfg!, id).read(m[1]!, m[2]!);
+    if (!r || !aboutPatient(r, link.nis_patient_id, cfg!.base_url)) throw D.nisRecordNotFound();
+    return c.json({
+      label_cs: cfg!.label_cs,
+      resource: `${m[1]}/${m[2]}`,
+      version: typeof r.meta?.versionId === "string" ? r.meta.versionId : null,
+      last_updated: typeof r.meta?.lastUpdated === "string" ? r.meta.lastUpdated : null,
+      fields: nisRecordFields(r),
+      record: r,
+    });
+  })
   // The link as stored, without calling the NIS: the dialog opens with it.
   .get("/cases/:id/nis", async (c) => {
     const id = c.req.param("id");

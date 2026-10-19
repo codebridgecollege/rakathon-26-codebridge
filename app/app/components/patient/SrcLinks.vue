@@ -27,5 +27,5 @@ const links = computed(() => {
     :title="$t('patient-src-quote', { quote: l.q })"
     :aria-label="$t('patient-src-link-label', { page: String(l.r.page), quote: l.q })"
     @click.stop.prevent="c.openSource(l.r)"
-  >{{ $t("patient-src-page", { page: String(l.r.page) }) }}<template v-if="l.same > 1"> ({{ l.k }})</template></button></template>
+  ><template v-if="l.r.nis">{{ $t("patient-src-nis") }}</template><template v-else>{{ $t("patient-src-page", { page: String(l.r.page) }) }}</template><template v-if="l.same > 1"> ({{ l.k }})</template></button></template>
 </template>

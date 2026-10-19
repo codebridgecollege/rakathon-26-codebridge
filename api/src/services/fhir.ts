@@ -112,7 +112,7 @@ const RECORD_DEADLINE_MS = 120000;
 
 // The patient a record belongs to (subject, patient or beneficiary), as a reference relative to the NIS base or
 // absolute within it, without a version.
-function aboutPatient(r: R, nisPatientId: string, base: string): boolean {
+export function aboutPatient(r: R, nisPatientId: string, base: string): boolean {
   const ref = String((r.subject ?? r.patient ?? r.beneficiary)?.reference ?? "").replace(/\/_history\/[^/]+$/, "");
   const local = ref.startsWith(`${base}/`) ? ref.slice(base.length + 1) : ref;
   return local === `Patient/${nisPatientId}`;

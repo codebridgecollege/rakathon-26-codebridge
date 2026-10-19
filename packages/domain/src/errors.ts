@@ -46,6 +46,7 @@ export const D = {
   nisAlreadyLinked: err(409, "nis_already_linked", "Pacient už je propojen se záznamem v NIS. Nejdřív propojení zrušte."),
   nisRecordTaken: err(409, "nis_record_taken", "Tento záznam v NIS je už propojen s jiným pacientem."),
   nisNotLinked: err(404, "nis_not_linked", "Pacient není propojen se záznamem v NIS."),
+  nisRecordNotFound: err(404, "nis_record_not_found", "Tento záznam v NIS nebyl nalezen nebo nepatří k propojenému pacientovi."),
   // status and closing
   statusMoveNotAllowed: err(409, "status_move_not_allowed", "Tuto změnu stavu nelze provést."),
   statusChanged: err(409, "status_changed", "Stav případu mezitím změnil jiný uživatel."),

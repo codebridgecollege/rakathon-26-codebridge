@@ -181,6 +181,7 @@ const PROBES: Probe[] = [
   { name: "DELETE /cases/:id/intake", method: "DELETE", path: (i) => `/cases/${i.case2}/intake`, user: "b-coord" },
   // NIS search and link (nis.ts), with a NIS configured in both orgs.
   { name: "GET /cases/:id/nis", method: "GET", path: (i) => `/cases/${i.case}/nis`, user: "b-doc", env: NIS_BOTH },
+  { name: "GET /cases/:id/nis/record", method: "GET", path: (i) => `/cases/${i.case}/nis/record?resource=Observation%2Fx`, user: "b-doc", env: NIS_BOTH },
   { name: "POST /cases/:id/nis/search", method: "POST", path: (i) => `/cases/${i.case}/nis/search`, user: "b-coord", body: () => ({}), env: NIS_BOTH },
   { name: "POST /cases/:id/nis/link", method: "POST", path: (i) => `/cases/${i.case2}/nis/link`, user: "b-doc", body: () => ({ nis_patient_id: "t-pt-a" }), env: NIS_BOTH },
   { name: "DELETE /cases/:id/nis/link", method: "DELETE", path: (i) => `/cases/${i.case}/nis/link`, user: "b-coord", env: NIS_BOTH },
@@ -376,14 +377,15 @@ describe("every route, acting in org B with org A's IDs", () => {
     expect(await snapshotA()).toEqual(before);
 
     // The control: the same reads as org A's own users find the records, so the 404s above are the org boundary and
-    // not a malformed request. (The intake read answers 409 on a completed case; that too says the case exists.)
+    // not a malformed request. (The intake read answers 409 on a completed case, and the NIS record 404 nis_not_linked on
+    // a case whose patient has no NIS link; both say the case exists.)
     const asA: Record<string, string> = { "b-doc": "d2p1", "b-coord": "coord", "b-admin": "admin" };
     const found: string[] = [];
     for (const p of PROBES.filter((x) => x.method === "GET")) {
       const r = await send("GET", p.path(ids), asA[p.user]!, {}, {}, p.env?.() ?? testEnv());
-      found.push(`${p.name} ${r.status}`);
+      found.push(`${p.name} ${r.status}${r.status === 404 ? ` ${r.body.error?.code}` : ""}`);
     }
-    expect(found.filter((f) => !/ 200$/.test(f))).toEqual(["GET /cases/:id/intake 409"]);
+    expect(found.filter((f) => !/ 200$/.test(f))).toEqual(["GET /cases/:id/intake 409", "GET /cases/:id/nis/record 404 nis_not_linked"]);
   });
 
   it("covers every route the Worker mounts", async () => {

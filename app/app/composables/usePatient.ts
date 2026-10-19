@@ -96,7 +96,9 @@ export function providePatient(file: ComputedRef<string>, t: T): PatientCtx {
     canSetStatus: computed(() => role.value === "doctor" || role.value === "coordinator"),
     edOf: (key) => edits.value[key],
     openSource: (r) => {
-      if (r) void source.openSource(t, r, file.value);
+      // A NIS record has no page to open: its own panel shows it.
+      if (r?.nis) overlay.open({ kind: "nisrecord", caseId: p.value.id, ref: r.nis });
+      else if (r) void source.openSource(t, r, file.value);
     },
     openEdit: (key, orig) => overlay.open({ kind: "edit", file: file.value, key, orig: orig ?? "", isQuestion: key === "q" }),
     docTitle: (r) =>

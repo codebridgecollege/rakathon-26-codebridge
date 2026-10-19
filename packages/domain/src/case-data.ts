@@ -8,7 +8,9 @@ import { fromRun, type DocInfo, type RunView } from "./run-view";
 
 // A pointer to the exact passage a fact rests on. `file` may be absent: then the reference points into the open case.
 // `part` names the logical document inside the file ("10_pacient/p1"), when the run gives it.
-export type SourceRef = { file?: string; page: number | string; quote?: string; part?: string | null };
+// `nis` instead of a page: the fact rests on a record in the NIS (the "záznam z NIS" panel shows it).
+export type NisRef = { system: string; resource: string; version: string | null; last_updated: string | null };
+export type SourceRef = { file?: string; page: number | string; quote?: string; part?: string | null; nis?: NisRef };
 
 // The extraction's items carry many optional fields; the views read them by name. Typed loosely on purpose: the
 // extraction schema is produced by the pipeline and the views must tolerate fields that are absent.
