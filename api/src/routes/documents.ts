@@ -21,8 +21,11 @@ import {
   mediaTypeOf,
   uploadLine,
   uploadPolicy,
+  WITHDRAW_REASONS,
+  withdrawReason,
   type Identity,
 } from "../domain/documents";
+import { DomainError } from "@codebridge/domain/errors";
 import { audit } from "../middleware/audit";
 import { UNLOCKED_COND, caseDocuments, documentRow, fixtureByHash, uploadContext, type DocRow, type FixtureRow } from "../store/documents";
 import { openCase } from "./access-check";
@@ -89,10 +92,16 @@ export function docOut(d: DocRow) {
     uploaded_at: d.created_at,
     // "phone" for a file sent through an upload session; the page shows "z telefonu" next to who and when.
     source: d.source,
+    // current, superseded or withdrawn (migration 0013); a withdrawn document keeps its row and reason, not its content.
+    lifecycle: d.lifecycle as "current" | "superseded" | "withdrawn",
+    lifecycle_reason_cs: d.lifecycle_reason_cs,
+    lifecycle_changed_at: d.lifecycle_changed_at,
   };
 }
 
-const levelOf = (docs: DocRow[]): "full" | "partial" | "none" => {
+const levelOf = (all: DocRow[]): "full" | "partial" | "none" => {
+  // A withdrawn or superseded document no longer counts towards what the case holds.
+  const docs = all.filter((d) => d.lifecycle === "current");
   if (!docs.length) return "none";
   const covered = docs.filter((d) => d.origin === "seed" ? d.processing === "processed" : d.state === "prepared" || d.state === "processed").length;
   return covered === docs.length ? "full" : covered ? "partial" : "none";
@@ -136,7 +145,7 @@ export async function receiveUpload(c: Context<AppEnv>, id: string, u: UploadCtx
   // there, so the page never shows a refusal for it. Seeded documents are not repeats: they are the case's own record.
   // From a phone, a listed file is a repeat only within its own session: phones name every camera photo "image.jpg",
   // so a later photo with an earlier one's name is a new file (stored as "image (2).jpg" below).
-  const dup = await orgQuery(c, `SELECT id FROM documents WHERE org_id = ?org AND case_id = ?1 AND origin = 'upload' AND ((?2 IS NOT NULL AND sha256 = ?2)
+  const dup = await orgQuery(c, `SELECT id FROM documents WHERE org_id = ?org AND case_id = ?1 AND origin = 'upload' AND lifecycle = 'current' AND ((?2 IS NOT NULL AND sha256 = ?2)
          OR (?2 IS NULL AND sha256 IS NULL AND file_name = ?3 AND (?4 IS NULL OR upload_session_id = ?4))) LIMIT 1`, id, sha, name, via?.sessionId ?? null)
     .first<{ id: string }>();
   if (dup) return { document: docOut((await documentRow(db, c.var.viewer.org, dup.id))!), status: 200 as const };
@@ -162,7 +171,7 @@ export async function receiveUpload(c: Context<AppEnv>, id: string, u: UploadCtx
   if (key && bytes) await c.env.DOCS.put(key, bytes, { httpMetadata: { contentType: stored.mediaType }, sha256: sha! });
   const t = tx(c, breakGlass).onConstraint(/UNIQUE constraint failed: documents\.org_id, documents\.case_id|documents_case_sha/, () => UP.duplicate());
   t.guard("unlocked", UNLOCKED_COND, [id, id], () => UP.locked());
-  t.guard("count", "(SELECT COUNT(*) FROM documents WHERE org_id = ?org AND case_id = ?) < ?", [id, MAX_DOCUMENTS_PER_CASE], () => UP.tooMany());
+  t.guard("count", "(SELECT COUNT(*) FROM documents WHERE org_id = ?org AND case_id = ? AND lifecycle = 'current') < ?", [id, MAX_DOCUMENTS_PER_CASE], () => UP.tooMany());
   t.run(
     `INSERT INTO documents (org_id, id, case_id, file_name, media_type, page_count, original_r2_key, sha256, size_bytes, origin, processing,
        uploaded_by, created_at, state, fixture_id, identity, title_cs, doc_type, doc_date, source, upload_session_id)
@@ -235,6 +244,53 @@ export const documents = new Hono<AppEnv>()
     // The file goes with its row; a failed delete is left to the reset, which clears the org's uploads/.
     await deleteUploadObjects(c, c.var.viewer.org, d).catch(() => console.error(JSON.stringify({ route: "document.remove", r2: "delete_failed" })));
     return answer(c, { removed: docId });
+  })
+  // A processed (or failed) upload of another patient leaves the case. The row stays with its size, time, uploader,
+  // identity result, reason, who and when (history, migration 0013's lifecycle), and so do the pipeline runs' rows;
+  // everything of the other patient's document goes: the file, the run outputs, the page and part rows, the hash, and
+  // the name and descriptive fields (a file name may name the patient). Design: step-6.md, "Taking a wrong patient's
+  // document out of the case".
+  .post("/documents/:id/withdraw", async (c) => {
+    const docId = c.req.param("id");
+    const d = await documentRow(c.env.DB, c.var.viewer.org, docId);
+    label(c, "odebrání dokumentu z případu", d?.case_id ?? null);
+    if (!d) throw UP.notFound();
+    const { breakGlass } = await caseFor(c, d.case_id, "document.upload");
+    const reason = withdrawReason(((await c.req.json().catch(() => ({}))) as { reason?: unknown }).reason);
+    const u = await uploadContext(c.env.DB, c.var.viewer.org, d.case_id);
+    if (!u) throw E.caseNotFound();
+    assertUnlocked(u);
+    // Seeded documents are the demo's own record (reset restores them, but not their deleted files); a stored upload
+    // goes by DELETE; a document already out of the case stays as it is; an open intake decides on its files itself.
+    if (d.origin !== "upload" || d.lifecycle !== "current" || d.state === "stored" || u.intake_open) throw UP.notWithdrawable();
+    // A prepared document's facts sit in the case's prepared extraction, alerts and case row, which nothing rebuilds
+    // yet; taking it out now would leave another patient's facts in the brief with sources that no longer open.
+    if (d.state === "prepared") throw UP.preparedNotYet();
+    const v = c.var.viewer;
+    const t = tx(c, breakGlass).onConstraint(/a superseded or withdrawn document stays so/, () => UP.notWithdrawable());
+    t.guard("unlocked", UNLOCKED_COND, [d.case_id, d.case_id], () => UP.locked());
+    t.guard("current", "(SELECT lifecycle FROM documents WHERE org_id = ?org AND id = ?) = 'current'", [docId], () => UP.notWithdrawable());
+    // A run still reading the file would write pages after the delete; it finishes or fails first.
+    t.guard("no_run", "NOT EXISTS (SELECT 1 FROM pipeline_runs WHERE org_id = ?org AND document_id = ? AND state IN ('queued','running'))", [docId], () =>
+      new DomainError(409, "pipeline_running", "Dokument se právě zpracovává; odeberte ho po dokončení."));
+    t.guard("not_prepared", "(SELECT state FROM documents WHERE org_id = ?org AND id = ?) <> 'prepared'", [docId], () => UP.preparedNotYet());
+    t.run("DELETE FROM pages WHERE org_id = ?org AND document_id = ?1", docId);
+    t.run("DELETE FROM document_parts WHERE org_id = ?org AND document_id = ?1", docId);
+    // The name gets a neutral stand-in that stays unique in the case (UNIQUE(case_id, file_name)).
+    t.run(
+      `UPDATE documents SET lifecycle = 'withdrawn', lifecycle_reason_cs = ?1, lifecycle_changed_at = ?2, lifecycle_changed_by = ?3,
+         original_r2_key = NULL, sha256 = NULL, file_name = ?5, title_cs = NULL, doc_type = NULL, doc_date = NULL,
+         readability_reasons_json = NULL, fixture_id = NULL, note_cs = NULL, state_detail_cs = NULL
+       WHERE org_id = ?org AND id = ?4`,
+      WITHDRAW_REASONS[reason], isoNow(), v.actor?.id ?? v.id, docId, `odebraný dokument ${docId.slice(-6)}`,
+    );
+    t.audit({ action: "document.withdraw", what_cs: "odebral(a) dokument z případu jako dokument jiného pacienta (obsah smazán)", case_id: d.case_id, target_type: "document", target_id: docId });
+    await t.commit();
+    // After the commit, so a refused withdraw deletes nothing. A failed delete is done again by the cron sweep
+    // (sweepWithdrawn in scheduled.ts), so the log line's "obsah smazán" holds.
+    await deleteDocumentObjects(c.env, v.org, d.case_id, docId).catch(() => console.error(JSON.stringify({ route: "document.withdraw", r2: "delete_failed" })));
+    const row = await documentRow(c.env.DB, v.org, docId);
+    return answer(c, { document: docOut(row!) });
   });
 
 // The document's own objects: its file (by the key its row stores) and the pipeline's outputs under its prefix, under
@@ -247,6 +303,22 @@ export async function deleteUploadObjects(c: Context<AppEnv> | { env: Env }, org
     keys.push(...listed.objects.map((o) => o.key));
   }
   if (keys.length) await c.env.DOCS.delete(keys);
+}
+
+// Everything R2 holds for one uploaded document, by prefix: the file itself (uploads/<case>/<doc>.pdf|.jpg|.png) and
+// every run output and page copy (uploads/<case>/<doc>/...), under the org and, for demo org A, also under the prefix
+// used before orgs. Document ids are unique ("up-" and a UUID), so the prefix without a slash catches nothing else.
+// Listed page by page: a document read several times holds hundreds of objects.
+export async function deleteDocumentObjects(env: Env, org: string, caseId: string, docId: string) {
+  const prefixes = [orgKey(org, `uploads/${caseId}/${docId}`), ...(org === LEGACY_ORG ? [`uploads/${caseId}/${docId}`] : [])];
+  for (const prefix of prefixes) {
+    let cursor: string | undefined;
+    do {
+      const listed = await env.DOCS.list({ prefix, limit: 1000, ...(cursor ? { cursor } : {}) });
+      if (listed.objects.length) await env.DOCS.delete(listed.objects.map((o) => o.key));
+      cursor = listed.truncated ? listed.cursor : undefined;
+    } while (cursor);
+  }
 }
 
 export type { FixtureRow };

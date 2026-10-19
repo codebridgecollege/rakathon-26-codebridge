@@ -34,6 +34,9 @@ export async function startRun(
   const v = c.var.viewer;
   const t = tx(c, breakGlass).onConstraint(/pipeline_runs_active|UNIQUE constraint failed: pipeline_runs\.document_id/, pipelineRunning);
   t.guard("unlocked", UNLOCKED_COND, [d.case_id, d.case_id], () => UP.locked());
+  // The document may have left the case (withdrawn, its file deleted) between the caller's read and this batch.
+  t.guard("current", "(SELECT lifecycle = 'current' AND original_r2_key IS NOT NULL FROM documents WHERE org_id = ?org AND id = ?) = 1", [d.id], () =>
+    new ApiError(409, "no_file", "Dokument nemá uložený soubor ke zpracování."));
   t.run(
     `INSERT INTO pipeline_runs (org_id, id, document_id, case_id, state, pipeline_version, input_sha256, output_prefix, created_by, created_by_name, created_by_actor, created_at, updated_at)
      VALUES (?org, ?1, ?2, ?3, 'queued', ?4, ?5, ?6, ?7, ?8, ?10, ?9, ?9)`,

@@ -1151,3 +1151,30 @@ rules) are not built.
   ends starts its own run, even for a file the attach would have covered.
   It is read twice at most, never lost; the active-run index refuses a
   second run on the same document.
+
+### Taking a wrong patient's document out of the case (issue #18)
+
+- `POST /api/documents/:id/withdraw` with `{reason: "wrong_patient"}` (role `document.upload`, an unlocked case, not
+  an open intake) takes a processed or failed upload out of the case, with migration 0013's lifecycle:
+  `lifecycle = 'withdrawn'`, `lifecycle_reason_cs` "dokument jiného pacienta", who and when. Only the wrong-patient
+  reason exists: a better scan is `superseded`, which is a different action (EXTRACTION-FORMAT.md, "documents").
+- Refused (409 `document_not_withdrawable`): a stored upload (removed with `DELETE /documents/:id`), a seeded
+  document (the demo's record), a document already out of the case, and a **prepared** document: its facts sit in
+  the case's prepared extraction, alerts and case row, which nothing rebuilds yet, so taking it out would leave
+  another patient's facts in the brief with sources that no longer open. That waits for the case merge, which reads
+  current documents only. A document with a run queued or running is refused with 409 `pipeline_running`, and a
+  run cannot start on a withdrawn document (the start's batch checks that it is current and has its file).
+- **History kept, the other patient's data gone.** The row stays with its size, upload time, uploader, identity
+  result and reason, and its `pipeline_runs` rows stay. Deleted or blanked: the file name (it may name the patient;
+  it becomes "odebraný dokument <6 characters of its id>"), title, type, date, readability reasons, fixture, hash,
+  file key, the `pages` and `document_parts` rows, and in R2 everything under `uploads/<case>/<doc>` (the file and
+  every run output, for org A also the prefix used before orgs), listed page by page. The cron sweep deletes the
+  same prefixes again for documents withdrawn in the last seven days, so a failed delete does not leave the content
+  behind. One access-log line names the reason, never the file. A later upload of the same bytes is a new
+  document; repeats and the 40-document limit count current documents only.
+- The identity banner and the documents count leave withdrawn documents out.
+- In the app the upload list shows "Jiný pacient" (two steps, the content cannot come back) on processed or failed
+  uploads only where `/api/me` reports `features.pipeline` for the org, so demo org A looks as before; a withdrawn
+  row shows "Odebráno z případu" with the reason in its tooltip.
+- Not covered yet: model answers cached under `cache/model/<case>/` (stream D) are keyed by input hash, not by
+  document; once pages are sent to a model, withdraw must purge them too.

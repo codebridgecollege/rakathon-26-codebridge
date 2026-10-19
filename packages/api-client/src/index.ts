@@ -11,6 +11,7 @@ import type {
   IntakeCompleted,
   IntakeStatus,
   UploadDoc,
+  WithdrawReason,
   UploadSession,
   UploadSessionPoll,
   UploadTarget,
@@ -231,6 +232,7 @@ export function createApiClient(opts: ClientOptions = {}) {
         timeout: 120000,
       }),
     deleteDocument: (docId: string) => w<{ removed: string }>("DELETE", `/documents/${enc(docId)}`, {}),
+    withdrawDocument: (docId: string, reason: WithdrawReason) => w<{ document: UploadDoc }>("POST", `/documents/${enc(docId)}/withdraw`, { reason }),
     processDocument: (docId: string) => w("POST", `/documents/${enc(docId)}/process`, {}),
     // The answer carries the session's token once; it goes only into the QR code, never into text or logs.
     createUploadSession: (body: { case_id: string; target: UploadTarget }) => w<CreatedUploadSession>("POST", "/upload-sessions", body),

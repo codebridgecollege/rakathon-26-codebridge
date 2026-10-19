@@ -213,6 +213,8 @@ Design and contract: `docs/research/backend-steps/step-6.md`, section "As implem
   document already there. Files live under R2 `org/<org>/uploads/<case>/`, which reset-demo and the intake
   discard delete. Rules in `src/domain/documents.ts`; the fixture's patient (`fixture_patients`, D1 only) is compared
   with the case's patient and only the result (`matches`, `conflicts`, `cannot_verify`) leaves the server.
+- Withdraw: `POST /documents/:id/withdraw` (`wrong_patient`) takes a processed upload of another patient out of the case
+  with migration 0013's lifecycle columns: a neutral row and its runs stay; file, outputs, pages, parts, name and hash go.
 - Intake: `src/routes/intake.ts`, `src/store/intake.ts`, rules in `src/domain/intake.ts` and `packages/domain/src/fhir.ts`. An
   open intake (`cases.intake_open = 1`) is hidden from lists and the workflow, takes uploads only, and is 404 to anyone
   but its creator; the cron sweep removes it after 24 hours. The attach reads `fixtures/<id>/prepared.json`, written by

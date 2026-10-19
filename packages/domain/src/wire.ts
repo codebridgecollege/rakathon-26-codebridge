@@ -219,7 +219,13 @@ export type UploadDoc = {
   uploaded_by: string | null;
   uploaded_at: string;
   source: string | null;
+  // current, superseded or withdrawn; a withdrawn document keeps its row and reason, not its content.
+  lifecycle: "current" | "superseded" | "withdrawn";
+  lifecycle_reason_cs: string | null;
+  lifecycle_changed_at: string | null;
 };
+// POST /documents/:id/withdraw: why a processed upload leaves the case.
+export type WithdrawReason = "wrong_patient";
 // GET /cases/:id/documents.
 export type CaseDocuments = { case_id: string; processing_level: "full" | "partial" | "none"; documents: (UploadDoc & { parts?: unknown[] })[] };
 

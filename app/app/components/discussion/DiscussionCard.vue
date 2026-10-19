@@ -66,7 +66,7 @@ const staffNames = computed(() => new Set(staff.nameById.values()));
 const who = computed(() => assignees(coordName.value, p.value.owner, present.value, staffNames.value));
 // Uploading and removing documents: doctors and the coordinator, on an open case whose conclusion is not approved.
 const canUpload = computed(() => c.canSetStatus.value && !closed.value && !locked.value);
-const docsCount = computed(() => uploads.docsOf(file.value).length);
+const docsCount = computed(() => uploads.docsOf(file.value).filter((d) => d.lifecycle !== "withdrawn").length);
 const pipelineOn = computed(() => session.me?.features?.pipeline === true);
 // The last move to "closed" names who closed the case and when.
 const closedBy = computed(() => (c.wf.value.statusHist ?? p.value.statusHist ?? []).filter((h) => h.to === "closed").at(-1));

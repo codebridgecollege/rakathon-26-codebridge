@@ -157,6 +157,7 @@ const PROBES: Probe[] = [
   { name: "POST /documents/:id/process (seeded)", method: "POST", path: (i) => `/documents/${i.doc}/process`, user: "b-coord" },
   { name: "DELETE /documents/:id (upload)", method: "DELETE", path: (i) => `/documents/${i.upDoc}`, user: "b-doc" },
   { name: "DELETE /documents/:id (seeded)", method: "DELETE", path: (i) => `/documents/${i.doc}`, user: "b-coord" },
+  { name: "POST /documents/:id/withdraw", method: "POST", path: (i) => `/documents/${i.upDoc}/withdraw`, user: "b-doc" },
   { name: "POST /cases/:id/documents", method: "POST", path: (i) => `/cases/${i.case}/documents`, user: "b-doc", body: () => pdf("org B upload"), headers: { "content-type": "application/pdf", "x-file-name": "x.pdf", "content-length": String(pdf("org B upload").length) } },
   // Case writes (write-cases.ts).
   { name: "POST /cases/:id/status", method: "POST", path: (i) => `/cases/${i.case}/status`, user: "b-coord", body: () => ({ to: "attention", expected_status: "done" }) },

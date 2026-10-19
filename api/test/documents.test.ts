@@ -6,6 +6,7 @@ import { env } from "cloudflare:workers";
 import { call, testEnv } from "./helpers";
 import { fileKind, imageType, uploadPolicy } from "../src/domain/documents";
 import { FAKE_NAME, loadFixture } from "./data";
+import { sweep } from "../src/scheduled";
 
 type Body = { data?: Record<string, any>; data_epoch?: number; state?: Record<string, any>; error?: { code: string; message_cs: string } };
 
@@ -227,6 +228,82 @@ describe("other policies", () => {
     expect(imageType(b(0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a))).toEqual({ mediaType: "image/png", ext: ".png" });
     expect(uploadPolicy("fixtures_only", "demo-a", "demo-a")).toBe("fixtures_only");
     expect(uploadPolicy("fixtures_only", "demo-b", " demo-b ")).toBe("store_unprocessed");
+  });
+});
+
+describe("withdrawing another patient's processed upload", () => {
+  const withdraw = (id: string, reason: unknown = "wrong_patient", user = "d2p1") =>
+    call(`/api/documents/${id}/withdraw`, { method: "POST", headers: { "content-type": "application/json", "x-demo-user": user, "x-data-epoch": "1" }, body: JSON.stringify({ reason }) })
+      .then(async (r) => ({ status: r.status, body: (await r.json()) as Body }));
+
+  // Another patient's document, uploaded and read by the pipeline: its file, a run's outputs, a page row and a part.
+  async function processedOther() {
+    const d = (await upload("NO-A", OTHER, "o.pdf")).body.data!.document;
+    const key = (await q<{ original_r2_key: string }>("SELECT original_r2_key FROM documents WHERE id = ?1", d.id))[0]!.original_r2_key;
+    const prefix = key.replace(/\.pdf$/, "/pl-1/");
+    await env.DOCS.put(`${prefix}p1.png`, "png");
+    await env.DOCS.put(`${prefix}p1.json`, "{}");
+    await env.DB.batch([
+      env.DB.prepare("UPDATE documents SET state = 'processed', processing = 'processed', page_count = 1 WHERE id = ?1").bind(d.id),
+      env.DB.prepare(
+        `INSERT INTO pipeline_runs (org_id, id, document_id, case_id, state, pipeline_version, input_sha256, output_prefix, created_by, created_by_name, created_at, updated_at)
+         VALUES ('demo-a', 'pl-1', ?1, 'NO-A', 'done', 'dev', ?2, ?3, 'd2p1', 'x', '2026-10-19T08:00:00Z', '2026-10-19T08:00:00Z')`,
+      ).bind(d.id, await hex(OTHER), prefix),
+      env.DB.prepare("INSERT INTO pages (org_id, document_id, n, json_r2_key, image_r2_key, width, height, engine, is_empty) VALUES ('demo-a', ?1, 1, ?2, ?3, 1, 1, 'tesseract', 0)")
+        .bind(d.id, `${prefix}p1.json`, `${prefix}p1.png`),
+      env.DB.prepare("INSERT INTO document_parts (org_id, document_id, ordinal, title_cs, pages_json) VALUES ('demo-a', ?1, 0, 'Histologie', '[1]')").bind(d.id),
+    ]);
+    return { id: d.id as string, key, prefix };
+  }
+
+  it("keeps a neutral row with its reason and the run's history, deletes everything of the other patient, and lets the file come again", async () => {
+    const { id, key, prefix } = await processedOther();
+    const r = await withdraw(id);
+    expect(r.status).toBe(200);
+    expect(r.body.data!.document).toMatchObject({ lifecycle: "withdrawn", lifecycle_reason_cs: "dokument jiného pacienta", content_stored: false, sha256: null, type_cs: null, doc_date: null, fixture: false });
+    expect(r.body.data!.document.name).toBe(`odebraný dokument ${id.slice(-6)}`);
+    const row = (await q<Record<string, unknown>>("SELECT lifecycle, lifecycle_changed_by, original_r2_key, sha256, file_name, title_cs FROM documents WHERE id = ?1", id))[0]!;
+    expect(row).toMatchObject({ lifecycle: "withdrawn", lifecycle_changed_by: "d2p1", original_r2_key: null, sha256: null, title_cs: null });
+    expect(await count("pages", `document_id = '${id}'`)).toBe(0);
+    expect(await count("document_parts", `document_id = '${id}'`)).toBe(0);
+    expect(await count("pipeline_runs", `document_id = '${id}'`)).toBe(1);
+    expect(await env.DOCS.head(key)).toBeNull();
+    expect((await env.DOCS.list({ prefix })).objects).toEqual([]);
+    expect((await log()).map((l) => l.what_cs)).toContain("odebral(a) dokument z případu jako dokument jiného pacienta (obsah smazán)");
+    // Once out, it stays out; the list shows the neutral row, and the case's level no longer counts it.
+    expect((await withdraw(id)).body.error!.code).toBe("document_not_withdrawable");
+    const list = (await (await call("/api/cases/NO-A/documents", { headers: { "x-demo-user": "d2p1" } })).json()) as { documents: any[] };
+    expect(list.documents.find((d) => d.id === id)).toMatchObject({ lifecycle: "withdrawn", parts: [] });
+    // The same bytes again are a new document under their own name, not the withdrawn one.
+    const again = await upload("NO-A", OTHER, "o.pdf");
+    expect([again.status, again.body.data!.document.name]).toEqual([201, "o.pdf"]);
+    expect(again.body.data!.document.id).not.toBe(id);
+    // A run cannot start on the withdrawn document.
+    const run = await call(`/api/documents/${id}/process`, { method: "POST", headers: { "content-type": "application/json", "x-demo-user": "d2p1", "x-data-epoch": "1" }, body: "{}" }, testEnv({ PIPELINE_ORGS: "*" }));
+    expect(((await run.json()) as Body).error!.code).toBe("no_file");
+  });
+
+  it("the cron sweep deletes the content again when the delete after the withdraw failed", async () => {
+    const { id, prefix } = await processedOther();
+    expect((await withdraw(id)).status).toBe(200);
+    // As if the delete had failed: an object left under the document's prefix.
+    await env.DOCS.put(`${prefix}left.json`, "{}");
+    await sweep(env);
+    expect((await env.DOCS.list({ prefix })).objects).toEqual([]);
+  });
+
+  it("refuses a stored upload (DELETE removes it), a prepared one, a seeded one, a bad reason, a running document and another org", async () => {
+    const stored = (await upload("NO-A", MINE, "m.pdf")).body.data!.document;
+    expect((await withdraw(stored.id)).body.error!.code).toBe("document_not_withdrawable");
+    expect((await withdraw("A_pacient")).body.error!.code).toBe("document_not_withdrawable");
+    await env.DB.prepare("UPDATE documents SET state = 'prepared' WHERE id = ?1").bind(stored.id).run();
+    expect((await withdraw(stored.id)).body.error!.code).toBe("document_prepared");
+    const { id } = await processedOther();
+    expect((await withdraw(id, "not_needed")).status).toBe(422);
+    await env.DB.prepare("UPDATE pipeline_runs SET state = 'running' WHERE id = 'pl-1'").run();
+    expect((await withdraw(id)).body.error!.code).toBe("pipeline_running");
+    expect((await withdraw(id, "wrong_patient", "b-doc")).status).toBe(404);
+    expect((await q<{ lifecycle: string }>("SELECT lifecycle FROM documents WHERE id = ?1", id))[0]!.lifecycle).toBe("current");
   });
 });
 

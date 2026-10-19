@@ -5,7 +5,7 @@
 // server did not take (unreachable, busy) stays listed in this tab only, so the meeting never sees an upload error.
 import { defineStore } from "pinia";
 import { reactive } from "vue";
-import { ApiError, type UploadDoc } from "@codebridge/api-client";
+import { ApiError, type UploadDoc, type WithdrawReason } from "@codebridge/api-client";
 import { useApi } from "../lib/api";
 import { msgId } from "../lib/msg";
 import { refused } from "../lib/refused";
@@ -115,6 +115,17 @@ export const useUploadsStore = defineStore("uploads", () => {
     u.docs = u.docs.filter((d) => d.id !== id);
   }
 
+  // A processed upload leaves the case; the row stays with its reason (the server's answer replaces it).
+  async function withdraw(p: UploadCase, id: string, reason: WithdrawReason) {
+    const u = listOf(p.file);
+    try {
+      const r = await useApi().withdrawDocument(id, reason);
+      u.docs = u.docs.map((d) => (d.id === id ? { ...d, ...r.data.document } : d));
+    } catch (e) {
+      refused(e);
+    }
+  }
+
   // Files the phone sent into a case (phone store), once each.
   function addPhoneDocs(file: string, docs: UploadDoc[]) {
     const u = listOf(file);
@@ -127,5 +138,5 @@ export const useUploadsStore = defineStore("uploads", () => {
     lists.clear();
   }
 
-  return { lists, docsOf, listOf, load, add, remove, addPhoneDocs, reset };
+  return { lists, docsOf, listOf, load, add, remove, withdraw, addPhoneDocs, reset };
 });
