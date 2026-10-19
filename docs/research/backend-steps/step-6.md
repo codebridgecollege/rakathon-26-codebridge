@@ -830,7 +830,9 @@ rules) are not built.
   bytes are stored; any other file (unknown PDF, another format, ZIP,
   empty or oversized) is only listed, with name, size, declared media
   type, uploader and time, and no content, hash, fixture or identity
-  result. `store_unprocessed` also stores unknown PDFs. A repeat (the same
+  result. `store_unprocessed` also stores unknown PDFs and, since issue
+  #18, JPEG and PNG photos; `UPLOAD_STORE_ORGS` applies it per org (below,
+  "Keeping uploads per org"). A repeat (the same
   bytes, or the same name) answers 200 with the document already listed
   (the step 2 table keeps `UNIQUE(case_id, file_name)`; a new unique index
   adds `(case_id, sha256)`); 409 `duplicate` is left only for two uploads
@@ -959,7 +961,8 @@ rules) are not built.
   `pipeline/container/server.py` serves it (contract v1 in its
   docstring): `GET /healthz`, `POST /v1/inspect`, `/v1/pages`,
   `/v1/analyze` (page records with "ověřit" items from Tesseract against
-  the PDF text layer, readability per page and document), `/v1/labs`.
+  the PDF text layer, readability per page and document), `/v1/labs`, and
+  since issue #18 `/v1/convert` (a photo into a one-page PDF).
   No `/v1/identity`, `/v1/redact` or `/v1/page-index` endpoints: the
   identity check stays the registry's (uploads are fixtures), redaction is
   for the LLM slices, and the page index is part of `/v1/analyze`.
@@ -1071,3 +1074,33 @@ rules) are not built.
     org, and the page shows processing states and "Přečíst bez AI" only then,
     so demo org A looks as before. `/api/health` `features.pipeline` now says
     only that the host reaches a page reader.
+
+### Keeping uploads per org, photos (issue #18)
+
+- **Which uploads keep their content.** Demo org A, the hackathon demo,
+  keeps the content of registered fixtures only; any other file is listed
+  by name and size, as before, with no refusal on screen (demo smoothness).
+  `UPLOAD_STORE_ORGS` (comma-separated org ids) lists the orgs whose unknown
+  uploads are stored whatever `UPLOAD_POLICY` says; demo org A is ignored
+  there, so a typo cannot switch it on. It is the team's switch
+  for demo org B and is empty on the deployed host: anyone with a demo
+  account can act in org B and its demo reset wipes it, so the team turns
+  it on only while it tests with its own synthetic files. Real patient
+  documents wait for FNO's clearance and the login whatever it says.
+- **Photos.** A JPEG or PNG (by magic bytes) is kept as uploaded under
+  `uploads/<case>/<doc>.jpg|.png` with its own media type. The Workflow's
+  first step, `convert`, sends it to the page reader's `/v1/convert`
+  (`pipeline/page_reader/convert.py`, PyMuPDF and Pillow): a one-page A4
+  PDF, upright by the EXIF orientation, in grayscale, transparency as white
+  paper, at most about A4 at 300 dpi, rebuilt from the pixels alone so no
+  metadata follows (EXIF with GPS, XMP, ICC, comments; tested); every later
+  step reads that PDF
+  (`<run prefix>converted.pdf`), and the original stays unchanged.
+  Trade-off: the stored original still carries its EXIF data, location
+  included; it is kept because the original stays findable and unchanged
+  (CLAUDE.md), and it is read only by the pipeline.
+- **Not converted.** Office files (DOCX, ODT) stay listed only: converting
+  them needs LibreOffice, which would make the page reader image several
+  hundred MB larger; the doctor uploads a PDF instead. HEIC photos are not
+  decoded either (no HEIC support in PyMuPDF or Pillow without another
+  library); a browser's file picker on a phone sends JPEG.

@@ -114,6 +114,9 @@ export type RedactBody = {
 // Each call names the pool instance of the document's case (poolInstance).
 export const pageReader = {
   healthz: (env: Env, instance: string) => pageReaderJson<{ ok: boolean; versions: Versions }>(env, instance, "/healthz"),
+  // A JPEG or PNG photo of a page into a one-page PDF (base64), upright by its EXIF orientation, without its metadata.
+  convert: (env: Env, instance: string, b: ArrayBuffer, mediaType: string) =>
+    pageReaderJson<{ pdf_b64: string; width: number; height: number }>(env, instance, "/v1/convert", { method: "POST", headers: { "content-type": mediaType }, body: b }),
   inspect: (env: Env, instance: string, b: ArrayBuffer) =>
     pageReaderJson<{ page_count: number; encrypted: boolean; has_text_layer: boolean[] }>(env, instance, "/v1/inspect", pdf(b)),
   pages: (env: Env, instance: string, b: ArrayBuffer, from: number, to: number) =>
