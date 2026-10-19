@@ -1185,7 +1185,7 @@ rules) are not built.
 - **Splitting.** After the labs, the Workflow's `parts` step sends each page's text of record and readability to the
   page reader's `/v1/parts` (`pipeline/page_reader/parts.py`, deterministic header and layout rules) and keeps the
   answer in the run's `parts.json`. The `write` step replaces the document's `document_parts` rows with
-  `producer = 'pipeline'` (migration 0016): title as printed (without one, the type's name, which is our label),
+  `producer = 'pipeline'` (migration 0017): title as printed (without one, the type's name, which is our label),
   type in the fixtures' Czech words ("neurčeno" for the doctor to set), `date` with the printed precision and
   `date_as_written` exactly as printed, the pages, readability as the worst page ("empty" as "unreadable"), and
   `certainty` with a Czech note when the split is unsure. A document with prepared or seeded parts keeps them.
@@ -1196,7 +1196,7 @@ rules) are not built.
   step, sends it with the page texts to `/v1/identity`, and keeps only the result and the per-page results in the
   run's `identity.json`; the step result is the code. `write` sets `documents.identity` for an upload the fixture
   registry did not decide; a conflict also writes an access-log line that names no one.
-- **Document alerts.** `document_alerts` (migration 0016) holds what one document's latest run found: `poor_copy`
+- **Document alerts.** `document_alerts` (migration 0017) holds what one document's latest run found: `poor_copy`
   (pages read poor or empty) and `identity_conflict` (pages that show another patient), each with a Fluent message id
   and page numbers only, replaced on every finished run. It is an interim store until the case merge publishes a
   pipeline run: the ids already follow the format's `alertId` (rule plus subject), so they become that run's alert
