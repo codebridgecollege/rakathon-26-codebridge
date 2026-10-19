@@ -233,7 +233,10 @@ export function citedExams(facts: readonly Fact[], sources: readonly Source[]): 
   const out: { fact: Fact; original: Fact | null }[] = [];
   for (const f of own) {
     if (!performed(f) || f.origin === "assistant" || !f.sources.length || hasOriginal(f)) continue;
-    const original = own.find((g) => g !== f && performed(g) && hasOriginal(g) && sameExam(f, g)) ?? null;
+    // A report states its own date: an "original" dated less precisely than the citation ("9/2026" against
+    // "Histol. 14.9.2026") is a summary line of another document, not the report, and must not hide that it is missing.
+    const precise = (g: Fact) => (g.date.sort?.length ?? 0) >= (f.date.sort?.length ?? 0);
+    const original = own.find((g) => g !== f && performed(g) && hasOriginal(g) && precise(g) && sameExam(f, g)) ?? null;
     out.push({ fact: f, original });
   }
   return out.sort((a, b) => cmp(a.fact.date.sort ?? "\uffff", b.fact.date.sort ?? "\uffff") || cmp(a.fact.id, b.fact.id));

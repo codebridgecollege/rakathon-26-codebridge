@@ -127,6 +127,15 @@ describe("original report missing", () => {
     expect(rules([cited, tooEarly])).toHaveLength(1);
   });
 
+  it("never takes a less precisely dated summary line for the report a citation names", () => {
+    const cited = fact("histology", { specimen: null, result_text: "adenokarcinom", tumour_type: null, grade: null }, { date: date("14.9.2026"), sources: ["s-cited"] });
+    const summary = fact("histology", { specimen: null, result_text: "EGFR wt", tumour_type: null, grade: null }, { date: date("9/2026"), sources: ["s-orig"] });
+    expect(rules([cited, summary])).toHaveLength(1);
+    // The other way round, a citation by month finds the report of a day in it.
+    const byMonth = imaging("CT", "hrudník", "9/2026", ["s-cited"]);
+    expect(rules([byMonth, imaging("CT", "hrudník", "17.9.2026", ["s-orig"])])).toEqual([]);
+  });
+
   it("raises a missing report for a cited exam with a negative finding, and never links a citation by its year alone", () => {
     const negative = imaging("CT", "hrudník a břicho", "17.3.2026", ["s-cited"], { negated: true });
     expect(rules([negative])).toHaveLength(1);

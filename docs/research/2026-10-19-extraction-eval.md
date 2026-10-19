@@ -27,13 +27,31 @@ v3 to v5 are page by page. The v4 failure: the misread liver sentence of S03 cam
 as a metastasis fact, so the expectation that looks for a liver metastasis fact found none; v5 asks for a separate
 metastasis fact wherever a finding mentions metastases. In no version was the misread a clear fact.
 
-"Report missing" stayed not run in v1 to v5 because it needs the cross-document rule for cited reports. With the case
-rules (issue #21, `packages/domain/src/extraction/rules.ts`, applied by `extract-eval.ts` as the case merge will) over
-the cached v5 answers: report missing 8 / 0 / 0 plus one known failure (case 10's brain MR, quoted in the outpatient
-report, comes out of the extraction as `reported_as: original`), including two expectations that a histology cited by
-its report date is found under its sampling date (S02, S04); patients mixed up 8 / 0 / 0 (no contradiction across
-S04's two patients); reference 165 / 0 / 0 (no stage contradiction in S02 for "cT3b cN1" next to "cT3b cN1 M0"). The
-poor-scan items not run need medication (bisoprolol), which this step does not extract yet.
+"Report missing" stayed not run in v1 to v5 because it needs the cross-document rule for cited reports. The case
+rules (issue #21, `packages/domain/src/extraction/rules.ts`) now run in `extract-eval.ts` as the case merge will run
+them.
+
+Over the cached v5 answers:
+
+| Failure kind | Result |
+|---|---|
+| report missing | 8 / 0 / 0, plus one known failure |
+| patients mixed up | 8 / 0 / 0 |
+| reference | 165 / 0 / 0 |
+
+- The known failure is case 10's brain MR: it is quoted in the outpatient report, but the extraction marks it
+  `reported_as: original`.
+- Report missing includes two expectations that a histology cited by its report date is found under its sampling
+  date (S02, S04).
+- Patients mixed up: no contradiction across S04's two patients.
+- Reference: no stage contradiction in S02 for "cT3b cN1" next to "cT3b cN1 M0".
+
+Over the cached v7 answers with vision reading: report missing 8 / 0 / 1 not run, and every other kind passes.
+- The not-run expectation is case 10's MR: the extraction now cites no report at all in case 10, so the
+  original-report check has nothing to look at.
+- One rule came from this run. S03's diagnosis line ("Adenokarcinom ... EGFR wt, ALK neg", dated 9/2026) was taken as
+  the original of the histology cited as "Histol. 14.9.2026". An original dated less precisely than its citation now
+  never counts as the report.
 
 Facts kept with v3 and v5 (clear / verify / quarantined):
 
