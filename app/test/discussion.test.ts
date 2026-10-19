@@ -38,6 +38,11 @@ function setup(o: Parameters<typeof setupPatient>[0] = {}) {
 }
 
 afterEach(() => {
+  // A test that types without saving leaves the store's 800 ms autosave timer running. It used to fire during a later
+  // test and post through that test's API mock (the store reads the API when the timer fires): an extra "save" in one
+  // test, a "Neznámá adresa API." toast in another, depending on how fast the machine ran. reset() stops the timers,
+  // as a user switch does.
+  useDiscussionStore().reset();
   vi.useRealTimers();
   document.body.innerHTML = "";
 });
