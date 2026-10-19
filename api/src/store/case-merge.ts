@@ -2,7 +2,7 @@
 // for every current document of a case becomes one stored codebridge.extraction/2 run with producer "pipeline", so a
 // new patient's case view shows its documents, lab values and alerts without any AI. Called by ProcessCaseWorkflow,
 // which every finished document run (and a withdraw) starts; it always composes what exists, so it is idempotent, and
-// a run stored in between (run_stale) makes the Workflow retry.
+// a run stored in between (run_stale) makes the Workflow compose again.
 import { composeFragments, FRAGMENT_SCHEMA, type Fragment } from "@codebridge/domain/fragments";
 import type { ExtractionRun, RunStage } from "@codebridge/domain/extraction/index";
 import { withCaseRulesAndViews } from "@codebridge/domain/extraction/compose";

@@ -471,7 +471,7 @@ describe("the case merge (ProcessCase)", () => {
     const [merge] = await cases.get();
     await merge!.waitForStatus("complete");
     // Step results: codes and counts only.
-    expect(await merge!.waitForStepResult({ name: "compose 0" })).toEqual({ result: "composed", documents: 1, facts: 2 });
+    expect(await merge!.waitForStepResult({ name: "compose 0" })).toMatchObject({ result: "composed", documents: 1, facts: 2, brief: false });
     expect(await merge!.waitForStepResult({ name: "store 0" })).toEqual({ result: "stored", documents: 1, facts: 2 });
     // The composed run waited in R2 between the steps; it is gone once stored.
     expect((await env.DOCS.list({ prefix: "org/demo-b/runs/B-NO-A/draft-" })).objects).toEqual([]);
@@ -508,9 +508,12 @@ describe("the case merge (ProcessCase)", () => {
       "sestaven přehled případu ze zpracovaných dokumentů (dokumentů: 1, údajů: 2)",
     ]);
 
+    // A merge waiting between its steps holds a composed run; a withdraw deletes it.
+    await env.DOCS.put("org/demo-b/runs/B-NO-A/draft-x-0.json", "{}");
     // Withdrawn as another patient's: the next run has neither the document nor its values.
     const wd = await call(`/api/documents/${BDOC}/withdraw`, { method: "POST", headers: { "content-type": "application/json", "x-demo-user": "b-doc", "x-data-epoch": "1" }, body: JSON.stringify({ reason: "wrong_patient" }) }, pe());
     expect(wd.status).toBe(200);
+    expect((await env.DOCS.list({ prefix: "org/demo-b/runs/B-NO-A/draft-" })).objects).toEqual([]);
     const all = await cases.get();
     for (const i of all) await i.waitForStatus("complete");
     const next = await one("SELECT id, supersedes, r2_key FROM extraction_runs WHERE org_id = 'demo-b' AND case_id = 'B-NO-A' AND is_current = 1");

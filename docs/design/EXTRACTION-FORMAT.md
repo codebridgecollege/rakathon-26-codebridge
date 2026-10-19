@@ -572,9 +572,9 @@ diagnoses and the 16 timeline cards this way (`fixtures/convert/case10_v2.py`,
 `ONCO_LINES`, `TIMELINE_CARDS`, `OTHER_DX`).
 
 A pipeline run gets its `onco_lines` and `timeline` from `composeViews`
-(`packages/domain/src/extraction/compose.ts`). The case merge is meant to call
-it after the case rules; until stream B wires it, only the tests and the eval
-harness do. It is deterministic and words each line only from its facts' own
+(`packages/domain/src/extraction/compose.ts`). The case merge calls it after
+the case rules (`withCaseRulesAndViews`, api/src/workflows/process-case.ts).
+It is deterministic and words each line only from its facts' own
 values, joined by "od", "do", "dále", "histologie:", "toxicita:" and "důvod
 ukončení:". One line per event:
 - a treatment line with its later dose changes and its stop: the same drugs

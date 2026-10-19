@@ -7,8 +7,8 @@
 // It adds only joining words ("od", "do", "dále", "histologie:", "toxicita:", "důvod ukončení:"), status labels
 // ("suspektní", "(negativní nález)", "(podezření)") and the fixed gap wording, never a clinical judgement.
 //
-// The case merge (stream B's publishCaseRun) is meant to call it after applyCaseRules and before storeRun, which
-// validates every line; until that is wired, only the tests and the eval harness call it.
+// The case merge (stream B's ProcessCaseWorkflow, through withCaseRulesAndViews) calls it after applyCaseRules and before
+// storeRun, which validates every line.
 import { negationCues } from "./backing";
 import { dateSeg, viewLineId } from "./keys";
 import { applyCaseRules, supersededFacts, writtenSort } from "./rules";
@@ -363,7 +363,7 @@ export function composeViews(run: Pick<ExtractionRun, "facts">): ComposedViews {
 }
 
 /**
- * The synchronous part of finishing a case run, for the case merge's hook (stream B's publishCaseRun `rules`): the case
+ * The synchronous part of finishing a case run, for the case merge (stream B's composeCaseRun `rules`): the case
  * rules, then the composed views over the same facts. The brief needs the model and runs as its own step after this.
  */
 export function withCaseRulesAndViews<R extends ExtractionRun>(run: R): R {

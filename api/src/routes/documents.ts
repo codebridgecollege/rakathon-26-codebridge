@@ -33,7 +33,7 @@ import { answer, caseFor, isoNow, label, newId, orgQuery, tx } from "./write-con
 import { orgKey } from "../store/sql";
 import { cachePrefixesOf } from "../services/model-cache";
 import { autoStart } from "./pipeline-start";
-import { startCaseMerge } from "../workflows/process-case";
+import { deleteCaseDrafts, startCaseMerge } from "../workflows/process-case";
 import { pipelineListed } from "../services/page-reader";
 import { scrubRunsOf } from "../store/case-merge";
 import { LEGACY_ORG } from "../domain/orgs";
@@ -307,6 +307,9 @@ export const documents = new Hono<AppEnv>()
     // The case's run is composed again without it, so its values leave the case view (current documents only).
     // Older runs of the case lose the document's content too; then the case's run is composed again without it.
     await scrubRunsOf(c.env, v.org, d.case_id, docId).catch(() => console.error(JSON.stringify({ route: "document.withdraw", runs: "scrub_failed" })));
+    // A merge waiting between its steps holds a composed run that may quote the document: it goes, and that merge
+    // composes again.
+    await deleteCaseDrafts(c.env, v.org, d.case_id).catch(() => console.error(JSON.stringify({ route: "document.withdraw", drafts: "delete_failed" })));
     if (pipelineListed(c.env, v.org)) await startCaseMerge(c.env, { org: v.org, caseId: d.case_id, by: v.id, byActor: v.actor?.id ?? null });
     const row = await documentRow(c.env.DB, v.org, docId);
     return answer(c, { document: docOut(row!) });

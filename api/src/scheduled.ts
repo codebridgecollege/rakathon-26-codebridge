@@ -10,6 +10,7 @@ import { orgStmt } from "./store/sql";
 import { sweepSessions } from "./auth/session";
 import { deleteDocumentObjects } from "./routes/documents";
 import { scrubRunsOf } from "./store/case-merge";
+import { deleteCaseDrafts } from "./workflows/process-case";
 
 // Audio no pass has claimed goes after six hours: no case is discussed that long. Audio a failed pass kept for
 // "Zkusit znovu" goes after seven days at the latest, the same as the R2 lifecycle rule (user decision 2026-10-18).
@@ -84,7 +85,16 @@ async function sweepOrg(env: Env, org: string, nowMs: number): Promise<Counts> {
       await deleteDocumentObjects(env, org, d.case_id, d.id, d.lifecycle_changed_at);
       // And the stored runs that still read it (a scrub the withdraw could not finish, or a merge that raced it).
       await scrubRunsOf(env, org, d.case_id, d.id);
+      await deleteCaseDrafts(env, org, d.case_id);
     }
+  } catch {
+    failed += 1;
+  }
+  // Composed runs a case merge left between its steps (a failed instance): gone after a day.
+  try {
+    const recent = await orgStmt(env.DB, org, "SELECT DISTINCT case_id FROM pipeline_runs WHERE org_id = ?org AND updated_at > ?1 LIMIT 200", new Date(nowMs - 7 * 24 * 3600_000).toISOString())
+      .all<{ case_id: string }>();
+    for (const r of recent.results) await deleteCaseDrafts(env, org, r.case_id, 24 * 3600_000);
   } catch {
     failed += 1;
   }
