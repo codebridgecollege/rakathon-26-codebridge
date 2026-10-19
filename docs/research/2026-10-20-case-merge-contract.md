@@ -1,71 +1,76 @@
-# One case run from two producers: proposal for streams B and D
+# One case run from two producers: the contract between streams B and D
 
-Status: proposal from stream D (#20) to stream B (#18), 2026-10-20, for agreement before either side builds the merge.
+Status: agreed 2026-10-20 by stream B (#18) and stream D (#20), with stream E's (#21) rule placement. Both build
+against it. When the code is merged, the settled parts move to EXTRACTION-FORMAT.md and api/AGENTS.md, and this note
+keeps a pointer.
 
 **The goal:** one codebridge.extraction/2 run per case, stored through `prepareRun` and `storeRun`
-(`api/src/store/runs.ts`, stream A's #46), so doctor confirmations, edits and alert acknowledgements carry over. Two
-producers feed it:
+(`api/src/store/runs.ts`), so doctor confirmations, edits and alert acknowledgements carry over. Two producers feed
+it:
 - **B, the document pipeline without AI:** pages, readability, parts, identity per page, lab values from lab sheets,
-  poor-copy and identity alerts (today in `document_alerts`).
-- **D, the AI extraction:** the vision reading of pages that need it, and the facts with quotes
-  (`api/src/domain/extract/`).
+  poor-copy and identity alerts.
+- **D, the AI extraction:** the vision reading of pages that need it, and the facts with quotes.
 
-## Proposal
+## Fragments
 
-1. **Each producer writes a fragment per document, never a run.** A fragment is a run's content for one document,
-   with facts drafted (no `key` or `id`, a `draft_id` instead) and alerts without IDs, exactly the `DraftRun` parts
-   `prepareRun` takes:
+Each producer writes one fragment per document, never a run. A fragment is a run's content for one document, with
+facts drafted (no `key` or `id`) and alerts without IDs: the `DraftRun` parts that `prepareRun` takes. The type is
+`Fragment` in `packages/domain/src/fragments.ts` (B), schema `"codebridge.fragment/1"`.
 
-   ```json
-   {
-     "schema": "codebridge.fragment/1",
-     "producer": "pipeline" | "ai",
-     "document_id": "up-…", "document_sha256": "…", "pipeline_run": "pl-…",
-     "stages": [ { "name": "extract_facts", "model": "…", "prompt": "extract-facts-cs@7", "prompt_sha256": "…" } ],
-     "sources": [ … ], "facts": [ { "draft_id": "ai:up-…:d12", … } ], "checks": [ … ], "alerts": [ … ]
-   }
-   ```
-   - `draft_id`s are prefixed with the producer and the document, so fragments never collide.
-   - Stored in R2 under the document's pipeline run prefix (`org/<org>/uploads/<case>/<doc>/<run>/fragment-<producer>.json`),
-     so a withdraw deletes it with the rest (`deleteDocumentObjects`).
-2. **D runs after B, on B's outputs.** D's step needs B's page images, readings, readability, parts and identity
-   per page, and reads them from B's run outputs in R2. D does not compute identity itself: it takes B's
-   `/v1/identity` result per page for `source.identity` and quarantine, so there is one identity check.
-   (D's own `pageIdentity` stays only in the offline harness until the evaluation reads B's.) D extracts per part
-   (`document_parts`), so `source.part` is B's stable part ID.
-3. **One merge step, in B's ProcessCase:**
-   1. read the latest fragment of every producer for every current document;
-   2. concatenate sources, facts and alerts;
-   3. merge checks per `looks_for`: `covered` and `unreadable` are unions, and `found` wins over `nothing_found`;
-   4. run the case rules over all drafted facts: request without result, the same-date contradiction, and later the
-      cross-document ones;
-   5. `matchInputs`, `prepareRun`, then `storeRun` in one Tx, which also retires the document's `document_alerts`
-      once the run carries them.
+| | B, the pipeline | D, the AI extraction |
+|---|---|---|
+| File | `<output_prefix>fragment-pipeline.json` | `<output_prefix>fragment-ai.json` |
+| Written by | ProcessDocumentWorkflow, `write` step | ExtractDocumentWorkflow, last step |
+| `producer` | `pipeline` | `ai` |
+| `draft_id` | `pipeline:<doc>:<n>` | `ai:<doc>:<n>` |
+| Source IDs | `src-pl-<doc>-<n>` | `src-ai-<doc>-<n>` |
+| Facts | `lab_result` from lab sheets | every other kind (`api/src/domain/extract/schema.ts`), never lab sheet values |
+| Checks | `lab_result`: found, or `not_run` (the parser reads FNO lab sheets only, so it never claims nothing found) | each kind it looks for: found or nothing_found; `unreadable` holds the pages the model was not allowed to read (content filter, budget) |
+| Alerts | `poor_copy` (subject: document), `identity_conflict` (subject: document, args `{document, page}`) | none; the same-date contradiction is a mark on the facts, not an alert |
 
-   The two producers do not overlap by design: D does not extract lab sheet values, and B extracts nothing but labs.
-   So no fact is deduplicated across producers.
-4. **Triggers.** B's document run ends by starting the merge. When the model is on for the org (`MODEL_*` set and the
-   org keeps content), B's run instead starts D's `ExtractDocument` workflow, and that ends by starting the merge.
-   The merge is idempotent: it always composes the latest fragments, and a stale `storeRun` (`run_stale`) is retried.
-5. **What goes where in the run:**
-   - `run.producer`: `pipeline`;
-   - `run.stages`: B's engines and D's model stages;
-   - `documents`: each document with its parts.
+`output_prefix` is `pipeline_runs.output_prefix`, which is `org/<org>/uploads/<case>/<doc>/<pl-run>/`. A withdraw
+therefore deletes both fragments with the rest of the document. The alert subjects equal today's `document_alerts`
+IDs (`alertId(rule|subject)`), so acknowledgements carry over.
 
-## What D builds now, independent of the merge
+## Identity and parts
 
-- `ExtractDocumentWorkflow`: B's run outputs in, `fragment-ai.json` out. Its steps:
-  - vision reading of the pages that need it: redaction, then the model, then `/v1/compare`;
-  - extraction per part;
-  - the checks.
+- **Identity per page** is in `<output_prefix>identity.json`: `{"result": "matches"|"conflicts"|"cannot_verify",
+  "pages": [{"n", "result"}]}`, codes only.
+  - A page missing from the file counts as `cannot_verify`.
+  - A conflict, once found, is never downgraded by a later reading.
+  - D does not check identity itself. Each fact sets `quarantined` and `source.identity` from this result for its
+    page.
+- **Parts** are D1 `document_parts` (`part_id "<doc>/p<ordinal>"`, `pages_json`), also in `<output_prefix>parts.json`.
+  D extracts per part, so `source.part` is that ID.
 
-  Step results hold IDs and counts only; texts and answers stay in R2.
-- A pure `composeFragments(fragments) -> DraftRun` in `packages/domain` (or `api/src/domain`), with the check merge
-  and the case rules. B's ProcessCase calls it, and D's tests cover it.
+## ProcessCase
 
-## Questions for B
+`ProcessCaseWorkflow` (binding `PROCESS_CASE`, instance `case-<case>-<time>`) is B's. Three things start it:
+- B's document run, at its end;
+- a withdraw;
+- D's ExtractDocumentWorkflow, at its end.
 
-- Is the fragment shape acceptable, and does B write `fragment-pipeline.json` from its `write` step?
-- Where does B keep page identity per page (the R2 key), and does it stay per page or per part?
-- Is ProcessCase a workflow that B starts, and can it take "D's fragment is pending" as "compose what exists"?
-  That way a document without an AI fragment yet shows its no-AI facts.
+For each current document (lifecycle current, with a done pipeline run), it composes the latest fragment of each
+producer. A missing AI fragment is simply absent, so the no-AI view appears first. It retries on `run_stale`. It only
+stores when the case's current run is absent or has producer `pipeline`, and only for orgs in `PIPELINE_ORGS`.
+
+The steps:
+1. **`composeFragments(caseId, fragments, opts) -> DraftRun`** (B, pure, in `packages/domain`):
+   - concatenates sources, facts and alerts;
+   - merges checks per `looks_for`: `covered` and `unreadable` are unions, and `found` wins over `nothing_found`,
+     which wins over `not_run`; every fact kind gets a check;
+   - adds to each document's `identity_conflict` alert the quarantined draft_ids of every producer, not only B's;
+   - carries each fragment's `stages` into `run.stages`.
+2. **`prepareRun`**, against the case's previous run.
+3. **The case rules** (stream E, `packages/domain/src/extraction/rules.ts` `applyCaseRules`), run on the prepared run
+   with final IDs. Request without result, a report that is only cited, and contradictions live here. Their subjects
+   hold "|", which `prepareRun`'s pair rewrite would sort.
+4. **`storeRun`**, in one Tx with the retirement of the documents' `document_alerts`. The `model` and `promptVersion`
+   options come from the AI fragment's stages.
+
+## Triggers
+
+B's document run starts ProcessCase. When the model is on for the org, B's document run also starts D's
+`ExtractDocumentWorkflow`, which ends by starting ProcessCase again. The model is on when `MODEL_*` is configured,
+the org keeps content, and its model policy allows it. The first ProcessCase shows the no-AI view; the second adds the
+AI facts.
