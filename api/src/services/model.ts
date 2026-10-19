@@ -21,7 +21,8 @@
 // Logs carry the purpose, prompt reference, upstream status, attempts, duration and counts; never text or images.
 import { NonRetryableError } from "cloudflare:workflows";
 import type { Viewer } from "@codebridge/domain/access";
-import { countKinds, detectIdentifiers, pseudonymize, type CaseIdentity, type Pseudonymized, type TitledNumbers } from "../domain/pseudonymize";
+import type { CaseIdentity, Pseudonymized } from "../domain/pseudonymize";
+import { buildPayload, ModelError, type ModelErrorCode } from "./model-payload";
 import { loadPrompt, type LoadedPrompt, type PromptId } from "../prompts";
 import { orgKey, orgStmt } from "../store/sql";
 import { sha256Hex } from "../store/work";
@@ -29,32 +30,7 @@ import { Tx } from "../store/write";
 import { RedactedPage, toBase64 } from "./redaction";
 import { fetchWithRetry } from "./retry";
 
-export type ModelErrorCode =
-  | "model_off"
-  | "misconfigured"
-  | "identifier_remains"
-  | "image_not_redacted"
-  | "too_large"
-  | "budget_org"
-  | "budget_case"
-  | "budget_page"
-  | "busy"
-  | "upstream_error"
-  | "refused"
-  | "bad_output"
-  | "network";
-
-// Errors carry a fixed code and whether a later attempt can succeed; never upstream text or patient data.
-export class ModelError extends Error {
-  constructor(
-    readonly code: ModelErrorCode,
-    readonly retryable: boolean,
-    readonly upstream: number | "network" | null = null,
-  ) {
-    super(code);
-    this.name = "ModelError";
-  }
-}
+export { ModelError, type ModelErrorCode } from "./model-payload";
 
 // Inside a Workflow step: a final error stops the step's retries; a retryable one leaves them to the step's policy.
 export function forStep(e: unknown): Error {
@@ -169,34 +145,17 @@ export async function callModel(env: Env, req: ModelRequest): Promise<ModelResul
     if (im.png.byteLength > cfg.maxImageBytes) throw new ModelError("too_large", false);
   }
 
-  // One numbering of titled names for the whole call, so [LEKAR_1] is the same person in every part.
-  const titled: TitledNumbers = new Map();
-  const parts = (req.text ?? []).map((t) => ({ ref: t.ref, p: pseudonymize(t.text, req.identity, titled) }));
-  // Parts are labelled by position only: a document ID or file name may itself name the patient.
-  const content: Record<string, unknown>[] = [
-    ...parts.map((x, i) => ({ type: "text", text: `[Část ${i + 1}]\n${x.p.text}` })),
-    ...images.map((im) => ({ type: "image_url", image_url: { url: `data:image/png;base64,${toBase64(im.png)}`, detail: "high" } })),
-  ];
-  const body: Record<string, unknown> = {
+  const { body, parts, chars } = buildPayload({
+    prompt,
+    text: req.text ?? [],
+    imagesBase64: images.map((im) => toBase64(im.png)),
+    identity: req.identity,
     model: cfg.model,
-    messages: [
-      { role: "system", content: prompt.text },
-      { role: "user", content },
-    ],
-    max_completion_tokens: req.maxOutputTokens ?? cfg.maxOutputTokens,
-  };
-  if (cfg.reasoningEffort) body.reasoning_effort = cfg.reasoningEffort;
-  if (prompt.schema) body.response_format = { type: "json_schema", json_schema: { name: prompt.schema.name, strict: true, schema: prompt.schema.schema } };
-
-  // The gate: every string that leaves, checked with the same rules that replaced the identifiers.
-  const outgoing = [prompt.text, ...content.filter((c) => c.type === "text").map((c) => c.text as string), prompt.schema ? JSON.stringify(prompt.schema) : ""];
-  const left = outgoing.flatMap((s) => detectIdentifiers(s, req.identity));
-  if (left.length) {
-    console.log(JSON.stringify({ route: "model", purpose: req.purpose, refused: "identifier_remains", kinds: countKinds(left) }));
-    throw new ModelError("identifier_remains", false);
-  }
-  const chars = outgoing.reduce((s, x) => s + x.length, 0);
-  if (chars > cfg.maxInputChars) throw new ModelError("too_large", false);
+    maxOutputTokens: req.maxOutputTokens ?? cfg.maxOutputTokens,
+    reasoningEffort: cfg.reasoningEffort,
+    maxInputChars: cfg.maxInputChars,
+    purpose: req.purpose,
+  });
 
   const payload = JSON.stringify(body);
   const inputSha = await sha256Hex(payload);

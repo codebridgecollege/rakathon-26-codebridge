@@ -266,6 +266,25 @@ privacy side is in `docs/design/DATA-PROTECTION.md`, "Text sent to a model", and
 - **Tests:** `test/model.test.ts` (mocked model and page reader) and `test/pseudonymize.test.ts`; pytest
   `pipeline/tests/test_server.py` for `/v1/redact`.
 
+## Fact extraction (issue #20, stream D phase 2)
+
+The model answer and its checks are pure code in `src/domain/extract/`: `schema.ts` (the strict JSON schema the model
+answers in), `build.ts` (quote found in the part, mapped back to the original page text and anchored; dates, codes,
+numbers, negation, status and readability checked; identity quarantine; request-without-result alert; fact IDs through
+`assignFactIds`), `identity.ts` (whose page is it), `dates.ts`. The prompt is `src/prompts/extract-facts-cs.ts`. The
+request body comes from `src/services/model-payload.ts`, shared with `callModel`, so pseudonymization and the gate are
+the same everywhere. No Workflow calls it yet.
+
+- **Measure every prompt or check change** with the offline harness and the evaluation (synthetic data only):
+
+  ```
+  cd api && npm run extract:eval -- --out /tmp/runs-ai --dev-vars <path to a .dev.vars with AZURE_OPENAI_KEY>
+  cd pipeline && uv run python eval.py --ai-runs /tmp/runs-ai
+  ```
+  The harness calls the model page by page (`--whole` for one call per document) and caches answers in
+  `api/.cache/extract/` (gitignored), keyed by prompt version, prompt hash and payload hash; `--cache-only` reruns the
+  checks without a call. Results: `docs/research/2026-10-19-extraction-eval.md`.
+
 ## Upload from a phone (issue #10)
 
 Design and contract: `docs/design/PHONE-UPLOAD.md`, section "As implemented".

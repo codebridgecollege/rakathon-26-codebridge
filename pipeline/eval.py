@@ -6,6 +6,11 @@ Usage (from pipeline/):
     uv run python eval.py --case S03 --verbose # one case, every expectation with its outcome
     uv run python eval.py --json OUT.json      # the full result, for tooling
     uv run python eval.py --runs-out DIR       # also write the run each case produced
+    uv run python eval.py --ai-runs DIR        # add the AI extraction's run fragments (DIR/<case>.json)
+
+--ai-runs takes the runs api/scripts/extract-eval.ts writes (`cd api && npm run extract:eval`): their sources,
+facts, checks and alerts are added to the page reader's run before judging, so the expectations that need an AI
+check (diagnosis, identity, requests...) run instead of staying not_run.
 
 Why: every pipeline change that affects what the doctor sees is checked against synthetic cases for the
 CLAUDE.md failure cases (a critical fact left out, a wrong date, a negation read as positive, two patients
@@ -477,9 +482,31 @@ def _final(outcome: str, e: dict) -> str:
     return outcome
 
 
-def evaluate_case(spec: dict) -> dict:
+def add_ai_run(run: dict, ai: dict) -> None:
+    """Merge an AI extraction run fragment into the page reader's run: its own IDs are kept (src-<hash>, f-<hash>
+    do not collide with the adapter's numbered ones); its checks replace the adapter's for the same looks_for."""
+    run["sources"] += ai["sources"]
+    run["facts"] += ai["facts"]
+    run["alerts"] += ai["alerts"]
+    mine = {c["looks_for"] for c in ai["checks"]}
+    run["checks"] = [c for c in run["checks"] if c["looks_for"] not in mine] + ai["checks"]
+    run["run"]["stages"] += ai["run"]["stages"]
+
+
+def evaluate_case(spec: dict, ai_dir: Path | None = None) -> dict:
     docs = [read_document(d["document_id"], REPO / d["pages_dir"]) for d in spec["documents"]]
     run = to_run(spec["case"], docs)
+    ai_file = ai_dir / f"{spec['case']}.json" if ai_dir else None
+    ai_counts = None
+    if ai_file and not ai_file.exists():
+        # Said aloud, so a case the extraction skipped is not mistaken for one it ran over.
+        print(f"no AI run for {spec['case']} in {ai_dir}", file=sys.stderr)
+    if ai_file and ai_file.exists():
+        ai = json.loads(ai_file.read_text())
+        add_ai_run(run, ai)
+        facts = ai["facts"]
+        ai_counts = {"facts": len(facts), "clear": sum(f["certainty"] == "clear" for f in facts),
+                     "verify": sum(f["certainty"] == "verify" for f in facts), "quarantined": sum(f["quarantined"] for f in facts)}
     results = []
     for e in spec["expectations"]:
         outcome, detail = judge(e, run)
@@ -526,7 +553,7 @@ def evaluate_case(spec: dict) -> dict:
                         "detail": f"{len(extra)} unexpected" + ("" if not extra else ": " + ", ".join(
                             f"{f['codes'][0]['code']} {f['value']['value_as_written']} p{sources[f['sources'][0]]['page']}" for f in extra[:5]))})
     return {"case": spec["case"], "about": spec.get("about", ""), "results": results, "labs": lab_outcomes,
-            "readability": run.pop("_readability"), "run": run}
+            "readability": run.pop("_readability"), "ai": ai_counts, "run": run}
 
 
 def summarize(cases: list[dict]) -> dict:
@@ -553,6 +580,9 @@ def report(cases: list[dict], summary: dict, verbose: bool) -> str:
         out.append(f"\n== {c['case']}: {c['about']}")
         for did, rd in c["readability"].items():
             out.append(f"   readability {did}: {rd['level']}")
+        if c.get("ai"):
+            a = c["ai"]
+            out.append(f"   AI facts: {a['facts']} ({a['clear']} clear, {a['verify']} verify, {a['quarantined']} quarantined)")
         lo = c["labs"]
         if sum(lo.values()):
             out.append(f"   lab points: {sum(lo.values())} expected, {lo['exact']} exact, {lo['marked']} marked for checking, "
@@ -573,11 +603,12 @@ def main(argv=None) -> int:
     ap.add_argument("--verbose", action="store_true")
     ap.add_argument("--json", help="write the full result here")
     ap.add_argument("--runs-out", help="write each case's run (codebridge.extraction/2) to this folder")
+    ap.add_argument("--ai-runs", help="add the AI extraction's run fragments from this folder (<case>.json)")
     a = ap.parse_args(argv)
     specs = [load_expected(p) for p in sorted(EXPECTED_DIR.glob("*.json"))]
     if a.case:
         specs = [s for s in specs if s["case"] in a.case]
-    cases = [evaluate_case(s) for s in specs]
+    cases = [evaluate_case(s, Path(a.ai_runs) if a.ai_runs else None) for s in specs]
     summary = summarize(cases)
     print(report(cases, summary, a.verbose))
     if a.runs_out:

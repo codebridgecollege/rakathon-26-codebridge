@@ -18,7 +18,8 @@
     "seed:remote": "uv run seed/seed.py --target remote",
     "seed:remote:reset": "uv run seed/seed.py --target remote --reset",
     "migrate:local": "wrangler d1 migrations apply codebridge-mdt --local",
-    "migrate:remote": "wrangler d1 migrations apply codebridge-mdt --remote"
+    "migrate:remote": "wrangler d1 migrations apply codebridge-mdt --remote",
+    "extract:eval": "esbuild scripts/extract-eval.ts --bundle --platform=node --format=esm --outfile=.cache/extract-eval.mjs --log-level=warning && node .cache/extract-eval.mjs"
   },
   "dependencies": {
     "@codebridge/domain": "0.0.0",
@@ -27,6 +28,7 @@
   },
   "devDependencies": {
     "@cloudflare/vitest-plugin": "1.3.6",
+    "esbuild": "0.28.1",
     "typescript": "5.9.3",
     "vitest": "4.1.11",
     "wrangler": "4.147.0"
