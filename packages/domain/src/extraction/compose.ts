@@ -11,7 +11,7 @@
 // validates every line; until that is wired, only the tests and the eval harness call it.
 import { negationCues } from "./backing";
 import { dateSeg, viewLineId } from "./keys";
-import { supersededFacts, writtenSort } from "./rules";
+import { applyCaseRules, supersededFacts, writtenSort } from "./rules";
 import type { ComposedViews, ExtractionRun, Fact, FactStatus, ViewCategory, ViewLine } from "./types";
 
 /** The producer name the views record; bump it when the grouping or the wording changes. */
@@ -360,4 +360,13 @@ export function composeViews(run: Pick<ExtractionRun, "facts">): ComposedViews {
     timeline: gs.map((g) => viewLine("timeline", g, superseded, byId)),
     made_by: { model: null, prompt: COMPOSER },
   };
+}
+
+/**
+ * The synchronous part of finishing a case run, for the case merge's hook (stream B's publishCaseRun `rules`): the case
+ * rules, then the composed views over the same facts. The brief needs the model and runs as its own step after this.
+ */
+export function withCaseRulesAndViews<R extends ExtractionRun>(run: R): R {
+  const ruled = applyCaseRules(run);
+  return { ...ruled, views: composeViews(ruled) };
 }

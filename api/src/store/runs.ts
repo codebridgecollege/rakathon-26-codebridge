@@ -16,6 +16,7 @@ import {
   type Issue,
   type MatchResult,
 } from "@codebridge/domain/extraction/index";
+import { confirmationState, confirmedContent, type ConfirmAction } from "@codebridge/domain/confirmations";
 import { D } from "@codebridge/domain/errors";
 import { E } from "../http/errors";
 import type { Tx } from "./write";
@@ -293,6 +294,31 @@ export async function storeRun(
     JSON.stringify(run.alerts.map((a) => ({ id: a.id, rule: a.rule, subject: a.subject, kind: a.kind }))),
   );
   return { r2_key: key, sha256: sha };
+}
+
+/**
+ * The facts of a run whose doctor confirmation still stands for the value this run holds (confirmations.ts state
+ * "confirmed"). A confirmation of another value ("changed": a re-extraction read it differently) does not count, so the
+ * brief never states a value nobody confirmed as verified. Used for composeBrief's `confirmed`.
+ */
+export async function confirmedFactIds(db: D1Database, org: string, run: ExtractionRun): Promise<string[]> {
+  const rows = (
+    await orgStmt(db, org, "SELECT fact_id, action, value_sha256 FROM fact_confirmations WHERE org_id = ?org AND case_id = ?1 ORDER BY at, id", run.case_id).all<{
+      fact_id: string;
+      action: ConfirmAction;
+      value_sha256: string;
+    }>()
+  ).results;
+  const byFact = new Map<string, typeof rows>();
+  for (const r of rows) byFact.set(r.fact_id, [...(byFact.get(r.fact_id) ?? []), r]);
+  const out: string[] = [];
+  for (const f of run.facts) {
+    const mine = byFact.get(f.id);
+    // A quarantined fact is never confirmed (EXTRACTION-FORMAT.md); a stale row must not make it verified either.
+    if (!mine || f.quarantined) continue;
+    if (confirmationState(mine, await sha256Hex(confirmedContent(f))) === "confirmed") out.push(f.id);
+  }
+  return out;
 }
 
 /** One row of the case's question basis as the question box shows it (cases.question_basis_json). */
