@@ -37,6 +37,13 @@ export const pipelineAvailable = (env: Env) => !!env.PAGE_READER_URL || !!contai
 // Whether the pipeline runs for an org: available, and the org listed in PIPELINE_ORGS (comma-separated org ids, "*"
 // for every org). Demo org A is left out on the deployed host so the hackathon demo looks as it did before the
 // pipeline (no processing states, no "Přečíst bez AI"); demo org B, the team's own test org, is in.
+// Whether PIPELINE_ORGS lists the org, whatever the page reader's availability: the case merge needs no page reader,
+// so a withdraw still removes a document's values from the case when the container is off.
+export function pipelineListed(env: Env, org: string): boolean {
+  const list = String(env.PIPELINE_ORGS ?? "").split(",").map((s) => s.trim()).filter(Boolean);
+  return list.includes("*") || list.includes(org);
+}
+
 export function pipelineOn(env: Env, org: string): boolean {
   if (!pipelineAvailable(env)) return false;
   const list = String(env.PIPELINE_ORGS ?? "").split(",").map((s) => s.trim()).filter(Boolean);

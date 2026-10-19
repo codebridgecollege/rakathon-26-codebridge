@@ -38,7 +38,7 @@ export type Fragment = {
 
 /** The lab parser's output (pipeline/page_reader/labs.py), the parts the Workflow reads. */
 export type ParsedLabs = {
-  draws: { date: string | null; time: string | null; source?: { page: number; quote: string } | null }[];
+  draws: { date: string | null; time: string | null; source?: { page: number; quote: string } | null; certainty?: string | null; requisition_quote?: string | null }[];
   tests: {
     code: string;
     reference_low: number | null;
@@ -49,6 +49,7 @@ export type ParsedLabs = {
       reference_range: string;
       out_of_range: "high" | "low" | null;
       flagged_in_document: boolean | null;
+      flag_as_written?: string | null;
       date: string | null;
       time: string | null;
       certainty: "documented" | "unclear_ocr";
@@ -71,6 +72,11 @@ export type PipelineFragmentInput = {
   pages: { n: number; level: string }[];
   /** The identity check per page; a page missing here could not be verified. */
   identity: { n: number; result: IdentityResult }[];
+  /**
+   * The document's identity as D1 keeps it (documents.identity): the fixture registry's result, or a conflict an
+   * earlier reading found and no later one may clear. A conflict here with no page named holds back every page.
+   */
+  documentIdentity: IdentityResult | null;
   labs: ParsedLabs | null;
 };
 
@@ -110,7 +116,11 @@ function drawDate(date: string | null, time: string | null, asWritten: string | 
  */
 export function pipelineFragment(i: PipelineFragmentInput): Fragment {
   const partOf = (n: number) => i.parts.find((p) => p.pages.includes(n))?.part_id ?? null;
-  const identityOf = (n: number): IdentityResult => i.identity.find((x) => x.n === n)?.result ?? "cannot_verify";
+  // A conflict is never cleared here: the document's own conflict (the registry's, or one an earlier reading found)
+  // stands for the pages it names, and for every page when this reading names none.
+  const namedConflicts = i.identity.filter((x) => x.result === "conflicts").map((x) => x.n);
+  const allConflict = i.documentIdentity === "conflicts" && !namedConflicts.length;
+  const identityOf = (n: number): IdentityResult => (allConflict ? "conflicts" : i.identity.find((x) => x.n === n)?.result ?? "cannot_verify");
   const sources: Source[] = [];
   const taken = new Set<string>();
   const sourceFor = (src: Omit<DocumentSource, "id">) => {
@@ -127,6 +137,9 @@ export function pipelineFragment(i: PipelineFragmentInput): Fragment {
       if (!pt) return;
       const draw = i.labs!.draws[k];
       const asWritten = drawAsWritten(draw?.source?.quote);
+      // The parser's draw certainty is null only when no draw header exists at all ("not stated"); an unreadable or
+      // earlier-page header is stated, just not readable here, and is marked "ověřit" instead.
+      const drawMissing = !pt.date && (draw?.certainty === null || draw?.certainty === undefined) && !draw?.source;
       const verify = pt.certainty !== "documented";
       const page = pt.source.page;
       const readings = pt.readings ? Object.entries(pt.readings) : [];
@@ -145,21 +158,27 @@ export function pipelineFragment(i: PipelineFragmentInput): Fragment {
           ? { mark: verify, tokens: [{ tesseract: pt.readings!.text_of_record ?? null, pdf_text: readings.find(([k2]) => k2 !== "text_of_record")?.[1] ?? null, rule: "differ" }] }
           : null,
       });
+      // A printed H or L is the document's own flag and wins; otherwise a direction computed from the range is ours.
+      // A printed mark without a direction ("*") is kept in the note, never turned into one.
+      const printed = (pt.flag_as_written ?? "").trim().toUpperCase();
+      const printedDir = printed === "H" || printed === "+" ? "high" : printed === "L" || printed === "-" ? "low" : null;
+      const out = printedDir ?? pt.out_of_range ?? null;
       const value: LabResultValue = {
         // The sheet prints the code, not a name; our label for the code is the view's business.
         name_as_written: pt.code_as_written ?? t.code,
         value_as_written: pt.value,
         value_numeric: numeric(pt.value),
         unit_as_written: pt.unit || null,
-        unit: pt.unit || null,
+        // "unit" is the corrected unit; the pipeline corrects nothing, so it repeats a unit only on a clear reading.
+        unit: !verify && pt.unit ? pt.unit : null,
         reference_range: pt.reference_range || null,
         reference_low: t.reference_low ?? null,
         reference_high: t.reference_high ?? null,
-        out_of_range: pt.out_of_range ?? null,
-        // A flag printed on the sheet is the document's; one computed from the range is ours.
-        out_of_range_origin: pt.flagged_in_document ? "document" : pt.out_of_range ? "assistant" : null,
-        draw: { as_written: asWritten, requisition: null, specimen: null },
+        out_of_range: out,
+        out_of_range_origin: printedDir ? "document" : out ? "assistant" : null,
+        draw: { as_written: asWritten, requisition: draw?.requisition_quote ?? null, specimen: null },
       };
+      const markNote = printed && !printedDir ? `Na listu označeno „${printed}“.` : null;
       const reasons = (pt.verify_reasons ?? []).map((r) => VERIFY_CS[r]).filter(Boolean);
       facts.push({
         draft_id: `pipeline:${i.documentId}:${facts.length}`,
@@ -169,12 +188,12 @@ export function pipelineFragment(i: PipelineFragmentInput): Fragment {
         date: drawDate(pt.date, pt.time, asWritten),
         status: "documented",
         negated: false,
-        not_stated: pt.date ? [] : ["date"],
+        not_stated: drawMissing ? ["draw"] : [],
         origin: "document",
         certainty: verify ? "verify" : "clear",
         certainty_reason: verify ? { code: pt.verify_reasons?.[0] ?? "unclear_ocr", text: `${reasons.join("; ") || "hodnota přečtena nejistě"}; ověřte v originálu.` } : null,
         codes: [{ system: "fno-local-lab", code: t.code, assigned_by: "source" }],
-        note: null,
+        note: markNote,
         // A value on a page of another patient is kept but never shown, and never used by the rules.
         quarantined: identityOf(page) === "conflicts",
         sources: [src],
@@ -184,15 +203,16 @@ export function pipelineFragment(i: PipelineFragmentInput): Fragment {
 
   const covered: CheckPart[] = i.parts.length ? i.parts.map((p) => ({ document_id: i.documentId, part: p.part_id })) : [{ document_id: i.documentId, part: null }];
   const unreadable: CheckPage[] = i.pages.filter((p) => p.level === "poor" || p.level === "empty").map((p) => ({ document_id: i.documentId, part: partOf(p.n), page: p.n }));
+  // A check that did not run covers nothing: listing the parts would claim a reading that did not happen.
   const checks: Check[] = [
-    { id: `chk-pl-${i.documentId}-lab-result`, looks_for: "lab_result", expected: null, covered, unreadable, result: facts.length ? "found" : "not_run" },
+    { id: `chk-pl-${i.documentId}-lab-result`, looks_for: "lab_result", expected: null, covered: facts.length ? covered : [], unreadable, result: facts.length ? "found" : "not_run" },
   ];
 
   const alerts: Omit<Alert, "id">[] = [];
   const pageList = (ns: number[]) => [...new Set(ns)].sort((a, b) => a - b).join(", ");
   if (unreadable.length)
     alerts.push({ rule: "poor_copy", subject: i.documentId, kind: "poor_copy", facts: [], message: { id: "alert-poor-copy", args: { document: i.documentId } }, note: null });
-  const conflicts = i.identity.filter((x) => x.result === "conflicts").map((x) => x.n);
+  const conflicts = allConflict ? i.pages.map((p) => p.n) : namedConflicts;
   if (conflicts.length)
     alerts.push({
       rule: "identity_conflict",
@@ -257,20 +277,33 @@ export function composeFragments(caseId: string, runId: string, createdAt: strin
   for (const f of fragments)
     for (const s of f.stages) if (!stages.some((x) => x.name === s.name && x.engine === s.engine && x.model === s.model && x.prompt === s.prompt)) stages.push(s);
 
+  // Per kind: "found" when any document found facts; "nothing found" only when every document of the run reported
+  // nothing found for it (a document whose AI reading is still pending has not looked yet, so "-" with "neuvedeno"
+  // would be false); otherwise "not run".
   const byKind = new Map<string, Check>();
+  const said = new Map<string, Map<string, Check["result"]>>();
   for (const f of fragments)
     for (const c of f.checks) {
       if (c.expected) continue; // a document check (an expected report) is the case rules' to make, per case
       const prev = byKind.get(c.looks_for);
+      const perDoc = said.get(c.looks_for) ?? new Map<string, Check["result"]>();
+      const before = perDoc.get(f.document_id);
+      perDoc.set(f.document_id, before && RANK[before] > RANK[c.result] ? before : c.result);
+      said.set(c.looks_for, perDoc);
       byKind.set(c.looks_for, {
         id: `chk-${c.looks_for.replace(/_/g, "-")}`,
         looks_for: c.looks_for,
         expected: null,
         covered: [...(prev?.covered ?? []), ...c.covered],
         unreadable: [...(prev?.unreadable ?? []), ...c.unreadable],
-        result: prev && RANK[prev.result] > RANK[c.result] ? prev.result : c.result,
+        result: "not_run",
       });
     }
+  for (const [kind, c] of byKind) {
+    const perDoc = said.get(kind)!;
+    const results = [...docs.keys()].map((d) => perDoc.get(d) ?? "not_run");
+    c.result = results.includes("found") ? "found" : results.every((r) => r === "nothing_found") ? "nothing_found" : "not_run";
+  }
   for (const k of FACT_KINDS) if (!byKind.has(k)) byKind.set(k, { id: `chk-${k.replace(/_/g, "-")}`, looks_for: k, expected: null, covered: [], unreadable: [], result: "not_run" });
 
   // One identity alert per document, from the pipeline's identity check, listing the quarantined facts of every
@@ -282,7 +315,10 @@ export function composeFragments(caseId: string, runId: string, createdAt: strin
     const s = sources.get(f.sources[0] ?? "");
     return s?.type === "document" ? s.document_id : null;
   };
-  const alerts = fragments.flatMap((f) => f.alerts).filter((a) => a.rule !== "identity_conflict");
+  // One alert per rule and subject (their IDs come from both): two producers raising the same one is one alert.
+  const alerts: Omit<Alert, "id">[] = [];
+  for (const a of fragments.flatMap((f) => f.alerts))
+    if (a.rule !== "identity_conflict" && !alerts.some((x) => x.rule === a.rule && x.subject === a.subject)) alerts.push(a);
   for (const docId of docs.keys()) {
     const held = facts.filter((f) => f.quarantined && docOfFact(f) === docId);
     const own = fragments.flatMap((f) => f.alerts).find((a) => a.rule === "identity_conflict" && a.subject === docId);

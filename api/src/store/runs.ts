@@ -75,6 +75,41 @@ export function withoutQuarantined(run: ExtractionRun): ExtractionRun {
   };
 }
 
+/**
+ * A run without what it read from documents that left the case (withdrawn as another patient's, superseded): their
+ * facts, the sources on them, the alerts about them or resting only on their facts, their checks' entries, brief
+ * sentences and composed lines that state their facts. Used when a run is read (a newer run may not exist yet) and to
+ * scrub stored runs after a withdraw, so another patient's values never come back from an older run.
+ */
+export function withoutDocuments(run: ExtractionRun, retired: ReadonlySet<string>): ExtractionRun {
+  if (!retired.size || !run.documents.some((d) => retired.has(d.document_id))) return run;
+  const goneSrc = new Set(run.sources.filter((s) => s.type === "document" && retired.has(s.document_id)).map((s) => s.id));
+  const goneFacts = new Set(run.facts.filter((f) => f.sources.some((s) => goneSrc.has(s))).map((f) => f.id));
+  const keepFacts = (ids: string[]) => ids.filter((id) => !goneFacts.has(id));
+  const onRetired = <T extends { document_id: string }>(xs: T[]) => xs.filter((x) => !retired.has(x.document_id));
+  const out: ExtractionRun = {
+    ...run,
+    documents: onRetired(run.documents),
+    sources: run.sources.filter((s) => !goneSrc.has(s.id)),
+    facts: run.facts.filter((f) => !goneFacts.has(f.id)).map((f) => (f.based_on ? { ...f, based_on: keepFacts(f.based_on) } : f)),
+    checks: run.checks.map((c) => ({ ...c, covered: onRetired(c.covered), unreadable: onRetired(c.unreadable) })),
+    alerts: run.alerts
+      .filter((a) => !retired.has(a.subject) && !(a.facts.length && a.facts.every((id) => goneFacts.has(id))))
+      .map((a) => ({ ...a, facts: keepFacts(a.facts) })),
+    brief: run.brief ? { ...run.brief, sentences: run.brief.sentences.filter((s) => !s.facts.some((id) => goneFacts.has(id))) } : null,
+    question_draft: run.question_draft && !run.question_draft.basis.some((b) => b.facts.some((id) => goneFacts.has(id))) ? run.question_draft : null,
+  };
+  if (run.views) {
+    const views = { ...run.views };
+    for (const name of VIEW_NAMES) {
+      const lines = run.views[name];
+      if (lines) views[name] = lines.filter((l) => !l.facts.some((id) => goneFacts.has(id)));
+    }
+    out.views = views;
+  }
+  return out;
+}
+
 /** What the matcher needs from D1 for a new run of a case (match.ts assignFactIds). */
 export type MatchInputs = {
   caseId: string;

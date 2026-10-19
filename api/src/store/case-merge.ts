@@ -5,7 +5,7 @@
 // a run stored in between (run_stale) makes the Workflow retry.
 import { composeFragments, FRAGMENT_SCHEMA, type Fragment } from "@codebridge/domain/fragments";
 import type { ExtractionRun } from "@codebridge/domain/extraction/index";
-import { currentRunRow, matchInputs, prepareRun, storeRun } from "./runs";
+import { currentRunRow, matchInputs, prepareRun, storeRun, withoutDocuments } from "./runs";
 import { orgStmt } from "./sql";
 import { Tx } from "./write";
 import { sha256Hex } from "./work";
@@ -17,22 +17,28 @@ export type MergeResult = { result: "stored" | "other_producer" | "nothing"; doc
 // some of their alert subjects contain "|" and prepareRun would rewrite them. Until they exist the run goes as it is.
 export type CaseRules = (run: ExtractionRun) => ExtractionRun;
 
-/** The fragments of one document's latest finished pipeline run that exist (the AI one may still be pending). */
+/**
+ * The fragments of one document: from its newest finished pipeline run that has the pipeline's fragment (a run that
+ * finished but has not written it yet, or a rerun still going, leaves the previous one in place, so the document
+ * never drops out of the case run and its fact IDs and confirmations carry over). The AI fragment of that run may
+ * still be pending.
+ */
 async function fragmentsOf(env: Env, org: string, docId: string): Promise<Fragment[]> {
-  const run = await orgStmt(
-    env.DB,
-    org,
-    "SELECT output_prefix FROM pipeline_runs WHERE org_id = ?org AND document_id = ?1 AND state = 'done' ORDER BY finished_at DESC, id DESC LIMIT 1",
-    docId,
-  ).first<{ output_prefix: string }>();
-  if (!run) return [];
-  const out: Fragment[] = [];
-  for (const producer of ["pipeline", "ai"]) {
-    const f = await (await env.DOCS.get(`${run.output_prefix}fragment-${producer}.json`))?.json<Fragment>();
-    // Only a fragment of this document in the agreed format: anything else is left out, never guessed at.
-    if (f && f.schema === FRAGMENT_SCHEMA && f.document_id === docId) out.push(f);
+  const runs = (
+    await orgStmt(env.DB, org, "SELECT output_prefix FROM pipeline_runs WHERE org_id = ?org AND document_id = ?1 AND state = 'done' ORDER BY finished_at DESC, id DESC LIMIT 5", docId).all<{
+      output_prefix: string;
+    }>()
+  ).results;
+  for (const run of runs) {
+    const out: Fragment[] = [];
+    for (const producer of ["pipeline", "ai"]) {
+      const f = await (await env.DOCS.get(`${run.output_prefix}fragment-${producer}.json`))?.json<Fragment>();
+      // Only a fragment of this document in the agreed format: anything else is left out, never guessed at.
+      if (f && f.schema === FRAGMENT_SCHEMA && f.document_id === docId) out.push(f);
+    }
+    if (out.some((f) => f.producer === "pipeline")) return out;
   }
-  return out;
+  return [];
 }
 
 /**
@@ -48,7 +54,9 @@ export async function publishCaseRun(env: Env, org: string, caseId: string, who:
     await orgStmt(
       db,
       org,
-      "SELECT id, sha256 FROM documents WHERE org_id = ?org AND case_id = ?1 AND lifecycle = 'current' AND origin = 'upload' AND state = 'processed' ORDER BY created_at, id",
+      // Current uploads without prepared data, whatever their processing state now: a document being read again keeps
+      // its last fragment until the new one exists.
+      "SELECT id, sha256 FROM documents WHERE org_id = ?org AND case_id = ?1 AND lifecycle = 'current' AND origin = 'upload' AND COALESCE(state, '') <> 'prepared' ORDER BY created_at, id",
       caseId,
     ).all<{ id: string; sha256: string | null }>()
   ).results;
@@ -92,4 +100,25 @@ export async function publishCaseRun(env: Env, org: string, caseId: string, who:
     throw e;
   }
   return { result: "stored", documents: docIds.length, facts: final.facts.length, run_id: runId };
+}
+
+/**
+ * After a withdraw: every stored pipeline run of the case is rewritten without the withdrawn document (withoutDocuments),
+ * so another patient's values do not stay in R2 in an older run, where "potvrzeno dříve" could show them. Runs are
+ * otherwise never changed; deleting another patient's data comes first. The row's sha256 follows the new content.
+ */
+export async function scrubRunsOf(env: Env, org: string, caseId: string, docId: string): Promise<number> {
+  const rows = (
+    await orgStmt(env.DB, org, "SELECT id, r2_key FROM extraction_runs WHERE org_id = ?org AND case_id = ?1 AND seeded = 0", caseId).all<{ id: string; r2_key: string }>()
+  ).results;
+  let n = 0;
+  for (const r of rows) {
+    const run = await (await env.DOCS.get(r.r2_key))?.json<ExtractionRun>();
+    if (!run || !run.documents?.some((d) => d.document_id === docId)) continue;
+    const body = JSON.stringify(withoutDocuments(run, new Set([docId])));
+    await env.DOCS.put(r.r2_key, body, { httpMetadata: { contentType: "application/json" } });
+    await orgStmt(env.DB, org, "UPDATE extraction_runs SET sha256 = ?1 WHERE org_id = ?org AND id = ?2", await sha256Hex(body), r.id).run();
+    n++;
+  }
+  return n;
 }

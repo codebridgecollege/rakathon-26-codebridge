@@ -45,6 +45,7 @@ const base = {
   parts: [{ part_id: "up-1/p0", pages: [1] }, { part_id: "up-1/p1", pages: [2] }],
   pages: [{ n: 1, level: "good" }, { n: 2, level: "poor" }],
   identity: [{ n: 1, result: "matches" as const }, { n: 2, result: "conflicts" as const }],
+  documentIdentity: null,
   labs: LABS,
 };
 
@@ -59,7 +60,9 @@ describe("pipelineFragment", () => {
     // An unreadable value stays as written, is marked, has no number, and its missing draw date stays missing.
     expect(b.value).toMatchObject({ value_as_written: "13O", value_numeric: null });
     expect(b.date).toEqual({ as_written: null, precision: null, sort: null });
-    expect(b.not_stated).toEqual(["date"]);
+    // No draw header at all is "not stated"; the unit of an unsure reading is not repeated as the corrected one.
+    expect(b.not_stated).toEqual(["draw"]);
+    expect(b.value.unit).toBeNull();
     expect(b.certainty).toBe("verify");
     expect(b.certainty_reason.text).toMatch(/textové vrstvy PDF.*ověřte v originálu/);
     const src = new Map(f.sources.map((s) => [s.id, s as DocumentSource]));
@@ -126,5 +129,49 @@ describe("composeFragments", () => {
     expect(d.alerts).toEqual([
       { rule: "identity_conflict", subject: "up-1", kind: "identity", facts: held.facts.map((f) => f.draft_id), message: { id: "alert-identity-conflict", args: { document: "up-1", page: "1, 2" } }, note: null },
     ]);
+  });
+
+  it("says nothing found only when every document of the run said so", () => {
+    const frag = (doc: string, result: "found" | "nothing_found" | "not_run"): Fragment => ({
+      schema: "codebridge.fragment/1", producer: "ai", document_id: doc, document_sha256: null, pipeline_run: "pl", parts: [], stages: [], sources: [], facts: [],
+      checks: [{ id: "c", looks_for: "allergy", expected: null, covered: [], unreadable: [], result }], alerts: [],
+    });
+    const pending = { ...frag("up-2", "not_run"), producer: "pipeline" as const, checks: [] };
+    expect(composeFragments("C", "r", "2026-10-20T08:00:00Z", [frag("up-1", "nothing_found"), pending]).checks.find((c) => c.looks_for === "allergy")!.result).toBe("not_run");
+    expect(composeFragments("C", "r", "2026-10-20T08:00:00Z", [frag("up-1", "nothing_found"), frag("up-2", "nothing_found")]).checks.find((c) => c.looks_for === "allergy")!.result).toBe("nothing_found");
+    expect(composeFragments("C", "r", "2026-10-20T08:00:00Z", [frag("up-1", "nothing_found"), frag("up-2", "found")]).checks.find((c) => c.looks_for === "allergy")!.result).toBe("found");
+  });
+
+  it("keeps one alert per rule and subject when two producers raise it", () => {
+    const pl = pipelineFragment(base);
+    const ai = { ...pl, producer: "ai" as const, facts: [], sources: [], checks: [], alerts: pl.alerts.filter((a) => a.rule === "poor_copy") };
+    expect(composeFragments("C", "r", "2026-10-20T08:00:00Z", [pl, ai]).alerts.filter((a) => a.rule === "poor_copy")).toHaveLength(1);
+  });
+});
+
+describe("pipelineFragment and the document's identity", () => {
+  it("holds back every page of a document the registry or an earlier reading found to be another patient's", () => {
+    const f = pipelineFragment({ ...base, identity: [], documentIdentity: "conflicts" });
+    expect(f.facts.every((x) => x.quarantined)).toBe(true);
+    expect(f.alerts.find((a) => a.rule === "identity_conflict")!.message.args).toEqual({ document: "up-1", page: "1, 2" });
+    // A later reading that sees no conflict does not clear it either.
+    const later = pipelineFragment({ ...base, identity: [{ n: 1, result: "matches" }, { n: 2, result: "matches" }], documentIdentity: "conflicts" });
+    expect(later.facts.every((x) => x.quarantined)).toBe(true);
+  });
+
+  it("takes a printed H or L as the document's flag, keeps a mark without direction in the note, and marks an unreadable draw date instead of calling it not stated", () => {
+    const labs: ParsedLabs = {
+      draws: [{ date: null, time: null, source: { page: 1, quote: "Odběr: 1O.3.2026" }, certainty: "unclear_ocr", requisition_quote: "S02-260310-01" }],
+      tests: [
+        { code: "S_K", reference_low: null, reference_high: null, points: [point("<0,5", 1, { flagged_in_document: true, flag_as_written: "L", date: null, time: null, certainty: "unclear_ocr", verify_reasons: ["draw_date_unreadable"] })] },
+        { code: "S_NA", reference_low: null, reference_high: null, points: [point("150", 1, { flagged_in_document: true, flag_as_written: "*", date: null, time: null, certainty: "unclear_ocr", verify_reasons: ["draw_date_unreadable"] })] },
+      ],
+    };
+    const [k, na] = pipelineFragment({ ...base, labs, identity: [] }).facts as any[];
+    expect(k.value).toMatchObject({ out_of_range: "low", out_of_range_origin: "document", value_numeric: null, draw: { requisition: "S02-260310-01" } });
+    expect(k.not_stated).toEqual([]);
+    expect(k.certainty_reason.text).toMatch(/datum odběru nečitelné/);
+    expect(na.value).toMatchObject({ out_of_range: null, out_of_range_origin: null });
+    expect(na.note).toBe("Na listu označeno „*“.");
   });
 });

@@ -250,7 +250,7 @@ describe("ProcessDocumentWorkflow", () => {
       { rule: "identity_conflict", kind: "identity", message_id: "alert-identity-conflict", args_json: JSON.stringify({ document: DOC, page: "2" }), run_id: runId },
       { rule: "poor_copy", kind: "poor_copy", message_id: "alert-poor-copy", args_json: JSON.stringify({ document: DOC, pages: "2" }), run_id: runId },
     ]);
-    for (const name of ["inspect", "pages 1-2", "analyze", "labs", "parts", "identity", "compare with prepared data", "write", "fragment"]) {
+    for (const name of ["inspect", "pages 1-2", "analyze", "labs", "parts", "identity", "compare with prepared data", "write"]) {
       const r = JSON.stringify(await inst.waitForStepResult({ name }));
       expect(r.length).toBeLessThan(400);
       for (const bad of [FAKE_NAME, "Odběr", "108", "14,8", "B_HB", "nar."]) expect(r).not.toContain(bad);
@@ -263,7 +263,7 @@ describe("ProcessDocumentWorkflow", () => {
     ]);
     // Outputs live under the org's uploads/, which reset-demo clears.
     const keys = (await env.DOCS.list({ prefix: `org/demo-a/uploads/NO-A/${DOC}/${runId}/` })).objects.map((o) => o.key.split("/").pop());
-    expect(keys.sort()).toEqual(["diff.json", "fragment-pipeline.json", "identity.json", "labs.json", "p1.json", "p1.png", "p1.raw.json", "p2.json", "p2.png", "p2.raw.json", "parts.json", "readability.json"]);
+    expect(keys.sort()).toEqual(["diff.json", "identity.json", "labs.json", "p1.json", "p1.png", "p1.raw.json", "p2.json", "p2.png", "p2.raw.json", "parts.json", "readability.json"]);
   });
 
   it("fails with a fixed code and a Czech reason when the page reader refuses the file", async () => {
@@ -508,6 +508,14 @@ describe("the case merge (ProcessCase)", () => {
     expect(next.supersedes).toBe(run.id);
     const empty = (await (await env.DOCS.get(next.r2_key))!.json()) as any;
     expect([empty.documents, empty.facts, empty.alerts]).toEqual([[], [], []]);
+    // The earlier run no longer holds the withdrawn document's values either.
+    const scrubbed = (await (await env.DOCS.get(run.r2_key))!.json()) as any;
+    expect([scrubbed.documents, scrubbed.facts, scrubbed.sources]).toEqual([[], [], []]);
+    // A merge in an org the pipeline does not run for does nothing (demo org A).
+    await env.PROCESS_CASE.create({ id: "case-a-test", params: { org: "demo-a", caseId: "NO-A", by: "d2p1", byActor: null } });
+    const a = (await cases.get()).at(-1);
+    await a!.waitForStatus("complete");
+    expect(await a!.waitForStepResult({ name: "compose and store" })).toEqual({ result: "off", documents: 0, facts: 0 });
   });
 
   it("holds back values from a page of another patient and says so; leaves a case with another producer's run alone", async () => {
