@@ -65,6 +65,22 @@ POST /v1/convert            body: JPEG or PNG bytes (a photo of a page), judged 
   A one-page A4 PDF holding the photo upright (EXIF orientation applied), in grayscale, without the photo's
   metadata; width and height are the upright photo's pixels. See page_reader/convert.py.
 
+POST /v1/parts              body: {"pages": [{"n", "text", "layer_text"?, "readability_level"?}]}
+  200 {"parts": [{"ordinal": int, "pages": [int], "from": {"n", "offset"}, "to": {"n", "offset"|null},
+                  "type": "outpatient_report"|"discharge_report"|"lab_results"|"histology"|"radiology"|
+                          "operation_protocol"|"request"|"mdt_referral"|"other"|"unknown",
+                  "title_cs": str|null, "date_as_written": str|null, "date": "YYYY-MM-DD"|"YYYY-MM"|"YYYY"|null,
+                  "date_kind": "draw"|"report"|"exam"|"operation"|"admission"|"discharge"|null,
+                  "evidence": [{"n", "start", "end", "what": "title"|"type"|"date"}],
+                  "certainty": "documented"|"verify", "verify_reasons": [str],
+                  "readability_level": str|null}]}
+  The clinical documents inside one PDF, in page order (page_reader/parts.py has the rules). "text" is the
+  text of record (Tesseract's); layer_text is accepted and not used yet. A page may belong to two parts when a
+  document starts inside it (FNO's lab panel under a report): "from"/"to" offsets say where (to.offset null =
+  page end). title_cs and date_as_written are as printed, never invented; a labelled date that does not read
+  as a date gives date null and certainty "verify". "unknown" is shown as "neurčeno" for the doctor to set.
+  readability_level is the worst page level when every page of the part carries one, else null.
+
 Errors: {"error": {"code": str, "message_cs": str}} with
   400 bad_json, bad_request, bad_range; 404 not_found; 405 method_not_allowed; 413 too_large;
   422 not_pdf, encrypted, too_many_pages, unreadable_pdf, page_too_large (over MAX_PIXELS at 300 dpi),
@@ -89,7 +105,7 @@ sys.path.insert(0, str(_here if (_here / "page_reader").is_dir() else _here.pare
 import fitz  # noqa: E402  PyMuPDF
 from PIL import Image  # noqa: E402
 
-from page_reader import VERSION, convert, labs, layer, ocr, page_index, readability, redact, render  # noqa: E402
+from page_reader import VERSION, convert, labs, layer, ocr, page_index, parts, readability, redact, render  # noqa: E402
 
 MAX_BODY = 20 * 1024 * 1024  # the upload limit of step 6, so anything larger never came from our Worker
 MAX_PAGES = 60  # a referral PDF is a few dozen pages; more is a wrong upload, and it bounds the work
@@ -268,9 +284,18 @@ def convert_(body: bytes, _query) -> tuple[dict, int]:
     return {"pdf_b64": base64.b64encode(pdf).decode("ascii"), "width": w, "height": h}, 1
 
 
+def parts_(body: bytes, _query) -> tuple[dict, int]:
+    data = _json(body)
+    try:
+        result = parts.split(data["pages"])
+    except (KeyError, TypeError, ValueError):
+        raise ApiError(400, "bad_request", "Strana nemá očekávaný tvar (n, text).") from None
+    return result, len(data["pages"])
+
+
 ROUTES = {("GET", "/healthz"): healthz, ("POST", "/v1/inspect"): inspect, ("POST", "/v1/pages"): pages,
           ("POST", "/v1/analyze"): analyze, ("POST", "/v1/labs"): labs_, ("POST", "/v1/redact"): redact_,
-          ("POST", "/v1/convert"): convert_}
+          ("POST", "/v1/convert"): convert_, ("POST", "/v1/parts"): parts_}
 
 
 class Handler(BaseHTTPRequestHandler):

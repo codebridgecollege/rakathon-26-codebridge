@@ -119,6 +119,15 @@ def test_bad_content_length(base):
     assert r.status == 400 and json.loads(r.read())["error"]["code"] == "bad_request"
 
 
+def test_parts(base):
+    text = "Ústav patologie\nBioptický histologický nález\nOdběr: 9.3.2026, přijato: 9.3.2026, vydáno: 12.3.2026\nZávěr: x y z w"
+    status, body = call(base + "/v1/parts", {"pages": [{"n": 1, "text": text}]})
+    assert status == 200
+    p = body["parts"][0]
+    assert (p["type"], p["date"], p["date_kind"], p["title_cs"]) == ("histology", "2026-03-12", "report", "Bioptický histologický nález")
+    assert call(base + "/v1/parts", {"pages": [{"text": "x"}]})[1]["error"]["code"] == "bad_request"
+
+
 def test_huge_page_is_refused(base):
     doc = fitz.open()
     doc.new_page(width=14400, height=14400)  # 200 x 200 inches: 3.6 Gpx at 300 dpi
