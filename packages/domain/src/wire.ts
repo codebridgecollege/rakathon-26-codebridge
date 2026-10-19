@@ -55,7 +55,9 @@ export type Me = {
   nis: { label_cs: string } | null;
   // What this org may use on this host. pipeline: the document pipeline without an LLM runs for this org (the host
   // offers it and PIPELINE_ORGS lists the org); the page shows processing states and "Přečíst bez AI" only then.
-  features: { pipeline: boolean };
+  // keeps_uploads: an unknown upload's content is kept in this org (UPLOAD_POLICY, UPLOAD_STORE_ORGS), so the note
+  // under the upload list can say what happens to a file.
+  features: { pipeline: boolean; keeps_uploads: boolean };
 };
 
 export type RoleSwitchEntry = { membership_id: string; name: string; role: Role; fn: string; own: boolean };

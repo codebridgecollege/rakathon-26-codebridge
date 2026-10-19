@@ -6,19 +6,12 @@ import { ApiError, E } from "../http/errors";
 import { assertCan } from "@codebridge/domain/roles";
 import { POOR_COPY_CS, READABILITY_CS } from "../domain/pipeline";
 import { audit } from "../middleware/audit";
-import { UNLOCKED_COND, documentRow, uploadContext } from "../store/documents";
+import { documentRow, uploadContext } from "../store/documents";
 import { assertUnlocked } from "./documents";
-import { UP } from "../domain/documents";
 import { POOL_SIZE, PageReaderError, pageReader, pipelineAvailable, pipelineOn } from "../services/page-reader";
 import { openCase } from "./access-check";
-import { actorOf, answer, caseFor, isoNow, label, newId, orgQuery, tx } from "./write-context";
-import { orgKey } from "../store/sql";
-import type { ProcessDocumentParams } from "../workflows/process-document";
-
-const off = () => new ApiError(503, "pipeline_off", "Zpracování dokumentů není na tomto serveru zapnuté (služba pro čtení stránek chybí).");
-const running = () => new ApiError(409, "pipeline_running", "Dokument se právě zpracovává.");
-// Instance state holds ids and counts only; kept as briefly as the engine allows.
-const RETENTION = { successRetention: "1 day", errorRetention: "3 days" } as const;
+import { actorOf, answer, caseFor, label, orgQuery, tx } from "./write-context";
+import { pipelineOff as off, startRun } from "./pipeline-start";
 const STAGE_CS: Record<string, string> = { inspect: "kontrola souboru", pages: "čtení stránek", analyze: "kontrola čitelnosti", labs: "laboratorní hodnoty", write: "zápis výsledku" };
 
 type RunRow = {
@@ -41,30 +34,7 @@ export const pipeline = new Hono<AppEnv>()
     assertUnlocked(u);
     if (!pipelineOn(c.env, c.var.viewer.org)) throw off();
     if (!d.original_r2_key || !d.sha256) throw new ApiError(409, "no_file", "Dokument nemá uložený soubor ke zpracování.");
-    const runId = `pl-${newId()}`;
-    const at = isoNow();
-    const v = c.var.viewer;
-    const t = tx(c, breakGlass).onConstraint(/pipeline_runs_active|UNIQUE constraint failed: pipeline_runs\.document_id/, running);
-    t.guard("unlocked", UNLOCKED_COND, [d.case_id, d.case_id], () => UP.locked());
-    t.run(
-      `INSERT INTO pipeline_runs (org_id, id, document_id, case_id, state, pipeline_version, input_sha256, output_prefix, created_by, created_by_name, created_by_actor, created_at, updated_at)
-       VALUES (?org, ?1, ?2, ?3, 'queued', ?4, ?5, ?6, ?7, ?8, ?10, ?9, ?9)`,
-      runId, docId, d.case_id, c.env.GIT_SHA || "dev", d.sha256, orgKey(v.org, `uploads/${d.case_id}/${docId}/${runId}/`), v.id, v.name, at, v.actor?.id ?? null,
-    );
-    // Only an upload without prepared data shows the run's state; seeded documents and prepared ones keep theirs.
-    t.run("UPDATE documents SET state = 'queued', state_detail_cs = NULL WHERE org_id = ?org AND id = ?1 AND origin = 'upload' AND state <> 'prepared'", docId);
-    t.audit({ action: "pipeline.start", what_cs: "spustil(a) zpracování dokumentu bez AI (čtení stránek, čitelnost, laboratorní hodnoty)", case_id: d.case_id, target_type: "document", target_id: docId });
-    await t.commit();
-    const params: ProcessDocumentParams = { org: v.org, runId, docId, caseId: d.case_id };
-    try {
-      await c.env.PROCESS_DOCUMENT.create({ id: runId, params, retention: RETENTION });
-    } catch {
-      await c.env.DB.batch([
-        orgQuery(c, "UPDATE pipeline_runs SET state = 'error', error_code = 'start_failed', updated_at = ?1 WHERE org_id = ?org AND id = ?2", isoNow(), runId),
-        orgQuery(c, "UPDATE documents SET state = 'failed', state_detail_cs = 'zpracování se nespustilo' WHERE org_id = ?org AND id = ?1 AND origin = 'upload' AND state <> 'prepared'", docId),
-      ]);
-      throw new ApiError(503, "start_failed", "Zpracování se nespustilo; zkuste to znovu.");
-    }
+    const runId = await startRun(c, { id: docId, case_id: d.case_id, sha256: d.sha256 }, breakGlass, false);
     return answer(c, { run_id: runId, state: "queued" }, {}, 201);
   })
   .get("/documents/:id/pipeline", async (c) => {

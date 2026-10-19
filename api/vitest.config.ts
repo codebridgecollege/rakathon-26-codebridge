@@ -64,7 +64,7 @@ export default defineConfig(async () => {
             NIS_CONFIG: "{}",
             // No container in tests (wrangler dev and workerd run none); the mocked host above stands in for it.
             PAGE_READER_CONTAINER: "off",
-            PIPELINE_ORGS: "*",
+            PIPELINE_ORGS: "",
           },
           // The PAGE_READER binding names the class in another Worker (codebridge-page-reader); workerd refuses to start
           // when that Worker is missing, so the tests get an empty stand-in. Nothing calls it (PAGE_READER_CONTAINER off).

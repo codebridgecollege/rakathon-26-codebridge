@@ -25,6 +25,8 @@ export const useUploadsStore = defineStore("uploads", () => {
   const lists = reactive(new Map<string, UploadList>());
   // Bumped on reset, so a load or an upload of the previous user cannot write into the new lists.
   let gen = 0;
+  // Cases whose list is to be read again once the running load ends.
+  const again = new Set<string>();
 
   function listOf(file: string): UploadList {
     let u = lists.get(file);
@@ -42,6 +44,12 @@ export const useUploadsStore = defineStore("uploads", () => {
   // leaves the panel usable and is retried after a pause, on the next view.
   async function load(p: UploadCase, force = false) {
     const u = listOf(p.file);
+    // A forced load during a running one (two readings ending close together) runs once more afterwards, so the later
+    // state is not lost to a list read before it.
+    if (u.loading && force) {
+      again.add(p.file);
+      return;
+    }
     if (u.loading || (u.loaded && !force) || Date.now() < u.retryAt) return;
     u.loading = true;
     const g = gen;
@@ -58,6 +66,7 @@ export const useUploadsStore = defineStore("uploads", () => {
     } finally {
       if (g === gen) u.loading = false;
     }
+    if (g === gen && again.delete(p.file)) await load(p, true);
   }
 
   async function add(p: UploadCase, files: File[]) {

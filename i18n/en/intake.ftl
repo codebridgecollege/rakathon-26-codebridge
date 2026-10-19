@@ -118,6 +118,7 @@ uploads-added = Uploaded: { $n ->
 uploads-poor-readability = The document is poorly readable; request a better copy.
 uploads-poor-readability-reasons = The document is poorly readable; request a better copy. ({ $reasons })
 uploads-note = Demo: the assistant does not read uploaded files; apart from the prepared demo documents, only the file name and size are stored. In real use they are stored with the case and go through the readability check.
+uploads-note-read = Uploaded PDFs and photos (JPEG, PNG) are stored with the case and read at once without AI: page reading, readability check, lab values. Other formats (such as Word) keep only their name and size; upload them as PDF.
 uploads-note-pipeline = Demo: apart from the prepared demo documents, only the file name and size are stored. In real use they are stored with the case and go through the readability check.
 
 ## "Upload from phone"
