@@ -81,6 +81,7 @@ The tables fall into groups (the full list is in `api/migrations/`):
 - **Append-only history.**
   - Decisions, question confirmations, status history, the edit log, alert events and the access log refuse UPDATE and DELETE through triggers.
   - A new decision supersedes an earlier one of the same case (a trigger checks that); it never edits it (CLAUDE.md).
+  - A document leaves the case's current set without being deleted (migration 0013): `documents.lifecycle` is `current`, `superseded` (a better scan replaces it; `superseded_by` names another current document of the same case) or `withdrawn` (it was another patient's). The change records a reason (`lifecycle_reason_cs`), when, and which member of the org made it. Triggers refuse a document that starts non-current, a replacement from another case, and any way back or switch between the two; only the demo reset makes the seeded documents current again. `lifecycle` is separate from `state`, which is the processing state of an upload. An extraction run reads only current documents (`docs/design/EXTRACTION-FORMAT.md`).
   - Triggers stop the app, not someone with database console access. That is one reason the access log is also archived to R2.
 - **Foreign keys are enforced.** D1 checks them on every write, as if `PRAGMA foreign_keys = ON` were always set. The demo reset defers them inside its batch.
 - **One guarded batch per write.** A write runs as one D1 batch. Guard rows re-check the conditions the route read, so a stale or concurrent change rolls the whole batch back (see `api/AGENTS.md`).
@@ -223,6 +224,7 @@ shared tables" above holds, with these details:
   rules match a prefix, so each org needs its own rules (`api/AGENTS.md`).
 - **The demo reset** is one D1 batch for one org, 45 statements for org A
   with today's seed: the org's rows are deleted with `WHERE org_id`, the
-  triggers delete that org's uploaded rows, and the append-only triggers let
+  triggers delete that org's uploaded rows and make its superseded or
+  withdrawn seeded documents current again, and the append-only triggers let
   a row go only while its own org's reset runs.
 
