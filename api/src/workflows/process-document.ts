@@ -21,6 +21,7 @@ import type { Identity } from "../domain/documents";
 import { diffLabs, pipelineErrorCs, PIPELINE_BATCH, READABILITY_CS, type PreparedPoint } from "../domain/pipeline";
 import { pipelineFragment, type ParsedLabs } from "@codebridge/domain/fragments";
 import { startCaseMerge } from "./process-case";
+import { startExtraction } from "./extract-document";
 import { EXTRACTION_SCHEMA, type ExtractionRun, type LabResultFact } from "@codebridge/domain/extraction/types";
 
 // org: the case's org, given by the route that starts the run (a Workflow has no request); a run started before orgs
@@ -321,11 +322,33 @@ export class ProcessDocumentWorkflow extends WorkflowEntrypoint<Env, ProcessDocu
             }
           })
         : { fragment: false, facts: 0 };
-      // The case's run is composed again with this document (ProcessCaseWorkflow).
+      // The case's run is composed again with this document now (ProcessCaseWorkflow), before the AI part is started,
+      // so the view without AI comes first.
       if (frag.fragment)
         await step.do("start case merge", STEP, async () => {
           const run = await runOf(this.env, p.org, p.runId);
           return { started: await startCaseMerge(this.env, { org: p.org, caseId: p.caseId, by: run.created_by, byActor: run.created_by_actor }) };
+        });
+      // The AI part (stream D, ExtractDocumentWorkflow) where the model runs for the org (MODEL_ORGS, empty by default);
+      // it ends by starting the case merge again with its own fragment. It fails closed on identity: a document D1
+      // marks as another patient's, or one whose pages were not checked (no identity.json: a registered fixture, an
+      // identity check that failed), never goes to a model, since the pseudonymizer knows only this case's patient.
+      // Never in demo org A. A start that fails changes nothing for the document; the code goes to the log.
+      if (frag.fragment)
+        await step.do("start extraction", STEP, async () => {
+          if (p.org === LEGACY_ORG) return { started: false, reason: "org" };
+          const run = await runOf(this.env, p.org, p.runId);
+          const d = await orgStmt(this.env.DB, p.org, "SELECT identity FROM documents WHERE org_id = ?org AND id = ?1", p.docId).first<{ identity: string | null }>();
+          if (d?.identity === "conflicts") return { started: false, reason: "identity" };
+          if (!(await this.env.DOCS.head(`${run.output_prefix}identity.json`))) return { started: false, reason: "identity_unchecked" };
+          try {
+            return { started: await startExtraction(this.env, { org: p.org, caseId: p.caseId, docId: p.docId, runId: p.runId }) };
+          } catch (e) {
+            // A retry of this step after a start that succeeded finds the instance already there: it runs.
+            if (e instanceof Error && /already exists/i.test(e.message)) return { started: true };
+            console.error(JSON.stringify({ workflow: "process_document", extraction: "start_failed" }));
+            return { started: false, reason: "start_failed" };
+          }
         });
     } catch (e) {
       // The engine rethrows a failed step as "NonRetryableError: <code>"; only the fixed code is kept, never other text.
