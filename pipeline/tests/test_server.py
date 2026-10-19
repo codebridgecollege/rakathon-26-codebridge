@@ -6,6 +6,7 @@ import io
 import json
 import sys
 import threading
+import time
 import urllib.error
 import urllib.request
 
@@ -154,7 +155,8 @@ def test_analyze_takes_unreadable_regions(base):
     del page["unreadable"]
     status, an = call(base + "/v1/analyze", {"pages": [page]})
     assert an["pages"][0]["page"]["unreadable"] == [] and an["pages"][0]["readability"]["metrics"]["unreadable_regions"] is None
-    for bad in ([{"b": [1, 2, 3], "reason": "no_text"}], [{"b": [1, 2, 3, 4], "reason": "smudge"}], "x"):
+    for bad in ([{"b": [1, 2, 3], "reason": "no_text"}], [{"b": [1, 2, 3, 4], "reason": "smudge"}], "x",
+                [{"b": [1, 2, float("nan"), 4], "reason": "no_text"}]):
         status, body = call(base + "/v1/analyze", {"pages": [dict(page, unreadable=bad)]})
         assert status == 400 and body["error"]["code"] == "bad_request"
 
@@ -166,6 +168,11 @@ def test_identity(base, caplog):
             "expected": {"name": "Ludmila Vrbenská", "birth_number": "615203/1006", "birth_date": "1961-02-03"}}
     with caplog.at_level("INFO", logger="page_reader"):
         status, r = call(base + "/v1/identity", body)
+        # The server logs after it has sent the answer, from its own thread: wait for the line.
+        for _ in range(100):
+            if "/v1/identity" in caplog.text:
+                break
+            time.sleep(0.01)
     assert status == 200
     assert r["result"] == "conflicts" and r["pages"] == [{"n": 1, "result": "matches"}, {"n": 4, "result": "conflicts"}]
     assert all(set(e) == {"n", "start", "end", "field", "result"} for e in r["evidence"])
@@ -174,7 +181,8 @@ def test_identity(base, caplog):
         assert secret not in json.dumps(r) and secret not in caplog.text
     assert "/v1/identity 200" in caplog.text
     for bad in ({"pages": [{"n": 1, "text": "x"}]}, {"pages": [{"n": 1, "text": 5}], "expected": {}},
-                {"pages": [{"text": "x"}], "expected": {}}, {"pages": [], "expected": {"name": 5}}):
+                {"pages": [{"text": "x"}], "expected": {}}, {"pages": [], "expected": {"name": 5}},
+                {"pages": [{"n": float("inf"), "text": "x"}], "expected": {}}):
         status, err = call(base + "/v1/identity", bad)
         assert status == 400 and err["error"]["code"] == "bad_request"
 

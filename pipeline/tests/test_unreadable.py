@@ -63,6 +63,66 @@ def test_ink_marks_are_unchanged_by_the_shared_detection():
     assert all(redact._within(h["box"], region["b"]) for h in hits)
 
 
+@pytest.mark.parametrize("width,gray", [(1, 0), (1, 60), (1, 100), (2, 60), (2, 100), (3, 100)])
+def test_thin_and_grey_ballpoint_strokes_are_found(width, gray):
+    img, words = _page()
+    draw = ImageDraw.Draw(img)
+    for row in range(3):
+        y = 1350 + row * 55
+        draw.line([(150 + k * 12, y + (40 if k % 2 else 0)) for k in range(42)], fill=gray, width=width)
+    regions = redact.unreadable_regions(img, words)
+    assert len(regions) == 1 and regions[0]["b"][2] >= 480
+
+
+def _solid_marks(img, kind):
+    """Printed marks that are not text: a photo, a QR code, a barcode, a logo, a dark band with white text."""
+    import random
+    d, rnd = ImageDraw.Draw(img), random.Random(kind)
+    if kind == "photo":
+        for yy in range(1300, 1600):
+            for xx in range(150, 500):
+                d.point((xx, yy), fill=rnd.randint(20, 160))
+    elif kind == "qr":
+        for i in range(25):
+            for j in range(25):
+                if rnd.random() < 0.5:
+                    d.rectangle([150 + i * 4, 1300 + j * 4, 153 + i * 4, 1303 + j * 4], fill=0)
+    elif kind == "barcode":
+        x = 150
+        while x < 450:
+            w = rnd.choice([2, 3, 5])
+            d.rectangle([x, 1300, x + w - 1, 1360], fill=0)
+            x += w + rnd.choice([2, 3, 4])
+    elif kind == "logo":
+        d.ellipse([150, 1300, 330, 1480], fill=0)
+    elif kind == "band":
+        d.rectangle([0, 1300, img.width, 1360], fill=40)
+        d.text((200, 1320), "ODDELENI", fill=255)
+    return img
+
+
+@pytest.mark.parametrize("kind", ["photo", "qr", "barcode", "logo", "band"])
+def test_photos_codes_and_logos_are_not_unreadable(kind):
+    """They fill their box near solid (0.8-1.0 at quarter size); handwriting fills 0.2-0.46."""
+    img, words = _page()
+    assert redact.unreadable_regions(_solid_marks(img, kind), words) == []
+
+
+def test_stamp_counts_as_unreadable():
+    img, words = _page()
+    d = ImageDraw.Draw(img)
+    d.ellipse([150, 1300, 330, 1480], outline=60, width=3)
+    d.ellipse([175, 1325, 305, 1455], outline=60, width=2)
+    assert len(redact.unreadable_regions(img, words)) == 1
+
+
+def test_small_marks_are_not_unreadable():
+    """Below UNREADABLE_MIN_WIDTH: initials, a tick, a page mark. A known gap for short handwritten words."""
+    img, words = _page()
+    _scribble(img, w=120)
+    assert redact.unreadable_regions(img, words) == []
+
+
 def _calibration_pages():
     for d in sorted(PAGES.iterdir()):
         for png in sorted(d.glob("p*.png")):
@@ -75,6 +135,22 @@ def test_calibration_pages_have_no_region(doc, png):
     """Ordinary print is never flagged: none of the 35 pages of data/derived has a region (2026-10-19)."""
     words = pi.tess_words(png.with_name(png.name.replace(".png", ".tess.tsv")))
     assert redact.unreadable_regions(Image.open(png), words) == []
+
+
+@pytest.mark.parametrize("case", ["S03_pacient", "S04_pacient"])
+def test_sample_scans_have_no_region(case):
+    """S03 is a degraded scan (43 % of page 3's words below confidence 60) and S04 clean print: neither has
+    handwriting, and neither gets a region."""
+    import io
+
+    import fitz
+
+    from page_reader import render
+    doc = fitz.open(REPO / f"samples/{case}/{case}.pdf")
+    for n, page in enumerate(doc, 1):
+        img = Image.open(io.BytesIO(render.png(page, render.VIEW_DPI)))
+        words = pi.tess_words(REPO / f"samples/derived/pages/{case}/p{n}.tess.tsv")
+        assert redact.unreadable_regions(img, words) == [], (case, n)
 
 
 def test_words_in_a_region_are_marked_and_the_page_is_fair():

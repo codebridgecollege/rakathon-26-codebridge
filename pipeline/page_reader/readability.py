@@ -136,23 +136,26 @@ def _alpha_tokens(text: str) -> list[str]:
 _V = "aeiouyáéěíóúůý"
 _LOWER = "a-záčďéěíňóřšťúůýž"
 _UPPER = "A-ZÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ"
-# Letters a Czech medical text uses: the Czech alphabet, the German umlauts and ß of drug, place and person
-# names, and the micro sign of units. Tesseract's Czech model can still emit others ("Odbèr").
-_LETTERS_OK = set("abcdefghijklmnopqrstuvwxyzáčďéěíňóřšťúůýžäöüßµ")
-# The one common unit with a capital between small letters; every other case pattern below holds without it.
-_CASE_EXCEPTIONS = {"mmHg"}
+# Letters a Czech medical text uses: the Czech alphabet, the letters of Slovak, Polish, Hungarian, German and
+# French names (FN Ostrava treats Slovak and Polish patients; drugs and eponyms are German or French), and the
+# micro sign of units.
+_LETTERS_OK = set("abcdefghijklmnopqrstuvwxyzáčďéěíňóřšťúůýž" "ľĺŕôä" "łśćńąęźż" "őűöü" "ßàâèêëîïçñ" "µ")
+# Lower-case Roman numerals ("iii", "viii") are numbers, not a tripled letter.
+_ROMAN = re.compile(r"[ivx]+")
 GARBAGE_KINDS = {
-    # "Odbèr", Cyrillic or Greek look-alikes: a letter outside the Czech and Latin alphabets.
+    # Cyrillic or Greek look-alikes, and letters no Latin-script name in a Czech hospital uses.
     "foreign_char": "znaky mimo českou abecedu",
     # "kpsm": four or more small letters without a vowel, and no syllabic r or l between consonants as in "vlk",
     # "smrt", "čtvrt". Lower case only: abbreviations of three letters ("stp", "mts", "cps") and capital codes
     # ("PDWSD") are common in the reports.
     "no_vowel": "slova bez samohlásky",
     # Five consonants in a row other than r and l, counting "ch" as one: Czech stops at four ("postschemické"
-    # has s-t-s-ch). Not in capital codes.
+    # has s-t-s-ch). Only in words written small or capitalized, not in codes and assays ("PDWSD", "hsTnT").
     "consonant_run": "dlouhé řady souhlásek",
-    # "ciSterny", "kipIcká": a capital between small letters in a word that starts small. Brand names start
-    # with a capital ("CodeBridge") and stages and units have the small letters first ("ypT2", "eGFR").
+    # "ciSterny", "kipIcká": a capital inside a word that starts small, with three or more small letters before
+    # it or after it. Brand names start with a capital ("CodeBridge"); stages, units and assays have at most two
+    # small letters on either side of their capitals ("ypTis", "cNx", "mGy", "kBq", "mOsm", "hsTnT", "iCa",
+    # "eGFR", "nonSTEMI").
     "mixed_case": "velká písmena uvnitř slova",
     # Sequences Czech spelling never has: "ě" or "ů" at the start of a word, "ě" after a vowel, "ů" before a
     # vowel, a long and a short form of one vowel side by side ("ÚUŘEA" for "UREA"), and one small letter
@@ -164,7 +167,7 @@ GARBAGE_KINDS = {
 }
 _GARBAGE_RX = {
     "impossible_seq": re.compile(f"^[ůěŮĚ]|[{_V}]ě|ů[{_V}]|ÚU|úu|ÁA|áa|ÉE|ée|ÍI|íi|ÝY|ýy|([{_LOWER}])\\1\\1"),
-    "mixed_case": re.compile(f"[{_LOWER}][{_UPPER}][{_LOWER}]"),
+    "mixed_case": re.compile(f"[{_LOWER}]{{3,}}[{_UPPER}][{_LOWER}]|[{_LOWER}][{_UPPER}][{_LOWER}]{{3,}}"),
     "letter_digit": re.compile(r"[a-wyzá-ž]\d+[a-wyzá-ž]"),
     "no_vowel_ok": re.compile(f"[{_V}]|[^{_V}][rl](?:[^{_V}]|$)"),
     "consonants": re.compile(r"[bcčdďfghjkmnňpqsštťvwxzž]+"),
@@ -184,13 +187,13 @@ def garbage_tokens(text: str) -> tuple[int, dict[str, int]]:
             kinds.append("foreign_char")
         if t.isalpha() and t.islower() and len(t) >= 4 and not _GARBAGE_RX["no_vowel_ok"].search(low):
             kinds.append("no_vowel")
-        if t.isalpha() and not t.isupper():
+        if t.isalpha() and t[1:].islower():  # a word as written; codes and assays ("hsTnT", "PDWSD") are not
             runs = _GARBAGE_RX["consonants"].findall(low.replace("ch", "h"))
             if runs and max(map(len, runs)) >= 5:
                 kinds.append("consonant_run")
-        if t[:1].islower() and t not in _CASE_EXCEPTIONS and _GARBAGE_RX["mixed_case"].search(t):
+        if t[:1].islower() and _GARBAGE_RX["mixed_case"].search(t):
             kinds.append("mixed_case")
-        if _GARBAGE_RX["impossible_seq"].search(t):
+        if _GARBAGE_RX["impossible_seq"].search(t) and not _ROMAN.fullmatch(t):
             kinds.append("impossible_seq")
         if _GARBAGE_RX["letter_digit"].search(t):
             kinds.append("letter_digit")

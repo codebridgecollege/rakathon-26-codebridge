@@ -26,8 +26,10 @@ POST /v1/pages?from=1&to=5  body: PDF bytes; pages are 1-based and inclusive, at
                   "layer_text": str,                   # the PDF text layer, a second reading only
                   "unreadable": [{"b": [x, y, w, h],   # ink no confidently read word explains (handwriting,
                                   "reason": "no_text"|"low_conf"}]}]}  # signature, stamp), 150 dpi PNG coordinates
-  unreadable (added in page reader 0.2.0): "no_text" when no OCR word lies there, "low_conf" when only words below
-  confidence 60 do. The lines of one note are one region. Nothing in a region is read or filled in.
+  unreadable (added in page reader 0.2.0): "low_conf" when a word Tesseract read below confidence 60 overlaps the
+  region, else "no_text" (at most two confidently read words inside). The lines of one note are one region;
+  regions narrower than 160 px and near-solid areas (photos, codes, logos) are left out (page_reader/redact.py).
+  Nothing in a region is read or filled in.
 
 POST /v1/analyze            body: {"pages": [{"n", "words", "tess_text", "layer_text", "size", "unreadable"?}]}
   200 {"pages": [{"n": int,
@@ -99,10 +101,13 @@ POST /v1/identity           body: {"pages": [{"n", "text"}],
        "evidence": [{"n": int, "start": int, "end": int, "field": "name"|"birth_number"|"birth_date",
                      "result": ...}]}
   Added in 0.2.0. Whether each page names the expected patient (page_reader/identity.py has the rules): a valid
-  differing birth number or a clearly different full name in a form field or header conflicts; a damaged number,
-  a differing birth date, or a name that differs only in diacritics or one misread letter cannot be verified;
-  nothing found cannot be verified. "text" is the text of record; offsets point into it. The answer holds offsets
-  and field kinds only, never a value. birth_date is "YYYY-MM-DD" or "d.m.yyyy". At most MAX_PAGES pages.
+  differing birth number after a birth-number label or on the header line, or a clearly different full name in a
+  form field or the header line, conflicts; a damaged or unlabelled number, a number next to a relative, a
+  differing birth date, or a name that differs only in diacritics or one misread letter cannot be verified; a
+  page matches on its name or birth number (a birth date that equals only supports a match, its evidence then
+  says "matches"); nothing found cannot be verified. "text" is the text of record; offsets point into it. The
+  answer holds offsets and field kinds only, never a value. birth_date is "YYYY-MM-DD" or "d.m.yyyy". At most
+  MAX_PAGES pages.
 
 Errors: {"error": {"code": str, "message_cs": str}} with
   400 bad_json, bad_request, bad_range; 404 not_found; 405 method_not_allowed; 413 too_large;
@@ -114,6 +119,7 @@ import base64
 import io
 import json
 import logging
+import math
 import sys
 import threading
 import time
@@ -252,7 +258,7 @@ def analyze(body: bytes, _query) -> tuple[dict, int]:
             rd = readability.assess(rec["n"], rec["words"], rec["text"], rec["verify"], rec["second_reading"],
                                     unreadable=regions, size=rec["size"])
             out.append({"n": rec["n"], "page": rec, "readability": rd})
-    except (KeyError, TypeError, ValueError):
+    except (KeyError, TypeError, ValueError, OverflowError):
         raise ApiError(400, "bad_request", "Strana nemá očekávaný tvar (n, words, tess_text, layer_text, size).") from None
     doc = readability.document([{"n": p["n"], **p["readability"]} for p in out])
     return {"pages": out, "document": doc}, len(out)
@@ -266,7 +272,7 @@ def _regions(value) -> list[dict]:
     for r in value:
         b = r["b"]
         if r.get("reason") not in ("no_text", "low_conf") or not (
-                isinstance(b, list) and len(b) == 4 and all(isinstance(x, (int, float)) for x in b)):
+                isinstance(b, list) and len(b) == 4 and all(isinstance(x, (int, float)) and math.isfinite(x) for x in b)):
             raise ValueError("unreadable")
         out.append({"b": b, "reason": r["reason"]})
     return out
@@ -276,7 +282,7 @@ def labs_(body: bytes, _query) -> tuple[dict, int]:
     data = _json(body)
     try:
         result = labs.parse(data["pages"], doc_id=(data.get("document") or {}).get("doc_id"))
-    except (KeyError, TypeError, ValueError):
+    except (KeyError, TypeError, ValueError, OverflowError):
         raise ApiError(400, "bad_request", "Strana nemá očekávaný tvar (n, text, layer_text, readability_level).") from None
     return result, len(data["pages"])
 
@@ -315,7 +321,7 @@ def redact_(body: bytes, _query) -> tuple[dict, int]:
             out.append({"n": int(p["n"]), "png_b64": base64.b64encode(png.getvalue()).decode("ascii"), "hits": hits})
     except ApiError:
         raise
-    except (KeyError, TypeError, ValueError, OSError):
+    except (KeyError, TypeError, ValueError, OverflowError, OSError):
         # OSError is Pillow's error for a body that is not an image; its message is not passed on.
         raise ApiError(400, "bad_request", "Strana nemá očekávaný tvar (n, png_b64, words).") from None
     return {"pages": out}, len(out)
@@ -336,7 +342,7 @@ def parts_(body: bytes, _query) -> tuple[dict, int]:
     data = _json(body)
     try:
         result = parts.split(data["pages"])
-    except (KeyError, TypeError, ValueError):
+    except (KeyError, TypeError, ValueError, OverflowError):
         raise ApiError(400, "bad_request", "Strana nemá očekávaný tvar (n, text).") from None
     return result, len(data["pages"])
 
@@ -353,7 +359,7 @@ def identity_(body: bytes, _query) -> tuple[dict, int]:
             if not isinstance(p.get("text", ""), str):
                 raise TypeError("text")
         result = identity.check(data["pages"], expected)
-    except (KeyError, TypeError, ValueError, AttributeError):
+    except (KeyError, TypeError, ValueError, AttributeError, OverflowError):
         raise ApiError(400, "bad_request", "Strana nemá očekávaný tvar (n, text).") from None
     return result, len(data["pages"])
 

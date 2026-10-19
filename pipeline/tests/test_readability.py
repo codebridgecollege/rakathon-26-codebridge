@@ -115,7 +115,7 @@ SAMPLES = PAGES.parents[2] / "samples/derived/pages"
 
 
 @pytest.mark.parametrize("tok,kind", [
-    ("Odbèr", "foreign_char"), ("Пациент", "foreign_char"), ("kpsmt", "no_vowel"), ("zdkptsa", "consonant_run"),
+    ("Odbєr", "foreign_char"), ("Пациент", "foreign_char"), ("kpsmt", "no_vowel"), ("zdkptsa", "consonant_run"),
     ("ciSterny", "mixed_case"), ("ÚUŘEA", "impossible_seq"), ("mmolll", "impossible_seq"), ("ěvoda", "impossible_seq"),
     ("kl1nický", "letter_digit"),
 ])
@@ -126,9 +126,17 @@ def test_garbage_shapes(tok, kind):
 @pytest.mark.parametrize("tok", [
     "čtvrt", "smrt", "vlk", "Brno", "postschemické", "mmHg", "ypT2", "eGFR", "CodeBridge", "S_CREAE", "PDWSD",
     "biopsií", "onkologií", "intrakraniálně", "15x14x8mm", "Ki67", "stp", "mts", "Müller", "µmol", "zaangažovaný",
+    "pTis", "ypTis", "cNx", "mGy", "mSv", "kPa", "kBq", "mOsm", "hsTnT", "iCa", "cTnI", "mHSPC", "nonSTEMI", "iii",
+    "viii", "Ľubomír", "Łukasz", "Ślęzak", "Győr", "Krukenberg", "Schwannom", "Hodgkin", "čtvrtletí",
 ])
 def test_czech_and_medical_tokens_are_not_garbage(tok):
     assert rd.garbage_tokens(tok)[1] == {}
+
+
+def test_radiology_doses_and_foreign_names_are_clean():
+    text = ("CT hrudníku: CTDIvol 8,2 mGy, DLP 320 mGy.cm, efektivní dávka 4,5 mSv. Závěr: pTis, cNx.\n"
+            "Pacient Ľubomír Ślęzak, odeslal MUDr. Łukasz Wójcik.")
+    assert rd.garbage_tokens(text)[1] == {}
 
 
 def _calibration_texts():
@@ -163,10 +171,10 @@ def test_garbage_page_is_poor():
     """A page whose text is one token in five garbage (as a broken font map or a wrecked scan gives) is poor even
     when Tesseract is confident: the rule judges the text itself."""
     words = [{"t": "x", "c": 95, "b": [0, 0, 1, 1]}] * 50
-    text = " ".join(["Pacientka přichází ke kontrole po chemoterapii"] * 4 + ["kpsmt ciSterny Odbèr zdkptsa"] * 3)
+    text = " ".join(["Pacientka přichází ke kontrole po chemoterapii"] * 4 + ["kpsmt ciSterny Odbєr zdkptsa"] * 3)
     r = rd.assess(1, words, text)
     assert r["level"] == "poor" and r["metrics"]["garbage_share"] > rd.POOR_GARBAGE_SHARE
-    assert not any(t in "\n".join(r["reasons_cs"]) for t in ("kpsmt", "ciSterny", "Odbèr"))
+    assert not any(t in "\n".join(r["reasons_cs"]) for t in ("kpsmt", "ciSterny", "Odbєr"))
     # One odd token is a typo or a rare name, not a reading problem.
     one = rd.assess(1, words, "Pacient Xkcdq přichází ke kontrole po chemoterapii.")
     assert one["level"] == "good"

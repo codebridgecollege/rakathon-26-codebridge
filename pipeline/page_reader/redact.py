@@ -21,7 +21,7 @@ import re
 import unicodedata
 from pathlib import Path
 
-from PIL import ImageDraw
+from PIL import ImageDraw, ImageFilter
 
 SCALE = 150 / 300  # Tesseract read 300 dpi renders; the page image is 150 dpi
 PAD = 2  # a little margin, so letter edges do not show around the box
@@ -182,14 +182,21 @@ def ink_marks(img, words: list[dict]) -> list[dict]:
     return boxes
 
 
-def _ink_boxes(img, masked: list[dict], max_area: float | None) -> list[list[int]]:
+def _ink_boxes(img, masked: list[dict], max_area: float | None, keep_thin: bool = False,
+               with_fill: bool = False) -> list:
     """Boxes (150 dpi) of the dark areas left after blanking the boxes of the `masked` words: at least INK_MIN,
-    at most max_area of the page (None: any size), and at least INK_MIN_FILL dark."""
+    at most max_area of the page (None: any size), and at least INK_MIN_FILL dark. keep_thin widens strokes by a
+    pixel before the quarter-size reduction, so a 1 px or grey ballpoint line still reads as ink there. with_fill
+    returns (box, fill) pairs."""
     s = INK_SCALE
-    small = img.convert("L").resize((max(1, img.width // s), max(1, img.height // s)))
+    gray = img.convert("L")
+    if keep_thin:
+        gray = gray.filter(ImageFilter.MinFilter(3))
+    small = gray.resize((max(1, img.width // s), max(1, img.height // s)))
     W, H = small.size
     data = small.tobytes()
-    dark = bytearray(1 if v < INK_DARK else 0 for v in data)
+    limit = THIN_DARK if keep_thin else INK_DARK
+    dark = bytearray(1 if v < limit else 0 for v in data)
     for w in masked:  # words OCR read are handled as text; only the ink they do not explain is left
         x, y, wd, h = w["b"]
         for yy in range(max(0, int(y // s) - 1), min(H, int((y + h) // s) + 2)):
@@ -226,27 +233,44 @@ def _ink_boxes(img, masked: list[dict], max_area: float | None) -> list[list[int
             continue
         if max_area is not None and bw * bh > max_area * W * H:
             continue
-        boxes.append([x0 * s, y0 * s, bw * s, bh * s])
+        box = [x0 * s, y0 * s, bw * s, bh * s]
+        boxes.append((box, n / (bw * bh)) if with_fill else box)
     return boxes
 
 
 # Unreadable regions: ink that no confidently read word explains. Handwriting, a signature, a stamp, or print too
 # damaged to read; the page reader cannot tell them apart and never fills them in. The ink detection is
-# ink_marks', with two differences. Only words read with confidence UNREADABLE_CONF or more are blanked, so ink
-# under Tesseract's low-confidence guesses (it reads handwriting as garbage words) still counts. And there is no
-# upper size limit: a handwritten paragraph is a large area, while a frame or a table grid is already left out by
-# INK_MIN_FILL.
+# ink_marks', with these differences:
+# - Only words read with confidence UNREADABLE_CONF or more are blanked, so ink under Tesseract's low-confidence
+#   guesses (it reads handwriting as garbage words) still counts.
+# - Thin and grey strokes are kept (keep_thin, THIN_DARK): a 1 px line at grey 60 or a 2 px line at grey 100, as a
+#   ballpoint pen writes, is found; ink_marks finds strokes of about 3 px only.
+# - No upper size limit, since a handwritten paragraph is large; instead areas filled more than
+#   UNREADABLE_MAX_FILL are left out: photos, barcodes, QR codes, logos and dark bands are near solid (0.8-1.0
+#   at quarter size, tests/test_unreadable.py), handwriting is not (0.2-0.46), a stamp's rings even less (0.09).
+# - Handwriting lines lower than INK_MIN (32 px, about 5 mm) that do not touch each other are not found.
 UNREADABLE_CONF = 60  # page_index.LOW_CONF, the confidence below which every Tesseract error in the evaluation fell
 UNREADABLE_MAX_WORDS = INK_MAX_WORDS  # more confident words inside the box: printed content, as in ink_marks
+THIN_DARK = 160  # a pixel darker than this at quarter size is ink, once strokes were widened by a pixel
+UNREADABLE_MAX_FILL = 0.6
+# Widening the strokes also thickens print: a low-confidence printed word with its neighbour line, a page mark or
+# a bracket then forms a small area. On the 43 calibration pages (2026-10-19) 21 such areas appeared, 40-120 px
+# wide; a signature or a line of handwriting is wider than 160 px (27 mm). Initials or a single short handwritten
+# word are below it and not found.
+UNREADABLE_MIN_WIDTH = 160
 
 
 def unreadable_regions(img, words: list[dict]) -> list[dict]:
     """Regions (150 dpi boxes) of ink with no confidently read word: {"b": [x, y, w, h], "reason"}, where reason
-    is "no_text" (no OCR word there at all) or "low_conf" (only words below UNREADABLE_CONF)."""
+    is "low_conf" when a word Tesseract read below UNREADABLE_CONF overlaps it, else "no_text" (at most
+    UNREADABLE_MAX_WORDS confident words, such as a printed name under a signature, may lie inside)."""
     sure = [w for w in words if w["c"] >= UNREADABLE_CONF]
-    boxes = [b for b in _ink_boxes(img, sure, None) if sum(1 for w in sure if _within(w["b"], b)) <= UNREADABLE_MAX_WORDS]
+    boxes = [b for b, fill in _ink_boxes(img, sure, None, keep_thin=True, with_fill=True)
+             if fill <= UNREADABLE_MAX_FILL and sum(1 for w in sure if _within(w["b"], b)) <= UNREADABLE_MAX_WORDS]
     out = []
     for box in _join_lines(boxes):
+        if box[2] < UNREADABLE_MIN_WIDTH:
+            continue
         doubtful = any(_overlaps(w["b"], box) for w in words if w["c"] < UNREADABLE_CONF)
         out.append({"b": box, "reason": "low_conf" if doubtful else "no_text"})
     return out

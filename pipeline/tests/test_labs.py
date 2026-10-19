@@ -243,6 +243,10 @@ def test_s03_urea_line_is_listed_not_dropped():
     "S_ALB 41,2 g/l",  # an NČLP code with its underscore, colon and range lost
     "U_BIL: negat",  # a qualitative value RECORD does not take
     "S. ŠODIK: 139 mmol/l",  # a misread code with a Czech capital, range lost
+    "S_K 4,1",  # an NČLP code and a value, nothing else
+    "• S_GLU 5,4",
+    "S_CRP < 5",
+    "B HB 141 gl",  # the unit lost its slash
 ])
 def test_lab_like_lines_are_listed(line):
     text = f"Odběr: 1.2.2026 07:00\n{line}\n"
@@ -257,13 +261,20 @@ def test_lab_like_lines_are_listed(line):
     "Do 2. linie léčby indikován sunitinib 50mg denně",
     "Pacient přijat (10.3.2026) k operaci.",
     "Intrakraniální průběh AC;I bez změny",
+    "ZÁVĚR: 1. Progrese onemocnění",  # section headings of a report
+    "DOPORUČENÍ: 1) kontrola za 3 měsíce",
+    "ANAMNÉZA: 3 roky bolesti zad",
+    "ČSK: 12 dní",
+    "CT HRUDNÍKU (2. 9. 2024)",  # a heading with a date in brackets
+    "MR MOZKU (12.3. 2024)",
+    "CAPOX C1 1000 mg/m2",  # a dose per body surface
 ])
 def test_prose_is_not_lab_like(line):
     _, _, spans = labs.parse_text(line)
     assert labs.unparsed_lines(line, spans) == []
 
 
-CODE_LINE = re.compile(r"^[\W_]{0,4}[A-ZÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ]{1,5}[ _.\-„]{1,4}[A-ZÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ]{2,}\W{0,3}\d")
+CODE_LINE = re.compile(r"^[\W_]{0,4}[A-ZÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ]{1,5}[ _.\-„]{1,4}[A-ZÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ]{1,}\W{0,3}\d")
 
 
 def test_no_lab_line_vanishes_on_the_calibration_pages():

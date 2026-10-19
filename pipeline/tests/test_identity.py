@@ -130,6 +130,64 @@ def test_other_people_in_the_text_are_no_conflict(text):
     assert r["result"] == "cannot_verify"
 
 
+JANA = {"name": "Jana Nováková", "birth_number": "656115/1234", "birth_date": "1965-11-15"}
+
+
+@pytest.mark.parametrize("text", [
+    # psm 4 joins a form's columns into one line: the next label is not a name word.
+    "Jméno pacienta: Jana Příjmení pacienta: Nováková",
+    "Jméno: Jana Nováková Rodné číslo: 656115/1234",
+    "Pacientka: Nováková Jana Datum narození: 15.11.1965",
+    # A second given name, an honorific, a name in capitals.
+    "Pacientka: Jana Marie Nováková",
+    "Pacientka: Paní Jana Nováková",
+    "NOVÁKOVÁ Jana, nar. 15.11.1965",
+    # Relatives and the mother's birth number on the patient's page.
+    "Nováková Jana, nar. 15.11.1965, r.č. 656115/1234\nMatka Marie, nar. 1940, zemřela\nOtec Josef, nar. 3.4.1938",
+    "Nováková Jana, nar. 15.11.1965\nMatka: RČ 405115/1236",
+    # One misread letter in a short name.
+    "Nováková Jaua, nar. 15.11.1965",
+])
+def test_no_false_conflict(text):
+    r = identity.check([{"n": 1, "text": text}], JANA)
+    assert r["result"] != "conflicts", r
+
+
+@pytest.mark.parametrize("text,expected", [
+    ("NOVÁK Petr, nar. 15.11.1965", "conflicts"),  # same birth date, another person: never a match
+    ("Nováková Hana, nar. 15.11.1965\nsestra Jana Nováková ji doprovází.", "cannot_verify"),  # a sister's name
+    ("Nováková Jana, nar. 3.4.1940", "matches"),  # the name matches; a differing date alone is no conflict
+    ("Pacient: Petr Novák\nnar. 15.11.1965", "conflicts"),
+])
+def test_no_false_match(text, expected):
+    assert identity.check([{"n": 1, "text": text}], JANA)["result"] == expected
+
+
+def test_birth_date_alone_is_no_match():
+    r = identity.check([{"n": 1, "text": "Datum narození: nar. 15.11.1965"}], JANA)
+    assert r["result"] == "cannot_verify"
+
+
+def test_single_part_expected_name_never_conflicts():
+    for name in ("Nováková", "J. Nováková"):
+        r = identity.check([{"n": 1, "text": "Nováková Jana, nar. 15.11.1965"}], {"name": name})
+        assert r["result"] == "cannot_verify"
+
+
+def test_unlabelled_valid_number_is_not_a_conflict():
+    """A requisition or sample number shaped like a birth number may pass mod 11 by chance."""
+    r = identity.check([{"n": 1, "text": "Nováková Jana, nar. 15.11.1965\nVzorek 595418/1002 přijat."}], JANA)
+    assert r["result"] == "matches"
+
+
+def test_long_inputs_stay_fast():
+    import time
+    t = time.monotonic()
+    identity.check([{"n": 1, "text": ("r.č." + " " * 5000) * 50 + ("nar." + " " * 5000) * 50}], JANA)
+    identity.check([{"n": 1, "text": "Jana " * 20000}], {"name": "Jana " * 300})
+    assert time.monotonic() - t < 5
+
+
 def test_birth_number_check_digit():
     assert identity.birth_number_valid("5856144019") and identity.birth_number_valid("5954181002")
     assert not identity.birth_number_valid("5856144018")  # one digit off

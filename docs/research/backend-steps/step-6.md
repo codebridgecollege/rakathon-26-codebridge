@@ -1144,36 +1144,48 @@ Contract additions are in `pipeline/container/server.py`'s docstring.
 
 - **Lab parser never drops a lab line silently.** S03's scan reads `S_UREA`
   as `. S. ÚUŘEA: 7,9 mmolll (2.9. 82:`; `LAB_LIKE` took only A-Z in a
-  code and needed `[` or `...`, so the line vanished. Codes may now carry
-  Czech capitals and a quote mark as separator, an NČLP code with its
-  underscore and a colon is lab-like whatever the value, and a line that
-  starts with a sheet-style code ("S UREA") is lab-like with a `(` range or
-  a lab unit after a number. A sweep over the 43 pages of `data/derived` and
-  `samples/derived` (tested) finds no other lab line left out; prose such as
-  "CEA 9,6 ug/l" in a letter stays out (stage 9 reads it).
+  code and needed `[` or `...`, so the line vanished. A sheet code with a
+  separator may now carry Czech capitals and a quote mark as separator, an
+  NČLP code with its underscore and a colon is lab-like whatever the value,
+  and a line that starts with an NČLP code and a number, or with a
+  sheet-style code ("S UREA") and a `(` range or a lab unit, is lab-like.
+  A sweep over the 43 pages of `data/derived` and `samples/derived`
+  (tested) finds no other lab line left out; report headings ("ZÁVĚR: 1.",
+  "CT HRUDNÍKU (2. 9. 2024)"), doses per m² and prose such as "CEA 9,6
+  ug/l" in a letter stay out (stage 9 reads those).
 - **Readability without a word list.** `readability.garbage_tokens` counts
   tokens with a shape no Czech or medical word has (letters outside the
-  Czech alphabet, four small letters without a vowel or syllabic r/l, five
-  consonants in a row, a capital inside a small word, impossible sequences
-  such as `ÚU` or a tripled letter, a digit between small letters). Fair from
+  Latin alphabets of Czech, Slovak, Polish, Hungarian, German and French
+  names, four small letters without a vowel or syllabic r/l, five
+  consonants in a row, a capital inside a small word with three small
+  letters on one side, impossible sequences such as `ÚU` or a tripled
+  letter, a digit between small letters); stages, units and assays such as
+  `ypTis`, `mGy`, `hsTnT` are not counted. Fair from
   2 %, poor above 10 %. Clean pages reach 0.8 % at most, S03 p3 2.7 %. It
   catches character-level garbage only: S03's word-shaped misreads
   (`opnotamém`, `PLUTO`) pass it, and S03 is poor through the confidence
   rules. Levels on the 43 calibration pages are unchanged by it.
 - **Unreadable regions.** `/v1/pages` returns `unreadable` per page:
   ink that no word read with confidence 60 or more explains, found with the
-  redaction's ink detection (`redact._ink_boxes`, shared with `ink_marks`),
-  without its size limit and with the lines of one note joined. `/v1/analyze`
-  keeps the regions on the page record, marks tokens inside as "ověřit"
-  (reason `unreadable`) and makes the page fair (poor above 10 % of the
-  page). No region on any of the 43 calibration pages; a synthetic
-  handwritten note is found, also through live Tesseract.
+  redaction's ink detection (`redact._ink_boxes`, shared with `ink_marks`):
+  thin and grey strokes kept, no upper size limit, near-solid areas
+  (photos, QR codes, barcodes, logos) and areas narrower than 160 px left
+  out, the lines of one note joined. `/v1/analyze` keeps the regions on the
+  page record, marks tokens inside as "ověřit" (reason `unreadable`) and
+  makes the page fair (poor above 10 % of the page). No region on any of the
+  43 calibration pages (S03's degraded scan included); synthetic handwriting
+  (1-3 px strokes, black to grey 100) and a stamp are found, also through
+  live Tesseract. Not found: handwriting lines under about 5 mm that do not
+  touch, and short words or initials. The app's source viewer does not yet
+  label the `unreadable` reason (`app/`, left for the team).
 - **Identity check** (`page_reader/identity.py`, `POST /v1/identity`):
   matches, conflicts or cannot_verify per page and document, with offsets
   and field kinds only. Conflicts need a valid differing birth number
-  (mod 11 and a possible date) or a clearly different full name in a form
-  field or a header line before "nar."; damage, diacritics and a differing
-  birth date give cannot_verify. S01-S03 match, S04 conflicts on page 4
-  only, FNO patient 2 (`Kotěrova`) cannot be verified, the other FNO
+  (mod 11 and a possible date) after a birth-number label or on the header
+  line, or a clearly different full name in a form field or the page's
+  header line before "nar."; damage, diacritics, one misread letter, a
+  relative's number and a differing birth date give cannot_verify, and a
+  birth date alone never makes a match. S01-S03 match, S04 conflicts on
+  page 4 only, FNO patient 2 (`Kotěrova`) cannot be verified, the other FNO
   patients match by name. `eval.py` does not run it yet (its adapter writes
   `identity: cannot_verify` on every source).
