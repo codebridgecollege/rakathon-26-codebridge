@@ -141,7 +141,7 @@ describe("ExtractDocumentWorkflow", () => {
       const r = JSON.stringify(await inst.waitForStepResult({ name }));
       for (const bad of [FAKE_NAME, "Vrbensk", "C20", "novotvar", "jater", "1964"]) expect(r).not.toContain(bad);
     }
-    expect(await inst.waitForStepResult({ name: "case" })).toEqual({ started: false });
+    expect(await inst.waitForStepResult({ name: "case" })).toEqual({ started: true });
   });
 
   it("lists a part the content filter refused, or the model answered without facts, in the checks' unreadable pages", async () => {
