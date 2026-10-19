@@ -1,0 +1,458 @@
+{
+ "versions": {
+  "tesseract": "tesseract 5.5.3",
+  "ces_model": "sha256:934bcaf97ef33484"
+ },
+ "pages": {
+  "2_pacient p1": {
+   "level": "good",
+   "words": 138,
+   "mean_conf": 94.7,
+   "low_conf_share": 0.0,
+   "verify": 0,
+   "verify_share": 0.0,
+   "damage": {}
+  },
+  "9_pacient p1": {
+   "level": "good",
+   "words": 420,
+   "mean_conf": 92.9,
+   "low_conf_share": 0.021,
+   "verify": 2,
+   "verify_share": 0.111,
+   "damage": {}
+  },
+  "9_pacient p2": {
+   "level": "fair",
+   "words": 397,
+   "mean_conf": 92.3,
+   "low_conf_share": 0.023,
+   "verify": 13,
+   "verify_share": 0.145,
+   "damage": {
+    "tnm_letter_o": 1
+   }
+  },
+  "9_pacient p3": {
+   "level": "fair",
+   "words": 458,
+   "mean_conf": 83.5,
+   "low_conf_share": 0.111,
+   "verify": 48,
+   "verify_share": 0.256,
+   "damage": {
+    "unit_slash_1": 22
+   }
+  },
+  "9_pacient p4": {
+   "level": "empty",
+   "words": 0,
+   "mean_conf": null,
+   "low_conf_share": null,
+   "verify": 0,
+   "verify_share": null,
+   "damage": {}
+  },
+  "10_pacient p1": {
+   "level": "fair",
+   "words": 416,
+   "mean_conf": 91.3,
+   "low_conf_share": 0.024,
+   "verify": 12,
+   "verify_share": 0.194,
+   "damage": {
+    "tnm_letter_o": 1
+   }
+  },
+  "10_pacient p2": {
+   "level": "fair",
+   "words": 484,
+   "mean_conf": 93.3,
+   "low_conf_share": 0.004,
+   "verify": 11,
+   "verify_share": 0.164,
+   "damage": {}
+  },
+  "10_pacient p3": {
+   "level": "fair",
+   "words": 445,
+   "mean_conf": 84.7,
+   "low_conf_share": 0.112,
+   "verify": 38,
+   "verify_share": 0.148,
+   "damage": {
+    "o_in_number": 2,
+    "unit_slash_1": 19
+   }
+  },
+  "10_pacient p4": {
+   "level": "fair",
+   "words": 392,
+   "mean_conf": 92.3,
+   "low_conf_share": 0.031,
+   "verify": 6,
+   "verify_share": 0.207,
+   "damage": {}
+  },
+  "10_pacient p5": {
+   "level": "fair",
+   "words": 376,
+   "mean_conf": 91.6,
+   "low_conf_share": 0.035,
+   "verify": 10,
+   "verify_share": 0.265,
+   "damage": {}
+  },
+  "11_pacient p1": {
+   "level": "good",
+   "words": 355,
+   "mean_conf": 91.8,
+   "low_conf_share": 0.037,
+   "verify": 2,
+   "verify_share": 0.1,
+   "damage": {}
+  },
+  "11_pacient p2": {
+   "level": "good",
+   "words": 228,
+   "mean_conf": 93.6,
+   "low_conf_share": 0.004,
+   "verify": 3,
+   "verify_share": 0.429,
+   "damage": {}
+  },
+  "13_pacient p1": {
+   "level": "good",
+   "words": 388,
+   "mean_conf": 93.2,
+   "low_conf_share": 0.01,
+   "verify": 1,
+   "verify_share": 0.037,
+   "damage": {}
+  },
+  "13_pacient p2": {
+   "level": "good",
+   "words": 190,
+   "mean_conf": 93.0,
+   "low_conf_share": 0.011,
+   "verify": 2,
+   "verify_share": 0.143,
+   "damage": {}
+  },
+  "15_pacient p1": {
+   "level": "good",
+   "words": 243,
+   "mean_conf": 93.1,
+   "low_conf_share": 0.012,
+   "verify": 2,
+   "verify_share": 0.4,
+   "damage": {}
+  },
+  "17_pacient p1": {
+   "level": "fair",
+   "words": 295,
+   "mean_conf": 94.4,
+   "low_conf_share": 0.003,
+   "verify": 1,
+   "verify_share": 0.067,
+   "damage": {
+    "tnm_letter_o": 1
+   }
+  },
+  "18_pacient p1": {
+   "level": "fair",
+   "words": 428,
+   "mean_conf": 93.5,
+   "low_conf_share": 0.009,
+   "verify": 13,
+   "verify_share": 0.293,
+   "damage": {}
+  },
+  "18_pacient p2": {
+   "level": "fair",
+   "words": 148,
+   "mean_conf": 88.9,
+   "low_conf_share": 0.088,
+   "verify": 8,
+   "verify_share": 1.143,
+   "damage": {}
+  },
+  "19_pacient p1": {
+   "level": "fair",
+   "words": 226,
+   "mean_conf": 87.6,
+   "low_conf_share": 0.075,
+   "verify": 2,
+   "verify_share": 0.062,
+   "damage": {}
+  },
+  "20_pacient p1": {
+   "level": "good",
+   "words": 354,
+   "mean_conf": 94.1,
+   "low_conf_share": 0.0,
+   "verify": 5,
+   "verify_share": 0.278,
+   "damage": {}
+  },
+  "S01_pacient p1": {
+   "level": "good",
+   "words": 330,
+   "mean_conf": 91.9,
+   "low_conf_share": 0.033,
+   "verify": 3,
+   "verify_share": 0.042,
+   "damage": {}
+  },
+  "S01_pacient p2": {
+   "level": "good",
+   "words": 190,
+   "mean_conf": 93.6,
+   "low_conf_share": 0.016,
+   "verify": 1,
+   "verify_share": 0.03,
+   "damage": {}
+  },
+  "S01_pacient p3": {
+   "level": "fair",
+   "words": 174,
+   "mean_conf": 88.6,
+   "low_conf_share": 0.04,
+   "verify": 7,
+   "verify_share": 0.089,
+   "damage": {
+    "unit_slash_1": 1
+   }
+  },
+  "S01_pacient p4": {
+   "level": "fair",
+   "words": 174,
+   "mean_conf": 87.2,
+   "low_conf_share": 0.057,
+   "verify": 7,
+   "verify_share": 0.071,
+   "damage": {
+    "unit_slash_1": 1
+   }
+  },
+  "S01_pacient p5": {
+   "level": "fair",
+   "words": 174,
+   "mean_conf": 89.2,
+   "low_conf_share": 0.057,
+   "verify": 8,
+   "verify_share": 0.071,
+   "damage": {}
+  },
+  "S01_pacient p6": {
+   "level": "good",
+   "words": 278,
+   "mean_conf": 93.6,
+   "low_conf_share": 0.011,
+   "verify": 0,
+   "verify_share": 0.0,
+   "damage": {}
+  },
+  "S01_pacient p7": {
+   "level": "fair",
+   "words": 174,
+   "mean_conf": 89.8,
+   "low_conf_share": 0.052,
+   "verify": 7,
+   "verify_share": 0.089,
+   "damage": {
+    "unit_slash_1": 2
+   }
+  },
+  "S02_pacient p1": {
+   "level": "fair",
+   "words": 356,
+   "mean_conf": 91.2,
+   "low_conf_share": 0.048,
+   "verify": 1,
+   "verify_share": 0.0,
+   "damage": {
+    "tnm_letter_o": 5
+   }
+  },
+  "S02_pacient p2": {
+   "level": "fair",
+   "words": 235,
+   "mean_conf": 93.0,
+   "low_conf_share": 0.017,
+   "verify": 0,
+   "verify_share": 0.0,
+   "damage": {
+    "tnm_letter_o": 3
+   }
+  },
+  "S02_pacient p3": {
+   "level": "good",
+   "words": 175,
+   "mean_conf": 93.5,
+   "low_conf_share": 0.011,
+   "verify": 1,
+   "verify_share": 0.0,
+   "damage": {}
+  },
+  "S02_pacient p4": {
+   "level": "fair",
+   "words": 245,
+   "mean_conf": 93.3,
+   "low_conf_share": 0.016,
+   "verify": 2,
+   "verify_share": 0.0,
+   "damage": {
+    "tnm_letter_o": 2
+   }
+  },
+  "S02_pacient p5": {
+   "level": "fair",
+   "words": 213,
+   "mean_conf": 88.7,
+   "low_conf_share": 0.056,
+   "verify": 8,
+   "verify_share": 0.085,
+   "damage": {
+    "unit_slash_1": 2
+   }
+  },
+  "S02_pacient p6": {
+   "level": "fair",
+   "words": 214,
+   "mean_conf": 87.9,
+   "low_conf_share": 0.056,
+   "verify": 8,
+   "verify_share": 0.071,
+   "damage": {
+    "o_in_number": 1,
+    "unit_slash_1": 1
+   }
+  },
+  "S02_pacient p7": {
+   "level": "fair",
+   "words": 214,
+   "mean_conf": 87.8,
+   "low_conf_share": 0.075,
+   "verify": 10,
+   "verify_share": 0.085,
+   "damage": {
+    "unit_slash_1": 2
+   }
+  },
+  "S02_pacient p8": {
+   "level": "fair",
+   "words": 214,
+   "mean_conf": 87.8,
+   "low_conf_share": 0.07,
+   "verify": 9,
+   "verify_share": 0.071,
+   "damage": {
+    "o_in_number": 1,
+    "unit_slash_1": 2
+   }
+  },
+  "S02 upload 04-laborator-2026-03-10.pdf": {
+   "level": "fair",
+   "words": 213,
+   "mean_conf": 88.6,
+   "low_conf_share": 0.056,
+   "verify": 8,
+   "verify_share": 0.085,
+   "damage": {
+    "unit_slash_1": 2
+   }
+  },
+  "S02 upload 05-laborator-2026-06-02.pdf": {
+   "level": "fair",
+   "words": 214,
+   "mean_conf": 87.9,
+   "low_conf_share": 0.056,
+   "verify": 8,
+   "verify_share": 0.071,
+   "damage": {
+    "o_in_number": 1,
+    "unit_slash_1": 1
+   }
+  },
+  "S02 upload 06-laborator-2026-09-15.pdf": {
+   "level": "fair",
+   "words": 214,
+   "mean_conf": 87.8,
+   "low_conf_share": 0.075,
+   "verify": 10,
+   "verify_share": 0.085,
+   "damage": {
+    "unit_slash_1": 2
+   }
+  },
+  "S02 upload 07-laborator-2026-10-06.pdf": {
+   "level": "fair",
+   "words": 214,
+   "mean_conf": 87.8,
+   "low_conf_share": 0.07,
+   "verify": 9,
+   "verify_share": 0.071,
+   "damage": {
+    "o_in_number": 1,
+    "unit_slash_1": 2
+   }
+  }
+ },
+ "labs": {
+  "S01 lab pages": {
+   "same": 30,
+   "verify": 20,
+   "silent": 0,
+   "missing": 2,
+   "points": 52,
+   "problems": [
+    {
+     "kind": "missing",
+     "code": "S_AST",
+     "page": 4,
+     "found": 0,
+     "unparsed_on_page": [
+      [
+       "lab_like_not_parsed",
+       ""
+      ],
+      [
+       "only_second_reading",
+       "S_AST"
+      ]
+     ]
+    },
+    {
+     "kind": "missing",
+     "code": "S_AST",
+     "page": 3,
+     "found": 0,
+     "unparsed_on_page": [
+      [
+       "lab_like_not_parsed",
+       ""
+      ],
+      [
+       "only_second_reading",
+       "S_AST"
+      ]
+     ]
+    }
+   ]
+  },
+  "S02 lab sheet uploads": {
+   "same": 41,
+   "verify": 31,
+   "silent": 0,
+   "missing": 0,
+   "points": 72,
+   "problems": []
+  }
+ },
+ "levels_35": {
+  "good": 12,
+  "fair": 22,
+  "empty": 1
+ }
+}

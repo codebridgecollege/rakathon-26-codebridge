@@ -67,3 +67,22 @@ jobs:
         run: |
           docker run --rm -u 0 -v "$PWD:/repo:ro" -w /repo/pipeline -e PYTHONDONTWRITEBYTECODE=1 page-reader \
             sh -c "pip install --quiet --no-cache-dir pytest==8.3.3 && python -m pytest -q -p no:cacheprovider"
+      # The container's Tesseract against the committed local baseline (pipeline/measurements/), on the 35 calibration
+      # pages and S02's lab sheets: readability levels, "ověřit" counts, lab points same/verify/silent/missing. Counts
+      # only, no page text. The table goes to the job summary; the JSON is kept as an artifact.
+      # Also after a failed pytest step: the numbers are what tells why.
+      - name: Measure the container's Tesseract
+        if: success() || failure()
+        run: |
+          set -o pipefail
+          mkdir -p out
+          # As the runner's user, so the JSON lands writable in out/.
+          docker run --rm -u "$(id -u)" -v "$PWD:/repo:ro" -v "$PWD/out:/out" -w /repo/pipeline -e PYTHONDONTWRITEBYTECODE=1 page-reader \
+            sh -c "python measure_ocr.py --out /out/measure-container.json && python measure_ocr.py --compare measurements/tesseract-5.5.3-local.json /out/measure-container.json" \
+            | tee -a "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: success() || failure()
+        with:
+          name: tesseract-measurement
+          path: out/measure-container.json
+          retention-days: 30
