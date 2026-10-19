@@ -1,7 +1,7 @@
 # Extraction format (codebridge.extraction/2)
 
-Status: proposal for review, 2026-10-19. Nothing is built until Juro
-approves it (issue #17).
+Status: approved for implementation, 2026-10-19 (issue #17). Decisions
+are at the end.
 
 This is the one format the case view reads and every producer writes:
 the converted demo fixtures, the document pipeline and the NIS import.
@@ -597,7 +597,6 @@ same documents against these reference cases.
 2. **Stage:** `tnm` normalised is kept next to `tnm_as_written`.
 3. **Disease status vocabulary** (`suspected`, `confirmed_histology`, `progression`, `stable`, `remission`, `suspected_recurrence`, `recurrence`): accepted for now. **It needs review by a clinical expert** before real patients.
 4. **Facts from a page that shows another patient are not shown** anywhere in the case view (quarantine). Only the identity alert says that such a page exists, until a doctor resolves it.
+5. **A fact a doctor confirmed that is missing from a later run is shown** with "potvrzeno dříve, v novém zpracování chybí" (confirmed earlier, missing from the new processing). It is never dropped silently.
 
-## Open points
-
-1. **Confirmed facts missing from a later run:** a visible list "potvrzeno dříve, v novém zpracování chybí" in the case view. Wording and place still to agree.
+The format is approved for implementation (2026-10-19).
