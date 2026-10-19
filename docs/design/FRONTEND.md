@@ -104,7 +104,7 @@ the marketing site (glidemdt.com) is separate.
 - **Shared rules, where they are pure.** About 1,800 lines of domain code
   live in `api/src/domain`.
   - **Can be shared:** status moves, approval checks, task drafting, slots, FHIR import. These become a package (`packages/domain`) used by the browser and the Worker.
-  - **Stays on the server:** sessions, upload-session tokens, break-the-glass, audit, database row mapping. A few files import server types (`../http/errors`, `../services/pagekit`); those imports are cut when the package is split out.
+  - **Stays on the server:** sessions, upload-session tokens, break-the-glass, audit, database row mapping. A few files import server types (`../http/errors`, `../services/page-reader`); those imports are cut when the package is split out.
   - **Labels move out.** The domain files carry Czech text (error messages, status labels, audit sentences). Moving that text out to the catalogs is the server phase of `I18N.md`, not part of the split.
   - **The server stays the authority.** The browser's copy only lets the page show the right buttons and messages before a request; the server still checks everything.
 - **The hard parts are browser APIs:** `getUserMedia`, WebSocket, drag
@@ -232,7 +232,7 @@ fight Vue for the DOM. Instead:
 - `i18n/` (the `.ftl` catalogs and the Fluent wrapper, shared).
 
 **What does not depend on the framework.** From `I18N.md`:
-- the server phase: message keys for errors, codes for labels, the access log as action and parameters, PageKit reasons as codes (3-4 days);
+- the server phase: message keys for errors, codes for labels, the access log as action and parameters, page reader reasons as codes (3-4 days);
 - the meeting language for recordings (1 day);
 - the Fluent catalogs and runtime wrapper.
 

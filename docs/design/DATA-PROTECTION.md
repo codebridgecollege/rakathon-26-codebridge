@@ -269,7 +269,7 @@ synthetic patients.
 - **The pipeline without an LLM keeps text out of the Workflow engine.**
   Workflow parameters and step results hold IDs, counts and fixed codes;
   page images, text and lab values go to R2 (EU) under the run's prefix.
-  PageKit (the container) has no secrets, no storage and no outbound
+  The page reader (the container) has no secrets, no storage and no outbound
   network, and logs only method, path, status, duration and page counts.
   It is meant to run in the EU (`constraints.jurisdiction: "eu"` once the
   container is deployed; today it runs locally, see step-6.md "As

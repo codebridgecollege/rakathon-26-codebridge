@@ -25,9 +25,9 @@ import json
 import sys
 from pathlib import Path
 
-# The logic lives in pipeline/pagekit, shared with the container and the tests.
+# The logic lives in pipeline/page_reader, shared with the container and the tests.
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "pipeline"))
-from pagekit.page_index import build_index  # noqa: E402
+from page_reader.page_index import build_index  # noqa: E402
 
 
 def main() -> None:

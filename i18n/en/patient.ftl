@@ -386,7 +386,7 @@ patient-docs-pipe-failed = Reading failed ({ $code ->
     [too_many_pages] too many pages
     [page_too_large] a page is too large
     [pipeline_off] processing is not switched on
-    [pagekit_unreachable] the service does not respond
+    [page_reader_unreachable] the service does not respond
    *[other] service error
 }).
 patient-docs-pipe-reading = Reading (

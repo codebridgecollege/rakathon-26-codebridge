@@ -24,7 +24,7 @@ pillow==10.4.0 \
     --hash=sha256:e553cad5179a66ba15bb18b353a19020e73a7921296a7979c4a2b7f6a5cd57f9 \
     --hash=sha256:f5b92f4d70791b4a67157321c4e8225d60b119c5cc9aee8ecf153aace4aad4ef \
     --hash=sha256:f5f0c3e969c8f12dd2bb7e0b15d5c468b51e5017e01e2e867335c81903046a22
-    # via pagekit
+    # via page-reader
 pymupdf==1.24.10 \
     --hash=sha256:05b8d360766b87f4abd186eba16a56b92bae513b2361b13f633fe6256329292e \
     --hash=sha256:0e3969c2fdff682b3b2c6a2b463adde068d6d8e20e2133ef6c8503469259646a \
@@ -41,7 +41,7 @@ pymupdf==1.24.10 \
     --hash=sha256:cd78ee1ebefdfe72bc36fd4b731cc8c694eb8ef5337d8ea956b0e94cd88751fc \
     --hash=sha256:f323aa7bb55e0214e632bfe24fa140bd5dcfeac2d3977bdce46e760385140513 \
     --hash=sha256:f68671363be5a2ba104ab7d3bad821d2994cbe3f3408538bbc27d32e6dc9f923
-    # via pagekit
+    # via page-reader
 pymupdfb==1.24.10 \
     --hash=sha256:007b91fa9b528c5c0eecea2e49c486ac02e878274f9e31522bdd948adc5f8327 \
     --hash=sha256:27ea65c701608b6b7632703339ca33ea6d513843b26dbe9bdefb2f56f7b9b196 \

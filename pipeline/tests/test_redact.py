@@ -1,10 +1,10 @@
-"""Redaction boxes from pagekit equal the committed p<n>.redactions.json, with the names the script uses."""
+"""Redaction boxes from page_reader equal the committed p<n>.redactions.json, with the names the script uses."""
 
 import json
 import sys
 
 from conftest import PAGES, REPO
-from pagekit import redact
+from page_reader import redact
 
 sys.path.insert(0, str(REPO / "scripts"))
 import redact_pages  # noqa: E402

@@ -1,4 +1,4 @@
-"""pagekit: the deterministic document pipeline of CodeBridge (render, OCR, page index, readability, labs, redaction).
+"""page_reader: the deterministic document pipeline of CodeBridge (render, OCR, page index, readability, labs, redaction).
 
 One implementation serves the scripts in scripts/, the container in pipeline/container/server.py and the
 tests, so their outputs cannot drift (docs/research/backend-steps/step-6.md, "Design (b)"). No module here

@@ -1,5 +1,5 @@
-// ProcessDocumentWorkflow (step 6, slice b-1): one stored PDF read by the deterministic pipeline, no LLM. PageKit
-// (services/pagekit.ts) renders the pages, reads them with Tesseract and the PDF text layer, marks "ověřit" where the
+// ProcessDocumentWorkflow (step 6, slice b-1): one stored PDF read by the deterministic pipeline, no LLM. The page reader
+// (services/page-reader.ts) renders the pages, reads them with Tesseract and the PDF text layer, marks "ověřit" where the
 // readings disagree, judges readability from the text, and parses FNO-format lab sheets. Each step writes its output
 // to R2 under the run's prefix and is retried on its own.
 //
@@ -11,7 +11,7 @@
 // (diff counts); a document without data gets the run's pages for the source view, labelled as Tesseract's reading.
 import { WorkflowEntrypoint, type WorkflowEvent, type WorkflowStep } from "cloudflare:workers";
 import { NonRetryableError } from "cloudflare:workflows";
-import { PageKitError, pagekit, type Labs, type PageRecord, type RawPage, type Readability } from "../services/pagekit";
+import { PageReaderError, pageReader, type Labs, type PageRecord, type RawPage, type Readability } from "../services/page-reader";
 import { actorFor } from "../store/audio";
 import { orgStmt } from "../store/sql";
 import { LEGACY_ORG } from "../domain/orgs";
@@ -53,14 +53,14 @@ const getJson = async <T>(env: Env, key: string): Promise<T> => {
 };
 const putJson = (env: Env, key: string, v: unknown) => env.DOCS.put(key, JSON.stringify(v), { httpMetadata: { contentType: "application/json" } });
 
-// A PageKit refusal of the file itself (not a PDF, encrypted, too many pages) will not change on a retry.
+// A page reader refusal of the file itself (not a PDF, encrypted, too many pages) will not change on a retry.
 const FINAL = new Set(["not_pdf", "encrypted", "too_many_pages", "unreadable_pdf", "too_large", "bad_range"]);
 async function kit<T>(f: () => Promise<T>): Promise<T> {
   try {
     return await f();
   } catch (e) {
-    if (e instanceof PageKitError && (FINAL.has(e.code) || e.code === "pipeline_off")) throw new NonRetryableError(e.code);
-    throw e instanceof PageKitError ? new Error(e.code) : e;
+    if (e instanceof PageReaderError && (FINAL.has(e.code) || e.code === "pipeline_off")) throw new NonRetryableError(e.code);
+    throw e instanceof PageReaderError ? new Error(e.code) : e;
   }
 }
 
@@ -90,7 +90,7 @@ export class ProcessDocumentWorkflow extends WorkflowEntrypoint<Env, ProcessDocu
           await stage(this.env, p.org, p.runId, "inspect", "zpracovává se (fáze: kontrola souboru)");
           const run = await runOf(this.env, p.org, p.runId);
           const bytes = await pdfOf(this.env, p.org, run);
-          const [h, i] = await Promise.all([kit(() => pagekit.healthz(this.env, p.docId)), kit(() => pagekit.inspect(this.env, p.docId, bytes))]);
+          const [h, i] = await Promise.all([kit(() => pageReader.healthz(this.env, p.docId)), kit(() => pageReader.inspect(this.env, p.docId, bytes))]);
           await orgStmt(this.env.DB, p.org, "UPDATE pipeline_runs SET container_versions_json = ?1, page_count = ?2, updated_at = ?3 WHERE org_id = ?org AND id = ?4", JSON.stringify(h.versions), i.page_count, iso(), p.runId)
             .run();
           return { pages: i.page_count, text_layer_pages: i.has_text_layer.filter(Boolean).length };
@@ -103,7 +103,7 @@ export class ProcessDocumentWorkflow extends WorkflowEntrypoint<Env, ProcessDocu
           timed(`pages ${from}-${to}`, async () => {
             await stage(this.env, p.org, p.runId, "pages", `zpracovává se (fáze: čtení stránek ${from}-${to} z ${n})`);
             const run = await runOf(this.env, p.org, p.runId);
-            const r = await kit(() => pdfOf(this.env, p.org, run).then((b) => pagekit.pages(this.env, p.docId, b, from, to)));
+            const r = await kit(() => pdfOf(this.env, p.org, run).then((b) => pageReader.pages(this.env, p.docId, b, from, to)));
             for (const pg of r.pages) {
               const { png_b64, ...raw } = pg;
               await this.env.DOCS.put(`${run.output_prefix}p${pg.n}.png`, b64(png_b64), { httpMetadata: { contentType: "image/png" } });
@@ -119,7 +119,7 @@ export class ProcessDocumentWorkflow extends WorkflowEntrypoint<Env, ProcessDocu
           const run = await runOf(this.env, p.org, p.runId);
           const raws: Omit<RawPage, "png_b64">[] = [];
           for (let k = 1; k <= n; k++) raws.push(await getJson(this.env, `${run.output_prefix}p${k}.raw.json`));
-          const a = await kit(() => pagekit.analyze(this.env, p.docId, raws));
+          const a = await kit(() => pageReader.analyze(this.env, p.docId, raws));
           for (const x of a.pages) {
             // The page record in the format the source view loads (step 2), with its readability.
             const rec: PageRecord & { redacted: null; readability: Readability } = { ...x.page, redacted: null, readability: x.readability };
@@ -136,13 +136,13 @@ export class ProcessDocumentWorkflow extends WorkflowEntrypoint<Env, ProcessDocu
         timed("labs", async () => {
           await stage(this.env, p.org, p.runId, "labs", "zpracovává se (fáze: laboratorní hodnoty)");
           const run = await runOf(this.env, p.org, p.runId);
-          const pages: Parameters<typeof pagekit.labs>[2] = [];
+          const pages: Parameters<typeof pageReader.labs>[2] = [];
           for (let k = 1; k <= n; k++) {
             const rec = await getJson<PageRecord & { readability: Readability }>(this.env, `${run.output_prefix}p${k}.json`);
             const raw = await getJson<Omit<RawPage, "png_b64">>(this.env, `${run.output_prefix}p${k}.raw.json`);
             pages.push({ n: k, text: rec.text, layer_text: raw.layer_text, readability_level: rec.readability.level, words: rec.words, engine: rec.engine, doc_id: p.docId });
           }
-          const l = await kit(() => pagekit.labs(this.env, p.docId, pages));
+          const l = await kit(() => pageReader.labs(this.env, p.docId, pages));
           // Sources name the uploaded file, so the source view opens the page the value was read from.
           const withFile = JSON.parse(JSON.stringify(l).replaceAll(`"doc_id":${JSON.stringify(p.docId)}`, `"doc_id":${JSON.stringify(p.docId)},"file":${JSON.stringify(`${p.docId}.pdf`)}`)) as Labs;
           await putJson(this.env, `${run.output_prefix}labs.json`, withFile);

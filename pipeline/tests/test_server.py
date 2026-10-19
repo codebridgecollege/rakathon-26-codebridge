@@ -40,7 +40,7 @@ def call(url, body=None, method=None):
 def test_healthz(base):
     status, body = call(base + "/healthz")
     assert status == 200 and body["ok"] is True
-    assert set(body["versions"]) == {"pagekit", "pymupdf", "tesseract", "ces_model"}
+    assert set(body["versions"]) == {"page_reader", "pymupdf", "tesseract", "ces_model"}
 
 
 def test_inspect(base):

@@ -94,7 +94,7 @@ and main deploys only when it passes. Details, the deployed-Worker variant and t
 
 `pipeline/` holds the deterministic page logic (render, Tesseract, the
 "ověřit" marks, the readability check, the lab parser) as one Python
-package, used by `scripts/` and by the PageKit service the API Worker
+package, used by `scripts/` and by the page reader service the API Worker
 calls. Run its tests with `cd pipeline && uv run pytest -q`; run the
 service with `uv run python container/server.py --port 8080`. How the
 Worker uses it and the end-to-end check: `api/AGENTS.md`, section

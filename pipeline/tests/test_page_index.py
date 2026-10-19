@@ -1,9 +1,9 @@
-"""Refactor safety: pagekit rebuilds the committed page index exactly, and the 6b-1 page record has its shape."""
+"""Refactor safety: page_reader rebuilds the committed page index exactly, and the 6b-1 page record has its shape."""
 
 import json
 
 from conftest import PAGES, REPO
-from pagekit import page_index as pi
+from page_reader import page_index as pi
 
 
 def test_rebuild_equals_committed_page_index():

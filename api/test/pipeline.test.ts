@@ -1,4 +1,4 @@
-// The document pipeline without an LLM (step 6, slice b-1) with PageKit mocked at https://pagekit.test: a run on an
+// The document pipeline without an LLM (step 6, slice b-1) with the page reader mocked at https://page-reader.test: a run on an
 // upload writes its pages, readability and lab values to R2 and D1, is compared with the prepared data, fails with a
 // fixed code and a Czech reason, never runs twice at once, leaves seeded documents as they are, and its Workflow step
 // results hold ids and counts only.
@@ -20,8 +20,8 @@ const TEXT1 = `${FAKE_NAME}, nar. 1.1.1964\nOdběr: 10.3.2026 07:25\nB_HB: 108 g
 function kit({ inspect = () => Response.json({ page_count: 2, encrypted: false, producer_present: true, has_text_layer: [true, true] }) }: { inspect?: () => Response } = {}) {
   return mockFetch(async (req) => {
     const u = new URL(req.url);
-    expect(u.host).toBe("pagekit.test");
-    if (u.pathname === "/healthz") return Response.json({ ok: true, versions: { pagekit: "0.1.0", pymupdf: "1.24.10", tesseract: "5.3.0", ces_model: "sha256:abc" } });
+    expect(u.host).toBe("page-reader.test");
+    if (u.pathname === "/healthz") return Response.json({ ok: true, versions: { page_reader: "0.1.0", pymupdf: "1.24.10", tesseract: "5.3.0", ces_model: "sha256:abc" } });
     if (u.pathname === "/v1/inspect") return inspect();
     if (u.pathname === "/v1/pages")
       return Response.json({
@@ -135,7 +135,7 @@ describe("ProcessDocumentWorkflow", () => {
     expect(keys.sort()).toEqual(["diff.json", "labs.json", "p1.json", "p1.png", "p1.raw.json", "p2.json", "p2.png", "p2.raw.json", "readability.json"]);
   });
 
-  it("fails with a fixed code and a Czech reason when PageKit refuses the file", async () => {
+  it("fails with a fixed code and a Czech reason when the page reader refuses the file", async () => {
     const { wf, inst, runId } = await runOnce(kit({ inspect: () => Response.json({ error: { code: "encrypted", message_cs: "x" } }, { status: 422 }) }));
     await using _ = wf;
     await inst.waitForStatus("complete");
@@ -156,7 +156,7 @@ describe("starting a run", () => {
     const again = await w("POST", `/documents/${DOC}/process`);
     expect([again.status, again.body.error.code]).toEqual([409, "pipeline_running"]);
     for (const i of await wf.get()) await i.waitForStatus("complete");
-    const off = await w("POST", `/documents/${DOC}/process`, {}, "d2p1", testEnv({ PAGEKIT_URL: "" }));
+    const off = await w("POST", `/documents/${DOC}/process`, {}, "d2p1", testEnv({ PAGE_READER_URL: "" }));
     expect([off.status, off.body.error.code]).toEqual([503, "pipeline_off"]);
     expect((await w("POST", `/documents/${DOC}/process`, {}, "admin")).status).toBe(403);
     expect((await w("POST", `/documents/${DOC}/process`, {}, "d1p1")).body.error.code).toBe("not_member");

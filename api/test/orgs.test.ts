@@ -261,7 +261,7 @@ async function seedOrgA(): Promise<Ids> {
 describe("every route, acting in org B with org A's IDs", () => {
   it("answers as for an unknown ID (never 403), shows nothing of org A, and changes nothing in org A", { timeout: 60_000 }, async () => {
     const ids = await seedOrgA();
-    // PageKit is not reachable from a test; the warm-up probe below gets a canned health answer.
+    // The page reader is not reachable from a test; the warm-up probe below gets a canned health answer.
     mockFetch(() => Response.json({ ok: true, versions: {} }));
     const before = await snapshotA();
     const failures: string[] = [];
