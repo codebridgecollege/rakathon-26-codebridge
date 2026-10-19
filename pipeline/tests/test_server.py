@@ -195,6 +195,19 @@ def test_redact_ink_marks(base):
     assert status == 200 and body["pages"][0]["hits"] == []
 
 
+def test_compare_marks_where_a_vision_reading_disagrees(base):
+    """S03 page 1: Tesseract read the bisoprolol dose as 4,25; a vision reading of 1,25 is marked, the rest is not."""
+    d = REPO / "samples/derived/pages/S03_pacient"
+    words = page_index.tess_words(d / "p1.tess.tsv")
+    text = "Bisoprolol 1,25 mg 1-0-0"
+    status, body = call(base + "/v1/compare", {"pages": [{"n": 1, "text": text, "words": words}]})
+    assert status == 200
+    marks = body["pages"][0]["verify"]
+    assert any(text[m["start"]:m["end"]] == "1,25" for m in marks), marks
+    status, body = call(base + "/v1/compare", {"pages": [{"n": 1, "text": None, "words": []}]})
+    assert status == 400 and body["error"]["code"] == "bad_request"
+
+
 def test_redact_refuses_bad_input(base):
     status, body = call(base + "/v1/redact", {"pages": [{"n": 1, "png_b64": "bm90IGEgcG5n", "words": []}], "identity": {}})
     assert status == 400 and body["error"]["code"] == "bad_request"

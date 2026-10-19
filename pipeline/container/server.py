@@ -48,6 +48,11 @@ POST /v1/labs               body: {"pages": [{"n", "text", "layer_text", "readab
   "only_second_reading" (a result only the text layer has; offsets into "layer_text", with "in", "code"
   and "quote"). A page without readability_level counts as not readable: its points are unclear_ocr.
 
+POST /v1/compare            body: {"pages": [{"n", "text", "words"}]}
+  200 {"pages": [{"n": int, "verify": [{"vision", "start", "end", "tess", "conf", "box", "reason"}]}]}
+  Where a vision reading of a page (issue #20) disagrees with Tesseract's words: every span that matters clinically
+  and is not confirmed by both, with offsets into "text" (the "ověřit" marks of the page index, page_index.disagreements).
+
 POST /v1/redact             body: {"pages": [{"n", "png_b64", "words"}],
                                    "identity": {"names": [[str]], "staff": [[str]], "birth_number": str|null,
                                                 "birth_date": str|null},
@@ -227,6 +232,21 @@ def _name_groups(value) -> dict[str, int]:
     return out
 
 
+def compare_(body: bytes, _query) -> tuple[dict, int]:
+    data = _json(body)
+    out = []
+    try:
+        for p in data["pages"]:
+            text = p["text"]
+            if not isinstance(text, str):
+                raise TypeError
+            words = p.get("words") or []
+            out.append({"n": int(p["n"]), "verify": page_index.disagreements(page_index.vision_tokens(text), words, text)})
+    except (KeyError, TypeError, ValueError):
+        raise ApiError(400, "bad_request", "Strana nemá očekávaný tvar (n, text, words).") from None
+    return {"pages": out}, len(out)
+
+
 def redact_(body: bytes, _query) -> tuple[dict, int]:
     data = _json(body)
     ident = data.get("identity") or {}
@@ -269,7 +289,7 @@ def convert_(body: bytes, _query) -> tuple[dict, int]:
 
 
 ROUTES = {("GET", "/healthz"): healthz, ("POST", "/v1/inspect"): inspect, ("POST", "/v1/pages"): pages,
-          ("POST", "/v1/analyze"): analyze, ("POST", "/v1/labs"): labs_, ("POST", "/v1/redact"): redact_,
+          ("POST", "/v1/analyze"): analyze, ("POST", "/v1/labs"): labs_, ("POST", "/v1/redact"): redact_, ("POST", "/v1/compare"): compare_,
           ("POST", "/v1/convert"): convert_}
 
 

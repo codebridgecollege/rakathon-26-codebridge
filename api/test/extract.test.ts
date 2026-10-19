@@ -306,6 +306,20 @@ describe("checks found by review", () => {
   });
 });
 
+describe("one report against itself", () => {
+  it("marks metastases stated and denied for the same date, both ways", async () => {
+    const text = "CT 16.9.2026\nMetastatické postižení jater prokázáno.\nZávěr: bez známek vzdálených metastáz.";
+    const r = await build(
+      [
+        fact({ kind: "metastasis", quote: "Metastatické postižení jater prokázáno.", text: "metastázy jater", site: "játra", metastasis_status: "confirmed", date_as_written: "16.9.2026" }),
+        fact({ kind: "metastasis", quote: "Závěr: bez známek vzdálených metastáz.", text: "bez známek vzdálených metastáz", site: "vzdálené", metastasis_status: "excluded", negated: true, date_as_written: "16.9.2026" }),
+      ],
+      [page(1, text)],
+    );
+    expect(r.facts.map((f) => f.certainty_reason?.code)).toEqual(["contradicts_same_date", "contradicts_same_date"]);
+  });
+});
+
 describe("medication", () => {
   it("keeps a medication with its strength from the quote, and marks a strength the quote does not hold", async () => {
     const text = P1 + "\nBisoprolol 1,25 mg 1-0-0\nod 19.9.2026 Prednison zvyšuji na 10 mg 1-0-0";
