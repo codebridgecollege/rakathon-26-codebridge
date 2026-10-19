@@ -308,20 +308,45 @@ describe("checks found by review", () => {
 
 describe("medication", () => {
   it("keeps a medication with its strength from the quote, and marks a strength the quote does not hold", async () => {
-    const text = P1 + "\nBisoprolol 1,25 mg 1-0-0\nod 19.9.2026 Everolimus zvyšuji na 10 mg 1-0-0";
+    const text = P1 + "\nBisoprolol 1,25 mg 1-0-0\nod 19.9.2026 Prednison zvyšuji na 10 mg 1-0-0";
     const r = await build(
       [
         fact({ kind: "medication", quote: "Bisoprolol 1,25 mg 1-0-0", text: "Bisoprolol", strength: "1,25 mg", dosing: "1-0-0" }),
         fact({ kind: "medication", quote: "Bisoprolol 1,25 mg 1-0-0", text: "Bisoprolol", strength: "4,25 mg", dosing: "1-0-0" }),
-        fact({ kind: "medication", quote: "od 19.9.2026 Everolimus zvyšuji na 10 mg 1-0-0", text: "Everolimus", strength: "10 mg", dosing: "1-0-0", change: "zvýšení dávky", date_as_written: "19.9.2026" }),
+        fact({ kind: "medication", quote: "od 19.9.2026 Prednison zvyšuji na 10 mg 1-0-0", text: "Prednison", strength: "10 mg", dosing: "1-0-0", change: "zvýšení dávky", date_as_written: "19.9.2026" }),
       ],
       [page(1, text)],
     );
     expect(r.facts[0]).toMatchObject({ kind: "medication", certainty: "clear", value: { drug: "Bisoprolol", strength: "1,25 mg", dosing: "1-0-0" } });
     expect(r.facts[1]).toMatchObject({ certainty: "verify", certainty_reason: { code: "number_not_in_quote" } });
+    expect(r.facts[1]!.certainty_reason?.text).toContain("Síla „4,25 mg“");
     // A dose change is its own fact, keyed by its start (EXTRACTION-FORMAT.md, "medication").
     expect(r.facts[2]).toMatchObject({ date: { sort: "2026-09-19" }, value: { change: "zvýšení dávky" } });
-    expect(r.facts[2]!.key).toBe("medication|everolimus|start:2026-09-19");
+    expect(r.facts[2]!.key).toBe("medication|prednison|start:2026-09-19");
+  });
+
+  it("marks a strength, dosing or unit from another entry of a list line, a drug the quote does not name, and a derived contraindication", async () => {
+    const list = "Perindopril 5 mg 1-0-0, Pantoprazol 20 mg 1-0-1, Euthyrox 75 µg 1-0-0";
+    const text = P1 + "\n" + list + "\nPNC - kopřivka";
+    const r = await build(
+      [
+        fact({ kind: "medication", quote: list, text: "Perindopril", strength: "5 mg", dosing: "1-0-0" }),
+        fact({ kind: "medication", quote: list, text: "Perindopril", strength: "20 mg", dosing: "1-0-0" }),
+        fact({ kind: "medication", quote: list, text: "Perindopril", strength: "5 mg", dosing: "1-0-1" }),
+        fact({ kind: "medication", quote: list, text: "Euthyrox", strength: "75 mg", dosing: "1-0-0" }),
+        fact({ kind: "medication", quote: list, text: "Metformin", strength: null, dosing: null }),
+        fact({ kind: "contraindication", quote: "PNC - kopřivka", text: "penicilin" }),
+      ],
+      [page(1, text)],
+    );
+    expect(r.facts.map((f) => f.certainty_reason?.code ?? "clear")).toEqual([
+      "clear",
+      "dose_not_with_drug",
+      "dose_not_with_drug",
+      "dose_not_with_drug",
+      "drug_not_in_quote",
+      "not_stated_as_contraindication",
+    ]);
   });
 });
 

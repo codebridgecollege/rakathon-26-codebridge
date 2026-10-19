@@ -73,6 +73,21 @@ export const NEG =
 const NOT_DONE = /(objedn|zadan|zadost|planovan|indikovan|doporuc|k vysetreni|odeslan|bude provedeno|naplanovan)/;
 // "Histol. 9.12.2025" is the usual abbreviation, so the stem is "histol".
 const HISTOLOGY = /(histol|biops|bioptick|cytolog|patolog)/;
+const CONTRAINDICATION = /(kontraindik|nevhodn|nepodav|nekombin|nesmi|zakazan|vyvarovat|interakc|nedoporuc)/;
+// A number written with a decimal comma or point, and spaces around a unit, compare alike ("1,25 mg" ~ "1.25mg").
+const numberForm = (s: string) => s.replace(/(\d)\.(\d)/g, "$1,$2").replace(/(\d)\s+(?=\p{L})/gu, "$1");
+// The entry of a medication list that names the drug: the clause (between commas, semicolons or line breaks) holding
+// its name, through the next drug-like clause. Null when the quote does not name it.
+function drugEntry(quote: string, drug: string): string | null {
+  const clauses = quote.split(/[;\n]|,(?!\d)/);
+  const i = clauses.findIndex((c) => fold(c).includes(drug));
+  if (i < 0) return null;
+  // The strength or dosing may follow in the next clause ("Bisoprolol, 1,25 mg 1-0-0"), unless that clause names
+  // another drug (starts with a capitalised word that is not a unit).
+  const next = clauses[i + 1];
+  const own = next && !/^\s*\p{Lu}\p{Ll}{3,}/u.test(next) ? `${clauses[i]},${next}` : clauses[i]!;
+  return own;
+}
 const MKN = /(?<![A-Z\d])[A-Z]\d{2}(?:\.\d{1,2})?(?![\d])/g;
 
 type Doubt = CertaintyReason;
@@ -334,6 +349,22 @@ export async function buildFromAnswer(o: {
       const qd = new Set(digitRuns(quote));
       const stated = [f.tnm_as_written, f.value_as_written, f.grade, f.dose, f.strength, f.dosing, f.line != null ? String(f.line) : null];
       if (stated.flatMap(digitRuns).some((d) => !qd.has(d))) doubt("number_not_in_quote", "Číslo uvedené ve faktu není v citaci.");
+      // A medication's strength and dosing must be written in the quote as stated (unit included: "75 µg" is not
+      // "75 mg"), next to the drug: a list line holds several drugs, and a strength or a "1-0-1" from the neighbouring
+      // entry would otherwise pass. The drug itself must be named in the quote.
+      if (f.kind === "medication") {
+        const drug = significant(f.text)[0] ?? fold(f.text).slice(0, 5);
+        const entry = drugEntry(quote, drug);
+        if (!entry) doubt("drug_not_in_quote", "Lék není v citaci jmenován; ověřte.");
+        for (const [what, v] of [["Síla", f.strength], ["Dávkování", f.dosing]] as const) {
+          if (v && !(entry && contains(numberForm(entry), numberForm(v))))
+            doubt("dose_not_with_drug", `${what} „${v}“ není v citaci u tohoto léku doslova; ověřte.`);
+        }
+      }
+      // A contraindication is kept as the document's only when the quote says so; one the model derived (from an
+      // allergy, say) is marked.
+      if (f.kind === "contraindication" && !CONTRAINDICATION.test(fq))
+        doubt("not_stated_as_contraindication", "Citace neuvádí kontraindikaci výslovně; ověřte.");
       let stageKind = f.stage_kind ?? "clinical";
       if (f.kind === "stage") {
         const written = f.tnm_as_written ?? f.text;
