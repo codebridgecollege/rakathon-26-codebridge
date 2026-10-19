@@ -50,7 +50,8 @@ data. These Workers run with `--var AUTH_MODE:demo` (the user picker), since `wr
 port 8861, with a client secret and a session key made up for the run, and passes the Worker's address to the suite as
 `E2E_OIDC_URL`; `specs/login.spec.ts` runs only against it (and skips without it), never resets its demo, and logs
 in with the seed's demo e-mails at the mock, which asks for no password. `E2E_OIDC=off` leaves both out.
-The seeded state is reused while the files the seed reads (migrations, `seed.py`, `fixtures/`, `data/derived/`,
+The seeded state is reused while the files the seed reads (migrations, `seed.py`, the run validator in
+`pipeline/extraction_format/` with its schema in `packages/domain/schema/`, `fixtures/`, `data/derived/`,
 `data/rakathon-26/`, `samples/`) and `package-lock.json` are unchanged; `--reseed` forces a new seed. The runner stops
 when one of its ports already answers, so it never resets another run's Worker. `E2E_WORKERS=2` changes the count, `E2E_PORT_BASE` the
 first port; Playwright arguments go after `--` (`npm --prefix e2e run test:parallel -- specs/calendar.spec.ts`). The
