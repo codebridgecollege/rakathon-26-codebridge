@@ -36,12 +36,20 @@ export function nisRecordFields(r: R): NisRecordField[] {
   add("clinical_status", text(r.clinicalStatus) ?? codes(r.clinicalStatus));
   add("category", ((Array.isArray(r.category) ? r.category : r.category ? [r.category] : []) as R[]).map((c) => text(c) ?? codes(c)).filter(Boolean).join(", ") || null);
   add("class", str(r.class?.display) ?? str(r.class?.code));
-  add("name", text(r.code) ?? text(r.medicationCodeableConcept) ?? text(r.type?.[0]));
-  add("codes", codes(r.code) ?? codes(r.medicationCodeableConcept) ?? codes(r.type?.[0]));
+  // Encounter.type is a list, DocumentReference.type a single concept.
+  const type = Array.isArray(r.type) ? r.type[0] : r.type;
+  add("name", text(r.code) ?? text(r.medicationCodeableConcept) ?? text(type) ?? str(r.description));
+  add("codes", codes(r.code) ?? codes(r.medicationCodeableConcept) ?? codes(type));
   add("value", quantity(r.valueQuantity) ?? str(r.valueString) ?? text(r.valueCodeableConcept));
   add("interpretation", ((r.interpretation ?? []) as R[]).map((i) => text(i) ?? codes(i)).filter(Boolean).join(", ") || null);
-  add("reference_range", ((r.referenceRange ?? []) as R[]).map((x) => str(x?.text) ?? [quantity(x?.low), quantity(x?.high)].filter(Boolean).join(" - ")).filter(Boolean).join("; ") || null);
-  add("date", str(r.effectiveDateTime) ?? period(r.effectivePeriod) ?? str(r.performedDateTime) ?? period(r.performedPeriod) ?? period(r.period) ?? str(r.authoredOn));
+  // A range with one limit only says which side: "≤ 5 µg/l" is a range, "5 µg/l" would read as a value.
+  const range = (x: R) => {
+    const lo = quantity(x?.low);
+    const hi = quantity(x?.high);
+    return str(x?.text) ?? (lo && hi ? `${lo} - ${hi}` : lo ? `≥ ${lo}` : hi ? `≤ ${hi}` : null);
+  };
+  add("reference_range", ((r.referenceRange ?? []) as R[]).map(range).filter(Boolean).join("; ") || null);
+  add("date", str(r.effectiveDateTime) ?? period(r.effectivePeriod) ?? str(r.performedDateTime) ?? period(r.performedPeriod) ?? period(r.period) ?? str(r.authoredOn) ?? period(r.context?.period));
   add("onset", str(r.onsetDateTime) ?? str(r.onsetString) ?? period(r.onsetPeriod));
   add("abatement", str(r.abatementDateTime) ?? str(r.abatementString));
   add("dosage", ((r.dosage ?? []) as R[]).map((d) => str(d?.text)).filter(Boolean).join("; ") || null);

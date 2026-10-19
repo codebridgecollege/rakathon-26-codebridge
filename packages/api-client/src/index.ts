@@ -227,7 +227,7 @@ export function createApiClient(opts: ClientOptions = {}) {
     // ---------- NIS (issue #22) ----------
     nisStatus: (caseId: string) => t.get<NisStatus>(`/cases/${enc(caseId)}/nis`),
     // A NIS record's internal ID ("Observation/8812"), never an identity value, goes in the query.
-    nisRecord: (caseId: string, resource: string) => t.get<NisRecord>(`/cases/${enc(caseId)}/nis/record`, { query: { resource } }),
+    nisRecord: (caseId: string, resource: string, system: string) => t.get<NisRecord>(`/cases/${enc(caseId)}/nis/record`, { query: { resource, system } }),
     // The birth number only when the patient row has none; it travels in the body, never in the URL.
     nisSearch: (caseId: string, body: { birth_number?: string }) => w<NisSearch>("POST", `/cases/${enc(caseId)}/nis/search`, body),
     nisLink: (caseId: string, body: { nis_patient_id: string; birth_number?: string; confirm_unverified?: boolean }) =>

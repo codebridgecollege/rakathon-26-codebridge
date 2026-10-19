@@ -24,8 +24,8 @@ const links = computed(() => {
   <template v-for="(l, i) in links" :key="i"><template v-if="i">{{ " " }}</template><button
     class="linkbtn small"
     data-src
-    :title="$t('patient-src-quote', { quote: l.q })"
-    :aria-label="$t('patient-src-link-label', { page: String(l.r.page), quote: l.q })"
+    :title="l.r.nis ? c.docTitle(l.r) : $t('patient-src-quote', { quote: l.q })"
+    :aria-label="l.r.nis ? c.docTitle(l.r) : $t('patient-src-link-label', { page: String(l.r.page), quote: l.q })"
     @click.stop.prevent="c.openSource(l.r)"
   ><template v-if="l.r.nis">{{ $t("patient-src-nis") }}</template><template v-else>{{ $t("patient-src-page", { page: String(l.r.page) }) }}</template><template v-if="l.same > 1"> ({{ l.k }})</template></button></template>
 </template>

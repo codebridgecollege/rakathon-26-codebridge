@@ -989,10 +989,14 @@ patient-edit-source-changed-tip = Pri úprave znel údaj: { $then }. Teraz: { $n
 
 patient-src-nis = záznam z NIS
 patient-nisrec-title = Záznam z NIS
-patient-nisrec-cited = Údaj prevzatý zo záznamu { $resource }, verzia { $version }, zmenené { $updated }.
+patient-nisrec-cited = Údaj prevzatý zo záznamu { $resource }:
+patient-nisrec-cited-version = verzia
+patient-nisrec-cited-updated = zmenené
+patient-src-nis-title = záznam z NIS { $resource }
 patient-nisrec-loading = Načítavam záznam z NIS…
 patient-nisrec-source = Zdroj: { $label } (čítané teraz, len čítanie)
-patient-nisrec-newer = V NIS je teraz verzia { $now }; údaj bol prevzatý z verzie { $cited }. Údaj sa otvorením nemení.
+patient-nisrec-changed = Záznam sa v NIS od prevzatia údaja zmenil. Nižšie je jeho súčasný stav; údaj sa otvorením nemení.
+patient-nisrec-now = Súčasný stav záznamu v NIS
 patient-nisrec-show-record = Zobraziť celý záznam
 patient-nisrec-hide-record = Skryť celý záznam
 patient-nisrec-field-status = Stav

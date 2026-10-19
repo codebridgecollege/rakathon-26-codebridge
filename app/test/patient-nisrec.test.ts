@@ -6,6 +6,7 @@ import { flushPromises } from "@vue/test-utils";
 import { defineComponent, h } from "vue";
 import NisRecordPanel from "../app/components/patient/NisRecordPanel.vue";
 import SrcLinks from "../app/components/patient/SrcLinks.vue";
+import SrcList from "../app/components/patient/SrcList.vue";
 import { useOverlayStore } from "../app/stores/overlay";
 import { usePatient, type PatientCtx } from "../app/composables/usePatient";
 import { mountInCase, setupPatient } from "./patient";
@@ -46,11 +47,14 @@ describe("NIS record source", () => {
     const w = mountInCase(NisRecordPanel, s, { o: { kind: "nisrecord", caseId: "NO-010", ref } });
     await flushPromises();
     expect(s.calls[0]!.url).toContain("resource=Observation%2Fo1");
-    expect(w.text()).toContain("Údaj převzat ze záznamu Observation/o1, verze 1");
+    expect(s.calls[0]!.url).toContain(`system=${encodeURIComponent(ref.system)}`);
+    expect(w.text()).toContain("Údaj převzat ze záznamu Observation/o1:");
+    expect(w.text()).toContain("verze 1");
     expect(w.text()).toContain("Kreatinin");
     expect(w.text()).toContain("142 µmol/l");
     expect(w.findAll("th").map((x) => x.text())).toEqual(["Název", "Hodnota"]);
-    expect(w.text()).toContain("V NIS je nyní verze 2; údaj byl převzat z verze 1.");
+    expect(w.text()).toContain("Záznam se v NIS od převzetí údaje změnil.");
+    expect(w.text()).toContain("Nynější stav záznamu v NIS");
     expect(w.find("pre").exists()).toBe(false);
     await w.findAll("button").find((b) => b.text() === "Zobrazit celý záznam")!.trigger("click");
     expect(JSON.parse(w.get("pre").text())).toEqual({ resourceType: "Observation", id: "o1" });
@@ -60,12 +64,28 @@ describe("NIS record source", () => {
     let s = setupPatient({ routes: { "/cases/NO-010/nis/record": record("1") } });
     let w = mountInCase(NisRecordPanel, s, { o: { kind: "nisrecord", caseId: "NO-010", ref } });
     await flushPromises();
-    expect(w.text()).not.toContain("V NIS je nyní verze");
+    expect(w.text()).not.toContain("se v NIS od převzetí údaje změnil");
     document.body.innerHTML = "";
     s = setupPatient({ routes: { "/cases/NO-010/nis/record": [404, { error: { code: "nis_record_not_found", message_cs: "Tento záznam v NIS nebyl nalezen nebo nepatří k propojenému pacientovi." } }] } });
     w = mountInCase(NisRecordPanel, s, { o: { kind: "nisrecord", caseId: "NO-010", ref } });
     await flushPromises();
     expect(w.text()).toContain("nepatří k propojenému pacientovi");
+  });
+
+  it("claims no change when the NIS gives no version, and shows a missing cited version as a gap", async () => {
+    const s = setupPatient({ routes: { "/cases/NO-010/nis/record": { ...record("1"), version: null, last_updated: null } } });
+    const w = mountInCase(NisRecordPanel, s, { o: { kind: "nisrecord", caseId: "NO-010", ref: { ...ref, version: null } } });
+    await flushPromises();
+    expect(w.text()).not.toContain("se v NIS od převzetí údaje změnil");
+    expect(w.find(".gapq").exists()).toBe(true);
+  });
+
+  it("names a NIS source as a NIS record in source lists, never by the case's file", () => {
+    const s = setupPatient();
+    const w = mountInCase(SrcList, s, { list: [{ page: "NIS", quote: ref.resource, nis: ref }] });
+    expect(w.text()).toContain("záznam z NIS Observation/o1");
+    expect(w.text()).not.toContain("10_pacient");
+    expect(w.text()).not.toContain("„");
   });
 
   it("has a label in every language for every field the panel can show", async () => {

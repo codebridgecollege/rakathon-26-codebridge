@@ -963,10 +963,14 @@ patient-edit-source-changed-tip = When edited, the item read: { $then }. Now: { 
 
 patient-src-nis = NIS record
 patient-nisrec-title = NIS record
-patient-nisrec-cited = Taken from record { $resource }, version { $version }, changed { $updated }.
+patient-nisrec-cited = Taken from record { $resource }:
+patient-nisrec-cited-version = version
+patient-nisrec-cited-updated = changed
+patient-src-nis-title = NIS record { $resource }
 patient-nisrec-loading = Loading the NIS record…
 patient-nisrec-source = Source: { $label } (read now, read only)
-patient-nisrec-newer = The NIS now holds version { $now }; the fact was taken from version { $cited }. Opening the record does not change the fact.
+patient-nisrec-changed = The record has changed in the NIS since the fact was taken from it. Below is its current state; opening it does not change the fact.
+patient-nisrec-now = Current state of the record in the NIS
 patient-nisrec-show-record = Show the whole record
 patient-nisrec-hide-record = Hide the whole record
 patient-nisrec-field-status = Status

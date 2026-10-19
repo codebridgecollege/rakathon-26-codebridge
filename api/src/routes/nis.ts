@@ -15,6 +15,7 @@ import { audit } from "../middleware/audit";
 import { aboutPatient, isFhirId, NATIONAL_REGISTER_STUB, NisClient, nisConfig, RECORD_TYPES, type Pull } from "../services/fhir";
 import { nisRecordFields } from "@codebridge/domain/nis-record";
 import { answer, caseFor, isoNow, label, orgQuery, tx } from "./write-context";
+import { openCase } from "./access-check";
 
 type PatientRow = { id: string; full_name: string | null; birth_number: string | null };
 type LinkRow = { nis_system: string; nis_patient_id: string; nis_version: string | null; identity_check: string; by_name: string; at: string };
@@ -24,6 +25,7 @@ const PULL_CS: Record<Pull["op"], string> = {
   search: "hledal(a) pacienta v NIS",
   read: "otevřel(a) záznam pacienta v NIS",
   record: "načítal(a) zdravotní záznam pacienta z NIS",
+  view: "otevřel(a) zdroj údaje v NIS (záznam z NIS)",
 };
 const LINK_CS = {
   matches: "propojil(a) pacienta se záznamem v NIS (rodné číslo i jméno souhlasí)",
@@ -83,21 +85,33 @@ export const nis = new Hono<AppEnv>()
   // found, so the route cannot be used to browse the NIS.
   .get("/cases/:id/nis/record", async (c) => {
     const id = c.req.param("id");
-    const { cfg, link } = await context(c, id, "záznam z NIS");
+    // A clinical read, under the same rules as the case's content (role, team, break-the-glass grant and
+    // CLINICAL_ACCESS), not the rules of linking: the coordinator who may link may not read records where
+    // CLINICAL_ACCESS keeps clinical content to doctors.
+    await openCase(c, id, "clinical");
+    const cfg = nisConfig(c.env, c.var.viewer.org);
+    if (!cfg) throw D.nisOff();
+    const caseRow = await orgQuery(c, "SELECT patient_id FROM cases WHERE org_id = ?org AND id = ?1", id).first<{ patient_id: string }>();
+    const link = caseRow ? await currentLink(c, caseRow.patient_id) : null;
     if (!link) throw D.nisNotLinked();
     const m = /^([A-Za-z]+)\/([^/]+)$/.exec(c.req.query("resource") ?? "");
     if (!m || !(RECORD_TYPES as readonly string[]).includes(m[1]!) || !isFhirId(m[2]!)) throw D.invalidInput();
-    // A record cited from another NIS than the one configured now is not read from this one.
-    if (link.nis_system !== cfg!.base_url) throw D.nisRecordNotFound();
-    const r = await client(c, cfg!, id).read(m[1]!, m[2]!);
-    if (!r || !aboutPatient(r, link.nis_patient_id, cfg!.base_url)) throw D.nisRecordNotFound();
+    // A record cited from another NIS than the one configured now (or than the one the link was made with) is not
+    // looked up in this one under the same ID.
+    const cited = c.req.query("system");
+    if (link.nis_system !== cfg.base_url || (cited && cited.replace(/\/+$/, "") !== cfg.base_url)) throw D.nisRecordNotFound();
+    const r = await client(c, cfg, id).view(m[1]!, m[2]!);
+    if (!r || !aboutPatient(r, link.nis_patient_id, cfg.base_url)) throw D.nisRecordNotFound();
+    // What the panel needs and no more: contained resources (a Patient or Practitioner a NIS may embed) and the
+    // narrative stay out of the answer.
+    const { contained: _c, text: _t, ...shown } = r;
     return c.json({
-      label_cs: cfg!.label_cs,
+      label_cs: cfg.label_cs,
       resource: `${m[1]}/${m[2]}`,
       version: typeof r.meta?.versionId === "string" ? r.meta.versionId : null,
       last_updated: typeof r.meta?.lastUpdated === "string" ? r.meta.lastUpdated : null,
       fields: nisRecordFields(r),
-      record: r,
+      record: shown,
     });
   })
   // The link as stored, without calling the NIS: the dialog opens with it.

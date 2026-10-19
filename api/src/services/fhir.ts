@@ -96,7 +96,7 @@ export function nisConfigured(env: Env, org: string): boolean {
   }
 }
 
-export type Pull = { op: "search" | "read" | "record"; resource: string };
+export type Pull = { op: "search" | "read" | "record" | "view"; resource: string };
 
 // Backend-services tokens per isolate, until shortly before they expire. Keyed by org and client, never by user.
 const tokens = new Map<string, { token: string; until: number }>();
@@ -340,11 +340,17 @@ export class NisClient {
     return { resources, truncated, foreign };
   }
 
+  // The record a fact cites, opened by a doctor in the source panel: the access-log row names the record
+  // ("Observation/8812", an internal ID, no identity), so the log says which source was looked at.
+  async view(type: string, id: string): Promise<R | null> {
+    return this.read(type, id, { op: "view", resource: `${type}/${id}` });
+  }
+
   // One resource by its logical id; null when the NIS has none (404 or 410).
-  async read(type: string, id: string): Promise<R | null> {
+  async read(type: string, id: string, pull: Pull | null = null): Promise<R | null> {
     if (!/^[A-Z][A-Za-z]+$/.test(type) || !FHIR_ID.test(id)) throw E.badRequest();
     this.begin();
-    await this.onPull({ op: "read", resource: type });
+    await this.onPull(pull ?? { op: "read", resource: type });
     const res = await this.fhir("read", `${this.cfg.base_url}/${type}/${id}`, { method: "GET" });
     if (res.status === 404 || res.status === 410) {
       await res.body?.cancel();

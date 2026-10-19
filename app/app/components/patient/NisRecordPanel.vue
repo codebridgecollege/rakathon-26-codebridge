@@ -8,6 +8,8 @@ import { useFluent } from "fluent-vue";
 import type { NisRef } from "@codebridge/domain/case-data";
 import type { NisRecord } from "@codebridge/domain/wire";
 import { useApi } from "../../lib/api";
+import { fmtWhen } from "../../lib/dates";
+import Gap from "./Gap.vue";
 import { errMsg, useMsg, type Msg } from "../../lib/msg";
 import { useOverlayStore } from "../../stores/overlay";
 
@@ -23,7 +25,7 @@ const showJson = ref(false);
 
 onMounted(async () => {
   try {
-    rec.value = await useApi().nisRecord(props.o.caseId, props.o.ref.resource);
+    rec.value = await useApi().nisRecord(props.o.caseId, props.o.ref.resource, props.o.ref.system);
   } catch (e) {
     msg.value = errMsg(e);
   } finally {
@@ -31,7 +33,14 @@ onMounted(async () => {
   }
 });
 
-const newer = computed(() => !!rec.value && !!props.o.ref.version && rec.value.version !== props.o.ref.version);
+// A change is claimed only when both versions are known and differ (FHIR does not order version IDs, so "differs",
+// not "newer"); without versions, both last-updated times must be known and differ.
+const changed = computed(() => {
+  const r = rec.value;
+  if (!r) return false;
+  if (r.version && props.o.ref.version) return r.version !== props.o.ref.version;
+  return !!(r.last_updated && props.o.ref.last_updated && r.last_updated !== props.o.ref.last_updated);
+});
 const json = computed(() => (rec.value ? JSON.stringify(rec.value.record, null, 2) : ""));
 </script>
 
@@ -43,15 +52,16 @@ const json = computed(() => (rec.value ? JSON.stringify(rec.value.record, null, 
       <button class="btn small" @click="overlay.close()">{{ $t("patient-close") }}</button>
     </div>
     <p class="muted small" style="margin:0">
-      {{ $t("patient-nisrec-cited", { resource: o.ref.resource, version: o.ref.version ?? "-", updated: o.ref.last_updated ?? "-" }) }}
+      {{ $t("patient-nisrec-cited", { resource: o.ref.resource }) }}
+      {{ $t("patient-nisrec-cited-version") }} <span v-if="o.ref.version">{{ o.ref.version }}</span><Gap v-else />,
+      {{ $t("patient-nisrec-cited-updated") }} <span v-if="o.ref.last_updated">{{ fmtWhen(o.ref.last_updated) }}</span><Gap v-else />
     </p>
     <p v-if="loading" class="small" role="status" style="margin:0">{{ $t("patient-nisrec-loading") }}</p>
     <p v-if="msg" class="small" role="status" style="margin:0">{{ fmt(msg) }}</p>
     <template v-if="rec">
       <p class="muted small" style="margin:0">{{ $t("patient-nisrec-source", { label: rec.label_cs }) }}</p>
-      <p v-if="newer" class="question missing small" style="margin:0;padding:6px 10px">
-        {{ $t("patient-nisrec-newer", { now: rec.version ?? "-", cited: o.ref.version ?? "-" }) }}
-      </p>
+      <p v-if="changed" class="question missing small" style="margin:0;padding:6px 10px">{{ $t("patient-nisrec-changed") }}</p>
+      <h3 class="small" style="margin:0">{{ $t("patient-nisrec-now") }}</h3>
       <table class="small nisrec">
         <tbody>
           <tr v-for="f in rec.fields" :key="f.field">

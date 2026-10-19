@@ -101,8 +101,11 @@ export function providePatient(file: ComputedRef<string>, t: T): PatientCtx {
       else if (r) void source.openSource(t, r, file.value);
     },
     openEdit: (key, orig) => overlay.open({ kind: "edit", file: file.value, key, orig: orig ?? "", isQuestion: key === "q" }),
+    // A NIS record is no document of the case: it is named as a NIS record, never by the case's file.
     docTitle: (r) =>
-      docTitleOf(
+      r.nis
+        ? t("patient-src-nis-title", { resource: r.nis.resource })
+        : docTitleOf(
         r,
         (f) => {
           const c = cases.caseFileOfDoc(f);
