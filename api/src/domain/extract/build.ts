@@ -90,6 +90,7 @@ function drugEntry(quote: string, drug: string): string | null {
   const own = next && !/^\s*\p{Lu}\p{Ll}{3,}/u.test(next) ? `${clauses[i]},${next}` : clauses[i]!;
   return own;
 }
+const CITABLE = new Set(["imaging", "histology", "procedure", "exam_finding"]);
 const MKN = /(?<![A-Z\d])[A-Z]\d{2}(?:\.\d{1,2})?(?![\d])/g;
 
 type Doubt = CertaintyReason;
@@ -382,7 +383,9 @@ export async function draftDocument(o: {
         quote,
         quote_text: page.quoteText,
         anchor: { page_text_sha256: hashes[pi]!, engine: page.engine, char_range: [os, oe], boxes: box?.boxes ?? [] },
-        reported_as: f.reported_as,
+        // "Cited" says a report of an exam is quoted elsewhere, so the case rules can look for the original report. It is
+        // kept for exam results only; a diagnosis, a drug or a plan written in a report is that report's own statement.
+        reported_as: CITABLE.has(f.kind) ? f.reported_as : "original",
         identity: page.identity,
         reading_check: null,
       };

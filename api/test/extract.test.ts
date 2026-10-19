@@ -306,6 +306,16 @@ describe("checks found by review", () => {
   });
 });
 
+describe("cited reports", () => {
+  it("keeps 'cited' for exam results only", async () => {
+    const r = await build([
+      fact({ kind: "imaging", quote: "CT hrudníku a břicha 17.3.2026: bez známek vzdálených metastáz", text: "CT bez metastáz", modality: "CT", negated: true, reported_as: "cited" }),
+      fact({ kind: "diagnosis", quote: "C20 Zhoubný novotvar konečníku", text: "Zhoubný novotvar konečníku", reported_as: "cited" }),
+    ]);
+    expect(r.sources.map((s) => s.type === "document" && s.reported_as)).toEqual(["cited", "original"]);
+  });
+});
+
 describe("one report against itself", () => {
   it("marks metastases stated and denied for the same date, both ways", async () => {
     const text = "CT 16.9.2026\nMetastatické postižení jater prokázáno.\nZávěr: bez známek vzdálených metastáz.";

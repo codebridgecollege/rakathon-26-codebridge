@@ -276,6 +276,19 @@ now has a check and a test:
 
 Swapped dates or doses between two facts of one sentence still pass.
 
+## Cited reports (v8)
+
+Stream E's rule for a report that is only cited needs `reported_as: "cited"` on an exam result quoted in another
+report (case 10: "MR vyš. mozku 14.9.2026 NNJ Závěr: ...", done in another hospital). v7 marked no fact of case 10 as
+cited. v8 says what "cited" means: the page is not that exam's protocol but quotes its result. The model then marked
+84 of case 10's 122 facts as cited, diagnoses, drugs and plans included, which would make every one of them "an
+original report is missing". The build now keeps "cited" for exam results only (imaging, histology, procedure, exam
+finding). Cited facts with v8 (all / cited): case 10 122/45, S01 69/12, S02 78/10, S03 38/8, S04 47/9. The case 10
+MR is cited. Case 10's pages are all outpatient reports, so its quoted CTs are correctly cited too; which of them
+should raise an alert is the case rules' choice. With stream E's case rules (on main), the quoted reports become one
+"original reports missing" alert per document, and the evaluation gives report missing 9 / 0 / 0, with
+"10-mr-brain-report-missing" now passing (its known-failure mark is removed); every other failure kind is unchanged.
+
 ## Open
 
 - Medication extraction (the S03 bisoprolol dose misread needs it).
