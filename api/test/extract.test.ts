@@ -71,6 +71,10 @@ const fact = (over: Partial<ModelFact>): ModelFact => ({
   reaction: null,
   risk_type: null,
   pack_years: null,
+  strength: null,
+  dosing: null,
+  change: null,
+  indication: null,
   reported_as: "original",
   certainty: "clear",
   uncertainty: null,
@@ -193,7 +197,7 @@ describe("fact extraction checks", () => {
     const r = await build([d, d]);
     expect(r.facts).toHaveLength(1);
     expect(r.checks.find((c) => c.looks_for === "comorbidity")?.result).toBe("found");
-    expect(r.checks.find((c) => c.looks_for === "medication")).toBeUndefined();
+    expect(r.checks.find((c) => c.looks_for === "lab_result")).toBeUndefined();
     expect(r.checks.find((c) => c.looks_for === "radiotherapy")?.result).toBe("nothing_found");
   });
 
@@ -299,6 +303,25 @@ describe("checks found by review", () => {
     );
     expect(r.facts[0]).toMatchObject({ kind: "plan", certainty: "verify", certainty_reason: { code: "done_elsewhere" } });
     expect(r.facts[1]!.certainty).toBe("clear");
+  });
+});
+
+describe("medication", () => {
+  it("keeps a medication with its strength from the quote, and marks a strength the quote does not hold", async () => {
+    const text = P1 + "\nBisoprolol 1,25 mg 1-0-0\nod 19.9.2026 Everolimus zvyšuji na 10 mg 1-0-0";
+    const r = await build(
+      [
+        fact({ kind: "medication", quote: "Bisoprolol 1,25 mg 1-0-0", text: "Bisoprolol", strength: "1,25 mg", dosing: "1-0-0" }),
+        fact({ kind: "medication", quote: "Bisoprolol 1,25 mg 1-0-0", text: "Bisoprolol", strength: "4,25 mg", dosing: "1-0-0" }),
+        fact({ kind: "medication", quote: "od 19.9.2026 Everolimus zvyšuji na 10 mg 1-0-0", text: "Everolimus", strength: "10 mg", dosing: "1-0-0", change: "zvýšení dávky", date_as_written: "19.9.2026" }),
+      ],
+      [page(1, text)],
+    );
+    expect(r.facts[0]).toMatchObject({ kind: "medication", certainty: "clear", value: { drug: "Bisoprolol", strength: "1,25 mg", dosing: "1-0-0" } });
+    expect(r.facts[1]).toMatchObject({ certainty: "verify", certainty_reason: { code: "number_not_in_quote" } });
+    // A dose change is its own fact, keyed by its start (EXTRACTION-FORMAT.md, "medication").
+    expect(r.facts[2]).toMatchObject({ date: { sort: "2026-09-19" }, value: { change: "zvýšení dávky" } });
+    expect(r.facts[2]!.key).toBe("medication|everolimus|start:2026-09-19");
   });
 });
 

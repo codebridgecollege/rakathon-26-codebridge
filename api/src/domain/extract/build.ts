@@ -155,6 +155,10 @@ function valueOf(f: ModelFact, stageKind: "clinical" | "pathological" | "post_ne
       return { type: f.risk_type ?? "social", text: f.text, pack_years: f.pack_years };
     case "exam_finding":
       return { region: f.region, text: f.text };
+    case "medication":
+      return { drug: f.text, strength: f.strength, dosing: f.dosing, change: f.change, indication: f.indication, text: null };
+    case "contraindication":
+      return { what: f.text, stated_by: "document" };
   }
 }
 
@@ -328,7 +332,7 @@ export async function buildFromAnswer(o: {
 
       // Numbers the fact states must be in its quote; a TNM only as written.
       const qd = new Set(digitRuns(quote));
-      const stated = [f.tnm_as_written, f.value_as_written, f.grade, f.dose, f.line != null ? String(f.line) : null];
+      const stated = [f.tnm_as_written, f.value_as_written, f.grade, f.dose, f.strength, f.dosing, f.line != null ? String(f.line) : null];
       if (stated.flatMap(digitRuns).some((d) => !qd.has(d))) doubt("number_not_in_quote", "Číslo uvedené ve faktu není v citaci.");
       let stageKind = f.stage_kind ?? "clinical";
       if (f.kind === "stage") {
