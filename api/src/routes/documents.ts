@@ -28,6 +28,7 @@ import { UNLOCKED_COND, caseDocuments, documentRow, fixtureByHash, uploadContext
 import { openCase } from "./access-check";
 import { answer, caseFor, isoNow, label, newId, orgQuery, tx } from "./write-context";
 import { orgKey } from "../store/sql";
+import { autoStart } from "./pipeline-start";
 import { LEGACY_ORG } from "../domain/orgs";
 
 const hex = (b: ArrayBuffer) => [...new Uint8Array(b)].map((x) => x.toString(16).padStart(2, "0")).join("");
@@ -180,6 +181,9 @@ export async function receiveUpload(c: Context<AppEnv>, id: string, u: UploadCtx
     if (key) await c.env.DOCS.delete(key).catch(() => {});
     throw e;
   }
+  // A kept file is read at once where the pipeline runs for this org (team decision: process on upload, the list shows
+  // "zpracovává se"); never in demo org A (PIPELINE_ORGS), and an open intake waits for its end.
+  if (key) await autoStart(c, [docId], breakGlass);
   const row = await documentRow(db, c.var.viewer.org, docId);
   return { document: docOut(row!), status: 201 as const };
 }

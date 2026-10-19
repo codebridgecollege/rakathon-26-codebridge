@@ -74,5 +74,5 @@ export const meOrg = (membership: string) => ({
   data_epoch: null,
   real_user: null,
   role_switch: null,
-  features: { pipeline: false },
+  features: { pipeline: false, keeps_uploads: false },
 });

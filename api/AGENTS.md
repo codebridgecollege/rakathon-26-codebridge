@@ -232,7 +232,8 @@ Design and contract: `docs/research/backend-steps/step-6.md`, section "As implem
   only in CI: the `main` deploy job runs `wrangler deploy -c page-reader.wrangler.jsonc` before the D1 migration (the
   token needs "Containers: Edit"), and `.github/workflows/pipeline.yml` builds it on every change to `pipeline/` and runs
   pytest inside it. Never build it locally. Step results hold ids, counts and codes only (`test/pipeline.test.ts`). Runs are
-  `pipeline_runs`, never the case's view.
+  `pipeline_runs`, never the case's view. A kept upload starts a run at once (`autoStart` in
+  `src/routes/pipeline-start.ts`) where the pipeline runs for the org; an open intake starts its runs when it ends.
 - Local end to end with the real files:
 
   ```

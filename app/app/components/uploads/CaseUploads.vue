@@ -29,6 +29,8 @@ const lang = () => document.documentElement.lang || "cs";
 // The pipeline's states show only while it runs on the server; otherwise every file is "Nahráno", as before the server.
 const pipeline = computed(() => session.me?.features?.pipeline === true);
 const PIPE_STATES = ["queued", "processing", "processed", "failed"];
+// Where unknown uploads keep their content and the pipeline runs, the note says they are stored and read at once.
+const keeps = computed(() => session.me?.features?.keeps_uploads === true);
 
 watch(
   () => props.caseRef.file,
@@ -86,5 +88,5 @@ const byKey = computed(() => new Map(docs.value.map((d) => [d.id, d])));
     </template>
   </UploadList>
   <p v-else-if="props.locked" class="muted small" style="margin:12px 0 0">{{ $t("uploads-none") }}</p>
-  <p class="muted small" style="margin:8px 0 0">{{ pipeline ? $t("uploads-note-pipeline") : $t("uploads-note") }}</p>
+  <p class="muted small" style="margin:8px 0 0">{{ pipeline && keeps ? $t("uploads-note-read") : pipeline ? $t("uploads-note-pipeline") : $t("uploads-note") }}</p>
 </template>

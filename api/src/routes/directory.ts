@@ -6,6 +6,7 @@ import { demoPicker, membershipsOut, orgById, orgOut, roleSwitchMemberships } fr
 import { staffName } from "../domain/rows";
 import { work } from "./write-context";
 import { pipelineOn } from "../services/page-reader";
+import { uploadPolicy } from "../domain/documents";
 
 // /me, /staff and the demo picker hold no case content, so they write no access-log row.
 export const directory = new Hono<AppEnv>()
@@ -40,7 +41,7 @@ export const directory = new Hono<AppEnv>()
       real_user: v.actor ?? null,
       role_switch: roleSwitch,
       notice_cs: v.authMode === "demo" ? "Ukázka bez přihlášení: uživatele vybíráte ručně." : null,
-      features: { pipeline: pipelineOn(c.env, v.org) },
+      features: { pipeline: pipelineOn(c.env, v.org), keeps_uploads: uploadPolicy(c.env.UPLOAD_POLICY, v.org, c.env.UPLOAD_STORE_ORGS) === "store_unprocessed" },
     });
   })
   .get("/staff", async (c) => {

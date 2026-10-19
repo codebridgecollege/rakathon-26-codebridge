@@ -190,7 +190,7 @@ function closeCase() {
             phone-target="discussion"
           >
             <template #pipeline="{ doc }">
-              <div v-if="pipelineOn && doc?.content_stored && canUpload && doc.state !== 'prepared'" style="flex-basis:100%"><DocPipeline :file="`${doc.id}.pdf`" /></div>
+              <div v-if="pipelineOn && doc?.content_stored && canUpload && doc.state !== 'prepared'" style="flex-basis:100%"><DocPipeline :file="`${doc.id}.pdf`" @settled="uploads.load({ file: p.file, id: p.id }, true)" /></div>
             </template>
           </CaseUploads>
           <RecorderPanel v-else-if="mode === 'ai'" :file="p.file" />

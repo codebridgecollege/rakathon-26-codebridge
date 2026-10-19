@@ -1069,7 +1069,7 @@ rules) are not built.
     `wrangler dev`, the tests and the browser suite never reach for a
     container; CI's deploy commands and `npm run deploy` pass
     `--var PAGE_READER_CONTAINER:on`.
-    `PIPELINE_ORGS` ("demo-b" deployed, "*" in the tests) lists the orgs the
+    `PIPELINE_ORGS` ("demo-b" deployed, "" in the tests except the pipeline's own) lists the orgs the
     pipeline runs for: `/api/me` reports `features.pipeline` for the acting
     org, and the page shows processing states and "Přečíst bez AI" only then,
     so demo org A looks as before. `/api/health` `features.pipeline` now says
@@ -1104,3 +1104,34 @@ rules) are not built.
   hundred MB larger; the doctor uploads a PDF instead. HEIC photos are not
   decoded either (no HEIC support in PyMuPDF or Pillow without another
   library); a browser's file picker on a phone sends JPEG.
+
+### Processing on upload (issue #18)
+
+- A kept upload (content stored) starts `ProcessDocumentWorkflow` right
+  after its row is committed, where the pipeline runs for the org
+  (`PIPELINE_ORGS`) and the uploader's role may start a reading
+  (`document.process`). The answer already carries `state: "queued"`
+  ("zpracovává se"). `startRun` (`api/src/routes/pipeline-start.ts`) is the
+  one way to start a run, shared with "Přečíst bez AI"; the access-log line
+  says "zpracování dokumentu bez AI spuštěno po nahrání".
+- It never refuses or fails the upload: a start that does not happen
+  (pipeline off, a run already active, the Workflow not starting) leaves
+  the document as it was or "zpracování selhalo", logs a fixed code only,
+  and "Přečíst bez AI" stays the way to try again.
+- An open intake waits: its uploads start when the intake ends
+  (`POST /cases/:id/intake/complete`), after the prepared-data attach has
+  marked the documents it covers as prepared, so only the others are read.
+- Demo org A is not in the deployed `PIPELINE_ORGS`, so nothing starts
+  there and its documents look as before. In the app, the processing state
+  and the reading panel show only when `/api/me` reports
+  `features.pipeline`; the reading panel follows a running run and, when it
+  ends, reloads the upload list so its state chip changes too (a reload
+  asked for during a running one runs once more afterwards). It polls every
+  2 s for a minute, then every 10 s up to about 15 minutes, since a case's
+  documents queue on one instance; while the run is still going its button
+  stays off. `/api/me` `features.keeps_uploads` picks the note under the
+  list: where uploads are kept and read, it says so (`uploads-note-read`).
+- Known narrow race: an upload whose batch commits just after the intake
+  ends starts its own run, even for a file the attach would have covered.
+  It is read twice at most, never lost; the active-run index refuses a
+  second run on the same document.

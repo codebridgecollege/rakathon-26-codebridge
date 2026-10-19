@@ -18,6 +18,7 @@ import { deletePrefix, discardIntake, intakeState } from "../store/intake";
 import { docOut } from "./documents";
 import { actorOf, answer, caseFor, isoNow, label, now, orgQuery, statesFor, tx } from "./write-context";
 import { orgKey } from "../store/sql";
+import { autoStart } from "./pipeline-start";
 
 type Prepared = {
   schema: string;
@@ -193,6 +194,9 @@ export const intake = new Hono<AppEnv>()
       if (written.length) await c.env.DOCS.delete(written).catch(() => {});
       throw e;
     }
+    // The intake's uploads waited for this point; those the prepared data did not cover are read now where the pipeline
+    // runs for the org (never in demo org A).
+    await autoStart(c, docs.map((d) => d.id), null);
     const row = await c.var.stores.cases.caseById(id);
     return answer(
       c,
