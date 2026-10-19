@@ -40,6 +40,24 @@ alert-page-order-unclear = The page order and the latest conclusion of the docum
 
 alert-dosing-differs = The dosing of a drug differs between parts of the documentation: { $fact_a }; { $fact_b }
 
+alert-original-reports-missing = Original reports of cited examinations missing from the available documentation, count: { $count }
+
+alert-lab-value-differs = Different values of the same lab test from the same sample: { $fact_a }; { $fact_b }
+
+alert-stage-differs = Different stage of the same kind for the same date: { $fact_a }; { $fact_b }
+
+alert-performance-status-differs = Different performance status for the same date: { $fact_a }; { $fact_b }
+
+alert-metastasis-status-differs = A metastasis at the same site for the same date is stated once and excluded once: { $fact_a }; { $fact_b }
+
+alert-histology-grade-differs = Different grade of the same histology specimen: { $fact_a }; { $fact_b }
+
+alert-therapy-stop-before-start = The therapy's stop date is earlier than its start date: { $fact }
+
+alert-date-after-processing = The date of a past event is later than the date the documentation was processed: { $fact }
+
+alert-result-before-request = The result is dated before the request: { $fact_a }; { $fact_b }
+
 alert-poor-copy = Poorly readable document, ask for a better copy: { $document }
 
 alert-identity-conflict = The page belongs to another patient; its items are not shown: { $document }, p. { $page }

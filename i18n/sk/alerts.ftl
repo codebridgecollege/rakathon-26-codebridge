@@ -40,6 +40,24 @@ alert-page-order-unclear = Poradie strán a najnovší záver dokumentu nie sú 
 
 alert-dosing-differs = Dávkovanie lieku sa medzi časťami dokumentácie líši: { $fact_a }; { $fact_b }
 
+alert-original-reports-missing = Originálne správy citovaných vyšetrení v dostupnej dokumentácii chýbajú, počet: { $count }
+
+alert-lab-value-differs = Rozdielna hodnota toho istého laboratórneho vyšetrenia z rovnakého odberu: { $fact_a }; { $fact_b }
+
+alert-stage-differs = Rozdielne štádium toho istého druhu k rovnakému dátumu: { $fact_a }; { $fact_b }
+
+alert-performance-status-differs = Rozdielny výkonnostný stav k rovnakému dátumu: { $fact_a }; { $fact_b }
+
+alert-metastasis-status-differs = Metastáza tej istej lokalizácie k rovnakému dátumu raz uvedená, raz vylúčená: { $fact_a }; { $fact_b }
+
+alert-histology-grade-differs = Rozdielny grading tej istej histologickej vzorky: { $fact_a }; { $fact_b }
+
+alert-therapy-stop-before-start = Dátum ukončenia liečby je skorší ako dátum začatia: { $fact }
+
+alert-date-after-processing = Dátum prebehnutej udalosti je neskorší ako dátum spracovania dokumentácie: { $fact }
+
+alert-result-before-request = Výsledok je datovaný skôr ako požiadavka: { $fact_a }; { $fact_b }
+
 alert-poor-copy = Zle čitateľný dokument, vyžiadajte lepšiu kópiu: { $document }
 
 alert-identity-conflict = Strana patrí inému pacientovi; jej údaje nie sú zobrazené: { $document }, s. { $page }

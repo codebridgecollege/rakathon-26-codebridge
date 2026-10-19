@@ -4,8 +4,9 @@
 //
 // It sends exactly what the Worker sends (services/model-payload.ts: pseudonymized text, the gate) to the model named
 // in wrangler.jsonc, with the key from api/.dev.vars (never printed), and turns the answers into run fragments with
-// the same server-side checks (domain/extract/build.ts). Answers are cached under api/.cache/extract/ (gitignored), so
-// a rerun after a change to the checks costs no model call; a prompt change misses the cache by its hash.
+// the same server-side checks (domain/extract/build.ts) and the case rules (packages/domain extraction/rules.ts).
+// Answers are cached under api/.cache/extract/ (gitignored), so a rerun after a change to the checks costs no model
+// call; a prompt change misses the cache by its hash.
 //
 // Only synthetic data: data/derived/pages (FNO's synthetic patients and ours) and samples/derived/pages. The patient
 // identities below are the synthetic ones printed on those pages; they only drive the pseudonymization.
@@ -13,7 +14,8 @@ import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { aiFragmentIds, draftDocument, requestsWithoutResult, sha256Hex, type CallAnswer, type PageReading } from "../src/domain/extract/build";
+import { applyCaseRules } from "@codebridge/domain/extraction/rules";
+import { aiFragmentIds, draftDocument, sha256Hex, type CallAnswer, type PageReading } from "../src/domain/extract/build";
 import { prepareRun, type DraftRun } from "../src/store/runs";
 import { validateRun } from "@codebridge/domain/extraction/validate";
 import { pageIdentity } from "../src/domain/extract/identity";
@@ -232,8 +234,8 @@ async function main() {
       }
     // The document as the Worker's ExtractDocumentWorkflow drafts it (the AI fragment), then through prepareRun as the
     // case merge stores it, so the run carries the IDs the Worker would give. The harness adds the parts the case merge
-    // takes from the pipeline's fragment and the case rules: an identity check and alert per conflicting page, and the
-    // request rule on the final IDs.
+    // takes from the pipeline's fragment: an identity check and alert per conflicting page. The case rules follow on the
+    // final IDs.
     const built = await draftDocument({ doc: { documentId: c.documentId, part: null, pages }, calls, unreadPages, ids: aiFragmentIds(c.documentId) });
     const fromModel = calls.reduce((n, x) => n + x.answer.facts.length, 0);
     const conflicts = pages.filter((pg) => pg.identity === "conflicts");
@@ -264,8 +266,10 @@ async function main() {
       brief: null,
       question_draft: null,
     };
-    const { run } = prepareRun({ caseId: c.id, previous: null, currentRunId: null, retiredDocuments: [], issuedIds: [] }, draft);
-    run.alerts.push(...requestsWithoutResult(run.facts));
+    const { run: prepared } = prepareRun({ caseId: c.id, previous: null, currentRunId: null, retiredDocuments: [], issuedIds: [] }, draft);
+    // The case rules run as the case merge runs them over the published run (missing reports, requests without a
+    // result, contradictions, chronology), so eval.py judges the alerts a doctor would see.
+    const run = applyCaseRules(prepared);
     const v = validateRun(run);
     if (!v.ok) {
       console.log(`${c.id}: the run does not validate: ${v.issues.map((i) => `${i.code} ${i.path}`).slice(0, 5).join("; ")}`);

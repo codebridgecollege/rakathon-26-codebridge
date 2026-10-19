@@ -138,6 +138,53 @@ MESSAGES: dict[str, dict[str, str]] = {
         "sk": "Dávkovanie lieku sa medzi časťami dokumentácie líši: { $fact_a }; { $fact_b }",
         "en": "The dosing of a drug differs between parts of the documentation: { $fact_a }; { $fact_b }",
     },
+    # The case rules over a whole run (packages/domain/src/extraction/rules.ts): the fixtures do not raise these, the
+    # merge step of the pipeline does. Messages stay "label: value", so the grouped count needs no plural forms.
+    "alert-original-reports-missing": {
+        "cs": "Originální zprávy citovaných vyšetření v dostupné dokumentaci chybí, počet: { $count }",
+        "sk": "Originálne správy citovaných vyšetrení v dostupnej dokumentácii chýbajú, počet: { $count }",
+        "en": "Original reports of cited examinations missing from the available documentation, count: { $count }",
+    },
+    "alert-lab-value-differs": {
+        "cs": "Rozdílná hodnota téhož laboratorního vyšetření ze stejného odběru: { $fact_a }; { $fact_b }",
+        "sk": "Rozdielna hodnota toho istého laboratórneho vyšetrenia z rovnakého odberu: { $fact_a }; { $fact_b }",
+        "en": "Different values of the same lab test from the same sample: { $fact_a }; { $fact_b }",
+    },
+    "alert-stage-differs": {
+        "cs": "Rozdílné stadium téhož druhu ke stejnému datu: { $fact_a }; { $fact_b }",
+        "sk": "Rozdielne štádium toho istého druhu k rovnakému dátumu: { $fact_a }; { $fact_b }",
+        "en": "Different stage of the same kind for the same date: { $fact_a }; { $fact_b }",
+    },
+    "alert-performance-status-differs": {
+        "cs": "Rozdílný výkonnostní stav ke stejnému datu: { $fact_a }; { $fact_b }",
+        "sk": "Rozdielny výkonnostný stav k rovnakému dátumu: { $fact_a }; { $fact_b }",
+        "en": "Different performance status for the same date: { $fact_a }; { $fact_b }",
+    },
+    "alert-metastasis-status-differs": {
+        "cs": "Metastáza téže lokalizace ke stejnému datu jednou uvedena, jednou vyloučena: { $fact_a }; { $fact_b }",
+        "sk": "Metastáza tej istej lokalizácie k rovnakému dátumu raz uvedená, raz vylúčená: { $fact_a }; { $fact_b }",
+        "en": "A metastasis at the same site for the same date is stated once and excluded once: { $fact_a }; { $fact_b }",
+    },
+    "alert-histology-grade-differs": {
+        "cs": "Rozdílný grading téhož histologického vzorku: { $fact_a }; { $fact_b }",
+        "sk": "Rozdielny grading tej istej histologickej vzorky: { $fact_a }; { $fact_b }",
+        "en": "Different grade of the same histology specimen: { $fact_a }; { $fact_b }",
+    },
+    "alert-therapy-stop-before-start": {
+        "cs": "Datum ukončení léčby je dřívější než datum zahájení: { $fact }",
+        "sk": "Dátum ukončenia liečby je skorší ako dátum začatia: { $fact }",
+        "en": "The therapy's stop date is earlier than its start date: { $fact }",
+    },
+    "alert-date-after-processing": {
+        "cs": "Datum proběhlé události je pozdější než datum zpracování dokumentace: { $fact }",
+        "sk": "Dátum prebehnutej udalosti je neskorší ako dátum spracovania dokumentácie: { $fact }",
+        "en": "The date of a past event is later than the date the documentation was processed: { $fact }",
+    },
+    "alert-result-before-request": {
+        "cs": "Výsledek je datován dříve než požadavek: { $fact_a }; { $fact_b }",
+        "sk": "Výsledok je datovaný skôr ako požiadavka: { $fact_a }; { $fact_b }",
+        "en": "The result is dated before the request: { $fact_a }; { $fact_b }",
+    },
     # Rules the fixtures do not raise but the pipeline and the identity check do (pipeline/eval.py, the validator
     # tests): a poorly readable document, and a page that shows another patient. The identity message names only the
     # document and the page, never what the page says.

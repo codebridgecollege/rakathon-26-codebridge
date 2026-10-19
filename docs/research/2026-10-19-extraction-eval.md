@@ -27,9 +27,12 @@ v3 to v5 are page by page. The v4 failure: the misread liver sentence of S03 cam
 as a metastasis fact, so the expectation that looks for a liver metastasis fact found none; v5 asks for a separate
 metastasis fact wherever a finding mentions metastases. In no version was the misread a clear fact.
 
-"Report missing" stays not run: it needs the cross-document rule for cited reports (milestone 4). One "patients mixed
-up" expectation needs the contradiction rule. The poor-scan items not run need medication (bisoprolol), which this step
-does not extract yet.
+"Report missing" stayed not run in v1 to v5 because it needs the cross-document rule for cited reports. With the case
+rules (issue #21, `packages/domain/src/extraction/rules.ts`, applied by `extract-eval.ts` as the case merge will) over
+the cached v5 answers: report missing 6 / 0 / 0 plus one known failure (case 10's brain MR, quoted in the outpatient
+report, comes out of the extraction as `reported_as: original`); patients mixed up 8 / 0 / 0 (no contradiction across
+S04's two patients); reference 164 / 0 / 0 (no stage contradiction in S02 for "cT3b cN1" next to "cT3b cN1 M0"). The
+poor-scan items not run need medication (bisoprolol), which this step does not extract yet.
 
 Facts kept with v3 and v5 (clear / verify / quarantined):
 
@@ -210,4 +213,3 @@ first.
 - Page reading with the vision model for scans and pages whose readings disagree (`read-page-cs`), with its "ověřit"
   marks feeding the `ocr_check` doubt.
 - The Workflow step that runs this for a case and writes the run to R2.
-- The cross-document rules (cited report without its original, contradictions like with like).

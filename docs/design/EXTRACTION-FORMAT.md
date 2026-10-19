@@ -413,6 +413,28 @@ on, is the assistant's observation, and never blocks anything.
 - **Contradictions** are raised only between facts of the same kind about the same time (same analyte and draw; same stage kind and `as_of`). A pathological stage after surgery against a clinical stage at diagnosis is not a contradiction.
 - **One list.** Today's two overlapping lists become one.
 
+### The case rules
+
+The rules that need every fact of the case (`packages/domain/src/extraction/rules.ts`) run when a run is published,
+after `prepareRun` and before `storeRun` (`applyCaseRules`). They see final fact IDs, skip quarantined facts, and
+replace the alerts and checks of their own rules, leaving every other alert alone. The run's stages record
+`codebridge case-rules@<n>`.
+
+| Rule | Kind | Subject | Raised when |
+|---|---|---|---|
+| `original_report_missing` | missing | the expected report, `report\|<kind>\|<modality>\|<date>` (the fact ID when undated) | an exam, histology, procedure, MDT decision or radiotherapy is only cited (`reported_as: cited`), and no fact of the same exam (same date, or a partial date containing it; same modality and region) has an original or NIS source. The facts of one report (a histology with its receptors) form one alert. |
+| `original_reports_missing` | missing | `cited_exams` | more than 3 reports are missing: one grouped alert with the count (issue #49 proposal, pending expert review) |
+| `request_without_result` | missing | the request | a `requested` request has no `result_fact` and no later done exam of the same modality and region anywhere in the case; never for the MDT referral itself |
+| `lab_value_differs`, `stage_differs`, `dosing_differs`, `performance_status_differs`, `metastasis_status_differs`, `histology_grade_differs` | contradiction | the pair | two facts of the same kind about the same thing and time disagree: same analyte, draw time or requisition and unit; same stage kind and date (only categories both state); same drug and start (undated pairs are `unclear`); same scale and date; one site and date stated and excluded; one specimen and date with two grades |
+| `response_assessment_differs` | contradiction or unclear | the pair | two response categories for what may be one exam; `unclear` when one date is partial or the response systems differ |
+| `therapy_stop_before_start`, `date_after_processing`, `result_before_request` | chronology | the fact, or the pair | the dates cannot be in this order, compared at the coarser precision |
+
+Each check of a missing report has `looks_for: original_report` and the report's first fact; `chk-contradiction`
+and `chk-chronology` say the rules ran, so "none found" and "not checked" stay apart. `supersededFacts` names, for
+the current-state views and the brief, the facts a newer dated fact of the same slot replaces (performance status per
+scale, metastasis per site, stage per kind, diagnosis per code, vital sign per measurement); the older one stays in
+the run as history.
+
 ## The brief
 
 The brief is a list of sentences, each pointing to the facts it states.
