@@ -261,9 +261,9 @@ function linesAround(text: string, s: number, e: number): string {
 const HEADER_LINES = 8;
 const header = (text: string) => text.split("\n").slice(0, HEADER_LINES).join("\n");
 
-/** IDs of a fragment (docs/research/2026-10-20-case-merge-contract.md): "ai:<doc>:<n>" and "src-ai-<doc>-<n>". */
-export type FragmentIds = { draft: (n: number) => string; source: (n: number) => string };
-export const aiFragmentIds = (docId: string): FragmentIds => ({ draft: (n) => `ai:${docId}:${n}`, source: (n) => `src-ai-${docId}-${n}` });
+/** draft_ids of a fragment (docs/research/2026-10-20-case-merge-contract.md): "ai:<doc>:<n>". */
+export type FragmentIds = { draft: (n: number) => string };
+export const aiFragmentIds = (docId: string): FragmentIds => ({ draft: (n) => `ai:${docId}:${n}` });
 
 export type DraftedDocument = {
   sources: DocumentSource[];
@@ -276,8 +276,7 @@ export type DraftedDocument = {
 /**
  * The checked facts of one document as a fragment's content: drafted facts, their sources and the checks of the kinds
  * this step looks for. No IDs, no alerts: the case merge (ProcessCase) composes fragments, prepareRun assigns IDs, and
- * the case rules raise the alerts on the final IDs. Without `ids`, source IDs are derived from the passage (sourceIdFor)
- * and draft_ids are "d<n>", as the offline harness uses them.
+ * the case rules raise the alerts on the final IDs. Without `ids`, draft_ids are "d<n>".
  */
 export async function draftDocument(o: {
   doc: DocumentInput;
@@ -440,7 +439,9 @@ export async function draftDocument(o: {
       };
       // One source per passage and way of reporting it.
       const existing = [...sources.values()].find((s) => s.page === srcBody.page && s.anchor?.char_range[0] === os && s.anchor?.char_range[1] === oe && s.reported_as === srcBody.reported_as);
-      const sourceId = existing?.id ?? (o.ids ? o.ids.source(sources.size + 1) : sourceIdFor(srcBody, new Set(sources.keys())));
+      // Derived from the passage (document, part, page, quote), so the same passage gets the same ID across producers and
+      // reruns and a fact's sources stay stable.
+      const sourceId = existing?.id ?? sourceIdFor(srcBody, new Set(sources.keys()));
       if (!existing) sources.set(sourceId, { id: sourceId, ...srcBody });
 
       drafts.push({

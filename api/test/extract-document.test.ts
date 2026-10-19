@@ -124,7 +124,8 @@ describe("ExtractDocumentWorkflow", () => {
       [`ai:${DOC}:1`, "diagnosis", false, "verify"], // the vision and Tesseract readings disagree on "C20"
     ]);
     expect(f.facts[0].certainty_reason.code).toBe("ocr_check");
-    expect(f.sources.map((s: any) => [s.id, s.page, s.part, s.quote_text, s.identity])).toEqual([[`src-ai-${DOC}-1`, 1, `${DOC}/p0`, "vision", "matches"]]);
+    expect(f.sources.map((s: any) => [s.page, s.part, s.quote_text, s.identity])).toEqual([[1, `${DOC}/p0`, "vision", "matches"]]);
+    expect(f.sources[0].id).toMatch(/^src-[0-9a-f]{8}$/);
     expect(f.facts.every((x: any) => x.id === undefined && x.key === undefined)).toBe(true);
     const diag = f.checks.find((c: any) => c.looks_for === "diagnosis");
     // Page 2 (another patient) is listed as not read, under its part.
