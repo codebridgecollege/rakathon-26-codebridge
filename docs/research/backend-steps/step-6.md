@@ -1317,4 +1317,13 @@ Contract with stream D (#20) and stream E (#21): `docs/research/2026-10-20-case-
   first) and starts a merge. Both depend only on `PIPELINE_ORGS`, not on the page reader being up.
 - **Retries.** Ten, with a growing pause, for merges that meet a run stored in between; a run the validator refuses
   is not retried (`invalid`, issue codes only in the log).
+- **Identity at merge time too.** A document D1 marks as another patient's has every fact held back in the merge
+  even when its fragment was written before the conflict was known (a newer reading whose fragment step failed or
+  is not done yet), and the merge deletes a document's interim identity row only when the run carries an identity
+  alert for it.
+- **Races.** storeRun's document guard counts current documents only, so a merge that read a document before its
+  withdraw cannot store it; the scrub rewrites only the runs whose `input_hashes_json` names the document, each
+  conditionally on the object it read (two withdraws at once never restore each other's document), and the cron
+  sweep repeats it for a week. On read, an alert resting on any fact of a withdrawn document goes (one side of a
+  contradiction), an interval that points at one goes, and a request loses that result.
 

@@ -548,5 +548,34 @@ describe("the case merge (ProcessCase)", () => {
     const who = await actorFor(env.DB, "demo-b", "b-doc", "demo");
     expect(await publishCaseRun(env, "demo-b", "B-NO-A", who)).toMatchObject({ result: "other_producer" });
   });
+
+  it("holds back a document D1 knows is another patient's even when its fragment was written before that was known", async () => {
+    await orgBUpload();
+    identityAnswer = { result: "matches", pages: [{ n: 1, result: "matches" }, { n: 2, result: "matches" }], evidence: [] };
+    kit();
+    const docs = await introspectWorkflow(env.PROCESS_DOCUMENT);
+    const cases = await introspectWorkflow(env.PROCESS_CASE);
+    await using _d = docs;
+    await using _c = cases;
+    await docs.modifyAll(async (m) => {
+      await m.disableRetryDelays();
+    });
+    expect((await w("POST", `/documents/${BDOC}/process`, {}, "b-doc", pe())).status).toBe(201);
+    for (const i of await docs.get()) await i.waitForStatus("complete");
+    for (const i of await cases.get()) await i.waitForStatus("complete");
+    // A rerun found the conflict (finish() kept it in D1 with its alert row), but its fragment was never written.
+    await env.DB.batch([
+      env.DB.prepare("UPDATE documents SET identity = 'conflicts' WHERE id = ?1").bind(BDOC),
+      env.DB.prepare("INSERT INTO document_alerts (id, org_id, case_id, document_id, rule, subject, kind, message_id, args_json, run_id, created_at) VALUES ('al-x', 'demo-b', 'B-NO-A', ?1, 'identity_conflict', ?1, 'identity', 'alert-identity-conflict', '{}', 'pl-x', '2026-10-20T08:00:00Z')").bind(BDOC),
+    ]);
+    const who = await actorFor(env.DB, "demo-b", "b-doc", "demo");
+    expect(await publishCaseRun(env, "demo-b", "B-NO-A", who)).toMatchObject({ result: "stored" });
+    const run = await one("SELECT r2_key FROM extraction_runs WHERE org_id = 'demo-b' AND case_id = 'B-NO-A' AND is_current = 1");
+    const stored = (await (await env.DOCS.get(run.r2_key))!.json()) as any;
+    expect(stored.facts.length).toBeGreaterThan(0);
+    expect(stored.facts.every((f: any) => f.quarantined)).toBe(true);
+    expect(stored.alerts.some((a: any) => a.rule === "identity_conflict" && a.subject === BDOC)).toBe(true);
+    expect((await bGet("/cases/B-NO-A/extraction")).body.data.facts).toEqual([]);
+  });
 });
 
