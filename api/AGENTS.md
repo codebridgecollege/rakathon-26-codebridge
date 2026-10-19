@@ -369,9 +369,10 @@ and writes `<output_prefix>fragment-ai.json` for the case merge (contract: `docs
   page or part unread, and a busy provider is retried by the step. Step results hold IDs, counts and codes only.
 - **The pseudonymization mapping is never stored:** the fragment step rebuilds it with `pseudonymizeParts` from the same
   texts.
-- **Identity comes from the pipeline's `identity.json` per page,** not from the model's reading. A page that shows
-  another patient is never sent to the model (the pseudonymization knows only the case's identifiers); it is listed
-  as unread, and the pipeline's fragment keeps its facts quarantined.
+- **Identity comes from the pipeline's `identity.json` per page,** not from the model's reading. It fails closed: no page
+  is sent when `documents.identity` is `conflicts` or `identity.json` is missing, and a page the file does not list
+  or lists as conflicting is not sent (the pseudonymization knows only the case's identifiers). Withheld pages are
+  listed as unread; the pipeline's fragment keeps their facts quarantined.
 - **A step whose retries run out** (busy endpoint, page reader down) leaves its page or part unread with code `busy`;
   the fragment is still written. A newer pipeline run of the document stops this one (`run_not_current`).
 - **Tests:** `test/extract-document.test.ts`.

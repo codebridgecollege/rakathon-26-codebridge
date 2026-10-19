@@ -134,11 +134,17 @@ export class ExtractDocumentWorkflow extends WorkflowEntrypoint<Env, ExtractDocu
     const plan = await step.do("plan", STEP, async () => {
       const run = await runOf(env, p);
       const n = await pageCount(env, run.output_prefix);
-      // A page that shows another patient is never sent to the model, as text or image: the pseudonymization knows the
-      // case's identifiers, not the other patient's. It stays unread here; the pipeline's fragment keeps its facts
-      // quarantined and raises the identity alert.
+      // A page that shows, or may show, another patient is never sent to the model, as text or image: the
+      // pseudonymization knows the case's identifiers, not the other patient's. Fail closed:
+      // - a document the registry or a reading marked as another patient's (documents.identity = conflicts): no page;
+      // - no identity.json (the identity step failed, or a registered fixture that skips it): no page;
+      // - a page identity.json does not list, or lists as conflicting: not that page.
+      // Withheld pages stay unread; the pipeline's fragment keeps its facts quarantined and raises the identity alert.
+      const docRow = await orgStmt(env.DB, p.org, "SELECT identity FROM documents WHERE org_id = ?org AND id = ?1", p.docId).first<{ identity: string | null }>();
       const ident = await json<{ pages?: { n: number; result: IdentityResult }[] }>(env, `${run.output_prefix}identity.json`);
-      const foreign = (ident?.pages ?? []).filter((x) => x.result === "conflicts").map((x) => x.n);
+      const checked = new Map((ident?.pages ?? []).map((x) => [x.n, x.result]));
+      const all = Array.from({ length: n }, (_, i) => i + 1);
+      const foreign = docRow?.identity === "conflicts" || !ident ? all : all.filter((k) => !checked.has(k) || checked.get(k) === "conflicts");
       const vision: number[] = [];
       for (let k = 1; k <= n; k++) if (!foreign.includes(k) && needsVision(await pageFacts(env, run.output_prefix, k))) vision.push(k);
       const parts = (await partsOf(env, run.output_prefix, p.docId, n)).map((x) => ({ ...x, pages: x.pages.filter((k) => !foreign.includes(k)) }));
