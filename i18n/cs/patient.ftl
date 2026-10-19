@@ -921,7 +921,7 @@ patient-nis-linked-unverified = Rodné číslo nebylo možné ověřit, propojen
 patient-nis-linked-name-differs = Rodné číslo souhlasilo, jméno se lišilo; propojení potvrdil uživatel.
 # $name: who linked it; $at: the day (YYYY-MM-DD).
 patient-nis-linked-by = Propojil(a) { $name }, { $at }.
-patient-nis-phase-note = Údaje z NIS se zatím nenačítají; propojení je první krok importu.
+patient-nis-import-note = Import převezme údaje a dokumenty z propojeného záznamu NIS do případu.
 patient-nis-unlink = Zrušit propojení
 patient-nis-unlink-warning = Zrušením propojení se z případů tohoto pacienta odeberou údaje z NIS i dokumenty převzaté z NIS (jejich obsah se smaže). Opětovné propojení a import je vrátí.
 patient-nis-unlink-confirm = Zrušit propojení a odebrat dokumenty z NIS

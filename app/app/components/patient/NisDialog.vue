@@ -102,7 +102,7 @@ const nameText = (c: NisCandidate) => (c.name_match === "spelling" ? $t("patient
         {{ linkedText(link) }}
         {{ $t("patient-nis-linked-by", { name: link.by_name, at: link.at.slice(0, 10) }) }}
       </p>
-      <p class="muted small" style="margin:4px 0 0">{{ $t("patient-nis-phase-note") }}</p>
+      <p class="muted small" style="margin:4px 0 0">{{ $t("patient-nis-import-note") }}</p>
       <button v-if="!confirmUnlink" class="btn small" style="margin-top:8px" :disabled="busy" @click="confirmUnlink = true">{{ $t("patient-nis-unlink") }}</button>
       <template v-else>
         <p class="small" style="margin:8px 0 0">{{ $t("patient-nis-unlink-warning") }}</p>
@@ -115,7 +115,7 @@ const nameText = (c: NisCandidate) => (c.name_match === "spelling" ? $t("patient
 
     <template v-else-if="status">
       <p class="small" style="margin:0">{{ $t("patient-nis-intro") }}</p>
-      <p class="muted small" style="margin:0">{{ $t("patient-nis-phase-note") }}</p>
+      <p class="muted small" style="margin:0">{{ $t("patient-nis-import-note") }}</p>
       <label v-if="!status.has_birth_number" class="small" style="display:block">
         {{ $t("patient-nis-rc-label") }}
         <input v-model="typed" class="input" inputmode="numeric" autocomplete="off" :placeholder="$t('patient-nis-rc-placeholder')" style="margin-left:6px">
