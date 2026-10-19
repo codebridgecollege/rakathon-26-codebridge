@@ -457,6 +457,22 @@ export async function buildFromAnswer(o: {
         d._doubts.push({ code: "undated", text: "Údaj nemá datum a dokumentace uvádí i datovaný údaj téže škály; ověřte, který je aktuální." });
     }
   }
+  // Within one report: metastases stated and denied for the same date ("Metastatické postižení jater prokázáno" next to
+  // "bez známek vzdálených metastáz" in the conclusion of the same CT). Like with like (same kind, same time), so both
+  // are marked; which one holds is the doctor's reading of the source. On S03 the first is a misread the image itself
+  // carries, which no reading can catch.
+  for (const d of drafts) {
+    if (d.kind !== "metastasis" || d.quarantined || d.negated || d.value.status === "excluded" || !d.date.sort) continue;
+    const site = fold(d.value.site);
+    const denied = drafts.filter(
+      (x) => x !== d && !x.quarantined && x.date.sort === d.date.sort && (x.kind === "metastasis" || x.kind === "imaging") && x.negated &&
+        (/metast/.test(fold(valueText(x.value))) && (/vzdalen|vsech|zadn/.test(fold(valueText(x.value))) || fold(valueText(x.value)).includes(site.slice(0, 4)))),
+    );
+    if (!denied.length) continue;
+    const doubt = { code: "contradicts_same_date", text: "Tentýž den dokumentace metastázy jednou uvádí a jednou vylučuje; ověřte ve zdroji." };
+    d._doubts.push(doubt);
+    for (const x of denied) x._doubts.push(doubt);
+  }
   for (const d of drafts) {
     for (const x of d._doubts) report.reasons[x.code] = (report.reasons[x.code] ?? 0) + 1;
     if (d._doubts.length) Object.assign(d, { certainty: "verify", certainty_reason: { code: d._doubts[0]!.code, text: d._doubts.map((x) => x.text).join(" ") } });

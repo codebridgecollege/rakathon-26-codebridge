@@ -421,6 +421,11 @@ it yet that sends real documents; the extraction prompts come in phase 2.
   on our synthetic pages it marks none, and a light stamp or a signature
   over printed text can be missed. The redacted image and its boxes with
   reasons (never values) are stored next to the page.
+- **Vision reading of a page** (issue #20) sends only the redacted image
+  (`RedactedPage`, from `/v1/redact`), with the prompt `read-page-cs`; the
+  model writes a blacked-out place as `[X]` and never guesses it. Whose
+  page it is (identity check, quarantine) is decided from the local,
+  unredacted Tesseract or text-layer reading, never from the model's.
 - **Audit and budget.** One access-log row per page sent, written before
   the first attempt: case, document, page, provider, model, purpose and
   prompt version, never text. The attempt count and outcome go on a

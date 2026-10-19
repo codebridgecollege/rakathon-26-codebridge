@@ -338,7 +338,7 @@ the same everywhere. No Workflow calls it yet.
   cd api && npm run extract:eval -- --out /tmp/runs-ai --dev-vars <path to a .dev.vars with AZURE_OPENAI_KEY>
   cd pipeline && uv run python eval.py --ai-runs /tmp/runs-ai
   ```
-  The harness calls the model page by page (`--whole` for one call per document) and caches answers in
+  With `--vision auto` (default) the harness reads every page not judged good, or without a text layer, with the vision model from its redacted image (`pipeline/harness_tools.py` runs the container's redaction and comparison locally; `/v1/compare` is the container's endpoint for the Workflow later); `--vision off` uses the text layer or Tesseract, `--stored-vision` the committed `p<n>.vision.md` (for S01, S02, S04 the sample's own source text). The harness calls the model page by page (`--whole` for one call per document) and caches answers in
   `api/.cache/extract/` (gitignored), keyed by prompt version, prompt hash and payload hash; `--cache-only` reruns the
   checks without a call. Results: `docs/research/2026-10-19-extraction-eval.md`.
 

@@ -62,6 +62,11 @@ POST /v1/labs               body: {"pages": [{"n", "text", "layer_text", "readab
   Since 0.2.0 a line that starts like a lab sheet's code and has a value, a range or a lab unit is listed as
   lab_like_not_parsed even when OCR turned its letters into Czech capitals or lost its colon and brackets.
 
+POST /v1/compare            body: {"pages": [{"n", "text", "words"}]}
+  200 {"pages": [{"n": int, "verify": [{"vision", "start", "end", "tess", "conf", "box", "reason"}]}]}
+  Where a vision reading of a page (issue #20) disagrees with Tesseract's words: every span that matters clinically
+  and is not confirmed by both, with offsets into "text" (the "ověřit" marks of the page index, page_index.disagreements).
+
 POST /v1/redact             body: {"pages": [{"n", "png_b64", "words"}],
                                    "identity": {"names": [[str]], "staff": [[str]], "birth_number": str|null,
                                                 "birth_date": str|null},
@@ -298,6 +303,21 @@ def _name_groups(value) -> dict[str, int]:
     return out
 
 
+def compare_(body: bytes, _query) -> tuple[dict, int]:
+    data = _json(body)
+    out = []
+    try:
+        for p in data["pages"]:
+            text = p["text"]
+            if not isinstance(text, str):
+                raise TypeError
+            words = p.get("words") or []
+            out.append({"n": int(p["n"]), "verify": page_index.disagreements(page_index.vision_tokens(text), words, text)})
+    except (KeyError, TypeError, ValueError):
+        raise ApiError(400, "bad_request", "Strana nemá očekávaný tvar (n, text, words).") from None
+    return {"pages": out}, len(out)
+
+
 def redact_(body: bytes, _query) -> tuple[dict, int]:
     data = _json(body)
     ident = data.get("identity") or {}
@@ -367,7 +387,8 @@ def identity_(body: bytes, _query) -> tuple[dict, int]:
 
 ROUTES = {("GET", "/healthz"): healthz, ("POST", "/v1/inspect"): inspect, ("POST", "/v1/pages"): pages,
           ("POST", "/v1/analyze"): analyze, ("POST", "/v1/labs"): labs_, ("POST", "/v1/redact"): redact_,
-          ("POST", "/v1/convert"): convert_, ("POST", "/v1/parts"): parts_, ("POST", "/v1/identity"): identity_}
+          ("POST", "/v1/compare"): compare_, ("POST", "/v1/convert"): convert_, ("POST", "/v1/parts"): parts_,
+          ("POST", "/v1/identity"): identity_}
 
 
 class Handler(BaseHTTPRequestHandler):
