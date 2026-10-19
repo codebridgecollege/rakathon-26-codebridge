@@ -46,6 +46,8 @@ export function testEnv(over: Record<string, unknown> = {}): Env {
     UPLOAD_POLICY: "fixtures_only",
     UPLOAD_MAX_BYTES: "20971520",
     PAGE_READER_URL: "https://page-reader.test",
+    PAGE_READER_CONTAINER: "off",
+    PIPELINE_ORGS: "*",
     STT_BATCH_SEED: "1",
     AUDIO_PART_BYTES: "5242880",
     AUDIO_MAX_MINUTES_PER_CASE: "120",

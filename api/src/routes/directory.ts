@@ -5,6 +5,7 @@ import type { Role } from "@codebridge/domain/access";
 import { demoPicker, membershipsOut, orgById, orgOut, roleSwitchMemberships } from "../store/people";
 import { staffName } from "../domain/rows";
 import { work } from "./write-context";
+import { pipelineOn } from "../services/page-reader";
 
 // /me, /staff and the demo picker hold no case content, so they write no access-log row.
 export const directory = new Hono<AppEnv>()
@@ -39,6 +40,7 @@ export const directory = new Hono<AppEnv>()
       real_user: v.actor ?? null,
       role_switch: roleSwitch,
       notice_cs: v.authMode === "demo" ? "Ukázka bez přihlášení: uživatele vybíráte ručně." : null,
+      features: { pipeline: pipelineOn(c.env, v.org) },
     });
   })
   .get("/staff", async (c) => {

@@ -43,7 +43,21 @@ export default defineConfig(async () => {
             DATA_API: "on",
             // Step 6: the document Workflow calls the page reader here; the tests mock this host.
             PAGE_READER_URL: "https://page-reader.test",
+            // No container in tests (wrangler dev and workerd run none); the mocked host above stands in for it.
+            PAGE_READER_CONTAINER: "off",
+            PIPELINE_ORGS: "*",
           },
+          // The PAGE_READER binding names the class in another Worker (codebridge-page-reader); workerd refuses to start
+          // when that Worker is missing, so the tests get an empty stand-in. Nothing calls it (PAGE_READER_CONTAINER off).
+          workers: [
+            {
+              name: "codebridge-page-reader",
+              modules: true,
+              compatibilityDate: "2026-09-30",
+              script: "export class PageReader { fetch() { return new Response(null, { status: 503 }); } }\nexport default { fetch: () => new Response(null, { status: 404 }) };",
+              durableObjects: { PAGE_READER: "PageReader" },
+            },
+          ],
         },
       }),
     ],

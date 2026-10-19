@@ -13,7 +13,7 @@
     "typecheck": "tsc --noEmit && tsc --noEmit -p test",
     "pretest": "node -e \"require('fs').mkdirSync('.assets',{recursive:true})\"",
     "test": "vitest run",
-    "deploy": "npm run stage && wrangler deploy",
+    "deploy": "npm run stage && wrangler deploy --var PAGE_READER_CONTAINER:on",
     "seed:local": "uv run seed/seed.py --target local --reset",
     "seed:remote": "uv run seed/seed.py --target remote",
     "seed:remote:reset": "uv run seed/seed.py --target remote --reset",
@@ -21,6 +21,7 @@
     "migrate:remote": "wrangler d1 migrations apply codebridge-mdt --remote"
   },
   "dependencies": {
+    "@cloudflare/containers": "0.3.7",
     "@codebridge/domain": "0.0.0",
     "hono": "4.13.13",
     "jose": "6.2.12"

@@ -1,0 +1,13 @@
+# The page reader image is built with the repository root as context (pipeline/container/Dockerfile). The Dockerfile
+# copies only pipeline/, but the context is still sent to the builder, so anything private or bulky stays out of it.
+private/
+**/.env
+**/.env.*
+**/.dev.vars
+**/node_modules/
+**/.wrangler/
+**/.venv/
+.git/
+api/.assets/
+app/.output/
+app/.nuxt/

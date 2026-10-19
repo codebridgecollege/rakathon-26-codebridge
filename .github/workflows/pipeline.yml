@@ -5,7 +5,8 @@ name: Pipeline
 
 # The evaluation reads the stored page readings (data/derived, samples/derived), the samples and the prepared cases;
 # the extraction format tests (pipeline/extraction_format) read the schema and key vectors in packages/domain.
-# One workflow for the pipeline: stream B adds a job here that runs pytest inside the page reader image (#27).
+# Two jobs: `test` runs everything on the stored readings without Tesseract; `image` builds the page reader container
+# image the Worker deploys (Tesseract 5.3.0) and runs the live-OCR tests inside it, the one place they are judged.
 on:
   push:
     branches: [main]
@@ -36,3 +37,33 @@ jobs:
         run: uv run --locked pytest -q
       - name: Evaluation
         run: uv run --locked python eval.py --check
+
+  image:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      # The same build context and Dockerfile as wrangler.jsonc's containers entry (repository root).
+      - name: Build the image
+        run: docker build -f pipeline/container/Dockerfile -t page-reader .
+      # The server as the container runs it (non-root, python -I): /healthz names the pinned engine versions, and a
+      # committed synthetic PDF goes through /v1/inspect and one page of /v1/pages.
+      - name: The server answers
+        run: |
+          docker run -d --name pr -p 8080:8080 page-reader
+          for i in $(seq 1 30); do curl -sf http://localhost:8080/healthz > healthz.json && break; sleep 1; done
+          cat healthz.json
+          python3 -c "import json; v=json.load(open('healthz.json'))['versions']; assert v['tesseract'].split()[-1] == '5.3.0', v; assert v['ces_model'], v"
+          curl -sf -X POST --data-binary @samples/S02_pacient/upload/04-laborator-2026-03-10.pdf -H 'content-type: application/pdf' http://localhost:8080/v1/inspect
+          curl -sf -X POST --data-binary @samples/S02_pacient/upload/04-laborator-2026-03-10.pdf -H 'content-type: application/pdf' 'http://localhost:8080/v1/pages?from=1&to=1' \
+            | python3 -c "import json,sys; p=json.load(sys.stdin)['pages'][0]; assert p['n']==1 and len(p['words'])>50, len(p['words']); print('words', len(p['words']))"
+      # The server's own log lines (method, path, status, timing; never a body), also when a check above failed.
+      - name: The server's log
+        if: always()
+        run: docker logs pr 2>&1 || true; docker rm -f pr || true
+      # pytest inside the image, on the repository's page_reader and data (mounted read-only): the OCR tests then run on
+      # the container's Tesseract. pytest is installed into the throwaway container only, never into the image.
+      - name: pytest in the image
+        run: |
+          docker run --rm -u 0 -v "$PWD:/repo:ro" -w /repo/pipeline -e PYTHONDONTWRITEBYTECODE=1 page-reader \
+            sh -c "pip install --quiet --no-cache-dir pytest==8.3.3 && python -m pytest -q -p no:cacheprovider"

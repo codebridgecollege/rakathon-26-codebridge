@@ -49,6 +49,9 @@ export type Me = {
   // included). Null where no role switch exists (demo mode, hospital orgs).
   role_switch: RoleSwitchEntry[] | null;
   notice_cs: string | null;
+  // What this org may use on this host. pipeline: the document pipeline without an LLM runs for this org (the host
+  // offers it and PIPELINE_ORGS lists the org); the page shows processing states and "Přečíst bez AI" only then.
+  features: { pipeline: boolean };
 };
 
 export type RoleSwitchEntry = { membership_id: string; name: string; role: Role; fn: string; own: boolean };

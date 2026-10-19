@@ -6,7 +6,7 @@
 // A RedactedPage can only be made here, so the model interface (services/model.ts) can refuse any image that did not
 // pass through the redaction for the same org and case.
 import { birthDateOf, nameForms, nameParts, type CaseIdentity } from "../domain/pseudonymize";
-import { pageReader, type RedactionHit, type Word } from "./page-reader";
+import { pageReader, poolInstance, type RedactionHit, type Word } from "./page-reader";
 
 const MADE_HERE = Symbol("redacted-page");
 
@@ -53,7 +53,7 @@ export async function redactPages(
   o: { org: string; caseId: string; docId: string; identity: CaseIdentity; inkMarks?: boolean },
   pages: { n: number; png: Uint8Array; words: Word[] }[],
 ): Promise<RedactedPage[]> {
-  const r = await pageReader.redact(env, o.docId, {
+  const r = await pageReader.redact(env, poolInstance(o.caseId), {
     pages: pages.map((p) => ({ n: p.n, png_b64: toBase64(p.png), words: p.words })),
     identity: imageIdentity(o.identity),
     ink_marks: o.inkMarks ?? true,

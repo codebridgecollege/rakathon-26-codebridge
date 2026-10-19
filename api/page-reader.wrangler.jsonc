@@ -1,0 +1,33 @@
+// The page reader's own Worker (src/page-reader-worker.ts): hosts the PageReader container class that the API Worker
+// (wrangler.jsonc) binds as PAGE_READER. Deployed only by CI's deploy job on main, before the D1 migration:
+//   npx wrangler deploy -c page-reader.wrangler.jsonc
+// which builds the image from pipeline/container/Dockerfile with the runner's Docker and pushes it to Cloudflare's
+// registry. Never build or deploy it from a laptop.
+{
+  "$schema": "../node_modules/wrangler/config-schema.json",
+  "name": "codebridge-page-reader",
+  "main": "src/page-reader-worker.ts",
+  // The same date as the API Worker, so both run on the same runtime behaviour.
+  "compatibility_date": "2026-09-30",
+  // Reached only through the API Worker's binding, never over a public address.
+  "workers_dev": false,
+  "preview_urls": false,
+  // Logs hold the container's own lines (method, path, status, timing; server.py never logs a body).
+  "observability": { "enabled": true },
+  // Page images and text are processed in the EU only (constraints.jurisdiction). standard-1 is 1/2 vCPU and 4 GiB:
+  // Tesseract at 300 dpi needs a few hundred MB. max_instances matches POOL_SIZE in src/services/page-reader.ts
+  // (instances are named by case, not by document).
+  "containers": [
+    {
+      "class_name": "PageReader",
+      "image": "../pipeline/container/Dockerfile",
+      "image_build_context": "..",
+      "instance_type": "standard-1",
+      "max_instances": 3,
+      "constraints": { "jurisdiction": "eu" }
+    }
+  ],
+  "durable_objects": { "bindings": [{ "name": "PAGE_READER", "class_name": "PageReader" }] },
+  // A container's Durable Object class must use the SQLite storage backend.
+  "migrations": [{ "tag": "v1-page-reader", "new_sqlite_classes": ["PageReader"] }]
+}

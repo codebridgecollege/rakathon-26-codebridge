@@ -5,12 +5,13 @@
 name: Deploy worker
 
 # The browser suite reads e2e/ and drives everything the Worker serves; the tests read the fixtures and the samples.
+# The page reader's files are here too: wrangler deploy builds its container image from them.
 on:
   push:
     branches: [main, backend]
-    paths: ["api/**", "app/**", "packages/**", "i18n/**", "e2e/**", "package.json", "package-lock.json", "fixtures/**", "data/derived/**", "samples/**", "docs/NO-A/**", ".github/workflows/deploy-worker.yml"]
+    paths: ["api/**", "app/**", "packages/**", "i18n/**", "e2e/**", "package.json", "package-lock.json", "fixtures/**", "data/derived/**", "samples/**", "docs/NO-A/**", "pipeline/container/**", "pipeline/page_reader/**", "pipeline/requirements.lock", ".github/workflows/deploy-worker.yml"]
   pull_request:
-    paths: ["api/**", "app/**", "packages/**", "i18n/**", "e2e/**", "package.json", "package-lock.json", "fixtures/**", "data/derived/**", "samples/**", "docs/NO-A/**", ".github/workflows/deploy-worker.yml"]
+    paths: ["api/**", "app/**", "packages/**", "i18n/**", "e2e/**", "package.json", "package-lock.json", "fixtures/**", "data/derived/**", "samples/**", "docs/NO-A/**", "pipeline/container/**", "pipeline/page_reader/**", "pipeline/requirements.lock", ".github/workflows/deploy-worker.yml"]
   # A manual run on any branch tests it; only main and backend deploy.
   workflow_dispatch:
 
@@ -142,6 +143,19 @@ jobs:
       - run: npm ci
         working-directory: .
       - run: npm run stage
+      # The page reader's own Worker (page-reader.wrangler.jsonc): wrangler deploy builds its container image with this
+      # runner's Docker and pushes it to Cloudflare's registry, so the token needs "Containers: Edit" besides Workers
+      # Scripts Edit and D1 Edit. It runs before the D1 migration, so a token without that permission or an image that does
+      # not build stops the job while the old Worker still serves its own schema. Only main deploys it: the backend
+      # preview binds the same page reader.
+      - name: The token can manage containers (main)
+        if: github.ref == 'refs/heads/main'
+        run: |
+          docker version --format 'docker {{.Server.Version}}'
+          npx wrangler containers list > /dev/null || { echo "::error::CLOUDFLARE_API_TOKEN cannot list containers: add the account permission 'Containers: Edit'"; exit 1; }
+      - name: Deploy the page reader (main)
+        if: github.ref == 'refs/heads/main'
+        run: npx wrangler deploy -c page-reader.wrangler.jsonc
       # The deployed D1 gets the new migrations right before the code that needs them, so a merge never serves new code
       # on an old schema. Only main migrates: the backend preview uses the same database, so a schema change reaches it
       # through main first (api/AGENTS.md, "Migrations in CI"). wrangler answers its own prompt with yes in CI and exits
@@ -151,7 +165,7 @@ jobs:
         run: npx wrangler d1 migrations apply codebridge-mdt --remote
       - name: Deploy production (main)
         if: github.ref == 'refs/heads/main'
-        run: npx wrangler deploy --var GIT_SHA:${{ github.sha }}
+        run: npx wrangler deploy --var GIT_SHA:${{ github.sha }} --var PAGE_READER_CONTAINER:on
       - name: Upload preview version (backend)
         if: github.ref == 'refs/heads/backend'
-        run: npx wrangler versions upload --preview-alias backend --var GIT_SHA:${{ github.sha }}
+        run: npx wrangler versions upload --preview-alias backend --var GIT_SHA:${{ github.sha }} --var PAGE_READER_CONTAINER:on
