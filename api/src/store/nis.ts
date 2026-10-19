@@ -3,6 +3,7 @@
 // object, so two imports at once can never leave a state naming one import next to another import's fragment. Under
 // the org's prefix, next to the case's uploads, so reset-demo removes it with them (routes/demo.ts R2_TRANSIENT "nis/").
 import { FRAGMENT_SCHEMA, type Fragment } from "@codebridge/domain/fragments";
+import type { NisDocument } from "@codebridge/domain/nis-map";
 import { orgKey, orgStmt } from "./sql";
 
 /** Which NIS record the import read, when, the newest change it saw, and every record version it read. */
@@ -18,6 +19,8 @@ export type NisImportState = {
   read: string[];
   /** Record types the import cut off at the paging limit: the next refresh pulls the whole record again. */
   truncated: string[];
+  /** The record's documents as the last full pull found them; each import call takes in the ones still pending. */
+  documents: NisDocument[];
 };
 export type NisImport = { state: NisImportState; fragment: Fragment };
 

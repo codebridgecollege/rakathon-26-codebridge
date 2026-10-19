@@ -16,8 +16,9 @@ describe("D1 schema", () => {
     // 12 append-only triggers and the decision chain check (0002, 0011), 8 more append-only ones on the /2 tables
     // (0016), the part ID default (0016), the 5 document lifecycle triggers (0013), and the reset triggers that remove
     // uploads and unseeded runs (0005, 0016), upload sessions (0010), model calls (0014), NIS links (0015) and document
-    // alerts (0017), and make seeded documents current again (0013).
-    const RESET = ["demo_reset_uploads", "demo_reset_upload_sessions", "demo_reset_document_lifecycle", "demo_reset_model_calls", "demo_reset_nis_links", "demo_reset_document_alerts"];
+    // alerts (0017), and make seeded documents current again (0013); and the NIS documents' reset and deleted-document
+    // triggers (0018).
+    const RESET = ["demo_reset_uploads", "demo_reset_upload_sessions", "demo_reset_document_lifecycle", "demo_reset_model_calls", "demo_reset_nis_links", "demo_reset_document_alerts", "demo_reset_nis_documents", "nis_documents_document_deleted"];
     const lifecycle = r.results.filter((t) => t.name.startsWith("documents_lifecycle_"));
     expect(lifecycle).toHaveLength(5);
     const rest = r.results.filter((t) => !RESET.includes(t.name) && !lifecycle.includes(t)).map((t) => t.name);

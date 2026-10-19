@@ -55,7 +55,18 @@ const LOINC_TNM_PART = new Set(["21905-5", "21906-3", "21907-1", "21899-0", "219
 
 // What the mapping did with each resource, for the run's log and the tests. Types and reasons only, no content.
 export type Skipped = { resource: string; reason: string };
-export type NisDocument = { resource: string; version: string | null; status: string | null; title: string | null; date: string | null; replaces: string[]; attachment_url: string | null; content_type: string | null };
+export type NisDocument = {
+  resource: string;
+  version: string | null;
+  status: string | null;
+  title: string | null;
+  date: string | null;
+  replaces: string[];
+  attachment_url: string | null;
+  content_type: string | null;
+  /** The attachment's size in bytes as the NIS states it, so an oversized file is never fetched. */
+  size: number | null;
+};
 export type Mapped = { sources: NisSource[]; drafts: Drafted[]; checks: Check[]; documents: NisDocument[]; skipped: Skipped[] };
 
 const str = (x: unknown): string | null => (typeof x === "string" && x.trim() ? x.trim() : null);
@@ -465,6 +476,7 @@ export function mapNisResources(system: string, resources: readonly R[]): Mapped
           date: str(r.context?.period?.start) ?? str(r.date),
           replaces: ((r.relatesTo ?? []) as R[]).filter((x) => x?.code === "replaces").map((x) => str(x?.target?.reference)).filter((x): x is string => !!x),
           attachment_url: str(att.url),
+          size: typeof att.size === "number" && att.size >= 0 ? att.size : null,
           content_type: str(att.contentType),
         });
         break;

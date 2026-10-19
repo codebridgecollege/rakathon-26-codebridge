@@ -614,15 +614,22 @@ structured data comes next. Test server and test data: [`fhir/nis/README.md`](..
   (`withoutNis`). A merge that leaves an import out logs `nis_excluded` with a code. reset-demo deletes `nis/` with the
   org's other transient objects. The Workflows see org B's test NIS through `api/vitest.config.ts`; routes take theirs
   from `testEnv`.
-- **NIS documents** (phase 2b): a full import also takes the record's current DocumentReferences in, up to 10 per
-  import (`more: true` when there are more). Each Binary (relative `Binary/<id>` or within the same NIS only; PDF or
-  image) goes through `storeFile` in `src/routes/documents.ts`, the upload route's own path: the same keep policy,
-  repeat and name rules, identity check, access-log line and automatic processing, so it is read, identity-checked and
-  composed like an upload (origin `upload`). `nis_documents` (migration 0018) records the NIS resource and version of
-  each, so a version already taken over is skipped, and a DocumentReference that `replaces` another, or a newer version
-  of the same one, makes the older document `superseded` by the new one (the document lifecycle; the case run then reads
-  only the current one). A superseded or entered-in-error DocumentReference is not taken over. Each Binary read writes
-  an access-log row naming the DocumentReference (`nis.document`).
+- **NIS documents** (phase 2b): every import call takes in the record's current DocumentReferences that the last full
+  pull found and the case does not hold yet, ten Binary reads per call (`documents.more: true` when some wait for the
+  next click; a failed read is retried then too). Each Binary (relative `Binary/<id>` or within the same NIS only;
+  PDF, JPEG or PNG) goes through `storeFile` in `src/routes/documents.ts`, the upload route's own path: the same keep
+  policy, repeat and name rules, identity check, access-log line and automatic processing (origin `upload`). Where the
+  org keeps file content and the pipeline runs, it is then read and identity-checked page by page and composed like an
+  upload; elsewhere it is listed, as an upload would be. An attachment the NIS says is larger than `UPLOAD_MAX_BYTES`
+  is listed without being fetched. The file name is the document's title from the NIS plus its NIS ID (a title may
+  name the patient, as a typed upload name may; withdrawing clears it). `nis_documents` (migration 0018) holds one
+  row per version taken over: a version held is skipped; a DocumentReference whose document was withdrawn as another
+  patient's or deleted from the case is declined for good (the row stays, `document_id` NULL after a delete); a
+  DocumentReference that `replaces` another, or a newer version of the same one, makes the older document
+  `superseded` by the new one, only when the new one's content is kept and the old one is current and not prepared.
+  The import counts against `RL_UPLOAD`. Each Binary read writes an access-log row naming the DocumentReference
+  (`nis.document`). Not built: a DocumentReference later voided or removed in the NIS is not retired in the case, and
+  unlinking does not take the imported documents out (docs/agent/OPEN_QUESTIONS.md).
 - **Tests.** `test/nis.test.ts` runs the connector and the routes against `fhir/nis/memory-server.ts` loaded with the
   test Bundles (no PDF bytes); `test/nis-map.test.ts` pulls S01, S02, case 10 and F01-F04 and checks the runs, with
   S01's and S02's lab values against their prepared fixtures; `test/nis-merge.test.ts` imports, refreshes and unlinks through the case merge; `test/orgs.test.ts` probes the NIS

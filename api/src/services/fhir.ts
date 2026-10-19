@@ -347,7 +347,8 @@ export class NisClient {
   }
 
   // One resource by its logical id; null when the NIS has none (404 or 410).
-  async read(type: string, id: string, pull: Pull | null = null): Promise<R | null> {
+  // maxBytes: an answer the server says is larger is not read (a Binary's base64 is a third larger than the file).
+  async read(type: string, id: string, pull: Pull | null = null, maxBytes: number | null = null): Promise<R | null> {
     if (!/^[A-Z][A-Za-z]+$/.test(type) || !FHIR_ID.test(id)) throw E.badRequest();
     this.begin();
     await this.onPull(pull ?? { op: "read", resource: type });
@@ -355,6 +356,11 @@ export class NisClient {
     if (res.status === 404 || res.status === 410) {
       await res.body?.cancel();
       return null;
+    }
+    const len = Number(res.headers.get("content-length"));
+    if (maxBytes !== null && res.ok && Number.isFinite(len) && len > maxBytes) {
+      await res.body?.cancel();
+      throw new ApiError(413, "nis_too_large", "Dokument v NIS je příliš velký.");
     }
     const r = await this.json(res, "read");
     if (r.resourceType !== type || r.id !== id) throw nisError();

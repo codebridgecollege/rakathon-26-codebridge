@@ -129,4 +129,5 @@ records of one case end up in one run, and confirmations carry over across both.
   built.
 - **Documents.** The NIS import's documents are not part of the NIS fragment: each current DocumentReference's file is
   stored as an upload (`storeFile`, origin `upload`, provenance in `nis_documents`), so it goes through B's pipeline and
-  its own fragments like any upload. A replaced version is retired as `superseded` by the new one.
+  its own fragments like any upload. A replaced version is retired as `superseded` by the new one when the new one's
+  content is kept; a document the case withdrew or deleted is never taken over again.
