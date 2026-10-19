@@ -78,8 +78,8 @@ export function documentAlerts(docId: string, poorPages: number[], conflictPages
   const out: DocumentAlert[] = [];
   const pages = (ns: number[]) => [...new Set(ns)].sort((a, b) => a - b).join(", ");
   if (poorPages.length)
-    out.push({ id: alertId({ rule: "poor_copy", subject: docId }), rule: "poor_copy", subject: docId, kind: "poor_copy", message_id: "alert-poor-copy", args: { pages: pages(poorPages) } });
+    out.push({ id: alertId({ rule: "poor_copy", subject: docId }), rule: "poor_copy", subject: docId, kind: "poor_copy", message_id: "alert-poor-copy", args: { document: docId, pages: pages(poorPages) } });
   if (conflictPages.length)
-    out.push({ id: alertId({ rule: "identity_conflict", subject: docId }), rule: "identity_conflict", subject: docId, kind: "identity", message_id: "alert-identity-conflict", args: { pages: pages(conflictPages) } });
+    out.push({ id: alertId({ rule: "identity_conflict", subject: docId }), rule: "identity_conflict", subject: docId, kind: "identity", message_id: "alert-identity-conflict", args: { document: docId, page: pages(conflictPages) } });
   return out;
 }

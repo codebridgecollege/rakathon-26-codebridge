@@ -245,8 +245,8 @@ describe("ProcessDocumentWorkflow", () => {
     expect(identityAsked).toEqual([FAKE_NAME]);
     expect((await one("SELECT identity FROM documents WHERE id = ?1", DOC)).identity).toBe("conflicts");
     expect(await q("SELECT rule, kind, message_id, args_json, run_id FROM document_alerts WHERE document_id = ?1 ORDER BY rule", DOC)).toEqual([
-      { rule: "identity_conflict", kind: "identity", message_id: "alert-identity-conflict", args_json: '{"pages":"2"}', run_id: runId },
-      { rule: "poor_copy", kind: "poor_copy", message_id: "alert-poor-copy", args_json: '{"pages":"2"}', run_id: runId },
+      { rule: "identity_conflict", kind: "identity", message_id: "alert-identity-conflict", args_json: JSON.stringify({ document: DOC, page: "2" }), run_id: runId },
+      { rule: "poor_copy", kind: "poor_copy", message_id: "alert-poor-copy", args_json: JSON.stringify({ document: DOC, pages: "2" }), run_id: runId },
     ]);
     for (const name of ["inspect", "pages 1-2", "analyze", "labs", "parts", "identity", "compare with prepared data", "write"]) {
       const r = JSON.stringify(await inst.waitForStepResult({ name }));
