@@ -28,7 +28,7 @@ export type AlertEntry = (Flag | DataGap) & { i: AlertKey; relevant?: boolean; b
 export function warningEntries(alerts: CaseData["alerts"]): AlertEntry[] {
   if (!alerts) return [];
   return [
-    ...alerts.flags.map((f, i) => ({ ...f, i, based_on: f.based_on || [] })),
+    ...alerts.flags.map((f, i) => ({ ...f, i: (f.id as string | undefined) ?? i, based_on: f.based_on || [] })),
     ...alerts.gaps.map((f, n) => ({ ...f, i: `gap:${n}`, relevant: false, based_on: f.refs || (f.source ? [f.source] : []) })),
   ];
 }

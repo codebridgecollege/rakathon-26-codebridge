@@ -4,6 +4,9 @@
 // so a view shows a missing part as missing and never as empty. Identity (name, birth number) is not case data: it
 // stays on the list row. The extraction objects are kept by reference, not cloned.
 
+import type { ExtractionRun } from "./extraction/types";
+import { fromRun, type DocInfo, type RunView } from "./run-view";
+
 // A pointer to the exact passage a fact rests on. `file` may be absent: then the reference points into the open case.
 export type SourceRef = { file?: string; page: number | string; quote?: string };
 
@@ -35,6 +38,8 @@ export type CaseData = {
     reason_refs: SourceRef[];
     dx_headline: Item | null;
     summary_items: Item[];
+    // A /2 run's brief sentences with the facts each states.
+    sentences?: Item[];
   };
   record: null | {
     onco_compact: Item | null;
@@ -54,6 +59,8 @@ export type CaseData = {
   alerts: null | { flags: Flag[]; gaps: DataGap[] };
   documents: null | { documents: DocumentInfo[]; pages: number | null; note: string | null };
   note_cs: string | null;
+  // The parts only a codebridge.extraction/2 run gives (facts by ID, checks per section); absent for the old format.
+  run?: RunView | null;
 };
 
 export function fromFullExtraction(file: string, id: string, c: Item, e: Item): CaseData {
@@ -129,10 +136,16 @@ export const unprocessedCase = (file: string, id: string): CaseData => ({
 
 // The server's extraction data (GET /cases/:id/extraction, `data`): null for a case without a run, { case, extra } or
 // { syn }. The cases store has already refused any other shape.
-export function fromExtraction(file: string, id: string, data: { case?: unknown; extra?: unknown; syn?: unknown } | null): CaseData {
+export function fromExtraction(
+  file: string,
+  id: string,
+  data: { case?: unknown; extra?: unknown; syn?: unknown } | ExtractionRun | null,
+  docs: DocInfo[] | null = null,
+): CaseData {
   if (!data) return unprocessedCase(file, id);
-  if (data.case) return fromFullExtraction(file, id, data.case as Item, (data.extra as Item) || {});
-  if (data.syn) return fromSyn(data.syn as Item, file, id);
+  if ("schema" in data && data.schema === "codebridge.extraction/2") return fromRun(file, id, data, docs);
+  if ("case" in data && data.case) return fromFullExtraction(file, id, data.case as Item, ("extra" in data && (data.extra as Item)) || {});
+  if ("syn" in data && data.syn) return fromSyn(data.syn as Item, file, id);
   return unprocessedCase(file, id);
 }
 

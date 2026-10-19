@@ -176,6 +176,10 @@ experience.
   EXTRACTION-FORMAT.md, "Decisions".)
 - [ ] Refresh: how often to ask the NIS for changes, and how often to pull
   the whole record (the only way a deleted NIS record drops out).
+- [ ] Which exam is "Aktuální stav"? The case view picks the document part
+  with the most undated state findings (EXTRACTION-FORMAT.md, "How the case
+  view uses it"); a pipeline that dates the current exam would lose to an
+  older part. Should a producer mark the current visit in the run instead?
 - [ ] **Which tech stack and which LLM deployment do we use?**
 - [ ] **Backend: port the prognosis service to TypeScript, or keep it in
   Python** (Python Workers)? Juro decides after reading `prognosis/service.py`
