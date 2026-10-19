@@ -221,6 +221,31 @@ describe("starting a run", () => {
   });
 });
 
+describe("waking the page reader (Administrace)", () => {
+  it("wakes every instance for an administrator of an org the pipeline runs for, and says how many answered", async () => {
+    let n = 0;
+    mockFetch(async () => (++n === 1 ? new Response("starting", { status: 503 }) : Response.json({ ok: true, versions: { page_reader: "0.2.0" } })));
+    const first = await w("POST", "/admin/pipeline/warm", {}, "admin");
+    expect([first.status, first.body.data]).toEqual([200, { ok: false, ready: POOL_SIZE - 1, of: POOL_SIZE, versions: { page_reader: "0.2.0" } }]);
+    const again = await w("POST", "/admin/pipeline/warm", {}, "admin");
+    expect(again.body.data).toMatchObject({ ok: true, ready: POOL_SIZE, of: POOL_SIZE });
+    expect((await q<{ what_cs: string }>("SELECT what_cs FROM access_log WHERE action = 'pipeline.warm' ORDER BY id")).map((l) => l.what_cs)).toEqual([
+      `probudil(a) službu pro čtení stránek (odpověděly ${POOL_SIZE - 1} ze ${POOL_SIZE} instancí)`,
+      "probudil(a) službu pro čtení stránek (připravena)",
+    ]);
+  });
+
+  it("refuses anyone but an administrator, and an org the pipeline does not run for", async () => {
+    mockFetch(async () => Response.json({ ok: true, versions: {} }));
+    expect((await w("POST", "/admin/pipeline/warm", {}, "d2p1")).status).toBe(403);
+    const orgA = await w("POST", "/admin/pipeline/warm", {}, "admin", pe({ PIPELINE_ORGS: "demo-b" }));
+    expect([orgA.status, orgA.body.error.code]).toEqual([503, "pipeline_off"]);
+    expect(await q("SELECT id FROM access_log WHERE action = 'pipeline.warm'")).toEqual([]);
+    // The doctor's refused try is logged as a refusal, as any refused write.
+    expect((await q<{ what_cs: string }>("SELECT what_cs FROM access_log WHERE action = 'write.refused'")).map((l) => l.what_cs)).toContain("odmítnuto: probuzení služby pro čtení stránek");
+  });
+});
+
 describe("page reader routing", () => {
   it("uses the container only when PAGE_READER_CONTAINER is on, and names instances from a small pool by case", async () => {
     const base = { PAGE_READER_URL: "", PAGE_READER: {}, PIPELINE_ORGS: "*" } as unknown as Env;

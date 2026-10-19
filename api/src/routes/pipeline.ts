@@ -8,10 +8,12 @@ import { POOR_COPY_CS, READABILITY_CS } from "../domain/pipeline";
 import { audit } from "../middleware/audit";
 import { documentRow, uploadContext } from "../store/documents";
 import { assertUnlocked } from "./documents";
-import { POOL_SIZE, PageReaderError, pageReader, pipelineAvailable, pipelineOn } from "../services/page-reader";
+import { POOL_SIZE, pageReader, pipelineOn } from "../services/page-reader";
 import { openCase } from "./access-check";
 import { actorOf, answer, caseFor, label, orgQuery, tx } from "./write-context";
 import { pipelineOff as off, startRun } from "./pipeline-start";
+// How long the warm route waits for one page reader instance; under the page's 20 s request timeout.
+const WARM_WAIT_MS = 12_000;
 const STAGE_CS: Record<string, string> = { inspect: "kontrola souboru", pages: "čtení stránek", analyze: "kontrola čitelnosti", labs: "laboratorní hodnoty", write: "zápis výsledku" };
 
 type RunRow = {
@@ -67,18 +69,21 @@ export const pipeline = new Hono<AppEnv>()
     });
   })
   // Before a demo: the first call after a deploy waits for the container image (minutes); this brings up every
-  // instance of the pool, since any case may land on any of them.
+  // instance of the pool, since any case may land on any of them. An administrator of an org the pipeline runs for
+  // ("Probudit čtečku stránek" in Administrace). The answer says how many instances answered, so the page can say
+  // "ready" or "still starting" and ask again; one line in the access log either way.
   .post("/admin/pipeline/warm", async (c) => {
-    label(c, "zahřátí zpracování dokumentů");
+    label(c, "probuzení služby pro čtení stránek");
     assertCan(actorOf(c), "demo.reset");
-    if (!pipelineAvailable(c.env)) throw off();
-    try {
-      const all = await Promise.all(Array.from({ length: POOL_SIZE }, (_, i) => pageReader.healthz(c.env, `pool-${i}`)));
-      const h = { ok: all.every((x) => x.ok), versions: all[0]!.versions };
-      await tx(c).audit({ action: "pipeline.warm", what_cs: "ověřil(a) službu pro čtení stránek" }).commit();
-      return answer(c, { ok: h.ok, versions: h.versions });
-    } catch (e) {
-      if (e instanceof PageReaderError) throw new ApiError(503, e.code, "Služba pro čtení stránek neodpovídá.");
-      throw e;
-    }
+    if (!pipelineOn(c.env, c.var.viewer.org)) throw off();
+    // Each instance gets WARM_WAIT_MS: a cold one keeps starting after the timeout (the call woke it), and the answer
+    // comes back before the page's own request times out, so the page can say "still starting" and ask again.
+    const timeout = () => new Promise<never>((_, reject) => setTimeout(() => reject(new Error("timeout")), WARM_WAIT_MS));
+    const all = await Promise.allSettled(Array.from({ length: POOL_SIZE }, (_, i) => Promise.race([pageReader.healthz(c.env, `pool-${i}`), timeout()])));
+    const up = all.filter((r) => r.status === "fulfilled" && r.value.ok) as PromiseFulfilledResult<{ ok: boolean; versions: unknown }>[];
+    const ready = up.length === POOL_SIZE;
+    await tx(c)
+      .audit({ action: "pipeline.warm", what_cs: ready ? "probudil(a) službu pro čtení stránek (připravena)" : `probudil(a) službu pro čtení stránek (odpověděly ${up.length} ze ${POOL_SIZE} instancí)` })
+      .commit();
+    return answer(c, { ok: ready, ready: up.length, of: POOL_SIZE, versions: up[0]?.value.versions ?? null });
   });

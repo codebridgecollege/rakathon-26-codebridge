@@ -2,7 +2,7 @@
 // reads of a case, attendance writes, refusals, and two screens mounted against a mocked API. Synthetic values only.
 import { readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createPinia, setActivePinia } from "pinia";
 import { defineComponent, h, nextTick } from "vue";
 import { flushPromises, mount } from "@vue/test-utils";
@@ -24,7 +24,8 @@ import { useWrite } from "../app/composables/useWrite";
 import PatientsView from "../app/components/lists/PatientsView.vue";
 import TasksView from "../app/components/lists/TasksView.vue";
 import CalendarView from "../app/components/lists/CalendarView.vue";
-import { deferred, mockApi, row } from "./helpers";
+import AdminView from "../app/components/lists/AdminView.vue";
+import { deferred, meOrg, mockApi, row } from "./helpers";
 
 const cs = makeBundle("cs");
 const fmt = (id: string, args: Record<string, string | number> = {}) => cs.formatPattern(cs.getMessage(id)!.value!, args);
@@ -342,5 +343,75 @@ describe("tasks screen", () => {
     await flushPromises();
     expect((box.element as HTMLInputElement).checked).toBe(false);
     expect(m.calls.some((c) => c.url.startsWith("/api/tasks/1"))).toBe(false);
+  });
+});
+
+describe("Administrace: waking the page reader", () => {
+  const admin = (pipeline: boolean) => {
+    const session = useSessionStore();
+    session.me = { user: { id: "admin", name: "Ing. Kovář", role: "admin", dept: null }, ...meOrg("admin"), features: { pipeline, keeps_uploads: false }, auth_mode: "demo", impersonating: false, notice_cs: null } as never;
+  };
+  afterEach(() => vi.useRealTimers());
+
+  it("shows nothing where the pipeline does not run for the org (demo org A)", async () => {
+    setActivePinia(createPinia());
+    const m = mockApi({ "/admin/access-log": { entries: [] } });
+    setApi(m.api);
+    admin(false);
+    const { w } = mountWith(AdminView);
+    await flushPromises();
+    expect(w.text()).not.toContain("Probudit čtečku stránek");
+    expect(m.calls.some((c) => c.url.includes("/pipeline/warm"))).toBe(false);
+  });
+
+  it("asks again quietly while the page reader is still starting, then says it is ready", async () => {
+    vi.useFakeTimers();
+    setActivePinia(createPinia());
+    let n = 0;
+    const m = mockApi({
+      "/admin/access-log": { entries: [] },
+      "/admin/pipeline/warm": () => (++n === 1 ? [503, { error: { code: "page_reader_unreachable", message_cs: "x" } }] : n === 2 ? { data: { ok: false, ready: 2, of: 3 } } : { data: { ok: true, ready: 3, of: 3 } }),
+    });
+    setApi(m.api);
+    admin(true);
+    const { w } = mountWith(AdminView);
+    await flushPromises();
+    await w.findAll("button").find((b) => b.text() === "Probudit čtečku stránek")!.trigger("click");
+    await flushPromises();
+    expect(w.text()).toContain("Čtečka stránek se probouzí");
+    for (let i = 0; i < 3; i++) {
+      await vi.advanceTimersByTimeAsync(10_000);
+      await flushPromises();
+    }
+    expect(n).toBe(3);
+    expect(w.text()).toContain("Čtečka stránek je připravena.");
+    // Nothing alarming was shown on the way: no alert element, only the status line.
+    expect(w.findAll('[role="alert"]')).toHaveLength(0);
+  });
+
+  it("stops at a refusal and when the screen closes, without a further call", async () => {
+    vi.useFakeTimers();
+    setActivePinia(createPinia());
+    let n = 0;
+    const m = mockApi({ "/admin/access-log": { entries: [] }, "/admin/pipeline/warm": () => (++n, [403, { error: { code: "forbidden", message_cs: "x" } }]) });
+    setApi(m.api);
+    admin(true);
+    const { w } = mountWith(AdminView);
+    await flushPromises();
+    await w.findAll("button").find((b) => b.text() === "Probudit čtečku stránek")!.trigger("click");
+    await flushPromises();
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(n).toBe(1);
+    // A slow start, then the screen closes: no try after it.
+    let k = 0;
+    const m2 = mockApi({ "/admin/access-log": { entries: [] }, "/admin/pipeline/warm": () => (++k, { data: { ok: false, ready: 1, of: 3 } }) });
+    setApi(m2.api);
+    const second = mountWith(AdminView);
+    await flushPromises();
+    await second.w.findAll("button").find((b) => b.text() === "Probudit čtečku stránek")!.trigger("click");
+    await flushPromises();
+    second.w.unmount();
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(k).toBe(1);
   });
 });

@@ -264,5 +264,7 @@ export function createApiClient(opts: ClientOptions = {}) {
     deletePerson: (id: string) => w("DELETE", `/staff/people/${enc(id)}`, {}),
     resetStaff: () => w("POST", "/staff/reset", {}),
     resetDemo: (body: { confirm: string }) => w("POST", "/admin/reset-demo", body),
+    // Wakes the page reader's instances before a demo; ok when all of them answered.
+    warmPipeline: () => w<{ ok: boolean; ready: number; of: number; versions: Record<string, unknown> | null }>("POST", "/admin/pipeline/warm", {}),
   };
 }
