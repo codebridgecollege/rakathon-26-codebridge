@@ -76,10 +76,15 @@
     // Audio parts the page uploads while a case is discussed: exactly this size except the last (R2 multipart minimum).
     "AUDIO_PART_BYTES": "5242880",
     "AUDIO_MAX_MINUTES_PER_CASE": "120",
-    // Step 6: what the upload route does with a file that is not a registered synthetic fixture. "fixtures_only"
-    // refuses it and stores nothing (the shared demo); "store_unprocessed" stores it as "nezpracováno" (team staging,
-    // local work). The page promises 20 MB per file.
+    // Step 6: what the upload route does with a file that is not a registered synthetic fixture. "fixtures_only" accepts
+    // it and keeps only its listing (name, size, uploader, time), no content (the shared demo); "store_unprocessed" stores
+    // an unknown PDF or JPEG/PNG photo as "nezpracováno" (team staging, local work). The page promises 20 MB per file.
     "UPLOAD_POLICY": "fixtures_only",
+    // The team's switch: orgs (comma-separated ids) whose uploads keep their content whatever UPLOAD_POLICY says. Empty
+    // on the deployed host; the team sets "demo-b" to test the pipeline on its own synthetic files in demo org B, and
+    // empties it again afterwards (anyone with a demo account can act in org B, and its demo reset wipes it). Never
+    // "demo-a". Real patient documents wait for FNO's clearance whatever this says.
+    "UPLOAD_STORE_ORGS": "",
     "UPLOAD_MAX_BYTES": "20971520",
     // Step 6 (b-1): where the page reader service runs (src/services/page-reader.ts). PAGE_READER_URL wins when set:
     // local work points it at the Python service, http://localhost:8080. Otherwise PAGE_READER_CONTAINER "on" uses the

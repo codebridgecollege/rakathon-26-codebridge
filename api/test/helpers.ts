@@ -44,6 +44,7 @@ export function testEnv(over: Record<string, unknown> = {}): Env {
     RL_AUDIO: allow,
     RL_UPLOAD: allow,
     UPLOAD_POLICY: "fixtures_only",
+    UPLOAD_STORE_ORGS: "",
     UPLOAD_MAX_BYTES: "20971520",
     PAGE_READER_URL: "https://page-reader.test",
     PAGE_READER_CONTAINER: "off",

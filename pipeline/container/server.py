@@ -60,9 +60,15 @@ POST /v1/redact             body: {"pages": [{"n", "png_b64", "words"}],
   a form counts on a capitalized word, or in any case next to another part of the same name. ink_marks also blacks out dark areas no OCR word covers (signatures,
   stamps, handwriting; best effort). Hits carry the reason and the box, never the value. At most MAX_BATCH pages.
 
+POST /v1/convert            body: JPEG or PNG bytes (a photo of a page), judged by its magic bytes
+  200 {"pdf_b64": str, "width": int, "height": int}
+  A one-page A4 PDF holding the photo upright (EXIF orientation applied), in grayscale, without the photo's
+  metadata; width and height are the upright photo's pixels. See page_reader/convert.py.
+
 Errors: {"error": {"code": str, "message_cs": str}} with
   400 bad_json, bad_request, bad_range; 404 not_found; 405 method_not_allowed; 413 too_large;
-  422 not_pdf, encrypted, too_many_pages, unreadable_pdf, page_too_large (over MAX_PIXELS at 300 dpi); 500 internal (no detail, nothing from the body).
+  422 not_pdf, encrypted, too_many_pages, unreadable_pdf, page_too_large (over MAX_PIXELS at 300 dpi),
+  not_image, image_too_large (over convert.MAX_PIXELS); 500 internal (no detail, nothing from the body).
 """
 
 import base64
@@ -83,7 +89,7 @@ sys.path.insert(0, str(_here if (_here / "page_reader").is_dir() else _here.pare
 import fitz  # noqa: E402  PyMuPDF
 from PIL import Image  # noqa: E402
 
-from page_reader import VERSION, labs, layer, ocr, page_index, readability, redact, render  # noqa: E402
+from page_reader import VERSION, convert, labs, layer, ocr, page_index, readability, redact, render  # noqa: E402
 
 MAX_BODY = 20 * 1024 * 1024  # the upload limit of step 6, so anything larger never came from our Worker
 MAX_PAGES = 60  # a referral PDF is a few dozen pages; more is a wrong upload, and it bounds the work
@@ -251,8 +257,20 @@ def redact_(body: bytes, _query) -> tuple[dict, int]:
     return {"pages": out}, len(out)
 
 
+def convert_(body: bytes, _query) -> tuple[dict, int]:
+    with WORK:  # Pillow and PyMuPDF work, one request at a time like the other PDF endpoints
+        try:
+            pdf, (w, h) = convert.image_to_pdf(body)
+        except convert.TooLarge:
+            raise ApiError(422, "image_too_large", "Fotografie má příliš mnoho pixelů.") from None
+        except convert.NotImage:
+            raise ApiError(422, "not_image", "Soubor není čitelná fotografie (JPEG nebo PNG).") from None
+    return {"pdf_b64": base64.b64encode(pdf).decode("ascii"), "width": w, "height": h}, 1
+
+
 ROUTES = {("GET", "/healthz"): healthz, ("POST", "/v1/inspect"): inspect, ("POST", "/v1/pages"): pages,
-          ("POST", "/v1/analyze"): analyze, ("POST", "/v1/labs"): labs_, ("POST", "/v1/redact"): redact_}
+          ("POST", "/v1/analyze"): analyze, ("POST", "/v1/labs"): labs_, ("POST", "/v1/redact"): redact_,
+          ("POST", "/v1/convert"): convert_}
 
 
 class Handler(BaseHTTPRequestHandler):
