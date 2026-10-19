@@ -25,7 +25,7 @@
      "fact": {"kind": "comorbidity", "negated": true, "source.quote": {"regex": "DM neguje"}}},
     {"id": "S01-no-dm-diagnosis", "failure_kind": "negation_read_as_positive", "expect": "absent",
      "about": "Diabetes is never a comorbidity or diagnosis of this patient",
-     "fact": {"kind": {"in": ["comorbidity", "diagnosis"]}, "negated": false, "source.quote": {"regex": "DM neguje"}}, "needs": ["comorbidity"]},
+     "fact": {"kind": {"in": ["comorbidity", "diagnosis"]}, "negated": false, "value.text": {"regex": "(?i)\\bDM\\b|diabet"}}, "needs": ["comorbidity", "diagnosis"]},
     {"id": "S01-diagnosis", "failure_kind": "critical_fact_left_out", "expect": "present",
      "about": "The diagnosis glioblastoma, confirmed by histology, is in the run",
      "fact": {"kind": "diagnosis", "value.text": {"regex": "(?i)glioblastom"}}},

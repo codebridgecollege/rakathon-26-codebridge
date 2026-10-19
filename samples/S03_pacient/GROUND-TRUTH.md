@@ -32,14 +32,19 @@ which quotes "K 5,8 mmol/l" from the lab sheet.
 
 Not planted, but in the committed OCR, and part of what the evaluation sees:
 
-- Page 1: `cN0 cM0` reads `cNŮ cMO`; `dg. 9/2026 -` reads `bon *`;
+- Page 1: `Adenokarcinom` in the conclusion reads `opnotamém`, so the
+  diagnosis text is lost there (the code `C34.1` survives);
+  `Tiotropium 18 µg` reads `OS ePN 18 ug`, so a drug name is lost;
+  `cN0 cM0` reads `cNŮ cMO`; `dg. 9/2026 -` reads `bon *`;
   `FEV1 1,41 l (52 % n. h.),` reads `FEV1 1,41 | (52 k n. h. 4`.
 - Page 2: `cN0` reads `cNO`.
 - Page 3: `poj. 211` reads `poj, Ž1`; the sample's received and issued
   dates read `P 9, 2026` and `2 9. 2026`; `S_CREAE` reads `S.GREAE` and
   its range `[59 ... 104]` reads `[59... 04)`; the `S_NA` line is broken
-  (`[136"... KE C eo pa oje ie`); `S_CEA ... [0 ... 5]` reads `[0.51`;
-  B_PLT's unit `10^9/l` reads `10790`.
+  (`[136"... KE C eo pa oje ie`); `S_CEA: 4,0 µg/l [0 ... 5]` reads
+  `S CEA:4,0 gl [0.51`; `B_PLT: 312 10^9/l` reads `B PLUTO 312 10790`;
+  `S_UREA` reads `S. ÚUŘEA`, and the lab parser then drops that line
+  without listing it (a known failure in `samples/expected/S03.json`).
 
 ## What the assistant must do with this scan
 

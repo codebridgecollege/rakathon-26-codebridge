@@ -36,11 +36,29 @@ def test_matcher_operators():
     assert ev.matches(fact, {"date.sort": None, "value.value_numeric": {"ne": 5.3}}, sources)
     assert ev.matches(fact, {"date.sort": {"not_in": ["2026-09-21"]}}, sources)
     assert ev.matches(fact, {"source.quote": {"regex": r"^S_K\b"}}, sources)
-    assert ev.matches(fact, {"missing.field": None}, sources)  # an absent field compares as None
+    # A field the producer did not write is not null: it equals nothing, so a "present" null never passes on it.
+    assert not ev.matches(fact, {"value.result_fact": None}, sources)
+    assert ev.matches(fact, {"value.result_fact": {"not_in": ["x"]}}, sources)
+    assert ev.matches(fact, {"value.drug": {"not_regex": "x"}}, sources)
     assert not ev.matches(fact, {"kind": {"in": ["medication"]}}, sources)
     assert not ev.matches(fact, {"source.page": 4}, sources)
     with pytest.raises(ValueError):
         ev.matches(fact, {"kind": {"like": "x"}}, sources)
+
+
+def test_source_keys_hold_for_one_source():
+    sources = {"s1": {"page": 4, "identity": "matches"}, "s2": {"page": 1, "identity": "conflicts"}}
+    fact = {"kind": "imaging", "sources": ["s1", "s2"]}
+    assert not ev.matches(fact, {"source.page": 4, "source.identity": "conflicts"}, sources)
+    assert ev.matches(fact, {"source.page": 1, "source.identity": "conflicts"}, sources)
+
+
+def test_fragment_validation():
+    assert ev._fragment_problems({"kind": "metastasis", "value.site": "x", "source.page": 3}, True) == []
+    assert ev._fragment_problems({"kind": "metastasis", "value.sites": "x"}, True)  # a typo is an error, not a pass
+    assert ev._fragment_problems({"kind": "x", "fact.kind": "imaging", "fact.value.modality": "MR"}, False) == []
+    assert ev._fragment_problems({"kind": {"like": "x"}}, False)
+    assert ev._fragment_problems({"source.pages": 3}, True)
 
 
 def _run(facts, sources, checks=("lab_result",)):
@@ -55,20 +73,36 @@ def _lab(fid, code, value, certainty="clear", date="2026-09-21", time="07:40", p
             "date": {"sort": date, "as_written": f"{date} {time}" if time else date}}
 
 
+def _judge(want, facts, sources):
+    return ev.judge_lab(want, ev.assign_labs([want], _run(facts, sources))[0])[0]
+
+
 def test_lab_judgement():
     want = {"code": "S_K", "page": 3, "value": "5,8", "unit": "mmol/l", "date": "2026-09-21", "time": "07:40"}
     src = lambda fid, q="S_K: x": {f"s{fid}": {"page": 3, "quote": q}}  # noqa: E731
-    assert ev.judge_lab(want, _run([_lab("1", "S_K", "5,8")], src("1")))[0] == "exact"
+    assert _judge(want, [_lab("1", "S_K", "5,8")], src("1")) == "exact"
     # A silent wrong value is the failure that matters most: clear, but not what the document says.
-    assert ev.judge_lab(want, _run([_lab("1", "S_K", "5,3")], src("1")))[0] == "wrong"
-    assert ev.judge_lab(want, _run([_lab("1", "S_K", "5,8", date="2026-09-28")], src("1")))[0] == "wrong"
-    assert ev.judge_lab(want, _run([_lab("1", "S_K", "5,3", certainty="verify")], src("1")))[0] == "marked"
-    assert ev.judge_lab(want, _run([], {}))[0] == "missing"
+    assert _judge(want, [_lab("1", "S_K", "5,3")], src("1")) == "wrong"
+    assert _judge(want, [_lab("1", "S_K", "5,8", date="2026-09-28")], src("1")) == "wrong"
+    assert _judge(want, [_lab("1", "S_K", "5,3", certainty="verify")], src("1")) == "marked"
+    assert _judge(want, [], {}) == "missing"
     # A line that did not parse counts as marked when its start resembles the code.
-    unread = {"id": "2", "kind": "lab_result", "certainty": "unreadable", "certainty_reason": {"code": "x"},
-              "codes": [], "sources": ["s2"], "value": None, "date": {"sort": None, "as_written": None}}
-    assert ev.judge_lab(want, _run([unread], src("2", "S K: 5,3.mmoll [3.5 ... 5.1]")))[0] == "marked"
-    assert ev.judge_lab(want, _run([unread], src("2", "S NA: 139 mmol/l [136")))[0] == "missing"
+    assert _judge(want, [_unread("2")], src("2", "S K: 5,3.mmoll [3.5 ... 5.1]")) == "marked"
+    assert _judge(want, [_unread("2")], src("2", "S NA: 139 mmol/l [136")) == "missing"
+
+
+def _unread(fid):
+    return {"id": fid, "kind": "lab_result", "certainty": "unreadable", "certainty_reason": {"code": "x"},
+            "codes": [], "sources": [f"s{fid}"], "value": None, "date": {"sort": None, "as_written": None}}
+
+
+def test_one_line_stands_for_one_expected_value():
+    """S_ALT and S_AST are 0.8 alike: one unreadable S_AST line must not cover a missing S_ALT too."""
+    alt = {"code": "S_ALT", "page": 5, "value": "0,31", "unit": "µkat/l", "date": None, "time": None}
+    ast = {"code": "S_AST", "page": 5, "value": "0,29", "unit": "µkat/l", "date": None, "time": None}
+    run = _run([_unread("1")], {"s1": {"page": 5, "quote": "S AST: 0,29 ukat/l [0.17 ... 0.58]"}})
+    got = [ev.judge_lab(p, f)[0] for p, f in zip([alt, ast], ev.assign_labs([alt, ast], run))]
+    assert got == ["missing", "marked"]
 
 
 def test_not_run_when_the_producer_does_not_look():

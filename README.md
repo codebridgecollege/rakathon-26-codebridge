@@ -112,7 +112,10 @@ expected outputs in `samples/expected/`, per case and per CLAUDE.md
 failure case; the cases are described in
 [`samples/README.md`](samples/README.md). The `Pipeline` workflow runs the
 tests and `eval.py --check` on every pull request that touches the
-pipeline, the samples or the stored page readings.
+pipeline, the samples, the scripts or the stored page readings. It has no
+Tesseract, so the two tests that run OCR live skip there: they are
+calibrated on Tesseract 5.5.3, and Ubuntu's 5.3.4 reads the S02 uploads
+differently. Run them locally before changing the OCR path.
 
 ## Patient data
 

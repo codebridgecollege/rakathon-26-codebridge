@@ -37,8 +37,10 @@ Expected file (`codebridge.eval-expected/1`):
      "expectations": [{"id", "failure_kind", "about", "expect": "present"|"absent",
                        "fact": {path: matcher} | "alert": {path: matcher}, "needs": [...], "known_failure": "..."}]}
 
-A matcher is a value (equal), or {"in": [...]}, {"not_in": [...]}, {"regex": "..."}, {"ne": value}. Paths
-are dotted ("value.value_numeric"); a list on the way matches when any element matches ("codes.code").
+A matcher is a value (equal), or {"in": [...]}, {"not_in": [...]}, {"regex": "..."}, {"not_regex": "..."},
+{"ne": value}. Paths are dotted ("value.value_numeric"); a list on the way matches when any element matches
+("codes.code"). A field the producer did not write is not null: it equals nothing, and passes only "not_in",
+"ne" and "not_regex". Field names are checked against VALUE_FIELDS and the format's field lists on load.
 `source.<field>` matches against any of the fact's sources ("source.page", "source.quote"), and in an
 alert, `fact.<path>` against any of the alert's facts ("fact.date.sort").
 
@@ -74,7 +76,39 @@ FAILURE_KINDS = (
 ALERT_NEEDS = {"poor_copy": "readability", "missing": "original_report", "identity": "identity",
                "contradiction": "contradiction", "chronology": "chronology", "unclear": "unclear"}
 MARKED = ("verify", "unreadable")
-SIMILAR_CODE = 0.75  # "S_GREAE" for S_CREAE (0.86), "S K" for S_K; different tests stay apart ("S_NA" vs "S_K": 0.5)
+# A misread code ("S_GREAE" for S_CREAE: 0.86, "S K" for S_K) still finds its line. Close pairs of different tests
+# (S_ALT/S_AST, S_CEA/S_CREAE) also pass this threshold, so lab points are assigned one to one, exact codes first,
+# then the best score (see assign_labs): a line can stand for one expected value only.
+SIMILAR_CODE = 0.75
+
+# The value fields the expected files may name, per fact kind. EXTRACTION-FORMAT.md lists them in prose ("Fact
+# kinds"); the JSON Schema in packages/domain will fix the exact names. Until then this is the one place that
+# says which names the expectations assume, and load_expected rejects any other, so a renamed field makes the
+# evaluation fail loudly instead of letting an "absent" expectation pass on a field nobody writes.
+VALUE_FIELDS = {
+    "diagnosis": {"text", "disease_status"},
+    "histology": {"specimen", "result_text", "tumour_type", "grade"},
+    "stage": {"tnm_as_written", "tnm", "stage_kind", "edition", "as_of", "at_diagnosis"},
+    "metastasis": {"site", "status"},
+    "imaging": {"modality", "region", "finding_text", "response"},
+    "medication": {"drug", "strength", "dosing", "change", "indication"},
+    "comorbidity": {"text", "code"},
+    "exam_finding": {"region", "finding_text"},
+    "family_history": {"relation", "condition"},
+    "request": {"what", "result_fact"},
+    "lab_result": {"name_as_written", "value_as_written", "value_numeric", "unit_as_written", "unit", "reference_range",
+                   "reference_low", "reference_high", "out_of_range", "out_of_range_origin", "draw"},
+}
+FACT_FIELDS = {"id", "key", "kind", "subject", "value", "date", "status", "negated", "not_stated", "origin", "certainty",
+               "certainty_reason", "codes", "note", "quarantined", "sources"}
+ALERT_FIELDS = {"id", "rule", "subject", "kind", "facts", "message", "note"}
+SOURCE_FIELDS = {"id", "type", "document_id", "part", "page", "quote", "quote_text", "anchor", "reported_as", "identity",
+                 "reading_check"}
+# What an expectation may need: a fact kind, or a check that raises alerts.
+NEEDS = set(VALUE_FIELDS) | {"readability", "original_report", "identity", "contradiction", "chronology", "unclear",
+                             "any_fact"}
+MATCHERS = {"in", "not_in", "ne", "regex", "not_regex"}
+MISSING = object()  # a field the producer did not write; it is not null (EXTRACTION-FORMAT.md: "not looked for")
 
 
 # ---------- the producer: today's page reader, mapped to codebridge.extraction/2 ----------
@@ -125,12 +159,16 @@ def to_run(case_id: str, docs: list[dict]) -> dict:
 
     for doc in docs:
         did, lab = doc["document_id"], doc["labs"]
+        # The draw date as printed ("21.9.2026 07:40"), from the draw header the parser read; the ISO date is only
+        # for sorting.
+        printed = {(d["date"], d["time"]): re.sub(r"^Odb\w*r:\s*", "", d["source"]["quote"])
+                   for d in lab["draws"] if d["date"] and d["source"]}
         for t in lab["tests"]:
             for p in t["points"]:
                 if not p:
                     continue
                 src = p["source"]
-                drawn = f"{p['date']} {p['time']}" if p["time"] else p["date"]
+                drawn = printed.get((p["date"], p["time"])) if p["date"] else None
                 verify = p["certainty"] != "documented"
                 facts.append({
                     "id": f"f-{len(facts) + 1:04d}",
@@ -178,10 +216,12 @@ def to_run(case_id: str, docs: list[dict]) -> dict:
                            "note": "; ".join(rd["reasons_cs"])})
 
     covered = [{"document_id": d["document_id"], "part": None} for d in docs]
+    unreadable = [{"document_id": d["document_id"], "part": None, "page": p["n"]}
+                  for d in docs for p in d["pages"] if p["level"] in ("poor", "empty")]
     checks = [
-        {"id": "chk-lab_result", "looks_for": "lab_result", "expected": None, "covered": covered, "unreadable": [],
+        {"id": "chk-lab_result", "looks_for": "lab_result", "expected": None, "covered": covered, "unreadable": unreadable,
          "result": "found" if any(f["kind"] == "lab_result" for f in facts) else "nothing_found"},
-        {"id": "chk-readability", "looks_for": "readability", "expected": None, "covered": covered, "unreadable": [],
+        {"id": "chk-readability", "looks_for": "readability", "expected": None, "covered": covered, "unreadable": unreadable,
          "result": "found" if alerts else "nothing_found"},
     ]
     return {
@@ -215,29 +255,41 @@ def _resolve(obj, path: list[str]) -> list:
 def _one(matcher, value) -> bool:
     if isinstance(matcher, dict):
         if "in" in matcher:
-            return value in matcher["in"]
+            return value is not MISSING and value in matcher["in"]
         if "not_in" in matcher:
-            return value not in matcher["not_in"]
+            return value not in matcher["not_in"]  # a field nobody wrote is not one of the listed values
         if "ne" in matcher:
             return value != matcher["ne"]
         if "regex" in matcher:
             return isinstance(value, str) and re.search(matcher["regex"], value) is not None
+        if "not_regex" in matcher:
+            return not (isinstance(value, str) and re.search(matcher["not_regex"], value) is not None)
         raise ValueError(f"unknown matcher {matcher}")
-    return value == matcher
+    return value is not MISSING and value == matcher
+
+
+def _all_match(obj: dict, fragment: dict) -> bool:
+    for path, matcher in fragment.items():
+        # A field the producer did not write is MISSING, not null: {"value.result_fact": null} needs a written null.
+        values = _resolve(obj, path.split(".")) or [MISSING]
+        if not any(_one(matcher, v) for v in values):
+            return False
+    return True
 
 
 def matches(item: dict, fragment: dict, sources: dict, facts: dict | None = None) -> bool:
-    for path, matcher in fragment.items():
-        parts = path.split(".")
-        if parts[0] == "source":
-            values = [v for sid in item.get("sources", []) for v in _resolve(sources.get(sid, {}), parts[1:])]
-        elif parts[0] == "fact" and facts is not None:  # an alert's facts ("fact.kind", "fact.date.sort")
-            values = [v for fid in item.get("facts", []) for v in _resolve(facts.get(fid, {}), parts[1:])]
-        else:
-            values = _resolve(item, parts)
-        # A missing field compares as None, so {"date.sort": null} and {"not_in": [...]} mean what they say.
-        if not any(_one(matcher, v) for v in (values or [None])):
-            return False
+    """Whether a fact or alert matches a fragment. All `source.*` keys must hold for one and the same source,
+    and all `fact.*` keys (in an alert) for one and the same fact, so {"source.page": 4, "source.identity":
+    "conflicts"} is never met by two different sources."""
+    own = {k: v for k, v in fragment.items() if not k.startswith(("source.", "fact."))}
+    on_source = {k[len("source."):]: v for k, v in fragment.items() if k.startswith("source.")}
+    on_fact = {k[len("fact."):]: v for k, v in fragment.items() if k.startswith("fact.")}
+    if not _all_match(item, own):
+        return False
+    if on_source and not any(_all_match(sources.get(sid, {}), on_source) for sid in item.get("sources", [])):
+        return False
+    if on_fact and not any(_all_match((facts or {}).get(fid, {}), on_fact) for fid in item.get("facts", [])):
+        return False
     return True
 
 
@@ -245,7 +297,8 @@ def needs_of(e: dict) -> list[str]:
     if "needs" in e:
         return e["needs"]
     if "fact" in e:
-        return [e["fact"].get("kind", "any_fact")]
+        kind = e["fact"].get("kind", "any_fact")
+        return [kind] if isinstance(kind, str) else list(kind.get("in", ["any_fact"]))
     return [ALERT_NEEDS.get(e["alert"].get("kind"), str(e["alert"].get("kind")))]
 
 
@@ -266,9 +319,9 @@ def judge(e: dict, run: dict) -> tuple[str, str]:
     return ("pass" if ok else "fail"), detail
 
 
-def _code_like(a: str, b: str) -> bool:
+def _code_score(a: str, b: str) -> float:
     fa, fb = re.sub(r"[^A-Z0-9]", "", a.upper()), re.sub(r"[^A-Z0-9]", "", b.upper())
-    return fa == fb or difflib.SequenceMatcher(None, fa, fb).ratio() >= SIMILAR_CODE
+    return 1.0 if fa == fb else difflib.SequenceMatcher(None, fa, fb).ratio()
 
 
 def _leading_code(quote: str) -> str:
@@ -278,27 +331,62 @@ def _leading_code(quote: str) -> str:
     return m.group(1).strip() if m else ""
 
 
-def judge_lab(p: dict, run: dict) -> tuple[str, str]:
-    """(outcome, detail) of one expected lab point: exact, marked, wrong (clear but different) or missing."""
+def _digits(s: str) -> str:
+    return re.sub(r"\D", "", s or "")
+
+
+def assign_labs(points: list[dict], run: dict) -> list[dict | None]:
+    """The run's lab fact for each expected point, one to one. Exact code on the same page and draw date first,
+    then misread codes and unparsed lines by similarity (the expected value's digits in the quote count extra).
+    A fact stands for one expected point only, so one unreadable "S_AST" line never covers a missing S_ALT too."""
     sources = {s["id"]: s for s in run["sources"]}
-    on_page = [f for f in run["facts"] if f["kind"] == "lab_result"
-               and any(sources[s]["page"] == p["page"] for s in f["sources"])]
-    same = [f for f in on_page if f["codes"] and f["codes"][0]["code"] == p["code"]]
-    if not same:  # a misread code ("S_GREAE") or a line that did not parse
-        same = [f for f in on_page if (f["codes"] and _code_like(f["codes"][0]["code"], p["code"]))
-                or (f["certainty"] == "unreadable" and _code_like(_leading_code(sources[f["sources"][0]]["quote"]), p["code"]))]
-    if not same:
-        return "missing", f"{p['code']} p{p['page']}: not in the run"
-    f = same[0]
+    labs_ = [f for f in run["facts"] if f["kind"] == "lab_result"]
+    candidates = []
+    for i, p in enumerate(points):
+        for f in labs_:
+            src = sources[f["sources"][0]]
+            if src["page"] != p["page"]:
+                continue
+            same_date = f["date"]["sort"] in (p.get("date"), None)
+            if f["codes"]:
+                score = _code_score(f["codes"][0]["code"], p["code"])
+                if score == 1.0 and f["codes"][0]["code"] == p["code"]:
+                    score = 3.0 if f["date"]["sort"] == p.get("date") else 2.0
+            elif f["certainty"] == "unreadable":
+                score = _code_score(_leading_code(src["quote"]), p["code"])
+                if score >= SIMILAR_CODE and _digits(p["value"]) and _digits(p["value"]) in _digits(src["quote"]):
+                    score += 0.2
+            else:
+                continue
+            if score >= SIMILAR_CODE and (same_date or score >= 2.0):
+                candidates.append((score, i, f["id"]))
+    out: list[dict | None] = [None] * len(points)
+    taken: set[str] = set()
+    by_id = {f["id"]: f for f in labs_}
+    for score, i, fid in sorted(candidates, key=lambda c: (-c[0], c[1])):
+        if out[i] is None and fid not in taken:
+            out[i] = by_id[fid]
+            taken.add(fid)
+    return out
+
+
+def judge_lab(p: dict, f: dict | None) -> tuple[str, str]:
+    """(outcome, detail) of one expected lab point and the fact assigned to it: exact, marked, wrong (clear but
+    different from the document) or missing."""
+    label = f"{p['code']} p{p['page']}"
+    if f is None:
+        return "missing", f"{label}: not in the run"
     if f["certainty"] in MARKED:
-        return "marked", f"{p['code']} p{p['page']}: {f['certainty']} ({(f['certainty_reason'] or {}).get('code')})"
+        return "marked", f"{label}: {f['certainty']} ({(f['certainty_reason'] or {}).get('code')})"
     v = f["value"]
-    got = (v["value_as_written"], f["date"]["sort"], (f["date"]["as_written"] or "")[11:] or None)
+    time = (f["date"]["as_written"] or "").split(" ")[1] if " " in (f["date"]["as_written"] or "") else None
+    got = (v["value_as_written"], f["date"]["sort"], time)
     want = (p["value"], p.get("date"), p.get("time"))
     unit_ok = v["unit"] == p["unit"] or same_unit(v["unit"], p["unit"])
-    if got == want and unit_ok:
-        return "exact", f"{p['code']} p{p['page']}: {p['value']}"
-    return "wrong", f"{p['code']} p{p['page']}: shown clear as {got[0]} {v['unit']} {got[1]} {got[2]}, document {want[0]} {p['unit']} {want[1]} {want[2]}"
+    if got == want and unit_ok and f["codes"][0]["code"] == p["code"]:
+        return "exact", f"{label}: {p['value']}"
+    return "wrong", (f"{label}: shown clear as {f['codes'][0]['code']} {got[0]} {v['unit']} {got[1]} {got[2]}, "
+                     f"document {want[0]} {p['unit']} {want[1]} {want[2]}")
 
 
 def truth_pages(pages_dir: Path) -> dict[int, str]:
@@ -327,6 +415,40 @@ def reference_points(path: Path) -> list[dict]:
 
 # ---------- the evaluation ----------
 
+def _fragment_problems(fragment: dict, is_fact: bool) -> list[str]:
+    """Field names and matchers an expectation may use: a typo or a renamed field would otherwise leave an
+    "absent" expectation passing forever."""
+    problems = []
+
+    def fact_path(path: str, kinds: list[str]) -> None:
+        head, _, rest = path.partition(".")
+        if head not in FACT_FIELDS:
+            problems.append(f"unknown fact field {path}")
+        elif head == "value" and rest:
+            allowed = set().union(*(VALUE_FIELDS.get(k, set()) for k in kinds)) if kinds else set().union(*VALUE_FIELDS.values())
+            if rest.split(".")[0] not in allowed:
+                problems.append(f"unknown value field {path} for {kinds or 'any kind'}")
+
+    def kinds_of(frag: dict) -> list[str]:
+        k = frag.get("kind")
+        return [k] if isinstance(k, str) else list(k.get("in", [])) if isinstance(k, dict) else []
+
+    fact_kinds = kinds_of({k[5:]: v for k, v in fragment.items() if k.startswith("fact.")})
+    for path, matcher in fragment.items():
+        if isinstance(matcher, dict) and (len(matcher) != 1 or next(iter(matcher)) not in MATCHERS):
+            problems.append(f"bad matcher {matcher} at {path}")
+        if path.startswith("source."):
+            if path.split(".")[1] not in SOURCE_FIELDS:
+                problems.append(f"unknown source field {path}")
+        elif path.startswith("fact.") and not is_fact:
+            fact_path(path[5:], fact_kinds)
+        elif is_fact:
+            fact_path(path, kinds_of(fragment))
+        elif path.split(".")[0] not in ALERT_FIELDS:
+            problems.append(f"unknown alert field {path}")
+    return problems
+
+
 def load_expected(path: Path) -> dict:
     spec = json.loads(path.read_text())
     if spec.get("schema") != SCHEMA:
@@ -339,6 +461,10 @@ def load_expected(path: Path) -> dict:
             raise SystemExit(f"{path.name} {e['id']}: unknown failure kind {e['failure_kind']}")
         if e["expect"] not in ("present", "absent") or ("fact" in e) == ("alert" in e):
             raise SystemExit(f"{path.name} {e['id']}: needs expect present/absent and one of fact, alert")
+        problems = _fragment_problems(e["fact"] if "fact" in e else e["alert"], "fact" in e)
+        problems += [f"unknown need {n}" for n in needs_of(e) if n not in NEEDS]
+        if problems:
+            raise SystemExit(f"{path.name} {e['id']}: " + "; ".join(problems))
     if spec.get("lab_failure_kind", "reference") not in FAILURE_KINDS:
         raise SystemExit(f"{path.name}: unknown lab_failure_kind")
     return spec
@@ -367,9 +493,10 @@ def evaluate_case(spec: dict) -> dict:
     if stale:
         raise SystemExit(f"{spec['case']}: lab_known_failures name no expected lab point: {sorted(stale)}")
     lab_outcomes = {"exact": 0, "marked": 0, "wrong": 0, "missing": 0}
-    accounted = set()
-    for p in points:
-        o, detail = judge_lab(p, run)
+    assigned = assign_labs(points, run)
+    accounted = {f["id"] for f in assigned if f}
+    for p, f in zip(points, assigned):
+        o, detail = judge_lab(p, f)
         lab_outcomes[o] += 1
         label = f"{p['code']} p{p['page']}"
         e = {"known_failure": known.get(label)}
@@ -377,11 +504,11 @@ def evaluate_case(spec: dict) -> dict:
                         "about": f"lab value {label} {p['value']} {p['unit']}",
                         "outcome": _final("pass" if o in ("exact", "marked") else "fail", e),
                         "detail": f"{o}: {detail}", "known_failure": e["known_failure"]})
-        accounted.add((p["page"], p["code"], p["value"]))
     if points:
         # A clear lab value no expected point accounts for is a value the doctor would see without a check.
         # It is fine when the page's true text holds it ("CODE: value"): a prepared case may list only some of
-        # a sheet's values (case 10 lists 26 of page 3's).
+        # a sheet's values (case 10 lists 26 of page 3's). For FNO's patients that text is the vision reading,
+        # not a ground truth we wrote, so this check is only as good as that reading there.
         sources = {s["id"]: s for s in run["sources"]}
         truth = {(d["document_id"], n): text for d in spec["documents"] for n, text in truth_pages(REPO / d["pages_dir"]).items()}
 
@@ -391,8 +518,7 @@ def evaluate_case(spec: dict) -> dict:
             return f"{f['codes'][0]['code']}: {f['value']['value_as_written']} " in text
 
         extra = [f for f in run["facts"] if f["kind"] == "lab_result" and f["certainty"] == "clear"
-                 and (sources[f["sources"][0]]["page"], f["codes"][0]["code"], f["value"]["value_as_written"]) not in accounted
-                 and not on_truth_page(f)]
+                 and f["id"] not in accounted and not on_truth_page(f)]
         results.append({"id": f"{spec['case']}-lab-no-unexpected-clear-values", "failure_kind": kind,
                         "about": "no clear lab value that the documents do not hold", "known_failure": None,
                         "outcome": "pass" if not extra else "fail",

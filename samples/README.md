@@ -263,7 +263,11 @@ critical fact left out, a wrong date, a negation read as positive, two
 patients mixed up, a missing report, a request without a result, a poor
 scan, or `reference`), and describes a fact or an alert in the extraction
 format (`docs/design/EXTRACTION-FORMAT.md`, `codebridge.extraction/2`)
-that must be present or absent. Lab values are listed point by point
+that must be present or absent. The format document names the value
+fields of each fact kind only in prose, so the names the expectations use
+are listed in `VALUE_FIELDS` in `pipeline/eval.py`, and an expected file
+naming any other field fails to load; reconcile the two when the JSON
+Schema in `packages/domain` exists. Lab values are listed point by point
 (S03, S04) or taken from the prepared case (`reference_labs`, the
 human-checked `fixtures/data/mock-case-*.json`).
 
