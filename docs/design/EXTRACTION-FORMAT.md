@@ -572,7 +572,7 @@ subject. Neither value wins silently.
   - the `alerts` kinds extended;
   - `fact_confirmations` added;
   - `fact_edits` rebuilt by fact ID;
-  - `documents` states `superseded` and `withdrawn`;
+  - `documents.lifecycle` `superseded` and `withdrawn` (done: migration 0013, a column apart from the processing `state`);
   - stable part IDs on `document_parts`.
 
 ## Converting the existing fixtures

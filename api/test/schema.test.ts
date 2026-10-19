@@ -10,9 +10,12 @@ beforeEach(() => loadFixture());
 describe("D1 schema", () => {
   it("has every append-only trigger after the migrations", async () => {
     const r = await env.DB.prepare("SELECT name FROM sqlite_master WHERE type = 'trigger'").all<{ name: string }>();
-    // 13 append-only triggers, and the reset triggers that remove uploads (migration 0005) and upload sessions (0010).
-    const RESET = ["demo_reset_uploads", "demo_reset_upload_sessions"];
-    expect(r.results.filter((t) => !RESET.includes(t.name))).toHaveLength(13);
+    // 13 append-only triggers, the 5 document lifecycle triggers (migration 0013), and the reset triggers that remove
+    // uploads (0005) and upload sessions (0010) and make seeded documents current again (0013).
+    const RESET = ["demo_reset_uploads", "demo_reset_upload_sessions", "demo_reset_document_lifecycle"];
+    const lifecycle = r.results.filter((t) => t.name.startsWith("documents_lifecycle_"));
+    expect(lifecycle).toHaveLength(5);
+    expect(r.results.filter((t) => !RESET.includes(t.name) && !lifecycle.includes(t))).toHaveLength(13);
     for (const t of RESET) expect(r.results.map((x) => x.name)).toContain(t);
   });
 
@@ -57,5 +60,72 @@ describe("D1 schema", () => {
     await expect(dec("a3", "NO-A", 3, "a1")).rejects.toThrow(/supersede/);
     await expect(dec("a1b", "NO-A", 1, "a1")).rejects.toThrow(/supersede|CHECK/);
     await dec("a2", "NO-A", 2, "a1");
+  });
+
+  describe("document lifecycle (migration 0013)", () => {
+    const NOW = "2026-10-19T08:00:00.000Z";
+    const addScan = (id: string, caseId = "NO-A") =>
+      run(`INSERT INTO documents (id, org_id, case_id, file_name, page_count, origin, processing) VALUES ('${id}','demo-a','${caseId}','${id}.pdf',1,'upload','processed')`);
+    const lifecycleOf = (id: string) => env.DB.prepare("SELECT lifecycle, superseded_by FROM documents WHERE id = ?1").bind(id).first();
+    const supersede = (id: string, by: string, who = "d2p1") =>
+      run(`UPDATE documents SET lifecycle = 'superseded', superseded_by = '${by}', lifecycle_reason_cs = 'lepší sken', lifecycle_changed_at = '${NOW}', lifecycle_changed_by = '${who}' WHERE id = '${id}'`);
+    const withdraw = (id: string) =>
+      run(`UPDATE documents SET lifecycle = 'withdrawn', superseded_by = NULL, lifecycle_reason_cs = 'dokument jiného pacienta', lifecycle_changed_at = '${NOW}', lifecycle_changed_by = 'd2p1' WHERE id = '${id}'`);
+
+    it("starts every document current, including the ones inserted before the migration", async () => {
+      expect(await lifecycleOf("A_pacient")).toEqual({ lifecycle: "current", superseded_by: null });
+      await expect(
+        run("INSERT INTO documents (id, org_id, case_id, file_name, page_count, origin, processing, lifecycle) VALUES ('x','demo-a','NO-A','x.pdf',1,'upload','processed','withdrawn')"),
+      ).rejects.toThrow(/starts current/);
+      await expect(run(`UPDATE documents SET lifecycle = 'lost', lifecycle_changed_at = '${NOW}', lifecycle_changed_by = 'd2p1' WHERE id = 'A_pacient'`)).rejects.toThrow(/CHECK/);
+    });
+
+    it("lets a document be superseded only by another current document of the same case", async () => {
+      await addScan("A_rescan");
+      await addScan("B_scan", "NO-B");
+      await expect(supersede("A_pacient", "A_pacient")).rejects.toThrow(/same case/);
+      await expect(supersede("A_pacient", "B_scan")).rejects.toThrow(/same case/);
+      await expect(supersede("A_pacient", "b-A_pacient")).rejects.toThrow(/same case/);
+      await expect(supersede("A_pacient", "nope")).rejects.toThrow(/same case/);
+      await expect(
+        run(`UPDATE documents SET lifecycle = 'superseded', lifecycle_changed_at = '${NOW}', lifecycle_changed_by = 'd2p1' WHERE id = 'A_pacient'`),
+      ).rejects.toThrow(/exactly when/);
+      await expect(run("UPDATE documents SET superseded_by = 'A_rescan' WHERE id = 'A_pacient'")).rejects.toThrow(/exactly when/);
+      // Who and when are required, and the person must belong to the document's org.
+      await expect(run("UPDATE documents SET lifecycle = 'superseded', superseded_by = 'A_rescan' WHERE id = 'A_pacient'")).rejects.toThrow(/by which member/);
+      await expect(supersede("A_pacient", "A_rescan", "b-doc")).rejects.toThrow(/by which member/);
+      await supersede("A_pacient", "A_rescan");
+      expect(await lifecycleOf("A_pacient")).toEqual({ lifecycle: "superseded", superseded_by: "A_rescan" });
+      // A superseded document cannot replace another one.
+      await addScan("A_third");
+      await expect(supersede("A_third", "A_pacient")).rejects.toThrow(/same case/);
+    });
+
+    it("withdraws a document without a replacement", async () => {
+      await withdraw("B_pacient");
+      expect(await lifecycleOf("B_pacient")).toEqual({ lifecycle: "withdrawn", superseded_by: null });
+    });
+
+    it("never brings a superseded or withdrawn document back, nor switches between the two", async () => {
+      await addScan("A_rescan");
+      await supersede("A_pacient", "A_rescan");
+      await withdraw("B_pacient");
+      await expect(run("UPDATE documents SET lifecycle = 'current', superseded_by = NULL WHERE id = 'A_pacient'")).rejects.toThrow(/stays so/);
+      await expect(run("UPDATE documents SET lifecycle = 'current' WHERE id = 'B_pacient'")).rejects.toThrow(/stays so/);
+      await expect(withdraw("A_pacient")).rejects.toThrow(/stays so/);
+      await expect(run("UPDATE documents SET lifecycle_reason_cs = 'jinak' WHERE id = 'B_pacient'")).rejects.toThrow(/stays so/);
+      // The processing columns stay writable.
+      await run("UPDATE documents SET readability = 'good' WHERE id = 'B_pacient'");
+    });
+
+    it("the demo reset makes the seeded documents of its org current again", async () => {
+      await addScan("A_rescan");
+      await supersede("A_pacient", "A_rescan");
+      await withdraw("B_pacient");
+      await run("UPDATE demo_state SET reset_in_progress = 1 WHERE org_id = 'demo-a'");
+      expect(await lifecycleOf("A_pacient")).toEqual({ lifecycle: "current", superseded_by: null });
+      expect(await lifecycleOf("B_pacient")).toEqual({ lifecycle: "current", superseded_by: null });
+      expect(await lifecycleOf("A_rescan")).toBeNull();
+    });
   });
 });
