@@ -418,8 +418,9 @@ confirmation is stored in D1 (`question_confirmations`), as today.
 | Source viewer | the fact's sources: a document page with the highlighted passage and its "ověřit" tokens, or the NIS record |
 | Guidelines and deviations | They live outside the run. Statements and findings store the run ID and the fact IDs they rest on, and the view flags a reference it cannot resolve in the current run instead of hiding it. |
 
-Quarantined facts appear only in the identity alert, until a doctor
-resolves it.
+Quarantined facts are not shown anywhere in the case view. The identity
+alert names only the document and page that show another patient, not
+what those pages say, until a doctor resolves it.
 
 ## Worked example: one lab value
 
@@ -590,10 +591,13 @@ suite stays green, and any intended difference is listed for review. The
 evaluation script (stream C, #19) then compares pipeline output for the
 same documents against these reference cases.
 
-## Open points for review
+## Decisions (2026-10-19, Juro)
 
-1. **Fact keys per kind** (the table under "Fact identity"). They decide when two runs mean "the same fact"; this is the most important thing to get right.
-2. **Stage normalisation:** keep `tnm` normalised next to `tnm_as_written`, or only the text as written?
-3. **Disease status vocabulary:** `suspected`, `confirmed_histology`, `progression`, `stable`, `remission`, `suspected_recurrence`, `recurrence`. Is anything missing for the cases FNO sees?
-4. **Quarantine** of facts from a page that shows another patient: left out of the view until a doctor resolves it. Or shown, marked?
-5. **Orphaned confirmations:** a visible list "potvrzeno dříve, v novém zpracování chybí". Is that the right place and wording?
+1. **Fact keys per kind:** as in the table under "Fact identity".
+2. **Stage:** `tnm` normalised is kept next to `tnm_as_written`.
+3. **Disease status vocabulary** (`suspected`, `confirmed_histology`, `progression`, `stable`, `remission`, `suspected_recurrence`, `recurrence`): accepted for now. **It needs review by a clinical expert** before real patients.
+4. **Facts from a page that shows another patient are not shown** anywhere in the case view (quarantine). Only the identity alert says that such a page exists, until a doctor resolves it.
+
+## Open points
+
+1. **Confirmed facts missing from a later run:** a visible list "potvrzeno dříve, v novém zpracování chybí" in the case view. Wording and place still to agree.
