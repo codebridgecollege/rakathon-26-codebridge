@@ -7,6 +7,7 @@ import { staffName } from "../domain/rows";
 import { work } from "./write-context";
 import { nisConfig, nisConfigured } from "../services/fhir";
 import { pipelineOn } from "../services/page-reader";
+import { uploadPolicy } from "../domain/documents";
 
 // /me, /staff and the demo picker hold no case content, so they write no access-log row.
 export const directory = new Hono<AppEnv>()
@@ -43,7 +44,7 @@ export const directory = new Hono<AppEnv>()
       notice_cs: v.authMode === "demo" ? "Ukázka bez přihlášení: uživatele vybíráte ručně." : null,
       // The org's NIS, so the page shows "Import z NIS" only where one is configured (hidden otherwise).
       nis: nisConfigured(c.env, v.org) ? { label_cs: nisConfig(c.env, v.org)!.label_cs } : null,
-      features: { pipeline: pipelineOn(c.env, v.org) },
+      features: { pipeline: pipelineOn(c.env, v.org), keeps_uploads: uploadPolicy(c.env.UPLOAD_POLICY, v.org, c.env.UPLOAD_STORE_ORGS) === "store_unprocessed" },
     });
   })
   .get("/staff", async (c) => {

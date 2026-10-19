@@ -132,7 +132,7 @@ describe("Dokumenty", () => {
     const s = setupPatient({ extraction: { syn: { documents: docs, data_gaps: [], list_entry: { page_count: null } } }, routes: { "/documents/S99_upload/pipeline": { run: null } } });
     const off = mountInCase(TabDocuments, s);
     expect(off.text()).not.toContain("Přečíst bez AI");
-    useSessionStore().me!.features = { pipeline: true };
+    useSessionStore().me!.features = { pipeline: true, keeps_uploads: false };
     const on = mountInCase(TabDocuments, s);
     expect(on.findAll("button").filter((b) => b.text() === "Přečíst bez AI")).toHaveLength(1);
     // Uploaded files: the count of PDFs; an unknown page count is a gap, not "null".
@@ -142,7 +142,7 @@ describe("Dokumenty", () => {
   it("shows the last reading and its readability warning", async () => {
     const run = { state: "done", label_cs: "Čtení bez AI", readability_cs: "špatná", readability_reasons_cs: ["šum"], verify_count: 3, lab_points: 4, lab_unclear: 1, readability_alert_cs: "Vyžádejte lepší kopii." };
     const s = setupPatient({ extraction: { syn: { documents: [{ ...DOCS[1], file: "S99_upload.pdf" }], data_gaps: [] } }, routes: { "/documents/S99_upload/pipeline": { run } } });
-    useSessionStore().me!.features = { pipeline: true };
+    useSessionStore().me!.features = { pipeline: true, keeps_uploads: false };
     const w = mountInCase(TabDocuments, s);
     await vi.waitFor(() => expect(w.text()).toContain("Přečíst znovu bez AI"));
     expect(w.get(".note span[title]").text()).toBe("Čtení bez AI: čitelnost špatná, 3 místa k ověření, laboratorní hodnoty 4 (k ověření 1).");
@@ -153,7 +153,7 @@ describe("Dokumenty", () => {
 describe("Dokumenty, reading without AI", () => {
   it("follows a reading still in progress, so a second one cannot start, and shows missing counts as gaps", async () => {
     const s = setupPatient({ extraction: { syn: { documents: [{ ...DOCS[1], file: "S99_upload.pdf" }], data_gaps: [] } }, routes: { "/documents/S99_upload/pipeline": { run: { state: "running", stage_cs: "OCR" } } } });
-    useSessionStore().me!.features = { pipeline: true };
+    useSessionStore().me!.features = { pipeline: true, keeps_uploads: false };
     const w = mountInCase(TabDocuments, s);
     await vi.waitFor(() => expect(w.text()).toContain("Čte se (OCR)…"));
     const btn = w.findAll("button").find((b) => b.text() === "Čtu…")!;
@@ -161,7 +161,7 @@ describe("Dokumenty, reading without AI", () => {
     w.unmount();
     const done = { state: "done", label_cs: "Čtení bez AI", readability_cs: null, verify_count: 1, diff: { same: 5 } };
     const s2 = setupPatient({ extraction: { syn: { documents: [{ ...DOCS[1], file: "S99_upload.pdf" }], data_gaps: [] } }, routes: { "/documents/S99_upload/pipeline": { run: done } } });
-    useSessionStore().me!.features = { pipeline: true };
+    useSessionStore().me!.features = { pipeline: true, keeps_uploads: false };
     const w2 = mountInCase(TabDocuments, s2);
     await vi.waitFor(() => expect(w2.text()).toContain("Přečíst znovu bez AI"));
     expect(w2.get(".note span[title]").text()).toBe("Čtení bez AI: čitelnost -, 1 místo k ověření; proti předem připraveným datům 5 shodných, - k ověření.");

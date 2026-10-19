@@ -43,10 +43,14 @@ describe("/api/me and /api/staff", () => {
 
   it("reports the document pipeline per org: off in demo org A, on in demo org B with the deployed PIPELINE_ORGS", async () => {
     const deployed = testEnv({ PIPELINE_ORGS: "demo-b" });
-    expect(((await (await call("/api/me", as("d2p1"), deployed)).json()) as any).features).toEqual({ pipeline: false });
-    expect(((await (await call("/api/me", as("b-doc"), deployed)).json()) as any).features).toEqual({ pipeline: true });
+    expect(((await (await call("/api/me", as("d2p1"), deployed)).json()) as any).features).toMatchObject({ pipeline: false });
+    expect(((await (await call("/api/me", as("b-doc"), deployed)).json()) as any).features).toMatchObject({ pipeline: true });
+    // Whether uploads keep their content follows UPLOAD_STORE_ORGS, never for demo org A.
+    const store = testEnv({ PIPELINE_ORGS: "demo-b", UPLOAD_STORE_ORGS: "demo-b,demo-a" });
+    expect(((await (await call("/api/me", as("b-doc"), store)).json()) as any).features).toEqual({ pipeline: true, keeps_uploads: true });
+    expect(((await (await call("/api/me", as("d2p1"), store)).json()) as any).features).toEqual({ pipeline: false, keeps_uploads: false });
     // No page reader at all: off everywhere, whatever the list says.
-    expect(((await (await call("/api/me", as("b-doc"), testEnv({ PIPELINE_ORGS: "*", PAGE_READER_URL: "" }))).json()) as any).features).toEqual({ pipeline: false });
+    expect(((await (await call("/api/me", as("b-doc"), testEnv({ PIPELINE_ORGS: "*", PAGE_READER_URL: "" }))).json()) as any).features).toMatchObject({ pipeline: false });
   });
 
   it("takes the person from the header, then from the cookie", async () => {

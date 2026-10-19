@@ -123,6 +123,7 @@ uploads-added = Nahrané: { $n ->
 uploads-poor-readability = Dokument je zle čitateľný, vyžiadajte lepšiu kópiu.
 uploads-poor-readability-reasons = Dokument je zle čitateľný, vyžiadajte lepšiu kópiu. ({ $reasons })
 uploads-note = Ukážka: asistent nahrané súbory nečíta; okrem pripravených ukážkových dokumentov sa ukladá len názov a veľkosť súboru. V skutočnej prevádzke sa uložia k prípadu a prejdú kontrolou čitateľnosti.
+uploads-note-read = Nahrané PDF a fotografie (JPEG, PNG) sa uložia k prípadu a hneď sa prečítajú bez AI: čítanie strán, kontrola čitateľnosti, laboratórne hodnoty. Iné formáty (napr. Word) sa uložia len ako názov a veľkosť; nahrajte ich ako PDF.
 uploads-note-pipeline = Ukážka: okrem pripravených ukážkových dokumentov sa ukladá len názov a veľkosť súboru. V skutočnej prevádzke sa uložia k prípadu a prejdú kontrolou čitateľnosti.
 
 ## "Nahrať z telefónu"

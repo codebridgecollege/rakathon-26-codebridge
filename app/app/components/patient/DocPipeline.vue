@@ -25,11 +25,16 @@ type Run = {
   diff?: { same?: number; verify?: number; silent?: number; missing?: number };
 };
 
-// The poll interval and the number of polls: about three minutes, each poll a logged read.
+// The poll interval: every 2 s for the first minute, then every 10 s up to about 15 minutes, each poll a logged read.
+// Documents of one case queue on one page reader instance, so a reading started on upload may wait its turn.
 const POLL_MS = 2000;
-const POLLS = 90;
+const POLL_SLOW_MS = 10000;
+const POLLS_FAST = 30;
+const POLLS = 114;
 
 const props = defineProps<{ file: string }>();
+// "settled": a run this component followed has ended, so a list that shows the document's state can load it again.
+const emit = defineEmits<{ settled: [] }>();
 const { $t } = useFluent();
 const session = useSessionStore();
 const id = computed(() => docIdOf(props.file));
@@ -73,14 +78,19 @@ async function start() {
 // Polls until the run ends or about three minutes pass; each poll is a logged read.
 async function poll(mine: number) {
   for (let i = 0; i < POLLS; i++) {
-    await new Promise((r) => setTimeout(r, POLL_MS));
+    await new Promise((r) => setTimeout(r, i < POLLS_FAST ? POLL_MS : POLL_SLOW_MS));
     if (mine !== gen) return;
     const r = await load();
     if (mine !== gen) return;
     if (r) error.value = null;
-    if (r && finished(r)) break;
+    if (r && finished(r)) {
+      emit("settled");
+      break;
+    }
   }
-  if (mine === gen) busy.value = false;
+  // A run still going when polling stops keeps the button off (a second start would only be refused); opening the
+  // document again follows it anew.
+  if (mine === gen && run.value && finished(run.value)) busy.value = false;
 }
 const finished = (r: Run) => r.state === "done" || r.state === "error";
 

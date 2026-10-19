@@ -8,6 +8,7 @@ import { introspectWorkflow } from "cloudflare:test";
 import { call, mockFetch, testEnv } from "./helpers";
 import { FAKE_NAME, loadFixture } from "./data";
 import { sweep } from "../src/scheduled";
+import { allowed } from "@codebridge/domain/roles";
 import { POOL_SIZE, pageReader, pipelineAvailable, pipelineOn, poolInstance } from "../src/services/page-reader";
 
 const q = async <T = Record<string, unknown>>(sql: string, ...args: unknown[]) => (await env.DB.prepare(sql).bind(...args).all<T>()).results;
@@ -60,7 +61,11 @@ function kit({ inspect = () => Response.json({ page_count: 2, encrypted: false, 
   });
 }
 
-async function w(method: string, path: string, body: unknown = {}, user = "d2p1", e = testEnv()) {
+// The pipeline runs for every org in these tests; elsewhere the test env leaves PIPELINE_ORGS empty, so an upload test
+// never starts a run as a side effect.
+const pe = (over: Record<string, string> = {}) => testEnv({ PIPELINE_ORGS: "*", ...over });
+
+async function w(method: string, path: string, body: unknown = {}, user = "d2p1", e = pe()) {
   const r = await call(`/api${path}`, { method, headers: { "content-type": "application/json", "x-demo-user": user, "x-data-epoch": "1" }, body: JSON.stringify(body) }, e);
   return { status: r.status, body: (await r.json()) as any };
 }
@@ -176,10 +181,10 @@ describe("starting a run", () => {
     const again = await w("POST", `/documents/${DOC}/process`);
     expect([again.status, again.body.error.code]).toEqual([409, "pipeline_running"]);
     for (const i of await wf.get()) await i.waitForStatus("complete");
-    const off = await w("POST", `/documents/${DOC}/process`, {}, "d2p1", testEnv({ PAGE_READER_URL: "" }));
+    const off = await w("POST", `/documents/${DOC}/process`, {}, "d2p1", pe({ PAGE_READER_URL: "" }));
     expect([off.status, off.body.error.code]).toEqual([503, "pipeline_off"]);
     // Demo org A is not in the deployed PIPELINE_ORGS: the route answers as if no page reader existed.
-    const notListed = await w("POST", `/documents/${DOC}/process`, {}, "d2p1", testEnv({ PIPELINE_ORGS: "demo-b" }));
+    const notListed = await w("POST", `/documents/${DOC}/process`, {}, "d2p1", pe({ PIPELINE_ORGS: "demo-b" }));
     expect([notListed.status, notListed.body.error.code]).toEqual([503, "pipeline_off"]);
     expect((await w("POST", `/documents/${DOC}/process`, {}, "admin")).status).toBe(403);
     expect((await w("POST", `/documents/${DOC}/process`, {}, "d1p1")).body.error.code).toBe("not_member");
@@ -237,5 +242,63 @@ describe("page reader routing", () => {
     const ns = { getByName: (n: string) => (seen.push(n), { fetch: async () => Response.json({ ok: true, versions: {} }) }) };
     await pageReader.healthz({ ...base, PAGE_READER_CONTAINER: "on", PAGE_READER: ns } as unknown as Env, poolInstance("NO-S02"));
     expect(seen).toEqual([poolInstance("NO-S02")]);
+  });
+});
+
+describe("processing on upload", () => {
+  it("uses the upload's membership check, which holds only while both actions allow the same roles", () => {
+    for (const role of ["doctor", "coordinator", "admin"] as const)
+      for (const ctx of [{ member: true, grant: false }, { member: false, grant: false }, { member: false, grant: true }])
+        expect([role, ctx, allowed({ role } as never, "document.process", ctx)]).toEqual([role, ctx, allowed({ role } as never, "document.upload", ctx)]);
+  });
+
+  const PDF = new TextEncoder().encode("%PDF-1.4 auto " + "x".repeat(64));
+  const send = (e: Env, name = "auto.pdf", caseId = "NO-A") =>
+    call(`/api/cases/${caseId}/documents`, {
+      method: "POST",
+      headers: { "content-type": "application/pdf", "x-demo-user": "d2p1", "x-data-epoch": "1", "x-file-name": name, "content-length": String(PDF.length) },
+      body: PDF,
+    }, e).then(async (r) => ({ status: r.status, body: (await r.json()) as any }));
+
+  it("starts a run on a kept upload where the pipeline runs for the org, and the run reads it", async () => {
+    kit();
+    const wf = await introspectWorkflow(env.PROCESS_DOCUMENT);
+    await using _ = wf;
+    await wf.modifyAll(async (m) => {
+      await m.disableRetryDelays();
+    });
+    const r = await send(pe({ UPLOAD_POLICY: "store_unprocessed" }));
+    expect(r.status).toBe(201);
+    expect(r.body.data.document).toMatchObject({ content_stored: true, state: "queued", state_cs: "zpracovává se" });
+    const id = r.body.data.document.id as string;
+    for (const i of await wf.get()) await i.waitForStatus("complete");
+    expect((await one("SELECT state FROM pipeline_runs WHERE document_id = ?1", id)).state).toBe("done");
+    expect((await one("SELECT state FROM documents WHERE id = ?1", id)).state).toBe("processed");
+    const lines = await q<{ action: string; what_cs: string }>("SELECT action, what_cs FROM access_log WHERE target_id = ?1 ORDER BY id", id);
+    expect(lines.map((l) => l.action)).toEqual(["document.upload", "pipeline.start", "pipeline.done"]);
+    expect(lines[1]!.what_cs).toMatch(/spuštěno po nahrání/);
+  });
+
+  it("starts nothing in an org the pipeline does not run for, for a listed-only file, or in an open intake", async () => {
+    // Demo org A with the deployed PIPELINE_ORGS: stored, as today, and no run.
+    const a = await send(pe({ UPLOAD_POLICY: "store_unprocessed", PIPELINE_ORGS: "demo-b" }));
+    expect(a.body.data.document).toMatchObject({ content_stored: true, state: "stored" });
+    // Only listed (fixtures_only): nothing to read.
+    const b = await send(pe(), "listed.pdf");
+    expect(b.body.data.document).toMatchObject({ content_stored: false, state: "stored" });
+    // An open intake waits for its end.
+    await env.DB.prepare("UPDATE cases SET intake_open = 1, created_by = 'd2p1' WHERE id = 'NO-A'").run();
+    const c = await send(pe({ UPLOAD_POLICY: "store_unprocessed" }), "intake.pdf");
+    expect(c.body.data.document.state).toBe("stored");
+    expect(await q("SELECT id FROM pipeline_runs WHERE document_id IN (?1, ?2, ?3)", a.body.data.document.id, b.body.data.document.id, c.body.data.document.id)).toEqual([]);
+    // Its end starts the reading of what the prepared data did not cover (here: no prepared data at all).
+    kit();
+    const wf = await introspectWorkflow(env.PROCESS_DOCUMENT);
+    await using _ = wf;
+    const done = await w("POST", "/cases/NO-A/intake/complete");
+    expect(done.status).toBe(200);
+    expect((await one("SELECT state FROM documents WHERE id = ?1", c.body.data.document.id)).state).toBe("queued");
+    expect((await q("SELECT id FROM pipeline_runs WHERE document_id = ?1", c.body.data.document.id)).length).toBe(1);
+    for (const i of await wf.get()) await i.waitForStatus("complete");
   });
 });
