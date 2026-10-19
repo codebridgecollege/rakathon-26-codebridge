@@ -1054,6 +1054,22 @@ rules) are not built.
     `pipeline/`, checks `/healthz` (Tesseract 5.3.0, the Czech model), reads
     one page of an S02 lab sheet through `/v1/pages`, and runs the pytest
     suite inside the image, so the tests run on the deployed Tesseract.
+  - **The container's Tesseract against the local one** (`pipeline/measure_ocr.py`, CI job `image` of
+    `.github/workflows/pipeline.yml`, run 39222187767; baseline `pipeline/measurements/tesseract-5.5.3-local.json`).
+    Live OCR of the 35 calibration pages and S02's four lab sheet uploads, counts only:
+
+    | | local 5.5.3 | container 5.3.0 |
+    |---|---|---|
+    | 35 pages good / fair / empty / poor | 12 / 22 / 1 / 0 | 14 / 20 / 1 / 0 |
+    | S01 lab pages: same / verify / silent / missing | 30 / 20 / 0 / 2 | 31 / 21 / 0 / 0 |
+    | S02 lab sheets: same / verify / silent / missing | 41 / 31 / 0 / 0 | 44 / 27 / 0 / 1 |
+    | "ověřit" marks, all pages | 286 | 288 |
+
+    Every missing point is listed by the parser as only in the PDF text layer, with its code (5.5.3: S01 S_AST on
+    pages 3 and 4; 5.3.0: S02 page 5 B_NEU), so the doctor sees it marked; none is silent on either build. Two pages
+    read better in the container (19_pacient p1 and S01 p3 fair to good). The thresholds stay: the container's
+    lowest page mean confidence is 83.9 (poor below 75) and its highest low-confidence share 10.6 % (poor above
+    15 %). The live-OCR tests accept a point listed from the text layer in place of a lost one.
   - **Instances by case.** Calls name an instance from a pool of three by a
     hash of the case ID (`poolInstance`; `POOL_SIZE` equals `max_instances`):
     however many documents run at once, at most three instances start, and
