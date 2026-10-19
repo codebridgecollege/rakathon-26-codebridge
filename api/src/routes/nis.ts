@@ -19,6 +19,12 @@ import { openCase } from "./access-check";
 import { nisFragment } from "@codebridge/domain/nis-map";
 import { deleteNisImport, readNisImport, writeNisImport } from "../store/nis";
 import { uploadContext } from "../store/documents";
+import { storeFile, type UploadCtx } from "./documents";
+import type { NisDocument } from "@codebridge/domain/nis-map";
+import { limitOrThrow } from "../http/rate-limit";
+import { ApiError, numVar } from "../http/errors";
+import { DomainError } from "@codebridge/domain/errors";
+import { MAX_DOCUMENTS_PER_CASE } from "../domain/documents";
 import { pipelineListed } from "../services/page-reader";
 import { startCaseMerge } from "../workflows/process-case";
 
@@ -32,6 +38,7 @@ const PULL_CS: Record<Pull["op"], string> = {
   record: "načítal(a) zdravotní záznam pacienta z NIS",
   view: "otevřel(a) zdroj údaje v NIS (záznam z NIS)",
   record_changes: "zjišťoval(a) změny záznamu pacienta v NIS",
+  document: "načetl(a) dokument pacienta z NIS",
 };
 const LINK_CS = {
   matches: "propojil(a) pacienta se záznamem v NIS (rodné číslo i jméno souhlasí)",
@@ -81,6 +88,187 @@ const versionKey = (r: Record<string, any>) =>
 const INSTANT = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2})$/;
 // How old the last full pull may be before a refresh pulls everything again (a deleted record drops out only then).
 const FULL_PULL_MS = 24 * 3600 * 1000;
+
+// ---------- NIS documents (phase 2b) ----------
+
+type DocImport = { imported: number; superseded: number; skipped: number; declined: number; more: boolean };
+// Binaries read per import call: a large record is taken over in several clicks, each in a request's time and memory.
+const DOCS_PER_IMPORT = 10;
+// What storeFile keeps as content (fileKind): a PDF, or a JPEG or PNG photo of a page.
+const DOC_TYPES: Record<string, string> = { "application/pdf": ".pdf", "image/jpeg": ".jpg", "image/png": ".png" };
+
+// A reference relative to this NIS ("Type/id") or absolute within it, without its version; anything else is null.
+function localRef(url: string | null | undefined, base: string, type: string): string | null {
+  const s = (url ?? "").replace(/\/_history\/[^/]+$/, "");
+  const local = s.startsWith(`${base}/`) ? s.slice(base.length + 1) : s;
+  const m = new RegExp(`^${type}/([A-Za-z0-9\\-.]{1,64})$`).exec(local);
+  return m && isFhirId(m[1]!) ? `${type}/${m[1]}` : null;
+}
+
+// A file name from the document's title and its NIS ID (so two documents with the same title stay two files),
+// without characters a file system or a header would refuse, and without dots that would split it before the type.
+const nisFileName = (d: NisDocument, ext: string) => {
+  const title = (d.title ?? "dokument z NIS").replace(/[\\/:*?"<>|\u0000-\u001f.]+/g, " ").replace(/\s+/g, " ").trim().slice(0, 100) || "dokument z NIS";
+  return `${title} (NIS ${d.resource.slice("DocumentReference/".length)})${ext}`;
+};
+
+function b64bytes(s: string): Uint8Array {
+  const bin = atob(s.replace(/\s+/g, ""));
+  const out = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  return out;
+}
+
+type Held = { nis_resource: string; nis_version: string; document_id: string | null; lifecycle: string | null; state: string | null; kept: number | null };
+
+/**
+ * Takes the record's current documents into the case as uploads (routes/documents.ts storeFile: the same policy,
+ * identity check, access-log line and automatic processing), records each version it took over (nis_documents), and
+ * retires a document the NIS replaced. Runs on every import call from the documents the last full pull found, so the
+ * ones a call could not take (the per-call limit, a failed read) come in on the next click.
+ *
+ * - A version already taken over is skipped. A DocumentReference the case declined is never taken over again: its
+ *   document was withdrawn as another patient's, or deleted from the case.
+ * - A superseded or entered-in-error DocumentReference is not taken over.
+ * - A document that replaces another (relatesTo replaces), or a newer version of the same DocumentReference, makes the
+ *   older document "superseded" by it, only when the new one's content is kept (a replacement nothing can read must not
+ *   push out one the case can) and the old one is current and not prepared (a prepared fixture's data is not rebuilt).
+ */
+async function importNisDocuments(c: Context<AppEnv>, caseId: string, system: string, nis: NisClient, u: UploadCtx, breakGlass: string | null, list: NisDocument[]): Promise<DocImport> {
+  const v = c.var.viewer;
+  const max = numVar(c.env.UPLOAD_MAX_BYTES);
+  const heldNow = async () =>
+    (
+      await orgQuery(
+        c,
+        `SELECT n.nis_resource, n.nis_version, n.document_id, d.lifecycle, d.state, (d.original_r2_key IS NOT NULL) AS kept
+           FROM nis_documents n LEFT JOIN documents d ON d.org_id = n.org_id AND d.id = n.document_id
+          WHERE n.org_id = ?org AND n.case_id = ?1 AND n.nis_system = ?2`,
+        caseId,
+        system,
+      ).all<Held>()
+    ).results;
+  let held = await heldNow();
+  const declined = new Set(held.filter((h) => h.document_id === null || h.lifecycle === "withdrawn").map((h) => h.nis_resource));
+  const out: DocImport = { imported: 0, superseded: 0, skipped: 0, declined: 0, more: false };
+  let reads = 0;
+  let count = u.doc_count;
+  for (const d of list) {
+    if ((d.status ?? "current") !== "current") continue;
+    const version = d.version ?? "";
+    if (held.some((h) => h.nis_resource === d.resource && h.nis_version === version)) continue;
+    if (declined.has(d.resource)) {
+      out.declined++;
+      continue;
+    }
+    const ext = DOC_TYPES[(d.content_type ?? "").split(";")[0]!.trim().toLowerCase()];
+    const bin = localRef(d.attachment_url, system, "Binary");
+    if (!ext || !bin) {
+      out.skipped++;
+      continue;
+    }
+    // Every read counts against the per-call limit, also one that finds nothing; the rest comes on the next click.
+    if (reads >= DOCS_PER_IMPORT || count >= MAX_DOCUMENTS_PER_CASE) {
+      out.more = true;
+      break;
+    }
+    reads++;
+    // An attachment the NIS says is too large is listed like an oversized upload, never fetched.
+    let bytes: Uint8Array | null = null;
+    let declared = d.size ?? 0;
+    try {
+      if (d.size === null || d.size <= max) {
+        const b = await nis.read("Binary", bin.slice("Binary/".length), { op: "document", resource: d.resource }, Math.ceil(max * 1.4) + 4096);
+        // A Binary that names another patient in its security context is not this patient's document.
+        const ctx = b?.securityContext?.reference;
+        if (ctx && !localRef(ctx, system, "Patient")?.endsWith(`/${(await linkPatient(c, caseId)) ?? "-"}`) && !localRef(ctx, system, "DocumentReference")) {
+          out.skipped++;
+          continue;
+        }
+        if (typeof b?.data !== "string") {
+          out.skipped++;
+          continue;
+        }
+        bytes = b64bytes(b.data);
+        declared = bytes.length;
+        if (declared > max) bytes = null;
+      }
+    } catch (e) {
+      // One bad Binary does not end the import: it is counted, and the next click tries it again.
+      if (e instanceof ApiError && e.code === "nis_too_large") bytes = null;
+      else {
+        out.skipped++;
+        out.more = true;
+        continue;
+      }
+    }
+    const record = (t: { run: (sql: string, ...args: unknown[]) => unknown }, docId: string) =>
+      t.run("INSERT INTO nis_documents (org_id, case_id, nis_system, nis_resource, nis_version, document_id) VALUES (?org, ?1, ?2, ?3, ?4, ?5)", caseId, system, d.resource, version, docId);
+    try {
+      const r = await storeFile(c, caseId, u, breakGlass, null, { bytes, declared, name: nisFileName(d, ext), contentType: d.content_type }, record);
+      // The same bytes already in the case (an earlier version, or uploaded by hand): that document stands for this
+      // version too.
+      if (r.repeat)
+        await orgQuery(
+          c,
+          "INSERT OR IGNORE INTO nis_documents (org_id, case_id, nis_system, nis_resource, nis_version, document_id) VALUES (?org, ?1, ?2, ?3, ?4, ?5)",
+          caseId, system, d.resource, version, r.docId,
+        ).run();
+      else {
+        out.imported++;
+        count++;
+      }
+    } catch (e) {
+      // A parallel import took the same version (its provenance row), or the case filled up or was locked meanwhile:
+      // counted, and the next click sees where things stand.
+      console.error(JSON.stringify({ route: "nis.import", document: e instanceof DomainError || e instanceof ApiError ? e.code : "failed" }));
+      out.skipped++;
+      out.more = true;
+    }
+  }
+
+  // Retire what the NIS replaced, over everything held (so a retirement that failed on an earlier click is done now).
+  held = await heldNow();
+  const byResource = (res: string) => held.filter((h) => h.nis_resource === res && h.document_id);
+  const now = isoNow();
+  for (const d of list) {
+    if ((d.status ?? "current") !== "current") continue;
+    const mine = held.find((h) => h.nis_resource === d.resource && h.nis_version === (d.version ?? "") && h.document_id && h.lifecycle === "current" && h.kept);
+    if (!mine) continue;
+    const replaced = d.replaces.map((x) => localRef(x, system, "DocumentReference")).filter((x): x is string => !!x);
+    const old = [...replaced.flatMap(byResource), ...byResource(d.resource).filter((h) => h.nis_version !== (d.version ?? ""))].filter(
+      (h) => h.document_id !== mine.document_id && h.lifecycle === "current" && h.state !== "prepared",
+    );
+    for (const o of new Map(old.map((x) => [x.document_id!, x])).values()) {
+      const t = tx(c, breakGlass);
+      // Checked again in the batch: only a still-current, unprepared document is retired, so nothing else is logged.
+      t.guard("current", "(SELECT lifecycle = 'current' AND COALESCE(state, '') <> 'prepared' FROM documents WHERE org_id = ?org AND id = ?)", [o.document_id], () => D.conflict());
+      t.run(
+        `UPDATE documents SET lifecycle = 'superseded', superseded_by = ?1, lifecycle_reason_cs = 'nahrazeno opravenou verzí v NIS', lifecycle_changed_at = ?2, lifecycle_changed_by = ?3
+         WHERE org_id = ?org AND id = ?4 AND case_id = ?5 AND lifecycle = 'current'`,
+        mine.document_id, now, v.actor?.id ?? v.id, o.document_id, caseId,
+      );
+      t.audit({ action: "document.supersede", what_cs: "dokument nahrazen opravenou verzí z NIS", case_id: caseId, target_type: "document", target_id: o.document_id });
+      try {
+        await t.commit();
+        out.superseded++;
+      } catch {
+        console.error(JSON.stringify({ route: "nis.import", supersede: "refused" }));
+      }
+    }
+  }
+  return out;
+}
+
+// The NIS patient ID the case is linked to now, for the Binary's security context check.
+async function linkPatient(c: Context<AppEnv>, caseId: string): Promise<string | null> {
+  const row = await orgQuery(
+    c,
+    "SELECT l.nis_patient_id FROM patient_nis_links l JOIN cases k ON k.patient_id = l.patient_id AND k.org_id = l.org_id WHERE k.org_id = ?org AND k.id = ?1",
+    caseId,
+  ).first<{ nis_patient_id: string }>();
+  return row?.nis_patient_id ?? null;
+}
 
 const hasRowNumber = (p: PatientRow) => !!p.birth_number?.trim();
 
@@ -145,7 +333,7 @@ export const nis = new Hono<AppEnv>()
   // a merge whose start failed is retried by the next click.
   .post("/cases/:id/nis/import", async (c) => {
     const id = c.req.param("id");
-    const { cfg, link } = await context(c, id, "import z NIS");
+    const { cfg, link, breakGlass } = await context(c, id, "import z NIS");
     if (!link) throw D.nisNotLinked();
     const v = c.var.viewer;
     // Only where the case merge runs: elsewhere nothing would show the import, and it is refused rather than stored
@@ -165,22 +353,38 @@ export const nis = new Hono<AppEnv>()
     }
     let facts: number | null = null;
     let truncated: string[] = [];
+    let docList: NisDocument[] = before?.state.documents ?? [];
     if (full) {
       const rec = await nis.patientRecord(link.nis_patient_id);
       const at = isoNow();
       const importId = `nis-${id}-${at}`;
-      const { fragment } = nisFragment({ system: cfg!.base_url, resources: rec.resources, importId, truncated: rec.truncated });
+      const { fragment, mapped } = nisFragment({ system: cfg!.base_url, resources: rec.resources, importId, truncated: rec.truncated });
       // Only a well-formed instant becomes the next refresh's "since": the connector refuses anything else.
       const newest = rec.resources.map((r) => (typeof r.meta?.lastUpdated === "string" ? r.meta.lastUpdated : "")).filter((x) => INSTANT.test(x)).sort().at(-1) ?? null;
       await writeNisImport(c.env.DOCS, v.org, id, {
         fragment,
-        state: { nis_system: cfg!.base_url, nis_patient_id: link.nis_patient_id, link_at: link.at, newest_update: newest, imported_at: at, import_id: importId, read: rec.resources.map(versionKey), truncated: rec.truncated },
+        state: {
+          nis_system: cfg!.base_url,
+          nis_patient_id: link.nis_patient_id,
+          link_at: link.at,
+          newest_update: newest,
+          imported_at: at,
+          import_id: importId,
+          read: rec.resources.map(versionKey),
+          truncated: rec.truncated,
+          documents: mapped.documents,
+        },
       });
       facts = fragment.facts.length;
       truncated = rec.truncated;
+      docList = mapped.documents;
     }
+    // The record's documents go in as uploads, on every call, so what one call could not take comes in on the next.
+    // Each one counts against the upload rate limit, as a file brought by hand would.
+    if (docList.length) await limitOrThrow(c, "RL_UPLOAD");
+    const docs = await importNisDocuments(c, id, cfg!.base_url, nis, u, breakGlass, docList);
     const started = await startCaseMerge(c.env, { org: v.org, caseId: id, by: v.id, byActor: v.actor?.id ?? null });
-    return answer(c, { changed: full, facts, truncated, merge_started: started });
+    return answer(c, { changed: full, facts, truncated, documents: docs, merge_started: started });
   })
   .post("/cases/:id/nis/search", async (c) => {
     const id = c.req.param("id");

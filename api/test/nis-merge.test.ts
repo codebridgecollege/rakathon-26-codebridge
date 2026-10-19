@@ -169,3 +169,159 @@ describe("NIS import into the case run", () => {
     expect(fhir.requests).toHaveLength(0);
   });
 });
+
+describe("NIS documents into the case", () => {
+  // A minimal PDF, so the upload path keeps it as a PDF.
+  const pdf = (marker: string) => btoa(`%PDF-1.4\n% ${marker}\n1 0 obj << >> endobj\ntrailer << >>\n%%EOF\n`);
+  const docEnv = (over: Record<string, unknown> = {}) => nisEnv({ UPLOAD_POLICY: "fixtures_only", UPLOAD_STORE_ORGS: "demo-b", PAGE_READER_URL: "", ...over });
+  const loadDoc = (id: string, marker: string, extra: Record<string, unknown> = {}) =>
+    fhir.load({
+      resourceType: "Bundle",
+      type: "transaction",
+      entry: [
+        { resource: { resourceType: "Binary", id: `${id}-bin`, contentType: "application/pdf", data: pdf(marker) }, request: { method: "PUT", url: `Binary/${id}-bin` } },
+        {
+          resource: {
+            resourceType: "DocumentReference", id, status: "current", subject: { reference: "Patient/cb-s01" }, description: "Ambulantní zpráva",
+            context: { period: { start: "2026-10-06" } }, content: [{ attachment: { contentType: "application/pdf", url: `Binary/${id}-bin` } }], ...extra,
+          },
+          request: { method: "PUT", url: `DocumentReference/${id}` },
+        },
+      ],
+    });
+  const docRows = () =>
+    env.DB.prepare("SELECT d.id, d.origin, d.lifecycle, d.superseded_by, d.state, d.original_r2_key IS NOT NULL AS kept, n.nis_resource, n.nis_version FROM documents d JOIN nis_documents n ON n.document_id = d.id AND n.org_id = d.org_id WHERE d.org_id = 'demo-b' AND d.case_id = 'B-NO-A' ORDER BY d.created_at, d.id").all<Record<string, any>>();
+
+  it("takes the record's PDF in as an upload, records where it came from, and skips it on the next import", async () => {
+    loadDoc("dr-1", "first");
+    const r = await w("POST", "/cases/B-NO-A/nis/import", "b-doc", docEnv());
+    expect(r.status).toBe(200);
+    // S01's own DocumentReference has no Binary in the test data (its PDF bytes are left out), so only dr-1 comes in.
+    expect(r.body.data!.documents).toMatchObject({ imported: 1, superseded: 0 });
+    const rows = (await docRows()).results;
+    expect(rows).toMatchObject([{ origin: "upload", lifecycle: "current", kept: 1, nis_resource: "DocumentReference/dr-1", nis_version: "1" }]);
+    // The access log names the document read, not its content.
+    const log = (await env.DB.prepare("SELECT action, target_id FROM access_log WHERE org_id = 'demo-b' AND action IN ('nis.document','document.upload') ORDER BY id").all()).results;
+    // One row per document read (S01's own, whose Binary is missing, is logged as the attempt it was) and the upload.
+    expect(log).toEqual(
+      expect.arrayContaining([
+        { action: "nis.document", target_id: "DocumentReference/cb-s01-doc-all" },
+        { action: "nis.document", target_id: "DocumentReference/dr-1" },
+        { action: "document.upload", target_id: rows[0]!.id },
+      ]),
+    );
+    expect(log).toHaveLength(3);
+    // Nothing changed in the NIS: no second copy.
+    const again = await w("POST", "/cases/B-NO-A/nis/import", "b-doc", docEnv());
+    expect(again.body.data!.changed).toBe(false);
+    expect((await docRows()).results).toHaveLength(1);
+  });
+
+  // The next import pulls everything again, as a day after the last full pull.
+  const ageImport = async () => {
+    const k = nisImportKey("demo-b", "B-NO-A");
+    const x = (await (await env.DOCS.get(k))!.json()) as { state: { imported_at: string } };
+    x.state.imported_at = "2026-01-01T00:00:00.000Z";
+    await env.DOCS.put(k, JSON.stringify(x));
+  };
+
+  it("takes a large record in over several clicks", async () => {
+    for (let i = 0; i < 12; i++) loadDoc(`dr-m${String(i).padStart(2, "0")}`, `m${i}`);
+    const first = await w("POST", "/cases/B-NO-A/nis/import", "b-doc", docEnv());
+    // Ten reads per click (S01's own document, without a Binary in the test data, is one of them).
+    expect(first.body.data!.documents).toMatchObject({ imported: 9, more: true });
+    const second = await w("POST", "/cases/B-NO-A/nis/import", "b-doc", docEnv());
+    expect(second.body.data).toMatchObject({ changed: false });
+    expect(second.body.data!.documents).toMatchObject({ imported: 3, more: false });
+    expect((await docRows()).results).toHaveLength(12);
+  });
+
+  it("never takes back a document the case declined: withdrawn as another patient's, or deleted", async () => {
+    loadDoc("dr-1", "first");
+    loadDoc("dr-2", "second");
+    await w("POST", "/cases/B-NO-A/nis/import", "b-doc", docEnv());
+    const rows = (await docRows()).results;
+    await env.DB.prepare("UPDATE documents SET lifecycle = 'withdrawn', lifecycle_changed_at = '2026-10-19T09:00:00.000Z', lifecycle_changed_by = 'b-doc' WHERE id = ?1").bind(rows[0]!.id).run();
+    expect((await w("DELETE", `/documents/${rows[1]!.id}`, "b-doc", docEnv())).status).toBe(200);
+    // A new version of both in the NIS, and a full pull.
+    clock = "2026-10-20T08:00:00.000Z";
+    loadDoc("dr-1", "first again");
+    loadDoc("dr-2", "second again");
+    await ageImport();
+    const r = await w("POST", "/cases/B-NO-A/nis/import", "b-doc", docEnv());
+    expect(r.body.data!.documents).toMatchObject({ imported: 0, declined: 2, superseded: 0 });
+    expect((await env.DB.prepare("SELECT COUNT(*) AS n FROM documents WHERE org_id = 'demo-b' AND case_id = 'B-NO-A' AND origin = 'upload' AND lifecycle = 'current'").first<{ n: number }>())!.n).toBe(0);
+    expect((await env.DB.prepare("SELECT COUNT(*) AS n FROM access_log WHERE org_id = 'demo-b' AND action = 'document.supersede'").first<{ n: number }>())!.n).toBe(0);
+  });
+
+  it("keeps two documents with the same title apart where content is not kept, and skips what it cannot store", async () => {
+    loadDoc("dr-a", "a");
+    loadDoc("dr-b", "b");
+    fhir.load({
+      resourceType: "Bundle",
+      type: "transaction",
+      entry: [
+        { resource: { resourceType: "DocumentReference", id: "dr-txt", status: "current", subject: { reference: "Patient/cb-s01" }, content: [{ attachment: { contentType: "text/plain", url: "Binary/x" } }] }, request: { method: "PUT", url: "DocumentReference/dr-txt" } },
+        { resource: { resourceType: "DocumentReference", id: "dr-err", status: "entered-in-error", subject: { reference: "Patient/cb-s01" }, content: [{ attachment: { contentType: "application/pdf", url: "Binary/dr-a-bin" } }] }, request: { method: "PUT", url: "DocumentReference/dr-err" } },
+      ],
+    });
+    const r = await w("POST", "/cases/B-NO-A/nis/import", "b-doc", docEnv({ UPLOAD_STORE_ORGS: "" }));
+    expect(r.body.data!.documents).toMatchObject({ imported: 2 });
+    expect((await docRows()).results.map((x) => x.nis_resource).sort()).toEqual(["DocumentReference/dr-a", "DocumentReference/dr-b"]);
+  });
+
+  it("lists an attachment the NIS says is too large without fetching it", async () => {
+    loadDoc("dr-big", "big", { content: [{ attachment: { contentType: "application/pdf", url: "Binary/dr-big-bin", size: 50_000_000 } }] });
+    const r = await w("POST", "/cases/B-NO-A/nis/import", "b-doc", docEnv());
+    expect(r.body.data!.documents).toMatchObject({ imported: 1 });
+    expect((await docRows()).results).toMatchObject([{ nis_resource: "DocumentReference/dr-big", kept: 0 }]);
+    expect(fhir.requests.some((x) => x.url.endsWith("/Binary/dr-big-bin"))).toBe(false);
+  });
+
+  it("retires each replaced version once along a chain", async () => {
+    loadDoc("dr-1", "v1");
+    await w("POST", "/cases/B-NO-A/nis/import", "b-doc", docEnv());
+    clock = "2026-10-20T08:00:00.000Z";
+    loadDoc("dr-2", "v2", { relatesTo: [{ code: "replaces", target: { reference: "DocumentReference/dr-1/_history/1" } }] });
+    expect((await w("POST", "/cases/B-NO-A/nis/import", "b-doc", docEnv())).body.data!.documents).toMatchObject({ imported: 1, superseded: 1 });
+    clock = "2026-10-21T08:00:00.000Z";
+    loadDoc("dr-3", "v3", { relatesTo: [{ code: "replaces", target: { reference: "DocumentReference/dr-2" } }] });
+    expect((await w("POST", "/cases/B-NO-A/nis/import", "b-doc", docEnv())).body.data!.documents).toMatchObject({ imported: 1, superseded: 1 });
+    expect((await docRows()).results.map((x) => x.lifecycle)).toEqual(["superseded", "superseded", "current"]);
+  });
+
+  it("retires the document the NIS replaced, as superseded by the new version", async () => {
+    loadDoc("dr-1", "first");
+    await w("POST", "/cases/B-NO-A/nis/import", "b-doc", docEnv());
+    clock = "2026-10-20T08:00:00.000Z";
+    fhir.load({ resourceType: "Bundle", type: "transaction", entry: [{ resource: { ...(await (await fhir.handle(new Request(`${BASE}/DocumentReference/dr-1`))).json() as object), status: "superseded" }, request: { method: "PUT", url: "DocumentReference/dr-1" } }] });
+    loadDoc("dr-2", "corrected", { relatesTo: [{ code: "replaces", target: { reference: "DocumentReference/dr-1" } }] });
+    const r = await w("POST", "/cases/B-NO-A/nis/import", "b-doc", docEnv());
+    expect(r.body.data!.documents).toMatchObject({ imported: 1, superseded: 1 });
+    const rows = (await docRows()).results;
+    expect(rows.map((x) => [x.nis_resource, x.lifecycle])).toEqual([
+      ["DocumentReference/dr-1", "superseded"],
+      ["DocumentReference/dr-2", "current"],
+    ]);
+    expect(rows[0]!.superseded_by).toBe(rows[1]!.id);
+  });
+
+  it("starts the document pipeline for it where the pipeline runs, as for an upload", async () => {
+    loadDoc("dr-1", "first");
+    await using docs = await introspectWorkflow(env.PROCESS_DOCUMENT);
+    await w("POST", "/cases/B-NO-A/nis/import", "b-doc", docEnv({ PAGE_READER_URL: "https://page-reader.test" }));
+    const rows = (await docs.get(), (await docRows()).results);
+    // Started like an upload: a pipeline run for it, and it left "stored" (the run may already be under way).
+    expect(rows[0]!.state).not.toBe("stored");
+    expect((await env.DB.prepare("SELECT COUNT(*) AS n FROM pipeline_runs WHERE org_id = 'demo-b' AND document_id = ?1").bind(rows[0]!.id).first<{ n: number }>())!.n).toBe(1);
+  });
+
+  it("never fetches an attachment outside this NIS, and lists a document the org does not keep without content", async () => {
+    loadDoc("dr-x", "far", { content: [{ attachment: { contentType: "application/pdf", url: "https://elsewhere.example/Binary/b" } }] });
+    loadDoc("dr-1", "first");
+    const r = await w("POST", "/cases/B-NO-A/nis/import", "b-doc", docEnv({ UPLOAD_STORE_ORGS: "" }));
+    expect(r.body.data!.documents).toMatchObject({ imported: 1 });
+    expect(fhir.requests.some((x) => x.url.includes("elsewhere"))).toBe(false);
+    expect((await docRows()).results).toMatchObject([{ nis_resource: "DocumentReference/dr-1", kept: 0 }]);
+  });
+});
