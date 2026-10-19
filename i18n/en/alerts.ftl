@@ -12,16 +12,21 @@ alert-mdt-question-missing = Explicit question for the MDT { -gap-not-stated-f }
 
 alert-suspicion-not-verified = Suspicion without histological or other confirmation in the available documentation: { $fact }
 
-alert-document-date-not-stated = Document date { -gap-not-stated }: { $document }
+alert-document-date-not-stated = Date of the document { $document }: { -gap-not-stated }
 
-alert-lab-draw-date-not-stated = Lab sample date { -gap-not-stated }: { $document }
+alert-lab-draw-date-not-stated = Sample date of the lab values in { $document }: { -gap-not-stated }
 
-alert-reading-uncertain = Uncertain reading, { -trust-verify-reading }: { $fact }
+alert-reading-uncertain = Uncertain reading: { $fact }
 
 alert-patient-field-missing = { $field ->
     [age] Age
-   *[birth_number] Birth number
+    [birth_number] Birth number
+   *[other] Patient detail
 }: { -gap-not-stated }
+
+alert-consultation-form-missing = Consultation form not found in the available documentation.
+
+alert-comparison-imaging-missing = No earlier examination for comparison found in the available documentation: { $fact }
 
 alert-exam-attribution-unclear = Unclear which examination the finding belongs to: { $fact }
 
@@ -33,4 +38,4 @@ alert-cycles-differ = The number of indicated and documented cycles differs: { $
 
 alert-page-order-unclear = The page order and the latest conclusion of the document are not clear: { $document }
 
-alert-dosing-contradiction = Different dosing of the same drug: { $fact_a }; { $fact_b }
+alert-dosing-differs = The dosing of a drug differs between parts of the documentation: { $fact_a }; { $fact_b }

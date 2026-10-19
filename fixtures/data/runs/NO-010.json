@@ -50,25 +50,12 @@
    "reading_check": null
   },
   {
-   "id": "src-28889161",
+   "id": "src-cccedd9e",
    "type": "document",
    "document_id": "10_pacient",
    "part": "10_pacient/p0",
    "page": 1,
-   "quote": "2.6.2022 - stp. transperitoneálni nefrektomii vpravo s retroperitoneálni\nlymfadenektomii",
-   "quote_text": "pdf_text",
-   "anchor": null,
-   "reported_as": "original",
-   "identity": "matches",
-   "reading_check": null
-  },
-  {
-   "id": "src-078a1b6a",
-   "type": "document",
-   "document_id": "10_pacient",
-   "part": "10_pacient/p0",
-   "page": 1,
-   "quote": "Histol. světlobuněčný renální adenokarcinom G2, pT2a pN1(3+/5) MO",
+   "quote": "2.6.2022 - stp. transperitoneálni nefrektomii vpravo s retroperitoneálni\nlymfadenektomii\nHistol. světlobuněčný renální adenokarcinom G2, pT2a pN1(3+/5) MO",
    "quote_text": "pdf_text",
    "anchor": null,
    "reported_as": "cited",
@@ -656,12 +643,12 @@
    "reading_check": null
   },
   {
-   "id": "src-798a5eac",
+   "id": "src-fd8eb901",
    "type": "document",
    "document_id": "10_pacient",
    "part": "10_pacient/p0",
    "page": 2,
-   "quote": "Další restaging. 3/2022, kde patol.\nmediastinální a plicní hilová lymfadenopatie",
+   "quote": "Další restaging. 3/2022, kde patol.\nmediastinální a plicní hilová lymfadenopatie charakteru hypervaskularizovaných mts.",
    "quote_text": "pdf_text",
    "anchor": null,
    "reported_as": "cited",
@@ -2337,7 +2324,7 @@
    "note": "Datum je datum operace; datum histologického nálezu neuvedeno. Původní histologická zpráva v PDF není, jen citace ve zprávě.",
    "quarantined": false,
    "sources": [
-    "src-078a1b6a"
+    "src-cccedd9e"
    ]
   },
   {
@@ -2373,7 +2360,7 @@
    "note": "Patologické TNM (pT, pN) z nefrektomie 2.6.2022, 3 z 5 uzlin pozitivní; M0 jen dle vstupní dokumentace. Stadium při diagnóze, ne aktuální stav.",
    "quarantined": false,
    "sources": [
-    "src-078a1b6a"
+    "src-cccedd9e"
    ]
   },
   {
@@ -2490,7 +2477,7 @@
    "note": null,
    "quarantined": false,
    "sources": [
-    "src-28889161"
+    "src-cccedd9e"
    ]
   },
   {
@@ -2643,7 +2630,7 @@
    "value": {
     "modality": "CT nativně a kontrastně",
     "region": "břicho a malá pánev",
-    "finding_text": "spíše lymfokéla po lymfadenektomii (ohraničená kolekce tekutiny do 36 mm paraaortálně vlevo v úrovni L2-3) než nová zvětšená lymfatická uzlina",
+    "finding_text": "suspektní lymfokéla po lymfadenektomii, spíše ohraničená kolekce tekutiny do 36 mm vlevo paraaortálně v úrovni L2-3 než nová zvětšená uzlina",
     "response": null
    },
    "date": {
@@ -2728,7 +2715,7 @@
    "note": null,
    "quarantined": false,
    "sources": [
-    "src-798a5eac"
+    "src-fd8eb901"
    ]
   },
   {
@@ -3384,9 +3371,9 @@
    "subject": "patient",
    "value": {
     "site": "mediastinální a plicní hilové lymfatické uzliny",
-    "status": "confirmed",
+    "status": "suspected",
     "basis": "imaging",
-    "text": "hypervaskularizované, charakteru metastáz"
+    "text": "jsou hypervaskularizované mts charakteru"
    },
    "date": {
     "as_written": "6.3.2023",
@@ -3433,64 +3420,6 @@
    "quarantined": false,
    "sources": [
     "src-f61e0036"
-   ]
-  },
-  {
-   "id": "f-c96b1fbe",
-   "key": "metastasis|kůže glabely|2025-02-11",
-   "kind": "metastasis",
-   "subject": "patient",
-   "value": {
-    "site": "kůže glabely",
-    "status": "excluded",
-    "basis": "histology",
-    "text": "sebaceom, bez nádorových změn"
-   },
-   "date": {
-    "as_written": "11.2.2025",
-    "precision": "day",
-    "sort": "2025-02-11"
-   },
-   "status": "documented",
-   "negated": true,
-   "not_stated": [],
-   "origin": "document",
-   "certainty": "clear",
-   "certainty_reason": null,
-   "codes": [],
-   "note": null,
-   "quarantined": false,
-   "sources": [
-    "src-2d644a71"
-   ]
-  },
-  {
-   "id": "f-aee31817",
-   "key": "metastasis|nová ložiska|2026-04-28",
-   "kind": "metastasis",
-   "subject": "patient",
-   "value": {
-    "site": "nová ložiska",
-    "status": "excluded",
-    "basis": "imaging",
-    "text": "nová ložiska nepřibyla"
-   },
-   "date": {
-    "as_written": "28.4.2026",
-    "precision": "day",
-    "sort": "2026-04-28"
-   },
-   "status": "documented",
-   "negated": true,
-   "not_stated": [],
-   "origin": "document",
-   "certainty": "clear",
-   "certainty_reason": null,
-   "codes": [],
-   "note": null,
-   "quarantined": false,
-   "sources": [
-    "src-ecf2dfa3"
    ]
   },
   {
@@ -3583,13 +3512,13 @@
    ]
   },
   {
-   "id": "f-08bf0d6d",
-   "key": "systemic_therapy|nivolumab 3 mg/kg + ipilimumab 1 mg/kg q3w|line:1|start:27.3.2023",
+   "id": "f-cb75a876",
+   "key": "systemic_therapy|nivolumab 3 mg/kg + ipilimumab 1 mg/kg q3w|line:none|start:27.3.2023",
    "kind": "systemic_therapy",
    "subject": "patient",
    "value": {
     "regimen": "nivolumab 3 mg/kg + ipilimumab 1 mg/kg q3w",
-    "line": 1,
+    "line": null,
     "start": "27.3.2023",
     "stop": null,
     "reason_stopped": null,
@@ -3603,17 +3532,15 @@
    "status": "done",
    "negated": false,
    "not_stated": [
+    "line",
     "stop",
     "reason_stopped"
    ],
    "origin": "document",
-   "certainty": "verify",
-   "certainty_reason": {
-    "code": "line_not_stated",
-    "text": "Pořadí linie zpráva u této léčby neuvádí; sunitinib je ve zprávě 2. linie, everolimus 3. linie."
-   },
+   "certainty": "clear",
+   "certainty_reason": null,
    "codes": [],
-   "note": "Indikovány 4 cykly, dokumentovány 2; výslovné ukončení kombinace v textu chybí.",
+   "note": "Pořadí linie zpráva u této léčby neuvádí (sunitinib je ve zprávě 2. linie, everolimus 3. linie). Indikovány 4 cykly, dokumentovány 2; výslovné ukončení kombinace v textu chybí.",
    "quarantined": false,
    "sources": [
     "src-8875daee"
@@ -4184,7 +4111,7 @@
     "text": "Seznam chronické medikace (str. 2) uvádí Spiriva 1-0-1; dávkování se mezi částmi dokumentu liší."
    },
    "codes": [],
-   "note": null,
+   "note": "V textu „Spiriva rest 2-0-0“ (str. 4) a „Spiriva resp. 2-0-0“ (str. 5, plicní vyšetření 22.5.2026); zda „resp.“ označuje jinou lékovou formu, z textu určit nelze.",
    "quarantined": false,
    "sources": [
     "src-0a7ee677",
@@ -4900,7 +4827,7 @@
     "sort": "2026-02-10"
    },
    "status": "documented",
-   "negated": true,
+   "negated": false,
    "not_stated": [],
    "origin": "document",
    "certainty": "clear",
@@ -7962,7 +7889,18 @@
      "part": "10_pacient/p12"
     }
    ],
-   "unreadable": [],
+   "unreadable": [
+    {
+     "document_id": "10_pacient",
+     "part": "10_pacient/p5",
+     "page": 4
+    },
+    {
+     "document_id": "10_pacient",
+     "part": "10_pacient/p9",
+     "page": 5
+    }
+   ],
    "result": "found"
   },
   {
@@ -9120,7 +9058,13 @@
      "part": "10_pacient/p2"
     }
    ],
-   "unreadable": [],
+   "unreadable": [
+    {
+     "document_id": "10_pacient",
+     "part": "10_pacient/p2",
+     "page": 4
+    }
+   ],
    "result": "nothing_found"
   },
   {
@@ -9227,7 +9171,21 @@
      "fact": "f-e7f16bae"
     }
    },
-   "note": "Výslovná otázka pro MDT ani navrhovaný postup v dokumentaci nejsou. Konzultační formulář FNO v podkladech nenalezen (formulář FNO má pole „Otázka na NOCO“)."
+   "note": "Výslovná otázka pro MDT ani navrhovaný postup v dokumentaci nejsou."
+  },
+  {
+   "id": "al-d7fce3c0",
+   "rule": "consultation_form_missing",
+   "subject": "consultation_form",
+   "kind": "missing",
+   "facts": [
+    "f-e7f16bae"
+   ],
+   "message": {
+    "id": "alert-consultation-form-missing",
+    "args": {}
+   },
+   "note": "Formulář FNO má pole „Otázka na NOCO“."
   },
   {
    "id": "al-9067aaba",
@@ -9243,7 +9201,87 @@
      "fact": "f-5f20f17f"
     }
    },
-   "note": "MR mozku 14.9.2026 je v podkladech jen jako závěr (z NNJ); plný popis a snímky nenalezeny. Předchozí MR mozku ke srovnání v podkladech nenalezeno."
+   "note": "MR mozku 14.9.2026 je v podkladech jen jako závěr (z NNJ); plný popis a snímky nenalezeny."
+  },
+  {
+   "id": "al-fd4baf32",
+   "rule": "comparison_imaging_missing",
+   "subject": "f-5f20f17f",
+   "kind": "missing",
+   "facts": [
+    "f-5f20f17f"
+   ],
+   "message": {
+    "id": "alert-comparison-imaging-missing",
+    "args": {
+     "fact": "f-5f20f17f"
+    }
+   },
+   "note": "Předchozí MR mozku ke srovnání v podkladech nenalezeno."
+  },
+  {
+   "id": "al-b6c333e8",
+   "rule": "original_report_missing",
+   "subject": "f-645cb30b",
+   "kind": "missing",
+   "facts": [
+    "f-645cb30b"
+   ],
+   "message": {
+    "id": "alert-original-report-missing",
+    "args": {
+     "fact": "f-645cb30b"
+    }
+   },
+   "note": null
+  },
+  {
+   "id": "al-ce16903e",
+   "rule": "original_report_missing",
+   "subject": "f-72b56a3a",
+   "kind": "missing",
+   "facts": [
+    "f-72b56a3a"
+   ],
+   "message": {
+    "id": "alert-original-report-missing",
+    "args": {
+     "fact": "f-72b56a3a"
+    }
+   },
+   "note": null
+  },
+  {
+   "id": "al-9f942d6f",
+   "rule": "original_report_missing",
+   "subject": "f-ffb46a12",
+   "kind": "missing",
+   "facts": [
+    "f-ffb46a12"
+   ],
+   "message": {
+    "id": "alert-original-report-missing",
+    "args": {
+     "fact": "f-ffb46a12"
+    }
+   },
+   "note": null
+  },
+  {
+   "id": "al-f7fed0c7",
+   "rule": "original_report_missing",
+   "subject": "f-7aa521f7",
+   "kind": "missing",
+   "facts": [
+    "f-7aa521f7"
+   ],
+   "message": {
+    "id": "alert-original-report-missing",
+    "args": {
+     "fact": "f-7aa521f7"
+    }
+   },
+   "note": null
   },
   {
    "id": "al-339288e1",
@@ -9276,7 +9314,7 @@
      "document": "10_pacient/p2"
     }
    },
-   "note": "Záhlaví str. 4 je v OCR nečitelné. Datum lze jen odhadnout z kontextu (po 14.9.2026)."
+   "note": "Záhlaví str. 4 je v OCR nečitelné, datum zprávy na str. 3 začerněné; datum lze jen odhadnout z kontextu (po 14.9.2026)."
   },
   {
    "id": "al-73f815dc",
@@ -9432,18 +9470,18 @@
    "note": "Nemusí jít o rozpor (první progrese dle iRECIST je iUPD), potvrzena 1/2026 jako iCPD."
   },
   {
-   "id": "al-d9ff9066",
+   "id": "al-073aad15",
    "rule": "cycles_differ",
-   "subject": "f-08bf0d6d",
+   "subject": "f-cb75a876",
    "kind": "unclear",
    "facts": [
-    "f-08bf0d6d",
+    "f-cb75a876",
     "f-14dfebfc"
    ],
    "message": {
     "id": "alert-cycles-differ",
     "args": {
-     "fact": "f-08bf0d6d"
+     "fact": "f-cb75a876"
     }
    },
    "note": "Z textu plyne přechod na udržovací nivolumab od 27.6.2023; výslovné ukončení kombinace v textu chybí."
@@ -9468,22 +9506,22 @@
    "note": "Dokument je podle textu jedna kontrolní zpráva, ne záznamy z více kontrol: ručně psaná čísla stran (s. 4 „1“, s. 1 „3“) dávají pořadí s. 4, 5, 1, 2, 3 a text s. 2 („Cabozantinib na“) plynule pokračuje na s. 3 („par. 16 ponecháme do 4. linie“). Nejnovější ambulantní závěr je tedy na s. 3 (kontrola po MR mozku 14.9.2026, datum zprávy začerněné); uvádí navýšení everolimu na 10 mg denně, léčba na s. 2 od 19.9.2026. Věta „Při dobré toleranci navýšíme everolimus na 10mg denně“ v doporučení na s. 3 tomu časově neodpovídá; zda jde o text převzatý z dřívější kontroly, z dokumentu určit nelze. Pozorování asistenta k pořadí stran a k nejnovějšímu závěru; dávku potvrzuje lékař."
   },
   {
-   "id": "al-102435eb",
-   "rule": "dosing_contradiction",
+   "id": "al-87c479e7",
+   "rule": "dosing_differs",
    "subject": "f-0e45c9b6|f-fbdaf887",
-   "kind": "contradiction",
+   "kind": "unclear",
    "facts": [
     "f-0e45c9b6",
     "f-fbdaf887"
    ],
    "message": {
-    "id": "alert-dosing-contradiction",
+    "id": "alert-dosing-differs",
     "args": {
      "fact_a": "f-0e45c9b6",
      "fact_b": "f-fbdaf887"
     }
    },
-   "note": "Seznam chronické medikace (str. 2) uvádí Spiriva 1-0-1, plicní vyšetření (str. 4 a 5) 2-0-0. Aktuální dávku ověřit."
+   "note": "Seznam chronické medikace (str. 2) uvádí Spiriva 1-0-1, plicní vyšetření (str. 4 a 5, 22.5.2026) 2-0-0. Nemusí jít o rozpor (jiná doba, možná jiná léková forma); aktuální dávku ověřit."
   }
  ],
  "brief": {
@@ -9510,9 +9548,9 @@
     ]
    },
    {
-    "text": "V 1. paliativní linii léčen nivolumabem s ipilimumabem s následnou udržovací léčbou nivolumabem do 12/2025 (progrese dle iRECIST: nepotvrzená 11/2025, potvrzená 1/2026); ve 2. linii sunitinib od 1/2026, ukončen pro progresi dle CT 8/2026.",
+    "text": "Léčen nivolumabem s ipilimumabem s následnou udržovací léčbou nivolumabem do 12/2025 (progrese dle iRECIST: nepotvrzená 11/2025, potvrzená 1/2026); ve 2. linii sunitinib od 1/2026, ukončen pro progresi dle CT 8/2026.",
     "facts": [
-     "f-08bf0d6d",
+     "f-cb75a876",
      "f-49b84a6d",
      "f-43786da4",
      "f-42bdd4a3",

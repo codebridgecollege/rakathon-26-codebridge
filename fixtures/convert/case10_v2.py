@@ -5,7 +5,12 @@ Every view item of today's case view maps to the facts below (convert_v2.py repo
 - one fact per statement: the plan line, the vital signs and "ECOG PS 1, bez klin. známek mozkových mts" are split;
 - a negation stays a negated fact ("bez nádorových změn", "neguje závratě"), never silence;
 - dates stay as written (partial dates partial, "22,5,2026" as the OCR has it);
-- values the OCR misread keep the misreading in the quote and get the "ověřit" mark with the reason;
+- `negated` is true when the whole statement is a negative finding (a symptom denied, a metastasis excluded, "bez
+  plicní embolie"); an exam line that mixes findings ("eupnoe, bez cyanózy, ...") keeps its negations in `text` and is
+  not negated as a whole;
+- values the OCR misread keep the misreading in the quote and get the "ověřit" mark with the reason, unless today's
+  fixture records that the Tesseract and AI readings agree on the corrected token (ocr_check rule "agree", the view's
+  rule since round 25): then the source keeps that reading check and the fact is clear ("lmg/kg", "l,Og");
 - `text` fields carry today's wording of the line, so the view can show the same line from the fact.
 Quotes refer to today's shared refs array (R) or give the passage directly (Q). Page parts follow
 extra.documents: 0 outpatient report p1-3, 1 labs p3, 2 outpatient report p4-5, 3 MR 14.9.2026, 4 CT 10.11.2025,
@@ -67,7 +72,9 @@ def R(n: int, part: int | None = None, cited: bool | None = None) -> Q:
     return Q(int(ref["page"]), REF_FIX.get(n, ref["quote"]), part, cited)
 
 
-U = ["date"]  # not_stated for the undated outpatient visit (status praesens, p4)
+U = ["date"]
+# The nephrectomy line with the histology under it: the date 2.6.2022 is on the first line, so a fact dated by it quotes both.
+NEPH = Q(1, "2.6.2022 - stp. transperitoneálni nefrektomii vpravo s retroperitoneálni lymfadenektomii Histol. světlobuněčný renální adenokarcinom G2, pT2a pN1(3+/5) MO")  # not_stated for the undated outpatient visit (status praesens, p4)
 
 FACTS: list[Spec] = [
     # ----- diagnosis, histology, stage -----
@@ -75,10 +82,10 @@ FACTS: list[Spec] = [
          codes=[code("mkn-10", "C64", "Zhoubný novotvar ledviny mimo pánvičku")],
          note="Přesný den ani vyšetření, kterým byla diagnóza stanovena, uvedeny nejsou."),
     Spec("h_neph", "histology", hist("nefrektomie vpravo", "světlobuněčný renální adenokarcinom G2", "světlobuněčný renální adenokarcinom", "G2"),
-         date="2.6.2022", quotes=[R(2)],
+         date="2.6.2022", quotes=[NEPH],
          note="Datum je datum operace; datum histologického nálezu neuvedeno. Původní histologická zpráva v PDF není, jen citace ve zprávě."),
     Spec("stage", "stage", stage("pT2a pN1(3+/5) MO", "pT2a pN1 M0", "pathological", "2.6.2022", True), date="2.6.2022",
-         quotes=[R(2)], not_stated=["edition"], **verify("V textu „MO“, čteno jako M0."),
+         quotes=[NEPH], not_stated=["edition"], **verify("V textu „MO“, čteno jako M0."),
          note="Patologické TNM (pT, pN) z nefrektomie 2.6.2022, 3 z 5 uzlin pozitivní; M0 jen dle vstupní dokumentace. Stadium při diagnóze, ne aktuální stav."),
     Spec("h_ln", "histology", hist("exstirpovaná paraaortální lymfatická uzlina vlevo", "metastáza světlobuněčného renálního karcinomu G2, R0", "světlobuněčný renální karcinom", "G2"),
          date="25.10.2022", quotes=[R(4)], note="Původní histologická zpráva v PDF není, jen citace ve zprávě."),
@@ -101,13 +108,14 @@ FACTS: list[Spec] = [
     # ----- imaging (all cited in the outpatient report; originals are not in the PDF) -----
     Spec("i_ct2209", "imaging", img("CT s kontrastní látkou", "hrudník a břicho", "suspektní metastáza v paraaortální lymfatické uzlině vlevo, 20 mm"),
          date="7.9.2022", status="done", quotes=[R(3)]),
-    Spec("i_ct2211", "imaging", img("CT nativně a kontrastně", "břicho a malá pánev", "spíše lymfokéla po lymfadenektomii (ohraničená kolekce tekutiny do 36 mm paraaortálně vlevo v úrovni L2-3) než nová zvětšená lymfatická uzlina"),
+    Spec("i_ct2211", "imaging", img("CT nativně a kontrastně", "břicho a malá pánev", "suspektní lymfokéla po lymfadenektomii, spíše ohraničená kolekce tekutiny do 36 mm vlevo paraaortálně v úrovni L2-3 než nová zvětšená uzlina"),
          date="25.11.2022", status="done", quotes=[R(44)]),
     Spec("i_base", "imaging", img("CT s kontrastní látkou", None, "patologická mediastinální a plicní hilová lymfadenopatie charakteru hypervaskularizovaných metastáz"),
          date="6.3.2023", status="done", quotes=[R(45), Q(4, "base line CT z 03/2023", 4)],
          **verify("Souhrn na str. 2 uvádí toto vyšetření jako „3/2022“, str. 1 jako 6.3.2023 a str. 4 jako 03/2023; rozpor, ověřit.", "date_conflict")),
     Spec("i_base_p2", "imaging", img("", None, "patologická mediastinální a plicní hilová lymfadenopatie charakteru hypervaskularizovaných metastáz"),
-         date="3/2022", status="done", quotes=[R(8)], not_stated=["modality"],
+         date="3/2022", status="done",
+         quotes=[Q(2, "Další restaging. 3/2022, kde patol. mediastinální a plicní hilová lymfadenopatie charakteru hypervaskularizovaných mts.")], not_stated=["modality"],
          **verify("Str. 1 uvádí vstupní CT 6.3.2023, str. 4 vstupní CT 03/2023; „3/2022“ je před diagnózou (4/2022). Ověřit.", "date_conflict")),
     Spec("i_ct2306", "imaging", img("CT", None, "dosaženo iPR", resp("iRECIST", "iPR")), date="6/2023", status="done", quotes=[R(12)]),
     Spec("i_ct2309", "imaging", img("CT", None, "nově útvar do 21x27 mm vlevo ventrálně v mesogastriu, etiologie spíše cystická, jinak bez lymfadenopatie, bez metastáz"),
@@ -153,14 +161,10 @@ FACTS: list[Spec] = [
          date="7.9.2022", quotes=[R(3)]),
     Spec("m_pa", "metastasis", meta("paraaortální lymfatická uzlina vlevo", "confirmed", "histology", "MTS světlobuněčného renálního karcinomu G2, R0"),
          date="25.10.2022", quotes=[R(4)]),
-    Spec("m_med", "metastasis", meta("mediastinální a plicní hilové lymfatické uzliny", "confirmed", "imaging", "hypervaskularizované, charakteru metastáz"),
+    Spec("m_med", "metastasis", meta("mediastinální a plicní hilové lymfatické uzliny", "suspected", "imaging", "jsou hypervaskularizované mts charakteru"),
          date="6.3.2023", quotes=[R(45)], note="Radiologicky (charakteru metastáz), histologicky neověřeno."),
     Spec("m_chin", "metastasis", meta("kůže brady vlevo", "confirmed", "histology", "kožní metastáza světlobuněčného renálního karcinomu"),
          date="21.11.2023", quotes=[R(48)]),
-    Spec("m_glab_neg", "metastasis", meta("kůže glabely", "excluded", "histology", "sebaceom, bez nádorových změn"), negated=True,
-         date="11.2.2025", quotes=[R(49)]),
-    Spec("m_new_neg_2604", "metastasis", meta("nová ložiska", "excluded", "imaging", "nová ložiska nepřibyla"), negated=True,
-         date="28.4.2026", quotes=[R(62, 9)]),
     Spec("m_cereb", "metastasis", meta("pravá mozečková hemisféra", "suspected", "imaging", "solitérní nodulus do 3 mm, suspekce na solitérní MTS"),
          date="14.9.2026", quotes=[R(36, 3)]),
     Spec("m_intracran_neg", "metastasis", meta("intrakraniálně, jiná sytící se ložiska", "excluded", "imaging", "postkontrastně bez jiných sytících se lézí intrakraniálně"),
@@ -168,11 +172,10 @@ FACTS: list[Spec] = [
     Spec("m_brain_clin_neg", "metastasis", meta("mozek", "excluded", "clinical", "bez klinických známek mozkových metastáz"), negated=True,
          quotes=[R(40)], not_stated=U, note="Negace se týká klinického nálezu, ne zobrazení. MR mozku 14.9.2026 popisuje suspekci na MTS."),
     # ----- systemic therapy, decisions, adverse events -----
-    Spec("t_nivoipi", "systemic_therapy", ther("nivolumab 3 mg/kg + ipilimumab 1 mg/kg q3w", 1, "27.3.2023", None, None,
+    Spec("t_nivoipi", "systemic_therapy", ther("nivolumab 3 mg/kg + ipilimumab 1 mg/kg q3w", None, "27.3.2023", None, None,
                                                 "nivolumab 3 mg/kg + ipilimumab 1 mg/kg každé 3 týdny; podány 2 cykly (27.3. a 17.4.2023) ze 4 indikovaných"),
-         date="27.3.2023", status="done", quotes=[R(10)], not_stated=["stop", "reason_stopped"],
-         **verify("Pořadí linie zpráva u této léčby neuvádí; sunitinib je ve zprávě 2. linie, everolimus 3. linie.", "line_not_stated"),
-         note="Indikovány 4 cykly, dokumentovány 2; výslovné ukončení kombinace v textu chybí."),
+         date="27.3.2023", status="done", quotes=[R(10)], not_stated=["line", "stop", "reason_stopped"],
+         note="Pořadí linie zpráva u této léčby neuvádí (sunitinib je ve zprávě 2. linie, everolimus 3. linie). Indikovány 4 cykly, dokumentovány 2; výslovné ukončení kombinace v textu chybí."),
     Spec("t_nivo_maint", "systemic_therapy", ther("nivolumab 240 mg q2w, udržovací", None, "27.6.2023", "29.12.2025", None,
                                                    "udržovací nivolumab 240 mg každé 2 týdny od 27.6.2023 do 29.12.2025"),
          date="27.6.2023", status="stopped", quotes=[R(13), R(12)], not_stated=["reason_stopped"],
@@ -213,6 +216,7 @@ FACTS: list[Spec] = [
     Spec("med_spiriva_a", "medication", med("Spiriva (inhalačně)", None, "1-0-1", None, None, "seznam chronické medikace"), quotes=[R(85)],
          **verify("Plicní vyšetření (str. 4 a 5) uvádí Spiriva 2-0-0; dávkování se mezi částmi dokumentu liší.", "sources_disagree")),
     Spec("med_spiriva_b", "medication", med("Spiriva (inhalačně)", None, "2-0-0", None, "CHOPN II/B", "plicní vyšetření"), quotes=[R(87), R(86, 10)],
+         note="V textu „Spiriva rest 2-0-0“ (str. 4) a „Spiriva resp. 2-0-0“ (str. 5, plicní vyšetření 22.5.2026); zda „resp.“ označuje jinou lékovou formu, z textu určit nelze.",
          **verify("Seznam chronické medikace (str. 2) uvádí Spiriva 1-0-1; dávkování se mezi částmi dokumentu liší.", "sources_disagree")),
     Spec("med_ventolin", "medication", med("Ventolin N (inhalačně)", None, "dle potřeby"), quotes=[R(85)]),
     Spec("med_neurol", "medication", med("Neurol", "0,25 mg", "dle potřeby", None, "při úzkosti, neklidu"), quotes=[R(88)],
@@ -254,7 +258,7 @@ FACTS: list[Spec] = [
     Spec("c_hyperk", "comorbidity", comor("Mírná hyperkalémie, dietní opatření, pacient poučen"), quotes=[R(82)]),
     Spec("dx_pe_neg", "diagnosis", dx("plicní embolie"), negated=True, date="10.2.2026",
          quotes=[Q(5, "Závěr: Bez plicní embolie, jen drobná cysta v HL vpravo.", 6), Q(5, "plicní embolie vyloučena", 7)]),
-    Spec("ex_ekg", "exam_finding", exam("srdce", "EKG bez ischemických změn, hs troponin stabilní bez dynamiky"), negated=True, date="10.2.2026",
+    Spec("ex_ekg", "exam_finding", exam("srdce", "EKG bez ischemických změn, hs troponin stabilní bez dynamiky"), date="10.2.2026",
          quotes=[Q(5, "EKG bez ischemických změn, hstroponin stabilní bez dynamiky", 7)]),
     Spec("rf_smoking", "risk_factor", risk("smoking", "fumátor (kuřák)"), quotes=[R(96), R(75, 10)], not_stated=["pack_years"],
          note="Aktivní či bývalý kuřák, počet cigaret a délka kouření neuvedeny."),
@@ -330,14 +334,21 @@ LAB_QUOTE_FIX = {"B_LYMFO": "B_LYMFO: 1,610 10A9/l [0.8 ... 4]"}
 
 ALERTS: list[AlertSpec] = [
     AlertSpec("mdt_question_missing", "missing", "mdt_question", ["req_nch"], {"fact": "req_nch"},
-              "Výslovná otázka pro MDT ani navrhovaný postup v dokumentaci nejsou. Konzultační formulář FNO v podkladech nenalezen (formulář FNO má pole „Otázka na NOCO“).",
-              ["flags[0]", "data_gaps_v3[3]"]),
+              "Výslovná otázka pro MDT ani navrhovaný postup v dokumentaci nejsou.", ["flags[0]", "data_gaps_v3[3]"]),
+    AlertSpec("consultation_form_missing", "missing", "consultation_form", ["req_nch"], {},
+              "Formulář FNO má pole „Otázka na NOCO“.", ["flags[0]"]),
     AlertSpec("original_report_missing", "missing", "i_mr", ["i_mr"], {"fact": "i_mr"},
-              "MR mozku 14.9.2026 je v podkladech jen jako závěr (z NNJ); plný popis a snímky nenalezeny. Předchozí MR mozku ke srovnání v podkladech nenalezeno.",
-              ["flags[1]"]),
+              "MR mozku 14.9.2026 je v podkladech jen jako závěr (z NNJ); plný popis a snímky nenalezeny.", ["flags[1]"]),
+    AlertSpec("comparison_imaging_missing", "missing", "i_mr", ["i_mr"], {"fact": "i_mr"},
+              "Předchozí MR mozku ke srovnání v podkladech nenalezeno.", ["flags[1]"]),
+    # documents_note_cs: the PDF holds the histology reports only as citations. Missing-document alerts are always on.
+    *[
+        AlertSpec("original_report_missing", "missing", h, [h], {"fact": h}, None, ["documents_note_cs"])
+        for h in ("h_neph", "h_ln", "h_chin", "h_glab")
+    ],
     AlertSpec("suspicion_not_verified", "missing", "m_cereb", ["m_cereb", "i_mr"], {"fact": "m_cereb"}, "Suspekce, ne diagnóza.", ["flags[2]"]),
     AlertSpec("document_date_not_stated", "missing", "10_pacient/p2", ["perf_ecog"], {"document": "10_pacient/p2"},
-              "Záhlaví str. 4 je v OCR nečitelné. Datum lze jen odhadnout z kontextu (po 14.9.2026).", ["flags[3]", "data_gaps_v3[5]"]),
+              "Záhlaví str. 4 je v OCR nečitelné, datum zprávy na str. 3 začerněné; datum lze jen odhadnout z kontextu (po 14.9.2026).", ["flags[3]", "data_gaps_v3[5]"]),
     AlertSpec("lab_draw_date_not_stated", "missing", "10_pacient/p1", ["@labs"], {"document": "10_pacient/p1"}, None, ["flags[3]"]),
     AlertSpec("reading_uncertain", "unclear", "stage", ["stage"], {"fact": "stage"},
               "M0 jen dle vstupní dokumentace; v textu zapsáno „MO“, ověřit čtení.", ["data_gaps_v3[0]"]),
@@ -356,9 +367,9 @@ ALERTS: list[AlertSpec] = [
               "Z textu plyne přechod na udržovací nivolumab od 27.6.2023; výslovné ukončení kombinace v textu chybí.", ["flags[6]"]),
     AlertSpec("page_order_unclear", "chronology", "10_pacient", ["med_evero10", "pl_evero", "t_evero", "pl_cabo"], {"document": "10_pacient"},
               CASE["flags"][7]["text_cs"] + " " + CASE["flags"][7]["note"], ["flags[7]"]),
-    AlertSpec("dosing_contradiction", "contradiction", ("med_spiriva_a", "med_spiriva_b"), ["med_spiriva_a", "med_spiriva_b"],
+    AlertSpec("dosing_differs", "unclear", ("med_spiriva_a", "med_spiriva_b"), ["med_spiriva_a", "med_spiriva_b"],
               {"fact_a": "med_spiriva_a", "fact_b": "med_spiriva_b"},
-              "Seznam chronické medikace (str. 2) uvádí Spiriva 1-0-1, plicní vyšetření (str. 4 a 5) 2-0-0. Aktuální dávku ověřit.", []),
+              "Seznam chronické medikace (str. 2) uvádí Spiriva 1-0-1, plicní vyšetření (str. 4 a 5, 22.5.2026) 2-0-0. Nemusí jít o rozpor (jiná doba, možná jiná léková forma); aktuální dávku ověřit.", []),
 ]
 
 # Original reports the PDF does not contain (documents_note_cs, flags[1]): each a check that looked and found nothing.
@@ -391,6 +402,35 @@ EXTRA_CHECKS = [
     ("chk-mdt-question", "mdt_question", "nothing_found", None),
     ("chk-visit-date", "document_date", "nothing_found", [2]),
     ("chk-lab-draw-date", "lab_draw_date", "nothing_found", [1]),
+]
+
+# Pages that are partly unreadable, by the check they affect: the header of page 4 (the visit's date) and the iRECIST
+# tables of the CT 16.1.2026 (page 4) and CT 28.4.2026 (page 5), whose values cannot be assigned to lesions.
+UNREADABLE = {
+    "chk-visit-date": [(4, 2)],
+    "chk-imaging": [(4, 5), (5, 9)],
+}
+
+# The brief keeps today's text except where it states more than the documents: the line of nivolumab + ipilimumab is
+# not written in the document (the fact says so), so the sentence does not call it the 1st palliative line.
+BRIEF_TEXT_FIX = {"V 1. paliativní linii léčen nivolumabem s ipilimumabem": "Léčen nivolumabem s ipilimumabem"}
+
+# Today's view items that are visits (ambulatory check-ups and consultations). The format has no visit kind yet
+# (stream F adds it); until then each is carried by the facts listed, and convert_v2.visit_specs() turns this table
+# into visit facts once the kind exists.
+VISITS = [
+    # (handle, type, department, reason as written, date as written, status, quotes, today's items, facts carrying it now)
+    ("vis_last", "ambulantní kontrola", "onkologie", None, None, "done", [Q(1, "Ambulantní vyšetření kontrolní")],
+     ["onco_detailed_v3[18]", "documents[0]"], ["ex_tolerance", "med_evero10", "req_nch", "pl_visit"]),
+    ("vis_p4", "ambulantní kontrola", "onkologie", None, None, "done", [Q(4, "Ambulantnf vyletfenf kontrolnf")],
+     ["status_praesens", "documents[2]"], ["perf_ecog", "ex_subj_evero", "v_bp"]),
+    ("vis_internal", "interní vyšetření", "interna NNJ", "Dušnost k vyloučení kard. etiologie", "10.2.2026", "done",
+     [Q(5, "Interní wš, 10.2.2026 NNJ", 7), Q(5, "Závěr: Dušnost k vyloučení kard. etiologie", 7)],
+     ["timeline[21]", "documents[7]"], ["c_dyspnea", "dx_pe_neg", "ex_ekg", "v_bp_int", "med_orcal"]),
+    ("vis_pulm", "plicní vyšetření", "plicní ambulance", None, "22,5,2026", "done", [R(74, 10)],
+     ["timeline[26]", "documents[10]"], ["c_copd", "c_ild", "med_spiriva_b", "med_erdomed"]),
+    ("vis_next", "ambulantní kontrola", "onkologie", None, "9.10.2026", "planned", [R(42)],
+     ["timeline_cards_v3[15]", "timeline[33]"], ["pl_visit"]),
 ]
 
 # ----- guidance re-key (fixtures/data/guideline-*.json, deviations-case-10.json) -----

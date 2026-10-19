@@ -31,7 +31,7 @@ REPO = HERE.parents[1]
 sys.path.insert(0, str(REPO / "pipeline"))
 sys.path.insert(0, str(HERE))
 
-from extraction_format import alert_id, assign_fact_ids, pair_subject, source_id_for, validate_run  # noqa: E402
+from extraction_format import FACT_KINDS, alert_id, assign_fact_ids, pair_subject, source_id_for, validate_run  # noqa: E402
 
 import case10_v2 as C10  # noqa: E402
 from spec import AlertSpec, Q, Spec  # noqa: E402
@@ -78,24 +78,34 @@ MESSAGES: dict[str, dict[str, str]] = {
         "en": "Suspicion without histological or other confirmation in the available documentation: { $fact }",
     },
     "alert-document-date-not-stated": {
-        "cs": "Datum dokumentu { -gap-not-stated }: { $document }",
-        "sk": "Dátum dokumentu { -gap-not-stated }: { $document }",
-        "en": "Document date { -gap-not-stated }: { $document }",
+        "cs": "Datum dokumentu { $document }: { -gap-not-stated }",
+        "sk": "Dátum dokumentu { $document }: { -gap-not-stated }",
+        "en": "Date of the document { $document }: { -gap-not-stated }",
     },
     "alert-lab-draw-date-not-stated": {
-        "cs": "Datum odběru laboratorních hodnot { -gap-not-stated }: { $document }",
-        "sk": "Dátum odberu laboratórnych hodnôt { -gap-not-stated }: { $document }",
-        "en": "Lab sample date { -gap-not-stated }: { $document }",
+        "cs": "Datum odběru laboratorních hodnot v dokumentu { $document }: { -gap-not-stated }",
+        "sk": "Dátum odberu laboratórnych hodnôt v dokumente { $document }: { -gap-not-stated }",
+        "en": "Sample date of the lab values in { $document }: { -gap-not-stated }",
     },
     "alert-reading-uncertain": {
-        "cs": "Nejisté čtení, { -trust-verify-reading }: { $fact }",
-        "sk": "Neisté čítanie, { -trust-verify-reading }: { $fact }",
-        "en": "Uncertain reading, { -trust-verify-reading }: { $fact }",
+        "cs": "Nejisté čtení: { $fact }",
+        "sk": "Neisté čítanie: { $fact }",
+        "en": "Uncertain reading: { $fact }",
     },
     "alert-patient-field-missing": {
-        "cs": "{ $field ->\n    [age] Věk\n   *[birth_number] Rodné číslo\n}: { -gap-not-stated }",
-        "sk": "{ $field ->\n    [age] Vek\n   *[birth_number] Rodné číslo\n}: { -gap-not-stated }",
-        "en": "{ $field ->\n    [age] Age\n   *[birth_number] Birth number\n}: { -gap-not-stated }",
+        "cs": "{ $field ->\n    [age] Věk\n    [birth_number] Rodné číslo\n   *[other] Údaj o pacientovi\n}: { -gap-not-stated }",
+        "sk": "{ $field ->\n    [age] Vek\n    [birth_number] Rodné číslo\n   *[other] Údaj o pacientovi\n}: { -gap-not-stated }",
+        "en": "{ $field ->\n    [age] Age\n    [birth_number] Birth number\n   *[other] Patient detail\n}: { -gap-not-stated }",
+    },
+    "alert-consultation-form-missing": {
+        "cs": "Konzultační formulář v dostupné dokumentaci nenalezen.",
+        "sk": "Konzultačný formulár v dostupnej dokumentácii nenájdený.",
+        "en": "Consultation form not found in the available documentation.",
+    },
+    "alert-comparison-imaging-missing": {
+        "cs": "Předchozí vyšetření ke srovnání v dostupné dokumentaci nenalezeno: { $fact }",
+        "sk": "Predchádzajúce vyšetrenie na porovnanie v dostupnej dokumentácii nenájdené: { $fact }",
+        "en": "No earlier examination for comparison found in the available documentation: { $fact }",
     },
     "alert-exam-attribution-unclear": {
         "cs": "Nejasné, ke kterému vyšetření nález patří: { $fact }",
@@ -122,10 +132,10 @@ MESSAGES: dict[str, dict[str, str]] = {
         "sk": "Poradie strán a najnovší záver dokumentu nie sú jednoznačné: { $document }",
         "en": "The page order and the latest conclusion of the document are not clear: { $document }",
     },
-    "alert-dosing-contradiction": {
-        "cs": "Rozdílné dávkování téhož léku: { $fact_a }; { $fact_b }",
-        "sk": "Rozdielne dávkovanie toho istého lieku: { $fact_a }; { $fact_b }",
-        "en": "Different dosing of the same drug: { $fact_a }; { $fact_b }",
+    "alert-dosing-differs": {
+        "cs": "Dávkování léku se mezi částmi dokumentace liší: { $fact_a }; { $fact_b }",
+        "sk": "Dávkovanie lieku sa medzi časťami dokumentácie líši: { $fact_a }; { $fact_b }",
+        "en": "The dosing of a drug differs between parts of the documentation: { $fact_a }; { $fact_b }",
     },
 }
 
@@ -172,8 +182,10 @@ def find_span(text: str, quote: str) -> tuple[int, int] | None:
     tokens = quote.split()
     if not tokens:
         return None
-    m = re.search(r"\s+".join(re.escape(t) for t in tokens), text)
-    return (m.start(), m.end()) if m else None
+    matches = list(re.finditer(r"\s+".join(re.escape(t) for t in tokens), text))
+    if len(matches) > 1:
+        raise SystemExit(f"quote occurs {len(matches)} times on its page, lengthen it: {quote[:60]!r}")
+    return (matches[0].start(), matches[0].end()) if matches else None
 
 
 DATE_PATTERNS = [
@@ -374,17 +386,26 @@ class Builder:
         return out
 
 
+# Alert subjects that are not facts: a field, an expected document, a document or part ID. Anything else must be a
+# fact handle, so a mistyped handle fails instead of becoming a dangling literal.
+LITERAL_SUBJECTS = {"mdt_question", "age", "birth_number", "consultation_form"}
+
+
 def resolve_alerts(alerts: list[AlertSpec], ids: dict[str, str], lab_ids: list[str]) -> list[dict[str, Any]]:
     out = []
     for a in alerts:
         if isinstance(a.subject, tuple):
             subject = pair_subject(ids[a.subject[0]], ids[a.subject[1]])
+        elif a.subject in ids:
+            subject = ids[a.subject]
+        elif a.subject in LITERAL_SUBJECTS or re.fullmatch(r"[A-Z0-9]+_pacient(/p\d+)?", a.subject):
+            subject = a.subject
         else:
-            subject = ids.get(a.subject, a.subject)
+            raise SystemExit(f"alert {a.rule}: subject {a.subject!r} is neither a fact handle nor a known literal")
         facts: list[str] = []
         for h in a.facts:
             facts += lab_ids if h == "@labs" else [ids[h]]
-        args = {k: ids.get(v, v) if k.startswith("fact") else v for k, v in a.args.items()}
+        args = {k: ids[v] if k.startswith("fact") else v for k, v in a.args.items()}
         al = {"id": "", "rule": a.rule, "subject": subject, "kind": a.kind, "facts": facts,
               "message": {"id": message_id(a.rule), "args": args}, "note": a.note}
         al["id"] = alert_id(al)
@@ -550,7 +571,10 @@ def build_case10(report: dict[str, Any]) -> tuple[dict[str, Any], dict[str, str]
             "unreadable": [], "result": res} for cid, lf, res, parts in C10.EXTRA_CHECKS]
         + report_checks(C10.DOCUMENT, n_parts, C10.ORIGINAL_REPORTS, ids)
     )
+    for c in run["checks"]:
+        c["unreadable"] = [{"document_id": C10.DOCUMENT, "part": f"{C10.DOCUMENT}/p{part}", "page": page} for page, part in C10.UNREADABLE.get(c["id"], [])]
     run["alerts"] = resolve_alerts(C10.ALERTS, ids, lab_ids)
+    run["facts"] += visit_facts(b, C10.VISITS, ids, report)
 
     # The brief: today's sentences, each with the facts it states; every marker's passage must rest on one of them.
     sentences = split_brief(extra["onco_summary_v3_cs"])
@@ -563,7 +587,12 @@ def build_case10(report: dict[str, Any]) -> tuple[dict[str, Any], dict[str, str]
             under = b.facts_at(int(ref["page"]), ref["quote"])
             if not set(under) & set(handles):
                 brief_issues.append(f"[{n}] {ref['quote'][:60]!r} rests on {under} (none in the sentence)")
-    run["brief"] = {"sentences": [{"text": t, "facts": [ids[h] for h in hs]} for (t, _), hs in zip(sentences, C10.BRIEF_FACTS)],
+    def fixed(t: str) -> str:
+        for a, b2 in C10.BRIEF_TEXT_FIX.items():
+            t = t.replace(a, b2)
+        return t
+
+    run["brief"] = {"sentences": [{"text": fixed(t), "facts": [ids[h] for h in hs]} for (t, _), hs in zip(sentences, C10.BRIEF_FACTS)],
                     "made_by": {"model": None, "prompt": None}}
     report["brief_issues"] = brief_issues
 
@@ -572,6 +601,23 @@ def build_case10(report: dict[str, Any]) -> tuple[dict[str, Any], dict[str, str]
                              "basis": [{"role": role, "facts": [ids[h] for h in hs]} for role, hs in C10.QUESTION_BASIS]}
     report["view_coverage"] = view_coverage_case10(b)
     return run, ids, b
+
+
+def visit_facts(b: Builder, visits: list[tuple], ids: dict[str, str], report: dict[str, Any]) -> list[dict[str, Any]]:
+    """Visit facts, once the format has the kind (stream F adds `visit`: type, department, reason as written; key = kind,
+    type, date). Until then this returns none and only reports which facts carry each visit. Adding the kind means
+    writing the value below in its final shape and appending the specs in build_case10 before IDs are assigned."""
+    rows = []
+    for handle, vtype, dept, reason, date, status, quotes, items, carried_by in visits:
+        located = [q for q in quotes if find_span(page_text(b.document, q.page), q.text)]
+        if len(located) != len(quotes):
+            raise SystemExit(f"visit {handle}: a quote is not in its page text")
+        rows.append({"visit": handle, "type": vtype, "department": dept, "reason": reason, "date": date, "status": status,
+                     "today": items, "carried_by": [ids[h] for h in carried_by]})
+    report["visits"] = rows
+    if "visit" not in FACT_KINDS:
+        return []
+    raise SystemExit("the format now has a visit kind: write visit_facts() (see its docstring)")
 
 
 def view_coverage_case10(b: Builder) -> dict[str, Any]:
@@ -847,6 +893,7 @@ def main(argv: list[str] | None = None) -> int:
         "checks": {cid: Counter(c["result"] for c in run["checks"]) for cid, run in runs.items()},
         "view_coverage": {"items": report["view_coverage"]["items"], "without_fact": report["view_coverage"]["without_fact"]},
         "view_map": report["view_coverage"]["map"],
+        "visits": report["visits"],
         "guidance_cross_check": guidance_notes,
         "quote_misses": misses,
         "synthetic_gaps": syn_reports,
@@ -875,6 +922,9 @@ def main(argv: list[str] | None = None) -> int:
     print(f"View items of case 10: {full['view_coverage']['items']}, without a fact: {len(full['view_coverage']['without_fact'])}")
     for w in full["view_coverage"]["without_fact"]:
         print(f"  {w}")
+    print("Visits (no visit kind yet; carried by):")
+    for v in full["visits"]:
+        print(f"  {v['visit']}: {v['type']}, {v['date'] or 'bez data'} ({', '.join(v['today'])}) -> {v['carried_by']}")
     print(f"Quote misses: {len(misses)}")
     if guidance_notes:
         print("Guidance cross-check:")

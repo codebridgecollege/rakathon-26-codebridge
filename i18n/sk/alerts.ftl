@@ -12,16 +12,21 @@ alert-mdt-question-missing = Výslovná otázka pre MDT { -gap-not-stated-f }. �
 
 alert-suspicion-not-verified = Suspekcia bez histologického ani iného overenia v dostupnej dokumentácii: { $fact }
 
-alert-document-date-not-stated = Dátum dokumentu { -gap-not-stated }: { $document }
+alert-document-date-not-stated = Dátum dokumentu { $document }: { -gap-not-stated }
 
-alert-lab-draw-date-not-stated = Dátum odberu laboratórnych hodnôt { -gap-not-stated }: { $document }
+alert-lab-draw-date-not-stated = Dátum odberu laboratórnych hodnôt v dokumente { $document }: { -gap-not-stated }
 
-alert-reading-uncertain = Neisté čítanie, { -trust-verify-reading }: { $fact }
+alert-reading-uncertain = Neisté čítanie: { $fact }
 
 alert-patient-field-missing = { $field ->
     [age] Vek
-   *[birth_number] Rodné číslo
+    [birth_number] Rodné číslo
+   *[other] Údaj o pacientovi
 }: { -gap-not-stated }
+
+alert-consultation-form-missing = Konzultačný formulár v dostupnej dokumentácii nenájdený.
+
+alert-comparison-imaging-missing = Predchádzajúce vyšetrenie na porovnanie v dostupnej dokumentácii nenájdené: { $fact }
 
 alert-exam-attribution-unclear = Nejasné, ku ktorému vyšetreniu nález patrí: { $fact }
 
@@ -33,4 +38,4 @@ alert-cycles-differ = Počet indikovaných a zdokumentovaných cyklov sa líši:
 
 alert-page-order-unclear = Poradie strán a najnovší záver dokumentu nie sú jednoznačné: { $document }
 
-alert-dosing-contradiction = Rozdielne dávkovanie toho istého lieku: { $fact_a }; { $fact_b }
+alert-dosing-differs = Dávkovanie lieku sa medzi časťami dokumentácie líši: { $fact_a }; { $fact_b }

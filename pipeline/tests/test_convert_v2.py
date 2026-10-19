@@ -59,11 +59,11 @@ def test_no_patient_identifier_in_a_run(case_id):
 
 def test_counts():
     counts = {c: convert_v2.counts(run_of(c)) for c in CASES}
-    assert sum(counts["NO-010"].values()) == 155
+    assert sum(counts["NO-010"].values()) == 153
     assert counts["NO-010"]["lab_result"] == 26  # today's 26 lab values, one undated panel
     assert counts["NO-S01"]["lab_result"] == 52  # 13 tests x 4 draws
     assert counts["NO-S02"]["lab_result"] == 72  # 18 tests x 4 draws
-    assert [len(run_of(c)["alerts"]) for c in CASES] == [15, 4, 8]
+    assert [len(run_of(c)["alerts"]) for c in CASES] == [21, 4, 8]
 
 
 def test_partial_dates_stay_partial_and_negations_stay_negated():

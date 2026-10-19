@@ -83,12 +83,24 @@ describe("case 10", () => {
     expect(crea.not_stated).toContain("draw");
   });
 
-  it("splits disagreeing Spiriva dosing into two facts with a contradiction alert", () => {
+  it("keeps the two Spiriva dosings as two facts with an alert that they differ, not a contradiction (different times)", () => {
     const spiriva = ofKind(run, "medication").filter((f) => f.value.drug.startsWith("Spiriva"));
     expect(spiriva.map((f) => f.value.dosing).sort()).toEqual(["1-0-1", "2-0-0"]);
-    const alert = run.alerts.find((a) => a.rule === "dosing_contradiction")!;
-    expect(alert.kind).toBe("contradiction");
+    const alert = run.alerts.find((a) => a.rule === "dosing_differs")!;
+    expect(alert.kind).toBe("unclear");
     expect([...alert.facts].sort()).toEqual(spiriva.map((f) => f.id).sort());
+  });
+
+  it("says 'not stated' where the document does: the line of nivolumab + ipilimumab, radiological metastases stay suspected", () => {
+    const nivoIpi = ofKind(run, "systemic_therapy").find((f) => f.value.regimen.startsWith("nivolumab 3 mg/kg"))!;
+    expect(nivoIpi.value.line).toBeNull();
+    expect(nivoIpi.not_stated).toContain("line");
+    expect(run.brief!.sentences.some((s) => s.text.includes("1. paliativní"))).toBe(false);
+    const mediastinal = ofKind(run, "metastasis").find((f) => f.value.site.startsWith("mediastinální"))!;
+    expect(mediastinal.value).toMatchObject({ status: "suspected", basis: "imaging" });
+    // Every cited histology without its original report is a missing-document alert, always on.
+    const missing = new Set(run.alerts.filter((a) => a.rule === "original_report_missing").map((a) => a.subject));
+    for (const h of ofKind(run, "histology")) expect(missing.has(h.id), h.id).toBe(true);
   });
 
   it("points the brief and the drafted question at existing facts", () => {

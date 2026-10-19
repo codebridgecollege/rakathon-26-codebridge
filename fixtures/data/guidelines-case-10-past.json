@@ -83,9 +83,9 @@
    "decision_cs": "1. linie nivolumab + ipilimumab 3/2023",
    "relation_cs": "Pasáž (sloupec algoritmu) uvádí možnosti 1. linie u světlobuněčného mRCC se střední prognózou; pacient měl dle dokumentace střední prognózu IMDC (1 faktor: interval pod 1 rok od diagnózy do systémové léčby).",
    "edition_note_cs": "Aktuální vydání 2026, ne vydání platné v době rozhodnutí (2023).",
-   "row_fact_id": "f-08bf0d6d",
+   "row_fact_id": "f-cb75a876",
    "decision_fact_ids": [
-    "f-08bf0d6d",
+    "f-cb75a876",
     "f-8ad6cbe7"
    ]
   },
@@ -102,9 +102,9 @@
    "decision_cs": "Udržovací nivolumab 6/2023-12/2025",
    "relation_cs": "Řádek tabulky popisuje dávkování nivolumabu s ipilimumabem a následnou fázi nivolumabu; dle dokumentace podány 2 cykly (27.3. a 17.4.2023), poté gastrointestinální a plicní toxicita; dále nivolumab 240 mg každé 2 týdny.",
    "edition_note_cs": "Aktuální vydání 2026, ne vydání platné v době rozhodnutí (2023).",
-   "row_fact_id": "f-08bf0d6d",
+   "row_fact_id": "f-cb75a876",
    "decision_fact_ids": [
-    "f-08bf0d6d",
+    "f-cb75a876",
     "f-49b84a6d"
    ]
   },
