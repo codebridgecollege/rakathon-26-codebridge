@@ -8,6 +8,7 @@ import { useRouter } from "vue-router";
 import { useFluent } from "fluent-vue";
 import { nrOf, tabsFor, type Tab } from "@codebridge/domain/case-data";
 import { providePatient } from "../../composables/usePatient";
+import { useTabAddress } from "../../composables/useTabAddress";
 import { useCasesStore } from "../../stores/cases";
 import { usePatientViewStore } from "../../stores/patientView";
 import { usePatientsStore } from "../../stores/patients";
@@ -74,14 +75,8 @@ onBeforeUnmount(() => {
 });
 
 // Once the data is there, the address names the tab actually shown (a missing or unavailable tab falls back to the
-// first one), so the hash stays in step with the view.
-watch(
-  () => [state.value, current.value, props.tab] as const,
-  ([st, cur, asked]) => {
-    if (st === "ready" && asked !== cur) void router.replace({ name: "patient", params: { nr: nrOf(props.file), tab: cur } });
-  },
-  { immediate: true },
-);
+// first one), so the address stays in step with the view; a click away made meanwhile wins.
+useTabAddress(() => ({ nr: nrOf(props.file), ready: state.value === "ready", shown: current.value, asked: props.tab }));
 
 function openTab(t: Tab) {
   void router.push({ name: "patient", params: { nr: nrOf(props.file), tab: t } });
