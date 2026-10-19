@@ -13,7 +13,9 @@ import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { buildFromAnswer, sha256Hex, type CallAnswer, type PageReading } from "../src/domain/extract/build";
+import { aiFragmentIds, draftDocument, requestsWithoutResult, sha256Hex, type CallAnswer, type PageReading } from "../src/domain/extract/build";
+import { prepareRun, type DraftRun } from "../src/store/runs";
+import { validateRun } from "@codebridge/domain/extraction/validate";
 import { pageIdentity } from "../src/domain/extract/identity";
 import type { ModelAnswer } from "../src/domain/extract/schema";
 import type { CaseIdentity } from "../src/domain/pseudonymize";
@@ -228,9 +230,15 @@ async function main() {
           failed.push(`p${i + 1}:${one === "filtered" ? "content filter" : "no answer"}`);
         }
       }
-    const built = await buildFromAnswer({ caseId: c.id, doc: { documentId: c.documentId, part: null, pages }, calls, unreadPages });
+    // The document as the Worker's ExtractDocumentWorkflow drafts it (the AI fragment), then through prepareRun as the
+    // case merge stores it, so the run carries the IDs the Worker would give. The harness adds the parts the case merge
+    // takes from the pipeline's fragment and the case rules: an identity check and alert per conflicting page, and the
+    // request rule on the final IDs.
+    const built = await draftDocument({ doc: { documentId: c.documentId, part: null, pages }, calls, unreadPages, ids: aiFragmentIds(c.documentId) });
     const fromModel = calls.reduce((n, x) => n + x.answer.facts.length, 0);
-    const run = {
+    const conflicts = pages.filter((pg) => pg.identity === "conflicts");
+    const onPage = (n: number) => built.facts.filter((f) => f.sources.some((sid) => built.sources.find((x) => x.id === sid)?.page === n)).map((f) => f.draft_id);
+    const draft: DraftRun = {
       schema: "codebridge.extraction/2",
       case_id: c.id,
       content_language: "cs",
@@ -242,16 +250,24 @@ async function main() {
           ...(visionPages ? [{ name: "read_pages", model, prompt: readPrompt.ref, prompt_sha256: readPrompt.sha256, temperature: null }] : []),
           { name: "extract_facts", model, prompt: prompt.ref, prompt_sha256: prompt.sha256, temperature: null },
         ],
-        supersedes: null,
       },
       documents: [{ document_id: c.documentId, sha256: null, parts: [] }],
       sources: built.sources,
       facts: built.facts,
-      checks: built.checks,
-      alerts: built.alerts,
+      checks: [
+        ...built.checks,
+        { id: "chk-identity", looks_for: "identity", expected: null, covered: built.checks[0]!.covered, unreadable: built.checks[0]!.unreadable, result: conflicts.length ? "found" : "nothing_found" },
+      ],
+      alerts: conflicts.length
+        ? [{ rule: "identity_conflict", subject: c.documentId, kind: "identity", facts: conflicts.flatMap((pg) => onPage(pg.page)), message: { id: "alert-identity-conflict", args: { document: c.documentId, page: conflicts.map((pg) => pg.page).join(", ") } }, note: null }]
+        : [],
       brief: null,
       question_draft: null,
     };
+    const { run } = prepareRun({ caseId: c.id, previous: null, currentRunId: null, retiredDocuments: [], issuedIds: [] }, draft);
+    run.alerts.push(...requestsWithoutResult(run.facts));
+    const v = validateRun(run);
+    if (!v.ok) console.log(`${c.id}: the run does not validate: ${v.issues.map((i) => `${i.code} ${i.path}`).slice(0, 5).join("; ")}`);
     writeFileSync(join(out, `${c.id}.json`), JSON.stringify(run, null, 1));
     const ids = pages.map((p) => `p${p.page}:${p.identity}`).join(" ");
     const filtered = failed.length ? `, not read ${failed.join(" ")}` : "";

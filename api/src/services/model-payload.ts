@@ -44,10 +44,19 @@ export type PayloadInput<R> = {
   purpose: string;
 };
 
-export function buildPayload<R>(o: PayloadInput<R>): { body: Record<string, unknown>; parts: { ref: R; p: Pseudonymized }[]; chars: number } {
-  // One numbering of titled names for the whole call, so [LEKAR_1] is the same person in every part.
+/**
+ * The text parts of one call, pseudonymized as that call sends them: one numbering of titled names for the whole call,
+ * so [LEKAR_1] is the same person in every part. Deterministic, so a later Workflow step can rebuild the mapping
+ * instead of storing it (the mapping holds the names and is never stored).
+ */
+export function pseudonymizeParts(texts: string[], identity: CaseIdentity): Pseudonymized[] {
   const titled: TitledNumbers = new Map();
-  const parts = o.text.map((t) => ({ ref: t.ref, p: pseudonymize(t.text, o.identity, titled) }));
+  return texts.map((t) => pseudonymize(t, identity, titled));
+}
+
+export function buildPayload<R>(o: PayloadInput<R>): { body: Record<string, unknown>; parts: { ref: R; p: Pseudonymized }[]; chars: number } {
+  const pseudo = pseudonymizeParts(o.text.map((t) => t.text), o.identity);
+  const parts = o.text.map((t, i) => ({ ref: t.ref, p: pseudo[i]! }));
   // Parts are labelled by position only: a document ID or file name may itself name the patient.
   const content: Record<string, unknown>[] = [
     ...parts.map((x, i) => ({ type: "text", text: `[Část ${i + 1}]\n${x.p.text}` })),
