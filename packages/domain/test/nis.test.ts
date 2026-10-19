@@ -1,7 +1,7 @@
 // Patient match against the NIS (issue #22): birth-number forms, the identity comparison, merged and inactive records,
 // and name spellings. Nothing here links; it only says what a person may link.
 import { describe, expect, it } from "vitest";
-import { candidateFrom, compareNames, hasDuplicates, normalizeBirthNumber, rcisSearchValue } from "../src/nis";
+import { candidateFrom, compareNames, hasDuplicates, identityCheckOf, normalizeBirthNumber, rcisSearchValue } from "../src/nis";
 
 const RC = "https://ncez.mzcr.cz/fhir/sid/rcis";
 const pt = (id: string, rc: string, extra: Record<string, unknown> = {}) => ({
@@ -32,7 +32,8 @@ describe("candidates", () => {
 
   it("lets a person link a matching active record", () => {
     const c = candidateFrom(pt("a", "720905/3005"), { searched: "7209053005", ours });
-    expect(c).toMatchObject({ nis_id: "a", version: "2", identity: "matches", name_match: "same", linkable: true, reason_cs: null });
+    expect(c).toMatchObject({ nis_id: "a", version: "2", identity: "matches", name_match: "same", needs_confirmation: false, linkable: true, reason_cs: null });
+    expect(identityCheckOf(c)).toBe("matches");
   });
 
   it("refuses a record merged into another one and points at the survivor", () => {
@@ -50,7 +51,16 @@ describe("candidates", () => {
 
   it("cannot verify identity when our row has no birth number, but still lets a person decide", () => {
     const c = candidateFrom(pt("a", "720905/3005"), { searched: "7209053005", ours: { birth_number: null, full_name: null } });
-    expect(c).toMatchObject({ identity: "cannot_verify", name_match: "cannot_verify", linkable: true });
+    expect(c).toMatchObject({ identity: "cannot_verify", name_match: "cannot_verify", needs_confirmation: true, linkable: true });
+    expect(identityCheckOf(c)).toBe("cannot_verify");
+  });
+
+  it("asks for confirmation when the birth number matches but the name does not", () => {
+    for (const ours2 of [{ ...ours, full_name: "Petr Novák" }, { ...ours, full_name: "Jiri Zkusebni" }]) {
+      const c = candidateFrom(pt("a", "720905/3005"), { searched: "7209053005", ours: ours2 });
+      expect(c).toMatchObject({ identity: "matches", needs_confirmation: true, linkable: true });
+      expect(identityCheckOf(c)).toBe("matches_name_differs");
+    }
   });
 
   it("tells a spelling difference from a different name, and reports duplicates", () => {

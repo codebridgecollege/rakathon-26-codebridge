@@ -58,7 +58,7 @@ async function search() {
 }
 
 async function linkTo(c: NisCandidate) {
-  const r = await run(() => api.nisLink(props.o.caseId, { nis_patient_id: c.nis_id, ...body(), ...(c.identity === "cannot_verify" ? { confirm_unverified: !!confirmed.value[c.nis_id] } : {}) }));
+  const r = await run(() => api.nisLink(props.o.caseId, { nis_patient_id: c.nis_id, ...body(), ...(c.needs_confirmation ? { confirm_unverified: !!confirmed.value[c.nis_id] } : {}) }));
   if (r) {
     link.value = r.data.link;
     result.value = null;
@@ -74,6 +74,8 @@ const label = computed(() => status.value?.label_cs ?? result.value?.label_cs ??
 const gender = (g: string | null) => (g === "male" ? $t("patient-nis-gender-male") : g === "female" ? $t("patient-nis-gender-female") : "-");
 const identityText = (c: NisCandidate) =>
   c.identity === "matches" ? $t("patient-nis-identity-matches") : c.identity === "conflicts" ? $t("patient-nis-identity-conflicts") : $t("patient-nis-identity-unverified");
+const linkedText = (l: NisLink) =>
+  l.identity_check === "matches" ? $t("patient-nis-linked-matches") : l.identity_check === "matches_name_differs" ? $t("patient-nis-linked-name-differs") : $t("patient-nis-linked-unverified");
 const nameText = (c: NisCandidate) => (c.name_match === "spelling" ? $t("patient-nis-name-spelling") : c.name_match === "different" ? $t("patient-nis-name-different") : "");
 </script>
 
@@ -89,7 +91,7 @@ const nameText = (c: NisCandidate) => (c.name_match === "spelling" ? $t("patient
     <div v-if="link" class="card" style="margin:0">
       <p style="margin:0"><b>{{ $t("patient-nis-linked", { id: link.nis_patient_id }) }}</b></p>
       <p class="muted small" style="margin:4px 0 0">
-        {{ link.identity_check === "matches" ? $t("patient-nis-linked-matches") : $t("patient-nis-linked-unverified") }}
+        {{ linkedText(link) }}
         {{ $t("patient-nis-linked-by", { name: link.by_name, at: link.at.slice(0, 10) }) }}
       </p>
       <p class="muted small" style="margin:4px 0 0">{{ $t("patient-nis-phase-note") }}</p>
@@ -98,6 +100,7 @@ const nameText = (c: NisCandidate) => (c.name_match === "spelling" ? $t("patient
 
     <template v-else-if="status">
       <p class="small" style="margin:0">{{ $t("patient-nis-intro") }}</p>
+      <p class="muted small" style="margin:0">{{ $t("patient-nis-phase-note") }}</p>
       <label v-if="!status.has_birth_number" class="small" style="display:block">
         {{ $t("patient-nis-rc-label") }}
         <input v-model="typed" class="input" inputmode="numeric" autocomplete="off" :placeholder="$t('patient-nis-rc-placeholder')" style="margin-left:6px">
@@ -116,6 +119,7 @@ const nameText = (c: NisCandidate) => (c.name_match === "spelling" ? $t("patient
       <p v-if="!result.candidates.length" class="small" style="margin:0">{{ $t("patient-nis-none") }}</p>
       <p v-if="result.duplicates" class="question missing small" style="margin:0;padding:6px 10px">{{ $t("patient-nis-duplicates") }}</p>
       <p v-if="result.truncated" class="muted small" style="margin:0">{{ $t("patient-nis-truncated") }}</p>
+      <p v-if="result.other_records_hidden" class="muted small" style="margin:0">{{ $t("patient-nis-hidden", { n: result.other_records_hidden }) }}</p>
       <ul class="nis-cands" style="list-style:none;padding:0;margin:0;display:grid;gap:8px">
         <li v-for="c in result.candidates" :key="c.nis_id" class="card" style="margin:0">
           <div class="row spread">
@@ -128,10 +132,10 @@ const nameText = (c: NisCandidate) => (c.name_match === "spelling" ? $t("patient
           </p>
           <p v-if="c.reason_cs" class="small" style="margin:4px 0 0" lang="cs">{{ c.reason_cs }}</p>
           <template v-if="c.linkable">
-            <label v-if="c.identity === 'cannot_verify'" class="small" style="display:block;margin-top:6px">
+            <label v-if="c.needs_confirmation" class="small" style="display:block;margin-top:6px">
               <input v-model="confirmed[c.nis_id]" type="checkbox"> {{ $t("patient-nis-confirm") }}
             </label>
-            <button class="btn small" style="margin-top:6px" :disabled="busy || (c.identity === 'cannot_verify' && !confirmed[c.nis_id])" @click="linkTo(c)">
+            <button class="btn small" style="margin-top:6px" :disabled="busy || (c.needs_confirmation && !confirmed[c.nis_id])" @click="linkTo(c)">
               {{ $t("patient-nis-link") }}
             </button>
           </template>

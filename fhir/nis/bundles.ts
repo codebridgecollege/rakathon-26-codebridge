@@ -89,14 +89,14 @@ class Builder {
 const cc = (text: string, coding?: R[]) => (coding ? { coding, text } : { text });
 const ref = (r: string, display?: string) => (display ? { reference: r, display } : { reference: r });
 
-function patient(b: Builder, id: string, o: { family: string; given: string[]; gender: "male" | "female"; birthDate?: string; rc: string; extra?: R }) {
+function patient(b: Builder, id: string, o: { family: string; given: string[]; gender?: "male" | "female"; birthDate?: string; rc: string; extra?: R }) {
   return b.add({
     resourceType: "Patient",
     id,
     identifier: [{ system: SYS.rcis, value: o.rc }],
     active: true,
     name: [{ use: "official", family: o.family, given: o.given }],
-    gender: o.gender,
+    ...(o.gender ? { gender: o.gender } : {}),
     ...(o.birthDate ? { birthDate: o.birthDate } : {}),
     ...(o.extra ?? {}),
   });
@@ -122,6 +122,8 @@ function practitionerRole(b: Builder, id: string, prefix: string, given: string,
   return b.add({ resourceType: "PractitionerRole", id, practitioner: ref(pr), organization: ref(org) });
 }
 
+// onset is the document's own wording ("diag. 12/2025"): the documents date the diagnosis, not the first symptom, so it
+// goes to onsetString rather than a date that would read as the onset.
 function condition(b: Builder, id: string, pt: string, o: { code: string; display: string; onset?: string; confirmed?: boolean; note?: string }) {
   return b.add({
     resourceType: "Condition",
@@ -133,7 +135,7 @@ function condition(b: Builder, id: string, pt: string, o: { code: string; displa
     // document's wording goes to text, not to display: display must be ÚZIS's own name, which the documents do not use.
     code: cc(o.display, [{ system: SYS.mkn10, code: o.code }]),
     subject: ref(pt),
-    ...(o.onset ? { onsetDateTime: o.onset } : {}),
+    ...(o.onset ? { onsetString: o.onset } : {}),
     ...(o.note ? { note: [{ text: o.note }] } : {}),
   });
 }
@@ -166,12 +168,13 @@ function procedure(b: Builder, id: string, pt: string, text: string, when: { dat
   });
 }
 
-// Medication as written; no ATC or SÚKL code, because the documents give none.
-function med(b: Builder, id: string, pt: string, text: string, dosage: string, o: { status: "active" | "completed" | "stopped" | "unknown"; start?: string; end?: string }) {
+// Medication as written; no ATC or SÚKL code, because the documents give none. Status "unknown": the documents do not say
+// whether a drug is still taken, and a NIS fixture that guessed would test the mapping against a guess.
+function med(b: Builder, id: string, pt: string, text: string, dosage: string, o: { start?: string; end?: string } = {}) {
   return b.add({
     resourceType: "MedicationStatement",
     id,
-    status: o.status,
+    status: "unknown",
     medicationCodeableConcept: cc(text),
     subject: ref(pt),
     ...(o.start ? { effectivePeriod: { start: o.start, ...(o.end ? { end: o.end } : {}) } } : {}),
@@ -269,7 +272,7 @@ const b64 = (bytes: Uint8Array) => Buffer.from(bytes).toString("base64");
 
 // A document and its file. Without the bytes (tests), the DocumentReference still names a Binary that is not there,
 // which is what a NIS answers for a file it cannot serve; the connector must cope with that too.
-function document(b: Builder, id: string, pt: string, o: { title: string; date: string; type: string; file?: Uint8Array | null; contentType?: string; status?: string; relatesTo?: R[]; text?: string }) {
+function document(b: Builder, id: string, pt: string, o: { title: string; date?: string; type: string; file?: Uint8Array | null; contentType?: string; status?: string; relatesTo?: R[]; text?: string }) {
   const binId = `${id}-bin`;
   const ct = o.contentType ?? "application/pdf";
   const bytes = o.file ?? (o.text !== undefined ? new TextEncoder().encode(o.text) : null);
@@ -282,7 +285,7 @@ function document(b: Builder, id: string, pt: string, o: { title: string; date: 
     subject: ref(pt),
     // The document's own date goes to context.period: DocumentReference.date is an instant (with a time), and the
     // documents give a day only, so no time is invented.
-    context: { period: { start: o.date } },
+    ...(o.date ? { context: { period: { start: o.date } } } : {}),
     description: o.title,
     ...(o.relatesTo ? { relatesTo: o.relatesTo } : {}),
     content: [{ attachment: { contentType: ct, url: `Binary/${binId}`, title: o.title, ...(bytes ? { size: bytes.length, hash: sha1b64(bytes) } : {}) } }],
@@ -296,19 +299,21 @@ function s01(f: Fixtures): Bundle {
   coverage(b, p, pt);
   const onko = dept(b, "cb-org-onko-neuro", "Onkologická ambulance - neuroonkologie");
   const doc = practitionerRole(b, "cb-role-modrinova", "MUDr.", "Hana", "Modřínová", onko);
-  condition(b, `${p}-dg-c711`, pt, { code: "C711", display: "Zhoubný novotvar čelního laloku", onset: "2025-12", confirmed: true, note: "Glioblastom vlevo frontálně, IDH-wildtype, CNS WHO gr. 4, MGMT metylován" });
-  condition(b, `${p}-dg-i802`, pt, { code: "I802", display: "Flebitida a tromboflebitida jiných hlubokých cév dolních končetin", onset: "2026-02-24", confirmed: true });
+  condition(b, `${p}-dg-c711`, pt, { code: "C711", display: "Zhoubný novotvar čelního laloku", onset: "diag. 12/2025", confirmed: true, note: "Glioblastom vlevo frontálně, IDH-wildtype, CNS WHO gr. 4, MGMT metylován" });
+  condition(b, `${p}-dg-i802`, pt, { code: "I802", display: "Flebitida a tromboflebitida jiných hlubokých cév dolních končetin", onset: "DUS 24.2.2026", confirmed: true });
   procedure(b, `${p}-op-2025-12-02`, pt, "Subtotální resekce tumoru vlevo frontálně", { date: "2025-12-02" });
   procedure(b, `${p}-rt-2026-01`, pt, "Konkomitantní chemoradioterapie, RT 60 Gy/30 fr.", { start: "2026-01-12", end: "2026-02-20" });
   // The MRI of 29.9.2026 happened (the report quotes it "popis z NIS") but its report is not in the documents: the
   // failure case "an examination that happened but whose report is missing".
   procedure(b, `${p}-mr-2026-09-29`, pt, "MR mozku", { date: "2026-09-29" });
-  med(b, `${p}-med-tmz-konk`, pt, "Temozolomid", "75 mg/m2 denně během RT", { status: "completed", start: "2026-01-12", end: "2026-02-20" });
-  med(b, `${p}-med-tmz-adj`, pt, "Temozolomid", "adjuvantně 6 cyklů, od 3. cyklu 150 mg/m2 (300 mg D1-5)", { status: "completed", start: "2026-03-23", end: "2026-08-21" });
-  med(b, `${p}-med-enox`, pt, "Enoxaparin", "80 mg s.c. á 12 hod.", { status: "active", start: "2026-02-24" });
-  med(b, `${p}-med-dexa`, pt, "Dexamethason", "4 mg 1-0-0", { status: "active", start: "2026-07-15" });
-  med(b, `${p}-med-metf`, pt, "Metformin", "500 mg 1-0-1", { status: "active", start: "2026-08-04" });
-  med(b, `${p}-med-lev`, pt, "Levetiracetam", "500 mg 1-0-1", { status: "active" });
+  med(b, `${p}-med-tmz-konk`, pt, "Temozolomid", "75 mg/m2 denně během RT", { start: "2026-01-12", end: "2026-02-20" });
+  // Started 23.3.2026; the documents say only "adjuvance ukončena" after the 6th cycle (17.8.2026), so no end date.
+  med(b, `${p}-med-tmz-adj`, pt, "Temozolomid", "adjuvantně 6 cyklů: 1. cyklus 150 mg/m2 (300 mg D1-5), 2. cyklus 200 mg/m2 (400 mg D1-5), od 3. cyklu redukce na 150 mg/m2 (300 mg D1-5)", { start: "2026-03-23" });
+  med(b, `${p}-med-enox`, pt, "Enoxaparin", "80 mg s.c. á 12 hod.", { start: "2026-02-24" });
+  med(b, `${p}-med-dexa`, pt, "Dexamethason", "4 mg 1-0-0", { start: "2026-07-15" });
+  // "4.8.2026 steroidní hyperglykémie ..., dle PL zahájen metformin": the start day is not stated.
+  med(b, `${p}-med-metf`, pt, "Metformin", "500 mg 1-0-1");
+  med(b, `${p}-med-lev`, pt, "Levetiracetam", "500 mg 1-0-1");
   encounter(b, `${p}-enc-2026-01-08`, pt, "2026-01-08", onko, "Ambulantní vyšetření vstupní");
   encounter(b, `${p}-enc-2026-10-06`, pt, "2026-10-06", onko, "Ambulantní vyšetření kontrolní");
   // Requested 1.10.2026, "t.č. výsledek nemáme": a sent request is not a done exam.
@@ -334,12 +339,14 @@ function s02(f: Fixtures): Bundle {
   const pat = dept(b, "cb-org-patologie", "Ústav patologie");
   const doc = practitionerRole(b, "cb-role-habrman", "MUDr.", "Ondřej", "Habrman", chir);
   practitionerRole(b, "cb-role-rosicky", "MUDr.", "Kamil", "Rosický", pat);
-  condition(b, `${p}-dg-c20`, pt, { code: "C20", display: "Zhoubný novotvar konečníku", onset: "2026-03", confirmed: true, note: "Adenokarcinom rekta, G2, pMMR" });
-  condition(b, `${p}-dg-z932`, pt, { code: "Z932", display: "Ileostomie", onset: "2026-08-11", confirmed: true });
+  condition(b, `${p}-dg-c20`, pt, { code: "C20", display: "Zhoubný novotvar konečníku", onset: "diag. 3/2026", confirmed: true, note: "Adenokarcinom rekta, G2, pMMR" });
+  condition(b, `${p}-dg-z932`, pt, { code: "Z932", display: "Ileostomie", onset: "protektivní ileostomie 11.8.2026", confirmed: true });
   // Two stages of different kinds and times: not a contradiction. Each sits in the report it comes from
   // (DiagnosticReport.result), the way a NIS links a finding to its report.
   const stC = stage(b, `${p}-stage-c`, pt, { kind: "clinical", value: "cT3b cN1 cM0", date: "2026-03-17" });
   const stYp = stage(b, `${p}-stage-yp`, pt, { kind: "post_neoadjuvant", value: "ypT2 ypN0 (0/14), R0", date: "2026-08-21" });
+  // The radiology reports are not in the sample documents; their conclusions here are the outpatient report's quotes
+  // of them ("popis z NIS"), standing in for the reports a NIS would hold.
   report(b, `${p}-rad-mr-2026-03-16`, pt, { cat: "RAD", text: "MR pánve", date: "2026-03-16", result: [stC], conclusion: "Tumor rekta s šířením do mezorekta 7 mm za muscularis propria, 2 suspektní mezorektální uzliny, MRF negativní, EMVI negativní, závěr cT3b cN1." });
   report(b, `${p}-rad-ct-2026-03-17`, pt, { cat: "RAD", text: "CT hrudníku a břicha", date: "2026-03-17", conclusion: "Bez známek vzdálených metastáz." });
   report(b, `${p}-rad-mr-2026-07-20`, pt, { cat: "RAD", text: "MR pánve", date: "2026-07-20", conclusion: "Regrese tumoru, reziduální ztluštění stěny rekta, bez suspektních uzlin, MRF negativní." });
@@ -350,11 +357,12 @@ function s02(f: Fixtures): Bundle {
   procedure(b, `${p}-kolo-2026-03-09`, pt, "Koloskopie s biopsií", { date: "2026-03-09" });
   procedure(b, `${p}-chrt-2026-04`, pt, "Neoadjuvantní chemoradioterapie, RT 50,4 Gy/28 fr.", { start: "2026-04-07", end: "2026-05-18" });
   procedure(b, `${p}-op-2026-08-11`, pt, "Nízká přední resekce rekta s TME, protektivní ileostomie", { date: "2026-08-11" });
-  med(b, `${p}-med-cape`, pt, "Kapecitabin", "825 mg/m2 2x denně ve dnech RT", { status: "completed", start: "2026-04-07", end: "2026-05-18" });
-  med(b, `${p}-med-peri`, pt, "Perindopril", "4 mg 1-0-0", { status: "active" });
-  med(b, `${p}-med-levo`, pt, "Levothyroxin", "75 µg 1-0-0", { status: "active" });
-  med(b, `${p}-med-lope`, pt, "Loperamid", "2 mg dle odvodu ze stomie", { status: "active" });
-  med(b, `${p}-med-panto`, pt, "Pantoprazol", "20 mg 1-0-0", { status: "active" });
+  // "kapecitabin 825 mg/m2 2x denně ve dnech RT": the period is the chemoradiotherapy's (7.4. to 18.5.2026).
+  med(b, `${p}-med-cape`, pt, "Kapecitabin", "825 mg/m2 2x denně ve dnech RT", { start: "2026-04-07", end: "2026-05-18" });
+  med(b, `${p}-med-peri`, pt, "Perindopril", "4 mg 1-0-0");
+  med(b, `${p}-med-levo`, pt, "Levothyroxin", "75 µg 1-0-0");
+  med(b, `${p}-med-lope`, pt, "Loperamid", "2 mg dle odvodu ze stomie");
+  med(b, `${p}-med-panto`, pt, "Pantoprazol", "20 mg 1-0-0");
   encounter(b, `${p}-enc-2026-10-08`, pt, "2026-10-08", chir, "Ambulantní vyšetření kontrolní");
   // Requested 7.10.2026, "t.č. výsledek nemáme".
   serviceRequest(b, `${p}-sr-ct`, pt, { text: "CT hrudníku, břicha a pánve", authoredOn: "2026-10-07", requester: doc, reason: "Vzestup CEA" });
@@ -372,26 +380,28 @@ function case10(f: Fixtures): Bundle {
   const b = new Builder();
   const p = "cb-c10";
   // The documents give the name only (no birth date, no birth number); the birth date and number here are test-only.
-  const pt = patient(b, p, { family: "Poláček", given: ["Daniel"], gender: "male", birthDate: "1961-05-18", rc: TEST_ONLY_BIRTH_NUMBERS[p]! });
+  const pt = patient(b, p, { family: "Poláček", given: ["Daniel"], birthDate: "1961-05-18", rc: TEST_ONLY_BIRTH_NUMBERS[p]! });
   const dg = f.case10.diagnosis;
-  condition(b, `${p}-dg-c64`, pt, { code: dg.code, display: dg.text_cs, onset: "2022-04", confirmed: true, note: "RCC lokálně pokročilý" });
-  const stP = stage(b, `${p}-stage-p`, pt, { kind: "pathological", value: "pT2a pN1 M0", date: "2022-06-02" });
-  report(b, `${p}-pat-2022-06-02`, pt, { cat: "PAT", text: "Histologie po nefrektomii vpravo", date: "2022-06-02", result: [stP], conclusion: "ccRCC G2, pT2a pN1 M0" });
+  condition(b, `${p}-dg-c64`, pt, { code: dg.code, display: dg.text_cs, onset: "diag. 4/2022", confirmed: true, note: "RCC lok. pokročilý" });
+  // The document's text layer reads "MO" (OCR for M0); a NIS report would carry the clean value.
+  const stP = stage(b, `${p}-stage-p`, pt, { kind: "pathological", value: "pT2a pN1(3+/5) M0", date: "2022-06-02" });
+  report(b, `${p}-pat-2022-06-02`, pt, { cat: "PAT", text: "Histologie po nefrektomii vpravo", date: "2022-06-02", result: [stP], conclusion: "Světlobuněčný renální adenokarcinom G2, pT2a pN1(3+/5) M0" });
   procedure(b, `${p}-op-2022-06-02`, pt, "Nefrektomie vpravo + retroperitoneální lymfadenektomie", { date: "2022-06-02" });
   procedure(b, `${p}-op-2022-10-25`, pt, "Exstirpace paraaortální LU", { date: "2022-10-25" });
   procedure(b, `${p}-port-2023-08-21`, pt, "Implantace venózního portu", { date: "2023-08-21" });
-  med(b, `${p}-med-nivo-ipi`, pt, "Nivolumab + ipilimumab", "1. linie", { status: "completed", start: "2023-03-27", end: "2023-04-17" });
-  med(b, `${p}-med-nivo`, pt, "Nivolumab", "udržovací", { status: "completed", start: "2023-06-27", end: "2025-12-29" });
-  med(b, `${p}-med-suni`, pt, "Sunitinib", "2. linie, 50 mg režim 4/2, redukce na 37,5 mg a 25 mg", { status: "completed", start: "2026-01-27" });
-  med(b, `${p}-med-evero`, pt, "Everolimus", "3. linie", { status: "active", start: "2026-09-03" });
-  report(b, `${p}-rad-mr-2026-09-14`, pt, { cat: "RAD", text: "MR mozku", date: "2026-09-14", conclusion: "Solitární nodulus v pravé mozečkové hemisféře do 3 mm, susp. MTS." });
+  // Two cycles (27.3. and 17.4.2023), then toxicity; the documents give no end date.
+  med(b, `${p}-med-nivo-ipi`, pt, "Nivolumab + ipilimumab", "nivolumab 3mg/kg + ipilimumab 1mg/kg q3w, 1. linie", { start: "2023-03-27" });
+  med(b, `${p}-med-nivo`, pt, "Nivolumab", "udržovací", { start: "2023-06-27", end: "2025-12-29" });
+  med(b, `${p}-med-suni`, pt, "Sunitinib", "2. linie, 50 mg režim 4/2, redukce na 37,5 mg a 25 mg", { start: "2026-01-27" });
+  med(b, `${p}-med-evero`, pt, "Everolimus", "3. linie", { start: "2026-09-03" });
+  report(b, `${p}-rad-mr-2026-09-14`, pt, { cat: "RAD", text: "MR mozku", date: "2026-09-14", conclusion: "Solitérní nodulus postkontrastně se sytící v pravé mozečkové hemisféře (do 3mm) - suspekce na solitérní MTS, postkontrastně bez jiných sytících se lézí intrakraniálně. Gliózy supratentoriálně Fazekas gr. III." });
   // The lab sheet of 10_pacient.pdf prints no draw date, so neither the Observations nor the report get one.
   const results = (f.case10.labs as R[]).map((l) => {
     const [lo, hi] = String(l.reference_range).split("...").map((s) => Number(s.trim()));
     return labObs(b, `${p}-lab-${slug(l.code)}`, pt, { code: l.code, name: l.name_cs, value: l.value, unit: l.unit, range: l.reference_range, low: lo, high: hi, flag: null });
   });
   report(b, `${p}-labrep`, pt, { cat: "LAB", text: "Laboratorní vyšetření (KO, biochemie)", result: results });
-  document(b, `${p}-doc-all`, pt, { title: "Dokumentace pacienta (souhrnné PDF)", type: "souhrnná dokumentace", date: "2026-10-09", file: f.pdf("data/rakathon-26/2_AI asistent MDT/10_pacient.pdf") });
+  document(b, `${p}-doc-all`, pt, { title: "Dokumentace pacienta (souhrnné PDF)", type: "souhrnná dokumentace", file: f.pdf("data/rakathon-26/2_AI asistent MDT/10_pacient.pdf") });
   return b.bundle();
 }
 
@@ -415,7 +425,7 @@ function failures(): Bundle {
   // F03: two pathological stages of the same specimen and time that disagree: a real contradiction. The clinical
   // stage before surgery differs too, which is not one.
   const f3 = patient(b, "cb-f03", { family: "Testovací", given: ["Petr"], gender: "male", birthDate: "1967-01-14", rc: TEST_ONLY_BIRTH_NUMBERS["cb-f03"]! });
-  condition(b, "cb-f03-dg-c18", f3, { code: "C187", display: "Zhoubný novotvar esovitého tračníku", onset: "2026-04", confirmed: true });
+  condition(b, "cb-f03-dg-c18", f3, { code: "C187", display: "Zhoubný novotvar esovitého tračníku", onset: "diag. 4/2026", confirmed: true });
   stage(b, "cb-f03-stage-c", f3, { kind: "clinical", value: "cT4a cN1 cM0", date: "2026-04-10" });
   stage(b, "cb-f03-stage-p1", f3, { kind: "pathological", value: "pT3 pN0 (0/18)", date: "2026-05-04" });
   stage(b, "cb-f03-stage-p2", f3, { kind: "pathological", value: "pT4a pN1a (1/18)", date: "2026-05-04" });

@@ -6,160 +6,160 @@ FHIR Validation tool Version 7.0.2 (Git# de3463393298). Built 2026-10-15T16:42:3
   Jurisdiction: United States of America
 Loading
   Loading FHIR v4.0.1 from hl7.fhir.r4.core#4.0.1
-  Load hl7.terminology.r4#6.2.0 - 4288 resources (00:02.001)
-  Load hl7.fhir.uv.extensions.r4#5.2.0 - 759 resources (00:00.369)
+  Load hl7.terminology.r4#6.2.0 - 4288 resources (00:05.965)
+  Load hl7.fhir.uv.extensions.r4#5.2.0 - 759 resources (00:00.995)
   Loaded FHIR - 8265 resources (00:00.000)
   Terminology Cache at <tmp>
-  Terminology server https://tx.fhir.org - Version Connected to Terminology Server at https://tx.fhir.org (00:00.939)
-  Load hl7.terminology#7.4.0 - 4181 resources (00:00.630)
-  Load hl7.fhir.uv.extensions.r5#5.2.0 - 759 resources (00:00.167)
-  Load hl7.terminology.r5#7.1.0 - 4072 resources (00:00.048)
-  Load hl7.fhir.uv.extensions#5.3.0 - 856 resources (00:00.261)
-  Load fhir/definitions - 7 resources (00:00.005)
-  Load hl7.terminology.r4#7.1.0 - 4072 resources (00:00.086)
-  Load hl7.fhir.uv.extensions.r4#5.3.0 - 885 resources (00:00.142)
-  Load hl7.terminology.r4#7.3.0 - 4146 resources (00:00.056)
-  Load hl7.fhir.uv.xver-r5.r4#0.1.0 - 4707 resources (00:00.063)
-  Load hl7.fhir.eu.extensions.r4#1.3.0 - 11 resources (00:00.001)
-  Load hl7.terminology.r4#6.3.0 - 4339 resources (00:00.078)
-  Load ihe.pharm.mpd.r4#1.0.0-comment-2 - 40 resources (00:00.001)
-  Load hl7.fhir.eu.base#2.0.0 - 31 resources (00:00.000)
+  Terminology server https://tx.fhir.org - Version Connected to Terminology Server at https://tx.fhir.org (00:01.318)
+  Load hl7.terminology#7.4.0 - 4181 resources (00:00.672)
+  Load hl7.fhir.uv.extensions.r5#5.2.0 - 759 resources (00:00.223)
+  Load hl7.terminology.r5#7.1.0 - 4072 resources (00:00.121)
+  Load hl7.fhir.uv.extensions#5.3.0 - 856 resources (00:00.781)
+  Load fhir/definitions - 7 resources (00:00.009)
+  Load hl7.terminology.r4#7.1.0 - 4072 resources (00:00.158)
+  Load hl7.fhir.uv.extensions.r4#5.3.0 - 885 resources (00:00.406)
+  Load hl7.terminology.r4#7.3.0 - 4146 resources (00:00.093)
+  Load hl7.fhir.uv.xver-r5.r4#0.1.0 - 4707 resources (00:00.129)
+  Load hl7.fhir.eu.extensions.r4#1.3.0 - 11 resources (00:00.002)
+  Load hl7.terminology.r4#6.3.0 - 4339 resources (00:00.143)
+  Load ihe.pharm.mpd.r4#1.0.0-comment-2 - 40 resources (00:00.002)
+  Load hl7.fhir.eu.base#2.0.0 - 31 resources (00:00.001)
   Load hl7.fhir.cz.terminology#0.3.0 - 76 resources (00:00.001)
-  Load hl7.fhir.eu.mpd#1.0.0 - 5 resources (00:00.000)
-  Load hl7.fhir.eu.laboratory#2.0.0 - 35 resources (00:00.001)
-  Load hl7.fhir.cz.core#1.0.0 - 62 resources (00:00.000)
+  Load hl7.fhir.eu.mpd#1.0.0 - 5 resources (00:00.001)
+  Load hl7.fhir.eu.laboratory#2.0.0 - 35 resources (00:00.003)
+  Load hl7.fhir.cz.core#1.0.0 - 62 resources (00:00.001)
   Package Summary: [hl7.fhir.r4.core#4.0.1, hl7.fhir.xver-extensions#0.1.0, hl7.terminology.r4#6.2.0, hl7.fhir.uv.extensions.r4#5.2.0, hl7.terminology#7.4.0, hl7.fhir.uv.extensions.r5#5.2.0, hl7.terminology.r5#7.1.0, hl7.fhir.uv.extensions#5.3.0, hl7.terminology.r4#7.1.0, hl7.fhir.uv.extensions.r4#5.3.0, hl7.terminology.r4#7.3.0, hl7.fhir.uv.xver-r5.r4#0.1.0, hl7.fhir.eu.extensions.r4#1.3.0, hl7.terminology.r4#6.3.0, ihe.pharm.mpd.r4#1.0.0-comment-2, hl7.fhir.eu.base#2.0.0, hl7.fhir.cz.terminology#0.3.0, hl7.fhir.eu.mpd#1.0.0, hl7.fhir.eu.laboratory#2.0.0, hl7.fhir.cz.core#1.0.0]
   Get set... 
-  ...go! (00:01.608)
+  ...go! (00:03.462)
 Cached new session. Cache size = 1
 Sources to validate: fhir/nis/out/case-10.json
 Validating
   Validate fhir/nis/out/case-10.json
- 00:00.666
-Done. Times: Loading: 00:06.501, validation: 00:00.667. Memory = 696Mb
+ 00:00.899
+Done. Times: Loading: 00:14.541, validation: 00:00.899. Memory = 901Mb
 
 
 ----------------------------------------------------------------------------------
-fhir/nis/out/case-10.json 09:36:56
+fhir/nis/out/case-10.json 10:02:05
 [7, 8] Bundle.entry[0].resource/*Patient/cb-c10*/: Warning - Constraint failed: dom-6: 'A resource should have narrative for robust management' (defined in http://hl7.org/fhir/StructureDefinition/DomainResource) (Best Practice Recommendation)
-[36, 8] Bundle.entry[1].resource/*Condition/cb-c10-dg-c64*/: Warning - Constraint failed: dom-6: 'A resource should have narrative for robust management' (defined in http://hl7.org/fhir/StructureDefinition/DomainResource) (Best Practice Recommendation)
-[94, 8] Bundle.entry[2].resource/*Observation/cb-c10-stage-p*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
-[94, 8] Bundle.entry[2].resource/*Observation/cb-c10-stage-p*/: Warning - Constraint failed: dom-6: 'A resource should have narrative for robust management' (defined in http://hl7.org/fhir/StructureDefinition/DomainResource) (Best Practice Recommendation)
-[125, 8] Bundle.entry[3].resource/*DiagnosticReport/cb-c10-pat-2022-06-02*/: Warning - Constraint failed: dom-6: 'A resource should have narrative for robust management' (defined in http://hl7.org/fhir/StructureDefinition/DomainResource) (Best Practice Recommendation)
-[161, 8] Bundle.entry[4].resource/*Procedure/cb-c10-op-2022-06-02*/: Warning - Constraint failed: dom-6: 'A resource should have narrative for robust management' (defined in http://hl7.org/fhir/StructureDefinition/DomainResource) (Best Practice Recommendation)
-[180, 8] Bundle.entry[5].resource/*Procedure/cb-c10-op-2022-10-25*/: Warning - Constraint failed: dom-6: 'A resource should have narrative for robust management' (defined in http://hl7.org/fhir/StructureDefinition/DomainResource) (Best Practice Recommendation)
-[199, 8] Bundle.entry[6].resource/*Procedure/cb-c10-port-2023-08-21*/: Warning - Constraint failed: dom-6: 'A resource should have narrative for robust management' (defined in http://hl7.org/fhir/StructureDefinition/DomainResource) (Best Practice Recommendation)
-[218, 8] Bundle.entry[7].resource/*MedicationStatement/cb-c10-med-nivo-ipi*/: Warning - Constraint failed: dom-6: 'A resource should have narrative for robust management' (defined in http://hl7.org/fhir/StructureDefinition/DomainResource) (Best Practice Recommendation)
-[245, 8] Bundle.entry[8].resource/*MedicationStatement/cb-c10-med-nivo*/: Warning - Constraint failed: dom-6: 'A resource should have narrative for robust management' (defined in http://hl7.org/fhir/StructureDefinition/DomainResource) (Best Practice Recommendation)
-[272, 8] Bundle.entry[9].resource/*MedicationStatement/cb-c10-med-suni*/: Warning - Constraint failed: dom-6: 'A resource should have narrative for robust management' (defined in http://hl7.org/fhir/StructureDefinition/DomainResource) (Best Practice Recommendation)
-[298, 8] Bundle.entry[10].resource/*MedicationStatement/cb-c10-med-evero*/: Warning - Constraint failed: dom-6: 'A resource should have narrative for robust management' (defined in http://hl7.org/fhir/StructureDefinition/DomainResource) (Best Practice Recommendation)
-[324, 8] Bundle.entry[11].resource/*DiagnosticReport/cb-c10-rad-mr-2026-09-14*/: Warning - Constraint failed: dom-6: 'A resource should have narrative for robust management' (defined in http://hl7.org/fhir/StructureDefinition/DomainResource) (Best Practice Recommendation)
-[355, 8] Bundle.entry[12].resource/*Observation/cb-c10-lab-s-hscrp*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
-[355, 8] Bundle.entry[12].resource/*Observation/cb-c10-lab-s-hscrp*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
-[355, 8] Bundle.entry[12].resource/*Observation/cb-c10-lab-s-hscrp*/: Warning - Constraint failed: dom-6: 'A resource should have narrative for robust management' (defined in http://hl7.org/fhir/StructureDefinition/DomainResource) (Best Practice Recommendation)
-[370, 10] Bundle.entry[12].resource/*Observation/cb-c10-lab-s-hscrp*/.code: Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/fno-local-lab-code|0.1.0
-[412, 8] Bundle.entry[13].resource/*Observation/cb-c10-lab-s-glc*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
-[412, 8] Bundle.entry[13].resource/*Observation/cb-c10-lab-s-glc*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
-[412, 8] Bundle.entry[13].resource/*Observation/cb-c10-lab-s-glc*/: Warning - Constraint failed: dom-6: 'A resource should have narrative for robust management' (defined in http://hl7.org/fhir/StructureDefinition/DomainResource) (Best Practice Recommendation)
-[427, 10] Bundle.entry[13].resource/*Observation/cb-c10-lab-s-glc*/.code: Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/fno-local-lab-code|0.1.0
-[469, 8] Bundle.entry[14].resource/*Observation/cb-c10-lab-s-bil*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
-[469, 8] Bundle.entry[14].resource/*Observation/cb-c10-lab-s-bil*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
-[469, 8] Bundle.entry[14].resource/*Observation/cb-c10-lab-s-bil*/: Warning - Constraint failed: dom-6: 'A resource should have narrative for robust management' (defined in http://hl7.org/fhir/StructureDefinition/DomainResource) (Best Practice Recommendation)
-[484, 10] Bundle.entry[14].resource/*Observation/cb-c10-lab-s-bil*/.code: Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/fno-local-lab-code|0.1.0
-[526, 8] Bundle.entry[15].resource/*Observation/cb-c10-lab-s-urea*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
-[526, 8] Bundle.entry[15].resource/*Observation/cb-c10-lab-s-urea*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
-[526, 8] Bundle.entry[15].resource/*Observation/cb-c10-lab-s-urea*/: Warning - Constraint failed: dom-6: 'A resource should have narrative for robust management' (defined in http://hl7.org/fhir/StructureDefinition/DomainResource) (Best Practice Recommendation)
-[541, 10] Bundle.entry[15].resource/*Observation/cb-c10-lab-s-urea*/.code: Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/fno-local-lab-code|0.1.0
-[583, 8] Bundle.entry[16].resource/*Observation/cb-c10-lab-s-creae*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
-[583, 8] Bundle.entry[16].resource/*Observation/cb-c10-lab-s-creae*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
-[583, 8] Bundle.entry[16].resource/*Observation/cb-c10-lab-s-creae*/: Warning - Constraint failed: dom-6: 'A resource should have narrative for robust management' (defined in http://hl7.org/fhir/StructureDefinition/DomainResource) (Best Practice Recommendation)
-[598, 10] Bundle.entry[16].resource/*Observation/cb-c10-lab-s-creae*/.code: Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/fno-local-lab-code|0.1.0
-[640, 8] Bundle.entry[17].resource/*Observation/cb-c10-lab-s-urat*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
-[640, 8] Bundle.entry[17].resource/*Observation/cb-c10-lab-s-urat*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
-[640, 8] Bundle.entry[17].resource/*Observation/cb-c10-lab-s-urat*/: Warning - Constraint failed: dom-6: 'A resource should have narrative for robust management' (defined in http://hl7.org/fhir/StructureDefinition/DomainResource) (Best Practice Recommendation)
-[655, 10] Bundle.entry[17].resource/*Observation/cb-c10-lab-s-urat*/.code: Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/fno-local-lab-code|0.1.0
-[697, 8] Bundle.entry[18].resource/*Observation/cb-c10-lab-s-alt*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
-[697, 8] Bundle.entry[18].resource/*Observation/cb-c10-lab-s-alt*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
-[697, 8] Bundle.entry[18].resource/*Observation/cb-c10-lab-s-alt*/: Warning - Constraint failed: dom-6: 'A resource should have narrative for robust management' (defined in http://hl7.org/fhir/StructureDefinition/DomainResource) (Best Practice Recommendation)
-[712, 10] Bundle.entry[18].resource/*Observation/cb-c10-lab-s-alt*/.code: Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/fno-local-lab-code|0.1.0
-[754, 8] Bundle.entry[19].resource/*Observation/cb-c10-lab-s-ast*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
-[754, 8] Bundle.entry[19].resource/*Observation/cb-c10-lab-s-ast*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
-[754, 8] Bundle.entry[19].resource/*Observation/cb-c10-lab-s-ast*/: Warning - Constraint failed: dom-6: 'A resource should have narrative for robust management' (defined in http://hl7.org/fhir/StructureDefinition/DomainResource) (Best Practice Recommendation)
-[769, 10] Bundle.entry[19].resource/*Observation/cb-c10-lab-s-ast*/.code: Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/fno-local-lab-code|0.1.0
-[811, 8] Bundle.entry[20].resource/*Observation/cb-c10-lab-s-alp*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
-[811, 8] Bundle.entry[20].resource/*Observation/cb-c10-lab-s-alp*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
-[811, 8] Bundle.entry[20].resource/*Observation/cb-c10-lab-s-alp*/: Warning - Constraint failed: dom-6: 'A resource should have narrative for robust management' (defined in http://hl7.org/fhir/StructureDefinition/DomainResource) (Best Practice Recommendation)
-[826, 10] Bundle.entry[20].resource/*Observation/cb-c10-lab-s-alp*/.code: Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/fno-local-lab-code|0.1.0
-[868, 8] Bundle.entry[21].resource/*Observation/cb-c10-lab-s-ggt*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
-[868, 8] Bundle.entry[21].resource/*Observation/cb-c10-lab-s-ggt*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
-[868, 8] Bundle.entry[21].resource/*Observation/cb-c10-lab-s-ggt*/: Warning - Constraint failed: dom-6: 'A resource should have narrative for robust management' (defined in http://hl7.org/fhir/StructureDefinition/DomainResource) (Best Practice Recommendation)
-[883, 10] Bundle.entry[21].resource/*Observation/cb-c10-lab-s-ggt*/.code: Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/fno-local-lab-code|0.1.0
-[925, 8] Bundle.entry[22].resource/*Observation/cb-c10-lab-s-na*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
-[925, 8] Bundle.entry[22].resource/*Observation/cb-c10-lab-s-na*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
-[925, 8] Bundle.entry[22].resource/*Observation/cb-c10-lab-s-na*/: Warning - Constraint failed: dom-6: 'A resource should have narrative for robust management' (defined in http://hl7.org/fhir/StructureDefinition/DomainResource) (Best Practice Recommendation)
-[940, 10] Bundle.entry[22].resource/*Observation/cb-c10-lab-s-na*/.code: Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/fno-local-lab-code|0.1.0
-[982, 8] Bundle.entry[23].resource/*Observation/cb-c10-lab-s-k*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
-[982, 8] Bundle.entry[23].resource/*Observation/cb-c10-lab-s-k*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
-[982, 8] Bundle.entry[23].resource/*Observation/cb-c10-lab-s-k*/: Warning - Constraint failed: dom-6: 'A resource should have narrative for robust management' (defined in http://hl7.org/fhir/StructureDefinition/DomainResource) (Best Practice Recommendation)
-[997, 10] Bundle.entry[23].resource/*Observation/cb-c10-lab-s-k*/.code: Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/fno-local-lab-code|0.1.0
-[1039, 8] Bundle.entry[24].resource/*Observation/cb-c10-lab-s-ca*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
-[1039, 8] Bundle.entry[24].resource/*Observation/cb-c10-lab-s-ca*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
-[1039, 8] Bundle.entry[24].resource/*Observation/cb-c10-lab-s-ca*/: Warning - Constraint failed: dom-6: 'A resource should have narrative for robust management' (defined in http://hl7.org/fhir/StructureDefinition/DomainResource) (Best Practice Recommendation)
-[1054, 10] Bundle.entry[24].resource/*Observation/cb-c10-lab-s-ca*/.code: Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/fno-local-lab-code|0.1.0
-[1096, 8] Bundle.entry[25].resource/*Observation/cb-c10-lab-s-cl*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
-[1096, 8] Bundle.entry[25].resource/*Observation/cb-c10-lab-s-cl*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
-[1096, 8] Bundle.entry[25].resource/*Observation/cb-c10-lab-s-cl*/: Warning - Constraint failed: dom-6: 'A resource should have narrative for robust management' (defined in http://hl7.org/fhir/StructureDefinition/DomainResource) (Best Practice Recommendation)
-[1111, 10] Bundle.entry[25].resource/*Observation/cb-c10-lab-s-cl*/.code: Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/fno-local-lab-code|0.1.0
-[1153, 8] Bundle.entry[26].resource/*Observation/cb-c10-lab-s-osmolc*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
-[1153, 8] Bundle.entry[26].resource/*Observation/cb-c10-lab-s-osmolc*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
-[1153, 8] Bundle.entry[26].resource/*Observation/cb-c10-lab-s-osmolc*/: Warning - Constraint failed: dom-6: 'A resource should have narrative for robust management' (defined in http://hl7.org/fhir/StructureDefinition/DomainResource) (Best Practice Recommendation)
-[1168, 10] Bundle.entry[26].resource/*Observation/cb-c10-lab-s-osmolc*/.code: Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/fno-local-lab-code|0.1.0
-[1210, 8] Bundle.entry[27].resource/*Observation/cb-c10-lab-pt-kidn-egfrckde*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
-[1210, 8] Bundle.entry[27].resource/*Observation/cb-c10-lab-pt-kidn-egfrckde*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
-[1210, 8] Bundle.entry[27].resource/*Observation/cb-c10-lab-pt-kidn-egfrckde*/: Warning - Constraint failed: dom-6: 'A resource should have narrative for robust management' (defined in http://hl7.org/fhir/StructureDefinition/DomainResource) (Best Practice Recommendation)
-[1225, 10] Bundle.entry[27].resource/*Observation/cb-c10-lab-pt-kidn-egfrckde*/.code: Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/fno-local-lab-code|0.1.0
-[1267, 8] Bundle.entry[28].resource/*Observation/cb-c10-lab-b-lkc*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
-[1267, 8] Bundle.entry[28].resource/*Observation/cb-c10-lab-b-lkc*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
-[1267, 8] Bundle.entry[28].resource/*Observation/cb-c10-lab-b-lkc*/: Warning - Constraint failed: dom-6: 'A resource should have narrative for robust management' (defined in http://hl7.org/fhir/StructureDefinition/DomainResource) (Best Practice Recommendation)
-[1282, 10] Bundle.entry[28].resource/*Observation/cb-c10-lab-b-lkc*/.code: Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/fno-local-lab-code|0.1.0
-[1324, 8] Bundle.entry[29].resource/*Observation/cb-c10-lab-b-erc*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
-[1324, 8] Bundle.entry[29].resource/*Observation/cb-c10-lab-b-erc*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
-[1324, 8] Bundle.entry[29].resource/*Observation/cb-c10-lab-b-erc*/: Warning - Constraint failed: dom-6: 'A resource should have narrative for robust management' (defined in http://hl7.org/fhir/StructureDefinition/DomainResource) (Best Practice Recommendation)
-[1339, 10] Bundle.entry[29].resource/*Observation/cb-c10-lab-b-erc*/.code: Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/fno-local-lab-code|0.1.0
-[1381, 8] Bundle.entry[30].resource/*Observation/cb-c10-lab-b-hb*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
-[1381, 8] Bundle.entry[30].resource/*Observation/cb-c10-lab-b-hb*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
-[1381, 8] Bundle.entry[30].resource/*Observation/cb-c10-lab-b-hb*/: Warning - Constraint failed: dom-6: 'A resource should have narrative for robust management' (defined in http://hl7.org/fhir/StructureDefinition/DomainResource) (Best Practice Recommendation)
-[1396, 10] Bundle.entry[30].resource/*Observation/cb-c10-lab-b-hb*/.code: Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/fno-local-lab-code|0.1.0
-[1438, 8] Bundle.entry[31].resource/*Observation/cb-c10-lab-b-hct*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
-[1438, 8] Bundle.entry[31].resource/*Observation/cb-c10-lab-b-hct*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
-[1438, 8] Bundle.entry[31].resource/*Observation/cb-c10-lab-b-hct*/: Warning - Constraint failed: dom-6: 'A resource should have narrative for robust management' (defined in http://hl7.org/fhir/StructureDefinition/DomainResource) (Best Practice Recommendation)
-[1453, 10] Bundle.entry[31].resource/*Observation/cb-c10-lab-b-hct*/.code: Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/fno-local-lab-code|0.1.0
-[1495, 8] Bundle.entry[32].resource/*Observation/cb-c10-lab-erc-b-mcv*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
-[1495, 8] Bundle.entry[32].resource/*Observation/cb-c10-lab-erc-b-mcv*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
-[1495, 8] Bundle.entry[32].resource/*Observation/cb-c10-lab-erc-b-mcv*/: Warning - Constraint failed: dom-6: 'A resource should have narrative for robust management' (defined in http://hl7.org/fhir/StructureDefinition/DomainResource) (Best Practice Recommendation)
-[1510, 10] Bundle.entry[32].resource/*Observation/cb-c10-lab-erc-b-mcv*/.code: Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/fno-local-lab-code|0.1.0
-[1552, 8] Bundle.entry[33].resource/*Observation/cb-c10-lab-erc-b-mch*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
-[1552, 8] Bundle.entry[33].resource/*Observation/cb-c10-lab-erc-b-mch*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
-[1552, 8] Bundle.entry[33].resource/*Observation/cb-c10-lab-erc-b-mch*/: Warning - Constraint failed: dom-6: 'A resource should have narrative for robust management' (defined in http://hl7.org/fhir/StructureDefinition/DomainResource) (Best Practice Recommendation)
-[1567, 10] Bundle.entry[33].resource/*Observation/cb-c10-lab-erc-b-mch*/.code: Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/fno-local-lab-code|0.1.0
-[1609, 8] Bundle.entry[34].resource/*Observation/cb-c10-lab-b-plt*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
-[1609, 8] Bundle.entry[34].resource/*Observation/cb-c10-lab-b-plt*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
-[1609, 8] Bundle.entry[34].resource/*Observation/cb-c10-lab-b-plt*/: Warning - Constraint failed: dom-6: 'A resource should have narrative for robust management' (defined in http://hl7.org/fhir/StructureDefinition/DomainResource) (Best Practice Recommendation)
-[1624, 10] Bundle.entry[34].resource/*Observation/cb-c10-lab-b-plt*/.code: Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/fno-local-lab-code|0.1.0
-[1666, 8] Bundle.entry[35].resource/*Observation/cb-c10-lab-b-neu*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
-[1666, 8] Bundle.entry[35].resource/*Observation/cb-c10-lab-b-neu*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
-[1666, 8] Bundle.entry[35].resource/*Observation/cb-c10-lab-b-neu*/: Warning - Constraint failed: dom-6: 'A resource should have narrative for robust management' (defined in http://hl7.org/fhir/StructureDefinition/DomainResource) (Best Practice Recommendation)
-[1681, 10] Bundle.entry[35].resource/*Observation/cb-c10-lab-b-neu*/.code: Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/fno-local-lab-code|0.1.0
-[1723, 8] Bundle.entry[36].resource/*Observation/cb-c10-lab-b-lymfo*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
-[1723, 8] Bundle.entry[36].resource/*Observation/cb-c10-lab-b-lymfo*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
-[1723, 8] Bundle.entry[36].resource/*Observation/cb-c10-lab-b-lymfo*/: Warning - Constraint failed: dom-6: 'A resource should have narrative for robust management' (defined in http://hl7.org/fhir/StructureDefinition/DomainResource) (Best Practice Recommendation)
-[1738, 10] Bundle.entry[36].resource/*Observation/cb-c10-lab-b-lymfo*/.code: Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/fno-local-lab-code|0.1.0
-[1780, 8] Bundle.entry[37].resource/*Observation/cb-c10-lab-b-nlr*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
-[1780, 8] Bundle.entry[37].resource/*Observation/cb-c10-lab-b-nlr*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
-[1780, 8] Bundle.entry[37].resource/*Observation/cb-c10-lab-b-nlr*/: Warning - Constraint failed: dom-6: 'A resource should have narrative for robust management' (defined in http://hl7.org/fhir/StructureDefinition/DomainResource) (Best Practice Recommendation)
-[1795, 10] Bundle.entry[37].resource/*Observation/cb-c10-lab-b-nlr*/.code: Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/fno-local-lab-code|0.1.0
-[1837, 8] Bundle.entry[38].resource/*DiagnosticReport/cb-c10-labrep*/: Warning - Constraint failed: dom-6: 'A resource should have narrative for robust management' (defined in http://hl7.org/fhir/StructureDefinition/DomainResource) (Best Practice Recommendation)
-[1959, 8] Bundle.entry[40].resource/*DocumentReference/cb-c10-doc-all*/: Warning - Constraint failed: dom-6: 'A resource should have narrative for robust management' (defined in http://hl7.org/fhir/StructureDefinition/DomainResource) (Best Practice Recommendation)
-[1977, 14] Bundle.entry[40].resource/*DocumentReference/cb-c10-doc-all*/.content[0].attachment: Information - Attachment content was not checked: Binary/cb-c10-doc-all-bin is not a directly accessible link
+[35, 8] Bundle.entry[1].resource/*Condition/cb-c10-dg-c64*/: Warning - Constraint failed: dom-6: 'A resource should have narrative for robust management' (defined in http://hl7.org/fhir/StructureDefinition/DomainResource) (Best Practice Recommendation)
+[93, 8] Bundle.entry[2].resource/*Observation/cb-c10-stage-p*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
+[93, 8] Bundle.entry[2].resource/*Observation/cb-c10-stage-p*/: Warning - Constraint failed: dom-6: 'A resource should have narrative for robust management' (defined in http://hl7.org/fhir/StructureDefinition/DomainResource) (Best Practice Recommendation)
+[124, 8] Bundle.entry[3].resource/*DiagnosticReport/cb-c10-pat-2022-06-02*/: Warning - Constraint failed: dom-6: 'A resource should have narrative for robust management' (defined in http://hl7.org/fhir/StructureDefinition/DomainResource) (Best Practice Recommendation)
+[160, 8] Bundle.entry[4].resource/*Procedure/cb-c10-op-2022-06-02*/: Warning - Constraint failed: dom-6: 'A resource should have narrative for robust management' (defined in http://hl7.org/fhir/StructureDefinition/DomainResource) (Best Practice Recommendation)
+[179, 8] Bundle.entry[5].resource/*Procedure/cb-c10-op-2022-10-25*/: Warning - Constraint failed: dom-6: 'A resource should have narrative for robust management' (defined in http://hl7.org/fhir/StructureDefinition/DomainResource) (Best Practice Recommendation)
+[198, 8] Bundle.entry[6].resource/*Procedure/cb-c10-port-2023-08-21*/: Warning - Constraint failed: dom-6: 'A resource should have narrative for robust management' (defined in http://hl7.org/fhir/StructureDefinition/DomainResource) (Best Practice Recommendation)
+[217, 8] Bundle.entry[7].resource/*MedicationStatement/cb-c10-med-nivo-ipi*/: Warning - Constraint failed: dom-6: 'A resource should have narrative for robust management' (defined in http://hl7.org/fhir/StructureDefinition/DomainResource) (Best Practice Recommendation)
+[243, 8] Bundle.entry[8].resource/*MedicationStatement/cb-c10-med-nivo*/: Warning - Constraint failed: dom-6: 'A resource should have narrative for robust management' (defined in http://hl7.org/fhir/StructureDefinition/DomainResource) (Best Practice Recommendation)
+[270, 8] Bundle.entry[9].resource/*MedicationStatement/cb-c10-med-suni*/: Warning - Constraint failed: dom-6: 'A resource should have narrative for robust management' (defined in http://hl7.org/fhir/StructureDefinition/DomainResource) (Best Practice Recommendation)
+[296, 8] Bundle.entry[10].resource/*MedicationStatement/cb-c10-med-evero*/: Warning - Constraint failed: dom-6: 'A resource should have narrative for robust management' (defined in http://hl7.org/fhir/StructureDefinition/DomainResource) (Best Practice Recommendation)
+[322, 8] Bundle.entry[11].resource/*DiagnosticReport/cb-c10-rad-mr-2026-09-14*/: Warning - Constraint failed: dom-6: 'A resource should have narrative for robust management' (defined in http://hl7.org/fhir/StructureDefinition/DomainResource) (Best Practice Recommendation)
+[353, 8] Bundle.entry[12].resource/*Observation/cb-c10-lab-s-hscrp*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
+[353, 8] Bundle.entry[12].resource/*Observation/cb-c10-lab-s-hscrp*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
+[353, 8] Bundle.entry[12].resource/*Observation/cb-c10-lab-s-hscrp*/: Warning - Constraint failed: dom-6: 'A resource should have narrative for robust management' (defined in http://hl7.org/fhir/StructureDefinition/DomainResource) (Best Practice Recommendation)
+[368, 10] Bundle.entry[12].resource/*Observation/cb-c10-lab-s-hscrp*/.code: Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/fno-local-lab-code|0.1.0
+[410, 8] Bundle.entry[13].resource/*Observation/cb-c10-lab-s-glc*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
+[410, 8] Bundle.entry[13].resource/*Observation/cb-c10-lab-s-glc*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
+[410, 8] Bundle.entry[13].resource/*Observation/cb-c10-lab-s-glc*/: Warning - Constraint failed: dom-6: 'A resource should have narrative for robust management' (defined in http://hl7.org/fhir/StructureDefinition/DomainResource) (Best Practice Recommendation)
+[425, 10] Bundle.entry[13].resource/*Observation/cb-c10-lab-s-glc*/.code: Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/fno-local-lab-code|0.1.0
+[467, 8] Bundle.entry[14].resource/*Observation/cb-c10-lab-s-bil*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
+[467, 8] Bundle.entry[14].resource/*Observation/cb-c10-lab-s-bil*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
+[467, 8] Bundle.entry[14].resource/*Observation/cb-c10-lab-s-bil*/: Warning - Constraint failed: dom-6: 'A resource should have narrative for robust management' (defined in http://hl7.org/fhir/StructureDefinition/DomainResource) (Best Practice Recommendation)
+[482, 10] Bundle.entry[14].resource/*Observation/cb-c10-lab-s-bil*/.code: Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/fno-local-lab-code|0.1.0
+[524, 8] Bundle.entry[15].resource/*Observation/cb-c10-lab-s-urea*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
+[524, 8] Bundle.entry[15].resource/*Observation/cb-c10-lab-s-urea*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
+[524, 8] Bundle.entry[15].resource/*Observation/cb-c10-lab-s-urea*/: Warning - Constraint failed: dom-6: 'A resource should have narrative for robust management' (defined in http://hl7.org/fhir/StructureDefinition/DomainResource) (Best Practice Recommendation)
+[539, 10] Bundle.entry[15].resource/*Observation/cb-c10-lab-s-urea*/.code: Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/fno-local-lab-code|0.1.0
+[581, 8] Bundle.entry[16].resource/*Observation/cb-c10-lab-s-creae*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
+[581, 8] Bundle.entry[16].resource/*Observation/cb-c10-lab-s-creae*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
+[581, 8] Bundle.entry[16].resource/*Observation/cb-c10-lab-s-creae*/: Warning - Constraint failed: dom-6: 'A resource should have narrative for robust management' (defined in http://hl7.org/fhir/StructureDefinition/DomainResource) (Best Practice Recommendation)
+[596, 10] Bundle.entry[16].resource/*Observation/cb-c10-lab-s-creae*/.code: Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/fno-local-lab-code|0.1.0
+[638, 8] Bundle.entry[17].resource/*Observation/cb-c10-lab-s-urat*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
+[638, 8] Bundle.entry[17].resource/*Observation/cb-c10-lab-s-urat*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
+[638, 8] Bundle.entry[17].resource/*Observation/cb-c10-lab-s-urat*/: Warning - Constraint failed: dom-6: 'A resource should have narrative for robust management' (defined in http://hl7.org/fhir/StructureDefinition/DomainResource) (Best Practice Recommendation)
+[653, 10] Bundle.entry[17].resource/*Observation/cb-c10-lab-s-urat*/.code: Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/fno-local-lab-code|0.1.0
+[695, 8] Bundle.entry[18].resource/*Observation/cb-c10-lab-s-alt*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
+[695, 8] Bundle.entry[18].resource/*Observation/cb-c10-lab-s-alt*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
+[695, 8] Bundle.entry[18].resource/*Observation/cb-c10-lab-s-alt*/: Warning - Constraint failed: dom-6: 'A resource should have narrative for robust management' (defined in http://hl7.org/fhir/StructureDefinition/DomainResource) (Best Practice Recommendation)
+[710, 10] Bundle.entry[18].resource/*Observation/cb-c10-lab-s-alt*/.code: Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/fno-local-lab-code|0.1.0
+[752, 8] Bundle.entry[19].resource/*Observation/cb-c10-lab-s-ast*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
+[752, 8] Bundle.entry[19].resource/*Observation/cb-c10-lab-s-ast*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
+[752, 8] Bundle.entry[19].resource/*Observation/cb-c10-lab-s-ast*/: Warning - Constraint failed: dom-6: 'A resource should have narrative for robust management' (defined in http://hl7.org/fhir/StructureDefinition/DomainResource) (Best Practice Recommendation)
+[767, 10] Bundle.entry[19].resource/*Observation/cb-c10-lab-s-ast*/.code: Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/fno-local-lab-code|0.1.0
+[809, 8] Bundle.entry[20].resource/*Observation/cb-c10-lab-s-alp*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
+[809, 8] Bundle.entry[20].resource/*Observation/cb-c10-lab-s-alp*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
+[809, 8] Bundle.entry[20].resource/*Observation/cb-c10-lab-s-alp*/: Warning - Constraint failed: dom-6: 'A resource should have narrative for robust management' (defined in http://hl7.org/fhir/StructureDefinition/DomainResource) (Best Practice Recommendation)
+[824, 10] Bundle.entry[20].resource/*Observation/cb-c10-lab-s-alp*/.code: Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/fno-local-lab-code|0.1.0
+[866, 8] Bundle.entry[21].resource/*Observation/cb-c10-lab-s-ggt*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
+[866, 8] Bundle.entry[21].resource/*Observation/cb-c10-lab-s-ggt*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
+[866, 8] Bundle.entry[21].resource/*Observation/cb-c10-lab-s-ggt*/: Warning - Constraint failed: dom-6: 'A resource should have narrative for robust management' (defined in http://hl7.org/fhir/StructureDefinition/DomainResource) (Best Practice Recommendation)
+[881, 10] Bundle.entry[21].resource/*Observation/cb-c10-lab-s-ggt*/.code: Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/fno-local-lab-code|0.1.0
+[923, 8] Bundle.entry[22].resource/*Observation/cb-c10-lab-s-na*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
+[923, 8] Bundle.entry[22].resource/*Observation/cb-c10-lab-s-na*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
+[923, 8] Bundle.entry[22].resource/*Observation/cb-c10-lab-s-na*/: Warning - Constraint failed: dom-6: 'A resource should have narrative for robust management' (defined in http://hl7.org/fhir/StructureDefinition/DomainResource) (Best Practice Recommendation)
+[938, 10] Bundle.entry[22].resource/*Observation/cb-c10-lab-s-na*/.code: Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/fno-local-lab-code|0.1.0
+[980, 8] Bundle.entry[23].resource/*Observation/cb-c10-lab-s-k*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
+[980, 8] Bundle.entry[23].resource/*Observation/cb-c10-lab-s-k*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
+[980, 8] Bundle.entry[23].resource/*Observation/cb-c10-lab-s-k*/: Warning - Constraint failed: dom-6: 'A resource should have narrative for robust management' (defined in http://hl7.org/fhir/StructureDefinition/DomainResource) (Best Practice Recommendation)
+[995, 10] Bundle.entry[23].resource/*Observation/cb-c10-lab-s-k*/.code: Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/fno-local-lab-code|0.1.0
+[1037, 8] Bundle.entry[24].resource/*Observation/cb-c10-lab-s-ca*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
+[1037, 8] Bundle.entry[24].resource/*Observation/cb-c10-lab-s-ca*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
+[1037, 8] Bundle.entry[24].resource/*Observation/cb-c10-lab-s-ca*/: Warning - Constraint failed: dom-6: 'A resource should have narrative for robust management' (defined in http://hl7.org/fhir/StructureDefinition/DomainResource) (Best Practice Recommendation)
+[1052, 10] Bundle.entry[24].resource/*Observation/cb-c10-lab-s-ca*/.code: Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/fno-local-lab-code|0.1.0
+[1094, 8] Bundle.entry[25].resource/*Observation/cb-c10-lab-s-cl*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
+[1094, 8] Bundle.entry[25].resource/*Observation/cb-c10-lab-s-cl*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
+[1094, 8] Bundle.entry[25].resource/*Observation/cb-c10-lab-s-cl*/: Warning - Constraint failed: dom-6: 'A resource should have narrative for robust management' (defined in http://hl7.org/fhir/StructureDefinition/DomainResource) (Best Practice Recommendation)
+[1109, 10] Bundle.entry[25].resource/*Observation/cb-c10-lab-s-cl*/.code: Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/fno-local-lab-code|0.1.0
+[1151, 8] Bundle.entry[26].resource/*Observation/cb-c10-lab-s-osmolc*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
+[1151, 8] Bundle.entry[26].resource/*Observation/cb-c10-lab-s-osmolc*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
+[1151, 8] Bundle.entry[26].resource/*Observation/cb-c10-lab-s-osmolc*/: Warning - Constraint failed: dom-6: 'A resource should have narrative for robust management' (defined in http://hl7.org/fhir/StructureDefinition/DomainResource) (Best Practice Recommendation)
+[1166, 10] Bundle.entry[26].resource/*Observation/cb-c10-lab-s-osmolc*/.code: Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/fno-local-lab-code|0.1.0
+[1208, 8] Bundle.entry[27].resource/*Observation/cb-c10-lab-pt-kidn-egfrckde*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
+[1208, 8] Bundle.entry[27].resource/*Observation/cb-c10-lab-pt-kidn-egfrckde*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
+[1208, 8] Bundle.entry[27].resource/*Observation/cb-c10-lab-pt-kidn-egfrckde*/: Warning - Constraint failed: dom-6: 'A resource should have narrative for robust management' (defined in http://hl7.org/fhir/StructureDefinition/DomainResource) (Best Practice Recommendation)
+[1223, 10] Bundle.entry[27].resource/*Observation/cb-c10-lab-pt-kidn-egfrckde*/.code: Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/fno-local-lab-code|0.1.0
+[1265, 8] Bundle.entry[28].resource/*Observation/cb-c10-lab-b-lkc*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
+[1265, 8] Bundle.entry[28].resource/*Observation/cb-c10-lab-b-lkc*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
+[1265, 8] Bundle.entry[28].resource/*Observation/cb-c10-lab-b-lkc*/: Warning - Constraint failed: dom-6: 'A resource should have narrative for robust management' (defined in http://hl7.org/fhir/StructureDefinition/DomainResource) (Best Practice Recommendation)
+[1280, 10] Bundle.entry[28].resource/*Observation/cb-c10-lab-b-lkc*/.code: Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/fno-local-lab-code|0.1.0
+[1322, 8] Bundle.entry[29].resource/*Observation/cb-c10-lab-b-erc*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
+[1322, 8] Bundle.entry[29].resource/*Observation/cb-c10-lab-b-erc*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
+[1322, 8] Bundle.entry[29].resource/*Observation/cb-c10-lab-b-erc*/: Warning - Constraint failed: dom-6: 'A resource should have narrative for robust management' (defined in http://hl7.org/fhir/StructureDefinition/DomainResource) (Best Practice Recommendation)
+[1337, 10] Bundle.entry[29].resource/*Observation/cb-c10-lab-b-erc*/.code: Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/fno-local-lab-code|0.1.0
+[1379, 8] Bundle.entry[30].resource/*Observation/cb-c10-lab-b-hb*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
+[1379, 8] Bundle.entry[30].resource/*Observation/cb-c10-lab-b-hb*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
+[1379, 8] Bundle.entry[30].resource/*Observation/cb-c10-lab-b-hb*/: Warning - Constraint failed: dom-6: 'A resource should have narrative for robust management' (defined in http://hl7.org/fhir/StructureDefinition/DomainResource) (Best Practice Recommendation)
+[1394, 10] Bundle.entry[30].resource/*Observation/cb-c10-lab-b-hb*/.code: Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/fno-local-lab-code|0.1.0
+[1436, 8] Bundle.entry[31].resource/*Observation/cb-c10-lab-b-hct*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
+[1436, 8] Bundle.entry[31].resource/*Observation/cb-c10-lab-b-hct*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
+[1436, 8] Bundle.entry[31].resource/*Observation/cb-c10-lab-b-hct*/: Warning - Constraint failed: dom-6: 'A resource should have narrative for robust management' (defined in http://hl7.org/fhir/StructureDefinition/DomainResource) (Best Practice Recommendation)
+[1451, 10] Bundle.entry[31].resource/*Observation/cb-c10-lab-b-hct*/.code: Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/fno-local-lab-code|0.1.0
+[1493, 8] Bundle.entry[32].resource/*Observation/cb-c10-lab-erc-b-mcv*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
+[1493, 8] Bundle.entry[32].resource/*Observation/cb-c10-lab-erc-b-mcv*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
+[1493, 8] Bundle.entry[32].resource/*Observation/cb-c10-lab-erc-b-mcv*/: Warning - Constraint failed: dom-6: 'A resource should have narrative for robust management' (defined in http://hl7.org/fhir/StructureDefinition/DomainResource) (Best Practice Recommendation)
+[1508, 10] Bundle.entry[32].resource/*Observation/cb-c10-lab-erc-b-mcv*/.code: Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/fno-local-lab-code|0.1.0
+[1550, 8] Bundle.entry[33].resource/*Observation/cb-c10-lab-erc-b-mch*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
+[1550, 8] Bundle.entry[33].resource/*Observation/cb-c10-lab-erc-b-mch*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
+[1550, 8] Bundle.entry[33].resource/*Observation/cb-c10-lab-erc-b-mch*/: Warning - Constraint failed: dom-6: 'A resource should have narrative for robust management' (defined in http://hl7.org/fhir/StructureDefinition/DomainResource) (Best Practice Recommendation)
+[1565, 10] Bundle.entry[33].resource/*Observation/cb-c10-lab-erc-b-mch*/.code: Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/fno-local-lab-code|0.1.0
+[1607, 8] Bundle.entry[34].resource/*Observation/cb-c10-lab-b-plt*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
+[1607, 8] Bundle.entry[34].resource/*Observation/cb-c10-lab-b-plt*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
+[1607, 8] Bundle.entry[34].resource/*Observation/cb-c10-lab-b-plt*/: Warning - Constraint failed: dom-6: 'A resource should have narrative for robust management' (defined in http://hl7.org/fhir/StructureDefinition/DomainResource) (Best Practice Recommendation)
+[1622, 10] Bundle.entry[34].resource/*Observation/cb-c10-lab-b-plt*/.code: Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/fno-local-lab-code|0.1.0
+[1664, 8] Bundle.entry[35].resource/*Observation/cb-c10-lab-b-neu*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
+[1664, 8] Bundle.entry[35].resource/*Observation/cb-c10-lab-b-neu*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
+[1664, 8] Bundle.entry[35].resource/*Observation/cb-c10-lab-b-neu*/: Warning - Constraint failed: dom-6: 'A resource should have narrative for robust management' (defined in http://hl7.org/fhir/StructureDefinition/DomainResource) (Best Practice Recommendation)
+[1679, 10] Bundle.entry[35].resource/*Observation/cb-c10-lab-b-neu*/.code: Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/fno-local-lab-code|0.1.0
+[1721, 8] Bundle.entry[36].resource/*Observation/cb-c10-lab-b-lymfo*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
+[1721, 8] Bundle.entry[36].resource/*Observation/cb-c10-lab-b-lymfo*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
+[1721, 8] Bundle.entry[36].resource/*Observation/cb-c10-lab-b-lymfo*/: Warning - Constraint failed: dom-6: 'A resource should have narrative for robust management' (defined in http://hl7.org/fhir/StructureDefinition/DomainResource) (Best Practice Recommendation)
+[1736, 10] Bundle.entry[36].resource/*Observation/cb-c10-lab-b-lymfo*/.code: Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/fno-local-lab-code|0.1.0
+[1778, 8] Bundle.entry[37].resource/*Observation/cb-c10-lab-b-nlr*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
+[1778, 8] Bundle.entry[37].resource/*Observation/cb-c10-lab-b-nlr*/: Warning - Best Practice Recommendation: In general, all observations should have an effective[x] ()
+[1778, 8] Bundle.entry[37].resource/*Observation/cb-c10-lab-b-nlr*/: Warning - Constraint failed: dom-6: 'A resource should have narrative for robust management' (defined in http://hl7.org/fhir/StructureDefinition/DomainResource) (Best Practice Recommendation)
+[1793, 10] Bundle.entry[37].resource/*Observation/cb-c10-lab-b-nlr*/.code: Information - Reference to draft CodeSystem https://github.com/codebridgecollege/rakathon-26-codebridge/fhir/CodeSystem/fno-local-lab-code|0.1.0
+[1835, 8] Bundle.entry[38].resource/*DiagnosticReport/cb-c10-labrep*/: Warning - Constraint failed: dom-6: 'A resource should have narrative for robust management' (defined in http://hl7.org/fhir/StructureDefinition/DomainResource) (Best Practice Recommendation)
+[1957, 8] Bundle.entry[40].resource/*DocumentReference/cb-c10-doc-all*/: Warning - Constraint failed: dom-6: 'A resource should have narrative for robust management' (defined in http://hl7.org/fhir/StructureDefinition/DomainResource) (Best Practice Recommendation)
+[1970, 14] Bundle.entry[40].resource/*DocumentReference/cb-c10-doc-all*/.content[0].attachment: Information - Attachment content was not checked: Binary/cb-c10-doc-all-bin is not a directly accessible link
 
-Done. Times: Loading: 00:06.501, validation: 00:00.667. Max Memory = 6Gb
+Done. Times: Loading: 00:14.541, validation: 00:00.899. Max Memory = 6Gb

@@ -922,7 +922,13 @@ patient-nis-search-own = Vyhľadať v NIS podľa rodného čísla pacienta
 patient-nis-search = Vyhľadať v NIS
 patient-nis-none = V NIS sa nenašiel žiadny záznam s týmto rodným číslom.
 patient-nis-duplicates = V NIS je pre toto rodné číslo viac záznamov. Vyberte správny; CodeBridge ich nezlučuje.
-patient-nis-truncated = Zobrazená je len časť výsledkov; NIS vrátil príliš veľa záznamov.
+patient-nis-truncated = Zobrazená je len časť výsledkov z NIS.
+patient-nis-hidden = { $n ->
+        [one] NIS vrátil { $n } záznam bez hľadaného rodného čísla; nezobrazuje sa.
+        [few] NIS vrátil { $n } záznamy bez hľadaného rodného čísla; nezobrazujú sa.
+        [many] NIS vrátil { $n } záznamu bez hľadaného rodného čísla; nezobrazujú sa.
+       *[other] NIS vrátil { $n } záznamov bez hľadaného rodného čísla; nezobrazujú sa.
+    }
 patient-nis-record = záznam NIS { $id }
 patient-nis-born = Narodený(á)
 patient-nis-gender-male = muž
@@ -937,6 +943,7 @@ patient-nis-link = Prepojiť
 patient-nis-linked = Prepojené so záznamom NIS { $id }
 patient-nis-linked-matches = Rodné číslo súhlasilo.
 patient-nis-linked-unverified = Rodné číslo nebolo možné overiť, prepojenie potvrdil používateľ.
+patient-nis-linked-name-differs = Rodné číslo súhlasilo, meno sa líšilo; prepojenie potvrdil používateľ.
 patient-nis-linked-by = Prepojil(a) { $name }, { $at }.
 patient-nis-phase-note = Údaje z NIS sa zatiaľ nenačítavajú; prepojenie je prvý krok importu.
 patient-nis-unlink = Zrušiť prepojenie

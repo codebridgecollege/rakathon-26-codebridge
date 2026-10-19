@@ -41,6 +41,9 @@ export type NisCandidate = {
   // The candidate's birth number against the one on our patient row; cannot_verify when our row has none.
   identity: Identity;
   name_match: NameMatch;
+  // A person must confirm before linking: the birth number cannot be checked, or it matches but the name does not
+  // (birth numbers are not guaranteed unique, and a second record may be another person's).
+  needs_confirmation: boolean;
   linkable: boolean;
   reason_cs: string | null;
 };
@@ -83,6 +86,7 @@ export function candidateFrom(p: R, o: { searched: string; ours: { birth_number:
   else if (identity === "conflicts") reason = "Rodné číslo v NIS se liší od rodného čísla pacienta.";
   else if (replacedBy) reason = `Záznam byl v NIS sloučen do záznamu ${replacedBy}.`;
   else if (!active) reason = "Záznam je v NIS neaktivní.";
+  const nameMatch = compareNames(name, o.ours.full_name);
   return {
     nis_id: String(p.id ?? ""),
     version: typeof p.meta?.versionId === "string" ? p.meta.versionId : null,
@@ -95,11 +99,18 @@ export function candidateFrom(p: R, o: { searched: string; ours: { birth_number:
     replaced_by: replacedBy,
     links,
     identity,
-    name_match: compareNames(name, o.ours.full_name),
+    name_match: nameMatch,
+    needs_confirmation: identity === "cannot_verify" || nameMatch === "different" || nameMatch === "spelling",
     linkable: reason === null && !!p.id,
     reason_cs: reason,
   };
 }
+
+// What a link records about identity: the birth number matched (and the name too), matched with a name that differs
+// (confirmed by the person), or could not be checked (confirmed by the person).
+export type IdentityCheck = "matches" | "matches_name_differs" | "cannot_verify";
+export const identityCheckOf = (c: NisCandidate): IdentityCheck =>
+  c.identity === "cannot_verify" ? "cannot_verify" : c.name_match === "same" || c.name_match === "cannot_verify" ? "matches" : "matches_name_differs";
 
 // More than one record the user could link: the NIS holds duplicates for this birth number. The page says so and the
 // user picks; nothing is merged.

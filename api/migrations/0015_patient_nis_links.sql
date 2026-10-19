@@ -10,9 +10,9 @@ CREATE TABLE patient_nis_links (
   nis_system      TEXT NOT NULL CHECK (length(nis_system) BETWEEN 1 AND 300),
   nis_patient_id  TEXT NOT NULL CHECK (length(nis_patient_id) BETWEEN 1 AND 64 AND nis_patient_id NOT GLOB '*[^A-Za-z0-9.-]*'),
   nis_version     TEXT CHECK (nis_version IS NULL OR length(nis_version) <= 64),
-  -- The NIS birth number against the patient row's when linked: equal, or the row had none and the person confirmed.
-  -- A conflict is refused, so it is not a value here.
-  identity_check  TEXT NOT NULL CHECK (identity_check IN ('matches','cannot_verify')),
+  -- The NIS birth number against the patient row's when linked: equal; equal with a name that differs (the person
+  -- confirmed); or the row had none (the person confirmed). A conflict is refused, so it is not a value here.
+  identity_check  TEXT NOT NULL CHECK (identity_check IN ('matches','matches_name_differs','cannot_verify')),
   by_user_id      TEXT NOT NULL,
   by_name         TEXT NOT NULL,
   at              TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')) CHECK (at GLOB '[0-9][0-9][0-9][0-9]-*Z'),

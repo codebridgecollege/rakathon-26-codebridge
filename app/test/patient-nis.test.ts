@@ -13,7 +13,7 @@ import { mountInCase, setupPatient } from "./patient";
 const STUB = { status: "stub", message_cs: "Zde ověříme pacienta v národním registru obyvatel (IHE PDQm). V prototypu není napojeno, nic se neověřuje." };
 const cand = (id: string, extra: Record<string, unknown> = {}) => ({
   nis_id: id, version: "1", last_updated: null, name: "Jiří Zkušební", birth_date: "1972-09-05", gender: "male", active: true,
-  birth_number_matches: true, replaced_by: null, links: [], identity: "cannot_verify", name_match: "cannot_verify", linkable: true, reason_cs: null, ...extra,
+  birth_number_matches: true, replaced_by: null, links: [], identity: "cannot_verify", name_match: "cannot_verify", needs_confirmation: true, linkable: true, reason_cs: null, ...extra,
 });
 const reply = (data: unknown) => ({ data, data_epoch: 1, state: {} });
 
@@ -49,6 +49,7 @@ describe("Import z NIS dialog", () => {
           label_cs: "Testovací NIS",
           duplicates: true,
           truncated: false,
+          other_records_hidden: 2,
           link: null,
           national_register: STUB,
           candidates: [
@@ -64,6 +65,7 @@ describe("Import z NIS dialog", () => {
     await flushPromises();
     expect(w.text()).toContain("Zdroj: Testovací NIS (FHIR R4, jen čtení)");
     expect(w.text()).toContain("Národní registr (ukázka):");
+    expect(w.text()).toContain("Údaje z NIS se zatím nenačítají");
     expect(w.text()).toContain("V prototypu není napojeno");
     await w.get("input").setValue("720905/3005");
     await w.findAll("button").find((x) => x.text() === "Vyhledat v NIS")!.trigger("click");
@@ -72,6 +74,7 @@ describe("Import z NIS dialog", () => {
     expect(search.url).not.toContain("720905");
     expect(JSON.parse(String(search.init.body))).toEqual({ birth_number: "720905/3005" });
     expect(w.text()).toContain("V NIS je pro toto rodné číslo více záznamů");
+    expect(w.text()).toContain("NIS vrátil 2 záznamy bez hledaného rodného čísla; nezobrazují se.");
     expect(w.text()).toContain("Záznam byl v NIS sloučen do záznamu cb-f01-a.");
     const links = w.findAll("button").filter((x) => x.text() === "Propojit");
     // The merged record has no button; the two others wait for the confirmation.

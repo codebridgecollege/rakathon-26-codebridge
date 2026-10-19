@@ -1,6 +1,6 @@
 // An in-memory FHIR R4 server for tests and local development: the NIS test double (fhir/nis/README.md). It implements
-// only the interactions the connector uses (api/src/services/fhir.ts), with the answers a FHIR server gives (HAPI FHIR
-// JPA behaves the same for these), so the connector can be tested without Docker:
+// only the interactions the connector uses (api/src/services/fhir.ts), with the answers the FHIR spec gives (HAPI FHIR
+// JPA documents the same; not compared against a running HAPI), so the connector can be tested without Docker:
 //   - transaction or batch Bundles with PUT entries (how fhir/nis/seed.ts loads the test Bundles),
 //   - read and vread,
 //   - search by GET and by POST to <type>/_search with a form body (the birth number stays out of the URL),
@@ -28,10 +28,11 @@ export class MemoryFhir {
   // Every request the server saw (method and URL only), so tests can check what the connector put in URLs.
   readonly requests: { method: string; url: string; contentType: string | null; authorization: string | null }[] = [];
 
-  private readonly opts: { bearer?: string; now?: () => string };
+  // maxCount: the largest page the server gives, whatever _count asks (servers cap it; 100 by default).
+  private readonly opts: { bearer?: string; now?: () => string; maxCount?: number };
 
   // Plain fields, not parameter properties: Node runs this file by stripping types, which has no parameter properties.
-  constructor(base: string, opts: { bearer?: string; now?: () => string } = {}) {
+  constructor(base: string, opts: { bearer?: string; now?: () => string; maxCount?: number } = {}) {
     this.opts = opts;
     this.base = base.replace(/\/+$/, "");
     this.basePath = new URL(this.base).pathname.replace(/\/+$/, "");
@@ -161,7 +162,8 @@ export class MemoryFhir {
 
   private count(params: URLSearchParams) {
     const n = Number(params.get("_count") ?? 20);
-    return Number.isInteger(n) && n > 0 ? Math.min(n, 100) : 20;
+    const max = this.opts.maxCount ?? 100;
+    return Number.isInteger(n) && n > 0 ? Math.min(n, max) : Math.min(20, max);
   }
 
   private page(url: URL) {

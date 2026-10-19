@@ -86,7 +86,7 @@
     "PAGE_READER_URL": "",
     // Issue #22: each org's NIS (hospital system) over FHIR R4, as JSON keyed by org id; "{}" means none, and the page
     // shows no "Import z NIS". Shape and auth modes: src/services/fhir.ts and api/AGENTS.md, "NIS over FHIR". Local
-    // work points an org at the test server: --var 'NIS_CONFIG:{"demo-a":{"base_url":"http://localhost:8090/fhir",
+    // work points an org at the test server: --var 'NIS_CONFIG:{"demo-a":{"base_url":"http://127.0.0.1:8090/fhir",
     // "label_cs":"Testovací NIS (syntetická data)","auth":{"mode":"none"}}}'.
     "NIS_CONFIG": "{}",
     "GIT_SHA": "dev"

@@ -259,8 +259,10 @@ and what each stands for:
   users linked to NIS staff records?
 - Does the NIS store the birth number in `Patient.identifier` with the
   Czech core system `https://ncez.mzcr.cz/fhir/sid/rcis`, with or
-  without the slash? Does its FHIR API accept `POST Patient/_search`?
-  (The connector searches both forms in one POST.)
+  without the slash? Does its FHIR API accept `POST Patient/_search`
+  and honour `Prefer: handling=strict`, and do its paging `next` links
+  repeat the search parameters? (The connector searches both forms in one
+  POST and does not follow a `next` link that carries the birth number.)
 - How does the NIS report merged duplicates: `Patient.link`
   (`replaced-by`, `replaces`) and `active: false`, or another way?
 - For backend services: which token endpoint, scopes, signing algorithm

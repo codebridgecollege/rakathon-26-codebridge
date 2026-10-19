@@ -9,7 +9,8 @@ import { MemoryFhir } from "./memory-server.ts";
 
 const args = process.argv.slice(2);
 const port = Number(args[args.indexOf("--port") + 1]) || 8090;
-const base = `http://localhost:${port}/fhir`;
+// 127.0.0.1, not localhost: the server listens on IPv4 only, and localhost may resolve to ::1 first.
+const base = `http://127.0.0.1:${port}/fhir`;
 const fhir = new MemoryFhir(base);
 
 if (args.includes("--seed")) {
@@ -27,7 +28,7 @@ createServer(async (req, res) => {
   const body = chunks.length ? Buffer.concat(chunks) : undefined;
   const headers = new Headers();
   for (const [k, v] of Object.entries(req.headers)) if (typeof v === "string") headers.set(k, v);
-  const r = await fhir.handle(new Request(`http://localhost:${port}${req.url}`, { method: req.method, headers, ...(body && req.method !== "GET" ? { body } : {}) }));
+  const r = await fhir.handle(new Request(`http://127.0.0.1:${port}${req.url}`, { method: req.method, headers, ...(body && req.method !== "GET" ? { body } : {}) }));
   res.writeHead(r.status, Object.fromEntries(r.headers));
   res.end(Buffer.from(await r.arrayBuffer()));
   // Method and path only; a search's form body (which may hold a birth number) is never printed.

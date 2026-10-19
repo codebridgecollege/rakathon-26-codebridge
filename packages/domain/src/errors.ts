@@ -40,6 +40,8 @@ export const D = {
   nisPatientNotFound: err(404, "nis_patient_not_found", "Záznam pacienta v NIS nebyl nalezen."),
   nisNotLinkable: err(409, "nis_not_linkable", "Tento záznam z NIS nelze propojit."),
   nisConfirmRequired: err(422, "nis_confirm_required", "Pacient v CodeBridge nemá rodné číslo. Potvrďte, že jde o stejnou osobu."),
+  nisConfirmName: err(422, "nis_confirm_required", "Jméno v NIS se liší od jména pacienta. Potvrďte, že jde o stejnou osobu."),
+  nisRowBirthNumber: err(422, "nis_row_birth_number", "Rodné číslo pacienta v CodeBridge nemá platný tvar. Nejdřív ho opravte."),
   nisAlreadyLinked: err(409, "nis_already_linked", "Pacient už je propojen se záznamem v NIS. Nejdřív propojení zrušte."),
   nisRecordTaken: err(409, "nis_record_taken", "Tento záznam v NIS je už propojen s jiným pacientem."),
   nisNotLinked: err(404, "nis_not_linked", "Pacient není propojen se záznamem v NIS."),

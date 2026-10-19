@@ -218,8 +218,6 @@ export type UploadDoc = {
 // GET /cases/:id/documents.
 export type CaseDocuments = { case_id: string; processing_level: "full" | "partial" | "none"; documents: (UploadDoc & { parts?: unknown[] })[] };
 
-// POST /fhir/referral: the referral read into the form. fields uses the form's field names (nf0...), so the page fills
-// the form without a mapping of its own; the bundle itself is never stored, only its hash.
 // "Import z NIS" (issue #22): the link a patient row has to a NIS record, and the candidates of a search.
 export type NisLink = { nis_patient_id: string; nis_version: string | null; identity_check: string; by_name: string; at: string };
 export type NisRegisterStub = { status: "stub"; message_cs: string };
@@ -227,12 +225,16 @@ export type NisStatus = { label_cs: string; has_birth_number: boolean; link: Nis
 export type NisSearch = {
   label_cs: string;
   candidates: NisCandidate[];
+  // Records the NIS returned without the searched birth number: counted, never shown.
+  other_records_hidden: number;
   duplicates: boolean;
   truncated: boolean;
   link: NisLink | null;
   national_register: NisRegisterStub;
 };
 
+// POST /fhir/referral: the referral read into the form. fields uses the form's field names (nf0...), so the page fills
+// the form without a mapping of its own; the bundle itself is never stored, only its hash.
 export type FhirReferral = {
   form: Record<string, string>;
   fields: Record<string, string>;

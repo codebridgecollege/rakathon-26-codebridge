@@ -898,7 +898,11 @@ patient-nis-search-own = Search the NIS by the patient's birth number
 patient-nis-search = Search the NIS
 patient-nis-none = The NIS has no record with this birth number.
 patient-nis-duplicates = The NIS holds several records for this birth number. Pick the right one; CodeBridge does not merge them.
-patient-nis-truncated = Only part of the results is shown; the NIS returned too many records.
+patient-nis-truncated = Only part of the results from the NIS is shown.
+patient-nis-hidden = { $n ->
+        [one] The NIS returned { $n } record without the searched birth number; it is not shown.
+       *[other] The NIS returned { $n } records without the searched birth number; they are not shown.
+    }
 patient-nis-record = NIS record { $id }
 patient-nis-born = Born
 patient-nis-gender-male = male
@@ -913,6 +917,7 @@ patient-nis-link = Link
 patient-nis-linked = Linked to NIS record { $id }
 patient-nis-linked-matches = The birth number matched.
 patient-nis-linked-unverified = The birth number could not be checked; the user confirmed the link.
+patient-nis-linked-name-differs = The birth number matched, the name differed; the user confirmed the link.
 patient-nis-linked-by = Linked by { $name }, { $at }.
 patient-nis-phase-note = Data from the NIS is not loaded yet; the link is the first step of the import.
 patient-nis-unlink = Remove link

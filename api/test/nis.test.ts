@@ -85,6 +85,9 @@ describe("NIS configuration", () => {
     // The key must sit in a NIS_* secret, never in another one such as the login's.
     expect(bad({ base_url: "https://nis.fno.example/fhir", auth: { mode: "backend_services", token_url: "https://nis.fno.example/token", client_id: "cb", scope: "system/Patient.rs", key_secret: "OIDC_CLIENT_SECRET", alg: "RS384" } })).toThrow();
     expect(bad({ base_url: "https://user:pw@nis.fno.example/fhir", auth: { mode: "smart_user" } })).toThrow();
+    // The mTLS binding must be a NIS_* binding, never the assets or another service.
+    expect(bad({ base_url: "https://nis.fno.example/fhir", auth: { mode: "smart_user" }, mtls_binding: "ASSETS" })).toThrow();
+    expect(nisConfig(testEnv({ NIS_CONFIG: JSON.stringify({ "demo-a": { base_url: "https://nis.fno.example/fhir", auth: { mode: "smart_user" }, mtls_binding: "NIS_MTLS" } }) }), "demo-a")?.mtls_binding).toBe("NIS_MTLS");
     expect(nisConfig(testEnv({ NIS_CONFIG: "{}" }), "demo-a")).toBeNull();
   });
 });
@@ -99,11 +102,12 @@ describe("patient search", () => {
     expect(d.candidates[0]).toMatchObject({ nis_id: "t-pt-a", identity: "matches", name_match: "same", linkable: true, birth_date: "1964-03-12" });
     expect(d.candidates[0]).not.toHaveProperty("birth_number");
     expect(d.national_register.status).toBe("stub");
+    expect(d.other_records_hidden).toBe(0);
     const req = fhir.requests.find((x) => x.method === "POST")!;
     expect(new URL(req.url).pathname).toBe("/fhir/Patient/_search");
     expect(req.contentType).toContain("application/x-www-form-urlencoded");
     expect((await accessLog()).filter((x) => x.action === "nis.search")).toEqual([
-      expect.objectContaining({ case_id: "NO-A", what_cs: "vyhledal(a) pacienta v NIS", target_type: "nis", target_id: "Patient" }),
+      expect.objectContaining({ case_id: "NO-A", what_cs: "hledal(a) pacienta v NIS", target_type: "nis", target_id: "Patient" }),
     ]);
     await expectNoIdentityLeak(RC_A);
   });
@@ -131,6 +135,35 @@ describe("patient search", () => {
     expect(fhir.requests).toHaveLength(0);
   });
 
+  it("never shows records without the searched birth number (a server that ignores the parameter)", async () => {
+    const lenient = mockFetch(() =>
+      Response.json({
+        resourceType: "Bundle", type: "searchset",
+        entry: [
+          { resource: { resourceType: "Patient", id: "t-pt-a", identifier: [{ system: "https://ncez.mzcr.cz/fhir/sid/rcis", value: RC_A }], name: [{ family: "Pacientka", given: ["Testová"] }] } },
+          { resource: { resourceType: "Patient", id: "other", identifier: [{ system: "https://ncez.mzcr.cz/fhir/sid/rcis", value: "640312/3001" }], name: [{ family: "Cizí", given: ["Osoba"] }] } },
+        ],
+      }),
+    );
+    const r = await w("POST", "/cases/NO-A/nis/search");
+    expect(r.body.data!.candidates.map((x: { nis_id: string }) => x.nis_id)).toEqual(["t-pt-a"]);
+    expect(r.body.data!.other_records_hidden).toBe(1);
+    expect(JSON.stringify(r.body)).not.toContain("Cizí");
+    // The search asked for strict handling, so a server that does not know the parameter refuses instead.
+    expect(lenient.calls[0]!.headers.get("prefer")).toBe("handling=strict");
+    expect(lenient.calls[0]!.redirect).toBe("manual");
+  });
+
+  it("names the break-the-glass grant on every row of a doctor outside the team", async () => {
+    server();
+    expect((await w("POST", "/cases/NO-A/break-glass", { reason: "konzultace na žádost onkologa" }, "d1p1")).status).toBe(200);
+    expect((await w("POST", "/cases/NO-A/nis/search", {}, "d1p1")).status).toBe(200);
+    expect((await w("POST", "/cases/NO-A/nis/link", { nis_patient_id: "t-pt-a" }, "d1p1")).status).toBe(200);
+    const rows = await q<{ action: string; break_glass_reason: string | null }>("SELECT action, break_glass_reason FROM access_log WHERE action LIKE 'nis.%' ORDER BY id");
+    expect(rows.map((x) => x.action)).toEqual(["nis.search", "nis.read", "nis.link"]);
+    for (const x of rows) expect(x.break_glass_reason).toBeTruthy();
+  });
+
   it("keeps roles and orgs apart", async () => {
     server();
     expect((await w("POST", "/cases/NO-A/nis/search", {}, "admin")).status).toBe(403);
@@ -149,6 +182,7 @@ describe("linking", () => {
     const r = await w("POST", "/cases/NO-A/nis/link", { nis_patient_id: "t-pt-a" });
     expect(r.status).toBe(200);
     expect(r.body.data!.link).toMatchObject({ nis_patient_id: "t-pt-a", nis_version: "1", identity_check: "matches", by_name: "MUDr. Svobodová" });
+    expect((await accessLog()).at(-1)!.what_cs).toBe("propojil(a) pacienta se záznamem v NIS (rodné číslo i jméno souhlasí)");
     expect(fhir.requests.at(-1)).toMatchObject({ method: "GET", url: `${BASE}/Patient/t-pt-a` });
     expect(await q("SELECT org_id, patient_id, nis_system, nis_patient_id, identity_check FROM patient_nis_links")).toEqual([
       { org_id: "demo-a", patient_id: "pt-A", nis_system: BASE, nis_patient_id: "t-pt-a", identity_check: "matches" },
@@ -168,7 +202,31 @@ describe("linking", () => {
     expect((await w("POST", "/cases/NO-A/nis/link", { nis_patient_id: "cb-s01" })).body.error?.code).toBe("nis_not_linkable");
     expect((await w("POST", "/cases/NO-A/nis/link", { nis_patient_id: "nobody" })).body.error?.code).toBe("nis_patient_not_found");
     expect((await w("POST", "/cases/NO-A/nis/link", { nis_patient_id: "../Observation/x" })).body.error?.code).toBe("invalid_input");
+    expect((await w("POST", "/cases/NO-A/nis/link", { nis_patient_id: ".." })).body.error?.code).toBe("invalid_input");
     expect(await q("SELECT * FROM patient_nis_links")).toHaveLength(0);
+  });
+
+  it("asks for confirmation when the birth number matches but the name does not", async () => {
+    server();
+    fhir.load({
+      resourceType: "Bundle", type: "transaction",
+      entry: [{ resource: { resourceType: "Patient", id: "t-pt-other", identifier: [{ system: "https://ncez.mzcr.cz/fhir/sid/rcis", value: "6453121234" }], name: [{ family: "Jiná", given: ["Osoba"] }] }, request: { method: "PUT", url: "Patient/t-pt-other" } }],
+    });
+    const s = await w("POST", "/cases/NO-A/nis/search");
+    expect(s.body.data!.candidates.find((x: { nis_id: string }) => x.nis_id === "t-pt-other")).toMatchObject({ identity: "matches", name_match: "different", needs_confirmation: true });
+    const refused = await w("POST", "/cases/NO-A/nis/link", { nis_patient_id: "t-pt-other" });
+    expect(refused.body.error?.code).toBe("nis_confirm_required");
+    expect(refused.body.error?.message_cs).toContain("Jméno");
+    const ok = await w("POST", "/cases/NO-A/nis/link", { nis_patient_id: "t-pt-other", confirm_unverified: true });
+    expect(ok.body.data!.link.identity_check).toBe("matches_name_differs");
+  });
+
+  it("refuses a malformed birth number on the patient row instead of searching with a typed one", async () => {
+    server();
+    await env.DB.prepare("UPDATE patients SET birth_number = '64531?/1234' WHERE org_id = 'demo-a' AND id = 'pt-A'").run();
+    expect((await get("/cases/NO-A/nis")).body.has_birth_number).toBe(true);
+    expect((await w("POST", "/cases/NO-A/nis/search", { birth_number: RC_F01 })).body.error?.code).toBe("nis_row_birth_number");
+    expect(fhir.requests).toHaveLength(0);
   });
 
   it("links a patient without a birth number only with explicit confirmation", async () => {
@@ -190,6 +248,11 @@ describe("linking", () => {
     expect(u.status).toBe(200);
     expect(await q("SELECT * FROM patient_nis_links")).toHaveLength(0);
     expect((await w("DELETE", "/cases/NO-B/nis/link")).body.error?.code).toBe("nis_not_linked");
+    // A link can be removed after the org's NIS was switched off.
+    await env.DB.prepare(
+      "INSERT INTO patient_nis_links (org_id, patient_id, nis_system, nis_patient_id, identity_check, by_user_id, by_name) VALUES ('demo-a','pt-B',?1,'t-old','cannot_verify','d2p1','x')",
+    ).bind(BASE).run();
+    expect((await w("DELETE", "/cases/NO-B/nis/link", {}, "d2p1", testEnv())).status).toBe(200);
     expect((await w("POST", "/cases/NO-A/nis/link", { nis_patient_id: "t-pt-a" })).status).toBe(200);
   });
 
@@ -210,7 +273,7 @@ describe("FHIR connector", () => {
   it("backs off on 429 and then answers", async () => {
     server();
     fhir.failNext(429, 2, "0");
-    const r = await client().searchPatientsByIdentifier(rcisSearchValue(RC_A.replace("/", "")));
+    const r = await client().searchPatientsByIdentifier(rcisSearchValue(RC_A.replace("/", "")), []);
     expect(r.resources.map((x) => x.id)).toEqual(["t-pt-a"]);
     expect(fhir.requests.filter((x) => x.method === "POST")).toHaveLength(3);
     expect(logged.some((l) => l.includes('"attempts":3'))).toBe(true);
@@ -219,17 +282,20 @@ describe("FHIR connector", () => {
   it("gives up after the attempts with the busy answer", async () => {
     server();
     fhir.failNext(503, 5);
-    await expect(client().searchPatientsByIdentifier(rcisSearchValue("6453121234"))).rejects.toMatchObject({ code: "upstream_busy" });
+    await expect(client().searchPatientsByIdentifier(rcisSearchValue("6453121234"), [])).rejects.toMatchObject({ code: "upstream_busy" });
   });
 
   it("follows next links within the base and stops at a link to another host", async () => {
     server();
+    // A server that caps its pages at 20, as many do whatever _count asks.
+    fhir = new MemoryFhir(BASE, { maxCount: 20 });
+    mockFetch((req) => fhir.handle(req));
     const many = Array.from({ length: 25 }, (_, i) => ({
       resource: { resourceType: "Patient", id: `dup-${String(i).padStart(2, "0")}`, identifier: [{ system: "https://ncez.mzcr.cz/fhir/sid/rcis", value: "7001011234" }] },
       request: { method: "PUT", url: `Patient/dup-${String(i).padStart(2, "0")}` },
     }));
     fhir.load({ resourceType: "Bundle", type: "transaction", entry: many });
-    const r = await client().searchPatientsByIdentifier(rcisSearchValue("7001011234"));
+    const r = await client().searchPatientsByIdentifier(rcisSearchValue("7001011234"), ["7001011234", "700101/1234"]);
     expect(r.resources).toHaveLength(25);
     expect(r.truncated).toBe(false);
     expect(fhir.requests.filter((x) => x.url.includes("_getpages"))).toHaveLength(1);
@@ -238,16 +304,49 @@ describe("FHIR connector", () => {
     const evil = mockFetch(() =>
       new Response(JSON.stringify({ resourceType: "Bundle", type: "searchset", link: [{ relation: "next", url: "https://evil.example/fhir?_getpages=x" }], entry: [] }), { status: 200 }),
     );
-    const r2 = await client().searchPatientsByIdentifier(rcisSearchValue("7001011234"));
+    const r2 = await client().searchPatientsByIdentifier(rcisSearchValue("7001011234"), []);
     expect(r2.truncated).toBe(true);
     expect(evil.calls.map((x) => new URL(x.url).host)).toEqual(["nis.test"]);
+  });
+
+  it("does not follow a next link that leaves the base path or carries the birth number", async () => {
+    for (const next of ["https://nis.test/fhir/../admin?x=1", "https://nis.test/fhirx?x=1", "https://nis.test/fhir?identifier=x%7C5856144019&ct=1", "https://nis.test/fhir?identifier=x|585614/4019"]) {
+      vi.restoreAllMocks();
+      const m = mockFetch(() => Response.json({ resourceType: "Bundle", type: "searchset", link: [{ relation: "next", url: next }], entry: [] }));
+      const r = await client().searchPatientsByIdentifier(rcisSearchValue("5856144019"), ["5856144019", "585614/4019"]);
+      expect(r.truncated).toBe(true);
+      expect(m.calls).toHaveLength(1);
+    }
+  });
+
+  it("treats a redirect as an upstream error and does not follow it", async () => {
+    const m = mockFetch(() => new Response(null, { status: 307, headers: { location: "https://elsewhere.example/fhir/Patient/_search" } }));
+    await expect(client().searchPatientsByIdentifier(rcisSearchValue("5856144019"), [])).rejects.toMatchObject({ code: "upstream_error" });
+    expect(m.calls.map((x) => new URL(x.url).host)).toEqual(["nis.test"]);
+  });
+
+  it("refuses an id made of dots before any pull", async () => {
+    server();
+    await expect(client().read("Patient", "..")).rejects.toMatchObject({ code: "bad_request" });
+    expect(fhir.requests).toHaveLength(0);
+  });
+
+  it("maps 403 to nis_refused and a broken Bundle to an upstream error", async () => {
+    mockFetch(() => new Response("{}", { status: 403 }));
+    await expect(client().read("Patient", "x")).rejects.toMatchObject({ code: "nis_refused" });
+    vi.restoreAllMocks();
+    mockFetch(() => Response.json({ resourceType: "Bundle", type: "searchset", entry: { not: "an array" }, link: "nope" }));
+    expect((await client().searchPatientsByIdentifier(rcisSearchValue("5856144019"), [])).resources).toEqual([]);
+    vi.restoreAllMocks();
+    mockFetch(() => Response.json({ resourceType: "OperationOutcome" }));
+    await expect(client().searchPatientsByIdentifier(rcisSearchValue("5856144019"), [])).rejects.toMatchObject({ code: "upstream_error" });
   });
 
   it("writes the access-log row before every pull", async () => {
     server();
     pulls.length = 0;
     await client().read("Patient", "cb-s02");
-    await client().searchPatientsByIdentifier(rcisSearchValue("5856144019"));
+    await client().searchPatientsByIdentifier(rcisSearchValue("5856144019"), []);
     expect(pulls).toEqual(["read:Patient", "search:Patient"]);
     // A failed log write stops the pull.
     const blocked = new NisClient(nisEnv(), "demo-a", cfg, async () => { throw new Error("log down"); }, fast);
@@ -258,7 +357,7 @@ describe("FHIR connector", () => {
 
   it("finds S02 by the referral's birth number written with the slash", async () => {
     server();
-    const r = await client().searchPatientsByIdentifier(rcisSearchValue("5856144019"));
+    const r = await client().searchPatientsByIdentifier(rcisSearchValue("5856144019"), []);
     expect(r.resources.map((x) => x.id)).toEqual(["cb-s02"]);
   });
 
@@ -296,5 +395,14 @@ describe("FHIR connector", () => {
     expect(p.exp - p.iat).toBeLessThanOrEqual(300);
     expect(fhir.requests.every((r) => r.authorization === "Bearer tok-1")).toBe(true);
     for (const l of logged) expect(l).not.toContain("tok-1");
+
+    // The NIS revokes the token: the next call gets a new one and goes through once more.
+    let issued = 1;
+    vi.restoreAllMocks();
+    fhir = new MemoryFhir(BASE, { bearer: "tok-2" });
+    fhir.load(JSON.parse(env.TEST_NIS_BUNDLES)["s02"]);
+    mockFetch(async (req) => (req.url === "https://auth.nis.test/token" ? Response.json({ access_token: `tok-${++issued}`, expires_in: 300 }) : fhir.handle(req)));
+    expect((await c.read("Patient", "cb-s02"))?.id).toBe("cb-s02");
+    expect(issued).toBe(2);
   });
 });
