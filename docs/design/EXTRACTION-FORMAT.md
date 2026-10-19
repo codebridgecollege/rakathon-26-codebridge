@@ -304,8 +304,10 @@ JSON Schema defines them exactly).
 
 **Anticancer drugs are `systemic_therapy`, never `medication`.** Everolimus,
 sunitinib, nivolumab and the like are `systemic_therapy` facts even where a
-medication list names them; that list entry is a further source of the
-therapy fact when it says the same, and a dose change stated there (for
+medication list names them. The list entry is a further source of an
+existing therapy fact only when it states nothing beyond that fact; an
+entry with its own brand, strength or dosing is its own `systemic_therapy`
+fact (undated, keyed by its document part), and a dose change stated there (for
 example "od 19.9.2026 navýšení na 10 mg") is its own `systemic_therapy`
 fact with its own start, as for `medication`. Supportive drugs given with
 the therapy (antiemetics, corticosteroids) stay `medication`. Which drugs
