@@ -1,6 +1,7 @@
 // Offline fact extraction over the synthetic sample cases, for pipeline/eval.py (issue #20 phase 2).
 //
 //   cd api && npm run extract:eval -- [--out DIR] [--case S04] [--cache-only] [--dev-vars PATH] [--effort medium] [--whole]
+//                                       [--brief]
 //
 // It sends exactly what the Worker sends (services/model-payload.ts: pseudonymized text, the gate) to the model named
 // in wrangler.jsonc, with the key from api/.dev.vars (never printed), and turns the answers into run fragments with
@@ -14,6 +15,8 @@ import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { acceptBrief, briefFacts, briefPrompt, isBriefAnswer, withBriefAlerts } from "@codebridge/domain/extraction/brief";
+import { composeViews } from "@codebridge/domain/extraction/compose";
 import { applyCaseRules } from "@codebridge/domain/extraction/rules";
 import { aiFragmentIds, draftDocument, sha256Hex, type CallAnswer, type PageReading } from "../src/domain/extract/build";
 import { prepareRun, type DraftRun } from "../src/store/runs";
@@ -31,12 +34,12 @@ const REPO = resolve(API, "..");
 const PROMPT_ID = "extract-facts-cs" as const;
 const MAX_OUTPUT_TOKENS = 24000;
 
-type CaseDef = { id: string; documentId: string; pagesDir: string; patientNames: string[]; birthNumber: string | null };
+type CaseDef = { id: string; documentId: string; pagesDir: string; patientNames: string[]; birthNumber: string | null; explicitQuestion: boolean };
 
 function fixtureCase(id: string, file: string, documentId: string, pagesDir: string, pick: (d: Record<string, any>) => { name: string; rc: string | null }): CaseDef {
   const d = JSON.parse(readFileSync(join(REPO, "fixtures/data", file), "utf8"));
   const p = pick(d);
-  return { id, documentId, pagesDir, patientNames: [p.name], birthNumber: p.rc };
+  return { id, documentId, pagesDir, patientNames: [p.name], birthNumber: p.rc, explicitQuestion: id !== "10" };
 }
 
 const CASES: CaseDef[] = [
@@ -44,8 +47,8 @@ const CASES: CaseDef[] = [
   fixtureCase("S01", "mock-case-S01.json", "S01_pacient", "data/derived/pages/S01_pacient", (d) => ({ name: d.list_entry.name, rc: d.list_entry.rc })),
   fixtureCase("S02", "mock-case-S02.json", "S02_pacient", "data/derived/pages/S02_pacient", (d) => ({ name: d.list_entry.name, rc: d.list_entry.rc })),
   // As printed on their first pages (samples/S03_pacient, samples/S04_pacient).
-  { id: "S03", documentId: "S03_pacient", pagesDir: "samples/derived/pages/S03_pacient", patientNames: ["Bořivoj Klenovský"], birthNumber: "571107/1003" },
-  { id: "S04", documentId: "S04_pacient", pagesDir: "samples/derived/pages/S04_pacient", patientNames: ["Ludmila Vrbenská"], birthNumber: "615203/1006" },
+  { id: "S03", documentId: "S03_pacient", pagesDir: "samples/derived/pages/S03_pacient", patientNames: ["Bořivoj Klenovský"], birthNumber: "571107/1003", explicitQuestion: true },
+  { id: "S04", documentId: "S04_pacient", pagesDir: "samples/derived/pages/S04_pacient", patientNames: ["Ludmila Vrbenská"], birthNumber: "615203/1006", explicitQuestion: true },
 ];
 
 // The seed's staff surnames (api/seed/seed.py STAFF_DEPTS, COORD, ADMIN), as the org's staff in D1 would give them.
@@ -269,11 +272,46 @@ async function main() {
     const { run: prepared } = prepareRun({ caseId: c.id, previous: null, currentRunId: null, retiredDocuments: [], issuedIds: [] }, draft);
     // The case rules run as the case merge runs them over the published run (missing reports, requests without a
     // result, contradictions, chronology), so eval.py judges the alerts a doctor would see.
-    const run = applyCaseRules(prepared);
+    let run = applyCaseRules(prepared);
     const v = validateRun(run);
     if (!v.ok) {
       console.log(`${c.id}: the run does not validate: ${v.issues.map((i) => `${i.code} ${i.path}`).slice(0, 5).join("; ")}`);
       process.exitCode = 1;
+    }
+    // --brief: the composed views and the brief with the drafted question, as the case merge will add them, through
+    // the same payload (pseudonymization and gate) and the same answer checks as the Worker (domain/brief.ts).
+    if (args.includes("--brief")) {
+      run = { ...run, views: composeViews(run) };
+      const facts = briefFacts(run);
+      // A question is drafted only where the referral states none: of these cases only 10 (the others say "Otázka na MDT").
+      const draftQuestion = !c.explicitQuestion;
+      const { parts: bparts, refs } = briefPrompt(facts, run.sources, draftQuestion);
+      const bprompt = await loadPrompt("compose-brief-cs");
+      const { body } = buildPayload({ prompt: bprompt, text: bparts.map((p) => ({ ref: p.documentId, text: p.text })), imagesBase64: [], identity, model, maxOutputTokens: 8000, reasoningEffort: effort, maxInputChars: 200000, purpose: "compose_brief" });
+      const payload = JSON.stringify(body);
+      const cacheFile = join(cacheDir, `${bprompt.ref}-${bprompt.sha256.slice(0, 12)}-${await sha256Hex(payload)}.json`);
+      let output: string | null = existsSync(cacheFile) ? JSON.parse(readFileSync(cacheFile, "utf8")).output : null;
+      if (!output && !cacheOnly && key) {
+        const { res } = await fetchWithRetry(`${base.replace(/\/+$/, "")}/chat/completions`, { method: "POST", headers: { "api-key": key, "content-type": "application/json" }, body: payload }, { attempts: 4, baseMs: 2000, maxDelayMs: 20000, timeoutMs: 300000, deadlineMs: 600000 });
+        const d = (await res.json().catch(() => null)) as { choices?: { message?: { content?: string }; finish_reason?: string }[] } | null;
+        if (res.ok && d?.choices?.[0]?.finish_reason === "stop") {
+          output = d.choices[0].message?.content ?? null;
+          if (output) writeFileSync(cacheFile, JSON.stringify({ output, model, prompt: bprompt.ref }));
+        } else console.log(`${c.id} brief: model answered ${res.status}, finish ${d?.choices?.[0]?.finish_reason ?? "-"}`);
+      }
+      if (output) {
+        let answer: unknown = null;
+        try {
+          answer = JSON.parse(output);
+        } catch {
+          answer = null;
+        }
+        const accepted = acceptBrief(answer, run, facts, refs, { model, prompt: bprompt.ref });
+        run = { ...withBriefAlerts(run, facts, accepted), brief: accepted.brief, question_draft: draftQuestion ? accepted.question : null };
+        const written = isBriefAnswer(answer) ? answer : { sentences: [], question: null };
+        const dropped = accepted.dropped.map((x) => ({ sentence: x.sentence, reasons: x.reasons }));
+        console.log(`${c.id} brief: ${facts.length} verified facts offered, ${accepted.brief?.sentences.length ?? 0} of ${written.sentences.length} sentences kept, question ${accepted.question ? "kept" : written.question ? "dropped" : "none"}; dropped ${JSON.stringify(dropped)}`);
+      } else console.log(`${c.id} brief: no answer${key ? "" : " and no key"}`);
     }
     writeFileSync(join(out, `${c.id}.json`), JSON.stringify(run, null, 1));
     const ids = pages.map((p) => `p${p.page}:${p.identity}`).join(" ");

@@ -58,6 +58,10 @@ alert-date-after-processing = The date of a past event is later than the date th
 
 alert-result-before-request = The result is dated before the request: { $fact_a }; { $fact_b }
 
+alert-brief-unverified-withheld = The summary states verified items only; items to verify are not in it, count: { $count }
+
+alert-brief-sentences-dropped = Sentences the cited items did not back were left out of the summary, count: { $count }
+
 alert-poor-copy = Poorly readable document, ask for a better copy: { $document }
 
 alert-identity-conflict = The page belongs to another patient; its items are not shown: { $document }, p. { $page }

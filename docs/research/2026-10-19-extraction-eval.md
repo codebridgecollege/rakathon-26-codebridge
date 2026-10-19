@@ -226,6 +226,56 @@ contradicts. So on a poor scan the vision reading does not make a value trustwor
 the disagreement marks do the work. The second run (after the review's fixes) gave the same pass / fail table as the
 first.
 
+## The brief over the v5 runs (compose-brief-cs@2, issue #21)
+
+`extract:eval --brief` composes the brief from the verified facts of each run, one model call per case.
+
+A question is drafted only for case 10. S01 to S04 state "Otázka na MDT" in the referral.
+
+Kept sentences, after the review's stricter checks:
+
+| Case | Kept | Dropped |
+|---|---|---|
+| 10 | 6 of 6 | none |
+| S01 | 4 of 5 | a sentence naming no fact |
+| S02 | 5 of 5 | none |
+| S03 | 2 of 3 | one, for negation |
+| S04 | 3 of 4 | one, for negation: a negation word the cited fact does not hold |
+
+Every brief and composed view passes `validateRun`.
+
+**Prompt v1 against v2.** v1 drafted no question for case 10 on the narrower input (undated plans removed). v2 says to
+draft one whenever the facts hold a request, plan, decision or finding. Its question for case 10, "Jaký je nález při
+MR mozku, který má být projednán na NCH semináři?", asks for the MR finding. It does so because the MR facts are not
+verified, so the brief cannot state them.
+
+**What the brief leaves out.** Case 10's brief does not mention the brain MR of 14.9.2026, because its facts are marked
+"verify" (negation unclear, date outside the quote). The `brief_unverified_withheld` alert lists the facts left out,
+metastases and diagnoses first, until a doctor confirms them:
+
+| Case | Facts left out |
+|---|---|
+| 10 | 28 |
+| S01 | 9 |
+| S02 | 14 |
+| S03 | 18 |
+| S04 | 7 |
+
+`brief_sentences_dropped` says when sentences were dropped.
+
+An adversarial review sent 26 crafted wrong sentences through the first checks, and 21 passed. Each pattern it found
+now has a check and a test:
+- a negation borrowed from another fact;
+- a negating verb;
+- gap wording;
+- a swapped stage kind;
+- a suspicion stated as confirmed;
+- a request stated as done;
+- abbreviations;
+- a question that proposes its answer.
+
+Swapped dates or doses between two facts of one sentence still pass.
+
 ## Open
 
 - Medication extraction (the S03 bisoprolol dose misread needs it).
