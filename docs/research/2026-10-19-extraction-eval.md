@@ -118,6 +118,33 @@ After the audit: "Histol." now counts as histology (the check missed the abbrevi
 and a report's header date no longer counts as near for a plan or a request ("Sledování vhodné" took the header date).
 These two were not re-audited.
 
+## Medication (v6, v7)
+
+v6 added `medication` and `contraindication`. Medication facts (clear / all): case 10 7/12, S01 12/12, S02 4/4, S03 0/2,
+S04 1/1. A separate audit of every clear medication fact found the values right except one wrong status (prednison
+"documented" although stopped on 26.7.2023), an anticancer drug as medication, and the whole "Chron. medikace" block of
+case 10 missing; its code review found that a strength or a dosing from another entry of a list line passed as clear
+(the check compared digits anywhere in the quote) and that a one-word drug name was not checked. v7 (prompt: every drug
+of every list, the entry as the quote) and new checks (`dose_not_with_drug`: strength and dosing written in the drug's
+own entry, unit included; `drug_not_in_quote`; `not_stated_as_contraindication`) answer them. With v7, case 10 has 21
+medication facts (16 clear), the chronic medication list included.
+
+The S03 planted misread (bisoprolol 1,25 mg read as 4,25 mg) is "verify" in every run, but only because the page is
+judged poor: the quote really says 4,25, so no quote check can catch it. On a page judged readable it would be clear.
+That is what the vision reading (next slice) has to answer.
+
+Evaluation with v7 (pass / fail / not run): critical fact left out 7/0/0, wrong date 4/0/0, negation read as positive
+7/1/0, patients mixed up 7/0/1, report missing 1/0/5, request without result 7/0/0, poor scan 16/0/0 (+1 known; the
+medication expectations now run). The one failure is the S03 liver expectation of v4 again: the misread liver sentence
+came out as a "verify" imaging fact without a separate metastasis fact, although prompt rule 26 asks for one. It
+passed with v5 and v6 and failed with v4 and v7: prompt compliance varies between runs (temperature fixed at 1). In
+no run was it a clear fact.
+
+Open from the medication audit: medication facts without a start date from two visits share a key
+(`medication|drug|start:undated`, packages/domain keys) and merge or get "#2"; a stop date of a medication has no
+field (the format's medication value has none); the format document models everolimus as a medication while the
+prompt sends anticancer drugs to `systemic_therapy`. These are format questions for stream A.
+
 ## Open
 
 - Medication extraction (the S03 bisoprolol dose misread needs it).

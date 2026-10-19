@@ -21,7 +21,7 @@ export type PromptDef = {
 export const PROMPTS = {
   "summarize-cs": { version: 1, text: SUMMARIZE_CS },
   "read-page-cs": { version: 1, text: READ_PAGE_CS, images: true },
-  "extract-facts-cs": { version: 5, text: EXTRACT_FACTS_CS, schema: EXTRACT_SCHEMA },
+  "extract-facts-cs": { version: 7, text: EXTRACT_FACTS_CS, schema: EXTRACT_SCHEMA },
 } satisfies Record<string, PromptDef>;
 
 export type PromptId = keyof typeof PROMPTS;

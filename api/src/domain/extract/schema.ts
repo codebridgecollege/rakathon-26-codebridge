@@ -6,7 +6,7 @@
 // The model never writes IDs, keys, sort dates, anchors or certainty beyond "verify": the server computes them, so a
 // model cannot make a fact look more certain than the checks allow.
 
-/** The fact kinds this step looks for. Lab values come from the deterministic lab parser, medication later. */
+/** The fact kinds this step looks for. Lab values come from the deterministic lab parser. */
 export const EXTRACT_KINDS = [
   "diagnosis",
   "histology",
@@ -26,6 +26,8 @@ export const EXTRACT_KINDS = [
   "allergy",
   "risk_factor",
   "exam_finding",
+  "medication",
+  "contraindication",
 ] as const;
 export type ExtractKind = (typeof EXTRACT_KINDS)[number];
 
@@ -65,6 +67,10 @@ export type ModelFact = {
   reaction: string | null;
   risk_type: "smoking" | "alcohol" | "social" | "epidemiology" | null;
   pack_years: number | null;
+  strength: string | null;
+  dosing: string | null;
+  change: string | null;
+  indication: string | null;
   reported_as: "original" | "cited";
   certainty: "clear" | "verify";
   uncertainty: string | null;
@@ -109,6 +115,10 @@ const FACT_PROPS: Record<keyof ModelFact, Record<string, unknown>> = {
   reaction: str,
   risk_type: en(["smoking", "alcohol", "social", "epidemiology"]),
   pack_years: { type: ["number", "null"] },
+  strength: str,
+  dosing: str,
+  change: str,
+  indication: str,
   reported_as: { type: "string", enum: ["original", "cited"] },
   certainty: { type: "string", enum: ["clear", "verify"] },
   uncertainty: str,
