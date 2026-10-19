@@ -47,6 +47,25 @@
     "LLM_MAX_ATTEMPTS": "4",
     "LLM_RETRY_BASE_MS": "1000",
     "SUMMARY_MAX_CHARS": "40000",
+    // Issue #20: the model the document pipeline sends pseudonymized text and redacted page images to
+    // (src/services/model.ts). Provider "azure-openai" reads the AZURE_OPENAI_KEY secret; "openai-compatible" reads
+    // MODEL_API_KEY. Without the key the model is off. Checked 2026-10-19: docs/research/2026-10-19-azure-gateway-check.md.
+    "MODEL_PROVIDER": "azure-openai",
+    "MODEL_BASE": "https://apim-rakathon-q7146n.azure-api.net/openai/v1",
+    "MODEL_NAME": "gpt-6-luna-dz-eu",
+    "MODEL_REASONING_EFFORT": "low",
+    "MODEL_TIMEOUT_MS": "120000",
+    // In-process retries stop here, below the 5-minute step timeout (MODEL_STEP); the step retries after that.
+    "MODEL_DEADLINE_MS": "150000",
+    "MODEL_MAX_RETRY_WAIT_MS": "20000",
+    "MODEL_MAX_INPUT_CHARS": "200000",
+    "MODEL_MAX_IMAGE_BYTES": "4000000",
+    "MODEL_MAX_OUTPUT_TOKENS": "8000",
+    // The budget decides what is sent: pages per org and per case in the window, and calls per page.
+    "MODEL_BUDGET_WINDOW_HOURS": "24",
+    "MODEL_BUDGET_PAGES_PER_ORG": "600",
+    "MODEL_BUDGET_PAGES_PER_CASE": "80",
+    "MODEL_BUDGET_CALLS_PER_PAGE": "4",
     "ELEVENLABS_API_BASE": "https://api.elevenlabs.io",
     "STT_REALTIME_MODEL": "scribe_v2_realtime",
     "STT_BATCH_MODEL": "scribe_v2",

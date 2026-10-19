@@ -2,6 +2,7 @@
 
 import base64
 import http.client
+import io
 import json
 import sys
 import threading
@@ -10,8 +11,10 @@ import urllib.request
 
 import fitz
 import pytest
+from PIL import Image, ImageDraw
 
 from conftest import REPO, needs_tesseract
+from page_reader import page_index, redact
 
 sys.path.insert(0, str(REPO / "pipeline/container"))
 import server  # noqa: E402
@@ -118,3 +121,80 @@ def test_huge_page_is_refused(base):
     doc.new_page(width=14400, height=14400)  # 200 x 200 inches: 3.6 Gpx at 300 dpi
     status, body = call(base + "/v1/pages?from=1&to=1", doc.tobytes())
     assert status == 422 and body["error"]["code"] == "page_too_large"
+
+
+def _png_b64(img) -> str:
+    buf = io.BytesIO()
+    img.save(buf, format="PNG")
+    return base64.b64encode(buf.getvalue()).decode("ascii")
+
+
+def test_redact_blacks_out_case_identity_and_returns_no_values(base):
+    """S02 page 1 (our synthetic patient): name, birth number and the birth date after a mid-line "nar." are
+    blacked out with identity from the case record; the answer names reasons and boxes, never the values."""
+    d = REPO / "data/derived/pages/S02_pacient"
+    entry = json.loads((REPO / "fixtures/data/mock-case-S02.json").read_text())["list_entry"]
+    names = [[part.lower()] for part in entry["name"].split()]
+    png = (d / "p1.png").read_bytes()
+    status, body = call(base + "/v1/redact", {
+        "pages": [{"n": 1, "png_b64": base64.b64encode(png).decode(), "words": page_index.tess_words(d / "p1.tess.tsv")}],
+        "identity": {"names": names, "staff": [], "birth_number": entry["rc"], "birth_date": None},
+        "ink_marks": True})
+    assert status == 200
+    page = body["pages"][0]
+    reasons = {h["reason"] for h in page["hits"]}
+    assert {"jméno pacienta", "rodné číslo", "datum narození"} <= reasons
+    assert all(set(h) == {"reason", "box"} for h in page["hits"])
+    text = json.dumps(page["hits"], ensure_ascii=False)
+    for secret in [entry["rc"], *entry["name"].split()]:
+        assert secret not in text
+    assert base64.b64decode(page["png_b64"]) != png
+
+
+def test_redact_staff_only_when_capitalized():
+    line = [{"t": "Malá", "b": [0, 0, 40, 10]}, {"t": "pánev", "b": [45, 0, 40, 10]},
+            {"t": "malé", "b": [90, 0, 40, 10]}, {"t": "pánve", "b": [135, 0, 40, 10]}]
+    hits = redact.find([line], set(), {"mala", "male", "malou"})
+    assert [h["box"][0] for h in hits] == [0]
+
+
+def test_redact_names_need_capital_or_a_neighbour():
+    words = [{"t": t, "b": [i * 60, 100, 50, 15]} for i, t in enumerate(["CT", "hlavy", "Hlava", "jan", "hlava"])]
+    hits = redact.find(redact.lines_from_words(words), {"hlava": 1, "hlavy": 1, "jan": 0})
+    assert [h["box"][0] for h in hits] == [120, 180, 240]
+
+
+def test_redact_split_birth_number():
+    words = [{"t": t, "b": [i * 60, 100, 50, 15]} for i, t in enumerate(["r.č.", "585614", "/", "1234", "CRP", "1234"])]
+    hits = redact.find(redact.lines_from_words(words), set(), birth_number="585614/1234")
+    assert [h["box"][0] for h in hits] == [60, 180]
+
+
+def test_redact_mid_line_birth_date():
+    words = [{"t": t, "b": [i * 60, 100, 50, 15]} for i, t in enumerate(["Testová", "Eva,", "nar.", "1.2.1950,", "C20"])]
+    hits = redact.find(redact.lines_from_words(words), {"testova"})
+    assert [h["reason"] for h in hits] == ["jméno pacienta", "datum narození"]
+
+
+def test_redact_ink_marks(base):
+    img = Image.new("L", (600, 800), 255)
+    draw = ImageDraw.Draw(img)
+    # a signature-like scribble with no OCR word over it
+    draw.line([(100, 600), (140, 560), (170, 640), (210, 570), (260, 630), (300, 580)], fill=0, width=4)
+    page = {"n": 1, "png_b64": _png_b64(img), "words": []}
+    status, body = call(base + "/v1/redact", {"pages": [page], "identity": {}, "ink_marks": True})
+    assert status == 200
+    hits = body["pages"][0]["hits"]
+    assert len(hits) == 1 and hits[0]["reason"].startswith("podpis")
+    x, y, w, h = hits[0]["box"]
+    assert x <= 100 and y <= 560 and x + w >= 300 and y + h >= 640
+    status, body = call(base + "/v1/redact", {"pages": [page], "identity": {}, "ink_marks": False})
+    assert status == 200 and body["pages"][0]["hits"] == []
+
+
+def test_redact_refuses_bad_input(base):
+    status, body = call(base + "/v1/redact", {"pages": [{"n": 1, "png_b64": "bm90IGEgcG5n", "words": []}], "identity": {}})
+    assert status == 400 and body["error"]["code"] == "bad_request"
+    many = [{"n": i, "png_b64": "", "words": []} for i in range(1, server.MAX_BATCH + 2)]
+    status, body = call(base + "/v1/redact", {"pages": many, "identity": {}})
+    assert status == 400 and body["error"]["code"] == "bad_request"

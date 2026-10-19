@@ -188,7 +188,7 @@ then refers to fact IDs and can be built separately.
 
 1. **Where the AI models run. Decided 2026-10-19:** the hackathon's Azure gateway (`gpt-6-luna-dz-eu`, EU) for now, moving to another EU cloud model later.
    - The pipeline calls models through one configured interface, so the move is a configuration change.
-   - Its vision and JSON-schema support is unverified, so the first step of the AI work checks them. Its key expires, so the move should be planned, not forced.
+   - Checked 2026-10-19: it takes page images and JSON-schema output, and only the default temperature ([`2026-10-19-azure-gateway-check.md`](2026-10-19-azure-gateway-check.md)). Its key expires, so the move should be planned, not forced.
    - Real patients still need FNO's clearance for any cloud model (CLAUDE.md, DATA-PROTECTION.md).
 2. **Real uploads in the demo.** Proposed:
    - org A (the hackathon demo) keeps "metadata only" for unknown files;

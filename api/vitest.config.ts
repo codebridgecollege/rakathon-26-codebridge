@@ -37,6 +37,8 @@ export default defineConfig(async () => {
             AI_GATEWAY_BASE: "",
             ELEVENLABS_API_BASE: "https://elevenlabs.test",
             AZURE_OPENAI_BASE: "https://azure.test/openai/v1",
+            MODEL_BASE: "https://model.test/openai/v1",
+            MODEL_API_KEY: "",
             AUTH_MODE: "demo",
             DATA_API: "on",
             // Step 6: the document Workflow calls the page reader here; the tests mock this host.

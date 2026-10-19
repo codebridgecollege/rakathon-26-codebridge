@@ -48,12 +48,25 @@ POST /v1/labs               body: {"pages": [{"n", "text", "layer_text", "readab
   "only_second_reading" (a result only the text layer has; offsets into "layer_text", with "in", "code"
   and "quote"). A page without readability_level counts as not readable: its points are unclear_ocr.
 
+POST /v1/redact             body: {"pages": [{"n", "png_b64", "words"}],
+                                   "identity": {"names": [[str]], "staff": [[str]], "birth_number": str|null,
+                                                "birth_date": str|null},
+                                   "ink_marks": bool}
+  200 {"pages": [{"n": int, "png_b64": str, "hits": [{"reason": str, "box": [x, y, w, h]}]}]}
+  Blacks out direct identifiers on page images before they may leave for a cloud model (option B in
+  docs/design/DATA-PROTECTION.md). names and staff are folded name forms (lower case, no diacritics, declined), one
+  list per name part (a plain list of strings counts each as its own part), which
+  the Worker computes from the case record and the org's staff (api/src/domain/pseudonymize.ts, nameForms); staff
+  a form counts on a capitalized word, or in any case next to another part of the same name. ink_marks also blacks out dark areas no OCR word covers (signatures,
+  stamps, handwriting; best effort). Hits carry the reason and the box, never the value. At most MAX_BATCH pages.
+
 Errors: {"error": {"code": str, "message_cs": str}} with
   400 bad_json, bad_request, bad_range; 404 not_found; 405 method_not_allowed; 413 too_large;
   422 not_pdf, encrypted, too_many_pages, unreadable_pdf, page_too_large (over MAX_PIXELS at 300 dpi); 500 internal (no detail, nothing from the body).
 """
 
 import base64
+import io
 import json
 import logging
 import sys
@@ -68,8 +81,9 @@ _here = Path(__file__).resolve().parent
 sys.path.insert(0, str(_here if (_here / "page_reader").is_dir() else _here.parent))
 
 import fitz  # noqa: E402  PyMuPDF
+from PIL import Image  # noqa: E402
 
-from page_reader import VERSION, labs, layer, ocr, page_index, readability, render  # noqa: E402
+from page_reader import VERSION, labs, layer, ocr, page_index, readability, redact, render  # noqa: E402
 
 MAX_BODY = 20 * 1024 * 1024  # the upload limit of step 6, so anything larger never came from our Worker
 MAX_PAGES = 60  # a referral PDF is a few dozen pages; more is a wrong upload, and it bounds the work
@@ -197,8 +211,48 @@ def labs_(body: bytes, _query) -> tuple[dict, int]:
     return result, len(data["pages"])
 
 
+def _name_groups(value) -> dict[str, int]:
+    """Folded name form -> its name part: a list of strings (one part each) or a list of lists (forms per part)."""
+    out: dict[str, int] = {}
+    for i, part in enumerate(value if isinstance(value, list) else []):
+        for x in part if isinstance(part, list) else [part]:
+            if isinstance(x, str) and len(x) > 1:
+                out[redact.fold(x)] = i
+    return out
+
+
+def redact_(body: bytes, _query) -> tuple[dict, int]:
+    data = _json(body)
+    ident = data.get("identity") or {}
+    if not isinstance(ident, dict) or len(data["pages"]) > MAX_BATCH:
+        raise ApiError(400, "bad_request", f"Očekávám identitu a nejvýš {MAX_BATCH} stran.")
+    names, staff = _name_groups(ident.get("names")), _name_groups(ident.get("staff"))
+    bn = ident.get("birth_number") if isinstance(ident.get("birth_number"), str) else None
+    bd = ident.get("birth_date") if isinstance(ident.get("birth_date"), str) else None
+    out = []
+    try:
+        for p in data["pages"]:
+            words = p.get("words") or []
+            img = Image.open(io.BytesIO(base64.b64decode(p["png_b64"], validate=True)))
+            if img.width * img.height > MAX_PIXELS:
+                raise ApiError(422, "page_too_large", "Obrázek strany je příliš velký.")
+            img = img.convert("L")
+            hits = redact.find(redact.lines_from_words(words), names, staff, bn, bd)
+            if data.get("ink_marks"):
+                hits += redact.ink_marks(img, words)
+            png = io.BytesIO()
+            redact.apply(img, hits).save(png, format="PNG", optimize=True)
+            out.append({"n": int(p["n"]), "png_b64": base64.b64encode(png.getvalue()).decode("ascii"), "hits": hits})
+    except ApiError:
+        raise
+    except (KeyError, TypeError, ValueError, OSError):
+        # OSError is Pillow's error for a body that is not an image; its message is not passed on.
+        raise ApiError(400, "bad_request", "Strana nemá očekávaný tvar (n, png_b64, words).") from None
+    return {"pages": out}, len(out)
+
+
 ROUTES = {("GET", "/healthz"): healthz, ("POST", "/v1/inspect"): inspect, ("POST", "/v1/pages"): pages,
-          ("POST", "/v1/analyze"): analyze, ("POST", "/v1/labs"): labs_}
+          ("POST", "/v1/analyze"): analyze, ("POST", "/v1/labs"): labs_, ("POST", "/v1/redact"): redact_}
 
 
 class Handler(BaseHTTPRequestHandler):
