@@ -562,6 +562,7 @@ subject. Neither value wins silently.
   - a fact without sources (unless `origin: assistant` with `based_on`);
   - unknown source IDs;
   - an alert whose facts do not exist.
+- **Code.** TypeScript: `packages/domain/src/extraction` (types, keys and IDs, the matcher, the validator); the schema is generated into `packages/domain/schema/extraction-2.schema.json` by `npm run schema -w @codebridge/domain`, and a test fails when the checked-in file is stale. Python: `pipeline/extraction_format`, the same functions and issue codes, validating with `jsonschema` against the same file (`CODEBRIDGE_EXTRACTION_SCHEMA` overrides the path where `packages/` is not present, such as the page-reader container). Both sides test against `packages/domain/test/extraction-key-vectors.json`; regenerate it only on a deliberate key change.
 - **Versioning:**
   - Adding an optional field keeps `/2`.
   - A breaking change becomes `/3`, together with a converter from `/2`; old runs stay readable through the converter.

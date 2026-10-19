@@ -1,0 +1,2027 @@
+{
+ "fnv1a32": [
+  [
+   "",
+   "811c9dc5"
+  ],
+  [
+   "NO-010|al",
+   "7c0e417b"
+  ],
+  [
+   "Žluťoučký kůň",
+   "367b1312"
+  ],
+  [
+   "S_HSCRP",
+   "8d1b3731"
+  ],
+  [
+   "é",
+   "1e9de8c1"
+  ],
+  [
+   "😀 emoji",
+   "de688546"
+  ]
+ ],
+ "norm_text": [
+  [
+   "  Hypertenzní  nemoc. ",
+   "hypertenzní nemoc"
+  ],
+  [
+   "A|B",
+   "a/b"
+  ],
+  [
+   "Ca\tprsu;",
+   "ca prsu"
+  ],
+  [
+   "ÉCOG ",
+   "écog"
+  ],
+  [
+   "é",
+   "é"
+  ]
+ ],
+ "date_seg": [
+  [
+   {
+    "as_written": null,
+    "precision": null,
+    "sort": null
+   },
+   "undated"
+  ],
+  [
+   {
+    "as_written": "2.6.2022",
+    "precision": "day",
+    "sort": "2022-06-02"
+   },
+   "2022-06-02"
+  ],
+  [
+   {
+    "as_written": "03/2024",
+    "precision": "month",
+    "sort": "2024-03-15"
+   },
+   "2024-03"
+  ],
+  [
+   {
+    "as_written": " Base line CT z 03/2023 ",
+    "precision": null,
+    "sort": null
+   },
+   "base line ct z 03/2023"
+  ],
+  [
+   {
+    "as_written": "14.9.2026 10:05",
+    "precision": "minute",
+    "sort": "2026-09-14T10:05:00+02:00"
+   },
+   "2026-09-14T10:05"
+  ]
+ ],
+ "fact_keys": [
+  {
+   "fact": {
+    "subject": "patient",
+    "status": "documented",
+    "negated": false,
+    "not_stated": [],
+    "origin": "document",
+    "certainty": "clear",
+    "codes": [
+     {
+      "system": "fno-local-lab",
+      "code": "S_HSCRP",
+      "assigned_by": "source"
+     }
+    ],
+    "note": null,
+    "quarantined": false,
+    "sources": [
+     "src-a"
+    ],
+    "kind": "lab_result",
+    "date": {
+     "as_written": null,
+     "precision": null,
+     "sort": null
+    },
+    "value": {
+     "name_as_written": "hsCRP",
+     "value_as_written": "9,5",
+     "value_numeric": 9.5,
+     "unit_as_written": "mg/1",
+     "unit": "mg/l",
+     "reference_range": "0 ... 5",
+     "reference_low": 0,
+     "reference_high": 5,
+     "out_of_range": "high",
+     "out_of_range_origin": "assistant",
+     "draw": {
+      "as_written": null,
+      "requisition": null,
+      "specimen": null
+     }
+    }
+   },
+   "sources": [
+    {
+     "id": "src-a",
+     "type": "document",
+     "document_id": "10_pacient",
+     "part": "10_pacient/p2",
+     "page": 3,
+     "quote": "S_HSCRP: 9,5 mg/1 [O ... 5]",
+     "quote_text": "tesseract",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
+     "id": "src-b",
+     "type": "document",
+     "document_id": "10_lab",
+     "part": null,
+     "page": 1,
+     "quote": "Kreatinin 107",
+     "quote_text": "pdf_text",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
+     "id": "src-n",
+     "type": "nis",
+     "system": "https://nis.fno.example/fhir",
+     "resource": "Observation/8812",
+     "version": "3",
+     "last_updated": null
+    }
+   ],
+   "key": "lab_result|S_HSCRP|draw:undated|doc:10_pacient"
+  },
+  {
+   "fact": {
+    "subject": "patient",
+    "status": "documented",
+    "negated": false,
+    "not_stated": [],
+    "origin": "document",
+    "certainty": "clear",
+    "codes": [],
+    "note": null,
+    "quarantined": false,
+    "sources": [
+     "src-b",
+     "src-n"
+    ],
+    "kind": "lab_result",
+    "date": {
+     "as_written": "17.9.2026 7:40",
+     "precision": "day",
+     "sort": "2026-09-17"
+    },
+    "value": {
+     "name_as_written": "Kreatinin  ",
+     "value_as_written": "107",
+     "value_numeric": 107,
+     "unit_as_written": "µmol/l",
+     "unit": "µmol/l",
+     "reference_range": "59 ... 104",
+     "reference_low": 59,
+     "reference_high": 104,
+     "out_of_range": "high",
+     "out_of_range_origin": "document",
+     "draw": {
+      "as_written": "17.9.2026  7:40",
+      "requisition": "Ž 2611|04",
+      "specimen": "sérum"
+     }
+    }
+   },
+   "sources": [
+    {
+     "id": "src-a",
+     "type": "document",
+     "document_id": "10_pacient",
+     "part": "10_pacient/p2",
+     "page": 3,
+     "quote": "S_HSCRP: 9,5 mg/1 [O ... 5]",
+     "quote_text": "tesseract",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
+     "id": "src-b",
+     "type": "document",
+     "document_id": "10_lab",
+     "part": null,
+     "page": 1,
+     "quote": "Kreatinin 107",
+     "quote_text": "pdf_text",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
+     "id": "src-n",
+     "type": "nis",
+     "system": "https://nis.fno.example/fhir",
+     "resource": "Observation/8812",
+     "version": "3",
+     "last_updated": null
+    }
+   ],
+   "key": "lab_result|kreatinin|draw:17.9.2026 7:40|req:ž 2611/04|doc:10_lab+nis:Observation/8812"
+  },
+  {
+   "fact": {
+    "subject": "patient",
+    "status": "documented",
+    "negated": false,
+    "not_stated": [],
+    "origin": "document",
+    "certainty": "clear",
+    "codes": [
+     {
+      "system": "mkn-10",
+      "code": "C64",
+      "assigned_by": "source"
+     }
+    ],
+    "note": null,
+    "quarantined": false,
+    "sources": [
+     "src-a"
+    ],
+    "kind": "diagnosis",
+    "date": {
+     "as_written": "2.6.2022",
+     "precision": "day",
+     "sort": "2022-06-02"
+    },
+    "value": {
+     "text": "Světlobuněčný karcinom ledviny",
+     "disease_status": "confirmed_histology",
+     "primary": true
+    }
+   },
+   "sources": [
+    {
+     "id": "src-a",
+     "type": "document",
+     "document_id": "10_pacient",
+     "part": "10_pacient/p2",
+     "page": 3,
+     "quote": "S_HSCRP: 9,5 mg/1 [O ... 5]",
+     "quote_text": "tesseract",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
+     "id": "src-b",
+     "type": "document",
+     "document_id": "10_lab",
+     "part": null,
+     "page": 1,
+     "quote": "Kreatinin 107",
+     "quote_text": "pdf_text",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
+     "id": "src-n",
+     "type": "nis",
+     "system": "https://nis.fno.example/fhir",
+     "resource": "Observation/8812",
+     "version": "3",
+     "last_updated": null
+    }
+   ],
+   "key": "diagnosis|C64|confirmed_histology|2022-06-02"
+  },
+  {
+   "fact": {
+    "subject": "patient",
+    "status": "documented",
+    "negated": false,
+    "not_stated": [],
+    "origin": "document",
+    "certainty": "clear",
+    "codes": [],
+    "note": null,
+    "quarantined": false,
+    "sources": [
+     "src-a"
+    ],
+    "kind": "diagnosis",
+    "date": {
+     "as_written": null,
+     "precision": null,
+     "sort": null
+    },
+    "value": {
+     "text": "Hypertenzní nemoc.",
+     "disease_status": null,
+     "primary": false
+    }
+   },
+   "sources": [
+    {
+     "id": "src-a",
+     "type": "document",
+     "document_id": "10_pacient",
+     "part": "10_pacient/p2",
+     "page": 3,
+     "quote": "S_HSCRP: 9,5 mg/1 [O ... 5]",
+     "quote_text": "tesseract",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
+     "id": "src-b",
+     "type": "document",
+     "document_id": "10_lab",
+     "part": null,
+     "page": 1,
+     "quote": "Kreatinin 107",
+     "quote_text": "pdf_text",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
+     "id": "src-n",
+     "type": "nis",
+     "system": "https://nis.fno.example/fhir",
+     "resource": "Observation/8812",
+     "version": "3",
+     "last_updated": null
+    }
+   ],
+   "key": "diagnosis|hypertenzní nemoc|status:none|undated"
+  },
+  {
+   "fact": {
+    "subject": "patient",
+    "status": "documented",
+    "negated": false,
+    "not_stated": [],
+    "origin": "document",
+    "certainty": "clear",
+    "codes": [],
+    "note": null,
+    "quarantined": false,
+    "sources": [
+     "src-a"
+    ],
+    "kind": "histology",
+    "date": {
+     "as_written": "2.6.2022",
+     "precision": "day",
+     "sort": "2022-06-02"
+    },
+    "value": {
+     "specimen": "Ledvina vlevo",
+     "result_text": "ccRCC",
+     "tumour_type": "světlobuněčný",
+     "grade": "G2"
+    }
+   },
+   "sources": [
+    {
+     "id": "src-a",
+     "type": "document",
+     "document_id": "10_pacient",
+     "part": "10_pacient/p2",
+     "page": 3,
+     "quote": "S_HSCRP: 9,5 mg/1 [O ... 5]",
+     "quote_text": "tesseract",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
+     "id": "src-b",
+     "type": "document",
+     "document_id": "10_lab",
+     "part": null,
+     "page": 1,
+     "quote": "Kreatinin 107",
+     "quote_text": "pdf_text",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
+     "id": "src-n",
+     "type": "nis",
+     "system": "https://nis.fno.example/fhir",
+     "resource": "Observation/8812",
+     "version": "3",
+     "last_updated": null
+    }
+   ],
+   "key": "histology|ledvina vlevo|2022-06-02"
+  },
+  {
+   "fact": {
+    "subject": "patient",
+    "status": "documented",
+    "negated": false,
+    "not_stated": [],
+    "origin": "document",
+    "certainty": "clear",
+    "codes": [],
+    "note": null,
+    "quarantined": false,
+    "sources": [
+     "src-a"
+    ],
+    "kind": "stage",
+    "date": {
+     "as_written": "2.6.2022",
+     "precision": "day",
+     "sort": "2022-06-02"
+    },
+    "value": {
+     "tnm_as_written": "pT2a pN1(3+/5) MO",
+     "tnm": "pT2a pN1 M0",
+     "stage_kind": "pathological",
+     "edition": null,
+     "as_of": "2.6.2022",
+     "at_diagnosis": true
+    }
+   },
+   "sources": [
+    {
+     "id": "src-a",
+     "type": "document",
+     "document_id": "10_pacient",
+     "part": "10_pacient/p2",
+     "page": 3,
+     "quote": "S_HSCRP: 9,5 mg/1 [O ... 5]",
+     "quote_text": "tesseract",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
+     "id": "src-b",
+     "type": "document",
+     "document_id": "10_lab",
+     "part": null,
+     "page": 1,
+     "quote": "Kreatinin 107",
+     "quote_text": "pdf_text",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
+     "id": "src-n",
+     "type": "nis",
+     "system": "https://nis.fno.example/fhir",
+     "resource": "Observation/8812",
+     "version": "3",
+     "last_updated": null
+    }
+   ],
+   "key": "stage|pathological|2022-06-02"
+  },
+  {
+   "fact": {
+    "subject": "patient",
+    "status": "documented",
+    "negated": true,
+    "not_stated": [],
+    "origin": "document",
+    "certainty": "clear",
+    "codes": [],
+    "note": null,
+    "quarantined": false,
+    "sources": [
+     "src-a"
+    ],
+    "kind": "metastasis",
+    "date": {
+     "as_written": "03/2023",
+     "precision": "month",
+     "sort": "2023-03"
+    },
+    "value": {
+     "site": "Mozek",
+     "status": "excluded",
+     "basis": "clinical",
+     "text": null
+    }
+   },
+   "sources": [
+    {
+     "id": "src-a",
+     "type": "document",
+     "document_id": "10_pacient",
+     "part": "10_pacient/p2",
+     "page": 3,
+     "quote": "S_HSCRP: 9,5 mg/1 [O ... 5]",
+     "quote_text": "tesseract",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
+     "id": "src-b",
+     "type": "document",
+     "document_id": "10_lab",
+     "part": null,
+     "page": 1,
+     "quote": "Kreatinin 107",
+     "quote_text": "pdf_text",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
+     "id": "src-n",
+     "type": "nis",
+     "system": "https://nis.fno.example/fhir",
+     "resource": "Observation/8812",
+     "version": "3",
+     "last_updated": null
+    }
+   ],
+   "key": "metastasis|mozek|2023-03"
+  },
+  {
+   "fact": {
+    "subject": "patient",
+    "status": "documented",
+    "negated": false,
+    "not_stated": [],
+    "origin": "document",
+    "certainty": "clear",
+    "codes": [],
+    "note": null,
+    "quarantined": false,
+    "sources": [
+     "src-a"
+    ],
+    "kind": "procedure",
+    "date": {
+     "as_written": "4/2022",
+     "precision": "month",
+     "sort": "2022-04"
+    },
+    "value": {
+     "name": "Nefrektomie",
+     "region": "vlevo",
+     "text": null
+    }
+   },
+   "sources": [
+    {
+     "id": "src-a",
+     "type": "document",
+     "document_id": "10_pacient",
+     "part": "10_pacient/p2",
+     "page": 3,
+     "quote": "S_HSCRP: 9,5 mg/1 [O ... 5]",
+     "quote_text": "tesseract",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
+     "id": "src-b",
+     "type": "document",
+     "document_id": "10_lab",
+     "part": null,
+     "page": 1,
+     "quote": "Kreatinin 107",
+     "quote_text": "pdf_text",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
+     "id": "src-n",
+     "type": "nis",
+     "system": "https://nis.fno.example/fhir",
+     "resource": "Observation/8812",
+     "version": "3",
+     "last_updated": null
+    }
+   ],
+   "key": "procedure|nefrektomie|vlevo|2022-04"
+  },
+  {
+   "fact": {
+    "subject": "patient",
+    "status": "documented",
+    "negated": false,
+    "not_stated": [],
+    "origin": "document",
+    "certainty": "clear",
+    "codes": [],
+    "note": null,
+    "quarantined": false,
+    "sources": [
+     "src-a"
+    ],
+    "kind": "systemic_therapy",
+    "date": {
+     "as_written": null,
+     "precision": null,
+     "sort": null
+    },
+    "value": {
+     "regimen": "Everolimus",
+     "line": 3,
+     "start": "9/2026",
+     "stop": null,
+     "reason_stopped": null,
+     "text": null
+    }
+   },
+   "sources": [
+    {
+     "id": "src-a",
+     "type": "document",
+     "document_id": "10_pacient",
+     "part": "10_pacient/p2",
+     "page": 3,
+     "quote": "S_HSCRP: 9,5 mg/1 [O ... 5]",
+     "quote_text": "tesseract",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
+     "id": "src-b",
+     "type": "document",
+     "document_id": "10_lab",
+     "part": null,
+     "page": 1,
+     "quote": "Kreatinin 107",
+     "quote_text": "pdf_text",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
+     "id": "src-n",
+     "type": "nis",
+     "system": "https://nis.fno.example/fhir",
+     "resource": "Observation/8812",
+     "version": "3",
+     "last_updated": null
+    }
+   ],
+   "key": "systemic_therapy|everolimus|line:3|start:9/2026"
+  },
+  {
+   "fact": {
+    "subject": "patient",
+    "status": "documented",
+    "negated": false,
+    "not_stated": [],
+    "origin": "document",
+    "certainty": "clear",
+    "codes": [],
+    "note": null,
+    "quarantined": false,
+    "sources": [
+     "src-a"
+    ],
+    "kind": "radiotherapy",
+    "date": {
+     "as_written": "2024",
+     "precision": "year",
+     "sort": "2024"
+    },
+    "value": {
+     "target": "Th10",
+     "dose": "8 Gy",
+     "fractions": "1",
+     "text": null
+    }
+   },
+   "sources": [
+    {
+     "id": "src-a",
+     "type": "document",
+     "document_id": "10_pacient",
+     "part": "10_pacient/p2",
+     "page": 3,
+     "quote": "S_HSCRP: 9,5 mg/1 [O ... 5]",
+     "quote_text": "tesseract",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
+     "id": "src-b",
+     "type": "document",
+     "document_id": "10_lab",
+     "part": null,
+     "page": 1,
+     "quote": "Kreatinin 107",
+     "quote_text": "pdf_text",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
+     "id": "src-n",
+     "type": "nis",
+     "system": "https://nis.fno.example/fhir",
+     "resource": "Observation/8812",
+     "version": "3",
+     "last_updated": null
+    }
+   ],
+   "key": "radiotherapy|th10|2024"
+  },
+  {
+   "fact": {
+    "subject": "patient",
+    "status": "documented",
+    "negated": false,
+    "not_stated": [],
+    "origin": "document",
+    "certainty": "clear",
+    "codes": [],
+    "note": null,
+    "quarantined": false,
+    "sources": [
+     "src-a"
+    ],
+    "kind": "imaging",
+    "date": {
+     "as_written": "14.9.2026",
+     "precision": "day",
+     "sort": "2026-09-14"
+    },
+    "value": {
+     "modality": "MR",
+     "region": "Mozek",
+     "finding_text": "ložisko 3 mm",
+     "response": null
+    }
+   },
+   "sources": [
+    {
+     "id": "src-a",
+     "type": "document",
+     "document_id": "10_pacient",
+     "part": "10_pacient/p2",
+     "page": 3,
+     "quote": "S_HSCRP: 9,5 mg/1 [O ... 5]",
+     "quote_text": "tesseract",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
+     "id": "src-b",
+     "type": "document",
+     "document_id": "10_lab",
+     "part": null,
+     "page": 1,
+     "quote": "Kreatinin 107",
+     "quote_text": "pdf_text",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
+     "id": "src-n",
+     "type": "nis",
+     "system": "https://nis.fno.example/fhir",
+     "resource": "Observation/8812",
+     "version": "3",
+     "last_updated": null
+    }
+   ],
+   "key": "imaging|mr|mozek|2026-09-14"
+  },
+  {
+   "fact": {
+    "subject": "patient",
+    "status": "documented",
+    "negated": false,
+    "not_stated": [],
+    "origin": "document",
+    "certainty": "clear",
+    "codes": [],
+    "note": null,
+    "quarantined": false,
+    "sources": [
+     "src-a"
+    ],
+    "kind": "vital_sign",
+    "date": {
+     "as_written": null,
+     "precision": null,
+     "sort": null
+    },
+    "value": {
+     "what": "blood_pressure",
+     "label_as_written": "TK",
+     "value_as_written": "135/80",
+     "value_numeric": null,
+     "unit": "mmHg"
+    }
+   },
+   "sources": [
+    {
+     "id": "src-a",
+     "type": "document",
+     "document_id": "10_pacient",
+     "part": "10_pacient/p2",
+     "page": 3,
+     "quote": "S_HSCRP: 9,5 mg/1 [O ... 5]",
+     "quote_text": "tesseract",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
+     "id": "src-b",
+     "type": "document",
+     "document_id": "10_lab",
+     "part": null,
+     "page": 1,
+     "quote": "Kreatinin 107",
+     "quote_text": "pdf_text",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
+     "id": "src-n",
+     "type": "nis",
+     "system": "https://nis.fno.example/fhir",
+     "resource": "Observation/8812",
+     "version": "3",
+     "last_updated": null
+    }
+   ],
+   "key": "vital_sign|blood_pressure|undated"
+  },
+  {
+   "fact": {
+    "subject": "patient",
+    "status": "documented",
+    "negated": false,
+    "not_stated": [],
+    "origin": "document",
+    "certainty": "clear",
+    "codes": [],
+    "note": null,
+    "quarantined": false,
+    "sources": [
+     "src-a"
+    ],
+    "kind": "vital_sign",
+    "date": {
+     "as_written": null,
+     "precision": null,
+     "sort": null
+    },
+    "value": {
+     "what": "other",
+     "label_as_written": "Obvod pasu",
+     "value_as_written": "98",
+     "value_numeric": 98,
+     "unit": "cm"
+    }
+   },
+   "sources": [
+    {
+     "id": "src-a",
+     "type": "document",
+     "document_id": "10_pacient",
+     "part": "10_pacient/p2",
+     "page": 3,
+     "quote": "S_HSCRP: 9,5 mg/1 [O ... 5]",
+     "quote_text": "tesseract",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
+     "id": "src-b",
+     "type": "document",
+     "document_id": "10_lab",
+     "part": null,
+     "page": 1,
+     "quote": "Kreatinin 107",
+     "quote_text": "pdf_text",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
+     "id": "src-n",
+     "type": "nis",
+     "system": "https://nis.fno.example/fhir",
+     "resource": "Observation/8812",
+     "version": "3",
+     "last_updated": null
+    }
+   ],
+   "key": "vital_sign|obvod pasu|undated"
+  },
+  {
+   "fact": {
+    "subject": "patient",
+    "status": "documented",
+    "negated": false,
+    "not_stated": [],
+    "origin": "document",
+    "certainty": "clear",
+    "codes": [],
+    "note": null,
+    "quarantined": false,
+    "sources": [
+     "src-a"
+    ],
+    "kind": "performance_status",
+    "date": {
+     "as_written": null,
+     "precision": null,
+     "sort": null
+    },
+    "value": {
+     "scale": "ECOG",
+     "value_as_written": "1",
+     "value_numeric": 1
+    }
+   },
+   "sources": [
+    {
+     "id": "src-a",
+     "type": "document",
+     "document_id": "10_pacient",
+     "part": "10_pacient/p2",
+     "page": 3,
+     "quote": "S_HSCRP: 9,5 mg/1 [O ... 5]",
+     "quote_text": "tesseract",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
+     "id": "src-b",
+     "type": "document",
+     "document_id": "10_lab",
+     "part": null,
+     "page": 1,
+     "quote": "Kreatinin 107",
+     "quote_text": "pdf_text",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
+     "id": "src-n",
+     "type": "nis",
+     "system": "https://nis.fno.example/fhir",
+     "resource": "Observation/8812",
+     "version": "3",
+     "last_updated": null
+    }
+   ],
+   "key": "performance_status|ecog|undated"
+  },
+  {
+   "fact": {
+    "subject": "patient",
+    "status": "documented",
+    "negated": false,
+    "not_stated": [],
+    "origin": "document",
+    "certainty": "clear",
+    "codes": [],
+    "note": null,
+    "quarantined": false,
+    "sources": [
+     "src-a"
+    ],
+    "kind": "exam_finding",
+    "date": {
+     "as_written": null,
+     "precision": null,
+     "sort": null
+    },
+    "value": {
+     "region": "Břicho",
+     "text": "Měkké, nebolestivé."
+    }
+   },
+   "sources": [
+    {
+     "id": "src-a",
+     "type": "document",
+     "document_id": "10_pacient",
+     "part": "10_pacient/p2",
+     "page": 3,
+     "quote": "S_HSCRP: 9,5 mg/1 [O ... 5]",
+     "quote_text": "tesseract",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
+     "id": "src-b",
+     "type": "document",
+     "document_id": "10_lab",
+     "part": null,
+     "page": 1,
+     "quote": "Kreatinin 107",
+     "quote_text": "pdf_text",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
+     "id": "src-n",
+     "type": "nis",
+     "system": "https://nis.fno.example/fhir",
+     "resource": "Observation/8812",
+     "version": "3",
+     "last_updated": null
+    }
+   ],
+   "key": "exam_finding|břicho|měkké, nebolestivé|undated"
+  },
+  {
+   "fact": {
+    "subject": "patient",
+    "status": "documented",
+    "negated": true,
+    "not_stated": [],
+    "origin": "document",
+    "certainty": "clear",
+    "codes": [],
+    "note": null,
+    "quarantined": false,
+    "sources": [
+     "src-a"
+    ],
+    "kind": "symptom",
+    "date": {
+     "as_written": null,
+     "precision": null,
+     "sort": null
+    },
+    "value": {
+     "text": "Bolesti hlavy"
+    }
+   },
+   "sources": [
+    {
+     "id": "src-a",
+     "type": "document",
+     "document_id": "10_pacient",
+     "part": "10_pacient/p2",
+     "page": 3,
+     "quote": "S_HSCRP: 9,5 mg/1 [O ... 5]",
+     "quote_text": "tesseract",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
+     "id": "src-b",
+     "type": "document",
+     "document_id": "10_lab",
+     "part": null,
+     "page": 1,
+     "quote": "Kreatinin 107",
+     "quote_text": "pdf_text",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
+     "id": "src-n",
+     "type": "nis",
+     "system": "https://nis.fno.example/fhir",
+     "resource": "Observation/8812",
+     "version": "3",
+     "last_updated": null
+    }
+   ],
+   "key": "symptom|bolesti hlavy|undated"
+  },
+  {
+   "fact": {
+    "subject": "patient",
+    "status": "documented",
+    "negated": false,
+    "not_stated": [],
+    "origin": "document",
+    "certainty": "clear",
+    "codes": [
+     {
+      "system": "mkn-10",
+      "code": "I10",
+      "assigned_by": "source"
+     }
+    ],
+    "note": null,
+    "quarantined": false,
+    "sources": [
+     "src-a"
+    ],
+    "kind": "comorbidity",
+    "date": {
+     "as_written": null,
+     "precision": null,
+     "sort": null
+    },
+    "value": {
+     "text": "Hypertenze"
+    }
+   },
+   "sources": [
+    {
+     "id": "src-a",
+     "type": "document",
+     "document_id": "10_pacient",
+     "part": "10_pacient/p2",
+     "page": 3,
+     "quote": "S_HSCRP: 9,5 mg/1 [O ... 5]",
+     "quote_text": "tesseract",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
+     "id": "src-b",
+     "type": "document",
+     "document_id": "10_lab",
+     "part": null,
+     "page": 1,
+     "quote": "Kreatinin 107",
+     "quote_text": "pdf_text",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
+     "id": "src-n",
+     "type": "nis",
+     "system": "https://nis.fno.example/fhir",
+     "resource": "Observation/8812",
+     "version": "3",
+     "last_updated": null
+    }
+   ],
+   "key": "comorbidity|I10|undated"
+  },
+  {
+   "fact": {
+    "subject": "patient",
+    "status": "documented",
+    "negated": false,
+    "not_stated": [],
+    "origin": "document",
+    "certainty": "clear",
+    "codes": [],
+    "note": null,
+    "quarantined": false,
+    "sources": [
+     "src-a"
+    ],
+    "kind": "comorbidity",
+    "date": {
+     "as_written": null,
+     "precision": null,
+     "sort": null
+    },
+    "value": {
+     "text": "  CHOPN   II. st.  "
+    }
+   },
+   "sources": [
+    {
+     "id": "src-a",
+     "type": "document",
+     "document_id": "10_pacient",
+     "part": "10_pacient/p2",
+     "page": 3,
+     "quote": "S_HSCRP: 9,5 mg/1 [O ... 5]",
+     "quote_text": "tesseract",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
+     "id": "src-b",
+     "type": "document",
+     "document_id": "10_lab",
+     "part": null,
+     "page": 1,
+     "quote": "Kreatinin 107",
+     "quote_text": "pdf_text",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
+     "id": "src-n",
+     "type": "nis",
+     "system": "https://nis.fno.example/fhir",
+     "resource": "Observation/8812",
+     "version": "3",
+     "last_updated": null
+    }
+   ],
+   "key": "comorbidity|chopn ii. st|undated"
+  },
+  {
+   "fact": {
+    "subject": "patient",
+    "status": "documented",
+    "negated": false,
+    "not_stated": [],
+    "origin": "document",
+    "certainty": "clear",
+    "codes": [],
+    "note": null,
+    "quarantined": false,
+    "sources": [
+     "src-a"
+    ],
+    "kind": "medication",
+    "date": {
+     "as_written": "19.9.2026",
+     "precision": "day",
+     "sort": "2026-09-19"
+    },
+    "value": {
+     "drug": "Afinitor",
+     "strength": "10 mg",
+     "dosing": "1-0-0",
+     "change": "navýšení",
+     "indication": null,
+     "text": null
+    }
+   },
+   "sources": [
+    {
+     "id": "src-a",
+     "type": "document",
+     "document_id": "10_pacient",
+     "part": "10_pacient/p2",
+     "page": 3,
+     "quote": "S_HSCRP: 9,5 mg/1 [O ... 5]",
+     "quote_text": "tesseract",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
+     "id": "src-b",
+     "type": "document",
+     "document_id": "10_lab",
+     "part": null,
+     "page": 1,
+     "quote": "Kreatinin 107",
+     "quote_text": "pdf_text",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
+     "id": "src-n",
+     "type": "nis",
+     "system": "https://nis.fno.example/fhir",
+     "resource": "Observation/8812",
+     "version": "3",
+     "last_updated": null
+    }
+   ],
+   "key": "medication|afinitor|start:2026-09-19"
+  },
+  {
+   "fact": {
+    "subject": "patient",
+    "status": "documented",
+    "negated": false,
+    "not_stated": [],
+    "origin": "document",
+    "certainty": "clear",
+    "codes": [],
+    "note": null,
+    "quarantined": false,
+    "sources": [
+     "src-a"
+    ],
+    "kind": "contraindication",
+    "date": {
+     "as_written": null,
+     "precision": null,
+     "sort": null
+    },
+    "value": {
+     "what": "ACE inhibitor s everolimem",
+     "stated_by": "assistant"
+    }
+   },
+   "sources": [
+    {
+     "id": "src-a",
+     "type": "document",
+     "document_id": "10_pacient",
+     "part": "10_pacient/p2",
+     "page": 3,
+     "quote": "S_HSCRP: 9,5 mg/1 [O ... 5]",
+     "quote_text": "tesseract",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
+     "id": "src-b",
+     "type": "document",
+     "document_id": "10_lab",
+     "part": null,
+     "page": 1,
+     "quote": "Kreatinin 107",
+     "quote_text": "pdf_text",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
+     "id": "src-n",
+     "type": "nis",
+     "system": "https://nis.fno.example/fhir",
+     "resource": "Observation/8812",
+     "version": "3",
+     "last_updated": null
+    }
+   ],
+   "key": "contraindication|ace inhibitor s everolimem|undated"
+  },
+  {
+   "fact": {
+    "subject": "patient",
+    "status": "documented",
+    "negated": false,
+    "not_stated": [],
+    "origin": "document",
+    "certainty": "clear",
+    "codes": [],
+    "note": null,
+    "quarantined": false,
+    "sources": [
+     "src-a"
+    ],
+    "kind": "allergy",
+    "date": {
+     "as_written": null,
+     "precision": null,
+     "sort": null
+    },
+    "value": {
+     "substance": "Penicilin",
+     "reaction": null
+    }
+   },
+   "sources": [
+    {
+     "id": "src-a",
+     "type": "document",
+     "document_id": "10_pacient",
+     "part": "10_pacient/p2",
+     "page": 3,
+     "quote": "S_HSCRP: 9,5 mg/1 [O ... 5]",
+     "quote_text": "tesseract",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
+     "id": "src-b",
+     "type": "document",
+     "document_id": "10_lab",
+     "part": null,
+     "page": 1,
+     "quote": "Kreatinin 107",
+     "quote_text": "pdf_text",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
+     "id": "src-n",
+     "type": "nis",
+     "system": "https://nis.fno.example/fhir",
+     "resource": "Observation/8812",
+     "version": "3",
+     "last_updated": null
+    }
+   ],
+   "key": "allergy|penicilin|undated"
+  },
+  {
+   "fact": {
+    "subject": "patient",
+    "status": "documented",
+    "negated": false,
+    "not_stated": [],
+    "origin": "document",
+    "certainty": "clear",
+    "codes": [],
+    "note": null,
+    "quarantined": false,
+    "sources": [
+     "src-a"
+    ],
+    "kind": "adverse_event",
+    "date": {
+     "as_written": null,
+     "precision": null,
+     "sort": null
+    },
+    "value": {
+     "text": "Stomatitida G2",
+     "grade": "2",
+     "related_therapy": "everolimus"
+    }
+   },
+   "sources": [
+    {
+     "id": "src-a",
+     "type": "document",
+     "document_id": "10_pacient",
+     "part": "10_pacient/p2",
+     "page": 3,
+     "quote": "S_HSCRP: 9,5 mg/1 [O ... 5]",
+     "quote_text": "tesseract",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
+     "id": "src-b",
+     "type": "document",
+     "document_id": "10_lab",
+     "part": null,
+     "page": 1,
+     "quote": "Kreatinin 107",
+     "quote_text": "pdf_text",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
+     "id": "src-n",
+     "type": "nis",
+     "system": "https://nis.fno.example/fhir",
+     "resource": "Observation/8812",
+     "version": "3",
+     "last_updated": null
+    }
+   ],
+   "key": "adverse_event|stomatitida g2|undated"
+  },
+  {
+   "fact": {
+    "subject": "patient",
+    "status": "documented",
+    "negated": false,
+    "not_stated": [],
+    "origin": "document",
+    "certainty": "clear",
+    "codes": [],
+    "note": null,
+    "quarantined": false,
+    "sources": [
+     "src-a"
+    ],
+    "kind": "prognostic_score",
+    "date": {
+     "as_written": null,
+     "precision": null,
+     "sort": null
+    },
+    "value": {
+     "score": "IMDC",
+     "value_as_written": "1",
+     "risk_group": "intermediární"
+    }
+   },
+   "sources": [
+    {
+     "id": "src-a",
+     "type": "document",
+     "document_id": "10_pacient",
+     "part": "10_pacient/p2",
+     "page": 3,
+     "quote": "S_HSCRP: 9,5 mg/1 [O ... 5]",
+     "quote_text": "tesseract",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
+     "id": "src-b",
+     "type": "document",
+     "document_id": "10_lab",
+     "part": null,
+     "page": 1,
+     "quote": "Kreatinin 107",
+     "quote_text": "pdf_text",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
+     "id": "src-n",
+     "type": "nis",
+     "system": "https://nis.fno.example/fhir",
+     "resource": "Observation/8812",
+     "version": "3",
+     "last_updated": null
+    }
+   ],
+   "key": "prognostic_score|imdc|undated"
+  },
+  {
+   "fact": {
+    "subject": "patient",
+    "status": "documented",
+    "negated": false,
+    "not_stated": [],
+    "origin": "document",
+    "certainty": "clear",
+    "codes": [],
+    "note": null,
+    "quarantined": false,
+    "sources": [
+     "src-a"
+    ],
+    "kind": "risk_factor",
+    "date": {
+     "as_written": null,
+     "precision": null,
+     "sort": null
+    },
+    "value": {
+     "type": "smoking",
+     "text": "kuřák",
+     "pack_years": 20
+    }
+   },
+   "sources": [
+    {
+     "id": "src-a",
+     "type": "document",
+     "document_id": "10_pacient",
+     "part": "10_pacient/p2",
+     "page": 3,
+     "quote": "S_HSCRP: 9,5 mg/1 [O ... 5]",
+     "quote_text": "tesseract",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
+     "id": "src-b",
+     "type": "document",
+     "document_id": "10_lab",
+     "part": null,
+     "page": 1,
+     "quote": "Kreatinin 107",
+     "quote_text": "pdf_text",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
+     "id": "src-n",
+     "type": "nis",
+     "system": "https://nis.fno.example/fhir",
+     "resource": "Observation/8812",
+     "version": "3",
+     "last_updated": null
+    }
+   ],
+   "key": "risk_factor|smoking|undated"
+  },
+  {
+   "fact": {
+    "subject": "relative",
+    "status": "documented",
+    "negated": false,
+    "not_stated": [],
+    "origin": "document",
+    "certainty": "clear",
+    "codes": [],
+    "note": null,
+    "quarantined": false,
+    "sources": [
+     "src-a"
+    ],
+    "kind": "family_history",
+    "date": {
+     "as_written": null,
+     "precision": null,
+     "sort": null
+    },
+    "value": {
+     "relation": "Matka",
+     "condition": "Ca prsu"
+    }
+   },
+   "sources": [
+    {
+     "id": "src-a",
+     "type": "document",
+     "document_id": "10_pacient",
+     "part": "10_pacient/p2",
+     "page": 3,
+     "quote": "S_HSCRP: 9,5 mg/1 [O ... 5]",
+     "quote_text": "tesseract",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
+     "id": "src-b",
+     "type": "document",
+     "document_id": "10_lab",
+     "part": null,
+     "page": 1,
+     "quote": "Kreatinin 107",
+     "quote_text": "pdf_text",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
+     "id": "src-n",
+     "type": "nis",
+     "system": "https://nis.fno.example/fhir",
+     "resource": "Observation/8812",
+     "version": "3",
+     "last_updated": null
+    }
+   ],
+   "key": "family_history|matka|ca prsu|undated"
+  },
+  {
+   "fact": {
+    "subject": "patient",
+    "status": "requested",
+    "negated": false,
+    "not_stated": [],
+    "origin": "document",
+    "certainty": "clear",
+    "codes": [],
+    "note": null,
+    "quarantined": false,
+    "sources": [
+     "src-a"
+    ],
+    "kind": "request",
+    "date": {
+     "as_written": null,
+     "precision": null,
+     "sort": null
+    },
+    "value": {
+     "what": "Projednání nálezu MR mozku na NCH semináři",
+     "request_kind": "consultation",
+     "result_fact": null
+    }
+   },
+   "sources": [
+    {
+     "id": "src-a",
+     "type": "document",
+     "document_id": "10_pacient",
+     "part": "10_pacient/p2",
+     "page": 3,
+     "quote": "S_HSCRP: 9,5 mg/1 [O ... 5]",
+     "quote_text": "tesseract",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
+     "id": "src-b",
+     "type": "document",
+     "document_id": "10_lab",
+     "part": null,
+     "page": 1,
+     "quote": "Kreatinin 107",
+     "quote_text": "pdf_text",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
+     "id": "src-n",
+     "type": "nis",
+     "system": "https://nis.fno.example/fhir",
+     "resource": "Observation/8812",
+     "version": "3",
+     "last_updated": null
+    }
+   ],
+   "key": "request|projednání nálezu mr mozku na nch semináři|undated"
+  },
+  {
+   "fact": {
+    "subject": "patient",
+    "status": "documented",
+    "negated": false,
+    "not_stated": [],
+    "origin": "document",
+    "certainty": "clear",
+    "codes": [],
+    "note": null,
+    "quarantined": false,
+    "sources": [
+     "src-a"
+    ],
+    "kind": "decision",
+    "date": {
+     "as_written": "1.10.2026",
+     "precision": "day",
+     "sort": "2026-10-01"
+    },
+    "value": {
+     "body": "mdt",
+     "body_as_written": "MDT uro",
+     "text": "Pokračovat v léčbě"
+    }
+   },
+   "sources": [
+    {
+     "id": "src-a",
+     "type": "document",
+     "document_id": "10_pacient",
+     "part": "10_pacient/p2",
+     "page": 3,
+     "quote": "S_HSCRP: 9,5 mg/1 [O ... 5]",
+     "quote_text": "tesseract",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
+     "id": "src-b",
+     "type": "document",
+     "document_id": "10_lab",
+     "part": null,
+     "page": 1,
+     "quote": "Kreatinin 107",
+     "quote_text": "pdf_text",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
+     "id": "src-n",
+     "type": "nis",
+     "system": "https://nis.fno.example/fhir",
+     "resource": "Observation/8812",
+     "version": "3",
+     "last_updated": null
+    }
+   ],
+   "key": "decision|mdt|2026-10-01"
+  },
+  {
+   "fact": {
+    "subject": "patient",
+    "status": "planned",
+    "negated": false,
+    "not_stated": [],
+    "origin": "document",
+    "certainty": "clear",
+    "codes": [],
+    "note": null,
+    "quarantined": false,
+    "sources": [
+     "src-a"
+    ],
+    "kind": "plan",
+    "date": {
+     "as_written": "za 3 měsíce",
+     "precision": null,
+     "sort": null
+    },
+    "value": {
+     "what": "Kontrolní CT",
+     "when_as_written": "za 3 měsíce"
+    }
+   },
+   "sources": [
+    {
+     "id": "src-a",
+     "type": "document",
+     "document_id": "10_pacient",
+     "part": "10_pacient/p2",
+     "page": 3,
+     "quote": "S_HSCRP: 9,5 mg/1 [O ... 5]",
+     "quote_text": "tesseract",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
+     "id": "src-b",
+     "type": "document",
+     "document_id": "10_lab",
+     "part": null,
+     "page": 1,
+     "quote": "Kreatinin 107",
+     "quote_text": "pdf_text",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
+     "id": "src-n",
+     "type": "nis",
+     "system": "https://nis.fno.example/fhir",
+     "resource": "Observation/8812",
+     "version": "3",
+     "last_updated": null
+    }
+   ],
+   "key": "plan|kontrolní ct|za 3 měsíce"
+  },
+  {
+   "fact": {
+    "subject": "patient",
+    "status": "documented",
+    "negated": false,
+    "not_stated": [],
+    "origin": "assistant",
+    "certainty": "inferred",
+    "codes": [],
+    "note": null,
+    "quarantined": false,
+    "sources": [],
+    "kind": "interval",
+    "based_on": [
+     "f-1",
+     "f-2"
+    ],
+    "date": {
+     "as_written": null,
+     "precision": null,
+     "sort": null
+    },
+    "value": {
+     "from_fact": "f-1",
+     "to_fact": "f-2",
+     "days": 38,
+     "length_as_computed": "38 dní",
+     "from_precision": "day",
+     "to_precision": "day"
+    }
+   },
+   "sources": [
+    {
+     "id": "src-a",
+     "type": "document",
+     "document_id": "10_pacient",
+     "part": "10_pacient/p2",
+     "page": 3,
+     "quote": "S_HSCRP: 9,5 mg/1 [O ... 5]",
+     "quote_text": "tesseract",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
+     "id": "src-b",
+     "type": "document",
+     "document_id": "10_lab",
+     "part": null,
+     "page": 1,
+     "quote": "Kreatinin 107",
+     "quote_text": "pdf_text",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
+     "id": "src-n",
+     "type": "nis",
+     "system": "https://nis.fno.example/fhir",
+     "resource": "Observation/8812",
+     "version": "3",
+     "last_updated": null
+    }
+   ],
+   "key": "interval|f-1|f-2"
+  }
+ ],
+ "alert_ids": [
+  [
+   {
+    "rule": "request_without_result",
+    "subject": "f-3c90de"
+   },
+   "al-77205d20"
+  ],
+  [
+   {
+    "rule": "same_time_disagrees",
+    "subject": "f-a|f-b"
+   },
+   "al-1b8b025a"
+  ],
+  [
+   {
+    "rule": "missing_field",
+    "subject": "age"
+   },
+   "al-638c8d33"
+  ]
+ ]
+}

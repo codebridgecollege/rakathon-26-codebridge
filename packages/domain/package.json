@@ -9,10 +9,15 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit -p tsconfig.json",
-    "test": "vitest run"
+    "test": "vitest run",
+    "schema": "node scripts/extraction-schema.mjs"
   },
   "devDependencies": {
+    "ts-json-schema-generator": "2.9.0",
     "typescript": "5.9.3",
     "vitest": "4.1.11"
+  },
+  "dependencies": {
+    "@cfworker/json-schema": "4.1.1"
   }
 }

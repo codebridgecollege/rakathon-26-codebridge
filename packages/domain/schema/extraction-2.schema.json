@@ -1,0 +1,4492 @@
+{
+  "$id": "https://codebridge.example/schema/codebridge.extraction/2",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$ref": "#/definitions/ExtractionRun",
+  "definitions": {
+    "ExtractionRun": {
+      "type": "object",
+      "properties": {
+        "schema": {
+          "type": "string",
+          "const": "codebridge.extraction/2"
+        },
+        "case_id": {
+          "type": "string",
+          "description": "The case ID, never the patient's identity."
+        },
+        "content_language": {
+          "type": "string",
+          "description": "The language of the documents (BCP 47), for example \"cs\". Assistant text in the run is in this language."
+        },
+        "run": {
+          "$ref": "#/definitions/RunInfo"
+        },
+        "documents": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/RunDocument"
+          }
+        },
+        "sources": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Source"
+          }
+        },
+        "facts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Fact"
+          }
+        },
+        "checks": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Check"
+          }
+        },
+        "alerts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Alert"
+          }
+        },
+        "brief": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Brief"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "question_draft": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/QuestionDraft"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "schema",
+        "case_id",
+        "content_language",
+        "run",
+        "documents",
+        "sources",
+        "facts",
+        "checks",
+        "alerts",
+        "brief",
+        "question_draft"
+      ],
+      "additionalProperties": false,
+      "description": "One extraction of one case. Never changed after it is written."
+    },
+    "RunInfo": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique run ID, for example \"run-2026-10-19T10:04:11Z-a1b2\"."
+        },
+        "producer": {
+          "$ref": "#/definitions/Producer"
+        },
+        "created_at": {
+          "type": "string",
+          "description": "ISO timestamp with zone."
+        },
+        "stages": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/RunStage"
+          }
+        },
+        "supersedes": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "The run this one replaces; both stay (append-only)."
+        }
+      },
+      "required": [
+        "id",
+        "producer",
+        "created_at",
+        "stages",
+        "supersedes"
+      ],
+      "additionalProperties": false
+    },
+    "Producer": {
+      "type": "string",
+      "enum": [
+        "fixture",
+        "pipeline",
+        "nis"
+      ],
+      "description": "What wrote the run: prepared by hand, the document pipeline, or the NIS (FHIR) import."
+    },
+    "RunStage": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The pipeline step, for example \"ocr\", \"extract_facts\", \"rules\", \"convert\"."
+        },
+        "engine": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "A deterministic engine and its version, for example \"tesseract 5.3.0 ces 4.1.0\"."
+        },
+        "model": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "The model deployment name, from configuration."
+        },
+        "prompt": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "The prompt name and version in the repository, for example \"extract-facts@3\"."
+        },
+        "prompt_sha256": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "temperature": {
+          "type": [
+            "number",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "additionalProperties": false
+    },
+    "RunDocument": {
+      "type": "object",
+      "properties": {
+        "document_id": {
+          "type": "string"
+        },
+        "sha256": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "parts": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Stable part IDs, for example \"10_pacient/p0\"."
+        }
+      },
+      "required": [
+        "document_id",
+        "sha256",
+        "parts"
+      ],
+      "additionalProperties": false,
+      "description": "A document version the run read. The document itself, its parts and its identity check live in D1."
+    },
+    "Source": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/DocumentSource"
+        },
+        {
+          "$ref": "#/definitions/NisSource"
+        }
+      ]
+    },
+    "DocumentSource": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "For example \"src-7c1e\"."
+        },
+        "type": {
+          "type": "string",
+          "const": "document"
+        },
+        "document_id": {
+          "type": "string"
+        },
+        "part": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Stable part ID, or null when the document is not split into parts."
+        },
+        "page": {
+          "type": "number",
+          "description": "Page number, starting at 1."
+        },
+        "quote": {
+          "type": "string",
+          "description": "Verbatim against the page text named in quote_text, misreadings included (\"mg/1\", \"O\")."
+        },
+        "quote_text": {
+          "$ref": "#/definitions/QuoteText"
+        },
+        "anchor": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/SourceAnchor"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "reported_as": {
+          "type": "string",
+          "enum": [
+            "original",
+            "cited"
+          ],
+          "description": "\"cited\" when another document quotes the report (for example \"popis z NIS\" in an outpatient report)."
+        },
+        "identity": {
+          "$ref": "#/definitions/IdentityResult"
+        },
+        "reading_check": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/ReadingCheck"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "type",
+        "document_id",
+        "part",
+        "page",
+        "quote",
+        "quote_text",
+        "anchor",
+        "reported_as",
+        "identity",
+        "reading_check"
+      ],
+      "additionalProperties": false,
+      "description": "A passage in a document page."
+    },
+    "QuoteText": {
+      "type": "string",
+      "enum": [
+        "pdf_text",
+        "tesseract",
+        "vision"
+      ],
+      "description": "The page text a quote is verbatim against: the PDF's own text layer, Tesseract OCR, or the AI reading."
+    },
+    "SourceAnchor": {
+      "type": "object",
+      "properties": {
+        "page_text_sha256": {
+          "type": "string"
+        },
+        "engine": {
+          "type": "string"
+        },
+        "char_range": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          },
+          "minItems": 2,
+          "maxItems": 2,
+          "description": "Start and end offset of the quote in the stored page text."
+        },
+        "boxes": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "number"
+            },
+            "minItems": 4,
+            "maxItems": 4
+          },
+          "description": "Word boxes [x, y, width, height] in page pixels."
+        }
+      },
+      "required": [
+        "page_text_sha256",
+        "engine",
+        "char_range",
+        "boxes"
+      ],
+      "additionalProperties": false
+    },
+    "IdentityResult": {
+      "type": "string",
+      "enum": [
+        "matches",
+        "conflicts",
+        "cannot_verify"
+      ],
+      "description": "The identity printed on the page compared with the case's patient. Only the result is stored, never the identity."
+    },
+    "ReadingCheck": {
+      "type": "object",
+      "properties": {
+        "mark": {
+          "type": "boolean"
+        },
+        "tokens": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ReadingCheckToken"
+          }
+        }
+      },
+      "required": [
+        "mark",
+        "tokens"
+      ],
+      "additionalProperties": false,
+      "description": "The per-token comparison of the readings that produces the \"ověřit\" mark."
+    },
+    "ReadingCheckToken": {
+      "type": "object",
+      "properties": {
+        "pdf_text": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "tesseract": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "vision": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "rule": {
+          "type": "string",
+          "description": "How the readings compare, for example \"differ\" or \"agree\"."
+        }
+      },
+      "required": [
+        "rule"
+      ],
+      "additionalProperties": false
+    },
+    "NisSource": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string",
+          "const": "nis"
+        },
+        "system": {
+          "type": "string"
+        },
+        "resource": {
+          "type": "string",
+          "description": "FHIR resource type and ID, for example \"Observation/8812\"."
+        },
+        "version": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "last_updated": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "type",
+        "system",
+        "resource",
+        "version",
+        "last_updated"
+      ],
+      "additionalProperties": false,
+      "description": "A record in the NIS (the hospital system). It is its own evidence: no page, no quote."
+    },
+    "Fact": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/DiagnosisFact"
+        },
+        {
+          "$ref": "#/definitions/HistologyFact"
+        },
+        {
+          "$ref": "#/definitions/StageFact"
+        },
+        {
+          "$ref": "#/definitions/MetastasisFact"
+        },
+        {
+          "$ref": "#/definitions/ProcedureFact"
+        },
+        {
+          "$ref": "#/definitions/SystemicTherapyFact"
+        },
+        {
+          "$ref": "#/definitions/RadiotherapyFact"
+        },
+        {
+          "$ref": "#/definitions/ImagingFact"
+        },
+        {
+          "$ref": "#/definitions/LabResultFact"
+        },
+        {
+          "$ref": "#/definitions/VitalSignFact"
+        },
+        {
+          "$ref": "#/definitions/PerformanceStatusFact"
+        },
+        {
+          "$ref": "#/definitions/ExamFindingFact"
+        },
+        {
+          "$ref": "#/definitions/SymptomFact"
+        },
+        {
+          "$ref": "#/definitions/ComorbidityFact"
+        },
+        {
+          "$ref": "#/definitions/MedicationFact"
+        },
+        {
+          "$ref": "#/definitions/ContraindicationFact"
+        },
+        {
+          "$ref": "#/definitions/AllergyFact"
+        },
+        {
+          "$ref": "#/definitions/AdverseEventFact"
+        },
+        {
+          "$ref": "#/definitions/PrognosticScoreFact"
+        },
+        {
+          "$ref": "#/definitions/RiskFactorFact"
+        },
+        {
+          "$ref": "#/definitions/FamilyHistoryFact"
+        },
+        {
+          "$ref": "#/definitions/RequestFact"
+        },
+        {
+          "$ref": "#/definitions/DecisionFact"
+        },
+        {
+          "$ref": "#/definitions/PlanFact"
+        },
+        {
+          "$ref": "#/definitions/IntervalFact"
+        }
+      ]
+    },
+    "DiagnosisFact": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Stable across runs; confirmations, edits and alerts attach to it. For example \"f-8d41c2\"."
+        },
+        "key": {
+          "type": "string",
+          "description": "Deterministic from the kind and the identifying values (keys.ts); never a page number or a position."
+        },
+        "kind": {
+          "type": "string",
+          "const": "diagnosis"
+        },
+        "subject": {
+          "$ref": "#/definitions/Subject",
+          "description": "\"relative\" for family history: a relative's disease never becomes the patient's."
+        },
+        "value": {
+          "$ref": "#/definitions/DiagnosisValue"
+        },
+        "date": {
+          "$ref": "#/definitions/FactDate"
+        },
+        "status": {
+          "$ref": "#/definitions/FactStatus"
+        },
+        "negated": {
+          "type": "boolean",
+          "description": "The document states the opposite (\"bez plicní embolie\"). A finding, not a gap."
+        },
+        "not_stated": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Fields of this fact the documents leave open. A field that is simply missing was not looked for."
+        },
+        "origin": {
+          "$ref": "#/definitions/Origin"
+        },
+        "certainty": {
+          "$ref": "#/definitions/Certainty"
+        },
+        "certainty_reason": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/CertaintyReason"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "codes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/FactCode"
+          }
+        },
+        "note": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "The assistant's free-text note about this fact, in the content language."
+        },
+        "quarantined": {
+          "type": "boolean",
+          "description": "Set when a source page shows another patient: kept, but left out of the view, the brief and the rules."
+        },
+        "sources": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Source IDs, all saying the same thing. Empty only for an assistant fact with based_on."
+        },
+        "based_on": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "For an assistant fact: the facts it was computed from."
+        }
+      },
+      "required": [
+        "id",
+        "key",
+        "kind",
+        "subject",
+        "value",
+        "date",
+        "status",
+        "negated",
+        "not_stated",
+        "origin",
+        "certainty",
+        "codes",
+        "note",
+        "quarantined",
+        "sources"
+      ],
+      "additionalProperties": false
+    },
+    "Subject": {
+      "type": "string",
+      "enum": [
+        "patient",
+        "relative"
+      ]
+    },
+    "DiagnosisValue": {
+      "type": "object",
+      "properties": {
+        "text": {
+          "type": "string"
+        },
+        "disease_status": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/DiseaseStatus"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "primary": {
+          "type": "boolean",
+          "description": "The oncological diagnosis the MDT discusses, as opposed to other diagnoses."
+        }
+      },
+      "required": [
+        "text",
+        "disease_status",
+        "primary"
+      ],
+      "additionalProperties": false
+    },
+    "DiseaseStatus": {
+      "type": "string",
+      "enum": [
+        "suspected",
+        "confirmed_histology",
+        "progression",
+        "stable",
+        "remission",
+        "suspected_recurrence",
+        "recurrence"
+      ],
+      "description": "Disease status as the document says it. Needs review by a clinical expert before real patients."
+    },
+    "FactDate": {
+      "type": "object",
+      "properties": {
+        "as_written": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Verbatim, for example \"4/2022\", \"2.6.2022\", \"base line CT z 03/2023\"."
+        },
+        "precision": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/DatePrecision"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "sort": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "ISO form used only for ordering, cut to the precision: \"2022-06-02\", \"2022-04\", \"2022\", or a full timestamp for minute precision."
+        }
+      },
+      "required": [
+        "as_written",
+        "precision",
+        "sort"
+      ],
+      "additionalProperties": false,
+      "description": "A date exactly as the document writes it. A partial date never gets a made-up day."
+    },
+    "DatePrecision": {
+      "type": "string",
+      "enum": [
+        "minute",
+        "day",
+        "month",
+        "year"
+      ]
+    },
+    "FactStatus": {
+      "type": "string",
+      "enum": [
+        "documented",
+        "planned",
+        "requested",
+        "done",
+        "stopped",
+        "interrupted"
+      ]
+    },
+    "Origin": {
+      "type": "string",
+      "enum": [
+        "document",
+        "nis",
+        "assistant"
+      ],
+      "description": "document: stated in a document; nis: from the NIS; assistant: the assistant's own inference."
+    },
+    "Certainty": {
+      "type": "string",
+      "enum": [
+        "clear",
+        "verify",
+        "conflicting",
+        "inferred",
+        "unreadable"
+      ]
+    },
+    "CertaintyReason": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "string",
+          "description": "A stable code, for example \"ocr_char_swap\"."
+        },
+        "text": {
+          "type": "string",
+          "description": "Shown to the doctor in a tooltip, in the content language."
+        }
+      },
+      "required": [
+        "code",
+        "text"
+      ],
+      "additionalProperties": false
+    },
+    "FactCode": {
+      "type": "object",
+      "properties": {
+        "system": {
+          "type": "string",
+          "description": "The code system, for example \"nclp\", \"mkn-10\", \"snomed-ct\", \"fno-local-lab\", \"atc\"."
+        },
+        "code": {
+          "type": "string"
+        },
+        "assigned_by": {
+          "type": "string",
+          "enum": [
+            "source",
+            "assistant"
+          ],
+          "description": "\"source\" when the document or NIS gives the code, \"assistant\" when we assigned it. A code is never invented."
+        },
+        "display": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "system",
+        "code",
+        "assigned_by"
+      ],
+      "additionalProperties": false
+    },
+    "HistologyFact": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Stable across runs; confirmations, edits and alerts attach to it. For example \"f-8d41c2\"."
+        },
+        "key": {
+          "type": "string",
+          "description": "Deterministic from the kind and the identifying values (keys.ts); never a page number or a position."
+        },
+        "kind": {
+          "type": "string",
+          "const": "histology"
+        },
+        "subject": {
+          "$ref": "#/definitions/Subject",
+          "description": "\"relative\" for family history: a relative's disease never becomes the patient's."
+        },
+        "value": {
+          "$ref": "#/definitions/HistologyValue"
+        },
+        "date": {
+          "$ref": "#/definitions/FactDate"
+        },
+        "status": {
+          "$ref": "#/definitions/FactStatus"
+        },
+        "negated": {
+          "type": "boolean",
+          "description": "The document states the opposite (\"bez plicní embolie\"). A finding, not a gap."
+        },
+        "not_stated": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Fields of this fact the documents leave open. A field that is simply missing was not looked for."
+        },
+        "origin": {
+          "$ref": "#/definitions/Origin"
+        },
+        "certainty": {
+          "$ref": "#/definitions/Certainty"
+        },
+        "certainty_reason": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/CertaintyReason"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "codes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/FactCode"
+          }
+        },
+        "note": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "The assistant's free-text note about this fact, in the content language."
+        },
+        "quarantined": {
+          "type": "boolean",
+          "description": "Set when a source page shows another patient: kept, but left out of the view, the brief and the rules."
+        },
+        "sources": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Source IDs, all saying the same thing. Empty only for an assistant fact with based_on."
+        },
+        "based_on": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "For an assistant fact: the facts it was computed from."
+        }
+      },
+      "required": [
+        "id",
+        "key",
+        "kind",
+        "subject",
+        "value",
+        "date",
+        "status",
+        "negated",
+        "not_stated",
+        "origin",
+        "certainty",
+        "codes",
+        "note",
+        "quarantined",
+        "sources"
+      ],
+      "additionalProperties": false
+    },
+    "HistologyValue": {
+      "type": "object",
+      "properties": {
+        "specimen": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "result_text": {
+          "type": "string"
+        },
+        "tumour_type": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "grade": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "specimen",
+        "result_text",
+        "tumour_type",
+        "grade"
+      ],
+      "additionalProperties": false
+    },
+    "StageFact": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Stable across runs; confirmations, edits and alerts attach to it. For example \"f-8d41c2\"."
+        },
+        "key": {
+          "type": "string",
+          "description": "Deterministic from the kind and the identifying values (keys.ts); never a page number or a position."
+        },
+        "kind": {
+          "type": "string",
+          "const": "stage"
+        },
+        "subject": {
+          "$ref": "#/definitions/Subject",
+          "description": "\"relative\" for family history: a relative's disease never becomes the patient's."
+        },
+        "value": {
+          "$ref": "#/definitions/StageValue"
+        },
+        "date": {
+          "$ref": "#/definitions/FactDate"
+        },
+        "status": {
+          "$ref": "#/definitions/FactStatus"
+        },
+        "negated": {
+          "type": "boolean",
+          "description": "The document states the opposite (\"bez plicní embolie\"). A finding, not a gap."
+        },
+        "not_stated": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Fields of this fact the documents leave open. A field that is simply missing was not looked for."
+        },
+        "origin": {
+          "$ref": "#/definitions/Origin"
+        },
+        "certainty": {
+          "$ref": "#/definitions/Certainty"
+        },
+        "certainty_reason": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/CertaintyReason"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "codes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/FactCode"
+          }
+        },
+        "note": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "The assistant's free-text note about this fact, in the content language."
+        },
+        "quarantined": {
+          "type": "boolean",
+          "description": "Set when a source page shows another patient: kept, but left out of the view, the brief and the rules."
+        },
+        "sources": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Source IDs, all saying the same thing. Empty only for an assistant fact with based_on."
+        },
+        "based_on": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "For an assistant fact: the facts it was computed from."
+        }
+      },
+      "required": [
+        "id",
+        "key",
+        "kind",
+        "subject",
+        "value",
+        "date",
+        "status",
+        "negated",
+        "not_stated",
+        "origin",
+        "certainty",
+        "codes",
+        "note",
+        "quarantined",
+        "sources"
+      ],
+      "additionalProperties": false
+    },
+    "StageValue": {
+      "type": "object",
+      "properties": {
+        "tnm_as_written": {
+          "type": "string"
+        },
+        "tnm": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Normalised TNM, for example \"pT2a pN1 M0\", or null when it cannot be normalised."
+        },
+        "stage_kind": {
+          "$ref": "#/definitions/StageKind"
+        },
+        "edition": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "as_of": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "The date the stage describes, as written."
+        },
+        "at_diagnosis": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "tnm_as_written",
+        "tnm",
+        "stage_kind",
+        "edition",
+        "as_of",
+        "at_diagnosis"
+      ],
+      "additionalProperties": false
+    },
+    "StageKind": {
+      "type": "string",
+      "enum": [
+        "clinical",
+        "pathological",
+        "post_neoadjuvant"
+      ]
+    },
+    "MetastasisFact": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Stable across runs; confirmations, edits and alerts attach to it. For example \"f-8d41c2\"."
+        },
+        "key": {
+          "type": "string",
+          "description": "Deterministic from the kind and the identifying values (keys.ts); never a page number or a position."
+        },
+        "kind": {
+          "type": "string",
+          "const": "metastasis"
+        },
+        "subject": {
+          "$ref": "#/definitions/Subject",
+          "description": "\"relative\" for family history: a relative's disease never becomes the patient's."
+        },
+        "value": {
+          "$ref": "#/definitions/MetastasisValue"
+        },
+        "date": {
+          "$ref": "#/definitions/FactDate"
+        },
+        "status": {
+          "$ref": "#/definitions/FactStatus"
+        },
+        "negated": {
+          "type": "boolean",
+          "description": "The document states the opposite (\"bez plicní embolie\"). A finding, not a gap."
+        },
+        "not_stated": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Fields of this fact the documents leave open. A field that is simply missing was not looked for."
+        },
+        "origin": {
+          "$ref": "#/definitions/Origin"
+        },
+        "certainty": {
+          "$ref": "#/definitions/Certainty"
+        },
+        "certainty_reason": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/CertaintyReason"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "codes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/FactCode"
+          }
+        },
+        "note": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "The assistant's free-text note about this fact, in the content language."
+        },
+        "quarantined": {
+          "type": "boolean",
+          "description": "Set when a source page shows another patient: kept, but left out of the view, the brief and the rules."
+        },
+        "sources": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Source IDs, all saying the same thing. Empty only for an assistant fact with based_on."
+        },
+        "based_on": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "For an assistant fact: the facts it was computed from."
+        }
+      },
+      "required": [
+        "id",
+        "key",
+        "kind",
+        "subject",
+        "value",
+        "date",
+        "status",
+        "negated",
+        "not_stated",
+        "origin",
+        "certainty",
+        "codes",
+        "note",
+        "quarantined",
+        "sources"
+      ],
+      "additionalProperties": false
+    },
+    "MetastasisValue": {
+      "type": "object",
+      "properties": {
+        "site": {
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/definitions/MetastasisStatus"
+        },
+        "basis": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "How it was established, for example \"clinical\", \"imaging\", \"histology\"."
+        },
+        "text": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "site",
+        "status",
+        "basis",
+        "text"
+      ],
+      "additionalProperties": false
+    },
+    "MetastasisStatus": {
+      "type": "string",
+      "enum": [
+        "suspected",
+        "confirmed",
+        "excluded"
+      ]
+    },
+    "ProcedureFact": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Stable across runs; confirmations, edits and alerts attach to it. For example \"f-8d41c2\"."
+        },
+        "key": {
+          "type": "string",
+          "description": "Deterministic from the kind and the identifying values (keys.ts); never a page number or a position."
+        },
+        "kind": {
+          "type": "string",
+          "const": "procedure"
+        },
+        "subject": {
+          "$ref": "#/definitions/Subject",
+          "description": "\"relative\" for family history: a relative's disease never becomes the patient's."
+        },
+        "value": {
+          "$ref": "#/definitions/ProcedureValue"
+        },
+        "date": {
+          "$ref": "#/definitions/FactDate"
+        },
+        "status": {
+          "$ref": "#/definitions/FactStatus"
+        },
+        "negated": {
+          "type": "boolean",
+          "description": "The document states the opposite (\"bez plicní embolie\"). A finding, not a gap."
+        },
+        "not_stated": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Fields of this fact the documents leave open. A field that is simply missing was not looked for."
+        },
+        "origin": {
+          "$ref": "#/definitions/Origin"
+        },
+        "certainty": {
+          "$ref": "#/definitions/Certainty"
+        },
+        "certainty_reason": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/CertaintyReason"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "codes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/FactCode"
+          }
+        },
+        "note": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "The assistant's free-text note about this fact, in the content language."
+        },
+        "quarantined": {
+          "type": "boolean",
+          "description": "Set when a source page shows another patient: kept, but left out of the view, the brief and the rules."
+        },
+        "sources": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Source IDs, all saying the same thing. Empty only for an assistant fact with based_on."
+        },
+        "based_on": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "For an assistant fact: the facts it was computed from."
+        }
+      },
+      "required": [
+        "id",
+        "key",
+        "kind",
+        "subject",
+        "value",
+        "date",
+        "status",
+        "negated",
+        "not_stated",
+        "origin",
+        "certainty",
+        "codes",
+        "note",
+        "quarantined",
+        "sources"
+      ],
+      "additionalProperties": false
+    },
+    "ProcedureValue": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "region": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "text": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "name",
+        "region",
+        "text"
+      ],
+      "additionalProperties": false
+    },
+    "SystemicTherapyFact": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Stable across runs; confirmations, edits and alerts attach to it. For example \"f-8d41c2\"."
+        },
+        "key": {
+          "type": "string",
+          "description": "Deterministic from the kind and the identifying values (keys.ts); never a page number or a position."
+        },
+        "kind": {
+          "type": "string",
+          "const": "systemic_therapy"
+        },
+        "subject": {
+          "$ref": "#/definitions/Subject",
+          "description": "\"relative\" for family history: a relative's disease never becomes the patient's."
+        },
+        "value": {
+          "$ref": "#/definitions/SystemicTherapyValue"
+        },
+        "date": {
+          "$ref": "#/definitions/FactDate"
+        },
+        "status": {
+          "$ref": "#/definitions/FactStatus"
+        },
+        "negated": {
+          "type": "boolean",
+          "description": "The document states the opposite (\"bez plicní embolie\"). A finding, not a gap."
+        },
+        "not_stated": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Fields of this fact the documents leave open. A field that is simply missing was not looked for."
+        },
+        "origin": {
+          "$ref": "#/definitions/Origin"
+        },
+        "certainty": {
+          "$ref": "#/definitions/Certainty"
+        },
+        "certainty_reason": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/CertaintyReason"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "codes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/FactCode"
+          }
+        },
+        "note": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "The assistant's free-text note about this fact, in the content language."
+        },
+        "quarantined": {
+          "type": "boolean",
+          "description": "Set when a source page shows another patient: kept, but left out of the view, the brief and the rules."
+        },
+        "sources": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Source IDs, all saying the same thing. Empty only for an assistant fact with based_on."
+        },
+        "based_on": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "For an assistant fact: the facts it was computed from."
+        }
+      },
+      "required": [
+        "id",
+        "key",
+        "kind",
+        "subject",
+        "value",
+        "date",
+        "status",
+        "negated",
+        "not_stated",
+        "origin",
+        "certainty",
+        "codes",
+        "note",
+        "quarantined",
+        "sources"
+      ],
+      "additionalProperties": false
+    },
+    "SystemicTherapyValue": {
+      "type": "object",
+      "properties": {
+        "regimen": {
+          "type": "string",
+          "description": "Drug or regimen as written."
+        },
+        "line": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "start": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "stop": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "reason_stopped": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "text": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "regimen",
+        "line",
+        "start",
+        "stop",
+        "reason_stopped",
+        "text"
+      ],
+      "additionalProperties": false
+    },
+    "RadiotherapyFact": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Stable across runs; confirmations, edits and alerts attach to it. For example \"f-8d41c2\"."
+        },
+        "key": {
+          "type": "string",
+          "description": "Deterministic from the kind and the identifying values (keys.ts); never a page number or a position."
+        },
+        "kind": {
+          "type": "string",
+          "const": "radiotherapy"
+        },
+        "subject": {
+          "$ref": "#/definitions/Subject",
+          "description": "\"relative\" for family history: a relative's disease never becomes the patient's."
+        },
+        "value": {
+          "$ref": "#/definitions/RadiotherapyValue"
+        },
+        "date": {
+          "$ref": "#/definitions/FactDate"
+        },
+        "status": {
+          "$ref": "#/definitions/FactStatus"
+        },
+        "negated": {
+          "type": "boolean",
+          "description": "The document states the opposite (\"bez plicní embolie\"). A finding, not a gap."
+        },
+        "not_stated": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Fields of this fact the documents leave open. A field that is simply missing was not looked for."
+        },
+        "origin": {
+          "$ref": "#/definitions/Origin"
+        },
+        "certainty": {
+          "$ref": "#/definitions/Certainty"
+        },
+        "certainty_reason": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/CertaintyReason"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "codes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/FactCode"
+          }
+        },
+        "note": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "The assistant's free-text note about this fact, in the content language."
+        },
+        "quarantined": {
+          "type": "boolean",
+          "description": "Set when a source page shows another patient: kept, but left out of the view, the brief and the rules."
+        },
+        "sources": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Source IDs, all saying the same thing. Empty only for an assistant fact with based_on."
+        },
+        "based_on": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "For an assistant fact: the facts it was computed from."
+        }
+      },
+      "required": [
+        "id",
+        "key",
+        "kind",
+        "subject",
+        "value",
+        "date",
+        "status",
+        "negated",
+        "not_stated",
+        "origin",
+        "certainty",
+        "codes",
+        "note",
+        "quarantined",
+        "sources"
+      ],
+      "additionalProperties": false
+    },
+    "RadiotherapyValue": {
+      "type": "object",
+      "properties": {
+        "target": {
+          "type": "string"
+        },
+        "dose": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "fractions": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "text": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "target",
+        "dose",
+        "fractions",
+        "text"
+      ],
+      "additionalProperties": false
+    },
+    "ImagingFact": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Stable across runs; confirmations, edits and alerts attach to it. For example \"f-8d41c2\"."
+        },
+        "key": {
+          "type": "string",
+          "description": "Deterministic from the kind and the identifying values (keys.ts); never a page number or a position."
+        },
+        "kind": {
+          "type": "string",
+          "const": "imaging"
+        },
+        "subject": {
+          "$ref": "#/definitions/Subject",
+          "description": "\"relative\" for family history: a relative's disease never becomes the patient's."
+        },
+        "value": {
+          "$ref": "#/definitions/ImagingValue"
+        },
+        "date": {
+          "$ref": "#/definitions/FactDate"
+        },
+        "status": {
+          "$ref": "#/definitions/FactStatus"
+        },
+        "negated": {
+          "type": "boolean",
+          "description": "The document states the opposite (\"bez plicní embolie\"). A finding, not a gap."
+        },
+        "not_stated": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Fields of this fact the documents leave open. A field that is simply missing was not looked for."
+        },
+        "origin": {
+          "$ref": "#/definitions/Origin"
+        },
+        "certainty": {
+          "$ref": "#/definitions/Certainty"
+        },
+        "certainty_reason": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/CertaintyReason"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "codes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/FactCode"
+          }
+        },
+        "note": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "The assistant's free-text note about this fact, in the content language."
+        },
+        "quarantined": {
+          "type": "boolean",
+          "description": "Set when a source page shows another patient: kept, but left out of the view, the brief and the rules."
+        },
+        "sources": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Source IDs, all saying the same thing. Empty only for an assistant fact with based_on."
+        },
+        "based_on": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "For an assistant fact: the facts it was computed from."
+        }
+      },
+      "required": [
+        "id",
+        "key",
+        "kind",
+        "subject",
+        "value",
+        "date",
+        "status",
+        "negated",
+        "not_stated",
+        "origin",
+        "certainty",
+        "codes",
+        "note",
+        "quarantined",
+        "sources"
+      ],
+      "additionalProperties": false
+    },
+    "ImagingValue": {
+      "type": "object",
+      "properties": {
+        "modality": {
+          "type": "string",
+          "description": "\"CT\", \"MR\", \"PET/CT\", \"UZ\", \"RTG\", \"scintigrafie\"."
+        },
+        "region": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "finding_text": {
+          "type": "string"
+        },
+        "response": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/ImagingResponse"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "modality",
+        "region",
+        "finding_text",
+        "response"
+      ],
+      "additionalProperties": false
+    },
+    "ImagingResponse": {
+      "type": "object",
+      "properties": {
+        "system": {
+          "type": "string",
+          "description": "\"RECIST 1.1\", \"iRECIST\"."
+        },
+        "category": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "system",
+        "category"
+      ],
+      "additionalProperties": false
+    },
+    "LabResultFact": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Stable across runs; confirmations, edits and alerts attach to it. For example \"f-8d41c2\"."
+        },
+        "key": {
+          "type": "string",
+          "description": "Deterministic from the kind and the identifying values (keys.ts); never a page number or a position."
+        },
+        "kind": {
+          "type": "string",
+          "const": "lab_result"
+        },
+        "subject": {
+          "$ref": "#/definitions/Subject",
+          "description": "\"relative\" for family history: a relative's disease never becomes the patient's."
+        },
+        "value": {
+          "$ref": "#/definitions/LabResultValue"
+        },
+        "date": {
+          "$ref": "#/definitions/FactDate"
+        },
+        "status": {
+          "$ref": "#/definitions/FactStatus"
+        },
+        "negated": {
+          "type": "boolean",
+          "description": "The document states the opposite (\"bez plicní embolie\"). A finding, not a gap."
+        },
+        "not_stated": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Fields of this fact the documents leave open. A field that is simply missing was not looked for."
+        },
+        "origin": {
+          "$ref": "#/definitions/Origin"
+        },
+        "certainty": {
+          "$ref": "#/definitions/Certainty"
+        },
+        "certainty_reason": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/CertaintyReason"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "codes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/FactCode"
+          }
+        },
+        "note": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "The assistant's free-text note about this fact, in the content language."
+        },
+        "quarantined": {
+          "type": "boolean",
+          "description": "Set when a source page shows another patient: kept, but left out of the view, the brief and the rules."
+        },
+        "sources": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Source IDs, all saying the same thing. Empty only for an assistant fact with based_on."
+        },
+        "based_on": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "For an assistant fact: the facts it was computed from."
+        }
+      },
+      "required": [
+        "id",
+        "key",
+        "kind",
+        "subject",
+        "value",
+        "date",
+        "status",
+        "negated",
+        "not_stated",
+        "origin",
+        "certainty",
+        "codes",
+        "note",
+        "quarantined",
+        "sources"
+      ],
+      "additionalProperties": false
+    },
+    "LabResultValue": {
+      "type": "object",
+      "properties": {
+        "name_as_written": {
+          "type": "string"
+        },
+        "value_as_written": {
+          "type": "string"
+        },
+        "value_numeric": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "unit_as_written": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "unit": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "The unit after correcting misreadings (\"mg/1\" read as \"mg/l\"); null when none is given."
+        },
+        "reference_range": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "reference_low": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "reference_high": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "out_of_range": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "high",
+            "low",
+            null
+          ]
+        },
+        "out_of_range_origin": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "document",
+            "assistant",
+            null
+          ],
+          "description": "\"document\" when the lab printed the flag, \"assistant\" when computed from the range."
+        },
+        "draw": {
+          "$ref": "#/definitions/LabDraw"
+        }
+      },
+      "required": [
+        "name_as_written",
+        "value_as_written",
+        "value_numeric",
+        "unit_as_written",
+        "unit",
+        "reference_range",
+        "reference_low",
+        "reference_high",
+        "out_of_range",
+        "out_of_range_origin",
+        "draw"
+      ],
+      "additionalProperties": false
+    },
+    "LabDraw": {
+      "type": "object",
+      "properties": {
+        "as_written": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Draw date and time as written."
+        },
+        "requisition": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "specimen": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "as_written",
+        "requisition",
+        "specimen"
+      ],
+      "additionalProperties": false
+    },
+    "VitalSignFact": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Stable across runs; confirmations, edits and alerts attach to it. For example \"f-8d41c2\"."
+        },
+        "key": {
+          "type": "string",
+          "description": "Deterministic from the kind and the identifying values (keys.ts); never a page number or a position."
+        },
+        "kind": {
+          "type": "string",
+          "const": "vital_sign"
+        },
+        "subject": {
+          "$ref": "#/definitions/Subject",
+          "description": "\"relative\" for family history: a relative's disease never becomes the patient's."
+        },
+        "value": {
+          "$ref": "#/definitions/VitalSignValue"
+        },
+        "date": {
+          "$ref": "#/definitions/FactDate"
+        },
+        "status": {
+          "$ref": "#/definitions/FactStatus"
+        },
+        "negated": {
+          "type": "boolean",
+          "description": "The document states the opposite (\"bez plicní embolie\"). A finding, not a gap."
+        },
+        "not_stated": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Fields of this fact the documents leave open. A field that is simply missing was not looked for."
+        },
+        "origin": {
+          "$ref": "#/definitions/Origin"
+        },
+        "certainty": {
+          "$ref": "#/definitions/Certainty"
+        },
+        "certainty_reason": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/CertaintyReason"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "codes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/FactCode"
+          }
+        },
+        "note": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "The assistant's free-text note about this fact, in the content language."
+        },
+        "quarantined": {
+          "type": "boolean",
+          "description": "Set when a source page shows another patient: kept, but left out of the view, the brief and the rules."
+        },
+        "sources": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Source IDs, all saying the same thing. Empty only for an assistant fact with based_on."
+        },
+        "based_on": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "For an assistant fact: the facts it was computed from."
+        }
+      },
+      "required": [
+        "id",
+        "key",
+        "kind",
+        "subject",
+        "value",
+        "date",
+        "status",
+        "negated",
+        "not_stated",
+        "origin",
+        "certainty",
+        "codes",
+        "note",
+        "quarantined",
+        "sources"
+      ],
+      "additionalProperties": false
+    },
+    "VitalSignValue": {
+      "type": "object",
+      "properties": {
+        "what": {
+          "$ref": "#/definitions/VitalSignWhat"
+        },
+        "label_as_written": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "value_as_written": {
+          "type": "string"
+        },
+        "value_numeric": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "unit": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "what",
+        "label_as_written",
+        "value_as_written",
+        "value_numeric",
+        "unit"
+      ],
+      "additionalProperties": false
+    },
+    "VitalSignWhat": {
+      "type": "string",
+      "enum": [
+        "blood_pressure",
+        "pulse",
+        "temperature",
+        "weight",
+        "height",
+        "bmi",
+        "spo2",
+        "respiratory_rate",
+        "other"
+      ]
+    },
+    "PerformanceStatusFact": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Stable across runs; confirmations, edits and alerts attach to it. For example \"f-8d41c2\"."
+        },
+        "key": {
+          "type": "string",
+          "description": "Deterministic from the kind and the identifying values (keys.ts); never a page number or a position."
+        },
+        "kind": {
+          "type": "string",
+          "const": "performance_status"
+        },
+        "subject": {
+          "$ref": "#/definitions/Subject",
+          "description": "\"relative\" for family history: a relative's disease never becomes the patient's."
+        },
+        "value": {
+          "$ref": "#/definitions/PerformanceStatusValue"
+        },
+        "date": {
+          "$ref": "#/definitions/FactDate"
+        },
+        "status": {
+          "$ref": "#/definitions/FactStatus"
+        },
+        "negated": {
+          "type": "boolean",
+          "description": "The document states the opposite (\"bez plicní embolie\"). A finding, not a gap."
+        },
+        "not_stated": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Fields of this fact the documents leave open. A field that is simply missing was not looked for."
+        },
+        "origin": {
+          "$ref": "#/definitions/Origin"
+        },
+        "certainty": {
+          "$ref": "#/definitions/Certainty"
+        },
+        "certainty_reason": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/CertaintyReason"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "codes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/FactCode"
+          }
+        },
+        "note": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "The assistant's free-text note about this fact, in the content language."
+        },
+        "quarantined": {
+          "type": "boolean",
+          "description": "Set when a source page shows another patient: kept, but left out of the view, the brief and the rules."
+        },
+        "sources": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Source IDs, all saying the same thing. Empty only for an assistant fact with based_on."
+        },
+        "based_on": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "For an assistant fact: the facts it was computed from."
+        }
+      },
+      "required": [
+        "id",
+        "key",
+        "kind",
+        "subject",
+        "value",
+        "date",
+        "status",
+        "negated",
+        "not_stated",
+        "origin",
+        "certainty",
+        "codes",
+        "note",
+        "quarantined",
+        "sources"
+      ],
+      "additionalProperties": false
+    },
+    "PerformanceStatusValue": {
+      "type": "object",
+      "properties": {
+        "scale": {
+          "type": "string",
+          "description": "\"ECOG\", \"Karnofsky\"."
+        },
+        "value_as_written": {
+          "type": "string"
+        },
+        "value_numeric": {
+          "type": [
+            "number",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "scale",
+        "value_as_written",
+        "value_numeric"
+      ],
+      "additionalProperties": false
+    },
+    "ExamFindingFact": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Stable across runs; confirmations, edits and alerts attach to it. For example \"f-8d41c2\"."
+        },
+        "key": {
+          "type": "string",
+          "description": "Deterministic from the kind and the identifying values (keys.ts); never a page number or a position."
+        },
+        "kind": {
+          "type": "string",
+          "const": "exam_finding"
+        },
+        "subject": {
+          "$ref": "#/definitions/Subject",
+          "description": "\"relative\" for family history: a relative's disease never becomes the patient's."
+        },
+        "value": {
+          "$ref": "#/definitions/ExamFindingValue"
+        },
+        "date": {
+          "$ref": "#/definitions/FactDate"
+        },
+        "status": {
+          "$ref": "#/definitions/FactStatus"
+        },
+        "negated": {
+          "type": "boolean",
+          "description": "The document states the opposite (\"bez plicní embolie\"). A finding, not a gap."
+        },
+        "not_stated": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Fields of this fact the documents leave open. A field that is simply missing was not looked for."
+        },
+        "origin": {
+          "$ref": "#/definitions/Origin"
+        },
+        "certainty": {
+          "$ref": "#/definitions/Certainty"
+        },
+        "certainty_reason": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/CertaintyReason"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "codes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/FactCode"
+          }
+        },
+        "note": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "The assistant's free-text note about this fact, in the content language."
+        },
+        "quarantined": {
+          "type": "boolean",
+          "description": "Set when a source page shows another patient: kept, but left out of the view, the brief and the rules."
+        },
+        "sources": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Source IDs, all saying the same thing. Empty only for an assistant fact with based_on."
+        },
+        "based_on": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "For an assistant fact: the facts it was computed from."
+        }
+      },
+      "required": [
+        "id",
+        "key",
+        "kind",
+        "subject",
+        "value",
+        "date",
+        "status",
+        "negated",
+        "not_stated",
+        "origin",
+        "certainty",
+        "codes",
+        "note",
+        "quarantined",
+        "sources"
+      ],
+      "additionalProperties": false
+    },
+    "ExamFindingValue": {
+      "type": "object",
+      "properties": {
+        "region": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "text": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "region",
+        "text"
+      ],
+      "additionalProperties": false
+    },
+    "SymptomFact": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Stable across runs; confirmations, edits and alerts attach to it. For example \"f-8d41c2\"."
+        },
+        "key": {
+          "type": "string",
+          "description": "Deterministic from the kind and the identifying values (keys.ts); never a page number or a position."
+        },
+        "kind": {
+          "type": "string",
+          "const": "symptom"
+        },
+        "subject": {
+          "$ref": "#/definitions/Subject",
+          "description": "\"relative\" for family history: a relative's disease never becomes the patient's."
+        },
+        "value": {
+          "$ref": "#/definitions/SymptomValue"
+        },
+        "date": {
+          "$ref": "#/definitions/FactDate"
+        },
+        "status": {
+          "$ref": "#/definitions/FactStatus"
+        },
+        "negated": {
+          "type": "boolean",
+          "description": "The document states the opposite (\"bez plicní embolie\"). A finding, not a gap."
+        },
+        "not_stated": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Fields of this fact the documents leave open. A field that is simply missing was not looked for."
+        },
+        "origin": {
+          "$ref": "#/definitions/Origin"
+        },
+        "certainty": {
+          "$ref": "#/definitions/Certainty"
+        },
+        "certainty_reason": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/CertaintyReason"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "codes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/FactCode"
+          }
+        },
+        "note": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "The assistant's free-text note about this fact, in the content language."
+        },
+        "quarantined": {
+          "type": "boolean",
+          "description": "Set when a source page shows another patient: kept, but left out of the view, the brief and the rules."
+        },
+        "sources": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Source IDs, all saying the same thing. Empty only for an assistant fact with based_on."
+        },
+        "based_on": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "For an assistant fact: the facts it was computed from."
+        }
+      },
+      "required": [
+        "id",
+        "key",
+        "kind",
+        "subject",
+        "value",
+        "date",
+        "status",
+        "negated",
+        "not_stated",
+        "origin",
+        "certainty",
+        "codes",
+        "note",
+        "quarantined",
+        "sources"
+      ],
+      "additionalProperties": false
+    },
+    "SymptomValue": {
+      "type": "object",
+      "properties": {
+        "text": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "text"
+      ],
+      "additionalProperties": false
+    },
+    "ComorbidityFact": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Stable across runs; confirmations, edits and alerts attach to it. For example \"f-8d41c2\"."
+        },
+        "key": {
+          "type": "string",
+          "description": "Deterministic from the kind and the identifying values (keys.ts); never a page number or a position."
+        },
+        "kind": {
+          "type": "string",
+          "const": "comorbidity"
+        },
+        "subject": {
+          "$ref": "#/definitions/Subject",
+          "description": "\"relative\" for family history: a relative's disease never becomes the patient's."
+        },
+        "value": {
+          "$ref": "#/definitions/ComorbidityValue"
+        },
+        "date": {
+          "$ref": "#/definitions/FactDate"
+        },
+        "status": {
+          "$ref": "#/definitions/FactStatus"
+        },
+        "negated": {
+          "type": "boolean",
+          "description": "The document states the opposite (\"bez plicní embolie\"). A finding, not a gap."
+        },
+        "not_stated": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Fields of this fact the documents leave open. A field that is simply missing was not looked for."
+        },
+        "origin": {
+          "$ref": "#/definitions/Origin"
+        },
+        "certainty": {
+          "$ref": "#/definitions/Certainty"
+        },
+        "certainty_reason": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/CertaintyReason"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "codes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/FactCode"
+          }
+        },
+        "note": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "The assistant's free-text note about this fact, in the content language."
+        },
+        "quarantined": {
+          "type": "boolean",
+          "description": "Set when a source page shows another patient: kept, but left out of the view, the brief and the rules."
+        },
+        "sources": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Source IDs, all saying the same thing. Empty only for an assistant fact with based_on."
+        },
+        "based_on": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "For an assistant fact: the facts it was computed from."
+        }
+      },
+      "required": [
+        "id",
+        "key",
+        "kind",
+        "subject",
+        "value",
+        "date",
+        "status",
+        "negated",
+        "not_stated",
+        "origin",
+        "certainty",
+        "codes",
+        "note",
+        "quarantined",
+        "sources"
+      ],
+      "additionalProperties": false
+    },
+    "ComorbidityValue": {
+      "type": "object",
+      "properties": {
+        "text": {
+          "type": "string",
+          "description": "The diagnosis text; an MKN-10 code, if given, goes in codes."
+        }
+      },
+      "required": [
+        "text"
+      ],
+      "additionalProperties": false
+    },
+    "MedicationFact": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Stable across runs; confirmations, edits and alerts attach to it. For example \"f-8d41c2\"."
+        },
+        "key": {
+          "type": "string",
+          "description": "Deterministic from the kind and the identifying values (keys.ts); never a page number or a position."
+        },
+        "kind": {
+          "type": "string",
+          "const": "medication"
+        },
+        "subject": {
+          "$ref": "#/definitions/Subject",
+          "description": "\"relative\" for family history: a relative's disease never becomes the patient's."
+        },
+        "value": {
+          "$ref": "#/definitions/MedicationValue"
+        },
+        "date": {
+          "$ref": "#/definitions/FactDate"
+        },
+        "status": {
+          "$ref": "#/definitions/FactStatus"
+        },
+        "negated": {
+          "type": "boolean",
+          "description": "The document states the opposite (\"bez plicní embolie\"). A finding, not a gap."
+        },
+        "not_stated": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Fields of this fact the documents leave open. A field that is simply missing was not looked for."
+        },
+        "origin": {
+          "$ref": "#/definitions/Origin"
+        },
+        "certainty": {
+          "$ref": "#/definitions/Certainty"
+        },
+        "certainty_reason": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/CertaintyReason"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "codes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/FactCode"
+          }
+        },
+        "note": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "The assistant's free-text note about this fact, in the content language."
+        },
+        "quarantined": {
+          "type": "boolean",
+          "description": "Set when a source page shows another patient: kept, but left out of the view, the brief and the rules."
+        },
+        "sources": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Source IDs, all saying the same thing. Empty only for an assistant fact with based_on."
+        },
+        "based_on": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "For an assistant fact: the facts it was computed from."
+        }
+      },
+      "required": [
+        "id",
+        "key",
+        "kind",
+        "subject",
+        "value",
+        "date",
+        "status",
+        "negated",
+        "not_stated",
+        "origin",
+        "certainty",
+        "codes",
+        "note",
+        "quarantined",
+        "sources"
+      ],
+      "additionalProperties": false
+    },
+    "MedicationValue": {
+      "type": "object",
+      "properties": {
+        "drug": {
+          "type": "string"
+        },
+        "strength": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "dosing": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "change": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "A change the document states, for example \"od 19.9.2026 navýšení\"."
+        },
+        "indication": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "text": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "drug",
+        "strength",
+        "dosing",
+        "change",
+        "indication",
+        "text"
+      ],
+      "additionalProperties": false
+    },
+    "ContraindicationFact": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Stable across runs; confirmations, edits and alerts attach to it. For example \"f-8d41c2\"."
+        },
+        "key": {
+          "type": "string",
+          "description": "Deterministic from the kind and the identifying values (keys.ts); never a page number or a position."
+        },
+        "kind": {
+          "type": "string",
+          "const": "contraindication"
+        },
+        "subject": {
+          "$ref": "#/definitions/Subject",
+          "description": "\"relative\" for family history: a relative's disease never becomes the patient's."
+        },
+        "value": {
+          "$ref": "#/definitions/ContraindicationValue"
+        },
+        "date": {
+          "$ref": "#/definitions/FactDate"
+        },
+        "status": {
+          "$ref": "#/definitions/FactStatus"
+        },
+        "negated": {
+          "type": "boolean",
+          "description": "The document states the opposite (\"bez plicní embolie\"). A finding, not a gap."
+        },
+        "not_stated": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Fields of this fact the documents leave open. A field that is simply missing was not looked for."
+        },
+        "origin": {
+          "$ref": "#/definitions/Origin"
+        },
+        "certainty": {
+          "$ref": "#/definitions/Certainty"
+        },
+        "certainty_reason": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/CertaintyReason"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "codes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/FactCode"
+          }
+        },
+        "note": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "The assistant's free-text note about this fact, in the content language."
+        },
+        "quarantined": {
+          "type": "boolean",
+          "description": "Set when a source page shows another patient: kept, but left out of the view, the brief and the rules."
+        },
+        "sources": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Source IDs, all saying the same thing. Empty only for an assistant fact with based_on."
+        },
+        "based_on": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "For an assistant fact: the facts it was computed from."
+        }
+      },
+      "required": [
+        "id",
+        "key",
+        "kind",
+        "subject",
+        "value",
+        "date",
+        "status",
+        "negated",
+        "not_stated",
+        "origin",
+        "certainty",
+        "codes",
+        "note",
+        "quarantined",
+        "sources"
+      ],
+      "additionalProperties": false
+    },
+    "ContraindicationValue": {
+      "type": "object",
+      "properties": {
+        "what": {
+          "type": "string"
+        },
+        "stated_by": {
+          "type": "string",
+          "enum": [
+            "document",
+            "assistant"
+          ]
+        }
+      },
+      "required": [
+        "what",
+        "stated_by"
+      ],
+      "additionalProperties": false
+    },
+    "AllergyFact": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Stable across runs; confirmations, edits and alerts attach to it. For example \"f-8d41c2\"."
+        },
+        "key": {
+          "type": "string",
+          "description": "Deterministic from the kind and the identifying values (keys.ts); never a page number or a position."
+        },
+        "kind": {
+          "type": "string",
+          "const": "allergy"
+        },
+        "subject": {
+          "$ref": "#/definitions/Subject",
+          "description": "\"relative\" for family history: a relative's disease never becomes the patient's."
+        },
+        "value": {
+          "$ref": "#/definitions/AllergyValue"
+        },
+        "date": {
+          "$ref": "#/definitions/FactDate"
+        },
+        "status": {
+          "$ref": "#/definitions/FactStatus"
+        },
+        "negated": {
+          "type": "boolean",
+          "description": "The document states the opposite (\"bez plicní embolie\"). A finding, not a gap."
+        },
+        "not_stated": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Fields of this fact the documents leave open. A field that is simply missing was not looked for."
+        },
+        "origin": {
+          "$ref": "#/definitions/Origin"
+        },
+        "certainty": {
+          "$ref": "#/definitions/Certainty"
+        },
+        "certainty_reason": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/CertaintyReason"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "codes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/FactCode"
+          }
+        },
+        "note": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "The assistant's free-text note about this fact, in the content language."
+        },
+        "quarantined": {
+          "type": "boolean",
+          "description": "Set when a source page shows another patient: kept, but left out of the view, the brief and the rules."
+        },
+        "sources": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Source IDs, all saying the same thing. Empty only for an assistant fact with based_on."
+        },
+        "based_on": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "For an assistant fact: the facts it was computed from."
+        }
+      },
+      "required": [
+        "id",
+        "key",
+        "kind",
+        "subject",
+        "value",
+        "date",
+        "status",
+        "negated",
+        "not_stated",
+        "origin",
+        "certainty",
+        "codes",
+        "note",
+        "quarantined",
+        "sources"
+      ],
+      "additionalProperties": false
+    },
+    "AllergyValue": {
+      "type": "object",
+      "properties": {
+        "substance": {
+          "type": "string"
+        },
+        "reaction": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "substance",
+        "reaction"
+      ],
+      "additionalProperties": false
+    },
+    "AdverseEventFact": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Stable across runs; confirmations, edits and alerts attach to it. For example \"f-8d41c2\"."
+        },
+        "key": {
+          "type": "string",
+          "description": "Deterministic from the kind and the identifying values (keys.ts); never a page number or a position."
+        },
+        "kind": {
+          "type": "string",
+          "const": "adverse_event"
+        },
+        "subject": {
+          "$ref": "#/definitions/Subject",
+          "description": "\"relative\" for family history: a relative's disease never becomes the patient's."
+        },
+        "value": {
+          "$ref": "#/definitions/AdverseEventValue"
+        },
+        "date": {
+          "$ref": "#/definitions/FactDate"
+        },
+        "status": {
+          "$ref": "#/definitions/FactStatus"
+        },
+        "negated": {
+          "type": "boolean",
+          "description": "The document states the opposite (\"bez plicní embolie\"). A finding, not a gap."
+        },
+        "not_stated": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Fields of this fact the documents leave open. A field that is simply missing was not looked for."
+        },
+        "origin": {
+          "$ref": "#/definitions/Origin"
+        },
+        "certainty": {
+          "$ref": "#/definitions/Certainty"
+        },
+        "certainty_reason": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/CertaintyReason"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "codes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/FactCode"
+          }
+        },
+        "note": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "The assistant's free-text note about this fact, in the content language."
+        },
+        "quarantined": {
+          "type": "boolean",
+          "description": "Set when a source page shows another patient: kept, but left out of the view, the brief and the rules."
+        },
+        "sources": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Source IDs, all saying the same thing. Empty only for an assistant fact with based_on."
+        },
+        "based_on": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "For an assistant fact: the facts it was computed from."
+        }
+      },
+      "required": [
+        "id",
+        "key",
+        "kind",
+        "subject",
+        "value",
+        "date",
+        "status",
+        "negated",
+        "not_stated",
+        "origin",
+        "certainty",
+        "codes",
+        "note",
+        "quarantined",
+        "sources"
+      ],
+      "additionalProperties": false
+    },
+    "AdverseEventValue": {
+      "type": "object",
+      "properties": {
+        "text": {
+          "type": "string"
+        },
+        "grade": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "related_therapy": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "text",
+        "grade",
+        "related_therapy"
+      ],
+      "additionalProperties": false
+    },
+    "PrognosticScoreFact": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Stable across runs; confirmations, edits and alerts attach to it. For example \"f-8d41c2\"."
+        },
+        "key": {
+          "type": "string",
+          "description": "Deterministic from the kind and the identifying values (keys.ts); never a page number or a position."
+        },
+        "kind": {
+          "type": "string",
+          "const": "prognostic_score"
+        },
+        "subject": {
+          "$ref": "#/definitions/Subject",
+          "description": "\"relative\" for family history: a relative's disease never becomes the patient's."
+        },
+        "value": {
+          "$ref": "#/definitions/PrognosticScoreValue"
+        },
+        "date": {
+          "$ref": "#/definitions/FactDate"
+        },
+        "status": {
+          "$ref": "#/definitions/FactStatus"
+        },
+        "negated": {
+          "type": "boolean",
+          "description": "The document states the opposite (\"bez plicní embolie\"). A finding, not a gap."
+        },
+        "not_stated": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Fields of this fact the documents leave open. A field that is simply missing was not looked for."
+        },
+        "origin": {
+          "$ref": "#/definitions/Origin"
+        },
+        "certainty": {
+          "$ref": "#/definitions/Certainty"
+        },
+        "certainty_reason": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/CertaintyReason"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "codes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/FactCode"
+          }
+        },
+        "note": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "The assistant's free-text note about this fact, in the content language."
+        },
+        "quarantined": {
+          "type": "boolean",
+          "description": "Set when a source page shows another patient: kept, but left out of the view, the brief and the rules."
+        },
+        "sources": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Source IDs, all saying the same thing. Empty only for an assistant fact with based_on."
+        },
+        "based_on": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "For an assistant fact: the facts it was computed from."
+        }
+      },
+      "required": [
+        "id",
+        "key",
+        "kind",
+        "subject",
+        "value",
+        "date",
+        "status",
+        "negated",
+        "not_stated",
+        "origin",
+        "certainty",
+        "codes",
+        "note",
+        "quarantined",
+        "sources"
+      ],
+      "additionalProperties": false
+    },
+    "PrognosticScoreValue": {
+      "type": "object",
+      "properties": {
+        "score": {
+          "type": "string",
+          "description": "\"IMDC\", \"MSKCC\"."
+        },
+        "value_as_written": {
+          "type": "string"
+        },
+        "risk_group": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "score",
+        "value_as_written",
+        "risk_group"
+      ],
+      "additionalProperties": false
+    },
+    "RiskFactorFact": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Stable across runs; confirmations, edits and alerts attach to it. For example \"f-8d41c2\"."
+        },
+        "key": {
+          "type": "string",
+          "description": "Deterministic from the kind and the identifying values (keys.ts); never a page number or a position."
+        },
+        "kind": {
+          "type": "string",
+          "const": "risk_factor"
+        },
+        "subject": {
+          "$ref": "#/definitions/Subject",
+          "description": "\"relative\" for family history: a relative's disease never becomes the patient's."
+        },
+        "value": {
+          "$ref": "#/definitions/RiskFactorValue"
+        },
+        "date": {
+          "$ref": "#/definitions/FactDate"
+        },
+        "status": {
+          "$ref": "#/definitions/FactStatus"
+        },
+        "negated": {
+          "type": "boolean",
+          "description": "The document states the opposite (\"bez plicní embolie\"). A finding, not a gap."
+        },
+        "not_stated": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Fields of this fact the documents leave open. A field that is simply missing was not looked for."
+        },
+        "origin": {
+          "$ref": "#/definitions/Origin"
+        },
+        "certainty": {
+          "$ref": "#/definitions/Certainty"
+        },
+        "certainty_reason": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/CertaintyReason"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "codes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/FactCode"
+          }
+        },
+        "note": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "The assistant's free-text note about this fact, in the content language."
+        },
+        "quarantined": {
+          "type": "boolean",
+          "description": "Set when a source page shows another patient: kept, but left out of the view, the brief and the rules."
+        },
+        "sources": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Source IDs, all saying the same thing. Empty only for an assistant fact with based_on."
+        },
+        "based_on": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "For an assistant fact: the facts it was computed from."
+        }
+      },
+      "required": [
+        "id",
+        "key",
+        "kind",
+        "subject",
+        "value",
+        "date",
+        "status",
+        "negated",
+        "not_stated",
+        "origin",
+        "certainty",
+        "codes",
+        "note",
+        "quarantined",
+        "sources"
+      ],
+      "additionalProperties": false
+    },
+    "RiskFactorValue": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "smoking",
+            "alcohol",
+            "social",
+            "epidemiology"
+          ]
+        },
+        "text": {
+          "type": "string"
+        },
+        "pack_years": {
+          "type": [
+            "number",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "type",
+        "text",
+        "pack_years"
+      ],
+      "additionalProperties": false
+    },
+    "FamilyHistoryFact": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Stable across runs; confirmations, edits and alerts attach to it. For example \"f-8d41c2\"."
+        },
+        "key": {
+          "type": "string",
+          "description": "Deterministic from the kind and the identifying values (keys.ts); never a page number or a position."
+        },
+        "kind": {
+          "type": "string",
+          "const": "family_history"
+        },
+        "subject": {
+          "$ref": "#/definitions/Subject",
+          "description": "\"relative\" for family history: a relative's disease never becomes the patient's."
+        },
+        "value": {
+          "$ref": "#/definitions/FamilyHistoryValue"
+        },
+        "date": {
+          "$ref": "#/definitions/FactDate"
+        },
+        "status": {
+          "$ref": "#/definitions/FactStatus"
+        },
+        "negated": {
+          "type": "boolean",
+          "description": "The document states the opposite (\"bez plicní embolie\"). A finding, not a gap."
+        },
+        "not_stated": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Fields of this fact the documents leave open. A field that is simply missing was not looked for."
+        },
+        "origin": {
+          "$ref": "#/definitions/Origin"
+        },
+        "certainty": {
+          "$ref": "#/definitions/Certainty"
+        },
+        "certainty_reason": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/CertaintyReason"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "codes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/FactCode"
+          }
+        },
+        "note": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "The assistant's free-text note about this fact, in the content language."
+        },
+        "quarantined": {
+          "type": "boolean",
+          "description": "Set when a source page shows another patient: kept, but left out of the view, the brief and the rules."
+        },
+        "sources": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Source IDs, all saying the same thing. Empty only for an assistant fact with based_on."
+        },
+        "based_on": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "For an assistant fact: the facts it was computed from."
+        }
+      },
+      "required": [
+        "id",
+        "key",
+        "kind",
+        "subject",
+        "value",
+        "date",
+        "status",
+        "negated",
+        "not_stated",
+        "origin",
+        "certainty",
+        "codes",
+        "note",
+        "quarantined",
+        "sources"
+      ],
+      "additionalProperties": false
+    },
+    "FamilyHistoryValue": {
+      "type": "object",
+      "properties": {
+        "relation": {
+          "type": "string"
+        },
+        "condition": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "relation",
+        "condition"
+      ],
+      "additionalProperties": false
+    },
+    "RequestFact": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Stable across runs; confirmations, edits and alerts attach to it. For example \"f-8d41c2\"."
+        },
+        "key": {
+          "type": "string",
+          "description": "Deterministic from the kind and the identifying values (keys.ts); never a page number or a position."
+        },
+        "kind": {
+          "type": "string",
+          "const": "request"
+        },
+        "subject": {
+          "$ref": "#/definitions/Subject",
+          "description": "\"relative\" for family history: a relative's disease never becomes the patient's."
+        },
+        "value": {
+          "$ref": "#/definitions/RequestValue"
+        },
+        "date": {
+          "$ref": "#/definitions/FactDate"
+        },
+        "status": {
+          "$ref": "#/definitions/FactStatus"
+        },
+        "negated": {
+          "type": "boolean",
+          "description": "The document states the opposite (\"bez plicní embolie\"). A finding, not a gap."
+        },
+        "not_stated": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Fields of this fact the documents leave open. A field that is simply missing was not looked for."
+        },
+        "origin": {
+          "$ref": "#/definitions/Origin"
+        },
+        "certainty": {
+          "$ref": "#/definitions/Certainty"
+        },
+        "certainty_reason": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/CertaintyReason"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "codes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/FactCode"
+          }
+        },
+        "note": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "The assistant's free-text note about this fact, in the content language."
+        },
+        "quarantined": {
+          "type": "boolean",
+          "description": "Set when a source page shows another patient: kept, but left out of the view, the brief and the rules."
+        },
+        "sources": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Source IDs, all saying the same thing. Empty only for an assistant fact with based_on."
+        },
+        "based_on": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "For an assistant fact: the facts it was computed from."
+        }
+      },
+      "required": [
+        "id",
+        "key",
+        "kind",
+        "subject",
+        "value",
+        "date",
+        "status",
+        "negated",
+        "not_stated",
+        "origin",
+        "certainty",
+        "codes",
+        "note",
+        "quarantined",
+        "sources"
+      ],
+      "additionalProperties": false
+    },
+    "RequestValue": {
+      "type": "object",
+      "properties": {
+        "what": {
+          "type": "string"
+        },
+        "request_kind": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "exam",
+            "consultation",
+            "mdt",
+            "other",
+            null
+          ]
+        },
+        "result_fact": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "The fact holding the result, if one exists. A sent request is not a done exam."
+        }
+      },
+      "required": [
+        "what",
+        "request_kind",
+        "result_fact"
+      ],
+      "additionalProperties": false
+    },
+    "DecisionFact": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Stable across runs; confirmations, edits and alerts attach to it. For example \"f-8d41c2\"."
+        },
+        "key": {
+          "type": "string",
+          "description": "Deterministic from the kind and the identifying values (keys.ts); never a page number or a position."
+        },
+        "kind": {
+          "type": "string",
+          "const": "decision"
+        },
+        "subject": {
+          "$ref": "#/definitions/Subject",
+          "description": "\"relative\" for family history: a relative's disease never becomes the patient's."
+        },
+        "value": {
+          "$ref": "#/definitions/DecisionValue"
+        },
+        "date": {
+          "$ref": "#/definitions/FactDate"
+        },
+        "status": {
+          "$ref": "#/definitions/FactStatus"
+        },
+        "negated": {
+          "type": "boolean",
+          "description": "The document states the opposite (\"bez plicní embolie\"). A finding, not a gap."
+        },
+        "not_stated": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Fields of this fact the documents leave open. A field that is simply missing was not looked for."
+        },
+        "origin": {
+          "$ref": "#/definitions/Origin"
+        },
+        "certainty": {
+          "$ref": "#/definitions/Certainty"
+        },
+        "certainty_reason": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/CertaintyReason"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "codes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/FactCode"
+          }
+        },
+        "note": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "The assistant's free-text note about this fact, in the content language."
+        },
+        "quarantined": {
+          "type": "boolean",
+          "description": "Set when a source page shows another patient: kept, but left out of the view, the brief and the rules."
+        },
+        "sources": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Source IDs, all saying the same thing. Empty only for an assistant fact with based_on."
+        },
+        "based_on": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "For an assistant fact: the facts it was computed from."
+        }
+      },
+      "required": [
+        "id",
+        "key",
+        "kind",
+        "subject",
+        "value",
+        "date",
+        "status",
+        "negated",
+        "not_stated",
+        "origin",
+        "certainty",
+        "codes",
+        "note",
+        "quarantined",
+        "sources"
+      ],
+      "additionalProperties": false
+    },
+    "DecisionValue": {
+      "type": "object",
+      "properties": {
+        "body": {
+          "type": "string",
+          "enum": [
+            "mdt",
+            "koc",
+            "consultation",
+            "other"
+          ]
+        },
+        "body_as_written": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "text": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "body",
+        "body_as_written",
+        "text"
+      ],
+      "additionalProperties": false
+    },
+    "PlanFact": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Stable across runs; confirmations, edits and alerts attach to it. For example \"f-8d41c2\"."
+        },
+        "key": {
+          "type": "string",
+          "description": "Deterministic from the kind and the identifying values (keys.ts); never a page number or a position."
+        },
+        "kind": {
+          "type": "string",
+          "const": "plan"
+        },
+        "subject": {
+          "$ref": "#/definitions/Subject",
+          "description": "\"relative\" for family history: a relative's disease never becomes the patient's."
+        },
+        "value": {
+          "$ref": "#/definitions/PlanValue"
+        },
+        "date": {
+          "$ref": "#/definitions/FactDate"
+        },
+        "status": {
+          "$ref": "#/definitions/FactStatus"
+        },
+        "negated": {
+          "type": "boolean",
+          "description": "The document states the opposite (\"bez plicní embolie\"). A finding, not a gap."
+        },
+        "not_stated": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Fields of this fact the documents leave open. A field that is simply missing was not looked for."
+        },
+        "origin": {
+          "$ref": "#/definitions/Origin"
+        },
+        "certainty": {
+          "$ref": "#/definitions/Certainty"
+        },
+        "certainty_reason": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/CertaintyReason"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "codes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/FactCode"
+          }
+        },
+        "note": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "The assistant's free-text note about this fact, in the content language."
+        },
+        "quarantined": {
+          "type": "boolean",
+          "description": "Set when a source page shows another patient: kept, but left out of the view, the brief and the rules."
+        },
+        "sources": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Source IDs, all saying the same thing. Empty only for an assistant fact with based_on."
+        },
+        "based_on": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "For an assistant fact: the facts it was computed from."
+        }
+      },
+      "required": [
+        "id",
+        "key",
+        "kind",
+        "subject",
+        "value",
+        "date",
+        "status",
+        "negated",
+        "not_stated",
+        "origin",
+        "certainty",
+        "codes",
+        "note",
+        "quarantined",
+        "sources"
+      ],
+      "additionalProperties": false
+    },
+    "PlanValue": {
+      "type": "object",
+      "properties": {
+        "what": {
+          "type": "string"
+        },
+        "when_as_written": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "what",
+        "when_as_written"
+      ],
+      "additionalProperties": false
+    },
+    "IntervalFact": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Stable across runs; confirmations, edits and alerts attach to it. For example \"f-8d41c2\"."
+        },
+        "key": {
+          "type": "string",
+          "description": "Deterministic from the kind and the identifying values (keys.ts); never a page number or a position."
+        },
+        "kind": {
+          "type": "string",
+          "const": "interval"
+        },
+        "subject": {
+          "$ref": "#/definitions/Subject",
+          "description": "\"relative\" for family history: a relative's disease never becomes the patient's."
+        },
+        "value": {
+          "$ref": "#/definitions/IntervalValue"
+        },
+        "date": {
+          "$ref": "#/definitions/FactDate"
+        },
+        "status": {
+          "$ref": "#/definitions/FactStatus"
+        },
+        "negated": {
+          "type": "boolean",
+          "description": "The document states the opposite (\"bez plicní embolie\"). A finding, not a gap."
+        },
+        "not_stated": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Fields of this fact the documents leave open. A field that is simply missing was not looked for."
+        },
+        "origin": {
+          "$ref": "#/definitions/Origin"
+        },
+        "certainty": {
+          "$ref": "#/definitions/Certainty"
+        },
+        "certainty_reason": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/CertaintyReason"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "codes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/FactCode"
+          }
+        },
+        "note": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "The assistant's free-text note about this fact, in the content language."
+        },
+        "quarantined": {
+          "type": "boolean",
+          "description": "Set when a source page shows another patient: kept, but left out of the view, the brief and the rules."
+        },
+        "sources": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Source IDs, all saying the same thing. Empty only for an assistant fact with based_on."
+        },
+        "based_on": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "For an assistant fact: the facts it was computed from."
+        }
+      },
+      "required": [
+        "id",
+        "key",
+        "kind",
+        "subject",
+        "value",
+        "date",
+        "status",
+        "negated",
+        "not_stated",
+        "origin",
+        "certainty",
+        "codes",
+        "note",
+        "quarantined",
+        "sources"
+      ],
+      "additionalProperties": false
+    },
+    "IntervalValue": {
+      "type": "object",
+      "properties": {
+        "from_fact": {
+          "type": "string"
+        },
+        "to_fact": {
+          "type": "string"
+        },
+        "days": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "length_as_computed": {
+          "type": "string",
+          "description": "The length as computed and shown, for example \"38 dní\"."
+        },
+        "from_precision": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/DatePrecision"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "to_precision": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/DatePrecision"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "from_fact",
+        "to_fact",
+        "days",
+        "length_as_computed",
+        "from_precision",
+        "to_precision"
+      ],
+      "additionalProperties": false,
+      "description": "Always origin \"assistant\": a length between two facts, shown as a fact, never a verdict."
+    },
+    "Check": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "For example \"chk-allergy\" or \"chk-report-mr-brain-2026-09-14\"."
+        },
+        "looks_for": {
+          "type": "string",
+          "description": "A fact kind (\"allergy\") or a document kind (\"original_report\")."
+        },
+        "expected": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "of_fact": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "of_fact"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "For a document check: the fact whose document is expected."
+        },
+        "covered": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/CheckPart"
+          }
+        },
+        "unreadable": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/CheckPage"
+          }
+        },
+        "result": {
+          "$ref": "#/definitions/CheckResult",
+          "description": "found: facts exist; nothing_found: the listed parts say nothing; not_run: this producer does not look."
+        }
+      },
+      "required": [
+        "id",
+        "looks_for",
+        "expected",
+        "covered",
+        "unreadable",
+        "result"
+      ],
+      "additionalProperties": false,
+      "description": "One step of the pipeline that looked for something: what, over which documents, and what came out."
+    },
+    "CheckPart": {
+      "type": "object",
+      "properties": {
+        "document_id": {
+          "type": "string"
+        },
+        "part": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "document_id",
+        "part"
+      ],
+      "additionalProperties": false
+    },
+    "CheckPage": {
+      "type": "object",
+      "properties": {
+        "document_id": {
+          "type": "string"
+        },
+        "part": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "page": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "document_id",
+        "page",
+        "part"
+      ],
+      "additionalProperties": false
+    },
+    "CheckResult": {
+      "type": "string",
+      "enum": [
+        "found",
+        "nothing_found",
+        "not_run"
+      ]
+    },
+    "Alert": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Derived from rule and subject (keys.ts alertId), so acknowledgements carry over to the next run."
+        },
+        "rule": {
+          "type": "string"
+        },
+        "subject": {
+          "type": "string",
+          "description": "What the rule is about: a fact ID, an expected document, a pair of fact IDs (\"f-a|f-b\", sorted), or a field name."
+        },
+        "kind": {
+          "$ref": "#/definitions/AlertKind"
+        },
+        "facts": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "The facts the alert rests on."
+        },
+        "message": {
+          "$ref": "#/definitions/AlertMessage"
+        },
+        "note": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "The model's free-text explanation, in the content language."
+        }
+      },
+      "required": [
+        "id",
+        "rule",
+        "subject",
+        "kind",
+        "facts",
+        "message",
+        "note"
+      ],
+      "additionalProperties": false,
+      "description": "The result of a rule over facts. The assistant's observation; it never blocks anything."
+    },
+    "AlertKind": {
+      "type": "string",
+      "enum": [
+        "missing",
+        "contradiction",
+        "chronology",
+        "unclear",
+        "poor_copy",
+        "identity"
+      ]
+    },
+    "AlertMessage": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "args": {
+          "type": "object",
+          "additionalProperties": {
+            "type": [
+              "string",
+              "number"
+            ]
+          },
+          "description": "Fact IDs or plain values the view formats; never Czech words that would need grammatical case."
+        }
+      },
+      "required": [
+        "id",
+        "args"
+      ],
+      "additionalProperties": false,
+      "description": "A Fluent message (i18n/<locale>/*.ftl) so the alert follows the UI language."
+    },
+    "Brief": {
+      "type": "object",
+      "properties": {
+        "sentences": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/BriefSentence"
+          }
+        },
+        "made_by": {
+          "$ref": "#/definitions/MadeBy"
+        }
+      },
+      "required": [
+        "sentences",
+        "made_by"
+      ],
+      "additionalProperties": false
+    },
+    "BriefSentence": {
+      "type": "object",
+      "properties": {
+        "text": {
+          "type": "string",
+          "description": "In the content language."
+        },
+        "facts": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "The facts the sentence states; a sentence with none is dropped."
+        }
+      },
+      "required": [
+        "text",
+        "facts"
+      ],
+      "additionalProperties": false
+    },
+    "MadeBy": {
+      "type": "object",
+      "properties": {
+        "model": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "prompt": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "model",
+        "prompt"
+      ],
+      "additionalProperties": false
+    },
+    "QuestionDraft": {
+      "type": "object",
+      "properties": {
+        "text": {
+          "type": "string"
+        },
+        "question_kind": {
+          "type": "string",
+          "description": "For example \"document_purpose\", \"latest_finding\"."
+        },
+        "basis": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/QuestionBasis"
+          }
+        }
+      },
+      "required": [
+        "text",
+        "question_kind",
+        "basis"
+      ],
+      "additionalProperties": false,
+      "description": "Stays labelled as a draft until a doctor confirms or edits it (D1 question_confirmations)."
+    },
+    "QuestionBasis": {
+      "type": "object",
+      "properties": {
+        "role": {
+          "type": "string",
+          "enum": [
+            "purpose",
+            "finding",
+            "other"
+          ]
+        },
+        "facts": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "role",
+        "facts"
+      ],
+      "additionalProperties": false
+    }
+  }
+}
