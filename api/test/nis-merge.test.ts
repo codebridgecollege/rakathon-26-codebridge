@@ -9,7 +9,9 @@ import { call, mockFetch, testEnv } from "./helpers";
 import { loadFixture } from "./data";
 import { MemoryFhir } from "../../fhir/nis/memory-server";
 import { nisImportKey } from "../src/store/nis";
-import type { ExtractionRun } from "@codebridge/domain/extraction/types";
+import { composeCaseRun, storeCaseRun } from "../src/store/case-merge";
+import { actorFor } from "../src/store/audio";
+import { FACT_KINDS, type ExtractionRun } from "@codebridge/domain/extraction/types";
 
 const BASE = "https://nis.test/fhir";
 const NIS = { base_url: BASE, label_cs: "Testovací NIS", auth: { mode: "none" } };
@@ -66,7 +68,9 @@ describe("NIS import into the case run", () => {
     expect(run.sources.every((s) => s.type === "nis")).toBe(true);
     expect(run.documents).toEqual([]);
     expect(run.checks.find((c) => c.looks_for === "lab_result")?.result).toBe("found");
-    expect(run.checks.some((c) => c.result === "nothing_found")).toBe(false);
+    // No fact kind says "nothing found" (the case rules' own checks, contradiction and chronology, are rule results
+    // over the facts, not statements about the documentation).
+    expect(run.checks.some((c) => (FACT_KINDS as readonly string[]).includes(c.looks_for) && c.result === "nothing_found")).toBe(false);
     // S01's PET/CT request stays requested with no result through the merge.
     expect(run.facts.find((f) => f.kind === "request" && f.value.what === "PET/CT s 18F-FET")).toMatchObject({ status: "requested", value: { result_fact: null } });
   });
@@ -119,6 +123,27 @@ describe("NIS import into the case run", () => {
     expect((await currentRun()).run.facts).toEqual([]);
     const two = await one<{ r2_key: string }>("SELECT r2_key FROM extraction_runs WHERE org_id = 'demo-b' AND case_id = 'B-NO-2' AND is_current = 1");
     expect(((await (await env.DOCS.get(two.r2_key))!.json()) as ExtractionRun).facts).toEqual([]);
+  });
+
+  it("never stores NIS facts composed before an unlink or relink", async () => {
+    await importAndMerge();
+    const c = await composeCaseRun(env, "demo-b", "B-NO-A");
+    expect("run" in c && c.nis_import).toBeTruthy();
+    // Relinked in between (a new link has a new time): the store step refuses the composed run as stale.
+    await env.DB.prepare("UPDATE patient_nis_links SET at = '2026-10-19T23:00:00.000Z' WHERE org_id = 'demo-b'").run();
+    const who = await actorFor(env.DB, "demo-b", "b-doc", "demo");
+    await expect(storeCaseRun(env, "demo-b", "B-NO-A", who, c as Exclude<typeof c, { result: string }>)).rejects.toMatchObject({ code: "run_stale" });
+  });
+
+  it("serves an earlier run's NIS fact only while the link that run took it by is the patient's", async () => {
+    await importAndMerge();
+    const row = await one<{ id: string; r2_key: string }>("SELECT id, r2_key FROM extraction_runs WHERE org_id = 'demo-b' AND case_id = 'B-NO-A' AND is_current = 1");
+    const run = (await (await env.DOCS.get(row.r2_key))!.json()) as ExtractionRun;
+    const fact = run.facts.find((f) => f.origin === "nis")!;
+    const earlier = (u = "b-doc") => call(`/api/cases/B-NO-A/runs/${row.id}/facts/${fact.id}`, { headers: { "x-demo-user": u } }, nisEnv());
+    expect((await earlier()).status).toBe(200);
+    await env.DB.prepare("UPDATE patient_nis_links SET nis_patient_id = 'cb-s02', at = '2026-10-19T23:00:00.000Z' WHERE org_id = 'demo-b'").run();
+    expect((await earlier()).status).toBe(404);
   });
 
   it("is refused on a closed case", async () => {

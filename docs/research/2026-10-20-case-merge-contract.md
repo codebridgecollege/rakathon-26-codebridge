@@ -99,10 +99,16 @@ records of one case end up in one run, and confirmations carry over across both.
   record the state names, by the same link (its time), in the NIS configured now. Otherwise it is left out and the
   merge logs `nis_excluded` with a code (`not_linked`, `other_record`, `other_nis`, `no_nis_config`, `bad_import`):
   removing the org's NIS config or changing its URL takes the NIS facts out at the next merge.
+- **Compose, brief, store.** `composeCaseRun` adds the NIS fragment and records in the draft which import it used
+  (`nis_import`) and by which link (`nis_link`: NIS patient ID and the link's time). `stillFits` (before the brief)
+  calls `nisFragmentFor` again and treats a different import or an excluded one as stale; `storeCaseRun` adds a guard
+  to its batch that the patient is still linked by that very link, so an unlink or relink at any point before the
+  commit never stores the old record's facts. The stored run records the link in `input_hashes_json` (`"nis":
+  "<NIS patient id>|<link time>"`).
 - **Unlinking.** The link is the patient's, the import is per case: unlinking deletes the import of every case of the
   patient and starts the merge for each. Until a merge has run, `GET /cases/:id/extraction` already leaves out the NIS
-  facts of a patient who is no longer linked to their record (`withoutNis`), so a wrong record's values leave the
-  screen at once.
+  facts of a run whose recorded link is no longer the patient's (`withoutNis`), so a wrong record's values leave the
+  screen at once; the earlier-run fact route judges an older run by its own recorded link the same way.
 - **Checks.** A kind the NIS holds facts of is found, from the facts themselves (also when its pull of that kind was
   cut off, so "nothing found" never sits next to a NIS value). Otherwise the kind is left to the documents: the NIS is
   no document, so it neither makes "nothing found in every document" into "not run" nor the reverse, and a run of the
