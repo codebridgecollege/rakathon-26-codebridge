@@ -3,16 +3,21 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "Pure case rules shared by the API Worker and the Nuxt app: status moves, slots, approval checks, task drafts, FHIR referral import, fact edits.",
+  "description": "Pure case rules shared by the API Worker and the Nuxt app: status moves, slots, approval checks, task drafts, FHIR referral import, fact edits, and the extraction format codebridge.extraction/2 (types, schema, keys, matcher, validator).",
   "exports": {
     "./*": "./src/*.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit -p tsconfig.json",
-    "test": "vitest run"
+    "test": "vitest run",
+    "schema": "node scripts/extraction-schema.mjs"
   },
   "devDependencies": {
+    "ts-json-schema-generator": "2.9.0",
     "typescript": "5.9.3",
     "vitest": "4.1.11"
+  },
+  "dependencies": {
+    "@cfworker/json-schema": "4.1.1"
   }
 }
