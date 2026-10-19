@@ -273,19 +273,21 @@ export function questionBasisRows(run: ExtractionRun, fileOf: (documentId: strin
 
 /**
  * Queues the run's drafted MDT question onto the case (cases.question_draft, shown as a draft until a doctor confirms
- * it). Only for a case whose referral states no question, and never over a draft a doctor has confirmed: new documents
- * may update a draft, never confirmed content (CLAUDE.md). A run without a draft leaves the case as it is.
+ * it). Only for a case whose referral states no question, never over a draft a doctor has confirmed and never under a
+ * question a doctor has edited (fact_edits key "q"): new documents may update a draft, never what a doctor confirmed or
+ * wrote (CLAUDE.md). A run without a draft clears the earlier unconfirmed draft, so a question that rests on documents
+ * since read differently does not stay on the case.
  */
 export function queueQuestionDraft(t: Tx, run: ExtractionRun, fileOf: (documentId: string) => string): void {
   const d = run.question_draft;
-  if (!d) return;
   t.run(
     `UPDATE cases SET question_draft = ?2, question_kind = ?3, question_basis_json = ?4
      WHERE org_id = ?org AND id = ?1 AND question_explicit = 0
-       AND NOT EXISTS (SELECT 1 FROM question_confirmations q WHERE q.org_id = cases.org_id AND q.case_id = cases.id AND q.text = cases.question_draft)`,
+       AND NOT EXISTS (SELECT 1 FROM question_confirmations q WHERE q.org_id = cases.org_id AND q.case_id = cases.id AND q.text = cases.question_draft)
+       AND NOT EXISTS (SELECT 1 FROM fact_edits e WHERE e.org_id = cases.org_id AND e.case_id = cases.id AND e.key = 'q')`,
     run.case_id,
-    d.text,
-    d.question_kind,
-    JSON.stringify(questionBasisRows(run, fileOf)),
+    d?.text ?? null,
+    d?.question_kind ?? null,
+    d ? JSON.stringify(questionBasisRows(run, fileOf)) : null,
   );
 }

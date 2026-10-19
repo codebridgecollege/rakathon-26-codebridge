@@ -191,6 +191,11 @@ MESSAGES: dict[str, dict[str, str]] = {
         "sk": "Zhrnutie uvádza len overené údaje; údaje na overenie v ňom nie sú, počet: { $count }",
         "en": "The summary states verified items only; items to verify are not in it, count: { $count }",
     },
+    "alert-brief-sentences-dropped": {
+        "cs": "Ze shrnutí vypuštěny věty, které uvedená fakta nedoložila, počet: { $count }",
+        "sk": "Zo zhrnutia vypustené vety, ktoré uvedené fakty nedoložili, počet: { $count }",
+        "en": "Sentences the cited items did not back were left out of the summary, count: { $count }",
+    },
     # Rules the fixtures do not raise but the pipeline and the identity check do (pipeline/eval.py, the validator
     # tests): a poorly readable document, and a page that shows another patient. The identity message names only the
     # document and the page, never what the page says.

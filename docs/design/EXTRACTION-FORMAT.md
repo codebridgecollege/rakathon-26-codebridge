@@ -470,19 +470,35 @@ verified facts:
 - of the patient, not quarantined;
 - not replaced by a newer fact of the same slot;
 - of the kinds diagnosis, histology, stage, metastasis, procedure, therapies, imaging, performance status,
-  prognostic score, adverse event, request, decision and plan.
+  prognostic score, adverse event, request, decision and plan;
+- not an undated plan or planned item: it may come from an older report and be done by now. An undated request
+  stays.
 
 It sees them through the one model interface (pseudonymization, the identifier gate, the audit, the budget, the
 cache), one part per source document, under short references (`[F1]`) instead of fact IDs. `acceptBrief` checks
 every sentence against the facts it names:
 - dates, numbers, negations and sides with the backing check;
-- drug names by their INN endings;
+- each negation word, and each negating verb ("neprokázala", "nepotvrdila"), must be in the cited facts' own words,
+  not just in some other negated fact;
+- drug names by their INN endings, and abbreviations of three or more capitals (except "MDT");
+- no gap wording ("neuvedeno", "neprovedeno", "chybí"): gaps have their own alerts;
+- the frame of the facts:
+  - a suspected finding says "susp."/"podezření" and is not called confirmed;
+  - a sentence over requests or plans says so and does not call them done;
+  - a stage keeps its kind (clinical, pathological), and a stage at diagnosis is never called current;
 - no unknown reference and no pseudonymization placeholder.
 
-It drops what fails and never repairs it. A brief with no sentence left is `null`. When the brief leaves out facts
-of its kinds that are not verified, the alert `brief_unverified_withheld` (kind `unclear`) lists them with their count,
-so a brief that cannot state an unverified key finding never reads as complete. With no model configured, the run has
-no brief and no such alert.
+It drops what fails and never repairs it. A brief with no sentence left is `null`. Two alerts (kind `unclear`) keep a
+partial brief from reading as complete:
+- `brief_unverified_withheld` lists the facts of its kinds that are not verified, findings first;
+- `brief_sentences_dropped` gives the count of dropped sentences and the facts they named.
+
+Each alert's subject names its set of facts, so a newly withheld finding is a new alert that no earlier
+acknowledgement covers. Without a brief (no model, no verified fact, or a refusal a retry cannot change, such as the
+budget), the run is stored with neither alert.
+
+Known limit: a date or dose is checked against all of the sentence's facts together. So a sentence that names two
+therapies with their start dates swapped still passes.
 
 ## Composed views
 
@@ -579,10 +595,13 @@ It stays labelled as a draft until a doctor confirms or edits it. The
 confirmation is stored in D1 (`question_confirmations`), as today.
 
 `composeBrief` asks the model for a question only when the referral states none (`draftQuestion`). The question
-passes the same checks as a brief sentence against its basis facts and must end with a question mark. The question
+passes the same checks as a brief sentence against its basis facts, except the status and certainty words, since it
+asks rather than states. It must end with a question mark. It must not propose an answer or a treatment ("indikován",
+"zahájit", "navýšit", "ukončit", "souhlasí", "..., že?"). Its `question_kind` and basis roles must be from their lists. The question
 box reads the case row, so the case merge copies the draft there with `queueQuestionDraft` (`api/src/store/runs.ts`):
 - only for a case without an explicit question;
-- never over a draft a doctor has confirmed;
+- never over a draft a doctor has confirmed, nor under a question a doctor has edited (`fact_edits` key `q`);
+- a run without a draft clears the earlier unconfirmed draft;
 - with the basis as quotes of the basis facts' first document passages.
 
 ## How the case view uses it

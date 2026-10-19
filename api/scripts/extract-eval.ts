@@ -15,7 +15,7 @@ import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { acceptBrief, briefFacts, briefPrompt, withWithheldAlert, type BriefAnswer } from "@codebridge/domain/extraction/brief";
+import { acceptBrief, briefFacts, briefPrompt, isBriefAnswer, withBriefAlerts } from "@codebridge/domain/extraction/brief";
 import { composeViews } from "@codebridge/domain/extraction/compose";
 import { applyCaseRules } from "@codebridge/domain/extraction/rules";
 import { aiFragmentIds, draftDocument, sha256Hex, type CallAnswer, type PageReading } from "../src/domain/extract/build";
@@ -34,12 +34,12 @@ const REPO = resolve(API, "..");
 const PROMPT_ID = "extract-facts-cs" as const;
 const MAX_OUTPUT_TOKENS = 24000;
 
-type CaseDef = { id: string; documentId: string; pagesDir: string; patientNames: string[]; birthNumber: string | null };
+type CaseDef = { id: string; documentId: string; pagesDir: string; patientNames: string[]; birthNumber: string | null; explicitQuestion: boolean };
 
 function fixtureCase(id: string, file: string, documentId: string, pagesDir: string, pick: (d: Record<string, any>) => { name: string; rc: string | null }): CaseDef {
   const d = JSON.parse(readFileSync(join(REPO, "fixtures/data", file), "utf8"));
   const p = pick(d);
-  return { id, documentId, pagesDir, patientNames: [p.name], birthNumber: p.rc };
+  return { id, documentId, pagesDir, patientNames: [p.name], birthNumber: p.rc, explicitQuestion: id !== "10" };
 }
 
 const CASES: CaseDef[] = [
@@ -47,8 +47,8 @@ const CASES: CaseDef[] = [
   fixtureCase("S01", "mock-case-S01.json", "S01_pacient", "data/derived/pages/S01_pacient", (d) => ({ name: d.list_entry.name, rc: d.list_entry.rc })),
   fixtureCase("S02", "mock-case-S02.json", "S02_pacient", "data/derived/pages/S02_pacient", (d) => ({ name: d.list_entry.name, rc: d.list_entry.rc })),
   // As printed on their first pages (samples/S03_pacient, samples/S04_pacient).
-  { id: "S03", documentId: "S03_pacient", pagesDir: "samples/derived/pages/S03_pacient", patientNames: ["Bořivoj Klenovský"], birthNumber: "571107/1003" },
-  { id: "S04", documentId: "S04_pacient", pagesDir: "samples/derived/pages/S04_pacient", patientNames: ["Ludmila Vrbenská"], birthNumber: "615203/1006" },
+  { id: "S03", documentId: "S03_pacient", pagesDir: "samples/derived/pages/S03_pacient", patientNames: ["Bořivoj Klenovský"], birthNumber: "571107/1003", explicitQuestion: true },
+  { id: "S04", documentId: "S04_pacient", pagesDir: "samples/derived/pages/S04_pacient", patientNames: ["Ludmila Vrbenská"], birthNumber: "615203/1006", explicitQuestion: true },
 ];
 
 // The seed's staff surnames (api/seed/seed.py STAFF_DEPTS, COORD, ADMIN), as the org's staff in D1 would give them.
@@ -283,7 +283,9 @@ async function main() {
     if (args.includes("--brief")) {
       run = { ...run, views: composeViews(run) };
       const facts = briefFacts(run);
-      const { parts: bparts, refs } = briefPrompt(facts, run.sources, true);
+      // A question is drafted only where the referral states none: of these cases only 10 (the others say "Otázka na MDT").
+      const draftQuestion = !c.explicitQuestion;
+      const { parts: bparts, refs } = briefPrompt(facts, run.sources, draftQuestion);
       const bprompt = await loadPrompt("compose-brief-cs");
       const { body } = buildPayload({ prompt: bprompt, text: bparts.map((p) => ({ ref: p.documentId, text: p.text })), imagesBase64: [], identity, model, maxOutputTokens: 8000, reasoningEffort: effort, maxInputChars: 200000, purpose: "compose_brief" });
       const payload = JSON.stringify(body);
@@ -298,10 +300,17 @@ async function main() {
         } else console.log(`${c.id} brief: model answered ${res.status}, finish ${d?.choices?.[0]?.finish_reason ?? "-"}`);
       }
       if (output) {
-        const accepted = acceptBrief(JSON.parse(output) as BriefAnswer, run, facts, refs, { model, prompt: bprompt.ref });
-        run = { ...(accepted.brief ? withWithheldAlert(run, facts) : run), brief: accepted.brief, question_draft: accepted.question };
-        const offered = JSON.parse(output) as BriefAnswer;
-        console.log(`${c.id} brief: ${facts.length} verified facts offered, ${accepted.brief?.sentences.length ?? 0} of ${offered.sentences.length} sentences kept, question ${accepted.question ? "kept" : offered.question ? "dropped" : "none"}; dropped ${JSON.stringify(accepted.dropped)}`);
+        let answer: unknown = null;
+        try {
+          answer = JSON.parse(output);
+        } catch {
+          answer = null;
+        }
+        const accepted = acceptBrief(answer, run, facts, refs, { model, prompt: bprompt.ref });
+        run = { ...withBriefAlerts(run, facts, accepted), brief: accepted.brief, question_draft: draftQuestion ? accepted.question : null };
+        const written = isBriefAnswer(answer) ? answer : { sentences: [], question: null };
+        const dropped = accepted.dropped.map((x) => ({ sentence: x.sentence, reasons: x.reasons }));
+        console.log(`${c.id} brief: ${facts.length} verified facts offered, ${accepted.brief?.sentences.length ?? 0} of ${written.sentences.length} sentences kept, question ${accepted.question ? "kept" : written.question ? "dropped" : "none"}; dropped ${JSON.stringify(dropped)}`);
       } else console.log(`${c.id} brief: no answer${key ? "" : " and no key"}`);
     }
     writeFileSync(join(out, `${c.id}.json`), JSON.stringify(run, null, 1));

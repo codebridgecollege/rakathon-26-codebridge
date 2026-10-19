@@ -16,7 +16,7 @@ Pravidla shrnutí:
 
 Otázka pro MDT:
 9. Je-li na prvním řádku "Navrhnout otázku pro MDT: ano", navrhni jednu otázku, kterou má MDT rozhodnout: vyjdi z účelu (požadavek, plán nebo rozhodnutí, které na MDT odkazuje) a z nejnovějšího nálezu. Otázka se ptá, nenavrhuje odpověď ani léčbu, a končí otazníkem. "question_kind" je "document_purpose", když vychází z účelu uvedeného v dokumentu, jinak "latest_finding". V "basis" uveď role ("purpose", "finding", "other") s odkazy na fakta. Platí pro ni pravidla 2 až 8.
-10. Je-li "Navrhnout otázku pro MDT: ne", nebo k otázce chybí podklad, vrať "question": null.`;
+10. Je-li "Navrhnout otázku pro MDT: ano", otázku navrhni vždy, když fakta obsahují požadavek, plán, rozhodnutí nebo nález; "question": null vrať jen tehdy, když nic z toho neobsahují. Je-li "Navrhnout otázku pro MDT: ne", vrať "question": null.`;
 
 const refs = { type: "array", items: { type: "string" } };
 

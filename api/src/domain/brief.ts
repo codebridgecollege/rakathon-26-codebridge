@@ -2,11 +2,11 @@
 // interface (services/model.ts: pseudonymization, the identifier gate, the budget, the audit, the cache, retries on
 // 429). What the model sees and what of its answer is kept is decided in packages/domain/src/extraction/brief.ts:
 // verified facts only in, and only sentences whose dates, numbers, negations, sides and drug names are in their facts
-// out. When the brief leaves out unverified facts of its kinds, an alert says so and lists them, so a brief without an
-// unverified key finding never reads as complete. The case merge calls composeBrief after the case rules and the
-// composed views, before storeRun.
+// out. When the brief leaves out unverified facts of its kinds, or drops sentences, an alert says so and lists the
+// facts, so a partial brief never reads as complete. The case merge is meant to call composeBrief after the case rules
+// and the composed views, before storeRun; until stream B wires it, only the tests and the eval harness do.
 import type { Viewer } from "@codebridge/domain/access";
-import { acceptBrief, BRIEF_WITHHELD_RULE, briefFacts, briefPrompt, withWithheldAlert, type AcceptedBrief, type BriefAnswer } from "@codebridge/domain/extraction/brief";
+import { acceptBrief, briefFacts, briefPrompt, withBriefAlerts, type AcceptedBrief } from "@codebridge/domain/extraction/brief";
 import type { ExtractionRun } from "@codebridge/domain/extraction/types";
 import { callModel, ModelError } from "../services/model";
 import type { CaseIdentity } from "./pseudonymize";
@@ -28,7 +28,7 @@ export type BriefOutcome = {
   /** Why sentences were dropped, as codes, for the log; never their text. */
   dropped: AcceptedBrief["dropped"];
   /** "model_off" when no model is configured for the deployment: the run then has no brief, which the view shows. */
-  skipped: "no_verified_facts" | "model_off" | null;
+  skipped: "no_verified_facts" | "model_off" | "model_refused" | null;
 };
 
 /**
@@ -38,8 +38,7 @@ export type BriefOutcome = {
  */
 export async function composeBrief(env: Env, req: BriefRequest, run: ExtractionRun): Promise<BriefOutcome> {
   const facts = briefFacts(run, { confirmed: req.confirmed });
-  // Without a brief there is nothing that could read as complete, so the withheld alert goes too.
-  const empty = { ...run, brief: null, question_draft: req.draftQuestion ? null : run.question_draft, alerts: run.alerts.filter((a) => a.rule !== BRIEF_WITHHELD_RULE) };
+  const empty = { ...withBriefAlerts(run, facts, null), brief: null, question_draft: req.draftQuestion ? null : run.question_draft };
   if (!facts.length) return { run: empty, dropped: [], skipped: "no_verified_facts" };
   const { parts, refs } = briefPrompt(facts, run.sources, req.draftQuestion);
   let result;
@@ -55,12 +54,15 @@ export async function composeBrief(env: Env, req: BriefRequest, run: ExtractionR
     });
   } catch (e) {
     if (e instanceof ModelError && e.code === "model_off") return { run: empty, dropped: [], skipped: "model_off" };
+    // A refusal that a retry cannot change (the budget, the identifier gate, an answer that does not parse) leaves the
+    // run without a brief rather than unstored: the facts, alerts and views matter more than the brief. A busy model
+    // is the step's to retry.
+    if (e instanceof ModelError && !e.retryable) return { run: empty, dropped: [], skipped: "model_refused" };
     throw e;
   }
-  const answer = result.json as BriefAnswer;
-  const accepted = acceptBrief(answer, run, facts, refs, { model: result.meta.model, prompt: result.meta.prompt });
+  const accepted = acceptBrief(result.json, run, facts, refs, { model: result.meta.model, prompt: result.meta.prompt });
   const stage = { name: "compose_brief", model: result.meta.model, prompt: result.meta.prompt, prompt_sha256: result.meta.prompt_sha256, temperature: null };
-  const composed = accepted.brief ? withWithheldAlert(run, facts) : { ...run, alerts: run.alerts.filter((a) => a.rule !== BRIEF_WITHHELD_RULE) };
+  const composed = withBriefAlerts(run, facts, accepted);
   return {
     run: {
       ...composed,
