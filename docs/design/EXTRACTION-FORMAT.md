@@ -516,22 +516,32 @@ diagnoses and the 16 timeline cards this way (`fixtures/convert/case10_v2.py`,
 `ONCO_LINES`, `TIMELINE_CARDS`, `OTHER_DX`).
 
 A pipeline run gets its `onco_lines` and `timeline` from `composeViews`
-(`packages/domain/src/extraction/compose.ts`), which the merge step calls
-after the case rules. It is deterministic and words each line only from its
-facts' own values, joined by "od", "do", "dále", "histologie:", "toxicita:"
-and "důvod ukončení:". One line per event:
-- a treatment line with its later dose changes, its stop and the adverse
-  events related to it (same first drug, the same combination or single
-  drug, the same line number). A stopped line without a stop date gets the
-  note "Datum ukončení neuvedeno v dostupné dokumentaci.";
-- a procedure with the histology of the same day;
-- an imaging exam or a procedure with the metastasis findings of the same day
-  at a site its words name.
+(`packages/domain/src/extraction/compose.ts`). The case merge is meant to call
+it after the case rules; until stream B wires it, only the tests and the eval
+harness do. It is deterministic and words each line only from its facts' own
+values, joined by "od", "do", "dále", "histologie:", "toxicita:" and "důvod
+ukončení:". One line per event:
+- a treatment line with its later dose changes and its stop: the same drugs
+  (drug names recognised by their INN endings), the same combination or
+  single drug, the same line number when both give one, dated before the
+  line's documented stop. An undated statement that could belong to two lines
+  stays on its own;
+- the adverse events related to exactly that therapy and dated within it;
+- a procedure with the same-day histology whose specimen it names;
+- an imaging exam or a procedure with the same-day metastasis findings at a
+  site its words name.
 
-Anything else stands on its own line. A recorded negative whose words hold
-no negation reads "(negativní nález)", the view's own label. A fact that a
-newer one of the same slot replaces (`supersededFacts`) keeps its line, with
-the note "Novější údaj téhož druhu z <date>." `other_diagnoses` is not
+A planned or requested fact never shares a line with what was done. Anything
+else stands on its own line. Labels keep the documents' status:
+- a recorded negative whose words hold no negation reads "(negativní nález)",
+  the view's own label;
+- a suspected metastasis reads "suspektní metastáza: <site>";
+- a suspected diagnosis reads "(podezření)".
+
+A stopped line without a stop date gets the note "Datum ukončení neuvedeno v
+dostupné dokumentaci."; an interrupted one does not. A line whose event
+`supersededFacts` replaces gets the note "Novější údaj téhož druhu z <date>.",
+and the facts' own notes stay in the line's note. `other_diagnoses` is not
 composed, so the view lists those diagnoses fact by fact.
 
 ## The drafted MDT question
