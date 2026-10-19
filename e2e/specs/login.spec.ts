@@ -142,14 +142,20 @@ test("a lost session with an unsaved draft keeps the page, logs in in a second w
   await expect(d.conclusion).toHaveValue(text);
 });
 
-test("an org B doctor logged in sees only org B's patient, and an org A case address leads back to the list", async ({ app, page }) => {
+// Org B may hold no patients at all (the team fills it), so the checks only need the list to have rendered: a row, or
+// the empty list's own row.
+test("an org B doctor logged in sees none of org A's patients, and an org A case address leads back to the list", async ({ app, page }) => {
   await page.goto("patients");
   await logInAtIdp(page, DOCTOR_B);
   await expect(account(page, "MUDr. Vlčková")).toBeVisible();
-  await expect(app.patientRow("Křemínek Radovan")).toHaveCount(1);
-  await expect(app.patientRows()).toHaveCount(1);
-  await expect(app.patientRow("Poláček Daniel")).toHaveCount(0);
+  await expect(app.main.getByRole("heading", { level: 1, name: "Databáze pacientů" })).toBeVisible();
+  await expect(app.patientRows().first()).toBeVisible();
+  for (const name of ["Poláček Daniel", "Palajová Martina"]) await expect(app.patientRow(name)).toHaveCount(0);
+  await account(page, "MUDr. Vlčková").click();
+  await expect(menu(page)).toContainText("Ukázková nemocnice B");
+  await page.keyboard.press("Escape");
   await page.goto(new URL("patient/10/overview", OIDC!).href);
-  await expect(app.patientRow("Křemínek Radovan")).toBeVisible();
+  await expect(app.main.getByRole("heading", { level: 1, name: "Databáze pacientů" })).toBeVisible();
+  await expect(app.patientRows().first()).toBeVisible();
   await expect(app.main.getByRole("heading", { level: 1, name: /Poláček/ })).toHaveCount(0);
 });
