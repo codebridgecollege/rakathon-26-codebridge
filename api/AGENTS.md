@@ -600,9 +600,21 @@ structured data comes next. Test server and test data: [`fhir/nis/README.md`](..
   `DocumentReference`) by the NIS patient ID, with `_lastUpdated=ge<instant>` (the newest `meta.lastUpdated` seen) to
   ask what changed; up to 40 pages and 2000 records per type, a truncated type is reported, 120 s per pull. Records
   that are not about this patient are dropped and counted (`foreign`), duplicates once. One access-log row per pull
-  ("načítal(a) zdravotní záznam pacienta z NIS"), written by the caller's `onPull`; no route calls it yet.
+  ("načítal(a) zdravotní záznam pacienta z NIS"), written by the caller's `onPull`; the import route below calls it.
   `packages/domain/src/nis-map.ts` turns the resources into a codebridge.extraction/2 run with producer `nis`
-  (EXTRACTION-FORMAT.md, "The NIS producer"). Storing that run waits for `extraction_runs.producer` to allow `nis`.
+  (EXTRACTION-FORMAT.md, "The NIS producer"); the case merge stores it (next item).
+- **Import into the case run** (phase 2b): `POST /cases/:id/nis/import` (action `nis.link`; orgs in `PIPELINE_ORGS`
+  only, else 409 `nis_merge_off`; not on a closed or approved case, 409 `case_locked`) maps the linked patient's record
+  into the case's NIS import, one R2 object holding the fragment and its state (`org/<org>/nis/<case>/import.json`,
+  `src/store/nis.ts`), and starts ProcessCase, which composes it with the documents (`src/store/case-merge.ts`;
+  docs/research/2026-10-20-case-merge-contract.md, "The NIS fragment"). Called again it refreshes (it pulls everything
+  only when the NIS shows an unread record version, a pull was cut off, or the last full pull is a day old) and always
+  starts the merge. Unlinking deletes the import of every case of the patient and recomposes each; until then
+  `GET /cases/:id/extraction` already leaves out NIS facts of a patient no longer linked to their record
+  (`withoutNis`). A merge that leaves an import out logs `nis_excluded` with a code. reset-demo deletes `nis/` with the
+  org's other transient objects. The Workflows see org B's test NIS through `api/vitest.config.ts`; routes take theirs
+  from `testEnv`.
 - **Tests.** `test/nis.test.ts` runs the connector and the routes against `fhir/nis/memory-server.ts` loaded with the
   test Bundles (no PDF bytes); `test/nis-map.test.ts` pulls S01, S02, case 10 and F01-F04 and checks the runs, with
-  S01's and S02's lab values against their prepared fixtures; `test/orgs.test.ts` probes the four routes from org B.
+  S01's and S02's lab values against their prepared fixtures; `test/nis-merge.test.ts` imports, refreshes and unlinks through the case merge; `test/orgs.test.ts` probes the NIS
+  routes from org B.

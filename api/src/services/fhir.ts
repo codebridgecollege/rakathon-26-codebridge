@@ -96,7 +96,7 @@ export function nisConfigured(env: Env, org: string): boolean {
   }
 }
 
-export type Pull = { op: "search" | "read" | "record" | "view"; resource: string };
+export type Pull = { op: "search" | "read" | "record" | "record_changes" | "view"; resource: string };
 
 // Backend-services tokens per isolate, until shortly before they expire. Keyed by org and client, never by user.
 const tokens = new Map<string, { token: string; until: number }>();
@@ -308,11 +308,11 @@ export class NisClient {
   // meta.lastUpdated it saw, the NIS's own clock, and "ge" so a record of the same instant is not missed. A refresh
   // that finds changes pulls the whole record again, which is also how a deleted record disappears. One access-log row
   // covers the whole pull; each type has the record limits (RECORD_LIMITS) and a truncated type is reported.
-  async patientRecord(nisPatientId: string, since: string | null = null): Promise<{ resources: R[]; truncated: string[]; foreign: number }> {
+  async patientRecord(nisPatientId: string, since: string | null = null, op: "record" | "record_changes" = "record"): Promise<{ resources: R[]; truncated: string[]; foreign: number }> {
     if (!FHIR_ID.test(nisPatientId)) throw E.badRequest();
     if (since !== null && !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2})$/.test(since)) throw E.badRequest();
     this.begin(RECORD_DEADLINE_MS);
-    await this.onPull({ op: "record", resource: "Patient" });
+    await this.onPull({ op, resource: "Patient" });
     const resources: R[] = [];
     const truncated: string[] = [];
     const seen = new Set<string>();

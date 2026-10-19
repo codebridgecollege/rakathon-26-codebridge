@@ -1,5 +1,6 @@
 // The case merge (ProcessCase; docs/research/2026-10-20-case-merge-contract.md): the latest fragment of every producer
-// for every current document of a case becomes one stored codebridge.extraction/2 run with producer "pipeline", so a
+// for every current document of a case, and the case's NIS import while its patient stays linked to that record, become
+// one stored codebridge.extraction/2 run (producer "pipeline", or "nis" when only the NIS import is in it), so a
 // new patient's case view shows its documents, lab values and alerts without any AI. Called by ProcessCaseWorkflow,
 // which every finished document run (and a withdraw) starts; it always composes what exists, so it is idempotent, and
 // a run stored in between (run_stale) makes the Workflow compose again.
@@ -11,6 +12,9 @@ import { orgStmt } from "./sql";
 import { Tx } from "./write";
 import { sha256Hex } from "./work";
 import type { Viewer } from "@codebridge/domain/access";
+import { nisFragmentFor } from "./nis";
+import { D } from "@codebridge/domain/errors";
+import { nisConfig } from "../services/fhir";
 
 export type MergeResult = { result: "stored" | "other_producer" | "nothing"; documents: number; facts: number; run_id: string | null };
 
@@ -71,20 +75,34 @@ function heldBack(f: Fragment): Fragment {
   };
 }
 
-/** A composed, prepared run ready to store, with what storing it needs. */
-export type ComposedRun = { run: ExtractionRun; stages: RunStage[] };
+/**
+ * A composed, prepared run ready to store, with what storing it needs. `nis_import`: the NIS import composed into it,
+ * or null; the store step checks it again, so an unlink or relink in between never stores the old record's facts.
+ */
+export type ComposedRun = { run: ExtractionRun; stages: RunStage[]; nis_import: string | null; nis_link: { nis_patient_id: string; at: string } | null };
+
+/** The NIS system configured for the org now, or null (a config that cannot be read leaves the NIS out). */
+export function configuredNis(env: Env, org: string): string | null {
+  try {
+    return nisConfig(env, org)?.base_url ?? null;
+  } catch {
+    return null;
+  }
+}
 
 /**
  * Composes the case's pipeline run from its documents' fragments and prepares it (fact IDs carried over), then runs the
  * case rules and the composed views (`rules`, stream E's withCaseRulesAndViews by default; on the prepared run, since
- * some rule subjects contain "|"). Leaves the case alone when its current run came from another producer (a prepared
- * fixture or the NIS import): combining producers is not built yet, and replacing their run would drop their facts.
+ * some rule subjects contain "|"). The case's NIS import joins while its patient stays linked to that record. Leaves the
+ * case alone when its current run came from a prepared fixture: combining with fixtures is not built, and replacing
+ * that run would drop its facts.
  * Only current uploads without prepared data count: a superseded or withdrawn document is never read again.
  */
 export async function composeCaseRun(env: Env, org: string, caseId: string, rules: CaseRules = withCaseRulesAndViews): Promise<ComposedRun | MergeResult> {
   const db = env.DB;
   const current = await currentRunRow(db, org, caseId);
-  if (current && current.producer !== "pipeline") return { result: "other_producer", documents: 0, facts: 0, run_id: null };
+  // A run of the documents, of the NIS import, or of both is the merge's own; a prepared fixture's is not.
+  if (current && current.producer !== "pipeline" && current.producer !== "nis") return { result: "other_producer", documents: 0, facts: 0, run_id: null };
   const docs = (
     await orgStmt(
       db,
@@ -102,16 +120,24 @@ export async function composeCaseRun(env: Env, org: string, caseId: string, rule
     // the document even when the fragment used here was written before it was known.
     fragments.push(...(d.identity === "conflicts" ? own.map(heldBack) : own));
   }
-  // Nothing to show and nothing shown: no run. A pipeline run whose documents all left the case is replaced by an
-  // empty one, so a withdrawn document's values do not stay on screen.
+  const docFragments = fragments.length > 0;
+  // The case's NIS import (issue #22), while its patient stays linked to the record it came from. One that no longer
+  // counts (unlinked, relinked, the NIS no longer configured) leaves its facts out; the log says why, in a code.
+  const { fragment: nis, excluded, link } = await nisFragmentFor(db, env.DOCS, org, caseId, configuredNis(env, org));
+  if (nis) fragments.push(nis);
+  if (excluded) console.log(JSON.stringify({ route: "case_merge", nis_excluded: excluded }));
+  // Nothing to show and nothing shown: no run. A run whose documents all left the case is replaced by an empty one, so
+  // a withdrawn document's values do not stay on screen.
   if (!fragments.length && !current) return { result: "nothing", documents: 0, facts: 0, run_id: null };
 
   const at = new Date().toISOString();
-  const runId = `pipeline-${caseId}-${(await sha256Hex(`${org}|${caseId}|${at}`)).slice(0, 8)}`;
+  // The producer composeFragments gives the run: "pipeline" with any document fragment, "nis" with the NIS alone.
+  const producer = docFragments || !nis ? "pipeline" : "nis";
+  const runId = `${producer}-${caseId}-${(await sha256Hex(`${org}|${caseId}|${at}`)).slice(0, 8)}`;
   const inputs = await matchInputs(db, env.DOCS, org, caseId);
   const draft = composeFragments(caseId, runId, at, fragments);
   const { run } = prepareRun(inputs, draft);
-  return { run: rules(run), stages: fragments.flatMap((f) => f.stages) };
+  return { run: rules(run), stages: fragments.flatMap((f) => f.stages), nis_import: nis?.pipeline_run ?? null, nis_link: link };
 }
 
 /**
@@ -126,9 +152,23 @@ export async function storeCaseRun(env: Env, org: string, caseId: string, who: V
   const modelStages = c.stages.filter((s) => s.model);
   const ai = modelStages.find((s) => s.name === "extract_facts") ?? modelStages[0];
   const t = new Tx(db, who, { requestId: null, epoch: null });
+  // A run with NIS facts is stored only while the patient is still linked to that record by that very link: an unlink
+  // or relink after composing makes the batch fail as stale, and the merge composes again without them.
+  if (c.nis_link)
+    t.guard(
+      "nis_link",
+      "(SELECT COUNT(*) FROM patient_nis_links l JOIN cases k ON k.patient_id = l.patient_id AND k.org_id = l.org_id WHERE k.org_id = ?org AND k.id = ? AND l.nis_patient_id = ? AND l.at = ?) = 1",
+      [caseId, c.nis_link.nis_patient_id, c.nis_link.at],
+      () => D.runStale(),
+    );
   const docIds = final.documents.map((d) => d.document_id);
   const stored = await storeRun(t, { db, docs: env.DOCS }, final, {
-    inputHashes: Object.fromEntries(final.documents.flatMap((d) => (d.sha256 ? [[d.document_id, d.sha256]] : []))),
+    // The documents read, and the NIS link the NIS facts came by ("nis": "<NIS patient id>|<link time>"), so a later
+    // read of this run can tell whether its NIS facts are still the linked patient's.
+    inputHashes: {
+      ...Object.fromEntries(final.documents.flatMap((d) => (d.sha256 ? [[d.document_id, d.sha256]] : []))),
+      ...(c.nis_link ? { nis: `${c.nis_link.nis_patient_id}|${c.nis_link.at}` } : {}),
+    },
     model: ai?.model ?? null,
     promptVersion: ai?.prompt ?? null,
     temperature: ai?.temperature ?? null,
@@ -147,11 +187,12 @@ export async function storeCaseRun(env: Env, org: string, caseId: string, who: V
   // explicit question, never over what a doctor confirmed or edited. Only when the brief step ran: a run made without
   // the model has no draft, and must not clear one made earlier.
   if (withQuestion) queueQuestionDraft(t, final, (doc) => `${doc}.pdf`);
-  // The case list's "nezpracováno" ends once the case has a run with documents.
-  t.run("UPDATE cases SET processing_level = ?1 WHERE org_id = ?org AND id = ?2 AND processing_level <> 'full'", docIds.length ? "partial" : "none", caseId);
+  // The case list's "nezpracováno" ends once the case has a run with documents or NIS records.
+  const withNis = c.nis_import !== null;
+  t.run("UPDATE cases SET processing_level = ?1 WHERE org_id = ?org AND id = ?2 AND processing_level <> 'full'", docIds.length || withNis ? "partial" : "none", caseId);
   t.audit({
     action: "case.pipeline_run",
-    what_cs: `sestaven přehled případu ze zpracovaných dokumentů (dokumentů: ${docIds.length}, údajů: ${final.facts.length})`,
+    what_cs: `sestaven přehled případu ze zpracovaných dokumentů${withNis ? " a ze záznamů v NIS" : ""} (dokumentů: ${docIds.length}, údajů: ${final.facts.length})`,
     case_id: caseId,
     target_type: "extraction_run",
     target_id: final.run.id,

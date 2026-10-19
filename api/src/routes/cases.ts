@@ -10,7 +10,8 @@ import type { EarlierFact, Extraction, ExtractionDocument } from "@codebridge/do
 import { FACT_ID_RE } from "@codebridge/domain/edits";
 import { D } from "@codebridge/domain/errors";
 import { orgQuery } from "./write-context";
-import { withoutDocuments, withoutQuarantined } from "../store/runs";
+import { withoutDocuments, withoutNis, withoutQuarantined } from "../store/runs";
+import { linkOfCase } from "../store/nis";
 
 const EMPTY_GUIDANCE = { guidelines: [], statements: [], pages: [], literature: [], queries: [], not_retrieved: [], prior_assessments: {} };
 
@@ -24,6 +25,20 @@ const isoDay = (s: string | undefined) => (s && /^\d{4}-\d{2}-\d{2}$/.test(s) ? 
 async function retiredOf(c: Context<AppEnv>, caseId: string): Promise<Set<string>> {
   const r = await orgQuery(c, "SELECT id FROM documents WHERE org_id = ?org AND case_id = ?1 AND lifecycle <> 'current'", caseId).all<{ id: string }>();
   return new Set(r.results.map((x) => x.id));
+}
+
+// NIS facts a run took by a link that is no longer the patient's (unlinked, or linked to another record) leave the view
+// at once, before the merge has composed the case again: they may be another person's. Each run records the link its
+// NIS facts came by (input_hashes_json "nis"), so an earlier run is judged by its own link, not by the current import.
+// Only runs the case merge composed carry NIS facts from an import (a prepared fixture's NIS sources are its own).
+async function withoutUnlinkedNis(c: Context<AppEnv>, id: string, runId: string, run: ExtractionRun): Promise<ExtractionRun> {
+  if (run.run.producer === "fixture" || !run.facts.some((f) => f.origin === "nis")) return run;
+  const [link, row] = await Promise.all([
+    linkOfCase(c.env.DB, c.var.viewer.org, id),
+    orgQuery(c, "SELECT json_extract(input_hashes_json, '$.nis') AS nis FROM extraction_runs WHERE org_id = ?org AND case_id = ?1 AND id = ?2", id, runId).first<{ nis: string | null }>(),
+  ]);
+  const current = !!link && !!row?.nis && row.nis === `${link.nis_patient_id}|${link.at}`;
+  return current ? run : withoutNis(run);
 }
 
 export const cases = new Hono<AppEnv>()
@@ -92,7 +107,7 @@ export const cases = new Hono<AppEnv>()
     if (!stored) throw E.dataUnavailable();
     // A document that left the case (withdrawn as another patient's) is gone from the view at once, before any newer
     // run exists.
-    return c.json<Extraction>({ case_id: id, processing: row.processing_level, run: info, data: withoutQuarantined(withoutDocuments(stored, await retiredOf(c, id))), documents });
+    return c.json<Extraction>({ case_id: id, processing: row.processing_level, run: info, data: withoutQuarantined(await withoutUnlinkedNis(c, id, run.id, withoutDocuments(stored, await retiredOf(c, id)))), documents });
   })
   // One fact as an earlier run of the case stated it: the value a doctor confirmed, shown next to the current one when
   // a later run gives the same fact ID another value (EXTRACTION-FORMAT.md, "Doctor confirmations and edits"). Only a
@@ -107,7 +122,7 @@ export const cases = new Hono<AppEnv>()
     const run = await orgQuery(c, "SELECT r2_key, schema FROM extraction_runs WHERE org_id = ?org AND case_id = ?1 AND id = ?2", id, runId).first<{ r2_key: string; schema: string }>();
     if (!run || run.schema !== EXTRACTION_SCHEMA) throw D.factNotFound();
     const stored = await c.var.stores.blobs.getJson<ExtractionRun>(run.r2_key);
-    const fact = stored ? withoutQuarantined(withoutDocuments(stored, await retiredOf(c, id))).facts.find((f) => f.id === factId) : undefined;
+    const fact = stored ? withoutQuarantined(await withoutUnlinkedNis(c, id, runId, withoutDocuments(stored, await retiredOf(c, id)))).facts.find((f) => f.id === factId) : undefined;
     if (!fact) throw D.factNotFound();
     // A fact the current run quarantines (its page shows another patient) is not served from an older run either.
     const cur = await c.var.stores.cases.currentRun(id);

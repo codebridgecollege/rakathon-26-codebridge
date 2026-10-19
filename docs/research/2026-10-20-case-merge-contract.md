@@ -81,3 +81,43 @@ B's document run starts ProcessCase. When the model is on for the org, B's docum
 `MODEL_*` is configured and `MODEL_ORGS` lists the org (`modelOn`). `MODEL_ORGS` is empty by default; real patients
 need FNO's clearance for any cloud model first. The first ProcessCase shows the no-AI view; the second adds the
 AI facts.
+
+## The NIS fragment (stream F, #22; built, for stream B to confirm)
+
+The NIS import (stream F) joins the same merge instead of storing a run of its own, so the documents and the NIS
+records of one case end up in one run, and confirmations carry over across both.
+
+- **One import per case, not per document.** `org/<org>/nis/<case>/import.json`, one object with the fragment and its
+  state, so two imports at once cannot leave a state naming one import next to the other's fragment. The fragment:
+  schema `codebridge.fragment/1`, `producer: "nis"`, `document_id: "nis"` (no document), `pipeline_run` the import's
+  ID, `parts: []`, no alerts, only "found" checks. A fact's `draft_id` is `nis:<Type>/<id>`, one per NIS record, so it
+  is stable across imports; sources are `nis` sources, facts have `origin: "nis"`. The state names the NIS record
+  (system, patient ID, the link's time), the newest `meta.lastUpdated`, every record version read (type, ID, version,
+  last update) and the types the pull cut off. Written by `POST /api/cases/:id/nis/import` from `nisFragment`
+  (packages/domain/src/nis-map.ts).
+- **When it counts.** `publishCaseRun` composes it only while the case's patient is linked (`patient_nis_links`) to the
+  record the state names, by the same link (its time), in the NIS configured now. Otherwise it is left out and the
+  merge logs `nis_excluded` with a code (`not_linked`, `other_record`, `other_nis`, `no_nis_config`, `bad_import`):
+  removing the org's NIS config or changing its URL takes the NIS facts out at the next merge.
+- **Unlinking.** The link is the patient's, the import is per case: unlinking deletes the import of every case of the
+  patient and starts the merge for each. Until a merge has run, `GET /cases/:id/extraction` already leaves out the NIS
+  facts of a patient who is no longer linked to their record (`withoutNis`), so a wrong record's values leave the
+  screen at once.
+- **Checks.** A kind the NIS holds facts of is found, from the facts themselves (also when its pull of that kind was
+  cut off, so "nothing found" never sits next to a NIS value). Otherwise the kind is left to the documents: the NIS is
+  no document, so it neither makes "nothing found in every document" into "not run" nor the reverse, and a run of the
+  NIS alone never says "nothing found" (EXTRACTION-FORMAT.md, "Decisions" 7).
+- **Documents and the run's producer.** The NIS fragment adds no entry to `run.documents`. The run's producer is
+  `pipeline` when any document fragment is in it, `nis` when only the NIS fragment is; the run ID starts with that
+  producer. `publishCaseRun` stores when the case's current run is absent or has producer `pipeline` or `nis`; a case
+  with a prepared fixture run is still left alone (combining with fixtures is not built).
+- **Gates.** The import runs only for orgs in `PIPELINE_ORGS` (the merge's own gate; 409 `nis_merge_off` elsewhere)
+  and not on a closed case or one with an approved conclusion (409 `case_locked`, as uploads).
+- **Refresh.** The same route asks the NIS for records changed at or after the newest update it saw (`ge`, the NIS's own
+  clock). It pulls the whole record again when a record version it did not read comes back, when the last pull or this
+  one was cut off, or when the last full pull is a day old: a record deleted in the NIS never comes back from a change
+  query, so it drops out at the latest with the next day's full pull. The merge is started on every call (it is
+  idempotent), so a merge whose start failed is retried by the next click.
+- **Known overlap.** A lab value both on an uploaded lab sheet and in the NIS is two facts (different sources, so
+  different keys), and the case view shows both points. Merging them needs a rule over facts (stream E) and is not
+  built.

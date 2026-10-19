@@ -47,6 +47,8 @@ export const D = {
   nisRecordTaken: err(409, "nis_record_taken", "Tento záznam v NIS je už propojen s jiným pacientem."),
   nisNotLinked: err(404, "nis_not_linked", "Pacient není propojen se záznamem v NIS."),
   nisRecordNotFound: err(404, "nis_record_not_found", "Tento záznam v NIS nebyl nalezen nebo nepatří k propojenému pacientovi."),
+  nisLocked: err(409, "case_locked", "Případ je uzavřený nebo má schválený závěr, import z NIS je uzamčen."),
+  nisMergeOff: err(409, "nis_merge_off", "V této organizaci se přehled případu ze záznamů zatím neskládá; import z NIS se neprovede."),
   // status and closing
   statusMoveNotAllowed: err(409, "status_move_not_allowed", "Tuto změnu stavu nelze provést."),
   statusChanged: err(409, "status_changed", "Stav případu mezitím změnil jiný uživatel."),

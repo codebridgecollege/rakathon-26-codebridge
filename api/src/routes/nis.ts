@@ -16,6 +16,11 @@ import { aboutPatient, isFhirId, NATIONAL_REGISTER_STUB, NisClient, nisConfig, R
 import { nisRecordFields } from "@codebridge/domain/nis-record";
 import { answer, caseFor, isoNow, label, orgQuery, tx } from "./write-context";
 import { openCase } from "./access-check";
+import { nisFragment } from "@codebridge/domain/nis-map";
+import { deleteNisImport, readNisImport, writeNisImport } from "../store/nis";
+import { uploadContext } from "../store/documents";
+import { pipelineListed } from "../services/page-reader";
+import { startCaseMerge } from "../workflows/process-case";
 
 type PatientRow = { id: string; full_name: string | null; birth_number: string | null };
 type LinkRow = { nis_system: string; nis_patient_id: string; nis_version: string | null; identity_check: string; by_name: string; at: string };
@@ -26,6 +31,7 @@ const PULL_CS: Record<Pull["op"], string> = {
   read: "otevřel(a) záznam pacienta v NIS",
   record: "načítal(a) zdravotní záznam pacienta z NIS",
   view: "otevřel(a) zdroj údaje v NIS (záznam z NIS)",
+  record_changes: "zjišťoval(a) změny záznamu pacienta v NIS",
 };
 const LINK_CS = {
   matches: "propojil(a) pacienta se záznamem v NIS (rodné číslo i jméno souhlasí)",
@@ -67,6 +73,14 @@ function searchedNumber(patient: PatientRow, typed: unknown): string {
   if (!n) throw D.nisBirthNumber();
   return n;
 }
+
+// A record version as the refresh compares them: type, ID, version and last update, so a change shows also on a
+// server that keeps no version IDs.
+const versionKey = (r: Record<string, any>) =>
+  `${r.resourceType}/${r.id}|${typeof r.meta?.versionId === "string" ? r.meta.versionId : ""}|${typeof r.meta?.lastUpdated === "string" ? r.meta.lastUpdated : ""}`;
+const INSTANT = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2})$/;
+// How old the last full pull may be before a refresh pulls everything again (a deleted record drops out only then).
+const FULL_PULL_MS = 24 * 3600 * 1000;
 
 const hasRowNumber = (p: PatientRow) => !!p.birth_number?.trim();
 
@@ -119,6 +133,54 @@ export const nis = new Hono<AppEnv>()
     const id = c.req.param("id");
     const { cfg, patient, link } = await context(c, id, "propojení s NIS");
     return c.json({ label_cs: cfg!.label_cs, has_birth_number: hasRowNumber(patient), link: linkOut(link), national_register: NATIONAL_REGISTER_STUB });
+  })
+  // Import (and refresh) of the linked patient's NIS record into the case view: the record is mapped into the case's
+  // NIS fragment, and the case merge composes it with the documents (store/case-merge.ts). Facts keep their IDs through
+  // the merge's matching, so a doctor's confirmations stay; a changed value shows under the same ID.
+  //
+  // A refresh asks what changed at or after the newest update it saw (the NIS's own clock, "ge"). It pulls the whole
+  // record again when a record version it did not read comes back, when the last pull or this one was cut off at the
+  // paging limit, or when the last full pull is older than FULL_PULL_MS: a record deleted in the NIS never comes back
+  // from a change query, so only a full pull lets it drop out. The merge is started either way (it is idempotent), so
+  // a merge whose start failed is retried by the next click.
+  .post("/cases/:id/nis/import", async (c) => {
+    const id = c.req.param("id");
+    const { cfg, link } = await context(c, id, "import z NIS");
+    if (!link) throw D.nisNotLinked();
+    const v = c.var.viewer;
+    // Only where the case merge runs: elsewhere nothing would show the import, and it is refused rather than stored
+    // where no one sees it.
+    if (!pipelineListed(c.env, v.org)) throw D.nisMergeOff();
+    // A closed case or one with an approved conclusion takes no new content, as for uploads.
+    const u = await uploadContext(c.env.DB, v.org, id);
+    if (!u || u.status === "closed" || u.approved) throw D.nisLocked();
+    const nis = client(c, cfg!, id);
+    const before = await readNisImport(c.env.DOCS, v.org, id);
+    const same = !!before && before.state.nis_system === cfg!.base_url && before.state.nis_patient_id === link.nis_patient_id && before.state.link_at === link.at;
+    let full = !same || !before?.state.newest_update || before.state.truncated.length > 0 || Date.now() - Date.parse(before.state.imported_at) > FULL_PULL_MS;
+    if (!full && before?.state.newest_update) {
+      const changed = await nis.patientRecord(link.nis_patient_id, before.state.newest_update, "record_changes");
+      const seen = new Set(before.state.read);
+      full = changed.truncated.length > 0 || changed.resources.some((r) => !seen.has(versionKey(r)));
+    }
+    let facts: number | null = null;
+    let truncated: string[] = [];
+    if (full) {
+      const rec = await nis.patientRecord(link.nis_patient_id);
+      const at = isoNow();
+      const importId = `nis-${id}-${at}`;
+      const { fragment } = nisFragment({ system: cfg!.base_url, resources: rec.resources, importId, truncated: rec.truncated });
+      // Only a well-formed instant becomes the next refresh's "since": the connector refuses anything else.
+      const newest = rec.resources.map((r) => (typeof r.meta?.lastUpdated === "string" ? r.meta.lastUpdated : "")).filter((x) => INSTANT.test(x)).sort().at(-1) ?? null;
+      await writeNisImport(c.env.DOCS, v.org, id, {
+        fragment,
+        state: { nis_system: cfg!.base_url, nis_patient_id: link.nis_patient_id, link_at: link.at, newest_update: newest, imported_at: at, import_id: importId, read: rec.resources.map(versionKey), truncated: rec.truncated },
+      });
+      facts = fragment.facts.length;
+      truncated = rec.truncated;
+    }
+    const started = await startCaseMerge(c.env, { org: v.org, caseId: id, by: v.id, byActor: v.actor?.id ?? null });
+    return answer(c, { changed: full, facts, truncated, merge_started: started });
   })
   .post("/cases/:id/nis/search", async (c) => {
     const id = c.req.param("id");
@@ -189,5 +251,14 @@ export const nis = new Hono<AppEnv>()
       .run("DELETE FROM patient_nis_links WHERE org_id = ?org AND patient_id = ?1", patient.id)
       .audit({ action: "nis.unlink", case_id: id, what_cs: "zrušil(a) propojení pacienta se záznamem v NIS", target_type: "nis_patient", target_id: link.nis_patient_id })
       .commit();
+    // The imported NIS facts leave every case of the patient with the link (the link is the patient's, the import is
+    // per case): each case's import goes, and the merge composes each case again. Until it has, the case view already
+    // leaves out NIS facts of an unlinked patient (routes/cases.ts, withoutUnlinkedNis).
+    const v = c.var.viewer;
+    const all = (await orgQuery(c, "SELECT id FROM cases WHERE org_id = ?org AND patient_id = ?1", patient.id).all<{ id: string }>()).results;
+    for (const k of all) {
+      await deleteNisImport(c.env.DOCS, v.org, k.id);
+      if (pipelineListed(c.env, v.org)) await startCaseMerge(c.env, { org: v.org, caseId: k.id, by: v.id, byActor: v.actor?.id ?? null });
+    }
     return answer(c, { link: null });
   });

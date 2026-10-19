@@ -61,7 +61,9 @@ export default defineConfig(async () => {
             // Step 6: the document Workflow calls the page reader here; the tests mock this host.
             PAGE_READER_URL: "https://page-reader.test",
             // Issue #22: no org has a NIS unless a test sets one.
-            NIS_CONFIG: "{}",
+            // Org B's NIS for the Workflows (ProcessCase reads the case's NIS fragment against it); routes and tests take
+            // their own NIS_CONFIG from testEnv (test/helpers.ts), which is "{}" unless a test sets one.
+            NIS_CONFIG: JSON.stringify({ "demo-b": { base_url: "https://nis.test/fhir", label_cs: "Testovací NIS", auth: { mode: "none" } } }),
             // No container in tests (wrangler dev and workerd run none); the mocked host above stands in for it.
             PAGE_READER_CONTAINER: "off",
             // Workflows run with these bindings: the case merge runs for demo org B, as on the deployed host.
