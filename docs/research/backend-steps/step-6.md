@@ -1290,7 +1290,7 @@ Contract with stream D (#20) and stream E (#21): `docs/research/2026-10-20-case-
   document listing every producer's quarantined facts), then `matchInputs`, `prepareRun`, the case rules hook (stream
   E's `applyCaseRules`, on the prepared run), and `storeRun` in one batch that also deletes the documents'
   `document_alerts` rows (the run carries them now), sets the case's `processing_level` to `partial` (`none` for an empty run), and writes one
-  access-log line. A run stored in between (`run_stale`) makes the step retry. A case whose current run came from
+  access-log line. A run stored in between (`run_stale`) makes the merge compose again. A case whose current run came from
   another producer (a prepared fixture, the NIS import) is left alone; combining producers is not built yet. A case
   whose documents all left it gets an empty run, so their values leave the view.
 - **What a new patient sees in demo org B:** the documents with their parts and readability, the lab values (a trend
@@ -1333,4 +1333,17 @@ Contract with stream D (#20) and stream E (#21): `docs/research/2026-10-20-case-
   code goes to the log). It fails closed on identity: a document D1 marks as another patient's, or one whose pages were
   not checked (no `identity.json`: a registered fixture, a failed identity check), never goes to a model, because the
   pseudonymizer knows only the case's own patient; and never in demo org A, whatever MODEL_ORGS says.
+- **Rules, views, brief, question (stream E).** ProcessCaseWorkflow runs in three steps: `compose` (fragments,
+  `prepareRun`, then `withCaseRulesAndViews`: the case rules and the composed oncology lines and timeline, on the
+  prepared run's final fact IDs), `brief` (stream E's `composeBrief`, only where the model runs for the org,
+  `MODEL_ORGS`, never in demo org A; it also drafts the MDT question when the referral states none), and `store`
+  (`storeRun`, `queueQuestionDraft` when the brief step ran, the retired document alerts, the processing level and
+  the audit line in one batch). The composed run waits between the steps in R2 under the case's `runs/`
+  (`draft-<instance>-<attempt>.json`; deleted once stored, by a withdraw of any of the case's documents, and by the cron
+  sweep after a day); step results hold counts and codes only. A store that meets another run made current meanwhile
+  (`run_stale`) starts the three steps over, up to eight times. Before the model sees anything, the brief step checks
+  that the composed run still supersedes the current run and that every document it read is still current, so a
+  document withdrawn meanwhile never goes to the model. The brief is an addition: when the model cannot make it after
+  its retries, the run is stored without it, and only a brief the model made may set the case's drafted question (a
+  refused or failed one never clears an earlier draft).
 

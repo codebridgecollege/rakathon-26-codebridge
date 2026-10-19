@@ -9,7 +9,7 @@ import { call, mockFetch, testEnv } from "./helpers";
 import { FAKE_NAME, loadFixture } from "./data";
 import { sweep } from "../src/scheduled";
 import { allowed } from "@codebridge/domain/roles";
-import { publishCaseRun } from "../src/store/case-merge";
+import { composeCaseRun, publishCaseRun, storeCaseRun } from "../src/store/case-merge";
 import { actorFor } from "../src/store/audio";
 import { POOL_SIZE, pageReader, pipelineAvailable, pipelineOn, poolInstance } from "../src/services/page-reader";
 
@@ -471,7 +471,10 @@ describe("the case merge (ProcessCase)", () => {
     const [merge] = await cases.get();
     await merge!.waitForStatus("complete");
     // Step results: codes and counts only.
-    expect(await merge!.waitForStepResult({ name: "compose and store" })).toEqual({ result: "stored", documents: 1, facts: 2 });
+    expect(await merge!.waitForStepResult({ name: "compose 0" })).toMatchObject({ result: "composed", documents: 1, facts: 2, brief: false });
+    expect(await merge!.waitForStepResult({ name: "store 0" })).toEqual({ result: "stored", documents: 1, facts: 2 });
+    // The composed run waited in R2 between the steps; it is gone once stored.
+    expect((await env.DOCS.list({ prefix: "org/demo-b/runs/B-NO-A/draft-" })).objects).toEqual([]);
     // The AI part is not started: the model is not configured and MODEL_ORGS lists no org.
     const [docRun] = await docs.get();
     expect(await docRun!.waitForStepResult({ name: "start extraction" })).toEqual({ started: false });
@@ -488,6 +491,9 @@ describe("the case merge (ProcessCase)", () => {
     expect(stored.alerts.map((a: any) => a.rule)).toEqual(["poor_copy"]);
     expect(stored.checks.find((c: any) => c.looks_for === "lab_result").result).toBe("found");
     expect(stored.checks.find((c: any) => c.looks_for === "allergy").result).toBe("not_run");
+    // Stream E's case rules and composed views ran on the prepared run.
+    expect(stored.run.stages.map((x: any) => x.name)).toContain("rules");
+    expect(stored.views).toBeTruthy();
     // No patient identity in the stored run.
     expect(JSON.stringify(stored)).not.toContain(FAKE_NAME);
     // The document's interim alert moved into the run; the case is no longer "nezpracováno".
@@ -499,12 +505,15 @@ describe("the case merge (ProcessCase)", () => {
     expect(ex.body.run).toMatchObject({ producer: "pipeline" });
     expect(ex.body.data.facts).toHaveLength(2);
     expect((await q<{ what_cs: string }>("SELECT what_cs FROM access_log WHERE action = 'case.pipeline_run'")).map((l) => l.what_cs)).toEqual([
-      "sestaven přehled případu ze zpracovaných dokumentů bez AI (dokumentů: 1, údajů: 2)",
+      "sestaven přehled případu ze zpracovaných dokumentů (dokumentů: 1, údajů: 2)",
     ]);
 
+    // A merge waiting between its steps holds a composed run; a withdraw deletes it.
+    await env.DOCS.put("org/demo-b/runs/B-NO-A/draft-x-0.json", "{}");
     // Withdrawn as another patient's: the next run has neither the document nor its values.
     const wd = await call(`/api/documents/${BDOC}/withdraw`, { method: "POST", headers: { "content-type": "application/json", "x-demo-user": "b-doc", "x-data-epoch": "1" }, body: JSON.stringify({ reason: "wrong_patient" }) }, pe());
     expect(wd.status).toBe(200);
+    expect((await env.DOCS.list({ prefix: "org/demo-b/runs/B-NO-A/draft-" })).objects).toEqual([]);
     const all = await cases.get();
     for (const i of all) await i.waitForStatus("complete");
     const next = await one("SELECT id, supersedes, r2_key FROM extraction_runs WHERE org_id = 'demo-b' AND case_id = 'B-NO-A' AND is_current = 1");
@@ -582,6 +591,33 @@ describe("the case merge (ProcessCase)", () => {
     expect(stored.facts.every((f: any) => f.quarantined)).toBe(true);
     expect(stored.alerts.some((a: any) => a.rule === "identity_conflict" && a.subject === BDOC)).toBe(true);
     expect((await bGet("/cases/B-NO-A/extraction")).body.data.facts).toEqual([]);
+  });
+
+  it("puts the drafted question on the case with the run only when the brief step made one", async () => {
+    await orgBUpload();
+    await env.DB.prepare("UPDATE cases SET question_explicit = 0, question_draft = 'dřívější návrh' WHERE org_id = 'demo-b' AND id = 'B-NO-A'").run();
+    identityAnswer = { result: "matches", pages: [{ n: 1, result: "matches" }, { n: 2, result: "matches" }], evidence: [] };
+    kit();
+    const docs = await introspectWorkflow(env.PROCESS_DOCUMENT);
+    const cases = await introspectWorkflow(env.PROCESS_CASE);
+    await using _d = docs;
+    await using _c = cases;
+    await docs.modifyAll(async (m) => {
+      await m.disableRetryDelays();
+    });
+    expect((await w("POST", `/documents/${BDOC}/process`, {}, "b-doc", pe())).status).toBe(201);
+    for (const i of await docs.get()) await i.waitForStatus("complete");
+    for (const i of await cases.get()) await i.waitForStatus("complete");
+    // No model here: the run has no brief, and the earlier draft on the case stays.
+    expect((await one("SELECT question_draft FROM cases WHERE org_id = 'demo-b' AND id = 'B-NO-A'")).question_draft).toBe("dřívější návrh");
+    // With a draft from the brief step, it goes onto the case in the run's batch.
+    const c = await composeCaseRun(env, "demo-b", "B-NO-A");
+    if ("result" in c) throw new Error("not composed");
+    const fact = c.run.facts.find((f) => !f.quarantined)!;
+    c.run.question_draft = { text: "Návrh otázky pro MDT", question_kind: "latest_finding", basis: [{ role: "finding", facts: [fact.id] }] };
+    const who = await actorFor(env.DB, "demo-b", "b-doc", "demo");
+    expect(await storeCaseRun(env, "demo-b", "B-NO-A", who, c, true)).toMatchObject({ result: "stored" });
+    expect((await one("SELECT question_draft FROM cases WHERE org_id = 'demo-b' AND id = 'B-NO-A'")).question_draft).toBe("Návrh otázky pro MDT");
   });
 });
 
