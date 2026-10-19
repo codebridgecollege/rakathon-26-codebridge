@@ -56,6 +56,8 @@ database on `main` right before the deploy, `api/AGENTS.md`), and
 | `uploads/` | Uploaded files | The case's org | none (life of the case) |
 | `audio/` | Recording parts | The case's org | deleted after 7 days at most (`audio-backstop-7d`) |
 | `jobs/` | Pipeline and job outputs | The case's org | none |
+| `extract/` | Seeded extraction runs (`extract/<case>/<run id>.json`) | The case's org | none (replaced at a reseed) |
+| `runs/` | Every other extraction run (intake attach, pipeline, NIS) | The case's org | deleted by the demo reset in a demo org |
 | `cache/summary/` | Cached AI summaries | The case's org | 30 days (`summary-cache-30d`) |
 | `audit-archive/` | The demo access log, archived at each demo reset | The org reset | 30 days (`audit-archive-30d`), demo data only; a hospital org's archive follows FNO's retention and gets no lifecycle delete |
 | `seed/reset.json` | The demo reset's source data | Global, with one section per demo org | none |
@@ -254,7 +256,7 @@ shared tables" above holds, with these details:
   outputs, summary caches and audit archives go under the org. Rows
   written before keep their keys (`docs/`, `pages/`, `uploads/`, `audio/`,
   `extract/`), which stay readable; demo org A's reset also clears the old
-  `uploads/`, `audio/`, `jobs/` and `cache/summary/` prefixes. R2 lifecycle
+  `uploads/`, `audio/`, `jobs/`, `cache/summary/`, `cache/model/` and `runs/` prefixes. R2 lifecycle
   rules match a prefix, so each org needs its own rules (`api/AGENTS.md`).
 - **The demo reset** is one D1 batch for one org, 47 statements for org A
   with today's seed: the org's rows are deleted with `WHERE org_id`, the

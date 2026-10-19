@@ -920,24 +920,14 @@ rules) are not built.
   0008) to the patient, so the age shows as before. The reasons never name the fixture's patient (the
   mock's message did). Otherwise the case is listed with its documents
   "nezpracováno" and the reason.
-- Prepared data (superseded by `codebridge.extraction/2`, #17 part 2: the
-  prepared file now holds NO-S02's `/2` run re-pointed at the uploads and
-  the attach stores it through `storeRun`; see api/AGENTS.md, "Uploads,
-  intake and the document pipeline"). Before that: the seed wrote `fixtures/S02/prepared.json`, the
-  stripped S02 extraction with every reference rewritten from
-  `{file: "S02_pacient.pdf", page: 5}` to `{file: "@upload:<upload name>",
-  page: 1, orig_file, orig_page}`, document entries with their own file
-  and local pages, the case-row fields, the gap alerts, and each upload's
-  page assets under `fixtures/S02/pages/<upload>/p<n>.*`. The seed checks
-  every rewritten quote on its page and scans the file strictly (quotes
-  too) for the patient's name, birth number and birth date. The attach
-  swaps `@upload:<name>` for the uploaded document's ID, writes the run to
-  `uploads/<case>/extract/<run>.json`, an `extraction_runs` row with
-  `kind = 'seed_fixture'` and the new column `producer =
-  'prepared-fixture'` (the step 2 CHECK on `kind` stays), the alerts, the
-  copied pages under `uploads/<case>/<doc>/pages/`, one document part per
-  upload, documents `prepared`, and the case row (diagnosis, summary,
-  page count, the documents' question when the referral had none).
+- Prepared data: moved to `codebridge.extraction/2` (#17 part 2). The
+  seed writes `fixtures/S02/prepared.json` with NO-S02's run re-pointed at
+  the uploads, and the attach stores it through `storeRun`; see
+  api/AGENTS.md, "Uploads, intake and the document pipeline". The attach
+  also copies the pages under `uploads/<case>/<doc>/pages/`, inserts one
+  document part per upload, marks the documents `prepared`, and fills the
+  case row (diagnosis, summary, page count, the documents' question when
+  the referral had none).
 - Removal of an open intake: `DELETE /api/cases/:id/intake` (the dialog's
   "Zavřít", Escape, and "Zpět" from the documents step), the cron sweep
   after 24 hours (`api/src/store/intake.ts`), and reset-demo. Nothing else

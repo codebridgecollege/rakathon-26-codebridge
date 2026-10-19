@@ -264,7 +264,9 @@ export class ProcessDocumentWorkflow extends WorkflowEntrypoint<Env, ProcessDocu
   }
 }
 
-// The prepared extraction's lab points of this document, when the case has one (an intake attach or the seed).
+// The prepared extraction's lab points of this document, when the case's current run is a /1 run. The seed and the
+// intake now store codebridge.extraction/2 runs, so this finds nothing until it reads their lab_result facts (contract
+// C-4 gives that change to the app PR of #17 part 2); the comparison step then reports nothing compared.
 async function preparedPoints(env: Env, org: string, caseId: string, docId: string): Promise<PreparedPoint[] | null> {
   const run = await orgStmt(env.DB, org, "SELECT r2_key FROM extraction_runs WHERE org_id = ?org AND case_id = ?1 AND is_current = 1", caseId).first<{ r2_key: string }>();
   if (!run) return null;

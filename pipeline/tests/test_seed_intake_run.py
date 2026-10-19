@@ -70,16 +70,48 @@ def test_documents_and_checks_name_only_uploaded_files(draft):
     assert [x["document_id"] for x in whole["covered"]] == [seed.UPLOAD_DOC + n for n in names]
 
 
-def test_the_finished_run_is_valid_and_states_what_the_fixture_states(draft):
+@pytest.mark.parametrize("case_id", ["NO-S02", "NO-123"])
+def test_the_finished_run_is_valid_and_states_what_the_fixture_states(draft, case_id):
+    # NO-S02 is the ID the intake gives the demo patient (api/src/domain/intake.ts): non-lab facts then keep their
+    # fixture ID while lab facts (whose key names the uploaded document) get new ones, so draft references must be
+    # rewritten for some facts and kept for others. NO-123 is a case where every ID changes.
     stand_in = {n.removeprefix(seed.UPLOAD_DOC): n.removeprefix(seed.UPLOAD_DOC)[:-4] for n in (d["document_id"] for d in draft["documents"])}
-    run = seed.finalize_upload_run(draft, stand_in, "NO-123", "fixture-NO-123-test")
+    run = seed.finalize_upload_run(draft, stand_in, case_id, f"fixture-{case_id}-test")
     res = validate_run(run)
     assert res.ok, [(i.code, i.path) for i in res.issues]
     assert len(run["facts"]) == len(RUN["facts"]) and len(run["alerts"]) == len(RUN["alerts"])
     strip = lambda r: sorted(re.sub(r"\|doc:[^|]*", "|doc:", f["key"]) for f in r["facts"])  # noqa: E731
     assert strip(run) == strip(RUN)
-    # Fact IDs belong to the new case, and every reference uses them.
-    ids = {f["id"] for f in run["facts"]}
-    assert not ids & {f["id"] for f in RUN["facts"]}
-    assert all(set(a["facts"]) <= ids for a in run["alerts"])
-    assert all(c["expected"]["of_fact"] in ids for c in run["checks"] if c.get("expected"))
+    # The same fact (by position) behind every reference: alerts, check expectations and fact links point at the
+    # finished ID of the fact the fixture pointed at.
+    final = {orig["id"]: new["id"] for orig, new in zip(RUN["facts"], run["facts"])}
+    assert all(new["key"].split("|doc:")[0] == orig["key"].split("|doc:")[0] for orig, new in zip(RUN["facts"], run["facts"]))
+    for orig, new in zip(RUN["alerts"], run["alerts"]):
+        assert new["facts"] == [final[x] for x in orig["facts"]]
+        assert new["message"]["args"] == {k: final.get(v, v) for k, v in orig["message"]["args"].items()}
+    for orig, new in zip(RUN["checks"], run["checks"]):
+        if orig.get("expected"):
+            assert new["expected"]["of_fact"] == final[orig["expected"]["of_fact"]]
+    for orig, new in zip(RUN["facts"], run["facts"]):
+        assert new.get("based_on") == ([final[x] for x in orig["based_on"]] if orig.get("based_on") else orig.get("based_on"))
+    kept = sum(final[k] == k for k in final)
+    if case_id == "NO-S02":
+        assert 0 < kept < len(final)
+    else:
+        assert kept == 0
+
+
+def test_alert_parts_pages_and_pairs_map_to_the_uploads():
+    index = json.loads(seed.load_build().page_index())
+    pages = {p["n"]: p for p in index[SYN["file"]]["pages"]}
+    sha = {d["upload_name"]: "0" * 64 for d in SYN["documents"] if d.get("upload_name")}
+    up = [d["upload_name"] for d in SYN["documents"]]
+    extra = {"rule": "test", "kind": "unclear", "facts": [], "note": None,
+             "subject": "S02_pacient/p3|S02_pacient/p4", "message": {"id": "alert-test", "args": {"part": "S02_pacient/p4", "page": 6}}}
+    out = seed.run_for_uploads({**RUN, "alerts": [*RUN["alerts"], extra]}, SYN, pages, sha)["alerts"][-1]
+    assert out["subject"] == f"{seed.UPLOAD_PART}{up[3]}|{seed.UPLOAD_PART}{up[4]}"
+    # Combined page 6 is the only page of the fifth document's file.
+    assert out["message"]["args"] == {"part": seed.UPLOAD_PART + up[4], "page": 1}
+    for bad in ({"document": "S02_pacient"}, {"page": 6}, {"part": "S02_pacient/p4", "page": 3}):
+        with pytest.raises(SystemExit):
+            seed.run_for_uploads({**RUN, "alerts": [{**extra, "subject": "x", "message": {"id": "alert-test", "args": bad}}]}, SYN, pages, sha)

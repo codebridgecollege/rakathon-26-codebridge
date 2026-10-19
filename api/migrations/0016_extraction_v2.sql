@@ -49,7 +49,7 @@ CREATE TABLE extraction_runs (
   prompt_version     TEXT,
   temperature        REAL,
   input_hashes_json  TEXT NOT NULL CHECK (json_valid(input_hashes_json)),
-  r2_key             TEXT NOT NULL,            -- org/<org>/extract/<case>/<run>.json (extract/... before orgs)
+  r2_key             TEXT NOT NULL,            -- org/<org>/extract/<case>/<run>.json when seeded, else org/<org>/runs/... (extract/... before orgs)
   sha256             TEXT NOT NULL CHECK (length(sha256) = 64),
   is_current         INTEGER NOT NULL DEFAULT 1 CHECK (is_current IN (0,1)),
   created_at         TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')) CHECK (created_at GLOB '[0-9][0-9][0-9][0-9]-*Z'),
@@ -60,7 +60,7 @@ CREATE TABLE extraction_runs (
   FOREIGN KEY (org_id, supersedes) REFERENCES extraction_runs(org_id, id)
 );
 
--- The /1 alerts, unchanged (the deployed Worker reads them during the window; only the intake attach still writes them).
+-- The /1 alerts, unchanged (the deployed Worker reads them during the window; the new Worker never writes them).
 CREATE TABLE alerts (
   id            TEXT PRIMARY KEY,
   org_id        TEXT NOT NULL REFERENCES orgs(id),

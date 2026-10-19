@@ -160,7 +160,12 @@ export const intake = new Hono<AppEnv>()
       const inputs = await matchInputs(db, c.env.DOCS, c.var.viewer.org, id);
       // The case ID and the time make the run ID unique across orgs and repeated demos (extraction_runs.id is the key).
       const newRunId = `fixture-${id}-${(await sha256Hex(`${c.var.viewer.org}|${id}|${at}`)).slice(0, 8)}`;
-      const { run } = prepareRun(inputs, { ...draft, case_id: id, run: { ...draft.run, id: newRunId, created_at: at } });
+      const { run } = prepareRun(inputs, {
+        ...draft,
+        case_id: id,
+        // Provenance: the attach gave the run this case's documents and fact IDs.
+        run: { ...draft.run, id: newRunId, created_at: at, stages: [...draft.run.stages, { name: "intake_attach", engine: "api/src/routes/intake.ts" }] },
+      });
       // Page assets: the seed stored each upload's pages under its name; they are copied to the uploaded document.
       const pageRows: unknown[] = [];
       const partRows: unknown[] = [];
@@ -198,7 +203,12 @@ export const intake = new Hono<AppEnv>()
       } catch (e) {
         if (written.length) await c.env.DOCS.delete(written).catch(() => {});
         // A prepared run the validator refuses was written by another version of the seed; reseeding fixes it.
-        if (e instanceof RunInvalid) throw new ApiError(503, "seed_missing", "Předem připravená data ukázkového pacienta neodpovídají serveru; spusťte seed znovu (api/AGENTS.md).");
+        if (e instanceof RunInvalid) {
+          // Codes and paths only (RunInvalid carries no values from the run), so a Python/TypeScript validator mismatch
+          // can be told apart from a stale seed in the Worker's log.
+          console.error("intake: prepared run refused", JSON.stringify(e.issues.slice(0, 10)));
+          throw new ApiError(503, "seed_missing", "Předem připravená data ukázkového pacienta neodpovídají serveru; spusťte seed znovu (api/AGENTS.md).");
+        }
         throw e;
       }
       t.run(

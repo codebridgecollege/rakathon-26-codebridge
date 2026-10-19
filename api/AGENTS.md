@@ -128,6 +128,12 @@ uv run seed/seed.py --dry-run            # write seed/out/ only (SQL, R2 manifes
   ```
 
   It wipes and reseeds the shared demo, including its access log, and ends with "verified: ...". CI does not run it.
+  Between the deploy and the reseed, case 10 and S01 show as not processed and the S02 intake answers 503
+  `seed_missing`, so the reseed follows the deploy at once and before any demo. The reseed leaves the old `/1` run
+  objects (`org/demo-a/extract/<case>/seed-<case>-<sha8>.json` and the unprefixed `extract/...`) in R2 with no row
+  pointing at them; they hold no identity, and nothing reads them.
+- A local wrangler state that applied `0015_extraction_v2.sql` from an earlier `stream-a2-server` checkout fails on
+  `0016_extraction_v2.sql` (its tables exist already); delete `api/.wrangler/state` and run `npm run seed:local`.
 - Routes that return case content check role and membership
   (`packages/domain/src/access.ts`) and write an `access_log` row before reading the content
   (`src/middleware/audit.ts`); a failed insert answers 500 with no content.

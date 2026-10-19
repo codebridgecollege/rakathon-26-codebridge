@@ -332,8 +332,8 @@ def check_run_documents(run: dict, seeded_docs: dict[str, str], seeded_parts: se
         sha = seeded_docs.get(d["document_id"])
         if sha is None:
             sys.exit(f"seed: run {run['run']['id']} reads {d['document_id']}, which is not a seeded document of {run['case_id']}")
-        if d.get("sha256") and d["sha256"] != sha:
-            sys.exit(f"seed: run {run['run']['id']} was made from another version of {d['document_id']} (sha256 differs)")
+        if d.get("sha256") != sha:
+            sys.exit(f"seed: run {run['run']['id']} was made from another version of {d['document_id']} (sha256 differs or is missing)")
         missing = sorted(set(d["parts"]) - seeded_parts)
         if missing:
             sys.exit(f"seed: run {run['run']['id']} names parts that are not seeded: {missing[:5]}")
@@ -368,7 +368,8 @@ def run_for_uploads(run: dict, s: dict, pages: dict, upload_sha: dict[str, str])
     the whole PDF), re-pointed at the files the intake uploads: one document per file, one part per document, pages
     numbered inside the file. The result is a draft (api/src/store/runs.ts DraftRun): facts carry their fixture ID as
     draft_id and no ID or key, alerts no ID, since IDs depend on the case the intake creates (prepareRun assigns them).
-    Stops when a reference cannot be mapped or a quote is not on the page it maps to."""
+    Stops when a reference to the combined PDF cannot be mapped (a page in two documents or in none, a whole-PDF alert
+    argument, a page argument without its one part) or a quote is not on the page it maps to."""
     stem = s["file"].removesuffix(".pdf")
     # Part ordinals count every document of the combined PDF, uploaded or not (C-1: the index in syn.documents).
     by_part = {f"{stem}/p{k}": d for k, d in enumerate(s.get("documents") or [])}
@@ -376,12 +377,19 @@ def run_for_uploads(run: dict, s: dict, pages: dict, upload_sha: dict[str, str])
     names = [d["upload_name"] for d in uploads]
     if len(set(names)) != len(names):
         sys.exit(f"seed: two documents of {s['file']} share an upload file; the intake maps one part to one file")
-    by_page = {k: d for d in uploads for k in d["pages"]}
+    by_page = {}
+    for d in uploads:
+        for k in d["pages"]:
+            if k in by_page:
+                sys.exit(f"seed: page {k} of {s['file']} belongs to two documents; a reference by page alone is ambiguous")
+            by_page[k] = d
     norm = lambda t: re.sub(r"\s+", " ", t.replace("*", "")).strip()  # noqa: E731
 
     def upload_of(document_id, part, page):
         if document_id != stem:
             sys.exit(f"seed: the {s['file']} run refers to document {document_id}")
+        if part is None and page is None:
+            sys.exit(f"seed: a reference to the whole of {s['file']} cannot point at one uploaded file")
         d = by_part.get(part) if part is not None else by_page.get(page)
         if d is None or not d.get("upload_name"):
             sys.exit(f"seed: {part or document_id} page {page} of {s['file']} is in no uploaded file")
@@ -416,22 +424,41 @@ def run_for_uploads(run: dict, s: dict, pages: dict, upload_sha: dict[str, str])
         return out
 
     def ref(v):
-        """An alert subject or argument that names the combined document or one of its parts."""
-        if v == stem:
-            sys.exit(f"seed: an alert of {stem} names the whole combined PDF, which the intake uploads as several files")
+        """An alert subject or argument that names one part of the combined PDF becomes that part's uploaded file. Any
+        other reference to the combined PDF (the whole PDF, an unknown part) has no single file and stops the seed."""
         if isinstance(v, str) and v in by_part:
             return UPLOAD_PART + upload_of(stem, v, None)["upload_name"]
+        if isinstance(v, str) and (v == stem or v.startswith(stem + "/")):
+            sys.exit(f"seed: an alert of {stem} names {v}, which is no single uploaded file")
         return v
+
+    def subject(v: str) -> str:
+        # A pair subject ("a|b") may name two parts; each side is mapped on its own.
+        return "|".join(ref(x) for x in v.split("|"))
+
+    def args(a: dict) -> dict:
+        out = {k: ref(v) for k, v in a.items()}
+        named_parts = [v for v in a.values() if isinstance(v, str) and v in by_part]
+        for k, v in a.items():
+            if k == "page" or k.endswith("_page"):
+                # A page argument is numbered across the combined PDF; it is renumbered inside the file of the one
+                # part the same alert names, or the seed stops rather than show a page of another file.
+                if not isinstance(v, int) or len(named_parts) != 1:
+                    sys.exit(f"seed: an alert of {stem} has a page argument {k} that cannot be tied to one uploaded file")
+                out[k] = upload_of(stem, named_parts[0], v)["pages"].index(v) + 1
+        return out
 
     return {
         **run,
         "documents": [{"document_id": UPLOAD_DOC + n, "sha256": upload_sha[n], "parts": [UPLOAD_PART + n]} for n in names],
         "sources": sources,
         "facts": [{**{k: v for k, v in f.items() if k not in ("id", "key")}, "draft_id": f["id"]} for f in run["facts"]],
-        "alerts": [{**{k: v for k, v in a.items() if k != "id"}, "subject": ref(a["subject"]),
-                    "message": {**a["message"], "args": {k: ref(v) for k, v in a["message"]["args"].items()}}} for a in run["alerts"]],
+        "alerts": [{**{k: v for k, v in a.items() if k != "id"}, "subject": subject(a["subject"]),
+                    "message": {**a["message"], "args": args(a["message"]["args"])}} for a in run["alerts"]],
         "checks": [{**c, "covered": covered(c["covered"]), "unreadable": [where(x) for x in c["unreadable"]]} for c in run["checks"]],
-        "run": {k: v for k, v in run["run"].items() if k != "supersedes"},
+        # Provenance: the run was re-pointed at the uploads after the conversion.
+        "run": {**{k: v for k, v in run["run"].items() if k != "supersedes"},
+                "stages": [*run["run"]["stages"], {"name": "map_to_uploads", "engine": "api/seed/seed.py run_for_uploads"}]},
     }
 
 
@@ -513,6 +540,10 @@ def prepared_fixture(s, sid, page_index, row, pats, run):
             return [rewrite(v) for v in o]
         return o
 
+    # The fixture run must be the one made from this combined PDF, as the seeded runs are checked against theirs.
+    combined_pdf = SAMPLES / combined.removesuffix(".pdf") / combined
+    if [d.get("sha256") for d in run["documents"]] != [sha256_file(combined_pdf)]:
+        sys.exit(f"seed: {RUNS.relative_to(ROOT)}/{run['case_id']}.json was not made from {combined} (sha256 differs)")
     draft = run_for_uploads(run, s, pages, upload_sha)
     # The draft as the Worker will finish it, with each upload's file stem standing in for its document ID: it must pass
     # the validator, and it must say what the fixture run says (the same fact keys and alert rules), only over other files.
