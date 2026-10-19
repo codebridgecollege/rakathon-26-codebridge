@@ -9,6 +9,8 @@ import { call, mockFetch, testEnv } from "./helpers";
 import { FAKE_NAME, loadFixture } from "./data";
 import { sweep } from "../src/scheduled";
 import { allowed } from "@codebridge/domain/roles";
+import { publishCaseRun } from "../src/store/case-merge";
+import { actorFor } from "../src/store/audio";
 import { POOL_SIZE, pageReader, pipelineAvailable, pipelineOn, poolInstance } from "../src/services/page-reader";
 
 const q = async <T = Record<string, unknown>>(sql: string, ...args: unknown[]) => (await env.DB.prepare(sql).bind(...args).all<T>()).results;
@@ -248,7 +250,7 @@ describe("ProcessDocumentWorkflow", () => {
       { rule: "identity_conflict", kind: "identity", message_id: "alert-identity-conflict", args_json: JSON.stringify({ document: DOC, page: "2" }), run_id: runId },
       { rule: "poor_copy", kind: "poor_copy", message_id: "alert-poor-copy", args_json: JSON.stringify({ document: DOC, pages: "2" }), run_id: runId },
     ]);
-    for (const name of ["inspect", "pages 1-2", "analyze", "labs", "parts", "identity", "compare with prepared data", "write"]) {
+    for (const name of ["inspect", "pages 1-2", "analyze", "labs", "parts", "identity", "compare with prepared data", "write", "fragment"]) {
       const r = JSON.stringify(await inst.waitForStepResult({ name }));
       expect(r.length).toBeLessThan(400);
       for (const bad of [FAKE_NAME, "Odběr", "108", "14,8", "B_HB", "nar."]) expect(r).not.toContain(bad);
@@ -261,7 +263,7 @@ describe("ProcessDocumentWorkflow", () => {
     ]);
     // Outputs live under the org's uploads/, which reset-demo clears.
     const keys = (await env.DOCS.list({ prefix: `org/demo-a/uploads/NO-A/${DOC}/${runId}/` })).objects.map((o) => o.key.split("/").pop());
-    expect(keys.sort()).toEqual(["diff.json", "identity.json", "labs.json", "p1.json", "p1.png", "p1.raw.json", "p2.json", "p2.png", "p2.raw.json", "parts.json", "readability.json"]);
+    expect(keys.sort()).toEqual(["diff.json", "fragment-pipeline.json", "identity.json", "labs.json", "p1.json", "p1.png", "p1.raw.json", "p2.json", "p2.png", "p2.raw.json", "parts.json", "readability.json"]);
   });
 
   it("fails with a fixed code and a Czech reason when the page reader refuses the file", async () => {
@@ -432,3 +434,111 @@ describe("processing on upload", () => {
     for (const i of await wf.get()) await i.waitForStatus("complete");
   });
 });
+
+describe("the case merge (ProcessCase)", () => {
+  const BDOC = "up-b-1";
+  // A new patient's case in demo org B (where the pipeline runs): no run yet, one uploaded PDF.
+  async function orgBUpload() {
+    await env.DB.batch([
+      env.DB.prepare("UPDATE extraction_runs SET is_current = 0 WHERE org_id = 'demo-b' AND case_id = 'B-NO-A'"),
+      env.DB.prepare("UPDATE cases SET processing_level = 'none' WHERE org_id = 'demo-b' AND id = 'B-NO-A'"),
+      env.DB.prepare(
+        `INSERT INTO documents (org_id, id, case_id, file_name, page_count, original_r2_key, sha256, size_bytes, origin, processing, uploaded_by, state)
+         VALUES ('demo-b', ?1, 'B-NO-A', 'lab.pdf', 0, 'org/demo-b/uploads/B-NO-A/up-b-1.pdf', ?2, 10, 'upload', 'unprocessed', 'b-doc', 'stored')`,
+      ).bind(BDOC, SHA),
+    ]);
+    await env.DOCS.put("org/demo-b/uploads/B-NO-A/up-b-1.pdf", "%PDF-1.4 test");
+  }
+  const bGet = async (path: string) => {
+    const r = await call(`/api${path}`, { headers: { "x-demo-user": "b-doc" } });
+    return { status: r.status, body: (await r.json()) as any };
+  };
+
+  it("stores a pipeline run from the document's fragment after its run, which the case view reads; a withdraw empties it", async () => {
+    await orgBUpload();
+    identityAnswer = { result: "matches", pages: [{ n: 1, result: "matches" }, { n: 2, result: "matches" }], evidence: [] };
+    kit();
+    const docs = await introspectWorkflow(env.PROCESS_DOCUMENT);
+    const cases = await introspectWorkflow(env.PROCESS_CASE);
+    await using _d = docs;
+    await using _c = cases;
+    await docs.modifyAll(async (m) => {
+      await m.disableRetryDelays();
+    });
+    const r = await w("POST", `/documents/${BDOC}/process`, {}, "b-doc", pe());
+    expect(r.status).toBe(201);
+    for (const i of await docs.get()) await i.waitForStatus("complete");
+    const [merge] = await cases.get();
+    await merge!.waitForStatus("complete");
+    // Step results: codes and counts only.
+    expect(await merge!.waitForStepResult({ name: "compose and store" })).toEqual({ result: "stored", documents: 1, facts: 2 });
+
+    const run = await one("SELECT id, producer, seeded, is_current, r2_key FROM extraction_runs WHERE org_id = 'demo-b' AND case_id = 'B-NO-A' AND is_current = 1");
+    expect(run).toMatchObject({ producer: "pipeline", seeded: 0, is_current: 1 });
+    expect(run.r2_key).toMatch(/^org\/demo-b\/runs\/B-NO-A\/pipeline-B-NO-A-[0-9a-f]{8}\.json$/);
+    const stored = (await (await env.DOCS.get(run.r2_key))!.json()) as any;
+    expect(stored.documents).toEqual([{ document_id: BDOC, sha256: SHA, parts: [`${BDOC}/p0`, `${BDOC}/p1`] }]);
+    expect(stored.facts.map((f: any) => [f.kind, f.value.value_as_written, f.certainty, f.quarantined])).toEqual([
+      ["lab_result", "108", "clear", false],
+      ["lab_result", "14,8", "verify", false],
+    ]);
+    expect(stored.alerts.map((a: any) => a.rule)).toEqual(["poor_copy"]);
+    expect(stored.checks.find((c: any) => c.looks_for === "lab_result").result).toBe("found");
+    expect(stored.checks.find((c: any) => c.looks_for === "allergy").result).toBe("not_run");
+    // No patient identity in the stored run.
+    expect(JSON.stringify(stored)).not.toContain(FAKE_NAME);
+    // The document's interim alert moved into the run; the case is no longer "nezpracováno".
+    expect(await q("SELECT id FROM document_alerts WHERE document_id = ?1", BDOC)).toEqual([]);
+    expect((await one("SELECT processing_level FROM cases WHERE org_id = 'demo-b' AND id = 'B-NO-A'")).processing_level).toBe("partial");
+    // The case view reads it: lab values and the poor-copy alert, no AI.
+    const ex = await bGet("/cases/B-NO-A/extraction");
+    expect(ex.status).toBe(200);
+    expect(ex.body.run).toMatchObject({ producer: "pipeline" });
+    expect(ex.body.data.facts).toHaveLength(2);
+    expect((await q<{ what_cs: string }>("SELECT what_cs FROM access_log WHERE action = 'case.pipeline_run'")).map((l) => l.what_cs)).toEqual([
+      "sestaven přehled případu ze zpracovaných dokumentů bez AI (dokumentů: 1, údajů: 2)",
+    ]);
+
+    // Withdrawn as another patient's: the next run has neither the document nor its values.
+    const wd = await call(`/api/documents/${BDOC}/withdraw`, { method: "POST", headers: { "content-type": "application/json", "x-demo-user": "b-doc", "x-data-epoch": "1" }, body: JSON.stringify({ reason: "wrong_patient" }) }, pe());
+    expect(wd.status).toBe(200);
+    const all = await cases.get();
+    for (const i of all) await i.waitForStatus("complete");
+    const next = await one("SELECT id, supersedes, r2_key FROM extraction_runs WHERE org_id = 'demo-b' AND case_id = 'B-NO-A' AND is_current = 1");
+    expect(next.supersedes).toBe(run.id);
+    const empty = (await (await env.DOCS.get(next.r2_key))!.json()) as any;
+    expect([empty.documents, empty.facts, empty.alerts]).toEqual([[], [], []]);
+  });
+
+  it("holds back values from a page of another patient and says so; leaves a case with another producer's run alone", async () => {
+    await orgBUpload();
+    identityAnswer = { result: "conflicts", pages: [{ n: 1, result: "conflicts" }, { n: 2, result: "matches" }], evidence: [] };
+    kit();
+    const docs = await introspectWorkflow(env.PROCESS_DOCUMENT);
+    const cases = await introspectWorkflow(env.PROCESS_CASE);
+    await using _d = docs;
+    await using _c = cases;
+    await docs.modifyAll(async (m) => {
+      await m.disableRetryDelays();
+    });
+    expect((await w("POST", `/documents/${BDOC}/process`, {}, "b-doc", pe())).status).toBe(201);
+    for (const i of await docs.get()) await i.waitForStatus("complete");
+    for (const i of await cases.get()) await i.waitForStatus("complete");
+    const run = await one("SELECT r2_key FROM extraction_runs WHERE org_id = 'demo-b' AND case_id = 'B-NO-A' AND is_current = 1");
+    const stored = (await (await env.DOCS.get(run.r2_key))!.json()) as any;
+    expect(stored.facts.every((f: any) => f.quarantined)).toBe(true);
+    const identity = stored.alerts.find((a: any) => a.rule === "identity_conflict");
+    expect(identity).toMatchObject({ kind: "identity", message: { id: "alert-identity-conflict", args: { document: BDOC, page: "1" } } });
+    expect(identity.facts.sort()).toEqual(stored.facts.map((f: any) => f.id).sort());
+    // The view gets the alert, never the held-back values.
+    const ex = await bGet("/cases/B-NO-A/extraction");
+    expect(ex.body.data.facts).toEqual([]);
+    expect(ex.body.data.alerts.some((a: any) => a.rule === "identity_conflict")).toBe(true);
+
+    // A case whose current run came from another producer (a prepared fixture, the NIS import) keeps it.
+    await env.DB.prepare("UPDATE extraction_runs SET is_current = (id = 'run-BA') WHERE org_id = 'demo-b' AND case_id = 'B-NO-A'").run();
+    const who = await actorFor(env.DB, "demo-b", "b-doc", "demo");
+    expect(await publishCaseRun(env, "demo-b", "B-NO-A", who)).toMatchObject({ result: "other_producer" });
+  });
+});
+

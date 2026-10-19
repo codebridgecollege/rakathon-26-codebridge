@@ -1268,3 +1268,31 @@ Contract additions are in `pipeline/container/server.py`'s docstring.
   page 4 only, FNO patient 2 (`Kotěrova`) cannot be verified, the other FNO
   patients match by name. `eval.py` does not run it yet (its adapter writes
   `identity: cannot_verify` on every source).
+
+### The case merge: a new patient's run without AI (issue #18)
+
+Contract with stream D (#20) and stream E (#21): `docs/research/2026-10-20-case-merge-contract.md`.
+
+- **Fragments.** After `write`, ProcessDocumentWorkflow's `fragment` step writes `<run prefix>fragment-pipeline.json`
+  (`packages/domain/src/fragments.ts`, `pipelineFragment`, schema `codebridge.fragment/1`) for a processed, current
+  upload without prepared data: one `lab_result` fact per value the lab parser read (value, unit and range as written;
+  the code with system `fno-local-lab`; the draw date cut out of the "Odběr" header, never rebuilt; "ověřit" with the
+  parser's reasons in Czech; a value without a readable draw date has no date), its passage (Tesseract's text, the
+  part whose pages hold the page, the page's identity result, both readings when they differ), one `lab_result` check
+  (`found`, else `not_run`: the parser reads only FNO lab sheets, so it never claims a document has no lab values; the
+  pages read poor or empty are listed as unreadable), the `poor_copy` alert, and the `identity_conflict` alert whose
+  facts are the values on pages of another patient, which are quarantined. Stream D's AI extraction writes
+  `fragment-ai.json` next to it.
+- **ProcessCaseWorkflow** (binding `PROCESS_CASE`, `src/workflows/process-case.ts`, `src/store/case-merge.ts`) starts
+  after every document run that wrote a fragment and after a withdraw, only for orgs in `PIPELINE_ORGS`. It composes
+  the latest fragments of every current, processed upload (`composeFragments`: sources, facts and alerts concatenated;
+  checks merged per kind, `found` over `nothing_found` over `not_run`, every fact kind present; one identity alert per
+  document listing every producer's quarantined facts), then `matchInputs`, `prepareRun`, the case rules hook (stream
+  E's `applyCaseRules`, on the prepared run), and `storeRun` in one batch that also deletes the documents'
+  `document_alerts` rows (the run carries them now), sets the case's `processing_level` to `partial`, and writes one
+  access-log line. A run stored in between (`run_stale`) makes the step retry. A case whose current run came from
+  another producer (a prepared fixture, the NIS import) is left alone; combining producers is not built yet. A case
+  whose documents all left it gets an empty run, so their values leave the view.
+- **What a new patient sees in demo org B:** the documents with their parts and readability, the lab values (a trend
+  once two dated draws exist), the poor-copy and identity alerts, and "nezkontrolováno" for everything the pipeline
+  does not look at. Values from a page of another patient never reach the browser (`withoutQuarantined`).

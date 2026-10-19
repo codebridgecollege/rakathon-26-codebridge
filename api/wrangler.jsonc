@@ -124,7 +124,9 @@
     { "name": "codebridge-process-document", "binding": "PROCESS_DOCUMENT", "class_name": "ProcessDocumentWorkflow" },
     // Issue #20: the AI part of a document after its pipeline run (vision reading, fact extraction), ending in the
     // case merge. Only for orgs in MODEL_ORGS.
-    { "name": "codebridge-extract-document", "binding": "EXTRACT_DOCUMENT", "class_name": "ExtractDocumentWorkflow" }
+    { "name": "codebridge-extract-document", "binding": "EXTRACT_DOCUMENT", "class_name": "ExtractDocumentWorkflow" },
+    // Issue #18: a case's run composed from its documents' fragments (store/case-merge.ts), after every document run.
+    { "name": "codebridge-process-case", "binding": "PROCESS_CASE", "class_name": "ProcessCaseWorkflow" }
   ],
   // The audio sweep (src/scheduled.ts): deletes audio every other path should already have deleted.
   "triggers": { "crons": ["*/15 * * * *"] },
