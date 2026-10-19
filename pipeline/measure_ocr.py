@@ -61,11 +61,17 @@ def compare_labs(result: dict, mock: dict, page_of) -> dict:
             if p:
                 found.setdefault((t["code"], page_of(p["source"])), []).append(p)
     counts = {"same": 0, "verify": 0, "silent": 0, "missing": 0}
+    # Which points were missing or silent, by test code and page only (a code is no patient data), so a difference
+    # between two builds can be traced; and whether the parser listed a missing point's page as unparsed.
+    unparsed_pages = {page_of({"page": u.get("n"), "doc_id": u.get("doc_id")}) for u in result.get("unparsed", [])}
+    problems = []
     for t in mock["tests"]:
         for mp in t["points"]:
             got = found.get((t["code"], mp["source"]["page"]), [])
             if len(got) != 1:
                 counts["missing"] += 1
+                problems.append({"kind": "missing", "code": t["code"], "page": mp["source"]["page"], "found": len(got),
+                                 "page_has_unparsed": mp["source"]["page"] in unparsed_pages})
             elif got[0]["certainty"] == "unclear_ocr":
                 counts["verify"] += 1
             else:
@@ -73,7 +79,10 @@ def compare_labs(result: dict, mock: dict, page_of) -> dict:
                 same = (p["value"] == mp["value"] and p["reference_range"] == t["reference_range"] and p["date"] == mp["date"]
                         and p["time"] == mp["time"] and (p["unit"] == t["unit"] or pi.same_unit(p["unit"], t["unit"])))
                 counts["same" if same else "silent"] += 1
+                if not same:
+                    problems.append({"kind": "silent", "code": t["code"], "page": mp["source"]["page"]})
     counts["points"] = sum(counts.values())
+    counts["problems"] = problems
     return counts
 
 
@@ -114,6 +123,10 @@ def compare(a: dict, b: dict) -> None:
     for k in a["labs"]:
         print(f"| labs {k} same/verify/silent/missing | " + " | ".join(
             "{same}/{verify}/{silent}/{missing}".format(**x["labs"][k]) for x in (a, b)) + " |")
+    for x in (a, b):
+        for k, v in x["labs"].items():
+            for p in v.get("problems", []):
+                print(f"- {x['versions']['tesseract']}, {k}: {p}")
     sa = sum(v["verify"] for v in a["pages"].values())
     sb = sum(v["verify"] for v in b["pages"].values())
     print(f"| verify marks, all pages | {sa} | {sb} |")
