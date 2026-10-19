@@ -2,7 +2,8 @@
 // Screen S-7, Administrace, for the administrator only: the server's access log (read
 // each time the screen opens; reading it is logged too), the reset of the shared demo data where the server allows
 // it, and the doctors' edits of extracted facts.
-import { computed, onMounted, ref, watch } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { ApiError } from "@codebridge/api-client";
 import { useFluent } from "fluent-vue";
 import { useApi } from "../../lib/api";
 import { editLogOf } from "../../lib/lists";
@@ -46,6 +47,46 @@ watch(() => me.isAdmin.value, (a) => {
 });
 
 const resetEnabled = computed(() => !!session.health?.demo?.reset_enabled);
+
+// "Probudit čtečku stránek": only where the pipeline runs for this org (never in demo org A). The first call after a
+// deploy may find the container still starting; the page then asks again a few times on its own, with no error shown.
+const pipelineOn = computed(() => session.me?.features?.pipeline === true);
+const WARM_TRIES = 6;
+const WARM_PAUSE_MS = 10_000;
+const warm = ref<"idle" | "waking" | "ready" | "starting">("idle");
+// The loop belongs to this screen and this user: leaving the screen, or a switch of org or role, ends it, so no try
+// goes out later under another session (a refused one would land in that org's access log).
+let wakeGen = 0;
+const owner = () => `${session.me?.org?.id ?? ""}|${session.me?.membership_id ?? ""}`;
+onBeforeUnmount(() => wakeGen++);
+watch(owner, () => {
+  wakeGen++;
+  warm.value = "idle";
+});
+async function wake() {
+  if (warm.value === "waking") return;
+  const mine = ++wakeGen;
+  warm.value = "waking";
+  for (let i = 0; i < WARM_TRIES; i++) {
+    try {
+      const r = await useApi().warmPipeline();
+      if (mine !== wakeGen) return;
+      if (r.data.ok) {
+        warm.value = "ready";
+        return;
+      }
+    } catch (e) {
+      if (mine !== wakeGen) return;
+      // A refusal (no permission, pipeline off for the org, session gone) will not change by waiting: stop quietly.
+      // Only an unanswered call (network, timeout, a cold instance) is tried again.
+      if (e instanceof ApiError && e.status >= 400 && e.status < 500) break;
+      if (e instanceof ApiError && e.code === "pipeline_off") break;
+    }
+    if (i < WARM_TRIES - 1) await new Promise((r) => setTimeout(r, WARM_PAUSE_MS));
+    if (mine !== wakeGen) return;
+  }
+  warm.value = "starting";
+}
 const resetOpen = ref(false);
 
 // Newest first; the original value stays and the list only grows.
@@ -60,6 +101,10 @@ const caseIdOf = (file: string) => patients.byFile(file)?.id ?? file;
     <section v-if="resetEnabled" class="card">
       <div class="head"><h2>{{ $t("admin-demo-title") }}</h2><button class="btn" @click="resetOpen = true">{{ $t("admin-reset") }}</button></div>
       <p class="muted small" style="margin:0">{{ $t("admin-reset-what") }}</p>
+    </section>
+    <section v-if="pipelineOn" class="card">
+      <div class="head"><h2>{{ $t("admin-pipeline-title") }}</h2><button class="btn" :disabled="warm === 'waking'" @click="wake">{{ $t("admin-pipeline-wake") }}</button></div>
+      <p class="muted small" style="margin:0" role="status">{{ warm === "waking" ? $t("admin-pipeline-waking") : warm === "ready" ? $t("admin-pipeline-ready") : warm === "starting" ? $t("admin-pipeline-starting") : $t("admin-pipeline-what") }}</p>
     </section>
     <section class="card" style="padding:0">
       <div class="scroll">

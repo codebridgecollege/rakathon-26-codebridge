@@ -348,7 +348,8 @@ describe("every route, acting in org B with org A's IDs", () => {
       ["POST /staff/departments (org A's name)", await w("POST", "/staff/departments", { name: "Neurochirurgie" }, "b-coord")],
       ["POST /cases", await w("POST", "/cases", form("700101/1234"), "b-coord", key(2))],
       ["POST /fhir/referral", await w("POST", "/fhir/referral", { resourceType: "Patient", name: [{ family: "Béčková", given: ["Eva"] }] }, "b-coord")],
-      ["POST /admin/pipeline/warm", await w("POST", "/admin/pipeline/warm", {}, "b-admin")],
+      // The pipeline runs for org B here, as on the deployed host.
+      ["POST /admin/pipeline/warm", await send("POST", "/admin/pipeline/warm", "b-admin", {}, {}, testEnv({ PIPELINE_ORGS: "demo-b" }))],
     ];
     // A refusal here (session_running, dept_name_taken, duplicate_birth_number) would be a collision with org A.
     for (const [n, r] of own) if (r.status >= 300) failures.push(`org B's own write failed: ${n} ${r.status} ${r.body.error?.code ?? ""}`);

@@ -1080,7 +1080,15 @@ rules) are not built.
     half-vCPU instance (server.py works one request at a time), so the steps
     that wait for it have the 10-minute OCR timeout. The warm route
     (`POST /api/admin/pipeline/warm`) calls `/healthz` on all three; run it
-    before a demo, since the first call after a deploy starts cold.
+    before a demo, since the first call after a deploy starts cold. It is
+    for an administrator of an org the pipeline runs for, answers how many
+    instances answered (`ok`, `ready`, `of`) and writes one access-log
+    line either way; Administrace has "Probudit čtečku stránek" for it
+    (shown only where `/api/me` reports `features.pipeline`), which asks
+    again quietly every 10 s, up to six times, while the reader starts; it
+    stops at a refusal, when the screen closes, or on a switch of org or
+    role. Each instance gets 12 s per call, so the answer comes back before
+    the page's request times out.
   - **Switches.** `PAGE_READER_CONTAINER` is "off" in `wrangler.jsonc`, so
     `wrangler dev`, the tests and the browser suite never reach for a
     container; CI's deploy commands and `npm run deploy` pass

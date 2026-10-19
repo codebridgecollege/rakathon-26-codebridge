@@ -305,6 +305,12 @@ admin-demo-title = Ukázková data
 admin-reset = Obnovit ukázková data
 admin-reset-what = Vrátí případy, závěry, úlohy, docházku, personál a záznam přístupů do výchozího stavu.
 admin-reset-done = Data obnovena, stránka se znovu načte.
+admin-pipeline-title = Čtení dokumentů bez AI
+admin-pipeline-wake = Probudit čtečku stránek
+admin-pipeline-what = Před ukázkou: první čtení po nasazení čeká, než se čtečka stránek spustí.
+admin-pipeline-waking = Čtečka stránek se probouzí…
+admin-pipeline-ready = Čtečka stránek je připravena.
+admin-pipeline-starting = Čtečka stránek se ještě spouští; zkuste to za chvíli znovu.
 admin-col-time = Čas
 admin-col-user = Uživatel
 # After a role switch in a demo org: the person logged in, then the person whose role they acted in.
