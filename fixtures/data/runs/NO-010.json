@@ -37,6 +37,19 @@
  ],
  "sources": [
   {
+   "id": "src-da60e67b",
+   "type": "document",
+   "document_id": "10_pacient",
+   "part": "10_pacient/p0",
+   "page": 1,
+   "quote": "Ambulantní vyšetření kontrolní",
+   "quote_text": "pdf_text",
+   "anchor": null,
+   "reported_as": "original",
+   "identity": "matches",
+   "reading_check": null
+  },
+  {
    "id": "src-afcb50ff",
    "type": "document",
    "document_id": "10_pacient",
@@ -1375,6 +1388,19 @@
    "reading_check": null
   },
   {
+   "id": "src-b29ff0d2",
+   "type": "document",
+   "document_id": "10_pacient",
+   "part": "10_pacient/p2",
+   "page": 4,
+   "quote": "Ambulantnf vyletfenf kontrolnf",
+   "quote_text": "pdf_text",
+   "anchor": null,
+   "reported_as": "original",
+   "identity": "cannot_verify",
+   "reading_check": null
+  },
+  {
    "id": "src-6c420bfb",
    "type": "document",
    "document_id": "10_pacient",
@@ -1922,7 +1948,7 @@
    "quote": "Interní wš, 10.2.2026 NNJ \nZávěr: Dušnost k vyloučení kard. etiologie",
    "quote_text": "pdf_text",
    "anchor": null,
-   "reported_as": "original",
+   "reported_as": "cited",
    "identity": "cannot_verify",
    "reading_check": null
   },
@@ -2130,7 +2156,7 @@
    "quote": "Plicní wš, 22,5,2026 MUDr.Hofrová \nSpirometrie - lehká obstrukce",
    "quote_text": "pdf_text",
    "anchor": null,
-   "reported_as": "original",
+   "reported_as": "cited",
    "identity": "cannot_verify",
    "reading_check": {
     "mark": false,
@@ -2174,6 +2200,19 @@
    "part": "10_pacient/p10",
    "page": 5,
    "quote": "Dop. inhal Spiriva resp. 2-0-0 + Ventolin dlp., Erdomed 300mg 1-1-0",
+   "quote_text": "pdf_text",
+   "anchor": null,
+   "reported_as": "original",
+   "identity": "cannot_verify",
+   "reading_check": null
+  },
+  {
+   "id": "src-571e39a0",
+   "type": "document",
+   "document_id": "10_pacient",
+   "part": "10_pacient/p10",
+   "page": 5,
+   "quote": "kontrola \n9/2026 + spirometrie",
    "quote_text": "pdf_text",
    "anchor": null,
    "reported_as": "original",
@@ -5910,33 +5949,6 @@
    ]
   },
   {
-   "id": "f-d3ba4d59",
-   "key": "plan|kontrola s odběrem ko, biochemie|9.10.2026",
-   "kind": "plan",
-   "subject": "patient",
-   "value": {
-    "what": "kontrola s odběrem KO, biochemie",
-    "when_as_written": "9.10.2026"
-   },
-   "date": {
-    "as_written": "9.10.2026",
-    "precision": "day",
-    "sort": "2026-10-09"
-   },
-   "status": "planned",
-   "negated": false,
-   "not_stated": [],
-   "origin": "document",
-   "certainty": "clear",
-   "certainty_reason": null,
-   "codes": [],
-   "note": "Zda kontrola na str. 4 je tato kontrola, dokument neuvádí.",
-   "quarantined": false,
-   "sources": [
-    "src-b2be4c0c"
-   ]
-  },
-  {
    "id": "f-277c29ce",
    "key": "plan|kontrolní ct hrudníku, břicha a malé pánve|undated",
    "kind": "plan",
@@ -5963,35 +5975,6 @@
    "quarantined": false,
    "sources": [
     "src-d660b03a"
-   ]
-  },
-  {
-   "id": "f-d7931b6c",
-   "key": "plan|kontrola v plicní ambulanci|undated",
-   "kind": "plan",
-   "subject": "patient",
-   "value": {
-    "what": "kontrola v plicní ambulanci",
-    "when_as_written": null
-   },
-   "date": {
-    "as_written": null,
-    "precision": null,
-    "sort": null
-   },
-   "status": "planned",
-   "negated": false,
-   "not_stated": [
-    "date"
-   ],
-   "origin": "document",
-   "certainty": "clear",
-   "certainty_reason": null,
-   "codes": [],
-   "note": null,
-   "quarantined": false,
-   "sources": [
-    "src-99fd5fb7"
    ]
   },
   {
@@ -6107,6 +6090,201 @@
    "sources": [
     "src-3de99f77",
     "src-76bd3dd6"
+   ]
+  },
+  {
+   "id": "f-8ed182ff",
+   "key": "visit|outpatient|undated",
+   "kind": "visit",
+   "subject": "patient",
+   "value": {
+    "type": "outpatient",
+    "type_as_written": "Ambulantní vyšetření kontrolní",
+    "department": null,
+    "reason": null,
+    "end_as_written": null
+   },
+   "date": {
+    "as_written": null,
+    "precision": null,
+    "sort": null
+   },
+   "status": "done",
+   "negated": false,
+   "not_stated": [
+    "date",
+    "department"
+   ],
+   "origin": "document",
+   "certainty": "clear",
+   "certainty_reason": null,
+   "codes": [],
+   "note": "Datum kontroly v dokumentu není (záhlaví str. 4 nečitelné, datum zprávy na str. 3 začerněné); pacient už užívá everolimus (od 3.9.2026) a zpráva cituje MR 14.9.2026.",
+   "quarantined": false,
+   "sources": [
+    "src-da60e67b",
+    "src-b29ff0d2"
+   ]
+  },
+  {
+   "id": "f-8adb4681",
+   "key": "visit|consultation|2026-02-10",
+   "kind": "visit",
+   "subject": "patient",
+   "value": {
+    "type": "consultation",
+    "type_as_written": "Interní wš",
+    "department": null,
+    "reason": null,
+    "end_as_written": null
+   },
+   "date": {
+    "as_written": "10.2.2026",
+    "precision": "day",
+    "sort": "2026-02-10"
+   },
+   "status": "done",
+   "negated": false,
+   "not_stated": [
+    "department",
+    "reason"
+   ],
+   "origin": "document",
+   "certainty": "clear",
+   "certainty_reason": null,
+   "codes": [],
+   "note": null,
+   "quarantined": false,
+   "sources": [
+    "src-1002da7b"
+   ]
+  },
+  {
+   "id": "f-bb3f8377",
+   "key": "visit|consultation|2026-05-22",
+   "kind": "visit",
+   "subject": "patient",
+   "value": {
+    "type": "consultation",
+    "type_as_written": "Plicní wš",
+    "department": null,
+    "reason": null,
+    "end_as_written": null
+   },
+   "date": {
+    "as_written": "22,5,2026",
+    "precision": "day",
+    "sort": "2026-05-22"
+   },
+   "status": "done",
+   "negated": false,
+   "not_stated": [
+    "department"
+   ],
+   "origin": "document",
+   "certainty": "clear",
+   "certainty_reason": null,
+   "codes": [],
+   "note": null,
+   "quarantined": false,
+   "sources": [
+    "src-8b8e80e0"
+   ]
+  },
+  {
+   "id": "f-b9c83a62",
+   "key": "visit|outpatient|2026-10-09",
+   "kind": "visit",
+   "subject": "patient",
+   "value": {
+    "type": "outpatient",
+    "type_as_written": "Kontrola zde",
+    "department": null,
+    "reason": "s odběrem KO, biochemie",
+    "end_as_written": null
+   },
+   "date": {
+    "as_written": "9.10.2026",
+    "precision": "day",
+    "sort": "2026-10-09"
+   },
+   "status": "planned",
+   "negated": false,
+   "not_stated": [
+    "department"
+   ],
+   "origin": "document",
+   "certainty": "clear",
+   "certainty_reason": null,
+   "codes": [],
+   "note": null,
+   "quarantined": false,
+   "sources": [
+    "src-b2be4c0c"
+   ]
+  },
+  {
+   "id": "f-f3908fab",
+   "key": "visit|consultation|undated",
+   "kind": "visit",
+   "subject": "patient",
+   "value": {
+    "type": "consultation",
+    "type_as_written": "Kontrola v plicní amb.",
+    "department": "plicní amb.",
+    "reason": null,
+    "end_as_written": null
+   },
+   "date": {
+    "as_written": null,
+    "precision": null,
+    "sort": null
+   },
+   "status": "planned",
+   "negated": false,
+   "not_stated": [
+    "date"
+   ],
+   "origin": "document",
+   "certainty": "clear",
+   "certainty_reason": null,
+   "codes": [],
+   "note": null,
+   "quarantined": false,
+   "sources": [
+    "src-99fd5fb7"
+   ]
+  },
+  {
+   "id": "f-74c0ffa4",
+   "key": "visit|consultation|2026-09",
+   "kind": "visit",
+   "subject": "patient",
+   "value": {
+    "type": "consultation",
+    "type_as_written": "kontrola",
+    "department": null,
+    "reason": "spirometrie",
+    "end_as_written": null
+   },
+   "date": {
+    "as_written": "9/2026",
+    "precision": "month",
+    "sort": "2026-09"
+   },
+   "status": "planned",
+   "negated": false,
+   "not_stated": [
+    "department"
+   ],
+   "origin": "document",
+   "certainty": "clear",
+   "certainty_reason": null,
+   "codes": [],
+   "note": null,
+   "quarantined": false,
+   "sources": [
+    "src-571e39a0"
    ]
   },
   {
@@ -8832,6 +9010,67 @@
    "result": "found"
   },
   {
+   "id": "chk-visit",
+   "looks_for": "visit",
+   "expected": null,
+   "covered": [
+    {
+     "document_id": "10_pacient",
+     "part": "10_pacient/p0"
+    },
+    {
+     "document_id": "10_pacient",
+     "part": "10_pacient/p1"
+    },
+    {
+     "document_id": "10_pacient",
+     "part": "10_pacient/p2"
+    },
+    {
+     "document_id": "10_pacient",
+     "part": "10_pacient/p3"
+    },
+    {
+     "document_id": "10_pacient",
+     "part": "10_pacient/p4"
+    },
+    {
+     "document_id": "10_pacient",
+     "part": "10_pacient/p5"
+    },
+    {
+     "document_id": "10_pacient",
+     "part": "10_pacient/p6"
+    },
+    {
+     "document_id": "10_pacient",
+     "part": "10_pacient/p7"
+    },
+    {
+     "document_id": "10_pacient",
+     "part": "10_pacient/p8"
+    },
+    {
+     "document_id": "10_pacient",
+     "part": "10_pacient/p9"
+    },
+    {
+     "document_id": "10_pacient",
+     "part": "10_pacient/p10"
+    },
+    {
+     "document_id": "10_pacient",
+     "part": "10_pacient/p11"
+    },
+    {
+     "document_id": "10_pacient",
+     "part": "10_pacient/p12"
+    }
+   ],
+   "unreadable": [],
+   "result": "found"
+  },
+  {
    "id": "chk-interval",
    "looks_for": "interval",
    "expected": null,
@@ -9306,6 +9545,7 @@
    "subject": "10_pacient/p2",
    "kind": "missing",
    "facts": [
+    "f-8ed182ff",
     "f-3cfe8dd6"
    ],
    "message": {

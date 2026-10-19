@@ -103,6 +103,18 @@ describe("case 10", () => {
     for (const h of ofKind(run, "histology")) expect(missing.has(h.id), h.id).toBe(true);
   });
 
+  it("holds the check-up of 9.10.2026 as a planned visit, not a plan, and the control visit as undated", () => {
+    const visits = ofKind(run, "visit");
+    const next = visits.find((f) => f.date.as_written === "9.10.2026")!;
+    expect(next).toMatchObject({ status: "planned", value: { type: "outpatient" }, date: { precision: "day", sort: "2026-10-09" } });
+    expect(ofKind(run, "plan").some((f) => f.value.what.startsWith("kontrola s odběrem"))).toBe(false);
+    const control = visits.find((f) => f.status === "done" && f.value.type === "outpatient")!;
+    expect(control.date.as_written).toBeNull();
+    expect(control.not_stated).toContain("date");
+    // A partial or OCR-written date stays as written: the pulmonary exam "22,5,2026".
+    expect(visits.find((f) => f.value.type_as_written === "Plicní wš")!.date.as_written).toBe("22,5,2026");
+  });
+
   it("points the brief and the drafted question at existing facts", () => {
     expect(run.brief!.sentences).toHaveLength(7);
     for (const s of run.brief!.sentences) for (const id of s.facts) expect(byId.has(id), id).toBe(true);

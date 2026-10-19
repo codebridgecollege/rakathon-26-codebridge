@@ -31,7 +31,7 @@ REPO = HERE.parents[1]
 sys.path.insert(0, str(REPO / "pipeline"))
 sys.path.insert(0, str(HERE))
 
-from extraction_format import FACT_KINDS, alert_id, assign_fact_ids, pair_subject, source_id_for, validate_run  # noqa: E402
+from extraction_format import alert_id, assign_fact_ids, pair_subject, source_id_for, validate_run  # noqa: E402
 
 import case10_v2 as C10  # noqa: E402
 from spec import AlertSpec, Q, Spec  # noqa: E402
@@ -48,7 +48,7 @@ CITED_KINDS = {"imaging", "histology"}
 FACT_KINDS_WITH_CHECKS = [
     "diagnosis", "histology", "stage", "metastasis", "procedure", "systemic_therapy", "radiotherapy", "imaging", "lab_result",
     "vital_sign", "performance_status", "exam_finding", "symptom", "comorbidity", "medication", "contraindication", "allergy",
-    "adverse_event", "prognostic_score", "risk_factor", "family_history", "request", "decision", "plan", "interval",
+    "adverse_event", "prognostic_score", "risk_factor", "family_history", "request", "decision", "plan", "visit", "interval",
 ]
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -552,7 +552,7 @@ def build_case10(report: dict[str, Any]) -> tuple[dict[str, Any], dict[str, str]
     n_parts = len(extra["documents"])
     b = Builder(C10.CASE_ID, C10.DOCUMENT, n_parts, C10.DEFAULT_PART, [case["patient"]["name_as_written"], case["patient"]["name"]])
     collect_tokens(b, extra, case)
-    for sp in C10.FACTS:
+    for sp in C10.FACTS + visit_specs(C10.VISITS):
         b.add(sp)
     lab_handles = []
     for lab in case["labs"]:
@@ -563,6 +563,7 @@ def build_case10(report: dict[str, Any]) -> tuple[dict[str, Any], dict[str, str]
     frame = run_frame(C10.CASE_ID, C10.DOCUMENT, n_parts)
     run, ids = finish(b, frame)
     lab_ids = [ids[h] for h in lab_handles]
+    report["visits"] = visit_report(C10.VISITS, ids)
 
     run["checks"] = (
         kind_checks(C10.DOCUMENT, n_parts, run["facts"], C10.NOTHING_FOUND_KINDS, C10.NOT_RUN_KINDS, None, {"lab_result": [C10.LAB_PART]})
@@ -574,7 +575,6 @@ def build_case10(report: dict[str, Any]) -> tuple[dict[str, Any], dict[str, str]
     for c in run["checks"]:
         c["unreadable"] = [{"document_id": C10.DOCUMENT, "part": f"{C10.DOCUMENT}/p{part}", "page": page} for page, part in C10.UNREADABLE.get(c["id"], [])]
     run["alerts"] = resolve_alerts(C10.ALERTS, ids, lab_ids)
-    run["facts"] += visit_facts(b, C10.VISITS, ids, report)
 
     # The brief: today's sentences, each with the facts it states; every marker's passage must rest on one of them.
     sentences = split_brief(extra["onco_summary_v3_cs"])
@@ -603,21 +603,15 @@ def build_case10(report: dict[str, Any]) -> tuple[dict[str, Any], dict[str, str]
     return run, ids, b
 
 
-def visit_facts(b: Builder, visits: list[tuple], ids: dict[str, str], report: dict[str, Any]) -> list[dict[str, Any]]:
-    """Visit facts, once the format has the kind (stream F adds `visit`: type, department, reason as written; key = kind,
-    type, date). Until then this returns none and only reports which facts carry each visit. Adding the kind means
-    writing the value below in its final shape and appending the specs in build_case10 before IDs are assigned."""
-    rows = []
-    for handle, vtype, dept, reason, date, status, quotes, items, carried_by in visits:
-        located = [q for q in quotes if find_span(page_text(b.document, q.page), q.text)]
-        if len(located) != len(quotes):
-            raise SystemExit(f"visit {handle}: a quote is not in its page text")
-        rows.append({"visit": handle, "type": vtype, "department": dept, "reason": reason, "date": date, "status": status,
-                     "today": items, "carried_by": [ids[h] for h in carried_by]})
-    report["visits"] = rows
-    if "visit" not in FACT_KINDS:
-        return []
-    raise SystemExit("the format now has a visit kind: write visit_facts() (see its docstring)")
+def visit_specs(visits: list[tuple[Spec, list[str]]]) -> list[Spec]:
+    """The visit facts (kind `visit`: type, type_as_written, department, reason, end_as_written; key = kind, type,
+    date). Each visit is cited in the outpatient report or is its own header there; quotes are the sources."""
+    return [sp for sp, _today in visits]
+
+
+def visit_report(visits: list[tuple[Spec, list[str]]], ids: dict[str, str]) -> list[dict[str, Any]]:
+    return [{"visit": sp.handle, "id": ids[sp.handle], "type": sp.value["type"], "as_written": sp.value["type_as_written"],
+             "date": sp.date, "status": sp.status, "today": today} for sp, today in visits]
 
 
 def view_coverage_case10(b: Builder) -> dict[str, Any]:
@@ -922,9 +916,9 @@ def main(argv: list[str] | None = None) -> int:
     print(f"View items of case 10: {full['view_coverage']['items']}, without a fact: {len(full['view_coverage']['without_fact'])}")
     for w in full["view_coverage"]["without_fact"]:
         print(f"  {w}")
-    print("Visits (no visit kind yet; carried by):")
+    print("Visits:")
     for v in full["visits"]:
-        print(f"  {v['visit']}: {v['type']}, {v['date'] or 'bez data'} ({', '.join(v['today'])}) -> {v['carried_by']}")
+        print(f"  {v['id']} {v['visit']}: {v['type']} {v['as_written']!r}, {v['date'] or 'bez data'}, {v['status']} ({', '.join(v['today'])})")
     print(f"Quote misses: {len(misses)}")
     if guidance_notes:
         print("Guidance cross-check:")

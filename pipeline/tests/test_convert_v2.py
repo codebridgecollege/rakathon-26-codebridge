@@ -59,7 +59,7 @@ def test_no_patient_identifier_in_a_run(case_id):
 
 def test_counts():
     counts = {c: convert_v2.counts(run_of(c)) for c in CASES}
-    assert sum(counts["NO-010"].values()) == 153
+    assert sum(counts["NO-010"].values()) == 157
     assert counts["NO-010"]["lab_result"] == 26  # today's 26 lab values, one undated panel
     assert counts["NO-S01"]["lab_result"] == 52  # 13 tests x 4 draws
     assert counts["NO-S02"]["lab_result"] == 72  # 18 tests x 4 draws

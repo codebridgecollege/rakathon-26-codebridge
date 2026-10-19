@@ -3505,6 +3505,14 @@
    "result": "not_run"
   },
   {
+   "id": "chk-visit",
+   "looks_for": "visit",
+   "expected": null,
+   "covered": [],
+   "unreadable": [],
+   "result": "not_run"
+  },
+  {
    "id": "chk-interval",
    "looks_for": "interval",
    "expected": null,

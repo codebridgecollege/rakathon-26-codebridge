@@ -38,6 +38,7 @@ from spec import (
     meta,
     perf,
     plan,
+    visit,
     proc,
     prog,
     req,
@@ -72,9 +73,9 @@ def R(n: int, part: int | None = None, cited: bool | None = None) -> Q:
     return Q(int(ref["page"]), REF_FIX.get(n, ref["quote"]), part, cited)
 
 
-U = ["date"]
+U = ["date"]  # not_stated for the undated outpatient visit (status praesens, p4)
 # The nephrectomy line with the histology under it: the date 2.6.2022 is on the first line, so a fact dated by it quotes both.
-NEPH = Q(1, "2.6.2022 - stp. transperitoneálni nefrektomii vpravo s retroperitoneálni lymfadenektomii Histol. světlobuněčný renální adenokarcinom G2, pT2a pN1(3+/5) MO")  # not_stated for the undated outpatient visit (status praesens, p4)
+NEPH = Q(1, "2.6.2022 - stp. transperitoneálni nefrektomii vpravo s retroperitoneálni lymfadenektomii Histol. světlobuněčný renální adenokarcinom G2, pT2a pN1(3+/5) MO")
 
 FACTS: list[Spec] = [
     # ----- diagnosis, histology, stage -----
@@ -313,11 +314,8 @@ FACTS: list[Spec] = [
          quotes=[Q(3, "Při odchodu je pacient ve stabilizovaném ·stavu.")], not_stated=["date"]),
     Spec("req_nch", "request", req("projednání nálezu MR mozku na neurochirurgickém semináři", "consultation"), status="requested",
          quotes=[R(41)], not_stated=["date"], note="Termín ani formulovaná otázka v dokumentu uvedeny nejsou."),
-    Spec("pl_visit", "plan", plan("kontrola s odběrem KO, biochemie", "9.10.2026"), date="9.10.2026", status="planned", quotes=[R(42)],
-         note="Zda kontrola na str. 4 je tato kontrola, dokument neuvádí."),
     Spec("pl_ct", "plan", plan("kontrolní CT hrudníku, břicha a malé pánve", "v 9.20hod."), status="planned", quotes=[R(43)], not_stated=["date"],
          note="U kontrolního CT zpráva uvádí jen čas (9.20 hod.), datum ne."),
-    Spec("pl_pulm", "plan", plan("kontrola v plicní ambulanci"), status="planned", quotes=[Q(3, "Kontrola v plicní amb.")], not_stated=["date"]),
     Spec("pl_colo", "plan", plan("kontrolní kolonoskopie", "r.2028"), date="r.2028", status="planned", quotes=[R(84)],
          note="Zpráva z předchozí kolonoskopie v dokumentaci není."),
     Spec("pl_bp", "plan", plan("domácí měření TK"), status="planned", quotes=[R(120)], not_stated=["date"]),
@@ -347,7 +345,7 @@ ALERTS: list[AlertSpec] = [
         for h in ("h_neph", "h_ln", "h_chin", "h_glab")
     ],
     AlertSpec("suspicion_not_verified", "missing", "m_cereb", ["m_cereb", "i_mr"], {"fact": "m_cereb"}, "Suspekce, ne diagnóza.", ["flags[2]"]),
-    AlertSpec("document_date_not_stated", "missing", "10_pacient/p2", ["perf_ecog"], {"document": "10_pacient/p2"},
+    AlertSpec("document_date_not_stated", "missing", "10_pacient/p2", ["vis_control", "perf_ecog"], {"document": "10_pacient/p2"},
               "Záhlaví str. 4 je v OCR nečitelné, datum zprávy na str. 3 začerněné; datum lze jen odhadnout z kontextu (po 14.9.2026).", ["flags[3]", "data_gaps_v3[5]"]),
     AlertSpec("lab_draw_date_not_stated", "missing", "10_pacient/p1", ["@labs"], {"document": "10_pacient/p1"}, None, ["flags[3]"]),
     AlertSpec("reading_uncertain", "unclear", "stage", ["stage"], {"fact": "stage"},
@@ -415,22 +413,35 @@ UNREADABLE = {
 # not written in the document (the fact says so), so the sentence does not call it the 1st palliative line.
 BRIEF_TEXT_FIX = {"V 1. paliativní linii léčen nivolumabem s ipilimumabem": "Léčen nivolumabem s ipilimumabem"}
 
-# Today's view items that are visits (ambulatory check-ups and consultations). The format has no visit kind yet
-# (stream F adds it); until then each is carried by the facts listed, and convert_v2.visit_specs() turns this table
-# into visit facts once the kind exists.
+# Visits and check-ups (kind `visit`). The PDF is one control report whose pages run 4, 5, 1, 2, 3 (flags[7]), so the
+# headers on pages 1 and 4 are one visit. The internal and pulmonary exams are cited in it; the planned check-ups
+# from the plan line are visits with status planned, not plan facts, so each shows once on the timeline. The pulmonary
+# clinic's visits are consultations (a specialty asked by oncology), which also keeps their keys apart from the
+# undated oncology control visit's (the key is kind, type and date, not status).
+# The extra field `today` lists the view items each visit carries (for the conversion report).
 VISITS = [
-    # (handle, type, department, reason as written, date as written, status, quotes, today's items, facts carrying it now)
-    ("vis_last", "ambulantní kontrola", "onkologie", None, None, "done", [Q(1, "Ambulantní vyšetření kontrolní")],
-     ["onco_detailed_v3[18]", "documents[0]"], ["ex_tolerance", "med_evero10", "req_nch", "pl_visit"]),
-    ("vis_p4", "ambulantní kontrola", "onkologie", None, None, "done", [Q(4, "Ambulantnf vyletfenf kontrolnf")],
-     ["status_praesens", "documents[2]"], ["perf_ecog", "ex_subj_evero", "v_bp"]),
-    ("vis_internal", "interní vyšetření", "interna NNJ", "Dušnost k vyloučení kard. etiologie", "10.2.2026", "done",
-     [Q(5, "Interní wš, 10.2.2026 NNJ", 7), Q(5, "Závěr: Dušnost k vyloučení kard. etiologie", 7)],
-     ["timeline[21]", "documents[7]"], ["c_dyspnea", "dx_pe_neg", "ex_ekg", "v_bp_int", "med_orcal"]),
-    ("vis_pulm", "plicní vyšetření", "plicní ambulance", None, "22,5,2026", "done", [R(74, 10)],
-     ["timeline[26]", "documents[10]"], ["c_copd", "c_ild", "med_spiriva_b", "med_erdomed"]),
-    ("vis_next", "ambulantní kontrola", "onkologie", None, "9.10.2026", "planned", [R(42)],
-     ["timeline_cards_v3[15]", "timeline[33]"], ["pl_visit"]),
+    (Spec("vis_control", "visit", visit("outpatient", "Ambulantní vyšetření kontrolní"), status="done",
+          quotes=[Q(1, "Ambulantní vyšetření kontrolní"), Q(4, "Ambulantnf vyletfenf kontrolnf")], not_stated=["date", "department"],
+          note="Datum kontroly v dokumentu není (záhlaví str. 4 nečitelné, datum zprávy na str. 3 začerněné); pacient už užívá everolimus (od 3.9.2026) a zpráva cituje MR 14.9.2026."),
+     ["onco_detailed_v3[18]", "status_praesens", "documents[0]", "documents[2]"]),
+    (Spec("vis_internal", "visit", visit("consultation", "Interní wš"), date="10.2.2026", status="done",
+          quotes=[Q(5, "Interní wš, 10.2.2026 NNJ", 7, True)], not_stated=["department", "reason"]),
+     ["timeline[21]", "documents[7]"]),
+    (Spec("vis_pulm", "visit", visit("consultation", "Plicní wš"), date="22,5,2026", status="done",
+          quotes=[Q(5, "Plicní wš, 22,5,2026 MUDr.Hofrová", 10, True)], not_stated=["department"]),
+     ["timeline[26]", "documents[10]"]),
+    (Spec("vis_next", "visit", visit("outpatient", "Kontrola zde", None, "s odběrem KO, biochemie"), date="9.10.2026", status="planned",
+          quotes=[R(42)], not_stated=["department"]),
+     ["timeline_cards_v3[15]", "timeline[33]", "onco_compact.lines[15]", "sections.current_state[3]"]),
+    (Spec("vis_pulm_next", "visit", visit("consultation", "Kontrola v plicní amb.", "plicní amb."), status="planned",
+          quotes=[Q(3, "Kontrola v plicní amb.")], not_stated=["date"]),
+     ["onco_compact.lines[15]", "sections.current_state[3]"]),
+    # Planned by the pulmonary exam of 22.5.2026. Whether it is the check-up the oncologist names on page 3 ("Kontrola v
+    # plicní amb."), the document does not say, so both stay. The earlier undated pulmonary exam quoted on page 4
+    # ("kontrola za 1/2 roku") is not a visit fact: it may be the exam of 22.5.2026, and nothing dates it.
+    (Spec("vis_pulm_9_2026", "visit", visit("consultation", "kontrola", None, "spirometrie"), date="9/2026", status="planned",
+          quotes=[Q(5, "kontrola \n9/2026 + spirometrie", 10)], not_stated=["department"]),
+     []),
 ]
 
 # ----- guidance re-key (fixtures/data/guideline-*.json, deviations-case-10.json) -----

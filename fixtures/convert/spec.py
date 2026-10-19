@@ -142,6 +142,10 @@ def dec(body, text, as_written=None):
     return {"body": body, "body_as_written": as_written, "text": text}
 
 
+def visit(vtype, as_written=None, department=None, reason=None, end=None):
+    return {"type": vtype, "type_as_written": as_written, "department": department, "reason": reason, "end_as_written": end}
+
+
 def plan(what, when=None):
     return {"what": what, "when_as_written": when}
 
