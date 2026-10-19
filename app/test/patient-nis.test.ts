@@ -65,7 +65,7 @@ describe("Import z NIS dialog", () => {
     await flushPromises();
     expect(w.text()).toContain("Zdroj: Testovací NIS (FHIR R4, jen čtení)");
     expect(w.text()).toContain("Národní registr (ukázka):");
-    expect(w.text()).toContain("Údaje z NIS se zatím nenačítají");
+    expect(w.text()).toContain("Import převezme údaje a dokumenty z propojeného záznamu NIS do případu.");
     expect(w.text()).toContain("V prototypu není napojeno");
     await w.get("input").setValue("720905/3005");
     await w.findAll("button").find((x) => x.text() === "Vyhledat v NIS")!.trigger("click");
