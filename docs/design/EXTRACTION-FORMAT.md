@@ -310,10 +310,10 @@ JSON Schema defines them exactly).
 
 ### Doctor confirmations and edits
 
-They live in D1, keyed by fact ID, never in the run:
-- **`fact_confirmations`:** a new table (case, fact ID, who, when).
-- **`fact_edits`:** rebuilt to hold the edited value as JSON plus the original, keyed by fact ID instead of position.
-- **`edit_log`:** stays the append-only history of both.
+They live in D1, keyed by fact ID, never in the run (`docs/design/DATABASE.md`, "Extraction runs"):
+- **`fact_confirmations`:** append-only (case, fact ID, confirm or withdraw, the SHA-256 of the fact's frame and value, the run, who, when). The server computes the hash from the current run, so the page cannot confirm a value the run does not hold; a quarantined fact is never confirmed.
+- **`fact_edits`:** the current override per edit key. A fact's key is `f:<fact id>` with an optional part (`:t`, `:c`, `:e`, `:line`, `:note`), and the row records the fact ID; fields that are not facts keep their names (`brief`, `reason`, `proposal`, `q`, `dx`, `assess`, `sev`). Rows under the old positional keys stay and can only be reverted.
+- **`edit_log`:** stays the append-only history of edits.
 
 The view overlays them on the current run:
 - **Same ID, same value:** the confirmation stands.
@@ -649,14 +649,14 @@ refresh route come with the run publishing (stream A part 2, stream B).
   - Adding an optional field keeps `/2`.
   - A breaking change becomes `/3`, together with a converter from `/2`; old runs stay readable through the converter.
   - An unknown fact kind is shown as a plain fact (its text and sources) instead of breaking the view.
-- **D1 changes this needs:**
-  - `extraction_runs.producer` and `kind` merged into one column allowing `fixture`, `pipeline` and `nis`;
-  - `alert_identities` and `alert_events` keyed by alert ID, with run instances in the run file;
-  - the `alerts` kinds extended;
-  - `fact_confirmations` added;
-  - `fact_edits` rebuilt by fact ID;
-  - `documents.lifecycle` `superseded` and `withdrawn` (done: migration 0013, a column apart from the processing `state`);
-  - stable part IDs on `document_parts`.
+- **D1 for this format** (`docs/design/DATABASE.md`, "Extraction runs"):
+  - `extraction_runs.producer` (`fixture`, `pipeline`, `nis`), `seeded`, `schema` and `supersedes` (migration 0015); `kind` remains as a computed column until a later migration drops it;
+  - `alert_identities` and `alert_events` keyed by alert ID, with the alert instances in the run file (0015); the `/1` alerts and their events stay read-only in `alerts` and `alert_events_v1`;
+  - `fact_ids`, every fact ID ever issued for a case (0015);
+  - `fact_confirmations` (0015);
+  - `fact_edits.fact_id` for `f:<fact id>` keys (0015);
+  - `documents.lifecycle` `superseded` and `withdrawn` (migration 0013, a column apart from the processing `state`);
+  - `document_parts.part_id`, the stable part ID (0015).
 
 ## Converting the existing fixtures
 

@@ -48,7 +48,8 @@ MAX_STATEMENT = 90_000  # D1 refuses SQL statements over 100 KB; keep a margin.
 TABLES = [
     "departments", "dept_members", "patients", "patient_nis_links", "cases", "case_members", "status_history",
     "slots", "sessions", "attendance", "protocols", "decisions", "task_suggestions", "tasks",
-    "question_confirmations", "fact_edits", "edit_log", "extraction_runs", "alerts", "alert_events",
+    "question_confirmations", "fact_edits", "edit_log", "extraction_runs", "alerts", "alert_events_v1", "alert_identities", "alert_events",
+    "fact_ids", "fact_confirmations",
     "documents", "document_parts", "pages", "fixture_files", "fixture_patients", "recordings", "jobs", "transcript_passes",
     "transcript_lines", "transcript_summaries", "audio_uploads", "audio_parts", "audio_segments", "access_log", "seed_meta", "attendance_sets", "notifications", "case_access_grants", "idempotency_keys",
     "write_guards", "auth_sessions",
@@ -603,7 +604,7 @@ def main() -> None:
         }))
         for k, d in enumerate(parts):
             sql.append(insert("document_parts", {
-                "org_id": ORG_A, "document_id": stem, "ordinal": k, "title_cs": d["title_cs"], "type": d.get("type"), "date": d.get("date"),
+                "org_id": ORG_A, "document_id": stem, "ordinal": k, "part_id": f"{stem}/p{k}", "title_cs": d["title_cs"], "type": d.get("type"), "date": d.get("date"),
                 "date_note_cs": d.get("date_note_cs"), "pages_json": d.get("pages") or [], "readability": d.get("readability"),
                 "reason_cs": d.get("reason_cs"), "upload_name": d.get("upload_name"),
             }))
@@ -704,7 +705,9 @@ def main() -> None:
         key = org_key(org, f"extract/{cid}/{run_id}.json")
         r2.append({"key": key, "body": body, "content_type": "application/json"})
         sql.append(insert("extraction_runs", {
-            "id": run_id, "org_id": org, "case_id": cid, "kind": "seed_fixture", "model": None, "prompt_version": None, "temperature": None,
+            # Still the old format /1 (served as not processed by the API); seeded, so the demo reset keeps it.
+            "id": run_id, "org_id": org, "case_id": cid, "producer": "fixture", "seeded": 1, "schema": "codebridge.extraction/1",
+            "model": None, "prompt_version": None, "temperature": None,
             "input_hashes_json": hashes, "r2_key": key, "sha256": sha256_bytes(body), "is_current": True,
         }))
         sql += [insert("alerts", {**x, "run_id": run_id}) for x in al]
@@ -882,7 +885,10 @@ def main() -> None:
     # The append-only triggers are checked by name, not by counting all triggers, so a later migration that adds
     # other triggers (0013 adds the document lifecycle ones) does not fail the seed.
     have = {r["name"] for r in d1_query(t, "SELECT name FROM sqlite_master WHERE type='trigger'")}
-    missing = sorted(set(trigger_names((MIGRATIONS / "0002_append_only.sql").read_text())) - have)
+    # 0015 adds the append-only triggers of the codebridge.extraction/2 tables and redefines the reset trigger.
+    want = set(trigger_names((MIGRATIONS / "0002_append_only.sql").read_text()))
+    want |= {n for n in trigger_names((MIGRATIONS / "0015_extraction_v2.sql").read_text()) if n.endswith(("_no_update", "_no_delete")) or n == "demo_reset_uploads"}
+    missing = sorted(want - have)
     if missing or counts["p"] != len(patients) or counts["pg"] != page_count_total:
         sys.exit(f"seed: verification failed (missing append-only triggers {missing}; expected {len(patients)} patients,"
                  f" {page_count_total} pages, got {counts['p']} and {counts['pg']})")

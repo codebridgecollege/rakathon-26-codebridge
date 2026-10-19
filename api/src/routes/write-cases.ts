@@ -10,8 +10,10 @@ import { releasesOnClose, schedule, slotText, unschedule, validateSlot, type Slo
 import { newDraft, patchProtocol } from "@codebridge/domain/protocol";
 import { approve } from "@codebridge/domain/approve";
 import { confirmDraft } from "../domain/question";
-import { saveEdit, revertEdit } from "@codebridge/domain/edits";
-import { ALERT_ACT_CS, ALERT_KIND_CS, alertState, parseAlertKey, transition, type AlertAction } from "../domain/alerts";
+import { FACT_ID_RE, factIdOfKey, saveEdit, revertEdit } from "@codebridge/domain/edits";
+import { confirmTransition, confirmationState, confirmedContent, type ConfirmAction } from "@codebridge/domain/confirmations";
+import { ALERT_ACT_CS, ALERT_ID, ALERT_KIND_CS, alertState, transition, type AlertAction } from "../domain/alerts";
+import { currentRun } from "../store/runs";
 import { grant } from "../domain/breakglass";
 import { PROTOCOL_AUDIT_WINDOW_MIN } from "@codebridge/domain/config";
 import { pragueDay } from "@codebridge/domain/time";
@@ -352,29 +354,78 @@ export const writeCases = new Hono<AppEnv>()
   .delete("/cases/:id/edits/:key", async (c) => editRoute(c, "revert"))
 
   // ---------- alert events ----------
-  .post("/cases/:id/alerts/:key/events", async (c) => {
+  // By alert ID of the current run (codebridge.extraction/2). The ID comes from the alert's rule and subject, so the
+  // acknowledgement carries over to the next run that raises the same alert.
+  .post("/cases/:id/alerts/:alertId/events", async (c) => {
     const id = c.req.param("id");
     label(c, "změna stavu upozornění", id);
     const { breakGlass } = await caseFor(c, id, "alert.act");
-    const k = parseAlertKey(c.req.param("key"));
-    if (!k) throw D.alertNotFound();
-    const alert = await orgQuery(
-      c,
-      `SELECT a.id, a.kind FROM alerts a JOIN extraction_runs r ON r.id = a.run_id AND r.org_id = a.org_id AND r.is_current = 1
-       WHERE a.org_id = ?org AND a.case_id = ?1 AND a.origin = ?2 AND a.position = ?3`,
-      id,
-      k.origin,
-      k.position,
-    ).first<{ id: string; kind: string }>();
-    if (!alert) throw D.alertNotFound();
-    const events = (await orgQuery(c, "SELECT action FROM alert_events WHERE org_id = ?org AND alert_id = ?1 ORDER BY at, id", alert.id).all<{ action: AlertAction }>()).results;
+    const alertId = c.req.param("alertId");
+    if (!ALERT_ID.test(alertId)) throw D.alertNotFound();
+    const { row, data } = await currentRun(c.env.DB, c.env.DOCS, c.var.viewer.org, id);
+    const alert = data?.alerts.find((a) => a.id === alertId);
+    if (!row || !alert) throw D.alertNotFound();
+    const events = (
+      await orgQuery(c, "SELECT action FROM alert_events WHERE org_id = ?org AND case_id = ?1 AND alert_id = ?2 ORDER BY at, id", id, alertId).all<{ action: AlertAction }>()
+    ).results;
     const b = c.var.body;
     const action = transition(alertState(events), b.action, b.expected_state);
     const t = tx(c, breakGlass);
     const v = c.var.viewer;
-    t.guard("events", "(SELECT COUNT(*) FROM alert_events WHERE org_id = ?org AND alert_id = ?) = ?", [alert.id, events.length], () => D.alertStateChanged());
-    t.run("INSERT INTO alert_events (org_id, alert_id, action, by_user_id, by_name, at) VALUES (?org, ?1, ?2, ?3, ?4, ?5)", alert.id, action, v.id, v.name, isoNow());
-    t.audit({ action: "alert.event", what_cs: `${ALERT_ACT_CS[action]}: ${ALERT_KIND_CS[alert.kind] ?? ALERT_KIND_CS.unclear}`, case_id: id, target_type: "alert", target_id: alert.id });
+    t.guard("events", "(SELECT COUNT(*) FROM alert_events WHERE org_id = ?org AND case_id = ? AND alert_id = ?) = ?", [id, alertId, events.length], () => D.alertStateChanged());
+    // The alert must still be in the current run when the event lands.
+    t.guard("run", "(SELECT id FROM extraction_runs WHERE org_id = ?org AND case_id = ? AND is_current = 1) = ?", [id, row.id], () => D.alertStateChanged());
+    // Run storage registers the alert's identity; an alert of a run stored before that existed gets it here.
+    t.run(
+      `INSERT INTO alert_identities (org_id, case_id, id, rule, subject, kind, first_run_id) VALUES (?org, ?1, ?2, ?3, ?4, ?5, ?6)
+       ON CONFLICT (org_id, case_id, id) DO NOTHING`,
+      id, alertId, alert.rule, alert.subject, alert.kind, row.id,
+    );
+    t.run("INSERT INTO alert_events (org_id, case_id, alert_id, action, by_user_id, by_name, at) VALUES (?org, ?1, ?2, ?3, ?4, ?5, ?6)", id, alertId, action, v.id, v.name, isoNow());
+    t.audit({ action: "alert.event", what_cs: `${ALERT_ACT_CS[action]}: ${ALERT_KIND_CS[alert.kind] ?? ALERT_KIND_CS.unclear}`, case_id: id, target_type: "alert", target_id: alertId });
+    await t.commit();
+    return answer(c, {}, { cases: await statesFor(c, [id]) });
+  })
+
+  // ---------- fact confirmations ----------
+  // A doctor confirms one fact of the current run (or withdraws it). The server computes what was confirmed from the
+  // run itself, so the page cannot confirm a value the run does not hold.
+  .post("/cases/:id/facts/:factId/confirmations", async (c) => {
+    const id = c.req.param("id");
+    label(c, "potvrzení údaje", id);
+    const { breakGlass } = await caseFor(c, id, "fact.confirm");
+    const factId = c.req.param("factId");
+    if (!FACT_ID_RE.test(factId)) throw D.factNotFound();
+    const { row, data } = await currentRun(c.env.DB, c.env.DOCS, c.var.viewer.org, id);
+    const fact = data?.facts.find((f) => f.id === factId);
+    if (!row || !fact) throw D.factNotFound();
+    // A fact from a page that shows another patient is kept in the run but never shown, so it is never confirmed.
+    if (fact.quarantined) throw D.factQuarantined();
+    const sha = await sha256Hex(confirmedContent(fact));
+    const rows = (
+      await orgQuery(c, "SELECT action, value_sha256 FROM fact_confirmations WHERE org_id = ?org AND case_id = ?1 AND fact_id = ?2 ORDER BY at, id", id, factId).all<{
+        action: ConfirmAction;
+        value_sha256: string;
+      }>()
+    ).results;
+    const b = c.var.body;
+    const action = confirmTransition(confirmationState(rows, sha), b.action, b.expected_state);
+    const t = tx(c, breakGlass);
+    const v = c.var.viewer;
+    t.guard("confirmations", "(SELECT COUNT(*) FROM fact_confirmations WHERE org_id = ?org AND case_id = ? AND fact_id = ?) = ?", [id, factId, rows.length], () => D.confirmationChanged());
+    t.guard("run", "(SELECT id FROM extraction_runs WHERE org_id = ?org AND case_id = ? AND is_current = 1) = ?", [id, row.id], () => D.confirmationChanged());
+    t.run("INSERT INTO fact_ids (org_id, case_id, fact_id, first_run_id) VALUES (?org, ?1, ?2, ?3) ON CONFLICT (org_id, case_id, fact_id) DO NOTHING", id, factId, row.id);
+    t.run(
+      "INSERT INTO fact_confirmations (org_id, case_id, fact_id, action, value_sha256, run_id, by_user_id, by_name, at) VALUES (?org, ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
+      id, factId, action, sha, row.id, v.id, v.name, isoNow(),
+    );
+    t.audit({
+      action: action === "confirm" ? "fact.confirm" : "fact.confirm_withdraw",
+      what_cs: action === "confirm" ? "potvrdil(a) údaj" : "zrušil(a) potvrzení údaje",
+      case_id: id,
+      target_type: "fact",
+      target_id: factId,
+    });
     await t.commit();
     return answer(c, {}, { cases: await statesFor(c, [id]) });
   })
@@ -409,9 +460,21 @@ async function editRoute(c: import("hono").Context<AppEnv>, mode: "save" | "reve
   const b = c.var.body;
   const op = mode === "save" ? saveEdit(key, cur, b.text, b.orig, b.expected_edit_id) : revertEdit(key, cur, b.expected_edit_id);
   if (op.kind === "noop") return answer(c, { changed: false }, { cases: await statesFor(c, [id]) });
+  // An edit of a fact ("f:<fact id>") is saved only for a fact the current run shows; reverting one whose fact is gone
+  // from the run stays possible, so a doctor can clear an orphaned edit.
+  const factId = factIdOfKey(key);
+  let runId: string | null = null;
+  if (factId && op.kind === "save") {
+    const { row, data } = await currentRun(c.env.DB, c.env.DOCS, c.var.viewer.org, id);
+    const fact = data?.facts.find((f) => f.id === factId);
+    if (!row || !fact) throw D.factNotFound();
+    if (fact.quarantined) throw D.factQuarantined();
+    runId = row.id;
+  }
   const t = tx(c, breakGlass);
   const at = isoNow();
   const v = c.var.viewer;
+  if (runId) t.guard("run", "(SELECT id FROM extraction_runs WHERE org_id = ?org AND case_id = ? AND is_current = 1) = ?", [id, runId], () => D.editConflict(""));
   if (cur) t.guard("edit", "(SELECT log_id FROM fact_edits WHERE org_id = ?org AND case_id = ? AND key = ?) IS ?", [id, key, cur.log_id], () => D.editConflict(""));
   else t.guard("edit", "NOT EXISTS (SELECT 1 FROM fact_edits WHERE org_id = ?org AND case_id = ? AND key = ?)", [id, key], () => D.editConflict(""));
   // orig is what the page showed; the source value itself is never changed.
@@ -419,12 +482,12 @@ async function editRoute(c: import("hono").Context<AppEnv>, mode: "save" | "reve
   if (op.kind === "save") {
     t.run("INSERT INTO edit_log (org_id, case_id, key, orig, text, by_user_id, by_name, at) VALUES (?org, ?1, ?2, ?3, ?4, ?5, ?6, ?7)", id, key, orig, op.text, v.id, v.name, at);
     t.run(
-      `INSERT INTO fact_edits (org_id, case_id, key, text, orig, by_user_id, by_name, at, log_id, extraction_run_id)
+      `INSERT INTO fact_edits (org_id, case_id, key, text, orig, by_user_id, by_name, at, log_id, extraction_run_id, fact_id)
        VALUES (?org, ?1, ?2, ?3, ?4, ?5, ?6, ?7, (SELECT MAX(id) FROM edit_log WHERE org_id = ?org AND case_id = ?1 AND key = ?2),
-               (SELECT id FROM extraction_runs WHERE org_id = ?org AND case_id = ?1 AND is_current = 1))
+               (SELECT id FROM extraction_runs WHERE org_id = ?org AND case_id = ?1 AND is_current = 1), ?8)
        ON CONFLICT(case_id, key) DO UPDATE SET text = excluded.text, by_user_id = excluded.by_user_id, by_name = excluded.by_name,
-         at = excluded.at, log_id = excluded.log_id, extraction_run_id = excluded.extraction_run_id`,
-      id, key, op.text, orig, v.id, v.name, at,
+         at = excluded.at, log_id = excluded.log_id, extraction_run_id = excluded.extraction_run_id, fact_id = excluded.fact_id`,
+      id, key, op.text, orig, v.id, v.name, at, factId,
     );
     t.audit({ action: "fact.edit", what_cs: `upravil(a) údaj (${key})`, case_id: id, target_type: "fact", target_id: key });
   } else {

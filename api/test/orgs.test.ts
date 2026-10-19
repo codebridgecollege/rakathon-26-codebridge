@@ -142,7 +142,7 @@ const NIS_BOTH = () => {
 
 const PROBES: Probe[] = [
   // Reads of one case and its parts (cases.ts, transcript.ts, documents.ts, intake.ts).
-  ...["", "/extraction", "/alerts", "/decisions", "/history", "/guidance", "/prognosis", "/documents", "/transcript", "/intake"].map(
+  ...["", "/extraction", "/decisions", "/history", "/guidance", "/prognosis", "/documents", "/transcript", "/intake"].map(
     (s): Probe => ({ name: `GET /cases/:id${s}`, method: "GET", path: (i) => `/cases/${i.case}${s}`, user: "b-doc" }),
   ),
   { name: "GET /cases/:id (coordinator)", method: "GET", path: (i) => `/cases/${i.case2}`, user: "b-coord" },
@@ -169,8 +169,11 @@ const PROBES: Probe[] = [
   { name: "POST /cases/:id/question/confirm", method: "POST", path: (i) => `/cases/${i.case2}/question/confirm`, user: "b-doc", body: () => ({ draft_sha: "0".repeat(64) }) },
   { name: "PUT /cases/:id/edits/:key", method: "PUT", path: (i) => `/cases/${i.case}/edits/brief`, user: "b-doc", body: () => ({ text: "x", orig: "", expected_edit_id: null }) },
   { name: "DELETE /cases/:id/edits/:key", method: "DELETE", path: (i) => `/cases/${i.case}/edits/brief`, user: "b-doc", body: () => ({ expected_edit_id: null }) },
-  { name: "POST /cases/:id/alerts/:key/events", method: "POST", path: (i) => `/cases/${i.case}/alerts/0/events`, user: "b-coord", body: () => ({ action: "ack", expected_state: "open" }) },
-  { name: "POST /cases/:id/alerts/gap:0/events", method: "POST", path: (i) => `/cases/${i.case}/alerts/gap%3A0/events`, user: "b-doc", body: () => ({ action: "ack", expected_state: "open" }) },
+  { name: "PUT /cases/:id/edits/:key (f: key)", method: "PUT", path: (i) => `/cases/${i.case}/edits/${encodeURIComponent("f:f-5a0b11:t")}`, user: "b-doc", body: () => ({ text: "x", orig: "", expected_edit_id: null }) },
+  // Org A's alert and fact IDs: the same for both runs of the probe, so only the case decides the answer.
+  { name: "POST /cases/:id/alerts/:alertId/events", method: "POST", path: (i) => `/cases/${i.case}/alerts/al-77205d20/events`, user: "b-coord", body: () => ({ action: "ack", expected_state: "open" }) },
+  { name: "POST /cases/:id/alerts/:alertId/events (doctor)", method: "POST", path: (i) => `/cases/${i.case}/alerts/al-77205d20/events`, user: "b-doc", body: () => ({ action: "ack", expected_state: "open" }) },
+  { name: "POST /cases/:id/facts/:factId/confirmations", method: "POST", path: (i) => `/cases/${i.case}/facts/f-5a0b11/confirmations`, user: "b-doc", body: () => ({ action: "confirm", expected_state: "unconfirmed" }) },
   { name: "POST /cases/:id/break-glass", method: "POST", path: (i) => `/cases/${i.case}/break-glass`, user: "b-doc", body: () => ({ reason: "konzultace na žádost onkologa" }) },
   // Intake (intake.ts).
   { name: "POST /cases/:id/intake/complete", method: "POST", path: (i) => `/cases/${i.case2}/intake/complete`, user: "b-coord" },
@@ -401,7 +404,6 @@ describe("every route, acting in org B with org A's IDs", () => {
     const norm = (p: string) =>
       p
         .replace(/:id\/edits\/:key/, ":id/edits/:key")
-        .replace(/\/alerts\/:key\/events/, "/alerts/:key/events")
         .replace(/\/attendance\/case:id/, "/attendance/:key")
         .replace(/\/attendance\/:day/, "/attendance/:key");
     const mounted: string[] = [];
@@ -968,7 +970,9 @@ describe("migration 0011 on data from before orgs", () => {
     const oldRows: Record<string, Record<string, unknown>[]> = {};
     for (const t of Object.keys(oldCounts)) oldRows[t] = await q(`SELECT * FROM ${t}`);
 
-    await applyD1Migrations(env.DB, migrations);
+    // Up to the migration before 0015, which moves the /1 alert events aside and recomputes run columns on purpose
+    // (test/runs.test.ts checks it on its own).
+    await applyD1Migrations(env.DB, migrations.filter((m) => m.name < "0015"));
 
     for (const [t, n] of Object.entries(oldCounts)) {
       expect((await one<{ n: number }>(`SELECT COUNT(*) AS n FROM ${t}`)).n, t).toBe(n);
@@ -1016,7 +1020,10 @@ describe("migration 0011 on data from before orgs", () => {
     await expect(env.DB.prepare("DELETE FROM access_log").run()).rejects.toThrow(/append-only/);
     await expect(env.DB.prepare("UPDATE status_history SET by_name = 'x'").run()).rejects.toThrow(/append-only/);
 
-    // The API serves the migrated data as before.
+    // The later migrations apply on top, leave no table aside, and the API serves the migrated data as before.
+    await applyD1Migrations(env.DB, migrations);
+    expect((await q("SELECT name FROM sqlite_master WHERE name LIKE '%\\_old' ESCAPE '\\'")).map((r) => r.name)).toEqual([]);
+    expect(await q("PRAGMA foreign_key_check")).toEqual([]);
     const c = await get("/cases/NO-A", "d2p1");
     expect(c.status).toBe(200);
     expect(c.body).toMatchObject({ id: "NO-A" });

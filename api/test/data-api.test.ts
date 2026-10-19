@@ -1,6 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { call, testEnv } from "./helpers";
-import { accessLog, as, FAKE_NAME, loadFixture, NAME_QUOTE } from "./data";
+import { env } from "cloudflare:workers";
+import type { Extraction } from "@codebridge/domain/wire";
+import { accessLog, as, FAKE_NAME, loadFixture, NAME_QUOTE, RUN_A2, RUN_A2_ID } from "./data";
 import { setStoreFactory } from "../src/store";
 import { D1Audit, D1Cases, D1Directory } from "../src/store/d1";
 import { R2Blobs } from "../src/store/r2";
@@ -121,7 +123,7 @@ describe("/api/patients", () => {
 describe("case reads", () => {
   it("answers 404 for an unknown case and 403 not_member for a doctor outside the team, without content", async () => {
     expect(await errCode(await call("/api/cases/NO-X"))).toBe("case_not_found");
-    for (const path of ["/api/cases/NO-A", "/api/cases/NO-A/extraction", "/api/cases/NO-A/alerts", "/api/cases/NO-A/guidance"]) {
+    for (const path of ["/api/cases/NO-A", "/api/cases/NO-A/extraction", "/api/cases/NO-A/guidance"]) {
       const r = await call(path, as("d1p1"));
       expect(r.status).toBe(403);
       expect(await errCode(r)).toBe("not_member");
@@ -132,7 +134,7 @@ describe("case reads", () => {
   it("logs a case open with actor, role and case, and marks a link open", async () => {
     const r = await call("/api/cases/NO-A");
     expect(r.status).toBe(200);
-    expect(await r.json()).toMatchObject({ id: "NO-A", members: [{ dept: "Klinická onkologie" }], run: { id: "run-A" } });
+    expect(await r.json()).toMatchObject({ id: "NO-A", members: [{ dept: "Klinická onkologie" }], run: { id: "run-A2", producer: "fixture" } });
     await call("/api/cases/NO-A?via=link");
     const log = await accessLog();
     expect(log.map((l) => [l.action, l.case_id, l.acted_as_role, l.what_cs])).toEqual([
@@ -157,13 +159,30 @@ describe("case reads", () => {
 
   // The stripping itself happens in the seed (api/seed/seed.py, checked by its identity scan and key check); this
   // proves the route passes the stored object through without adding identity from the patients table.
-  it("serves the extraction without identity from the patients table", async () => {
-    const body = await (await call("/api/cases/NO-A/extraction")).json<{ processing: string; run: { id: string }; data: Record<string, unknown> }>();
-    expect(body.processing).toBe("full");
-    expect(body.run.id).toBe("run-A");
-    expect(Object.keys(body.data).sort()).toEqual(["alert_ids", "case", "extra"]);
+  it("serves the current codebridge.extraction/2 run as stored, without identity from the patients table", async () => {
+    const body = await (await call("/api/cases/NO-A/extraction")).json<Extraction>();
+    expect(body).toMatchObject({ case_id: "NO-A", processing: "full", run: { id: RUN_A2_ID, producer: "fixture", created_at: "2026-10-18T12:00:00.000Z" } });
+    expect(body.data).toEqual(RUN_A2);
+    expect(Object.keys(body.run!).sort()).toEqual(["created_at", "id", "producer"]);
     expect(JSON.stringify(body)).not.toContain(FAKE_NAME);
     expect((await accessLog()).map((l) => l.action)).toEqual(["case.data"]);
+  });
+
+  it("serves a current run in the old format /1 as not processed: run named, data null", async () => {
+    await env.DB.batch([
+      env.DB.prepare(`UPDATE extraction_runs SET is_current = 0 WHERE id = '${RUN_A2_ID}'`),
+      env.DB.prepare("UPDATE extraction_runs SET is_current = 1 WHERE id = 'run-A'"),
+    ]);
+    expect(await (await call("/api/cases/NO-A/extraction")).json()).toEqual({
+      case_id: "NO-A",
+      processing: "full",
+      run: { id: "run-A", producer: "fixture", created_at: "2026-10-17T12:00:00.000Z" },
+      data: null,
+    });
+  });
+
+  it("has no alert list of its own any more: alerts are part of the run", async () => {
+    expect((await call("/api/cases/NO-A/alerts")).status).toBe(404);
   });
 
   it("answers processing none for a case without a run", async () => {
@@ -186,11 +205,9 @@ describe("case reads", () => {
     expect(await errCode(await call("/api/cases/NO-A", as("admin"), strict))).toBe("role_forbidden");
   });
 
-  it("serves documents, alerts, decisions, history, guidance and prognosis", async () => {
+  it("serves documents, decisions, history, guidance and prognosis", async () => {
     const docs = await (await call("/api/cases/NO-A/documents")).json<{ documents: { id: string; parts: { pages: number[] }[] }[] }>();
     expect(docs.documents[0]).toMatchObject({ id: "A_pacient", page_count: 2, parts: [{ pages: [1, 2] }] });
-    const al = await (await call("/api/cases/NO-A/alerts")).json<{ alerts: { ui_key: unknown; relevant: boolean }[] }>();
-    expect(al.alerts.map((a) => a.ui_key)).toEqual([0, "gap:0"]);
     expect(await (await call("/api/cases/NO-A/decisions")).json()).toEqual({ decisions: [] });
     expect(await (await call("/api/cases/NO-A/history")).json()).toEqual({ status: [], edits: [], question_confirmations: [] });
     expect(await (await call("/api/cases/NO-A/guidance")).json()).toMatchObject({ guidelines: [{ id: "g1" }], prior_assessments: {} });
@@ -199,7 +216,7 @@ describe("case reads", () => {
     });
     expect(await (await call("/api/cases/NO-A/prognosis")).json()).toEqual({ saved: [{ patient_id: "A_pacient.pdf" }] });
     expect((await accessLog()).map((l) => l.action)).toEqual([
-      "case.documents", "case.alerts", "case.history", "case.history", "guidance.load", "guidance.load", "prognosis.view",
+      "case.documents", "case.history", "case.history", "guidance.load", "guidance.load", "prognosis.view",
     ]);
   });
 });
@@ -251,7 +268,7 @@ describe("audit guarantees", () => {
       blobs: new R2Blobs(e.DOCS),
       audit: Object.assign(new D1Audit(e.DB, org), { append: async () => { throw new Error("D1 down"); } }),
     }));
-    const routes = ["/api/patients", "/api/cases/NO-A", "/api/cases/NO-A/extraction", "/api/cases/NO-A/documents", "/api/cases/NO-A/alerts",
+    const routes = ["/api/patients", "/api/cases/NO-A", "/api/cases/NO-A/extraction", "/api/cases/NO-A/documents",
       "/api/cases/NO-A/decisions", "/api/cases/NO-A/history", "/api/cases/NO-A/guidance", "/api/cases/NO-A/prognosis",
       "/api/documents/A_pacient/pages/1", "/api/documents/A_pacient/pages/1/image"];
     for (const path of routes) {

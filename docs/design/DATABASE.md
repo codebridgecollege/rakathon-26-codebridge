@@ -71,15 +71,15 @@ The tables fall into groups (the full list is in `api/migrations/`):
 | Staff | `departments`, `dept_members`, `roles` | Departments become per org |
 | Patients and cases | `patients` (identity only), `cases`, `case_members`, `case_access_grants` (break-the-glass), `status_history` | Identity is kept apart from case data, so case data can be pseudonymous |
 | Planning | `slots`, `sessions`, `attendance`, `attendance_sets` | One slot per day and time |
-| The MDT record | `protocols` (drafts), `decisions`, `tasks`, `task_suggestions`, `question_confirmations`, `fact_edits`, `edit_log`, `alerts`, `alert_events` | Decisions, confirmations and events are append-only |
-| Documents | `documents`, `document_parts`, `pages`, `extraction_runs`, `pipeline_runs`, `upload_sessions` | The files themselves are in R2 |
+| The MDT record | `protocols` (drafts), `decisions`, `tasks`, `task_suggestions`, `question_confirmations`, `fact_edits`, `edit_log`, `fact_confirmations`, `alert_events`, `alert_events_v1` | Decisions, confirmations and events are append-only |
+| Documents | `documents`, `document_parts`, `pages`, `extraction_runs`, `fact_ids`, `alert_identities`, `alerts`, `pipeline_runs`, `upload_sessions` | The files and the runs themselves are in R2; see "Extraction runs" below |
 | Recording | `recordings`, `transcript_lines`, `transcript_passes`, `transcript_summaries`, `audio_uploads`, `audio_parts`, `audio_segments`, `jobs` | Audio is temporary |
 | Audit and plumbing | `access_log`, `idempotency_keys`, `write_guards`, `notifications`, `demo_state` | The access log is append-only |
 | Global demo data | `fixture_files`, `fixture_patients`, `seed_meta` | The synthetic fixtures; not org data |
 
 **Rules that hold across the model:**
 - **Append-only history.**
-  - Decisions, question confirmations, status history, the edit log, alert events and the access log refuse UPDATE and DELETE through triggers.
+  - Decisions, question confirmations, fact confirmations, status history, the edit log, alert events (both tables), the issued fact and alert IDs, and the access log refuse UPDATE and DELETE through triggers.
   - A new decision supersedes an earlier one of the same case (a trigger checks that); it never edits it (CLAUDE.md).
   - A document leaves the case's current set without being deleted (migration 0013): `documents.lifecycle` is `current`, `superseded` (a better scan replaces it; `superseded_by` names another current document of the same case) or `withdrawn` (it was another patient's). The change records a reason (`lifecycle_reason_cs`), when, and which member of the org made it. Triggers refuse a document that starts non-current, a replacement from another case, and any way back or switch between the two; only the demo reset makes the seeded documents current again. `lifecycle` is separate from `state`, which is the processing state of an upload. An extraction run reads only current documents (`docs/design/EXTRACTION-FORMAT.md`).
   - Triggers stop the app, not someone with database console access. That is one reason the access log is also archived to R2.
@@ -87,6 +87,33 @@ The tables fall into groups (the full list is in `api/migrations/`):
 - **One guarded batch per write.** A write runs as one D1 batch. Guard rows re-check the conditions the route read, so a stale or concurrent change rolls the whole batch back (see `api/AGENTS.md`).
 - **Timestamps** are ISO 8601 UTC. Dates as written in documents ("03/2024") are kept as text.
 - **Identity apart from case data.** Names and birth numbers live only in `patients`. The stored extraction refers to the case ID.
+
+## Extraction runs
+
+An extraction run is one extraction of one case in the format `codebridge.extraction/2` (`docs/design/EXTRACTION-FORMAT.md`).
+The run itself is a JSON object in R2 (`org/<org>/extract/<case>/<run id>.json`), written before its D1 row, so D1 never
+points at a missing object. Migration `0015_extraction_v2.sql` set up the tables below; `api/src/store/runs.ts` writes
+them (`storeRun` validates the run first and refuses an invalid one; `matchInputs` and `prepareRun` give a producer what
+the matcher needs).
+
+| Table or column | What it holds |
+|---|---|
+| `extraction_runs` | One row per run: `producer` (`fixture`, `pipeline`, `nis`), `seeded` (1 = written by the seed; the demo reset keeps exactly these), `schema` (`codebridge.extraction/1` or `/2`, the format of the R2 object), `supersedes` (the run it replaced; both stay), `is_current` (one per case). `kind` is computed from `producer` and exists only for the Worker deployed during the 0015 migration window; a later migration drops it. |
+| `fact_ids` | Every fact ID ever issued for a case, with the run that first issued it. The matcher (`packages/domain/src/extraction/match.ts`) takes them as `issuedIds`, so a retired ID never goes to a different fact. Rows never change. |
+| `alert_identities` | Every alert ID a case has had (`al-` and 8 hex digits derived from rule and subject, unique within a case), with its rule, subject and kind. Rows never change. |
+| `alert_events` | Acknowledge, resolve, reopen, by case and alert ID; the latest event is the alert's state. It references `alert_identities`, so an event always names an alert the case really had. |
+| `fact_confirmations` | A doctor confirms one fact of the current run, or withdraws the confirmation. `value_sha256` is the SHA-256 of what the fact said (`confirmedContent` in `packages/domain/src/confirmations.ts`), `run_id` the run the doctor saw. When a later run gives the same ID another value, the fact no longer counts as confirmed. |
+| `fact_edits.fact_id` | The fact an edit under an `f:<fact id>` key belongs to. Edits under the old positional keys stay (the view lists them as orphaned); a new text under such a key is refused, a revert is allowed. |
+| `document_parts.part_id` | The stable part ID runs cite: `<document id>/p<ordinal>`. |
+| `alerts`, `alert_events_v1` | The alerts of `/1` runs (keyed by a hash of their Czech text) and their acknowledgements. Kept read-only: nothing new writes them and the view does not show them. |
+
+A current run whose `schema` is `/1` is served as not processed (`GET /cases/:id/extraction` answers `data: null`) until
+the case is reseeded or processed again.
+
+**The demo reset** removes every run with `seeded = 0` (trigger `demo_reset_uploads`), together with the fact and alert
+IDs it issued first and the confirmations and events on them, and makes the latest seeded run of each such case current
+again. The reset route then empties the activity tables of the org, `fact_confirmations`, `alert_events` and
+`alert_events_v1` among them.
 
 ## Organizations: shared tables
 

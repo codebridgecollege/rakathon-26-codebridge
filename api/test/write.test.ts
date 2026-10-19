@@ -3,7 +3,9 @@
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { env } from "cloudflare:workers";
 import { call, testEnv } from "./helpers";
-import { FAKE_NAME, loadFixture, resetDoc } from "./data";
+import { FAKE_NAME, loadFixture, resetDoc, RUN_A2, RUN_A2_ID, RUN_A2_KEY } from "./data";
+import { sha256Hex } from "../src/store/work";
+import { confirmedContent } from "@codebridge/domain/confirmations";
 import { Tx } from "../src/store/write";
 import { D } from "@codebridge/domain/errors";
 import { COORDINATOR_EDITS_PROTOCOL } from "@codebridge/domain/config";
@@ -239,26 +241,133 @@ describe("question, edits, alerts", () => {
     expect((await w("POST", "/cases/NO-B/question/confirm", { draft_sha: sha }, "d1p1")).body.error?.code).toBe("question_confirmed");
   });
 
-  it("saves, conflicts and reverts a fact edit; the log only grows; the source is untouched", async () => {
-    const s1 = await w("PUT", "/cases/NO-A/edits/od%3A1%3Ae", { text: "opraveno", orig: "původně", expected_edit_id: null });
-    const e1 = s1.body.state!.cases["NO-A"].edits["od:1:e"];
-    expect(e1).toMatchObject({ text: "opraveno", orig: "původně", by: "MUDr. Svobodová" });
-    expect((await w("PUT", "/cases/NO-A/edits/od%3A1%3Ae", { text: "jinak", orig: "původně", expected_edit_id: null })).body.error).toMatchObject({ code: "edit_conflict", message_cs: "Údaj mezitím upravil(a) MUDr. Svobodová." });
-    const rv = await w("DELETE", "/cases/NO-A/edits/od%3A1%3Ae", { expected_edit_id: e1.id });
+  it("saves, conflicts and reverts a fact edit under its fact ID; the log only grows; the source is untouched", async () => {
+    const key = "f:f-5a0b11:e";
+    const path = `/cases/NO-A/edits/${encodeURIComponent(key)}`;
+    const s1 = await w("PUT", path, { text: "opraveno", orig: "původně", expected_edit_id: null });
+    const e1 = s1.body.state!.cases["NO-A"].edits[key];
+    expect(e1).toMatchObject({ text: "opraveno", orig: "původně", by: "MUDr. Svobodová", fact_id: "f-5a0b11" });
+    expect(await q("SELECT key, fact_id, extraction_run_id FROM fact_edits")).toEqual([{ key, fact_id: "f-5a0b11", extraction_run_id: RUN_A2_ID }]);
+    expect((await w("PUT", path, { text: "jinak", orig: "původně", expected_edit_id: null })).body.error).toMatchObject({ code: "edit_conflict", message_cs: "Údaj mezitím upravil(a) MUDr. Svobodová." });
+    const rv = await w("DELETE", path, { expected_edit_id: e1.id });
     expect(rv.body.state!.cases["NO-A"].edits).toEqual({});
     expect(rv.body.state!.cases["NO-A"].editLog.map((e: { reverted: boolean }) => e.reverted)).toEqual([false, true]);
-    expect((await w("PUT", "/cases/NO-A/edits/od%3A1%3Ae", { text: "x", orig: "y", expected_edit_id: null }, "coord")).body.error?.code).toBe("not_doctor");
+    expect((await w("PUT", path, { text: "x", orig: "y", expected_edit_id: null }, "coord")).body.error?.code).toBe("not_doctor");
+    // A field that is not a fact keeps its key and no fact ID.
+    const b = await w("PUT", "/cases/NO-A/edits/brief", { text: "upraveno", orig: "", expected_edit_id: null });
+    expect(b.body.state!.cases["NO-A"].edits.brief).toMatchObject({ fact_id: null });
+    // The access-log line names the key (fact IDs are opaque), never the text.
+    expect((await log()).map((l) => l.what_cs)).toContain(`upravil(a) údaj (${key})`);
   });
 
-  it("acknowledges and resolves an alert by its page key; the coordinator may too; stale state refused", async () => {
-    const a = await w("POST", "/cases/NO-A/alerts/0/events", { action: "ack", expected_state: "open" }, "coord");
-    expect(a.body.state!.cases["NO-A"].alertHist).toMatchObject([{ i: 0, action: "ack", who: "Bc. Marková" }]);
-    expect((await w("POST", "/cases/NO-A/alerts/0/events", { action: "resolved", expected_state: "open" })).body.error?.code).toBe("alert_state_changed");
-    const g = await w("POST", "/cases/NO-A/alerts/gap%3A0/events", { action: "resolved", expected_state: "open" });
-    expect(g.body.state!.cases["NO-A"].alertHist.map((x: { i: unknown }) => x.i)).toEqual([0, "gap:0"]);
-    expect((await q("SELECT alert_id FROM alert_events ORDER BY id")).map((r) => r.alert_id)).toEqual(["al-1", "al-2"]);
-    expect((await w("POST", "/cases/NO-A/alerts/9/events", { action: "ack", expected_state: "open" })).status).toBe(404);
+  it("saves an f: key only for a fact of the current run that is not quarantined", async () => {
+    const put = (fact: string) => w("PUT", `/cases/NO-A/edits/${encodeURIComponent(`f:${fact}:t`)}`, { text: "x", orig: "y", expected_edit_id: null });
+    expect((await put("f-00000000")).body.error?.code).toBe("fact_not_found");
+    await env.DOCS.put(RUN_A2_KEY, JSON.stringify({ ...RUN_A2, facts: RUN_A2.facts.map((f) => (f.id === "f-5a0b11" ? { ...f, quarantined: true } : f)) }));
+    expect((await put("f-5a0b11")).body.error?.code).toBe("fact_quarantined");
+    // A case whose current run is /1 has no fact IDs at all.
+    expect((await w("PUT", `/cases/NO-B/edits/${encodeURIComponent("f:f-5a0b11")}`, { text: "x", orig: "y", expected_edit_id: null }, "d1p1")).body.error?.code).toBe("fact_not_found");
+    expect(await count("fact_edits")).toBe(0);
+  });
+
+  it("refuses a new text under an old positional key, and still reverts an edit stored under one", async () => {
+    await env.DB.prepare(
+      "INSERT INTO fact_edits (org_id, case_id, key, text, orig, by_user_id, by_name, log_id) VALUES ('demo-a','NO-A','od:1:e','staré','původně','d2p1','MUDr. Svobodová',NULL)",
+    ).run();
+    const path = "/cases/NO-A/edits/od%3A1%3Ae";
+    expect((await w("PUT", path, { text: "nové", orig: "původně", expected_edit_id: null })).body.error?.code).toBe("edit_key_legacy");
+    expect((await w("PUT", "/cases/NO-A/edits/OA%3A3", { text: "nové", orig: "", expected_edit_id: null })).body.error?.code).toBe("edit_key_legacy");
+    const rv = await w("DELETE", path, { expected_edit_id: null });
+    expect(rv.status).toBe(200);
+    expect(rv.body.data).toEqual({ changed: true });
+    expect(await count("fact_edits")).toBe(0);
+    expect(await q("SELECT key, text, reverted FROM edit_log")).toEqual([{ key: "od:1:e", text: "původně", reverted: 1 }]);
+  });
+
+  it("acknowledges and resolves an alert by its ID; the coordinator may too; stale state refused", async () => {
+    const al = RUN_A2.alerts[0]!.id;
+    const a = await w("POST", `/cases/NO-A/alerts/${al}/events`, { action: "ack", expected_state: "open" }, "coord");
+    expect(a.status).toBe(200);
+    expect(a.body.state!.cases["NO-A"].alertHist).toMatchObject([{ alert_id: al, action: "ack", who: "Bc. Marková" }]);
+    expect((await w("POST", `/cases/NO-A/alerts/${al}/events`, { action: "resolved", expected_state: "open" })).body.error?.code).toBe("alert_state_changed");
+    const g = await w("POST", `/cases/NO-A/alerts/${al}/events`, { action: "resolved", expected_state: "ack" });
+    expect(g.body.state!.cases["NO-A"].alertHist.map((x: { action: string }) => x.action)).toEqual(["ack", "resolved"]);
+    expect(await q("SELECT case_id, alert_id, action FROM alert_events ORDER BY id")).toEqual([
+      { case_id: "NO-A", alert_id: al, action: "ack" },
+      { case_id: "NO-A", alert_id: al, action: "resolved" },
+    ]);
     expect((await log()).map((l) => l.what_cs)).toContain("vzal(a) upozornění na vědomí: Chybí");
+  });
+
+  it("answers 404 for an alert that is not in the current run, a position key, and an old /1 alert", async () => {
+    for (const k of ["al-00000000", "0", "gap%3A0", "al-1", "al-77205D20"])
+      expect((await w("POST", `/cases/NO-A/alerts/${k}/events`, { action: "ack", expected_state: "open" })).body.error?.code, k).toBe("alert_not_found");
+    // Org B's case has a /1 run only.
+    expect((await w("POST", `/cases/NO-B/alerts/${RUN_A2.alerts[0]!.id}/events`, { action: "ack", expected_state: "open" }, "d1p1")).body.error?.code).toBe("alert_not_found");
+    expect(await count("alert_events")).toBe(0);
+  });
+
+  it("keeps alert events append-only and tied to a known alert of the case", async () => {
+    const al = RUN_A2.alerts[0]!.id;
+    await w("POST", `/cases/NO-A/alerts/${al}/events`, { action: "ack", expected_state: "open" });
+    await expect(env.DB.prepare("UPDATE alert_events SET action = 'resolved'").run()).rejects.toThrow(/append-only: alert_events/);
+    await expect(env.DB.prepare("DELETE FROM alert_events").run()).rejects.toThrow(/append-only: alert_events/);
+    // An event needs the alert's identity in the same case: another case, or an unknown ID, is refused by the database.
+    await expect(
+      env.DB.prepare(`INSERT INTO alert_events (org_id, case_id, alert_id, action, by_user_id, by_name) VALUES ('demo-a','NO-B','${al}','ack','d2p1','x')`).run(),
+    ).rejects.toThrow(/FOREIGN KEY/);
+    await expect(
+      env.DB.prepare("INSERT INTO alert_events (org_id, case_id, alert_id, action, by_user_id, by_name) VALUES ('demo-a','NO-A','al-00000000','ack','d2p1','x')").run(),
+    ).rejects.toThrow(/FOREIGN KEY/);
+  });
+
+  it("confirms a fact of the current run with a hash of what it says, withdraws it, and refuses a stale state", async () => {
+    const path = "/cases/NO-A/facts/f-5a0b11/confirmations";
+    const c1 = await w("POST", path, { action: "confirm", expected_state: "unconfirmed" });
+    expect(c1.status).toBe(200);
+    const fact = RUN_A2.facts.find((f) => f.id === "f-5a0b11")!;
+    const sha = await sha256Hex(confirmedContent(fact));
+    expect(c1.body.state!.cases["NO-A"].confirmations).toMatchObject([{ fact_id: "f-5a0b11", action: "confirm", value_sha256: sha, run_id: RUN_A2_ID, who: "MUDr. Svobodová" }]);
+    expect((await w("POST", path, { action: "confirm", expected_state: "unconfirmed" })).body.error?.code).toBe("confirmation_changed");
+    expect((await w("POST", path, { action: "confirm", expected_state: "confirmed" })).body.error?.code).toBe("confirm_action_not_allowed");
+    expect((await w("POST", path, { action: "withdraw", expected_state: "confirmed" }, "coord")).body.error).toMatchObject({ code: "not_doctor", message_cs: "Údaje potvrzuje lékař." });
+    const c2 = await w("POST", path, { action: "withdraw", expected_state: "confirmed" });
+    expect(c2.body.state!.cases["NO-A"].confirmations.map((x: { action: string }) => x.action)).toEqual(["confirm", "withdraw"]);
+    expect((await log()).filter((l) => l.action.startsWith("fact.confirm")).map((l) => [l.action, l.what_cs])).toEqual([
+      ["fact.confirm", "potvrdil(a) údaj"],
+      ["fact.confirm_withdraw", "zrušil(a) potvrzení údaje"],
+    ]);
+    await expect(env.DB.prepare("UPDATE fact_confirmations SET action = 'confirm'").run()).rejects.toThrow(/append-only: fact_confirmations/);
+    await expect(env.DB.prepare("DELETE FROM fact_confirmations").run()).rejects.toThrow(/append-only: fact_confirmations/);
+  });
+
+  it("keeps value_sha256 stable across key order, and asks again when a new run gives the fact another value", async () => {
+    const path = "/cases/NO-A/facts/f-5a0b11/confirmations";
+    await w("POST", path, { action: "confirm", expected_state: "unconfirmed" });
+    // The same content with its keys in another order: still confirmed.
+    const reorder = (x: unknown): unknown =>
+      x && typeof x === "object" && !Array.isArray(x) ? Object.fromEntries(Object.entries(x).reverse().map(([k, v]) => [k, reorder(v)])) : x;
+    await env.DOCS.put(RUN_A2_KEY, JSON.stringify(reorder(RUN_A2)));
+    expect((await w("POST", path, { action: "confirm", expected_state: "unconfirmed" })).body.error?.code).toBe("confirmation_changed");
+    expect((await w("POST", path, { action: "confirm", expected_state: "confirmed" })).body.error?.code).toBe("confirm_action_not_allowed");
+    // The same ID with another value (ECOG 2): the earlier confirmation no longer covers it.
+    await env.DOCS.put(
+      RUN_A2_KEY,
+      JSON.stringify({ ...RUN_A2, facts: RUN_A2.facts.map((f) => (f.id === "f-5a0b11" ? { ...f, value: { scale: "ECOG", value_as_written: "2", value_numeric: 2 } } : f)) }),
+    );
+    const again = await w("POST", path, { action: "confirm", expected_state: "changed" });
+    expect(again.status).toBe(200);
+    const hashes = (again.body.state!.cases["NO-A"].confirmations as { value_sha256: string }[]).map((x) => x.value_sha256);
+    expect(new Set(hashes).size).toBe(2);
+  });
+
+  it("refuses to confirm a quarantined fact, a fact not in the current run, and any fact of a /1 run", async () => {
+    await env.DOCS.put(RUN_A2_KEY, JSON.stringify({ ...RUN_A2, facts: RUN_A2.facts.map((f) => (f.id === "f-5a0b11" ? { ...f, quarantined: true } : f)) }));
+    expect((await w("POST", "/cases/NO-A/facts/f-5a0b11/confirmations", { action: "confirm", expected_state: "unconfirmed" })).body.error?.code).toBe("fact_quarantined");
+    expect((await w("POST", "/cases/NO-A/facts/f-00000000/confirmations", { action: "confirm", expected_state: "unconfirmed" })).body.error?.code).toBe("fact_not_found");
+    expect((await w("POST", "/cases/NO-A/facts/x/confirmations", { action: "confirm", expected_state: "unconfirmed" })).body.error?.code).toBe("fact_not_found");
+    expect((await w("POST", "/cases/NO-B/facts/f-5a0b11/confirmations", { action: "confirm", expected_state: "unconfirmed" }, "d1p1")).body.error?.code).toBe("fact_not_found");
+    expect(await count("fact_confirmations")).toBe(0);
   });
 });
 
@@ -370,7 +479,7 @@ describe("reset-demo", () => {
   // count on across orgs (sqlite_sequence is global), so a reseed in one org gives new ids.
   const snapshot = async () => {
     const out: Record<string, unknown> = {};
-    for (const t of ["users", "memberships", "departments", "dept_members", "patients", "cases", "case_members", "status_history", "slots", "protocols", "decisions", "tasks", "task_suggestions", "edit_log", "fact_edits", "alert_events", "attendance", "documents", "alerts", "pages"])
+    for (const t of ["users", "memberships", "departments", "dept_members", "patients", "cases", "case_members", "status_history", "slots", "protocols", "decisions", "tasks", "task_suggestions", "edit_log", "fact_edits", "alert_events", "alert_events_v1", "fact_confirmations", "fact_ids", "alert_identities", "extraction_runs", "attendance", "documents", "alerts", "pages"])
       // Insert-time defaults (created_at and the like) are the only columns a reseed may change.
       out[t] = (await q(`SELECT * FROM ${t}`))
         .map((r) => Object.fromEntries(Object.entries(r).filter(([k]) => !/^(created_at|added_at|booked_at)$/.test(k) && !(k === "id" && typeof r.id === "number"))))
@@ -384,7 +493,8 @@ describe("reset-demo", () => {
     const before = await snapshot();
     await w("PUT", "/cases/NO-A/protocol", { version: 0, concl: "Kontrolní MR za 3 měsíce." });
     await w("POST", "/cases/NO-A/decisions", decisionsBody({ conclusion: "Kontrolní MR za 3 měsíce." }), "d2p1", { "idempotency-key": "66666666-aaaa-bbbb-cccc-000000000001" });
-    await w("POST", "/cases/NO-A/alerts/0/events", { action: "ack", expected_state: "open" });
+    await w("POST", `/cases/NO-A/alerts/${RUN_A2.alerts[0]!.id}/events`, { action: "ack", expected_state: "open" });
+    await w("POST", "/cases/NO-A/facts/f-5a0b11/confirmations", { action: "confirm", expected_state: "unconfirmed" });
     await w("POST", "/cases", { first_name: "A", last_name: "B", birth_number: "700101/1234", consent: true }, "coord", { "idempotency-key": "66666666-aaaa-bbbb-cccc-000000000002" });
     await w("PUT", "/cases/NO-A/edits/brief", { text: "upraveno", orig: "", expected_edit_id: null });
     expect(await count("decisions")).toBe(1);

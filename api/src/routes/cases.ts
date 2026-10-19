@@ -5,8 +5,8 @@ import { audit } from "../middleware/audit";
 import { canReadClinical, listsAllCases, redactsListFor } from "@codebridge/domain/access";
 import { identitySource, patientRow } from "../domain/rows";
 import { modeOf, openCase } from "./access-check";
-
-type StoredExtraction = { schema?: string; case_id?: string; processing?: string; run_id?: string } & Record<string, unknown>;
+import { EXTRACTION_SCHEMA, type ExtractionRun, type Producer } from "@codebridge/domain/extraction/index";
+import type { Extraction } from "@codebridge/domain/wire";
 
 const EMPTY_GUIDANCE = { guidelines: [], statements: [], pages: [], literature: [], queries: [], not_retrieved: [], prior_assessments: {} };
 
@@ -58,7 +58,7 @@ export const cases = new Hono<AppEnv>()
       // doctor here is a member).
       identitySource: canReadClinical(c.var.viewer, true, mode) === "ok" ? identitySource(row) : null,
       members: members.map((dept) => ({ dept })),
-      run: run ? { id: run.id, created_at: run.created_at, kind: run.kind } : null,
+      run: run ? { id: run.id, created_at: run.created_at, producer: run.producer } : null,
     });
   })
   .get("/cases/:id/extraction", async (c) => {
@@ -67,38 +67,15 @@ export const cases = new Hono<AppEnv>()
     await audit(c, { action: "case.data", case_id: id, what_cs: "načetl(a) zpracovaná data případu" });
     const run = await c.var.stores.cases.currentRun(id);
     // A case without a run is not an error: the page already says "nezpracováno".
-    if (!run) return c.json({ case_id: id, processing: row.processing_level, run: null, data: null });
-    const stored = await c.var.stores.blobs.getJson<StoredExtraction>(run.r2_key);
-    if (!stored) throw E.dataUnavailable();
-    const { schema: _s, case_id: _c, processing: _p, run_id: _r, ...data } = stored;
-    return c.json({
-      case_id: id,
-      processing: row.processing_level,
-      run: { id: run.id, kind: run.kind, created_at: run.created_at },
-      data,
-    });
-  })
-  .get("/cases/:id/alerts", async (c) => {
-    const id = c.req.param("id");
-    await openCase(c, id, "clinical");
-    await audit(c, { action: "case.alerts", case_id: id, what_cs: "zobrazil(a) upozornění" });
-    const alerts = await c.var.stores.cases.alerts(id);
-    return c.json({
-      case_id: id,
-      run_id: alerts[0]?.run_id ?? null,
-      alerts: alerts.map((a) => ({
-        id: a.id,
-        origin: a.origin,
-        position: a.position,
-        // The page's key: the index for flags, "gap:<n>" for data gaps; alert events take it (step 4) and the server
-        // resolves the stable id. Events come from GET /api/workflow.
-        ui_key: a.origin === "flag" ? a.position : `gap:${a.position}`,
-        kind: a.kind,
-        text_cs: a.text_cs,
-        relevant: a.relevant === 1,
-        events: [],
-      })),
-    });
+    if (!run) return c.json<Extraction>({ case_id: id, processing: row.processing_level, run: null, data: null });
+    const info = { id: run.id, producer: run.producer as Producer, created_at: run.created_at };
+    // A run in the old format /1 has no fact or alert IDs to attach confirmations to; the case shows as not processed
+    // until it is reseeded or processed again.
+    if (run.schema !== EXTRACTION_SCHEMA) return c.json<Extraction>({ case_id: id, processing: row.processing_level, run: info, data: null });
+    // The run holds no patient identity (EXTRACTION-FORMAT.md); it goes out as stored. Its alerts are part of it.
+    const data = await c.var.stores.blobs.getJson<ExtractionRun>(run.r2_key);
+    if (!data) throw E.dataUnavailable();
+    return c.json<Extraction>({ case_id: id, processing: row.processing_level, run: info, data });
   })
   .get("/cases/:id/decisions", async (c) => {
     const id = c.req.param("id");

@@ -28,10 +28,14 @@ export const ALERT_ACT_CS: Record<AlertAction, string> = {
   resolved: "označil(a) upozornění jako vyřešené",
   reopen: "vrátil(a) upozornění mezi otevřená",
 };
-export const ALERT_KIND_CS: Record<string, string> = { missing: "Chybí", contradiction: "Rozpor", chronology: "Chronologie", unclear: "Nejasné" };
+export const ALERT_KIND_CS: Record<string, string> = {
+  missing: "Chybí",
+  contradiction: "Rozpor",
+  chronology: "Chronologie",
+  unclear: "Nejasné",
+  poor_copy: "Špatná kopie",
+  identity: "Jiný pacient",
+};
 
-// The page's alert key: a flag's position ("3") or a data gap ("gap:1").
-export function parseAlertKey(key: string): { origin: "flag" | "gap"; position: number } | null {
-  const m = /^(gap:)?(\d{1,4})$/.exec(key);
-  return m ? { origin: m[1] ? "gap" : "flag", position: Number(m[2]) } : null;
-}
+// An alert ID of codebridge.extraction/2: "al-" and 8 hex digits (keys.ts alertId), unique within a case.
+export const ALERT_ID = /^al-[0-9a-f]{8}$/;

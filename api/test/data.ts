@@ -4,6 +4,33 @@
 // also runs next to another org's data and a leak shows up as a wrong count or a refused key.
 import { env } from "cloudflare:workers";
 import { applyD1Migrations, reset } from "cloudflare:test";
+import { assignKeys, type ExtractionRun, type Fact } from "@codebridge/domain/extraction/index";
+import example from "../../packages/domain/schema/examples/worked-examples.json";
+
+// NO-A's current run in codebridge.extraction/2: the format's worked example (case NO-010) moved onto the fixture's
+// document A_pacient (one part, two pages). Keys depend on the document, so they are computed again; fact and alert IDs
+// stay as the example has them. test/runs.test.ts checks that the run passes the validator.
+export const RUN_A2_ID = "run-A2";
+export const RUN_A2_KEY = `org/demo-a/extract/NO-A/${RUN_A2_ID}.json`;
+function buildRunA2(): ExtractionRun {
+  const moved = JSON.parse(
+    JSON.stringify(example)
+      .replace(/10_pacient\/p\d/g, "A_pacient/p0")
+      .replaceAll("10_pacient", "A_pacient")
+      .replaceAll("NO-010", "NO-A"),
+  ) as ExtractionRun;
+  const sources = moved.sources.map((s) => (s.type === "document" ? { ...s, page: Math.min(s.page, 2) } : s));
+  const facts = assignKeys(moved.facts.map(({ key: _k, ...f }) => f) as Omit<Fact, "key">[] as Fact[], sources);
+  return {
+    ...moved,
+    run: { ...moved.run, id: RUN_A2_ID, supersedes: "run-A" },
+    documents: moved.documents.map((d) => ({ ...d, parts: [...new Set(d.parts)] })),
+    sources,
+    facts,
+    checks: moved.checks.map((c) => ({ ...c, unreadable: c.unreadable.map((u) => ({ ...u, page: Math.min(u.page, 2) })) })),
+  };
+}
+export const RUN_A2: ExtractionRun = buildRunA2();
 
 // The fake patient name sits in the page text so tests can prove it never reaches the access log.
 export const FAKE_NAME = "Testová Pacientka";
@@ -80,9 +107,15 @@ export const SQL = [
      ('demo-a','A_pacient',2,'pages/A_pacient/p2.json','pages/A_pacient/p2.png',NULL,10,10,'vision',0),
      ('demo-a','B_pacient',1,'pages/B_pacient/p1.json','pages/B_pacient/p1.png',NULL,10,10,'vision',0),
      ('demo-b','b-A_pacient',1,'org/demo-b/pages/b-A_pacient/p1.json','org/demo-b/pages/b-A_pacient/p1.png',NULL,10,10,'vision',0)`,
-  `INSERT INTO extraction_runs (id, org_id, case_id, kind, input_hashes_json, r2_key, sha256) VALUES
-     ('run-A','demo-a','NO-A','seed_fixture','{}','extract/NO-A/run-A.json','${"a".repeat(64)}'),
-     ('run-BA','demo-b','B-NO-A','seed_fixture','{}','org/demo-b/extract/B-NO-A/run-BA.json','${"b".repeat(64)}')`,
+  // NO-A: an old /1 run, superseded by the current /2 run built from the format's worked example (RUN_A2). Org B's look-alike
+  // keeps a /1 run, so its extraction reads as not processed.
+  `INSERT INTO extraction_runs (id, org_id, case_id, producer, seeded, schema, supersedes, input_hashes_json, r2_key, sha256, is_current, created_at) VALUES
+     ('run-A','demo-a','NO-A','fixture',1,'codebridge.extraction/1',NULL,'{}','extract/NO-A/run-A.json','${"a".repeat(64)}',0,'2026-10-17T12:00:00.000Z'),
+     ('${RUN_A2_ID}','demo-a','NO-A','fixture',1,'codebridge.extraction/2','run-A','{}','${RUN_A2_KEY}','${"c".repeat(64)}',1,'2026-10-18T12:00:00.000Z'),
+     ('run-BA','demo-b','B-NO-A','fixture',1,'codebridge.extraction/1',NULL,'{}','org/demo-b/extract/B-NO-A/run-BA.json','${"b".repeat(64)}',1,'2026-10-17T12:00:00.000Z')`,
+  // The IDs the /2 run issued, as run storage (src/store/runs.ts) registers them.
+  `INSERT INTO fact_ids (org_id, case_id, fact_id, first_run_id) SELECT 'demo-a', 'NO-A', value, '${RUN_A2_ID}' FROM json_each('${JSON.stringify(RUN_A2.facts.map((f) => f.id))}')`,
+  `INSERT INTO alert_identities (org_id, case_id, id, rule, subject, kind, first_run_id) VALUES ${RUN_A2.alerts.map((a) => `('demo-a','NO-A','${a.id}','${a.rule}','${a.subject}','${a.kind}','${RUN_A2_ID}')`).join(", ")}`,
   `INSERT INTO alerts (id, org_id, case_id, run_id, origin, position, kind, text_cs, relevant) VALUES
      ('al-1','demo-a','NO-A','run-A','flag',0,'missing','Chybí histologie.',1), ('al-2','demo-a','NO-A','run-A','gap',0,'unclear','Nejasné datum.',0),
      ('al-b1','demo-b','B-NO-A','run-BA','flag',0,'missing','Chybí v B.',1)`,
@@ -138,6 +171,7 @@ export async function loadFixture({ seeded = true } = {}) {
         alert_ids: { flag: ["al-1"], gap: ["al-2"] },
       }),
     ),
+    env.DOCS.put(RUN_A2_KEY, JSON.stringify(RUN_A2)),
     env.DOCS.put(
       "org/demo-b/extract/B-NO-A/run-BA.json",
       JSON.stringify({ schema: "codebridge.extraction/1", case_id: "B-NO-A", processing: "full", run_id: "run-BA", case: { file: "A_pacient.pdf", flags: [] }, alert_ids: { flag: ["al-b1"], gap: [] } }),

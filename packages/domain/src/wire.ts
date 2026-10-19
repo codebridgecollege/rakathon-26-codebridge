@@ -6,6 +6,8 @@ import type { NisCandidate } from "./nis";
 export type { NisCandidate } from "./nis";
 import type { Status } from "./status";
 import type { Step } from "./protocol";
+import type { ExtractionRun, Producer } from "./extraction/types";
+import type { ConfirmAction } from "./confirmations";
 
 // Every refusal: { error: { code, message_cs } }, plus the server's state on a conflict and field messages for a form.
 export type ApiErrorBody = {
@@ -153,13 +155,23 @@ export type CaseState = {
   decisions: Record<string, unknown>[];
   tasks: Task[];
   sugg: Record<string, unknown>[];
-  edits: Record<string, unknown>;
+  edits: Record<string, EditEntry>;
   editLog: Record<string, unknown>[];
   qConfirm: { text: string; by: string; when: string } | null;
   draft_sha: string | null;
-  alertHist: Record<string, unknown>[];
+  alertHist: AlertHistItem[];
+  confirmations: FactConfirmation[];
   clinical: boolean;
 };
+// The current override under one edit key (packages/domain/src/edits.ts). fact_id is set for an "f:<fact id>" key; an
+// edit whose fact is not in the current run, or one under an old positional key, is listed by the view as orphaned.
+export type EditEntry = { id: number | null; text: string; orig: string | null; by: string; when: string; fact_id: string | null };
+// Every event on the case's alerts, by alert ID (codebridge.extraction/2), oldest first; the latest per alert is its
+// state.
+export type AlertHistItem = { alert_id: string; action: "ack" | "resolved" | "reopen"; who: string; when: string };
+// Every confirmation and withdrawal of a fact, oldest first; value_sha256 is the hash of what the fact said then
+// (confirmations.ts confirmedContent), run_id the run the doctor saw.
+export type FactConfirmation = { fact_id: string; action: ConfirmAction; value_sha256: string; run_id: string; who: string; when: string };
 export type AttSet = { key: string; version: number; byName: Record<string, string[]>; byId: Record<string, string[]> };
 export type Session = { day: string; started_by: string | null; started_at: string; ended_at: string | null };
 export type Mail = Record<string, unknown>;
@@ -182,9 +194,11 @@ export type Workflow = {
   mails: Mail[];
 };
 
-// GET /cases/:id/extraction: the stored extraction objects without identity; data is null for a case without a run.
-// The extraction itself is the largest shape in the app and is typed when its screens are ported.
-export type Extraction = { data: { case?: unknown; extra?: unknown; syn?: unknown } | null } & Record<string, unknown>;
+// GET /cases/:id/extraction: the case's current run in codebridge.extraction/2 (docs/design/EXTRACTION-FORMAT.md),
+// which holds no patient identity. run and data are null for a case without a run; data alone is null when the current
+// run is still in the old format /1 (the case shows as not processed until it is reseeded or processed again).
+export type ExtractionRunInfo = { id: string; producer: Producer; created_at: string };
+export type Extraction = { case_id: string; processing: string; run: ExtractionRunInfo | null; data: ExtractionRun | null };
 
 // Protocol steps travel in the app's shape.
 export type { Step };

@@ -14,6 +14,7 @@ export type Action =
   | "decision.new_version"
   | "question.confirm"
   | "fact.edit"
+  | "fact.confirm" // confirm a fact of the current run, or withdraw the confirmation (codebridge.extraction/2)
   | "suggestion.decide" // edit, confirm, dismiss a drafted task
   | "task.done"
   | "alert.act"
@@ -32,7 +33,7 @@ export type Action =
 // Actions on one case need the doctor to be on its team (or to hold a break-the-glass grant).
 const CASE_SCOPED: ReadonlySet<Action> = new Set([
   "status.move", "slot.write", "protocol.edit", "decision.approve", "decision.new_version", "question.confirm",
-  "fact.edit", "suggestion.decide", "task.done", "alert.act", "transcript.write", "document.upload", "document.process",
+  "fact.edit", "fact.confirm", "suggestion.decide", "task.done", "alert.act", "transcript.write", "document.upload", "document.process",
   "nis.link",
 ]);
 
@@ -45,6 +46,7 @@ const MATRIX: Record<Action, ReadonlySet<Role>> = {
   "decision.new_version": new Set(["doctor"]),
   "question.confirm": new Set(["doctor"]),
   "fact.edit": new Set(["doctor"]),
+  "fact.confirm": new Set(["doctor"]),
   "suggestion.decide": new Set(["doctor"]),
   "task.done": new Set(["doctor", "coordinator"]),
   "alert.act": new Set(COORDINATOR_ACTS_ON_ALERTS ? ["doctor", "coordinator"] : ["doctor"]),
@@ -72,6 +74,7 @@ const DOCTOR_REFUSAL: Partial<Record<Action, () => Error>> = {
   "decision.new_version": () => D.notDoctorApprove(),
   "question.confirm": () => D.notDoctor(),
   "fact.edit": () => D.notDoctorEdit(),
+  "fact.confirm": () => D.notDoctorConfirm(),
   "suggestion.decide": () => D.notDoctorSuggestion(),
   "protocol.edit": () => D.notDoctor(),
 };

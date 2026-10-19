@@ -81,7 +81,12 @@ beforeEach(async () => {
      VALUES ('demo-a', ?1, 'NO-A', 'lab.pdf', 0, 'uploads/NO-A/up-test-1.pdf', ?2, 10, 'upload', 'unprocessed', 'd2p1', 'stored', NULL, NULL)`,
   ).bind(DOC, SHA).run();
   await env.DOCS.put("uploads/NO-A/up-test-1.pdf", "%PDF-1.4 test");
-  // The case's prepared data holds the two values of this document, so the run is compared with them.
+  // The case's prepared data holds the two values of this document, so the run is compared with them. The comparison
+  // still reads the old format /1 (its switch to codebridge.extraction/2 is a later change), so the /1 run is current here.
+  await env.DB.batch([
+    env.DB.prepare("UPDATE extraction_runs SET is_current = 0 WHERE case_id = 'NO-A'"),
+    env.DB.prepare("UPDATE extraction_runs SET is_current = 1 WHERE id = 'run-A'"),
+  ]);
   await env.DOCS.put(
     "extract/NO-A/run-A.json",
     JSON.stringify({

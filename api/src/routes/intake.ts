@@ -140,8 +140,9 @@ export const intake = new Hono<AppEnv>()
         throw e;
       }
       t.run(
-        `INSERT INTO extraction_runs (org_id, id, case_id, kind, producer, model, prompt_version, temperature, input_hashes_json, r2_key, sha256, is_current, created_at)
-         VALUES (?org, ?1, ?2, 'seed_fixture', 'prepared-fixture', NULL, NULL, NULL, ?3, ?4, ?5, 1, ?6)`,
+        // Still the old format /1 until the intake writes codebridge.extraction/2 runs; not seeded, so the demo reset removes it.
+        `INSERT INTO extraction_runs (org_id, id, case_id, producer, seeded, schema, model, prompt_version, temperature, input_hashes_json, r2_key, sha256, is_current, created_at)
+         VALUES (?org, ?1, ?2, 'fixture', 0, 'codebridge.extraction/1', NULL, NULL, NULL, ?3, ?4, ?5, 1, ?6)`,
         runId, id, JSON.stringify(Object.fromEntries(docs.filter((d) => d.fixture_id === fid).map((d) => [d.id, d.sha256]))), key, await sha256Hex(body), at,
       );
       if (alertRows.length)
@@ -160,8 +161,8 @@ export const intake = new Hono<AppEnv>()
         JSON.stringify(pageRows),
       );
       t.run(
-        `INSERT INTO document_parts (org_id, document_id, ordinal, title_cs, type, date, pages_json, readability, reason_cs, upload_name)
-         SELECT ?org, json_extract(value, '$.d'), 0, json_extract(value, '$.t'), json_extract(value, '$.ty'), json_extract(value, '$.dt'), json_extract(value, '$.p'),
+        `INSERT INTO document_parts (org_id, document_id, ordinal, part_id, title_cs, type, date, pages_json, readability, reason_cs, upload_name)
+         SELECT ?org, json_extract(value, '$.d'), 0, json_extract(value, '$.d') || '/p0', json_extract(value, '$.t'), json_extract(value, '$.ty'), json_extract(value, '$.dt'), json_extract(value, '$.p'),
            json_extract(value, '$.r'), json_extract(value, '$.rs'), json_extract(value, '$.u') FROM json_each(?1)`,
         JSON.stringify(partRows),
       );

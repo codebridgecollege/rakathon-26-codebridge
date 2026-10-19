@@ -117,8 +117,14 @@ describe("intake with every fixture document and the matching person", () => {
     expect((await get("/patients", "coord")).body.patients.map((p: { id: string }) => p.id)).toContain("NO-FX");
     expect((await w("POST", "/cases/NO-FX/intake/complete")).body.error!.code).toBe("intake_done");
 
+    // The intake still stores the old format /1 (until it writes codebridge.extraction/2 runs), which the extraction route
+    // serves as not processed; the stored object is read directly here.
+    const served = await get("/cases/NO-FX/extraction");
+    expect(served.body).toMatchObject({ case_id: "NO-FX", run: { producer: "fixture" }, data: null });
+    const runRow = (await q<{ r2_key: string; producer: string; seeded: number; schema: string }>("SELECT r2_key, producer, seeded, schema FROM extraction_runs WHERE case_id = 'NO-FX'"))[0]!;
+    expect(runRow).toMatchObject({ producer: "fixture", seeded: 0, schema: "codebridge.extraction/1" });
     // The stored extraction: references point at the uploaded documents, and no name or birth number anywhere.
-    const ex = await get("/cases/NO-FX/extraction");
+    const ex = { body: { data: await (await env.DOCS.get(runRow.r2_key))!.json<any>() } };
     const raw = JSON.stringify(ex.body);
     for (const bad of [NAME[0], NAME[1], "585614", "4019"]) expect(raw).not.toContain(bad);
     expect(raw).not.toContain("@upload:");
@@ -132,7 +138,8 @@ describe("intake with every fixture document and the matching person", () => {
     expect(page.status).toBe(200);
     expect(page.body).toMatchObject({ document_id: zprava.id, case_id: "NO-FX", n: 1, doc_title: "Dokument 1" });
     expect(page.body.text).toContain("MR pánve");
-    expect((await get("/cases/NO-FX/alerts")).body.alerts).toHaveLength(1);
+    expect(await count("alerts", "case_id = 'NO-FX'")).toBe(1);
+    expect(await q("SELECT part_id FROM document_parts WHERE document_id = ?1", zprava.id)).toEqual([{ part_id: `${zprava.id}/p0` }]);
     // The access log names counts, never the patient.
     const lines = (await q<{ what_cs: string }>("SELECT what_cs FROM access_log ORDER BY id")).map((l) => l.what_cs).join("\n");
     expect(lines).toContain("vytvořil(a) pacienta z žádosti a 3 nahraných dokumentů");
@@ -245,12 +252,13 @@ describe("abandoned intakes", () => {
     await startIntake();
     for (const f of FILES) await upload("NO-FX", f);
     await w("POST", "/cases/NO-FX/intake/complete");
-    await env.DB.prepare("INSERT INTO alert_events (org_id, alert_id, action, by_user_id, by_name) SELECT org_id, id, 'ack', 'd2p1', 'x' FROM alerts WHERE case_id = 'NO-FX'").run();
+    await env.DB.prepare("INSERT INTO alert_events_v1 (org_id, alert_id, action, by_user_id, by_name) SELECT org_id, id, 'ack', 'd2p1', 'x' FROM alerts WHERE case_id = 'NO-FX'").run();
     await env.DB.prepare("UPDATE demo_state SET reset_in_progress = 1 WHERE org_id = 'demo-a'").run();
-    expect(await count("extraction_runs", "producer IS NOT NULL")).toBe(0);
+    expect(await count("extraction_runs", "seeded = 0")).toBe(0);
+    expect(await count("alert_events_v1")).toBe(0);
     expect(await count("alerts", "case_id = 'NO-FX'")).toBe(0);
     expect(await count("documents", "origin = 'upload'")).toBe(0);
-    expect(await count("extraction_runs", "producer IS NULL")).toBe(1);
+    expect(await count("extraction_runs", "seeded = 1")).toBe(2);
     await env.DB.prepare("UPDATE demo_state SET reset_in_progress = 0 WHERE org_id = 'demo-a'").run();
   });
 });
