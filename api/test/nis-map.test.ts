@@ -148,15 +148,31 @@ describe("the failure patients", () => {
   });
 });
 
+describe("a record of another patient", () => {
+  it("is dropped and counted, never mapped", async () => {
+    vi.restoreAllMocks();
+    const other = { resourceType: "Condition", id: "x", subject: { reference: "Patient/someone-else" }, code: { text: "Cizí diagnóza" } };
+    const mine = { resourceType: "Condition", id: "y", subject: { reference: `${BASE}/Patient/cb-s01/_history/2` }, code: { text: "Moje" } };
+    mockFetch(() => Response.json({ resourceType: "Bundle", type: "searchset", entry: [{ resource: other }, { resource: mine }, { resource: mine }] }));
+    const rec = await client().patientRecord("cb-s01");
+    expect(rec.resources.filter((r) => r.resourceType === "Condition").map((r) => r.id)).toEqual(["y"]);
+    // The canned answer is given for every type, but only the Condition search keeps Conditions.
+    expect(rec.foreign).toBe(1);
+  });
+});
+
 describe("refresh", () => {
   it("asks only for what changed since the last pull, and the changed fact keeps its ID with the new version", async () => {
     const first = await runFor("cb-s02");
     clock = "2026-10-20T08:00:00.000Z";
     const lab = (first.rec.resources.find((r) => r.id === "cb-s02-lab-2026-10-06-s-cea")!) as Record<string, any>;
     fhir.load({ resourceType: "Bundle", type: "transaction", entry: [{ resource: { ...lab, valueQuantity: { value: 9.7, unit: "µg/l" } }, request: { method: "PUT", url: `Observation/${lab.id}` } }] });
-    const changed = await client().patientRecord("cb-s02", "2026-10-19T08:00:00.000Z");
+    // "ge" the newest lastUpdated seen: a record of that same instant comes back too, so nothing is missed.
+    const same = await client().patientRecord("cb-s02", "2026-10-19T08:00:00.000Z");
+    expect(same.resources.length).toBe(first.rec.resources.length);
+    expect(fhir.requests.at(-1)!.url).toContain("_lastUpdated=ge2026-10-19T08%3A00%3A00.000Z");
+    const changed = await client().patientRecord("cb-s02", "2026-10-19T12:00:00.000Z");
     expect(changed.resources.map((r) => `${r.resourceType}/${r.id}`)).toEqual([`Observation/${lab.id}`]);
-    expect(fhir.requests.at(-1)!.url).toContain("_lastUpdated=gt2026-10-19T08%3A00%3A00.000Z");
     // The refresh run is the full record again, matched against the first: every fact keeps its ID.
     const second = await runFor("cb-s02", first.run);
     expect(second.validation.ok).toBe(true);

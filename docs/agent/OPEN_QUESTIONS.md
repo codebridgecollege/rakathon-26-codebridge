@@ -165,6 +165,15 @@ experience.
   line (`systemic_therapy`, with its line number) from other drugs needs a
   drug classification (ATC) the NIS may send. Map by ATC L01/L02 when it
   is there?
+- [ ] The NIS import marks a diagnosis `primary` only when exactly one
+  primary cancer code is present. With two cancers, should the doctor pick,
+  or does FNO's NIS mark the one under discussion?
+- [ ] How do NIS facts and document facts merge in the case view, and may
+  "neuvedeno v dostupné dokumentaci" ever rest on the NIS alone? Today a
+  NIS run says only "found" or "not checked" (EXTRACTION-FORMAT.md, "The NIS
+  producer").
+- [ ] Refresh: how often to ask the NIS for changes, and how often to pull
+  the whole record (the only way a deleted NIS record drops out).
 - [ ] **Which tech stack and which LLM deployment do we use?**
 - [ ] **Backend: port the prognosis service to TypeScript, or keep it in
   Python** (Python Workers)? Juro decides after reading `prognosis/service.py`

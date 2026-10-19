@@ -133,12 +133,12 @@ export class MemoryFhir {
       case "_id":
         return alts.includes(r.id);
       case "_lastUpdated": {
-        // Prefixes gt, ge, lt, le on an instant, compared as instants.
+        // Prefixes gt, ge, lt, le on an instant, compared as instants; no prefix means eq, as in FHIR.
         const m = /^(gt|ge|lt|le)?(.+)$/.exec(value)!;
         const at = Date.parse(m[2]!);
         const lu = Date.parse(r.meta?.lastUpdated ?? "");
         if (Number.isNaN(at) || Number.isNaN(lu)) return false;
-        return { gt: lu > at, ge: lu >= at, lt: lu < at, le: lu <= at }[(m[1] ?? "ge") as "gt" | "ge" | "lt" | "le"];
+        return { gt: lu > at, ge: lu >= at, lt: lu < at, le: lu <= at, eq: lu === at }[(m[1] ?? "eq") as "gt" | "ge" | "lt" | "le" | "eq"];
       }
       case "status":
         return alts.includes(r.status);

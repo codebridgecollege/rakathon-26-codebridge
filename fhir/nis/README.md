@@ -119,7 +119,7 @@ system; the documents give none.
 | F02 | An amended document: the histology `cb-f02-doc-histo-v2` `relatesTo` `replaces` `cb-f02-doc-histo-v1` (status `superseded`; G2 became G3) | The mapping lists v1 as superseded and v2 as replacing it (`api/test/nis-map.test.ts`); reading the current version through the upload path and flagging facts from the old one comes with the document import |
 | F03 | A real contradiction: two pathological stages of the same specimen and day (`pT3 pN0` and `pT4a pN1a`); the clinical stage `cT4a cN1 cM0` before surgery differs too, which is not a contradiction | The mapping keeps them as three stage facts, the two pathological ones under one key (`#2`); the contradiction alert itself belongs to the case rules |
 | F04 | A referral with no result: MRI requested and reported (`basedOn`), PET/CT requested with no report | The MRI request is `done` with `result_fact` pointing at the imaging fact; the PET/CT request stays `requested` with none |
-| S01, S02 | The same "requested, no result" in real sample data (PET/CT 1.10.2026, CT 7.10.2026); S01's MRI of 29.9.2026 as a Procedure without a report ("an examination that happened but whose report is missing") | Phase 2, with the structured mapping |
+| S01, S02 | The same "requested, no result" in real sample data (PET/CT 1.10.2026, CT 7.10.2026); S01's MRI of 29.9.2026 as a Procedure without a report ("an examination that happened but whose report is missing") | The mapping keeps the PET/CT and CT requests `requested` with no result and the MRI as a done procedure (`api/test/nis-map.test.ts`); the missing-report alert belongs to the case rules |
 
 Phase 1 uses F01 (patient match); phase 2's mapping uses F02-F04.
 
