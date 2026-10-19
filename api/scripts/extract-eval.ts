@@ -267,7 +267,10 @@ async function main() {
     const { run } = prepareRun({ caseId: c.id, previous: null, currentRunId: null, retiredDocuments: [], issuedIds: [] }, draft);
     run.alerts.push(...requestsWithoutResult(run.facts));
     const v = validateRun(run);
-    if (!v.ok) console.log(`${c.id}: the run does not validate: ${v.issues.map((i) => `${i.code} ${i.path}`).slice(0, 5).join("; ")}`);
+    if (!v.ok) {
+      console.log(`${c.id}: the run does not validate: ${v.issues.map((i) => `${i.code} ${i.path}`).slice(0, 5).join("; ")}`);
+      process.exitCode = 1;
+    }
     writeFileSync(join(out, `${c.id}.json`), JSON.stringify(run, null, 1));
     const ids = pages.map((p) => `p${p.page}:${p.identity}`).join(" ");
     const filtered = failed.length ? `, not read ${failed.join(" ")}` : "";

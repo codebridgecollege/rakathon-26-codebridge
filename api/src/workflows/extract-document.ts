@@ -34,6 +34,7 @@ import { redactPages } from "../services/redaction";
 import { actorFor } from "../store/audio";
 import { loadCaseIdentity } from "../store/identity";
 import { orgStmt } from "../store/sql";
+import { sha256Hex } from "../store/work";
 
 export type ExtractDocumentParams = { org: string; caseId: string; docId: string; runId: string };
 
@@ -74,10 +75,12 @@ async function runOf(env: Env, p: ExtractDocumentParams): Promise<RunRow> {
     p.org,
     `SELECT r.output_prefix, r.state, r.input_sha256, r.created_by, r.created_by_actor, r.document_id, r.case_id
        FROM pipeline_runs r JOIN documents d ON d.org_id = r.org_id AND d.id = r.document_id
-      WHERE r.org_id = ?org AND r.id = ?1 AND d.lifecycle = 'current'`,
+      WHERE r.org_id = ?org AND r.id = ?1 AND d.lifecycle = 'current'
+        AND NOT EXISTS (SELECT 1 FROM pipeline_runs n WHERE n.org_id = r.org_id AND n.document_id = r.document_id AND n.state = 'done' AND n.created_at > r.created_at)`,
     p.runId,
   ).first<RunRow>();
-  // A document withdrawn or replaced meanwhile is not read any more; its outputs are being deleted.
+  // A document withdrawn or replaced meanwhile is not read any more (its outputs are being deleted), and a newer
+  // pipeline run of the document makes this one's outputs stale: its own extraction follows it.
   if (!r || r.state !== "done" || r.document_id !== p.docId || r.case_id !== p.caseId) throw new NonRetryableError("run_not_current");
   return r;
 }
@@ -99,9 +102,14 @@ async function pageFacts(env: Env, prefix: string, n: number): Promise<PageFacts
 // The document's parts as the pipeline split it (parts.json); without a split, the whole document is one part.
 async function partsOf(env: Env, prefix: string, docId: string, n: number): Promise<PartRef[]> {
   const split = await json<{ parts: { ordinal: number; pages: number[] }[] }>(env, `${prefix}parts.json`);
-  const parts = (split?.parts ?? []).filter((x) => Array.isArray(x.pages) && x.pages.length);
+  // Each ordinal once (step names come from it), and only pages the document has.
+  const seen = new Set<number>();
+  const parts = (split?.parts ?? [])
+    .filter((x) => Number.isInteger(x.ordinal) && !seen.has(x.ordinal) && (seen.add(x.ordinal), true))
+    .map((x) => ({ ordinal: x.ordinal, pages: [...new Set((x.pages ?? []).filter((k) => Number.isInteger(k) && k >= 1 && k <= n))].sort((a, b) => a - b) }))
+    .filter((x) => x.pages.length);
   if (!parts.length) return [{ id: `${docId}/p0`, ordinal: 0, pages: Array.from({ length: n }, (_, i) => i + 1) }];
-  return parts.map((x) => ({ id: `${docId}/p${x.ordinal}`, ordinal: x.ordinal, pages: [...new Set(x.pages)].sort((a, b) => a - b) }));
+  return parts.map((x) => ({ id: `${docId}/p${x.ordinal}`, ordinal: x.ordinal, pages: x.pages }));
 }
 
 async function readingOf(env: Env, prefix: string, n: number) {
@@ -125,15 +133,30 @@ export class ExtractDocumentWorkflow extends WorkflowEntrypoint<Env, ExtractDocu
     const plan = await step.do("plan", STEP, async () => {
       const run = await runOf(env, p);
       const n = await pageCount(env, run.output_prefix);
+      // A page that shows another patient is never sent to the model, as text or image: the pseudonymization knows the
+      // case's identifiers, not the other patient's. It stays unread here; the pipeline's fragment keeps its facts
+      // quarantined and raises the identity alert.
+      const ident = await json<{ pages?: { n: number; result: IdentityResult }[] }>(env, `${run.output_prefix}identity.json`);
+      const foreign = (ident?.pages ?? []).filter((x) => x.result === "conflicts").map((x) => x.n);
       const vision: number[] = [];
-      for (let k = 1; k <= n; k++) if (needsVision(await pageFacts(env, run.output_prefix, k))) vision.push(k);
-      const parts = await partsOf(env, run.output_prefix, p.docId, n);
-      return { pages: n, vision, parts };
+      for (let k = 1; k <= n; k++) if (!foreign.includes(k) && needsVision(await pageFacts(env, run.output_prefix, k))) vision.push(k);
+      const parts = (await partsOf(env, run.output_prefix, p.docId, n)).map((x) => ({ ...x, pages: x.pages.filter((k) => !foreign.includes(k)) }));
+      return { pages: n, vision, parts: parts.filter((x) => x.pages.length), foreign };
     });
 
     const unread: Record<string, string> = {};
+    // A step whose retries run out (the shared endpoint stays busy, the page reader is down) leaves its page or part
+    // unread with a fixed code; the fragment is still written and the case merge still starts.
+    const stepped = async <T>(name: string, f: () => Promise<T>, fallback: T): Promise<T> => {
+      try {
+        // The step results here are plain objects of IDs, counts and codes; the engine's Serializable typing is generic.
+        return (await step.do(name, MODEL_STEP, f as never)) as T;
+      } catch {
+        return fallback;
+      }
+    };
     for (const n of plan.vision) {
-      const r = await step.do(`read p${n}`, MODEL_STEP, async () => {
+      const r = await stepped(`read p${n}`, async () => {
         const run = await runOf(env, p);
         const identity = await loadCaseIdentity(env.DB, p.org, p.caseId);
         const f = await pageFacts(env, run.output_prefix, n);
@@ -153,32 +176,38 @@ export class ExtractDocumentWorkflow extends WorkflowEntrypoint<Env, ExtractDocu
         const prompt = await loadPrompt("read-page-cs");
         const reading: VisionReading = { text, verify, engine: `vision ${modelConfig(env).model} ${prompt.ref}` };
         await putJson(env, `${run.output_prefix}p${n}.vision.json`, reading);
-        return { n, code: null, marks: verify.length };
-      });
+        return { n, code: null as string | null, marks: verify.length };
+      }, { n, code: "busy", marks: 0 });
       // A page the model did not read keeps its local reading; it is not "unread" for the extraction.
       if (r.code) unread[`p${n}`] = r.code;
     }
 
     const unreadParts: number[] = [];
     for (const part of plan.parts) {
-      const r = await step.do(`extract ${part.id}`, MODEL_STEP, async () => {
+      const r = await stepped(`extract ${part.id}`, async () => {
         const run = await runOf(env, p);
         const identity = await loadCaseIdentity(env.DB, p.org, p.caseId);
         const texts = await Promise.all(part.pages.map(async (n) => ({ ref: { docId: p.docId, page: n }, text: (await readingOf(env, run.output_prefix, n)).reading.text })));
         try {
           const ans = await callModel(env, { org: p.org, caseId: p.caseId, actor: await actorOf(env, p, run), purpose: "extract_facts", prompt: "extract-facts-cs", identity, text: texts, maxOutputTokens: EXTRACT_TOKENS });
-          await putJson(env, `${run.output_prefix}ai-part-${part.ordinal}.json`, { pages: part.pages, output: ans.output, prompt: ans.meta.prompt, model: ans.meta.model });
-          return { part: part.ordinal, code: null, facts: Array.isArray((ans.json as ModelAnswer | null)?.facts) ? (ans.json as ModelAnswer).facts.length : 0 };
+          // The schema is strict, but an answer without its facts list is refused here, not in the fragment step.
+          const facts = (ans.json as ModelAnswer | null)?.facts;
+          if (!Array.isArray(facts)) return { part: part.ordinal, code: "bad_output" as string | null, facts: 0 };
+          // The identity the texts were pseudonymized with, by hash: the fragment step rebuilds the mapping from the
+          // case record and must find the same one, or the placeholders in the quotes would map to other words.
+          await putJson(env, `${run.output_prefix}ai-part-${part.ordinal}.json`, { pages: part.pages, output: ans.output, prompt: ans.meta.prompt, model: ans.meta.model, identity_sha256: await sha256Hex(JSON.stringify(identity)) });
+          return { part: part.ordinal, code: null as string | null, facts: facts.length };
         } catch (e) {
           return { part: part.ordinal, code: settle(e), facts: 0 };
         }
-      });
+      }, { part: part.ordinal, code: "busy", facts: 0 });
       if (r.code) unreadParts.push(part.ordinal);
     }
 
     const frag = await step.do("fragment", STEP, async () => {
       const run = await runOf(env, p);
       const identity = await loadCaseIdentity(env.DB, p.org, p.caseId);
+      const identitySha = await sha256Hex(JSON.stringify(identity));
       const ident = await json<{ pages?: { n: number; result: IdentityResult }[] }>(env, `${run.output_prefix}identity.json`);
       const pageIdentity = new Map((ident?.pages ?? []).map((x) => [x.n, x.result]));
       // Every page of the document, in order; a page missing from identity.json cannot be verified.
@@ -189,16 +218,27 @@ export class ExtractDocumentWorkflow extends WorkflowEntrypoint<Env, ExtractDocu
       }
       const calls: CallAnswer[] = [];
       const unreadPages: number[] = [];
+      // Pages of another patient were not sent: unread.
+      unreadPages.push(...plan.foreign.map((n) => n - 1));
       for (const part of plan.parts) {
         const idx = part.pages.map((n) => n - 1);
-        const ans = unreadParts.includes(part.ordinal) ? null : await json<{ output: string }>(env, `${run.output_prefix}ai-part-${part.ordinal}.json`);
-        if (!ans) {
+        const ans = unreadParts.includes(part.ordinal) ? null : await json<{ output: string; identity_sha256?: string }>(env, `${run.output_prefix}ai-part-${part.ordinal}.json`);
+        let answer: ModelAnswer | null = null;
+        try {
+          if (ans && ans.identity_sha256 === identitySha) answer = JSON.parse(ans.output) as ModelAnswer;
+        } catch {
+          // A stored answer that does not parse is read as no answer; its message would quote the answer.
+          answer = null;
+        }
+        if (!answer || !Array.isArray(answer.facts)) {
           unreadPages.push(...idx);
           continue;
         }
-        calls.push({ pages: idx, part: part.id, parts: pseudonymizeParts(idx.map((i) => pages[i]!.text), identity), answer: JSON.parse(ans.output) as ModelAnswer });
+        calls.push({ pages: idx, part: part.id, parts: pseudonymizeParts(idx.map((i) => pages[i]!.text), identity), answer });
       }
-      const d = await draftDocument({ doc: { documentId: p.docId, part: null, pages }, calls, unreadPages, ids: aiFragmentIds(p.docId) });
+      const allParts = await partsOf(env, run.output_prefix, p.docId, plan.pages);
+      const partOf = (i: number) => allParts.find((x) => x.pages.includes(i + 1))?.id ?? null;
+      const d = await draftDocument({ doc: { documentId: p.docId, part: null, pages }, calls, unreadPages, ids: aiFragmentIds(p.docId), partOf });
       const [readPrompt, extractPrompt] = await Promise.all([loadPrompt("read-page-cs"), loadPrompt("extract-facts-cs")]);
       const model = modelConfig(env).model;
       const stages = [

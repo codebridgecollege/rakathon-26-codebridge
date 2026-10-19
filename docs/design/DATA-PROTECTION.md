@@ -426,7 +426,11 @@ it yet that sends real documents; the extraction prompts come in phase 2.
   `RedactedPage`, from `/v1/redact`), with the prompt `read-page-cs`; the
   model writes a blacked-out place as `[X]` and never guesses it. Whose
   page it is (identity check, quarantine) is decided from the local,
-  unredacted Tesseract or text-layer reading, never from the model's.
+  unredacted Tesseract or text-layer reading, never from the model's. In
+  the Worker a page that shows another patient is not sent to the model at
+  all, as text or image: the pseudonymization knows only the case's
+  identifiers. (The offline harness still sends such synthetic pages, to
+  measure the quarantine.)
 - **Audit and budget.** One access-log row per page sent, written before
   the first attempt: case, document, page, provider, model, purpose and
   prompt version, never text. The attempt count and outcome go on a

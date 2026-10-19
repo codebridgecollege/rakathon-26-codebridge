@@ -96,7 +96,7 @@ async function run() {
 const fragment = async () => (await env.DOCS.get(`${PREFIX}fragment-ai.json`))!.json<any>();
 
 describe("ExtractDocumentWorkflow", () => {
-  it("reads the page that needs it from the redacted image, extracts per part and writes the fragment", async () => {
+  it("reads the page that needs it from the redacted image, extracts per part, never sends another patient's page, and writes the fragment", async () => {
     const part2 = JSON.stringify({ facts: [modelFact({ kind: "metastasis", quote: "CT břicha 24.9.2026: metastatické postižení jater.", text: "metastázy jater", site: "játra", metastasis_status: "confirmed", date_as_written: "24.9.2026" })] });
     const m = mocks(() => answer(part2));
     const { wf, inst } = await run();
@@ -110,8 +110,8 @@ describe("ExtractDocumentWorkflow", () => {
     expect(images[0]).not.toContain(PNG_B64);
     // The redaction got the case's name forms from the record.
     expect(m.redactAsked[0]).toContain("testova");
-    // No identifier of the case reached the model in any text.
-    for (const b of m.sentToModel) for (const bad of ["Testová", "645312", "1.1.1964"]) expect(b).not.toContain(bad);
+    // No identifier of the case, and nothing of the other patient's page 2, reached the model.
+    for (const b of m.sentToModel) for (const bad of ["Testová", "645312", "1.1.1964", "Vrbensk", "jater"]) expect(b).not.toContain(bad);
 
     const vision = await (await env.DOCS.get(`${PREFIX}p1.vision.json`))!.json<{ text: string; verify: number[][]; engine: string }>();
     expect(vision.text).toBe(VISION_P1);
@@ -122,31 +122,30 @@ describe("ExtractDocumentWorkflow", () => {
     expect(f.stages.map((s: { name: string }) => s.name)).toEqual(["read_pages", "extract_facts"]);
     expect(f.facts.map((x: any) => [x.draft_id, x.kind, x.quarantined, x.certainty])).toEqual([
       [`ai:${DOC}:1`, "diagnosis", false, "verify"], // the vision and Tesseract readings disagree on "C20"
-      [`ai:${DOC}:2`, "metastasis", true, "clear"], // page 2 shows another patient: kept, quarantined
     ]);
     expect(f.facts[0].certainty_reason.code).toBe("ocr_check");
-    expect(f.sources.map((s: any) => [s.id, s.page, s.part, s.quote_text, s.identity])).toEqual([
-      [`src-ai-${DOC}-1`, 1, `${DOC}/p0`, "vision", "matches"],
-      [`src-ai-${DOC}-2`, 2, `${DOC}/p1`, "pdf_text", "conflicts"],
-    ]);
+    expect(f.sources.map((s: any) => [s.id, s.page, s.part, s.quote_text, s.identity])).toEqual([[`src-ai-${DOC}-1`, 1, `${DOC}/p0`, "vision", "matches"]]);
     expect(f.facts.every((x: any) => x.id === undefined && x.key === undefined)).toBe(true);
     const diag = f.checks.find((c: any) => c.looks_for === "diagnosis");
-    expect(diag).toMatchObject({ result: "found", covered: [{ document_id: DOC, part: `${DOC}/p0` }, { document_id: DOC, part: `${DOC}/p1` }], unreadable: [] });
+    // Page 2 (another patient) is listed as not read, under its part.
+    expect(diag).toMatchObject({ result: "found", covered: [{ document_id: DOC, part: `${DOC}/p0` }], unreadable: [{ document_id: DOC, part: `${DOC}/p1`, page: 2 }] });
 
-    // One access-log row per page and call: page 1 read and extracted, page 2 extracted.
+    // One access-log row per page and call: page 1 read and extracted; page 2 never sent.
     const log = (await env.DB.prepare("SELECT document_id, page_n, what_cs FROM access_log WHERE action = 'model.call' ORDER BY id").all<any>()).results;
-    expect(log.map((l) => [l.document_id, l.page_n])).toEqual([[DOC, 1], [DOC, 1], [DOC, 2]]);
+    expect(log.map((l) => [l.document_id, l.page_n])).toEqual([[DOC, 1], [DOC, 1]]);
     expect(log[0].what_cs).toContain("read_page");
 
     // Step results: IDs, counts and codes only.
-    for (const name of ["plan", "read p1", `extract ${DOC}/p0`, `extract ${DOC}/p1`, "fragment", "case"]) {
+    for (const name of ["plan", "read p1", `extract ${DOC}/p0`, "fragment", "case"]) {
       const r = JSON.stringify(await inst.waitForStepResult({ name }));
       for (const bad of [FAKE_NAME, "Vrbensk", "C20", "novotvar", "jater", "1964"]) expect(r).not.toContain(bad);
     }
     expect(await inst.waitForStepResult({ name: "case" })).toEqual({ started: false });
   });
 
-  it("lists a part the content filter refused as unread, never as nothing found, and still writes the fragment", async () => {
+  it("lists a part the content filter refused, or the model answered without facts, in the checks' unreadable pages", async () => {
+    // Page 2 is the patient's own here, so it is sent.
+    await putJson(`${PREFIX}identity.json`, { result: "matches", pages: [{ n: 1, result: "matches" }, { n: 2, result: "matches" }] });
     mocks(() => answer("", "content_filter"));
     const { wf, inst } = await run();
     await using _ = wf;
@@ -154,8 +153,31 @@ describe("ExtractDocumentWorkflow", () => {
     const f = await fragment();
     expect(f.facts.map((x: any) => x.kind)).toEqual(["diagnosis"]);
     const meta = f.checks.find((c: any) => c.looks_for === "metastasis");
-    expect(meta).toMatchObject({ result: "nothing_found", unreadable: [{ document_id: DOC, part: null, page: 2 }] });
+    expect(meta).toMatchObject({ result: "nothing_found", unreadable: [{ document_id: DOC, part: `${DOC}/p1`, page: 2 }] });
     expect(await inst.waitForStepResult({ name: `extract ${DOC}/p1` })).toEqual({ part: 1, code: "refused", facts: 0 });
+  });
+
+  it("refuses an answer without its facts list in the extract step", async () => {
+    await putJson(`${PREFIX}identity.json`, { result: "matches", pages: [{ n: 1, result: "matches" }, { n: 2, result: "matches" }] });
+    mocks(() => answer(JSON.stringify({ items: [] })));
+    const { wf, inst } = await run();
+    await using _ = wf;
+    await inst.waitForStatus("complete");
+    expect(await inst.waitForStepResult({ name: `extract ${DOC}/p1` })).toEqual({ part: 1, code: "bad_output", facts: 0 });
+    const f = await fragment();
+    expect(f.checks[0].unreadable.map((u: any) => u.page)).toEqual([2]);
+  });
+
+  it("stops when a newer pipeline run of the document is done", async () => {
+    await env.DB.prepare(
+      `INSERT INTO pipeline_runs (org_id, id, document_id, case_id, state, pipeline_version, input_sha256, output_prefix, created_by, created_by_name, created_at, updated_at)
+       VALUES ('demo-a', 'pl-2', ?1, 'NO-A', 'done', 'dev', ?2, ?3, 'd2p1', 'x', '2026-10-20T09:00:00Z', '2026-10-20T09:00:00Z')`,
+    ).bind(DOC, "c".repeat(64), `org/demo-a/uploads/NO-A/${DOC}/pl-2/`).run();
+    const m = mocks(() => answer("{}"));
+    const { wf, inst } = await run();
+    await using _ = wf;
+    await inst.waitForStatus("errored");
+    expect(m.sentToModel).toEqual([]);
   });
 
   it("stops on a document withdrawn meanwhile, and runs only for orgs in MODEL_ORGS", async () => {

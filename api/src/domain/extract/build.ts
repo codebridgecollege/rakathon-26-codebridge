@@ -285,6 +285,8 @@ export async function draftDocument(o: {
   /** Pages the model would not read (content filter, budget): listed as not read, never as "nothing found". */
   unreadPages?: number[];
   ids?: FragmentIds;
+  /** The part of a page index, for the unread pages of a document split into parts. */
+  partOf?: (pageIndex: number) => string | null;
 }): Promise<DraftedDocument> {
   const { doc } = o;
   const report: BuildReport = { kept: 0, verify: 0, quarantined: 0, dropped: {}, reasons: {} };
@@ -540,8 +542,9 @@ export async function draftDocument(o: {
   const parts = [...new Set(o.calls.map((c) => c.part ?? doc.part))];
   const covered = (parts.length ? parts : [doc.part]).map((part) => ({ document_id: doc.documentId, part }));
   const unreadable = doc.pages
-    .filter((p, i) => p.readability === "empty" || unread.has(i) || !sent.has(i))
-    .map((p) => ({ document_id: doc.documentId, part: doc.part, page: p.page }));
+    .map((p, i) => ({ p, i }))
+    .filter(({ p, i }) => p.readability === "empty" || unread.has(i) || !sent.has(i))
+    .map(({ p, i }) => ({ document_id: doc.documentId, part: o.partOf?.(i) ?? doc.part, page: p.page }));
   const checks: Check[] = EXTRACT_KINDS.map((k) => ({ id: `chk-${k}`, looks_for: k, expected: null, covered, unreadable, result: facts.some((f) => f.kind === k) ? ("found" as const) : ("nothing_found" as const) }));
   return { sources: [...sources.values()], facts, checks, report };
 }
