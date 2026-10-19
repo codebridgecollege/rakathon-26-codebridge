@@ -384,6 +384,41 @@ describe("NIS documents into the case", () => {
     expect((await importDocs()).body.data!.documents).toMatchObject({ imported: 1, withdrawn: 0 });
     expect(await nisRow("DocumentReference/dr-1")).toMatchObject({ auto_withdrawn: null, lifecycle: "current" });
     expect(await withdrawAlerts()).toEqual([]);
+    // A corrected version after that comes in and retires the taken-back one: the withdrawn version is no decline.
+    clock = "2026-10-22T08:00:00.000Z";
+    loadDoc("dr-1", "corrected");
+    await ageImport();
+    expect((await importDocs()).body.data!.documents).toMatchObject({ imported: 1, declined: 0, superseded: 1 });
+    expect((await docRows()).results.filter((x) => x.lifecycle === "current").map((x) => x.nis_resource)).toEqual(["DocumentReference/dr-1"]);
+  });
+
+  it("keeps a document missing from the list while the NIS still holds it for the patient", async () => {
+    loadDoc("dr-1", "first");
+    await importDocs();
+    await ageImport();
+    // An offset-paged server skipped it while pages shifted: the search answer lacks it, a direct read finds it.
+    vi.restoreAllMocks();
+    let reads = 0;
+    mockFetch(async (req) => {
+      if (new URL(req.url).pathname.endsWith("/DocumentReference/dr-1")) reads++;
+      const res = await fhir.handle(req);
+      if (!new URL(req.url).pathname.endsWith("/DocumentReference") && !req.url.includes("/DocumentReference?")) return res;
+      const b = (await res.json()) as { entry?: { resource: { id: string } }[] };
+      return Response.json({ ...b, entry: (b.entry ?? []).filter((e) => e.resource.id !== "dr-1") });
+    });
+    expect((await importDocs()).body.data!.documents).toMatchObject({ withdrawn: 0, withdraw_pending: 0 });
+    expect(reads).toBe(1);
+    expect(await nisRow("DocumentReference/dr-1")).toMatchObject({ lifecycle: "current", auto_withdrawn: null });
+  });
+
+  it("withdraws a document the NIS moved to another patient's record", async () => {
+    loadDoc("dr-1", "first");
+    await importDocs();
+    clock = "2026-10-20T08:00:00.000Z";
+    loadDoc("dr-1", "first", { subject: { reference: "Patient/cb-s02" } });
+    await ageImport();
+    expect((await importDocs()).body.data!.documents).toMatchObject({ withdrawn: 1 });
+    expect(await nisRow("DocumentReference/dr-1")).toMatchObject({ auto_withdrawn: "nis_removed", lifecycle: "withdrawn" });
   });
 
   it("never withdraws a doctor's own upload the NIS version was mapped onto", async () => {
@@ -404,7 +439,7 @@ describe("NIS documents into the case", () => {
     expect((await importDocs()).body.data!.documents).toMatchObject({ withdrawn: 0 });
     expect(await nisRow("DocumentReference/dr-1")).toMatchObject({ lifecycle: "current", auto_withdrawn: null });
     // Unlinking leaves it in the case too.
-    expect((await unlink()).body.data!.documents).toMatchObject({ withdrawn: 0, pending: 0 });
+    expect((await unlink()).body.data!.documents).toMatchObject({ withdrawn: 0, withdraw_pending: 0 });
     expect(await currentUploads()).toBe(1);
   });
 
@@ -428,7 +463,7 @@ describe("NIS documents into the case", () => {
     await env.DB.prepare("UPDATE cases SET status = 'closed' WHERE org_id = 'demo-b' AND id = 'B-NO-A'").run();
     const r = await unlink();
     expect(r.status).toBe(200);
-    expect(r.body.data!.documents).toMatchObject({ withdrawn: 0, pending: 1 });
+    expect(r.body.data!.documents).toMatchObject({ withdrawn: 0, withdraw_pending: 1 });
     expect(await nisRow("DocumentReference/dr-1")).toMatchObject({ lifecycle: "current", auto_withdrawn: null });
   });
 
@@ -452,7 +487,7 @@ describe("NIS documents into the case", () => {
     // The doctor's team leaves case 3: its documents stay there for its own team.
     await env.DB.prepare("DELETE FROM case_members WHERE org_id = 'demo-b' AND case_id = 'B-NO-3'").run();
     const r = await unlink();
-    expect(r.body.data!.documents).toEqual({ withdrawn: 2, pending: 0, not_allowed: 1 });
+    expect(r.body.data!.documents).toEqual({ withdrawn: 2, withdraw_pending: 0, not_allowed: 1 });
     expect(await currentUploads("B-NO-A")).toBe(0);
     expect(await currentUploads("B-NO-2")).toBe(0);
     expect(await currentUploads("B-NO-3")).toBe(1);

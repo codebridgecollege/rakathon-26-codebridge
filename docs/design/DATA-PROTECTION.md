@@ -368,13 +368,16 @@ OpenID Connect (OIDC, the standard login protocol); design and details in
   deliberate re-link or a later import that finds the document current
   again brings it back. A document a doctor withdrew as another patient's
   is never taken back automatically, and a doctor's own upload that the
-  NIS also holds is never deleted by the import. A removal is noticed at
-  the next full pull of the record, at most a day later. A document that
-  cannot go at once (being read, prepared, or the case closed) is retried
-  at the next import; after an unlink it stays until a doctor withdraws
-  it (open question in `docs/agent/OPEN_QUESTIONS.md`). In a case of the
-  same patient the unlinking doctor may not act in, the documents stay
-  for that case's team.
+  NIS also holds is never deleted by the import. A document missing from
+  the NIS answer is read once more directly before it goes, so a skipped
+  page does not delete it. A removal is noticed at the next full pull of
+  the record, at most a day later. A document that cannot go at once
+  (being read, prepared) is retried at the next import; in a closed case,
+  only once the case is open again. After an unlink it stays until a
+  doctor withdraws it (open question in `docs/agent/OPEN_QUESTIONS.md`).
+  In a case of the same patient the unlinking doctor may not act in, the
+  documents stay for that case's team. The dialog warns before unlinking
+  that documents will be deleted, and reports how many were.
 
 ### Upload from a phone (issue #10)
 

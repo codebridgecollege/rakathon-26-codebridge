@@ -177,8 +177,12 @@ experience.
   the import state is gone with the link. Should a closed case keep it as
   the record the MDT saw, or should the cron sweep withdraw it later? The
   same holds for superseded versions of an imported document, which stay
-  as history after the unlink. Juro to decide. (`api/AGENTS.md`, "NIS
-  documents leaving the case")
+  as history after the unlink. A related gap: when the NIS voids or removes
+  the newest version, the older version it superseded stays superseded, so
+  the case has no current version of that document and the alert names only
+  the newest. Should the older one become current again (logged), or only
+  be named in the alert? Juro to decide. (`api/AGENTS.md`, "NIS documents
+  leaving the case")
 - [ ] How do NIS facts and document facts merge in the case view? (That a
   NIS run never says "neuvedeno v dostupné dokumentaci" is decided:
   EXTRACTION-FORMAT.md, "Decisions".)

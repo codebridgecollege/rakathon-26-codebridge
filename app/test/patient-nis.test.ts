@@ -89,6 +89,27 @@ describe("Import z NIS dialog", () => {
     expect(w.text()).toContain("Rodné číslo nebylo možné ověřit, propojení potvrdil uživatel.");
   });
 
+  it("asks before unlinking, which removes the NIS documents, and says how many went", async () => {
+    const linked = { nis_patient_id: "cb-f01-a", nis_version: "1", identity_check: "matches", by_name: "MUDr. Svobodová", at: "2026-10-19T08:00:00Z" };
+    const s = setupPatient({
+      routes: {
+        "/cases/NO-010/nis": { label_cs: "Testovací NIS", has_birth_number: true, link: linked, national_register: STUB },
+        "/cases/NO-010/nis/link": reply({ link: null, documents: { withdrawn: 2, withdraw_pending: 1, not_allowed: 0 } }),
+      },
+    });
+    const w = mountInCase(NisDialog, s, { o: { kind: "nis", caseId: "NO-010" } });
+    await flushPromises();
+    await w.findAll("button").find((x) => x.text() === "Zrušit propojení")!.trigger("click");
+    // The first click only warns.
+    expect(s.calls.some((c) => c.url.endsWith("/nis/link"))).toBe(false);
+    expect(w.text()).toContain("dokumenty převzaté z NIS (jejich obsah se smaže)");
+    await w.findAll("button").find((x) => x.text() === "Zrušit propojení a odebrat dokumenty z NIS")!.trigger("click");
+    await flushPromises();
+    expect(s.calls.find((c) => c.url.endsWith("/nis/link"))!.init.method).toBe("DELETE");
+    expect(w.text()).toContain("Propojení zrušeno. Odebráno dokumentů z NIS: 2. Zatím nelze odebrat: 1 (dokument se zpracovává nebo je případ uzamčen).");
+    expect(w.text()).not.toContain("mimo váš tým");
+  });
+
   it("shows the server's refusal as worded", async () => {
     const s = setupPatient({
       routes: {
