@@ -174,4 +174,14 @@ describe("pipelineFragment and the document's identity", () => {
     expect(na.value).toMatchObject({ out_of_range: null, out_of_range_origin: null });
     expect(na.note).toBe("Na listu označeno „*“.");
   });
+
+  it("leaves out a fragment of another format and lists each part once", () => {
+    const pl = pipelineFragment(base);
+    const twice = { ...pl, producer: "ai" as const, facts: [], sources: [], alerts: [] };
+    const odd = { ...pl, schema: "codebridge.fragment/2" } as unknown as Fragment;
+    const d = composeFragments("C", "r", "2026-10-20T08:00:00Z", [pl, twice, odd]);
+    expect(d.facts).toHaveLength(pl.facts.length);
+    expect(d.checks.find((c) => c.looks_for === "lab_result")!.covered).toEqual(pl.checks[0]!.covered);
+  });
 });
+

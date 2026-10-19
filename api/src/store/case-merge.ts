@@ -107,7 +107,9 @@ export async function publishCaseRun(env: Env, org: string, caseId: string, who:
   const { run } = prepareRun(inputs, draft);
   const final = rules(run);
 
-  const ai = fragments.flatMap((f) => f.stages).find((s) => s.model);
+  // The model and prompt that made the facts (the extraction stage), not the page reading that may run before it.
+  const modelStages = fragments.flatMap((f) => f.stages).filter((s) => s.model);
+  const ai = modelStages.find((s) => s.name === "extract_facts") ?? modelStages[0];
   const t = new Tx(db, who, { requestId: null, epoch: null });
   const docIds = final.documents.map((d) => d.document_id);
   const stored = await storeRun(t, { db, docs: env.DOCS }, final, {

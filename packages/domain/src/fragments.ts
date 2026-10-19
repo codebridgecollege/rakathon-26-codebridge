@@ -256,6 +256,7 @@ export type ComposedDraft = {
 };
 
 const RANK: Record<Check["result"], number> = { not_run: 0, nothing_found: 1, found: 2 };
+const uniq = <T>(xs: T[], key: (x: T) => string) => xs.filter((x, i) => xs.findIndex((y) => key(y) === key(x)) === i);
 
 /**
  * One drafted run from the latest fragments of the case's current documents (the caller picks which: current
@@ -264,7 +265,10 @@ const RANK: Record<Check["result"], number> = { not_run: 0, nothing_found: 1, fo
  * covered and unreadable are unions, and "found" wins over "nothing found", which wins over "not run". Every fact kind
  * gets a check, so a kind nobody looked for says "not run", never "not stated".
  */
-export function composeFragments(caseId: string, runId: string, createdAt: string, fragments: readonly Fragment[]): ComposedDraft {
+export function composeFragments(caseId: string, runId: string, createdAt: string, all: readonly Fragment[]): ComposedDraft {
+  // Only fragments of this format and a known producer: a newer format or a half-written file is left out, not read
+  // as this one.
+  const fragments = all.filter((f) => f.schema === FRAGMENT_SCHEMA && (f.producer === "pipeline" || f.producer === "ai"));
   const docs = new Map<string, { document_id: string; sha256: string | null; parts: string[] }>();
   for (const f of fragments) {
     const d = docs.get(f.document_id) ?? { document_id: f.document_id, sha256: f.document_sha256, parts: [] };
@@ -275,7 +279,8 @@ export function composeFragments(caseId: string, runId: string, createdAt: strin
   for (const f of fragments) for (const s of f.sources) if (!sources.has(s.id)) sources.set(s.id, s);
   const stages: RunStage[] = [];
   for (const f of fragments)
-    for (const s of f.stages) if (!stages.some((x) => x.name === s.name && x.engine === s.engine && x.model === s.model && x.prompt === s.prompt)) stages.push(s);
+    for (const s of f.stages)
+      if (!stages.some((x) => x.name === s.name && x.engine === s.engine && x.model === s.model && x.prompt === s.prompt && x.prompt_sha256 === s.prompt_sha256)) stages.push(s);
 
   // Per kind: "found" when any document found facts; "nothing found" only when every document of the run reported
   // nothing found for it (a document whose AI reading is still pending has not looked yet, so "-" with "neuvedeno"
@@ -294,8 +299,9 @@ export function composeFragments(caseId: string, runId: string, createdAt: strin
         id: `chk-${c.looks_for.replace(/_/g, "-")}`,
         looks_for: c.looks_for,
         expected: null,
-        covered: [...(prev?.covered ?? []), ...c.covered],
-        unreadable: [...(prev?.unreadable ?? []), ...c.unreadable],
+        // Each part and page once, however many producers listed it.
+        covered: uniq([...(prev?.covered ?? []), ...c.covered], (x) => `${x.document_id}|${x.part ?? ""}`),
+        unreadable: uniq([...(prev?.unreadable ?? []), ...c.unreadable], (x) => `${x.document_id}|${x.part ?? ""}|${x.page}`),
         result: "not_run",
       });
     }
