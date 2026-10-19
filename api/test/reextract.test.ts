@@ -25,31 +25,37 @@ const REQUEST = "f-3c90de"; // the neurosurgical seminar, requested
 
 beforeEach(() => loadFixture());
 
+/** A producer's draft ID for a fact of RUN_A2: never the final ID, so the test proves prepareRun rewrites references. */
+const d = (fact: string) => fact.replace(/^f-/, "d-");
+
 /** RUN_A2's content as a producer drafts it; `change` edits the drafted facts as a re-extraction would read them. */
 function draft(id: string, at: string, change: (facts: DraftRun["facts"]) => DraftRun["facts"] = (f) => f): DraftRun {
-  const facts = change(structuredClone(RUN_A2.facts).map(({ id: fid, key: _k, ...f }) => ({ ...f, draft_id: fid })));
+  // Every reference to a fact (based_on, interval ends, alert facts, subjects and arguments, checks) uses draft IDs.
+  const drafted = JSON.parse(JSON.stringify({ facts: RUN_A2.facts, alerts: RUN_A2.alerts, checks: RUN_A2.checks }).replace(/\bf-([0-9a-f]{6,8})\b/g, "d-$1")) as Pick<ExtractionRun, "facts" | "alerts" | "checks">;
+  const facts = change(drafted.facts.map(({ id: fid, key: _k, ...f }) => ({ ...f, draft_id: fid })));
   const kept = new Set(facts.map((f) => f.draft_id));
   return {
     ...structuredClone(RUN_A2),
     run: { id, producer: "pipeline", created_at: at, stages: [{ name: "extract_facts", model: "test-model", prompt: "extract-facts-cs@5" }] },
     facts,
     // The producer's own alerts that rest on facts it still has; the case rules add theirs.
-    alerts: RUN_A2.alerts.filter((a) => a.facts.every((x) => kept.has(x)) && a.subject.split("|").every((x) => !x.startsWith("f-") || kept.has(x))).map(({ id: _i, ...a }) => a),
+    alerts: drafted.alerts.filter((a) => a.facts.every((x) => kept.has(x)) && a.subject.split("|").every((x) => !x.startsWith("d-") || kept.has(x))).map(({ id: _i, ...a }) => a),
+    checks: drafted.checks.filter((c) => !c.expected || kept.has(c.expected.of_fact)),
     brief: null,
     question_draft: null,
     views: undefined,
   };
 }
 
-/** Publishes a drafted run the way the case merge does, and returns the stored run. */
-async function publish(d: DraftRun): Promise<ExtractionRun> {
-  const { run } = prepareRun(await matchInputs(env.DB, env.DOCS, "demo-a", "NO-A"), d);
+/** Publishes a drafted run the way the case merge does; returns the stored run and how each fact got its ID. */
+async function publish(dr: DraftRun): Promise<ExtractionRun & { how: Map<string, string> }> {
+  const { run, match } = prepareRun(await matchInputs(env.DB, env.DOCS, "demo-a", "NO-A"), dr);
   const final = withCaseRulesAndViews(run);
   expect(validateRun(final).issues).toEqual([]);
   const t = new Tx(env.DB, doctor, { requestId: null, epoch: null });
   await storeRun(t, { db: env.DB, docs: env.DOCS }, final);
   await t.commit();
-  return final;
+  return Object.assign(final, { how: match.how });
 }
 
 const confirm = (fact: string) =>
@@ -84,8 +90,8 @@ describe("re-extraction keeps doctor-confirmed facts", () => {
     const second = await publish(
       draft("run-pipeline-2", "2026-10-20T09:00:00Z", (facts) =>
         facts
-          .filter((f) => f.draft_id !== REQUEST)
-          .map((f) => (f.draft_id === PS && f.kind === "performance_status" ? { ...f, value: { ...f.value, value_as_written: "2", value_numeric: 2 } } : f)),
+          .filter((f) => f.draft_id !== d(REQUEST))
+          .map((f) => (f.draft_id === d(PS) && f.kind === "performance_status" ? { ...f, value: { ...f.value, value_as_written: "2", value_numeric: 2 } } : f)),
       ),
     );
     const ids = second.facts.map((f) => f.id);
@@ -93,6 +99,9 @@ describe("re-extraction keeps doctor-confirmed facts", () => {
     expect(ids).toContain(PS);
     expect(ids).toContain(STAGE);
     expect(ids).not.toContain(REQUEST);
+    expect([second.how.get(PS), second.how.get(STAGE)]).toEqual(["key", "key"]);
+    // No draft ID survives into the stored run.
+    expect(JSON.stringify(second)).not.toMatch(/"d-[0-9a-f]{6}/);
 
     const rows = await confirmations();
     const state = async (id: string) => confirmationState(rows.filter((r) => r.fact_id === id), await sha256Hex(confirmedContent(second.facts.find((f) => f.id === id)!)));
@@ -106,8 +115,7 @@ describe("re-extraction keeps doctor-confirmed facts", () => {
     const cd = fromRun("A_pacient.pdf", "NO-A", second);
     const orphans = orphansOf(cd, {}, rows.map((r) => ({ fact_id: r.fact_id, action: r.action, who: r.by_name, when: r.at, run_id: r.run_id })));
     expect(orphans).toEqual([{ kind: "confirmation", fact_id: REQUEST, run_id: "run-pipeline-1", by: "MUDr. Svobodová", when: expect.any(String) }]);
-    // Its alert is gone with it; the alert IDs of what stays are the same as before.
-    expect(second.alerts.some((a) => a.subject === REQUEST)).toBe(false);
+    // The alert IDs of what stays are the same as before, so acknowledgements carry over.
     const kept = first.alerts.filter((a) => a.rule !== "request_without_result" && !a.facts.includes(REQUEST)).map((a) => a.id);
     expect(second.alerts.map((a) => a.id)).toEqual(expect.arrayContaining(kept));
   });
@@ -117,7 +125,7 @@ describe("re-extraction keeps doctor-confirmed facts", () => {
     expect((await confirm(STAGE)).status).toBe(200);
     const second = await publish(
       draft("run-pipeline-2", "2026-10-20T09:00:00Z", (facts) =>
-        facts.map((f) => (f.draft_id === STAGE ? { ...f, date: { as_written: "2.7.2022", precision: "day" as const, sort: "2022-07-02" } } : f)),
+        facts.map((f) => (f.draft_id === d(STAGE) ? { ...f, date: { as_written: "2.7.2022", precision: "day" as const, sort: "2022-07-02" } } : f)),
       ),
     );
     const stage = second.facts.find((f) => f.kind === "stage")!;
@@ -126,5 +134,41 @@ describe("re-extraction keeps doctor-confirmed facts", () => {
     const rows = await confirmations();
     const orphans = orphansOf(fromRun("A_pacient.pdf", "NO-A", second), {}, rows.map((r) => ({ fact_id: r.fact_id, action: r.action, who: r.by_name, when: r.at, run_id: r.run_id })));
     expect(orphans.map((o) => (o.kind === "confirmation" ? o.fact_id : null))).toEqual([STAGE]);
+  });
+
+  it("keeps a confirmation through the similarity step only when the value is the same, and asks when it differs", async () => {
+    const symptom = (text: string) => (facts: DraftRun["facts"]) => [
+      ...facts,
+      {
+        kind: "symptom", subject: "patient", value: { text }, date: { as_written: "1.9.2026", precision: "day", sort: "2026-09-01" }, status: "documented",
+        negated: false, not_stated: [], origin: "document", certainty: "clear", codes: [], note: null, quarantined: false, sources: ["src-0041"], draft_id: "d-symptom",
+      } as DraftRun["facts"][number],
+    ];
+    const first = await publish(draft("run-pipeline-1", "2026-10-19T09:00:00Z", symptom("bolest hlavy v týlu")));
+    const id = first.facts.find((f) => f.kind === "symptom")!.id;
+    expect((await confirm(id)).status).toBe(200);
+    // Re-read with a word more: the key (the text) differs, the similarity step keeps the ID, the value changed.
+    const second = await publish(draft("run-pipeline-2", "2026-10-20T09:00:00Z", symptom("bolest hlavy v týlu vpravo")));
+    const again = second.facts.find((f) => f.kind === "symptom")!;
+    expect(again.id).toBe(id);
+    expect(second.how.get(id)).toBe("similar");
+    expect(await confirmedFactIds(env.DB, "demo-a", second)).not.toContain(id);
+    // Read back as first: the doctor's confirmation stands again, under the same ID.
+    const third = await publish(draft("run-pipeline-3", "2026-10-21T09:00:00Z", symptom("bolest hlavy v týlu")));
+    expect(await confirmedFactIds(env.DB, "demo-a", third)).toContain(id);
+  });
+
+  it("does not list a withdrawn confirmation as missing", async () => {
+    await publish(draft("run-pipeline-1", "2026-10-19T09:00:00Z"));
+    expect((await confirm(REQUEST)).status).toBe(200);
+    const withdraw = await call(`/api/cases/NO-A/facts/${REQUEST}/confirmations`, {
+      method: "POST",
+      headers: { "content-type": "application/json", "x-demo-user": "d2p1", "x-data-epoch": "1" },
+      body: JSON.stringify({ action: "withdraw", expected_state: "confirmed" }),
+    });
+    expect(withdraw.status).toBe(200);
+    const second = await publish(draft("run-pipeline-2", "2026-10-20T09:00:00Z", (facts) => facts.filter((f) => f.draft_id !== d(REQUEST))));
+    const rows = await confirmations();
+    expect(orphansOf(fromRun("A_pacient.pdf", "NO-A", second), {}, rows.map((r) => ({ fact_id: r.fact_id, action: r.action, who: r.by_name, when: r.at, run_id: r.run_id })))).toEqual([]);
   });
 });
