@@ -5,7 +5,7 @@
 // codebridge.extraction/2 run stored through store/runs.ts, with every reference on the uploaded file and its page.
 import { beforeEach, describe, expect, it } from "vitest";
 import { env } from "cloudflare:workers";
-import { sourceIdFor, validateRun, type ExtractionRun } from "@codebridge/domain/extraction/index";
+import { sourceIdFor, validateRun, viewLineId, type ExtractionRun } from "@codebridge/domain/extraction/index";
 import { call } from "./helpers";
 import { loadFixture } from "./data";
 import { sweep } from "../src/scheduled";
@@ -161,6 +161,13 @@ describe("intake with every fixture document and the matching person", () => {
     expect(stored.sources.filter((x) => x.type === "document" && x.quote === (histology as { quote: string }).quote).map((x) => (x as { document_id: string }).document_id)).toEqual([byFile(FILES[1]!).id]);
     expect(stored.facts.map((f) => f.kind).sort()).toEqual(EX.facts.map((f) => f.kind).sort());
     expect(stored.alerts.map((x) => x.rule)).toEqual(EX.alerts.map((x) => x.rule));
+    // Composed view lines rest on this case's fact IDs, and their IDs follow from them.
+    const factIds = new Set(stored.facts.map((f) => f.id));
+    const viewLines = [...(stored.views?.onco_lines ?? []), ...(stored.views?.timeline ?? [])];
+    expect(viewLines.length).toBe((EX.views?.onco_lines?.length ?? 0) + (EX.views?.timeline?.length ?? 0));
+    expect(viewLines.length).toBeGreaterThan(0);
+    for (const l of viewLines) expect(l.facts.every((f) => factIds.has(f))).toBe(true);
+    expect(stored.views!.onco_lines![0]!.id).toBe(viewLineId("onco_lines", stored.views!.onco_lines![0]!.facts));
     expect(stored.run).toMatchObject({ id: runRow.id, producer: "fixture", supersedes: null });
     expect((await q<{ fact_id: string }>("SELECT fact_id FROM fact_ids WHERE case_id = 'NO-FX' ORDER BY fact_id")).map((r) => r.fact_id)).toEqual(stored.facts.map((f) => f.id).sort());
     expect((await q<{ id: string }>("SELECT id FROM alert_identities WHERE case_id = 'NO-FX'")).map((r) => r.id)).toEqual(stored.alerts.map((x) => x.id));

@@ -40,7 +40,7 @@ ROOT = Path(__file__).resolve().parents[2]
 # the seed refuses a run the Worker's storeRun would refuse. The package has no installer entry; it is imported from its
 # folder, which is why the path goes in before the import.
 sys.path.insert(0, str(ROOT / "pipeline"))
-from extraction_format import alert_id, assign_fact_ids, source_id_for, validate_run  # noqa: E402
+from extraction_format import VIEW_NAMES, alert_id, assign_fact_ids, source_id_for, validate_run, view_line_id  # noqa: E402
 API = ROOT / "api"
 OUT = API / "seed" / "out"
 DATA = ROOT / "fixtures" / "data"
@@ -503,12 +503,18 @@ def finalize_upload_run(draft: dict, doc_ids: dict[str, str], case_id: str, run_
                        "facts": [fid(x) for x in a["facts"]], "message": {**a["message"], "args": args}})
     brief = d.get("brief")
     qd = d.get("question_draft")
+    views = d.get("views")
+    if views:
+        # A composed line's ID follows from its view and its facts (view_line_id), so it is derived again.
+        views = {**views, **{name: [{**ln, "id": view_line_id(name, [fid(x) for x in ln["facts"]]), "facts": [fid(x) for x in ln["facts"]]}
+                                    for ln in views[name]] for name in VIEW_NAMES if views.get(name) is not None}}
     return {
         **d, "case_id": case_id, "run": {**d["run"], "id": run_id, "supersedes": None},
         "sources": sources, "facts": m.facts, "alerts": alerts,
         "checks": [{**c, "expected": {"of_fact": fid(c["expected"]["of_fact"])}} if c.get("expected") else c for c in d["checks"]],
         "brief": {**brief, "sentences": [{**x, "facts": [fid(y) for y in x["facts"]]} for x in brief["sentences"]]} if brief else None,
         "question_draft": {**qd, "basis": [{**b, "facts": [fid(y) for y in b["facts"]]} for b in qd["basis"]]} if qd else None,
+        **({"views": views} if "views" in d else {}),
     }
 
 

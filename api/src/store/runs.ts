@@ -6,9 +6,11 @@
 // storeRun inside its write batch (store/write.ts Tx). Every query is bound to the Tx's or the caller's org.
 import {
   EXTRACTION_SCHEMA,
+  VIEW_NAMES,
   alertId,
   assignFactIds,
   validateRun,
+  viewLineId,
   type DraftFact,
   type ExtractionRun,
   type Issue,
@@ -112,7 +114,8 @@ export type DraftRun = Omit<ExtractionRun, "facts" | "alerts" | "run"> & {
 
 /**
  * Assigns keys and IDs to a drafted run against the case's previous run, rewrites every draft_id reference (alerts,
- * checks, brief, question) to the final IDs, derives the alert IDs and sets `supersedes`. The result still goes through
+ * checks, brief, question, composed view lines) to the final IDs, derives the alert and view line IDs and sets
+ * `supersedes`. The result still goes through
  * storeRun, which validates it.
  */
 export function prepareRun(inputs: MatchInputs, draft: DraftRun): { run: ExtractionRun; match: MatchResult } {
@@ -150,6 +153,16 @@ export function prepareRun(inputs: MatchInputs, draft: DraftRun): { run: Extract
       ? { ...draft.question_draft, basis: draft.question_draft.basis.map((b) => ({ ...b, facts: ids(b.facts) })) }
       : null,
   };
+  // A composed line's ID follows from its view and its facts (keys.ts viewLineId), so it is derived again from the final
+  // fact IDs; an absent `views` stays absent.
+  if (draft.views) {
+    const views = { ...draft.views };
+    for (const name of VIEW_NAMES) {
+      const lines = draft.views[name];
+      if (lines) views[name] = lines.map((l) => ({ ...l, id: viewLineId(name, ids(l.facts)), facts: ids(l.facts) }));
+    }
+    run.views = views;
+  }
   return { run, match };
 }
 

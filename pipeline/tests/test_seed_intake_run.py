@@ -115,3 +115,17 @@ def test_alert_parts_pages_and_pairs_map_to_the_uploads():
     for bad in ({"document": "S02_pacient"}, {"page": 6}, {"part": "S02_pacient/p4", "page": 3}):
         with pytest.raises(SystemExit):
             seed.run_for_uploads({**RUN, "alerts": [{**extra, "subject": "x", "message": {"id": "alert-test", "args": bad}}]}, SYN, pages, sha)
+
+
+def test_composed_view_lines_follow_the_final_fact_ids(draft):
+    # NO-S02 has no composed views; a line over two of its facts must come out on their final IDs, with its ID derived.
+    a, b = draft["facts"][0]["draft_id"], draft["facts"][1]["draft_id"]
+    line = {"id": seed.view_line_id("timeline", [a, b]), "text": "x", "title": None, "detail": None, "date": None,
+            "category": "laboratory", "status": "done", "facts": [a, b], "note": None}
+    with_view = {**draft, "views": {"timeline": [line], "made_by": {"model": None, "prompt": None}}}
+    stand_in = {d["document_id"].removeprefix(seed.UPLOAD_DOC): d["document_id"].removeprefix(seed.UPLOAD_DOC)[:-4] for d in draft["documents"]}
+    run = seed.finalize_upload_run(with_view, stand_in, "NO-123", "fixture-NO-123-test")
+    out = run["views"]["timeline"][0]
+    assert out["facts"] == [run["facts"][0]["id"], run["facts"][1]["id"]]
+    assert out["id"] == seed.view_line_id("timeline", out["facts"])
+    assert run["views"]["made_by"] == {"model": None, "prompt": None}
