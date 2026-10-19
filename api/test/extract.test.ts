@@ -174,7 +174,7 @@ describe("fact extraction checks", () => {
     expect(r.sources.map((s) => s.type === "document" && s.identity)).toEqual(["matches", "conflicts"]);
     expect(r.facts.map((f) => f.quarantined)).toEqual([false, true]);
     expect(r.alerts).toHaveLength(1);
-    expect(r.alerts[0]).toMatchObject({ kind: "identity", rule: "identity_page_conflict", subject: "T_pacient/p2", facts: [r.facts[1]!.id] });
+    expect(r.alerts[0]).toMatchObject({ kind: "identity", rule: "identity_conflict", subject: "T_pacient", facts: [r.facts[1]!.id], message: { id: "alert-identity-conflict", args: { document: "T_pacient", page: "2" } } });
     // The run carries no identity: names and birth numbers appear only inside verbatim quotes.
     const runText = JSON.stringify({ facts: r.facts, alerts: r.alerts, checks: r.checks });
     for (const s of ["Vrbenská", "595418", "Lipensk", "585614"]) expect(runText).not.toContain(s);
