@@ -182,7 +182,8 @@ function med(b: Builder, id: string, pt: string, text: string, dosage: string, o
   });
 }
 
-function encounter(b: Builder, id: string, pt: string, date: string, org: string, text: string) {
+// org: the department's reference and name; the name goes on the reference as a NIS would display it.
+function encounter(b: Builder, id: string, pt: string, date: string, org: { ref: string; name: string }, text: string) {
   return b.add({
     resourceType: "Encounter",
     id,
@@ -191,7 +192,7 @@ function encounter(b: Builder, id: string, pt: string, date: string, org: string
     type: [cc(text)],
     subject: ref(pt),
     period: { start: date, end: date },
-    serviceProvider: ref(org),
+    serviceProvider: ref(org.ref, org.name),
   });
 }
 
@@ -314,8 +315,9 @@ function s01(f: Fixtures): Bundle {
   // "4.8.2026 steroidní hyperglykémie ..., dle PL zahájen metformin": the start day is not stated.
   med(b, `${p}-med-metf`, pt, "Metformin", "500 mg 1-0-1");
   med(b, `${p}-med-lev`, pt, "Levetiracetam", "500 mg 1-0-1");
-  encounter(b, `${p}-enc-2026-01-08`, pt, "2026-01-08", onko, "Ambulantní vyšetření vstupní");
-  encounter(b, `${p}-enc-2026-10-06`, pt, "2026-10-06", onko, "Ambulantní vyšetření kontrolní");
+  const onkoDept = { ref: onko, name: "Onkologická ambulance - neuroonkologie" };
+  encounter(b, `${p}-enc-2026-01-08`, pt, "2026-01-08", onkoDept, "Ambulantní vyšetření vstupní");
+  encounter(b, `${p}-enc-2026-10-06`, pt, "2026-10-06", onkoDept, "Ambulantní vyšetření kontrolní");
   // Requested 1.10.2026, "t.č. výsledek nemáme": a sent request is not a done exam.
   serviceRequest(b, `${p}-sr-petct`, pt, { text: "PET/CT s 18F-FET", authoredOn: "2026-10-01", requester: doc });
   serviceRequest(b, `${p}-sr-mdt`, pt, {
@@ -363,7 +365,7 @@ function s02(f: Fixtures): Bundle {
   med(b, `${p}-med-levo`, pt, "Levothyroxin", "75 µg 1-0-0");
   med(b, `${p}-med-lope`, pt, "Loperamid", "2 mg dle odvodu ze stomie");
   med(b, `${p}-med-panto`, pt, "Pantoprazol", "20 mg 1-0-0");
-  encounter(b, `${p}-enc-2026-10-08`, pt, "2026-10-08", chir, "Ambulantní vyšetření kontrolní");
+  encounter(b, `${p}-enc-2026-10-08`, pt, "2026-10-08", { ref: chir, name: "Chirurgická ambulance - koloproktologická poradna" }, "Ambulantní vyšetření kontrolní");
   // Requested 7.10.2026, "t.č. výsledek nemáme".
   serviceRequest(b, `${p}-sr-ct`, pt, { text: "CT hrudníku, břicha a pánve", authoredOn: "2026-10-07", requester: doc, reason: "Vzestup CEA" });
   const refSr = (f.s02Referral.entry as R[]).find((e) => e.resource.resourceType === "ServiceRequest")!.resource;

@@ -393,6 +393,22 @@ export interface PlanValue {
   when_as_written: string | null;
 }
 
+/** The kind of visit or stay. "other" when the source names none of these. */
+export type VisitType = "outpatient" | "admission" | "consultation" | "emergency" | "other";
+
+/** A visit or hospital stay (an outpatient visit, an admission, a consultation). It goes on the timeline. */
+export interface VisitValue {
+  type: VisitType;
+  /** The visit's own name as the source gives it, for example "Ambulantní vyšetření kontrolní". */
+  type_as_written: string | null;
+  /** The department or clinic as written. */
+  department: string | null;
+  /** Why the visit took place, as written. */
+  reason: string | null;
+  /** The end of a stay (discharge) as written; null for a visit without one or a stay still going on. */
+  end_as_written: string | null;
+}
+
 /** Always origin "assistant": a length between two facts, shown as a fact, never a verdict. */
 export interface IntervalValue {
   from_fact: string;
@@ -428,6 +444,7 @@ export type FamilyHistoryFact = FactFrame<"family_history", FamilyHistoryValue>;
 export type RequestFact = FactFrame<"request", RequestValue>;
 export type DecisionFact = FactFrame<"decision", DecisionValue>;
 export type PlanFact = FactFrame<"plan", PlanValue>;
+export type VisitFact = FactFrame<"visit", VisitValue>;
 export type IntervalFact = FactFrame<"interval", IntervalValue>;
 
 export type Fact =
@@ -455,6 +472,7 @@ export type Fact =
   | RequestFact
   | DecisionFact
   | PlanFact
+  | VisitFact
   | IntervalFact;
 
 export type FactKind = Fact["kind"];
@@ -485,6 +503,7 @@ export const FACT_KINDS = [
   "request",
   "decision",
   "plan",
+  "visit",
   "interval",
 ] as const satisfies readonly FactKind[];
 

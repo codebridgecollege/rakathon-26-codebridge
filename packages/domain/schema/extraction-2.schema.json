@@ -522,6 +522,9 @@
           "$ref": "#/definitions/PlanFact"
         },
         {
+          "$ref": "#/definitions/VisitFact"
+        },
+        {
           "$ref": "#/definitions/IntervalFact"
         }
       ]
@@ -4028,6 +4031,168 @@
         "when_as_written"
       ],
       "additionalProperties": false
+    },
+    "VisitFact": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Stable across runs; confirmations, edits and alerts attach to it. For example \"f-8d41c2\"."
+        },
+        "key": {
+          "type": "string",
+          "description": "Deterministic from the kind and the identifying values (keys.ts); never a page number or a position."
+        },
+        "kind": {
+          "type": "string",
+          "const": "visit"
+        },
+        "subject": {
+          "$ref": "#/definitions/Subject",
+          "description": "\"relative\" for family history: a relative's disease never becomes the patient's."
+        },
+        "value": {
+          "$ref": "#/definitions/VisitValue"
+        },
+        "date": {
+          "$ref": "#/definitions/FactDate"
+        },
+        "status": {
+          "$ref": "#/definitions/FactStatus"
+        },
+        "negated": {
+          "type": "boolean",
+          "description": "The document states the opposite (\"bez plicní embolie\"). A finding, not a gap."
+        },
+        "not_stated": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Fields of this fact the documents leave open. A field that is simply missing was not looked for."
+        },
+        "origin": {
+          "$ref": "#/definitions/Origin"
+        },
+        "certainty": {
+          "$ref": "#/definitions/Certainty"
+        },
+        "certainty_reason": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/CertaintyReason"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "codes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/FactCode"
+          }
+        },
+        "note": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "The assistant's free-text note about this fact, in the content language."
+        },
+        "quarantined": {
+          "type": "boolean",
+          "description": "Set when a source page shows another patient: kept, but left out of the view, the brief and the rules."
+        },
+        "sources": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Source IDs, all saying the same thing. Empty only for an assistant fact with based_on."
+        },
+        "based_on": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "For an assistant fact: the facts it was computed from."
+        }
+      },
+      "required": [
+        "id",
+        "key",
+        "kind",
+        "subject",
+        "value",
+        "date",
+        "status",
+        "negated",
+        "not_stated",
+        "origin",
+        "certainty",
+        "codes",
+        "note",
+        "quarantined",
+        "sources"
+      ],
+      "additionalProperties": false
+    },
+    "VisitValue": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "$ref": "#/definitions/VisitType"
+        },
+        "type_as_written": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "The visit's own name as the source gives it, for example \"Ambulantní vyšetření kontrolní\"."
+        },
+        "department": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "The department or clinic as written."
+        },
+        "reason": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Why the visit took place, as written."
+        },
+        "end_as_written": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "The end of a stay (discharge) as written; null for a visit without one or a stay still going on."
+        }
+      },
+      "required": [
+        "type",
+        "type_as_written",
+        "department",
+        "reason",
+        "end_as_written"
+      ],
+      "additionalProperties": false,
+      "description": "A visit or hospital stay (an outpatient visit, an admission, a consultation). It goes on the timeline."
+    },
+    "VisitType": {
+      "type": "string",
+      "enum": [
+        "outpatient",
+        "admission",
+        "consultation",
+        "emergency",
+        "other"
+      ],
+      "description": "The kind of visit or stay. \"other\" when the source names none of these."
     },
     "IntervalFact": {
       "type": "object",

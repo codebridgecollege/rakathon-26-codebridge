@@ -24,7 +24,7 @@ FactKind = Literal[
     "diagnosis", "histology", "stage", "metastasis", "procedure", "systemic_therapy", "radiotherapy", "imaging",
     "lab_result", "vital_sign", "performance_status", "exam_finding", "symptom", "comorbidity", "medication",
     "contraindication", "allergy", "adverse_event", "prognostic_score", "risk_factor", "family_history", "request",
-    "decision", "plan", "interval",
+    "decision", "plan", "visit", "interval",
 ]
 
 # The same list and order as FACT_KINDS in types.ts.
@@ -32,7 +32,7 @@ FACT_KINDS: tuple[str, ...] = (
     "diagnosis", "histology", "stage", "metastasis", "procedure", "systemic_therapy", "radiotherapy", "imaging",
     "lab_result", "vital_sign", "performance_status", "exam_finding", "symptom", "comorbidity", "medication",
     "contraindication", "allergy", "adverse_event", "prognostic_score", "risk_factor", "family_history", "request",
-    "decision", "plan", "interval",
+    "decision", "plan", "visit", "interval",
 )
 ALERT_KINDS: tuple[str, ...] = ("missing", "contradiction", "chronology", "unclear", "poor_copy", "identity")
 

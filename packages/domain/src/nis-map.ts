@@ -31,6 +31,7 @@ import {
   type FactStatus,
   type NisSource,
   type StageKind,
+  type VisitType,
 } from "./extraction/types";
 
 type R = Record<string, any>;
@@ -215,8 +216,13 @@ const PROC_STATUS: Record<string, FactStatus> = { completed: "done", preparation
 // An unknown request status is no reason to say a request was sent and has no result.
 const REQ_STATUS: Record<string, FactStatus> = { draft: "planned", active: "requested", "on-hold": "requested", completed: "done", revoked: "stopped", unknown: "documented" };
 
+// The visit type from the Encounter's class (HL7 v3 ActCode). "consultation" is not a class, so the NIS import never
+// says it; a document producer may.
+const VISIT_CLASS: Record<string, VisitType> = { AMB: "outpatient", IMP: "admission", ACUTE: "admission", NONAC: "admission", SS: "admission", EMER: "emergency" };
+const VISIT_STATUS: Record<string, FactStatus> = { finished: "done", planned: "planned", arrived: "documented", triaged: "documented", "in-progress": "documented", onleave: "documented", unknown: "documented" };
+
 // The kinds a NIS import maps, by the resource types it reads. Only "found" or "not_run" (see the header).
-export const NIS_KINDS: readonly FactKind[] = ["diagnosis", "stage", "lab_result", "procedure", "medication", "request", "imaging", "histology"];
+export const NIS_KINDS: readonly FactKind[] = ["diagnosis", "stage", "lab_result", "procedure", "medication", "request", "imaging", "histology", "visit"];
 
 // The kinds a skipped record could have held: its kind's check cannot say "found everything".
 const SKIP_KINDS: Record<string, FactKind[]> = {
@@ -226,6 +232,7 @@ const SKIP_KINDS: Record<string, FactKind[]> = {
   Procedure: ["procedure"],
   MedicationStatement: ["medication"],
   ServiceRequest: ["request"],
+  Encounter: ["visit"],
 };
 
 export function mapNisResources(system: string, resources: readonly R[]): Mapped {
@@ -458,10 +465,26 @@ export function mapNisResources(system: string, resources: readonly R[]): Mapped
         });
         break;
       }
-      case "Encounter":
-        // extraction/2 has no fact kind for a visit; the visit's findings come with its documents.
-        skip(r, "no_fact_kind");
+      case "Encounter": {
+        // Encounter.class is one Coding in R4. Its code counts only in HL7's ActCode system (or with no system), so a
+        // local "AMB" of another code list is not read as outpatient.
+        const klass = r.class as R | undefined;
+        const cls = !klass?.system || klass.system === "http://terminology.hl7.org/CodeSystem/v3-ActCode" ? str(klass?.code) : null;
+        const date = fhirDate(r.period?.start);
+        drafts.push({
+          ...frame("visit", source(r), date, VISIT_STATUS[r.status] ?? "documented", codesOf(r.type?.[0])),
+          not_stated: date.as_written ? [] : ["date"],
+          value: {
+            type: (cls && VISIT_CLASS[cls]) || "other",
+            type_as_written: textOf(r.type?.[0]),
+            department: str(r.serviceProvider?.display),
+            // A reason given only as a reference (reasonReference) has no text here; the referenced Condition is its own fact.
+            reason: textOf(r.reasonCode?.[0]),
+            end_as_written: str(r.period?.end),
+          },
+        });
         break;
+      }
       default:
         // Identity (Patient), insurance (Coverage) and people stay out of a run.
         skip(r, "not_clinical");
@@ -487,7 +510,7 @@ export function mapNisResources(system: string, resources: readonly R[]): Mapped
 function checksFor(drafts: readonly Drafted[], skipped: readonly Skipped[], truncatedTypes: readonly string[]): Check[] {
   const incomplete = new Set<FactKind>();
   for (const s of skipped) {
-    if (["void_status", "lab_report_grouping", "no_fact_kind", "not_clinical", "tnm_component"].includes(s.reason)) continue;
+    if (["void_status", "lab_report_grouping", "not_clinical", "tnm_component"].includes(s.reason)) continue;
     for (const k of SKIP_KINDS[s.resource.split("/")[0]!] ?? []) incomplete.add(k);
   }
   for (const t of truncatedTypes) for (const k of SKIP_KINDS[t] ?? []) incomplete.add(k);

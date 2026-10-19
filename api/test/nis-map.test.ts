@@ -40,7 +40,7 @@ describe("pulling a patient's record", () => {
   it("reads every record type by NIS patient ID, with one access-log row and no identity in URLs or logs", async () => {
     const { rec } = await runFor("cb-s01");
     expect(pulls).toEqual(["record:Patient"]);
-    expect(new Set(rec.resources.map((r) => r.resourceType))).toEqual(new Set(["Condition", "Observation", "Procedure", "MedicationStatement", "ServiceRequest", "DiagnosticReport", "DocumentReference"]));
+    expect(new Set(rec.resources.map((r) => r.resourceType))).toEqual(new Set(["Condition", "Observation", "Procedure", "MedicationStatement", "ServiceRequest", "DiagnosticReport", "Encounter", "DocumentReference"]));
     expect(rec.truncated).toEqual([]);
     for (const r of fhir.requests) expect(r.url).not.toMatch(/640312|Křemínek|Kreminek/);
     for (const l of logged) expect(l).not.toMatch(/640312|Křemínek|Kreminek|S_CREAE/);
@@ -84,6 +84,11 @@ describe("S01 and S02 from the NIS", () => {
       ["I802", false, null, "DUS 24.2.2026"],
     ]);
     expect(ofKind(run, "medication").every((f) => f.status === "documented")).toBe(true);
+    // The two outpatient visits from the record, for the timeline.
+    expect(ofKind(run, "visit").map((f) => [f.value.type, f.value.type_as_written, f.value.department, f.date.sort, f.status])).toEqual([
+      ["outpatient", "Ambulantní vyšetření vstupní", "Onkologická ambulance - neuroonkologie", "2026-01-08", "done"],
+      ["outpatient", "Ambulantní vyšetření kontrolní", "Onkologická ambulance - neuroonkologie", "2026-10-06", "done"],
+    ]);
   });
 
   it("S02: clinical and post-neoadjuvant stages are two facts with their own dates, histology and imaging from reports", async () => {

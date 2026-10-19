@@ -96,6 +96,7 @@ VALUE_FIELDS = {
     "exam_finding": {"region", "finding_text"},
     "family_history": {"relation", "condition"},
     "request": {"what", "result_fact"},
+    "visit": {"type", "type_as_written", "department", "reason", "end_as_written"},
     "lab_result": {"name_as_written", "value_as_written", "value_numeric", "unit_as_written", "unit", "reference_range",
                    "reference_low", "reference_high", "out_of_range", "out_of_range_origin", "draw"},
 }
