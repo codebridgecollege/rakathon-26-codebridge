@@ -108,6 +108,37 @@ def test_photos_codes_and_logos_are_not_unreadable(kind):
     assert redact.unreadable_regions(_solid_marks(img, kind), words) == []
 
 
+@pytest.mark.parametrize("kind", ["box", "grid", "underlines", "light_photo"])
+def test_frames_grids_and_light_areas_are_not_unreadable(kind):
+    import random
+    img, words = _page()
+    d = ImageDraw.Draw(img)
+    if kind == "box":  # an empty signature box
+        d.rectangle([150, 1350, 650, 1430], outline=0, width=2)
+    elif kind == "grid":  # an empty table, 1 px rules
+        for k in range(6):
+            d.line([(60, 1300 + k * 40), (1180, 1300 + k * 40)], fill=0, width=1)
+        for k in range(8):
+            d.line([(60 + k * 160, 1300), (60 + k * 160, 1500)], fill=0, width=1)
+    elif kind == "underlines":  # form fields to fill in
+        for k in range(4):
+            d.line([(150, 1350 + k * 30), (900, 1350 + k * 30)], fill=0, width=1)
+    else:  # a light photo
+        rnd = random.Random(5)
+        for yy in range(1250, 1550):
+            for xx in range(150, 650):
+                d.point((xx, yy), fill=rnd.randint(140, 230))
+    assert redact.unreadable_regions(img, words) == []
+
+
+@pytest.mark.parametrize("every", [10, 3, 2])
+def test_low_confidence_print_is_not_unreadable(every):
+    """Print Tesseract doubts (every n-th word below 60) is marked word by word, never as an unreadable region."""
+    img, words = _page()
+    doubted = [dict(w, c=40) if i % every == 0 else w for i, w in enumerate(words)]
+    assert redact.unreadable_regions(img, doubted) == []
+
+
 def test_stamp_counts_as_unreadable():
     img, words = _page()
     d = ImageDraw.Draw(img)

@@ -147,6 +147,17 @@ JANA = {"name": "Jana Nováková", "birth_number": "656115/1234", "birth_date": 
     "Nováková Jana, nar. 15.11.1965\nMatka: RČ 405115/1236",
     # One misread letter in a short name.
     "Nováková Jaua, nar. 15.11.1965",
+    # Relatives and other people written with diacritics, and other people's fields on the form.
+    "Nováková Jana, nar. 15.11.1965\nManžel: RČ 595418/1002",
+    "Zákonný zástupce: Petr Novák, r.č. 595418/1002",
+    "Kontaktní osoba: Petr Novák, RČ 595418/1002",
+    "Jméno pacienta: Jana\nPříjmení pacienta: Nováková\nOdesílající lékař\nJméno: Petr",
+    "Kontaktní osoba\nJméno: Petr Novák",
+    "Jméno: Petr Svoboda (ošetřující lékař)",
+    # Phrases after a field label, a relative or a sender heading on a page without the patient's header.
+    "Pacient: CT HRUDNÍKU", "Pacient: BEZ OBTÍŽÍ", "Pacientka: Dnes Přichází", "Pacientka: Odeslána Na Onkologii",
+    "pokračování\nRA:\nNovák Josef, nar. 1938 (otec), ca prostaty",
+    "Odesílající lékař\nDvořák Pavel, nar. 1.1.1970",
 ])
 def test_no_false_conflict(text):
     r = identity.check([{"n": 1, "text": text}], JANA)
@@ -157,10 +168,19 @@ def test_no_false_conflict(text):
     ("NOVÁK Petr, nar. 15.11.1965", "conflicts"),  # same birth date, another person: never a match
     ("Nováková Hana, nar. 15.11.1965\nsestra Jana Nováková ji doprovází.", "cannot_verify"),  # a sister's name
     ("Nováková Jana, nar. 3.4.1940", "matches"),  # the name matches; a differing date alone is no conflict
-    ("Pacient: Petr Novák\nnar. 15.11.1965", "conflicts"),
+    ("Pacient: Petr Novák, nar. 15.11.1965", "conflicts"),
+    ("Pacient: Ostrava Poruba", "cannot_verify"),  # a capitalized phrase, not a name
+    # Another patient under FNO's header form; the nurse of the same name does not make it a match.
+    ("Patricie Moučková r.č.\npoj.211\nZapsala: Jana Nováková, sestra", "conflicts"),
 ])
 def test_no_false_match(text, expected):
     assert identity.check([{"n": 1, "text": text}], JANA)["result"] == expected
+
+
+def test_second_given_name_and_title_in_the_expected_name():
+    text = "Nováková Jana, nar. 15.11.1965"
+    assert identity.check([{"n": 1, "text": text}], {"name": "Jana Marie Nováková"})["result"] == "matches"
+    assert identity.check([{"n": 1, "text": text}], {"name": "MUDr. Jana Nováková"})["result"] == "matches"
 
 
 def test_birth_date_alone_is_no_match():

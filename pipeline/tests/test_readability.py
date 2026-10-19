@@ -115,7 +115,7 @@ SAMPLES = PAGES.parents[2] / "samples/derived/pages"
 
 
 @pytest.mark.parametrize("tok,kind", [
-    ("Odbєr", "foreign_char"), ("Пациент", "foreign_char"), ("kpsmt", "no_vowel"), ("zdkptsa", "consonant_run"),
+    ("Odbèr", "foreign_char"), ("Пациент", "foreign_char"), ("kpsmt", "no_vowel"), ("zdkptsa", "consonant_run"),
     ("ciSterny", "mixed_case"), ("ÚUŘEA", "impossible_seq"), ("mmolll", "impossible_seq"), ("ěvoda", "impossible_seq"),
     ("kl1nický", "letter_digit"),
 ])

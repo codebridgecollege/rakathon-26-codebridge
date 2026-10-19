@@ -95,9 +95,12 @@ _NCLP = r"(?<![\w(])[A-Z]{1,5}(?:\([A-Z]{1,5}\))?_[A-Z0-9]{1,12}"
 # (with or without a separator, "BMI: 24" included) or a garbled sheet code followed by a colon (or a dot OCR made
 # of it) and a number; or an NČLP code with its colon whatever the value ("U_BIL: negat", a qualitative value
 # RECORD does not take).
+# A date after the colon is a heading with its exam date ("CT HRUDNÍKU: 2.9.2024", "PET CT: 12.3.2024"), not a value.
+_NOT_DATE = r"(?!\d{1,2}\.\s?\d{1,2}\.\s?\d{2,4})"
 LAB_LIKE = re.compile(r"\[\s*" + _NUM + r"\s*\.{1,4}|\.{2,4}\s*" + _NUM + r"\s*[\])]"
-                      r"|(?<![\w(])[A-Z]{1,5}(?:[(C][A-Z]{1,5}\))?[ _.\-]{0,4}[A-Z][A-Z0-9]{0,11}\s*[:.]\s*[\dOlI]"
-                      r"|" + _CODE_SEP + r"\s*[:.]\s*[\dOlI]"
+                      r"|(?<![\w(])[A-Z]{1,5}(?:[(C][A-Z]{1,5}\))?[ _.\-]{0,4}[A-Z][A-Z0-9]{0,11}\s*[:.]\s*"
+                      + _NOT_DATE + r"[\dOlI]"
+                      r"|" + _CODE_SEP + r"\s*[:.]\s*" + _NOT_DATE + r"[\dOlI]"
                       r"|" + _NCLP + r"\s*:")
 # A line that starts with a lab sheet's code (after bullets or stray marks) is lab-like also when its colon and
 # square bracket are lost: an NČLP code and a number ("S_K 4,1", "S_CRP < 5"); a range opened with "(" and its

@@ -1168,9 +1168,11 @@ Contract additions are in `pipeline/container/server.py`'s docstring.
 - **Unreadable regions.** `/v1/pages` returns `unreadable` per page:
   ink that no word read with confidence 60 or more explains, found with the
   redaction's ink detection (`redact._ink_boxes`, shared with `ink_marks`):
-  thin and grey strokes kept, no upper size limit, near-solid areas
-  (photos, QR codes, barcodes, logos) and areas narrower than 160 px left
-  out, the lines of one note joined. `/v1/analyze` keeps the regions on the
+  a second pass keeps thin and grey strokes where no low-confidence word
+  lies, no upper size limit, and near-solid areas (photos, QR codes,
+  barcodes, logos), ruled frames and grids, areas without white paper and
+  areas narrower than 160 px left out; the lines of one note are joined.
+  Low-confidence print (even every second word) gives no region. `/v1/analyze` keeps the regions on the
   page record, marks tokens inside as "ověřit" (reason `unreadable`) and
   makes the page fair (poor above 10 % of the page). No region on any of the
   43 calibration pages (S03's degraded scan included); synthetic handwriting
@@ -1183,9 +1185,14 @@ Contract additions are in `pipeline/container/server.py`'s docstring.
   and field kinds only. Conflicts need a valid differing birth number
   (mod 11 and a possible date) after a birth-number label or on the header
   line, or a clearly different full name in a form field or the page's
-  header line before "nar."; damage, diacritics, one misread letter, a
-  relative's number and a differing birth date give cannot_verify, and a
-  birth date alone never makes a match. S01-S03 match, S04 conflicts on
+  header line ("Surname Given, nar. d.m.yyyy", FNO's "..., poj." and
+  "... r.č."); damage, diacritics, one misread letter, a relative's or
+  contact person's number or name, a sender heading, a capitalized phrase
+  after "Pacient:" and a differing birth date give cannot_verify, and a
+  birth date alone never makes a match. Two review rounds probed these
+  rules with constructed Czech text (tests/test_identity.py); remaining
+  false conflicts are capitalized phrases after "Jméno:" or a line-final
+  "Pacient: X Y, ..." that is not a name. S01-S03 match, S04 conflicts on
   page 4 only, FNO patient 2 (`Kotěrova`) cannot be verified, the other FNO
   patients match by name. `eval.py` does not run it yet (its adapter writes
   `identity: cannot_verify` on every source).

@@ -28,7 +28,8 @@ POST /v1/pages?from=1&to=5  body: PDF bytes; pages are 1-based and inclusive, at
                                   "reason": "no_text"|"low_conf"}]}]}  # signature, stamp), 150 dpi PNG coordinates
   unreadable (added in page reader 0.2.0): "low_conf" when a word Tesseract read below confidence 60 overlaps the
   region, else "no_text" (at most two confidently read words inside). The lines of one note are one region;
-  regions narrower than 160 px and near-solid areas (photos, codes, logos) are left out (page_reader/redact.py).
+  regions narrower than 160 px, near-solid areas (photos, codes, logos) and ruled frames are left out
+  (page_reader/redact.py).
   Nothing in a region is read or filled in.
 
 POST /v1/analyze            body: {"pages": [{"n", "words", "tess_text", "layer_text", "size", "unreadable"?}]}

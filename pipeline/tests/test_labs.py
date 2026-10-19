@@ -268,6 +268,8 @@ def test_lab_like_lines_are_listed(line):
     "CT HRUDNÍKU (2. 9. 2024)",  # a heading with a date in brackets
     "MR MOZKU (12.3. 2024)",
     "CAPOX C1 1000 mg/m2",  # a dose per body surface
+    "CT HRUDNÍKU: 2.9.2024",  # a heading with its exam date
+    "PET CT: 12.3.2024",
 ])
 def test_prose_is_not_lab_like(line):
     _, _, spans = labs.parse_text(line)

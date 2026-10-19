@@ -136,10 +136,11 @@ def _alpha_tokens(text: str) -> list[str]:
 _V = "aeiouyáéěíóúůý"
 _LOWER = "a-záčďéěíňóřšťúůýž"
 _UPPER = "A-ZÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ"
-# Letters a Czech medical text uses: the Czech alphabet, the letters of Slovak, Polish, Hungarian, German and
-# French names (FN Ostrava treats Slovak and Polish patients; drugs and eponyms are German or French), and the
-# micro sign of units.
-_LETTERS_OK = set("abcdefghijklmnopqrstuvwxyzáčďéěíňóřšťúůýž" "ľĺŕôä" "łśćńąęźż" "őűöü" "ßàâèêëîïçñ" "µ")
+# Letters a Czech medical text uses: the Czech alphabet, the letters of Slovak, Polish, Hungarian and German names
+# (FN Ostrava treats Slovak and Polish patients; drugs and eponyms are often German), and the micro sign of units.
+# French accents (è, ê, ç, ñ...) stay out: they are Tesseract's usual misreads of ě and č ("Odbèr"), more common
+# here than a French name.
+_LETTERS_OK = set("abcdefghijklmnopqrstuvwxyzáčďéěíňóřšťúůýž" "ľĺŕôä" "łśćńąęźż" "őűöü" "ß" "µ")
 # Lower-case Roman numerals ("iii", "viii") are numbers, not a tripled letter.
 _ROMAN = re.compile(r"[ivx]+")
 GARBAGE_KINDS = {
