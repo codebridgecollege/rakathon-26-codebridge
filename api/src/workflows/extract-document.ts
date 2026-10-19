@@ -251,6 +251,8 @@ export class ExtractDocumentWorkflow extends WorkflowEntrypoint<Env, ExtractDocu
         document_id: p.docId,
         document_sha256: run.input_sha256,
         pipeline_run: p.runId,
+        // The document's part IDs, as stream B's Fragment type (packages/domain fragments.ts) lists them.
+        parts: allParts.map((x) => x.id),
         stages,
         sources: d.sources,
         facts: d.facts,

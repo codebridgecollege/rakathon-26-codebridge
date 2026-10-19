@@ -118,7 +118,7 @@ describe("ExtractDocumentWorkflow", () => {
     expect(vision.verify).toEqual([[VISION_P1.indexOf("C20"), VISION_P1.indexOf("C20") + 3]]);
 
     const f = await fragment();
-    expect(f).toMatchObject({ schema: "codebridge.fragment/1", producer: "ai", document_id: DOC, pipeline_run: "pl-1", alerts: [] });
+    expect(f).toMatchObject({ schema: "codebridge.fragment/1", producer: "ai", document_id: DOC, pipeline_run: "pl-1", parts: [`${DOC}/p0`, `${DOC}/p1`], alerts: [] });
     expect(f.stages.map((s: { name: string }) => s.name)).toEqual(["read_pages", "extract_facts"]);
     expect(f.facts.map((x: any) => [x.draft_id, x.kind, x.quarantined, x.certainty])).toEqual([
       [`ai:${DOC}:1`, "diagnosis", false, "verify"], // the vision and Tesseract readings disagree on "C20"
