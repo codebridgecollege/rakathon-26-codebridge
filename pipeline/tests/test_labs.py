@@ -1,5 +1,7 @@
 """Lab parser against the hand-checked labs_series of the synthetic patients and FNO's patient 10 printout."""
 
+import re
+
 import pytest
 
 from conftest import LAB_PAGES, PAGES, compare_with_mock, mock_labs, page_input
@@ -220,3 +222,81 @@ def test_flag_letter_is_kept_apart_from_the_unit():
     p = r["tests"][0]["points"][0]
     assert p["unit"] == "mmol/l" and p["flag_as_written"] == "H" and p["flagged_in_document"] is True
     assert p["out_of_range"] == "high"
+
+
+SAMPLES = PAGES.parents[2] / "samples/derived/pages"
+
+
+def test_s03_urea_line_is_listed_not_dropped():
+    """S03's scan reads S_UREA as ". S. ÚUŘEA: 7,9 mmolll (2.9. 82:": Czech capitals in the code, "(" for "[" and
+    the range dots lost. No record parses it, and it must be listed, never dropped."""
+    text = (SAMPLES / "S03_pacient/p3.tess.txt").read_text()
+    _, _, spans = labs.parse_text(text)
+    quotes = [text[u["start"]:u["end"]] for u in labs.unparsed_lines(text, spans) if u["reason"] == "lab_like_not_parsed"]
+    assert any("ÚUŘEA" in q for q in quotes), quotes
+
+
+@pytest.mark.parametrize("line", [
+    ". S. ÚUŘEA: 7,9 mmolll (2.9. 82:",  # S03: Czech capitals, "(" and one dot
+    "S UREA 7,9 mmol/l",  # colon and range lost
+    "- B „LKC 8,24 10*9/l (4 ... 10",  # a quote mark for the underscore, round bracket, no colon
+    "S_ALB 41,2 g/l",  # an NČLP code with its underscore, colon and range lost
+    "U_BIL: negat",  # a qualitative value RECORD does not take
+    "S. ŠODIK: 139 mmol/l",  # a misread code with a Czech capital, range lost
+    "S_K 4,1",  # an NČLP code and a value, nothing else
+    "• S_GLU 5,4",
+    "S_CRP < 5",
+    "B HB 141 gl",  # the unit lost its slash
+])
+def test_lab_like_lines_are_listed(line):
+    text = f"Odběr: 1.2.2026 07:00\n{line}\n"
+    records, _, spans = labs.parse_text(text)
+    assert not records
+    assert [u["reason"] for u in labs.unparsed_lines(text, spans)] == ["lab_like_not_parsed"]
+
+
+@pytest.mark.parametrize("line", [
+    "CEA 9,6 ug/l, CA 19-9 27,8 kU/I, Hb 124 g/l",  # lab values quoted in a letter (stage 9 reads them)
+    "KPS 80 %, ECOG 1. Výška 178 cm, hmotnost 84 kg",
+    "Do 2. linie léčby indikován sunitinib 50mg denně",
+    "Pacient přijat (10.3.2026) k operaci.",
+    "Intrakraniální průběh AC;I bez změny",
+    "ZÁVĚR: 1. Progrese onemocnění",  # section headings of a report
+    "DOPORUČENÍ: 1) kontrola za 3 měsíce",
+    "ANAMNÉZA: 3 roky bolesti zad",
+    "ČSK: 12 dní",
+    "CT HRUDNÍKU (2. 9. 2024)",  # a heading with a date in brackets
+    "MR MOZKU (12.3. 2024)",
+    "CAPOX C1 1000 mg/m2",  # a dose per body surface
+    "CT HRUDNÍKU: 2.9.2024",  # a heading with its exam date
+    "PET CT: 12.3.2024",
+])
+def test_prose_is_not_lab_like(line):
+    _, _, spans = labs.parse_text(line)
+    assert labs.unparsed_lines(line, spans) == []
+
+
+CODE_LINE = re.compile(r"^[\W_]{0,4}[A-ZÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ]{1,5}[ _.\-„]{1,4}[A-ZÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ]{1,}\W{0,3}\d")
+
+
+def test_no_lab_line_vanishes_on_the_calibration_pages():
+    """Sweep: every line of a lab sheet in data/derived and samples/derived that starts with a code and a number
+    (as the sheets print a result) is parsed or listed. This is the class of S03's dropped S_UREA."""
+    missed = []
+    for d in [*PAGES.iterdir(), *SAMPLES.iterdir()]:
+        for p in d.glob("p*.tess.txt"):
+            text = p.read_text()
+            if not labs.DRAW_LIKE.search(text):
+                continue  # not a lab sheet
+            _, _, spans = labs.parse_text(text)
+            listed = {u["line_no"] for u in labs.unparsed_lines(text, spans)}
+            covered = bytearray(len(text))
+            for s, e in spans:
+                covered[s:e] = b"\x01" * (e - s)
+            pos = 0
+            for no, line in enumerate(text.split("\n"), 1):
+                rest = "".join(" " if covered[pos + k] else ch for k, ch in enumerate(line)).strip()
+                pos += len(line) + 1
+                if no not in listed and CODE_LINE.search(rest):
+                    missed.append((d.name, p.name, no))
+    assert not missed, missed

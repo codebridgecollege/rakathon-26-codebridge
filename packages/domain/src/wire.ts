@@ -253,7 +253,22 @@ export type UploadDoc = {
 // POST /documents/:id/withdraw: why a processed upload leaves the case.
 export type WithdrawReason = "wrong_patient";
 // GET /cases/:id/documents.
-export type CaseDocuments = { case_id: string; processing_level: "full" | "partial" | "none"; documents: (UploadDoc & { parts?: unknown[] })[] };
+// One clinical document inside an uploaded file. A part the page reader found carries the date as printed and how
+// sure the split is; prepared parts leave both null.
+export type DocPart = {
+  title_cs: string;
+  type: string | null;
+  date: string | null;
+  date_note_cs: string | null;
+  pages: number[];
+  readability: string | null;
+  reason_cs: string | null;
+  date_as_written: string | null;
+  certainty: "documented" | "verify" | null;
+};
+// An alert about one document (a poor copy, another patient's identity), as a Fluent message with page numbers.
+export type DocAlert = { kind: "poor_copy" | "identity"; message: { id: string; args: Record<string, string> } };
+export type CaseDocuments = { case_id: string; processing_level: "full" | "partial" | "none"; documents: (UploadDoc & { parts?: DocPart[]; alerts?: DocAlert[] })[] };
 
 // "Import z NIS" (issue #22): the link a patient row has to a NIS record, and the candidates of a search.
 export type NisLink = { nis_patient_id: string; nis_version: string | null; identity_check: string; by_name: string; at: string };

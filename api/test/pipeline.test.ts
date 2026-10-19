@@ -18,13 +18,20 @@ const DOC = "up-test-1";
 const SHA = "b".repeat(64);
 // The bodies /v1/inspect received, read inside the mock (a body cannot be read later from the test's context).
 const inspected: string[] = [];
+// The names /v1/identity was asked about, read inside the mock.
+const identityAsked: string[] = [];
+// What the mocked /v1/identity answers; each test starts from page 2 showing another patient.
+const CONFLICT_ON_P2 = { result: "conflicts", pages: [{ n: 1, result: "matches" }, { n: 2, result: "conflicts" }], evidence: [] };
+let identityAnswer: unknown = CONFLICT_ON_P2;
 // Page text that must never reach a step result: the patient's name and a lab line.
 const TEXT1 = `${FAKE_NAME}, nar. 1.1.1964\nOdběr: 10.3.2026 07:25\nB_HB: 108 g/l [120 ... 160]\nS_CEA: 14,8 µg/l [0 ... 5]`;
 
-function kit({ inspect = () => Response.json({ page_count: 2, encrypted: false, producer_present: true, has_text_layer: [true, true] }) }: { inspect?: () => Response } = {}) {
+// older: a page reader image from before /v1/parts and /v1/identity, which answers 404 there.
+function kit({ inspect = () => Response.json({ page_count: 2, encrypted: false, producer_present: true, has_text_layer: [true, true] }), older = false }: { inspect?: () => Response; older?: boolean } = {}) {
   return mockFetch(async (req) => {
     const u = new URL(req.url);
     expect(u.host).toBe("page-reader.test");
+    if (older && (u.pathname === "/v1/parts" || u.pathname === "/v1/identity")) return Response.json({ error: { code: "not_found", message_cs: "x" } }, { status: 404 });
     if (u.pathname === "/healthz") return Response.json({ ok: true, versions: { page_reader: "0.1.0", pymupdf: "1.24.10", tesseract: "5.3.0", ces_model: "sha256:abc" } });
     if (u.pathname === "/v1/inspect") return (inspected.push(await req.clone().text()), inspect());
     if (u.pathname === "/v1/convert") return Response.json({ pdf_b64: btoa("%PDF-1.4 converted"), width: 3000, height: 4000 });
@@ -42,6 +49,18 @@ function kit({ inspect = () => Response.json({ page_count: 2, encrypted: false, 
         })),
         document: { level: "poor", reasons_cs: ["s. 2: průměrná jistota čtení pod 75 %"] },
       });
+    }
+    if (u.pathname === "/v1/parts")
+      return Response.json({
+        parts: [
+          { ordinal: 0, pages: [1], type: "lab_results", title_cs: "Výsledky laboratorních vyšetření", date_as_written: "10.3.2026", date: "2026-03-10", certainty: "documented" },
+          { ordinal: 1, pages: [2], type: "unknown", title_cs: null, date_as_written: null, date: null, certainty: "verify" },
+        ],
+      });
+    if (u.pathname === "/v1/identity") {
+      const b = (await req.clone().json()) as { expected: { name: string } };
+      identityAsked.push(b.expected.name);
+      return Response.json(identityAnswer);
     }
     if (u.pathname === "/v1/labs") {
       const src = (quote: string) => ({ doc_id: DOC, page: 1, quote, start: 0, end: quote.length });
@@ -75,6 +94,8 @@ const get = async (path: string, user = "d2p1") => {
 };
 
 beforeEach(async () => {
+  identityAsked.length = 0;
+  identityAnswer = CONFLICT_ON_P2;
   await loadFixture();
   await env.DB.prepare(
     `INSERT INTO documents (org_id, id, case_id, file_name, page_count, original_r2_key, sha256, size_bytes, origin, processing, uploaded_by, state, fixture_id, identity)
@@ -127,6 +148,57 @@ async function runOnce(f = kit()) {
 }
 
 describe("ProcessDocumentWorkflow", () => {
+  it("takes one page of another patient as a conflict whatever the overall answer, and a later reading never clears it", async () => {
+    identityAnswer = { result: "matches", pages: [{ n: 1, result: "matches" }, { n: 2, result: "conflicts" }], evidence: [] };
+    const first = await runOnce();
+    await first.inst.waitForStatus("complete");
+    await first.wf[Symbol.asyncDispose]();
+    expect((await one("SELECT identity FROM documents WHERE id = ?1", DOC)).identity).toBe("conflicts");
+    const alerts = async () => (await q<{ rule: string }>("SELECT rule FROM document_alerts WHERE document_id = ?1 ORDER BY rule", DOC)).map((r) => r.rule);
+    expect(await alerts()).toEqual(["identity_conflict", "poor_copy"]);
+    // A second reading that finds nothing wrong keeps the conflict and its alert: a doctor resolves it, not a rerun.
+    identityAnswer = { result: "matches", pages: [{ n: 1, result: "matches" }, { n: 2, result: "matches" }], evidence: [] };
+    const second = await runOnce();
+    await using _ = second.wf;
+    await second.inst.waitForStatus("complete");
+    expect((await one("SELECT identity FROM documents WHERE id = ?1", DOC)).identity).toBe("conflicts");
+    expect(await alerts()).toEqual(["identity_conflict", "poor_copy"]);
+    expect((await q("SELECT ordinal FROM document_parts WHERE document_id = ?1", DOC)).length).toBe(2);
+  });
+
+  it("never sends a registered fixture's patient to the identity check and keeps prepared parts", async () => {
+    await env.DB.batch([
+      env.DB.prepare("UPDATE documents SET fixture_id = 'FX' WHERE id = ?1").bind(DOC),
+      env.DB.prepare("INSERT INTO document_parts (org_id, document_id, ordinal, title_cs, pages_json) VALUES ('demo-a', ?1, 0, 'Připravený dokument', '[1, 2]')").bind(DOC),
+    ]);
+    const { wf, inst } = await runOnce();
+    await using _ = wf;
+    await inst.waitForStatus("complete");
+    expect(identityAsked).toEqual([]);
+    expect(await q("SELECT title_cs, producer FROM document_parts WHERE document_id = ?1", DOC)).toEqual([{ title_cs: "Připravený dokument", producer: null }]);
+  });
+
+  it("goes on without parts and identity when those checks fail", async () => {
+    identityAnswer = { result: "nonsense", pages: [] };
+    const { wf, inst, runId } = await runOnce();
+    await using _ = wf;
+    await inst.waitForStatus("complete");
+    expect((await one("SELECT state FROM pipeline_runs WHERE id = ?1", runId)).state).toBe("done");
+    expect((await one("SELECT identity FROM documents WHERE id = ?1", DOC)).identity).toBeNull();
+    expect(await inst.waitForStepResult({ name: "identity" })).toMatchObject({ identity: "error" });
+  });
+
+  it("finishes without parts and identity when the page reader is older than those endpoints", async () => {
+    const { wf, inst, runId } = await runOnce(kit({ older: true }));
+    await using _ = wf;
+    await inst.waitForStatus("complete");
+    expect((await one("SELECT state FROM pipeline_runs WHERE id = ?1", runId)).state).toBe("done");
+    expect(await q("SELECT ordinal FROM document_parts WHERE document_id = ?1", DOC)).toEqual([]);
+    expect((await one("SELECT identity FROM documents WHERE id = ?1", DOC)).identity).toBeNull();
+    // The poor copy is still an alert: it comes from the readability check, not from the newer endpoints.
+    expect((await q<{ rule: string }>("SELECT rule FROM document_alerts WHERE document_id = ?1", DOC)).map((r) => r.rule)).toEqual(["poor_copy"]);
+  });
+
   it("converts a photo to a PDF first and reads every page from that PDF, leaving the uploaded photo as it was", async () => {
     await env.DB.prepare("UPDATE documents SET media_type = 'image/jpeg', original_r2_key = 'uploads/NO-A/up-test-1.jpg' WHERE id = ?1").bind(DOC).run();
     await env.DOCS.put("uploads/NO-A/up-test-1.jpg", "\xff\xd8\xff photo");
@@ -150,7 +222,7 @@ describe("ProcessDocumentWorkflow", () => {
     const run = await one("SELECT * FROM pipeline_runs WHERE id = ?1", runId);
     expect(run).toMatchObject({ state: "done", page_count: 2, readability: "poor", verify_count: 1, lab_points: 2, lab_unclear: 1, diff_same: 1, diff_verify: 1, diff_silent: 0, diff_missing: 0 });
     expect(JSON.parse(run.container_versions_json)).toMatchObject({ pymupdf: "1.24.10", tesseract: "5.3.0" });
-    expect(JSON.parse(run.stages_json).map((s: { stage: string }) => s.stage)).toEqual(["convert", "inspect", "pages 1-2", "analyze", "labs", "compare"]);
+    expect(JSON.parse(run.stages_json).map((s: { stage: string }) => s.stage)).toEqual(["convert", "inspect", "pages 1-2", "analyze", "labs", "parts", "identity", "compare"]);
     const doc = await one("SELECT state, processing, page_count, readability FROM documents WHERE id = ?1", DOC);
     expect(doc).toEqual({ state: "processed", processing: "processed", page_count: 2, readability: "poor" });
     // The source view opens Tesseract's reading of the uploaded page, with its marks.
@@ -164,7 +236,19 @@ describe("ProcessDocumentWorkflow", () => {
     expect(res.body.labs.tests[0].points[0].source).toMatchObject({ doc_id: DOC, file: `${DOC}.pdf`, page: 1 });
     expect(res.body.diff_points.map((x: { result: string }) => x.result)).toEqual(["same", "verify"]);
     // Step results: ids, counts and codes only.
-    for (const name of ["inspect", "pages 1-2", "analyze", "labs", "compare with prepared data", "write"]) {
+    // Parts: the split with the printed title and date, our type label where none is printed, readability per part.
+    expect(await q("SELECT ordinal, title_cs, type, date, date_as_written, pages_json, readability, certainty, producer FROM document_parts WHERE document_id = ?1 ORDER BY ordinal", DOC)).toEqual([
+      { ordinal: 0, title_cs: "Výsledky laboratorních vyšetření", type: "laboratorní výsledky", date: "2026-03-10", date_as_written: "10.3.2026", pages_json: "[1]", readability: "good", certainty: "documented", producer: "pipeline" },
+      { ordinal: 1, title_cs: "neurčeno", type: "neurčeno", date: null, date_as_written: null, pages_json: "[2]", readability: "poor", certainty: "verify", producer: "pipeline" },
+    ]);
+    // Identity from the page text against the case's patient: only the result is kept; the alerts name pages only.
+    expect(identityAsked).toEqual([FAKE_NAME]);
+    expect((await one("SELECT identity FROM documents WHERE id = ?1", DOC)).identity).toBe("conflicts");
+    expect(await q("SELECT rule, kind, message_id, args_json, run_id FROM document_alerts WHERE document_id = ?1 ORDER BY rule", DOC)).toEqual([
+      { rule: "identity_conflict", kind: "identity", message_id: "alert-identity-conflict", args_json: JSON.stringify({ document: DOC, page: "2" }), run_id: runId },
+      { rule: "poor_copy", kind: "poor_copy", message_id: "alert-poor-copy", args_json: JSON.stringify({ document: DOC, pages: "2" }), run_id: runId },
+    ]);
+    for (const name of ["inspect", "pages 1-2", "analyze", "labs", "parts", "identity", "compare with prepared data", "write"]) {
       const r = JSON.stringify(await inst.waitForStepResult({ name }));
       expect(r.length).toBeLessThan(400);
       for (const bad of [FAKE_NAME, "Odběr", "108", "14,8", "B_HB", "nar."]) expect(r).not.toContain(bad);
@@ -177,7 +261,7 @@ describe("ProcessDocumentWorkflow", () => {
     ]);
     // Outputs live under the org's uploads/, which reset-demo clears.
     const keys = (await env.DOCS.list({ prefix: `org/demo-a/uploads/NO-A/${DOC}/${runId}/` })).objects.map((o) => o.key.split("/").pop());
-    expect(keys.sort()).toEqual(["diff.json", "labs.json", "p1.json", "p1.png", "p1.raw.json", "p2.json", "p2.png", "p2.raw.json", "readability.json"]);
+    expect(keys.sort()).toEqual(["diff.json", "identity.json", "labs.json", "p1.json", "p1.png", "p1.raw.json", "p2.json", "p2.png", "p2.raw.json", "parts.json", "readability.json"]);
   });
 
   it("fails with a fixed code and a Czech reason when the page reader refuses the file", async () => {
@@ -320,7 +404,8 @@ describe("processing on upload", () => {
     expect((await one("SELECT state FROM pipeline_runs WHERE document_id = ?1", id)).state).toBe("done");
     expect((await one("SELECT state FROM documents WHERE id = ?1", id)).state).toBe("processed");
     const lines = await q<{ action: string; what_cs: string }>("SELECT action, what_cs FROM access_log WHERE target_id = ?1 ORDER BY id", id);
-    expect(lines.map((l) => l.action)).toEqual(["document.upload", "pipeline.start", "pipeline.done"]);
+    // The mocked page reader finds another patient on page 2, so the identity line comes before the run's own.
+    expect(lines.map((l) => l.action)).toEqual(["document.upload", "pipeline.start", "document.identity_conflict", "pipeline.done"]);
     expect(lines[1]!.what_cs).toMatch(/spuštěno po nahrání/);
   });
 

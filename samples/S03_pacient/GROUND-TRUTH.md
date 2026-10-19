@@ -43,8 +43,8 @@ Not planted, but in the committed OCR, and part of what the evaluation sees:
   its range `[59 ... 104]` reads `[59... 04)`; the `S_NA` line is broken
   (`[136"... KE C eo pa oje ie`); `S_CEA: 4,0 µg/l [0 ... 5]` reads
   `S CEA:4,0 gl [0.51`; `B_PLT: 312 10^9/l` reads `B PLUTO 312 10790`;
-  `S_UREA` reads `S. ÚUŘEA`, and the lab parser then drops that line
-  without listing it (a known failure in `samples/expected/S03.json`).
+  `S_UREA` reads `S. ÚUŘEA: 7,9 mmolll (2.9. 82:`, which no record parses;
+  the lab parser lists the line as unreadable (`lab_like_not_parsed`).
 
 ## What the assistant must do with this scan
 

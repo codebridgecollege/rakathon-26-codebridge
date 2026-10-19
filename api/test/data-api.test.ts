@@ -208,7 +208,7 @@ describe("case reads", () => {
     expect(Array.isArray(body.documents)).toBe(true);
     for (const d of body.documents) {
       expect(Object.keys(d).sort()).toEqual(["file", "id", "note_cs", "page_count", "parts"]);
-      for (const p of d.parts) expect(Object.keys(p).sort()).toEqual(["date", "date_note_cs", "pages", "readability", "reason_cs", "title_cs", "type"]);
+      for (const p of d.parts) expect(Object.keys(p).sort()).toEqual(["certainty", "date", "date_as_written", "date_note_cs", "pages", "readability", "reason_cs", "title_cs", "type"]);
     }
     // One request, one access-log row.
     expect((await accessLog()).map((l) => l.action)).toEqual(["case.data"]);

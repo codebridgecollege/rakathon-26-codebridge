@@ -6,9 +6,12 @@ Not from whether a text layer exists: FNO's text layers are poor OCR. Levels, wo
 - poor: mean word confidence below POOR_MEAN_CONF; more than POOR_LOW_SHARE of words below LOW_CONF;
   more than POOR_UNKNOWN_SHARE of alphabetic tokens of 4+ letters in no word list (only when a word list
   is configured, see below); more than POOR_VERIFY_SHARE of risky tokens (digits, stages) marked "ověřit"
-  when the second reading is the vision model.
+  when the second reading is the vision model; more than POOR_GARBAGE_SHARE of tokens with a shape no Czech
+  or medical word has (garbage_tokens, no word list needed); unreadable regions (ink with no confidently
+  read words, such as handwriting) covering more than POOR_UNREADABLE_SHARE of the page.
 - fair: FAIR_LOW_SHARE or more of words below LOW_CONF; more than FAIR_LAYER_VERIFY_SHARE of risky tokens
-  marked "ověřit" when the second reading is the PDF text layer; any OCR damage pattern (DAMAGE below).
+  marked "ověřit" when the second reading is the PDF text layer; any OCR damage pattern (DAMAGE below);
+  FAIR_GARBAGE_SHARE or more of garbage-shaped tokens; any unreadable region.
 - good otherwise.
 
 Every reason is a Czech string naming the page and the pattern, never the surrounding text. The document
@@ -43,6 +46,22 @@ POOR_VERIFY_SHARE = 0.25
 # 9.1 %). So a high share there means "fair", never "poor".
 FAIR_LAYER_VERIFY_SHARE = 0.10
 VERIFY_MIN_RISKY = 20  # below 20 risky tokens one disagreement is already 5 %, too few to judge a page by
+# Tokens with a shape no Czech or medical word has (garbage_tokens below), as a share of the tokens of three or
+# more letters. Calibration (Tesseract 5.5.3, ces, psm 4; 2026-10-19): on the 35 pages of data/derived and the
+# 8 readable-by-eye pages of samples/derived (S04, S03 p2) at most one such token per page, 0.8 % at most
+# (13_pacient p2, "gr.lll" for "gr. III"); 0 on all 40 vision readings; at most 1.3 % on the PDF text layers,
+# FNO's broken font maps included. S03 p3, the deliberately degraded lab sheet, reaches 2.7 % ("ÚUŘEA",
+# "mmolll"), so 2 % gives "fair" there and on nothing clean. No calibration page comes near "poor"; 10 % is a
+# page where one token in ten is garbage, which no reader would call readable (tested on synthetic text).
+FAIR_GARBAGE_SHARE = 0.02
+POOR_GARBAGE_SHARE = 0.10
+GARBAGE_MIN_COUNT = 2  # one odd token is a typo or a rare name, not a reading problem
+# Unreadable regions (redact.unreadable_regions: ink with no confidently read word). Any region makes a page fair:
+# what is written there is not in the text. Calibration (2026-10-19): no region on any of the 35 pages of
+# data/derived or the 8 pages of S03 and S04, none of which carries a signature, stamp or handwriting. Regions
+# over a tenth of the page are more than a signature or a stamp (a signature is about 1 % of an A4 page): a
+# handwritten paragraph, so the page is poor.
+POOR_UNREADABLE_SHARE = 0.10
 
 LEVELS = ("good", "fair", "poor", "empty")  # ordered from best to worst
 
@@ -108,17 +127,99 @@ def _alpha_tokens(text: str) -> list[str]:
     return re.findall(r"[^\W\d_]{4,}", text)
 
 
+# ---------- tokens that are neither Czech nor medical, without a word list ----------
+# The word-list rule above needs hunspell-cs, which neither the container nor the scripts have. These shape rules
+# need none: each describes a letter sequence that Czech words, Latin terms, codes and units do not form, so a
+# token that has one is an OCR misread. They catch character-level garbage only; a misread that still looks like
+# a word (S03's "opnotamém" for "adenokarcinom", "PLUTO" for "PLT") passes them, and only the confidence rules,
+# a word list or a vision reading can catch it.
+_V = "aeiouyáéěíóúůý"
+_LOWER = "a-záčďéěíňóřšťúůýž"
+_UPPER = "A-ZÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ"
+# Letters a Czech medical text uses: the Czech alphabet, the letters of Slovak, Polish, Hungarian and German names
+# (FN Ostrava treats Slovak and Polish patients; drugs and eponyms are often German), and the micro sign of units.
+# French accents (è, ê, ç, ñ...) stay out: they are Tesseract's usual misreads of ě and č ("Odbèr"), more common
+# here than a French name.
+_LETTERS_OK = set("abcdefghijklmnopqrstuvwxyzáčďéěíňóřšťúůýž" "ľĺŕôä" "łśćńąęźż" "őűöü" "ß" "µ")
+# Lower-case Roman numerals ("iii", "viii") are numbers, not a tripled letter.
+_ROMAN = re.compile(r"[ivx]+")
+GARBAGE_KINDS = {
+    # Cyrillic or Greek look-alikes, and letters no Latin-script name in a Czech hospital uses.
+    "foreign_char": "znaky mimo českou abecedu",
+    # "kpsm": four or more small letters without a vowel, and no syllabic r or l between consonants as in "vlk",
+    # "smrt", "čtvrt". Lower case only: abbreviations of three letters ("stp", "mts", "cps") and capital codes
+    # ("PDWSD") are common in the reports.
+    "no_vowel": "slova bez samohlásky",
+    # Five consonants in a row other than r and l, counting "ch" as one: Czech stops at four ("postschemické"
+    # has s-t-s-ch). Only in words written small or capitalized, not in codes and assays ("PDWSD", "hsTnT").
+    "consonant_run": "dlouhé řady souhlásek",
+    # "ciSterny", "kipIcká": a capital inside a word that starts small, with three or more small letters before
+    # it or after it. Brand names start with a capital ("CodeBridge"); stages, units and assays have at most two
+    # small letters on either side of their capitals ("ypTis", "cNx", "mGy", "kBq", "mOsm", "hsTnT", "iCa",
+    # "eGFR", "nonSTEMI").
+    "mixed_case": "velká písmena uvnitř slova",
+    # Sequences Czech spelling never has: "ě" or "ů" at the start of a word, "ě" after a vowel, "ů" before a
+    # vowel, a long and a short form of one vowel side by side ("ÚUŘEA" for "UREA"), and one small letter
+    # three times ("mmolll", "Vlll" for VIII).
+    "impossible_seq": "nemožná spojení písmen",
+    # "kl1nický", "1tb1l": a digit between small letters. Not "x" ("15x14x8mm" is a size) and not a digit at
+    # either end, so "ypT2", "m2" and "Ki67" stay.
+    "letter_digit": "číslice uprostřed slova",
+}
+_GARBAGE_RX = {
+    "impossible_seq": re.compile(f"^[ůěŮĚ]|[{_V}]ě|ů[{_V}]|ÚU|úu|ÁA|áa|ÉE|ée|ÍI|íi|ÝY|ýy|([{_LOWER}])\\1\\1"),
+    "mixed_case": re.compile(f"[{_LOWER}]{{3,}}[{_UPPER}][{_LOWER}]|[{_LOWER}][{_UPPER}][{_LOWER}]{{3,}}"),
+    "letter_digit": re.compile(r"[a-wyzá-ž]\d+[a-wyzá-ž]"),
+    "no_vowel_ok": re.compile(f"[{_V}]|[^{_V}][rl](?:[^{_V}]|$)"),
+    "consonants": re.compile(r"[bcčdďfghjkmnňpqsštťvwxzž]+"),
+}
+GARBAGE_MIN_LETTERS = 3  # one- and two-letter tokens ("mg", "pH", "kU") are too short to judge by shape
+
+
+def garbage_tokens(text: str) -> tuple[int, dict[str, int]]:
+    """Tokens of the page (runs of letters and digits, GARBAGE_MIN_LETTERS letters or more) and, per kind, how
+    many of them have a shape no Czech or medical word has. Counts only, never the tokens."""
+    tokens = [t for t in re.findall(r"[^\W_]+", text) if sum(c.isalpha() for c in t) >= GARBAGE_MIN_LETTERS]
+    counts: dict[str, int] = {}
+    for t in tokens:
+        low = t.lower()
+        kinds = []
+        if any(c.isalpha() and c not in _LETTERS_OK for c in low):
+            kinds.append("foreign_char")
+        if t.isalpha() and t.islower() and len(t) >= 4 and not _GARBAGE_RX["no_vowel_ok"].search(low):
+            kinds.append("no_vowel")
+        if t.isalpha() and t[1:].islower():  # a word as written; codes and assays ("hsTnT", "PDWSD") are not
+            runs = _GARBAGE_RX["consonants"].findall(low.replace("ch", "h"))
+            if runs and max(map(len, runs)) >= 5:
+                kinds.append("consonant_run")
+        if t[:1].islower() and _GARBAGE_RX["mixed_case"].search(t):
+            kinds.append("mixed_case")
+        if _GARBAGE_RX["impossible_seq"].search(t) and not _ROMAN.fullmatch(t):
+            kinds.append("impossible_seq")
+        if _GARBAGE_RX["letter_digit"].search(t):
+            kinds.append("letter_digit")
+        for k in kinds[:1]:  # a token counts once, under its first kind
+            counts[k] = counts.get(k, 0) + 1
+    return len(tokens), counts
+
+
 def assess(n: int, words: list[dict], text: str, verify: list[dict] | None = None,
-           second_reading: str | None = None, wordlist: set[str] | None = None) -> dict:
+           second_reading: str | None = None, wordlist: set[str] | None = None,
+           unreadable: list[dict] | None = None, size: list[int] | None = None) -> dict:
     """The reading certainty of page n: {level, reasons_cs, metrics}.
 
     words are Tesseract's words ({t, c, b}), text the text of record, verify the page's "ověřit" items,
-    second_reading what they were checked against: "text_layer", "vision", or None for no second reading."""
+    second_reading what they were checked against: "text_layer", "vision", or None for no second reading.
+    unreadable are the page's unreadable regions ({"b", "reason"}, redact.unreadable_regions) and size the
+    [w, h] of the page image they are measured on; None when the page image was not looked at."""
     confs = [w["c"] for w in words]
     count = len(confs)
     metrics: dict = {"word_count": count}
+    regions_reason, regions_share = _unreadable(n, unreadable, size, metrics)
     if count < MIN_WORDS:
-        return {"level": "empty", "reasons_cs": [f"s. {n}: na stránce není čitelný text"], "metrics": metrics}
+        # A page of handwriting alone is "empty" of read text, but the doctor is told there is ink on it.
+        return {"level": "empty", "reasons_cs": [f"s. {n}: na stránce není čitelný text"] + regions_reason,
+                "metrics": metrics}
 
     mean = sum(confs) / count
     low_share = sum(c < LOW_CONF for c in confs) / count
@@ -141,11 +242,25 @@ def assess(n: int, words: list[dict], text: str, verify: list[dict] | None = Non
     else:
         metrics["unknown_share"] = None
 
+    judged, garbage = garbage_tokens(text)
+    bad = sum(garbage.values())
+    g_share = bad / judged if judged else 0.0
+    metrics.update(garbage_share=round(g_share, 3), garbage=garbage)
+    if bad >= GARBAGE_MIN_COUNT:
+        # The reason names the patterns and the share, never a token: a misread name is still a name.
+        what = ", ".join(GARBAGE_KINDS[k] for k in GARBAGE_KINDS if k in garbage)
+        reason = f"s. {n}: {round(g_share * 100)} % slov nevypadá jako česká ani lékařská slova ({what})"
+        if g_share > POOR_GARBAGE_SHARE:
+            poor.append(reason)
+        elif g_share >= FAIR_GARBAGE_SHARE:
+            fair.append(reason)
+
     risky_count = sum(risky(t) for t in text.split())
     metrics["risky_tokens"] = risky_count
     if second_reading and verify is not None:
         # Low-confidence marks are counted by the confidence rules already; this counts the two readings' disagreements.
-        marked = sum(1 for v in verify if v.get("reason") != "low_conf")
+        # Unreadable-region marks are counted by the region rule below.
+        marked = sum(1 for v in verify if v.get("reason") not in ("low_conf", "unreadable"))
         share = marked / risky_count if risky_count else 0.0
         metrics["verify_share"] = round(share, 3)
         if risky_count >= VERIFY_MIN_RISKY:
@@ -162,8 +277,28 @@ def assess(n: int, words: list[dict], text: str, verify: list[dict] | None = Non
         for tok in sorted(set(hits.get(code, [])))[:3]:  # three examples per pattern keep the list readable
             fair.append(f"s. {n}: " + desc.format(tok=tok))
 
+    if regions_reason:
+        (poor if regions_share > POOR_UNREADABLE_SHARE else fair).extend(regions_reason)
+
     level = "poor" if poor else "fair" if fair else "good"
     return {"level": level, "reasons_cs": poor + fair, "metrics": metrics}
+
+
+def _unreadable(n: int, regions: list[dict] | None, size: list[int] | None, metrics: dict) -> tuple[list[str], float]:
+    """The reason for the page's unreadable regions (none when there are none) and the share of the page they
+    cover. The reason names the page and the count only; what is in a region is never read or guessed."""
+    if regions is None:
+        metrics.update(unreadable_regions=None, unreadable_share=None)
+        return [], 0.0
+    area = size[0] * size[1] if size and size[0] and size[1] else 0
+    share = sum(r["b"][2] * r["b"][3] for r in regions) / area if area else 0.0
+    metrics.update(unreadable_regions=len(regions), unreadable_share=round(share, 3))
+    if not regions:
+        return [], 0.0
+    if len(regions) == 1:
+        return [f"s. {n}: oblast, kterou nelze přečíst (např. rukopis, podpis nebo razítko)"], share
+    word = "oblasti" if len(regions) < 5 else "oblastí"
+    return [f"s. {n}: {len(regions)} {word}, které nelze přečíst (např. rukopis, podpis nebo razítko)"], share
 
 
 def worst(levels: list[str]) -> str:

@@ -42,7 +42,7 @@ export const ORG_TABLES = [
   "fact_ids", "fact_confirmations", "documents",
   "document_parts", "pages", "pipeline_runs", "upload_sessions", "recordings", "jobs", "transcript_passes", "transcript_lines",
   "transcript_summaries", "audio_uploads", "audio_parts", "audio_segments", "notifications", "idempotency_keys", "write_guards",
-  "demo_state", "access_log", "auth_sessions", "model_calls", "patient_nis_links",
+  "demo_state", "access_log", "auth_sessions", "model_calls", "patient_nis_links", "document_alerts",
 ] as const;
 
 // R2 keys of org data (DATABASE.md, R2 prefixes). Keys stored in D1 before orgs (docs/, pages/, extract/, uploads/,

@@ -176,6 +176,9 @@ export class D1Cases extends OrgBound implements CaseStore {
           pages: JSON.parse(p.pages_json as string) as number[],
           readability: p.readability as string | null,
           reason_cs: p.reason_cs as string | null,
+          // Issue #18: the date as printed and how sure the page reader's split is (null for prepared parts).
+          date_as_written: (p.date_as_written as string | null) ?? null,
+          certainty: (p.certainty as string | null) ?? null,
         })),
     }));
   }

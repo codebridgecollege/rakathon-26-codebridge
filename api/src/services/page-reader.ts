@@ -13,6 +13,9 @@
 //
 // Bodies are patient documents: nothing here logs a request or a response.
 
+import type { PagePart } from "../domain/document-checks";
+import type { Identity } from "../domain/documents";
+
 export class PageReaderError extends Error {
   constructor(
     public code: string,
@@ -86,7 +89,9 @@ const pdf = (b: ArrayBuffer): RequestInit => ({ method: "POST", headers: { "cont
 
 export type Word = { t: string; c: number; b: [number, number, number, number] };
 export type Versions = { page_reader: string; pymupdf: string; tesseract: string | null; ces_model: string | boolean };
-export type RawPage = { n: number; size: [number, number]; png_b64: string; words: Word[]; tess_text: string; layer_text: string };
+// unreadable (page reader 0.2.0): regions with ink but no confident reading (handwriting, stamps), never filled in.
+export type Unreadable = { b: [number, number, number, number]; reason: "no_text" | "low_conf" };
+export type RawPage = { n: number; size: [number, number]; png_b64: string; words: Word[]; tess_text: string; layer_text: string; unreadable?: Unreadable[] };
 export type VerifyItem = { tess: string; start: number; end: number; layer: string | null; conf: number | null; box: number[] | null; reason: string };
 export type PageRecord = {
   n: number;
@@ -98,6 +103,7 @@ export type PageRecord = {
   low_conf_words: number | null;
   verify: VerifyItem[];
   second_reading: "text_layer" | null;
+  unreadable?: Unreadable[];
 };
 export type Readability = { level: "good" | "fair" | "poor" | "empty"; reasons_cs: string[]; metrics: Record<string, unknown> };
 export type LabPoint = { value: string; certainty: "documented" | "unclear_ocr"; date: string | null; time: string | null; unit?: string; reference_range?: string; [k: string]: unknown };
@@ -126,6 +132,15 @@ export const pageReader = {
   // Black out direct identifiers on page images (pipeline/container/server.py, /v1/redact); see services/redaction.ts.
   redact: (env: Env, instance: string, body: RedactBody) =>
     pageReaderJson<{ pages: { n: number; png_b64: string; hits: RedactionHit[] }[] }>(env, instance, "/v1/redact", json(body)),
+  // The clinical documents inside one PDF (page_reader/parts.py): pages, type, title and date as printed.
+  parts: (env: Env, instance: string, pages: { n: number; text: string; readability_level: string }[]) =>
+    pageReaderJson<{ parts: PagePart[] }>(env, instance, "/v1/parts", json({ pages })),
+  // The patient named on the pages against the case's patient (page_reader/identity.py). The request carries the
+  // case's name, birth number and birth date to the page reader, the same service that already reads the pages: the
+  // container in the EU (or PAGE_READER_URL locally), which keeps no storage and logs no body (DATA-PROTECTION.md).
+  // The answer carries the result, per page, and offsets only.
+  identity: (env: Env, instance: string, pages: { n: number; text: string }[], expected: { name: string | null; birth_number: string | null; birth_date: string | null }) =>
+    pageReaderJson<{ result: Identity; pages: { n: number; result: Identity }[] }>(env, instance, "/v1/identity", json({ pages, expected })),
   labs: (env: Env, instance: string, docId: string, pages: { n: number; text: string; layer_text: string; readability_level: string; words: Word[]; engine: string; doc_id: string }[]) =>
     pageReaderJson<Labs>(env, instance, "/v1/labs", json({ pages, document: { doc_id: docId } })),
 };

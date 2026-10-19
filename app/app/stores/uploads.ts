@@ -5,7 +5,7 @@
 // server did not take (unreachable, busy) stays listed in this tab only, so the meeting never sees an upload error.
 import { defineStore } from "pinia";
 import { reactive } from "vue";
-import { ApiError, type UploadDoc, type WithdrawReason } from "@codebridge/api-client";
+import { ApiError, type DocAlert, type DocPart, type UploadDoc, type WithdrawReason } from "@codebridge/api-client";
 import { useApi } from "../lib/api";
 import { msgId } from "../lib/msg";
 import { refused } from "../lib/refused";
@@ -14,7 +14,7 @@ import { useSessionStore } from "./session";
 import { useToastStore } from "./toast";
 
 // A row of the list: the server's document, or a local row (id "local-...") until the server answers.
-export type UploadRow = Partial<UploadDoc> & { id: string; name: string; size: number | null; uploaded_by: string | null; when?: string; local?: boolean };
+export type UploadRow = Partial<UploadDoc> & { parts?: DocPart[]; alerts?: DocAlert[] } & { id: string; name: string; size: number | null; uploaded_by: string | null; when?: string; local?: boolean };
 export type UploadList = { docs: UploadRow[]; loaded: boolean; loading: boolean; retryAt: number };
 // The case a list belongs to: the list row's file (the key of every per-case map) and the server's case id.
 export type UploadCase = { file: string; id: string };

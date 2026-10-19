@@ -307,6 +307,30 @@ def tesseract_page(n: int, size: list[int], tess_text: str, words: list[dict], l
     }
 
 
+def mark_unreadable(rec: dict, regions: list[dict]) -> dict:
+    """Put the page's unreadable regions ({"b": [x, y, w, h], "reason"}, from redact.unreadable_regions) on the
+    page record, and mark every token of the text of record whose word lies in one as "ověřit" with the reason
+    "unreadable": what Tesseract guessed there is shown for checking against the image, never as read text.
+    A word lies in a region when the centre of its box does."""
+    rec["unreadable"] = [{"b": list(r["b"]), "reason": r["reason"]} for r in regions]
+    if not regions:
+        return rec
+    toks = plain_tokens(rec["text"])
+    marked = {(v["start"], v["end"]) for v in rec["verify"]}
+    for (tok, start, end), w in zip(toks, attach_words(toks, rec["words"])):
+        if w is None or (start, end) in marked:
+            continue
+        cx, cy = w["b"][0] + w["b"][2] / 2, w["b"][1] + w["b"][3] / 2
+        for r in regions:
+            x, y, bw, bh = r["b"]
+            if x <= cx <= x + bw and y <= cy <= y + bh:
+                rec["verify"].append({"tess": tok, "start": start, "end": end, "layer": None, "conf": w["c"],
+                                      "box": list(r["b"]), "reason": "unreadable"})
+                break
+    rec["verify"].sort(key=lambda v: v["start"])
+    return rec
+
+
 def build_index(pages_dir: Path, log=print) -> dict:
     """The page index of scripts/build_page_index.py: vision text verified against Tesseract, per PDF stem."""
     index = {}

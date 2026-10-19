@@ -260,6 +260,8 @@ Design and contract: `docs/research/backend-steps/step-6.md`, section "As implem
   through `matchInputs` and `prepareRun`, and stores the run with `storeRun` (`producer` fixture, `seeded` 0, under
   R2 `runs/`, so the demo reset removes it). An invalid or old prepared file answers 503 `seed_missing`.
 - Reset: rows added by uploads, intakes and pipeline runs are removed by the trigger `demo_reset_uploads` (it fires on
+- Reset: `document_alerts` (migration 0017) is emptied per org by its own trigger `demo_reset_document_alerts` on the
+  same update.
   reset batch's `reset_in_progress = 1` update of that org, and deletes that org's rows only), so the reset batch stays
   at its size. A new table written by these routes goes into that trigger, not into the batch.
 - Pipeline without an LLM: `src/workflows/process-document.ts` (binding `PROCESS_DOCUMENT`), `src/routes/pipeline.ts`,

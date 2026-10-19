@@ -6,6 +6,7 @@ import io
 import json
 import sys
 import threading
+import time
 import urllib.error
 import urllib.request
 
@@ -79,7 +80,8 @@ def test_pages_analyze_labs(base):
     status, body = call(base + "/v1/pages?from=1&to=1", PDF.read_bytes())
     assert status == 200 and len(body["pages"]) == 1
     p = body["pages"][0]
-    assert set(p) == {"n", "size", "png_b64", "words", "tess_text", "layer_text"}
+    assert set(p) == {"n", "size", "png_b64", "words", "tess_text", "layer_text", "unreadable"}
+    assert p["unreadable"] == []  # clean print: no ink without confidently read words
     assert base64.b64decode(p["png_b64"])[:8] == b"\x89PNG\r\n\x1a\n"
     png = base64.b64decode(p["png_b64"])
     assert p["size"] == [int.from_bytes(png[16:20], "big"), int.from_bytes(png[20:24], "big")]
@@ -109,6 +111,82 @@ def test_pages_analyze_labs(base):
     assert rec["text"][pt["source"]["start"]:pt["source"]["end"]] == pt["source"]["quote"]
 
 
+@needs_tesseract
+def test_pages_find_handwriting_and_analyze_marks_it(base):
+    """A handwritten note drawn below the results of S02's lab sheet: /v1/pages returns it as an unreadable region,
+    /v1/analyze keeps the region on the page record and gives the readability reason. Tesseract may read the
+    strokes as low-confidence garbage ("low_conf") or not at all ("no_text"); both are unreadable."""
+    doc = fitz.open(PDF)
+    page = doc[0]
+    for row in range(3):  # 3 lines of zigzag strokes, as in tests/test_unreadable.py, in PDF points
+        y = 650 + row * 26
+        page.draw_polyline([(72 + k * 6, y + (19 if k % 2 else 0)) for k in range(41)], width=1.5)
+    status, body = call(base + "/v1/pages?from=1&to=1", doc.tobytes())
+    assert status == 200
+    p = body["pages"][0]
+    assert len(p["unreadable"]) == 1 and p["unreadable"][0]["reason"] in ("no_text", "low_conf")
+    x, y, rw, rh = p["unreadable"][0]["b"]
+    # 72 pt is 150 px at 150 dpi; the note spans 72-312 pt across and 650-721 pt down.
+    assert x <= 152 and x + rw >= 636 and y <= 1356 and y + rh >= 1490
+    raw = {k: p[k] for k in ("n", "words", "tess_text", "layer_text", "size", "unreadable")}
+    status, an = call(base + "/v1/analyze", {"pages": [raw]})
+    assert status == 200
+    rec, rd = an["pages"][0]["page"], an["pages"][0]["readability"]
+    assert rec["unreadable"] == p["unreadable"]
+    assert any("nelze přečíst" in r for r in rd["reasons_cs"]) and rd["level"] in ("fair", "poor")
+    # Whatever Tesseract guessed inside the region is marked, never shown as read.
+    inside = [w for w in rec["words"] if x <= w["b"][0] + w["b"][2] / 2 <= x + rw and y <= w["b"][1] + w["b"][3] / 2 <= y + rh]
+    marked = {v["start"] for v in rec["verify"] if v["reason"] == "unreadable"}
+    assert len(marked) >= min(1, len(inside))
+
+
+def test_analyze_takes_unreadable_regions(base):
+    words = [{"t": f"slovo{i}", "c": 95, "b": [100 + 60 * (i % 10), 100 + 30 * (i // 10), 50, 20]} for i in range(30)]
+    text = "\n".join(" ".join(f"slovo{i}" for i in range(r * 10, r * 10 + 10)) for r in range(3))
+    page = {"n": 2, "words": words, "tess_text": text, "layer_text": "", "size": [1240, 1755],
+            "unreadable": [{"b": [90, 90, 120, 40], "reason": "low_conf"}]}
+    status, an = call(base + "/v1/analyze", {"pages": [page]})
+    assert status == 200
+    rec, rd = an["pages"][0]["page"], an["pages"][0]["readability"]
+    assert rec["unreadable"] == page["unreadable"]
+    assert [(v["tess"], v["reason"]) for v in rec["verify"]] == [("slovo0", "unreadable"), ("slovo1", "unreadable")]
+    assert "s. 2: oblast, kterou nelze přečíst (např. rukopis, podpis nebo razítko)" in rd["reasons_cs"]
+    # Without the field the image was not looked at: an empty list on the record, no rule in readability.
+    del page["unreadable"]
+    status, an = call(base + "/v1/analyze", {"pages": [page]})
+    assert an["pages"][0]["page"]["unreadable"] == [] and an["pages"][0]["readability"]["metrics"]["unreadable_regions"] is None
+    for bad in ([{"b": [1, 2, 3], "reason": "no_text"}], [{"b": [1, 2, 3, 4], "reason": "smudge"}], "x",
+                [{"b": [1, 2, float("nan"), 4], "reason": "no_text"}]):
+        status, body = call(base + "/v1/analyze", {"pages": [dict(page, unreadable=bad)]})
+        assert status == 400 and body["error"]["code"] == "bad_request"
+
+
+def test_identity(base, caplog):
+    text = (REPO / "samples/derived/pages/S04_pacient/p4.tess.txt").read_text()
+    own = (REPO / "samples/derived/pages/S04_pacient/p1.tess.txt").read_text()
+    body = {"pages": [{"n": 1, "text": own}, {"n": 4, "text": text}],
+            "expected": {"name": "Ludmila Vrbenská", "birth_number": "615203/1006", "birth_date": "1961-02-03"}}
+    with caplog.at_level("INFO", logger="page_reader"):
+        status, r = call(base + "/v1/identity", body)
+        # The server logs after it has sent the answer, from its own thread: wait for the line.
+        for _ in range(100):
+            if "/v1/identity" in caplog.text:
+                break
+            time.sleep(0.01)
+    assert status == 200
+    assert r["result"] == "conflicts" and r["pages"] == [{"n": 1, "result": "matches"}, {"n": 4, "result": "conflicts"}]
+    assert all(set(e) == {"n", "start", "end", "field", "result"} for e in r["evidence"])
+    # Neither the response nor the log carries an identifier's value.
+    for secret in ("Vrbensk", "Lenka", "Ludmila", "615203", "595418", "1961"):
+        assert secret not in json.dumps(r) and secret not in caplog.text
+    assert "/v1/identity 200" in caplog.text
+    for bad in ({"pages": [{"n": 1, "text": "x"}]}, {"pages": [{"n": 1, "text": 5}], "expected": {}},
+                {"pages": [{"text": "x"}], "expected": {}}, {"pages": [], "expected": {"name": 5}},
+                {"pages": [{"n": float("inf"), "text": "x"}], "expected": {}}):
+        status, err = call(base + "/v1/identity", bad)
+        assert status == 400 and err["error"]["code"] == "bad_request"
+
+
 def test_bad_content_length(base):
     host, port = base.removeprefix("http://").split(":")
     c = http.client.HTTPConnection(host, int(port), timeout=10)
@@ -117,6 +195,15 @@ def test_bad_content_length(base):
     c.endheaders()
     r = c.getresponse()
     assert r.status == 400 and json.loads(r.read())["error"]["code"] == "bad_request"
+
+
+def test_parts(base):
+    text = "Ústav patologie\nBioptický histologický nález\nOdběr: 9.3.2026, přijato: 9.3.2026, vydáno: 12.3.2026\nZávěr: x y z w"
+    status, body = call(base + "/v1/parts", {"pages": [{"n": 1, "text": text}]})
+    assert status == 200
+    p = body["parts"][0]
+    assert (p["type"], p["date"], p["date_kind"], p["title_cs"]) == ("histology", "2026-03-12", "report", "Bioptický histologický nález")
+    assert call(base + "/v1/parts", {"pages": [{"text": "x"}]})[1]["error"]["code"] == "bad_request"
 
 
 def test_huge_page_is_refused(base):
