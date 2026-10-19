@@ -31,7 +31,7 @@ const ARCHIVED = [
 // Prefixes Steps 5 and 6 write, under the org; seed objects (pages/, docs/, extract/, guidance/, seed/, fixtures/) are
 // never touched.
 // runs/: extraction runs the seed did not write (src/store/runs.ts); their D1 rows go with the reset trigger.
-const R2_TRANSIENT = ["uploads/", "audio/", "jobs/", "cache/summary/", "cache/model/", "runs/"];
+const R2_TRANSIENT = ["uploads/", "audio/", "jobs/", "cache/summary/", "cache/model/", "runs/", "nis/"];
 
 // seed/reset.json (written by seed.py): one section per demo org.
 type ResetSection = { statements: string[]; patient_ids: string[]; membership_ids: string[] };

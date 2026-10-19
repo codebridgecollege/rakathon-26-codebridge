@@ -832,12 +832,17 @@ the case rules over the merged facts.
 
 **Refresh.** The refresh asks the NIS what changed at or after the newest
 `meta.lastUpdated` it saw (`_lastUpdated=ge`, the NIS's own clock, so a
-record of the same instant is not missed). When anything changed, it pulls
-the whole record again and maps it, matched against the previous NIS run,
-so a fact keeps its ID and a doctor's confirmation stays on it; a changed
-value shows under the same ID with the record's new version, and a record
-deleted in the NIS drops out with the full pull. Storing the runs and the
-refresh route come with the run publishing (stream A part 2, stream B).
+record of the same instant is not missed). When a record version it did not
+read comes back, a pull was cut off, or the last full pull is a day old, it
+pulls the whole record again and maps it; the merge matches it against the
+previous run, so a fact keeps its ID and a doctor's confirmation stays on
+it, and a changed value shows under the same ID with the record's new
+version. A record deleted in the NIS never comes back from a change query,
+so it drops out with the next full pull, at the latest a day later. The import does not store
+a run of its own: it writes the case's NIS fragment, and the case merge
+composes it with the documents into one run (producer `nis` when no
+document is in it, else `pipeline`;
+`docs/research/2026-10-20-case-merge-contract.md`, "The NIS fragment").
 
 ## Validation and versioning
 

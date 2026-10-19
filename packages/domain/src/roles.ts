@@ -28,7 +28,7 @@ export type Action =
   | "transcript.write" // store live lines and audio of a case, retry its speaker pass
   | "document.upload" // upload a document to a case or remove an unprocessed upload (step 6)
   | "document.process" // start the document pipeline on a stored document (step 6)
-  | "nis.link"; // search the org's NIS for the case's patient and link or unlink the record (issue #22)
+  | "nis.link"; // search the org's NIS for the case's patient, link or unlink the record, import it into the case (issue #22)
 
 // Actions on one case need the doctor to be on its team (or to hold a break-the-glass grant).
 const CASE_SCOPED: ReadonlySet<Action> = new Set([

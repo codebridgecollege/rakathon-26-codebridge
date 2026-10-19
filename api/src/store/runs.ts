@@ -117,6 +117,30 @@ export function withoutDocuments(run: ExtractionRun, retired: ReadonlySet<string
   return out;
 }
 
+/**
+ * The run without its NIS facts: for a case whose patient is no longer linked to the record they came from, until the
+ * merge has composed the case again (or when its start failed). Facts resting on a NIS record go, with their sources;
+ * a request keeps no result and an alert no fact that went; a kind left without facts is "not run", never "found".
+ */
+export function withoutNis(run: ExtractionRun): ExtractionRun {
+  if (!run.sources.some((s) => s.type === "nis")) return run;
+  const goneSrc = new Set(run.sources.filter((s) => s.type === "nis").map((s) => s.id));
+  const gone = new Set(run.facts.filter((f) => f.origin === "nis" || f.sources.some((s) => goneSrc.has(s))).map((f) => f.id));
+  for (const f of run.facts) if (f.kind === "interval" && (gone.has(f.value.from_fact) || gone.has(f.value.to_fact))) gone.add(f.id);
+  const facts = run.facts
+    .filter((f) => !gone.has(f.id))
+    .map((f) => (f.based_on ? { ...f, based_on: f.based_on.filter((x) => !gone.has(x)) } : f))
+    .map((f) => (f.kind === "request" && f.value.result_fact && gone.has(f.value.result_fact) ? { ...f, value: { ...f.value, result_fact: null } } : f));
+  const kinds = new Set(facts.map((f) => f.kind));
+  return {
+    ...run,
+    sources: run.sources.filter((s) => !goneSrc.has(s.id)),
+    facts,
+    checks: run.checks.map((c) => (c.result === "found" && !c.expected && !kinds.has(c.looks_for as (typeof run.facts)[number]["kind"]) ? { ...c, result: "not_run" as const } : c)),
+    alerts: run.alerts.filter((a) => !a.facts.some((id) => gone.has(id)) && !a.subject.split("|").some((x) => gone.has(x))),
+  };
+}
+
 /** What the matcher needs from D1 for a new run of a case (match.ts assignFactIds). */
 export type MatchInputs = {
   caseId: string;

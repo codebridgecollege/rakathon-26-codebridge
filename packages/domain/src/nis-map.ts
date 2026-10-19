@@ -16,6 +16,7 @@
 //   - The NIS answers for its structured records only, never for the documents, so its checks say "found" or
 //     "not_run", never "nothing_found" (which the view shows as "neuvedeno v dostupné dokumentaci").
 import { assignFactIds, type MatchResult } from "./extraction/match";
+import { FRAGMENT_SCHEMA, type Fragment, type FragmentFact } from "./fragments";
 import { sourceIdFor } from "./extraction/keys";
 import { validateRun, type ValidationResult } from "./extraction/validate";
 import {
@@ -525,6 +526,40 @@ function checksFor(drafts: readonly Drafted[], skipped: readonly Skipped[], trun
     unreadable: [],
     result: NIS_KINDS.includes(k) && !incomplete.has(k) && drafts.some((d) => d.kind === k) ? ("found" as const) : ("not_run" as const),
   }));
+}
+
+/**
+ * The case's NIS fragment for the case merge (docs/research/2026-10-20-case-merge-contract.md, "The NIS fragment"):
+ * the mapped facts with draft IDs "nis:<Type>/<id>" (one per record, stable across imports), their sources and checks,
+ * no alerts. `importId` names the import, so the merge can tell which link it belongs to.
+ */
+export function nisFragment(i: { system: string; resources: readonly R[]; importId: string; truncated?: readonly string[] }): { fragment: Fragment; mapped: Mapped } {
+  const mapped = mapNisResources(i.system, i.resources);
+  if (i.truncated?.length) mapped.checks = checksFor(mapped.drafts, mapped.skipped, i.truncated);
+  const resourceOf = new Map(mapped.sources.map((s) => [s.id, s.resource]));
+  const rename = (x: string) => (x.startsWith("draft:") ? `nis:${x.slice("draft:".length)}` : x);
+  const facts: FragmentFact[] = mapped.drafts.map((d) => {
+    const own = d.draft_id ? rename(d.draft_id) : `nis:${resourceOf.get(d.sources[0] ?? "") ?? ""}`;
+    const f = { ...d, draft_id: own } as FragmentFact;
+    if (f.kind === "request" && f.value.result_fact) f.value = { ...f.value, result_fact: rename(f.value.result_fact) };
+    return f;
+  });
+  return {
+    mapped,
+    fragment: {
+      schema: FRAGMENT_SCHEMA,
+      producer: "nis",
+      document_id: "nis",
+      document_sha256: null,
+      pipeline_run: i.importId,
+      parts: [],
+      stages: [{ name: "nis_import", engine: "codebridge nis-map 1" }],
+      sources: mapped.sources,
+      facts,
+      checks: mapped.checks.filter((c) => c.result === "found"),
+      alerts: [],
+    },
+  };
 }
 
 export type NisRunInput = {

@@ -183,6 +183,7 @@ const PROBES: Probe[] = [
   { name: "GET /cases/:id/nis", method: "GET", path: (i) => `/cases/${i.case}/nis`, user: "b-doc", env: NIS_BOTH },
   { name: "GET /cases/:id/nis/record", method: "GET", path: (i) => `/cases/${i.case}/nis/record?resource=Observation%2Fx`, user: "b-doc", env: NIS_BOTH },
   { name: "POST /cases/:id/nis/search", method: "POST", path: (i) => `/cases/${i.case}/nis/search`, user: "b-coord", body: () => ({}), env: NIS_BOTH },
+  { name: "POST /cases/:id/nis/import", method: "POST", path: (i) => `/cases/${i.case}/nis/import`, user: "b-doc", body: () => ({}), env: NIS_BOTH },
   { name: "POST /cases/:id/nis/link", method: "POST", path: (i) => `/cases/${i.case2}/nis/link`, user: "b-doc", body: () => ({ nis_patient_id: "t-pt-a" }), env: NIS_BOTH },
   { name: "DELETE /cases/:id/nis/link", method: "DELETE", path: (i) => `/cases/${i.case}/nis/link`, user: "b-coord", env: NIS_BOTH },
   // Recording (transcript.ts).

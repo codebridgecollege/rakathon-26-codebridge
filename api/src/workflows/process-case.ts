@@ -13,7 +13,8 @@
 import { WorkflowEntrypoint, type WorkflowEvent, type WorkflowStep } from "cloudflare:workers";
 import { DomainError } from "@codebridge/domain/errors";
 import { actorFor } from "../store/audio";
-import { composeCaseRun, storeCaseRun, type ComposedRun } from "../store/case-merge";
+import { composeCaseRun, configuredNis, storeCaseRun, type ComposedRun } from "../store/case-merge";
+import { nisFragmentFor } from "../store/nis";
 import { confirmedFactIds, currentRunRow, RunInvalid } from "../store/runs";
 import { loadCaseIdentity } from "../store/identity";
 import { orgKey, orgStmt } from "../store/sql";
@@ -34,9 +35,14 @@ const isStale = (e: unknown) => e instanceof DomainError && e.code === "run_stal
 
 // Whether a composed run still fits the case: it supersedes the run current now, and every document it read is still
 // current. Checked before the model sees anything, so a document withdrawn meanwhile never goes to it.
-async function stillFits(env: Env, org: string, caseId: string, run: ComposedRun["run"]): Promise<boolean> {
+async function stillFits(env: Env, org: string, caseId: string, c: ComposedRun): Promise<boolean> {
+  const run = c.run;
   const cur = await currentRunRow(env.DB, org, caseId);
   if ((cur?.id ?? null) !== run.run.supersedes) return false;
+  // The NIS import composed in (or none) must still be the one that counts: an unlink or relink since composing would
+  // otherwise store the old record's facts, possibly another person's.
+  const nis = await nisFragmentFor(env.DB, env.DOCS, org, caseId, configuredNis(env, org));
+  if ((nis.fragment?.pipeline_run ?? null) !== (c.nis_import ?? null)) return false;
   const ids = run.documents.map((d) => d.document_id);
   if (!ids.length) return true;
   const n = await orgStmt(env.DB, org, "SELECT COUNT(*) AS n FROM documents WHERE org_id = ?org AND case_id = ?1 AND lifecycle = 'current' AND id IN (SELECT value FROM json_each(?2))", caseId, JSON.stringify(ids)).first<{ n: number }>();
@@ -78,7 +84,7 @@ export class ProcessCaseWorkflow extends WorkflowEntrypoint<Env, ProcessCasePara
               const c = (await (await env.DOCS.get(draftKey))?.json()) as ComposedRun | undefined;
               if (!c) return { skipped: "lost" };
               // A document withdrawn, or another run stored, since composing: nothing goes to the model; start over.
-              if (!(await stillFits(env, p.org, p.caseId, c.run))) return { skipped: "stale" };
+              if (!(await stillFits(env, p.org, p.caseId, c))) return { skipped: "stale" };
               const actor = await actorFor(env.DB, p.org, p.by, env.AUTH_MODE === "oidc" ? "oidc" : "demo", p.byActor);
               const row = await orgStmt(env.DB, p.org, "SELECT question_explicit FROM cases WHERE org_id = ?org AND id = ?1", p.caseId).first<{ question_explicit: number }>();
               const out = await composeBrief(

@@ -14,10 +14,14 @@ export const FRAGMENT_SCHEMA = "codebridge.fragment/1";
 /** A drafted fact with the ID the fragment's alerts and checks use for it ("<producer>:<document>:<n>"). */
 export type FragmentFact = DraftFact & { draft_id: string };
 
-/** What one producer found in one document. Stored as <pipeline run prefix>fragment-<producer>.json. */
+/**
+ * What one producer found in one document. Stored as <pipeline run prefix>fragment-<producer>.json. The NIS import
+ * (producer "nis", issue #22) writes one fragment per case instead, with document_id "nis" (no document), stored as
+ * org/<org>/nis/<case>/fragment-nis.json.
+ */
 export type Fragment = {
   schema: typeof FRAGMENT_SCHEMA;
-  producer: "pipeline" | "ai";
+  producer: "pipeline" | "ai" | "nis";
   document_id: string;
   document_sha256: string | null;
   /** The pipeline run (pipeline_runs.id) whose outputs the fragment rests on. */
@@ -245,7 +249,7 @@ export type ComposedDraft = {
   schema: "codebridge.extraction/2";
   case_id: string;
   content_language: string;
-  run: { id: string; producer: "pipeline"; created_at: string; stages: RunStage[] };
+  run: { id: string; producer: "pipeline" | "nis"; created_at: string; stages: RunStage[] };
   documents: { document_id: string; sha256: string | null; parts: string[] }[];
   sources: Source[];
   facts: FragmentFact[];
@@ -268,9 +272,12 @@ const uniq = <T>(xs: T[], key: (x: T) => string) => xs.filter((x, i) => xs.findI
 export function composeFragments(caseId: string, runId: string, createdAt: string, all: readonly Fragment[]): ComposedDraft {
   // Only fragments of this format and a known producer: a newer format or a half-written file is left out, not read
   // as this one.
-  const fragments = all.filter((f) => f.schema === FRAGMENT_SCHEMA && (f.producer === "pipeline" || f.producer === "ai"));
+  const fragments = all.filter((f) => f.schema === FRAGMENT_SCHEMA && (f.producer === "pipeline" || f.producer === "ai" || f.producer === "nis"));
+  // The NIS fragment is no document: it adds no entry to the run's documents and no vote on "nothing found".
+  const nis = fragments.filter((f) => f.producer === "nis");
   const docs = new Map<string, { document_id: string; sha256: string | null; parts: string[] }>();
   for (const f of fragments) {
+    if (f.producer === "nis") continue;
     const d = docs.get(f.document_id) ?? { document_id: f.document_id, sha256: f.document_sha256, parts: [] };
     for (const p of f.parts) if (!d.parts.includes(p)) d.parts.push(p);
     docs.set(f.document_id, d);
@@ -287,8 +294,16 @@ export function composeFragments(caseId: string, runId: string, createdAt: strin
   // would be false); otherwise "not run".
   const byKind = new Map<string, Check>();
   const said = new Map<string, Map<string, Check["result"]>>();
+  // The NIS says only "found" or "not run" (EXTRACTION-FORMAT.md, "Decisions"): a kind it found is found, and
+  // otherwise the kind is left to the documents.
+  // Taken from the NIS facts themselves, not only its checks: a kind the NIS holds facts of is found, also when part
+  // of its records was cut off (the NIS's own check then says "not run"), so "nothing found" never sits next to them.
+  const nisFound = new Set<string>([
+    ...nis.flatMap((f) => f.checks.filter((c) => !c.expected && c.result === "found").map((c) => c.looks_for)),
+    ...nis.flatMap((f) => f.facts.map((x) => x.kind)),
+  ]);
   for (const f of fragments)
-    for (const c of f.checks) {
+    for (const c of f.producer === "nis" ? [] : f.checks) {
       if (c.expected) continue; // a document check (an expected report) is the case rules' to make, per case
       const prev = byKind.get(c.looks_for);
       const perDoc = said.get(c.looks_for) ?? new Map<string, Check["result"]>();
@@ -305,10 +320,14 @@ export function composeFragments(caseId: string, runId: string, createdAt: strin
         result: "not_run",
       });
     }
+  for (const k of nisFound)
+    if (!byKind.has(k)) byKind.set(k, { id: `chk-${k.replace(/_/g, "-")}`, looks_for: k, expected: null, covered: [], unreadable: [], result: "not_run" });
   for (const [kind, c] of byKind) {
-    const perDoc = said.get(kind)!;
+    const perDoc = said.get(kind) ?? new Map<string, Check["result"]>();
     const results = [...docs.keys()].map((d) => perDoc.get(d) ?? "not_run");
-    c.result = results.includes("found") ? "found" : results.every((r) => r === "nothing_found") ? "nothing_found" : "not_run";
+    // "Nothing found" needs at least one document that said so: a run of the NIS alone never says it.
+    c.result =
+      nisFound.has(kind) || results.includes("found") ? "found" : results.length && results.every((r) => r === "nothing_found") ? "nothing_found" : "not_run";
   }
   for (const k of FACT_KINDS) if (!byKind.has(k)) byKind.set(k, { id: `chk-${k.replace(/_/g, "-")}`, looks_for: k, expected: null, covered: [], unreadable: [], result: "not_run" });
 
@@ -341,7 +360,8 @@ export function composeFragments(caseId: string, runId: string, createdAt: strin
     schema: "codebridge.extraction/2",
     case_id: caseId,
     content_language: "cs",
-    run: { id: runId, producer: "pipeline", created_at: createdAt, stages: [...stages, { name: "case_merge", engine: "codebridge compose-fragments@1" }] },
+    // A run with any document is the pipeline's; the NIS alone makes a NIS run.
+    run: { id: runId, producer: docs.size || !nis.length ? "pipeline" : "nis", created_at: createdAt, stages: [...stages, { name: "case_merge", engine: "codebridge compose-fragments@1" }] },
     documents: [...docs.values()],
     sources: [...sources.values()],
     facts,

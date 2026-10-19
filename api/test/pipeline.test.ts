@@ -558,7 +558,7 @@ describe("the case merge (ProcessCase)", () => {
     expect(ex.body.data.facts).toEqual([]);
     expect(ex.body.data.alerts.some((a: any) => a.rule === "identity_conflict")).toBe(true);
 
-    // A case whose current run came from another producer (a prepared fixture, the NIS import) keeps it.
+    // A case whose current run came from a prepared fixture keeps it (a NIS run is the merge's own: test/nis-merge.test.ts).
     await env.DB.prepare("UPDATE extraction_runs SET is_current = (id = 'run-BA') WHERE org_id = 'demo-b' AND case_id = 'B-NO-A'").run();
     const who = await actorFor(env.DB, "demo-b", "b-doc", "demo");
     expect(await publishCaseRun(env, "demo-b", "B-NO-A", who)).toMatchObject({ result: "other_producer" });
