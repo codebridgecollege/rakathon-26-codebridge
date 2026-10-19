@@ -315,13 +315,15 @@ JSON Schema defines them exactly).
 
 They live in D1, keyed by fact ID, never in the run (`docs/design/DATABASE.md`, "Extraction runs"):
 - **`fact_confirmations`:** append-only (case, fact ID, confirm or withdraw, the SHA-256 of the fact's frame and value, the run, who, when). The server computes the hash from the current run, so the page cannot confirm a value the run does not hold; a quarantined fact is never confirmed.
-- **`fact_edits`:** the current override per edit key. A fact's key is `f:<fact id>` with an optional part (`:t`, `:c`, `:e`, `:line`, `:note`), and the row records the fact ID; fields that are not facts keep their names (`brief`, `reason`, `proposal`, `q`, `dx`, `assess`, `sev`). Rows under the old positional keys stay and can only be reverted.
+- **`fact_edits`:** the current override per edit key. A fact's key is `f:<fact id>` with an optional part (`:t`, `:c`, `:e`, `:line`, `:note`), and the row records the fact ID; a composed line's key is `v:<line id>` with the same optional parts (see "Composed views"), saved only for a line of the current run and recording no fact ID; fields that are not facts keep their names (`brief`, `reason`, `proposal`, `q`, `dx`, `assess`, `sev`). Rows under the old positional keys stay and can only be reverted.
 - **`edit_log`:** stays the append-only history of edits.
 
 The view overlays them on the current run:
 - **Same ID, same value:** the confirmation stands.
-- **Same ID, different value:** the view shows both values and asks the doctor. Confirmed content is never changed silently.
-- **ID missing from the new run** (its document was withdrawn, or the matcher found no match): the confirmation or edit is shown in a visible "potvrzeno dříve, v novém zpracování chybí" list. It is never dropped.
+- **Same ID, different value:** the view shows both values and asks the doctor. Confirmed content is never changed silently. For a confirmation the earlier value comes from the run the doctor confirmed (`GET /cases/:id/runs/:runId/facts/:factId`, read and logged like the case data); for an edit, from the text the page showed when the doctor edited it (the row's `orig`), so an edited line whose source was reworded says "zdroj se změnil" with both texts.
+- **ID missing from the new run** (its document was withdrawn, or the matcher found no match), and every edit under an old positional key: the confirmation or edit is shown in a visible "potvrzeno dříve, v novém zpracování chybí" list with who and when. It is never dropped; a doctor may revert an orphaned edit there.
+
+PRODUCT.md names no subset of critical facts, so the case view offers the confirmation on every line of the oncology summary; a line is confirmed when each of its facts is.
 
 ## Checks
 
@@ -487,7 +489,10 @@ The view receives the current run through `GET /cases/:id/extraction`, minus its
 removes every quarantined fact, every source that only quarantined facts cite, and the quarantined fact IDs from the
 alerts' `facts` (`withoutQuarantined` in `api/src/store/runs.ts`). A page that shows another patient never reaches the
 browser through the run; the identity alert stays and its message names the document and page. The payload is
-therefore not a whole run and need not pass `validateRun`; the stored run does.
+therefore not a whole run and need not pass `validateRun`; the stored run does. The same reply carries the case's
+stored documents with their parts (`documents`: title, type, date, pages, readability from D1 `document_parts`), since
+the run names parts by ID only. `packages/domain/src/run-view.ts` (`fromRun`) computes every view part below, and drops
+anything that rests on a fact the payload does not hold.
 
 | View part | Computed from |
 |---|---|

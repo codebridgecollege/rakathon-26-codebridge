@@ -39,3 +39,7 @@ alert-cycles-differ = The number of indicated and documented cycles differs: { $
 alert-page-order-unclear = The page order and the latest conclusion of the document are not clear: { $document }
 
 alert-dosing-differs = The dosing of a drug differs between parts of the documentation: { $fact_a }; { $fact_b }
+
+alert-poor-copy = Poorly readable document, ask for a better copy: { $document }
+
+alert-identity-conflict = The page belongs to another patient; its items are not shown: { $document }, p. { $page }

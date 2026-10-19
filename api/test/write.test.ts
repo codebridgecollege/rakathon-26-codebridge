@@ -8,6 +8,7 @@ import { sha256Hex } from "../src/store/work";
 import { confirmedContent } from "@codebridge/domain/confirmations";
 import { Tx } from "../src/store/write";
 import { D } from "@codebridge/domain/errors";
+import { viewLineId } from "@codebridge/domain/extraction/keys";
 import { COORDINATOR_EDITS_PROTOCOL } from "@codebridge/domain/config";
 
 type Body = { data?: Record<string, unknown>; data_epoch?: number; state?: Record<string, any>; error?: { code: string; message_cs: string; current?: any; fields?: any } };
@@ -276,6 +277,20 @@ describe("question, edits, alerts", () => {
     await useRunA();
     expect((await put("f-8d41c2")).body.error?.code).toBe("fact_not_found");
     expect(await count("fact_edits")).toBe(0);
+  });
+
+  it("saves a v: key only for a composed line of the current run; the line's ID follows its facts", async () => {
+    const facts = [RUN_A2.facts[0]!.id];
+    const id = viewLineId("onco_lines", facts);
+    const put = (line: string) => w("PUT", `/cases/NO-A/edits/${encodeURIComponent(`v:${line}`)}`, { text: "upraveno", orig: "řádek", expected_edit_id: null });
+    expect((await put(id)).body.error?.code).toBe("fact_not_found");
+    const line = { id, text: "řádek", title: null, detail: null, date: { as_written: null, precision: null, sort: null }, category: "clinical" as const, status: "documented" as const, facts, note: null };
+    await env.DOCS.put(RUN_A2_KEY, JSON.stringify({ ...RUN_A2, views: { onco_lines: [line], made_by: { model: null, prompt: null } } }));
+    const ok = await put(id);
+    expect(ok.status).toBe(200);
+    // A composed line is not one fact, so the edit names no fact ID.
+    expect(ok.body.state!.cases["NO-A"].edits[`v:${id}`]).toMatchObject({ text: "upraveno", fact_id: null });
+    expect((await w("PUT", `/cases/NO-A/edits/${encodeURIComponent("v:vl-xyz")}`, { text: "x", orig: "y", expected_edit_id: null })).body.error?.code).toBe("invalid_input");
   });
 
   it("refuses a new text under an old positional key, and still reverts an edit stored under one", async () => {

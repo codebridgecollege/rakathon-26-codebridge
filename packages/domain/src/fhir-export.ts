@@ -8,6 +8,7 @@
 // (names, quotes, codes, values) is written as the documents give it.
 import type { CaseData, Item, SourceRef } from "./case-data";
 import type { QState } from "./case-view";
+import { alertArgs } from "./run-view";
 
 export type T = (id: string, args?: Record<string, string | number>) => string;
 export type FhirDeps = { now: string; uuid: () => string; t: T };
@@ -210,13 +211,15 @@ export function fhirBundle(input: FhirInput, deps: FhirDeps): Json {
   for (const [sec, items] of Object.entries(c.sections)) {
     for (const it of items) {
       const iso = fhirDate(it.date);
+      // A recorded negative whose own text does not say so carries the label in every field a reader sees.
+      const text = it.negation_label ? t("patient-fact-negated", { text: String(it.text_cs) }) : String(it.text_cs);
       const notes = [...(it.note ? [{ text: it.note }] : []), ...(it.negated ? [{ text: t("patient-fhir-negated") }] : []), ...dateNote(it.date, iso)];
-      const line = it.date ? t("patient-fhir-dated-line", { date: String(it.date), text: String(it.text_cs) }) : String(it.text_cs);
+      const line = it.date ? t("patient-fhir-dated-line", { date: String(it.date), text: text }) : text;
       const base = { ...cert(it.certainty), ...(notes.length ? { note: notes } : {}) };
       let u: string | undefined;
       // What the assistant inferred is its observation, not a fact from the record.
       if (it.certainty === "inferred") {
-        issue("unclear", it.text_cs, [it.source]);
+        issue("unclear", text, [it.source]);
         continue;
       }
       const obs = OBS[sec];
@@ -229,7 +232,7 @@ export function fhirBundle(input: FhirInput, deps: FhirDeps): Json {
             subject: subj,
             category: [{ coding: [{ system: FHIR_SYS.obsCat, code: obs[0] }] }],
             code: { text: obs[1] },
-            valueString: it.text_cs,
+            valueString: text,
             ...(iso ? { effectiveDateTime: iso } : {}),
           },
           line,
@@ -238,18 +241,18 @@ export function fhirBundle(input: FhirInput, deps: FhirDeps): Json {
       }
       // Status "unknown": from the documents alone the assistant cannot tell whether a treatment is completed.
       else if (sec === "past_treatment") {
-        u = add({ resourceType: "Procedure", ...base, status: "unknown", subject: subj, code: { text: it.text_cs }, ...(iso ? { performedDateTime: iso } : {}) }, line);
+        u = add({ resourceType: "Procedure", ...base, status: "unknown", subject: subj, code: { text: text }, ...(iso ? { performedDateTime: iso } : {}) }, line);
         ids.procedures.push(u);
       }
       // A contraindication is a warning about a drug, never a drug the patient takes.
-      else if (sec === "medication" && /kontraindik/i.test(it.text_cs)) {
+      else if (sec === "medication" && /kontraindik/i.test(text)) {
         u = add(
-          { resourceType: "Flag", ...base, status: "active", subject: subj, category: [{ coding: [{ system: "http://terminology.hl7.org/CodeSystem/flag-category", code: "drug" }] }], code: { text: it.text_cs } },
+          { resourceType: "Flag", ...base, status: "active", subject: subj, category: [{ coding: [{ system: "http://terminology.hl7.org/CodeSystem/flag-category", code: "drug" }] }], code: { text: text } },
           line,
         );
         ids.flags.push(u);
       } else if (sec === "medication") {
-        u = add({ resourceType: "MedicationStatement", ...base, status: "unknown", subject: subj, medicationCodeableConcept: { text: it.text_cs }, ...(iso ? { effectiveDateTime: iso } : {}) }, line);
+        u = add({ resourceType: "MedicationStatement", ...base, status: "unknown", subject: subj, medicationCodeableConcept: { text: text }, ...(iso ? { effectiveDateTime: iso } : {}) }, line);
         ids.medications.push(u);
       }
       // The date next to a comorbidity is the date of the exam that mentions it, not its onset, so it stays a note.
@@ -260,7 +263,7 @@ export function fhirBundle(input: FhirInput, deps: FhirDeps): Json {
             ...cert(it.certainty),
             subject: subj,
             category: [{ coding: [{ system: FHIR_SYS.condCat, code: "problem-list-item" }] }],
-            code: { text: it.text_cs },
+            code: { text: text },
             ...(it.note || it.date ? { note: [...(it.note ? [{ text: it.note }] : []), ...(it.date ? [{ text: t("patient-fhir-date-in-doc", { date: String(it.date) }) }] : [])] } : {}),
           },
           line,
@@ -300,7 +303,12 @@ export function fhirBundle(input: FhirInput, deps: FhirDeps): Json {
     prov(u, [l.source]);
   }
   // Missing documents, contradictions and changes are the assistant's observations, not facts from the record.
-  for (const f of c.flags) issue(f.kind, f.note ? `${f.text_cs} (${f.note})` : f.text_cs, f.based_on);
+  for (const f of c.flags) {
+    // The alert's message in the export's language, its fact arguments as their lines; the assistant's note stays in the
+    // content language.
+    const text = t(f.message.id, alertArgs(cd, f, t).args);
+    issue(f.kind, f.note ? `${text} (${f.note})` : text, f.based_on);
+  }
   // The summary for the MDT: a preliminary Composition by the assistant. Each summary sentence and timeline event has
   // an id, and its Provenance points at that sentence, so every quote stays tied to the sentence it supports.
   const compUrl = uid();

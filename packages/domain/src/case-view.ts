@@ -1,18 +1,17 @@
 // The clinical-trust rules of the patient view (screen S-3): alert states, the missing-document signal, the MDT
 // question, certainty marks and the timeline. Pure and free of interface text: they return codes, and the app picks
 // the catalog message. Ports of alertState(), warningEntries(), topAlerts(), hasMissing(), missingState(), qState(),
-import type { CaseData, DataGap, Flag, Item, SourceRef, TimelineEvent } from "./case-data";
+import type { CaseData, Flag, Item, SourceRef, TimelineEvent } from "./case-data";
+import { LEGACY_KEY_RE } from "./edits";
 
 // ---------- alerts ----------
 
-// An alert's key on the wire and in the history: the flag's index, or "gap:<n>" for a data gap of the brief.
-export type AlertKey = number | string;
+// An alert's key on the wire and in the history: its ID ("al-" and 8 hex digits), which follows from the alert's rule
+// and subject, so an acknowledgement carries over to the next run that raises the same alert.
+export type AlertKey = string;
 export type AlertAction = "ack" | "resolved" | "reopen";
 export type AlertEvent = { i: AlertKey; action: AlertAction; who: string; when: string };
 export type AlertStateCode = "open" | "ack" | "resolved";
-
-// "3" for a flag, "gap:1" for a data gap: the server sends flag keys as numbers, the page compares them as numbers.
-export const alertKeyIn = (i: unknown): AlertKey => (/^\d+$/.test(String(i)) ? Number(i) : String(i));
 
 // An alert's state is its latest event; nothing is edited or removed, and "reopen" returns it to open.
 export function alertState(hist: AlertEvent[], i: AlertKey): { state: AlertStateCode; last: AlertEvent | undefined; hist: AlertEvent[] } {
@@ -22,15 +21,11 @@ export function alertState(hist: AlertEvent[], i: AlertKey): { state: AlertState
   return { state, last, hist: h };
 }
 
-// One entry per flag and per data gap. Data gaps are never "relevant to the question" and take their sources from
-// their own refs or source.
-export type AlertEntry = (Flag | DataGap) & { i: AlertKey; relevant?: boolean; based_on: SourceRef[] };
+// One entry per alert of the run, keyed by its ID.
+export type AlertEntry = Flag & { i: AlertKey; relevant?: boolean; based_on: SourceRef[] };
 export function warningEntries(alerts: CaseData["alerts"]): AlertEntry[] {
   if (!alerts) return [];
-  return [
-    ...alerts.flags.map((f, i) => ({ ...f, i: (f.id as string | undefined) ?? i, based_on: f.based_on || [] })),
-    ...alerts.gaps.map((f, n) => ({ ...f, i: `gap:${n}`, relevant: false, based_on: f.refs || (f.source ? [f.source] : []) })),
-  ];
+  return alerts.flags.map((f) => ({ ...f, i: f.id, based_on: f.based_on || [] }));
 }
 
 // The alerts for the MDT question first (CLAUDE.md), then the rest; resolved and acknowledged ones go to the archive.
@@ -41,10 +36,10 @@ export function topAlerts(alerts: CaseData["alerts"], hist: AlertEvent[]) {
 }
 
 // true or false for a processed case; null when the missing-document check has not run. A resolved missing-document
-// alert no longer counts; the brief's data gaps are not alerts and always count.
+// alert no longer counts.
 export function hasMissing(alerts: CaseData["alerts"], hist: AlertEvent[]): boolean | null {
   if (!alerts) return null;
-  return alerts.flags.some((f, i) => f.kind === "missing" && alertState(hist, i).state !== "resolved") || alerts.gaps.some((x) => x.kind === "missing");
+  return alerts.flags.some((f) => f.kind === "missing" && alertState(hist, f.id).state !== "resolved");
 }
 
 // What the missing-document signal says. "loading" and "failed" are never "nothing missing" and never "not processed":
@@ -144,31 +139,21 @@ export function timelineSorted(events: TimelineEvent[]) {
 // The note icon of an event: its own note and, unless both OCR readings agree, its OCR note.
 export const timelineNote = (c: Item) => [c.note_cs, c.ocr_check?.mark === false ? "" : c.ocr_note_cs].filter(Boolean).join(" ");
 
-// A planned line of the compact summary is grouped by the planned action; it never becomes a performed event.
-export const compactKind = (l: Item): EventCategory =>
-  l.kind !== "plan" ? categoryOf(l) : /everolim|sunitinib|nivolumab|ipilimumab|kabozantinib|cabozantinib|linie/i.test(l.text_cs) ? "systemic" : "clinical";
-
-// Category of a detailed oncology row, from the row's own words; display only.
-export function rowKind(r: Item): EventCategory | "visit" {
-  const t = `${r.event_cs} ${r.comment_cs || ""}`;
-  if (/^(CT|MR|PET|Vstupní CT|UZ|ultrazvuk)|CT |MR /.test(r.event_cs)) return "imaging";
-  if (/ektomi|Exstirpace|Excize|Implantace|resekc|operac/i.test(r.event_cs)) return "surgery";
-  if (/linie|nivolumab|sunitinib|everolimus|chemoterap|imunoterap/i.test(r.event_cs)) return "systemic";
-  if (/radioterap|ozáření/i.test(t)) return "radiotherapy";
-  return "visit";
-}
+// A line of the oncology summary is filed under its category (the composed line's, or its fact's kind's). A planned
+// line keeps its category too, and its pin says it is planned; it never becomes a performed event.
+export const compactKind = (l: Item): EventCategory => categoryOf(l);
 
 // ---------- current state ----------
 
-// The objective line of "Aktuální stav pacienta" leads with TK/P, TT and PS (ECOG): the vital-signs item is read for
-// blood pressure, pulse and temperature as written; a value the text does not hold stays null (shown as a gap).
-export function vitalsOf(text: string | null | undefined) {
-  const vt = text || "";
-  return {
-    tk: (vt.match(/krevní tlak ([\d/]+ ?mmHg)/) || [])[1] ?? null,
-    pulse: (vt.match(/pulz ([\d]+\/min)/) || [])[1] ?? null,
-    tt: (vt.match(/teplota ([\d,.]+ ?°C)/) || [])[1] ?? null,
+// The objective line of "Aktuální stav pacienta" leads with TK/P, TT and PS (ECOG): read from the exam's vital-sign and
+// performance-status facts by what they measure, never by matching Czech labels. A value the exam does not state is
+// null (shown as a gap).
+export function vitalsOf(items: Item[]) {
+  const val = (what: string) => {
+    const it = items.find((i) => i.what === what);
+    return it ? String(it.text_cs) : null;
   };
+  return { tk: val("blood_pressure"), pulse: val("pulse"), tt: val("temperature"), ecog: items.find((i) => i.what === "ecog") ?? null };
 }
 
 // ---------- prose with [n] markers ----------
@@ -218,4 +203,42 @@ export function refList() {
       return i + 1;
     },
   };
+}
+
+// ---------- confirmations and edits that lost their fact ----------
+
+/** A doctor's confirmation or edit that the current run cannot show where it was made. */
+export type Orphan =
+  | { kind: "edit"; key: string; reason: "position" | "missing" | "not_shown"; text: string; orig: string | null; by: string; when: string }
+  | { kind: "confirmation"; fact_id: string; run_id: string | null; by: string; when: string };
+
+type ConfirmRow = { fact_id: string; action: "confirm" | "withdraw"; who: string; when: string; run_id?: string | null };
+
+/**
+ * "potvrzeno dříve, v novém zpracování chybí" (EXTRACTION-FORMAT.md, "Doctor confirmations and edits"): every edit
+ * under an old positional key, every edit of a fact or a composed line the current run does not have, every edit the
+ * view no longer renders (a drug now stopped, a line now composed), and every fact whose latest confirmation stands but
+ * which the run does not have. Listed, never dropped. Field edits (the brief,
+ * the question, the diagnosis line) are not tied to a fact and never orphaned.
+ */
+export function orphansOf(cd: CaseData | null | undefined, edits: Record<string, Edit>, confirmations: ConfirmRow[]): Orphan[] {
+  const facts = cd?.run?.facts ?? {};
+  const lines = new Set(cd?.run?.view_line_ids ?? []);
+  const shown = cd?.run?.shown_keys ? new Set(cd.run.shown_keys) : null;
+  const out: Orphan[] = [];
+  for (const [key, e] of Object.entries(edits)) {
+    const fact = /^f:(f-[0-9a-f]{6,8})(?::|$)/.exec(key)?.[1];
+    const line = /^v:(vl-[0-9a-f]{8})(?::|$)/.exec(key)?.[1];
+    const positional = LEGACY_KEY_RE.test(key);
+    const gone = (fact && !facts[fact]) || (line && !lines.has(line));
+    // The key without its part (":t", ":line") is what the view renders.
+    const hidden = !gone && (fact || line) && shown && !shown.has(key.split(":").slice(0, 2).join(":"));
+    if (positional || gone || hidden) {
+      out.push({ kind: "edit", key, reason: positional ? "position" : gone ? "missing" : "not_shown", text: e.text, orig: e.orig ?? null, by: e.by, when: e.when });
+    }
+  }
+  const last = new Map<string, ConfirmRow>();
+  for (const r of confirmations) last.set(r.fact_id, r);
+  for (const r of last.values()) if (r.action === "confirm" && !facts[r.fact_id]) out.push({ kind: "confirmation", fact_id: r.fact_id, run_id: r.run_id ?? null, by: r.who, when: r.when });
+  return out;
 }

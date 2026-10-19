@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import {
-  alertKeyIn,
   alertNote,
   alertState,
   categoryOf,
@@ -14,50 +13,40 @@ import {
   timelineSorted,
   topAlerts,
   vitalsOf,
+  orphansOf,
   warningEntries,
   type AlertEvent,
 } from "../src/case-view";
 
 // Synthetic values only.
-const alerts = {
-  flags: [
-    { kind: "missing", text_cs: "Chybí MR.", relevant: true },
-    { kind: "contradiction", text_cs: "Rozpor v datu." },
-  ],
-  gaps: [{ kind: "unclear", text_cs: "M0 ověřit.", refs: [{ file: "a.pdf", page: 1, quote: "MO" }] }],
-};
-const ev = (i: number | string, action: AlertEvent["action"]): AlertEvent => ({ i, action, who: "MUDr. A", when: "x" });
+const flag = (id: string, kind: string, relevant = false) => ({ id, kind, rule: "r", message: { id: "alert-r", args: {} }, fact_ids: [], relevant });
+const alerts = { flags: [flag("al-00000001", "missing", true), flag("al-00000002", "contradiction")] };
+const ev = (i: string, action: AlertEvent["action"]): AlertEvent => ({ i, action, who: "MUDr. A", when: "x" });
 
 describe("alerts", () => {
   it("takes an alert's state from its latest event; reopen returns it to open", () => {
-    expect(alertState([], 0).state).toBe("open");
-    expect(alertState([ev(0, "ack")], 0).state).toBe("ack");
-    expect(alertState([ev(0, "resolved"), ev(0, "reopen")], 0).state).toBe("open");
-    expect(alertState([ev(1, "resolved")], 0).state).toBe("open");
+    expect(alertState([], "al-00000001").state).toBe("open");
+    expect(alertState([ev("al-00000001", "ack")], "al-00000001").state).toBe("ack");
+    expect(alertState([ev("al-00000001", "resolved"), ev("al-00000001", "reopen")], "al-00000001").state).toBe("open");
+    expect(alertState([ev("al-00000002", "resolved")], "al-00000001").state).toBe("open");
   });
 
-  it("reads flag keys as numbers and gap keys as text", () => {
-    expect(alertKeyIn("3")).toBe(3);
-    expect(alertKeyIn("gap:1")).toBe("gap:1");
-  });
-
-  it("lists data gaps after flags, never relevant to the question, with their own sources", () => {
-    const e = warningEntries(alerts);
-    expect(e.map((x) => x.i)).toEqual([0, 1, "gap:0"]);
-    expect(e[2]).toMatchObject({ relevant: false, based_on: [{ page: 1, quote: "MO" }] });
+  it("keys every alert by its ID, never by its position", () => {
+    expect(warningEntries(alerts).map((x) => x.i)).toEqual(["al-00000001", "al-00000002"]);
+    const reordered = { flags: [...alerts.flags].reverse() };
+    expect(topAlerts(reordered, [ev("al-00000002", "ack")]).archived.map((x) => x.i)).toEqual(["al-00000002"]);
   });
 
   it("puts question-relevant open alerts first and archives acknowledged and resolved ones", () => {
-    const t = topAlerts(alerts, [ev(1, "ack")]);
-    expect(t.top.map((x) => x.i)).toEqual([0]);
-    expect(t.archived.map((x) => x.i)).toEqual([1]);
+    const t = topAlerts(alerts, [ev("al-00000002", "ack")]);
+    expect(t.top.map((x) => x.i)).toEqual(["al-00000001"]);
+    expect(t.archived.map((x) => x.i)).toEqual(["al-00000002"]);
   });
 
-  it("keeps the missing-document signal on until a missing alert is resolved; data gaps always count", () => {
+  it("keeps the missing-document signal on until a missing alert is resolved", () => {
     expect(hasMissing(alerts, [])).toBe(true);
-    expect(hasMissing(alerts, [ev(0, "ack")])).toBe(true);
-    expect(hasMissing(alerts, [ev(0, "resolved")])).toBe(false);
-    expect(hasMissing({ flags: [], gaps: [{ kind: "missing", text_cs: "x" }] }, [])).toBe(true);
+    expect(hasMissing(alerts, [ev("al-00000001", "ack")])).toBe(true);
+    expect(hasMissing(alerts, [ev("al-00000001", "resolved")])).toBe(false);
     expect(hasMissing(null, [])).toBeNull();
   });
 
@@ -67,7 +56,7 @@ describe("alerts", () => {
     expect(missingState("error", undefined, [])).toBe("failed");
     expect(missingState("ready", null, [])).toBe("unchecked");
     expect(missingState("ready", alerts, [])).toBe("yes");
-    expect(missingState("ready", { flags: [], gaps: [] }, [])).toBe("no");
+    expect(missingState("ready", { flags: [] }, [])).toBe("no");
   });
 
   it("drops the note's own observation prefix, which the list header already says", () => {
@@ -153,7 +142,28 @@ describe("prose and sources", () => {
   });
 
   it("reads vital signs as written and leaves an unstated one empty", () => {
-    expect(vitalsOf("krevní tlak 155/70 mmHg, pulz 68/min")).toEqual({ tk: "155/70 mmHg", pulse: "68/min", tt: null });
-    expect(vitalsOf(undefined)).toEqual({ tk: null, pulse: null, tt: null });
+    const items = [{ what: "blood_pressure", text_cs: "155/70 mmHg" }, { what: "pulse", text_cs: "68 /min" }, { what: "ecog", text_cs: "1" }];
+    expect(vitalsOf(items)).toMatchObject({ tk: "155/70 mmHg", pulse: "68 /min", tt: null, ecog: { text_cs: "1" } });
+    expect(vitalsOf([])).toEqual({ tk: null, pulse: null, tt: null, ecog: null });
+  });
+});
+
+describe("confirmations and edits that lost their fact", () => {
+  const cd = { run: { facts: { "f-0000aaaa": {} }, view_line_ids: ["vl-0000aaaa"] } } as never;
+  const e = (text: string) => ({ text, orig: "původně", by: "MUDr. A", when: "1. 10." });
+  it("lists edits under positional keys and of facts or lines the run does not have, never field edits", () => {
+    const o = orphansOf(cd, { "oc:3": e("a"), "f:f-0000aaaa:t": e("b"), "f:f-0000bbbb": e("c"), "v:vl-0000aaaa": e("d"), "v:vl-0000bbbb": e("e"), brief: e("f"), q: e("g") }, []);
+    expect(o.map((x) => (x.kind === "edit" ? [x.key, x.reason] : x))).toEqual([["oc:3", "position"], ["f:f-0000bbbb", "missing"], ["v:vl-0000bbbb", "missing"]]);
+  });
+  it("lists an edit the view no longer renders although its fact is in the run (a drug now stopped)", () => {
+    const shown = { run: { facts: { "f-0000aaaa": {}, "f-0000eeee": {} }, view_line_ids: [], shown_keys: ["f:f-0000aaaa"] } } as never;
+    const o = orphansOf(shown, { "f:f-0000aaaa:line": e("a"), "f:f-0000eeee:line": e("b") }, []);
+    expect(o.map((x) => (x.kind === "edit" ? [x.key, x.reason] : x))).toEqual([["f:f-0000eeee:line", "not_shown"]]);
+  });
+
+  it("lists a fact whose latest confirmation stands but which the run does not have; a withdrawn one is not listed", () => {
+    const row = (fact_id: string, action: "confirm" | "withdraw") => ({ fact_id, action, who: "MUDr. A", when: "x" });
+    const o = orphansOf(cd, {}, [row("f-0000aaaa", "confirm"), row("f-0000cccc", "confirm"), row("f-0000dddd", "confirm"), row("f-0000dddd", "withdraw")]);
+    expect(o).toEqual([{ kind: "confirmation", fact_id: "f-0000cccc", run_id: null, by: "MUDr. A", when: "x" }]);
   });
 });

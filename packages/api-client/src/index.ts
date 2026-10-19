@@ -6,6 +6,7 @@ import type {
   CreatedCase,
   CreatedUploadSession,
   DemoPicker,
+  EarlierFact,
   Extraction,
   FhirReferral,
   IntakeCompleted,
@@ -150,6 +151,9 @@ export function createApiClient(opts: ClientOptions = {}) {
     caseHeader: (caseId: string, viaLink = false) => t.get<Loose>(`/cases/${enc(caseId)}`, { query: viaLink ? { via: "link" } : undefined }),
     // One request per case load; the server writes a "case.data" access-log row, so it is never prefetched.
     extraction: (caseId: string) => t.get<Extraction>(`/cases/${enc(caseId)}/extraction`, { timeout: 20000 }),
+    // The value an earlier run gave a fact a doctor confirmed (also a "case.data" access-log row); asked only when the
+    // current run gives that fact another value.
+    earlierFact: (caseId: string, runId: string, factId: string) => t.get<EarlierFact>(`/cases/${enc(caseId)}/runs/${enc(runId)}/facts/${enc(factId)}`),
     decisions: (caseId: string) => t.get<Loose>(`/cases/${enc(caseId)}/decisions`),
     history: (caseId: string) => t.get<Loose>(`/cases/${enc(caseId)}/history`),
     guidance: (caseId: string) => t.get<Loose>(`/cases/${enc(caseId)}/guidance`),

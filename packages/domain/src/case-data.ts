@@ -1,29 +1,39 @@
-// The case data of one case in the one shape the patient view reads, whatever produced it: a full extraction
-// ({ case, extra }, case 10), a synthetic patient ({ syn }), or nothing (no run).
-// Each part is null when the extraction has no such part; null means "not in the extraction", never "nothing found",
-// so a view shows a missing part as missing and never as empty. Identity (name, birth number) is not case data: it
-// stays on the list row. The extraction objects are kept by reference, not cloned.
+// The case data of one case in the one shape the patient view reads: built from the case's codebridge.extraction/2 run
+// (run-view.ts), or empty for a case without a run. Each part is null when the run has no such part; null means "not
+// in the extraction", never "nothing found", so a view shows a missing part as missing and never as empty. Identity
+// (name, birth number) is not case data: it stays on the list row.
 
 import type { ExtractionRun } from "./extraction/types";
 import { fromRun, type DocInfo, type RunView } from "./run-view";
 
 // A pointer to the exact passage a fact rests on. `file` may be absent: then the reference points into the open case.
-export type SourceRef = { file?: string; page: number | string; quote?: string };
+// `part` names the logical document inside the file ("10_pacient/p1"), when the run gives it.
+export type SourceRef = { file?: string; page: number | string; quote?: string; part?: string | null };
 
 // The extraction's items carry many optional fields; the views read them by name. Typed loosely on purpose: the
 // extraction schema is produced by the pipeline and the views must tolerate fields that are absent.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type Item = Record<string, any>;
 
-export type Flag = Item & { kind: string; text_cs: string; based_on?: SourceRef[]; note?: string; relevant?: boolean };
-export type DataGap = Item & { kind: string; text_cs: string; refs?: SourceRef[]; source?: SourceRef };
+// One alert of the run: its ID, kind, Fluent message (the app formats it in the UI language), the assistant's note in
+// the content language, the facts it rests on and their passages, and whether it bears on the MDT question.
+export type Flag = Item & {
+  id: string;
+  kind: string;
+  rule: string;
+  message: { id: string; args: Record<string, string | number> };
+  note?: string;
+  fact_ids: string[];
+  based_on?: SourceRef[];
+  relevant?: boolean;
+};
 export type DocumentInfo = Item & { title_cs: string; type?: string; date?: string | null; pages?: number[]; readability?: string; reason_cs?: string; file?: string; embedded_in_cs?: string };
 export type LabValue = Item & { code?: string; name_cs: string; value: string; unit?: string; reference_range?: string; out_of_range?: "high" | "low" | null; date?: string | null; source: SourceRef; certainty?: string; note?: string };
 export type LabDraw = Item & { date: string; time?: string; source: SourceRef };
 export type LabPoint = Item & { date: string; time?: string; value: string | null; out_of_range?: "high" | "low" | null; source: SourceRef; certainty?: string };
 export type LabTest = Item & { code: string; name_cs: string; unit: string; reference_range: string; points?: LabPoint[] };
 export type LabSeries = Item & { draws: LabDraw[]; tests: LabTest[]; note_cs?: string; synthetic?: boolean };
-export type TimelineEvent = Item & { date?: string | null; date_sort?: string | null; kind?: string; category?: string; type?: string; status?: string; title_cs: string; text_cs: string; source?: SourceRef; note_cs?: string; ocr_note_cs?: string };
+export type TimelineEvent = Item & { date?: string | null; date_sort?: string | null; kind?: string; category?: string; type?: string; status?: string; title_cs: string; text_cs: string; source?: SourceRef; note_cs?: string; ocr_note_cs?: string; negation_label?: boolean; fact_ids?: string[]; key?: string };
 
 export type CaseData = {
   file: string;
@@ -56,69 +66,12 @@ export type CaseData = {
     ocr_quality_note: string | null;
   };
   labs: null | { values: LabValue[]; note_cs: string | null; series: LabSeries | null };
-  alerts: null | { flags: Flag[]; gaps: DataGap[] };
+  alerts: null | { flags: Flag[] };
   documents: null | { documents: DocumentInfo[]; pages: number | null; note: string | null };
   note_cs: string | null;
   // The parts only a codebridge.extraction/2 run gives (facts by ID, checks per section); absent for the old format.
   run?: RunView | null;
 };
-
-export function fromFullExtraction(file: string, id: string, c: Item, e: Item): CaseData {
-  return {
-    file,
-    id,
-    level: "full",
-    refs: e.refs || [],
-    brief: {
-      text_cs: e.onco_summary_v3_cs || e.onco_brief_v3_cs || e.onco_brief_cs || null,
-      refs: e.onco_summary_v3_refs || e.onco_brief_v3_refs || e.onco_brief_refs || [],
-      reason_cs: e.mdt_reason_v3_cs || null,
-      reason_refs: e.mdt_reason_v3_refs || [],
-      dx_headline: e.diagnosis_headline || null,
-      summary_items: c.summary || [],
-    },
-    record: {
-      onco_compact: e.onco_compact_v3 || null,
-      onco_detailed: e.onco_detailed_v3 || [],
-      status_praesens: e.status_praesens || null,
-      // The older timeline shape (case.timeline) is mapped here once, so every reader sees one event shape.
-      timeline:
-        e.timeline_cards_v3 ||
-        e.timeline_cards ||
-        (c.timeline || []).map((t: Item) => ({ ...t, kind: t.type, title_cs: t.label_cs, text_cs: t.label_cs, status: t.status || "done" })),
-      timeline_source: c.timeline || [],
-      anamnesis: e.anamnesis_v3 || null,
-      sections: c.sections || null,
-      patient: c.patient || {},
-      diagnosis: c.diagnosis || null,
-      mdt_question: c.mdt_question || {},
-      ocr_quality_note: c.ocr_quality_note || null,
-    },
-    labs: { values: c.labs || [], note_cs: c.labs_note_cs || null, series: null },
-    alerts: { flags: c.flags || [], gaps: e.data_gaps_v3 || [] },
-    documents: { documents: e.documents || [], pages: c.page_count ?? null, note: e.documents_note_cs || null },
-    note_cs: null,
-  };
-}
-
-// A synthetic patient: documents, data gaps and lab series are processed, nothing else. A lab series that may not be
-// charted (synthetic values, or fewer than two dated draws) never enters the case data, so no chart is invented.
-export function fromSyn(s: Item, file: string, id: string): CaseData {
-  const ser = s.labs_series as LabSeries | undefined;
-  const chartable = !!ser && !ser.synthetic && (ser.draws || []).length >= 2;
-  return {
-    file,
-    id,
-    level: "partial",
-    refs: [],
-    brief: null,
-    record: null,
-    labs: chartable ? { values: [], note_cs: null, series: ser! } : null,
-    alerts: { flags: [], gaps: s.data_gaps || [] },
-    documents: { documents: s.documents || [], pages: s.list_entry?.page_count ?? null, note: null },
-    note_cs: s.note_cs || null,
-  };
-}
 
 // A case the assistant has not processed: every part null, so the view says "not processed" and "not checked".
 export const unprocessedCase = (file: string, id: string): CaseData => ({
@@ -134,19 +87,10 @@ export const unprocessedCase = (file: string, id: string): CaseData => ({
   note_cs: null,
 });
 
-// The server's extraction data (GET /cases/:id/extraction, `data`): null for a case without a run, { case, extra } or
-// { syn }. The cases store has already refused any other shape.
-export function fromExtraction(
-  file: string,
-  id: string,
-  data: { case?: unknown; extra?: unknown; syn?: unknown } | ExtractionRun | null,
-  docs: DocInfo[] | null = null,
-): CaseData {
-  if (!data) return unprocessedCase(file, id);
-  if ("schema" in data && data.schema === "codebridge.extraction/2") return fromRun(file, id, data, docs);
-  if ("case" in data && data.case) return fromFullExtraction(file, id, data.case as Item, ("extra" in data && (data.extra as Item)) || {});
-  if ("syn" in data && data.syn) return fromSyn(data.syn as Item, file, id);
-  return unprocessedCase(file, id);
+// The server's extraction data (GET /cases/:id/extraction): the run, or null for a case without one (and for a run
+// still in the old format /1, which the server sends as null). `docs` are the stored documents with their parts.
+export function fromExtraction(file: string, id: string, data: ExtractionRun | null, docs: DocInfo[] | null = null): CaseData {
+  return data ? fromRun(file, id, data, docs) : unprocessedCase(file, id);
 }
 
 // Which parts of the patient view a case can show; decided by its data, not by which patient it is.
@@ -204,7 +148,9 @@ export const refAt = (cd: CaseData | null | undefined, i: unknown): SourceRef | 
 // the document list does not know the page. `fallbackFile` is the open case's file, for a reference without a file.
 export function docTitle(r: SourceRef, docsOf: (file: string) => CaseData["documents"] | null, fallbackFile: string): string {
   const f = r.file || fallbackFile;
-  const d = (docsOf(f)?.documents || []).find((x) => (!x.file || x.file === f) && (x.pages || []).includes(Number(r.page)));
+  const docs = docsOf(f)?.documents || [];
+  // The part the source names wins: two parts may share a page (the lab sheet on page 3 of the outpatient report).
+  const d = (r.part && docs.find((x) => x.part_id === r.part)) || docs.find((x) => (!x.file || x.file === f) && (x.pages || []).includes(Number(r.page)));
   return d ? d.title_cs : (r.file ?? f);
 }
 

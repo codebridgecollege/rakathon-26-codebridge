@@ -39,3 +39,7 @@ alert-cycles-differ = Počet indikovaných a zdokumentovaných cyklov sa líši:
 alert-page-order-unclear = Poradie strán a najnovší záver dokumentu nie sú jednoznačné: { $document }
 
 alert-dosing-differs = Dávkovanie lieku sa medzi časťami dokumentácie líši: { $fact_a }; { $fact_b }
+
+alert-poor-copy = Zle čitateľný dokument, vyžiadajte lepšiu kópiu: { $document }
+
+alert-identity-conflict = Strana patrí inému pacientovi; jej údaje nie sú zobrazené: { $document }, s. { $page }

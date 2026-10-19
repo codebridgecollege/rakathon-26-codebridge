@@ -9,7 +9,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { env } from "cloudflare:workers";
 import { applyD1Migrations, reset } from "cloudflare:test";
 import { call, mockFetch, testEnv } from "./helpers";
-import { B_NAME, FAKE_NAME, MUTABLE_B, loadFixture, resetDoc } from "./data";
+import { B_NAME, FAKE_NAME, MUTABLE_B, RUN_A2, RUN_A2_ID, loadFixture, resetDoc } from "./data";
 import { ORG_TABLES } from "../src/store/sql";
 import { sweep } from "../src/scheduled";
 
@@ -145,6 +145,7 @@ const PROBES: Probe[] = [
   ...["", "/extraction", "/decisions", "/history", "/guidance", "/prognosis", "/documents", "/transcript", "/intake"].map(
     (s): Probe => ({ name: `GET /cases/:id${s}`, method: "GET", path: (i) => `/cases/${i.case}${s}`, user: "b-doc" }),
   ),
+  { name: "GET /cases/:id/runs/:runId/facts/:factId", method: "GET", path: (i) => `/cases/${i.case}/runs/${RUN_A2_ID}/facts/${RUN_A2.facts[0]!.id}`, user: "b-doc" },
   { name: "GET /cases/:id (coordinator)", method: "GET", path: (i) => `/cases/${i.case2}`, user: "b-coord" },
   { name: "GET /cases/:id (administrator)", method: "GET", path: (i) => `/cases/${i.case}`, user: "b-admin" },
   // Documents and pages (pages.ts, pipeline.ts, documents.ts).

@@ -81,20 +81,35 @@ beforeEach(async () => {
      VALUES ('demo-a', ?1, 'NO-A', 'lab.pdf', 0, 'uploads/NO-A/up-test-1.pdf', ?2, 10, 'upload', 'unprocessed', 'd2p1', 'stored', NULL, NULL)`,
   ).bind(DOC, SHA).run();
   await env.DOCS.put("uploads/NO-A/up-test-1.pdf", "%PDF-1.4 test");
-  // The case's prepared data holds the two values of this document, so the run is compared with them. The comparison
-  // still reads the old format /1 (its switch to codebridge.extraction/2 is a later change), so the /1 run is current here.
+  // The case's prepared run (codebridge.extraction/2) holds the two values of this document as lab_result facts, so the
+  // run is compared with them.
   await env.DB.batch([
     env.DB.prepare("UPDATE extraction_runs SET is_current = 0 WHERE case_id = 'NO-A'"),
-    env.DB.prepare("UPDATE extraction_runs SET is_current = 1 WHERE id = 'run-A'"),
+    env.DB.prepare("UPDATE extraction_runs SET is_current = 1, schema = 'codebridge.extraction/2' WHERE id = 'run-A'"),
   ]);
+  const lab = (id: string, code: string, value: string, unit: string, range: string, src: string) => ({
+    id, key: `lab_result|${code}|draw:10.3.2026 07:25|doc:${DOC}`, kind: "lab_result", subject: "patient",
+    value: { name_as_written: code, value_as_written: value, value_numeric: null, unit_as_written: unit, unit, reference_range: range, reference_low: null, reference_high: null, out_of_range: null, out_of_range_origin: null, draw: { as_written: "10.3.2026 07:25", requisition: null, specimen: null } },
+    date: { as_written: "10.3.2026 07:25", precision: "minute", sort: "2026-03-10T07:25" }, status: "documented", negated: false, not_stated: [], origin: "document", certainty: "clear",
+    codes: [{ system: "fno-local-lab", code, assigned_by: "source" }], note: null, quarantined: false, sources: [src],
+  });
+  const source = (id: string, quote: string) => ({ id, type: "document", document_id: DOC, part: null, page: 1, quote, quote_text: "tesseract", anchor: null, reported_as: "original", identity: "matches", reading_check: null });
   await env.DOCS.put(
     "extract/NO-A/run-A.json",
     JSON.stringify({
-      schema: "codebridge.extraction/1", case_id: "NO-A", processing: "partial", run_id: "run-A",
-      syn: { labs_series: { tests: [
-        { code: "B_HB", unit: "g/l", reference_range: "120 ... 160", points: [{ value: "108", date: "2026-03-10", time: "07:25", source: { file: `${DOC}.pdf`, page: 1 } }] },
-        { code: "S_CEA", unit: "µg/l", reference_range: "0 ... 5", points: [{ value: "14,8", date: "2026-03-10", time: "07:25", source: { file: `${DOC}.pdf`, page: 1 } }] },
-      ] } },
+      schema: "codebridge.extraction/2", case_id: "NO-A", content_language: "cs",
+      run: { id: "run-A", producer: "fixture", created_at: "2026-10-19T00:00:00Z", stages: [], supersedes: null },
+      documents: [{ document_id: DOC, sha256: null, parts: [] }],
+      // A quarantined value and one from another document are never compared: had they been, the comparison would
+      // report them as missing from the reading.
+      sources: [source("src-1", "B_HB 108"), source("src-2", "S_CEA 14,8"), { ...source("src-3", "S_ALT 2,0"), identity: "conflicts" }, { ...source("src-4", "S_AST 1,0"), document_id: "other-doc" }],
+      facts: [
+        lab("f-0000aa01", "B_HB", "108", "g/l", "120 ... 160", "src-1"),
+        lab("f-0000aa02", "S_CEA", "14,8", "µg/l", "0 ... 5", "src-2"),
+        { ...lab("f-0000aa03", "S_ALT", "2,0", "µkat/l", "0 ... 0.8", "src-3"), quarantined: true },
+        lab("f-0000aa04", "S_AST", "1,0", "µkat/l", "0 ... 0.8", "src-4"),
+      ],
+      checks: [], alerts: [], brief: null, question_draft: null,
     }),
   );
 });

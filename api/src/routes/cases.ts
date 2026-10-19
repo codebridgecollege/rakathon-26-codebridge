@@ -6,7 +6,10 @@ import { canReadClinical, listsAllCases, redactsListFor } from "@codebridge/doma
 import { identitySource, patientRow } from "../domain/rows";
 import { modeOf, openCase } from "./access-check";
 import { EXTRACTION_SCHEMA, type ExtractionRun, type Producer } from "@codebridge/domain/extraction/index";
-import type { Extraction } from "@codebridge/domain/wire";
+import type { EarlierFact, Extraction, ExtractionDocument } from "@codebridge/domain/wire";
+import { FACT_ID_RE } from "@codebridge/domain/edits";
+import { D } from "@codebridge/domain/errors";
+import { orgQuery } from "./write-context";
 import { withoutQuarantined } from "../store/runs";
 
 const EMPTY_GUIDANCE = { guidelines: [], statements: [], pages: [], literature: [], queries: [], not_retrieved: [], prior_assessments: {} };
@@ -67,18 +70,44 @@ export const cases = new Hono<AppEnv>()
     const row = await openCase(c, id, "clinical");
     await audit(c, { action: "case.data", case_id: id, what_cs: "načetl(a) zpracovaná data případu" });
     const run = await c.var.stores.cases.currentRun(id);
+    // The stored documents with their parts (titles, types, pages, readability) come with the run: the run names parts
+    // by ID only, and one request per case load keeps one "case.data" row in the access log.
+    const documents: ExtractionDocument[] = (await c.var.stores.cases.documents(id)).map((d) => ({ id: d.id, file: d.file_name, page_count: d.page_count, note_cs: d.note_cs, parts: d.parts }));
     // A case without a run is not an error: the page already says "nezpracováno".
-    if (!run) return c.json<Extraction>({ case_id: id, processing: row.processing_level, run: null, data: null });
+    if (!run) return c.json<Extraction>({ case_id: id, processing: row.processing_level, run: null, data: null, documents });
     const info = { id: run.id, producer: run.producer as Producer, created_at: run.created_at };
     // A run in the old format /1 has no fact or alert IDs to attach confirmations to; the case shows as not processed
     // until it is reseeded or processed again.
-    if (run.schema !== EXTRACTION_SCHEMA) return c.json<Extraction>({ case_id: id, processing: row.processing_level, run: info, data: null });
+    if (run.schema !== EXTRACTION_SCHEMA) return c.json<Extraction>({ case_id: id, processing: row.processing_level, run: info, data: null, documents });
     // The run holds no patient identity (EXTRACTION-FORMAT.md). It goes out minus its quarantined content: a fact from a
     // page that shows another patient, and a source only such facts cite, never reach the browser; the identity alert
     // stays and names document and page. So the payload is not a whole run for validateRun. Its alerts are part of it.
     const stored = await c.var.stores.blobs.getJson<ExtractionRun>(run.r2_key);
     if (!stored) throw E.dataUnavailable();
-    return c.json<Extraction>({ case_id: id, processing: row.processing_level, run: info, data: withoutQuarantined(stored) });
+    return c.json<Extraction>({ case_id: id, processing: row.processing_level, run: info, data: withoutQuarantined(stored), documents });
+  })
+  // One fact as an earlier run of the case stated it: the value a doctor confirmed, shown next to the current one when
+  // a later run gives the same fact ID another value (EXTRACTION-FORMAT.md, "Doctor confirmations and edits"). Only a
+  // run of this case, only a fact that run did not quarantine.
+  .get("/cases/:id/runs/:runId/facts/:factId", async (c) => {
+    const id = c.req.param("id");
+    await openCase(c, id, "clinical");
+    const runId = c.req.param("runId");
+    const factId = c.req.param("factId");
+    if (!FACT_ID_RE.test(factId) || runId.length > 200) throw D.factNotFound();
+    await audit(c, { action: "case.data", case_id: id, what_cs: "načetl(a) dříve potvrzený údaj" });
+    const run = await orgQuery(c, "SELECT r2_key, schema FROM extraction_runs WHERE org_id = ?org AND case_id = ?1 AND id = ?2", id, runId).first<{ r2_key: string; schema: string }>();
+    if (!run || run.schema !== EXTRACTION_SCHEMA) throw D.factNotFound();
+    const stored = await c.var.stores.blobs.getJson<ExtractionRun>(run.r2_key);
+    const fact = stored ? withoutQuarantined(stored).facts.find((f) => f.id === factId) : undefined;
+    if (!fact) throw D.factNotFound();
+    // A fact the current run quarantines (its page shows another patient) is not served from an older run either.
+    const cur = await c.var.stores.cases.currentRun(id);
+    if (cur && cur.id !== runId && cur.schema === EXTRACTION_SCHEMA) {
+      const now = await c.var.stores.blobs.getJson<ExtractionRun>(cur.r2_key);
+      if (now?.facts.some((f) => f.id === factId && f.quarantined)) throw D.factNotFound();
+    }
+    return c.json<EarlierFact>({ run_id: runId, fact });
   })
   .get("/cases/:id/decisions", async (c) => {
     const id = c.req.param("id");

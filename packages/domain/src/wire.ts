@@ -6,7 +6,7 @@ import type { NisCandidate } from "./nis";
 export type { NisCandidate } from "./nis";
 import type { Status } from "./status";
 import type { Step } from "./protocol";
-import type { ExtractionRun, Producer } from "./extraction/types";
+import type { ExtractionRun, Fact, Producer } from "./extraction/types";
 import type { ConfirmAction } from "./confirmations";
 
 // Every refusal: { error: { code, message_cs } }, plus the server's state on a conflict and field messages for a form.
@@ -200,7 +200,17 @@ export type Workflow = {
 // the run minus its quarantined facts, the sources only they cite, and their IDs in alerts (EXTRACTION-FORMAT.md, "How
 // the case view uses it"), so it is not a whole run for validateRun.
 export type ExtractionRunInfo = { id: string; producer: Producer; created_at: string };
-export type Extraction = { case_id: string; processing: string; run: ExtractionRunInfo | null; data: ExtractionRun | null };
+// documents: the case's stored files with their parts in ordinal order (D1 document_parts), which the run names by ID.
+export type ExtractionDocument = {
+  id: string;
+  file: string;
+  page_count: number;
+  note_cs: string | null;
+  parts: { title_cs: string; type: string | null; date: string | null; date_note_cs: string | null; pages: number[]; readability: string | null; reason_cs: string | null }[];
+};
+export type Extraction = { case_id: string; processing: string; run: ExtractionRunInfo | null; data: ExtractionRun | null; documents: ExtractionDocument[] };
+// GET /cases/:id/runs/:runId/facts/:factId: one fact as an earlier run stated it (never a quarantined one).
+export type EarlierFact = { run_id: string; fact: Fact };
 
 // Protocol steps travel in the app's shape.
 export type { Step };

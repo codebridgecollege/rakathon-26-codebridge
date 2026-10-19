@@ -33,8 +33,11 @@ export type DocInfo = { id: string; file?: string | null; name?: string | null; 
 
 // ---------- the extra parts a run gives the view ----------
 
-/** What a check found for one view section: found, nothing_found ("-" with the gap wording) or not_run. */
-export type SectionCheck = { result: Check["result"]; unreadable: CheckPage[]; check_ids: string[] };
+/**
+ * What a check found for one view section: found, nothing_found ("-" with the gap wording) or not_run. `hidden`: the
+ * documents state something here, but nothing the view may show (a page of another patient holds it back).
+ */
+export type SectionCheck = { result: Check["result"]; unreadable: CheckPage[]; check_ids: string[]; hidden?: boolean };
 
 /** The view parts only a /2 run has; null on a case built from the old format. */
 export type RunView = {
@@ -44,6 +47,14 @@ export type RunView = {
   facts: Record<string, Fact>;
   /** The IDs of the composed lines in the run, for telling a line edit from an orphan. */
   view_line_ids: string[];
+  /** The position in `refs` of each source the view shows, by source ID. */
+  source_index: Record<string, number>;
+  /**
+   * The edit keys (without their part) of every item the view renders for editing: onco lines, current state,
+   * anamnesis. An edit under any other fact or line key is listed as orphaned, even when its fact is still in the run
+   * (a drug now stopped, a line now composed), so an edit never disappears silently.
+   */
+  shown_keys: string[];
   /** Checks by the section they decide (see SECTION_CHECKS), and every check by ID. */
   sections: Record<string, SectionCheck>;
   checks: Record<string, Check>;
@@ -179,9 +190,12 @@ const RECORD_KINDS = new Set(["diagnosis", "histology", "stage", "metastasis", "
  * this section lists (abusus and EA share the risk-factor check; every drug may be stopped), is "nothing found" here;
  * a section that lists items is "found" whatever its check says.
  */
-function shownCheck(c: SectionCheck, shown: number): SectionCheck {
+function shownCheck(c: SectionCheck, shown: number, visibleOfKind: boolean): SectionCheck {
   if (shown > 0) return { ...c, result: "found" };
-  return c.result === "found" ? { ...c, result: "nothing_found" } : c;
+  if (c.result !== "found") return c;
+  // Found, yet the section lists nothing: when the view shows other facts of the kind, this section's part is simply
+  // not stated; when it shows none, they were held back, and "not stated" would be false.
+  return visibleOfKind ? { ...c, result: "nothing_found" } : { ...c, hidden: true };
 }
 
 function sectionCheck(checks: Check[], kinds: string[]): SectionCheck {
@@ -217,9 +231,12 @@ const firstRef = (x: Ctx, fs: Fact[]): SourceRef | undefined => {
 const factsOf = (x: Ctx, ids: string[]) => ids.map((id) => x.facts.get(id)).filter((f): f is Fact => !!f);
 const byDate = (a: Fact, b: Fact) => (a.date.sort ? 0 : 1) - (b.date.sort ? 0 : 1) || String(a.date.sort || "").localeCompare(String(b.date.sort || ""));
 
-/** A source as the view's pointer: the stored file and page with the quote, or a NIS record (no page). */
-function refOf(s: Source): SourceRef {
-  if (s.type === "document") return { file: `${s.document_id}.pdf`, page: s.page, quote: s.quote };
+/**
+ * A source as the view's pointer: the stored file (its stored name when the document list gives it, else the PDF named
+ * by the document ID), the page, the quote and the part, or a NIS record (no page).
+ */
+function refOf(s: Source, fileOf: (documentId: string) => string): SourceRef {
+  if (s.type === "document") return { file: fileOf(s.document_id), page: s.page, quote: s.quote, part: s.part };
   return { page: "NIS", quote: s.resource, nis: { system: s.system, resource: s.resource, version: s.version, last_updated: s.last_updated } } as SourceRef;
 }
 
@@ -319,6 +336,12 @@ function headline(x: Ctx): Item | null {
  * undated state findings; if every finding is dated, the part of the latest one. The visit fact of that part (stream
  * F's `visit`) names the exam. A producer that marks the current visit explicitly would replace this rule.
  */
+// A measurement as clinicians write it: "155/70 mmHg", "68/min" (a per-unit sticks to its number).
+const measured = (v: Record<string, unknown>) => {
+  const unit = str(v.unit);
+  return unit ? `${v.value_as_written}${unit.startsWith("/") ? "" : " "}${unit}` : String(v.value_as_written ?? "");
+};
+
 function currentState(x: Ctx): Item | null {
   const stateKinds = new Set(["vital_sign", "performance_status", "exam_finding", "symptom"]);
   const partsOf = (f: Fact) => [...new Set(f.sources.map((s) => x.sources.get(s)).map((s) => (s?.type === "document" ? (s.part ?? s.document_id) : null)).filter((p): p is string => !!p))];
@@ -355,7 +378,7 @@ function currentState(x: Ctx): Item | null {
       kind: f.kind,
       what: f.kind === "vital_sign" ? v.what : f.kind === "performance_status" ? String(v.scale ?? "").toLowerCase() : null,
       label_cs: f.kind === "vital_sign" ? (str(v.label_as_written) ?? String(v.what)) : f.kind === "performance_status" ? `${v.scale} PS` : region ? cap(region) : clinicalMeta ? String(v.site ?? "") : null,
-      text_cs: f.kind === "vital_sign" ? [v.value_as_written, v.unit].filter(Boolean).join(" ") : f.kind === "performance_status" ? String(v.value_as_written ?? "") : factText(f),
+      text_cs: f.kind === "vital_sign" ? measured(v) : f.kind === "performance_status" ? String(v.value_as_written ?? "") : factText(f),
       negation_label: negationLabel(f, factText(f)),
       value_as_written: v.value_as_written ?? null,
       unit: v.unit ?? null,
@@ -525,20 +548,19 @@ function alerts(x: Ctx): CaseData["alerts"] {
     if (a.kind !== "identity" && a.facts.length && !fs.length) continue;
     flags.push({
       id: a.id,
-      i: a.id,
       rule: a.rule,
       subject: a.subject,
       kind: a.kind,
       message: a.message,
       note: a.note ?? undefined,
-      text_cs: "",
       fact_ids: fs.map((f) => f.id),
       based_on: refsOf(x, fs).map((i) => x.refs[i]!),
       // Relevant to the MDT question: the alert rests on a fact the drafted question rests on (else the latest finding).
-      relevant: fs.some((f) => basis.has(f.id)),
+      // A page of another patient matters whatever the question: it comes first, so it is never one click away.
+      relevant: a.kind === "identity" || fs.some((f) => basis.has(f.id)),
     });
   }
-  return { flags, gaps: [] };
+  return { flags };
 }
 
 function documents(x: Ctx, docs: DocInfo[] | null): CaseData["documents"] {
@@ -557,7 +579,8 @@ function documents(x: Ctx, docs: DocInfo[] | null): CaseData["documents"] {
       list.push(p ? ({ ...p, title_cs: p.title_cs, file, part_id: partId, cited } as DocumentInfo) : { title_cs: partId, file, part_id: partId, pages: [], cited });
     });
   }
-  const pages = docs ? docs.reduce((n, d) => n + (d.page_count ?? 0), 0) : null;
+  // No stored document at all is "not stated", never "0 pages".
+  const pages = docs?.length ? docs.reduce((n, d) => n + (d.page_count ?? 0), 0) : null;
   const note = docs?.map((d) => d.note_cs).filter(Boolean).join(" ") || null;
   return { documents: list, pages, note };
 }
@@ -618,6 +641,63 @@ function brief(x: Ctx): { text_cs: string | null; refs: SourceRef[]; sentences: 
 }
 
 /**
+ * The passages of the facts something outside the run names by ID (a guideline statement's patient facts, a past
+ * decision, a deviation). A fact ID the current run does not show is returned as unresolved, so the view flags the
+ * reference instead of hiding it (EXTRACTION-FORMAT.md, "How the case view uses it").
+ */
+export function factRefs(cd: CaseData | null | undefined, ids: unknown): { refs: SourceRef[]; unresolved: string[] } {
+  const refs: SourceRef[] = [];
+  const unresolved: string[] = [];
+  for (const id of Array.isArray(ids) ? (ids as unknown[]) : []) {
+    const f = typeof id === "string" ? cd?.run?.facts[id] : undefined;
+    if (!f) {
+      unresolved.push(String(id));
+      continue;
+    }
+    for (const s of f.sources) {
+      const r = cd!.refs[cd!.run!.source_index[s] ?? -1];
+      if (r && !refs.includes(r)) refs.push(r);
+    }
+  }
+  return { refs, unresolved };
+}
+
+/** A catalog lookup, as the app's Fluent bundle gives it; the domain holds no interface text. */
+export type Translate = (id: string, args?: Record<string, string | number>) => string;
+
+/** A fact as one line for the doctor: its text, and a negation label when the text itself does not say it. */
+export function factDisplay(f: Fact, t: Translate): string {
+  const text = factText(f);
+  return f.negated && !negationShown(text) ? t("patient-fact-negated", { text }) : text;
+}
+
+/**
+ * The arguments of an alert's Fluent message, ready to format: a fact ID becomes that fact's line, a document or part
+ * ID the document's title, a field code stays a code (the message selects its label). A fact the view cannot show (not
+ * in the run, or quarantined) becomes the "not available" wording and is listed in `unresolved`, so the alert says it
+ * instead of hiding the reference.
+ */
+export function alertArgs(cd: CaseData, flag: Flag, t: Translate): { args: Record<string, string | number>; unresolved: string[] } {
+  const args: Record<string, string | number> = {};
+  const unresolved: string[] = [];
+  for (const [k, v] of Object.entries(flag.message?.args || {})) {
+    if (typeof v === "string" && /^f-[0-9a-f]{6,8}$/.test(v)) {
+      const f = cd.run?.facts[v];
+      if (f) args[k] = factDisplay(f, t);
+      else {
+        args[k] = t("patient-alert-fact-unavailable");
+        unresolved.push(v);
+      }
+    } else if (k === "document" && typeof v === "string") {
+      const docs = cd.documents?.documents || [];
+      const d = docs.find((x) => x.part_id === v) ?? docs.find((x) => String(x.part_id || "").startsWith(`${v}/`));
+      args[k] = d && docs.some((x) => x.part_id === v) ? d.title_cs : (d?.file ?? v);
+    } else args[k] = v;
+  }
+  return { args, unresolved };
+}
+
+/**
  * The case view of a /2 run. `docs` is the case's stored documents with their parts (titles, types, pages,
  * readability); without them the documents list names parts by ID.
  */
@@ -632,13 +712,14 @@ export function fromRun(file: string, id: string, run: ExtractionRun, docs: DocI
   for (const s of run.sources) {
     if (!cited.has(s.id)) continue;
     srcIndex.set(s.id, refs.length);
-    refs.push(refOf(s));
+    refs.push(refOf(s, (id) => docs?.find((d) => d.id === id)?.file ?? `${id}.pdf`));
   }
   const x: Ctx = { run, facts, sources, srcIndex, refs };
   const ran = run.checks.some((c) => !c.expected && RECORD_KINDS.has(c.looks_for) && c.result !== "not_run");
   const b = brief(x);
   const checks = run.checks.filter((c) => !c.expected || facts.has(c.expected.of_fact));
   const anam = ran ? anamnesis(x) : null;
+  const onco = ran ? oncoCompact(x) : null;
   const state = ran ? currentState(x) : null;
   const lab = labs(x);
   const shown: Record<string, number | undefined> = {
@@ -649,7 +730,7 @@ export function fromRun(file: string, id: string, run: ExtractionRun, docs: DocI
   const sections: Record<string, SectionCheck> = {};
   for (const [k, kinds] of Object.entries(SECTION_CHECKS)) {
     const c = sectionCheck(checks, kinds);
-    sections[k] = shown[k] === undefined ? c : shownCheck(c, shown[k]!);
+    sections[k] = shown[k] === undefined ? c : shownCheck(c, shown[k]!, [...facts.values()].some((f) => kinds.includes(f.kind)));
   }
   const viewLineIds = [...(run.views?.onco_lines || []), ...(run.views?.other_diagnoses || []), ...(run.views?.timeline || [])].filter((l) => allKnown(x, l.facts)).map((l) => l.id);
   const dx = [...facts.values()].find((f) => f.kind === "diagnosis" && f.value.primary && !f.negated);
@@ -672,7 +753,7 @@ export function fromRun(file: string, id: string, run: ExtractionRun, docs: DocI
       : null,
     record: ran
       ? {
-          onco_compact: oncoCompact(x),
+          onco_compact: onco,
           onco_detailed: [],
           status_praesens: state,
           timeline: timeline(x),
@@ -689,6 +770,15 @@ export function fromRun(file: string, id: string, run: ExtractionRun, docs: DocI
     alerts: alerts(x),
     documents: documents(x, docs),
     note_cs: null,
-    run: { run_id: run.run.id, producer: run.run.producer, facts: Object.fromEntries(facts), view_line_ids: viewLineIds, sections, checks: Object.fromEntries(checks.map((c) => [c.id, c])) },
+    run: {
+      run_id: run.run.id,
+      producer: run.run.producer,
+      facts: Object.fromEntries(facts),
+      view_line_ids: viewLineIds,
+      source_index: Object.fromEntries(srcIndex),
+      shown_keys: [...new Set([...(onco?.lines ?? []), ...(state?.items ?? []), ...Object.values(anam ?? {}).flat()].map((i: Item) => String(i.key)).filter((k) => k !== "undefined"))],
+      sections,
+      checks: Object.fromEntries(checks.map((c) => [c.id, c])),
+    },
   };
 }

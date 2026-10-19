@@ -137,6 +137,19 @@ MESSAGES: dict[str, dict[str, str]] = {
         "sk": "Dávkovanie lieku sa medzi časťami dokumentácie líši: { $fact_a }; { $fact_b }",
         "en": "The dosing of a drug differs between parts of the documentation: { $fact_a }; { $fact_b }",
     },
+    # Rules the fixtures do not raise but the pipeline and the identity check do (pipeline/eval.py, the validator
+    # tests): a poorly readable document, and a page that shows another patient. The identity message names only the
+    # document and the page, never what the page says.
+    "alert-poor-copy": {
+        "cs": "Špatně čitelný dokument, vyžádejte lepší kopii: { $document }",
+        "sk": "Zle čitateľný dokument, vyžiadajte lepšiu kópiu: { $document }",
+        "en": "Poorly readable document, ask for a better copy: { $document }",
+    },
+    "alert-identity-conflict": {
+        "cs": "Strana patří jinému pacientovi; její údaje nejsou zobrazeny: { $document }, s. { $page }",
+        "sk": "Strana patrí inému pacientovi; jej údaje nie sú zobrazené: { $document }, s. { $page }",
+        "en": "The page belongs to another patient; its items are not shown: { $document }, p. { $page }",
+    },
 }
 
 FTL_HEADER = {

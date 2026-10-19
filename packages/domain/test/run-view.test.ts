@@ -1,15 +1,16 @@
 // The adapter from a codebridge.extraction/2 run to the case view (run-view.ts), against the three converted runs.
-// For case 10 it is compared part by part with today's view of the old fixtures (fromExtraction on { case, extra }):
+// For case 10 it is compared part by part with today's view of the old fixtures (old-view.ts, the builders the app used before):
 // equal where the view must stay the same, and every intended difference is asserted as such below, so a change in
 // either is a deliberate one. The documents list is fed the parts the way D1 stores them (document_parts has no
 // embedded_in_cs).
 // JSON imports, as the other tests here: the package has no Node types.
 import { describe, expect, it } from "vitest";
 import { fromExtraction, sectionsOf, tabsFor, type CaseData, type Item } from "../src/case-data";
+import { fromFullExtraction, fromSyn } from "./old-view";
 import { warningEntries } from "../src/case-view";
 import type { ExtractionRun, Fact } from "../src/extraction/types";
 import { validateRun } from "../src/extraction/validate";
-import { factText, fromRun, negationShown, type DocInfo } from "../src/run-view";
+import { alertArgs, factDisplay, factRefs, factText, fromRun, negationShown, type DocInfo } from "../src/run-view";
 
 import run10 from "../../../fixtures/data/runs/NO-010.json";
 import runS01 from "../../../fixtures/data/runs/NO-S01.json";
@@ -29,7 +30,7 @@ const E = extra10 as Item;
 // D1 document_parts keeps title, type, date, date note, pages, readability and reason, not embedded_in_cs.
 const d1Parts = (docs: Item[]) => docs.map(({ title_cs, type, date, date_note_cs, pages, readability, reason_cs }) => ({ title_cs, type, date, date_note_cs, pages, readability, reason_cs }));
 const DOCS10: DocInfo[] = [{ id: "10_pacient", file: "10_pacient.pdf", page_count: C.page_count, note_cs: E.documents_note_cs, parts: d1Parts(E.documents) }];
-const OLD = fromExtraction("10_pacient.pdf", "NO-010", { case: C, extra: E });
+const OLD = fromFullExtraction("10_pacient.pdf", "NO-010", C, E) as unknown as CaseData & { alerts: { flags: Item[]; gaps: Item[] } };
 const NEW = fromExtraction("10_pacient.pdf", "NO-010", runOf("NO-010"), DOCS10);
 const quoteOf = (cd: CaseData, i: number) => cd.refs[i]!.quote;
 
@@ -39,10 +40,10 @@ describe("case 10: the same view as before, from facts", () => {
     expect(tabsFor(sectionsOf(NEW))).toEqual(tabsFor(sectionsOf(OLD)));
   });
 
-  it("refs are the run's sources, each a file, page and verbatim quote", () => {
+  it("refs are the run's sources, each a file, page, verbatim quote and part", () => {
     const run = runOf("NO-010");
     expect(NEW.refs).toHaveLength(run.sources.length);
-    expect(NEW.refs[0]).toEqual({ file: "10_pacient.pdf", page: run.sources[0]!.type === "document" ? run.sources[0]!.page : 0, quote: (run.sources[0] as { quote: string }).quote });
+    expect(NEW.refs[0]).toEqual({ file: "10_pacient.pdf", page: run.sources[0]!.type === "document" ? run.sources[0]!.page : 0, quote: (run.sources[0] as { quote: string }).quote, part: "10_pacient/p0" });
   });
 
   it("onco lines: today's 16 lines, same text, date, kind and order, each keyed by its line ID", () => {
@@ -97,7 +98,7 @@ describe("case 10: the same view as before, from facts", () => {
     expect(group(b, "status").sort()).toEqual(group(a, "status").sort());
     const bp = b.items.find((i: Item) => i.what === "blood_pressure");
     const pulse = b.items.find((i: Item) => i.what === "pulse");
-    expect([bp?.text_cs, pulse?.text_cs]).toEqual(["155/70 mmHg", "68 /min"]);
+    expect([bp?.text_cs, pulse?.text_cs]).toEqual(["155/70 mmHg", "68/min"]);
     expect(b.items.find((i: Item) => i.what === "ecog")?.text_cs).toBe("1");
     const brain = b.items.find((i: Item) => i.kind === "metastasis");
     expect(brain).toMatchObject({ text_cs: "bez klinických známek mozkových metastáz", negated: true, group: "status" });
@@ -171,9 +172,8 @@ describe("case 10: the same view as before, from facts", () => {
 
   it("alerts: one list keyed by alert ID with Fluent messages; today's flags and gaps are all covered", () => {
     const flags = NEW.alerts!.flags;
-    expect(NEW.alerts!.gaps).toEqual([]);
     expect(flags).toHaveLength(21);
-    expect(flags.every((f) => /^al-[0-9a-f]{8}$/.test(String(f.i)) && /^alert-/.test(f.message.id))).toBe(true);
+    expect(flags.every((f) => /^al-[0-9a-f]{8}$/.test(f.id) && /^alert-/.test(f.message.id))).toBe(true);
     expect(new Set(flags.map((f) => f.kind))).toEqual(new Set(["missing", "unclear", "contradiction", "chronology"]));
     // Missing-document alerts are always on: today's three relevant alerts stay relevant.
     const rel = new Set(flags.filter((f) => f.relevant).map((f) => f.rule));
@@ -209,7 +209,7 @@ describe("S01 and S02: labs, alerts and documents, as before", () => {
   const docsOf = (s: Item, id: string): DocInfo[] => [{ id: `${id}_pacient`, file: `${id}_pacient.pdf`, page_count: s.list_entry?.page_count ?? null, note_cs: null, parts: d1Parts(s.documents) }];
   for (const id of ["S01", "S02"]) {
     const s = syn(id);
-    const old = fromExtraction(`${id}_pacient.pdf`, `NO-${id}`, { syn: s });
+    const old = fromSyn(s, `${id}_pacient.pdf`, `NO-${id}`) as unknown as CaseData & { alerts: { flags: Item[]; gaps: Item[] } };
     const cd = fromRun(`${id}_pacient.pdf`, `NO-${id}`, runOf(`NO-${id}`), docsOf(s, id));
 
     it(`${id}: partial, no record, the same tabs`, () => {
@@ -348,7 +348,7 @@ describe("rules that keep the view honest", () => {
     // Without composed views the timeline shows it as its own event, with the label; the text alone never reads as present.
     const run = runOf("NO-010");
     delete run.views;
-    const ev = fromRun("10_pacient.pdf", "NO-010", run, DOCS10).record!.timeline.find((t) => t.fact_ids[0] === pe.id);
+    const ev = fromRun("10_pacient.pdf", "NO-010", run, DOCS10).record!.timeline.find((t) => t.fact_ids?.[0] === pe.id);
     expect(ev).toMatchObject({ negated: true, negation_label: true });
     // A metastasis whose text says the negation itself needs no label.
     const brain = cd.record!.status_praesens!.items.find((i: Item) => i.kind === "metastasis");
@@ -365,6 +365,26 @@ describe("rules that keep the view honest", () => {
     expect(id.fact_ids).toEqual([]);
     expect(id.based_on).toEqual([]);
     expect(id.message.args).toEqual({ document: "10_pacient/p2", page: 4 });
+  });
+
+  it("alert arguments: a fact ID becomes its line, a document or part its title; a fact the view lacks is said and listed", () => {
+    const t = (id: string, args?: Record<string, string | number>) => (args ? `${id}${JSON.stringify(args)}` : id);
+    const req = NEW.alerts!.flags.find((a) => a.rule === "request_without_result")!;
+    expect(alertArgs(NEW, req, t)).toEqual({ args: { fact: "projednání nálezu MR mozku na neurochirurgickém semináři" }, unresolved: [] });
+    const page = NEW.alerts!.flags.find((a) => a.rule === "document_date_not_stated")!;
+    expect(alertArgs(NEW, page, t).args.document).toBe("Ambulantní vyšetření kontrolní: subjektivně, objektivní nález, přehled vyšetření");
+    const gone = { ...req, message: { id: req.message.id, args: { fact: "f-00000000" } } };
+    expect(alertArgs(NEW, gone, t)).toEqual({ args: { fact: "patient-alert-fact-unavailable" }, unresolved: ["f-00000000"] });
+    // A negated fact whose text does not say so is labelled.
+    const pe = runOf("NO-010").facts.find((f) => f.kind === "diagnosis" && f.negated)!;
+    expect(factDisplay(pe, t)).toBe('patient-fact-negated{"text":"plicní embolie"}');
+  });
+
+  it("guideline fact IDs resolve to their passages; an ID the run does not hold is flagged, not hidden", () => {
+    const mr = runOf("NO-010").facts.find((f) => f.kind === "imaging" && f.date.as_written === "14.9.2026")!;
+    const r = factRefs(NEW, [mr.id, "f-00000000"]);
+    expect(r.refs.length).toBe(mr.sources.length);
+    expect(r.unresolved).toEqual(["f-00000000"]);
   });
 
   it("without the document list the parts are named by ID, so a source still opens", () => {

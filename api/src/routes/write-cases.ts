@@ -10,7 +10,7 @@ import { releasesOnClose, schedule, slotText, unschedule, validateSlot, type Slo
 import { newDraft, patchProtocol } from "@codebridge/domain/protocol";
 import { approve } from "@codebridge/domain/approve";
 import { confirmDraft } from "../domain/question";
-import { FACT_ID_RE, factIdOfKey, saveEdit, revertEdit } from "@codebridge/domain/edits";
+import { FACT_ID_RE, factIdOfKey, lineIdOfKey, saveEdit, revertEdit } from "@codebridge/domain/edits";
 import { confirmTransition, confirmationState, confirmedContent, type ConfirmAction } from "@codebridge/domain/confirmations";
 import { ALERT_ACT_CS, ALERT_ID, ALERT_KIND_CS, alertState, transition, type AlertAction } from "../domain/alerts";
 import { currentRun } from "../store/runs";
@@ -463,12 +463,21 @@ async function editRoute(c: import("hono").Context<AppEnv>, mode: "save" | "reve
   // An edit of a fact ("f:<fact id>") is saved only for a fact the current run shows; reverting one whose fact is gone
   // from the run stays possible, so a doctor can clear an orphaned edit.
   const factId = factIdOfKey(key);
+  const lineId = lineIdOfKey(key);
   let runId: string | null = null;
   if (factId && op.kind === "save") {
     const { row, data } = await currentRun(c.env.DB, c.env.DOCS, c.var.viewer.org, id);
     const fact = data?.facts.find((f) => f.id === factId);
     if (!row || !fact) throw D.factNotFound();
     if (fact.quarantined) throw D.factQuarantined();
+    runId = row.id;
+  }
+  // A composed line ("v:<line id>") likewise: only a line of the current run takes a new text.
+  if (lineId && op.kind === "save") {
+    const { row, data } = await currentRun(c.env.DB, c.env.DOCS, c.var.viewer.org, id);
+    const v = data?.views;
+    const lines = [...(v?.onco_lines ?? []), ...(v?.other_diagnoses ?? []), ...(v?.timeline ?? [])];
+    if (!row || !lines.some((l) => l.id === lineId)) throw D.factNotFound();
     runId = row.id;
   }
   const t = tx(c, breakGlass);

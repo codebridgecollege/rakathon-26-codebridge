@@ -195,7 +195,7 @@ describe("case reads", () => {
       env.DB.prepare(`UPDATE extraction_runs SET is_current = 0 WHERE id = '${RUN_A2_ID}'`),
       env.DB.prepare("UPDATE extraction_runs SET is_current = 1 WHERE id = 'run-A'"),
     ]);
-    expect(await (await call("/api/cases/NO-A/extraction")).json()).toEqual({
+    expect(await (await call("/api/cases/NO-A/extraction")).json()).toMatchObject({
       case_id: "NO-A",
       processing: "full",
       run: { id: "run-A", producer: "fixture", created_at: "2026-10-17T12:00:00.000Z" },
@@ -203,12 +203,51 @@ describe("case reads", () => {
     });
   });
 
+  it("sends the case's stored documents with their parts next to the run, which names parts by ID only", async () => {
+    const body = await (await call("/api/cases/NO-A/extraction")).json<Extraction>();
+    expect(Array.isArray(body.documents)).toBe(true);
+    for (const d of body.documents) {
+      expect(Object.keys(d).sort()).toEqual(["file", "id", "note_cs", "page_count", "parts"]);
+      for (const p of d.parts) expect(Object.keys(p).sort()).toEqual(["date", "date_note_cs", "pages", "readability", "reason_cs", "title_cs", "type"]);
+    }
+    // One request, one access-log row.
+    expect((await accessLog()).map((l) => l.action)).toEqual(["case.data"]);
+  });
+
+  it("serves one fact of an earlier run of the case, for the value a doctor confirmed; logged like the case data", async () => {
+    const fact = RUN_A2.facts[0]!;
+    const r = await call(`/api/cases/NO-A/runs/${RUN_A2_ID}/facts/${fact.id}`);
+    expect(r.status).toBe(200);
+    expect(await r.json()).toEqual({ run_id: RUN_A2_ID, fact });
+    expect((await accessLog()).map((l) => l.action)).toEqual(["case.data"]);
+    // Another case's run, an unknown fact and a malformed ID are all "not found".
+    expect(await errCode(await call(`/api/cases/NO-B/runs/${RUN_A2_ID}/facts/${fact.id}`))).toBe("fact_not_found");
+    expect(await errCode(await call(`/api/cases/NO-A/runs/${RUN_A2_ID}/facts/f-00000000`))).toBe("fact_not_found");
+    expect(await errCode(await call(`/api/cases/NO-A/runs/${RUN_A2_ID}/facts/x`))).toBe("fact_not_found");
+  });
+
+  it("does not serve an earlier value of a fact the current run quarantines", async () => {
+    const fact = RUN_A2.facts[0]!;
+    // The earlier run is a copy of run-A2 under another ID; the current run then quarantines the fact.
+    await env.DB.prepare(
+      `INSERT INTO extraction_runs (id, org_id, case_id, producer, seeded, schema, supersedes, input_hashes_json, r2_key, sha256, is_current, created_at)
+       SELECT 'run-A1', org_id, case_id, producer, seeded, schema, NULL, input_hashes_json, 'org/demo-a/extract/NO-A/run-A1.json', sha256, 0, '2026-10-17T12:00:00.000Z'
+       FROM extraction_runs WHERE id = '${RUN_A2_ID}'`,
+    ).run();
+    await env.DOCS.put("org/demo-a/extract/NO-A/run-A1.json", JSON.stringify(RUN_A2));
+    expect((await call(`/api/cases/NO-A/runs/run-A1/facts/${fact.id}`)).status).toBe(200);
+    const src = RUN_A2.sources.find((s) => s.id === fact.sources[0])!;
+    const quarantined = { ...RUN_A2, sources: RUN_A2.sources.map((s) => (s === src ? { ...s, identity: "conflicts" } : s)), facts: RUN_A2.facts.map((f) => (f.id === fact.id ? { ...f, quarantined: true } : f)) };
+    await env.DOCS.put(RUN_A2_KEY, JSON.stringify(quarantined));
+    expect(await errCode(await call(`/api/cases/NO-A/runs/run-A1/facts/${fact.id}`))).toBe("fact_not_found");
+  });
+
   it("has no alert list of its own any more: alerts are part of the run", async () => {
     expect((await call("/api/cases/NO-A/alerts")).status).toBe(404);
   });
 
   it("answers processing none for a case without a run", async () => {
-    expect(await (await call("/api/cases/NO-B/extraction")).json()).toEqual({ case_id: "NO-B", processing: "none", run: null, data: null });
+    expect(await (await call("/api/cases/NO-B/extraction")).json()).toMatchObject({ case_id: "NO-B", processing: "none", run: null, data: null });
   });
 
   it("treats an unknown CLINICAL_ACCESS value as the strict rule", async () => {
