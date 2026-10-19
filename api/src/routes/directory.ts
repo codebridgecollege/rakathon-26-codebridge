@@ -1,7 +1,9 @@
 import { Hono } from "hono";
 import type { AppEnv } from "../types";
 import { E } from "../http/errors";
-import { demoPicker, membershipsOut, orgById, orgOut } from "../store/people";
+import type { Role } from "@codebridge/domain/access";
+import { demoPicker, membershipsOut, orgById, orgOut, roleSwitchMemberships } from "../store/people";
+import { staffName } from "../domain/rows";
 import { work } from "./write-context";
 
 // /me, /staff and the demo picker hold no case content, so they write no access-log row.
@@ -10,8 +12,22 @@ export const directory = new Hono<AppEnv>()
   // data epoch (AUTH.md; the session-based login of step 3 fills the same answer).
   .get("/me", async (c) => {
     const v = c.var.viewer;
-    const [org, memberships, st] = await Promise.all([orgById(c.env.DB, v.org), membershipsOut(c.env.DB, v.id), work(c).epoch()]);
+    const u = c.var.user;
+    // The memberships and the org switch belong to the person logged in, also while acting as someone else.
+    const person = v.actor?.id ?? v.id;
+    const [org, memberships, st] = await Promise.all([orgById(c.env.DB, v.org), membershipsOut(c.env.DB, person), work(c).epoch()]);
     if (!org) throw E.unknownUser();
+    // "Přepnout roli" exists after a real login in a demo org only.
+    const roleSwitch =
+      u.mode === "oidc" && org.is_demo === 1
+        ? (await roleSwitchMemberships(c.env.DB, org.id)).map((m) => ({
+            membership_id: m.id,
+            name: staffName(m),
+            role: m.role_id as Role,
+            fn: m.fn,
+            own: u.mode === "oidc" && m.id === u.membershipId,
+          }))
+        : null;
     return c.json({
       user: { id: v.id, name: v.name, role: v.role, dept: v.dept },
       membership_id: v.membershipId,
@@ -20,6 +36,8 @@ export const directory = new Hono<AppEnv>()
       data_epoch: st?.data_epoch ?? null,
       auth_mode: v.authMode,
       impersonating: v.impersonating,
+      real_user: v.actor ?? null,
+      role_switch: roleSwitch,
       notice_cs: v.authMode === "demo" ? "Ukázka bez přihlášení: uživatele vybíráte ručně." : null,
     });
   })

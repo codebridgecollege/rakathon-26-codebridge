@@ -2,13 +2,14 @@
 
 Status: steps 1 and 2 (organizations, people and memberships, org
 scoping, the per-org demo reset) are built, 2026-10-19; see "As
-implemented (steps 1-2)" at the end. Steps 3 to 5 (the login) are not.
-When the login is built, `CLAUDE.md` ("skip login and OAuth"; "the demo
-has no login") and [`INTEGRATION.md`](INTEGRATION.md) (the user picker as
-a stand-in for login) are updated in the same change.
+implemented (steps 1-2)". Steps 3 and 4 (the login in the Worker and the
+frontend) are built on branch `auth-login`, 2026-10-19; see "As
+implemented (steps 3-4)" at the end. Of step 5, the Zitadel instance, the
+web app and the demo accounts exist (GitHub issue #15); the manual check
+against the real instance is still to do.
 
-The app has no real login today. The demo picks a user from a list, and
-all data belongs to one shared demo. For the MVP the app needs:
+Before the login, the demo picked a user from a list, and all data
+belonged to one shared demo. For the MVP the app needs:
 - real accounts, with identity data stored in the EU;
 - a few demo accounts;
 - organizations (hospitals), each with its own users and its own data.
@@ -72,7 +73,7 @@ declared as pre-existing code in `docs/agent/HACKATHON.md`.
 **Zitadel caveats:**
 - **US cloud underneath.** Its infrastructure is Google Cloud (a US-parent sub-processor), so US access laws still reach it.
 - **The free tier allows 100 daily active users.**
-- **To verify before choosing:** a Czech and Slovak login page, and the exact free-tier and Pro limits.
+- **Login page languages:** Czech is available (`ui_locales=cs`), Slovak is not; a Slovak user gets the Czech page. The exact free-tier and Pro limits are still to verify.
 
 The identity store holds only name, e-mail and login data, never health
 data, which keeps the risk small.
@@ -95,7 +96,7 @@ which has no EU placement guarantee and no persistent disk.
 3. **Login at the IdP.** Self-registration is off; only provisioned accounts can log in.
 4. **`GET /auth/callback`:**
    - It reads and deletes the transaction cookie (one use), checks the state, exchanges the code as a confidential client, and verifies the ID token with `jose`: issuer, audience, nonce, expiry and `email_verified`.
-   - The key cache, the "IdP keys unreachable gives 503" behaviour and the 30 s clock tolerance are reused from `api/src/auth/access.ts`.
+   - The key cache, the "IdP keys unreachable gives 503" behaviour and the 30 s clock tolerance come from `api/src/auth/jwks.ts`.
    - A failed callback shows a fixed page with "Zkusit znovu" instead of redirecting again, so it cannot loop.
 5. **Linking the person, never auto-creating one:**
    - The first login links issuer and subject to the provisioned person with the same verified e-mail.
@@ -104,7 +105,7 @@ which has no EU placement guarantee and no persistent disk.
 6. **Session:**
    - A new session ID is issued at every login (no session fixation). It is stored in D1 only as a hash, with the person, the active org, and the acting membership.
    - The browser gets `__Host-cb_session`: HttpOnly, Secure, SameSite=Lax, path `/`, no domain.
-   - No IdP access or refresh tokens are kept: the Worker calls no IdP API. The ID token is kept only as long as the logout hint needs it.
+   - No IdP access or refresh tokens are kept, and outside the login and the logout the Worker calls no IdP API. The ID token is kept only as long as the logout hint needs it.
 7. **`POST /auth/logout`:** covered by the existing same-origin check. It deletes the session and redirects to the IdP's end-session endpoint with `id_token_hint` and a registered post-logout address.
 
 **Session rules:**
@@ -251,8 +252,8 @@ own deployment without rewriting the app.
 | `OIDC_CLIENT_SECRET` | secret | Wrangler secret, never in the repository |
 | `SESSION_KEY` | secret | Encrypts the login-transaction cookies |
 
-The `access` mode (Cloudflare Access) is removed once OIDC works, and the
-access runbook in `api/AGENTS.md` is replaced.
+The `access` mode (Cloudflare Access) and its runbook are removed; the
+login runbook in `api/AGENTS.md` replaces it.
 
 ## Privacy
 
@@ -405,4 +406,166 @@ section "Organizations".
   but old and new code do not run on each other's schema, so merging needs
   the steps in `api/AGENTS.md` ("Migrating a deployed database"): nothing
   queued before, the reseed after.
+
+## As implemented (steps 3-4)
+
+Built 2026-10-19 on branch `auth-login` (draft PR #16, stacked on #14).
+The runbook is in `api/AGENTS.md`, section "Login".
+
+**The Worker (step 3):**
+- **Configuration.** `wrangler.jsonc` sets `AUTH_MODE=oidc` (production
+  and the `backend` preview deploy from it), `OIDC_ISSUER` (the Zitadel
+  instance) and `OIDC_CLIENT_ID`; `OIDC_CLIENT_SECRET` and `SESSION_KEY`
+  are Worker secrets. `npm run dev`, the Vitest suite and the browser
+  suite pass `AUTH_MODE=demo`; `npm run dev:oidc` runs the login locally
+  with the secrets from `api/.dev.vars`. A missing secret or a malformed
+  issuer fails closed (the login pages say "Přihlášení není nastavené").
+  `run_worker_first` lists `/api/*` and `/auth/*`.
+- **Routes.** `GET /auth/login?to=`, `GET /auth/callback` and
+  `POST /auth/logout` (`src/routes/auth.ts`), on a Hono app of their own
+  beside `/api`. `src/auth/oidc.ts` holds discovery (cached an hour per
+  isolate, a stale copy serves while the IdP is down, every endpoint must
+  be on the issuer's origin, S256 must be announced), the authorization
+  URL (code flow, S256, `response_mode=query`, scopes `openid email`,
+  `ui_locales` cs or en, `prompt=login` on request), the code exchange
+  with `client_secret_basic`, and the ID token check with `jose` (RS256
+  only, issuer from discovery, audience, `azp` when several audiences,
+  nonce, `exp`/`iat`/`sub`/`nonce` required, 30 s tolerance) on the key-set
+  cache of `src/auth/jwks.ts`.
+- **Transactions** (`src/auth/session.ts`): state, nonce and verifier are
+  32 random bytes each; the transaction is a JWE (`dir`, A256GCM with
+  `SESSION_KEY`, 10 minutes) in `__Host-cb_tx_<state>`, opened only for
+  the state in the query and deleted by every callback answer;
+  `/auth/login` clears abandoned ones once five have piled up. The return
+  path rule above, plus printable ASCII only and no backslash, at
+  most 2000 characters, and nothing under `/auth`.
+- **Linking.** Issuer and subject first; otherwise the provisioned person
+  whose `users.email` matches the verified e-mail case-insensitively,
+  unless that person is already linked to another subject of the same
+  issuer. A login needs `email_verified = true` every time. No person or
+  no active membership: "Nemáte přístup" (403) with "Přihlásit jiným
+  účtem" (`prompt=login`); the identity is linked only once a membership
+  exists. Nothing is ever created.
+- **Sessions.** Migration 0012 rebuilds the unused `auth_sessions`: the
+  hash, the person, the org, the person's own membership, the membership
+  acted as (`acting_membership_id`, NULL unless a role switch) and the ID
+  token; a unique index `memberships(id, org_id)` backs the acted-as
+  foreign key, which keeps it in the session's org. The cookie
+  `__Host-cb_session` (HttpOnly, Secure, SameSite=Lax, Path=/, Max-Age 12
+  hours); a login deletes the browser's previous session. The auth
+  middleware reads the session on every `/api` request after the public
+  routes (health, the phone upload): unknown, expired or idle answers 401
+  `unauthenticated`; `last_used_at` is written when older than 5 minutes,
+  so the idle limit can end a session up to 5 minutes early. The viewer
+  middleware reads the memberships again on every request, and the auth
+  middleware the person's own one (for the speech and summary routes,
+  which have no viewer), so an ended membership counts at once (401
+  `unknown_user`). The cron sweep clears
+  the ID token of sessions that ended (12 hours, or the idle limit) and
+  deletes rows 30 days after expiry.
+- **Switches.** `POST /api/session/org {org_id}` (only into an active
+  membership of the person) and `POST /api/session/role {membership_id}`
+  (demo orgs only: the org's demo accounts, which are its memberships
+  whose person has an e-mail, or back to oneself). Both write the new
+  session row and delete the old one in one D1 batch, keep `created_at`
+  and `expires_at`, set a new cookie, and write an access-log row
+  (`session.org`, `session.role`).
+- **The access log after a role switch.** The `Viewer` gets `actor` (the
+  person logged in); both insert paths (`D1Audit.append`,
+  `auditStatement`) write `actor_user_id` and `actor_name` from it,
+  `acted_as_role` and `acted_as_membership` from the membership acted as,
+  and `impersonating = 1`. Administrace shows "Ing. Kovář (jako MUDr.
+  Svobodová)". The login itself writes `session.login`.
+- **Cross-site reads.** `audit()` (`src/middleware/audit.ts`), which every
+  audit-writing GET goes through, refuses `Sec-Fetch-Site: cross-site` and
+  `same-site` with 403 before writing; a request without the header (not
+  a browser) passes, as in the same-origin check of writes.
+- **Pages.** `src/auth/pages.ts` serves "Nemáte přístup", "Přihlášení se
+  nepodařilo" (with "Zkusit znovu" to the same return path), "Přihlašovací
+  služba je nedostupná" (503), "Přihlášení není nastavené" (500) and
+  "Přihlášení obnoveno" (the end of a login in a second window), with no
+  script, `default-src 'none'`, no framing and no caching. Text comes from
+  `i18n/<lang>/auth.ftl` (cs, sk, en), imported as text by the Worker; the
+  language is the one the app passed to `/auth/login` (`lang`).
+- **Removed:** the Cloudflare Access mode (`AUTH_MODE=access`, its token
+  check, `ACCESS_TEAM_DOMAIN`, `ACCESS_AUD` and its runbook).
+
+**The frontend (step 4):**
+- `stores/session.ts` knows the mode from `/api/health`. With a login it
+  sends no `X-Demo-User`; the header shows `AccountMenu.vue` (name, role,
+  org, the person's other orgs, "Přepnout roli" in a demo org with the
+  current entry pressed, "Odhlásit"). Org and role switches run the same
+  switch protocol as the picker: drafts stored first (a refusal stops the
+  switch), the recording stopped, then the server switch and a reload of
+  everything the new user may see. "Odhlásit" does the same, then
+  `POST /auth/logout` with `fetch` (the app's policy has `form-action
+  'self'`, which would stop a form post that redirects to the IdP) and
+  goes to the end-session address it returns.
+- **A lost session.** The API client (`packages/api-client/src/core.ts`)
+  hands a 401 `unauthenticated` or `unknown_user` to the app and sends the
+  request again (at most twice) when the app says so; the request was
+  refused before anything ran, and an idempotency key is kept. The app:
+  a read that left before an org or role switch took effect is sent
+  again at once, a write is not (it belongs to the identity that made
+  it); with nothing unsaved (no dirty, in-flight or approving
+  draft, no running recording or unsent recording parts) the page goes to
+  `/auth/login?to=<path>`; otherwise `SessionExpiredDialog.vue`
+  ("Přihlášení vypršelo") opens the login in a second window
+  (`?popup=1`, which ends on "Přihlášení obnoveno"), and "Zkusit znovu"
+  (or the window getting focus back) checks `/api/me`. A new login lands
+  in the person's first org as themselves, so the store first switches
+  the same person back to the org and role the unsaved work belongs to
+  (the account menu's switches, with their server checks). The waiting
+  requests go out again only when the same person acts as the same
+  membership; another login shows "Načíst stránku znovu" instead.
+- **One session, several tabs.** The cookie serves every tab of the
+  browser, so each request names whom its tab shows (`X-Acting-As:
+  <membership>:<person>`, from `/api/me`, which is sent without it; page
+  images loaded by `<img>` cannot send it and are not compared, nor are
+  requests during a switch). After
+  a switch or another login in a second tab, the viewer middleware answers
+  409 `session_changed` before the request reads or writes anything, and
+  the tab says so and reloads (not while the lost-login dialog waits).
+- Strings in `i18n/*/shell.ftl` and `lists.ftl`; tests in
+  `app/test/login.test.ts` and `packages/api-client/test/client.test.ts`.
+
+**Tests:**
+- `api/test/oidc.test.ts`: a fake IdP (generated RS256 keys; it checks the
+  client secret, the redirect address and the PKCE verifier and gives
+  every code out once) for every case listed in "Tests" above, plus the
+  503 on unreachable keys, the userinfo fallback, the second account with
+  a linked person's e-mail, the cross-site read, the sweep and the pages'
+  catalogs.
+- The browser suite: `run-parallel.mjs` starts a fifth Worker with
+  `AUTH_MODE=oidc` and `e2e/mock-oidc.mjs`, a mock IdP with the same
+  checks as a real one, single sign-on and logout; `specs/login.spec.ts`
+  covers login and return path, no access, logout, the role switch and its
+  log row, a lost session with and without unsaved work, and org B's
+  isolation when logged in. The demo-mode cross-org spec
+  (`specs/orgs.spec.ts`) stays.
+
+**Deviations from this design:**
+- **No org picker at login.** A person with several memberships lands in
+  the oldest org and switches in the account menu.
+- **The ID token is kept with the session** (12 hours at most) as the
+  logout hint, and cleared by the sweep once the session ended.
+- **Userinfo fallback.** If the Zitadel app does not put the e-mail into
+  the ID token ("User Info inside ID Token" off), the Worker calls the
+  userinfo endpoint once per login with that login's access token, then
+  drops it. Turning the setting on avoids that call.
+- **Steps that finish later.** Work a request starts and a Workflow, the
+  cron sweep or the phone of an upload session finishes acts for its
+  `created_by` (after a role switch, the person acted as). Migration 0012
+  adds `created_by_actor` to `jobs`, `pipeline_runs`, `audio_uploads`,
+  `upload_sessions` and `cases`, and `actorFor` builds the real person and
+  `impersonating = 1` from it, so those rows name the person logged in too.
+- **Trust in the IdP's verified e-mail.** The first login links by the
+  e-mail the IdP marks verified. In Zitadel an organization or instance
+  administrator can create an account with any e-mail marked verified, so
+  whoever administers the Zitadel instance can take over a provisioned
+  person who has not logged in yet. A unique index allows one identity per
+  person and IdP, so a second account cannot link once the person has
+  logged in. Requiring Zitadel's resource-owner claim or a project role is
+  a later step.
+- **Hospital orgs** exist only in tests; both seeded orgs are demo orgs.
 

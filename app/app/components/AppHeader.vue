@@ -1,6 +1,6 @@
 <script setup lang="ts">
-// The top bar: the brand button, the main areas and the
-// user picker. Same markup and classes, so the copied CSS styles it unchanged.
+// The top bar: the brand button, the main areas and the user picker (demo mode) or the account menu (with a login).
+// Same markup and classes, so the copied CSS styles it unchanged.
 import { computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useFluent } from "fluent-vue";
@@ -11,6 +11,7 @@ import { usePatientsStore } from "../stores/patients";
 import { useWorkflowStore } from "../stores/workflow";
 import { useListViewStore } from "../stores/listView";
 import RecorderPill from "./RecorderPill.vue";
+import AccountMenu from "./AccountMenu.vue";
 
 const { $t } = useFluent();
 const route = useRoute();
@@ -77,7 +78,8 @@ async function onUser(ev: Event) {
       </button>
     </nav>
     <span id="recpill"><RecorderPill /></span>
-    <span class="who"><span class="lbl">{{ $t("user-picker-label") }}</span>
+    <AccountMenu v-if="session.oidc" />
+    <span v-else class="who"><span class="lbl">{{ $t("user-picker-label") }}</span>
       <select id="user" :aria-label="$t('user-picker-aria')" :value="userId" @change="onUser">
         <template v-if="session.picker">
           <optgroup v-for="o in session.picker" :key="o.id" :label="o.name">

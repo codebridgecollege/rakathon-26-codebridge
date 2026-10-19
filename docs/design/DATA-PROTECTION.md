@@ -203,12 +203,13 @@ synthetic patients.
   the synthetic fixture registry, guideline data and seed bookkeeping are
   global. Time Travel restores the whole database, so one org's data
   cannot be restored alone (`DATABASE.md`, known gap).
-- **Demo mode has no login.** The page sends the picked membership's ID
-  (header `X-Demo-User`, or the `cb_demo_user` cookie for page images);
-  the server trusts it, as the UI says. The picker lists every demo org's
-  memberships (`/api/demo/memberships`, demo mode only). With Cloudflare
-  Access on, the verified e-mail decides who the user is and the header
-  is ignored.
+- **Who the user is.** The deployed hosts run the login (`AUTH_MODE=oidc`,
+  section "Login and identity" below): the session cookie decides who
+  acts, and `X-Demo-User` is ignored. Local development and the browser
+  suite run demo mode, which has no login: the page sends the picked
+  membership's ID (header `X-Demo-User`, or the `cb_demo_user` cookie for
+  page images), the server trusts it, as the UI says, and the picker lists
+  every demo org's memberships (`/api/demo/memberships`, demo mode only).
 - **Retention.** The demo data and its access log stay until someone
   reseeds with `--reset` or an org's administrator runs "Obnovit ukázková
   data" (`POST /api/admin/reset-demo`), which resets that org only. The
@@ -235,6 +236,62 @@ synthetic patients.
   grant (later rows under the grant name the grant). Edit keys and
   attendance keys are checked against fixed formats before they reach
   the log. Refused attempts are logged too ("odmítnuto: ...").
+
+## Login and identity (AUTH.md steps 3 and 4)
+
+The deployed Worker logs people in at an identity provider (IdP) over
+OpenID Connect (OIDC, the standard login protocol); design and details in
+[`AUTH.md`](AUTH.md).
+
+- **The IdP is Zitadel Cloud in its EU region** (instance
+  `glide-mdt--dev-dybk0r.eu1.zitadel.cloud`, region chosen at creation).
+  The contracting party is CAOS AG (Switzerland, Swiss law); the service
+  runs on Google Cloud, a sub-processor with a US parent, so US access
+  laws still reach the identity data. No data processing agreement with
+  CAOS AG is recorded yet; one is needed before real staff accounts exist.
+  The demo accounts are fictitious (`lekar1.a@codebridge.demo` and the
+  like).
+- **What the IdP holds:** each account's e-mail (verified), a display
+  name, the password hash and login data (login times, sessions at the
+  IdP). No health data, no org, role or membership: those stay in our EU
+  D1 database. Self-registration is off, so only accounts an administrator
+  created can log in.
+- **What the Worker asks for:** the scopes `openid email`, so the ID token
+  carries the subject (the IdP's user ID) and the verified e-mail; no
+  profile. If Zitadel leaves the e-mail out of the ID token, the Worker
+  reads it once from Zitadel's userinfo endpoint with that login's access
+  token and drops the token.
+- **What our side stores:**
+  - `user_identities`: issuer, subject, the person it is linked to, first
+    and last login time. Linked at the first login by the verified e-mail
+    of a person provisioned in `users`; nothing is created for an unknown
+    e-mail.
+  - `auth_sessions`: the SHA-256 of the session ID (the ID itself is only
+    in the browser's `__Host-cb_session` cookie, HttpOnly, Secure,
+    SameSite=Lax), the person, the org, the membership and, after a role
+    switch, the membership acted as, the times, and the ID token, kept
+    only as the hint for the IdP's logout. No access or refresh token is
+    kept anywhere.
+  - A login transaction (state, nonce, PKCE verifier, return path) lives
+    for at most ten minutes in an encrypted cookie (AES-256-GCM with the
+    Worker secret `SESSION_KEY`) and is deleted by the callback.
+- **Retention.** A session ends 12 hours after the login at the latest; in
+  a hospital org also after 1 hour without use; logout deletes it at once.
+  The cron sweep clears the ID token of a session that ended within 15
+  minutes and deletes the row 30 days after it expired. Identities stay
+  while the person has a membership; deleting them with the person's last
+  membership, after the access-log retention FNO sets, is not built yet.
+- **Logs.** Access-log rows name the person's ID and name, never the
+  e-mail; the login writes `session.login`, `session.org` and
+  `session.role` rows. Failed logins go to Workers Logs as a kind and a
+  short code (`no_person`, `nonce`, `jwks`), never a token, e-mail or
+  subject.
+- **Role switch in a demo org.** A presenter logged in once acts as
+  another demo account of the same demo org. Every access-log row then
+  names the real person, the membership acted as and `impersonating = 1`;
+  Administrace shows "Ing. Kovář (jako MUDr. Svobodová)". Hospital orgs
+  have no role switch. This trades the audit's simplicity for a demo
+  without repeated logins; the log keeps who really acted.
 
 ## Uploads and the document pipeline (step 6)
 

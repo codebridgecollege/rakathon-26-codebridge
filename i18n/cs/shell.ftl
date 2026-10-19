@@ -14,7 +14,7 @@ nav-tasks = Moje úlohy
 nav-staff = Personál
 nav-admin = Administrace
 
-## User picker (the demo has no login; the user is picked by hand)
+## User picker (demo mode has no login; the user is picked by hand)
 
 user-picker-label = Uživatel:
 user-picker-aria = Aktuální uživatel (maketa bez přihlášení)
@@ -25,6 +25,33 @@ user-coordinator-function-default = koordinátorka MDT
 # The coordinator's tooltip when the staff list names no function (it is worded differently from the label).
 user-coordinator-tooltip-default = koordinace MDT
 user-admin-function = správce systému
+
+## Account menu (with a login, in place of the user picker; docs/design/AUTH.md)
+
+account-button-aria = Účet: { $name }
+account-menu = Účet
+account-role-doctor = lékař
+account-role-coordinator = koordinátor
+account-role-admin = správce systému
+# After a role switch in a demo org: who is really logged in.
+account-logged-in-as = Přihlášen(a): { $name }
+account-switch-org = Přepnout organizaci
+account-switch-role = Přepnout roli
+account-switch-role-help = Jen v ukázkové organizaci. Záznam přístupů uvádí vás i roli, za kterou jednáte.
+# A role-switch entry: the person, then the role.
+account-role-entry = { $name } ({ $role })
+account-logout = Odhlásit
+
+## Lost login while something is unsaved
+
+session-expired-title = Přihlášení vypršelo
+session-expired-body = Neuložené změny zůstaly na této stránce. Přihlaste se v novém okně a pak klikněte na „Zkusit znovu“; změny se uloží.
+session-expired-login = Přihlásit se v novém okně
+session-expired-retry = Zkusit znovu
+session-expired-checking = Ověřuji přihlášení…
+session-expired-still = Přihlášení se zatím neobnovilo.
+session-expired-other = V novém okně se přihlásil jiný uživatel nebo jiná role. Neuložené změny pod ním uložit nelze.
+session-expired-reload = Načíst stránku znovu
 
 ## Startup
 
@@ -42,6 +69,8 @@ api-error-write-timeout = Server neodpověděl včas. Zkuste to znovu.
 api-error-write-network = Server neodpovídá. Zkontrolujte připojení a zkuste to znovu.
 api-error-write-failed = Změnu se nepodařilo uložit.
 data-reset-reload = Ukázková data byla obnovena, stránka se znovu načte.
+# One login serves every tab: another tab switched org or role, or another person logged in.
+session-changed-reload = Přihlášení se změnilo (jiný uživatel nebo role v jiném okně), stránka se znovu načte.
 user-switch-unknown = Tento uživatel není v seznamu na serveru.
 case-data-bad-shape = Server vrátil data případu v neznámém tvaru.
 

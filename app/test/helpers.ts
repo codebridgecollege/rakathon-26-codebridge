@@ -1,6 +1,7 @@
 // A mocked API: routes answer from a table, every request is recorded, and a route can be held back to test replies
 // that arrive late. Synthetic values only.
 import { createApiClient, type PatientRow } from "@codebridge/api-client";
+import { loginLost, sessionChanged } from "../app/lib/api";
 
 type Handler = (url: string, init: RequestInit) => unknown | Promise<unknown>;
 
@@ -16,7 +17,7 @@ export function mockApi(routes: Record<string, Handler | unknown>) {
     const [status, json] = Array.isArray(body) && typeof body[0] === "number" ? (body as [number, unknown]) : [200, body];
     return new Response(JSON.stringify(json), { status, headers: { "content-type": "application/json" } });
   }) as typeof globalThis.fetch;
-  return { api: createApiClient({ fetch }), calls };
+  return { api: createApiClient({ fetch, onUnauthenticated: loginLost, onSessionChanged: sessionChanged }), calls };
 }
 
 // A promise the test resolves by hand.
@@ -71,4 +72,6 @@ export const meOrg = (membership: string) => ({
   memberships: [],
   org: { id: "org-a", name: "Ukázková nemocnice A", short_name: "A", is_demo: true },
   data_epoch: null,
+  real_user: null,
+  role_switch: null,
 });

@@ -47,9 +47,9 @@ export const pipeline = new Hono<AppEnv>()
     const t = tx(c, breakGlass).onConstraint(/pipeline_runs_active|UNIQUE constraint failed: pipeline_runs\.document_id/, running);
     t.guard("unlocked", UNLOCKED_COND, [d.case_id, d.case_id], () => UP.locked());
     t.run(
-      `INSERT INTO pipeline_runs (org_id, id, document_id, case_id, state, pipeline_version, input_sha256, output_prefix, created_by, created_by_name, created_at, updated_at)
-       VALUES (?org, ?1, ?2, ?3, 'queued', ?4, ?5, ?6, ?7, ?8, ?9, ?9)`,
-      runId, docId, d.case_id, c.env.GIT_SHA || "dev", d.sha256, orgKey(v.org, `uploads/${d.case_id}/${docId}/${runId}/`), v.id, v.name, at,
+      `INSERT INTO pipeline_runs (org_id, id, document_id, case_id, state, pipeline_version, input_sha256, output_prefix, created_by, created_by_name, created_by_actor, created_at, updated_at)
+       VALUES (?org, ?1, ?2, ?3, 'queued', ?4, ?5, ?6, ?7, ?8, ?10, ?9, ?9)`,
+      runId, docId, d.case_id, c.env.GIT_SHA || "dev", d.sha256, orgKey(v.org, `uploads/${d.case_id}/${docId}/${runId}/`), v.id, v.name, at, v.actor?.id ?? null,
     );
     // Only an upload without prepared data shows the run's state; seeded documents and prepared ones keep theirs.
     t.run("UPDATE documents SET state = 'queued', state_detail_cs = NULL WHERE org_id = ?org AND id = ?1 AND origin = 'upload' AND state <> 'prepared'", docId);

@@ -3,4 +3,8 @@ ELEVENLABS_API_KEY=
 AZURE_OPENAI_KEY=
 # Optional, only with AI_GATEWAY_BASE set in wrangler.jsonc vars:
 AI_GATEWAY_TOKEN=
-# To try access mode locally, override vars here: AUTH_MODE=access, ACCESS_TEAM_DOMAIN=..., ACCESS_AUD=...
+# The login (AUTH_MODE=oidc, `npm run dev:oidc`; api/AGENTS.md, "Login"). `npm run dev` runs the demo picker and needs
+# neither. OIDC_CLIENT_SECRET: the Zitadel web app's secret, from the team's password manager. SESSION_KEY: your own,
+# `openssl rand -base64 32`; it encrypts the login-transaction cookies.
+OIDC_CLIENT_SECRET=
+SESSION_KEY=

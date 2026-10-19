@@ -3,6 +3,7 @@
 
 type Health = {
   service?: string;
+  auth_mode?: string;
   features?: { data?: boolean; stt?: boolean; summarize?: boolean; pipeline?: boolean };
   demo?: { data_epoch?: number; reset_enabled?: boolean };
 };
@@ -22,6 +23,10 @@ export async function checkServer(base: string): Promise<void> {
   }
   if (h.service !== "codebridge-mdt" || !h.features?.data) {
     throw new Error(`${base} is not the CodeBridge Worker with the data API on (features.data). See e2e/README.md.`);
+  }
+  // The specs pick users in the demo picker; a Worker with the login (the deployed default) has none.
+  if (h.auth_mode !== "demo") {
+    throw new Error(`${base} runs with auth mode ${h.auth_mode}; the suite needs AUTH_MODE=demo (npm run dev, or run-parallel.mjs). See e2e/README.md.`);
   }
   // Every test resets the demo, which wipes what other people did on a shared deployment. A remote base URL therefore
   // needs an explicit yes.

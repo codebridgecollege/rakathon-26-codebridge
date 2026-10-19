@@ -49,14 +49,16 @@ npm test            # every workspace (the api tests run inside workerd)
 ## API Worker
 
 `api/` is a Cloudflare Worker (TypeScript, Hono) that serves the built
-app as static files and the API under `/api`. Details, secrets and
-the Access runbook are in [`api/AGENTS.md`](api/AGENTS.md).
+app as static files, the API under `/api` and the login under `/auth`
+(OIDC with Zitadel, EU; [`docs/design/AUTH.md`](docs/design/AUTH.md)).
+Details, secrets and the login runbook are in [`api/AGENTS.md`](api/AGENTS.md).
 
 ```
 cd api
 npm ci                           # installs api's workspace dependencies from the root lockfile
 cp .dev.vars.example .dev.vars   # fill in keys; gitignored
-npm run dev                      # builds the app, stages it into .assets, serves http://localhost:8787
+npm run dev                      # builds the app, stages it into .assets, serves http://localhost:8787 (user picker, no login)
+npm run dev:oidc                 # the same with the login; OIDC_CLIENT_SECRET and SESSION_KEY in .dev.vars
 npm run typecheck                # tsc on src and tests
 npm test                         # Vitest inside workerd
 ```
@@ -68,7 +70,10 @@ alias.
 Every change in the app (status, calendar, conclusion,
 approval, tasks, edits, alerts, attendance, new patient, staff) goes
 through the write API, which enforces the rules and writes the audit
-log. The data is shared by every visitor; the administrator restores
+log. The deployed hosts ask for a login with one of the demo accounts
+(passwords in the team's password manager); after logging in once, a
+presenter switches role in the account menu. The data of a demo org is
+shared by everyone in it; its administrator restores
 the seed with "Obnovit ukázková data" in
 Administrace (`POST /api/admin/reset-demo`, on when
 `DEMO_RESET_ENABLED=true`). See [`api/AGENTS.md`](api/AGENTS.md).

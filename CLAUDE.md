@@ -62,10 +62,13 @@ correct and trustworthy, not to slow it down.
 - **The jury expects more than usual.** The host said that because teams
   use AI agents, the jury expects higher quality. Our reading: a narrow
   demo that is trustworthy beats a broad demo that bluffs.
-- **Keep it simple where it does not show.** Skip login, OAuth, and
-  scaling; InterSystems mentors have seen past teams sink their time into
-  OAuth. Keep a simple log of who opened which patient, since access and
-  audit are part of a credible prototype.
+- **Keep it simple where it does not show.** Skip scaling and hand-built
+  identity features; InterSystems mentors have seen past teams sink their
+  time into OAuth. The login exists and stays as built: the Worker is an
+  OIDC client of Zitadel (EU), demo mode keeps the user picker for local
+  work and the browser suite ([`docs/design/AUTH.md`](docs/design/AUTH.md)).
+  Keep a simple log of who opened which patient, since access and audit
+  are part of a credible prototype.
 
 Logistics, infrastructure, judging, and contacts are in
 [`docs/agent/HACKATHON.md`](docs/agent/HACKATHON.md).
@@ -114,8 +117,11 @@ We work with medical documentation, which is health data under GDPR.
   of name and birth number, with the mapping kept separately); show
   identifiers only where the user needs them; give each role access only
   to what it needs; keep the access log; and state how long data is kept.
-  The demo has no login, so roles and the confirming doctor are a typed
-  name or a role picker, and the UI says so.
+  The deployed demo has a real login; roles come from our own
+  memberships, and a presenter in a demo org can switch role, which the
+  access log records with the real person. Demo mode (local work and the
+  browser suite) has no login: the user is picked by hand, and the UI
+  says so.
   When a design choice trades privacy for convenience, say so.
 - **Do not log full documents or prompts by default.** Debug logging of
   patient text must be opt-in and must write to a gitignored location.

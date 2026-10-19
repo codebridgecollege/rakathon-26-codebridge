@@ -1,6 +1,6 @@
 # app: the Nuxt frontend
 
-The frontend of GLIDE MDT (GitHub issue #13, design in `docs/design/FRONTEND.md`). It holds the shell (header, user picker, stores, boot
+The frontend of GLIDE MDT (GitHub issue #13, design in `docs/design/FRONTEND.md`). It holds the shell (header, user picker or account menu, stores, boot
 from the API) and the patient detail screen (`/patient/<nr>/<tab>`: header, brief, MDT question, alerts, timeline,
 all tabs and the source viewer; `app/components/patient/`), the lists (patients, calendar, tasks, staff,
 administration), "Nový pacient" with uploads and the phone QR, and the MDT itself: the session bar, "Projednání na
@@ -20,7 +20,12 @@ DOM-only end-to-end suite (`e2e/`) runs against it.
   (`loadLocale()` in `lib/i18n.ts`).
 - **Auto-imports are off.** Import every component and composable explicitly; Nuxt's own from `#imports`, `#app` or
   `#components`.
-- **Stores** (Pinia, `app/stores/`): `session` (boot, user switch), `staff`, `patients`, `workflow` (tasks and the
+- **Login** (`docs/design/AUTH.md`, "As implemented (steps 3-4)"): with `auth_mode: "oidc"` from `/api/health` the header
+  shows `components/AccountMenu.vue` instead of the picker (org switch, "Přepnout roli" in a demo org, "Odhlásit"), and
+  `stores/session.ts` handles a lost session: the login page with the way back, or, while `onUnsavedCheck()` reports
+  unsaved work (the discussion drafts, the recorder), `components/SessionExpiredDialog.vue` and a login in a second
+  window, after which the API client sends the refused requests again. Demo mode keeps the picker.
+- **Stores** (Pinia, `app/stores/`): `session` (boot, user switch, the login's switches and lost sessions), `staff`, `patients`, `workflow` (tasks and the
   stored workflow state) and `cases` (the per-case cache: keyed by file, absent, loading, ready
   or error, late replies dropped, at most five cases in memory).
 - **API** through `@codebridge/api-client` (`packages/api-client`) and the shared rules from `@codebridge/domain`

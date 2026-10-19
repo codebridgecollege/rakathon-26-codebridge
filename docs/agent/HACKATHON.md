@@ -255,6 +255,15 @@ Declare this list to the jury and mentors.
   `packages/domain` (the case rules moved out of `api/src/domain`) and
   `packages/api-client`. Its accessibility checks use `@axe-core/playwright`
   4.13.0 with axe-core 4.13.0 (MPL-2.0, Deque, npm) in the e2e suite.
+- Zitadel Cloud (CAOS AG, EU region, on Google Cloud), the identity
+  provider of the login since 2026-10-19 (after the hackathon; design and
+  choice in [`docs/design/AUTH.md`](../design/AUTH.md)): instance
+  `glide-mdt--dev-dybk0r.eu1.zitadel.cloud`, project "GLIDE MDT", the
+  demo accounts of both demo orgs (GitHub issue #15). The Worker's OIDC
+  client and the session handling were written for this project with
+  `jose`; the browser suite logs in at a mock IdP of our own
+  (`e2e/mock-oidc.mjs`). Juro's earlier WorkOS adapter (`identity-workos`)
+  was not used.
 - (Add the LLMs, libraries, and datasets as we adopt them.)
 
 

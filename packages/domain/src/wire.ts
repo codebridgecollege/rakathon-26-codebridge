@@ -41,10 +41,17 @@ export type Me = {
   memberships: MembershipRef[];
   org: OrgRef;
   data_epoch: number | null;
-  auth_mode: "demo" | "access";
+  auth_mode: "demo" | "oidc";
   impersonating: boolean;
+  // The person logged in, when it is not the one acted as (a role switch in a demo org); null otherwise.
+  real_user: { id: string; name: string } | null;
+  // OIDC mode in a demo org: the memberships "Přepnout roli" offers (the org's demo accounts, the person's own
+  // included). Null where no role switch exists (demo mode, hospital orgs).
+  role_switch: RoleSwitchEntry[] | null;
   notice_cs: string | null;
 };
+
+export type RoleSwitchEntry = { membership_id: string; name: string; role: Role; fn: string; own: boolean };
 
 // GET /demo/memberships (AUTH_MODE=demo only): the picker's entries, grouped by org. An entry is a membership, so a
 // person in two orgs appears once in each; its id is what X-Demo-User sends.

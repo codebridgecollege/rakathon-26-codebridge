@@ -7,8 +7,10 @@
 //   E2E_WORKERS=2 npm --prefix e2e run test:parallel -- specs/calendar.spec.ts   # Playwright arguments after --
 // Options: --reseed seeds the template state again even when its inputs did not change.
 // Environment: E2E_WORKERS (default 4), E2E_PORT_BASE (default 8801; Worker i listens on E2E_PORT_BASE + i).
+// The login spec (specs/login.spec.ts) gets one more Worker in AUTH_MODE=oidc on E2E_PORT_BASE + 50 and the mock IdP
+// (mock-oidc.mjs) on E2E_PORT_BASE + 60; E2E_OIDC=off leaves them out.
 import { spawn, spawnSync } from "node:child_process";
-import { createHash } from "node:crypto";
+import { createHash, randomBytes } from "node:crypto";
 import { constants, cpSync, createWriteStream, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -71,12 +73,19 @@ if (reseed || have !== want || !existsSync(path.join(template, "v3", "d1"))) {
   console.log(`seeded (${secs()})`);
 } else console.log("reusing the seeded template state (inputs unchanged; --reseed to force)");
 
+// The login spec's own Worker (AUTH_MODE=oidc) and the mock IdP it logs in at (mock-oidc.mjs), on ports after the
+// demo Workers' range. E2E_OIDC=off leaves both out (the login spec then skips).
+const withOidc = process.env.E2E_OIDC !== "off";
+const oidcPort = portBase + 50;
+const idpPort = portBase + 60;
+const ports = [...Array.from({ length: workers }, (_, i) => portBase + i), ...(withOidc ? [oidcPort, idpPort] : [])];
+
 // A port that already answers belongs to another run or another Worker: the suite would reset that Worker's demo.
-for (let i = 0; i < workers; i++) {
-  const url = `http://127.0.0.1:${portBase + i}`;
+for (const p of ports) {
+  const url = `http://127.0.0.1:${p}`;
   const busy = await fetch(url, { signal: AbortSignal.timeout(2000) }).then(() => true, (e) => e.name === "TimeoutError");
   if (busy) {
-    console.error(`port ${portBase + i} is in use (another run, or a Worker left over?); stop it or set E2E_PORT_BASE.`);
+    console.error(`port ${p} is in use (another run, or a Worker left over?); stop it or set E2E_PORT_BASE.`);
     process.exit(1);
   }
 }
@@ -85,22 +94,50 @@ for (let i = 0; i < workers; i++) {
 const children = [];
 let stopping = false;
 const urls = [];
-for (let i = 0; i < workers; i++) {
-  const dir = path.join(stateRoot, `w${i}`);
+const byName = new Map();
+function startWorker(name, port, inspectorPort, vars) {
+  const dir = path.join(stateRoot, name);
   rmSync(dir, { recursive: true, force: true });
   cpSync(template, dir, { recursive: true, mode: constants.COPYFILE_FICLONE });
-  const port = portBase + i;
-  urls.push(`http://127.0.0.1:${port}`);
-  const log = createWriteStream(path.join(stateRoot, `w${i}.log`));
+  const log = createWriteStream(path.join(stateRoot, `${name}.log`));
+  // Vars on the command line win over wrangler.jsonc (whose AUTH_MODE is the deployed "oidc"), so each Worker runs in
+  // the mode its specs expect whatever a developer's api/.dev.vars says.
+  const varArgs = Object.entries(vars).flatMap(([k, v]) => ["--var", `${k}:${v}`]);
   // detached: the Worker and the workerd process it starts form one process group, which stop() ends as a whole.
-  const child = spawn("npx", ["wrangler", "dev", "--ip", "127.0.0.1", "--port", String(port), "--inspector-port", String(portBase + 100 + i), "--persist-to", path.relative(api, dir), "--show-interactive-dev-session=false"], { cwd: api, detached: true, stdio: ["ignore", "pipe", "pipe"] });
+  const child = spawn("npx", ["wrangler", "dev", "--ip", "127.0.0.1", "--port", String(port), "--inspector-port", String(inspectorPort), "--persist-to", path.relative(api, dir), "--show-interactive-dev-session=false", ...varArgs], { cwd: api, detached: true, stdio: ["ignore", "pipe", "pipe"] });
   child.stdout.pipe(log);
   child.stderr.pipe(log);
   child.on("exit", (code) => {
     child.exited = true;
-    if (!stopping) console.error(`Worker ${i} (port ${port}) exited with ${code}; its log: api/.wrangler/e2e/w${i}.log`);
+    if (!stopping) console.error(`${name} (port ${port}) exited with ${code}; its log: api/.wrangler/e2e/${name}.log`);
   });
   children.push(child);
+  byName.set(name, child);
+}
+for (let i = 0; i < workers; i++) {
+  urls.push(`http://127.0.0.1:${portBase + i}`);
+  startWorker(`w${i}`, portBase + i, portBase + 100 + i, { AUTH_MODE: "demo" });
+}
+const oidcUrl = `http://127.0.0.1:${oidcPort}`;
+if (withOidc) {
+  // A client secret and a session key made up for this run only; nothing real is used or needed.
+  const secret = randomBytes(18).toString("base64url");
+  const idp = spawn(process.execPath, [path.join(here, "mock-oidc.mjs"), "--port", String(idpPort), "--client", "e2e-client", "--secret", secret, "--app", oidcUrl], { detached: true, stdio: ["ignore", "pipe", "pipe"] });
+  const idpLog = createWriteStream(path.join(stateRoot, "idp.log"));
+  idp.stdout.pipe(idpLog);
+  idp.stderr.pipe(idpLog);
+  idp.on("exit", (code) => {
+    idp.exited = true;
+    if (!stopping) console.error(`the mock IdP exited with ${code}; its log: api/.wrangler/e2e/idp.log`);
+  });
+  children.push(idp);
+  startWorker("oidc", oidcPort, portBase + 150, {
+    AUTH_MODE: "oidc",
+    OIDC_ISSUER: `http://127.0.0.1:${idpPort}`,
+    OIDC_CLIENT_ID: "e2e-client",
+    OIDC_CLIENT_SECRET: secret,
+    SESSION_KEY: randomBytes(32).toString("base64"),
+  });
 }
 
 function stop() {
@@ -127,29 +164,41 @@ for (const sig of ["SIGINT", "SIGTERM", "SIGHUP"]) {
   });
 }
 
-async function waitHealthy(url, i) {
+// Each Worker must answer in the mode it was started in: a demo Worker that came up in OIDC mode would fail every spec.
+async function waitHealthy(url, name, mode) {
+  const child = byName.get(name);
   const deadline = Date.now() + 180_000;
   while (Date.now() < deadline) {
-    if (children[i].exited) throw new Error(`Worker ${i} stopped before it answered; see api/.wrangler/e2e/w${i}.log`);
+    if (child?.exited) throw new Error(`${name} stopped before it answered; see api/.wrangler/e2e/${name}.log`);
     try {
       const r = await fetch(`${url}/api/health`);
-      if (r.ok) return;
-    } catch {}
+      if (r.ok) {
+        const h = await r.json();
+        if (h.auth_mode !== mode) throw new Error(`${name} at ${url} runs in auth mode ${h.auth_mode}, not ${mode}`);
+        return;
+      }
+    } catch (e) {
+      if (/runs in auth mode/.test(e.message)) throw e;
+    }
     await new Promise((res) => setTimeout(res, 500));
   }
-  throw new Error(`Worker ${i} at ${url} did not answer /api/health within 3 minutes; see api/.wrangler/e2e/w${i}.log`);
+  throw new Error(`${name} at ${url} did not answer /api/health within 3 minutes; see api/.wrangler/e2e/${name}.log`);
 }
 
 try {
-  await Promise.all(urls.map(waitHealthy));
+  await Promise.all([...urls.map((u, i) => waitHealthy(u, `w${i}`, "demo")), ...(withOidc ? [waitHealthy(oidcUrl, "oidc", "oidc")] : [])]);
 } catch (e) {
   console.error(e.message);
   stop();
   process.exit(1);
 }
-console.log(`${workers} Workers ready (${secs()}): ${urls.join(" ")}`);
+console.log(`${workers} Workers ready (${secs()}): ${urls.join(" ")}${withOidc ? `; the login Worker ${oidcUrl} with the mock IdP on port ${idpPort}` : ""}`);
 
-pw = spawn("npx", ["playwright", "test", ...playwrightArgs], { cwd: here, stdio: "inherit", env: { ...process.env, E2E_BASE_URLS: urls.join(",") } });
+pw = spawn("npx", ["playwright", "test", ...playwrightArgs], {
+  cwd: here,
+  stdio: "inherit",
+  env: { ...process.env, E2E_BASE_URLS: urls.join(","), ...(withOidc ? { E2E_OIDC_URL: oidcUrl } : {}) },
+});
 const code = await new Promise((res) => pw.on("exit", (c, sig) => res(c ?? (sig ? 1 : 0))));
 console.log(`suite finished with ${code} after ${secs()} in total`);
 stop();

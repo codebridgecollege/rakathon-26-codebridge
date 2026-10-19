@@ -254,8 +254,9 @@ export class D1Audit extends OrgBound implements AuditStore {
       `INSERT INTO access_log (org_id, actor_user_id, actor_name, acted_as_role, acted_as_membership, impersonating, auth_mode, case_id, document_id,
          page_n, action, what_cs, request_id, break_glass_reason, target_type, target_id, data_epoch)
        VALUES (?org, ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, (SELECT data_epoch FROM demo_state WHERE org_id = ?org))`,
-      e.viewer.id,
-      e.viewer.name,
+      // The real person, also after a role switch; the membership acted as is the next columns.
+      e.viewer.actor?.id ?? e.viewer.id,
+      e.viewer.actor?.name ?? e.viewer.name,
       e.viewer.role,
       e.viewer.membershipId,
       e.viewer.impersonating ? 1 : 0,
@@ -282,8 +283,12 @@ export class D1Audit extends OrgBound implements AuditStore {
     if (f.to) where.push(`l.at <= ${bind(f.to)}`);
     const lim = bind(f.limit);
     const r = await this.q(
-      `SELECT l.at, l.actor_name, l.acted_as_role, l.impersonating, l.case_id, c.source_file, l.what_cs
+      // After a role switch the row names the real person and the membership acted as; the name of the latter is shown.
+      `SELECT l.at, l.actor_name, l.acted_as_role, l.impersonating, l.case_id, c.source_file, l.what_cs,
+         au.pre AS as_pre, au.sur AS as_sur, au.post AS as_post
        FROM access_log l LEFT JOIN cases c ON c.id = l.case_id AND c.org_id = l.org_id
+       LEFT JOIN memberships am ON am.id = l.acted_as_membership AND am.org_id = l.org_id AND l.impersonating = 1
+       LEFT JOIN users au ON au.id = am.user_id
        WHERE ${where.join(" AND ")} ORDER BY l.id DESC LIMIT ${lim}`,
       ...args,
     ).all<AuditRow>();

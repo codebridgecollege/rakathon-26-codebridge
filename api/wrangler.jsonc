@@ -10,9 +10,9 @@
   "assets": {
     "directory": "./.assets",
     "binding": "ASSETS",
-    // Only the API runs code; pages and images are served as files, as on Pages today.
-    // Switch to true when AUTH_MODE=access so the Worker checks the session before any file (second line behind Access).
-    "run_worker_first": ["/api/*"],
+    // Only the API and the login run code; pages and images are served as files. The app's files hold no data, so
+    // they stay public; every /api answer checks the session (docs/design/AUTH.md, "How login works").
+    "run_worker_first": ["/api/*", "/auth/*"],
     "not_found_handling": "404-page"
   },
   // Logs hold route, status and timing only; handlers never log transcripts, audio or tokens.
@@ -24,8 +24,15 @@
   ],
   // Page JSON and images, extraction JSON, guidance. Private: read only through the Worker after the access check.
   "r2_buckets": [{ "binding": "DOCS", "bucket_name": "codebridge-mdt", "jurisdiction": "eu" }],
+  // The login pages' text comes from the shared Fluent catalogs (i18n/<lang>/auth.ftl), imported as text.
+  "rules": [{ "type": "Text", "globs": ["**/*.ftl"], "fallthrough": true }],
   "vars": {
-    "AUTH_MODE": "demo",
+    // "oidc": the login at the IdP (the deployed hosts). "demo": the user picker without a login; `npm run dev`, the
+    // tests and the browser suite set it. Any other value fails closed (src/auth/middleware.ts).
+    "AUTH_MODE": "oidc",
+    // Zitadel Cloud, EU region (docs/design/AUTH.md). OIDC_CLIENT_SECRET and SESSION_KEY are Worker secrets.
+    "OIDC_ISSUER": "https://glide-mdt--dev-dybk0r.eu1.zitadel.cloud",
+    "OIDC_CLIENT_ID": "395716705399111846",
     // "on" lets /api/health report features.data once the database is seeded; "off" leaves the data routes unconfigured.
     "DATA_API": "on",
     // Who may read clinical case content. "all_roles" keeps today's demo behaviour (coordinator and administrator
@@ -34,8 +41,6 @@
     // "true" lets the administrator restore the shared demo to its seed (POST /api/admin/reset-demo). Absent or any
     // other value in a pilot, where the data is not synthetic.
     "DEMO_RESET_ENABLED": "true",
-    "ACCESS_TEAM_DOMAIN": "",
-    "ACCESS_AUD": "",
     "AZURE_OPENAI_BASE": "https://apim-rakathon-q7146n.azure-api.net/openai/v1",
     "AZURE_OPENAI_MODEL": "gpt-6-luna-dz-eu",
     "AI_GATEWAY_BASE": "",

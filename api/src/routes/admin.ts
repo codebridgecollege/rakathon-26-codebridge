@@ -3,6 +3,7 @@ import type { AppEnv } from "../types";
 import { E } from "../http/errors";
 import { audit } from "../middleware/audit";
 import { canReadAuditLog } from "@codebridge/domain/access";
+import { staffName } from "../domain/rows";
 
 // The server's access log for Administrace. Reading it is logged too.
 export const admin = new Hono<AppEnv>().get("/admin/access-log", async (c) => {
@@ -23,6 +24,7 @@ export const admin = new Hono<AppEnv>().get("/admin/access-log", async (c) => {
       who: r.actor_name,
       role: r.acted_as_role,
       impersonating: r.impersonating === 1,
+      acted_as: r.impersonating === 1 && r.as_sur ? staffName({ pre: r.as_pre ?? "", sur: r.as_sur, post: r.as_post ?? "" }) : null,
       case_id: r.case_id,
       pid: r.source_file,
       what: r.what_cs,

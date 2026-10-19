@@ -557,6 +557,8 @@ export const useRecorderStore = defineStore("recorder", () => {
     up.clear();
     lq = [];
   });
+  // A running recording, or lines and audio parts not yet stored, must not be cut off by a lost login (AUTH.md).
+  useSessionStore().onUnsavedCheck(() => on.value || lq.length > 0 || up.size > 0);
   // The switch's other hooks are awaited before the new user is set, so a panel may read its transcript again under
   // the previous user meanwhile; once the new user is in place, that copy goes too and the panel reads it again.
   watch(

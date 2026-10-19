@@ -35,9 +35,9 @@ export async function intakeState(db: D1Database, org: string, caseId: string) {
 // write routes refuse every change but uploads to it (routes/write-context.ts).
 export async function discardIntake(env: Env, org: string, caseId: string, actor: Viewer | null, requestId: string | null, why: "user" | "sweep") {
   const db = env.DB;
-  const c = await orgStmt(db, org, "SELECT patient_id, created_by FROM cases WHERE org_id = ?org AND id = ?1 AND intake_open = 1", caseId).first<{ patient_id: string; created_by: string | null }>();
+  const c = await orgStmt(db, org, "SELECT patient_id, created_by, created_by_actor FROM cases WHERE org_id = ?org AND id = ?1 AND intake_open = 1", caseId).first<{ patient_id: string; created_by: string | null; created_by_actor: string | null }>();
   if (!c) return false;
-  const who = actor ?? (await actorFor(db, org, c.created_by ?? "system", env.AUTH_MODE === "access" ? "access" : "demo"));
+  const who = actor ?? (await actorFor(db, org, c.created_by ?? "system", env.AUTH_MODE === "oidc" ? "oidc" : "demo", c.created_by_actor));
   await db.batch([
     orgStmt(db, org, "INSERT INTO write_guards (org_id, batch_id, code, ok) SELECT ?org, ?1, 'intake_open', CASE WHEN (SELECT intake_open FROM cases WHERE org_id = ?org AND id = ?2) = 1 THEN 1 ELSE 0 END", `discard-${caseId}`, caseId),
     orgStmt(db, org, "DELETE FROM pages WHERE org_id = ?org AND document_id IN (SELECT id FROM documents WHERE org_id = ?org AND case_id = ?1)", caseId),

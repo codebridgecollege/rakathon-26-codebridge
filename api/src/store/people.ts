@@ -107,3 +107,43 @@ export async function membershipsOut(db: D1Database, userId: string) {
     dept: m.dept_id && m.dept_name ? { id: m.dept_id, name: m.dept_name } : null,
   }));
 }
+
+// The login (AUTH.md, "Linking the person, never auto-creating one"). Later logins find the person by issuer and
+// subject; the first one by the verified e-mail of a provisioned person. Nothing here creates a person.
+export function personOfIdentity(db: D1Database, issuer: string, subject: string) {
+  return db.prepare("SELECT user_id FROM user_identities WHERE issuer = ?1 AND subject = ?2").bind(issuer, subject).first<{ user_id: string }>();
+}
+
+export function personOfEmail(db: D1Database, email: string) {
+  return db.prepare("SELECT id FROM users WHERE lower(email) = lower(?1)").bind(email).first<{ id: string }>();
+}
+
+// Whether the person is already linked to another subject of the same IdP: then a second account that happens to
+// carry the same e-mail must not take the person over.
+export async function hasOtherIdentity(db: D1Database, userId: string, issuer: string, subject: string): Promise<boolean> {
+  const r = await db.prepare("SELECT 1 AS x FROM user_identities WHERE user_id = ?1 AND issuer = ?2 AND subject <> ?3").bind(userId, issuer, subject).first();
+  return !!r;
+}
+
+export function linkIdentity(db: D1Database, issuer: string, subject: string, userId: string, at: string) {
+  return db
+    .prepare(
+      `INSERT INTO user_identities (issuer, subject, user_id, created_at, last_login_at) VALUES (?1, ?2, ?3, ?4, ?4)
+       ON CONFLICT(issuer, subject) DO UPDATE SET last_login_at = excluded.last_login_at WHERE user_identities.user_id = excluded.user_id`,
+    )
+    .bind(issuer, subject, userId, at)
+    .run();
+}
+
+// "Přepnout roli" in a demo org (AUTH.md): the org's demo accounts, which are the memberships whose person has an
+// e-mail (the seed gives one to each demo account and to nobody else), doctors first.
+export async function roleSwitchMemberships(db: D1Database, org: string): Promise<MemberRow[]> {
+  const r = await db
+    .prepare(
+      `${MEMBER_SELECT} WHERE m.org_id = ?1 AND u.email IS NOT NULL AND u.active = 1 AND m.active_until IS NULL AND m.role_id <> 'staff'
+       ORDER BY CASE m.role_id WHEN 'doctor' THEN 0 WHEN 'coordinator' THEN 1 ELSE 2 END, u.email`,
+    )
+    .bind(org)
+    .all<MemberRow>();
+  return r.results;
+}

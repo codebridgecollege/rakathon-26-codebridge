@@ -105,6 +105,10 @@ export type AuditRow = {
   case_id: string | null;
   source_file: string | null;
   what_cs: string;
+  // The person acted as after a role switch (impersonating = 1); null otherwise.
+  as_pre: string | null;
+  as_sur: string | null;
+  as_post: string | null;
 };
 
 export interface DirectoryStore {

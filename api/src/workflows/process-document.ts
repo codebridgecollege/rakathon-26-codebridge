@@ -28,11 +28,11 @@ const OCR = { retries: { limit: 3, delay: "10 seconds", backoff: "exponential" }
 
 const iso = () => new Date().toISOString();
 
-type RunRow = { id: string; document_id: string; case_id: string; output_prefix: string; input_sha256: string; created_by: string; state: string };
+type RunRow = { id: string; document_id: string; case_id: string; output_prefix: string; input_sha256: string; created_by: string; created_by_actor: string | null; state: string };
 type DocRow = { id: string; case_id: string; original_r2_key: string | null; sha256: string | null; state: string | null };
 
 async function runOf(env: Env, org: string, runId: string) {
-  const r = await orgStmt(env.DB, org, "SELECT id, document_id, case_id, output_prefix, input_sha256, created_by, state FROM pipeline_runs WHERE org_id = ?org AND id = ?1", runId).first<RunRow>();
+  const r = await orgStmt(env.DB, org, "SELECT id, document_id, case_id, output_prefix, input_sha256, created_by, created_by_actor, state FROM pipeline_runs WHERE org_id = ?org AND id = ?1", runId).first<RunRow>();
   if (!r) throw new NonRetryableError("run_missing");
   return r;
 }
@@ -185,7 +185,7 @@ export class ProcessDocumentWorkflow extends WorkflowEntrypoint<Env, ProcessDocu
     const db = env.DB;
     const run = await runOf(env, p.org, p.runId);
     if (run.state === "done") return;
-    const who = await actorFor(db, p.org, run.created_by, env.AUTH_MODE === "access" ? "access" : "demo");
+    const who = await actorFor(db, p.org, run.created_by, env.AUTH_MODE === "oidc" ? "oidc" : "demo", run.created_by_actor);
     const doc = await orgStmt(db, p.org, "SELECT state, origin, (SELECT COUNT(*) FROM pages WHERE org_id = ?org AND document_id = ?1) AS pages FROM documents WHERE org_id = ?org AND id = ?1", p.docId).first<{ state: string | null; origin: string; pages: number }>();
     const stmts: D1PreparedStatement[] = [
       orgStmt(db, p.org, "UPDATE pipeline_runs SET state = 'done', stage = NULL, stages_json = ?1, finished_at = ?2, updated_at = ?2 WHERE org_id = ?org AND id = ?3", JSON.stringify(stages), iso(), p.runId),
@@ -221,8 +221,8 @@ export class ProcessDocumentWorkflow extends WorkflowEntrypoint<Env, ProcessDocu
   private async fail(p: ProcessDocumentParams, code: string) {
     const env = this.env;
     const db = env.DB;
-    const run = await orgStmt(db, p.org, "SELECT created_by FROM pipeline_runs WHERE org_id = ?org AND id = ?1", p.runId).first<{ created_by: string }>();
-    const who = await actorFor(db, p.org, run?.created_by ?? "system", env.AUTH_MODE === "access" ? "access" : "demo");
+    const run = await orgStmt(db, p.org, "SELECT created_by, created_by_actor FROM pipeline_runs WHERE org_id = ?org AND id = ?1", p.runId).first<{ created_by: string; created_by_actor: string | null }>();
+    const who = await actorFor(db, p.org, run?.created_by ?? "system", env.AUTH_MODE === "oidc" ? "oidc" : "demo", run?.created_by_actor ?? null);
     await db.batch([
       orgStmt(db, p.org, "UPDATE pipeline_runs SET state = 'error', error_code = ?1, finished_at = ?2, updated_at = ?2 WHERE org_id = ?org AND id = ?3", code, iso(), p.runId),
       orgStmt(db, p.org, "UPDATE documents SET state = 'failed', state_detail_cs = ?1 WHERE org_id = ?org AND id = ?2 AND origin = 'upload' AND state <> 'prepared'", pipelineErrorCs(code), p.docId),

@@ -1,12 +1,13 @@
 // The cron sweep (wrangler.jsonc triggers.crons, every 15 minutes): deletes audio that every other path should already
-// have deleted, and starts speaker passes whose start failed. The R2 lifecycle rule on audio/ is the backstop behind
-// this (api/AGENTS.md, "AI recording and the speaker pass"). It runs without a request, so it goes through the orgs one
-// by one and gives each store function the org as a parameter, as a route would.
+// have deleted, starts speaker passes whose start failed, and clears expired login sessions. The R2 lifecycle rule on
+// audio/ is the backstop behind this (api/AGENTS.md, "AI recording and the speaker pass"). It runs without a request,
+// so it goes through the orgs one by one and gives each store function the org as a parameter, as a route would.
 import { purgeUploads, uploadsForSweep } from "./store/audio";
 import { reconcile, startJob, type JobRow } from "./store/jobs";
 import { transcriptsOn } from "./routes/hooks";
 import { reconcilePipelineRuns, sweepIntakes } from "./store/intake";
 import { orgStmt } from "./store/sql";
+import { sweepSessions } from "./auth/session";
 
 // Audio no pass has claimed goes after six hours: no case is discussed that long. Audio a failed pass kept for
 // "Zkusit znovu" goes after seven days at the latest, the same as the R2 lifecycle rule (user decision 2026-10-18).
@@ -33,6 +34,10 @@ export async function sweep(env: Env, nowMs = Date.now()): Promise<Counts> {
     total.failed += r.failed;
     total.restarted += r.restarted;
   }
+  // Login sessions of every org: the ID token of an expired one goes at once, the row 30 days later (AUTH.md).
+  await sweepSessions(env.DB, nowMs).catch(() => {
+    total.failed += 1;
+  });
   // Counts only: no org, case ids or keys in the Worker log.
   console.log(JSON.stringify({ cron: "audio_sweep", ...total }));
   return total;

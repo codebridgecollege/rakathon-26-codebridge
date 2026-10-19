@@ -416,6 +416,8 @@ export const useDiscussionStore = defineStore("discussion", () => {
     return true;
   });
   useSessionStore().onUserSwitched(reset);
+  // A lost login while a draft is typed, on its way or being approved must not navigate away (AUTH.md).
+  useSessionStore().onUnsavedCheck(() => Object.values(saves).some((sv) => sv.dirty.size > 0 || !!sv.inflight || sv.approving));
 
   const isApproved = (file: string) => (protos[file]?.state ?? protoFromServer(serverCase(file)?.protocol).state) === "approved";
   const isDirty = (file: string) => !!saves[file]?.dirty.size;

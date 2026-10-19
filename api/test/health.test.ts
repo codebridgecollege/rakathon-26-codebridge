@@ -27,13 +27,10 @@ describe("GET /api/health", () => {
     expect(body.features).toEqual({ stt: false, summarize: false, data: false, transcripts: false, pipeline: false });
   });
 
-  it("answers in access mode without a token, because it holds no data", async () => {
-    const res = await call(
-      "/api/health",
-      {},
-      testEnv({ AUTH_MODE: "access", ACCESS_TEAM_DOMAIN: "https://team.cloudflareaccess.com", ACCESS_AUD: "aud" }),
-    );
+  it("answers in OIDC mode without a session, because it holds no data", async () => {
+    const res = await call("/api/health", {}, testEnv({ AUTH_MODE: "oidc", OIDC_ISSUER: "https://idp.test", OIDC_CLIENT_ID: "c" }));
     expect(res.status).toBe(200);
+    expect((await res.json<{ auth_mode: string }>()).auth_mode).toBe("oidc");
   });
 
   it("answers unknown API paths with the JSON 404 and no-store", async () => {

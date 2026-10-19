@@ -330,6 +330,7 @@ admin-reset-what = Vráti prípady, závery, úlohy, dochádzku, personál a zá
 admin-reset-done = Údaje obnovené, stránka sa znova načíta.
 admin-col-time = Čas
 admin-col-user = Používateľ
+admin-log-acting-as = { $who } (ako { $as })
 admin-col-case = Prípad
 admin-col-action = Akcia
 admin-log-empty = Zatiaľ žiadne prístupy.

@@ -27,6 +27,7 @@ import {
 } from "../domain/upload-sessions";
 import { limitOrThrow } from "../http/rate-limit";
 import { makeStores } from "../store";
+import { realActor } from "../store/audio";
 import { UNLOCKED_COND, sessionDocuments, uploadContext } from "../store/documents";
 import { D1Work } from "../store/work";
 import { openCase } from "./access-check";
@@ -34,7 +35,7 @@ import { assertUnlocked, docOut, receiveUpload } from "./documents";
 import { answer, caseFor, label, newId, now, orgQuery, tx } from "./write-context";
 import { orgStmt } from "../store/sql";
 
-const SESSION_COLS = "id, org_id, token_hash, case_id, target, created_by, created_at, expires_at, closed_at, file_count";
+const SESSION_COLS = "id, org_id, token_hash, case_id, target, created_by, created_by_actor, created_at, expires_at, closed_at, file_count";
 
 // What the desktop sees of a session. The token is not in it: it is shown once, in the answer that created it.
 const sessionOut = (s: SessionRow, nowMs: number) => ({
@@ -73,8 +74,8 @@ export const uploadSessions = new Hono<AppEnv>()
     const t = tx(c, breakGlass);
     t.guard("unlocked", UNLOCKED_COND, [caseId, caseId], () => UP.locked());
     t.run(
-      `INSERT INTO upload_sessions (org_id, id, token_hash, case_id, target, created_by, created_at, expires_at) VALUES (?org, ?1, ?2, ?3, ?4, ?5, ?6, ?7)`,
-      id, await tokenHash(token), caseId, target, c.var.viewer.id, at.toISOString(), expires,
+      `INSERT INTO upload_sessions (org_id, id, token_hash, case_id, target, created_by, created_by_actor, created_at, expires_at) VALUES (?org, ?1, ?2, ?3, ?4, ?5, ?8, ?6, ?7)`,
+      id, await tokenHash(token), caseId, target, c.var.viewer.id, at.toISOString(), expires, c.var.viewer.actor?.id ?? null,
     );
     t.audit({ action: "upload_session.open", what_cs: OPENED_CS, case_id: caseId, target_type: "upload_session", target_id: id });
     await t.commit();
@@ -143,10 +144,11 @@ async function actAsCreator(c: Context<AppEnv>, s: SessionRow): Promise<string |
     name: staffName(row),
     role: row.role_id,
     dept: await stores.dir.firstDeptOf(row.id),
-    authMode: c.env.AUTH_MODE === "access" ? "access" : "demo",
-    impersonating: false,
+    authMode: c.env.AUTH_MODE === "oidc" ? "oidc" : "demo",
     org: s.org_id,
     membershipId: row.membership_id,
+    // Opened under a role switch: the rows name the person logged in, as the desktop's own rows did (AUTH.md).
+    ...(await realActor(c.env.DB, s.created_by, s.created_by_actor)),
   });
   c.set("breakGlass", null);
   try {

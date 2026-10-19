@@ -99,6 +99,9 @@ export function createApiClient(opts: ClientOptions = {}) {
     setUser(id: string | null) {
       t.userId = id;
     },
+    setActingAs(who: string | null) {
+      t.actingAs = who;
+    },
     get userId() {
       return t.userId;
     },
@@ -114,12 +117,19 @@ export function createApiClient(opts: ClientOptions = {}) {
       if (h.demo?.data_epoch != null) t.epoch = h.demo.data_epoch;
       return h;
     },
-    async me() {
-      const who = await t.get<Me>("/me");
+    // retryAfterLogin false: the session-expired dialog's check whether the login is back, which must not wait for itself.
+    async me(o: RequestOptions = {}) {
+      // Without X-Acting-As: this answer is what the tab then shows.
+      const who = await t.get<Me>("/me", { ...o, sendIdentity: false });
       // The epoch of the org the request acts in; writes send it back (see workflow()).
       if (who.data_epoch != null) t.epoch = who.data_epoch;
       return who;
     },
+    // OIDC mode: the login session moves to another org of the person, or acts as another demo account of a demo org
+    // ("Přepnout roli"); both answer with a new session cookie and the page reloads what it shows. A 401 fails at once:
+    // the app waits for these two before it sends again what the old session ID got refused.
+    switchOrg: (orgId: string) => t.write<{ ok: true }>("POST", "/session/org", { org_id: orgId }, { retryAfterLogin: false }),
+    switchRole: (membershipId: string) => t.write<{ ok: true }>("POST", "/session/role", { membership_id: membershipId }, { retryAfterLogin: false }),
     // The demo picker's entries, grouped by org (404 unless the server runs in demo mode).
     demoMemberships: () => t.get<DemoPicker>("/demo/memberships"),
     staff: () => t.get<StaffDirectory>("/staff"),

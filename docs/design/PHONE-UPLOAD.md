@@ -89,9 +89,10 @@ itself (same role and case-state rules as today's upload, `canUpload`).
   closed; the phone shows "Platnost odkazu skončila, naskenujte kód
   znovu" only in that case.
 - **Reset-demo** closes every open session.
-- **Login later:** when Cloudflare Access is switched on, `/u` and
-  `/api/upload-sessions/current*` must bypass it, because the phone is not
-  logged in; the token is those routes' credential.
+- **With the login on:** the phone is not logged in, so `/u` (a static
+  file) and `/api/upload-sessions/current*` (mounted before the Worker's
+  session check, `api/src/index.ts`) stay outside it; the token is those
+  routes' credential.
 
 ## Desktop
 
