@@ -255,7 +255,7 @@ privacy side is in `docs/design/DATA-PROTECTION.md`, "Text sent to a model", and
   which call the page reader's `/v1/redact` with the case's name forms; `redactStoredPage` stores
   `p<n>.redacted.png` and `p<n>.redactions.json` next to the run's page.
 - **Audit and budget:** one `model.call` access-log row per page (document and page, provider, model, purpose,
-  prompt), written in one D1 batch with the budget guards and a `model_calls` row (migration 0013) before the first
+  prompt), written in one D1 batch with the budget guards and a `model_calls` row (migration 0014) before the first
   attempt; the attempts and outcome are then written to `model_calls`. A cache hit sends nothing and writes nothing.
   Reset-demo deletes `model_calls` (trigger `demo_reset_model_calls`) and the org's `cache/model/`.
 - **Cache lifecycle,** once per demo org (the same as `cache/summary/`):
