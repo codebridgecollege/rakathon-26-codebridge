@@ -3,8 +3,8 @@
 // 429). What the model sees and what of its answer is kept is decided in packages/domain/src/extraction/brief.ts:
 // verified facts only in, and only sentences whose dates, numbers, negations, sides and drug names are in their facts
 // out. When the brief leaves out unverified facts of its kinds, or drops sentences, an alert says so and lists the
-// facts, so a partial brief never reads as complete. The case merge is meant to call composeBrief after the case rules
-// and the composed views, before storeRun; until stream B wires it, only the tests and the eval harness do.
+// facts, so a partial brief never reads as complete. The case merge (workflows/process-case.ts) calls composeBrief in its
+// own step after the case rules and the composed views, before storeRun, where the model runs for the org.
 import type { Viewer } from "@codebridge/domain/access";
 import { acceptBrief, briefFacts, briefPrompt, withBriefAlerts, type AcceptedBrief } from "@codebridge/domain/extraction/brief";
 import type { ExtractionRun } from "@codebridge/domain/extraction/types";

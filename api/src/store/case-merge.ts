@@ -4,8 +4,9 @@
 // which every finished document run (and a withdraw) starts; it always composes what exists, so it is idempotent, and
 // a run stored in between (run_stale) makes the Workflow retry.
 import { composeFragments, FRAGMENT_SCHEMA, type Fragment } from "@codebridge/domain/fragments";
-import type { ExtractionRun } from "@codebridge/domain/extraction/index";
-import { currentRunRow, matchInputs, prepareRun, storeRun, withoutDocuments } from "./runs";
+import type { ExtractionRun, RunStage } from "@codebridge/domain/extraction/index";
+import { withCaseRulesAndViews } from "@codebridge/domain/extraction/compose";
+import { currentRunRow, matchInputs, prepareRun, queueQuestionDraft, storeRun, withoutDocuments } from "./runs";
 import { orgStmt } from "./sql";
 import { Tx } from "./write";
 import { sha256Hex } from "./work";
@@ -13,8 +14,8 @@ import type { Viewer } from "@codebridge/domain/access";
 
 export type MergeResult = { result: "stored" | "other_producer" | "nothing"; documents: number; facts: number; run_id: string | null };
 
-// A hook for the case rules (stream E, applyCaseRules): they run on the prepared run, on its final fact IDs, because
-// some of their alert subjects contain "|" and prepareRun would rewrite them. Until they exist the run goes as it is.
+// The case rules and composed views (stream E): they run on the prepared run, on its final fact IDs, because some of
+// their alert subjects contain "|" and prepareRun would rewrite them.
 export type CaseRules = (run: ExtractionRun) => ExtractionRun;
 
 /**
@@ -70,12 +71,17 @@ function heldBack(f: Fragment): Fragment {
   };
 }
 
+/** A composed, prepared run ready to store, with what storing it needs. */
+export type ComposedRun = { run: ExtractionRun; stages: RunStage[] };
+
 /**
- * Composes and stores the case's pipeline run. Leaves the case alone when its current run came from another producer
- * (a prepared fixture or the NIS import): combining producers is not built yet, and replacing their run would drop
- * their facts. Only processed, current uploads count: a superseded or withdrawn document is never read again.
+ * Composes the case's pipeline run from its documents' fragments and prepares it (fact IDs carried over), then runs the
+ * case rules and the composed views (`rules`, stream E's withCaseRulesAndViews by default; on the prepared run, since
+ * some rule subjects contain "|"). Leaves the case alone when its current run came from another producer (a prepared
+ * fixture or the NIS import): combining producers is not built yet, and replacing their run would drop their facts.
+ * Only current uploads without prepared data count: a superseded or withdrawn document is never read again.
  */
-export async function publishCaseRun(env: Env, org: string, caseId: string, who: Viewer, rules: CaseRules = (r) => r): Promise<MergeResult> {
+export async function composeCaseRun(env: Env, org: string, caseId: string, rules: CaseRules = withCaseRulesAndViews): Promise<ComposedRun | MergeResult> {
   const db = env.DB;
   const current = await currentRunRow(db, org, caseId);
   if (current && current.producer !== "pipeline") return { result: "other_producer", documents: 0, facts: 0, run_id: null };
@@ -105,10 +111,19 @@ export async function publishCaseRun(env: Env, org: string, caseId: string, who:
   const inputs = await matchInputs(db, env.DOCS, org, caseId);
   const draft = composeFragments(caseId, runId, at, fragments);
   const { run } = prepareRun(inputs, draft);
-  const final = rules(run);
+  return { run: rules(run), stages: fragments.flatMap((f) => f.stages) };
+}
 
+/**
+ * Stores a composed run in one batch: the run (storeRun refuses it with run_stale when another run became current in
+ * between, and the caller composes again), the retirement of the documents' interim alerts, the drafted question when
+ * the brief step made one (`withQuestion`), the case's processing level and one access-log line.
+ */
+export async function storeCaseRun(env: Env, org: string, caseId: string, who: Viewer, c: ComposedRun, withQuestion = false): Promise<MergeResult> {
+  const db = env.DB;
+  const final = c.run;
   // The model and prompt that made the facts (the extraction stage), not the page reading that may run before it.
-  const modelStages = fragments.flatMap((f) => f.stages).filter((s) => s.model);
+  const modelStages = c.stages.filter((s) => s.model);
   const ai = modelStages.find((s) => s.name === "extract_facts") ?? modelStages[0];
   const t = new Tx(db, who, { requestId: null, epoch: null });
   const docIds = final.documents.map((d) => d.document_id);
@@ -128,14 +143,18 @@ export async function publishCaseRun(env: Env, org: string, caseId: string, who:
     JSON.stringify(docIds),
     JSON.stringify(withIdentity),
   );
+  // The drafted MDT question goes onto the case with the run that holds it (stream E): only for a case without an
+  // explicit question, never over what a doctor confirmed or edited. Only when the brief step ran: a run made without
+  // the model has no draft, and must not clear one made earlier.
+  if (withQuestion) queueQuestionDraft(t, final, (doc) => `${doc}.pdf`);
   // The case list's "nezpracováno" ends once the case has a run with documents.
   t.run("UPDATE cases SET processing_level = ?1 WHERE org_id = ?org AND id = ?2 AND processing_level <> 'full'", docIds.length ? "partial" : "none", caseId);
   t.audit({
     action: "case.pipeline_run",
-    what_cs: `sestaven přehled případu ze zpracovaných dokumentů bez AI (dokumentů: ${docIds.length}, údajů: ${final.facts.length})`,
+    what_cs: `sestaven přehled případu ze zpracovaných dokumentů (dokumentů: ${docIds.length}, údajů: ${final.facts.length})`,
     case_id: caseId,
     target_type: "extraction_run",
-    target_id: runId,
+    target_id: final.run.id,
   });
   try {
     await t.commit();
@@ -143,7 +162,13 @@ export async function publishCaseRun(env: Env, org: string, caseId: string, who:
     await env.DOCS.delete(stored.r2_key).catch(() => {});
     throw e;
   }
-  return { result: "stored", documents: docIds.length, facts: final.facts.length, run_id: runId };
+  return { result: "stored", documents: docIds.length, facts: final.facts.length, run_id: final.run.id };
+}
+
+/** Composes and stores in one go, without the brief (tests, and a caller with no model step). */
+export async function publishCaseRun(env: Env, org: string, caseId: string, who: Viewer, rules: CaseRules = withCaseRulesAndViews): Promise<MergeResult> {
+  const c = await composeCaseRun(env, org, caseId, rules);
+  return "result" in c ? c : storeCaseRun(env, org, caseId, who, c);
 }
 
 /**

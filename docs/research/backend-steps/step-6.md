@@ -1333,4 +1333,12 @@ Contract with stream D (#20) and stream E (#21): `docs/research/2026-10-20-case-
   code goes to the log). It fails closed on identity: a document D1 marks as another patient's, or one whose pages were
   not checked (no `identity.json`: a registered fixture, a failed identity check), never goes to a model, because the
   pseudonymizer knows only the case's own patient; and never in demo org A, whatever MODEL_ORGS says.
+- **Rules, views, brief, question (stream E).** ProcessCaseWorkflow runs in three steps: `compose` (fragments,
+  `prepareRun`, then `withCaseRulesAndViews`: the case rules and the composed oncology lines and timeline, on the
+  prepared run's final fact IDs), `brief` (stream E's `composeBrief`, only where the model runs for the org,
+  `MODEL_ORGS`, never in demo org A; it also drafts the MDT question when the referral states none), and `store`
+  (`storeRun`, `queueQuestionDraft` when the brief step ran, the retired document alerts, the processing level and
+  the audit line in one batch). The composed run waits between the steps in R2 under the case's `runs/`
+  (`draft-<instance>-<attempt>.json`, deleted once stored); step results hold counts and codes only. A store that
+  meets another run made current meanwhile (`run_stale`) starts the three steps over, up to eight times.
 
