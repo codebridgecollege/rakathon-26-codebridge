@@ -87,6 +87,8 @@ export function modelConfig(env: Env) {
   };
 }
 
+// docId is the `documents.id` of the case's document (never a file name, fixture or part ID): the cache folder and the
+// purge on withdraw (model-cache.ts) go by it.
 export type PageRef = { docId: string; page: number | null };
 
 export type ModelRequest = {

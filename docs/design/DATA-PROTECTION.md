@@ -427,7 +427,9 @@ it yet that sends real documents; the extraction prompts come in phase 2.
   (a call over several documents: `<case>/multi-...`),
   so one org never reads another's. The cached answer is the pseudonymized
   one. Withdrawing a document as another patient's deletes its answers
-  and the case's multi-document ones with its other content. Reset-demo
+  and the case's multi-document ones with its other content (the offline
+  evaluation harness's local cache in `api/.cache/`, synthetic data only,
+  is outside this purge). Reset-demo
   deletes the org's `cache/model/`; a lifecycle rule
   expires it after 30 days (`api/AGENTS.md`).
 

@@ -77,9 +77,9 @@ async function sweepOrg(env: Env, org: string, nowMs: number): Promise<Counts> {
   // Issue #18: a document withdrawn as another patient's loses its R2 content right away; a delete that failed then is
   // done again here for a week (deleting nothing twice costs one list call per prefix).
   try {
-    const gone = await orgStmt(env.DB, org, "SELECT id, case_id FROM documents WHERE org_id = ?org AND lifecycle = 'withdrawn' AND lifecycle_changed_at > ?1 LIMIT 100", new Date(nowMs - 7 * 24 * 3600_000).toISOString())
-      .all<{ id: string; case_id: string }>();
-    for (const d of gone.results) await deleteDocumentObjects(env, org, d.case_id, d.id);
+    const gone = await orgStmt(env.DB, org, "SELECT id, case_id, lifecycle_changed_at FROM documents WHERE org_id = ?org AND lifecycle = 'withdrawn' AND lifecycle_changed_at > ?1 LIMIT 100", new Date(nowMs - 7 * 24 * 3600_000).toISOString())
+      .all<{ id: string; case_id: string; lifecycle_changed_at: string }>();
+    for (const d of gone.results) await deleteDocumentObjects(env, org, d.case_id, d.id, d.lifecycle_changed_at);
   } catch {
     failed += 1;
   }
