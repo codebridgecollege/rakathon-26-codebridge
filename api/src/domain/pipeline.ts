@@ -1,9 +1,9 @@
 // The document pipeline without an LLM (step 6, slice b-1): Czech labels of its results and the comparison of a run's
 // lab values with a document's prepared data. Pure.
-import type { Labs } from "../services/pagekit";
+import type { Labs } from "../services/page-reader";
 
-// Pages per PageKit call: one call for a 40-page document would run for minutes with no partial retry; one call per
-// page would send the whole PDF each time. PageKit takes at most 10.
+// Pages per page reader call: one call for a 40-page document would run for minutes with no partial retry; one call per
+// page would send the whole PDF each time. The page reader takes at most 10.
 export const PIPELINE_BATCH = 5;
 
 export const READABILITY_CS: Record<string, string> = { good: "dobrá", fair: "částečná", poor: "špatná", empty: "prázdná stránka" };
@@ -20,14 +20,14 @@ const ERROR_CS: Record<string, string> = {
   document_changed: "dokument se během zpracování změnil",
   document_missing: "soubor dokumentu chybí",
   pipeline_off: "zpracování není na tomto serveru zapnuté",
-  pagekit_unreachable: "služba pro čtení stránek neodpovídá",
+  page_reader_unreachable: "služba pro čtení stránek neodpovídá",
 };
 export const pipelineErrorCs = (code: string) => `zpracování selhalo: ${ERROR_CS[code] ?? "služba pro čtení stránek odpověděla chybou"}`;
 
 export type PreparedPoint = { code: string; value: string; unit: string; reference_range: string; date: string | null; time: string | null; out_of_range?: string | null };
 
 // "mmol/l" read as "mmol/1": a unit without digits that differs only by look-alike characters is the same unit
-// (same_unit in pipeline/pagekit/page_index.py); a unit with a digit ("10^9/l" as "10"9/|") is not.
+// (same_unit in pipeline/page_reader/page_index.py); a unit with a digit ("10^9/l" as "10"9/|") is not.
 const LOOK = { l: "1", I: "1", i: "1", O: "0", o: "0", "µ": "u" } as Record<string, string>;
 const fold = (s: string) => [...s].map((ch) => LOOK[ch] ?? ch).join("");
 export const sameUnit = (a: string, b: string) => a === b || (!/\d/.test(a) && fold(a) === fold(b));

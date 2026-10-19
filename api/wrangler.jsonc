@@ -57,9 +57,9 @@
     // local work). The page promises 20 MB per file.
     "UPLOAD_POLICY": "fixtures_only",
     "UPLOAD_MAX_BYTES": "20971520",
-    // Step 6 (b-1): where the PageKit service runs (src/services/pagekit.ts). "" with no PAGEKIT container binding
+    // Step 6 (b-1): where the page reader service runs (src/services/page-reader.ts). "" with no PAGE_READER container binding
     // switches the document pipeline off; local work sets it to the Python service, http://localhost:8080.
-    "PAGEKIT_URL": "",
+    "PAGE_READER_URL": "",
     "GIT_SHA": "dev"
   },
   // Limits are per Cloudflare location and approximate (eventually consistent). Generous on purpose:

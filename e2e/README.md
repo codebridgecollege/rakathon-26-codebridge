@@ -187,7 +187,7 @@ Screens and features from `docs/design/PRODUCT.md` against the spec files in `sp
 Not covered, and why:
 - **Not built in the page:** F-08, F-10, F-13, F-14, F-20, F-26, F-28, F-29, F-30.
 - **No visible UI:** F-37 (pseudonymization happens on the server), F-33 (re-check on upload, server side).
-- **Needs a service the suite does not run:** the document pipeline ("Přečíst bez AI", F-35) needs PageKit
+- **Needs a service the suite does not run:** the document pipeline ("Přečíst bez AI", F-35) needs the page reader
   (`features.pipeline`); the speaker pass and AI summary after approval need ElevenLabs and Azure (only the live
   recorder states are covered).
 - **Not reachable from the UI:** break-the-glass ("Otevřít mimo tým"). Every seeded department is a member of every

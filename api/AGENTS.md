@@ -219,14 +219,14 @@ Design and contract: `docs/research/backend-steps/step-6.md`, section "As implem
   reset batch's `reset_in_progress = 1` update of that org, and deletes that org's rows only), so the reset batch stays
   at its size. A new table written by these routes goes into that trigger, not into the batch.
 - Pipeline without an LLM: `src/workflows/process-document.ts` (binding `PROCESS_DOCUMENT`), `src/routes/pipeline.ts`,
-  `src/services/pagekit.ts`. PageKit is `pipeline/container/server.py`; the Worker reaches it at `PAGEKIT_URL` or,
-  once configured, through a `PAGEKIT` container binding; with neither the pipeline answers 503 `pipeline_off`. Step
+  `src/services/page-reader.ts`. The page reader is `pipeline/container/server.py`; the Worker reaches it at `PAGE_READER_URL` or,
+  once configured, through a `PAGE_READER` container binding; with neither the pipeline answers 503 `pipeline_off`. Step
   results hold ids, counts and codes only (`test/pipeline.test.ts`). Runs are `pipeline_runs`, never the case's view.
 - Local end to end with the real files:
 
   ```
-  cd pipeline && uv run python container/server.py --port 8080      # PageKit (needs tesseract with ces)
-  cd api && npm run seed:local && npx wrangler dev --port 8799 --var PAGEKIT_URL:http://localhost:8080
+  cd pipeline && uv run python container/server.py --port 8080      # the page reader (needs tesseract with ces)
+  cd api && npm run seed:local && npx wrangler dev --port 8799 --var PAGE_READER_URL:http://localhost:8080
   node api/scripts/e2e-intake.mjs http://localhost:8799 --pipeline --reset
   ```
 - Python tests of the pipeline: `cd pipeline && uv run pytest -q`.

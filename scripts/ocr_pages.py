@@ -28,10 +28,10 @@ import shutil
 import sys
 from pathlib import Path
 
-# The logic lives in pipeline/pagekit, shared with the container and the tests.
+# The logic lives in pipeline/page_reader, shared with the container and the tests.
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "pipeline"))
 import fitz  # noqa: E402  PyMuPDF
-from pagekit import layer, ocr, render  # noqa: E402
+from page_reader import layer, ocr, render  # noqa: E402
 
 
 def process(pdf: Path, out: Path) -> None:

@@ -1,7 +1,7 @@
 """The real 6b-1 path on the S02 upload PDFs: render, local Tesseract, text layer, analyze, labs."""
 
 from conftest import REPO, compare_with_mock, mock_labs, needs_tesseract
-from pagekit import labs, layer, ocr, page_index as pi, readability as rd, render
+from page_reader import labs, layer, ocr, page_index as pi, readability as rd, render
 
 UPLOADS = {  # upload file -> page of that sheet in the combined S02 PDF (the fixture's source page)
     "04-laborator-2026-03-10.pdf": 5, "05-laborator-2026-06-02.pdf": 6,

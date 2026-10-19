@@ -34,9 +34,9 @@ from pathlib import Path
 
 from PIL import Image
 
-# The logic lives in pipeline/pagekit, shared with the container and the tests.
+# The logic lives in pipeline/page_reader, shared with the container and the tests.
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "pipeline"))
-from pagekit.redact import apply, find, name_parts, read_lines  # noqa: E402
+from page_reader.redact import apply, find, name_parts, read_lines  # noqa: E402
 
 
 def known_names(names_file: Path) -> set[str]:

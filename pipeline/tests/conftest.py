@@ -7,8 +7,8 @@ from pathlib import Path
 
 import pytest
 
-from pagekit import labs, page_index as pi
-from pagekit.page_index import same_unit
+from page_reader import labs, page_index as pi
+from page_reader.page_index import same_unit
 
 REPO = Path(__file__).resolve().parents[2]
 PAGES = REPO / "data/derived/pages"

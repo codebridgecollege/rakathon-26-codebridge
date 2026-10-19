@@ -1,5 +1,5 @@
-# pagekit container: render, Tesseract and the deterministic page logic over HTTP (container/server.py).
-# Build context is the repository root:  docker build -f pipeline/container/Dockerfile -t pagekit .
+# The page reader container: render, Tesseract and the deterministic page logic over HTTP (container/server.py).
+# Build context is the repository root:  docker build -f pipeline/container/Dockerfile -t page-reader .
 #
 # linux/amd64 is the only architecture Cloudflare Containers run. The digest is the multi-arch index of
 # python:3.12-slim-bookworm, read from Docker Hub on 2026-10-17; the platform flag picks its amd64 image.
@@ -16,7 +16,7 @@ COPY pipeline/requirements.lock /app/requirements.lock
 # --require-hashes: every wheel is checked against uv.lock's hashes (pymupdf==1.24.10, pillow==10.4.0).
 RUN pip install --no-cache-dir --require-hashes -r /app/requirements.lock
 
-COPY pipeline/pagekit /app/pagekit
+COPY pipeline/page_reader /app/page_reader
 COPY pipeline/container/server.py /app/server.py
 
 # One Tesseract thread per request: the instance has half a vCPU and requests run one at a time.

@@ -1,7 +1,7 @@
-"""pagekit over HTTP: the container the Worker's document Workflow calls (docs/research/backend-steps/step-6.md).
+"""The page reader over HTTP: the container the Worker's document Workflow calls (docs/research/backend-steps/step-6.md).
 
 Run locally:  cd pipeline && uv run python container/server.py [--port 8080]
-Run in Docker: docker build -f pipeline/container/Dockerfile -t pagekit . && docker run -p 8080:8080 pagekit
+Run in Docker: docker build -f pipeline/container/Dockerfile -t page-reader . && docker run -p 8080:8080 page-reader
 (build context is the repository root).
 
 A standard-library ThreadingHTTPServer with JSON in and out. It holds no secrets, no storage and needs no
@@ -11,7 +11,7 @@ response body, because bodies are patient documents.
 Contract, version 1 (the Worker and the image can be deployed apart, so a breaking change gets /v2):
 
 GET /healthz
-  200 {"ok": true, "versions": {"pagekit": str, "pymupdf": str, "tesseract": str|null,
+  200 {"ok": true, "versions": {"page_reader": str, "pymupdf": str, "tesseract": str|null,
                                 "ces_model": "sha256:<16 hex>"|bool}}
 
 POST /v1/inspect            body: PDF bytes
@@ -43,7 +43,7 @@ POST /v1/labs               body: {"pages": [{"n", "text", "layer_text", "readab
                                    "document": {"doc_id": str}}
   200 {"name_note", "draws": [...], "tests": [...], "indices": [...], "unparsed": [{"n", "doc_id", "line_no",
        "start", "end", "reason", "reason_cs"}], "counts": {...}}
-  The labs_series shape of fixtures/data/mock-case-S02.json; see pagekit/labs.py for the rules.
+  The labs_series shape of fixtures/data/mock-case-S02.json; see page_reader/labs.py for the rules.
   unparsed reasons: "lab_like_not_parsed", "draw_date_not_parsed" (offsets into "text"), and
   "only_second_reading" (a result only the text layer has; offsets into "layer_text", with "in", "code"
   and "quote"). A page without readability_level counts as not readable: its points are unclear_ocr.
@@ -63,13 +63,13 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
-# In the image server.py sits next to pagekit/ in /app; in the repository pagekit/ is one folder up.
+# In the image server.py sits next to page_reader/ in /app; in the repository page_reader/ is one folder up.
 _here = Path(__file__).resolve().parent
-sys.path.insert(0, str(_here if (_here / "pagekit").is_dir() else _here.parent))
+sys.path.insert(0, str(_here if (_here / "page_reader").is_dir() else _here.parent))
 
 import fitz  # noqa: E402  PyMuPDF
 
-from pagekit import VERSION, labs, layer, ocr, page_index, readability, render  # noqa: E402
+from page_reader import VERSION, labs, layer, ocr, page_index, readability, render  # noqa: E402
 
 MAX_BODY = 20 * 1024 * 1024  # the upload limit of step 6, so anything larger never came from our Worker
 MAX_PAGES = 60  # a referral PDF is a few dozen pages; more is a wrong upload, and it bounds the work
@@ -80,7 +80,7 @@ MAX_BATCH = 10  # the Workflow sends 5; 10 leaves room and keeps one response at
 
 REQUEST_TIMEOUT = 30  # seconds a client may take to send its body; a stalled upload must not hold a thread
 
-log = logging.getLogger("pagekit")
+log = logging.getLogger("page_reader")
 # PyMuPDF is not thread-safe, and the instance has half a vCPU, so PDF and OCR work runs one request at a
 # time; a Workflow retry that overlaps a slow batch waits instead of crashing the process.
 WORK = threading.Lock()
@@ -108,7 +108,7 @@ def _open(body: bytes) -> fitz.Document:
 
 
 def healthz(_body, _query) -> tuple[dict, int]:
-    return {"ok": True, "versions": {"pagekit": VERSION, "pymupdf": fitz.VersionBind, **ocr.versions()}}, 0
+    return {"ok": True, "versions": {"page_reader": VERSION, "pymupdf": fitz.VersionBind, **ocr.versions()}}, 0
 
 
 def inspect(body: bytes, _query) -> tuple[dict, int]:
@@ -202,7 +202,7 @@ ROUTES = {("GET", "/healthz"): healthz, ("POST", "/v1/inspect"): inspect, ("POST
 
 
 class Handler(BaseHTTPRequestHandler):
-    server_version = "pagekit"
+    server_version = "page_reader"
     sys_version = ""
     timeout = REQUEST_TIMEOUT
 

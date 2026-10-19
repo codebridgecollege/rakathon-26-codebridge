@@ -277,7 +277,7 @@ When every document of a case is processed ──► ProcessCase (Workflow)
 
 Principles:
 - **All deterministic text logic lives in one Python package**,
-  `pipeline/pagekit/` (render, OCR, page index, readability, identity,
+  `pipeline/page_reader/` (render, OCR, page index, readability, identity,
   redaction, labs, pseudonymization, anchoring, coverage, rules). The
   existing scripts become thin CLIs over it, the Container serves it
   over HTTP, and the evaluation runs it locally. One implementation, so
@@ -308,7 +308,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 COPY pipeline/requirements.lock /app/requirements.lock
 RUN pip install --no-cache-dir --require-hashes -r /app/requirements.lock   # pymupdf==1.24.10, pillow==10.4.0
-COPY pipeline/pagekit /app/pagekit
+COPY pipeline/page_reader /app/page_reader
 COPY pipeline/container/server.py /app/server.py
 # One Tesseract thread per request: the instance has half a vCPU and requests run one at a time.
 ENV OMP_THREAD_LIMIT=1 PYTHONUNBUFFERED=1
@@ -327,7 +327,7 @@ noted, versioned so the Worker and image can be deployed apart):
 
 | Endpoint | Input | Output | Wraps |
 |---|---|---|---|
-| `GET /healthz` | | `{ok, versions: {pagekit, pymupdf, tesseract, ces_model}}` | new |
+| `GET /healthz` | | `{ok, versions: {page_reader, pymupdf, tesseract, ces_model}}` | new |
 | `/v1/inspect` | PDF bytes | `{page_count, encrypted, producer, has_text_layer[]}` | new (PyMuPDF) |
 | `/v1/pages?from=&to=` | PDF bytes | per page: 150 dpi PNG (base64), Tesseract TSV and text from a 300 dpi render, text layer | `scripts/ocr_pages.py` `process`/`ocr_page` |
 | `/v1/readability` | per page: TSV, Tesseract text, optional vision text | per page `{level, reasons_cs[], metrics}` | new |
@@ -344,31 +344,31 @@ noted, versioned so the Worker and image can be deployed apart):
 
 ```jsonc
 "containers": [{
-  "class_name": "PageKit",
+  "class_name": "PageReader",
   "image": "../pipeline/container/Dockerfile",
   "image_build_context": "..",
   "instance_type": "standard-1",          // 1/2 vCPU, 4 GiB: Tesseract at 300 dpi needs a few hundred MB
   "max_instances": 2,
   "constraints": { "jurisdiction": "eu" } // page images and text are processed in the EU
 }],
-"durable_objects": { "bindings": [{ "name": "PAGEKIT", "class_name": "PageKit" }] },
-"migrations": [{ "tag": "v6", "new_sqlite_classes": ["PageKit"] }]
+"durable_objects": { "bindings": [{ "name": "PAGE_READER", "class_name": "PageReader" }] },
+"migrations": [{ "tag": "v6", "new_sqlite_classes": ["PageReader"] }]
 ```
 
 ```ts
-// api/src/services/pagekit.ts
+// api/src/services/page-reader.ts
 import { Container } from "@cloudflare/containers";
-export class PageKit extends Container {
+export class PageReader extends Container {
   defaultPort = 8080;
   sleepAfter = "15m"; // long enough to cover one demo, short enough not to burn credit overnight
 }
 // From a Workflow step: one named instance per document keeps a document's batches on one warm instance.
-const kit = env.PAGEKIT.getByName(`doc-${docId}`);
-const res = await kit.fetch("http://pagekit/v1/pages?from=1&to=5", { method: "POST", body: pdfBytes });
+const kit = env.PAGE_READER.getByName(`doc-${docId}`);
+const res = await kit.fetch("http://page-reader/v1/pages?from=1&to=5", { method: "POST", body: pdfBytes });
 ```
 
 To verify when building: whether the DO namespace can be restricted with
-`env.PAGEKIT.jurisdiction("eu")` together with a Container class; the
+`env.PAGE_READER.jurisdiction("eu")` together with a Container class; the
 current docs document `constraints.jurisdiction` for the container
 itself only.
 
@@ -391,7 +391,7 @@ section 5.
 | # | Stage | Kind | Existing code | New work | Slice |
 |---|---|---|---|---|---|
 | 1 | Intake: hash, type, page count; document type and date | Deterministic | none | `inspect`; type and date from header patterns ("Odběr:", "Bioptický", "Ambulantní vyšetření"), else "neurčeno" for the doctor to set | 6a, 6b-1 |
-| 2a | Render and Tesseract | Deterministic | `scripts/ocr_pages.py` | move into `pagekit.render`, `pagekit.ocr`; HTTP wrapper | 6b-1 |
+| 2a | Render and Tesseract | Deterministic | `scripts/ocr_pages.py` | move into `page_reader.render`, `page_reader.ocr`; HTTP wrapper | 6b-1 |
 | 2b | Vision transcription | LLM | none (transcriptions in `data/derived` were made by a Claude Code sub-agent, no prompt file) | prompt, call, cache, R2 write | 6b-2 |
 | 2c | Page index with "ověřit" marks | Deterministic | `scripts/build_page_index.py` | generalize "vision vs Tesseract" to "primary vs second reading" so slice 6b-1 can compare Tesseract with the PDF text layer | 6b-1 / 6b-2 |
 | 3 | Readability | Deterministic | metrics only (`mean_conf`, `low_conf_words` in the page index) | the rule set below | 6b-1 |
@@ -415,7 +415,7 @@ Per page, from Tesseract (and from the vision text once 6b-2 exists):
 - **poor** if any: mean word confidence below 75; more than 15 % of
   words below confidence 60; more than 25 % of alphabetic tokens of 4+
   letters neither in the Czech word list (`hunspell-cs`) nor in a
-  medical/abbreviation list (`pagekit/data/med_terms.txt`, seeded from
+  medical/abbreviation list (`page_reader/data/med_terms.txt`, seeded from
   terms in `data/derived`); more than 10 % of risky tokens (digits,
   stages) marked "ověřit" once there are two readings.
 - **fair** if any: 5-15 % low-confidence words; any OCR-damage pattern
@@ -613,7 +613,7 @@ it rests on and fixed Czech wording:
   number or address in this file.
 - **`extraction_runs` row** per run: `id`, `case_id`, `document_id`
   (null for a case-level run), `producer` (`prepared-fixture`,
-  `pipeline`), `pipeline_version` (git SHA and `pagekit` version),
+  `pipeline`), `pipeline_version` (git SHA and `page_reader` version),
   `container_versions` (from `/healthz`), `stages` (JSON list of stage,
   model deployment, prompt path and SHA-256, temperature, input hashes,
   cache hit, duration, token counts), `output_key`, `status`,
@@ -668,7 +668,7 @@ shows no regression.
 |---|---|---|---|
 | **6a-1 Uploads** | Upload route with policy, fixture registry, D1 columns, document list with states, audit, identity from registry, frontend upload overlay and patient documents tab wired to the API | no | Real storage; refusal of non-fixtures; "nezpracováno" labels; wrong-patient alert |
 | **6a-2 Intake** | `intake` status, `/intake`, `/intake/complete`, prepared-extraction attach with reference rewrite, cron cleanup, reset-demo coverage, "Nový pacient" dialog on the API | no | S02 created through the real server by hash |
-| **6b-1 MVP pipeline** | `pipeline/pagekit` refactor of the three scripts; Container image and API; `ProcessDocument` with inspect, pages, readability, identity, page index (`tesseract_vs_layer`), lab parser; `extraction_runs`; run diff view for labs; S03 sample; eval for labs, readability, identity | no | "Zpracovat znovu" on S01/S02 lab sheets reproduces the prepared lab trend from the PDF alone, with "ověřit" marks; poor scan warning |
+| **6b-1 MVP pipeline** | `pipeline/page_reader` refactor of the three scripts; Container image and API; `ProcessDocument` with inspect, pages, readability, identity, page index (`tesseract_vs_layer`), lab parser; `extraction_runs`; run diff view for labs; S03 sample; eval for labs, readability, identity | no | "Zpracovat znovu" on S01/S02 lab sheets reproduces the prepared lab trend from the PDF alone, with "ověřit" marks; poor scan warning |
 | **6b-2 Vision reading** | redaction from case identity, `transcribe_page.v1.md`, LLM client with backoff and cache, page index `vision_vs_tesseract`, seeded cache | yes | Vision text with marks on any uploaded page |
 | **6b-3 Facts** | pseudonymization with D1 map and leak guard, `extract_facts.v1`, anchoring, coverage, rejected/uncovered list, fact keys | yes | Facts with sources from a pipeline run, beside the prepared ones |
 | **6b-4 Case rules** | `ProcessCase`, cross-document rules, summary templates and sentence check | no | Missing documents and referrals computed, not hand-written |
@@ -707,7 +707,7 @@ DO):
   step; `assertCloudSafe` blocks text with a birth number.
 
 Python (`pytest` in `pipeline/`, run locally and in the image build):
-- Refactor safety: `pagekit` reproduces the committed `data/derived`
+- Refactor safety: `page_reader` reproduces the committed `data/derived`
   outputs: page index `verify[]` for all 35 pages identical (same
   Tesseract version) or within a documented tolerance (container
   Tesseract 5.3 versus Homebrew); redaction boxes per page equal to the
@@ -752,7 +752,7 @@ Slice 6a-2:
 - [ ] An intake case is invisible in the patient list until completed; abandoned ones disappear after 24 hours and on reset.
 
 Slice 6b-1:
-- [ ] `scripts/ocr_pages.py`, `build_page_index.py`, `redact_pages.py` run as before from the `pagekit` package and reproduce `data/derived` within the stated tolerance.
+- [ ] `scripts/ocr_pages.py`, `build_page_index.py`, `redact_pages.py` run as before from the `page_reader` package and reproduce `data/derived` within the stated tolerance.
 - [ ] The Container deploys with `constraints.jurisdiction: "eu"`, `/healthz` reports pinned versions, and the warm route brings it up.
 - [ ] Re-processing S02's four lab sheets yields 18 tests x 4 draws with the same values, units, ranges and dates as the prepared data; every difference is an "ověřit" mark, not a silent change.
 - [ ] Each processed page has a readability level and Czech reasons; S03 triggers the "vyžádejte lepší kopii" alert.
@@ -791,7 +791,7 @@ One developer with agents, rough:
 |---|---|
 | 6a-1 Uploads | 1 day |
 | 6a-2 Intake on the server | 0.5-1 day |
-| 6b-1 `pagekit` refactor, Container, MVP Workflow, lab parser, readability, identity, S03/S04, eval | 3-5 days |
+| 6b-1 `page_reader` refactor, Container, MVP Workflow, lab parser, readability, identity, S03/S04, eval | 3-5 days |
 | 6b-2 Redaction from case data, vision transcription, LLM client, cache | 2-3 days |
 | 6b-3 Pseudonymization, extraction prompt, anchoring, coverage, UI lists | 1-2 weeks |
 | 6b-4 Cross-document rules, summary templates | 1 week |
@@ -951,7 +951,7 @@ rules) are not built.
 
 ### Pipeline without an LLM (6b-1)
 
-- `pipeline/pagekit/` (render, ocr, layer, page_index, readability, labs,
+- `pipeline/page_reader/` (render, ocr, layer, page_index, readability, labs,
   redact) is the one implementation; `scripts/ocr_pages.py`,
   `build_page_index.py` and `redact_pages.py` are thin CLIs over it and
   reproduce `data/derived` byte for byte (tested).
@@ -962,7 +962,7 @@ rules) are not built.
   No `/v1/identity`, `/v1/redact` or `/v1/page-index` endpoints: the
   identity check stays the registry's (uploads are fixtures), redaction is
   for the LLM slices, and the page index is part of `/v1/analyze`.
-- Differences from this design in the deterministic logic (pagekit): the
+- Differences from this design in the deterministic logic (`page_reader`): the
   "ověřit" share that makes a page poor is 25 %, not 10 % (clean pages
   reach 11 %, FNO's broken text layers up to 29 %; with the text layer as
   second reading a high share gives fair only); the Czech word-list rule
@@ -998,9 +998,9 @@ rules) are not built.
   `features.pipeline`. The documents tab offers "Přečíst bez AI" on each
   uploaded document in API mode and shows the run's summary next to the
   prepared data.
-- How the Worker reaches PageKit (`api/src/services/pagekit.ts`):
-  `PAGEKIT_URL` (local work: the Python service on port 8080; tests: a
-  mocked host), else a `PAGEKIT` container binding, else the pipeline is
+- How the Worker reaches the page reader (`api/src/services/page-reader.ts`):
+  `PAGE_READER_URL` (local work: the Python service on port 8080; tests: a
+  mocked host), else a `PAGE_READER` container binding, else the pipeline is
   off (503 `pipeline_off`). The container binding is not configured: see
   "Deploy" below.
 - Acceptance, measured locally with `wrangler dev`, the Python service
@@ -1023,18 +1023,18 @@ rules) are not built.
   identity in the stored extraction, the quote found on the uploaded
   file's page, the wrong-patient result on NO-S01) and then ran
   reset-demo (45 statements, nothing left in `uploads/`).
-- The PageKit container is not deployed, so the deployed Worker reports
+- The page reader container is not deployed, so the deployed Worker reports
   `features.pipeline: false` and the pipeline answers 503 there. What
   blocked it: `wrangler deploy` builds the image with the local Docker
   daemon, and Docker Desktop on the deploying machine did not answer
   (`docker ps` hung; it was not restarted). The account accepts
   `wrangler containers list`. To deploy once Docker works: add
-  `@cloudflare/containers`, a `PageKit` class (`extends Container`,
+  `@cloudflare/containers`, a `PageReader` class (`extends Container`,
   `defaultPort = 8080`, `sleepAfter = "15m"`) exported from
   `src/index.ts`, and in `wrangler.jsonc` a `containers` entry (`class_name:
-  "PageKit"`, `image: "../pipeline/container/Dockerfile"`,
+  "PageReader"`, `image: "../pipeline/container/Dockerfile"`,
   `image_build_context: ".."`, `instance_type: "standard-1"`,
   `max_instances: 2`, `constraints: { jurisdiction: "eu" }`), a durable
-  object binding `PAGEKIT` and a migration `new_sqlite_classes:
-  ["PageKit"]`; `services/pagekit.ts` already uses the binding when
-  `PAGEKIT_URL` is empty. Then run `POST /api/admin/pipeline/warm`.
+  object binding `PAGE_READER` and a migration `new_sqlite_classes:
+  ["PageReader"]`; `services/page-reader.ts` already uses the binding when
+  `PAGE_READER_URL` is empty. Then run `POST /api/admin/pipeline/warm`.

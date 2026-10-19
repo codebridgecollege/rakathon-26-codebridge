@@ -1,5 +1,5 @@
 // The document pipeline without an LLM (step 6, slice b-1): start a run on a stored document, read its result, and warm
-// the PageKit service before a demo. The run itself is ProcessDocumentWorkflow (workflows/process-document.ts).
+// the page reader service before a demo. The run itself is ProcessDocumentWorkflow (workflows/process-document.ts).
 import { Hono } from "hono";
 import type { AppEnv } from "../types";
 import { ApiError, E } from "../http/errors";
@@ -9,7 +9,7 @@ import { audit } from "../middleware/audit";
 import { UNLOCKED_COND, documentRow, uploadContext } from "../store/documents";
 import { assertUnlocked } from "./documents";
 import { UP } from "../domain/documents";
-import { PageKitError, pagekit, pipelineOn } from "../services/pagekit";
+import { PageReaderError, pageReader, pipelineOn } from "../services/page-reader";
 import { openCase } from "./access-check";
 import { actorOf, answer, caseFor, isoNow, label, newId, orgQuery, tx } from "./write-context";
 import { orgKey } from "../store/sql";
@@ -102,11 +102,11 @@ export const pipeline = new Hono<AppEnv>()
     assertCan(actorOf(c), "demo.reset");
     if (!pipelineOn(c.env)) throw off();
     try {
-      const h = await pagekit.healthz(c.env, "warm");
+      const h = await pageReader.healthz(c.env, "warm");
       await tx(c).audit({ action: "pipeline.warm", what_cs: "ověřil(a) službu pro čtení stránek" }).commit();
       return answer(c, { ok: h.ok, versions: h.versions });
     } catch (e) {
-      if (e instanceof PageKitError) throw new ApiError(503, e.code, "Služba pro čtení stránek neodpovídá.");
+      if (e instanceof PageReaderError) throw new ApiError(503, e.code, "Služba pro čtení stránek neodpovídá.");
       throw e;
     }
   });

@@ -39,8 +39,8 @@ export default defineConfig(async () => {
             AZURE_OPENAI_BASE: "https://azure.test/openai/v1",
             AUTH_MODE: "demo",
             DATA_API: "on",
-            // Step 6: the document Workflow calls PageKit here; the tests mock this host.
-            PAGEKIT_URL: "https://pagekit.test",
+            // Step 6: the document Workflow calls the page reader here; the tests mock this host.
+            PAGE_READER_URL: "https://page-reader.test",
           },
         },
       }),

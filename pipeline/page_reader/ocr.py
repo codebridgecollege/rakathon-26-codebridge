@@ -27,7 +27,7 @@ def ocr_file(png: Path, stem: Path) -> None:
 
 def ocr_png(png_bytes: bytes) -> tuple[str, str]:
     """Tesseract's plain text and TSV for one PNG; the temporary files are removed whatever happens."""
-    with tempfile.TemporaryDirectory(prefix="pagekit-") as tmp:
+    with tempfile.TemporaryDirectory(prefix="page_reader-") as tmp:
         src = Path(tmp) / "page.png"
         src.write_bytes(png_bytes)
         stem = Path(tmp) / "page"

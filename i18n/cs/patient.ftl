@@ -367,7 +367,7 @@ patient-docs-pipe-failed = Čtení selhalo ({ $code ->
     [too_many_pages] příliš mnoho stran
     [page_too_large] stránka je příliš velká
     [pipeline_off] zpracování není zapnuté
-    [pagekit_unreachable] služba neodpovídá
+    [page_reader_unreachable] služba neodpovídá
    *[other] chyba služby
 }).
 patient-docs-pipe-reading = Čte se (

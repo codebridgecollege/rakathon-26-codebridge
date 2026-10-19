@@ -70,7 +70,7 @@ INDEX = re.compile(_CODE.replace("(?P<name>[A-Z][A-Z0-9]{0,11})", "(?P<name>IDX[
 # "PET CT: 4 cm [1 ... 2]" is not taken for a test (it is listed as unparsed instead).
 CODE_PREFIXES = {"S", "B", "P", "U", "PT", "LKC", "ERC", "PLT", "KREV", "MOC", "CSF", "SA"}
 # "/1" where a unit ends in l ("mmol/1"; not "ml/s/1,73 m2"), "|" for l, and the power sign read as a
-# letter or digit ("10A9/l", "10\"9/|"), as in pagekit.readability's damage patterns.
+# letter or digit ("10A9/l", "10\"9/|"), as in page_reader.readability's damage patterns.
 UNIT_DAMAGE = re.compile(r"(?<=[A-Za-zµ9])/1(?![\d,.])|\||\d[\"A]\d")
 DRAW = re.compile(r"Odběr:\s*(\d{1,2})\.(\d{1,2})\.(\d{4})(?:\s+(\d{1,2}):(\d{2}))?")
 # Anything that looks like a draw header, also misread ("Odbér", "Odbèr", "Odbr: l.3.2026"): it ends the

@@ -224,9 +224,9 @@ Declare this list to the jury and mentors.
   `audio/`, for the speaker pass after approval (step 5, issue #6).
 - Cloudflare Workflows (`codebridge-process-document`, binding
   `PROCESS_DOCUMENT`) for the document pipeline without an LLM (step 6,
-  issue #7), calling the PageKit service (`pipeline/`: PyMuPDF 1.24.10,
+  issue #7), calling the page reader service (`pipeline/`: PyMuPDF 1.24.10,
   Pillow 10.4.0, Tesseract with the Czech model, pytest). The Cloudflare
-  Container for PageKit is written (`pipeline/container/Dockerfile`) but
+  Container for the page reader is written (`pipeline/container/Dockerfile`) but
   not deployed on 2026-10-17: the build needs a running Docker daemon.
 - ChatGPT, used by Soňa for brainstorming and UI sketches
   (`docs/sources/design/`).

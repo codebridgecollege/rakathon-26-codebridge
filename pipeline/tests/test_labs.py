@@ -3,7 +3,7 @@
 import pytest
 
 from conftest import LAB_PAGES, PAGES, compare_with_mock, mock_labs, page_input
-from pagekit import labs
+from page_reader import labs
 
 COUNTS = {}  # filled per source, printed at the end of the session by test_report
 

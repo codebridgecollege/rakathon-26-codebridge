@@ -42,7 +42,7 @@ export function testEnv(over: Record<string, unknown> = {}): Env {
     RL_UPLOAD: allow,
     UPLOAD_POLICY: "fixtures_only",
     UPLOAD_MAX_BYTES: "20971520",
-    PAGEKIT_URL: "https://pagekit.test",
+    PAGE_READER_URL: "https://page-reader.test",
     STT_BATCH_SEED: "1",
     AUDIO_PART_BYTES: "5242880",
     AUDIO_MAX_MINUTES_PER_CASE: "120",

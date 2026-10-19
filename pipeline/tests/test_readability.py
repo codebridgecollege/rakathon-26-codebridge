@@ -5,7 +5,7 @@ import re
 import pytest
 
 from conftest import PAGES
-from pagekit import page_index as pi, readability as rd
+from page_reader import page_index as pi, readability as rd
 
 LEVELS = {}  # page -> level, printed by test_report_levels
 

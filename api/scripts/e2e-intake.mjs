@@ -4,7 +4,7 @@
 // wrong-patient upload,
 // and (with --reset) reset-demo afterwards so the shared demo is clean again.
 // With --pipeline it then runs the document pipeline (no LLM) on the four lab sheets and checks that every prepared lab
-// value is either read the same or marked "ověřit" (needs PAGEKIT_URL or the PageKit container on that Worker).
+// value is either read the same or marked "ověřit" (needs PAGE_READER_URL or the page reader container on that Worker).
 // Usage: node api/scripts/e2e-intake.mjs https://backend-codebridge-mdt.<sub>.workers.dev [--pipeline] [--reset]
 // It prints counts and codes only, never page text or identity.
 import assert from "node:assert/strict";
