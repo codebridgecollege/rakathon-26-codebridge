@@ -1,0 +1,33 @@
+{
+  "schema": "codebridge.eval-expected/1",
+  "case": "S02",
+  "about": "Reference case: rectal cancer, four lab draws, stage before and after neoadjuvant therapy (samples/S02_pacient)",
+  "documents": [{"document_id": "S02_pacient", "pages_dir": "data/derived/pages/S02_pacient"}],
+  "reference_labs": "fixtures/data/mock-case-S02.json",
+  "expectations": [
+    {"id": "S02-pelvis-mri-report-missing", "failure_kind": "report_missing", "expect": "present",
+     "about": "The staging MRI of the pelvis (16.3.2026) is only quoted; its original report is missing",
+     "alert": {"kind": "missing", "fact.kind": "imaging", "fact.date.sort": "2026-03-16"}},
+    {"id": "S02-ct-requested-not-done", "failure_kind": "request_without_result", "expect": "present",
+     "about": "CT of chest, abdomen and pelvis requested on 7.10.2026, no result",
+     "fact": {"kind": "request", "status": "requested", "date.sort": "2026-10-07", "value.result_fact": null}},
+    {"id": "S02-ct-alert", "failure_kind": "request_without_result", "expect": "present",
+     "about": "The CT request without a result raises the request_without_result alert",
+     "alert": {"rule": "request_without_result", "fact.date.sort": "2026-10-07"}, "needs": ["request"]},
+    {"id": "S02-dm-recorded-negative", "failure_kind": "negation_read_as_positive", "expect": "present",
+     "about": "'DM neguje' is the doctor's recorded negative",
+     "fact": {"kind": "comorbidity", "negated": true, "source.quote": {"regex": "DM neguje"}}},
+    {"id": "S02-lvi-finding", "failure_kind": "negation_read_as_positive", "expect": "present",
+     "about": "'Lymfovaskulární invaze neprokázána' is a negative histological finding, not a gap",
+     "fact": {"kind": "histology", "negated": true, "source.quote": {"regex": "(?i)lymfovaskulární invaze neprokázána"}}},
+    {"id": "S02-clinical-stage", "failure_kind": "critical_fact_left_out", "expect": "present",
+     "about": "Clinical stage before treatment cT3b cN1 cM0",
+     "fact": {"kind": "stage", "value.stage_kind": "clinical", "value.tnm": {"regex": "cT3b cN1 cM0"}}},
+    {"id": "S02-post-neoadjuvant-stage", "failure_kind": "critical_fact_left_out", "expect": "present",
+     "about": "Stage after neoadjuvant therapy ypT2 ypN0 from the resection specimen",
+     "fact": {"kind": "stage", "value.stage_kind": "post_neoadjuvant", "value.tnm": {"regex": "ypT2 ypN0"}}},
+    {"id": "S02-stages-no-contradiction", "failure_kind": "reference", "expect": "absent",
+     "about": "cT3b cN1 (3/2026) and ypT2 ypN0 (8/2026) are different kinds at different times: no contradiction",
+     "alert": {"kind": "contradiction", "fact.kind": "stage"}}
+  ]
+}

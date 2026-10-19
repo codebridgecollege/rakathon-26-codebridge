@@ -1,0 +1,38 @@
+# Tests the document pipeline (pipeline/page_reader) and runs the evaluation over the sample cases
+# (pipeline/eval.py, expected outputs in samples/expected/). A new failure against a CLAUDE.md failure case, or a
+# known failure that now passes without its mark removed, fails the run.
+name: Pipeline
+
+# The evaluation reads the stored page readings (data/derived, samples/derived), the samples and the prepared cases;
+# the extraction format tests (pipeline/extraction_format) read the schema and key vectors in packages/domain.
+# One workflow for the pipeline: stream B adds a job here that runs pytest inside the page reader image (#27).
+on:
+  push:
+    branches: [main]
+    paths: ["pipeline/**", "samples/**", "data/derived/**", "fixtures/data/**", "scripts/*.py", "packages/domain/schema/**", "packages/domain/test/extraction-key-vectors.json", ".github/workflows/pipeline.yml"]
+  pull_request:
+    paths: ["pipeline/**", "samples/**", "data/derived/**", "fixtures/data/**", "scripts/*.py", "packages/domain/schema/**", "packages/domain/test/extraction-key-vectors.json", ".github/workflows/pipeline.yml"]
+  workflow_dispatch:
+
+concurrency:
+  group: pipeline-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: pipeline
+    steps:
+      - uses: actions/checkout@v4
+      # No Tesseract here, so the two tests that run OCR live (needs_tesseract) skip. They are calibrated on Tesseract
+      # 5.5.3; Ubuntu 24.04 ships 5.3.4, which reads the S02 upload PDFs differently (B_NEU lost on page 5, 17 lab
+      # points instead of 18). Everything else, the evaluation included, reads the stored Tesseract output.
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.12.0"
+      - name: Tests
+        run: uv run --locked pytest -q
+      - name: Evaluation
+        run: uv run --locked python eval.py --check

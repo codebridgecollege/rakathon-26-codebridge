@@ -5,13 +5,15 @@
 """Render our own synthetic sample documents to one A4 PDF per patient.
 
 Usage:
-    uv run scripts/render_samples.py samples/S01_pacient [--pages data/derived/pages] [--upload DIR]
+    uv run scripts/render_samples.py samples/S01_pacient [--pages data/derived/pages] [--upload DIR] [--out PDF]
 
 Reads the Markdown documents in the sample folder in name order (one file
 per clinical document; a line `<!-- page -->` starts a new printed page)
 and writes:
-- `<folder>/<folder name>.pdf`: all documents in one PDF, like FNO's
-  `<n>_pacient.pdf` referrals, each document starting on a new page;
+- `<folder>/<folder name>.pdf` (or the `--out` path): all documents in
+  one PDF, like FNO's `<n>_pacient.pdf` referrals, each document starting
+  on a new page. S03 uses `--out` because its clean render is only the
+  input of `scripts/degrade_scan.py`, which writes the scanned referral;
 - `<pages>/<folder name>/p<n>.vision.md`: the Markdown of each printed
   page, which stands in for the vision model's transcription because we
   wrote the text ourselves;
@@ -73,7 +75,9 @@ def main() -> None:
     args = sys.argv[1:]
     pages_dir = Path(option(args, "--pages") or "data/derived/pages")
     upload = option(args, "--upload")
-    args = [a for i, a in enumerate(args) if a not in ("--pages", "--upload") and (i == 0 or args[i - 1] not in ("--pages", "--upload"))]
+    out_pdf = option(args, "--out")
+    opts = ("--pages", "--upload", "--out")
+    args = [a for i, a in enumerate(args) if a not in opts and (i == 0 or args[i - 1] not in opts)]
     if not args:
         sys.exit(__doc__)
     folder = Path(args[0])
@@ -101,7 +105,7 @@ def main() -> None:
             Path(upload).mkdir(parents=True, exist_ok=True)
             one.subset_fonts()
             one.save(Path(upload) / f"{src.stem}.pdf", garbage=3, deflate=True)
-    target = folder / f"{folder.name}.pdf"
+    target = Path(out_pdf) if out_pdf else folder / f"{folder.name}.pdf"
     pdf.subset_fonts()  # embed only the glyphs used; the full fonts make the PDF megabytes larger
     pdf.save(target, garbage=3, deflate=True)
     print(f"wrote {target} ({n} pages) and {n} vision files in {out_pages}")

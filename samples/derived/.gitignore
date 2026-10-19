@@ -1,0 +1,4 @@
+# Page images of the evaluation samples: scripts/ocr_pages.py writes them again, and the evaluation reads only
+# the page texts (p<n>.tess.txt, p<n>.tess.tsv, p<n>.layer.txt, p<n>.truth.md, p<n>.vision.md). S03's noisy scan
+# pages are over 1 MB each.
+*.png

@@ -1,0 +1,20 @@
+{
+  "about": "Planted scan defects for S03 (scripts/degrade_scan.py). Each defect paints paper colour over the ink of the named characters of the first match of `find` on the page. The ground truth and what Tesseract read are in GROUND-TRUTH.md.",
+  "pages": {
+    "1": {"fade": 0.75, "blur": 0.9, "noise": 16.0, "speckles": 900, "skew_deg": 0.6, "jpeg_quality": 30},
+    "2": {"fade": 0.72, "blur": 0.9, "noise": 16.0, "speckles": 900, "skew_deg": -0.5, "jpeg_quality": 30},
+    "3": {"fade": 0.6, "blur": 1.2, "noise": 24.0, "speckles": 2500, "skew_deg": 0.9, "jpeg_quality": 22}
+  },
+  "defects": [
+    {"id": "D1", "page": 1, "find": "1,25 mg", "chars": [0, 1], "mode": "flag",
+     "why": "Value: the flag of the 1 in the bisoprolol dose is lost. Aimed at an l/1 swap; Tesseract 5.5.3 reads the remaining stroke as 4, so 1,25 mg reads as 4,25 mg (four times the dose)."},
+    {"id": "D2", "page": 2, "find": "neprokázáno", "chars": [0, 2], "mode": "erase",
+     "why": "Negation: the prefix ne- of 'Metastatické postižení jater neprokázáno' is lost, so the sentence reads as liver metastases proven."},
+    {"id": "D3", "page": 3, "find": "Odběr: 21.9.2026", "chars": [9, 10], "mode": "erase",
+     "why": "Date: the first dot of the draw date is lost."},
+    {"id": "D4", "page": 3, "find": "Odběr: 21.9.2026", "chars": [11, 12], "mode": "erase",
+     "why": "Date: the second dot of the draw date is lost, so 'Odběr: 21.9.2026' reads as '21 9 2026' and no longer parses as a date."},
+    {"id": "D5", "page": 3, "find": "S_K: 5,8", "chars": [7, 8], "mode": "left_half",
+     "why": "Value: the left bowls of the 8 in potassium 5,8 mmol/l are lost, so it reads as 5,3: still above the range 3.5 ... 5.1, but a milder hyperkalaemia than the document states."}
+  ]
+}

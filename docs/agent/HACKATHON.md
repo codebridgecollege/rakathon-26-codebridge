@@ -50,6 +50,15 @@ and [FHIR workshop and PHOENIX](../research/2026-10-16-talk-fhir-workshop-and-ph
   referral are in [`samples/S02_pacient/`](../../samples/README.md), the
   page images and Tesseract output in `data/derived/pages/S02_pacient/`,
   and the fixture data in `fixtures/data/mock-case-S02.json`.
+- **19 October 2026: our own synthetic patients `S03_pacient` and
+  `S04_pacient`, for the evaluation (issue #19).** Fully fictional, written
+  by Claude Code for the team, not FNO data. S03 (lung adenocarcinoma) is
+  rendered and then turned into a poor scan with planted misreads by
+  `scripts/degrade_scan.py` (PyMuPDF, Pillow, NumPy, Tesseract run
+  locally); S04 (breast cancer) holds a page of another patient. Sources
+  and PDFs are in [`samples/`](../../samples/README.md), the page readings
+  in `samples/derived/pages/`, and the expected outputs in
+  `samples/expected/`.
 
 ## Infrastructure
 

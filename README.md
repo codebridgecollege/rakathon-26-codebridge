@@ -105,6 +105,18 @@ service with `uv run python container/server.py --port 8080`. How the
 Worker uses it and the end-to-end check: `api/AGENTS.md`, section
 "Uploads, intake and the document pipeline".
 
+Run the evaluation with `cd pipeline && uv run python eval.py` (add
+`--check` to fail on a new failure, `--verbose` for every expectation). It
+runs the pipeline over the sample cases and compares the result with the
+expected outputs in `samples/expected/`, per case and per CLAUDE.md
+failure case; the cases are described in
+[`samples/README.md`](samples/README.md). The `Pipeline` workflow runs the
+tests and `eval.py --check` on every pull request that touches the
+pipeline, the samples, the scripts or the stored page readings. It has no
+Tesseract, so the two tests that run OCR live skip there: they are
+calibrated on Tesseract 5.5.3, and Ubuntu's 5.3.4 reads the S02 uploads
+differently. Run them locally before changing the OCR path.
+
 ## Patient data
 
 This repository never contains real patient data. `data/` holds the

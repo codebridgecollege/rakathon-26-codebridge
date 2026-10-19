@@ -181,6 +181,111 @@ beyond what Tesseract does on its own: it reads `10^9/l` as `10"9/|`
 and M0/N0/R0 as MO/NO/RO, which the page index marks "ověřit", and µ
 as "u" (`ug/l`), which it does not mark because the unit has no digit.
 
+## S03_pacient: a poor scan with planted misreads
+
+Why it exists: the failure case "a poor scan whose misread characters
+change a value or a negation" needs a scan whose misreads we know exactly.
+FNO's referrals are scans with a poor OCR text layer; S01 and S02 are clean
+print.
+
+Patient: Bořivoj Klenovský (fictional), born 7.11.1957, birth number
+571107/1003, insurer 211. MUDr. Alena Brabcová, MUDr. Petr Vavřinec and
+Mgr. Jitka Rybízková are fictional too.
+
+Story: adenocarcinoma of the right upper lobe (EGFR wt, ALK negative, PD-L1
+TPS 60 %), cT2a cN0 cM0 on CT 16.9.2026, COPD with FEV1 52 % and DLCO 48 %.
+The report of 28.9.2026 asks the lung MDT whether the patient can have a
+lobectomy or should have stereotactic radiotherapy.
+
+| Page | File | Document |
+|---|---|---|
+| 1 | `01-ambulantni-zprava-2026-09-28.md` | Pulmonary outpatient report with the MDT question |
+| 2 | `02-ct-hrudniku-bricha-2026-09-16.md` | CT of chest and abdomen |
+| 3 | `03-laborator-2026-09-21.md` | Lab sheet, drawn 21.9.2026 07:40 |
+
+`S03_pacient.clean.pdf` is the clean print; `S03_pacient.pdf` is the scan
+made from it by `scripts/degrade_scan.py` with `damage.json`: five planted
+defects (a dose 1,25 mg read as 4,25 mg, "neprokázáno" read as
+"prokázáno", a draw date that no longer parses, potassium 5,8 read as 5,3)
+on top of faded ink, noise, skew and strong JPEG compression. What each
+defect does, what Tesseract read, and the misreads the wear made on its
+own are in [`S03_pacient/GROUND-TRUTH.md`](S03_pacient/GROUND-TRUTH.md).
+
+Built-in cases (beyond the planted defects):
+
+- **Missing document:** the bronchoscopy (11.9.2026) and the histology
+  (14.9.2026) are only quoted ("popis z NIS").
+- **Critical fact for the question:** the MDT question rests on FEV1 and
+  DLCO, which appear only in the report.
+- **Recorded negative:** "DM neguje".
+
+## S04_pacient: two patients in one referral
+
+Why it exists: the failure case "two patients mixed up". A referral PDF
+holds one page of another patient with the same surname.
+
+Patient: Ludmila Vrbenská (fictional), born 3.2.1961, birth number
+615203/1006, insurer 207. Page 4 belongs to Lenka Vrbenská (fictional),
+born 18.4.1959, birth number 595418/1002, same insurer. MUDr. Markéta
+Jedličková is fictional too.
+
+Story: invasive carcinoma of the left breast NST, G2, ER 90 %, PR 70 %,
+HER2 negative, Ki-67 25 %, cT2 cN0 cM0; the staging CT of 22.9.2026 shows
+no distant metastases. The report of 5.10.2026 asks the breast MDT about
+primary surgery versus neoadjuvant systemic therapy.
+
+| Page | File | Document |
+|---|---|---|
+| 1 | `01-ambulantni-zprava-2026-10-05.md` | Oncology outpatient report with the MDT question |
+| 2 | `02-histologie-biopsie-2026-09-15.md` | Core-cut biopsy histology |
+| 3 | `03-ct-hrudniku-bricha-2026-09-22.md` | Staging CT of chest and abdomen, no metastases |
+| 4 | `04-ct-bricha-2026-09-24.md` | **Another patient's** CT: progression of liver metastases, bone metastases L2 and L4 |
+| 5 | `05-laborator-2026-10-01.md` | Lab sheet, drawn 1.10.2026 07:35 |
+
+Built-in cases to check the assistant against:
+
+- **Two patients:** page 4 names another woman (other first name, birth
+  date and birth number). Its facts are quarantined, an identity alert
+  names the page, and her metastases never become this patient's. The
+  two CTs (22.9. and 24.9.2026) disagree about metastases; that is not a
+  contradiction in one patient but two patients.
+- **Missing document:** mammography and ultrasound of 2.9.2026 are only
+  quoted ("popis z NIS").
+- **Family history:** "matka karcinom prsu" is the mother's diagnosis
+  (`subject: relative`), not the patient's.
+
+## Expected outputs and the evaluation
+
+`expected/<case>.json` holds what the pipeline must produce for each case:
+S03 and S04 above, and S01, S02 and FNO's patient 10 as reference cases.
+Each expectation names the failure case it tests (`failure_kind`: a
+critical fact left out, a wrong date, a negation read as positive, two
+patients mixed up, a missing report, a request without a result, a poor
+scan, or `reference`), and describes a fact or an alert in the extraction
+format (`docs/design/EXTRACTION-FORMAT.md`, `codebridge.extraction/2`)
+that must be present or absent. The format document names the value
+fields of each fact kind only in prose, so the names the expectations use
+are listed in `VALUE_FIELDS` in `pipeline/eval.py`, and an expected file
+naming any other field fails to load; reconcile the two when the JSON
+Schema in `packages/domain` exists. Lab values are listed point by point
+(S03, S04) or taken from the prepared case (`reference_labs`, the
+human-checked `fixtures/data/mock-case-*.json`).
+
+`pipeline/eval.py` runs the pipeline over the stored page readings and
+reports per case and per failure kind (the README's "Document pipeline"
+section has the commands). An expectation that needs a step the pipeline
+does not have yet (diagnoses, requests, identity, missing reports) is
+reported as `not_run`, never as a pass. A failure we know about carries
+`known_failure` with the reason; CI fails on any other failure, and on a
+known failure that starts to pass until its mark is removed.
+
+State on 2026-10-19 (page reader without an LLM): only the lab, date and
+readability expectations run. No lab value is shown clear but wrong;
+S03's lab sheet is flagged as poorly readable and its undated values are
+marked; one S03 value (`S_UREA`) is dropped silently by the lab parser
+(known failure). All expectations for diagnoses, negations, identity,
+missing reports and requests are `not_run` until the extraction exists.
+
 ## How it was generated
 
 1. The Markdown documents were written by hand (by Claude Code, for the
@@ -214,6 +319,21 @@ redacted on its own (`scripts/redact_pages.py --pages <folder holding
 only S02_pacient>`): its name and birth number are blacked out, the date
 after "nar." is not (same rule limitation as below). The redaction script
 reads the synthetic patients' names from `fixtures/data/mock-case-S*.json`.
+
+S03 and S04 are evaluation cases, not demo patients: they have no fixture
+and are not in the app's page index. Their page readings go to
+`samples/derived/pages/` instead of `data/derived/pages/` (pass
+`--pages samples/derived/pages` to `render_samples.py` and
+`--out samples/derived/pages` to `ocr_pages.py`), because the tests treat
+every page under `data/derived` as a calibration page that is readable by
+eye, which S03's scan is not. The page images (`p<n>.png`) are not
+committed (`samples/derived/.gitignore`): the evaluation reads only the
+text, and `ocr_pages.py` writes them again. S03 is rendered with
+`--out samples/S03_pacient/S03_pacient.clean.pdf` and then degraded; the
+three commands are in `S03_pacient/GROUND-TRUTH.md`. For S03, whose scan
+differs from the text we wrote, `p<n>.truth.md` holds the written page
+text in place of `p<n>.vision.md`, so it never passes for a reading of the
+scan.
 
 For S01 no redacted page images (`p<n>.redacted.png`) were produced:
 `scripts/redact_pages.py` blacks out the name but leaves "nar. 12.3.1964",
