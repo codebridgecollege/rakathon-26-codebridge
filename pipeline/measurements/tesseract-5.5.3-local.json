@@ -405,14 +405,31 @@
    "verify": 20,
    "silent": 0,
    "missing": 2,
-   "points": 52
+   "points": 52,
+   "problems": [
+    {
+     "kind": "missing",
+     "code": "S_AST",
+     "page": 4,
+     "found": 0,
+     "page_has_unparsed": true
+    },
+    {
+     "kind": "missing",
+     "code": "S_AST",
+     "page": 3,
+     "found": 0,
+     "page_has_unparsed": true
+    }
+   ]
   },
   "S02 lab sheet uploads": {
    "same": 41,
    "verify": 31,
    "silent": 0,
    "missing": 0,
-   "points": 72
+   "points": 72,
+   "problems": []
   }
  },
  "levels_35": {
