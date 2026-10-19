@@ -165,7 +165,7 @@ function preliminary<F extends { certainty: string; certainty_reason?: unknown }
 
 // Records that do not stand: not mapped at all. Condition has no status; it says so in verificationStatus.
 const VOID = new Set(["entered-in-error", "cancelled"]);
-const isVoid = (r: R) => VOID.has(r.status) || ((r.verificationStatus?.coding ?? []) as R[]).some((c) => c?.code === "entered-in-error");
+const isVoid = (r: R) => VOID.has(r.status) || r.docStatus === "entered-in-error" || ((r.verificationStatus?.coding ?? []) as R[]).some((c) => c?.code === "entered-in-error");
 
 // The stage kind as the record states it: a LOINC stage-group code, or the NIS's own label naming one kind only.
 // "ycTNM" (clinical restaging after neoadjuvant therapy) is none of the format's kinds, and a label that names two

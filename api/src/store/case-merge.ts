@@ -93,7 +93,11 @@ async function nisWithdrawnAlerts(db: D1Database, org: string, caseId: string): 
       db,
       org,
       `SELECT n.document_id, n.nis_resource, n.auto_withdrawn FROM nis_documents n JOIN documents d ON d.org_id = n.org_id AND d.id = n.document_id
-        WHERE n.org_id = ?org AND n.case_id = ?1 AND n.auto_withdrawn IS NOT NULL AND d.lifecycle = 'withdrawn' ORDER BY n.document_id, n.nis_resource`,
+        WHERE n.org_id = ?org AND n.case_id = ?1 AND n.auto_withdrawn IS NOT NULL AND d.lifecycle = 'withdrawn'
+          -- A resource the import took back since (under any version) is in the case again: no alert for it.
+          AND NOT EXISTS (SELECT 1 FROM nis_documents b JOIN documents bd ON bd.org_id = b.org_id AND bd.id = b.document_id
+                           WHERE b.org_id = n.org_id AND b.case_id = n.case_id AND b.nis_resource = n.nis_resource AND bd.lifecycle = 'current')
+        ORDER BY n.document_id, n.nis_resource`,
       caseId,
     ).all<{ document_id: string; nis_resource: string; auto_withdrawn: string }>()
   ).results;
@@ -105,9 +109,11 @@ async function nisWithdrawnAlerts(db: D1Database, org: string, caseId: string): 
     out.push({
       rule: "nis_document_withdrawn",
       subject: r.document_id,
-      kind: "missing",
+      // Not "missing": a voided or unlinked document is no gap in the documentation, so it stays out of the brief's
+      // always-on missing-document signal; it is an observation for the doctor to look at.
+      kind: "unclear",
       facts: [],
-      message: { id: "alert-nis-document-withdrawn", args: { document: r.nis_resource.slice("DocumentReference/".length), reason: r.auto_withdrawn } },
+      message: { id: "alert-nis-document-withdrawn", args: { nis_document: r.nis_resource.slice("DocumentReference/".length), reason: r.auto_withdrawn } },
       note: null,
     });
   }

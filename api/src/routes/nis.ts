@@ -18,6 +18,7 @@ import { answer, caseFor, isoNow, label, orgQuery, tx } from "./write-context";
 import { openCase } from "./access-check";
 import { nisFragment } from "@codebridge/domain/nis-map";
 import { deleteNisImport, readNisImport, writeNisImport } from "../store/nis";
+import { orgStmt } from "../store/sql";
 import { uploadContext } from "../store/documents";
 import { storeFile, withdrawDocument, type UploadCtx } from "./documents";
 import type { NisDocument } from "@codebridge/domain/nis-map";
@@ -119,7 +120,16 @@ function b64bytes(s: string): Uint8Array {
   return out;
 }
 
-type Held = { nis_resource: string; nis_version: string; document_id: string | null; lifecycle: string | null; state: string | null; kept: number | null; auto_withdrawn: string | null };
+type Held = {
+  nis_resource: string;
+  nis_version: string;
+  document_id: string | null;
+  lifecycle: string | null;
+  state: string | null;
+  kept: number | null;
+  auto_withdrawn: string | null;
+  created_by_import?: number;
+};
 
 // Why the import withdrew a document it brought (nis_documents.auto_withdrawn), as the doctor reads it.
 const NIS_WITHDRAW_CS = {
@@ -135,13 +145,18 @@ type NisWithdraw = keyof typeof NIS_WITHDRAW_CS;
  * access-log line giving the reason. `pick` chooses which of the case's NIS documents go and why. The row keeps the
  * reason (auto_withdrawn): the case run then carries an alert naming the document, and a later import that finds it
  * current again takes it back in (a doctor's own withdraw of another patient's document stays declined). A document
- * that cannot go now (being read, prepared, or the case locked) is counted and tried again on the next import.
+ * that cannot go now (being read, prepared, or the case locked) is counted as pending; the import route then pulls the
+ * whole record at its next call to try again.
+ *
+ * Only a document the import itself stored is withdrawn (created_by_import), never a doctor's own upload a NIS version
+ * was mapped onto, and only when every NIS record standing for it picks a reason: a document another, still current
+ * DocumentReference also names stays. The caller starts one merge for the case afterwards.
  */
 async function withdrawNisDocuments(c: Context<AppEnv>, caseId: string, system: string, breakGlass: string | null, pick: (h: Held) => NisWithdraw | null): Promise<{ withdrawn: number; pending: number }> {
   const rows = (
     await orgQuery(
       c,
-      `SELECT n.nis_resource, n.nis_version, n.document_id, d.lifecycle, d.state, (d.original_r2_key IS NOT NULL) AS kept, n.auto_withdrawn
+      `SELECT n.nis_resource, n.nis_version, n.document_id, d.lifecycle, d.state, (d.original_r2_key IS NOT NULL) AS kept, n.auto_withdrawn, n.created_by_import
          FROM nis_documents n JOIN documents d ON d.org_id = n.org_id AND d.id = n.document_id
         WHERE n.org_id = ?org AND n.case_id = ?1 AND n.nis_system = ?2 AND d.lifecycle = 'current'`,
       caseId,
@@ -150,18 +165,24 @@ async function withdrawNisDocuments(c: Context<AppEnv>, caseId: string, system: 
   ).results;
   const out = { withdrawn: 0, pending: 0 };
   for (const docId of new Set(rows.map((r) => r.document_id!))) {
-    const why = rows.filter((r) => r.document_id === docId).map(pick).find(Boolean);
-    if (!why) continue;
+    const mine = rows.filter((r) => r.document_id === docId);
+    if (!mine.some((r) => r.created_by_import === 1)) continue;
+    const reasons = mine.map(pick);
+    if (reasons.some((x) => !x)) continue;
+    const why = reasons[0]!;
     try {
       await withdrawDocument(c, caseId, docId, breakGlass, {
         reasonCs: NIS_WITHDRAW_CS[why],
         action: "document.nis_withdraw",
-        whatCs: `dokument z NIS odebrán z případu: ${NIS_WITHDRAW_CS[why]} (obsah smazán)`,
+        whatCs: `dokument z NIS automaticky odebrán z případu: ${NIS_WITHDRAW_CS[why]} (obsah smazán)`,
         extra: (t) => t.run("UPDATE nis_documents SET auto_withdrawn = ?1 WHERE org_id = ?org AND case_id = ?2 AND document_id = ?3", why, caseId, docId),
+        merge: false,
       });
       out.withdrawn++;
     } catch (e) {
-      console.error(JSON.stringify({ route: "nis.withdraw", document: e instanceof DomainError || e instanceof ApiError ? e.code : "failed" }));
+      // A refusal of the rules (being read, prepared, the case locked) waits for the next try; anything else is a fault.
+      if (!(e instanceof DomainError)) throw e;
+      console.error(JSON.stringify({ route: "nis.withdraw", case_id: caseId, document_id: docId, refused: e.code }));
       out.pending++;
     }
   }
@@ -251,14 +272,21 @@ async function importNisDocuments(c: Context<AppEnv>, caseId: string, system: st
       }
     }
     // A version taken back after the import withdrew it replaces its row, and the alert about it goes with the merge.
-    const UPSERT = `INSERT INTO nis_documents (org_id, case_id, nis_system, nis_resource, nis_version, document_id) VALUES (?org, ?1, ?2, ?3, ?4, ?5)
-      ON CONFLICT (org_id, case_id, nis_system, nis_resource, nis_version) DO UPDATE SET document_id = excluded.document_id, auto_withdrawn = NULL`;
-    const record = (t: { run: (sql: string, ...args: unknown[]) => unknown }, docId: string) => t.run(UPSERT, caseId, system, d.resource, version, docId);
+    // created_by_import says whether the import stored the document (1) or only mapped this version onto one already in
+    // the case (0); taking a resource back clears the withdrawal on all its rows, so its alert goes whatever the version.
+    const UPSERT = `INSERT INTO nis_documents (org_id, case_id, nis_system, nis_resource, nis_version, document_id, created_by_import) VALUES (?org, ?1, ?2, ?3, ?4, ?5, ?6)
+      ON CONFLICT (org_id, case_id, nis_system, nis_resource, nis_version) DO UPDATE SET document_id = excluded.document_id, auto_withdrawn = NULL,
+        created_by_import = excluded.created_by_import`;
+    const CLEAR = "UPDATE nis_documents SET auto_withdrawn = NULL WHERE org_id = ?org AND case_id = ?1 AND nis_system = ?2 AND nis_resource = ?3";
+    const record = (t: { run: (sql: string, ...args: unknown[]) => unknown }, docId: string) => {
+      t.run(UPSERT, caseId, system, d.resource, version, docId, 1);
+      t.run(CLEAR, caseId, system, d.resource);
+    };
     try {
       const r = await storeFile(c, caseId, u, breakGlass, null, { bytes, declared, name: nisFileName(d, ext), contentType: d.content_type }, record);
       // The same bytes already in the case (an earlier version, or uploaded by hand): that document stands for this
       // version too.
-      if (r.repeat) await orgQuery(c, UPSERT, caseId, system, d.resource, version, r.docId).run();
+      if (r.repeat) await c.env.DB.batch([orgStmt(c.env.DB, v.org, UPSERT, caseId, system, d.resource, version, r.docId, 0), orgStmt(c.env.DB, v.org, CLEAR, caseId, system, d.resource)]);
       else {
         out.imported++;
         count++;
@@ -390,7 +418,9 @@ export const nis = new Hono<AppEnv>()
     const nis = client(c, cfg!, id);
     const before = await readNisImport(c.env.DOCS, v.org, id);
     const same = !!before && before.state.nis_system === cfg!.base_url && before.state.nis_patient_id === link.nis_patient_id && before.state.link_at === link.at;
-    let full = !same || !before?.state.newest_update || before.state.truncated.length > 0 || Date.now() - Date.parse(before.state.imported_at) > FULL_PULL_MS;
+    // A withdraw that could not run last time is tried again with a full pull, which is what notices a removal.
+    let full =
+      !same || !before?.state.newest_update || before.state.truncated.length > 0 || !!before.state.withdraw_pending || Date.now() - Date.parse(before.state.imported_at) > FULL_PULL_MS;
     if (!full && before?.state.newest_update) {
       const changed = await nis.patientRecord(link.nis_patient_id, before.state.newest_update, "record_changes");
       const seen = new Set(before.state.read);
@@ -419,20 +449,32 @@ export const nis = new Hono<AppEnv>()
           read: rec.resources.map(versionKey),
           truncated: rec.truncated,
           documents: mapped.documents,
+          withdraw_pending: false,
         },
       });
       facts = fragment.facts.length;
       truncated = rec.truncated;
       docList = mapped.documents;
-      // Documents the NIS voided or no longer has leave the case (Juro's decision 2026-10-20), only when this pull read
+      // Documents the NIS voided or no longer has leave the case (Juro's decision 2026-10-19), only when this pull read
       // the record's DocumentReferences completely: a cut-off list says nothing about what is gone.
       if (!rec.truncated.includes("DocumentReference")) {
         const listed = new Set(mapped.documents.filter((d) => (d.status ?? "current") === "current").map((d) => d.resource));
-        const voided = new Set(rec.resources.filter((r) => r.resourceType === "DocumentReference" && r.status === "entered-in-error").map((r) => `DocumentReference/${r.id}`));
-        const superseded = new Set(mapped.documents.filter((d) => d.status === "superseded").map((d) => d.resource));
+        const voided = new Set(
+          rec.resources.filter((r) => r.resourceType === "DocumentReference" && (r.status === "entered-in-error" || r.docStatus === "entered-in-error")).map((r) => `DocumentReference/${r.id}`),
+        );
+        // Superseded is not removed: a DocumentReference marked so, or named by a current one's "replaces" (a server may
+        // leave superseded ones out of its answer), is retired as superseded by the import, never withdrawn.
+        const superseded = new Set([
+          ...mapped.documents.filter((d) => d.status === "superseded").map((d) => d.resource),
+          ...mapped.documents.flatMap((d) => d.replaces.map((x) => localRef(x, cfg!.base_url, "DocumentReference")).filter((x): x is string => !!x)),
+        ]);
         gone = await withdrawNisDocuments(c, id, cfg!.base_url, breakGlass, (h) =>
           voided.has(h.nis_resource) ? "nis_voided" : !listed.has(h.nis_resource) && !superseded.has(h.nis_resource) ? "nis_removed" : null,
         );
+        if (gone.pending) {
+          const x = await readNisImport(c.env.DOCS, v.org, id);
+          if (x) await writeNisImport(c.env.DOCS, v.org, id, { ...x, state: { ...x.state, withdraw_pending: true } });
+        }
       }
     }
     // The record's documents go in as uploads, on every call, so what one call could not take comes in on the next.
@@ -516,11 +558,24 @@ export const nis = new Hono<AppEnv>()
     // leaves out NIS facts of an unlinked patient (routes/cases.ts, withoutUnlinkedNis).
     const v = c.var.viewer;
     const all = (await orgQuery(c, "SELECT id FROM cases WHERE org_id = ?org AND patient_id = ?1", patient.id).all<{ id: string }>()).results;
+    const withdraw = { withdrawn: 0, pending: 0, not_allowed: 0 };
     for (const k of all) {
-      // Its documents from the NIS go too (Juro's decision 2026-10-20), each with an alert naming it.
-      await withdrawNisDocuments(c, k.id, link.nis_system, breakGlass, () => "nis_unlinked");
+      // Its documents from the NIS go too (Juro's decision 2026-10-19), each with an alert naming it, in each case the
+      // viewer may act in: another team's case keeps them, counted, for its own team (the facts leave every case).
+      let grant: { breakGlass: string | null } | null = { breakGlass };
+      if (k.id !== id) {
+        grant = await caseFor(c, k.id, "nis.link").catch((e) => {
+          if (e instanceof DomainError) return null;
+          throw e;
+        });
+      }
+      if (grant) {
+        const r = await withdrawNisDocuments(c, k.id, link.nis_system, grant.breakGlass, () => "nis_unlinked");
+        withdraw.withdrawn += r.withdrawn;
+        withdraw.pending += r.pending;
+      } else withdraw.not_allowed++;
       await deleteNisImport(c.env.DOCS, v.org, k.id);
       if (pipelineListed(c.env, v.org)) await startCaseMerge(c.env, { org: v.org, caseId: k.id, by: v.id, byActor: v.actor?.id ?? null });
     }
-    return answer(c, { link: null });
+    return answer(c, { link: null, documents: withdraw });
   });

@@ -358,7 +358,7 @@ OpenID Connect (OIDC, the standard login protocol); design and details in
   read exactly as a file uploaded by hand (`storeFile`): the same keep
   policy, identity check per page, access-log line and retention.
 - **A NIS document that is voided, removed or no longer the patient's is
-  deleted from the case** (Juro's decision, 2026-10-20). When the NIS voids
+  deleted from the case** (Juro's decision, 2026-10-19). When the NIS voids
   a DocumentReference (entered-in-error), when it disappears from the NIS,
   or when the patient is unlinked from their NIS record, the app withdraws
   the document through the doctor's withdraw path. Its file, pages, page
@@ -367,9 +367,14 @@ OpenID Connect (OIDC, the standard login protocol); design and details in
   case shows an alert naming the document by its NIS ID only. A
   deliberate re-link or a later import that finds the document current
   again brings it back. A document a doctor withdrew as another patient's
-  is never taken back automatically. A document that cannot go at once
-  (being read, prepared, or the case closed) is retried at the next
-  import.
+  is never taken back automatically, and a doctor's own upload that the
+  NIS also holds is never deleted by the import. A removal is noticed at
+  the next full pull of the record, at most a day later. A document that
+  cannot go at once (being read, prepared, or the case closed) is retried
+  at the next import; after an unlink it stays until a doctor withdraws
+  it (open question in `docs/agent/OPEN_QUESTIONS.md`). In a case of the
+  same patient the unlinking doctor may not act in, the documents stay
+  for that case's team.
 
 ### Upload from a phone (issue #10)
 

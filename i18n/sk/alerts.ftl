@@ -68,7 +68,8 @@ alert-identity-conflict = Strana patrí inému pacientovi; jej údaje nie sú zo
 
 # The NIS import withdrew a document it had brought (issue #22). See the Czech file.
 alert-nis-document-withdrawn = { $reason ->
-        [nis_voided] Dokument z NIS bol odobratý z prípadu, pretože ho NIS zneplatnil: { $document }
-        [nis_unlinked] Dokument z NIS bol odobratý z prípadu, pretože pacient bol odpojený od záznamu v NIS: { $document }
-       *[other] Dokument z NIS bol odobratý z prípadu, pretože už v NIS nie je: { $document }
+        [nis_voided] Dokument z NIS bol odobratý z prípadu, pretože ho NIS zneplatnil: { $nis_document }
+        [nis_unlinked] Dokument z NIS bol odobratý z prípadu, pretože pacient bol odpojený od záznamu v NIS: { $nis_document }
+        [nis_removed] Dokument z NIS bol odobratý z prípadu, pretože už v NIS nie je: { $nis_document }
+       *[other] Dokument z NIS bol odobratý z prípadu, pretože už v NIS nie je: { $nis_document }
     }

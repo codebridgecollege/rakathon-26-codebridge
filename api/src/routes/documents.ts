@@ -323,7 +323,8 @@ export async function withdrawDocument(
   caseId: string,
   docId: string,
   breakGlass: string | null,
-  o: { reasonCs: string; action: string; whatCs: string; extra?: (t: ReturnType<typeof tx>) => void },
+  // merge: false when the caller withdraws several documents and starts one merge for the case itself.
+  o: { reasonCs: string; action: string; whatCs: string; extra?: (t: ReturnType<typeof tx>) => void; merge?: boolean },
 ): Promise<void> {
   const v = c.var.viewer;
   const withdrawnAt = isoNow();
@@ -358,7 +359,7 @@ export async function withdrawDocument(
   // A merge waiting between its steps holds a composed run that may quote the document: it goes, and that merge
   // composes again.
   await deleteCaseDrafts(c.env, v.org, caseId).catch(() => console.error(JSON.stringify({ route: o.action, drafts: "delete_failed" })));
-  if (pipelineListed(c.env, v.org)) await startCaseMerge(c.env, { org: v.org, caseId, by: v.id, byActor: v.actor?.id ?? null });
+  if (o.merge !== false && pipelineListed(c.env, v.org)) await startCaseMerge(c.env, { org: v.org, caseId, by: v.id, byActor: v.actor?.id ?? null });
 }
 
 // The document's own objects: its file (by the key its row stores) and the pipeline's outputs under its prefix, under

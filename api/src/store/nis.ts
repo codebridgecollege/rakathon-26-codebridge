@@ -21,6 +21,8 @@ export type NisImportState = {
   truncated: string[];
   /** The record's documents as the last full pull found them; each import call takes in the ones still pending. */
   documents: NisDocument[];
+  /** A withdraw of a NIS document could not run (being read, prepared, the case locked): the next import pulls in full. */
+  withdraw_pending?: boolean;
 };
 export type NisImport = { state: NisImportState; fragment: Fragment };
 

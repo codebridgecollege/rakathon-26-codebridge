@@ -171,7 +171,14 @@ experience.
 
 ## Decide as a team
 
-
+- [ ] NIS documents after an unlink (issue #22): a document that could not be
+  withdrawn at the unlink (the case closed or its protocol approved, or the
+  document being read) stays in the case, and nothing tries again, since
+  the import state is gone with the link. Should a closed case keep it as
+  the record the MDT saw, or should the cron sweep withdraw it later? The
+  same holds for superseded versions of an imported document, which stay
+  as history after the unlink. Juro to decide. (`api/AGENTS.md`, "NIS
+  documents leaving the case")
 - [ ] How do NIS facts and document facts merge in the case view? (That a
   NIS run never says "neuvedeno v dostupné dokumentaci" is decided:
   EXTRACTION-FORMAT.md, "Decisions".)
