@@ -285,8 +285,9 @@ cited. v8 says what "cited" means: the page is not that exam's protocol but quot
 original report is missing". The build now keeps "cited" for exam results only (imaging, histology, procedure, exam
 finding). Cited facts with v8 (all / cited): case 10 122/45, S01 69/12, S02 78/10, S03 38/8, S04 47/9. The case 10
 MR is cited. Case 10's pages are all outpatient reports, so its quoted CTs are correctly cited too; which of them
-should raise an alert is the case rules' choice. The expectations of `samples/expected` are unchanged (eval on main,
-without stream E's rules).
+should raise an alert is the case rules' choice. With stream E's case rules (on main), the quoted reports become one
+"original reports missing" alert per document, and the evaluation gives report missing 9 / 0 / 0, with
+"10-mr-brain-report-missing" now passing (its known-failure mark is removed); every other failure kind is unchanged.
 
 ## Open
 
