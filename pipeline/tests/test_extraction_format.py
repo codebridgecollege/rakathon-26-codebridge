@@ -292,6 +292,20 @@ def test_metastasis_negation_mismatch():
     assert codes(run) == ["negation_mismatch"]
 
 
+def test_medication_stop_needs_stopped_status():
+    run = example()
+    src = {s["id"]: s for s in run["sources"]}
+    med = {**run["facts"][0], "id": "f-0aa0aa", "kind": "medication", "status": "documented", "codes": [],
+           "date": {"as_written": "28.4.2023", "precision": "day", "sort": "2023-04-28"},
+           "value": {"drug": "Prednison", "strength": None, "dosing": None, "change": None, "indication": None, "text": None,
+                     "stop_as_written": "ukončen 26.7.2023"}}
+    med["key"] = build_fact_key(med, src)
+    run["facts"].append(med)
+    assert codes(run) == ["stop_without_stopped_status"]
+    med["status"] = "stopped"
+    assert codes(run) == []
+
+
 def test_relative_subject_outside_family_history():
     run = example()
     run["facts"][4]["subject"] = "relative"

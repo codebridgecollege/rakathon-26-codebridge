@@ -122,6 +122,21 @@ def _origin_seg(fact: Mapping[str, Any], sources: Mapping[str, Mapping[str, Any]
     return "+".join(sorted(docs)) if docs else "doc:none"
 
 
+def _part_seg(fact: Mapping[str, Any], sources: Mapping[str, Mapping[str, Any]]) -> str:
+    """The document parts a fact is quoted from (partSeg in keys.ts)."""
+    parts: set[str] = set()
+    for sid in fact["sources"]:
+        s = sources.get(sid)
+        if s is None:
+            continue
+        if s["type"] == "document":
+            # "??" in keys.ts: only a missing part falls back to the document.
+            parts.add(f"part:{s['document_id'] if s.get('part') is None else s['part']}")
+        else:
+            parts.add(f"nis:{s['resource']}")
+    return "+".join(sorted(parts, key=_utf16)) if parts else "part:none"
+
+
 def _first_code(fact: Mapping[str, Any]) -> str | None:
     codes = fact["codes"]
     own = next((c for c in codes if c["assigned_by"] == "source"), codes[0] if codes else None)
@@ -154,11 +169,19 @@ def build_fact_key(fact: Mapping[str, Any], sources: Mapping[str, Mapping[str, A
     if kind == "diagnosis":
         return _join(kind, _code_or(fact, norm_text(v["text"])), "status:none" if v["disease_status"] is None else v["disease_status"], date_seg(d))
     if kind == "medication":
-        return _join(kind, norm_text(v["drug"]), f"start:{date_seg(d)}")
+        # Undated list entries of one drug at two visits are told apart by their document part (stable, not a position).
+        start = date_seg(d)
+        parts = [kind, norm_text(v["drug"]), f"start:{start}"]
+        if start == "undated":
+            parts.append(_part_seg(fact, sources))
+        return _join(*parts)
     if kind == "systemic_therapy":
         start = norm_text(v["start"]) or date_seg(d)
         line = "none" if v["line"] is None else js_str(v["line"])
-        return _join(kind, norm_text(v["regimen"]), f"line:{line}", f"start:{start}")
+        parts = [kind, norm_text(v["regimen"]), f"line:{line}", f"start:{start}"]
+        if start == "undated":
+            parts.append(_part_seg(fact, sources))
+        return _join(*parts)
     if kind == "stage":
         return _join(kind, v["stage_kind"], date_seg(d))
     if kind == "imaging":

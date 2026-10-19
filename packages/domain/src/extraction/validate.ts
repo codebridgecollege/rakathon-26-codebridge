@@ -37,6 +37,7 @@ export type IssueCode =
   | "negation_mismatch"
   | "subject_mismatch"
   | "check_result_mismatch"
+  | "stop_without_stopped_status"
   | "sentence_unbacked"
   | "view_line_without_facts"
   | "view_line_id_mismatch"
@@ -258,6 +259,10 @@ export function referenceIssues(run: ExtractionRun): Issue[] {
     // "Bez metastáz" is a recorded negative; the status and the negation must say the same.
     if (f.kind === "metastasis" && (f.value.status === "excluded") !== f.negated) {
       push(`${p}/negated`, "negation_mismatch", `metastasis status ${f.value.status} needs negated: ${f.value.status === "excluded"}`);
+    }
+    // A drug with a stated stop is history: listing it as current medication would mislead the doctor.
+    if (f.kind === "medication" && f.value.stop_as_written != null && f.status !== "stopped" && f.status !== "interrupted") {
+      push(`${p}/status`, "stop_without_stopped_status", `medication ${f.id} has a stop but status ${f.status}`);
     }
     // A relative's disease is family history and never becomes the patient's.
     if ((f.kind === "family_history") !== (f.subject === "relative")) {

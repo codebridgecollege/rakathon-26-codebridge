@@ -32,6 +32,7 @@ const d1Parts = (docs: Item[]) => docs.map(({ title_cs, type, date, date_note_cs
 const DOCS10: DocInfo[] = [{ id: "10_pacient", file: "10_pacient.pdf", page_count: C.page_count, note_cs: E.documents_note_cs, parts: d1Parts(E.documents) }];
 const OLD = fromFullExtraction("10_pacient.pdf", "NO-010", C, E) as unknown as CaseData & { alerts: { flags: Item[]; gaps: Item[] } };
 const NEW = fromExtraction("10_pacient.pdf", "NO-010", runOf("NO-010"), DOCS10);
+const NEW_FACTS = new Map(runOf("NO-010").facts.map((f) => [f.id, f]));
 const quoteOf = (cd: CaseData, i: number) => cd.refs[i]!.quote;
 
 describe("case 10: the same view as before, from facts", () => {
@@ -119,7 +120,10 @@ describe("case 10: the same view as before, from facts", () => {
     // FA: every drug line of today, plus the planned everolimus 10 mg and the second Spiriva dosing as their own lines.
     for (const m of a.FA!) expect(b.FA!.map(line)).toContain(line(m).replace(/^Novetron 8 mg 1-0-1$/, "Novetron 8 mg 1-0-1 á 12 hod."));
     expect(b.FA!.filter((m) => m.drug_cs === "Spiriva (inhalačně)").map((m) => [m.dosing_cs, m.certainty])).toEqual([["1-0-1", "unclear_ocr"], ["2-0-0", "unclear_ocr"]]);
-    expect(b.FA!.find((m) => m.dosing_cs === "2-0-0" && /Everolimus/.test(m.drug_cs))).toMatchObject({ change_status: "planned_unconfirmed" });
+    // Everolimus is a systemic_therapy fact (EXTRACTION-FORMAT.md); its list entries keep their FA rows, the regimen as
+    // the list writes it as the drug line, and the dose increase stays marked as planned.
+    expect(b.FA!.find((m) => /^Everolimus Sandoz 5 mg 2-0-0$/.test(m.drug_cs))).toMatchObject({ change_status: "planned_unconfirmed" });
+    expect(b.FA!.filter((m) => /Everolimus/.test(m.drug_cs)).map((m) => NEW_FACTS.get(m.fact_ids[0])?.kind)).toEqual(["systemic_therapy", "systemic_therapy"]);
     expect(b.FA!.some((m) => /prednison/i.test(m.drug_cs))).toBe(false);
     expect(b.FA_warnings!.map(line)).toEqual(["ACE inhibitory při léčbě everolimem, pro zvýšené riziko anafylaxe"]);
     expect(b.EA!.map(line)).toEqual(a.EA!.map(line));

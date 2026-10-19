@@ -114,8 +114,12 @@ def comor(text):
     return {"text": text}
 
 
-def med(drug, strength=None, dosing=None, change=None, indication=None, text=None):
-    return {"drug": drug, "strength": strength, "dosing": dosing, "change": change, "indication": indication, "text": text}
+def med(drug, strength=None, dosing=None, change=None, indication=None, text=None, stop=None):
+    out = {"drug": drug, "strength": strength, "dosing": dosing, "change": change, "indication": indication, "text": text}
+    # Optional in the format: only a drug whose stop the document states carries it (status stopped).
+    if stop is not None:
+        out["stop_as_written"] = stop
+    return out
 
 
 def contra(what, stated_by="document"):

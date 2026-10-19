@@ -17,6 +17,8 @@ const day = (as_written: string, sort: string): FactDate => ({ as_written, preci
 const sources: Source[] = [
   { id: "src-a", type: "document", document_id: "10_pacient", part: "10_pacient/p2", page: 3, quote: "S_HSCRP: 9,5 mg/1 [O ... 5]", quote_text: "tesseract", anchor: null, reported_as: "original", identity: "matches", reading_check: null },
   { id: "src-b", type: "document", document_id: "10_lab", part: null, page: 1, quote: "Kreatinin 107", quote_text: "pdf_text", anchor: null, reported_as: "original", identity: "matches", reading_check: null },
+  // A second part of the same file, numbered so that a numeric and a text sort disagree (p10 before p2 as text).
+  { id: "src-c", type: "document", document_id: "10_pacient", part: "10_pacient/p10", page: 5, quote: "Spiriva 2-0-0", quote_text: "pdf_text", anchor: null, reported_as: "original", identity: "matches", reading_check: null },
   { id: "src-n", type: "nis", system: "https://nis.fno.example/fhir", resource: "Observation/8812", version: "3", last_updated: null },
   { id: "src-e", type: "nis", system: "https://nis.fno.example/fhir", resource: "Encounter/301", version: "1", last_updated: null },
 ];
@@ -54,6 +56,13 @@ const facts: DraftFact[] = [
   { ...frame, kind: "comorbidity", date: undated, codes: [{ system: "mkn-10", code: "I10", assigned_by: "source" }], value: { text: "Hypertenze" } },
   { ...frame, kind: "comorbidity", date: undated, value: { text: "  CHOPN   II. st.  " } },
   { ...frame, kind: "medication", date: day("19.9.2026", "2026-09-19"), value: { drug: "Afinitor", strength: "10 mg", dosing: "1-0-0", change: "navýšení", indication: null, text: null } },
+  // Undated list entries: the document part tells two visits' lists apart (a part-less source falls back to its document).
+  { ...frame, kind: "medication", date: undated, value: { drug: "Spiriva", strength: null, dosing: "1-0-1", change: null, indication: null, text: null } },
+  { ...frame, kind: "systemic_therapy", date: undated, value: { regimen: "Everolimus Sandoz 5 mg 1-0-0", line: null, start: null, stop: null, reason_stopped: null, text: null } },
+  { ...frame, kind: "medication", date: undated, sources: ["src-b"], value: { drug: "Spiriva", strength: null, dosing: "2-0-0", change: null, indication: null, text: null } },
+  { ...frame, kind: "medication", date: undated, sources: ["src-a", "src-c"], value: { drug: "Spiriva", strength: null, dosing: "2-0-0", change: null, indication: null, text: null } },
+  { ...frame, kind: "medication", date: undated, sources: ["src-n", "src-a"], value: { drug: "Spiriva", strength: null, dosing: null, change: null, indication: null, text: null } },
+  { ...frame, kind: "medication", status: "stopped", date: { as_written: "28.4.2023", precision: "day", sort: "2023-04-28" }, value: { drug: "Prednison", strength: "1 mg/kg/den", dosing: null, change: null, indication: null, text: null, stop_as_written: "ukončen 26.7.2023" } },
   { ...frame, kind: "contraindication", date: undated, value: { what: "ACE inhibitor s everolimem", stated_by: "assistant" } },
   { ...frame, kind: "allergy", date: undated, value: { substance: "Penicilin", reaction: null } },
   { ...frame, kind: "adverse_event", date: undated, value: { text: "Stomatitida G2", grade: "2", related_therapy: "everolimus" } },

@@ -255,6 +255,9 @@ def reference_issues(run: Mapping[str, Any]) -> list[Issue]:
         if f["kind"] == "metastasis" and (v["status"] == "excluded") != f["negated"]:
             want_neg = "true" if v["status"] == "excluded" else "false"
             push(f"{p}/negated", "negation_mismatch", f"metastasis status {v['status']} needs negated: {want_neg}")
+        # A drug with a stated stop is history: listing it as current medication would mislead the doctor.
+        if f["kind"] == "medication" and v.get("stop_as_written") is not None and f["status"] not in ("stopped", "interrupted"):
+            push(f"{p}/status", "stop_without_stopped_status", f"medication {f['id']} has a stop but status {f['status']}")
         # A relative's disease is family history and never becomes the patient's.
         if (f["kind"] == "family_history") != (f["subject"] == "relative"):
             msg = "family history is about a relative" if f["kind"] == "family_history" else f"a {f['kind']} fact is about the patient"

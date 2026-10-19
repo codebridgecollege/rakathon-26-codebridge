@@ -3970,7 +3970,8 @@
     "dosing": null,
     "change": "od 12.5.2023 postupné snižování dávky, ukončen 26.7.2023",
     "indication": "plicní toxicita (IPP)",
-    "text": "prednison 1 mg/kg/den od 28.4.2023; od 12.5.2023 snižování, ukončen 26.7.2023"
+    "text": "prednison 1 mg/kg/den od 28.4.2023; od 12.5.2023 snižování, ukončen 26.7.2023",
+    "stop_as_written": "ukončen 26.7.2023"
    },
    "date": {
     "as_written": "28.4.2023",
@@ -3992,17 +3993,17 @@
    ]
   },
   {
-   "id": "f-460c4602",
-   "key": "medication|everolimus sandoz|start:undated",
-   "kind": "medication",
+   "id": "f-b19751d0",
+   "key": "systemic_therapy|everolimus sandoz 5 mg 1-0-0|line:none|start:undated|part:10_pacient/p0",
+   "kind": "systemic_therapy",
    "subject": "patient",
    "value": {
-    "drug": "Everolimus Sandoz",
-    "strength": "5 mg",
-    "dosing": "1-0-0",
-    "change": null,
-    "indication": null,
-    "text": null
+    "regimen": "Everolimus Sandoz 5 mg 1-0-0",
+    "line": null,
+    "start": null,
+    "stop": null,
+    "reason_stopped": null,
+    "text": "everolimus 5 mg denně, seznam medikace"
    },
    "date": {
     "as_written": null,
@@ -4011,7 +4012,10 @@
    },
    "status": "documented",
    "negated": false,
-   "not_stated": [],
+   "not_stated": [
+    "line",
+    "start"
+   ],
    "origin": "document",
    "certainty": "clear",
    "certainty_reason": null,
@@ -4023,17 +4027,17 @@
    ]
   },
   {
-   "id": "f-c4b6586a",
-   "key": "medication|everolimus sandoz|start:2026-09-19",
-   "kind": "medication",
+   "id": "f-e58a6855",
+   "key": "systemic_therapy|everolimus sandoz 5 mg 2-0-0|line:none|start:19.9.2026",
+   "kind": "systemic_therapy",
    "subject": "patient",
    "value": {
-    "drug": "Everolimus Sandoz",
-    "strength": "5 mg",
-    "dosing": "2-0-0",
-    "change": "navýšení z 1-0-0 na 2-0-0 (10 mg denně) od 19.9.2026; při netoleranci návrat k 1-0-0",
-    "indication": null,
-    "text": "navýšení na 2-0-0 od 19.9.2026 dle nejnovějšího závěru; při netoleranci návrat k 1-0-0"
+    "regimen": "Everolimus Sandoz 5 mg 2-0-0",
+    "line": null,
+    "start": "19.9.2026",
+    "stop": null,
+    "reason_stopped": null,
+    "text": "navýšení z 1-0-0 na 2-0-0 (10 mg denně) od 19.9.2026; při netoleranci návrat k 1-0-0"
    },
    "date": {
     "as_written": "19.9.2026",
@@ -4042,7 +4046,9 @@
    },
    "status": "planned",
    "negated": false,
-   "not_stated": [],
+   "not_stated": [
+    "line"
+   ],
    "origin": "document",
    "certainty": "verify",
    "certainty_reason": {
@@ -4059,7 +4065,7 @@
   },
   {
    "id": "f-b428d800",
-   "key": "medication|kapidin|start:undated",
+   "key": "medication|kapidin|start:undated|part:10_pacient/p0",
    "kind": "medication",
    "subject": "patient",
    "value": {
@@ -4090,7 +4096,7 @@
   },
   {
    "id": "f-0e45c9b6",
-   "key": "medication|spiriva (inhalačně)|start:undated",
+   "key": "medication|spiriva (inhalačně)|start:undated|part:10_pacient/p0",
    "kind": "medication",
    "subject": "patient",
    "value": {
@@ -4124,7 +4130,7 @@
   },
   {
    "id": "f-fbdaf887",
-   "key": "medication|spiriva (inhalačně)|start:undated#2",
+   "key": "medication|spiriva (inhalačně)|start:undated|part:10_pacient/p10+part:10_pacient/p2",
    "kind": "medication",
    "subject": "patient",
    "value": {
@@ -4159,7 +4165,7 @@
   },
   {
    "id": "f-389e59d7",
-   "key": "medication|ventolin n (inhalačně)|start:undated",
+   "key": "medication|ventolin n (inhalačně)|start:undated|part:10_pacient/p0",
    "kind": "medication",
    "subject": "patient",
    "value": {
@@ -4190,7 +4196,7 @@
   },
   {
    "id": "f-b67a1da1",
-   "key": "medication|neurol|start:undated",
+   "key": "medication|neurol|start:undated|part:10_pacient/p0",
    "kind": "medication",
    "subject": "patient",
    "value": {
@@ -4224,7 +4230,7 @@
   },
   {
    "id": "f-f4a4ab08",
-   "key": "medication|natrii chloridi (tobolky)|start:undated",
+   "key": "medication|natrii chloridi (tobolky)|start:undated|part:10_pacient/p0",
    "kind": "medication",
    "subject": "patient",
    "value": {
@@ -4255,7 +4261,7 @@
   },
   {
    "id": "f-d965adbd",
-   "key": "medication|calcichew|start:undated",
+   "key": "medication|calcichew|start:undated|part:10_pacient/p0",
    "kind": "medication",
    "subject": "patient",
    "value": {
@@ -4289,7 +4295,7 @@
   },
   {
    "id": "f-c474b23d",
-   "key": "medication|degan|start:undated",
+   "key": "medication|degan|start:undated|part:10_pacient/p0",
    "kind": "medication",
    "subject": "patient",
    "value": {
@@ -4320,7 +4326,7 @@
   },
   {
    "id": "f-b38f607d",
-   "key": "medication|novetron|start:undated",
+   "key": "medication|novetron|start:undated|part:10_pacient/p0",
    "kind": "medication",
    "subject": "patient",
    "value": {
@@ -4351,7 +4357,7 @@
   },
   {
    "id": "f-c46b46e8",
-   "key": "medication|imodium|start:undated",
+   "key": "medication|imodium|start:undated|part:10_pacient/p0",
    "kind": "medication",
    "subject": "patient",
    "value": {
@@ -4382,7 +4388,7 @@
   },
   {
    "id": "f-4fe10a37",
-   "key": "medication|smecta|start:undated",
+   "key": "medication|smecta|start:undated|part:10_pacient/p0",
    "kind": "medication",
    "subject": "patient",
    "value": {
@@ -9732,7 +9738,7 @@
    "subject": "10_pacient",
    "kind": "chronology",
    "facts": [
-    "f-c4b6586a",
+    "f-e58a6855",
     "f-1076df05",
     "f-2cb5d3e3",
     "f-b6176568"
@@ -10095,7 +10101,7 @@
     "note": "Kategorie PD pochází z onkologické zprávy; text závěru CT je v dokumentu useknutý."
    },
    {
-    "id": "vl-1599aa3e",
+    "id": "vl-31f1d0da",
     "text": "3. paliativní linie everolimus 5 mg denně; cabozantinib (par. 16) ponechán do 4. linie",
     "title": null,
     "detail": null,
@@ -10110,7 +10116,7 @@
      "f-2cb5d3e3",
      "f-15dfed8f",
      "f-b6176568",
-     "f-460c4602"
+     "f-b19751d0"
     ],
     "note": null
    },
@@ -10135,7 +10141,7 @@
     "note": null
    },
    {
-    "id": "vl-1c63ab52",
+    "id": "vl-e2b803f0",
     "text": "Navýšení everolimu z 5 na 10 mg denně dle nejnovějšího ambulantního závěru, při netoleranci návrat na 5 mg",
     "title": null,
     "detail": null,
@@ -10147,8 +10153,8 @@
     "category": "systemic",
     "status": "planned",
     "facts": [
-     "f-460c4602",
-     "f-c4b6586a",
+     "f-b19751d0",
+     "f-e58a6855",
      "f-1076df05"
     ],
     "note": null
@@ -10448,7 +10454,7 @@
     "note": null
    },
    {
-    "id": "vl-d3afde94",
+    "id": "vl-5ae8283e",
     "text": "5 mg denně; od 19.9.2026 navýšení na 10 mg denně dle nejnovějšího závěru",
     "title": "3. linie: everolimus",
     "detail": "Schváleno komisí komplexního onkologického centra; cabozantinib ponechán do 4. linie. Dle nejnovějšího ambulantního závěru navýšení dávky na 10 mg denně od 19.9.2026, při netoleranci návrat k 5 mg denně.",
@@ -10463,8 +10469,8 @@
      "f-2cb5d3e3",
      "f-15dfed8f",
      "f-b6176568",
-     "f-460c4602",
-     "f-c4b6586a",
+     "f-b19751d0",
+     "f-e58a6855",
      "f-1076df05"
     ],
     "note": null

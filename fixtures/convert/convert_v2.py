@@ -20,6 +20,7 @@ and prints the conversion report (counts, alert mapping, view coverage, quote mi
 import argparse
 import hashlib
 import json
+import subprocess
 import re
 import sys
 from collections import Counter, defaultdict
@@ -513,10 +514,27 @@ def run_frame(case_id: str, document: str, n_parts: int) -> dict[str, Any]:
     }
 
 
+def committed_run(case_id: str) -> dict[str, Any] | None:
+    """The run as committed at HEAD; where there is no git checkout (the pipeline image copies files only), the file on
+    disk, which there is the committed one; None for a run that does not exist yet."""
+    path = RUNS / f"{case_id}.json"
+    rel = path.relative_to(REPO).as_posix()
+    try:
+        out = subprocess.run(["git", "-C", str(REPO), "show", f"HEAD:{rel}"], capture_output=True, check=True)
+        return json.loads(out.stdout.decode("utf-8"))
+    except (OSError, subprocess.CalledProcessError):
+        return json.loads(path.read_text(encoding="utf-8")) if path.exists() else None
+
+
 def finish(b: Builder, frame: dict[str, Any]) -> tuple[dict[str, Any], dict[str, str]]:
     b.build_sources()
     drafts = b.drafts()
-    result = assign_fact_ids(b.case_id, drafts, b.sources, None)
+    # The committed run (HEAD) is the previous run: a change to the converter or to a key rule then keeps every fact ID
+    # the matcher can carry over, so references in D1 and in the guidance files stay valid (EXTRACTION-FORMAT.md,
+    # "Fact identity"). HEAD, not the working file, so --check still catches a hand edit of an ID in the working tree.
+    # IDs therefore depend on the committed history, not on the case and key alone; a first conversion mints them new.
+    previous = committed_run(b.case_id)
+    result = assign_fact_ids(b.case_id, drafts, b.sources, previous)
     ids = {d["draft_id"]: f["id"] for d, f in zip(drafts, result.facts)}
     # ID and key first, so a reader of the JSON sees which fact it is before its content.
     facts = [{"id": f["id"], "key": f["key"], **{k: v for k, v in f.items() if k not in ("id", "key")}} for f in result.facts]
