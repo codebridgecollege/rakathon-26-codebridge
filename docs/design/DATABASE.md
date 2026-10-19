@@ -106,10 +106,16 @@ the matcher needs).
 | `fact_confirmations` | A doctor confirms one fact of the current run, or withdraws the confirmation. `value_sha256` is the SHA-256 of what the fact said (`confirmedContent` in `packages/domain/src/confirmations.ts`), `run_id` the run the doctor saw. When a later run gives the same ID another value, the fact no longer counts as confirmed. |
 | `fact_edits.fact_id` | The fact an edit under an `f:<fact id>` key belongs to. Edits under the old positional keys stay (the view lists them as orphaned); a new text under such a key is refused, a revert is allowed. |
 | `document_parts.part_id` | The stable part ID runs cite: `<document id>/p<ordinal>`. |
-| `alerts`, `alert_events_v1` | The alerts of `/1` runs (keyed by a hash of their Czech text) and their acknowledgements. Only the intake attach, which still stores `/1` runs, writes `alerts`; `alert_events_v1` is read-only, and the view shows neither. |
+| `alerts`, `alert_events_v1` | The alerts of `/1` runs (keyed by a hash of their Czech text) and their acknowledgements, kept from before migration 0016. Nothing writes them any more (the seed and the intake store `/2` runs); `alert_events_v1` is read-only, and the view shows neither. |
 
 A current run whose `schema` is `/1` is served as not processed (`GET /cases/:id/extraction` answers `data: null`) until
 the case is reseeded or processed again.
+
+**Who writes runs.** The seed (`api/seed/seed.py`) stores the converted runs of NO-010 and NO-S01
+(`fixtures/data/runs/`) unchanged, with `producer` fixture and `seeded` 1, their fact IDs and alert identities, after the
+Python validator accepts them; it writes `document_parts.part_id` as `<document id>/p<index>`, the part IDs the runs
+cite. The intake demo (`POST /cases/:id/intake/complete`) stores NO-S02's run re-pointed at the uploaded files through
+`storeRun`, with `producer` fixture and `seeded` 0 (api/AGENTS.md, "Uploads, intake and the document pipeline").
 
 **The demo reset** removes every run with `seeded = 0` (trigger `demo_reset_uploads`), together with the fact and alert
 IDs it issued first and the confirmations and events on them, and makes the latest seeded run of each such case current

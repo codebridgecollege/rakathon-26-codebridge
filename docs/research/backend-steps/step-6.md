@@ -920,7 +920,10 @@ rules) are not built.
   0008) to the patient, so the age shows as before. The reasons never name the fixture's patient (the
   mock's message did). Otherwise the case is listed with its documents
   "nezpracováno" and the reason.
-- Prepared data: the seed writes `fixtures/S02/prepared.json`, the
+- Prepared data (superseded by `codebridge.extraction/2`, #17 part 2: the
+  prepared file now holds NO-S02's `/2` run re-pointed at the uploads and
+  the attach stores it through `storeRun`; see api/AGENTS.md, "Uploads,
+  intake and the document pipeline"). Before that: the seed wrote `fixtures/S02/prepared.json`, the
   stripped S02 extraction with every reference rewritten from
   `{file: "S02_pacient.pdf", page: 5}` to `{file: "@upload:<upload name>",
   page: 1, orig_file, orig_page}`, document entries with their own file

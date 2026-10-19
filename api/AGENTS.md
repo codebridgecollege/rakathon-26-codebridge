@@ -108,7 +108,26 @@ uv run seed/seed.py --dry-run            # write seed/out/ only (SQL, R2 manifes
 - Identity lives in the `patients` table only. The seed fails when a patient's name
   or birth number is left in stored JSON or case rows outside a `quote` field;
   `seed/out/identity-scan.txt` lists paths, never values.
+- Extraction runs: the seed stores the converted `codebridge.extraction/2` runs of NO-010 and NO-S01
+  (`fixtures/data/runs/`) byte for byte under R2 `org/<org>/extract/<case>/<run id>.json`, with their `extraction_runs`
+  row (`producer` fixture, `seeded` 1, schema `/2`), their fact IDs in `fact_ids` and their alerts in `alert_identities`.
+  It stops before writing anything when a run fails `pipeline/extraction_format`'s `validate_run`, reads a document
+  that is not the seeded PDF (by SHA-256), names a part that is not a seeded `document_parts.part_id`
+  (`<document id>/p<index>`), or when guidance names a run or fact ID that is not in NO-010's run. After seeding it
+  reads both run objects back from R2 and compares them with the files, and checks the D1 counts (no `/1` run or
+  `alerts` row left). It writes no `/1` run and nothing into `alerts`.
 - After changing a fixture, reseed.
+- **Production needs a reseed after the `codebridge.extraction/2` stack is merged** (PRs #39, #36 and the seed and app
+  PRs, merged together): migration 0016 keeps the deployed `/1` runs, which the API serves as not processed, and the
+  old `fixtures/S02/prepared.json`, which the intake refuses as `seed_missing`. A person runs it after the deploy job
+  on `main` has finished (the seed applies migrations, so it must run against the new schema), from the repository
+  root with wrangler logged in to the team's account:
+
+  ```
+  uv run api/seed/seed.py --target remote --reset
+  ```
+
+  It wipes and reseeds the shared demo, including its access log, and ends with "verified: ...". CI does not run it.
 - Routes that return case content check role and membership
   (`packages/domain/src/access.ts`) and write an `access_log` row before reading the content
   (`src/middleware/audit.ts`); a failed insert answers 500 with no content.
@@ -221,9 +240,19 @@ Design and contract: `docs/research/backend-steps/step-6.md`, section "As implem
   with migration 0013's lifecycle columns: a neutral row and its runs stay; file, outputs, pages, parts, name and hash go.
 - Intake: `src/routes/intake.ts`, `src/store/intake.ts`, rules in `src/domain/intake.ts` and `packages/domain/src/fhir.ts`. An
   open intake (`cases.intake_open = 1`) is hidden from lists and the workflow, takes uploads only, and is 404 to anyone
-  but its creator; the cron sweep removes it after 24 hours. The attach reads `fixtures/<id>/prepared.json`, written by
-  `seed.py` (identity scan strict, quotes checked on their page). Keep every new list or write route consistent with
-  that rule (`caseFor`, `openCase`, `listCases`, `visibleCaseIds`).
+  but its creator; the cron sweep removes it after 24 hours. Keep every new list or write route consistent with that
+  rule (`caseFor`, `openCase`, `listCases`, `visibleCaseIds`).
+- The attach reads `fixtures/<id>/prepared.json` (schema `codebridge.prepared/2`), written by `seed.py`
+  `prepared_fixture()` from `fixtures/data/runs/NO-S02.json`. That run numbers pages across the combined PDF
+  `S02_pacient.pdf` (parts `S02_pacient/p<k>`, the index in the fixture's `documents`); the seed re-points every
+  source, check and alert at the uploaded file of that part, with the page inside the file (combined pages `[1, 2]` of
+  the first document become pages 1 and 2 of its file, combined page 3 becomes page 1 of the next), and writes the
+  uploaded documents' IDs as `@upload:<file name>` and their one part as `@upload-part:<file name>`. The seed stops
+  when a reference cannot be mapped, a quote is not on its page, or the finished run would fail the validator (it
+  finishes the run itself with stand-in IDs to check). On completion the Worker swaps in the uploaded documents' IDs
+  and parts (`<document id>/p0`, the part row it inserts), derives the source IDs again, assigns the case's fact IDs
+  through `matchInputs` and `prepareRun`, and stores the run with `storeRun` (`producer` fixture, `seeded` 0, under
+  R2 `runs/`, so the demo reset removes it). An invalid or old prepared file answers 503 `seed_missing`.
 - Reset: rows added by uploads, intakes and pipeline runs are removed by the trigger `demo_reset_uploads` (it fires on
   reset batch's `reset_in_progress = 1` update of that org, and deletes that org's rows only), so the reset batch stays
   at its size. A new table written by these routes goes into that trigger, not into the batch.

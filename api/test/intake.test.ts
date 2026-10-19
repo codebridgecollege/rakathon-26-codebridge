@@ -1,12 +1,16 @@
 // Route tests of "Nový pacient" on the server (step 6, slice a-2): FHIR referral, the open intake hidden from everyone
 // else, uploads, and the attach of the prepared extraction only when every document matches by hash and name and birth
 // number match; a name mismatch, a partial upload and a second intake give "nezpracováno"; discard, the 24-hour sweep,
-// the reset, and no identity in the stored extraction or the access log.
+// the reset, and no identity in the stored extraction or the access log. The attached extraction is a
+// codebridge.extraction/2 run stored through store/runs.ts, with every reference on the uploaded file and its page.
 import { beforeEach, describe, expect, it } from "vitest";
 import { env } from "cloudflare:workers";
+import { sourceIdFor, validateRun, type ExtractionRun } from "@codebridge/domain/extraction/index";
 import { call } from "./helpers";
 import { loadFixture } from "./data";
 import { sweep } from "../src/scheduled";
+import type { DraftRun } from "../src/store/runs";
+import example from "../../packages/domain/schema/examples/worked-examples.json";
 
 type Body = { data?: Record<string, any>; state?: Record<string, any>; error?: { code: string; message_cs: string } };
 const q = async <T = Record<string, unknown>>(sql: string, ...args: unknown[]) => (await env.DB.prepare(sql).bind(...args).all<T>()).results;
@@ -21,19 +25,31 @@ const bytesOf = (name: string) => enc.encode(`%PDF-1.4\n% ${name}\n%%EOF\n`);
 const hex = async (b: Uint8Array) => [...new Uint8Array(await crypto.subtle.digest("SHA-256", b))].map((x) => x.toString(16).padStart(2, "0")).join("");
 const PNG = Uint8Array.from(atob("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="), (ch) => ch.charCodeAt(0));
 
-// A prepared extraction as seed.py writes it: references into the uploads by name, pages under each upload's name.
+// The prepared run as seed.py run_for_uploads() writes it: the format's worked example (one document with parts p0, p1,
+// p2) spread over the three uploads, part pK onto FILES[K] with every page numbered 1 inside its file; document and part
+// IDs are placeholders, facts carry their example ID as draft_id, alerts have no ID.
+const EX = example as unknown as ExtractionRun;
+const fileOf = (part: string | null) => FILES[Number(/p(\d+)$/.exec(part ?? "p0")![1])]!;
+const at = <T extends { document_id: string; part: string | null }>(x: T): T => ({
+  ...x,
+  document_id: `@upload:${fileOf(x.part)}`,
+  part: x.part ? `@upload-part:${fileOf(x.part)}` : null,
+});
+const DRAFT: DraftRun = {
+  ...EX,
+  run: { id: "fixture-NO-S02-v2", producer: "fixture", created_at: "2026-10-19T00:00:00Z", stages: [{ name: "convert", engine: "fixtures/convert/convert_v2.py" }] },
+  documents: FILES.map((f) => ({ document_id: `@upload:${f}`, sha256: null, parts: [`@upload-part:${f}`] })),
+  sources: EX.sources.map((src) => (src.type === "document" ? { ...at(src), page: 1 } : src)),
+  facts: EX.facts.map(({ id, key: _k, ...f }) => ({ ...f, draft_id: id })),
+  alerts: EX.alerts.map(({ id: _id, ...a }) => a),
+  checks: EX.checks.map((c) => ({ ...c, covered: c.covered.map(at), unreadable: c.unreadable.map((u) => ({ ...at(u), page: 1 })) })),
+};
 const PREPARED = {
-  schema: "codebridge.prepared/1",
+  schema: "codebridge.prepared/2",
   fixture_id: "FX",
-  syn: {
-    file: "FX_pacient.pdf",
-    list_entry: { file: "FX_pacient.pdf", page_count: 3 },
-    documents: FILES.map((f, i) => ({ title_cs: `Dokument ${i + 1}`, type: "laboratorní výsledky", date: "2026-03-10", pages: [1], orig_pages: [i + 1], readability: "good", reason_cs: "Syntetický tištěný text.", upload_name: f, file: `@upload:${f}` })),
-    data_gaps: [{ kind: "missing", text_cs: "Chybí popis MR.", source: { file: "@upload:01-zprava.pdf", page: 1, quote: "MR pánve", orig_file: "FX_pacient.pdf", orig_page: 1 } }],
-    labs_series: { draws: [{ date: "2026-03-10", time: "07:25", source: { file: "@upload:03-laborator.pdf", page: 1, quote: "Odběr: 10.3.2026 07:25" } }], tests: [] },
-  },
+  run: DRAFT,
+  documents: FILES.map((f, i) => ({ upload_name: f, title_cs: `Dokument ${i + 1}`, type: "laboratorní výsledky", date: "2026-03-10", readability: "good", reason_cs: "Syntetický tištěný text." })),
   case_row: { diagnosis_text: "Adenokarcinom rekta", summary_one_line: "Souhrn.", question_text: "Adjuvance?", question_explicit: true, question_purpose: "Adjuvance?", question_source_json: { file: "@upload:01-zprava.pdf", page: 1, quote: "Otázka" }, page_count: 3 },
-  alerts: [{ origin: "gap", position: 0, kind: "missing", text_cs: "Chybí popis MR.", relevant: false, basis: "FX_pacient.pdf:1:MR pánve" }],
   pages: Object.fromEntries(FILES.map((f) => [f, [{ n: 1, width: 10, height: 10, engine: "vision", mean_conf: 90, low_conf_words: 0, is_empty: false, verify_count: 0, redacted: false, redaction_count: null, redaction_reasons: null }]])),
 };
 
@@ -117,28 +133,45 @@ describe("intake with every fixture document and the matching person", () => {
     expect((await get("/patients", "coord")).body.patients.map((p: { id: string }) => p.id)).toContain("NO-FX");
     expect((await w("POST", "/cases/NO-FX/intake/complete")).body.error!.code).toBe("intake_done");
 
-    // The intake still stores the old format /1 (until it writes codebridge.extraction/2 runs), which the extraction route
-    // serves as not processed; the stored object is read directly here.
-    const served = await get("/cases/NO-FX/extraction");
-    expect(served.body).toMatchObject({ case_id: "NO-FX", run: { producer: "fixture" }, data: null });
-    const runRow = (await q<{ r2_key: string; producer: string; seeded: number; schema: string }>("SELECT r2_key, producer, seeded, schema FROM extraction_runs WHERE case_id = 'NO-FX'"))[0]!;
-    expect(runRow).toMatchObject({ producer: "fixture", seeded: 0, schema: "codebridge.extraction/1" });
-    // The stored extraction: references point at the uploaded documents, and no name or birth number anywhere.
-    const ex = { body: { data: await (await env.DOCS.get(runRow.r2_key))!.json<any>() } };
-    const raw = JSON.stringify(ex.body);
-    for (const bad of [NAME[0], NAME[1], "585614", "4019"]) expect(raw).not.toContain(bad);
-    expect(raw).not.toContain("@upload:");
-    const docs = await q<{ id: string; file_name: string; state: string }>("SELECT id, file_name, state FROM documents WHERE case_id = 'NO-FX' ORDER BY file_name");
+    // The run: codebridge.extraction/2, the intake's own (not seeded, under runs/), on the uploaded documents.
+    const runRow = (await q<{ id: string; r2_key: string; producer: string; seeded: number; schema: string; supersedes: string | null; is_current: number }>(
+      "SELECT id, r2_key, producer, seeded, schema, supersedes, is_current FROM extraction_runs WHERE case_id = 'NO-FX'",
+    ))[0]!;
+    expect(runRow).toMatchObject({ producer: "fixture", seeded: 0, schema: "codebridge.extraction/2", supersedes: null, is_current: 1 });
+    expect(runRow.r2_key).toBe(`org/demo-a/runs/NO-FX/${runRow.id}.json`);
+    expect(done.body.data!.run_id).toBe(runRow.id);
+    const stored = await (await env.DOCS.get(runRow.r2_key))!.json<ExtractionRun>();
+    expect(validateRun(stored)).toMatchObject({ ok: true });
+    const raw = JSON.stringify(stored);
+    for (const bad of [NAME[0], NAME[1], "585614", "4019", "@upload"]) expect(raw).not.toContain(bad);
+    const docs = await q<{ id: string; file_name: string; state: string; sha256: string }>("SELECT id, file_name, state, sha256 FROM documents WHERE case_id = 'NO-FX' ORDER BY file_name");
     expect(docs.map((d) => d.state)).toEqual(["prepared", "prepared", "prepared"]);
-    const zprava = docs.find((d) => d.file_name === "kopie-01-zprava.pdf")!;
-    expect(ex.body.data.syn.data_gaps[0].source).toMatchObject({ file: `${zprava.id}.pdf`, page: 1, orig_file: "FX_pacient.pdf", orig_page: 1 });
-    expect(ex.body.data.syn.documents[0]).toMatchObject({ file: `${zprava.id}.pdf`, pages: [1] });
+    const byFile = (f: string) => docs.find((d) => d.file_name === `kopie-${f}`)!;
+    const zprava = byFile(FILES[0]!);
+    // One document per uploaded file with its hash and one part; each source on its file's page 1, its ID derived from
+    // that place; the same facts and alerts as the prepared run, with IDs of this case registered in D1.
+    expect(stored.documents).toEqual(FILES.map((f) => ({ document_id: byFile(f).id, sha256: byFile(f).sha256, parts: [`${byFile(f).id}/p0`] })));
+    for (const src of stored.sources) {
+      if (src.type !== "document") continue;
+      expect(src.page).toBe(1);
+      const { id, ...rest } = src;
+      expect(id).toBe(sourceIdFor(rest));
+    }
+    const histology = EX.sources.find((x) => x.type === "document" && x.part === "10_pacient/p1")!;
+    expect(stored.sources.filter((x) => x.type === "document" && x.quote === (histology as { quote: string }).quote).map((x) => (x as { document_id: string }).document_id)).toEqual([byFile(FILES[1]!).id]);
+    expect(stored.facts.map((f) => f.kind).sort()).toEqual(EX.facts.map((f) => f.kind).sort());
+    expect(stored.alerts.map((x) => x.rule)).toEqual(EX.alerts.map((x) => x.rule));
+    expect(stored.run).toMatchObject({ id: runRow.id, producer: "fixture", supersedes: null });
+    expect((await q<{ fact_id: string }>("SELECT fact_id FROM fact_ids WHERE case_id = 'NO-FX' ORDER BY fact_id")).map((r) => r.fact_id)).toEqual(stored.facts.map((f) => f.id).sort());
+    expect((await q<{ id: string }>("SELECT id FROM alert_identities WHERE case_id = 'NO-FX'")).map((r) => r.id)).toEqual(stored.alerts.map((x) => x.id));
+    expect(await count("alerts", "case_id = 'NO-FX'")).toBe(0);
+    const served = await get("/cases/NO-FX/extraction");
+    expect(served.body).toMatchObject({ case_id: "NO-FX", run: { id: runRow.id, producer: "fixture" }, data: { schema: "codebridge.extraction/2", case_id: "NO-FX" } });
     // The source view opens the page of the uploaded file.
     const page = await get(`/documents/${zprava.id}/pages/1`);
     expect(page.status).toBe(200);
     expect(page.body).toMatchObject({ document_id: zprava.id, case_id: "NO-FX", n: 1, doc_title: "Dokument 1" });
     expect(page.body.text).toContain("MR pánve");
-    expect(await count("alerts", "case_id = 'NO-FX'")).toBe(1);
     expect(await q("SELECT part_id FROM document_parts WHERE document_id = ?1", zprava.id)).toEqual([{ part_id: `${zprava.id}/p0` }]);
     // The access log names counts, never the patient.
     const lines = (await q<{ what_cs: string }>("SELECT what_cs FROM access_log ORDER BY id")).map((l) => l.what_cs).join("\n");
@@ -251,12 +284,16 @@ describe("abandoned intakes", () => {
 
     await startIntake();
     for (const f of FILES) await upload("NO-FX", f);
-    await w("POST", "/cases/NO-FX/intake/complete");
-    await env.DB.prepare("INSERT INTO alert_events_v1 (org_id, alert_id, action, by_user_id, by_name) SELECT org_id, id, 'ack', 'd2p1', 'x' FROM alerts WHERE case_id = 'NO-FX'").run();
+    expect((await w("POST", "/cases/NO-FX/intake/complete")).body.data!.attached).toBe(true);
+    const alertId = (await q<{ id: string }>("SELECT id FROM alert_identities WHERE case_id = 'NO-FX'"))[0]!.id;
+    expect((await w("POST", `/cases/NO-FX/alerts/${alertId}/events`, { action: "ack", expected_state: "open" })).status).toBe(200);
+    expect(await count("alert_events", "case_id = 'NO-FX'")).toBe(1);
     await env.DB.prepare("UPDATE demo_state SET reset_in_progress = 1 WHERE org_id = 'demo-a'").run();
+    // The trigger removes the intake's run with the IDs it issued and the events on them; the seeded runs stay.
     expect(await count("extraction_runs", "seeded = 0")).toBe(0);
-    expect(await count("alert_events_v1")).toBe(0);
-    expect(await count("alerts", "case_id = 'NO-FX'")).toBe(0);
+    expect(await count("fact_ids", "case_id = 'NO-FX'")).toBe(0);
+    expect(await count("alert_identities", "case_id = 'NO-FX'")).toBe(0);
+    expect(await count("alert_events", "case_id = 'NO-FX'")).toBe(0);
     expect(await count("documents", "origin = 'upload'")).toBe(0);
     expect(await count("extraction_runs", "seeded = 1")).toBe(2);
     await env.DB.prepare("UPDATE demo_state SET reset_in_progress = 0 WHERE org_id = 'demo-a'").run();
