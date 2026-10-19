@@ -125,7 +125,6 @@ export type UploadVia = { source: "phone"; sessionId: string } | null;
 // The upload itself, after the route checked who may upload to the case and applied its rate limit: reads the body,
 // keeps a registered fixture's bytes, lists anything else, and commits the row with its access-log line.
 export async function receiveUpload(c: Context<AppEnv>, id: string, u: UploadCtx, breakGlass: string | null, via: UploadVia) {
-  const db = c.env.DB;
   const max = numVar(c.env.UPLOAD_MAX_BYTES);
   const len = c.req.header("content-length");
   if (!len || !/^\d+$/.test(len)) throw UP.lengthRequired();
@@ -136,6 +135,29 @@ export async function receiveUpload(c: Context<AppEnv>, id: string, u: UploadCtx
   if (declared > 0 && declared <= max) bytes = await readLimited(c.req.raw.body, max);
   else await c.req.raw.body?.cancel().catch(() => {});
   if (bytes && bytes.length !== declared) throw E.badRequest();
+  return storeFile(c, id, u, breakGlass, via, { bytes, declared, name, contentType: c.req.header("content-type") ?? null });
+}
+
+/** A file to store in a case: its bytes (null when too large to read), its declared size, name and media type. */
+export type IncomingFile = { bytes: Uint8Array | null; declared: number; name: string; contentType: string | null };
+
+/**
+ * Stores one file in a case exactly as an upload: the same policy, repeat and name rules, identity check, access-log
+ * line and automatic processing. Used by the upload route and by the NIS document import (routes/nis.ts), whose
+ * documents then go through the same pipeline and case merge. `extra` adds statements to the same batch (the NIS
+ * import's provenance row), so the document and what the caller records about it commit together.
+ */
+export async function storeFile(
+  c: Context<AppEnv>,
+  id: string,
+  u: UploadCtx,
+  breakGlass: string | null,
+  via: UploadVia,
+  f: IncomingFile,
+  extra?: (t: ReturnType<typeof tx>, docId: string) => void,
+) {
+  const db = c.env.DB;
+  const { bytes, declared, name } = f;
   const kind = bytes ? fileKind(bytes) : null;
   // Only a PDF can be a fixture; matching is by the bytes, so a renamed copy matches and an edited file does not.
   const sha0 = bytes && kind === "pdf" ? hex(await crypto.subtle.digest("SHA-256", bytes)) : null;
@@ -152,7 +174,7 @@ export async function receiveUpload(c: Context<AppEnv>, id: string, u: UploadCtx
   const dup = await orgQuery(c, `SELECT id FROM documents WHERE org_id = ?org AND case_id = ?1 AND origin = 'upload' AND lifecycle = 'current' AND ((?2 IS NOT NULL AND sha256 = ?2)
          OR (?2 IS NULL AND sha256 IS NULL AND file_name = ?3 AND (?4 IS NULL OR upload_session_id = ?4))) LIMIT 1`, id, sha, name, via?.sessionId ?? null)
     .first<{ id: string }>();
-  if (dup) return { document: docOut((await documentRow(db, c.var.viewer.org, dup.id))!), status: 200 as const };
+  if (dup) return { document: docOut((await documentRow(db, c.var.viewer.org, dup.id))!), status: 200 as const, docId: dup.id, repeat: true };
   // A different file under a name the case already has is kept under "name (2)", so it is stored, logged and checked
   // for the wrong patient like any other (UNIQUE(case_id, file_name)).
   const taken = new Set(
@@ -180,9 +202,10 @@ export async function receiveUpload(c: Context<AppEnv>, id: string, u: UploadCtx
     `INSERT INTO documents (org_id, id, case_id, file_name, media_type, page_count, original_r2_key, sha256, size_bytes, origin, processing,
        uploaded_by, created_at, state, fixture_id, identity, title_cs, doc_type, doc_date, source, upload_session_id)
      VALUES (?org, ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, 'upload', 'unprocessed', ?9, ?10, 'stored', ?11, ?12, ?13, ?14, ?15, ?16, ?17)`,
-    docId, id, fileName, keep ? stored.mediaType : mediaTypeOf(c.req.header("content-type")), fx?.page_count ?? 0, key, sha, declared, c.var.viewer.id, at,
+    docId, id, fileName, keep ? stored.mediaType : mediaTypeOf(f.contentType ?? undefined), fx?.page_count ?? 0, key, sha, declared, c.var.viewer.id, at,
     fx?.fixture_id ?? null, identity, fx?.title_cs ?? null, fx?.doc_type ?? null, fx?.doc_date ?? null, via?.source ?? null, via?.sessionId ?? null,
   );
+  extra?.(t, docId);
   const phone = via?.source === "phone";
   t.audit({ action: "document.upload", what_cs: sha ? uploadLine(declared, sha, phone, !!image) : listedLine(declared, phone), case_id: id, target_type: "document", target_id: docId });
   // The reviewer sees that a document of another patient reached this case; the line names no one.
@@ -198,7 +221,7 @@ export async function receiveUpload(c: Context<AppEnv>, id: string, u: UploadCtx
   // "zpracovává se"); never in demo org A (PIPELINE_ORGS), and an open intake waits for its end.
   if (key) await autoStart(c, [docId], breakGlass);
   const row = await documentRow(db, c.var.viewer.org, docId);
-  return { document: docOut(row!), status: 201 as const };
+  return { document: docOut(row!), status: 201 as const, docId, repeat: false };
 }
 
 export const documents = new Hono<AppEnv>()

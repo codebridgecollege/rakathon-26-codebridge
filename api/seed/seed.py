@@ -61,7 +61,7 @@ TABLES = [
     "slots", "sessions", "attendance", "protocols", "decisions", "task_suggestions", "tasks",
     "question_confirmations", "fact_edits", "edit_log", "extraction_runs", "alerts", "alert_events_v1", "alert_identities", "alert_events",
     "fact_ids", "fact_confirmations",
-    "documents", "document_parts", "pages", "fixture_files", "fixture_patients", "recordings", "jobs", "transcript_passes",
+    "documents", "nis_documents", "document_parts", "pages", "fixture_files", "fixture_patients", "recordings", "jobs", "transcript_passes",
     "transcript_lines", "transcript_summaries", "audio_uploads", "audio_parts", "audio_segments", "access_log", "seed_meta", "attendance_sets", "notifications", "case_access_grants", "idempotency_keys",
     "write_guards", "auth_sessions",
 ]

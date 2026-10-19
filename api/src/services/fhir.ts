@@ -96,7 +96,7 @@ export function nisConfigured(env: Env, org: string): boolean {
   }
 }
 
-export type Pull = { op: "search" | "read" | "record" | "record_changes" | "view"; resource: string };
+export type Pull = { op: "search" | "read" | "record" | "record_changes" | "view" | "document"; resource: string };
 
 // Backend-services tokens per isolate, until shortly before they expire. Keyed by org and client, never by user.
 const tokens = new Map<string, { token: string; until: number }>();
