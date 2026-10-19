@@ -877,11 +877,15 @@ def main() -> None:
     # 13. Verify counts and that every append-only trigger exists.
     counts = d1_query(t, "SELECT (SELECT COUNT(*) FROM patients) p, (SELECT COUNT(*) FROM cases) c, (SELECT COUNT(*) FROM documents) d,"
                          " (SELECT COUNT(*) FROM pages) pg, (SELECT COUNT(*) FROM alerts) a, (SELECT COUNT(*) FROM tasks) t,"
-                         " (SELECT COUNT(*) FROM fixture_files) f, (SELECT COUNT(*) FROM sqlite_master WHERE type='trigger' AND name NOT GLOB 'demo_reset_*') tr")[0]
+                         " (SELECT COUNT(*) FROM fixture_files) f")[0]
     print("seeded:", counts)
-    want_triggers = len(trigger_names((MIGRATIONS / "0002_append_only.sql").read_text()))
-    if counts["tr"] != want_triggers or counts["p"] != len(patients) or counts["pg"] != page_count_total:
-        sys.exit(f"seed: verification failed (expected {want_triggers} triggers, {len(patients)} patients, {page_count_total} pages)")
+    # The append-only triggers are checked by name, not by counting all triggers, so a later migration that adds
+    # other triggers (0013 adds the document lifecycle ones) does not fail the seed.
+    have = {r["name"] for r in d1_query(t, "SELECT name FROM sqlite_master WHERE type='trigger'")}
+    missing = sorted(set(trigger_names((MIGRATIONS / "0002_append_only.sql").read_text())) - have)
+    if missing or counts["p"] != len(patients) or counts["pg"] != page_count_total:
+        sys.exit(f"seed: verification failed (missing append-only triggers {missing}; expected {len(patients)} patients,"
+                 f" {page_count_total} pages, got {counts['p']} and {counts['pg']})")
 
 
 if __name__ == "__main__":
