@@ -3,13 +3,15 @@
 # known failure that now passes without its mark removed, fails the run.
 name: Pipeline
 
-# The evaluation reads the stored page readings (data/derived, samples/derived), the samples and the prepared cases.
+# The evaluation reads the stored page readings (data/derived, samples/derived), the samples and the prepared cases;
+# the extraction format tests (pipeline/extraction_format) read the schema and key vectors in packages/domain.
+# One workflow for the pipeline: stream B adds a job here that runs pytest inside the page reader image (#27).
 on:
   push:
     branches: [main]
-    paths: ["pipeline/**", "samples/**", "data/derived/**", "fixtures/data/**", "scripts/*.py", ".github/workflows/pipeline.yml"]
+    paths: ["pipeline/**", "samples/**", "data/derived/**", "fixtures/data/**", "scripts/*.py", "packages/domain/schema/**", "packages/domain/test/extraction-key-vectors.json", ".github/workflows/pipeline.yml"]
   pull_request:
-    paths: ["pipeline/**", "samples/**", "data/derived/**", "fixtures/data/**", "scripts/*.py", ".github/workflows/pipeline.yml"]
+    paths: ["pipeline/**", "samples/**", "data/derived/**", "fixtures/data/**", "scripts/*.py", "packages/domain/schema/**", "packages/domain/test/extraction-key-vectors.json", ".github/workflows/pipeline.yml"]
   workflow_dispatch:
 
 concurrency:
