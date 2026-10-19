@@ -169,6 +169,45 @@ describe("ExtractDocumentWorkflow", () => {
     expect(f.checks[0].unreadable.map((u: any) => u.page)).toEqual([2]);
   });
 
+  it("sends nothing without identity.json, nothing of a document marked as another patient's, and no page identity.json does not list", async () => {
+    const m = mocks(() => answer(JSON.stringify({ facts: [] })));
+    // No identity.json (the identity step failed, or a registered fixture that skips it).
+    await env.DOCS.delete(`${PREFIX}identity.json`);
+    let { wf, inst } = await run();
+    await inst.waitForStatus("complete");
+    await wf[Symbol.asyncDispose]();
+    expect(m.sentToModel).toEqual([]);
+    expect((await fragment()).checks[0].unreadable.map((u: any) => u.page)).toEqual([1, 2]);
+
+    // The registry's verdict on the document, though identity.json says the pages match.
+    await putJson(`${PREFIX}identity.json`, { result: "matches", pages: [{ n: 1, result: "matches" }, { n: 2, result: "matches" }] });
+    await env.DB.prepare("UPDATE documents SET identity = 'conflicts' WHERE id = ?1").bind(DOC).run();
+    await env.DOCS.delete(`${PREFIX}fragment-ai.json`);
+    ({ wf, inst } = await (async () => {
+      const w = await introspectWorkflow(env.EXTRACT_DOCUMENT);
+      await w.modifyAll(async (x) => x.disableRetryDelays());
+      await env.EXTRACT_DOCUMENT.create({ id: "ai-pl-1-b", params: { org: "demo-a", caseId: "NO-A", docId: DOC, runId: "pl-1" } });
+      return { wf: w, inst: (await w.get())[0]! };
+    })());
+    await inst.waitForStatus("complete");
+    await wf[Symbol.asyncDispose]();
+    expect(m.sentToModel).toEqual([]);
+
+    // A page identity.json does not list.
+    await env.DB.prepare("UPDATE documents SET identity = NULL WHERE id = ?1").bind(DOC).run();
+    await putJson(`${PREFIX}identity.json`, { result: "matches", pages: [{ n: 1, result: "matches" }] });
+    ({ wf, inst } = await (async () => {
+      const w = await introspectWorkflow(env.EXTRACT_DOCUMENT);
+      await w.modifyAll(async (x) => x.disableRetryDelays());
+      await env.EXTRACT_DOCUMENT.create({ id: "ai-pl-1-c", params: { org: "demo-a", caseId: "NO-A", docId: DOC, runId: "pl-1" } });
+      return { wf: w, inst: (await w.get())[0]! };
+    })());
+    await using _ = wf;
+    await inst.waitForStatus("complete");
+    for (const b of m.sentToModel) expect(b).not.toContain("Vrbensk");
+    expect(m.sentToModel.length).toBeGreaterThan(0);
+  });
+
   it("stops when a newer pipeline run of the document is done", async () => {
     await env.DB.prepare(
       `INSERT INTO pipeline_runs (org_id, id, document_id, case_id, state, pipeline_version, input_sha256, output_prefix, created_by, created_by_name, created_at, updated_at)
