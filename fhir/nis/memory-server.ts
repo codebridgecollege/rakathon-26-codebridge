@@ -51,6 +51,11 @@ export class MemoryFhir {
     return this.transaction(bundle);
   }
 
+  // A record the NIS no longer has: gone from reads and searches, as after a delete on a real server.
+  remove(type: string, id: string) {
+    this.store.get(type)?.delete(id);
+  }
+
   async handle(req: Request): Promise<Response> {
     const url = new URL(req.url);
     this.requests.push({ method: req.method, url: req.url, contentType: req.headers.get("content-type"), authorization: req.headers.get("authorization") });

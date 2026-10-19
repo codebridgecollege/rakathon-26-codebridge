@@ -171,10 +171,6 @@ experience.
 
 ## Decide as a team
 
-- [ ] NIS documents (issue #22): when the NIS voids a DocumentReference (entered-in-error) or it disappears, or the
-  patient is unlinked from their NIS record, should the documents taken over from it leave the case (withdrawn) or only
-  be flagged for the doctor? Today they stay current, and per-page identity checks catch another patient's file only
-  where content is kept and the pipeline runs. (`api/AGENTS.md`, "NIS documents")
 
 - [ ] How do NIS facts and document facts merge in the case view? (That a
   NIS run never says "neuvedeno v dostupné dokumentaci" is decided:

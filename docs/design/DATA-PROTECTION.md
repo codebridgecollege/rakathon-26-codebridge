@@ -352,6 +352,25 @@ OpenID Connect (OIDC, the standard login protocol); design and details in
   implemented"), only for the orgs in `PIPELINE_ORGS`. Nothing in slice
   6b-1 sends a page to a cloud model.
 
+### Documents from the NIS (issue #22)
+
+- **They are uploads.** A document the NIS import brings is stored and
+  read exactly as a file uploaded by hand (`storeFile`): the same keep
+  policy, identity check per page, access-log line and retention.
+- **A NIS document that is voided, removed or no longer the patient's is
+  deleted from the case** (Juro's decision, 2026-10-20). When the NIS voids
+  a DocumentReference (entered-in-error), when it disappears from the NIS,
+  or when the patient is unlinked from their NIS record, the app withdraws
+  the document through the doctor's withdraw path. Its file, pages, page
+  text, derived facts, the model cache of its pages and its content in
+  older runs are deleted. The access-log row gives the reason, and the
+  case shows an alert naming the document by its NIS ID only. A
+  deliberate re-link or a later import that finds the document current
+  again brings it back. A document a doctor withdrew as another patient's
+  is never taken back automatically. A document that cannot go at once
+  (being read, prepared, or the case closed) is retried at the next
+  import.
+
 ### Upload from a phone (issue #10)
 
 [`PHONE-UPLOAD.md`](PHONE-UPLOAD.md). The desktop opens an upload

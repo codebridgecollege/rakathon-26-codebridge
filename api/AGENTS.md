@@ -628,8 +628,17 @@ structured data comes next. Test server and test data: [`fhir/nis/README.md`](..
   DocumentReference that `replaces` another, or a newer version of the same one, makes the older document
   `superseded` by the new one, only when the new one's content is kept and the old one is current and not prepared.
   The import counts against `RL_UPLOAD`. Each Binary read writes an access-log row naming the DocumentReference
-  (`nis.document`). Not built: a DocumentReference later voided or removed in the NIS is not retired in the case, and
-  unlinking does not take the imported documents out (docs/agent/OPEN_QUESTIONS.md).
+  (`nis.document`).
+- **NIS documents leaving the case** (Juro's decision 2026-10-20): on a full pull that read the DocumentReferences
+  completely, a document the import brought whose DocumentReference the NIS now marks entered-in-error, or no longer
+  has, is withdrawn through `withdrawDocument` (`src/routes/documents.ts`, the doctor's withdraw path: file, pages,
+  parts, alerts, model cache and older runs' content go, the merge runs again); unlinking withdraws the patient's NIS
+  documents in every case. Access-log action `document.nis_withdraw` with the reason; `nis_documents.auto_withdrawn`
+  (migration 0019) keeps it. The case merge adds an alert per such document (`nis_document_withdrawn`, kind `missing`,
+  Fluent `alert-nis-document-withdrawn` with the NIS ID and the reason) until a later import takes it back: a document
+  the import withdrew comes back when found current again (a re-link, a re-import), unlike a doctor's own withdraw. One
+  that cannot go now (being read, prepared, the case locked) is counted in `documents.withdraw_pending` and tried again
+  at the next import.
 - **Tests.** `test/nis.test.ts` runs the connector and the routes against `fhir/nis/memory-server.ts` loaded with the
   test Bundles (no PDF bytes); `test/nis-map.test.ts` pulls S01, S02, case 10 and F01-F04 and checks the runs, with
   S01's and S02's lab values against their prepared fixtures; `test/nis-merge.test.ts` imports, refreshes and unlinks through the case merge; `test/orgs.test.ts` probes the NIS

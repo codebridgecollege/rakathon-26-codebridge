@@ -301,42 +301,65 @@ export const documents = new Hono<AppEnv>()
     // A prepared document's facts sit in the case's prepared extraction, alerts and case row, which nothing rebuilds
     // yet; taking it out now would leave another patient's facts in the brief with sources that no longer open.
     if (d.state === "prepared") throw UP.preparedNotYet();
-    const v = c.var.viewer;
-    const withdrawnAt = isoNow();
-    const t = tx(c, breakGlass).onConstraint(/a superseded or withdrawn document stays so/, () => UP.notWithdrawable());
-    t.guard("unlocked", UNLOCKED_COND, [d.case_id, d.case_id], () => UP.locked());
-    t.guard("current", "(SELECT lifecycle FROM documents WHERE org_id = ?org AND id = ?) = 'current'", [docId], () => UP.notWithdrawable());
-    // A run still reading the file would write pages after the delete; it finishes or fails first.
-    t.guard("no_run", "NOT EXISTS (SELECT 1 FROM pipeline_runs WHERE org_id = ?org AND document_id = ? AND state IN ('queued','running'))", [docId], () =>
-      new DomainError(409, "pipeline_running", "Dokument se právě zpracovává; odeberte ho po dokončení."));
-    t.guard("not_prepared", "(SELECT state FROM documents WHERE org_id = ?org AND id = ?) <> 'prepared'", [docId], () => UP.preparedNotYet());
-    t.run("DELETE FROM pages WHERE org_id = ?org AND document_id = ?1", docId);
-    t.run("DELETE FROM document_parts WHERE org_id = ?org AND document_id = ?1", docId);
-    // The document's own alerts said what its pages showed; out of the case, they no longer apply.
-    t.run("DELETE FROM document_alerts WHERE org_id = ?org AND document_id = ?1", docId);
-    // The name gets a neutral stand-in that stays unique in the case (UNIQUE(case_id, file_name)).
-    t.run(
-      `UPDATE documents SET lifecycle = 'withdrawn', lifecycle_reason_cs = ?1, lifecycle_changed_at = ?2, lifecycle_changed_by = ?3,
-         original_r2_key = NULL, sha256 = NULL, file_name = ?5, title_cs = NULL, doc_type = NULL, doc_date = NULL,
-         readability_reasons_json = NULL, fixture_id = NULL, note_cs = NULL, state_detail_cs = NULL
-       WHERE org_id = ?org AND id = ?4`,
-      WITHDRAW_REASONS[reason], withdrawnAt, v.actor?.id ?? v.id, docId, `odebraný dokument ${docId.slice(-6)}`,
-    );
-    t.audit({ action: "document.withdraw", what_cs: "odebral(a) dokument z případu jako dokument jiného pacienta (obsah smazán)", case_id: d.case_id, target_type: "document", target_id: docId });
-    await t.commit();
-    // After the commit, so a refused withdraw deletes nothing. A failed delete is done again by the cron sweep
-    // (sweepWithdrawn in scheduled.ts), so the log line's "obsah smazán" holds.
-    await deleteDocumentObjects(c.env, v.org, d.case_id, docId, withdrawnAt).catch(() => console.error(JSON.stringify({ route: "document.withdraw", r2: "delete_failed" })));
-    // The case's run is composed again without it, so its values leave the case view (current documents only).
-    // Older runs of the case lose the document's content too; then the case's run is composed again without it.
-    await scrubRunsOf(c.env, v.org, d.case_id, docId).catch(() => console.error(JSON.stringify({ route: "document.withdraw", runs: "scrub_failed" })));
-    // A merge waiting between its steps holds a composed run that may quote the document: it goes, and that merge
-    // composes again.
-    await deleteCaseDrafts(c.env, v.org, d.case_id).catch(() => console.error(JSON.stringify({ route: "document.withdraw", drafts: "delete_failed" })));
-    if (pipelineListed(c.env, v.org)) await startCaseMerge(c.env, { org: v.org, caseId: d.case_id, by: v.id, byActor: v.actor?.id ?? null });
-    const row = await documentRow(c.env.DB, v.org, docId);
+    await withdrawDocument(c, d.case_id, docId, breakGlass, {
+      reasonCs: WITHDRAW_REASONS[reason],
+      action: "document.withdraw",
+      whatCs: "odebral(a) dokument z případu jako dokument jiného pacienta (obsah smazán)",
+    });
+    const row = await documentRow(c.env.DB, c.var.viewer.org, docId);
     return answer(c, { document: docOut(row!) });
   });
+
+/**
+ * Takes a document out of the case: everything of it goes (the file, the run outputs, the page and part rows, the hash,
+ * the name and descriptive fields, its alerts, its model cache), older runs lose its content, waiting merges compose
+ * again, and the case merge runs. The doctor's withdraw of another patient's document uses it, and so does the NIS
+ * import when the NIS voids or removes a document it brought, or the patient is unlinked (routes/nis.ts). The caller
+ * has checked who may do it and that the case is unlocked; the batch checks the document is current, not prepared and
+ * not being read.
+ */
+export async function withdrawDocument(
+  c: Context<AppEnv>,
+  caseId: string,
+  docId: string,
+  breakGlass: string | null,
+  o: { reasonCs: string; action: string; whatCs: string; extra?: (t: ReturnType<typeof tx>) => void },
+): Promise<void> {
+  const v = c.var.viewer;
+  const withdrawnAt = isoNow();
+  const t = tx(c, breakGlass).onConstraint(/a superseded or withdrawn document stays so/, () => UP.notWithdrawable());
+  t.guard("unlocked", UNLOCKED_COND, [caseId, caseId], () => UP.locked());
+  t.guard("current", "(SELECT lifecycle FROM documents WHERE org_id = ?org AND id = ?) = 'current'", [docId], () => UP.notWithdrawable());
+  // A run still reading the file would write pages after the delete; it finishes or fails first.
+  t.guard("no_run", "NOT EXISTS (SELECT 1 FROM pipeline_runs WHERE org_id = ?org AND document_id = ? AND state IN ('queued','running'))", [docId], () =>
+    new DomainError(409, "pipeline_running", "Dokument se právě zpracovává; odeberte ho po dokončení."));
+  t.guard("not_prepared", "(SELECT state FROM documents WHERE org_id = ?org AND id = ?) <> 'prepared'", [docId], () => UP.preparedNotYet());
+  t.run("DELETE FROM pages WHERE org_id = ?org AND document_id = ?1", docId);
+  t.run("DELETE FROM document_parts WHERE org_id = ?org AND document_id = ?1", docId);
+  // The document's own alerts said what its pages showed; out of the case, they no longer apply.
+  t.run("DELETE FROM document_alerts WHERE org_id = ?org AND document_id = ?1", docId);
+  // The name gets a neutral stand-in that stays unique in the case (UNIQUE(case_id, file_name)).
+  t.run(
+    `UPDATE documents SET lifecycle = 'withdrawn', lifecycle_reason_cs = ?1, lifecycle_changed_at = ?2, lifecycle_changed_by = ?3,
+       original_r2_key = NULL, sha256 = NULL, file_name = ?5, title_cs = NULL, doc_type = NULL, doc_date = NULL,
+       readability_reasons_json = NULL, fixture_id = NULL, note_cs = NULL, state_detail_cs = NULL
+     WHERE org_id = ?org AND id = ?4`,
+    o.reasonCs, withdrawnAt, v.actor?.id ?? v.id, docId, `odebraný dokument ${docId.slice(-6)}`,
+  );
+  o.extra?.(t);
+  t.audit({ action: o.action, what_cs: o.whatCs, case_id: caseId, target_type: "document", target_id: docId });
+  await t.commit();
+  // After the commit, so a refused withdraw deletes nothing. A failed delete is done again by the cron sweep
+  // (sweepWithdrawn in scheduled.ts), so the log line's "obsah smazán" holds.
+  await deleteDocumentObjects(c.env, v.org, caseId, docId, withdrawnAt).catch(() => console.error(JSON.stringify({ route: o.action, r2: "delete_failed" })));
+  // The case's run is composed again without it, so its values leave the case view (current documents only).
+  // Older runs of the case lose the document's content too; then the case's run is composed again without it.
+  await scrubRunsOf(c.env, v.org, caseId, docId).catch(() => console.error(JSON.stringify({ route: o.action, runs: "scrub_failed" })));
+  // A merge waiting between its steps holds a composed run that may quote the document: it goes, and that merge
+  // composes again.
+  await deleteCaseDrafts(c.env, v.org, caseId).catch(() => console.error(JSON.stringify({ route: o.action, drafts: "delete_failed" })));
+  if (pipelineListed(c.env, v.org)) await startCaseMerge(c.env, { org: v.org, caseId, by: v.id, byActor: v.actor?.id ?? null });
+}
 
 // The document's own objects: its file (by the key its row stores) and the pipeline's outputs under its prefix, under
 // the org and, for demo org A, also under the prefix used before orgs.
