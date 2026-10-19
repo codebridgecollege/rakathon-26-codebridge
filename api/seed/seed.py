@@ -807,7 +807,10 @@ def main() -> None:
     # any other table, or an R2 object under its prefix, would put patient or case data back into it.
     b_setup = {"users", "memberships", "departments", "dept_members"}
     b_rows = sorted({t for t, r in ROWS if (r.get("org_id") or r.get("_org")) == ORG_B} - b_setup)
-    b_keys = [o["key"] for o in r2 if o["key"].startswith(org_key(ORG_B, ""))]
+    # Global prefixes (extract/, guidance/, prognosis/) are keyed by case ID, so an org B case ("B-...") counts as well.
+    b_prefix = ORGS[1]["case_id_prefix"]
+    b_rows += sorted({t for t, r in ROWS if str(r.get("case_id") or "").startswith(b_prefix)} - set(b_rows))
+    b_keys = [o["key"] for o in r2 if o["key"].startswith(org_key(ORG_B, "")) or f"/{b_prefix}" in o["key"]]
     if b_rows or b_keys:
         sys.exit(f"seed: demo org B must hold no patient or case data; found rows in {b_rows} and {len(b_keys)} R2 objects")
     # seed/reset.json: per demo org, the mutable tables' rows for reset-demo, grouped so the reset stays one small D1

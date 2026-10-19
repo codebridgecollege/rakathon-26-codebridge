@@ -39,16 +39,18 @@ deploy follows.
   never drop or rename what the deployed code reads in the same change. To remove something, first ship code that no
   longer reads it, then drop it in a later migration. A migration that cannot work with the old code (0011 rebuilds every
   org table) needs a person watching the merge (below, "Organizations").
-- **A cancelled run.** A newer push to `main` cancels the running job (the workflow's concurrency group). Cancelled
-  between the two steps, the old code runs on the new schema until the newer run deploys; a failed or cancelled deploy
-  after a successful migration is fixed by rerunning the job or by `npm run deploy`.
+- **No cancelled runs on `main`.** On other refs a newer push cancels the running workflow; on `main` it waits
+  (`cancel-in-progress` is off there), so a run is never stopped between the migration and the deploy. A deploy that
+  fails after a successful migration leaves the old code on the new schema until someone reruns the job or runs
+  `npm run deploy`.
 - **The `backend` preview never migrates.** It uses the same database as production, so a schema change must reach
   `main` first; uploading a `backend` version whose code needs a migration that `main` has not applied breaks the
   preview, and migrating from the preview would break production. Push such a change to `backend` only after it is on
   `main`.
 - **The manual fallback** stays: `npm run migrate:remote` from `api/` with your own wrangler login applies the same
-  migrations, for example when the CI step fails on the token or Cloudflare is down. Do not run it while a `main`
-  deploy job is running.
+  migrations when the CI step fails on the token, the network or Cloudflare. A migration whose SQL fails fails by hand
+  too: fix it forward with a new migration (files before it in the run stay applied), never by editing an applied file.
+  Do not run it while a `main` deploy job is running.
 
 ## Static files, headers and redirects (frontend step 13)
 
@@ -296,12 +298,12 @@ Design: `docs/design/AUTH.md` and `docs/design/DATABASE.md`, each with a section
   departments and four people (`lekar1.b`, `lekar2.b`, `koordinator.b`, `admin.b` `@codebridge.demo`) with their
   memberships. It holds no patient, case, document, alert, slot or task; that is where the team puts its own test data,
   and its demo reset returns it to the empty setup. `seed.py` stops when a seeded row of any other table, or an R2 object
-  under `org/demo-b/`, belongs to org B.
+  under `org/demo-b/` or keyed by a `B-` case ID, belongs to org B.
 - **Migrating a deployed database.** 0011 rebuilds every org table, and old and new code do not run on each other's
   schema. CI applies it on `main` right before the deploy ("Migrations in CI"), so merging this needs a person watching:
   first check that no job or pipeline run is queued or running (a step of an old Workflow that runs after the migration
-  fails for good), merge, and watch the `main` deploy job (if its migration step fails, run `npm run migrate:remote` by
-  hand and rerun the job). Once it has deployed, run `npm run seed:remote:reset` (the reset document's format changed,
+  fails for good), merge, and watch the `main` deploy job (if its migration step fails on the token or the network, run
+  `npm run migrate:remote` by hand and rerun the job; a SQL failure needs a fix, see the fallback above). Once it has deployed, run `npm run seed:remote:reset` (the reset document's format changed,
   and org B and the demo e-mails come from the seed), and redeploy `backend` from a branch with these changes. The demo
   is down in between: the old Worker runs on the new schema until the deploy finishes, and the data is wrong until the
   reseed. Rows written before keep their R2 keys

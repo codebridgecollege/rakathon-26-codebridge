@@ -16,10 +16,11 @@ on:
 
 # One run per branch or pull request; a newer push replaces the older run. main (production) and backend (a preview
 # version) deploy to different targets, so neither cancels the other, and runs that cannot deploy (pull requests,
-# manual runs on other branches) never cancel a deploy.
+# manual runs on other branches) never cancel a deploy. On main a newer run waits instead of cancelling: a cancel
+# between the D1 migration and the deploy would leave the old Worker on the new schema.
 concurrency:
   group: deploy-worker-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
   test:

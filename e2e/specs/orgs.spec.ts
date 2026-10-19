@@ -1,5 +1,6 @@
 import { test, expect } from "../fixtures";
 import { createS02 } from "../intake";
+import { resetDemo } from "../reset";
 
 // Organizations (docs/design/AUTH.md, "Keeping orgs apart"): the seed has two demo orgs. Demo org A ("Ukázková
 // nemocnice A") holds the hackathon demo. Demo org B ("Ukázková nemocnice B") holds no patient data, only its
@@ -44,7 +45,7 @@ test("an org B doctor's calendar has free slots and none of org A's bookings", a
   await app.loginAs(B_DOCTOR);
   await app.nav("Kalendář MDT").click();
   await expect(app.main.getByRole("heading", { level: 1, name: "Kalendář MDT" })).toBeVisible();
-  // Org A books 14:00 on the seminar day; in org B the same time is free.
+  // A free slot at a time org A books shows that the calendar rendered with org B's (empty) bookings.
   await expect(app.main.getByRole("button", { name: "Volný termín 14:00", exact: true }).first()).toBeVisible();
   for (const name of A_PATIENTS) await expect(app.main.getByRole("button", { name: new RegExp(`^${name}`) })).toHaveCount(0);
 });
@@ -56,7 +57,7 @@ test("org B's coordinator has no tasks, and none of org A's", async ({ app }) =>
   await expect(app.main.getByRole("heading", { level: 1, name: "Moje úlohy" })).toBeVisible();
   await app.main.getByRole("button", { name: "Všechny", exact: true }).click();
   // Rendered first, so the absence check below cannot pass on a list still loading.
-  await expect(app.main.getByText(/^(0 otevřených|Žádné otevřené úlohy\.|Zatím žádné úlohy\.)/).first()).toBeVisible();
+  await expect(app.main.getByText(/^(0 otevřených|Žádné otevřené úlohy\.)$|^Zatím žádné úlohy\./).first()).toBeVisible();
   // Org A's seeded task for its coordinator.
   await expect(app.main.getByText("doplnit pooperační MR do podkladů")).toHaveCount(0);
 });
@@ -86,7 +87,7 @@ test("org B's administrator opens Administrace with org B's access log only", as
   for (const name of A_PEOPLE) await expect(log.getByText(name, { exact: false })).toHaveCount(0);
 });
 
-test("a patient created in org B stays in org B", async ({ app }) => {
+test("a patient created in org B stays in org B, and org B's reset empties it again", async ({ app, page, baseURL }) => {
   await app.open();
   await app.loginAs(B_DOCTOR);
   await createS02(app);
@@ -99,4 +100,11 @@ test("a patient created in org B stays in org B", async ({ app }) => {
   await app.nav("Databáze pacientů").click();
   await expect(app.patientRow("Poláček Daniel")).toHaveCount(1);
   await expect(app.patientRow(S02_NAME)).toHaveCount(0);
+
+  // Org B's reset removes the patient with its uploaded documents and prepared data: org B is empty again.
+  await resetDemo(baseURL!, "b-admin");
+  await page.reload();
+  await app.loginAs(B_DOCTOR);
+  await app.nav("Databáze pacientů").click();
+  await expect(app.main.getByText("Zatím žádný pacient.", { exact: true })).toBeVisible();
 });
