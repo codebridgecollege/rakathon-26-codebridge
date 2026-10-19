@@ -217,7 +217,7 @@ const age = (p: PatientRow) => ageOf(p, DEMO_TODAY);
               <td><span class="chip" :class="STATUS_CLASS[p.status]">{{ text.statusLabel(p.status) }}</span></td>
               <td class="num nw">{{ text.date(p.submitted) }}</td>
             </tr>
-            <tr v-if="!shown.length"><td colspan="12" class="muted">{{ $t("patients-none") }}</td></tr>
+            <tr v-if="!shown.length"><td colspan="12" class="muted">{{ $t(patients.rows.length ? "patients-none" : "patients-empty") }}</td></tr>
           </tbody>
         </table>
       </div>

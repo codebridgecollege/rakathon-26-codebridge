@@ -7,8 +7,8 @@ type Health = {
   demo?: { data_epoch?: number; reset_enabled?: boolean };
 };
 
-async function health(base: string): Promise<Health> {
-  const r = await fetch(new URL("/api/health", base));
+async function health(base: string, demoUser?: string): Promise<Health> {
+  const r = await fetch(new URL("/api/health", base), demoUser ? { headers: { "X-Demo-User": demoUser } } : undefined);
   if (!r.ok) throw new Error(`GET /api/health answered ${r.status}`);
   return (await r.json()) as Health;
 }
@@ -41,14 +41,18 @@ export async function checkServer(base: string): Promise<void> {
   }
 }
 
-// Restores the seeded demo: every test starts from the same data whatever the previous one wrote.
-export async function resetDemo(base: string): Promise<void> {
-  const h = await health(base);
+// The administrators of the two demo orgs (api/seed/seed.py). A reset acts in the org of the user who asks for it.
+export const ORG_ADMINS = ["admin", "b-admin"] as const;
+
+// Restores one demo org's seeded data: every test starts from the same data whatever the previous one wrote. The
+// health check names the same user, so the epoch it answers is that org's own.
+export async function resetDemo(base: string, admin: (typeof ORG_ADMINS)[number] = "admin"): Promise<void> {
+  const h = await health(base, admin);
   const r = await fetch(new URL("/api/admin/reset-demo", base), {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "X-Demo-User": "admin",
+      "X-Demo-User": admin,
       Origin: new URL(base).origin,
       "X-Data-Epoch": String(h.demo?.data_epoch ?? 0),
     },

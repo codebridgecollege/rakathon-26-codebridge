@@ -85,6 +85,8 @@ patients-rc-missing = Birth number not stated in the available documentation
 patients-age-computed = calculated from the date of birth
 patients-book = Schedule
 patients-none = No patient matches the filter.
+# An org with no patients at all (demo org B after its reset), where no filter is to blame.
+patients-empty = No patients yet.
 patients-shown-all = Showing all { $n }
 patients-shown-range = Showing { $from }-{ $to } of { $total }
 patients-paged = Paginate

@@ -44,8 +44,9 @@ Clinical data is stored only in D1 and R2. Nothing clinical is stored in
 the browser (beyond the page shown) or in logs.
 
 **The schema** is built by numbered migrations in `api/migrations/`
-(`wrangler d1 migrations apply`), and `api/seed/seed.py` loads the
-synthetic demo data.
+(`wrangler d1 migrations apply`; CI applies them to the deployed
+database on `main` right before the deploy, `api/AGENTS.md`), and
+`api/seed/seed.py` loads the synthetic demo data.
 
 **R2 prefixes:**
 
@@ -206,8 +207,11 @@ shared tables" above holds, with these details:
 - **Case numbers:** `cases.case_no` counts per org (`NO-100`, ...);
   `cases.id` is `orgs.case_id_prefix` plus the number (no prefix in demo
   org A, `B-` in org B), so it is unique across orgs.
-- **R2:** the seed writes org A's objects under `org/demo-a/` and org B's
-  under `org/demo-b/` (guideline and prognosis data stay global, keyed by
+- **Demo org B is empty:** the seed writes only its org row, demo state,
+  departments, people and memberships, and no R2 object; `seed.py` stops
+  otherwise. Its reset section restores just those.
+- **R2:** the seed writes org A's objects under `org/demo-a/`; org B's own
+  data goes under `org/demo-b/` once someone creates it (guideline and prognosis data stay global, keyed by
   the case ID, which is unique across orgs); new uploads, audio, pipeline outputs, extraction
   outputs, summary caches and audit archives go under the org. Rows
   written before keep their keys (`docs/`, `pages/`, `uploads/`, `audio/`,
