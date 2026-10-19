@@ -15,6 +15,8 @@ const one = async <T = Record<string, any>>(sql: string, ...args: unknown[]) => 
 const PNG_B64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=";
 const DOC = "up-test-1";
 const SHA = "b".repeat(64);
+// The bodies /v1/inspect received, read inside the mock (a body cannot be read later from the test's context).
+const inspected: string[] = [];
 // Page text that must never reach a step result: the patient's name and a lab line.
 const TEXT1 = `${FAKE_NAME}, nar. 1.1.1964\nOdběr: 10.3.2026 07:25\nB_HB: 108 g/l [120 ... 160]\nS_CEA: 14,8 µg/l [0 ... 5]`;
 
@@ -23,7 +25,8 @@ function kit({ inspect = () => Response.json({ page_count: 2, encrypted: false, 
     const u = new URL(req.url);
     expect(u.host).toBe("page-reader.test");
     if (u.pathname === "/healthz") return Response.json({ ok: true, versions: { page_reader: "0.1.0", pymupdf: "1.24.10", tesseract: "5.3.0", ces_model: "sha256:abc" } });
-    if (u.pathname === "/v1/inspect") return inspect();
+    if (u.pathname === "/v1/inspect") return (inspected.push(await req.clone().text()), inspect());
+    if (u.pathname === "/v1/convert") return Response.json({ pdf_b64: btoa("%PDF-1.4 converted"), width: 3000, height: 4000 });
     if (u.pathname === "/v1/pages")
       return Response.json({
         pages: [1, 2].map((n) => ({ n, size: [10, 10], png_b64: PNG_B64, words: [{ t: "B_HB:", c: 95, b: [1, 1, 2, 1] }], tess_text: n === 1 ? TEXT1 : "x", layer_text: n === 1 ? TEXT1 : "" })),
@@ -99,6 +102,22 @@ async function runOnce(f = kit()) {
 }
 
 describe("ProcessDocumentWorkflow", () => {
+  it("converts a photo to a PDF first and reads every page from that PDF, leaving the uploaded photo as it was", async () => {
+    await env.DB.prepare("UPDATE documents SET media_type = 'image/jpeg', original_r2_key = 'uploads/NO-A/up-test-1.jpg' WHERE id = ?1").bind(DOC).run();
+    await env.DOCS.put("uploads/NO-A/up-test-1.jpg", "\xff\xd8\xff photo");
+    const { wf, inst, runId, calls } = await runOnce();
+    await using _ = wf;
+    await inst.waitForStatus("complete");
+    const run = await one("SELECT state, output_prefix, stages_json FROM pipeline_runs WHERE id = ?1", runId);
+    expect(run.state).toBe("done");
+    expect(JSON.parse(run.stages_json)[0]).toMatchObject({ stage: "convert", converted: true });
+    expect(await (await env.DOCS.get(`${run.output_prefix}converted.pdf`))!.text()).toBe("%PDF-1.4 converted");
+    expect(await (await env.DOCS.get("uploads/NO-A/up-test-1.jpg"))!.text()).toBe("\xff\xd8\xff photo");
+    const convert = calls.find((c) => new URL(c.url).pathname === "/v1/convert")!;
+    expect(convert.headers.get("content-type")).toBe("image/jpeg");
+    expect(inspected.at(-1)).toBe("%PDF-1.4 converted");
+  });
+
   it("reads the pages, judges readability, parses the labs, compares them with the prepared data and keeps text out of step results", async () => {
     const { wf, inst, runId } = await runOnce();
     await using _ = wf;
@@ -106,7 +125,7 @@ describe("ProcessDocumentWorkflow", () => {
     const run = await one("SELECT * FROM pipeline_runs WHERE id = ?1", runId);
     expect(run).toMatchObject({ state: "done", page_count: 2, readability: "poor", verify_count: 1, lab_points: 2, lab_unclear: 1, diff_same: 1, diff_verify: 1, diff_silent: 0, diff_missing: 0 });
     expect(JSON.parse(run.container_versions_json)).toMatchObject({ pymupdf: "1.24.10", tesseract: "5.3.0" });
-    expect(JSON.parse(run.stages_json).map((s: { stage: string }) => s.stage)).toEqual(["inspect", "pages 1-2", "analyze", "labs", "compare"]);
+    expect(JSON.parse(run.stages_json).map((s: { stage: string }) => s.stage)).toEqual(["convert", "inspect", "pages 1-2", "analyze", "labs", "compare"]);
     const doc = await one("SELECT state, processing, page_count, readability FROM documents WHERE id = ?1", DOC);
     expect(doc).toEqual({ state: "processed", processing: "processed", page_count: 2, readability: "poor" });
     // The source view opens Tesseract's reading of the uploaded page, with its marks.

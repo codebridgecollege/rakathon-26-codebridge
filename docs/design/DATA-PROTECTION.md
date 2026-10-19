@@ -314,7 +314,12 @@ OpenID Connect (OIDC, the standard login protocol); design and details in
   (the name is display data only and never enters the access log; it
   travels in the `X-File-Name` header, so check that Workers Logs do not
   record request headers, as for the Access header in `api/AGENTS.md`).
-  Other policies are for team staging and local work only.
+  Other policies are for team staging and local work only, and
+  `UPLOAD_STORE_ORGS` keeps content per org: the team's switch for demo
+  org B, empty on the deployed host, since anyone with a demo account can
+  act in org B. A kept photo is stored as uploaded, EXIF (including a
+  location) and all; the pipeline reads only the PDF it converts it to,
+  which drops that metadata (step-6.md, "Keeping uploads per org").
 - **Stored uploads** live in the EU bucket under `uploads/<case>/`, with
   a `documents` row (name, size, hash). The access log records actor,
   case, document ID, size and the first 12 hex characters of the hash

@@ -1,7 +1,8 @@
 // Uploads (step 6, slice a-1): one file per request to a case, the case's document list and removing an unprocessed
 // upload. Every file is accepted. In the shared demo (UPLOAD_POLICY=fixtures_only) only a registered synthetic fixture's
 // bytes go to R2; the body is read into memory and hashed first, and any other file is only listed (name, size,
-// uploader, time) with no content, hash or identity result kept. Design: step-6.md "As implemented".
+// uploader, time) with no content, hash or identity result kept. An org in UPLOAD_STORE_ORGS (the team's switch for demo
+// org B) keeps unknown PDFs and JPEG/PNG photos too. Design: step-6.md "As implemented".
 import { Hono, type Context } from "hono";
 import type { AppEnv } from "../types";
 import { E, numVar } from "../http/errors";
@@ -13,6 +14,7 @@ import {
   UP,
   compareIdentity,
   fileKind,
+  imageType,
   fileNameOf,
   keepsContent,
   listedLine,
@@ -124,9 +126,10 @@ export async function receiveUpload(c: Context<AppEnv>, id: string, u: UploadCtx
   // Only a PDF can be a fixture; matching is by the bytes, so a renamed copy matches and an edited file does not.
   const sha0 = bytes && kind === "pdf" ? hex(await crypto.subtle.digest("SHA-256", bytes)) : null;
   const fx0 = sha0 ? await fixtureByHash(db, sha0) : null;
-  const keep = keepsContent(uploadPolicy(c.env.UPLOAD_POLICY), kind, fx0);
+  const keep = keepsContent(uploadPolicy(c.env.UPLOAD_POLICY, c.var.viewer.org, c.env.UPLOAD_STORE_ORGS), kind, fx0);
+  const image = kind === "image" && bytes ? imageType(bytes) : null;
   // Nothing derived from a file that is not kept stays on the server, not even its hash.
-  const sha = keep ? sha0 : null;
+  const sha = keep ? (sha0 ?? (bytes ? hex(await crypto.subtle.digest("SHA-256", bytes)) : null)) : null;
   const fx = keep ? fx0 : null;
   // A repeat upload (the same stored bytes, or a listed file of the same name) answers with the document already
   // there, so the page never shows a refusal for it. Seeded documents are not repeats: they are the case's own record.
@@ -148,11 +151,14 @@ export async function receiveUpload(c: Context<AppEnv>, id: string, u: UploadCtx
 
   const identity: Identity | null = fx && fx.fx_full_name ? compareIdentity({ full_name: fx.fx_full_name, birth_number: fx.fx_birth_number }, u) : fx ? "cannot_verify" : null;
   const docId = `up-${newId()}`;
-  const key = keep ? orgKey(c.var.viewer.org, `uploads/${id}/${docId}.pdf`) : null;
+  // A kept image (a phone photo of a page) is stored as it came, under its own type; the pipeline converts it to a PDF
+  // in its own output, so the original stays unchanged.
+  const stored = image ?? { mediaType: "application/pdf", ext: ".pdf" };
+  const key = keep ? orgKey(c.var.viewer.org, `uploads/${id}/${docId}${stored.ext}`) : null;
   const at = isoNow();
   // R2 first, so D1 never points at a missing object; the batch below deletes nothing if it fails, so the object is
   // removed here (and the reset clears uploads/ in any case).
-  if (key && bytes) await c.env.DOCS.put(key, bytes, { httpMetadata: { contentType: "application/pdf" }, sha256: sha! });
+  if (key && bytes) await c.env.DOCS.put(key, bytes, { httpMetadata: { contentType: stored.mediaType }, sha256: sha! });
   const t = tx(c, breakGlass).onConstraint(/UNIQUE constraint failed: documents\.org_id, documents\.case_id|documents_case_sha/, () => UP.duplicate());
   t.guard("unlocked", UNLOCKED_COND, [id, id], () => UP.locked());
   t.guard("count", "(SELECT COUNT(*) FROM documents WHERE org_id = ?org AND case_id = ?) < ?", [id, MAX_DOCUMENTS_PER_CASE], () => UP.tooMany());
@@ -160,11 +166,11 @@ export async function receiveUpload(c: Context<AppEnv>, id: string, u: UploadCtx
     `INSERT INTO documents (org_id, id, case_id, file_name, media_type, page_count, original_r2_key, sha256, size_bytes, origin, processing,
        uploaded_by, created_at, state, fixture_id, identity, title_cs, doc_type, doc_date, source, upload_session_id)
      VALUES (?org, ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, 'upload', 'unprocessed', ?9, ?10, 'stored', ?11, ?12, ?13, ?14, ?15, ?16, ?17)`,
-    docId, id, fileName, keep ? "application/pdf" : mediaTypeOf(c.req.header("content-type")), fx?.page_count ?? 0, key, sha, declared, c.var.viewer.id, at,
+    docId, id, fileName, keep ? stored.mediaType : mediaTypeOf(c.req.header("content-type")), fx?.page_count ?? 0, key, sha, declared, c.var.viewer.id, at,
     fx?.fixture_id ?? null, identity, fx?.title_cs ?? null, fx?.doc_type ?? null, fx?.doc_date ?? null, via?.source ?? null, via?.sessionId ?? null,
   );
   const phone = via?.source === "phone";
-  t.audit({ action: "document.upload", what_cs: sha ? uploadLine(declared, sha, phone) : listedLine(declared, phone), case_id: id, target_type: "document", target_id: docId });
+  t.audit({ action: "document.upload", what_cs: sha ? uploadLine(declared, sha, phone, !!image) : listedLine(declared, phone), case_id: id, target_type: "document", target_id: docId });
   // The reviewer sees that a document of another patient reached this case; the line names no one.
   if (identity === "conflicts")
     t.audit({ action: "document.identity_conflict", what_cs: "nahraný dokument patří podle registru ukázkových dat jinému pacientovi", case_id: id, target_type: "document", target_id: docId });

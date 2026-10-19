@@ -30,7 +30,7 @@ const OCR = { retries: { limit: 3, delay: "10 seconds", backoff: "exponential" }
 const iso = () => new Date().toISOString();
 
 type RunRow = { id: string; document_id: string; case_id: string; output_prefix: string; input_sha256: string; created_by: string; created_by_actor: string | null; state: string };
-type DocRow = { id: string; case_id: string; original_r2_key: string | null; sha256: string | null; state: string | null };
+type DocRow = { id: string; case_id: string; original_r2_key: string | null; sha256: string | null; state: string | null; media_type: string };
 
 async function runOf(env: Env, org: string, runId: string) {
   const r = await orgStmt(env.DB, org, "SELECT id, document_id, case_id, output_prefix, input_sha256, created_by, created_by_actor, state FROM pipeline_runs WHERE org_id = ?org AND id = ?1", runId).first<RunRow>();
@@ -38,13 +38,32 @@ async function runOf(env: Env, org: string, runId: string) {
   return r;
 }
 
-// The PDF the run was started on; a changed or missing file stops the run instead of reading something else.
-async function pdfOf(env: Env, org: string, run: RunRow): Promise<ArrayBuffer> {
-  const d = await orgStmt(env.DB, org, "SELECT id, case_id, original_r2_key, sha256, state FROM documents WHERE org_id = ?org AND id = ?1", run.document_id).first<DocRow>();
+// The file the run was started on, exactly as uploaded; a changed or missing file stops the run instead of reading
+// something else.
+async function docOf(env: Env, org: string, run: RunRow): Promise<DocRow & { original_r2_key: string }> {
+  const d = await orgStmt(env.DB, org, "SELECT id, case_id, original_r2_key, sha256, state, media_type FROM documents WHERE org_id = ?org AND id = ?1", run.document_id).first<DocRow>();
   if (!d?.original_r2_key || d.sha256 !== run.input_sha256) throw new NonRetryableError("document_changed");
+  return d as DocRow & { original_r2_key: string };
+}
+
+async function originalOf(env: Env, org: string, run: RunRow): Promise<{ bytes: ArrayBuffer; mediaType: string }> {
+  const d = await docOf(env, org, run);
   const o = await env.DOCS.get(d.original_r2_key);
   if (!o) throw new NonRetryableError("document_missing");
-  return o.arrayBuffer();
+  return { bytes: await o.arrayBuffer(), mediaType: d.media_type };
+}
+
+const isImage = (mediaType: string) => mediaType.startsWith("image/");
+const convertedKey = (run: RunRow) => `${run.output_prefix}converted.pdf`;
+
+// The PDF the pages are read from: the upload itself, or for a photo the PDF the convert step made from it (the row
+// says which, so a photo's original is not downloaded again for every batch).
+async function pdfOf(env: Env, org: string, run: RunRow): Promise<ArrayBuffer> {
+  const d = await docOf(env, org, run);
+  if (!isImage(d.media_type)) return (await originalOf(env, org, run)).bytes;
+  const c = await env.DOCS.get(convertedKey(run));
+  if (!c) throw new NonRetryableError("output_missing");
+  return c.arrayBuffer();
 }
 
 const getJson = async <T>(env: Env, key: string): Promise<T> => {
@@ -55,7 +74,7 @@ const getJson = async <T>(env: Env, key: string): Promise<T> => {
 const putJson = (env: Env, key: string, v: unknown) => env.DOCS.put(key, JSON.stringify(v), { httpMetadata: { contentType: "application/json" } });
 
 // A page reader refusal of the file itself (not a PDF, encrypted, too many pages) will not change on a retry.
-const FINAL = new Set(["not_pdf", "encrypted", "too_many_pages", "unreadable_pdf", "too_large", "bad_range"]);
+const FINAL = new Set(["not_pdf", "encrypted", "too_many_pages", "unreadable_pdf", "too_large", "bad_range", "not_image", "image_too_large"]);
 async function kit<T>(f: () => Promise<T>): Promise<T> {
   try {
     return await f();
@@ -86,6 +105,19 @@ export class ProcessDocumentWorkflow extends WorkflowEntrypoint<Env, ProcessDocu
     };
     const keep = <T extends Record<string, unknown>>(r: T) => (stages.push(r), r);
     try {
+      // A photo of a page becomes a one-page PDF first (the page reader straightens it by its EXIF orientation and drops
+      // its metadata, location included); every later step reads that PDF. The upload itself stays unchanged.
+      keep(await step.do("convert", OCR, () =>
+        timed("convert", async () => {
+          const run = await runOf(this.env, p.org, p.runId);
+          const o = await originalOf(this.env, p.org, run);
+          if (!isImage(o.mediaType)) return { converted: false };
+          await stage(this.env, p.org, p.runId, "inspect", "zpracovává se (fáze: převod fotografie na PDF)");
+          const r = await kit(() => pageReader.convert(this.env, poolInstance(p.caseId), o.bytes, o.mediaType));
+          await this.env.DOCS.put(convertedKey(run), b64(r.pdf_b64), { httpMetadata: { contentType: "application/pdf" } });
+          return { converted: true };
+        }),
+      ));
       const inspect = keep(await step.do("inspect", OCR, () =>
         timed("inspect", async () => {
           await stage(this.env, p.org, p.runId, "inspect", "zpracovává se (fáze: kontrola souboru)");

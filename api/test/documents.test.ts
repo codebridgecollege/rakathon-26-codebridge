@@ -4,6 +4,7 @@
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { env } from "cloudflare:workers";
 import { call, testEnv } from "./helpers";
+import { fileKind, imageType, uploadPolicy } from "../src/domain/documents";
 import { FAKE_NAME, loadFixture } from "./data";
 
 type Body = { data?: Record<string, any>; data_epoch?: number; state?: Record<string, any>; error?: { code: string; message_cs: string } };
@@ -188,6 +189,44 @@ describe("other policies", () => {
     const word = await upload("NO-A", enc.encode("not a pdf"), "y.docx", "d2p1", {}, testEnv({ UPLOAD_POLICY: "store_unprocessed" }));
     expect(word.body.data!.document.content_stored).toBe(false);
     expect((await q<{ sha256: string }>("SELECT sha256 FROM documents WHERE origin = 'upload'"))[0]!.sha256).toBe(await hex(UNKNOWN));
+  });
+
+  it("UPLOAD_STORE_ORGS keeps content for a listed org only (never demo org A), a photo under its own type, an office file listed only", async () => {
+    const JPEG = new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 1, 2, 3, 4]);
+    const on = testEnv({ UPLOAD_STORE_ORGS: "demo-b" });
+    // Demo org A stays listed only, as the demo always showed it, even when the list names it by mistake.
+    const a = await upload("NO-A", UNKNOWN, "x.pdf", "d2p1", {}, testEnv({ UPLOAD_STORE_ORGS: "demo-b, demo-a" }));
+    expect(a.body.data!.document).toMatchObject({ content_stored: false, sha256: null });
+    const aPhoto = await upload("NO-A", JPEG, "image.jpg", "d2p1", {}, testEnv({ UPLOAD_STORE_ORGS: "demo-a" }));
+    expect(aPhoto.body.data!.document).toMatchObject({ content_stored: false, sha256: null });
+    // Demo org B, listed: the photo is stored under its own type; the Word file is not.
+    const photo = await upload("B-NO-A", JPEG, "image.jpg", "b-doc", {}, on);
+    expect(photo.status).toBe(201);
+    expect(photo.body.data!.document).toMatchObject({ content_stored: true, state: "stored", fixture: false, identity: null });
+    const row = (await q<{ media_type: string; original_r2_key: string; sha256: string }>("SELECT media_type, original_r2_key, sha256 FROM documents WHERE case_id = 'B-NO-A' AND file_name = 'image.jpg'"))[0]!;
+    expect(row.media_type).toBe("image/jpeg");
+    expect(row.original_r2_key).toMatch(/^org\/demo-b\/uploads\/B-NO-A\/up-[^/]+\.jpg$/);
+    expect(row.sha256).toBe(await hex(JPEG));
+    expect((await env.DOCS.head(row.original_r2_key))?.httpMetadata?.contentType).toBe("image/jpeg");
+    // The same photo again is the document already there.
+    const again = await upload("B-NO-A", JPEG, "other-name.jpg", "b-doc", {}, on);
+    expect([again.status, again.body.data!.document.id]).toEqual([200, photo.body.data!.document.id]);
+    const word = await upload("B-NO-A", enc.encode("PK\u0003\u0004 docx"), "z.docx", "b-doc", {}, on);
+    expect(word.body.data!.document.content_stored).toBe(false);
+    expect((await log()).map((l) => l.what_cs)).toContain(`nahrál(a) dokument k případu (obrázek, 1 kB, otisk ${(await hex(JPEG)).slice(0, 12)})`);
+  });
+
+  it("tells a photo from a PDF by its bytes, and never switches demo org A on", () => {
+    const b = (...x: number[]) => new Uint8Array(x);
+    expect(fileKind(b(0xff, 0xd8, 0xff, 0xdb))).toBe("image");
+    expect(fileKind(b(0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0))).toBe("image");
+    expect(fileKind(enc.encode("%PDF-1.7\n"))).toBe("pdf");
+    expect(fileKind(enc.encode("junk %PDF-1.4"))).toBe("pdf");
+    expect(fileKind(b(0xff, 0xd8))).toBe("other");
+    expect(fileKind(enc.encode("PK\u0003\u0004"))).toBe("zip");
+    expect(imageType(b(0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a))).toEqual({ mediaType: "image/png", ext: ".png" });
+    expect(uploadPolicy("fixtures_only", "demo-a", "demo-a")).toBe("fixtures_only");
+    expect(uploadPolicy("fixtures_only", "demo-b", " demo-b ")).toBe("store_unprocessed");
   });
 });
 

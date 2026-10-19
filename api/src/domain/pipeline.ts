@@ -21,6 +21,8 @@ const ERROR_CS: Record<string, string> = {
   document_missing: "soubor dokumentu chybí",
   pipeline_off: "zpracování není na tomto serveru zapnuté",
   page_reader_unreachable: "služba pro čtení stránek neodpovídá",
+  not_image: "fotografii nelze přečíst (podporované jsou JPEG a PNG)",
+  image_too_large: "fotografie má příliš mnoho pixelů",
 };
 export const pipelineErrorCs = (code: string) => `zpracování selhalo: ${ERROR_CS[code] ?? "služba pro čtení stránek odpověděla chybou"}`;
 
