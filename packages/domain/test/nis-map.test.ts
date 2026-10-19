@@ -168,7 +168,7 @@ describe("requests, reports, treatment", () => {
     expect(run.checks.find((c) => c.looks_for === "request")?.result).toBe("found");
     // The NIS never answers for the documents: no "nothing_found", and every kind has a check.
     expect(run.checks.find((c) => c.looks_for === "histology")?.result).toBe("not_run");
-    expect(run.checks).toHaveLength(25);
+    expect(run.checks).toHaveLength(26);
     expect(run.checks.some((c) => c.result === "nothing_found")).toBe(false);
   });
 
@@ -196,7 +196,6 @@ describe("requests, reports, treatment", () => {
       { resourceType: "Procedure", id: "p1", meta, status: "completed", code: { text: "Nízká přední resekce rekta" }, performedDateTime: "2026-08-11" },
       { resourceType: "Procedure", id: "p2", meta, status: "in-progress", code: { text: "Radioterapie" }, performedPeriod: { start: "2026-10-01" } },
       { resourceType: "MedicationStatement", id: "m3", meta, status: "completed", medicationCodeableConcept: { text: "Kapecitabin" }, effectivePeriod: { start: "2026-04-07", end: "2026-05-18" } },
-      { resourceType: "Encounter", id: "e1", meta, status: "finished" },
       { resourceType: "Patient", id: "pt", meta },
     ]);
     expect(m.drafts.map((d) => [d.kind, d.status, d.negated])).toEqual([
@@ -209,7 +208,28 @@ describe("requests, reports, treatment", () => {
     expect(m.drafts[3]!.value).toMatchObject({ text: "probíhá (dle NIS)" });
     expect(m.drafts[4]!.value).toMatchObject({ text: "ukončeno (dle NIS dokončeno), do 2026-05-18" });
     expect(m.drafts[0]!.value).toMatchObject({ drug: "Enoxaparin", dosing: "80 mg s.c. á 12 hod.", strength: null });
-    expect(m.skipped.map((s) => s.reason)).toEqual(["no_fact_kind", "not_clinical"]);
+    expect(m.skipped.map((s) => s.reason)).toEqual(["not_clinical"]);
+  });
+
+  it("maps an Encounter to a visit: type from its class, the rest as written, no visit type guessed", () => {
+    const enc = (id: string, extra: Record<string, unknown>) => ({ resourceType: "Encounter", id, meta, status: "finished", ...extra });
+    const m = mapNisResources(SYS, [
+      enc("a", { class: { system: "http://terminology.hl7.org/CodeSystem/v3-ActCode", code: "AMB" }, type: [{ text: "Ambulantní vyšetření kontrolní" }], serviceProvider: { reference: "Organization/x", display: "Onkologická ambulance" }, period: { start: "2026-10-06", end: "2026-10-06" } }),
+      enc("b", { class: { code: "IMP" }, reasonCode: [{ text: "Plánovaná operace" }], period: { start: "2026-08-10T08:00:00+02:00" } }),
+      enc("c", { class: { code: "VR" }, status: "planned" }),
+      enc("d", { class: { code: "AMB" }, status: "cancelled" }),
+    ]);
+    expect(m.drafts.map((d) => [d.kind, d.status, d.value, d.date.sort])).toEqual([
+      ["visit", "done", { type: "outpatient", type_as_written: "Ambulantní vyšetření kontrolní", department: "Onkologická ambulance", reason: null }, "2026-10-06"],
+      ["visit", "done", { type: "admission", type_as_written: null, department: null, reason: "Plánovaná operace" }, "2026-08-10T08:00"],
+      ["visit", "planned", { type: "other", type_as_written: null, department: null, reason: null }, null],
+    ]);
+    expect(m.drafts[2]!.not_stated).toEqual(["date"]);
+    expect(m.skipped).toEqual([{ resource: "Encounter/d", reason: "void_status" }]);
+    const { run, validation } = nisRun({ caseId: "X", system: SYS, resources: [enc("a", { class: { code: "AMB" }, period: { start: "2026-10-06" } })], runId: "r", createdAt: "2026-10-19T10:00:00Z", previous: null, supersedes: null });
+    expect(validation.issues).toEqual([]);
+    expect(run.facts[0]!.key).toBe("visit|outpatient|2026-10-06");
+    expect(run.checks.find((c) => c.looks_for === "visit")?.result).toBe("found");
   });
 
   it("keeps fact IDs across a refresh and gives a changed value a new source version", () => {

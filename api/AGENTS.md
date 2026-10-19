@@ -478,7 +478,7 @@ structured data comes next. Test server and test data: [`fhir/nis/README.md`](..
   because the app never changes a seeded patient row; the trigger `demo_reset_nis_links` removes an org's links on
   reset-demo.
 - **Record pull** (phase 2, `patientRecord`): the clinical record of a linked patient, one GET search per resource type
-  (`Condition`, `Observation`, `Procedure`, `MedicationStatement`, `ServiceRequest`, `DiagnosticReport`,
+  (`Condition`, `Observation`, `Procedure`, `MedicationStatement`, `ServiceRequest`, `DiagnosticReport`, `Encounter`,
   `DocumentReference`) by the NIS patient ID, with `_lastUpdated=ge<instant>` (the newest `meta.lastUpdated` seen) to
   ask what changed; up to 40 pages and 2000 records per type, a truncated type is reported, 120 s per pull. Records
   that are not about this patient are dropped and counted (`foreign`), duplicates once. One access-log row per pull

@@ -158,20 +158,19 @@ experience.
 
 ## Decide as a team
 
-- [ ] extraction/2 has no fact kind for a visit (FHIR `Encounter`), so the
-  NIS import drops visits. Add a `visit` kind, or leave visits to the
-  documents? (`docs/design/EXTRACTION-FORMAT.md`, "The NIS producer")
-- [ ] A NIS `MedicationStatement` maps to `medication`; telling an oncology
-  line (`systemic_therapy`, with its line number) from other drugs needs a
-  drug classification (ATC) the NIS may send. Map by ATC L01/L02 when it
-  is there?
-- [ ] The NIS import marks a diagnosis `primary` only when exactly one
-  primary cancer code is present. With two cancers, should the doctor pick,
-  or does FNO's NIS mark the one under discussion?
-- [ ] How do NIS facts and document facts merge in the case view, and may
-  "neuvedeno v dostupné dokumentaci" ever rest on the NIS alone? Today a
-  NIS run says only "found" or "not checked" (EXTRACTION-FORMAT.md, "The NIS
-  producer").
+- [ ] **Needs a clinical expert:** a NIS `MedicationStatement` maps to
+  `medication`; telling an oncology line (`systemic_therapy`, with its line
+  number) from other drugs needs a drug classification (ATC) the NIS may
+  send. Map by ATC L01/L02 when it is there? Until decided, every NIS drug
+  stays `medication` (Juro, 2026-10-19).
+- [ ] **Needs a clinical expert:** the NIS import marks a diagnosis
+  `primary` only when exactly one primary cancer code is present. With two
+  cancers, should the doctor pick, or does FNO's NIS mark the one under
+  discussion? Until decided, no diagnosis is marked when there are two
+  (Juro, 2026-10-19).
+- [ ] How do NIS facts and document facts merge in the case view? (That a
+  NIS run never says "neuvedeno v dostupné dokumentaci" is decided:
+  EXTRACTION-FORMAT.md, "Decisions".)
 - [ ] Refresh: how often to ask the NIS for changes, and how often to pull
   the whole record (the only way a deleted NIS record drops out).
 - [ ] **Which tech stack and which LLM deployment do we use?**

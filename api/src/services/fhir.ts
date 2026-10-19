@@ -118,7 +118,7 @@ function aboutPatient(r: R, nisPatientId: string, base: string): boolean {
   return local === `Patient/${nisPatientId}`;
 }
 // What a patient record pull reads: the types the mapping turns into facts or documents.
-export const RECORD_TYPES = ["Condition", "Observation", "Procedure", "MedicationStatement", "ServiceRequest", "DiagnosticReport", "DocumentReference"] as const;
+export const RECORD_TYPES = ["Condition", "Observation", "Procedure", "MedicationStatement", "ServiceRequest", "DiagnosticReport", "Encounter", "DocumentReference"] as const;
 // A logical id as FHIR allows it, but not "." or "..", which would turn a read into a path to something else.
 const FHIR_ID = /^(?!\.+$)[A-Za-z0-9\-.]{1,64}$/;
 
@@ -141,7 +141,7 @@ export class NisClient {
     return this.cfg.base_url;
   }
 
-  // ms: the budget of this operation; a record pull reads up to seven types with their pages, so it gets more.
+  // ms: the budget of this operation; a record pull reads up to eight types with their pages, so it gets more.
   private begin(ms = this.retry.deadlineMs ?? 30000) {
     this.until = Date.now() + ms;
   }

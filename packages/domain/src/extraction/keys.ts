@@ -153,6 +153,8 @@ export function buildFactKey(fact: DraftFact | Fact, sources: ReadonlyMap<string
       return join(fact.kind, fact.value.body, dateSeg(d));
     case "contraindication":
       return join(fact.kind, normText(fact.value.what), dateSeg(d));
+    case "visit":
+      return join(fact.kind, fact.value.type, dateSeg(d));
     case "interval":
       return join(fact.kind, fact.value.from_fact, fact.value.to_fact);
     case "comorbidity":

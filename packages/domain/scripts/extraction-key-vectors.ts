@@ -62,6 +62,7 @@ const facts: DraftFact[] = [
   { ...frame, kind: "request", status: "requested", date: undated, value: { what: "Projednání nálezu MR mozku na NCH semináři", request_kind: "consultation", result_fact: null } },
   { ...frame, kind: "decision", date: day("1.10.2026", "2026-10-01"), value: { body: "mdt", body_as_written: "MDT uro", text: "Pokračovat v léčbě" } },
   { ...frame, kind: "plan", status: "planned", date: { as_written: "za 3 měsíce", precision: null, sort: null }, value: { what: "Kontrolní CT", when_as_written: "za 3 měsíce" } },
+  { ...frame, kind: "visit", status: "done", origin: "nis", sources: ["src-n"], date: day("6.10.2026", "2026-10-06"), value: { type: "outpatient", type_as_written: "Ambulantní vyšetření kontrolní", department: "Onkologická ambulance", reason: null } },
   { ...frame, kind: "interval", origin: "assistant", certainty: "inferred", sources: [], based_on: ["f-1", "f-2"], date: undated, value: { from_fact: "f-1", to_fact: "f-2", days: 38, length_as_computed: "38 dní", from_precision: "day", to_precision: "day" } },
 ];
 

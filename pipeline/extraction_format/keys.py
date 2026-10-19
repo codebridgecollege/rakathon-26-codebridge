@@ -189,6 +189,8 @@ def build_fact_key(fact: Mapping[str, Any], sources: Mapping[str, Mapping[str, A
         return _join(kind, v["body"], date_seg(d))
     if kind == "contraindication":
         return _join(kind, norm_text(v["what"]), date_seg(d))
+    if kind == "visit":
+        return _join(kind, v["type"], date_seg(d))
     if kind == "interval":
         return _join(kind, v["from_fact"], v["to_fact"])
     if kind == "comorbidity":

@@ -259,6 +259,7 @@ changes between runs, their link breaks.
 | `comorbidity` | code or normalised text, date |
 | `exam_finding` | region, normalised text, date |
 | `symptom`, `adverse_event` | normalised text, date |
+| `visit` | visit type, date |
 | `interval` | the IDs of its two ends |
 
 Normalised text is NFC, without invisible format characters (soft hyphen, zero-width space), lower case, with whitespace collapsed and trailing punctuation dropped; diacritics stay.
@@ -295,6 +296,7 @@ JSON Schema defines them exactly).
 | `request` | what was requested (exam, consultation, MDT), sent date, `result_fact` pointing to the result if one exists | 1 (NCH seminar, no result) |
 | `decision` | body (MDT, KOC committee, consultation), decision text, date | 3 |
 | `plan` | one planned item: what, when | about 6 (today in 2 bundled lines) |
+| `visit` | one visit or hospital stay: type (`outpatient`, `admission`, `consultation`, `emergency`, `other`), its name as written, department as written, reason as written | 2, plus 1 planned |
 | `interval` | from fact, to fact, length as computed, both dates' precision (always `origin: assistant`, shown as a fact, never a verdict) | (computed) |
 
 **One fact per statement.** The bundled items of today split up:
@@ -426,7 +428,7 @@ confirmation is stored in D1 (`question_confirmations`), as today.
 |---|---|
 | Diagnosis headline | `diagnosis` + `histology` + `stage` facts, the stage shown with its kind and date ("pT2a pN1 M0, patologické stadium při diagnóze, 2.6.2022") |
 | Oncology lines | `procedure`, `systemic_therapy`, `radiotherapy`, `imaging`, `metastasis`, `decision`, `plan` facts, by date, with their `note` |
-| Timeline | every dated fact, by `date.sort`; undated under "Bez data"; `plan` and `request` facts marked as planned or requested |
+| Timeline | every dated fact, by `date.sort`; undated under "Bez data"; `plan` and `request` facts marked as planned or requested; `visit` facts as the visits and stays the other facts happened at |
 | Labs | `lab_result` facts grouped by code into series with `value_numeric`. Every case can show a trend, and a single value shows as a table row. |
 | Anamnesis | `comorbidity`, `medication`, `contraindication`, `allergy`, `risk_factor`, `family_history` facts, each section with its check |
 | Current state | `vital_sign`, `performance_status`, `exam_finding`, `symptom` facts. No more matching of Czech label strings. |
@@ -592,6 +594,7 @@ only as far as the record states them.
 | `ServiceRequest` | `request` | `active` is `requested` (a sent request is not a done exam); `completed` is `done`; `unknown` is `documented`; `result_fact` only when a report of this NIS names the request in `basedOn` (a versioned or absolute reference counts; when several reports do, the final one with the lowest ID) |
 | `DiagnosticReport`, category RAD | `imaging` | modality from the start of the report's name, the rest is the region; the conclusion is the finding |
 | `DiagnosticReport`, category PAT | `histology` | the report's name as the specimen, the conclusion as the result |
+| `Encounter` | `visit` | `type` from the class (`AMB` outpatient; `IMP`, `ACUTE`, `NONAC`, `SS` admission; `EMER` emergency; anything else `other`; `consultation` is not a class, so the NIS never gives it); the encounter's type text as `type_as_written`, `serviceProvider.display` as the department, the first reason as written; `finished` is `done`, `planned` is `planned`; `cancelled` is not mapped |
 | `DocumentReference` | none | listed for the document import (status, `relatesTo` `replaces`, the attachment), which goes through the upload path |
 
 **One rule of ours: `primary`.** The diagnosis the MDT discusses is marked
@@ -601,8 +604,7 @@ several, no diagnosis is marked. This is the assistant's rule on the code,
 not something the NIS states.
 
 **Not mapped**, and reported by the mapping with a reason: a lab report's
-grouping (its Observations are mapped one by one), an `Encounter`
-(extraction/2 has no fact kind for a visit), other Observations, a report
+grouping (its Observations are mapped one by one), other Observations, a report
 or condition without text, and identity and insurance (`Patient`,
 `Coverage`), which stay in D1. A record marked `entered-in-error` or
 `cancelled` is left out; a `preliminary` one is mapped with certainty
@@ -679,5 +681,7 @@ same documents against these reference cases.
 3. **Disease status vocabulary** (`suspected`, `confirmed_histology`, `progression`, `stable`, `remission`, `suspected_recurrence`, `recurrence`): accepted for now. **It needs review by a clinical expert** before real patients.
 4. **Facts from a page that shows another patient are not shown** anywhere in the case view (quarantine). Only the identity alert says that such a page exists, until a doctor resolves it.
 5. **A fact a doctor confirmed that is missing from a later run is shown** with "potvrzeno dříve, v novém zpracování chybí" (confirmed earlier, missing from the new processing). It is never dropped silently.
+6. **Visits are facts** (kind `visit`, key: kind, type, date), so a visit or stay from the NIS or a document goes on the timeline.
+7. **A NIS run says "found" or "not checked", never "neuvedeno v dostupné dokumentaci"** (`nothing_found`): the NIS answers for its structured records, not for the documents ("The NIS producer", "Checks").
 
 The format is approved for implementation (2026-10-19).

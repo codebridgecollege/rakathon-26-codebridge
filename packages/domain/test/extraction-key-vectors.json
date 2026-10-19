@@ -7728,6 +7728,71 @@
   {
    "fact": {
     "subject": "patient",
+    "status": "done",
+    "negated": false,
+    "not_stated": [],
+    "origin": "nis",
+    "certainty": "clear",
+    "codes": [],
+    "note": null,
+    "quarantined": false,
+    "sources": [
+     "src-n"
+    ],
+    "kind": "visit",
+    "date": {
+     "as_written": "6.10.2026",
+     "precision": "day",
+     "sort": "2026-10-06"
+    },
+    "value": {
+     "type": "outpatient",
+     "type_as_written": "Ambulantní vyšetření kontrolní",
+     "department": "Onkologická ambulance",
+     "reason": null
+    }
+   },
+   "sources": [
+    {
+     "id": "src-a",
+     "type": "document",
+     "document_id": "10_pacient",
+     "part": "10_pacient/p2",
+     "page": 3,
+     "quote": "S_HSCRP: 9,5 mg/1 [O ... 5]",
+     "quote_text": "tesseract",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
+     "id": "src-b",
+     "type": "document",
+     "document_id": "10_lab",
+     "part": null,
+     "page": 1,
+     "quote": "Kreatinin 107",
+     "quote_text": "pdf_text",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
+     "id": "src-n",
+     "type": "nis",
+     "system": "https://nis.fno.example/fhir",
+     "resource": "Observation/8812",
+     "version": "3",
+     "last_updated": null
+    }
+   ],
+   "key": "visit|outpatient|2026-10-06"
+  },
+  {
+   "fact": {
+    "subject": "patient",
     "status": "documented",
     "negated": false,
     "not_stated": [],
