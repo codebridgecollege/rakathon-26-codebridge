@@ -6,7 +6,8 @@ import { env } from "cloudflare:workers";
 import { applyD1Migrations, reset } from "cloudflare:test";
 import { validateRun, type ExtractionRun } from "@codebridge/domain/extraction/index";
 import type { Viewer } from "@codebridge/domain/access";
-import { loadFixture, RUN_A2, RUN_A2_ID } from "./data";
+import { loadFixture, resetDoc, RUN_A2, RUN_A2_ID } from "./data";
+import { call } from "./helpers";
 import { Tx } from "../src/store/write";
 import { matchInputs, prepareRun, RunInvalid, storeRun, type DraftRun } from "../src/store/runs";
 
@@ -37,7 +38,7 @@ function draftOfA(extra: { symptom?: string } = {}): DraftRun {
 
 async function storeNew(run: ExtractionRun) {
   const t = tx();
-  const stored = await storeRun(t, env.DOCS, run);
+  const stored = await storeRun(t, { db: env.DB, docs: env.DOCS }, run);
   await t.commit();
   return stored;
 }
@@ -53,11 +54,11 @@ describe("the test fixture", () => {
 describe("storeRun", () => {
   it("refuses an invalid run and writes nothing", async () => {
     const bad = { ...RUN_A2, run: { ...RUN_A2.run, id: "run-bad", supersedes: RUN_A2_ID }, facts: RUN_A2.facts.map((f) => (f.id === "f-5a0b11" ? { ...f, key: "performance_status|other|undated" } : f)) };
-    const err = await storeRun(tx(), env.DOCS, bad).catch((e) => e);
+    const err = await storeRun(tx(), { db: env.DB, docs: env.DOCS }, bad).catch((e) => e);
     expect(err).toBeInstanceOf(RunInvalid);
     expect((err as RunInvalid).issues).toEqual([{ code: "key_mismatch", path: "/facts/3/key" }]);
     // The run ID becomes an R2 key segment.
-    const slash = await storeRun(tx(), env.DOCS, { ...RUN_A2, run: { ...RUN_A2.run, id: "../x" } }).catch((e) => e);
+    const slash = await storeRun(tx(), { db: env.DB, docs: env.DOCS }, { ...RUN_A2, run: { ...RUN_A2.run, id: "../x" } }).catch((e) => e);
     expect(slash).toBeInstanceOf(RunInvalid);
     expect(await q("SELECT id FROM extraction_runs WHERE id IN ('run-bad', '../x')")).toEqual([]);
     expect((await env.DOCS.list({ prefix: "org/demo-a/extract/NO-A/" })).objects.map((o) => o.key)).toEqual([`org/demo-a/extract/NO-A/${RUN_A2_ID}.json`]);
@@ -76,7 +77,7 @@ describe("storeRun", () => {
     expect(run.run.supersedes).toBe(RUN_A2_ID);
 
     const stored = await storeNew(run);
-    expect(stored.r2_key).toBe("org/demo-a/extract/NO-A/run-pipeline-1.json");
+    expect(stored.r2_key).toBe("org/demo-a/runs/NO-A/run-pipeline-1.json");
     expect(await (await env.DOCS.get(stored.r2_key))!.json()).toEqual(run);
     expect(await q("SELECT id, producer, seeded, schema, supersedes, is_current, kind FROM extraction_runs WHERE case_id = 'NO-A' ORDER BY created_at")).toEqual([
       { id: "run-A", producer: "fixture", seeded: 1, schema: "codebridge.extraction/1", supersedes: null, is_current: 0, kind: "seed_fixture" },
@@ -108,6 +109,23 @@ describe("storeRun", () => {
     moved.facts = moved.facts.map((f) => (f.kind === "lab_result" ? { ...f, key: f.key.replace("doc:A_pacient", "doc:b-A_pacient") } : f));
     expect(validateRun(moved).issues).toEqual([]);
     await expect(storeNew(moved)).rejects.toMatchObject({ code: "run_stale" });
+  });
+});
+
+describe("storeRun refusals before anything is written", () => {
+  it("never writes over a stored run's object, and refuses a case that is not this org's", async () => {
+    const inputs = await matchInputs(env.DB, env.DOCS, "demo-a", "NO-A");
+    const first = prepareRun(inputs, draftOfA()).run;
+    const stored = await storeNew(first);
+    const before = await (await env.DOCS.get(stored.r2_key))!.text();
+    // The same run ID again (now superseding the stored run): the object stays as it was.
+    const again = { ...first, run: { ...first.run, supersedes: first.run.id } };
+    await expect(storeNew(again)).rejects.toMatchObject({ code: "run_stale" });
+    expect(await (await env.DOCS.get(stored.r2_key))!.text()).toBe(before);
+    // Org B's case, stored by org A: refused before R2 is touched.
+    const b = { ...first, case_id: "B-NO-A", run: { ...first.run, id: "run-x" } };
+    await expect(storeRun(tx(), { db: env.DB, docs: env.DOCS }, b)).rejects.toMatchObject({ code: "case_not_found" });
+    expect((await env.DOCS.list({ prefix: "org/demo-a/runs/B-NO-A/" })).objects).toEqual([]);
   });
 });
 
@@ -170,8 +188,27 @@ describe("the demo reset (trigger demo_reset_uploads, migration 0015)", () => {
     // A seeded /1 run's alert events stay too.
     expect((await q("SELECT alert_id FROM alert_events_v1")).map((r) => r.alert_id)).toEqual(["al-1"]);
     expect(await q("PRAGMA foreign_key_check")).toEqual([]);
-    // The R2 object is the reset route's (R2 prefixes) or the next seed's; D1 no longer points at it.
+    // The run object under runs/ is removed by the reset route (R2_TRANSIENT, tested in "the reset route" below).
     await env.DB.prepare("UPDATE demo_state SET reset_in_progress = 0 WHERE org_id = 'demo-a'").run();
+  });
+
+  it("through the reset route: removes the unseeded run's object and rows and the doctor's confirmation on it", async () => {
+    await env.DOCS.put("seed/reset.json", JSON.stringify(resetDoc()));
+    const { run } = prepareRun(await matchInputs(env.DB, env.DOCS, "demo-a", "NO-A"), draftOfA({ symptom: "bolest hlavy" }));
+    const stored = await storeNew(run);
+    const fresh = run.facts.at(-1)!.id;
+    const headers = { "content-type": "application/json", "x-demo-user": "d2p1", "x-data-epoch": "1" };
+    const post = (path: string, body: unknown, user = "d2p1") =>
+      call(`/api${path}`, { method: "POST", headers: { ...headers, "x-demo-user": user }, body: JSON.stringify(body) });
+    expect((await post(`/cases/NO-A/facts/${fresh}/confirmations`, { action: "confirm", expected_state: "unconfirmed" })).status).toBe(200);
+    expect((await post(`/cases/NO-A/alerts/${run.alerts[1]!.id}/events`, { action: "ack", expected_state: "open" })).status).toBe(200);
+    expect((await post("/admin/reset-demo", { confirm: "OBNOVIT" }, "admin")).status).toBe(200);
+    expect(await env.DOCS.get(stored.r2_key)).toBeNull();
+    expect(await env.DOCS.get(`org/demo-a/extract/NO-A/${RUN_A2_ID}.json`)).not.toBeNull();
+    expect(await q("SELECT id FROM extraction_runs WHERE org_id = 'demo-a' AND is_current = 1")).toEqual([{ id: RUN_A2_ID }]);
+    for (const t of ["fact_confirmations", "alert_events"]) expect(await q(`SELECT * FROM ${t}`), t).toEqual([]);
+    expect(await q("SELECT fact_id FROM fact_ids WHERE fact_id = ?1", fresh)).toEqual([]);
+    expect(await q("PRAGMA foreign_key_check")).toEqual([]);
   });
 
   it("leaves another org's unseeded runs alone", async () => {
@@ -183,7 +220,7 @@ describe("the demo reset (trigger demo_reset_uploads, migration 0015)", () => {
       run: { ...run.run, id: "run-b-1", producer: "pipeline", supersedes: "run-BA" },
       facts: run.facts.map((f) => (f.kind === "lab_result" ? { ...f, key: f.key.replace("doc:A_pacient", "doc:b-A_pacient") } : f)),
     };
-    await storeRun(t, env.DOCS, b);
+    await storeRun(t, { db: env.DB, docs: env.DOCS }, b);
     await t.commit();
     await env.DB.prepare("UPDATE demo_state SET reset_in_progress = 1 WHERE org_id = 'demo-a'").run();
     expect(await q("SELECT id, is_current FROM extraction_runs WHERE org_id = 'demo-b' ORDER BY id")).toEqual([

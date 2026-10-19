@@ -91,7 +91,8 @@ The tables fall into groups (the full list is in `api/migrations/`):
 ## Extraction runs
 
 An extraction run is one extraction of one case in the format `codebridge.extraction/2` (`docs/design/EXTRACTION-FORMAT.md`).
-The run itself is a JSON object in R2 (`org/<org>/extract/<case>/<run id>.json`), written before its D1 row, so D1 never
+The run itself is a JSON object in R2 (`org/<org>/extract/<case>/<run id>.json` for a seeded run, `org/<org>/runs/...` for
+any other, which the demo reset deletes), written before its D1 row, so D1 never
 points at a missing object. Migration `0015_extraction_v2.sql` set up the tables below; `api/src/store/runs.ts` writes
 them (`storeRun` validates the run first and refuses an invalid one; `matchInputs` and `prepareRun` give a producer what
 the matcher needs).
@@ -105,7 +106,7 @@ the matcher needs).
 | `fact_confirmations` | A doctor confirms one fact of the current run, or withdraws the confirmation. `value_sha256` is the SHA-256 of what the fact said (`confirmedContent` in `packages/domain/src/confirmations.ts`), `run_id` the run the doctor saw. When a later run gives the same ID another value, the fact no longer counts as confirmed. |
 | `fact_edits.fact_id` | The fact an edit under an `f:<fact id>` key belongs to. Edits under the old positional keys stay (the view lists them as orphaned); a new text under such a key is refused, a revert is allowed. |
 | `document_parts.part_id` | The stable part ID runs cite: `<document id>/p<ordinal>`. |
-| `alerts`, `alert_events_v1` | The alerts of `/1` runs (keyed by a hash of their Czech text) and their acknowledgements. Kept read-only: nothing new writes them and the view does not show them. |
+| `alerts`, `alert_events_v1` | The alerts of `/1` runs (keyed by a hash of their Czech text) and their acknowledgements. Only the intake attach, which still stores `/1` runs, writes `alerts`; `alert_events_v1` is read-only, and the view shows neither. |
 
 A current run whose `schema` is `/1` is served as not processed (`GET /cases/:id/extraction` answers `data: null`) until
 the case is reseeded or processed again.
@@ -249,9 +250,9 @@ shared tables" above holds, with these details:
   `extract/`), which stay readable; demo org A's reset also clears the old
   `uploads/`, `audio/`, `jobs/` and `cache/summary/` prefixes. R2 lifecycle
   rules match a prefix, so each org needs its own rules (`api/AGENTS.md`).
-- **The demo reset** is one D1 batch for one org, 45 statements for org A
+- **The demo reset** is one D1 batch for one org, 47 statements for org A
   with today's seed: the org's rows are deleted with `WHERE org_id`, the
-  triggers delete that org's uploaded rows and make its superseded or
+  triggers delete that org's uploaded rows and unseeded runs and make its superseded or
   withdrawn seeded documents current again, and the append-only triggers let
   a row go only while its own org's reset runs.
 

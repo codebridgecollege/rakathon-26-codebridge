@@ -33,6 +33,12 @@ const decisionsBody = (o: Record<string, unknown> = {}) => ({
   attendance_expected: ["MUDr. Svobodová"],
   ...o,
 });
+// NO-A back on its old /1 run (current), as before the case is reseeded.
+const useRunA = () =>
+  env.DB.batch([
+    env.DB.prepare(`UPDATE extraction_runs SET is_current = 0 WHERE id = '${RUN_A2_ID}'`),
+    env.DB.prepare("UPDATE extraction_runs SET is_current = 1 WHERE id = 'run-A'"),
+  ]);
 // Every access-log line written in this file, checked for patient text at the end.
 const seenLog: string[] = [];
 
@@ -265,8 +271,10 @@ describe("question, edits, alerts", () => {
     expect((await put("f-00000000")).body.error?.code).toBe("fact_not_found");
     await env.DOCS.put(RUN_A2_KEY, JSON.stringify({ ...RUN_A2, facts: RUN_A2.facts.map((f) => (f.id === "f-5a0b11" ? { ...f, quarantined: true } : f)) }));
     expect((await put("f-5a0b11")).body.error?.code).toBe("fact_quarantined");
-    // A case whose current run is /1 has no fact IDs at all.
+    // A case without a run, and a case whose current run is /1, have no fact IDs at all.
     expect((await w("PUT", `/cases/NO-B/edits/${encodeURIComponent("f:f-5a0b11")}`, { text: "x", orig: "y", expected_edit_id: null }, "d1p1")).body.error?.code).toBe("fact_not_found");
+    await useRunA();
+    expect((await put("f-8d41c2")).body.error?.code).toBe("fact_not_found");
     expect(await count("fact_edits")).toBe(0);
   });
 
@@ -302,8 +310,10 @@ describe("question, edits, alerts", () => {
   it("answers 404 for an alert that is not in the current run, a position key, and an old /1 alert", async () => {
     for (const k of ["al-00000000", "0", "gap%3A0", "al-1", "al-77205D20"])
       expect((await w("POST", `/cases/NO-A/alerts/${k}/events`, { action: "ack", expected_state: "open" })).body.error?.code, k).toBe("alert_not_found");
-    // Org B's case has a /1 run only.
+    // NO-B has no run; NO-A with its /1 run current has no alert IDs.
     expect((await w("POST", `/cases/NO-B/alerts/${RUN_A2.alerts[0]!.id}/events`, { action: "ack", expected_state: "open" }, "d1p1")).body.error?.code).toBe("alert_not_found");
+    await useRunA();
+    expect((await w("POST", `/cases/NO-A/alerts/${RUN_A2.alerts[0]!.id}/events`, { action: "ack", expected_state: "open" })).body.error?.code).toBe("alert_not_found");
     expect(await count("alert_events")).toBe(0);
   });
 
@@ -367,6 +377,8 @@ describe("question, edits, alerts", () => {
     expect((await w("POST", "/cases/NO-A/facts/f-00000000/confirmations", { action: "confirm", expected_state: "unconfirmed" })).body.error?.code).toBe("fact_not_found");
     expect((await w("POST", "/cases/NO-A/facts/x/confirmations", { action: "confirm", expected_state: "unconfirmed" })).body.error?.code).toBe("fact_not_found");
     expect((await w("POST", "/cases/NO-B/facts/f-5a0b11/confirmations", { action: "confirm", expected_state: "unconfirmed" }, "d1p1")).body.error?.code).toBe("fact_not_found");
+    await useRunA();
+    expect((await w("POST", "/cases/NO-A/facts/f-8d41c2/confirmations", { action: "confirm", expected_state: "unconfirmed" })).body.error?.code).toBe("fact_not_found");
     expect(await count("fact_confirmations")).toBe(0);
   });
 });

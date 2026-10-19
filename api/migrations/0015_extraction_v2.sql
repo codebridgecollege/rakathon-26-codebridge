@@ -6,7 +6,7 @@
 --   replaced. `kind` stays for the Worker that is still deployed during the migration window (api/AGENTS.md), as a
 --   column computed from `producer`; a later migration drops it.
 -- - alert_identities: every alert ID a case has had (rule and subject, from the run). alert_events now point at it, by
---   case, so an acknowledgement stays with the alert across runs (an /2 alert ID is derived from rule and subject).
+--   case, so an acknowledgement stays with the alert across runs (a /2 alert ID is derived from rule and subject).
 -- - alert_events_v1: the acknowledgements of the /1 alerts (table `alerts`), kept read-only and no longer shown.
 -- - fact_ids: every fact ID ever issued for a case, so a new run never hands a retired ID to a different fact.
 -- - fact_confirmations: a doctor confirms (or withdraws a confirmation of) one fact of the current run; append-only.
@@ -60,7 +60,7 @@ CREATE TABLE extraction_runs (
   FOREIGN KEY (org_id, supersedes) REFERENCES extraction_runs(org_id, id)
 );
 
--- The /1 alerts, unchanged (the deployed Worker reads them during the window; new code never writes them).
+-- The /1 alerts, unchanged (the deployed Worker reads them during the window; only the intake attach still writes them).
 CREATE TABLE alerts (
   id            TEXT PRIMARY KEY,
   org_id        TEXT NOT NULL REFERENCES orgs(id),

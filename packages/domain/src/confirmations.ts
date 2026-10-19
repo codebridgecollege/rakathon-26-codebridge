@@ -36,10 +36,23 @@ export function stableJson(value: unknown): string {
 }
 
 /**
- * What a confirmation confirms: the fact's frame (kind, subject, negated, status, date) and its value. Sources,
+ * What a confirmation confirms: the fact's frame (kind, subject, negated, status, date, origin), its value, its codes
+ * (a diagnosis recoded from C20 to C18.7 is another statement) and the fields the documents leave open. Sources,
  * certainty and notes are left out: a re-read page that quotes the same value differently is still the same statement.
- * The server stores the SHA-256 of this text as value_sha256.
+ * Codes and open fields are sorted, so their order does not count. The server stores the SHA-256 of this text as
+ * value_sha256.
  */
-export function confirmedContent(fact: Pick<Fact, "kind" | "subject" | "negated" | "status" | "date" | "value">): string {
-  return stableJson({ kind: fact.kind, subject: fact.subject, negated: fact.negated, status: fact.status, date: fact.date, value: fact.value });
+export function confirmedContent(fact: Pick<Fact, "kind" | "subject" | "negated" | "status" | "date" | "value" | "origin" | "codes" | "not_stated">): string {
+  const codes = fact.codes.map((c) => stableJson({ system: c.system, code: c.code, assigned_by: c.assigned_by })).sort();
+  return stableJson({
+    kind: fact.kind,
+    subject: fact.subject,
+    negated: fact.negated,
+    status: fact.status,
+    date: fact.date,
+    origin: fact.origin,
+    value: fact.value,
+    codes,
+    not_stated: [...fact.not_stated].sort(),
+  });
 }

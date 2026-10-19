@@ -39,8 +39,9 @@ deploy follows.
   on the new schema. A migration therefore has to work with the Worker already deployed: add tables and columns, and
   never drop or rename what the deployed code reads in the same change. To remove something, first ship code that no
   longer reads it, then drop it in a later migration. A migration that cannot work with the old code (0011 rebuilds every
-  org table; 0015 rebuilds the extraction runs and alert events, so the old Worker's intake attach and alert events
-  fail until the deploy ends) needs a person watching the merge (below, "Organizations").
+  org table; 0015 rebuilds the extraction runs and alert events, so until the deploy ends the old Worker's intake attach
+  and alert events fail, its alert history shows empty, and `seed.py` from before 0015 fails on the computed `kind`)
+  needs a person watching the merge (below, "Organizations").
 - **No cancelled runs on `main`.** On other refs a newer push cancels the running workflow; on `main` it waits
   (`cancel-in-progress` is off there), so a run is never stopped between the migration and the deploy. A deploy that
   fails after a successful migration leaves the old code on the new schema until someone reruns the job or runs
@@ -143,10 +144,12 @@ Design and the exact contract: `docs/research/backend-steps/step-4.md`, section 
   archives its audit to R2 `org/<org>/audit-archive/<time>.jsonl`, then one batch empties the org's mutable tables
   (`WHERE org_id = ...`) and reinserts the org's section of R2 `seed/reset.json` (written by `seed.py`; identity is not
   in it, seeded patient rows stay in D1), bumps that org's `demo_state.data_epoch`, aborts its open audio uploads and
-  deletes R2 `org/<org>/uploads/`, `audio/`, `jobs/`, `cache/summary/` (for demo org A also the same prefixes without
-  `org/`, used before orgs). People (`users`) are never deleted: the reset upserts the seeded people and memberships
-  and ends any other membership of the org. Row ids are not reset (`sqlite_sequence` is shared by all orgs). 45
-  statements for org A with today's seed (step 6 rows go through a trigger, see below).
+  deletes R2 `org/<org>/uploads/`, `audio/`, `jobs/`, `cache/summary/`, `cache/model/`, `runs/` (for demo org A also
+  the same prefixes without `org/`, used before orgs). People (`users`) are never deleted: the reset upserts the seeded
+  people and memberships and ends any other membership of the org. Row ids are not reset (`sqlite_sequence` is shared
+  by all orgs). Step 6 rows and every extraction run the seed did not write (`seeded = 0`, with the fact and alert IDs
+  it issued first) go through the trigger `demo_reset_uploads`, which also makes the seeded run of such a case current
+  again (`docs/design/DATABASE.md`, "Extraction runs"); the runs' R2 objects are under `runs/`.
 - Append-only triggers allow DELETE of a row only while its own org's `demo_state.reset_in_progress = 1` (migration
   0011), so a reset of one org cannot delete another org's history. A pilot database must not have that exception.
 - Deviation assessments have no write route (user decision 2026-10-17).

@@ -15,6 +15,7 @@ import {
   type MatchResult,
 } from "@codebridge/domain/extraction/index";
 import { D } from "@codebridge/domain/errors";
+import { E } from "../http/errors";
 import type { Tx } from "./write";
 import { orgKey, orgStmt } from "./sql";
 import { sha256Hex } from "./work";
@@ -48,7 +49,7 @@ export async function currentRun(db: D1Database, docs: R2Bucket, org: string, ca
   const row = await currentRunRow(db, org, caseId);
   if (!row || row.schema !== EXTRACTION_SCHEMA) return { row, data: null };
   const obj = await docs.get(row.r2_key);
-  if (!obj) throw new Error("run_object_missing");
+  if (!obj) throw E.dataUnavailable();
   return { row, data: await obj.json<ExtractionRun>() };
 }
 
@@ -147,19 +148,32 @@ export type StoreRunOptions = {
  * object, and queues the D1 rows: the previous current run stops being current, the new row, its fact IDs and alert
  * IDs. Returns the R2 key; the caller deletes it when its batch fails, as for any object it wrote before the batch.
  *
+ * Seeded runs go under extract/, every other run under runs/, which the demo reset empties with the rows the reset
+ * trigger removes (src/routes/demo.ts R2_TRANSIENT).
+ *
  * Guards in the batch: the run supersedes exactly the run that is current when the batch commits (another run stored
  * in between would make the carried-over IDs stale), and every document the run read belongs to this case in this org.
  */
-export async function storeRun(t: Tx, docs: R2Bucket, run: ExtractionRun, opts: StoreRunOptions = {}): Promise<{ r2_key: string; sha256: string }> {
+export async function storeRun(
+  t: Tx,
+  store: { db: D1Database; docs: R2Bucket },
+  run: ExtractionRun,
+  opts: StoreRunOptions = {},
+): Promise<{ r2_key: string; sha256: string }> {
   const v = validateRun(run);
   if (!v.ok) throw new RunInvalid(v.issues.map((i) => ({ code: i.code, path: i.path })));
-  // The run ID becomes part of the R2 key, so it may not name another folder.
+  // The run ID and the case ID become part of the R2 key, so neither may name another folder, and the case must be
+  // this org's before anything is written.
   if (!RUN_ID.test(run.run.id)) throw new RunInvalid([{ code: "schema", path: "/run/id" }]);
   const caseId = run.case_id;
+  if (!(await orgStmt(store.db, t.org, "SELECT 1 AS ok FROM cases WHERE org_id = ?org AND id = ?1", caseId).first())) throw D.caseNotFound();
   const body = JSON.stringify(run);
   const sha = await sha256Hex(body);
-  const key = orgKey(t.org, `extract/${caseId}/${run.run.id}.json`);
-  await docs.put(key, body, { httpMetadata: { contentType: "application/json" } });
+  const key = orgKey(t.org, `${opts.seeded ? "extract" : "runs"}/${caseId}/${run.run.id}.json`);
+  // Never over another run's object: a run ID that is taken would otherwise replace a stored run, and the caller's
+  // cleanup after the refused batch would then delete it.
+  const put = await store.docs.put(key, body, { httpMetadata: { contentType: "application/json" }, onlyIf: { etagDoesNotMatch: "*" } });
+  if (!put) throw D.runStale();
 
   const docIds = [...new Set(run.documents.map((d) => d.document_id))];
   t.guard("run_previous", "(SELECT id FROM extraction_runs WHERE org_id = ?org AND case_id = ? AND is_current = 1) IS ?", [caseId, run.run.supersedes], () => D.runStale());

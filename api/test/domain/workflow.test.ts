@@ -81,13 +81,23 @@ describe("fact confirmations", () => {
     status: "documented" as const,
     date: { as_written: null, precision: null, sort: null },
     value: { scale: "ECOG", value_as_written: "1", value_numeric: 1 },
+    origin: "document" as const,
+    codes: [
+      { system: "mkn-10", code: "C20", assigned_by: "source" as const },
+      { system: "snomed-ct", code: "1", assigned_by: "assistant" as const, display: "x" },
+    ],
+    not_stated: ["date", "edition"],
   };
 
-  it("hashes the frame and value the same whatever the key order, and differently when the value or frame changes", () => {
-    const reordered = { value: { value_numeric: 1, value_as_written: "1", scale: "ECOG" }, date: { sort: null, precision: null, as_written: null }, status: "documented" as const, negated: false, subject: "patient" as const, kind: "performance_status" as const };
+  it("hashes frame, value, codes and open fields the same whatever their order, and differently when any changes", () => {
+    const reordered = { value: { value_numeric: 1, value_as_written: "1", scale: "ECOG" }, date: { sort: null, precision: null, as_written: null }, status: "documented" as const, negated: false, subject: "patient" as const, kind: "performance_status" as const,
+      origin: "document" as const, codes: [...fact.codes].reverse().map((c) => ({ ...c, display: null })), not_stated: ["edition", "date"] };
     expect(confirmedContent(reordered)).toBe(confirmedContent(fact));
     expect(confirmedContent({ ...fact, value: { ...fact.value, value_as_written: "2", value_numeric: 2 } })).not.toBe(confirmedContent(fact));
     expect(confirmedContent({ ...fact, negated: true })).not.toBe(confirmedContent(fact));
+    expect(confirmedContent({ ...fact, origin: "assistant" })).not.toBe(confirmedContent(fact));
+    expect(confirmedContent({ ...fact, codes: [{ system: "mkn-10", code: "C18.7", assigned_by: "source" }, fact.codes[1]!] })).not.toBe(confirmedContent(fact));
+    expect(confirmedContent({ ...fact, not_stated: ["date"] })).not.toBe(confirmedContent(fact));
     expect(stableJson({ b: [2, { d: 1, c: null }], a: "x" })).toBe('{"a":"x","b":[2,{"c":null,"d":1}]}');
   });
 
