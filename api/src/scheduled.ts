@@ -9,6 +9,7 @@ import { reconcilePipelineRuns, sweepIntakes } from "./store/intake";
 import { orgStmt } from "./store/sql";
 import { sweepSessions } from "./auth/session";
 import { deleteDocumentObjects } from "./routes/documents";
+import { scrubRunsOf } from "./store/case-merge";
 
 // Audio no pass has claimed goes after six hours: no case is discussed that long. Audio a failed pass kept for
 // "Zkusit znovu" goes after seven days at the latest, the same as the R2 lifecycle rule (user decision 2026-10-18).
@@ -79,7 +80,11 @@ async function sweepOrg(env: Env, org: string, nowMs: number): Promise<Counts> {
   try {
     const gone = await orgStmt(env.DB, org, "SELECT id, case_id, lifecycle_changed_at FROM documents WHERE org_id = ?org AND lifecycle = 'withdrawn' AND lifecycle_changed_at > ?1 LIMIT 100", new Date(nowMs - 7 * 24 * 3600_000).toISOString())
       .all<{ id: string; case_id: string; lifecycle_changed_at: string }>();
-    for (const d of gone.results) await deleteDocumentObjects(env, org, d.case_id, d.id, d.lifecycle_changed_at);
+    for (const d of gone.results) {
+      await deleteDocumentObjects(env, org, d.case_id, d.id, d.lifecycle_changed_at);
+      // And the stored runs that still read it (a scrub the withdraw could not finish, or a merge that raced it).
+      await scrubRunsOf(env, org, d.case_id, d.id);
+    }
   } catch {
     failed += 1;
   }

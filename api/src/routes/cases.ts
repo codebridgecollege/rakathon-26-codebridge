@@ -1,4 +1,4 @@
-import { Hono } from "hono";
+import { Hono, type Context } from "hono";
 import type { AppEnv } from "../types";
 import { E } from "../http/errors";
 import { audit } from "../middleware/audit";
@@ -10,7 +10,7 @@ import type { EarlierFact, Extraction, ExtractionDocument } from "@codebridge/do
 import { FACT_ID_RE } from "@codebridge/domain/edits";
 import { D } from "@codebridge/domain/errors";
 import { orgQuery } from "./write-context";
-import { withoutQuarantined } from "../store/runs";
+import { withoutDocuments, withoutQuarantined } from "../store/runs";
 
 const EMPTY_GUIDANCE = { guidelines: [], statements: [], pages: [], literature: [], queries: [], not_retrieved: [], prior_assessments: {} };
 
@@ -19,6 +19,12 @@ const int = (s: string | undefined, dflt: number, max: number) => {
   return Number.isInteger(n) && n >= 0 ? Math.min(n, max) : dflt;
 };
 const isoDay = (s: string | undefined) => (s && /^\d{4}-\d{2}-\d{2}$/.test(s) ? s : undefined);
+
+// The case's documents that left its current set (documents.lifecycle, migration 0013).
+async function retiredOf(c: Context<AppEnv>, caseId: string): Promise<Set<string>> {
+  const r = await orgQuery(c, "SELECT id FROM documents WHERE org_id = ?org AND case_id = ?1 AND lifecycle <> 'current'", caseId).all<{ id: string }>();
+  return new Set(r.results.map((x) => x.id));
+}
 
 export const cases = new Hono<AppEnv>()
   // The patient list. Today the page filters and pages on the client, so it calls this without parameters.
@@ -84,7 +90,9 @@ export const cases = new Hono<AppEnv>()
     // stays and names document and page. So the payload is not a whole run for validateRun. Its alerts are part of it.
     const stored = await c.var.stores.blobs.getJson<ExtractionRun>(run.r2_key);
     if (!stored) throw E.dataUnavailable();
-    return c.json<Extraction>({ case_id: id, processing: row.processing_level, run: info, data: withoutQuarantined(stored), documents });
+    // A document that left the case (withdrawn as another patient's) is gone from the view at once, before any newer
+    // run exists.
+    return c.json<Extraction>({ case_id: id, processing: row.processing_level, run: info, data: withoutQuarantined(withoutDocuments(stored, await retiredOf(c, id))), documents });
   })
   // One fact as an earlier run of the case stated it: the value a doctor confirmed, shown next to the current one when
   // a later run gives the same fact ID another value (EXTRACTION-FORMAT.md, "Doctor confirmations and edits"). Only a
@@ -99,7 +107,7 @@ export const cases = new Hono<AppEnv>()
     const run = await orgQuery(c, "SELECT r2_key, schema FROM extraction_runs WHERE org_id = ?org AND case_id = ?1 AND id = ?2", id, runId).first<{ r2_key: string; schema: string }>();
     if (!run || run.schema !== EXTRACTION_SCHEMA) throw D.factNotFound();
     const stored = await c.var.stores.blobs.getJson<ExtractionRun>(run.r2_key);
-    const fact = stored ? withoutQuarantined(stored).facts.find((f) => f.id === factId) : undefined;
+    const fact = stored ? withoutQuarantined(withoutDocuments(stored, await retiredOf(c, id))).facts.find((f) => f.id === factId) : undefined;
     if (!fact) throw D.factNotFound();
     // A fact the current run quarantines (its page shows another patient) is not served from an older run either.
     const cur = await c.var.stores.cases.currentRun(id);

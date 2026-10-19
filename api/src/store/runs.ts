@@ -75,6 +75,47 @@ export function withoutQuarantined(run: ExtractionRun): ExtractionRun {
   };
 }
 
+/**
+ * A run without what it read from documents that left the case (withdrawn as another patient's, superseded): their
+ * facts, the sources on them, the alerts about them or resting only on their facts, their checks' entries, brief
+ * sentences and composed lines that state their facts. Used when a run is read (a newer run may not exist yet) and to
+ * scrub stored runs after a withdraw, so another patient's values never come back from an older run.
+ */
+export function withoutDocuments(run: ExtractionRun, retired: ReadonlySet<string>): ExtractionRun {
+  if (!retired.size || !run.documents.some((d) => retired.has(d.document_id))) return run;
+  const goneSrc = new Set(run.sources.filter((s) => s.type === "document" && retired.has(s.document_id)).map((s) => s.id));
+  // Conservative: a fact with any passage on a retired document goes, even when a current one also backs it. An
+  // interval or a request pointing at a fact that goes is dropped or loses that result too.
+  const goneFacts = new Set(run.facts.filter((f) => f.sources.some((s) => goneSrc.has(s))).map((f) => f.id));
+  for (const f of run.facts) if (f.kind === "interval" && (goneFacts.has(f.value.from_fact) || goneFacts.has(f.value.to_fact))) goneFacts.add(f.id);
+  const keepFacts = (ids: string[]) => ids.filter((id) => !goneFacts.has(id));
+  const onRetired = <T extends { document_id: string }>(xs: T[]) => xs.filter((x) => !retired.has(x.document_id));
+  const out: ExtractionRun = {
+    ...run,
+    documents: onRetired(run.documents),
+    sources: run.sources.filter((s) => !goneSrc.has(s.id)),
+    facts: run.facts
+      .filter((f) => !goneFacts.has(f.id))
+      .map((f) => (f.based_on ? { ...f, based_on: keepFacts(f.based_on) } : f))
+      .map((f) => (f.kind === "request" && f.value.result_fact && goneFacts.has(f.value.result_fact) ? { ...f, value: { ...f.value, result_fact: null } } : f)),
+    checks: run.checks.map((c) => ({ ...c, covered: onRetired(c.covered), unreadable: onRetired(c.unreadable) })),
+    // An alert about a retired document, or resting on any fact that goes (one side of a contradiction), goes: it would
+    // point at another patient's value the view no longer shows.
+    alerts: run.alerts.filter((a) => !a.subject.split("|").some((x) => retired.has(x) || goneFacts.has(x)) && !a.facts.some((id) => goneFacts.has(id))),
+    brief: run.brief ? { ...run.brief, sentences: run.brief.sentences.filter((s) => !s.facts.some((id) => goneFacts.has(id))) } : null,
+    question_draft: run.question_draft && !run.question_draft.basis.some((b) => b.facts.some((id) => goneFacts.has(id))) ? run.question_draft : null,
+  };
+  if (run.views) {
+    const views = { ...run.views };
+    for (const name of VIEW_NAMES) {
+      const lines = run.views[name];
+      if (lines) views[name] = lines.filter((l) => !l.facts.some((id) => goneFacts.has(id)));
+    }
+    out.views = views;
+  }
+  return out;
+}
+
 /** What the matcher needs from D1 for a new run of a case (match.ts assignFactIds). */
 export type MatchInputs = {
   caseId: string;
@@ -212,7 +253,8 @@ export async function storeRun(
   t.guard("run_previous", "(SELECT id FROM extraction_runs WHERE org_id = ?org AND case_id = ? AND is_current = 1) IS ?", [caseId, run.run.supersedes], () => D.runStale());
   t.guard(
     "run_documents",
-    "(SELECT COUNT(*) FROM documents WHERE org_id = ?org AND case_id = ? AND id IN (SELECT value FROM json_each(?))) = ?",
+    // Current documents only: a merge that read a document before it was withdrawn cannot store a run with it.
+    "(SELECT COUNT(*) FROM documents WHERE org_id = ?org AND case_id = ? AND lifecycle = 'current' AND id IN (SELECT value FROM json_each(?))) = ?",
     [caseId, JSON.stringify(docIds), docIds.length],
     () => D.runStale(),
   );

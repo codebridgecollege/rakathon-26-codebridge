@@ -20,6 +20,7 @@
 // Privacy: params and step results hold IDs, counts and fixed codes only; readings, answers and the fragment live in R2
 // (EU) under the pipeline run's prefix, which a withdraw of the document deletes. The pseudonymization mapping is never
 // stored: the fragment step rebuilds it from the same texts (model-payload.ts pseudonymizeParts).
+import { startCaseMerge } from "./process-case";
 import { WorkflowEntrypoint, type WorkflowEvent, type WorkflowStep } from "cloudflare:workers";
 import { NonRetryableError } from "cloudflare:workflows";
 import type { IdentityResult } from "@codebridge/domain/extraction/types";
@@ -262,11 +263,11 @@ export class ExtractDocumentWorkflow extends WorkflowEntrypoint<Env, ExtractDocu
       return { facts: d.facts.length, verify: d.report.verify, quarantined: d.report.quarantined, dropped: Object.values(d.report.dropped).reduce((a, b) => a + (b ?? 0), 0), unread_pages: unreadPages.length };
     });
 
+    // The case merge (stream B, ProcessCaseWorkflow) composes this fragment with the pipeline's, in the name of the
+    // person who started the document's run.
     await step.do("case", STEP, async () => {
-      const wf = (env as unknown as { PROCESS_CASE?: Workflow<{ org: string; caseId: string }> }).PROCESS_CASE;
-      if (!wf) return { started: false };
-      await wf.create({ id: `case-${p.caseId}-${Date.now()}`, params: { org: p.org, caseId: p.caseId } });
-      return { started: true };
+      const run = await runOf(env, p);
+      return { started: await startCaseMerge(env, { org: p.org, caseId: p.caseId, by: run.created_by, byActor: run.created_by_actor }) };
     });
     return { ...frag, read: plan.vision.length - Object.keys(unread).length, unread_codes: Object.values(unread) };
   }

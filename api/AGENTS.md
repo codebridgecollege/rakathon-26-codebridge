@@ -242,6 +242,10 @@ Design and contract: `docs/research/backend-steps/step-6.md`, section "As implem
   document already there. Files live under R2 `org/<org>/uploads/<case>/`, which reset-demo and the intake
   discard delete. Rules in `src/domain/documents.ts`; the fixture's patient (`fixture_patients`, D1 only) is compared
   with the case's patient and only the result (`matches`, `conflicts`, `cannot_verify`) leaves the server.
+- Case merge: every document run ends by writing `fragment-pipeline.json` and starting `ProcessCaseWorkflow` (binding
+  `PROCESS_CASE`), which composes the case's fragments into a stored run with producer `pipeline` (`store/case-merge.ts`,
+  `packages/domain/src/fragments.ts`; step-6.md, "The case merge"). Only for orgs in `PIPELINE_ORGS`; a case with a
+  fixture or NIS run is left alone. Workflow tests: the vitest binding sets `PIPELINE_ORGS` to `demo-b`.
 - Withdraw: `POST /documents/:id/withdraw` (`wrong_patient`) takes a processed upload of another patient out of the case
   with migration 0013's lifecycle columns: a neutral row and its runs stay; file, outputs, pages, parts, name and hash go.
 - Intake: `src/routes/intake.ts`, `src/store/intake.ts`, rules in `src/domain/intake.ts` and `packages/domain/src/fhir.ts`. An

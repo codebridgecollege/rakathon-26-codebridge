@@ -33,6 +33,9 @@ import { answer, caseFor, isoNow, label, newId, orgQuery, tx } from "./write-con
 import { orgKey } from "../store/sql";
 import { cachePrefixesOf } from "../services/model-cache";
 import { autoStart } from "./pipeline-start";
+import { startCaseMerge } from "../workflows/process-case";
+import { pipelineListed } from "../services/page-reader";
+import { scrubRunsOf } from "../store/case-merge";
 import { LEGACY_ORG } from "../domain/orgs";
 
 const hex = (b: ArrayBuffer) => [...new Uint8Array(b)].map((x) => x.toString(16).padStart(2, "0")).join("");
@@ -218,7 +221,7 @@ export const documents = new Hono<AppEnv>()
     const docs = await caseDocuments(c.env.DB, c.var.viewer.org, id);
     const parts = await c.var.stores.cases.documents(id);
     // The documents' own alerts (document_alerts: poor copy, another patient's identity), as Fluent ids with page
-    // numbers; the case view will take them from the case run once the case merge exists.
+    // numbers; where the case merge runs (PIPELINE_ORGS) the case run carries them and the merge removes these rows.
     const alerts = (await orgQuery(c, "SELECT document_id, kind, message_id, args_json FROM document_alerts WHERE org_id = ?org AND case_id = ?1 ORDER BY document_id, rule", id)
       .all<{ document_id: string; kind: string; message_id: string; args_json: string }>()).results;
     return c.json({
@@ -301,6 +304,10 @@ export const documents = new Hono<AppEnv>()
     // After the commit, so a refused withdraw deletes nothing. A failed delete is done again by the cron sweep
     // (sweepWithdrawn in scheduled.ts), so the log line's "obsah smazán" holds.
     await deleteDocumentObjects(c.env, v.org, d.case_id, docId, withdrawnAt).catch(() => console.error(JSON.stringify({ route: "document.withdraw", r2: "delete_failed" })));
+    // The case's run is composed again without it, so its values leave the case view (current documents only).
+    // Older runs of the case lose the document's content too; then the case's run is composed again without it.
+    await scrubRunsOf(c.env, v.org, d.case_id, docId).catch(() => console.error(JSON.stringify({ route: "document.withdraw", runs: "scrub_failed" })));
+    if (pipelineListed(c.env, v.org)) await startCaseMerge(c.env, { org: v.org, caseId: d.case_id, by: v.id, byActor: v.actor?.id ?? null });
     const row = await documentRow(c.env.DB, v.org, docId);
     return answer(c, { document: docOut(row!) });
   });

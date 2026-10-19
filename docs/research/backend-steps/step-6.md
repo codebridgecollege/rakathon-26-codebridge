@@ -1268,3 +1268,62 @@ Contract additions are in `pipeline/container/server.py`'s docstring.
   page 4 only, FNO patient 2 (`Kotěrova`) cannot be verified, the other FNO
   patients match by name. `eval.py` does not run it yet (its adapter writes
   `identity: cannot_verify` on every source).
+
+### The case merge: a new patient's run without AI (issue #18)
+
+Contract with stream D (#20) and stream E (#21): `docs/research/2026-10-20-case-merge-contract.md`.
+
+- **Fragments.** After `write`, ProcessDocumentWorkflow's `fragment` step writes `<run prefix>fragment-pipeline.json`
+  (`packages/domain/src/fragments.ts`, `pipelineFragment`, schema `codebridge.fragment/1`) for a processed, current
+  upload without prepared data: one `lab_result` fact per value the lab parser read (value, unit and range as written;
+  the code with system `fno-local-lab`; the draw date cut out of the "Odběr" header, never rebuilt; "ověřit" with the
+  parser's reasons in Czech; a value without a readable draw date has no date), its passage (Tesseract's text, the
+  part whose pages hold the page, the page's identity result, both readings when they differ), one `lab_result` check
+  (`found`, else `not_run`: the parser reads only FNO lab sheets, so it never claims a document has no lab values; the
+  pages read poor or empty are listed as unreadable), the `poor_copy` alert, and the `identity_conflict` alert whose
+  facts are the values on pages of another patient, which are quarantined. Stream D's AI extraction writes
+  `fragment-ai.json` next to it.
+- **ProcessCaseWorkflow** (binding `PROCESS_CASE`, `src/workflows/process-case.ts`, `src/store/case-merge.ts`) starts
+  after every document run that wrote a fragment and after a withdraw, only for orgs in `PIPELINE_ORGS`. It composes
+  the latest fragments of every current, processed upload (`composeFragments`: sources, facts and alerts concatenated;
+  checks merged per kind, `found` over `nothing_found` over `not_run`, every fact kind present; one identity alert per
+  document listing every producer's quarantined facts), then `matchInputs`, `prepareRun`, the case rules hook (stream
+  E's `applyCaseRules`, on the prepared run), and `storeRun` in one batch that also deletes the documents'
+  `document_alerts` rows (the run carries them now), sets the case's `processing_level` to `partial` (`none` for an empty run), and writes one
+  access-log line. A run stored in between (`run_stale`) makes the step retry. A case whose current run came from
+  another producer (a prepared fixture, the NIS import) is left alone; combining producers is not built yet. A case
+  whose documents all left it gets an empty run, so their values leave the view.
+- **What a new patient sees in demo org B:** the documents with their parts and readability, the lab values (a trend
+  once two dated draws exist), the poor-copy and identity alerts, and "nezkontrolováno" for everything the pipeline
+  does not look at. Values from a page of another patient never reach the browser (`withoutQuarantined`).
+- **Identity is never cleared by a fragment.** A document whose `documents.identity` is `conflicts` (the fixture
+  registry's result, or a conflict an earlier reading found, which `write` keeps) has every page held back when the
+  reading names no conflicting page; a page this reading names stays held back whatever else it says.
+- **Which fragments.** For each current upload without prepared data, whatever its processing state, the newest
+  finished pipeline run that has `fragment-pipeline.json` (and its `fragment-ai.json` when stream D wrote one): a
+  rerun in progress or a run whose fragment step failed leaves the previous fragment in place, so the document does
+  not drop out of the case run and its fact IDs (and the doctors' confirmations on them) carry over. A failed fragment
+  step never marks the document failed.
+- **Checks across documents.** "Nothing found" only when every document of the run reported nothing found for that
+  kind; one document without an answer (its AI reading pending) makes it "not run". The pipeline's own `not_run` check
+  covers nothing.
+- **Lab values.** A printed H or L is the document's flag (`out_of_range_origin: document`); a direction computed
+  from the range is the assistant's; a mark without direction ("*") goes into the fact's note. `not_stated: ["draw"]`
+  only when the sheet has no draw header at all; an unreadable or earlier-page header is stated and marked "ověřit".
+  `unit` (the corrected unit) repeats the printed unit only on a clear reading. The requisition is the sheet's.
+- **Withdraw.** The case view leaves out documents that left the case at once (`withoutDocuments` on read, in
+  `GET /cases/:id/extraction` and the earlier-fact route); the withdraw rewrites every stored pipeline run of the case
+  without the document (`scrubRunsOf`, runs are otherwise never changed: deleting another patient's data comes
+  first) and starts a merge. Both depend only on `PIPELINE_ORGS`, not on the page reader being up.
+- **Retries.** Ten, with a growing pause, for merges that meet a run stored in between; a run the validator refuses
+  is not retried (`invalid`, issue codes only in the log).
+- **Identity at merge time too.** A document D1 marks as another patient's has every fact held back in the merge
+  even when its fragment was written before the conflict was known (a newer reading whose fragment step failed or
+  is not done yet), and the merge deletes a document's interim identity row only when the run carries an identity
+  alert for it.
+- **Races.** storeRun's document guard counts current documents only, so a merge that read a document before its
+  withdraw cannot store it; the scrub rewrites only the runs whose `input_hashes_json` names the document, each
+  conditionally on the object it read (two withdraws at once never restore each other's document), and the cron
+  sweep repeats it for a week. On read, an alert resting on any fact of a withdrawn document goes (one side of a
+  contradiction), an interval that points at one goes, and a request loses that result.
+

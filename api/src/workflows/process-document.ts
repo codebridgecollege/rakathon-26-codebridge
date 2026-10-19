@@ -11,7 +11,7 @@
 // (diff counts); a document without data gets the run's pages for the source view, labelled as Tesseract's reading.
 import { WorkflowEntrypoint, type WorkflowEvent, type WorkflowStep } from "cloudflare:workers";
 import { NonRetryableError } from "cloudflare:workflows";
-import { PageReaderError, pageReader, poolInstance, type Labs, type PageRecord, type RawPage, type Readability } from "../services/page-reader";
+import { PageReaderError, pageReader, pipelineListed, poolInstance, type Labs, type PageRecord, type RawPage, type Readability } from "../services/page-reader";
 import { actorFor } from "../store/audio";
 import { orgStmt } from "../store/sql";
 import { LEGACY_ORG } from "../domain/orgs";
@@ -19,6 +19,8 @@ import { auditStatement } from "../store/write";
 import { documentAlerts, partRows, type PagePart } from "../domain/document-checks";
 import type { Identity } from "../domain/documents";
 import { diffLabs, pipelineErrorCs, PIPELINE_BATCH, READABILITY_CS, type PreparedPoint } from "../domain/pipeline";
+import { pipelineFragment, type ParsedLabs } from "@codebridge/domain/fragments";
+import { startCaseMerge } from "./process-case";
 import { EXTRACTION_SCHEMA, type ExtractionRun, type LabResultFact } from "@codebridge/domain/extraction/types";
 
 // org: the case's org, given by the route that starts the run (a Workflow has no request); a run started before orgs
@@ -127,7 +129,37 @@ async function ownParts(env: Env, org: string, docId: string) {
   return !!r && r.origin === "upload" && r.state !== "prepared" && r.other === 0;
 }
 
-const b64 = (s: string) => Uint8Array.from(atob(s), (ch) => ch.charCodeAt(0));
+// The pipeline's fragment of an upload that counts for the case: processed, current, without prepared data (a prepared
+// document belongs to its fixture run). Null for any other document.
+async function pipelineFragmentOf(env: Env, org: string, docId: string, run: RunRow) {
+  const d = await orgStmt(env.DB, org, "SELECT origin, state, lifecycle, sha256, identity FROM documents WHERE org_id = ?org AND id = ?1", docId).first<{
+    origin: string;
+    state: string | null;
+    lifecycle: string;
+    sha256: string | null;
+    identity: Identity | null;
+  }>();
+  if (!d || d.origin !== "upload" || d.state !== "processed" || d.lifecycle !== "current") return null;
+  const parts = (await orgStmt(env.DB, org, "SELECT part_id, pages_json FROM document_parts WHERE org_id = ?org AND document_id = ?1 ORDER BY ordinal", docId).all<{ part_id: string; pages_json: string }>()).results;
+  const versions = await orgStmt(env.DB, org, "SELECT container_versions_json FROM pipeline_runs WHERE org_id = ?org AND id = ?1", run.id).first<{ container_versions_json: string | null }>();
+  const tess = versions?.container_versions_json ? (JSON.parse(versions.container_versions_json) as { tesseract?: string | null }).tesseract : null;
+  const rb = await getJson<{ pages: { n: number; level: string }[] }>(env, `${run.output_prefix}readability.json`);
+  const ident = await optionalJson<{ pages: { n: number; result: Identity }[] }>(env, `${run.output_prefix}identity.json`);
+  const labs = await optionalJson<ParsedLabs>(env, `${run.output_prefix}labs.json`);
+  return pipelineFragment({
+    documentId: docId,
+    sha256: d.sha256,
+    pipelineRun: run.id,
+    engine: tess ? `${tess} ces` : null,
+    parts: parts.map((x) => ({ part_id: x.part_id, pages: JSON.parse(x.pages_json) as number[] })),
+    pages: rb.pages.map((x) => ({ n: x.n, level: x.level })),
+    identity: ident?.pages ?? [],
+    documentIdentity: d.identity,
+    labs,
+  });
+}
+
+const b64 = (s: string) =>Uint8Array.from(atob(s), (ch) => ch.charCodeAt(0));
 
 export class ProcessDocumentWorkflow extends WorkflowEntrypoint<Env, ProcessDocumentParams> {
   async run(event: WorkflowEvent<ProcessDocumentParams>, step: WorkflowStep) {
@@ -272,6 +304,29 @@ export class ProcessDocumentWorkflow extends WorkflowEntrypoint<Env, ProcessDocu
         await this.finish(p, n, analyzed.level, labs.points, labs.unclear, diff.compared ? diff : null, stages);
         return { ok: true };
       });
+      // The document's share of the case run (packages/domain/src/fragments.ts): its lab values with their passages,
+      // readability and identity per page, written next to the run's other outputs, so a withdraw deletes it too.
+      // Only for orgs the case merge runs for (never demo org A). A failure here never marks the read document as
+      // failed: the document is processed; it only stays out of the case run until a later run writes its fragment.
+      const frag = pipelineListed(this.env, p.org)
+        ? await step.do("fragment", STEP, async () => {
+            try {
+              const run = await runOf(this.env, p.org, p.runId);
+              const f = await pipelineFragmentOf(this.env, p.org, p.docId, run);
+              if (!f) return { fragment: false, facts: 0 };
+              await putJson(this.env, `${run.output_prefix}fragment-pipeline.json`, f);
+              return { fragment: true, facts: f.facts.length };
+            } catch {
+              return { fragment: false, facts: 0, error: "fragment_failed" };
+            }
+          })
+        : { fragment: false, facts: 0 };
+      // The case's run is composed again with this document (ProcessCaseWorkflow).
+      if (frag.fragment)
+        await step.do("start case merge", STEP, async () => {
+          const run = await runOf(this.env, p.org, p.runId);
+          return { started: await startCaseMerge(this.env, { org: p.org, caseId: p.caseId, by: run.created_by, byActor: run.created_by_actor }) };
+        });
     } catch (e) {
       // The engine rethrows a failed step as "NonRetryableError: <code>"; only the fixed code is kept, never other text.
       const m = e instanceof Error ? /(?:^|: )([a-z_]{1,40})$/.exec(e.message) : null;
