@@ -14,6 +14,9 @@
     {"code": "S_ALP", "page": 5, "value": "1,12", "unit": "µkat/l", "date": "2026-10-01", "time": "07:35"}
   ],
   "expectations": [
+    {"id": "S04-biopsy-histology-not-missing", "failure_kind": "report_missing", "expect": "absent",
+     "about": "The histology cited as 15.9.2026 is the core-cut biopsy report on page 2, dated by the sampling (10.9.2026): the report is present",
+     "alert": {"kind": "missing", "fact.kind": "histology", "fact.date.sort": "2026-09-15"}},
     {"id": "S04-identity-alert", "failure_kind": "patients_mixed_up", "expect": "present",
      "about": "Page 4 shows another patient (Vrbenská Lenka, other birth number): an identity alert names the page",
      "alert": {"kind": "identity"}},

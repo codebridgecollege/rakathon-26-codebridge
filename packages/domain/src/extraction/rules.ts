@@ -39,9 +39,9 @@ export const CASE_RULE_CHECKS = ["original_report", "contradiction", "chronology
 export interface CaseRuleOptions {
   /**
    * More cited reports missing their original than this become one grouped alert instead of one per report, so the
-   * doctor is not buried in warnings (issue #49 proposal, pending expert review). Crossing the threshold changes the
-   * alert's identity, so an acknowledgement of the grouped alert does not carry over to per-exam alerts or back; the
-   * set of missing reports has changed then, so the doctor sees it again. Default 3.
+   * doctor is not buried in warnings (issue #49 proposal, pending expert review). The grouped alert's identity is its
+   * set of missing reports, so any change to the set, and crossing the threshold, gives a new alert the doctor sees
+   * again; an acknowledgement never hides a newly missing report. Default 3.
    */
   groupMissingReportsAbove?: number;
 }
@@ -80,16 +80,19 @@ function compatible(a: string | null | undefined, b: string | null | undefined):
 const modalityWord = (m: string | null | undefined) => fold(m ?? "").split(/[^\p{L}\d]+/u).find(Boolean) ?? "";
 
 /**
- * How two dates relate: "same" (equal at the same precision), "within" (one is a partial date that contains the other,
- * "11/2025" and "10.11.2025"), "apart", or null when either is undated. Only the sort form is compared, so a partial
- * date never gains a day.
+ * How two dates relate for linking: "same" (equal at the same precision), "within" (a month that contains the other
+ * date's day, "11/2025" and "10.11.2025"), otherwise "apart", or null when either is undated. A year against a date in
+ * it counts as "apart" here: follow-up exams come several times a year, so "CT 2025" cannot be linked to one of them.
+ * Only the sort form is compared, so a partial date never gains a day.
  */
 function dateRelation(a: FactDate, b: FactDate): "same" | "within" | "apart" | null {
   if (!a.sort || !b.sort) return null;
   const sa = dateSeg(a);
   const sb = dateSeg(b);
   if (sa === sb) return "same";
-  return sa.startsWith(sb) || sb.startsWith(sa) ? "within" : "apart";
+  const [short, long] = sa.length < sb.length ? [sa, sb] : [sb, sa];
+  if (short.length === 7 && long.startsWith(short)) return "within";
+  return "apart";
 }
 
 /** -1, 0 or 1 comparing two sort forms at the coarser of their precisions; 0 also when they cannot be told apart. */
@@ -102,18 +105,37 @@ function compareSort(a: string, b: string): number {
 
 /**
  * A written date as a sort form ("27.1.2026" -> "2026-01-27", "8/2026" -> "2026-08", "2026" -> "2026"), or null when
- * the text holds no date. For the start and stop of a therapy line, which the format keeps as written.
+ * the text holds no date. For the start and stop of a therapy line, which the format keeps as written. A range
+ * ("7.4.2026 - 18.5.2026", "4-5/2026") gives its first date, or its last with `end`, so a stop written as a range is
+ * never read as earlier than it is.
  */
-export function writtenSort(text: string | null | undefined): string | null {
+export function writtenSort(text: string | null | undefined, end = false): string | null {
   if (!text) return null;
   const pad = (n: string) => n.padStart(2, "0");
-  const dmy = /(?<!\d)(\d{1,2})\s?\.\s?(\d{1,2})\s?\.\s?(\d{4})(?!\d)/.exec(text);
+  const pick = <T>(xs: T[]) => (end ? xs.at(-1) : xs[0]);
+  const dmy = pick([...text.matchAll(/(?<!\d)(\d{1,2})\s?\.\s?(\d{1,2})\s?\.\s?(\d{4})(?!\d)/g)]);
   if (dmy) return `${dmy[3]}-${pad(dmy[2]!)}-${pad(dmy[1]!)}`;
-  const my = /(?<![\d/.])(\d{1,2})\/(\d{4})(?!\d)/.exec(text);
-  if (my && Number(my[1]) >= 1 && Number(my[1]) <= 12) return `${my[2]}-${pad(my[1]!)}`;
-  const y = /(?<!\d)((?:19|20)\d{2})(?!\d)/.exec(text);
+  const range = /(?<![\d/.])(\d{1,2})\s?[-–]\s?(\d{1,2})\/(\d{4})(?!\d)/.exec(text);
+  if (range) {
+    const m = Number(end ? range[2] : range[1]);
+    if (m >= 1 && m <= 12) return `${range[3]}-${pad(String(m))}`;
+  }
+  const my = pick([...text.matchAll(/(?<![\d/.])(\d{1,2})\/(\d{4})(?!\d)/g)].filter((x) => Number(x[1]) >= 1 && Number(x[1]) <= 12));
+  if (my) return `${my[2]}-${pad(my[1]!)}`;
+  const y = pick([...text.matchAll(/(?<!\d)((?:19|20)\d{2})(?!\d)/g)]);
   return y ? y[1]! : null;
 }
+
+/** The calendar day in Prague of an instant, so a run made at 00:30 Prague time (22:30 UTC) counts as that day. */
+function pragueDay(iso: string): string {
+  const t = Date.parse(iso);
+  if (Number.isNaN(t)) return iso.slice(0, 10);
+  // sv-SE formats as YYYY-MM-DD.
+  return new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Prague", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date(t));
+}
+
+/** Plain code-unit order, the same in every runtime (localeCompare depends on locale data). */
+const cmp = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0);
 
 function alert(rule: CaseRule, subject: string, kind: AlertKind, facts: string[], message: Alert["message"]): Alert {
   return { id: alertId({ rule, subject }), rule, subject, kind, facts, message, note: null };
@@ -143,8 +165,12 @@ const EXAM_KINDS: ReadonlySet<FactKind> = new Set(["imaging", "histology", "proc
 /** Whether a source is the report itself: a page of the report, or the NIS record of it. */
 const isOriginal = (s: Source | undefined) => !!s && (s.type === "nis" || s.reported_as === "original");
 
-/** An exam that happened (not a plan, a request or a recorded "not done"). */
-const performed = (f: Fact) => EXAM_KINDS.has(f.kind) && !f.negated && f.status !== "planned" && f.status !== "requested";
+/**
+ * An exam that happened: not a plan or a request. A negated imaging or histology fact is a negative finding of a done
+ * exam ("CT: bez známek metastáz") and needs its report like any other; only a negated procedure is one recorded as not
+ * done.
+ */
+const performed = (f: Fact) => EXAM_KINDS.has(f.kind) && !(f.kind === "procedure" && f.negated) && f.status !== "planned" && f.status !== "requested";
 
 /** The words that tell two reports of one kind apart: modality and region, the specimen, the procedure's name, the body. */
 function examWords(f: Fact): { modality: string; what: string | null } {
@@ -172,11 +198,27 @@ function examWords(f: Fact): { modality: string; what: string | null } {
 function sameExam(a: Fact, b: Fact): boolean {
   if (a.kind !== b.kind) return false;
   const rel = dateRelation(a.date, b.date);
-  if (rel !== "same" && rel !== "within") return false;
+  if (rel !== "same" && rel !== "within" && !(a.kind === "histology" && sampledBefore(a, b))) return false;
   const wa = examWords(a);
   const wb = examWords(b);
   if (wa.modality && wb.modality && wa.modality !== wb.modality) return false;
   return compatible(wa.what, wb.what);
+}
+
+/** Days between two day-precision sort forms, b minus a; null for anything coarser. */
+function daysBetween(a: string, b: string): number | null {
+  if (a.length !== 10 || b.length !== 10) return null;
+  return Math.round((Date.parse(`${b}T00:00:00Z`) - Date.parse(`${a}T00:00:00Z`)) / 86_400_000);
+}
+
+/**
+ * A histology report is often cited by the date of the report ("Histol. 15.9.2026") while the original is dated by the
+ * sampling (biopsy 10.9.2026): up to three weeks between them, with specimens that do not differ, is the same report.
+ */
+function sampledBefore(a: Fact, b: Fact): boolean {
+  if (!a.date.sort || !b.date.sort) return false;
+  const d = daysBetween(a.date.sort, b.date.sort);
+  return d !== null && Math.abs(d) <= 21;
 }
 
 /**
@@ -194,33 +236,38 @@ export function citedExams(facts: readonly Fact[], sources: readonly Source[]): 
     const original = own.find((g) => g !== f && performed(g) && hasOriginal(g) && sameExam(f, g)) ?? null;
     out.push({ fact: f, original });
   }
-  return out.sort((a, b) => (a.fact.date.sort ?? "￿").localeCompare(b.fact.date.sort ?? "￿") || a.fact.id.localeCompare(b.fact.id));
+  return out.sort((a, b) => cmp(a.fact.date.sort ?? "\uffff", b.fact.date.sort ?? "\uffff") || cmp(a.fact.id, b.fact.id));
 }
 
 /** One expected report: the cited facts it would hold, whether an original was found, and the alert's subject. */
 export interface CitedReport {
-  /** "report|<kind>|<modality>|<date>" for a dated report, so the alert follows the report, not one of its facts. */
+  /**
+   * "report|<kind>|<modality>|<region>|<date>" for a dated report, so the alert follows the report, not one of its
+   * facts; the fact ID for an undated one.
+   */
   subject: string;
   facts: Fact[];
   original: Fact | null;
 }
 
 /**
- * Whether two cited facts come from one report: the same date, and the same exam (one histology report gives the
- * tumour type, the grade and each receptor as separate facts), or one exam told as two kinds ("koloskopie" as imaging
- * and as a procedure). Undated facts are never joined.
+ * Whether two cited facts come from one report: the same kind, the same date and the same exam (one histology report
+ * gives the tumour type, the grade and each receptor as separate facts). Different kinds stay apart even when they
+ * name one event (a bronchoscopy and the histology of its biopsy): each has its own report, and one found must not
+ * hide the other missing. Undated facts are never joined.
  */
 function sameReport(a: Fact, b: Fact): boolean {
-  if (!a.date.sort || !b.date.sort || dateSeg(a.date) !== dateSeg(b.date)) return false;
-  if (a.kind === b.kind) return sameExam(a, b);
-  const words = (f: Fact) => stems(`${examWords(f).modality} ${examWords(f).what ?? ""}`);
-  return overlaps(words(a), words(b));
+  if (a.kind !== b.kind || !a.date.sort || !b.date.sort || dateSeg(a.date) !== dateSeg(b.date)) return false;
+  return sameExam(a, b);
 }
+
+/** The region of a report as sorted word stems, so the subject does not depend on word order or inflection. */
+const regionKey = (f: Fact) => [...stems(examWords(f).what)].sort().join("+");
 
 /**
  * The cited exams joined into the reports they come from, in date order. A report counts as found when any of its
- * facts has an original. The subject names the report by kind, modality and date; two reports that would share one
- * (two biopsies of one day) are told apart by their first fact.
+ * facts has an original of the same exam. The subject names the report by kind, modality, region and date, never by
+ * the order of the facts; two reports that would still share one are told apart by a hash of their sorted fact IDs.
  */
 export function citedReports(facts: readonly Fact[], sources: readonly Source[]): CitedReport[] {
   const clusters: { facts: Fact[]; original: Fact | null }[] = [];
@@ -231,12 +278,15 @@ export function citedReports(facts: readonly Fact[], sources: readonly Source[])
       home.original ??= c.original;
     } else clusters.push({ facts: [c.fact], original: c.original });
   }
-  const used = new Set<string>();
-  return clusters.map((k) => {
+  const base = (k: { facts: Fact[] }) => {
     const f = k.facts[0]!;
-    let subject = f.date.sort ? `report|${f.kind}|${examWords(f).modality}|${dateSeg(f.date)}` : f.id;
-    if (used.has(subject)) subject = `${subject}|${f.id}`;
-    used.add(subject);
+    return f.date.sort ? `report|${f.kind}|${examWords(f).modality}|${regionKey(f)}|${dateSeg(f.date)}` : f.id;
+  };
+  const counts = new Map<string, number>();
+  for (const k of clusters) counts.set(base(k), (counts.get(base(k)) ?? 0) + 1);
+  return clusters.map((k) => {
+    const b = base(k);
+    const subject = counts.get(b)! > 1 ? `${b}|${fnv1a32(k.facts.map((f) => f.id).sort().join("|"))}` : b;
     return { subject, facts: k.facts, original: k.original };
   });
 }
@@ -256,7 +306,9 @@ function missingReports(input: RuleInput, options: CaseRuleOptions, covered: Che
   const ids = (r: CitedReport) => r.facts.map((f) => f.id);
   const alerts =
     missing.length > above
-      ? [alert("original_reports_missing", "cited_exams", "missing", missing.flatMap(ids), { id: messageId("original_reports_missing"), args: { count: missing.length } })]
+      ? // The subject names the set of missing reports: a further missing report makes a new alert, so one the doctor
+        // resolved earlier never hides it. A report found since gives a new alert too, which the doctor sees again.
+        [alert("original_reports_missing", `cited_exams|${fnv1a32(missing.map((r) => r.subject).sort().join("\n"))}`, "missing", missing.flatMap(ids), { id: messageId("original_reports_missing"), args: { count: missing.length } })]
       : missing.map((r) => alert("original_report_missing", r.subject, "missing", ids(r), { id: messageId("original_report_missing"), args: { fact: r.facts[0]!.id } }));
   return { alerts, checks };
 }
@@ -301,13 +353,16 @@ const resultText = (f: Fact) => `${f.kind === "histology" ? "histologie " : ""}$
 export function requestsWithoutResult(facts: readonly Fact[]): Alert[] {
   const own = usable(facts);
   const out: { alert: Alert; date: string | null; what: ReturnType<typeof asked> }[] = [];
-  for (const r of own) {
+  // In ID order, so the request that names a joined alert does not depend on the order of the facts.
+  for (const r of [...own].sort((a, b) => cmp(a.id, b.id))) {
     if (r.kind !== "request" || r.status !== "requested" || r.value.result_fact) continue;
     if (r.value.request_kind === "mdt") continue;
     const what = asked(r.value.what);
     const since = r.date.sort;
     const resultKinds = r.value.request_kind === "exam" ? ["imaging", "procedure", "histology"] : ["imaging", "procedure", "histology", "decision"];
-    const result = own.find((f) => resultKinds.includes(f.kind) && f.status === "done" && !!f.date.sort && !!since && compareSort(f.date.sort, since) >= 0 && answers(what, resultText(f)));
+    // A result dated less precisely than the request ("10/2026" for a request of 7.10.2026) may be older: not linked.
+    const later = (f: Fact) => !!f.date.sort && !!since && (compareSort(f.date.sort, since) > 0 || (compareSort(f.date.sort, since) === 0 && f.date.sort.length >= since.length));
+    const result = own.find((f) => resultKinds.includes(f.kind) && f.status === "done" && later(f) && answers(what, resultText(f)));
     if (result) continue;
     // The same dated request mentioned twice ("odeslána žádanka na CT" and "doplnit výsledek CT (žádanka 7.10.)") is
     // one alert resting on both facts, not two warnings. Undated requests are never merged.
@@ -358,6 +413,16 @@ function tnmCategories(tnm: string): Map<string, string> {
   return out;
 }
 
+const str = (x: string | null | undefined) => (x && x.trim() ? x : null);
+
+/** A grade as system and value ("G2", "grade 2" -> g/2; "ISUP 3" -> isup/3; "TRG 2" -> trg/2), or null. */
+function gradeOf(grade: string | null | undefined): { system: string; value: string } | null {
+  const m = /(trg|isup|who|nottingham|gleason|grade|g)\s*([0-4x])(?![\d])/i.exec(fold(grade ?? ""));
+  if (!m) return null;
+  const system = m[1] === "grade" ? "g" : m[1]!;
+  return { system, value: m[2]! };
+}
+
 const COMPARISONS: Comparison[] = [
   {
     // Same analyte and the same draw: a draw written with its time, or the same requisition. Two values of one day
@@ -372,7 +437,8 @@ const COMPARISONS: Comparison[] = [
       const draw = v.draw.as_written && HAS_TIME.test(v.draw.as_written) ? normText(v.draw.as_written) : f.date.precision === "minute" ? f.date.sort : null;
       const req = v.draw.requisition ? `req:${normText(v.draw.requisition)}` : null;
       if (!draw && !req) return null;
-      return [code, draw ?? "", req ?? "", compact(v.unit ?? v.unit_as_written) ?? ""].join("|");
+      // Serum and urine potassium of one draw are two analytes, so the specimen is part of the slot.
+      return [code, draw ?? "", req ?? "", compact(v.unit ?? v.unit_as_written) ?? "", normText(v.draw.specimen)].join("|");
     },
     differs: (a, b) => {
       if (a.kind !== "lab_result" || b.kind !== "lab_result") return false;
@@ -422,11 +488,17 @@ const COMPARISONS: Comparison[] = [
     differs: (a, b) => a.kind === "metastasis" && b.kind === "metastasis" && (a.value.status === "excluded") !== (b.value.status === "excluded"),
   },
   {
-    // Only the grade: the tumour type is worded too freely across reports to compare as text.
+    // Only the grade, of a named specimen, in one grading system: the tumour type is worded too freely to compare, a
+    // fact without a specimen may be another sample, and "G2" against "TRG 2" are two systems, not a disagreement.
     rule: "histology_grade_differs",
     kind: "histology",
-    slot: (f) => (f.kind === "histology" && when(f) ? `${normText(f.value.specimen)}|${when(f)}` : null),
-    differs: (a, b) => a.kind === "histology" && b.kind === "histology" && both(a.value.grade, b.value.grade) && compact(a.value.grade) !== compact(b.value.grade),
+    slot: (f) => (f.kind === "histology" && when(f) && str(f.value.specimen) ? `${normText(f.value.specimen)}|${when(f)}` : null),
+    differs: (a, b) => {
+      if (a.kind !== "histology" || b.kind !== "histology") return false;
+      const ga = gradeOf(a.value.grade);
+      const gb = gradeOf(b.value.grade);
+      return !!ga && !!gb && ga.system === gb.system && ga.value !== gb.value;
+    },
   },
 ];
 
@@ -501,12 +573,12 @@ const EVENT_KINDS: ReadonlySet<FactKind> = new Set(["imaging", "histology", "pro
 function chronology(facts: readonly Fact[], createdAt: string): Alert[] {
   const own = usable(facts);
   const byId = new Map(own.map((f) => [f.id, f]));
-  const today = createdAt.slice(0, 10);
+  const today = pragueDay(createdAt);
   const out: Alert[] = [];
   for (const f of own) {
     if (f.kind === "systemic_therapy") {
       const start = writtenSort(f.value.start) ?? f.date.sort;
-      const stop = writtenSort(f.value.stop);
+      const stop = writtenSort(f.value.stop, true);
       if (start && stop && compareSort(stop, start) < 0) {
         out.push(alert("therapy_stop_before_start", f.id, "chronology", [f.id], { id: messageId("therapy_stop_before_start"), args: { fact: f.id } }));
       }
@@ -570,7 +642,8 @@ export function supersededFacts(facts: readonly Fact[]): Map<string, string> {
   }
   const out = new Map<string, string>();
   for (const group of slots.values()) {
-    const newest = group.reduce((x, y) => (compareSort(y.date.sort!, x.date.sort!) > 0 ? y : x));
+    // The latest full sort form, then the ID: the same pick whatever the order of the facts.
+    const newest = group.reduce((x, y) => (cmp(y.date.sort!, x.date.sort!) > 0 || (y.date.sort === x.date.sort && cmp(y.id, x.id) > 0) ? y : x));
     for (const f of group) if (compareSort(newest.date.sort!, f.date.sort!) > 0) out.set(f.id, newest.id);
   }
   return out;
@@ -603,7 +676,7 @@ export function caseRules(input: RuleInput, options: CaseRuleOptions = {}): { al
   const chrono = chronology(input.facts, input.run.created_at);
   const alerts = [...reports.alerts, ...requestsWithoutResult(input.facts), ...contra, ...chrono];
   const order = new Map<string, number>(CASE_RULES.map((r, i) => [r, i]));
-  alerts.sort((a, b) => order.get(a.rule)! - order.get(b.rule)! || a.subject.localeCompare(b.subject));
+  alerts.sort((a, b) => order.get(a.rule)! - order.get(b.rule)! || cmp(a.subject, b.subject));
   const checks: Check[] = [
     ...reports.checks,
     { id: "chk-contradiction", looks_for: "contradiction", expected: null, covered, unreadable, result: contra.length ? "found" : "nothing_found" },

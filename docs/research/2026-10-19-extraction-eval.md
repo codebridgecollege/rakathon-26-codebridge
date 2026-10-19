@@ -29,9 +29,10 @@ metastasis fact wherever a finding mentions metastases. In no version was the mi
 
 "Report missing" stayed not run in v1 to v5 because it needs the cross-document rule for cited reports. With the case
 rules (issue #21, `packages/domain/src/extraction/rules.ts`, applied by `extract-eval.ts` as the case merge will) over
-the cached v5 answers: report missing 6 / 0 / 0 plus one known failure (case 10's brain MR, quoted in the outpatient
-report, comes out of the extraction as `reported_as: original`); patients mixed up 8 / 0 / 0 (no contradiction across
-S04's two patients); reference 164 / 0 / 0 (no stage contradiction in S02 for "cT3b cN1" next to "cT3b cN1 M0"). The
+the cached v5 answers: report missing 8 / 0 / 0 plus one known failure (case 10's brain MR, quoted in the outpatient
+report, comes out of the extraction as `reported_as: original`), including two expectations that a histology cited by
+its report date is found under its sampling date (S02, S04); patients mixed up 8 / 0 / 0 (no contradiction across
+S04's two patients); reference 165 / 0 / 0 (no stage contradiction in S02 for "cT3b cN1" next to "cT3b cN1 M0"). The
 poor-scan items not run need medication (bisoprolol), which this step does not extract yet.
 
 Facts kept with v3 and v5 (clear / verify / quarantined):

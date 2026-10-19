@@ -70,7 +70,7 @@ describe("original report missing", () => {
   it("raises one alert per report that is only cited, keyed by the report, with a check that found nothing", () => {
     const mr = imaging("MR", "mozek", "14.9.2026", ["s-cited"]);
     const out = caseRules(input([mr]));
-    const subject = "report|imaging|mr|2026-09-14";
+    const subject = "report|imaging|mr|mozek|2026-09-14";
     expect(out.alerts).toEqual([
       { id: alertId({ rule: "original_report_missing", subject }), rule: "original_report_missing", subject, kind: "missing", facts: [mr.id], message: { id: "alert-original-report-missing", args: { fact: mr.id } }, note: null },
     ]);
@@ -85,7 +85,7 @@ describe("original report missing", () => {
     expect(out.checks.find((c) => c.expected?.of_fact === cited.id)?.result).toBe("found");
   });
 
-  it("joins the facts of one cited report: a histology with its receptors, a colonoscopy told as two kinds", () => {
+  it("joins the facts of one cited report (a histology with its receptors), never facts of two kinds", () => {
     const h = (text: string) => fact("histology", { specimen: null, result_text: text, tumour_type: null, grade: null }, { date: date("15.9.2026"), sources: ["s-cited"] });
     const histology = [h("Invazivní karcinom NST"), h("ER 90 %"), h("HER2 1+"), h("Ki-67 25 %")];
     const colo = [
@@ -93,13 +93,44 @@ describe("original report missing", () => {
       fact("procedure", { name: "Koloskopie; odebrána biopsie", region: "rektum", text: null }, { date: date("9.3.2026"), status: "done", sources: ["s-cited"] }),
     ];
     const out = rules([...histology, ...colo]);
-    expect(out.map((a) => [a.rule, a.facts.length])).toEqual([
-      ["original_report_missing", 4],
-      ["original_report_missing", 2],
+    expect(out.map((a) => [a.facts.length, a.subject])).toEqual([
+      [4, "report|histology|||2026-09-15"],
+      [1, "report|imaging|koloskopie|rektu|2026-03-09"],
+      [1, "report|procedure||biops+kolos+odebr+rektu|2026-03-09"],
     ]);
     // Two reports of one kind and day that are not the same exam keep apart, with distinct subjects.
     const two = rules([imaging("CT", "mozek", "1.9.2026", ["s-cited"]), imaging("CT", "hrudník", "1.9.2026", ["s-cited"])]);
     expect(new Set(two.map((a) => a.id)).size).toBe(2);
+  });
+
+  it("names a report by its own words, so an acknowledged alert never moves to another report when one joins", () => {
+    const chest = imaging("CT", "hrudník", "1.9.2026", ["s-cited"], { id: "f-00000005" } as Partial<Fact>);
+    const before = rules([chest]);
+    const brain = imaging("CT", "mozek", "1.9.2026", ["s-cited"], { id: "f-00000001" } as Partial<Fact>);
+    const after = rules([brain, chest]);
+    expect(after.find((a) => a.facts.includes(chest.id))!.id).toBe(before[0]!.id);
+    expect(after.find((a) => a.facts.includes(brain.id))!.id).not.toBe(before[0]!.id);
+  });
+
+  it("keeps a missing histology report apart from the found protocol of the biopsy that took the sample", () => {
+    const bronchoscopy = fact("procedure", { name: "bronchoskopie s biopsií PHL", region: null, text: null }, { date: date("11.9.2026"), status: "done", sources: ["s-cited"] });
+    const protocol = fact("procedure", { name: "bronchoskopie s biopsií PHL", region: null, text: null }, { date: date("11.9.2026"), status: "done", sources: ["s-orig"] });
+    const histology = fact("histology", { specimen: "biopsie PHL", result_text: "adenokarcinom", tumour_type: null, grade: null }, { date: date("11.9.2026"), sources: ["s-cited"] });
+    expect(rules([bronchoscopy, protocol, histology]).map((a) => a.facts)).toEqual([[histology.id]]);
+  });
+
+  it("finds a histology report cited by its report date when the original carries the sampling date", () => {
+    const cited = fact("histology", { specimen: "core-cut biopsie levého prsu", result_text: "invazivní karcinom", tumour_type: null, grade: null }, { date: date("15.9.2026"), sources: ["s-cited"] });
+    const original = fact("histology", { specimen: "core-cut biopsie levého prsu", result_text: "invazivní karcinom NST", tumour_type: null, grade: "G2" }, { date: date("10.9.2026"), sources: ["s-orig"] });
+    expect(rules([cited, original])).toEqual([]);
+    const tooEarly = fact("histology", { specimen: "core-cut biopsie levého prsu", result_text: "x", tumour_type: null, grade: null }, { date: date("1.6.2026"), sources: ["s-orig"] });
+    expect(rules([cited, tooEarly])).toHaveLength(1);
+  });
+
+  it("raises a missing report for a cited exam with a negative finding, and never links a citation by its year alone", () => {
+    const negative = imaging("CT", "hrudník a břicho", "17.3.2026", ["s-cited"], { negated: true });
+    expect(rules([negative])).toHaveLength(1);
+    expect(rules([imaging("CT", "hrudník", "2025", ["s-cited"]), imaging("CT", "hrudník", "3.3.2025", ["s-orig"])])).toHaveLength(1);
   });
 
   it("never matches across modality, region or an undated exam: a wrong match would hide the gap", () => {
@@ -133,14 +164,17 @@ describe("original report missing", () => {
     expect(citedExams(facts, [src("s-orig"), src("s-cited", "cited")]).map((c) => c.fact.kind).sort()).toEqual(["decision", "histology", "procedure", "radiotherapy"]);
   });
 
-  it("groups more than three missing reports into one alert whose ID does not move when another joins", () => {
+  it("groups more than three missing reports into one alert that a newly missing report replaces", () => {
     const four = ["1.1.2026", "2.1.2026", "3.1.2026", "4.1.2026"].map((d) => imaging("CT", "hrudník", d, ["s-cited"]));
     const a = rules(four);
     expect(a).toHaveLength(1);
-    expect(a[0]).toMatchObject({ rule: "original_reports_missing", subject: "cited_exams", kind: "missing", message: { id: "alert-original-reports-missing", args: { count: 4 } } });
+    expect(a[0]).toMatchObject({ rule: "original_reports_missing", kind: "missing", message: { id: "alert-original-reports-missing", args: { count: 4 } } });
+    expect(a[0]!.subject).toMatch(/^cited_exams\|[0-9a-f]{8}$/);
     expect(a[0]!.facts).toEqual(four.map((f) => f.id));
+    expect(rules([...four].reverse())[0]!.id).toBe(a[0]!.id);
+    // A resolved grouped alert must not hide a fifth missing report: the set changed, so the alert is new.
     const five = rules([...four, imaging("MR", "mozek", "5.1.2026", ["s-cited"])]);
-    expect(five[0]!.id).toBe(a[0]!.id);
+    expect(five[0]!.id).not.toBe(a[0]!.id);
     expect(caseRules(input(four), { groupMissingReportsAbove: 10 }).alerts).toHaveLength(4);
   });
 });
@@ -162,6 +196,17 @@ describe("request without result", () => {
     // An earlier CT or another region is not the result.
     expect(rules([ct, imaging("CT", "hrudník", "1.10.2026", ["s-orig"])])).toHaveLength(1);
     expect(rules([ct, imaging("CT", "mozek", "12.10.2026", ["s-orig"])])).toHaveLength(1);
+  });
+
+  it("names a joined request alert the same way whatever the order of the facts", () => {
+    const a = request("odeslána žádanka na CT", "7.10.2026");
+    const b = request("doplnit výsledek CT", "7.10.2026");
+    expect(rules([b, a])[0]!.id).toBe(rules([a, b])[0]!.id);
+  });
+
+  it("does not take a result dated only by a month as the result of a request in that month", () => {
+    const ct = request("CT hrudníku", "7.10.2026");
+    expect(rules([ct, imaging("CT", "hrudník", "10/2026", ["s-orig"])])).toHaveLength(1);
   });
 
   it("joins the same dated request mentioned twice into one alert", () => {
@@ -213,6 +258,9 @@ describe("contradictions: like with like", () => {
     expect(rules([lab(5.8, null), lab(5.3, null)])).toEqual([]);
     expect(rules([lab(5.8, "21.9.2026 07:40"), lab(5.8, "21.9.2026 07:40")])).toEqual([]);
     expect(rules([lab(5.8, "21.9.2026 07:40"), lab(5300, "21.9.2026 07:40", "µmol/l")])).toEqual([]);
+    const urine = lab(45, "21.9.2026 07:40");
+    if (urine.kind === "lab_result") urine.value.draw.specimen = "moč";
+    expect(rules([lab(4.5, "21.9.2026 07:40"), urine])).toEqual([]);
   });
 
   const med = (dosing: string, when: string | null, status: Fact["status"] = "documented") =>
@@ -238,6 +286,10 @@ describe("contradictions: like with like", () => {
   it("raises differing grades of one specimen and differing performance status of one day", () => {
     const h = (grade: string) => fact("histology", { specimen: "nefrektomie vpravo", result_text: "RCC", tumour_type: null, grade }, { date: date("2.6.2022") });
     expect(rules([h("G2"), h("G3")])).toMatchObject([{ rule: "histology_grade_differs" }]);
+    expect(rules([h("G2"), h("TRG 2")])).toEqual([]);
+    expect(rules([h("G2"), h("G2 (Nottingham 3+2+2)")])).toEqual([]);
+    const noSpecimen = (grade: string) => fact("histology", { specimen: null, result_text: "x", tumour_type: null, grade }, { date: date("2.6.2022") });
+    expect(rules([noSpecimen("G2"), noSpecimen("G3")])).toEqual([]);
     const ps = (v: string, when: string) => fact("performance_status", { scale: "ECOG", value_as_written: v, value_numeric: Number(v) }, { date: date(when) });
     expect(rules([ps("1", "1.9.2026"), ps("2", "1.9.2026")])).toMatchObject([{ rule: "performance_status_differs", kind: "contradiction" }]);
     expect(rules([ps("1", "1.9.2026"), ps("2", "1.10.2026")])).toEqual([]);
@@ -262,12 +314,17 @@ describe("chronology", () => {
     expect(rules([therapy("27.1.2026", "3.1.2026")])).toMatchObject([{ rule: "therapy_stop_before_start", kind: "chronology" }]);
     expect(rules([therapy("27.1.2026", "1/2026")])).toEqual([]);
     expect(rules([therapy("27.1.2026", "8/2026")])).toEqual([]);
+    expect(rules([therapy("30.4.2026", "4-5/2026")])).toEqual([]);
+    expect(rules([therapy("7.4.2026", "7.4.2026 - 18.5.2026")])).toEqual([]);
   });
 
   it("raises a performed exam dated after the run was made (a misread year), not a planned one", () => {
     expect(rules([imaging("CT", "hrudník", "16.9.2062", ["s-orig"])])).toMatchObject([{ rule: "date_after_processing" }]);
     expect(rules([imaging("CT", "hrudník", "10/2026", ["s-orig"])])).toEqual([]);
     expect(rules([imaging("CT", "hrudník", "1.12.2026", ["s-orig"], { status: "planned" })])).toEqual([]);
+    // 22:30 UTC on 19.10. is already 20.10. in Prague.
+    const late = { ...input([imaging("CT", "hrudník", "20.10.2026", ["s-orig"])]), run: { created_at: "2026-10-19T22:30:00Z" } };
+    expect(caseRules(late).alerts).toEqual([]);
   });
 
   it("raises a result dated before its request", () => {
@@ -309,6 +366,8 @@ describe("superseded values", () => {
     const d = ps("0", "1.12.2026", "planned");
     expect([...supersededFacts([a, b, c, d])]).toEqual([[a.id, b.id]]);
     expect(supersededFacts([ps("1", "6.10.2026"), ps("2", "6.10.2026")]).size).toBe(0);
+    const mixed = [ps("1", "1.1.2025"), ps("2", "2026"), ps("3", "1.5.2026")];
+    expect([...supersededFacts(mixed)]).toEqual([...supersededFacts([...mixed].reverse())]);
   });
 
   it("keeps a clinical and a pathological stage apart", () => {

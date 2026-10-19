@@ -5,6 +5,9 @@
   "documents": [{"document_id": "S02_pacient", "pages_dir": "data/derived/pages/S02_pacient"}],
   "reference_labs": "fixtures/data/mock-case-S02.json",
   "expectations": [
+    {"id": "S02-resection-histology-not-missing", "failure_kind": "report_missing", "expect": "absent",
+     "about": "The histology of the resection is cited as 21.8.2026 and its original report (page 4) is dated by the surgery, 11.8.2026: the report is present",
+     "alert": {"kind": "missing", "fact.kind": "histology", "fact.date.sort": "2026-08-21"}},
     {"id": "S02-pelvis-mri-report-missing", "failure_kind": "report_missing", "expect": "present",
      "about": "The staging MRI of the pelvis (16.3.2026) is only quoted; its original report is missing",
      "alert": {"kind": "missing", "fact.kind": "imaging", "fact.date.sort": "2026-03-16"}},
