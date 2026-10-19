@@ -122,6 +122,17 @@ def _origin_seg(fact: Mapping[str, Any], sources: Mapping[str, Mapping[str, Any]
     return "+".join(sorted(docs)) if docs else "doc:none"
 
 
+def _passage_seg(fact: Mapping[str, Any], sources: Mapping[str, Mapping[str, Any]]) -> str | None:
+    """A hash of the passages a fact is quoted from (passageSeg in keys.ts)."""
+    quotes = []
+    for sid in fact["sources"]:
+        s = sources.get(sid)
+        if s is not None and s["type"] == "document":
+            quotes.append(norm_text(s["quote"]))
+    # Sorted by UTF-16 code units, as JS sorts strings.
+    return f"src:{fnv1a32(chr(10).join(sorted(quotes, key=_utf16)))}" if quotes else None
+
+
 def _part_seg(fact: Mapping[str, Any], sources: Mapping[str, Mapping[str, Any]]) -> str:
     """The document parts a fact is quoted from (partSeg in keys.ts)."""
     parts: set[str] = set()
@@ -165,6 +176,11 @@ def build_fact_key(fact: Mapping[str, Any], sources: Mapping[str, Mapping[str, A
         if v["draw"].get("requisition"):
             parts.append(f"req:{norm_text(v['draw']['requisition'])}")
         parts.append(_origin_seg(fact, sources))
+        # Undated values of one test in one document are told apart by their quoted passage (see keys.ts).
+        if draw == "undated" and not v["draw"].get("requisition"):
+            passage = _passage_seg(fact, sources)
+            if passage:
+                parts.append(passage)
         return _join(*parts)
     if kind == "diagnosis":
         return _join(kind, _code_or(fact, norm_text(v["text"])), "status:none" if v["disease_status"] is None else v["disease_status"], date_seg(d))

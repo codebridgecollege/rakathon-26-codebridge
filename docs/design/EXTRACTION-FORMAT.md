@@ -172,7 +172,7 @@ Every fact has the same frame, plus a `value` whose shape depends on its
 ```json
 {
   "id": "f-8d41c2",
-  "key": "lab_result|S_HSCRP|draw:undated|doc:10_pacient",
+  "key": "lab_result|S_HSCRP|draw:undated|doc:10_pacient|src:7e986229",
   "kind": "lab_result",
   "subject": "patient",
   "value": { },
@@ -243,7 +243,7 @@ changes between runs, their link breaks.
 
 | Kind | Key |
 |---|---|
-| `lab_result` | code (or name as written), draw date and time as written, requisition number if any, document |
+| `lab_result` | code (or name as written), draw date and time as written, requisition number if any, document; when neither a draw date nor a requisition is stated, also a hash of the quoted passages (`src:7e986229`), so two undated values of one test in one document never share a key or depend on a "#2" (a re-read that changes the quote re-keys the fact, and the matcher carries its ID only when the match is unambiguous) |
 | `diagnosis` | code or normalised text, disease status, date |
 | `medication` | drug, period start (a dose change starts a new medication fact with its own start, so "Prednison 1 mg/kg/den" and "Prednison 0,5 mg/kg od 12.5.2023" are two facts); for an entry with no start, also the sorted set of document parts it is quoted from (`part:10_pacient/p0`; a source without a part counts as its document, a NIS source as its record), so the same drug listed undated in two reports gives two facts instead of a merge or a "#2". A part ID (`<document>/p<n>`) is stable only while the file is split into parts the same way: a re-split, or a source gaining a part or a further part (an identical entry repeated at a later visit, kept as a further source), changes the key, and the fact keeps its ID only through the matcher's similarity step, which refuses an ambiguous match |
 | `systemic_therapy` | drug or regimen, line, start; for an entry with no start (an anticancer drug in a medication list), also the document part it is listed in, as for `medication` |
@@ -550,7 +550,7 @@ what those pages say, until a doctor resolves it.
 ```json
 {
   "id": "f-8d41c2",
-  "key": "lab_result|S_HSCRP|draw:undated|doc:10_pacient",
+  "key": "lab_result|S_HSCRP|draw:undated|doc:10_pacient|src:7e986229",
   "kind": "lab_result",
   "subject": "patient",
   "value": {
@@ -582,7 +582,7 @@ what those pages say, until a doctor resolves it.
 
 What changed from today:
 - `out_of_range_origin: "assistant"` says the "high" was computed from the range, not printed by the lab. Today that's only in a note.
-- `not_stated: ["draw"]` says the documents give no draw date.
+- `not_stated: ["draw"]` says the documents give no draw date. Because of that, the key ends with a hash of the quoted passage (`src:7e986229`).
 - The quote keeps "mg/1"; the corrected unit is in the fact.
 
 **The view shows:** a table row "hsCRP 9,5 mg/l (0 ... 5) ↑" with the

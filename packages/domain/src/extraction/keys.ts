@@ -84,6 +84,16 @@ function originSeg(fact: Pick<Fact, "sources">, sources: ReadonlyMap<string, Sou
   return docs.size ? [...docs].sort().join("+") : "doc:none";
 }
 
+/** A hash of the passages a fact is quoted from (document sources only; originSeg already names a NIS record). */
+function passageSeg(fact: Pick<Fact, "sources">, sources: ReadonlyMap<string, Source>): string | null {
+  const quotes: string[] = [];
+  for (const id of fact.sources) {
+    const s = sources.get(id);
+    if (s?.type === "document") quotes.push(normText(s.quote));
+  }
+  return quotes.length ? `src:${fnv1a32(quotes.sort().join("\n"))}` : null;
+}
+
 /** The document parts a fact is quoted from (the document when a source names no part, the record for NIS). */
 function partSeg(fact: Pick<Fact, "sources">, sources: ReadonlyMap<string, Source>): string {
   const parts = new Set<string>();
@@ -121,6 +131,14 @@ export function buildFactKey(fact: DraftFact | Fact, sources: ReadonlyMap<string
       const parts = [fact.kind, what, `draw:${draw}`];
       if (v.draw.requisition) parts.push(`req:${normText(v.draw.requisition)}`);
       parts.push(originSeg(fact, sources));
+      // Without a draw date or a requisition, two values of one test in one document would share this key, and a
+      // collision suffix ordered by content could swap their IDs (and a doctor's confirmation) when one value is
+      // re-read. The quoted passage tells them apart instead: never a position, and a re-read that changes the quote
+      // re-keys the fact, so the matcher carries its ID only when the match is unambiguous.
+      if (draw === "undated" && !v.draw.requisition) {
+        const passage = passageSeg(fact, sources);
+        if (passage) parts.push(passage);
+      }
       return join(...parts);
     }
     case "diagnosis":

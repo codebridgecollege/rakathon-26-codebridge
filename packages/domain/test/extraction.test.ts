@@ -80,7 +80,7 @@ describe("fact keys", () => {
   const src = new Map(example().sources.map((s) => [s.id, s]));
   it("reproduce the spec's worked examples", () => {
     const facts = example().facts;
-    expect(buildFactKey(facts[0]!, src)).toBe("lab_result|S_HSCRP|draw:undated|doc:10_pacient");
+    expect(buildFactKey(facts[0]!, src)).toBe("lab_result|S_HSCRP|draw:undated|doc:10_pacient|src:7e986229");
     expect(buildFactKey(facts[1]!, src)).toBe("stage|pathological|2022-06-02");
   });
   it("never contain a page number: the same lab value on another page keeps its key", () => {
@@ -110,7 +110,7 @@ describe("fact keys", () => {
     const run = example();
     const lab = run.facts[0] as Extract<Fact, { kind: "lab_result" }>;
     const second = { ...lab, value: { ...lab.value, value_as_written: "12,0", value_numeric: 12 } };
-    const plain = "lab_result|S_HSCRP|draw:undated|doc:10_pacient";
+    const plain = "lab_result|S_HSCRP|draw:undated|doc:10_pacient|src:7e986229";
     // "12,0" sorts before "9,5", so the second draw keeps the plain key whatever the order of facts or sources.
     for (const [facts, sources] of [
       [[lab, second], run.sources],

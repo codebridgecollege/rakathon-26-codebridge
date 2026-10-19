@@ -100,7 +100,7 @@
   "facts": [
     {
       "id": "f-8d41c2",
-      "key": "lab_result|S_HSCRP|draw:undated|doc:10_pacient",
+      "key": "lab_result|S_HSCRP|draw:undated|doc:10_pacient|src:7e986229",
       "kind": "lab_result",
       "subject": "patient",
       "value": {
