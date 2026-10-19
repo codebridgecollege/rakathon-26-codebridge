@@ -98,6 +98,11 @@ What testing on FNO's pages taught us, useful for questions:
   Fixed by matching a title glued to the name. Widening the title list to
   "prim." then blacked out "přim. konfigurace" ("přiměřené"), so "prim."
   was taken out again; "prim. MUDr. X" is still caught through "MUDr.".
+- **Missed again (gateway check, 2026-10-19):** "Lipenská Věra, nar.
+  14.6.1958" kept the birth date, because "nar." in the middle of a line
+  was not taken as a label; the vision model read it from the redacted
+  page. Fixed: a date right after "nar." anywhere, and the case's own
+  birth date wherever it appears.
 - **Not built yet:** a Czech name recognizer for names in free text
   (relatives, other doctors without "MUDr."), and blacking out whole
   header blocks. Until then, option B is a demonstration, not a
@@ -356,6 +361,72 @@ a day after their expiry. The trade-off: whoever holds the QR code (a
 photo of the screen, a shoulder-surfer) can add files to that case until
 it expires, and see the names of the files sent with that code; they
 cannot read anything about the patient.
+
+## Text sent to a model (issue #20)
+
+Every call from the document pipeline to an external model goes through one
+interface in the Worker (`api/src/services/model.ts`). Nothing is built on
+it yet that sends real documents; the extraction prompts come in phase 2.
+
+- **Configuration only.** Provider, endpoint, model and key come from
+  `MODEL_*` vars and a secret. Today that is the hackathon Azure gateway in
+  Sweden Central ([gateway check](../research/2026-10-19-azure-gateway-check.md));
+  another EU model is a configuration change.
+- **Pseudonymized text.** Before a call, the Worker replaces in every text
+  part: the case patient's name in any case and Czech declension
+  ("Lipenské", "VĚROU"), also without diacritics as OCR writes it; the
+  birth number (any `######/####` and the patient's own in any spacing);
+  the birth date (after "nar." and the patient's own in any format); phone
+  numbers, e-mail addresses and form fields (Jméno, Příjmení, Bydliště,
+  Adresa, Telefon); the org's staff names; any name after a title (MUDr.,
+  doc., Mgr., ...). Placeholders are `[PACIENT]`, `[RC]`,
+  `[DATUM_NAROZENI]`, `[TELEFON]`, `[EMAIL]`, `[ADRESA]`, `[JMENO]`,
+  `[PERSONAL_n]` (one number per staff member) and `[LEKAR_n]`. The mapping
+  back stays in the Worker's memory for the length of the call; it is
+  never in a prompt, a log line, a Workflow step result, the cache or D1.
+  Text parts are labelled by position, not by document ID or file name.
+- **A gate on the whole payload.** The same rules run over everything that
+  would be sent (prompt, text, schema); any hit refuses the call
+  (`identifier_remains`) and logs only the counts per kind. Images are
+  accepted only as `RedactedPage` objects, which only the redaction step
+  makes, for the same org and case.
+- **Page images are redacted first** by the page reader (`/v1/redact` in
+  `pipeline/container/server.py`), with the names from the case record and
+  the org's staff in D1, never from fixture files. It also blacks out dark
+  areas no OCR word covers (signatures, stamps, handwriting), best effort:
+  on our synthetic pages it marks none, and a light stamp or a signature
+  over printed text can be missed. The redacted image and its boxes with
+  reasons (never values) are stored next to the page.
+- **Audit and budget.** One access-log row per page sent, written before
+  the first attempt: case, document, page, provider, model, purpose and
+  prompt version, never text. The attempt count and outcome go on a
+  `model_calls` row (the access log is append-only). A budget of pages per
+  org and per case and calls per page in a 24-hour window
+  (`MODEL_BUDGET_*`) is checked in the same D1 batch, so a call over budget
+  is refused before anything is sent.
+- **Cache.** Model answers are cached in the EU R2 bucket under
+  `org/<org>/cache/model/<case>/<model>/<prompt>@<version>/<prompt hash>/<input hash>.json`,
+  so one org never reads another's. The cached answer is the pseudonymized
+  one. Reset-demo deletes the org's `cache/model/`; a lifecycle rule
+  expires it after 30 days (`api/AGENTS.md`).
+
+**Known limits of the pseudonymization**, to state to FNO and the jury:
+
+- Staff names alone are matched only when capitalized, because several are
+  ordinary Czech words ("Malá", "Černý", "Veselá": "malé pánve" must stay
+  readable). A staff surname written in lower case and on its own is missed;
+  a staff full name (first name and surname together) and any name after a
+  title are matched in any case. A capitalized ordinary word at the start
+  of a sentence that equals a staff name ("Malá pánev") is replaced, which
+  loses that word for the model.
+- The staff list holds surnames only (D1 `users.sur`), so a staff first
+  name alone is not matched.
+- Names of other people without a title or a form label (relatives,
+  external doctors) are not found: there is no Czech name recognizer yet.
+- An OCR misread inside a name ("Lipcnská") is not matched, in text or on
+  the image.
+- Pseudonymized text is still personal data: diagnoses, dates and places
+  stay because they are the medical content.
 
 ## Meeting audio
 

@@ -231,6 +231,41 @@ Design and contract: `docs/research/backend-steps/step-6.md`, section "As implem
   ```
 - Python tests of the pipeline: `cd pipeline && uv run pytest -q`.
 
+## Model interface (issue #20, stream D phase 1)
+
+Every call that sends case content to an external model goes through `callModel` in `src/services/model.ts`; the
+privacy side is in `docs/design/DATA-PROTECTION.md`, "Text sent to a model", and the gateway's measured behaviour in
+`docs/research/2026-10-19-azure-gateway-check.md`.
+
+- **Configuration:** `MODEL_PROVIDER` (`azure-openai` reads the `AZURE_OPENAI_KEY` secret, `openai-compatible` reads
+  `MODEL_API_KEY`), `MODEL_BASE`, `MODEL_NAME`, `MODEL_REASONING_EFFORT`, timeouts, input caps and the `MODEL_BUDGET_*`
+  values in `wrangler.jsonc`. No key: `model_off`. The summary route (`/api/summarize`) still uses its own
+  `AZURE_OPENAI_*` vars.
+- **Prompts** live in `src/prompts/`, registered by ID with a version in `src/prompts/index.ts`; bump the version on
+  any change of text or schema. The prompt's SHA-256 is in the cache key and the call's metadata anyway.
+- **Inside a Workflow step:** run the call under `MODEL_STEP` and rethrow `forStep(e)`, which makes a final error a
+  `NonRetryableError` and leaves `busy`, `network` and `upstream_error` to the step's retries. The in-process retries
+  (429 and 503, honouring `retry-after-ms` and `Retry-After`) stop at `MODEL_DEADLINE_MS`. Step results hold IDs,
+  counts and codes only: write the model output to R2 inside the step and return its key, never the text, and never
+  the pseudonymization mapping.
+- **Identity:** `loadCaseIdentity` (`src/store/identity.ts`) reads the patient and the org's staff (every membership,
+  also ended ones) inside the step. `callModel` pseudonymizes the text itself and refuses (`identifier_remains`) when
+  any identifier is left in the payload, so callers never pass already pseudonymized text.
+- **Images:** only `RedactedPage` objects from `redactPages` or `redactStoredPage` (`src/services/redaction.ts`),
+  which call the page reader's `/v1/redact` with the case's name forms; `redactStoredPage` stores
+  `p<n>.redacted.png` and `p<n>.redactions.json` next to the run's page.
+- **Audit and budget:** one `model.call` access-log row per page (document and page, provider, model, purpose,
+  prompt), written in one D1 batch with the budget guards and a `model_calls` row (migration 0013) before the first
+  attempt; the attempts and outcome are then written to `model_calls`. A cache hit sends nothing and writes nothing.
+  Reset-demo deletes `model_calls` (trigger `demo_reset_model_calls`) and the org's `cache/model/`.
+- **Cache lifecycle,** once per demo org (the same as `cache/summary/`):
+
+  ```
+  npx wrangler r2 bucket lifecycle add codebridge-mdt model-cache-30d-demo-a org/demo-a/cache/model/ --expire-days 30 -J eu -y
+  ```
+- **Tests:** `test/model.test.ts` (mocked model and page reader) and `test/pseudonymize.test.ts`; pytest
+  `pipeline/tests/test_server.py` for `/v1/redact`.
+
 ## Upload from a phone (issue #10)
 
 Design and contract: `docs/design/PHONE-UPLOAD.md`, section "As implemented".

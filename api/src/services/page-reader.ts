@@ -76,6 +76,13 @@ export type LabPoint = { value: string; certainty: "documented" | "unclear_ocr";
 export type LabTest = { code: string; unit: string; reference_range: string; points: LabPoint[]; [k: string]: unknown };
 export type Labs = { draws: unknown[]; tests: LabTest[]; indices: unknown[]; unparsed: unknown[]; counts: Record<string, number> };
 
+export type RedactionHit = { reason: string; box: [number, number, number, number] };
+export type RedactBody = {
+  pages: { n: number; png_b64: string; words: Word[] }[];
+  identity: { names: string[]; staff: string[]; birth_number: string | null; birth_date: string | null };
+  ink_marks: boolean;
+};
+
 export const pageReader = {
   healthz: (env: Env, docId: string) => pageReaderJson<{ ok: boolean; versions: Versions }>(env, docId, "/healthz"),
   inspect: (env: Env, docId: string, b: ArrayBuffer) =>
@@ -83,6 +90,8 @@ export const pageReader = {
   pages: (env: Env, docId: string, b: ArrayBuffer, from: number, to: number) => pageReaderJson<{ pages: RawPage[] }>(env, docId, `/v1/pages?from=${from}&to=${to}`, pdf(b)),
   analyze: (env: Env, docId: string, pages: Omit<RawPage, "png_b64">[]) =>
     pageReaderJson<{ pages: { n: number; page: PageRecord; readability: Readability }[]; document: { level: Readability["level"]; reasons_cs: string[] } }>(env, docId, "/v1/analyze", json({ pages })),
+  // Black out direct identifiers on page images (pipeline/container/server.py, /v1/redact); see services/redaction.ts.
+  redact: (env: Env, docId: string, body: RedactBody) => pageReaderJson<{ pages: { n: number; png_b64: string; hits: RedactionHit[] }[] }>(env, docId, "/v1/redact", json(body)),
   labs: (env: Env, docId: string, pages: { n: number; text: string; layer_text: string; readability_level: string; words: Word[]; engine: string; doc_id: string }[]) =>
     pageReaderJson<Labs>(env, docId, "/v1/labs", json({ pages, document: { doc_id: docId } })),
 };

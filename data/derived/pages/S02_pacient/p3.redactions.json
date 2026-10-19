@@ -18,6 +18,15 @@
   ]
  },
  {
+  "reason": "datum narození",
+  "box": [
+   314,
+   208,
+   95,
+   17
+  ]
+ },
+ {
   "reason": "rodné číslo",
   "box": [
    450,

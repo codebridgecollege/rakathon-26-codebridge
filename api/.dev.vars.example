@@ -1,6 +1,8 @@
 # Local secrets for `wrangler dev`. Copy to .dev.vars (gitignored). Never commit real values.
 ELEVENLABS_API_KEY=
 AZURE_OPENAI_KEY=
+# Only with MODEL_PROVIDER=openai-compatible (another EU model; src/services/model.ts):
+MODEL_API_KEY=
 # Optional, only with AI_GATEWAY_BASE set in wrangler.jsonc vars:
 AI_GATEWAY_TOKEN=
 # The login (AUTH_MODE=oidc, `npm run dev:oidc`; api/AGENTS.md, "Login"). `npm run dev` runs the demo picker and needs

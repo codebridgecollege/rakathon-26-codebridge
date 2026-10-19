@@ -15,6 +15,9 @@ export type AuditLine = {
   target_type?: string | null;
   target_id?: string | null;
   break_glass_reason?: string | null;
+  // The page a row is about (a model call logs one row per page sent).
+  document_id?: string | null;
+  page_n?: number | null;
 };
 
 type Guard = { code: string; cond: string; args: unknown[]; err: () => Error };
@@ -147,8 +150,8 @@ export function auditStatement(
     db,
     v.org,
     `INSERT INTO access_log (org_id, actor_user_id, actor_name, acted_as_role, acted_as_membership, impersonating, auth_mode, case_id, action, what_cs,
-       target_type, target_id, break_glass_reason, request_id, data_epoch, at)
-     VALUES (?org, ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, strftime('%Y-%m-%dT%H:%M:%fZ','now'))`,
+       target_type, target_id, break_glass_reason, request_id, data_epoch, document_id, page_n, at)
+     VALUES (?org, ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, strftime('%Y-%m-%dT%H:%M:%fZ','now'))`,
     // The real person, also after a role switch; the membership acted as is the next columns.
     v.actor?.id ?? v.id,
     v.actor?.name ?? v.name,
@@ -164,5 +167,7 @@ export function auditStatement(
     a.break_glass_reason ?? ctx.breakGlass ?? null,
     ctx.requestId,
     ctx.epoch,
+    a.document_id ?? null,
+    a.page_n ?? null,
   );
 }

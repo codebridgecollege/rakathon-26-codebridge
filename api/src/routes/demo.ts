@@ -28,7 +28,7 @@ const MUTABLE_DELETE_ORDER = [
 const ARCHIVED = ["access_log", "decisions", "edit_log", "alert_events", "status_history", "question_confirmations"] as const;
 // Prefixes Steps 5 and 6 write, under the org; seed objects (pages/, docs/, extract/, guidance/, seed/, fixtures/) are
 // never touched.
-const R2_TRANSIENT = ["uploads/", "audio/", "jobs/", "cache/summary/"];
+const R2_TRANSIENT = ["uploads/", "audio/", "jobs/", "cache/summary/", "cache/model/"];
 
 // seed/reset.json (written by seed.py): one section per demo org.
 type ResetSection = { statements: string[]; patient_ids: string[]; membership_ids: string[] };

@@ -49,6 +49,22 @@ export function testEnv(over: Record<string, unknown> = {}): Env {
     STT_BATCH_SEED: "1",
     AUDIO_PART_BYTES: "5242880",
     AUDIO_MAX_MINUTES_PER_CASE: "120",
+    // The model interface (src/services/model.ts): a .test host, so an unmocked call never leaves the test.
+    MODEL_PROVIDER: "azure-openai",
+    MODEL_BASE: "https://model.test/openai/v1",
+    MODEL_NAME: "test-model",
+    MODEL_API_KEY: "",
+    MODEL_REASONING_EFFORT: "low",
+    MODEL_TIMEOUT_MS: "5000",
+    MODEL_DEADLINE_MS: "20000",
+    MODEL_MAX_RETRY_WAIT_MS: "50",
+    MODEL_MAX_INPUT_CHARS: "200000",
+    MODEL_MAX_IMAGE_BYTES: "4000000",
+    MODEL_MAX_OUTPUT_TOKENS: "8000",
+    MODEL_BUDGET_WINDOW_HOURS: "24",
+    MODEL_BUDGET_PAGES_PER_ORG: "600",
+    MODEL_BUDGET_PAGES_PER_CASE: "80",
+    MODEL_BUDGET_CALLS_PER_PAGE: "4",
     ...over,
   } as unknown as Env;
 }
