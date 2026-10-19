@@ -23,20 +23,29 @@ POST /v1/pages?from=1&to=5  body: PDF bytes; pages are 1-based and inclusive, at
                   "words": [{"t": str, "c": int, "b": [x, y, w, h]}],  # Tesseract on a 300 dpi render,
                                                        # boxes scaled to the 150 dpi PNG
                   "tess_text": str,                    # Tesseract -l ces --psm 4, plain text
-                  "layer_text": str}]}                 # the PDF text layer, a second reading only
+                  "layer_text": str,                   # the PDF text layer, a second reading only
+                  "unreadable": [{"b": [x, y, w, h],   # ink no confidently read word explains (handwriting,
+                                  "reason": "no_text"|"low_conf"}]}]}  # signature, stamp), 150 dpi PNG coordinates
+  unreadable (added in page reader 0.2.0): "no_text" when no OCR word lies there, "low_conf" when only words below
+  confidence 60 do. The lines of one note are one region. Nothing in a region is read or filled in.
 
-POST /v1/analyze            body: {"pages": [{"n", "words", "tess_text", "layer_text", "size"}]}
+POST /v1/analyze            body: {"pages": [{"n", "words", "tess_text", "layer_text", "size", "unreadable"?}]}
   200 {"pages": [{"n": int,
                   "page": {"n", "size", "text", "engine": "tesseract", "words", "mean_conf", "low_conf_words",
                            "verify": [{"tess", "start", "end", "layer", "conf", "box", "reason"}],
-                           "second_reading": "text_layer"|null},
+                           "second_reading": "text_layer"|null,
+                           "unreadable": [{"b", "reason"}]},  # as sent ([] when not sent)
                   "readability": {"level": "good"|"fair"|"poor"|"empty", "reasons_cs": [str],
                                   "metrics": {...}}}],
        "document": {"level": str, "reasons_cs": [str]}}
   "text" is Tesseract's text (the text of record); start/end are offsets into it. verify reasons:
   "disagree" (the text layer reads it differently), "only_tesseract" (not in the layer), "low_conf"
-  (Tesseract's confidence below 60 on a token with a digit). second_reading is null when the page has no
-  text layer; then only low_conf items appear.
+  (Tesseract's confidence below 60 on a token with a digit), and since 0.2.0 "unreadable" (a token whose word box
+  centre lies in an unreadable region; layer null, box the region's). second_reading is null when the page has
+  no text layer; then only low_conf and unreadable items appear. unreadable is the field /v1/pages returned, passed
+  on as is; without it the image counts as not looked at (metrics unreadable_regions null). Since 0.2.0 the
+  readability also judges tokens with a shape no Czech or medical word has (metrics garbage_share, garbage per
+  kind) and unreadable regions (metrics unreadable_regions, unreadable_share); see page_reader/readability.py.
 
 POST /v1/labs               body: {"pages": [{"n", "text", "layer_text", "readability_level",
                                               "words"?, "engine"?, "doc_id"?}],
@@ -47,6 +56,8 @@ POST /v1/labs               body: {"pages": [{"n", "text", "layer_text", "readab
   unparsed reasons: "lab_like_not_parsed", "draw_date_not_parsed" (offsets into "text"), and
   "only_second_reading" (a result only the text layer has; offsets into "layer_text", with "in", "code"
   and "quote"). A page without readability_level counts as not readable: its points are unclear_ocr.
+  Since 0.2.0 a line that starts like a lab sheet's code and has a value, a range or a lab unit is listed as
+  lab_like_not_parsed even when OCR turned its letters into Czech capitals or lost its colon and brackets.
 
 POST /v1/redact             body: {"pages": [{"n", "png_b64", "words"}],
                                    "identity": {"names": [[str]], "staff": [[str]], "birth_number": str|null,
@@ -81,6 +92,18 @@ POST /v1/parts              body: {"pages": [{"n", "text", "layer_text"?, "reada
   as a date gives date null and certainty "verify". "unknown" is shown as "neurčeno" for the doctor to set.
   readability_level is the worst page level when every page of the part carries one, else null.
 
+POST /v1/identity           body: {"pages": [{"n", "text"}],
+                                   "expected": {"name": str|null, "birth_number": str|null, "birth_date": str|null}}
+  200 {"result": "matches"|"conflicts"|"cannot_verify",
+       "pages": [{"n": int, "result": ...}],
+       "evidence": [{"n": int, "start": int, "end": int, "field": "name"|"birth_number"|"birth_date",
+                     "result": ...}]}
+  Added in 0.2.0. Whether each page names the expected patient (page_reader/identity.py has the rules): a valid
+  differing birth number or a clearly different full name in a form field or header conflicts; a damaged number,
+  a differing birth date, or a name that differs only in diacritics or one misread letter cannot be verified;
+  nothing found cannot be verified. "text" is the text of record; offsets point into it. The answer holds offsets
+  and field kinds only, never a value. birth_date is "YYYY-MM-DD" or "d.m.yyyy". At most MAX_PAGES pages.
+
 Errors: {"error": {"code": str, "message_cs": str}} with
   400 bad_json, bad_request, bad_range; 404 not_found; 405 method_not_allowed; 413 too_large;
   422 not_pdf, encrypted, too_many_pages, unreadable_pdf, page_too_large (over MAX_PIXELS at 300 dpi),
@@ -105,7 +128,8 @@ sys.path.insert(0, str(_here if (_here / "page_reader").is_dir() else _here.pare
 import fitz  # noqa: E402  PyMuPDF
 from PIL import Image  # noqa: E402
 
-from page_reader import VERSION, convert, labs, layer, ocr, page_index, parts, readability, redact, render  # noqa: E402
+from page_reader import (VERSION, convert, identity, labs, layer, ocr, page_index, parts, readability,  # noqa: E402
+                         redact, render)
 
 MAX_BODY = 20 * 1024 * 1024  # the upload limit of step 6, so anything larger never came from our Worker
 MAX_PAGES = 60  # a referral PDF is a few dozen pages; more is a wrong upload, and it bounds the work
@@ -191,10 +215,15 @@ def _pages(doc, query: dict) -> tuple[dict, int]:
         page = doc[n - 1]
         view = render.png(page, render.VIEW_DPI)
         text, tsv = ocr.ocr_png(render.png(page, render.OCR_DPI))
+        words = page_index.tess_words_text(tsv)
+        # Ink no confident word explains (handwriting, signatures, stamps), on the 150 dpi image the word boxes
+        # are scaled to; only the page image can show it, so it is found here and passed on to /v1/analyze.
+        with Image.open(io.BytesIO(view)) as img:
+            unreadable = redact.unreadable_regions(img, words)
         out.append({
             "n": n, "size": list(page_index.png_size_bytes(view[:24])),
             "png_b64": base64.b64encode(view).decode("ascii"),
-            "words": page_index.tess_words_text(tsv), "tess_text": text, "layer_text": layer.page_text(page),
+            "words": words, "tess_text": text, "layer_text": layer.page_text(page), "unreadable": unreadable,
         })
     return {"pages": out}, len(out)
 
@@ -216,12 +245,31 @@ def analyze(body: bytes, _query) -> tuple[dict, int]:
         for p in data["pages"]:
             rec = page_index.tesseract_page(int(p["n"]), p.get("size") or [0, 0], p.get("tess_text") or "",
                                             p.get("words") or [], p.get("layer_text") or "")
-            rd = readability.assess(rec["n"], rec["words"], rec["text"], rec["verify"], rec["second_reading"])
+            # A caller that did not send "unreadable" (an older Worker) did not look at the image: None, which
+            # readability tells apart from "looked, found none".
+            regions = _regions(p["unreadable"]) if "unreadable" in p else None
+            page_index.mark_unreadable(rec, regions or [])
+            rd = readability.assess(rec["n"], rec["words"], rec["text"], rec["verify"], rec["second_reading"],
+                                    unreadable=regions, size=rec["size"])
             out.append({"n": rec["n"], "page": rec, "readability": rd})
     except (KeyError, TypeError, ValueError):
         raise ApiError(400, "bad_request", "Strana nemá očekávaný tvar (n, words, tess_text, layer_text, size).") from None
     doc = readability.document([{"n": p["n"], **p["readability"]} for p in out])
     return {"pages": out, "document": doc}, len(out)
+
+
+def _regions(value) -> list[dict]:
+    """Unreadable regions as /v1/pages returns them, checked: a list of {"b": [4 numbers], "reason"}."""
+    if not isinstance(value, list):
+        raise ValueError("unreadable")
+    out = []
+    for r in value:
+        b = r["b"]
+        if r.get("reason") not in ("no_text", "low_conf") or not (
+                isinstance(b, list) and len(b) == 4 and all(isinstance(x, (int, float)) for x in b)):
+            raise ValueError("unreadable")
+        out.append({"b": b, "reason": r["reason"]})
+    return out
 
 
 def labs_(body: bytes, _query) -> tuple[dict, int]:
@@ -293,9 +341,26 @@ def parts_(body: bytes, _query) -> tuple[dict, int]:
     return result, len(data["pages"])
 
 
+def identity_(body: bytes, _query) -> tuple[dict, int]:
+    data = _json(body)
+    exp = data.get("expected")
+    if (not isinstance(exp, dict) or len(data["pages"]) > MAX_PAGES
+            or any(not (exp.get(k) is None or isinstance(exp.get(k), str)) for k in ("name", "birth_number", "birth_date"))):
+        raise ApiError(400, "bad_request", f"Očekávám identitu pacienta (name, birth_number, birth_date) a nejvýš {MAX_PAGES} stran.")
+    expected = {k: exp.get(k) for k in ("name", "birth_number", "birth_date")}
+    try:
+        for p in data["pages"]:
+            if not isinstance(p.get("text", ""), str):
+                raise TypeError("text")
+        result = identity.check(data["pages"], expected)
+    except (KeyError, TypeError, ValueError, AttributeError):
+        raise ApiError(400, "bad_request", "Strana nemá očekávaný tvar (n, text).") from None
+    return result, len(data["pages"])
+
+
 ROUTES = {("GET", "/healthz"): healthz, ("POST", "/v1/inspect"): inspect, ("POST", "/v1/pages"): pages,
           ("POST", "/v1/analyze"): analyze, ("POST", "/v1/labs"): labs_, ("POST", "/v1/redact"): redact_,
-          ("POST", "/v1/convert"): convert_, ("POST", "/v1/parts"): parts_}
+          ("POST", "/v1/convert"): convert_, ("POST", "/v1/parts"): parts_, ("POST", "/v1/identity"): identity_}
 
 
 class Handler(BaseHTTPRequestHandler):

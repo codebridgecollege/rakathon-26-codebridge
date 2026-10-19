@@ -4,9 +4,6 @@
   "about": "Poor scan with planted misreads: a dose, a negation, a draw date, a potassium value (samples/S03_pacient/GROUND-TRUTH.md)",
   "documents": [{"document_id": "S03_pacient", "pages_dir": "samples/derived/pages/S03_pacient"}],
   "lab_failure_kind": "poor_scan",
-  "lab_known_failures": {
-    "S_UREA p3": "Tesseract reads the line as '. S. ÚUŘEA: 7,9 mmolll (2.9. 82:'. labs.LAB_LIKE allows only A-Z in a code and needs '[' or '...' around the range, so the line is neither parsed nor listed as unparsed: the value is dropped silently. Fix in pipeline/page_reader/labs.py."
-  },
   "labs": [
     {"code": "B_LKC", "page": 3, "value": "8,24", "unit": "10^9/l", "date": "2026-09-21", "time": "07:40"},
     {"code": "B_HB", "page": 3, "value": "141", "unit": "g/l", "date": "2026-09-21", "time": "07:40"},

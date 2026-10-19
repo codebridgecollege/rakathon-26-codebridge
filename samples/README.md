@@ -282,8 +282,9 @@ known failure that starts to pass until its mark is removed.
 State on 2026-10-19 (page reader without an LLM): only the lab, date and
 readability expectations run. No lab value is shown clear but wrong;
 S03's lab sheet is flagged as poorly readable and its undated values are
-marked; one S03 value (`S_UREA`) is dropped silently by the lab parser
-(known failure). All expectations for diagnoses, negations, identity,
+marked; S03's misread `S_UREA` line is listed as unreadable (it was
+dropped silently until the lab parser's lab-like rule took Czech capitals
+and a lost bracket). All expectations for diagnoses, negations, identity,
 missing reports and requests are `not_run` until the extraction exists.
 
 ## How it was generated

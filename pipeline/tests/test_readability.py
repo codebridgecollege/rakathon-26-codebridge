@@ -109,3 +109,64 @@ def test_l_for_1_in_stages_and_doses():
         assert r["level"] == "fair" and code in r["metrics"]["damage"], (text, r)
     # Not damage: a stage with digits, a flow in litres, an MRI sequence list (T tokens only).
     assert rd.assess(1, words, "cT1 N0 M0, kyslík 2 l/min\nT2, Flair, TI sag")["level"] == "good"
+
+
+SAMPLES = PAGES.parents[2] / "samples/derived/pages"
+
+
+@pytest.mark.parametrize("tok,kind", [
+    ("Odbèr", "foreign_char"), ("Пациент", "foreign_char"), ("kpsmt", "no_vowel"), ("zdkptsa", "consonant_run"),
+    ("ciSterny", "mixed_case"), ("ÚUŘEA", "impossible_seq"), ("mmolll", "impossible_seq"), ("ěvoda", "impossible_seq"),
+    ("kl1nický", "letter_digit"),
+])
+def test_garbage_shapes(tok, kind):
+    assert rd.garbage_tokens(tok) == (1, {kind: 1})
+
+
+@pytest.mark.parametrize("tok", [
+    "čtvrt", "smrt", "vlk", "Brno", "postschemické", "mmHg", "ypT2", "eGFR", "CodeBridge", "S_CREAE", "PDWSD",
+    "biopsií", "onkologií", "intrakraniálně", "15x14x8mm", "Ki67", "stp", "mts", "Müller", "µmol", "zaangažovaný",
+])
+def test_czech_and_medical_tokens_are_not_garbage(tok):
+    assert rd.garbage_tokens(tok)[1] == {}
+
+
+def _calibration_texts():
+    for d in [*sorted(PAGES.iterdir()), *sorted(SAMPLES.iterdir())]:
+        for p in sorted(d.glob("p*.tess.txt")):
+            yield f"{d.name}/{p.name}", p
+
+
+@pytest.mark.parametrize("name,path", list(_calibration_texts()), ids=lambda x: x if isinstance(x, str) else "")
+def test_garbage_share_on_calibration_pages(name, path):
+    """Clean pages stay under the fair threshold; S03 p3 (the degraded lab sheet) reaches it."""
+    judged, garbage = rd.garbage_tokens(path.read_text())
+    share = sum(garbage.values()) / judged if judged else 0
+    if name == "S03_pacient/p3.tess.txt":
+        assert share >= rd.FAIR_GARBAGE_SHARE
+    else:
+        assert share < rd.FAIR_GARBAGE_SHARE, (name, garbage)
+
+
+def test_s03_lab_sheet_gets_the_garbage_reason_without_tokens():
+    d = SAMPLES / "S03_pacient"
+    words = pi.tess_words(d / "p3.tess.tsv")
+    text = (d / "p3.tess.txt").read_text()
+    rec = pi.tesseract_page(3, [0, 0], text, words, (d / "p3.layer.txt").read_text())
+    r = rd.assess(3, words, text, rec["verify"], rec["second_reading"])
+    assert r["level"] == "poor"
+    reason = [x for x in r["reasons_cs"] if "nevypadá jako česká" in x]
+    assert reason == ["s. 3: 3 % slov nevypadá jako česká ani lékařská slova (nemožná spojení písmen)"]
+
+
+def test_garbage_page_is_poor():
+    """A page whose text is one token in five garbage (as a broken font map or a wrecked scan gives) is poor even
+    when Tesseract is confident: the rule judges the text itself."""
+    words = [{"t": "x", "c": 95, "b": [0, 0, 1, 1]}] * 50
+    text = " ".join(["Pacientka přichází ke kontrole po chemoterapii"] * 4 + ["kpsmt ciSterny Odbèr zdkptsa"] * 3)
+    r = rd.assess(1, words, text)
+    assert r["level"] == "poor" and r["metrics"]["garbage_share"] > rd.POOR_GARBAGE_SHARE
+    assert not any(t in "\n".join(r["reasons_cs"]) for t in ("kpsmt", "ciSterny", "Odbèr"))
+    # One odd token is a typo or a rare name, not a reading problem.
+    one = rd.assess(1, words, "Pacient Xkcdq přichází ke kontrole po chemoterapii.")
+    assert one["level"] == "good"

@@ -963,9 +963,10 @@ rules) are not built.
   `/v1/analyze` (page records with "ověřit" items from Tesseract against
   the PDF text layer, readability per page and document), `/v1/labs`, and
   since issue #18 `/v1/convert` (a photo into a one-page PDF).
-  No `/v1/identity`, `/v1/redact` or `/v1/page-index` endpoints: the
-  identity check stays the registry's (uploads are fixtures), redaction is
-  for the LLM slices, and the page index is part of `/v1/analyze`.
+  No `/v1/page-index` endpoint: the page index is part of `/v1/analyze`.
+  `/v1/redact` (for the LLM slices) and `/v1/identity` came later (issue
+  #18; see "Page reader 0.2.0" below); the Worker's identity check is still
+  the registry's.
 - Differences from this design in the deterministic logic (`page_reader`): the
   "ověřit" share that makes a page poor is 25 %, not 10 % (clean pages
   reach 11 %, FNO's broken text layers up to 29 %; with the text layer as
@@ -1135,3 +1136,44 @@ rules) are not built.
   ends starts its own run, even for a file the attach would have covered.
   It is read twice at most, never lost; the active-run index refuses a
   second run on the same document.
+
+### Page reader 0.2.0: readability, unreadable regions, identity (issue #18)
+
+Python side only (`pipeline/`); the Worker does not use the new fields yet.
+Contract additions are in `pipeline/container/server.py`'s docstring.
+
+- **Lab parser never drops a lab line silently.** S03's scan reads `S_UREA`
+  as `. S. ÚUŘEA: 7,9 mmolll (2.9. 82:`; `LAB_LIKE` took only A-Z in a
+  code and needed `[` or `...`, so the line vanished. Codes may now carry
+  Czech capitals and a quote mark as separator, an NČLP code with its
+  underscore and a colon is lab-like whatever the value, and a line that
+  starts with a sheet-style code ("S UREA") is lab-like with a `(` range or
+  a lab unit after a number. A sweep over the 43 pages of `data/derived` and
+  `samples/derived` (tested) finds no other lab line left out; prose such as
+  "CEA 9,6 ug/l" in a letter stays out (stage 9 reads it).
+- **Readability without a word list.** `readability.garbage_tokens` counts
+  tokens with a shape no Czech or medical word has (letters outside the
+  Czech alphabet, four small letters without a vowel or syllabic r/l, five
+  consonants in a row, a capital inside a small word, impossible sequences
+  such as `ÚU` or a tripled letter, a digit between small letters). Fair from
+  2 %, poor above 10 %. Clean pages reach 0.8 % at most, S03 p3 2.7 %. It
+  catches character-level garbage only: S03's word-shaped misreads
+  (`opnotamém`, `PLUTO`) pass it, and S03 is poor through the confidence
+  rules. Levels on the 43 calibration pages are unchanged by it.
+- **Unreadable regions.** `/v1/pages` returns `unreadable` per page:
+  ink that no word read with confidence 60 or more explains, found with the
+  redaction's ink detection (`redact._ink_boxes`, shared with `ink_marks`),
+  without its size limit and with the lines of one note joined. `/v1/analyze`
+  keeps the regions on the page record, marks tokens inside as "ověřit"
+  (reason `unreadable`) and makes the page fair (poor above 10 % of the
+  page). No region on any of the 43 calibration pages; a synthetic
+  handwritten note is found, also through live Tesseract.
+- **Identity check** (`page_reader/identity.py`, `POST /v1/identity`):
+  matches, conflicts or cannot_verify per page and document, with offsets
+  and field kinds only. Conflicts need a valid differing birth number
+  (mod 11 and a possible date) or a clearly different full name in a form
+  field or a header line before "nar."; damage, diacritics and a differing
+  birth date give cannot_verify. S01-S03 match, S04 conflicts on page 4
+  only, FNO patient 2 (`Kotěrova`) cannot be verified, the other FNO
+  patients match by name. `eval.py` does not run it yet (its adapter writes
+  `identity: cannot_verify` on every source).

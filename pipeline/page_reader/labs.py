@@ -81,10 +81,29 @@ TIME_LIKE = re.compile(r"\s+[\dOolI]{1,2}[:.][\dOolI]{2}")
 DATE_UNREADABLE_CS = "Datum odběru nečitelné, ověřte v originálu."
 DATE_PREVIOUS_PAGE_CS = "Datum odběru je na předchozí straně; ověřte v originálu."
 REQUISITION = re.compile(r"Č\. žádanky: \S+")
-# What makes a line look like a lab result even when no record parsed: a reference range, or a code-like
-# token followed by a colon and a number.
+# Upper-case letters of a code as OCR may read them: Tesseract's Czech model turns worn Latin capitals into
+# Czech ones ("S_UREA" read as "S. ÚUŘEA" on S03's scan), so a code-like token allows them.
+_UP = "A-ZÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ"
+# A code as OCR may garble it: Czech capitals, and a separator that may also be a quote mark or an asterisk
+# ("B „LKC", "S. ÚUŘEA").
+_SEP_LIKE = r"[ _.\-„“\"'*]"
+_CODE_LIKE = rf"(?<![\w(])[{_UP}]{{1,5}}(?:[(C][{_UP}]{{1,5}}\))?{_SEP_LIKE}{{0,4}}[{_UP}][{_UP}0-9]{{0,11}}"
+# The same with the separator required, as a lab sheet prints its codes ("S UREA", "B_HB"); prose writes "CEA 9,6".
+_CODE_SEP = rf"(?<![\w(])[{_UP}]{{1,5}}(?:[(C][{_UP}]{{1,5}}\))?{_SEP_LIKE}{{1,4}}[{_UP}][{_UP}0-9]{{0,11}}"
+# What makes a line look like a lab result even when no record parsed: a reference range, a code-like token
+# followed by a colon (or a dot OCR made of it) and a number, or an NČLP code with its underscore
+# and a colon whatever the value ("U_BIL: negat", a qualitative value RECORD does not take).
 LAB_LIKE = re.compile(r"\[\s*" + _NUM + r"\s*\.{1,4}|\.{2,4}\s*" + _NUM + r"\s*[\])]"
-                      r"|(?<![\w(])[A-Z]{1,5}(?:[(C][A-Z]{1,5}\))?[ _.\-]{0,4}[A-Z][A-Z0-9]{0,11}\s*[:.]\s*[\dOlI]")
+                      r"|" + _CODE_LIKE + r"\s*[:.]\s*[\dOlI]"
+                      r"|(?<![\w(])[A-Z]{1,5}(?:\([A-Z]{1,5}\))?_[A-Z0-9]{1,12}\s*:")
+# A line that starts with a lab sheet's code (after bullets or stray marks) is lab-like also when its colon and
+# square bracket are lost: a range opened with "(" and its dots read as one dot or a space ("(2.9. 82"), or a
+# number followed by a lab unit ("S UREA 7,9 mmol/l"). Only at the line start, so prose with a date in brackets
+# ("(10.3.2026)"), "CEA 9,6 ug/l" in a letter (stage 9's job) or "KPS 70 %" is not taken for a result; % is
+# left out of the units for the same reason.
+_LAB_UNIT = r"(?:[µunm]?mo[l1I|]|[µunmk]?g\s*/|[µu]?kat|10\s*[\^*A\"]\s*\d|f[l1I]\b|pg\b|kU|IU|mU|ml/s)"
+LAB_LIKE_AT_START = re.compile(r"^[\W_]{0,4}" + _CODE_SEP + r".{0,12}?(?:[\[(]\s*" + _NUM + r"(?:\s*\.{1,4}\s*|\s+)" + _NUM
+                               + r"|\d(?:[.,]\d+)?\s*" + _LAB_UNIT + r")")
 
 
 def _number(tok: str) -> tuple[float | None, bool]:
@@ -146,7 +165,7 @@ def unparsed_lines(text: str, spans: list[tuple[int, int]]) -> list[dict]:
         if DRAW_LIKE.search(rest):
             out.append({"line_no": line_no, "start": pos, "end": pos + len(line), "reason": "draw_date_not_parsed",
                         "reason_cs": "Řádek vypadá jako datum odběru, ale nepodařilo se ho přečíst; ověřte v originálu."})
-        elif LAB_LIKE.search(rest):
+        elif LAB_LIKE.search(rest) or LAB_LIKE_AT_START.search(rest):
             out.append({"line_no": line_no, "start": pos, "end": pos + len(line),
                         "reason": "lab_like_not_parsed",
                         "reason_cs": "Řádek vypadá jako laboratorní výsledek, ale nepodařilo se ho přečíst; ověřte v originálu."})

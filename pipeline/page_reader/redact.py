@@ -174,12 +174,23 @@ INK_MAX_WORDS = 2  # a box over more OCR words is printed content (a framed tabl
 
 def ink_marks(img, words: list[dict]) -> list[dict]:
     """Boxes (150 dpi) of dark areas that no OCR word covers, as hits with the reason "podpis, razítko"."""
+    boxes = []
+    for box in _ink_boxes(img, words, INK_MAX_AREA):
+        if sum(1 for w in words if _within(w["b"], box)) > INK_MAX_WORDS:
+            continue
+        boxes.append({"reason": "podpis, razítko nebo rukopis (odhad)", "box": box})
+    return boxes
+
+
+def _ink_boxes(img, masked: list[dict], max_area: float | None) -> list[list[int]]:
+    """Boxes (150 dpi) of the dark areas left after blanking the boxes of the `masked` words: at least INK_MIN,
+    at most max_area of the page (None: any size), and at least INK_MIN_FILL dark."""
     s = INK_SCALE
     small = img.convert("L").resize((max(1, img.width // s), max(1, img.height // s)))
     W, H = small.size
     data = small.tobytes()
     dark = bytearray(1 if v < INK_DARK else 0 for v in data)
-    for w in words:  # printed words are read by OCR and handled by find(); only uncovered ink is left
+    for w in masked:  # words OCR read are handled as text; only the ink they do not explain is left
         x, y, wd, h = w["b"]
         for yy in range(max(0, int(y // s) - 1), min(H, int((y + h) // s) + 2)):
             x0, x1 = max(0, int(x // s) - 1), min(W, int((x + wd) // s) + 2)
@@ -211,13 +222,65 @@ def ink_marks(img, words: list[dict]) -> list[dict]:
                             seen[j] = 1
                             stack.append(j)
         bw, bh = x1 - x0 + 1, y1 - y0 + 1
-        if bw < INK_MIN[0] or bh < INK_MIN[1] or bw * bh > INK_MAX_AREA * W * H or n / (bw * bh) < INK_MIN_FILL:
+        if bw < INK_MIN[0] or bh < INK_MIN[1] or n / (bw * bh) < INK_MIN_FILL:
             continue
-        box = [x0 * s, y0 * s, bw * s, bh * s]
-        if sum(1 for w in words if _within(w["b"], box)) > INK_MAX_WORDS:
+        if max_area is not None and bw * bh > max_area * W * H:
             continue
-        boxes.append({"reason": "podpis, razítko nebo rukopis (odhad)", "box": box})
+        boxes.append([x0 * s, y0 * s, bw * s, bh * s])
     return boxes
+
+
+# Unreadable regions: ink that no confidently read word explains. Handwriting, a signature, a stamp, or print too
+# damaged to read; the page reader cannot tell them apart and never fills them in. The ink detection is
+# ink_marks', with two differences. Only words read with confidence UNREADABLE_CONF or more are blanked, so ink
+# under Tesseract's low-confidence guesses (it reads handwriting as garbage words) still counts. And there is no
+# upper size limit: a handwritten paragraph is a large area, while a frame or a table grid is already left out by
+# INK_MIN_FILL.
+UNREADABLE_CONF = 60  # page_index.LOW_CONF, the confidence below which every Tesseract error in the evaluation fell
+UNREADABLE_MAX_WORDS = INK_MAX_WORDS  # more confident words inside the box: printed content, as in ink_marks
+
+
+def unreadable_regions(img, words: list[dict]) -> list[dict]:
+    """Regions (150 dpi boxes) of ink with no confidently read word: {"b": [x, y, w, h], "reason"}, where reason
+    is "no_text" (no OCR word there at all) or "low_conf" (only words below UNREADABLE_CONF)."""
+    sure = [w for w in words if w["c"] >= UNREADABLE_CONF]
+    boxes = [b for b in _ink_boxes(img, sure, None) if sum(1 for w in sure if _within(w["b"], b)) <= UNREADABLE_MAX_WORDS]
+    out = []
+    for box in _join_lines(boxes):
+        doubtful = any(_overlaps(w["b"], box) for w in words if w["c"] < UNREADABLE_CONF)
+        out.append({"b": box, "reason": "low_conf" if doubtful else "no_text"})
+    return out
+
+
+UNREADABLE_JOIN = 24  # px at 150 dpi: the gap between two lines of handwriting; a printed line needs more room
+
+
+def _join_lines(boxes: list[list[int]]) -> list[list[int]]:
+    """Join boxes that overlap side to side and lie at most UNREADABLE_JOIN apart vertically: the lines of one
+    handwritten note are one region for the doctor, not one per line."""
+    boxes = [list(b) for b in boxes]
+    joined = True
+    while joined:
+        joined = False
+        for i in range(len(boxes)):
+            for j in range(i + 1, len(boxes)):
+                a, b = boxes[i], boxes[j]
+                side = a[0] < b[0] + b[2] and b[0] < a[0] + a[2]
+                gap = max(a[1], b[1]) - min(a[1] + a[3], b[1] + b[3])
+                if side and gap <= UNREADABLE_JOIN:
+                    x0, y0 = min(a[0], b[0]), min(a[1], b[1])
+                    boxes[i] = [x0, y0, max(a[0] + a[2], b[0] + b[2]) - x0, max(a[1] + a[3], b[1] + b[3]) - y0]
+                    del boxes[j]
+                    joined = True
+                    break
+            if joined:
+                break
+    return sorted(boxes, key=lambda b: (b[1], b[0]))
+
+
+def _overlaps(b, box) -> bool:
+    x, y, w, h = b
+    return x < box[0] + box[2] and box[0] < x + w and y < box[1] + box[3] and box[1] < y + h
 
 
 def _within(b, box) -> bool:
