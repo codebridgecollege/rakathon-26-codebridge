@@ -15,7 +15,7 @@ type R = Record<string, any>;
 export type Fault = { status: number; times: number; retryAfter?: string };
 
 const FHIR_JSON = "application/fhir+json; charset=utf-8";
-const SEARCH_PARAMS = new Set(["_id", "identifier", "patient", "subject", "status", "_count"]);
+const SEARCH_PARAMS = new Set(["_id", "identifier", "patient", "subject", "status", "_count", "_lastUpdated"]);
 
 export class MemoryFhir {
   readonly base: string;
@@ -132,6 +132,14 @@ export class MemoryFhir {
     switch (key) {
       case "_id":
         return alts.includes(r.id);
+      case "_lastUpdated": {
+        // Prefixes gt, ge, lt, le on an instant, compared as instants.
+        const m = /^(gt|ge|lt|le)?(.+)$/.exec(value)!;
+        const at = Date.parse(m[2]!);
+        const lu = Date.parse(r.meta?.lastUpdated ?? "");
+        if (Number.isNaN(at) || Number.isNaN(lu)) return false;
+        return { gt: lu > at, ge: lu >= at, lt: lu < at, le: lu <= at }[(m[1] ?? "ge") as "gt" | "ge" | "lt" | "le"];
+      }
       case "status":
         return alts.includes(r.status);
       case "identifier":

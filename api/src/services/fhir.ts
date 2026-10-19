@@ -96,7 +96,7 @@ export function nisConfigured(env: Env, org: string): boolean {
   }
 }
 
-export type Pull = { op: "search" | "read"; resource: string };
+export type Pull = { op: "search" | "read" | "record"; resource: string };
 
 // Backend-services tokens per isolate, until shortly before they expire. Keyed by org and client, never by user.
 const tokens = new Map<string, { token: string; until: number }>();
@@ -104,8 +104,12 @@ export const clearNisTokens = () => tokens.clear();
 
 // deadlineMs is the budget of one whole operation (token, search and its pages), not of one request.
 const RETRY: Omit<RetryOpts, "fetcher"> = { attempts: 3, baseMs: 500, maxDelayMs: 4000, timeoutMs: 15000, deadlineMs: 30000 };
-const MAX_PAGES = 5;
-const MAX_ENTRIES = 50;
+// A patient search: a handful of candidates at most. A record pull: a patient's whole history of one type (labs over
+// years), still bounded, and a truncated type is reported.
+const SEARCH_LIMITS = { pages: 5, entries: 50 };
+const RECORD_LIMITS = { pages: 40, entries: 2000 };
+// What a patient record pull reads: the types the mapping turns into facts or documents.
+export const RECORD_TYPES = ["Condition", "Observation", "Procedure", "MedicationStatement", "ServiceRequest", "DiagnosticReport", "DocumentReference"] as const;
 // A logical id as FHIR allows it, but not "." or "..", which would turn a read into a path to something else.
 const FHIR_ID = /^(?!\.+$)[A-Za-z0-9\-.]{1,64}$/;
 
@@ -242,10 +246,12 @@ export class NisClient {
     return next.origin === base.origin && (next.pathname === bp || next.pathname === `${bp}/` || next.pathname.startsWith(`${bp}/`));
   }
 
-  // Follows the searchset's next links up to MAX_PAGES pages and MAX_ENTRIES resources of the asked type. A next link
+  // Follows the searchset's next links up to the limits' pages and resources of the asked type. A next link
   // that carries one of `secret` (a server may copy the search parameters into it) is not followed: it would put the
   // birth number into a URL.
-  private async collect(first: R, type: string, secret: string[]): Promise<Collected> {
+  private async collect(first: R, type: string, secret: string[], limits = SEARCH_LIMITS): Promise<Collected> {
+    const MAX_PAGES = limits.pages;
+    const MAX_ENTRIES = limits.entries;
     const resources: R[] = [];
     let page: R = first;
     for (let n = 1; ; n++) {
@@ -284,6 +290,29 @@ export class NisClient {
       body,
     });
     return this.collect(await this.json(res, "search"), "Patient", secret);
+  }
+
+  // The clinical record of one NIS patient: every resource type the mapping reads (packages/domain/src/nis-map.ts),
+  // searched by the NIS patient ID (an internal ID, never the birth number). `since` (an instant) asks only for what
+  // changed after it (_lastUpdated), for a refresh. One access-log row covers the whole pull; each type is searched
+  // with the same paging limits as a patient search, and a truncated type is reported so the caller can say so.
+  async patientRecord(nisPatientId: string, since: string | null = null): Promise<{ resources: R[]; truncated: string[] }> {
+    if (!FHIR_ID.test(nisPatientId)) throw E.badRequest();
+    if (since !== null && !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2})$/.test(since)) throw E.badRequest();
+    this.begin();
+    await this.onPull({ op: "record", resource: "Patient" });
+    const resources: R[] = [];
+    const truncated: string[] = [];
+    for (const type of RECORD_TYPES) {
+      const q = new URLSearchParams({ patient: `Patient/${nisPatientId}`, _count: "100" });
+      if (since) q.set("_lastUpdated", `gt${since}`);
+      const res = await this.fhir("record", `${this.cfg.base_url}/${type}?${q}`, { method: "GET", headers: { prefer: "handling=strict" } });
+      const got = await this.collect(await this.json(res, "record"), type, [], RECORD_LIMITS);
+      resources.push(...got.resources);
+      if (got.truncated) truncated.push(type);
+    }
+    console.log(JSON.stringify({ route: "nis", op: "record", n: resources.length, truncated: truncated.length }));
+    return { resources, truncated };
   }
 
   // One resource by its logical id; null when the NIS has none (404 or 410).

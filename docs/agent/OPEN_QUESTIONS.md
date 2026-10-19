@@ -158,6 +158,13 @@ experience.
 
 ## Decide as a team
 
+- [ ] extraction/2 has no fact kind for a visit (FHIR `Encounter`), so the
+  NIS import drops visits. Add a `visit` kind, or leave visits to the
+  documents? (`docs/design/EXTRACTION-FORMAT.md`, "The NIS producer")
+- [ ] A NIS `MedicationStatement` maps to `medication`; telling an oncology
+  line (`systemic_therapy`, with its line number) from other drugs needs a
+  drug classification (ATC) the NIS may send. Map by ATC L01/L02 when it
+  is there?
 - [ ] **Which tech stack and which LLM deployment do we use?**
 - [ ] **Backend: port the prognosis service to TypeScript, or keep it in
   Python** (Python Workers)? Juro decides after reading `prognosis/service.py`

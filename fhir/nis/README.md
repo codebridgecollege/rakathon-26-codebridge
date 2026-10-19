@@ -116,13 +116,12 @@ system; the documents give none.
 | Patient | Case (CLAUDE.md, "Test against the known failure cases") | Expected behaviour |
 |---|---|---|
 | F01, birth number `720905/3005` | Two patients mixed up: three records for one birth number. `cb-f01-b` is inactive and `replaced-by` `cb-f01-a` (stored without the slash); `cb-f01-c` is a second, unmerged record with the name typed without diacritics | The search shows all three and says the NIS holds duplicates; `cb-f01-b` cannot be linked and points at `cb-f01-a`; `cb-f01-c` is marked "jméno zapsáno jinak"; nothing is merged |
-| F02 | An amended document: the histology `cb-f02-doc-histo-v2` `relatesTo` `replaces` `cb-f02-doc-histo-v1` (status `superseded`; G2 became G3) | Phase 2: the import reads the current version and flags facts from the old one |
-| F03 | A real contradiction: two pathological stages of the same specimen and day (`pT3 pN0` and `pT4a pN1a`); the clinical stage `cT4a cN1 cM0` before surgery differs too, which is not a contradiction | Phase 2: one contradiction alert, between the two pTNM values only |
-| F04 | A referral with no result: MRI requested and reported (`basedOn`), PET/CT requested with no report | Phase 2: "requested, no result" for the PET/CT only |
+| F02 | An amended document: the histology `cb-f02-doc-histo-v2` `relatesTo` `replaces` `cb-f02-doc-histo-v1` (status `superseded`; G2 became G3) | The mapping lists v1 as superseded and v2 as replacing it (`api/test/nis-map.test.ts`); reading the current version through the upload path and flagging facts from the old one comes with the document import |
+| F03 | A real contradiction: two pathological stages of the same specimen and day (`pT3 pN0` and `pT4a pN1a`); the clinical stage `cT4a cN1 cM0` before surgery differs too, which is not a contradiction | The mapping keeps them as three stage facts, the two pathological ones under one key (`#2`); the contradiction alert itself belongs to the case rules |
+| F04 | A referral with no result: MRI requested and reported (`basedOn`), PET/CT requested with no report | The MRI request is `done` with `result_fact` pointing at the imaging fact; the PET/CT request stays `requested` with none |
 | S01, S02 | The same "requested, no result" in real sample data (PET/CT 1.10.2026, CT 7.10.2026); S01's MRI of 29.9.2026 as a Procedure without a report ("an examination that happened but whose report is missing") | Phase 2, with the structured mapping |
 
-Phase 1 uses F01 (patient match); F02-F04 wait for the structured mapping into
-the extraction format.
+Phase 1 uses F01 (patient match); phase 2's mapping uses F02-F04.
 
 ## Validation
 
