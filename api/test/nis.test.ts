@@ -266,7 +266,10 @@ describe("linking", () => {
 
 describe("FHIR connector", () => {
   const cfg = { base_url: BASE, label_cs: "x", auth: { mode: "none" as const } };
-  const fast = { attempts: 3, baseMs: 1, maxDelayMs: 5, timeoutMs: 2000, deadlineMs: 5000 };
+  // No wall clock in these tests: backoff waits are zero, and the request timeout and operation deadline are far
+  // beyond any test run, so a slow machine (a loaded CI runner) cannot turn a 503 into a timeout. The answers the
+  // retry gives are decided by the attempt count alone.
+  const fast = { attempts: 3, baseMs: 0, maxDelayMs: 0, timeoutMs: 600_000, deadlineMs: 600_000 };
   const pulls: string[] = [];
   const client = (c: ConstructorParameters<typeof NisClient>[2] = cfg, e = nisEnv()) => new NisClient(e, "demo-a", c, async (p) => void pulls.push(`${p.op}:${p.resource}`), fast);
 
@@ -283,6 +286,7 @@ describe("FHIR connector", () => {
     server();
     fhir.failNext(503, 5);
     await expect(client().searchPatientsByIdentifier(rcisSearchValue("6453121234"), [])).rejects.toMatchObject({ code: "upstream_busy" });
+    expect(fhir.requests.filter((x) => x.method === "POST")).toHaveLength(3);
   });
 
   it("follows next links within the base and stops at a link to another host", async () => {
