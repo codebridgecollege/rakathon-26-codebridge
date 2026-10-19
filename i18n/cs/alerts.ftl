@@ -65,3 +65,11 @@ alert-brief-sentences-dropped = Ze shrnutí vypuštěny věty, které uvedená f
 alert-poor-copy = Špatně čitelný dokument, vyžádejte lepší kopii: { $document }
 
 alert-identity-conflict = Strana patří jinému pacientovi; její údaje nejsou zobrazeny: { $document }, s. { $page }
+
+# The NIS import withdrew a document it had brought (issue #22). $nis_document: the document's ID in the NIS; $reason: why.
+alert-nis-document-withdrawn = { $reason ->
+        [nis_voided] Dokument z NIS byl odebrán z případu, protože ho NIS zneplatnil: { $nis_document }
+        [nis_unlinked] Dokument z NIS byl odebrán z případu, protože pacient byl odpojen od záznamu v NIS: { $nis_document }
+        [nis_removed] Dokument z NIS byl odebrán z případu, protože už v NIS není: { $nis_document }
+       *[other] Dokument z NIS byl odebrán z případu, protože už v NIS není: { $nis_document }
+    }

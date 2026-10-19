@@ -923,6 +923,17 @@ patient-nis-linked-name-differs = Rodné číslo souhlasilo, jméno se lišilo; 
 patient-nis-linked-by = Propojil(a) { $name }, { $at }.
 patient-nis-phase-note = Údaje z NIS se zatím nenačítají; propojení je první krok importu.
 patient-nis-unlink = Zrušit propojení
+patient-nis-unlink-warning = Zrušením propojení se z případů tohoto pacienta odeberou údaje z NIS i dokumenty převzaté z NIS (jejich obsah se smaže). Opětovné propojení a import je vrátí.
+patient-nis-unlink-confirm = Zrušit propojení a odebrat dokumenty z NIS
+patient-nis-unlink-cancel = Ponechat propojení
+# $withdrawn documents removed, $pending not removable yet (being read, or the case locked), $other cases the user may not act in.
+patient-nis-unlinked = Propojení zrušeno. Odebráno dokumentů z NIS: { $withdrawn }.{ $pending ->
+        [0] {""}
+       *[other] { " " }Zatím nelze odebrat: { $pending } (dokument se zpracovává nebo je případ uzamčen).
+    }{ $other ->
+        [0] {""}
+       *[other] { " " }V případech mimo váš tým zůstaly dokumenty beze změny: { $other }.
+    }
 patient-nis-register-label = Národní registr (ukázka):
 
 ## The extraction run (codebridge.extraction/2): checks per section, negations, confirmations, orphaned edits.

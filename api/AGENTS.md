@@ -628,8 +628,33 @@ structured data comes next. Test server and test data: [`fhir/nis/README.md`](..
   DocumentReference that `replaces` another, or a newer version of the same one, makes the older document
   `superseded` by the new one, only when the new one's content is kept and the old one is current and not prepared.
   The import counts against `RL_UPLOAD`. Each Binary read writes an access-log row naming the DocumentReference
-  (`nis.document`). Not built: a DocumentReference later voided or removed in the NIS is not retired in the case, and
-  unlinking does not take the imported documents out (docs/agent/OPEN_QUESTIONS.md).
+  (`nis.document`).
+- **NIS documents leaving the case** (Juro's decision 2026-10-19; `planNisWithdraw` and `withdrawNisDocuments` in
+  `src/routes/nis.ts`): on a full pull that read the DocumentReferences completely, a document the import brought whose
+  DocumentReference the NIS now marks entered-in-error (`status` or `docStatus`), or no longer has, is withdrawn through
+  `withdrawDocument` (`src/routes/documents.ts`, the doctor's withdraw path: file, pages, parts, alerts, model cache and
+  older runs' content go; one merge per case afterwards). One missing from the list is read directly first (an
+  offset-paged server can skip a record while pages shift): it goes only on 404/410, entered-in-error, or a subject
+  that is another patient; a failed read counts as pending. A removal is noticed only by a full pull (the first import
+  of a day, or one after a cut-off pull), so it can take up to 24 h. Superseded is not removed: a DocumentReference
+  marked superseded or named in a current one's `replaces` is never withdrawn.
+  Only a document the import stored is withdrawn (`nis_documents.created_by_import = 1`, migration 0019, which also
+  sets it on older rows whose document carries the import's file name), never a doctor's own upload a NIS version was
+  mapped onto, and only when every NIS record standing for it picks a reason. Access-log action
+  `document.nis_withdraw` with the reason; `nis_documents.auto_withdrawn` keeps it. The case merge adds an alert per
+  such document (`nis_document_withdrawn`, kind `unclear` so it stays out of the missing-document signal, Fluent
+  `alert-nis-document-withdrawn` with `nis_document` and `reason`) until an import takes the resource back: a document
+  the import withdrew comes back when found current again (a re-link, a re-import), unlike a doctor's own withdraw.
+  Taking it back under another version deletes the rows of its auto-withdrawn versions, so they never read as a
+  doctor's decline that would refuse later versions.
+  One that cannot go now (being read, prepared, the case locked) is counted in `documents.withdraw_pending`. The
+  import writes its NIS state with `withdraw_pending` set before it withdraws and clears it after, so the next import
+  pulls in full and tries again (the import route refuses a locked case, so that waits until the case is open).
+  Unlinking withdraws the patient's NIS documents in every case of the patient the viewer may act in
+  (`caseFor ... "nis.link"`); others are counted in `documents.not_allowed` and keep them (their NIS facts still go). A
+  fault in one case counts as pending and the loop goes on, since the link is already gone. After an unlink there is
+  no import state left, so nothing retries a pending one (docs/agent/OPEN_QUESTIONS.md). The dialog asks before it
+  unlinks and shows the counts (`app/app/components/patient/NisDialog.vue`).
 - **Tests.** `test/nis.test.ts` runs the connector and the routes against `fhir/nis/memory-server.ts` loaded with the
   test Bundles (no PDF bytes); `test/nis-map.test.ts` pulls S01, S02, case 10 and F01-F04 and checks the runs, with
   S01's and S02's lab values against their prepared fixtures; `test/nis-merge.test.ts` imports, refreshes and unlinks through the case merge; `test/orgs.test.ts` probes the NIS

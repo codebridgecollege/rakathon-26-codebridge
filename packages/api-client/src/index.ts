@@ -232,7 +232,10 @@ export function createApiClient(opts: ClientOptions = {}) {
     nisSearch: (caseId: string, body: { birth_number?: string }) => w<NisSearch>("POST", `/cases/${enc(caseId)}/nis/search`, body),
     nisLink: (caseId: string, body: { nis_patient_id: string; birth_number?: string; confirm_unverified?: boolean }) =>
       w<{ link: NisLink | null }>("POST", `/cases/${enc(caseId)}/nis/link`, body),
-    nisUnlink: (caseId: string) => w<{ link: null }>("DELETE", `/cases/${enc(caseId)}/nis/link`, {}),
+    // Unlinking withdraws the documents the import brought into the patient's cases (issue #22); the counts say how
+    // many went, how many could not go yet, and in how many cases the viewer may not act.
+    nisUnlink: (caseId: string) =>
+      w<{ link: null; documents: { withdrawn: number; withdraw_pending: number; not_allowed: number } }>("DELETE", `/cases/${enc(caseId)}/nis/link`, {}),
     completeIntake: (caseId: string) => w<IntakeCompleted>("POST", `/cases/${enc(caseId)}/intake/complete`, {}),
     discardIntake: (caseId: string) => w<{ discarded: string }>("DELETE", `/cases/${enc(caseId)}/intake`, {}),
     // One file per request, raw body (api/src/routes/documents.ts); the file name travels URI-encoded in X-File-Name,

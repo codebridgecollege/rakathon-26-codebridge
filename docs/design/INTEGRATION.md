@@ -191,6 +191,19 @@ The entities, and where each lives:
   corrected (`DocumentReference.status`, `relatesTo`), the app reads the
   new version and flags facts that came from the old one; facts a doctor
   confirmed never change silently.
+- **A NIS document that is voided, removed, or no longer the patient's
+  leaves the case on its own** (Juro's decision, 2026-10-19). When the NIS
+  marks a DocumentReference the app took over as entered-in-error, when it
+  disappears from the NIS, or when the patient is unlinked from their NIS
+  record, the app withdraws the document the same way a doctor withdraws
+  another patient's document: its file, pages, derived facts and model
+  cache are deleted, and the case view is composed again without it. The
+  access log records why, and the doctor sees an alert naming the
+  document. If that was a mistake, re-linking or importing again brings
+  the document back; a document a doctor withdrew as another patient's
+  stays out. A removal shows at the next full pull of the record (at most
+  a day later). Implemented in `api/src/routes/nis.ts` (api/AGENTS.md, "NIS
+  documents").
 - **Documents uploaded by hand** (from other hospitals) go into the same
   store and reading pipeline; backlog item 4 designs that.
 - **Nothing is written back into the record.** The record legally

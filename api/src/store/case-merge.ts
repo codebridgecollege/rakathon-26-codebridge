@@ -81,6 +81,46 @@ function heldBack(f: Fragment): Fragment {
  */
 export type ComposedRun = { run: ExtractionRun; stages: RunStage[]; nis_import: string | null; nis_link: { nis_patient_id: string; at: string } | null };
 
+/**
+ * One alert per document the NIS import withdrew itself (voided or removed in the NIS, or the patient unlinked;
+ * routes/nis.ts), naming the document by its NIS ID and the reason, so the doctor sees that it left the case. It stays
+ * in every run until a later import takes the document back (auto_withdrawn cleared). Its ID follows the rule and the
+ * document, so an acknowledgement carries over.
+ */
+async function nisWithdrawnAlerts(db: D1Database, org: string, caseId: string): Promise<ComposedAlert[]> {
+  const rows = (
+    await orgStmt(
+      db,
+      org,
+      `SELECT n.document_id, n.nis_resource, n.auto_withdrawn FROM nis_documents n JOIN documents d ON d.org_id = n.org_id AND d.id = n.document_id
+        WHERE n.org_id = ?org AND n.case_id = ?1 AND n.auto_withdrawn IS NOT NULL AND d.lifecycle = 'withdrawn'
+          -- A resource the import took back since (under any version) is in the case again: no alert for it.
+          AND NOT EXISTS (SELECT 1 FROM nis_documents b JOIN documents bd ON bd.org_id = b.org_id AND bd.id = b.document_id
+                           WHERE b.org_id = n.org_id AND b.case_id = n.case_id AND b.nis_resource = n.nis_resource AND bd.lifecycle = 'current')
+        ORDER BY n.document_id, n.nis_resource`,
+      caseId,
+    ).all<{ document_id: string; nis_resource: string; auto_withdrawn: string }>()
+  ).results;
+  const seen = new Set<string>();
+  const out: ComposedAlert[] = [];
+  for (const r of rows) {
+    if (seen.has(r.document_id)) continue;
+    seen.add(r.document_id);
+    out.push({
+      rule: "nis_document_withdrawn",
+      subject: r.document_id,
+      // Not "missing": a voided or unlinked document is no gap in the documentation, so it stays out of the brief's
+      // always-on missing-document signal; it is an observation for the doctor to look at.
+      kind: "unclear",
+      facts: [],
+      message: { id: "alert-nis-document-withdrawn", args: { nis_document: r.nis_resource.slice("DocumentReference/".length), reason: r.auto_withdrawn } },
+      note: null,
+    });
+  }
+  return out;
+}
+type ComposedAlert = ReturnType<typeof composeFragments>["alerts"][number];
+
 /** The NIS system configured for the org now, or null (a config that cannot be read leaves the NIS out). */
 export function configuredNis(env: Env, org: string): string | null {
   try {
@@ -136,6 +176,7 @@ export async function composeCaseRun(env: Env, org: string, caseId: string, rule
   const runId = `${producer}-${caseId}-${(await sha256Hex(`${org}|${caseId}|${at}`)).slice(0, 8)}`;
   const inputs = await matchInputs(db, env.DOCS, org, caseId);
   const draft = composeFragments(caseId, runId, at, fragments);
+  draft.alerts.push(...(await nisWithdrawnAlerts(db, org, caseId)));
   const { run } = prepareRun(inputs, draft);
   return { run: rules(run), stages: fragments.flatMap((f) => f.stages), nis_import: nis?.pipeline_run ?? null, nis_link: link };
 }

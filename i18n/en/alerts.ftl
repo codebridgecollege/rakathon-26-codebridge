@@ -65,3 +65,11 @@ alert-brief-sentences-dropped = Sentences the cited items did not back were left
 alert-poor-copy = Poorly readable document, ask for a better copy: { $document }
 
 alert-identity-conflict = The page belongs to another patient; its items are not shown: { $document }, p. { $page }
+
+# The NIS import withdrew a document it had brought (issue #22). See the Czech file.
+alert-nis-document-withdrawn = { $reason ->
+        [nis_voided] A document from the NIS was taken out of the case because the NIS voided it: { $nis_document }
+        [nis_unlinked] A document from the NIS was taken out of the case because the patient was unlinked from the NIS record: { $nis_document }
+        [nis_removed] A document from the NIS was taken out of the case because the NIS no longer holds it: { $nis_document }
+       *[other] A document from the NIS was taken out of the case because the NIS no longer holds it: { $nis_document }
+    }

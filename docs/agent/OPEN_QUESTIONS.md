@@ -171,11 +171,18 @@ experience.
 
 ## Decide as a team
 
-- [ ] NIS documents (issue #22): when the NIS voids a DocumentReference (entered-in-error) or it disappears, or the
-  patient is unlinked from their NIS record, should the documents taken over from it leave the case (withdrawn) or only
-  be flagged for the doctor? Today they stay current, and per-page identity checks catch another patient's file only
-  where content is kept and the pipeline runs. (`api/AGENTS.md`, "NIS documents")
-
+- [ ] NIS documents after an unlink (issue #22): a document that could not be
+  withdrawn at the unlink (the case closed or its protocol approved, or the
+  document being read) stays in the case, and nothing tries again, since
+  the import state is gone with the link. Should a closed case keep it as
+  the record the MDT saw, or should the cron sweep withdraw it later? The
+  same holds for superseded versions of an imported document, which stay
+  as history after the unlink. A related gap: when the NIS voids or removes
+  the newest version, the older version it superseded stays superseded, so
+  the case has no current version of that document and the alert names only
+  the newest. Should the older one become current again (logged), or only
+  be named in the alert? Juro to decide. (`api/AGENTS.md`, "NIS documents
+  leaving the case")
 - [ ] How do NIS facts and document facts merge in the case view? (That a
   NIS run never says "neuvedeno v dostupné dokumentaci" is decided:
   EXTRACTION-FORMAT.md, "Decisions".)

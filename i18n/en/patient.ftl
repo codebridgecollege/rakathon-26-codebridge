@@ -924,6 +924,17 @@ patient-nis-linked-name-differs = The birth number matched, the name differed; t
 patient-nis-linked-by = Linked by { $name }, { $at }.
 patient-nis-phase-note = Data from the NIS is not loaded yet; the link is the first step of the import.
 patient-nis-unlink = Remove link
+patient-nis-unlink-warning = Removing the link takes the NIS data and the documents taken over from the NIS out of this patient's cases (their content is deleted). Linking and importing again brings them back.
+patient-nis-unlink-confirm = Remove the link and the NIS documents
+patient-nis-unlink-cancel = Keep the link
+# $withdrawn documents removed, $pending not removable yet (being read, or the case locked), $other cases the user may not act in.
+patient-nis-unlinked = Link removed. Documents from the NIS removed: { $withdrawn }.{ $pending ->
+        [0] {""}
+       *[other] { " " }Not removable yet: { $pending } (being processed, or the case is locked).
+    }{ $other ->
+        [0] {""}
+       *[other] { " " }Cases outside your team keep their documents: { $other }.
+    }
 patient-nis-register-label = National register (demonstration):
 
 ## The extraction run (codebridge.extraction/2): checks per section, negations, confirmations, orphaned edits.

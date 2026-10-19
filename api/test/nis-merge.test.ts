@@ -174,8 +174,9 @@ describe("NIS documents into the case", () => {
   // A minimal PDF, so the upload path keeps it as a PDF.
   const pdf = (marker: string) => btoa(`%PDF-1.4\n% ${marker}\n1 0 obj << >> endobj\ntrailer << >>\n%%EOF\n`);
   const docEnv = (over: Record<string, unknown> = {}) => nisEnv({ UPLOAD_POLICY: "fixtures_only", UPLOAD_STORE_ORGS: "demo-b", PAGE_READER_URL: "", ...over });
-  const loadDoc = (id: string, marker: string, extra: Record<string, unknown> = {}) =>
-    fhir.load({
+  const loadDoc = (id: string, marker: string, extra: Record<string, unknown> = {}) => loadDocInto(fhir, id, marker, extra);
+  const loadDocInto = (server: MemoryFhir, id: string, marker: string, extra: Record<string, unknown> = {}) =>
+    server.load({
       resourceType: "Bundle",
       type: "transaction",
       entry: [
@@ -288,6 +289,225 @@ describe("NIS documents into the case", () => {
     loadDoc("dr-3", "v3", { relatesTo: [{ code: "replaces", target: { reference: "DocumentReference/dr-2" } }] });
     expect((await w("POST", "/cases/B-NO-A/nis/import", "b-doc", docEnv())).body.data!.documents).toMatchObject({ imported: 1, superseded: 1 });
     expect((await docRows()).results.map((x) => x.lifecycle)).toEqual(["superseded", "superseded", "current"]);
+  });
+
+  // Imports with docEnv and waits for every merge the call started.
+  const importDocs = async (over: Record<string, unknown> = {}) => {
+    await using cases = await introspectWorkflow(env.PROCESS_CASE);
+    await cases.modifyAll(async (m) => {
+      await m.disableRetryDelays();
+    });
+    const r = await w("POST", "/cases/B-NO-A/nis/import", "b-doc", docEnv(over));
+    for (const i of await cases.get()) await i.waitForStatus("complete");
+    return r;
+  };
+  const nisRow = (res: string) => env.DB.prepare("SELECT n.auto_withdrawn, d.lifecycle, d.lifecycle_reason_cs, d.original_r2_key FROM nis_documents n JOIN documents d ON d.org_id = n.org_id AND d.id = n.document_id WHERE n.org_id = 'demo-b' AND n.nis_resource = ?1 ORDER BY d.created_at DESC").bind(res).first<Record<string, any>>();
+  const withdrawAlerts = async () => (await currentRun()).run.alerts.filter((a) => a.rule === "nis_document_withdrawn");
+
+  it("withdraws a document the NIS voided, logs why, and tells the doctor which", async () => {
+    loadDoc("dr-1", "first");
+    await importDocs();
+    clock = "2026-10-20T08:00:00.000Z";
+    loadDoc("dr-1", "first", { status: "entered-in-error" });
+    await ageImport();
+    const r = await importDocs();
+    expect(r.body.data!.documents).toMatchObject({ withdrawn: 1, withdraw_pending: 0 });
+    expect(await nisRow("DocumentReference/dr-1")).toMatchObject({ auto_withdrawn: "nis_voided", lifecycle: "withdrawn", lifecycle_reason_cs: "dokument byl v NIS zneplatněn", original_r2_key: null });
+    const log = await env.DB.prepare("SELECT what_cs FROM access_log WHERE org_id = 'demo-b' AND action = 'document.nis_withdraw'").all<{ what_cs: string }>();
+    expect(log.results.map((x) => x.what_cs)).toEqual(["dokument z NIS automaticky odebrán z případu: dokument byl v NIS zneplatněn (obsah smazán)"]);
+    expect(await withdrawAlerts()).toEqual([expect.objectContaining({ kind: "unclear", facts: [], message: { id: "alert-nis-document-withdrawn", args: { nis_document: "dr-1", reason: "nis_voided" } } })]);
+  });
+
+  it("withdraws a document the NIS no longer has, and takes it back when the NIS holds it again", async () => {
+    loadDoc("dr-1", "first");
+    await importDocs();
+    fhir.remove("DocumentReference", "dr-1");
+    await ageImport();
+    expect((await importDocs()).body.data!.documents).toMatchObject({ withdrawn: 1 });
+    expect(await nisRow("DocumentReference/dr-1")).toMatchObject({ auto_withdrawn: "nis_removed", lifecycle: "withdrawn" });
+    expect((await withdrawAlerts()).map((a) => a.message.args.reason)).toEqual(["nis_removed"]);
+    // Back in the NIS: unlike a doctor's own withdraw, the import takes it in again, and the alert goes.
+    clock = "2026-10-21T08:00:00.000Z";
+    loadDoc("dr-1", "first");
+    await ageImport();
+    expect((await importDocs()).body.data!.documents).toMatchObject({ imported: 1, withdrawn: 0 });
+    expect(await nisRow("DocumentReference/dr-1")).toMatchObject({ auto_withdrawn: null, lifecycle: "current" });
+    expect(await withdrawAlerts()).toEqual([]);
+  });
+
+  it("withdraws the patient's NIS documents on unlink, and a deliberate re-link and import brings them back", async () => {
+    loadDoc("dr-1", "first");
+    await importDocs();
+    {
+      await using cases = await introspectWorkflow(env.PROCESS_CASE);
+      expect((await w("DELETE", "/cases/B-NO-A/nis/link", "b-doc", docEnv())).status).toBe(200);
+      for (const i of await cases.get()) await i.waitForStatus("complete");
+    }
+    expect(await nisRow("DocumentReference/dr-1")).toMatchObject({ auto_withdrawn: "nis_unlinked", lifecycle: "withdrawn" });
+    expect((await withdrawAlerts()).map((a) => a.message.args.reason)).toEqual(["nis_unlinked"]);
+    await env.DB.prepare("INSERT INTO patient_nis_links (org_id, patient_id, nis_system, nis_patient_id, identity_check, by_user_id, by_name, at) VALUES ('demo-b','pt-BA',?1,'cb-s01','cannot_verify','b-doc','x','2026-10-19T12:00:00.000Z')").bind(BASE).run();
+    expect((await importDocs()).body.data!.documents).toMatchObject({ imported: 1 });
+    expect(await nisRow("DocumentReference/dr-1")).toMatchObject({ auto_withdrawn: null, lifecycle: "current" });
+    expect(await withdrawAlerts()).toEqual([]);
+  });
+
+  const unlink = async () => {
+    await using cases = await introspectWorkflow(env.PROCESS_CASE);
+    const r = await w("DELETE", "/cases/B-NO-A/nis/link", "b-doc", docEnv());
+    for (const i of await cases.get()) await i.waitForStatus("complete");
+    return r;
+  };
+  const currentUploads = async (caseId = "B-NO-A") =>
+    (await env.DB.prepare("SELECT COUNT(*) AS n FROM documents WHERE org_id = 'demo-b' AND case_id = ?1 AND origin = 'upload' AND lifecycle = 'current'").bind(caseId).first<{ n: number }>())!.n;
+
+  it("treats a document the NIS marks entered-in-error in docStatus as voided", async () => {
+    loadDoc("dr-1", "first");
+    await importDocs();
+    clock = "2026-10-20T08:00:00.000Z";
+    loadDoc("dr-1", "first", { docStatus: "entered-in-error" });
+    await ageImport();
+    expect((await importDocs()).body.data!.documents).toMatchObject({ withdrawn: 1 });
+    expect(await nisRow("DocumentReference/dr-1")).toMatchObject({ auto_withdrawn: "nis_voided", lifecycle: "withdrawn" });
+  });
+
+  it("takes a voided document back under its next version, and its alert goes", async () => {
+    loadDoc("dr-1", "first");
+    await importDocs();
+    clock = "2026-10-20T08:00:00.000Z";
+    loadDoc("dr-1", "first", { status: "entered-in-error" });
+    await ageImport();
+    await importDocs();
+    expect(await withdrawAlerts()).toHaveLength(1);
+    clock = "2026-10-21T08:00:00.000Z";
+    loadDoc("dr-1", "first");
+    await ageImport();
+    expect((await importDocs()).body.data!.documents).toMatchObject({ imported: 1, withdrawn: 0 });
+    expect(await nisRow("DocumentReference/dr-1")).toMatchObject({ auto_withdrawn: null, lifecycle: "current" });
+    expect(await withdrawAlerts()).toEqual([]);
+    // A corrected version after that comes in and retires the taken-back one: the withdrawn version is no decline.
+    clock = "2026-10-22T08:00:00.000Z";
+    loadDoc("dr-1", "corrected");
+    await ageImport();
+    expect((await importDocs()).body.data!.documents).toMatchObject({ imported: 1, declined: 0, superseded: 1 });
+    expect((await docRows()).results.filter((x) => x.lifecycle === "current").map((x) => x.nis_resource)).toEqual(["DocumentReference/dr-1"]);
+  });
+
+  it("keeps a document missing from the list while the NIS still holds it for the patient", async () => {
+    loadDoc("dr-1", "first");
+    await importDocs();
+    await ageImport();
+    // An offset-paged server skipped it while pages shifted: the search answer lacks it, a direct read finds it.
+    vi.restoreAllMocks();
+    let reads = 0;
+    mockFetch(async (req) => {
+      if (new URL(req.url).pathname.endsWith("/DocumentReference/dr-1")) reads++;
+      const res = await fhir.handle(req);
+      if (!new URL(req.url).pathname.endsWith("/DocumentReference") && !req.url.includes("/DocumentReference?")) return res;
+      const b = (await res.json()) as { entry?: { resource: { id: string } }[] };
+      return Response.json({ ...b, entry: (b.entry ?? []).filter((e) => e.resource.id !== "dr-1") });
+    });
+    expect((await importDocs()).body.data!.documents).toMatchObject({ withdrawn: 0, withdraw_pending: 0 });
+    expect(reads).toBe(1);
+    expect(await nisRow("DocumentReference/dr-1")).toMatchObject({ lifecycle: "current", auto_withdrawn: null });
+  });
+
+  it("withdraws a document the NIS moved to another patient's record", async () => {
+    loadDoc("dr-1", "first");
+    await importDocs();
+    clock = "2026-10-20T08:00:00.000Z";
+    loadDoc("dr-1", "first", { subject: { reference: "Patient/cb-s02" } });
+    await ageImport();
+    expect((await importDocs()).body.data!.documents).toMatchObject({ withdrawn: 1 });
+    expect(await nisRow("DocumentReference/dr-1")).toMatchObject({ auto_withdrawn: "nis_removed", lifecycle: "withdrawn" });
+  });
+
+  it("never withdraws a doctor's own upload the NIS version was mapped onto", async () => {
+    // The same bytes uploaded by hand first: the import maps its version onto that document instead of a copy.
+    const bytes = Uint8Array.from(atob(pdf("first")), (ch) => ch.charCodeAt(0));
+    const up = await call(
+      "/api/cases/B-NO-A/documents",
+      { method: "POST", headers: { "content-type": "application/pdf", "x-demo-user": "b-doc", "x-data-epoch": "1", "x-file-name": "zprava.pdf", "content-length": String(bytes.length) }, body: bytes },
+      docEnv(),
+    );
+    expect(up.status).toBeLessThan(300);
+    loadDoc("dr-1", "first");
+    await importDocs();
+    expect((await env.DB.prepare("SELECT created_by_import FROM nis_documents WHERE org_id = 'demo-b' AND nis_resource = 'DocumentReference/dr-1'").first<{ created_by_import: number }>())!.created_by_import).toBe(0);
+    clock = "2026-10-20T08:00:00.000Z";
+    loadDoc("dr-1", "first", { status: "entered-in-error" });
+    await ageImport();
+    expect((await importDocs()).body.data!.documents).toMatchObject({ withdrawn: 0 });
+    expect(await nisRow("DocumentReference/dr-1")).toMatchObject({ lifecycle: "current", auto_withdrawn: null });
+    // Unlinking leaves it in the case too.
+    expect((await unlink()).body.data!.documents).toMatchObject({ withdrawn: 0, withdraw_pending: 0 });
+    expect(await currentUploads()).toBe(1);
+  });
+
+  it("keeps a document while another current DocumentReference still stands for it", async () => {
+    // Two NIS records with the same bytes: one document, named by both.
+    loadDoc("dr-1", "same");
+    loadDoc("dr-2", "same");
+    await importDocs();
+    expect(await currentUploads()).toBe(1);
+    clock = "2026-10-20T08:00:00.000Z";
+    loadDoc("dr-1", "same", { status: "entered-in-error" });
+    await ageImport();
+    expect((await importDocs()).body.data!.documents).toMatchObject({ withdrawn: 0 });
+    expect(await currentUploads()).toBe(1);
+    expect(await withdrawAlerts()).toEqual([]);
+  });
+
+  it("leaves the documents in a locked case on unlink and reports them pending", async () => {
+    loadDoc("dr-1", "first");
+    await importDocs();
+    await env.DB.prepare("UPDATE cases SET status = 'closed' WHERE org_id = 'demo-b' AND id = 'B-NO-A'").run();
+    const r = await unlink();
+    expect(r.status).toBe(200);
+    expect(r.body.data!.documents).toMatchObject({ withdrawn: 0, withdraw_pending: 1 });
+    expect(await nisRow("DocumentReference/dr-1")).toMatchObject({ lifecycle: "current", auto_withdrawn: null });
+  });
+
+  it("on unlink withdraws in every case of the patient the doctor may act in, and counts the others", async () => {
+    const newCase = (id: string, no: string, order: number) =>
+      env.DB.prepare(
+        `INSERT INTO cases (id, org_id, case_no, patient_id, source_file, list_order, status, processing_level, question_text, question_explicit, diagnosis_text, owner_user_id, owner_name, submitted_on, updated_on)
+         VALUES (?1,'demo-b',?2,'pt-BA',?2 || '.pdf',?3,'ready','none',NULL,0,NULL,'b-doc','MUDr. Bédoktorová','2026-10-14','2026-10-16')`,
+      ).bind(id, no, order);
+    await env.DB.batch([
+      newCase("B-NO-2", "NO-2", 1),
+      newCase("B-NO-3", "NO-3", 2),
+      env.DB.prepare("INSERT INTO case_members (org_id, case_id, dept_id, reason) VALUES ('demo-b','B-NO-2','b-d1','test'), ('demo-b','B-NO-3','b-d1','test')"),
+    ]);
+    loadDoc("dr-1", "first");
+    for (const k of ["B-NO-A", "B-NO-2", "B-NO-3"]) {
+      await using cases = await introspectWorkflow(env.PROCESS_CASE);
+      expect((await w("POST", `/cases/${k}/nis/import`, "b-doc", docEnv())).status).toBe(200);
+      for (const i of await cases.get()) await i.waitForStatus("complete");
+    }
+    // The doctor's team leaves case 3: its documents stay there for its own team.
+    await env.DB.prepare("DELETE FROM case_members WHERE org_id = 'demo-b' AND case_id = 'B-NO-3'").run();
+    const r = await unlink();
+    expect(r.body.data!.documents).toEqual({ withdrawn: 2, withdraw_pending: 0, not_allowed: 1 });
+    expect(await currentUploads("B-NO-A")).toBe(0);
+    expect(await currentUploads("B-NO-2")).toBe(0);
+    expect(await currentUploads("B-NO-3")).toBe(1);
+  });
+
+  it("withdraws nothing when the pull of DocumentReferences was cut off", async () => {
+    loadDoc("dr-1", "first");
+    await importDocs();
+    fhir.remove("DocumentReference", "dr-1");
+    await ageImport();
+    // A server that caps pages at one record: the DocumentReference list is cut off, so absence proves nothing.
+    const capped = new MemoryFhir(BASE, { now: () => clock, maxCount: 1 });
+    for (const b of Object.values(JSON.parse(env.TEST_NIS_BUNDLES) as Record<string, Record<string, unknown>>)) capped.load(b);
+    for (let i = 0; i < 45; i++) loadDocInto(capped, `dr-z${i}`, `z${i}`);
+    vi.restoreAllMocks();
+    mockFetch((req) => capped.handle(req));
+    const r = await importDocs();
+    expect(r.body.data!.truncated).toContain("DocumentReference");
+    expect(r.body.data!.documents).toMatchObject({ withdrawn: 0 });
+    expect(await nisRow("DocumentReference/dr-1")).toMatchObject({ lifecycle: "current", auto_withdrawn: null });
   });
 
   it("retires the document the NIS replaced, as superseded by the new version", async () => {

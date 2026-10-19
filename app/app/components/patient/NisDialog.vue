@@ -2,12 +2,13 @@
 // "Import z NIS" (issue #22, phase 1): find the case's patient in the hospital system (NIS, read over FHIR) and link one
 // record to the patient. The person picks; the server reads the record again, refuses a different birth number and a
 // record the NIS merged into another, and asks for confirmation when the patient here has no birth number. Nothing is
-// merged. The national register is a labelled stub. Data from the NIS is not imported yet: the link is the first step.
+// merged. The national register is a labelled stub. Unlinking asks first: it takes the NIS data and the documents the
+// import brought out of the patient's cases.
 import { computed, onMounted, ref } from "vue";
 import { useFluent } from "fluent-vue";
 import type { NisCandidate, NisLink, NisSearch, NisStatus } from "@codebridge/domain/wire";
 import { useApi } from "../../lib/api";
-import { errMsg, useMsg, type Msg } from "../../lib/msg";
+import { errMsg, msgId, useMsg, type Msg } from "../../lib/msg";
 import { useOverlayStore } from "../../stores/overlay";
 
 const props = defineProps<{ o: { kind: "nis"; caseId: string } }>();
@@ -24,6 +25,8 @@ const typed = ref("");
 const confirmed = ref<Record<string, boolean>>({});
 const busy = ref(false);
 const msg = ref<Msg | null>(null);
+// Unlinking deletes the documents the import brought into the patient's cases, so it asks once more before it runs.
+const confirmUnlink = ref(false);
 
 onMounted(async () => {
   try {
@@ -67,7 +70,12 @@ async function linkTo(c: NisCandidate) {
 
 async function unlink() {
   const r = await run(() => api.nisUnlink(props.o.caseId));
-  if (r) link.value = null;
+  confirmUnlink.value = false;
+  if (r) {
+    link.value = null;
+    const d = r.data.documents;
+    msg.value = msgId("patient-nis-unlinked", { withdrawn: d.withdrawn, pending: d.withdraw_pending, other: d.not_allowed });
+  }
 }
 
 const label = computed(() => status.value?.label_cs ?? result.value?.label_cs ?? "");
@@ -95,7 +103,14 @@ const nameText = (c: NisCandidate) => (c.name_match === "spelling" ? $t("patient
         {{ $t("patient-nis-linked-by", { name: link.by_name, at: link.at.slice(0, 10) }) }}
       </p>
       <p class="muted small" style="margin:4px 0 0">{{ $t("patient-nis-phase-note") }}</p>
-      <button class="btn small" style="margin-top:8px" :disabled="busy" @click="unlink">{{ $t("patient-nis-unlink") }}</button>
+      <button v-if="!confirmUnlink" class="btn small" style="margin-top:8px" :disabled="busy" @click="confirmUnlink = true">{{ $t("patient-nis-unlink") }}</button>
+      <template v-else>
+        <p class="small" style="margin:8px 0 0">{{ $t("patient-nis-unlink-warning") }}</p>
+        <div class="row" style="margin-top:6px">
+          <button class="btn small" :disabled="busy" @click="unlink">{{ $t("patient-nis-unlink-confirm") }}</button>
+          <button class="btn small" :disabled="busy" @click="confirmUnlink = false">{{ $t("patient-nis-unlink-cancel") }}</button>
+        </div>
+      </template>
     </div>
 
     <template v-else-if="status">
