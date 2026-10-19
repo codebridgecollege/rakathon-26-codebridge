@@ -40,6 +40,9 @@ IDs (`alertId(rule|subject)`), so acknowledgements carry over.
   - A conflict, once found, is never downgraded by a later reading.
   - D does not check identity itself. Each fact sets `quarantined` and `source.identity` from this result for its
     page.
+  - D never sends a page with result `conflicts` to the model, neither as text nor as an image: the pseudonymization
+    knows only the case's identifiers, not the other patient's. Such a page is listed as unread in D's checks. Its lab
+    values stay in B's fragment, quarantined.
 - **Parts** are D1 `document_parts` (`part_id "<doc>/p<ordinal>"`, `pages_json`), also in `<output_prefix>parts.json`.
   D extracts per part, so `source.part` is that ID.
 
@@ -71,6 +74,7 @@ The steps:
 ## Triggers
 
 B's document run starts ProcessCase. When the model is on for the org, B's document run also starts D's
-`ExtractDocumentWorkflow`, which ends by starting ProcessCase again. The model is on when `MODEL_*` is configured,
-the org keeps content, and its model policy allows it. The first ProcessCase shows the no-AI view; the second adds the
+`ExtractDocumentWorkflow` (`startExtraction`), which ends by starting ProcessCase again. The model is on when
+`MODEL_*` is configured and `MODEL_ORGS` lists the org (`modelOn`). `MODEL_ORGS` is empty by default; real patients
+need FNO's clearance for any cloud model first. The first ProcessCase shows the no-AI view; the second adds the
 AI facts.
