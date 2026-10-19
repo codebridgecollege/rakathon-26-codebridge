@@ -12,6 +12,7 @@ import { clock, sizeMsg } from "../../lib/format";
 import { useMsg } from "../../lib/msg";
 import UploadZone from "./UploadZone.vue";
 import UploadList from "./UploadList.vue";
+import WithdrawActions from "./WithdrawActions.vue";
 import PhoneUploadButton from "../phone/PhoneUploadButton.vue";
 import type { UploadListItem } from "./types";
 
@@ -64,16 +65,23 @@ const items = computed<UploadListItem[]>(() =>
       key: d.id,
       name: d.name,
       meta,
-      chip: showState
-        ? { text: d.state_cs || "", cls: d.state === "failed" ? "k-contradiction" : "st-done", title: d.state_detail_cs || "" }
-        : { text: $t("upload-done"), cls: "st-done" },
+      chip:
+        d.lifecycle === "withdrawn"
+          ? { text: $t("upload-withdrawn"), cls: "", title: d.lifecycle_reason_cs || "" }
+          : showState
+            ? { text: d.state_cs || "", cls: d.state === "failed" ? "k-contradiction" : "st-done", title: d.state_detail_cs || "" }
+            : { text: $t("upload-done"), cls: "st-done" },
       // A document the pipeline works on, and the case's own seeded documents, are not removed from here.
       removable: !props.locked && (!d.state || d.state === "stored") && (!d.origin || d.origin === "upload"),
-      warnings: warningsOf(d),
+      warnings: d.lifecycle === "withdrawn" ? [] : warningsOf(d),
     };
   }),
 );
 const byKey = computed(() => new Map(docs.value.map((d) => [d.id, d])));
+// A processed or failed upload can leave the case as another patient's only where the pipeline runs for the org (demo
+// org A looks as before); a stored one is removed with the ✕ instead, and a prepared one waits for the case merge.
+const withdrawable = (d: UploadRow | undefined) =>
+  !!d && pipeline.value && !props.locked && d.origin === "upload" && d.lifecycle === "current" && ["processed", "failed"].includes(d.state ?? "");
 </script>
 
 <template>
@@ -85,6 +93,11 @@ const byKey = computed(() => new Map(docs.value.map((d) => [d.id, d])));
   <UploadList v-if="items.length" :items="items" @remove="(k) => uploads.remove(props.caseRef, String(k))">
     <template #after="{ item }">
       <slot name="pipeline" :doc="byKey.get(String(item.key))" :pipeline="pipeline" />
+      <WithdrawActions
+        v-if="withdrawable(byKey.get(String(item.key)))"
+        :name="item.name"
+        @withdraw="(r, done) => uploads.withdraw(props.caseRef, String(item.key), r).finally(done)"
+      />
     </template>
   </UploadList>
   <p v-else-if="props.locked" class="muted small" style="margin:12px 0 0">{{ $t("uploads-none") }}</p>

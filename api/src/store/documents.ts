@@ -44,13 +44,16 @@ export type DocRow = {
   readability: string | null;
   readability_reasons_json: string | null;
   source: string | null;
+  lifecycle: string;
+  lifecycle_reason_cs: string | null;
+  lifecycle_changed_at: string | null;
 };
 
 // The uploader's display name comes from the directory, so a renamed user shows their current name.
 const DOC_SELECT = `SELECT d.id, d.case_id, d.file_name, d.page_count, d.size_bytes, d.sha256, d.origin, d.processing, d.note_cs,
   d.original_r2_key, d.uploaded_by, trim(u.pre || ' ' || u.sur || CASE WHEN u.post <> '' THEN ', ' || u.post ELSE '' END) AS uploaded_by_name,
   d.created_at, d.state, d.state_detail_cs, d.fixture_id, d.identity, d.title_cs, d.doc_type, d.doc_date, d.readability,
-  d.readability_reasons_json, d.source
+  d.readability_reasons_json, d.source, d.lifecycle, d.lifecycle_reason_cs, d.lifecycle_changed_at
   FROM documents d LEFT JOIN users u ON u.id = d.uploaded_by /* org-scope: the caller's WHERE names d.org_id */`;
 
 // The fixture registry is global: the same synthetic files can be uploaded in any demo org.
@@ -94,7 +97,7 @@ export async function uploadContext(db: D1Database, org: string, caseId: string)
     org,
     `SELECT c.status, c.created_by, p.full_name, p.name_as_written, p.birth_number,
        EXISTS (SELECT 1 FROM protocols pr WHERE pr.org_id = ?org AND pr.case_id = c.id AND pr.state = 'approved') AS approved,
-       (SELECT COUNT(*) FROM documents d WHERE d.org_id = ?org AND d.case_id = c.id) AS doc_count
+       (SELECT COUNT(*) FROM documents d WHERE d.org_id = ?org AND d.case_id = c.id AND d.lifecycle = 'current') AS doc_count, c.intake_open
      FROM cases c JOIN patients p ON p.id = c.patient_id AND p.org_id = c.org_id WHERE c.org_id = ?org AND c.id = ?1`,
     caseId,
   ).first<{
@@ -105,6 +108,7 @@ export async function uploadContext(db: D1Database, org: string, caseId: string)
       birth_number: string | null;
       approved: number;
       doc_count: number;
+      intake_open: number;
     }>();
 }
 

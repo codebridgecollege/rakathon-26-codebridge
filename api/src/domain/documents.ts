@@ -34,6 +34,9 @@ export const UP = {
   tooMany: u(409, "too_many_documents", `Případ má už ${MAX_DOCUMENTS_PER_CASE} dokumentů, další nelze nahrát.`),
   notFound: u(404, "document_not_found", "Dokument nebyl nalezen."),
   notRemovable: u(409, "document_not_removable", "Odebrat lze jen nahraný dokument, který se zatím nezpracoval."),
+  notWithdrawable: u(409, "document_not_withdrawable", "Odebrat z případu lze jen nahraný dokument, který k případu ještě patří."),
+  badReason: u(422, "invalid_input", "Důvod odebrání musí být „wrong_patient“."),
+  preparedNotYet: u(409, "document_prepared", "Dokument s předem připravenými daty zatím nelze odebrat; jeho údaje jsou v souhrnu případu."),
   badName: u(422, "invalid_input", "Chybí název souboru (X-File-Name)."),
 };
 
@@ -112,6 +115,18 @@ export function compareIdentity(fixture: Person, patient: Person): Identity {
 
 // A difference in diacritics is reported too, so the wording states the mismatch, not that it is another person.
 export const IDENTITY_ALERT_CS = "Jméno nebo rodné číslo v dokumentu se neshoduje s pacientem případu; ověřte, zda dokument patří tomuto pacientovi.";
+
+// Why a processed upload leaves the case (documents.lifecycle = 'withdrawn', migration 0013): it is another patient's.
+// A better scan of the same paper is 'superseded', a different action (EXTRACTION-FORMAT.md, "documents"). The Czech
+// text is stored in lifecycle_reason_cs as the doctor reads it.
+export const WITHDRAW_REASONS = {
+  wrong_patient: "dokument jiného pacienta",
+} as const;
+export type WithdrawReason = keyof typeof WITHDRAW_REASONS;
+export const withdrawReason = (v: unknown): WithdrawReason => {
+  if (typeof v === "string" && v in WITHDRAW_REASONS) return v as WithdrawReason;
+  throw UP.badReason();
+};
 
 export const STATE_CS: Record<string, string> = {
   stored: "nezpracováno",

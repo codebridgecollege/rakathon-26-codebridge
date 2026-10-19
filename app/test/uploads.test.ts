@@ -36,6 +36,21 @@ describe("case uploads", () => {
     expect(m.calls).toHaveLength(1);
   });
 
+  it("takes a processed upload out of the case with its reason and keeps the row as the server answers it", async () => {
+    const m = mockApi({
+      "/cases/NO-S01/documents": { documents: [doc("u1", "a.pdf", { state: "processed", lifecycle: "current", content_stored: true })] },
+      "/documents/u1/withdraw": () => [200, ok({ document: doc("u1", "a.pdf", { state: "processed", lifecycle: "withdrawn", lifecycle_reason_cs: "dokument jiného pacienta", content_stored: false }) })],
+    });
+    setApi(m.api);
+    const u = useUploadsStore();
+    await u.load(S01);
+    await u.withdraw(S01, "u1", "wrong_patient");
+    const post = m.calls.find((c) => path(c) === "/documents/u1/withdraw")!;
+    expect([method(post), JSON.parse(String(post.init.body))]).toEqual(["POST", { reason: "wrong_patient" }]);
+    expect(u.docsOf(S01.file)).toHaveLength(1);
+    expect(u.docsOf(S01.file)[0]).toMatchObject({ lifecycle: "withdrawn", lifecycle_reason_cs: "dokument jiného pacienta", content_stored: false });
+  });
+
   it("lists each file at once with the user and time, then takes the server's answer", async () => {
     const hold = deferred<unknown>();
     const m = mockApi({ "/cases/NO-S01/documents": (_u: string, init: RequestInit) => (init.method === "POST" ? hold.promise.then(() => [201, ok({ document: doc("u9", "b.pdf") })]) : { documents: [] }) });

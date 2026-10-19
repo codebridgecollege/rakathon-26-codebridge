@@ -14,7 +14,8 @@ watch(
   () => void uploads.load({ file: c.p.value.file, id: c.p.value.id }),
   { immediate: true },
 );
-const n = computed(() => uploads.docsOf(c.p.value.file).filter((d) => d.identity === "conflicts").length);
+// A document already taken out of the case as another patient's no longer raises the banner.
+const n = computed(() => uploads.docsOf(c.p.value.file).filter((d) => d.identity === "conflicts" && d.lifecycle !== "withdrawn").length);
 </script>
 
 <template>
