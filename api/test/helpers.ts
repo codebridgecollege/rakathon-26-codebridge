@@ -65,6 +65,7 @@ export function testEnv(over: Record<string, unknown> = {}): Env {
     MODEL_BUDGET_PAGES_PER_ORG: "600",
     MODEL_BUDGET_PAGES_PER_CASE: "80",
     MODEL_BUDGET_CALLS_PER_PAGE: "4",
+    NIS_CONFIG: "{}",
     ...over,
   } as unknown as Env;
 }

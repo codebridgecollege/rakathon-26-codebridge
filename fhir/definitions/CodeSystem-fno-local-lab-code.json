@@ -6,7 +6,7 @@
   "name": "FNOlocallabcode",
   "title": "FNO local lab code",
   "status": "draft",
-  "description": "FN Ostrava's own lab test codes, kept as the source gives them. The URI stands for FNO's code list until FNO names the real one; this fragment lists only the codes in the challenge data.",
+  "description": "FN Ostrava's own lab test codes, kept as the source gives them. The URI stands for FNO's code list until FNO names the real one; this fragment lists only the codes in the challenge data and in our synthetic samples S01 and S02.",
   "caseSensitive": true,
   "content": "fragment",
   "concept": [
@@ -55,6 +55,10 @@
       "display": "eGFR CKD-EPI"
     },
     {
+      "code": "S_ALB",
+      "display": "Albumin"
+    },
+    {
       "code": "S_ALP",
       "display": "ALP"
     },
@@ -73,6 +77,14 @@
     {
       "code": "S_CA",
       "display": "Ca"
+    },
+    {
+      "code": "S_CA199",
+      "display": "CA 19-9"
+    },
+    {
+      "code": "S_CEA",
+      "display": "CEA"
     },
     {
       "code": "S_CL",
@@ -115,5 +127,5 @@
       "display": "Urea"
     }
   ],
-  "count": 26
+  "count": 29
 }

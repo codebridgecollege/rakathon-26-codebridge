@@ -6,6 +6,8 @@ export type RetryOpts = {
   // Total time for all attempts and waits; the page should not wait minutes for one summary.
   deadlineMs?: number;
   retryOn?: number[];
+  // The fetch to use: a Workers mTLS certificate binding's fetch for a NIS that requires mutual TLS (services/fhir.ts).
+  fetcher?: (url: string, init: RequestInit) => Promise<Response>;
 };
 
 // About 70 teams share the hackathon endpoint (CLAUDE.md): back off exponentially on 429 and 503, honor
@@ -22,7 +24,8 @@ export async function fetchWithRetry(
     const timeout = Math.max(1, Math.min(o.timeoutMs, end - Date.now()));
     let res: Response;
     try {
-      res = await fetch(url, { ...init, signal: AbortSignal.timeout(timeout) });
+      const sent = { ...init, signal: AbortSignal.timeout(timeout) };
+      res = await (o.fetcher ? o.fetcher(url, sent) : fetch(url, sent));
     } catch (e) {
       // The caller records how many times the body was sent, also when the last attempt failed on the network.
       if (e instanceof Error) (e as Error & { attempts?: number }).attempts = i;

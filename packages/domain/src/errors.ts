@@ -33,6 +33,16 @@ export const D = {
   deptNotFound: err(404, "dept_not_found", "Pracoviště nebylo nalezeno."),
   sessionNotFound: err(404, "session_not_found", "Na tento den neprobíhá žádné MDT."),
   invalidInput: err(422, "invalid_input", "Údaje nejsou vyplněné správně."),
+  // NIS link (issue #22): searching the hospital system and linking a patient's record
+  nisOff: err(503, "nis_off", "Připojení k NIS není pro tuto organizaci nastavené."),
+  nisBirthNumber: err(422, "invalid_input", "Zadejte rodné číslo ve tvaru 123456/7890."),
+  nisBirthNumberDiffers: err(422, "nis_birth_number_differs", "Zadané rodné číslo se liší od rodného čísla pacienta."),
+  nisPatientNotFound: err(404, "nis_patient_not_found", "Záznam pacienta v NIS nebyl nalezen."),
+  nisNotLinkable: err(409, "nis_not_linkable", "Tento záznam z NIS nelze propojit."),
+  nisConfirmRequired: err(422, "nis_confirm_required", "Pacient v CodeBridge nemá rodné číslo. Potvrďte, že jde o stejnou osobu."),
+  nisAlreadyLinked: err(409, "nis_already_linked", "Pacient už je propojen se záznamem v NIS. Nejdřív propojení zrušte."),
+  nisRecordTaken: err(409, "nis_record_taken", "Tento záznam v NIS je už propojen s jiným pacientem."),
+  nisNotLinked: err(404, "nis_not_linked", "Pacient není propojen se záznamem v NIS."),
   // status and closing
   statusMoveNotAllowed: err(409, "status_move_not_allowed", "Tuto změnu stavu nelze provést."),
   statusChanged: err(409, "status_changed", "Stav případu mezitím změnil jiný uživatel."),

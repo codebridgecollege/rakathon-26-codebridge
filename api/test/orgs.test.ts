@@ -132,7 +132,13 @@ type Ids = { case: string; case2: string; doc: string; upDoc: string; task: stri
 
 // One request of the sweep. It runs twice: with org A's IDs and with IDs that exist nowhere, and both answers must
 // be the same status and error code, so the answer says nothing about whether org A has the record.
-type Probe = { name: string; method: string; path: (i: Ids) => string; user: string; body?: (i: Ids) => unknown; headers?: Record<string, string> };
+type Probe = { name: string; method: string; path: (i: Ids) => string; user: string; body?: (i: Ids) => unknown; headers?: Record<string, string>; env?: () => Env };
+
+// Both demo orgs with a NIS (a .test host nothing answers), so the NIS probes reach the case lookup.
+const NIS_BOTH = () => {
+  const nis = { base_url: "https://nis.test/fhir", label_cs: "Testovací NIS", auth: { mode: "none" } };
+  return testEnv({ NIS_CONFIG: JSON.stringify({ "demo-a": nis, "demo-b": nis }) });
+};
 
 const PROBES: Probe[] = [
   // Reads of one case and its parts (cases.ts, transcript.ts, documents.ts, intake.ts).
@@ -168,6 +174,11 @@ const PROBES: Probe[] = [
   // Intake (intake.ts).
   { name: "POST /cases/:id/intake/complete", method: "POST", path: (i) => `/cases/${i.case2}/intake/complete`, user: "b-coord" },
   { name: "DELETE /cases/:id/intake", method: "DELETE", path: (i) => `/cases/${i.case2}/intake`, user: "b-coord" },
+  // NIS search and link (nis.ts), with a NIS configured in both orgs.
+  { name: "GET /cases/:id/nis", method: "GET", path: (i) => `/cases/${i.case}/nis`, user: "b-doc", env: NIS_BOTH },
+  { name: "POST /cases/:id/nis/search", method: "POST", path: (i) => `/cases/${i.case}/nis/search`, user: "b-coord", body: () => ({}), env: NIS_BOTH },
+  { name: "POST /cases/:id/nis/link", method: "POST", path: (i) => `/cases/${i.case2}/nis/link`, user: "b-doc", body: () => ({ nis_patient_id: "t-pt-a" }), env: NIS_BOTH },
+  { name: "DELETE /cases/:id/nis/link", method: "DELETE", path: (i) => `/cases/${i.case}/nis/link`, user: "b-coord", env: NIS_BOTH },
   // Recording (transcript.ts).
   { name: "PATCH /recordings/:id", method: "PATCH", path: (i) => `/recordings/${i.rec}`, user: "b-doc", body: () => ({ end_reason: "stopped" }) },
   { name: "POST /cases/:id/transcript/lines", method: "POST", path: (i) => `/cases/${i.case2}/transcript/lines`, user: "b-doc", body: (i) => ({ recording_id: i.rec, lines: [{ client_line_id: "line-0000-0001", wall_ms: Date.now(), text: "věta" }] }) },
@@ -267,7 +278,7 @@ describe("every route, acting in org B with org A's IDs", () => {
     const failures: string[] = [];
 
     for (const p of PROBES) {
-      const run = (i: Ids) => send(p.method, p.path(i), p.user, p.body?.(i) ?? {}, p.headers ?? {});
+      const run = (i: Ids) => send(p.method, p.path(i), p.user, p.body?.(i) ?? {}, p.headers ?? {}, p.env?.() ?? testEnv());
       const a = await run(ids);
       const u = await run(UNKNOWN);
       const seen = `${p.name}: A ${a.status} ${a.body.error?.code ?? ""}, unknown ${u.status} ${u.body.error?.code ?? ""}`;
@@ -363,7 +374,7 @@ describe("every route, acting in org B with org A's IDs", () => {
     const asA: Record<string, string> = { "b-doc": "d2p1", "b-coord": "coord", "b-admin": "admin" };
     const found: string[] = [];
     for (const p of PROBES.filter((x) => x.method === "GET")) {
-      const r = await send("GET", p.path(ids), asA[p.user]!);
+      const r = await send("GET", p.path(ids), asA[p.user]!, {}, {}, p.env?.() ?? testEnv());
       found.push(`${p.name} ${r.status}`);
     }
     expect(found.filter((f) => !/ 200$/.test(f))).toEqual(["GET /cases/:id/intake 409"]);

@@ -907,3 +907,37 @@ patient-fhir-basis = { $role ->
         [purpose] Účel v dokumente
        *[other] Vychádza z
     }: „{ $quote }“ ({ $file }, s. { $page }).
+
+# Slovak, "Import z NIS" (issue #22). See the Czech file for what each message is.
+
+patient-action-nis = Import z NIS
+patient-nis-title = Import z NIS
+patient-nis-heading = Import z NIS · { $id }
+patient-nis-source = Zdroj: { $label } (FHIR R4, len čítanie)
+patient-nis-intro = Vyhľadá pacienta v NIS podľa rodného čísla. Vyberte správny záznam sami; nič sa nezlučuje automaticky.
+patient-nis-rc-label = Rodné číslo
+patient-nis-rc-placeholder = 123456/7890
+patient-nis-rc-missing = Pacient nemá v CodeBridge rodné číslo. Zadajte ho; prepojenie potom potvrdíte ručne.
+patient-nis-search-own = Vyhľadať v NIS podľa rodného čísla pacienta
+patient-nis-search = Vyhľadať v NIS
+patient-nis-none = V NIS sa nenašiel žiadny záznam s týmto rodným číslom.
+patient-nis-duplicates = V NIS je pre toto rodné číslo viac záznamov. Vyberte správny; CodeBridge ich nezlučuje.
+patient-nis-truncated = Zobrazená je len časť výsledkov; NIS vrátil príliš veľa záznamov.
+patient-nis-record = záznam NIS { $id }
+patient-nis-born = Narodený(á)
+patient-nis-gender-male = muž
+patient-nis-gender-female = žena
+patient-nis-identity-matches = rodné číslo súhlasí
+patient-nis-identity-conflicts = rodné číslo sa líši
+patient-nis-identity-unverified = rodné číslo nemožno overiť
+patient-nis-name-spelling = meno zapísané inak (bez diakritiky)
+patient-nis-name-different = meno sa líši
+patient-nis-confirm = Potvrdzujem, že ide o tú istú osobu
+patient-nis-link = Prepojiť
+patient-nis-linked = Prepojené so záznamom NIS { $id }
+patient-nis-linked-matches = Rodné číslo súhlasilo.
+patient-nis-linked-unverified = Rodné číslo nebolo možné overiť, prepojenie potvrdil používateľ.
+patient-nis-linked-by = Prepojil(a) { $name }, { $at }.
+patient-nis-phase-note = Údaje z NIS sa zatiaľ nenačítavajú; prepojenie je prvý krok importu.
+patient-nis-unlink = Zrušiť prepojenie
+patient-nis-register-label = Národný register (ukážka):

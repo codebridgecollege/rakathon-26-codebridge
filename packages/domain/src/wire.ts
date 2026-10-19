@@ -2,6 +2,8 @@
 // stores; api/src/wire-check.ts asserts at type-check time that what the Worker builds still fits these types, so the
 // browser client and the server cannot drift apart silently. Field names are the ones the app reads.
 import type { Role } from "./access";
+import type { NisCandidate } from "./nis";
+export type { NisCandidate } from "./nis";
 import type { Status } from "./status";
 import type { Step } from "./protocol";
 
@@ -49,6 +51,8 @@ export type Me = {
   // included). Null where no role switch exists (demo mode, hospital orgs).
   role_switch: RoleSwitchEntry[] | null;
   notice_cs: string | null;
+  // The org's NIS (hospital system over FHIR), null when the org has none: the page then shows no "Import z NIS".
+  nis: { label_cs: string } | null;
 };
 
 export type RoleSwitchEntry = { membership_id: string; name: string; role: Role; fn: string; own: boolean };
@@ -216,6 +220,19 @@ export type CaseDocuments = { case_id: string; processing_level: "full" | "parti
 
 // POST /fhir/referral: the referral read into the form. fields uses the form's field names (nf0...), so the page fills
 // the form without a mapping of its own; the bundle itself is never stored, only its hash.
+// "Import z NIS" (issue #22): the link a patient row has to a NIS record, and the candidates of a search.
+export type NisLink = { nis_patient_id: string; nis_version: string | null; identity_check: string; by_name: string; at: string };
+export type NisRegisterStub = { status: "stub"; message_cs: string };
+export type NisStatus = { label_cs: string; has_birth_number: boolean; link: NisLink | null; national_register: NisRegisterStub };
+export type NisSearch = {
+  label_cs: string;
+  candidates: NisCandidate[];
+  duplicates: boolean;
+  truncated: boolean;
+  link: NisLink | null;
+  national_register: NisRegisterStub;
+};
+
 export type FhirReferral = {
   form: Record<string, string>;
   fields: Record<string, string>;

@@ -26,12 +26,14 @@ export type Action =
   | "recording.write" // start and stop the AI recording
   | "transcript.write" // store live lines and audio of a case, retry its speaker pass
   | "document.upload" // upload a document to a case or remove an unprocessed upload (step 6)
-  | "document.process"; // start the document pipeline on a stored document (step 6)
+  | "document.process" // start the document pipeline on a stored document (step 6)
+  | "nis.link"; // search the org's NIS for the case's patient and link or unlink the record (issue #22)
 
 // Actions on one case need the doctor to be on its team (or to hold a break-the-glass grant).
 const CASE_SCOPED: ReadonlySet<Action> = new Set([
   "status.move", "slot.write", "protocol.edit", "decision.approve", "decision.new_version", "question.confirm",
   "fact.edit", "suggestion.decide", "task.done", "alert.act", "transcript.write", "document.upload", "document.process",
+  "nis.link",
 ]);
 
 // The permission matrix. A row missing for a role means "no". Clinical confirmations are doctors' only.
@@ -59,6 +61,9 @@ const MATRIX: Record<Action, ReadonlySet<Role>> = {
   "document.upload": new Set(["doctor", "coordinator"]),
   // Re-reading a document is not a clinical confirmation, so the same roles as uploading it.
   "document.process": new Set(["doctor", "coordinator"]),
+  // Who brings documents to a case may also find the patient in the NIS: the same roles as uploading. The
+  // administrator sees no clinical content, so does not search the hospital record either.
+  "nis.link": new Set(["doctor", "coordinator"]),
 };
 
 // Doctor-only clinical actions refuse with the wording the page used before (who does it), not a generic one.

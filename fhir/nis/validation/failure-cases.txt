@@ -1,0 +1,65 @@
+FHIR Validation tool Version 7.0.2 (Git# de3463393298). Built 2026-10-15T16:42:38.193Z (3 days old)
+  Java:   21.0.12.1 from <java> on aarch64 (64bit). 6144MB available
+  Paths:  Current = ., Package Cache = ~/.fhir/packages
+  Params: fhir/nis/out/failure-cases.json -version 4.0.1 -ig fhir/definitions -ig hl7.fhir.cz.core#1.0.0 -output-style compact
+  Locale: United States/US
+  Jurisdiction: United States of America
+Loading
+  Loading FHIR v4.0.1 from hl7.fhir.r4.core#4.0.1
+  Load hl7.terminology.r4#6.2.0 - 4288 resources (00:02.168)
+  Load hl7.fhir.uv.extensions.r4#5.2.0 - 759 resources (00:00.405)
+  Loaded FHIR - 8265 resources (00:00.000)
+  Terminology Cache at <tmp>
+  Terminology server https://tx.fhir.org - Version Connected to Terminology Server at https://tx.fhir.org (00:00.997)
+  Load hl7.terminology#7.4.0 - 4181 resources (00:00.639)
+  Load hl7.fhir.uv.extensions.r5#5.2.0 - 759 resources (00:00.183)
+  Load hl7.terminology.r5#7.1.0 - 4072 resources (00:00.043)
+  Load hl7.fhir.uv.extensions#5.3.0 - 856 resources (00:00.489)
+  Load fhir/definitions - 7 resources (00:00.007)
+  Load hl7.terminology.r4#7.1.0 - 4072 resources (00:00.077)
+  Load hl7.fhir.uv.extensions.r4#5.3.0 - 885 resources (00:00.149)
+  Load hl7.terminology.r4#7.3.0 - 4146 resources (00:00.041)
+  Load hl7.fhir.uv.xver-r5.r4#0.1.0 - 4707 resources (00:00.059)
+  Load hl7.fhir.eu.extensions.r4#1.3.0 - 11 resources (00:00.001)
+  Load hl7.terminology.r4#6.3.0 - 4339 resources (00:00.078)
+  Load ihe.pharm.mpd.r4#1.0.0-comment-2 - 40 resources (00:00.001)
+  Load hl7.fhir.eu.base#2.0.0 - 31 resources (00:00.000)
+  Load hl7.fhir.cz.terminology#0.3.0 - 76 resources (00:00.001)
+  Load hl7.fhir.eu.mpd#1.0.0 - 5 resources (00:00.000)
+  Load hl7.fhir.eu.laboratory#2.0.0 - 35 resources (00:00.001)
+  Load hl7.fhir.cz.core#1.0.0 - 62 resources (00:00.000)
+  Package Summary: [hl7.fhir.r4.core#4.0.1, hl7.fhir.xver-extensions#0.1.0, hl7.terminology.r4#6.2.0, hl7.fhir.uv.extensions.r4#5.2.0, hl7.terminology#7.4.0, hl7.fhir.uv.extensions.r5#5.2.0, hl7.terminology.r5#7.1.0, hl7.fhir.uv.extensions#5.3.0, hl7.terminology.r4#7.1.0, hl7.fhir.uv.extensions.r4#5.3.0, hl7.terminology.r4#7.3.0, hl7.fhir.uv.xver-r5.r4#0.1.0, hl7.fhir.eu.extensions.r4#1.3.0, hl7.terminology.r4#6.3.0, ihe.pharm.mpd.r4#1.0.0-comment-2, hl7.fhir.eu.base#2.0.0, hl7.fhir.cz.terminology#0.3.0, hl7.fhir.eu.mpd#1.0.0, hl7.fhir.eu.laboratory#2.0.0, hl7.fhir.cz.core#1.0.0]
+  Get set... 
+  ...go! (00:02.085)
+Cached new session. Cache size = 1
+Sources to validate: fhir/nis/out/failure-cases.json
+Validating
+  Validate fhir/nis/out/failure-cases.json
+ 00:01.745
+Done. Times: Loading: 00:07.480, validation: 00:01.745. Memory = 920Mb
+
+
+----------------------------------------------------------------------------------
+fhir/nis/out/failure-cases.json 09:36:22
+[7, 8] Bundle.entry[0].resource/*Patient/cb-f01-a*/: Warning - Constraint failed: dom-6: 'A resource should have narrative for robust management' (defined in http://hl7.org/fhir/StructureDefinition/DomainResource) (Best Practice Recommendation)
+[44, 8] Bundle.entry[1].resource/*Patient/cb-f01-b*/: Warning - Constraint failed: dom-6: 'A resource should have narrative for robust management' (defined in http://hl7.org/fhir/StructureDefinition/DomainResource) (Best Practice Recommendation)
+[81, 8] Bundle.entry[2].resource/*Patient/cb-f01-c*/: Warning - Constraint failed: dom-6: 'A resource should have narrative for robust management' (defined in http://hl7.org/fhir/StructureDefinition/DomainResource) (Best Practice Recommendation)
+[110, 8] Bundle.entry[3].resource/*Patient/cb-f02*/: Warning - Constraint failed: dom-6: 'A resource should have narrative for robust management' (defined in http://hl7.org/fhir/StructureDefinition/DomainResource) (Best Practice Recommendation)
+[152, 8] Bundle.entry[5].resource/*DocumentReference/cb-f02-doc-histo-v1*/: Warning - Constraint failed: dom-6: 'A resource should have narrative for robust management' (defined in http://hl7.org/fhir/StructureDefinition/DomainResource) (Best Practice Recommendation)
+[170, 14] Bundle.entry[5].resource/*DocumentReference/cb-f02-doc-histo-v1*/.content[0].attachment: Information - Attachment content was not checked: Binary/cb-f02-doc-histo-v1-bin is not a directly accessible link
+[200, 8] Bundle.entry[7].resource/*DocumentReference/cb-f02-doc-histo-v2*/: Warning - Constraint failed: dom-6: 'A resource should have narrative for robust management' (defined in http://hl7.org/fhir/StructureDefinition/DomainResource) (Best Practice Recommendation)
+[226, 14] Bundle.entry[7].resource/*DocumentReference/cb-f02-doc-histo-v2*/.content[0].attachment: Information - Attachment content was not checked: Binary/cb-f02-doc-histo-v2-bin is not a directly accessible link
+[243, 8] Bundle.entry[8].resource/*Patient/cb-f03*/: Warning - Constraint failed: dom-6: 'A resource should have narrative for robust management' (defined in http://hl7.org/fhir/StructureDefinition/DomainResource) (Best Practice Recommendation)
+[272, 8] Bundle.entry[9].resource/*Condition/cb-f03-dg-c18*/: Warning - Constraint failed: dom-6: 'A resource should have narrative for robust management' (defined in http://hl7.org/fhir/StructureDefinition/DomainResource) (Best Practice Recommendation)
+[325, 8] Bundle.entry[10].resource/*Observation/cb-f03-stage-c*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
+[325, 8] Bundle.entry[10].resource/*Observation/cb-f03-stage-c*/: Warning - Constraint failed: dom-6: 'A resource should have narrative for robust management' (defined in http://hl7.org/fhir/StructureDefinition/DomainResource) (Best Practice Recommendation)
+[356, 8] Bundle.entry[11].resource/*Observation/cb-f03-stage-p1*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
+[356, 8] Bundle.entry[11].resource/*Observation/cb-f03-stage-p1*/: Warning - Constraint failed: dom-6: 'A resource should have narrative for robust management' (defined in http://hl7.org/fhir/StructureDefinition/DomainResource) (Best Practice Recommendation)
+[387, 8] Bundle.entry[12].resource/*Observation/cb-f03-stage-p2*/: Warning - Best Practice Recommendation: In general, all observations should have a performer
+[387, 8] Bundle.entry[12].resource/*Observation/cb-f03-stage-p2*/: Warning - Constraint failed: dom-6: 'A resource should have narrative for robust management' (defined in http://hl7.org/fhir/StructureDefinition/DomainResource) (Best Practice Recommendation)
+[418, 8] Bundle.entry[13].resource/*Patient/cb-f04*/: Warning - Constraint failed: dom-6: 'A resource should have narrative for robust management' (defined in http://hl7.org/fhir/StructureDefinition/DomainResource) (Best Practice Recommendation)
+[447, 8] Bundle.entry[14].resource/*ServiceRequest/cb-f04-sr-mr*/: Warning - Constraint failed: dom-6: 'A resource should have narrative for robust management' (defined in http://hl7.org/fhir/StructureDefinition/DomainResource) (Best Practice Recommendation)
+[467, 8] Bundle.entry[15].resource/*DiagnosticReport/cb-f04-rad-mr*/: Warning - Constraint failed: dom-6: 'A resource should have narrative for robust management' (defined in http://hl7.org/fhir/StructureDefinition/DomainResource) (Best Practice Recommendation)
+[503, 8] Bundle.entry[16].resource/*ServiceRequest/cb-f04-sr-pet*/: Warning - Constraint failed: dom-6: 'A resource should have narrative for robust management' (defined in http://hl7.org/fhir/StructureDefinition/DomainResource) (Best Practice Recommendation)
+
+Done. Times: Loading: 00:07.480, validation: 00:01.745. Max Memory = 6Gb

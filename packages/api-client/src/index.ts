@@ -16,6 +16,9 @@ import type {
   UploadTarget,
   Health,
   Me,
+  NisLink,
+  NisSearch,
+  NisStatus,
   PatientList,
   StaffDirectory,
   TaskList,
@@ -210,6 +213,14 @@ export function createApiClient(opts: ClientOptions = {}) {
     createCase: (body: NewCaseBody, idem: string) => w<CreatedCase>("POST", "/cases", body, { idem }),
     // The bundle holds identity; the server logs the import and keeps only its hash.
     fhirReferral: (bundle: unknown) => w<FhirReferral>("POST", "/fhir/referral", bundle),
+
+    // ---------- NIS (issue #22) ----------
+    nisStatus: (caseId: string) => t.get<NisStatus>(`/cases/${enc(caseId)}/nis`),
+    // The birth number only when the patient row has none; it travels in the body, never in the URL.
+    nisSearch: (caseId: string, body: { birth_number?: string }) => w<NisSearch>("POST", `/cases/${enc(caseId)}/nis/search`, body),
+    nisLink: (caseId: string, body: { nis_patient_id: string; birth_number?: string; confirm_unverified?: boolean }) =>
+      w<{ link: NisLink | null }>("POST", `/cases/${enc(caseId)}/nis/link`, body),
+    nisUnlink: (caseId: string) => w<{ link: null }>("DELETE", `/cases/${enc(caseId)}/nis/link`, {}),
     completeIntake: (caseId: string) => w<IntakeCompleted>("POST", `/cases/${enc(caseId)}/intake/complete`, {}),
     discardIntake: (caseId: string) => w<{ discarded: string }>("DELETE", `/cases/${enc(caseId)}/intake`, {}),
     // One file per request, raw body (api/src/routes/documents.ts); the file name travels URI-encoded in X-File-Name,

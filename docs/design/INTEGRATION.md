@@ -239,6 +239,7 @@ and what each stands for:
 | Access log in Administrace | The audit log |
 | Fictitious PDFs read by Tesseract and a vision model | Documents from the NIS over FHIR, read by the local pipeline |
 | "AI záznam" with ElevenLabs Scribe v2, fictitious speech only | The speech server inside FNO: live transcript per case, speakers after approval, audio deleted after processing |
+| "Import z NIS" in the patient header, only in an org with a NIS configured (`NIS_CONFIG`; none on the deployed demo): search by birth number over FHIR, candidates shown, one linked by a person; the national register lookup as a labelled stub ([`fhir/nis/README.md`](../../fhir/nis/README.md), issue #22) | Finding the patient in FNO's NIS: read only, SMART Backend Services or SMART on FHIR, over mutual TLS where FNO requires it |
 | "Export FHIR" in the patient view: a validated FHIR R4 Bundle with a Provenance on every fact ([`fhir/README.md`](../../fhir/README.md)) | What CodeBridge sends to and reads from FNO's FHIR API |
 | On the API Worker, every change goes through the server: role and team membership, the clinical rules (one decision per approval, drafts stay drafts, alerts never block), and the access-log row in the same database transaction ([`step-4.md`](../research/backend-steps/step-4.md)) | The backend's rules and audit; the browser is never the only place a rule lives |
 | "Otevřít mimo tým" with a reason, valid 12 hours, every read logged with the reason | Break-the-glass access for a doctor outside the case's team |
@@ -256,6 +257,18 @@ and what each stands for:
 - Entra ID or on-premises AD with ADFS for login? Which groups exist for
   the neuro-oncology MDT team and the coordinators? How are directory
   users linked to NIS staff records?
+- Does the NIS store the birth number in `Patient.identifier` with the
+  Czech core system `https://ncez.mzcr.cz/fhir/sid/rcis`, with or
+  without the slash? Does its FHIR API accept `POST Patient/_search`?
+  (The connector searches both forms in one POST.)
+- How does the NIS report merged duplicates: `Patient.link`
+  (`replaced-by`, `replaces`) and `active: false`, or another way?
+- For backend services: which token endpoint, scopes, signing algorithm
+  (RS384 or ES384) and key registration (JWKS URL or uploaded key), and is
+  a client certificate (mutual TLS) required?
+- Which MKN-10 code form does the NIS send (`C711` as ÚZIS's code system,
+  or `C71.1` as the documents print it), and does the lab system send NČLP
+  codes next to FNO's own (`S_CREAE`)?
 - How long should copied documents and the audit log be kept, and who
   reviews break-the-glass access?
 - Does FNO want the approved MDT protocol in the NIS, and if so, filed by

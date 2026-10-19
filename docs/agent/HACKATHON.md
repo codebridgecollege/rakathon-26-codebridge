@@ -268,6 +268,12 @@ Declare this list to the jury and mentors.
   `jose`; the browser suite logs in at a mock IdP of our own
   (`e2e/mock-oidc.mjs`). Juro's earlier WorkOS adapter (`identity-workos`)
   was not used.
+- HAPI FHIR JPA server (`hapiproject/hapi:v8.12.0-2`, Apache-2.0, pinned
+  by digest in `fhir/nis/docker-compose.yml`) as an optional local NIS
+  stand-in for issue #22 (after the hackathon); the tests use our own
+  in-memory FHIR server (`fhir/nis/memory-server.ts`), written for this
+  project. The HL7 FHIR validator 7.0.2 checks the NIS test Bundles as it
+  checks the export.
 - (Add the LLMs, libraries, and datasets as we adopt them.)
 
 

@@ -74,4 +74,5 @@ export const meOrg = (membership: string) => ({
   data_epoch: null,
   real_user: null,
   role_switch: null,
+  nis: null,
 });

@@ -875,3 +875,41 @@ patient-fhir-basis = { $role ->
         [purpose] Účel v dokumentu
        *[other] Vychází z
     }: „{ $quote }“ ({ $file }, s. { $page }).
+
+# Czech, "Import z NIS" (issue #22): search the hospital information system (NIS) over FHIR for the case's patient and
+# link one record. Message IDs start with "patient-nis-"; the button is patient-action-nis.
+
+patient-action-nis = Import z NIS
+patient-nis-title = Import z NIS
+patient-nis-heading = Import z NIS · { $id }
+# $label: the org's name for its NIS connection, from the server's configuration.
+patient-nis-source = Zdroj: { $label } (FHIR R4, jen čtení)
+patient-nis-intro = Vyhledá pacienta v NIS podle rodného čísla. Vyberte správný záznam sami; nic se neslučuje automaticky.
+patient-nis-rc-label = Rodné číslo
+patient-nis-rc-placeholder = 123456/7890
+patient-nis-rc-missing = Pacient nemá v CodeBridge rodné číslo. Zadejte ho; propojení pak potvrdíte ručně.
+patient-nis-search-own = Vyhledat v NIS podle rodného čísla pacienta
+patient-nis-search = Vyhledat v NIS
+patient-nis-none = V NIS nebyl nalezen žádný záznam s tímto rodným číslem.
+patient-nis-duplicates = V NIS je pro toto rodné číslo více záznamů. Vyberte správný; CodeBridge je neslučuje.
+patient-nis-truncated = Zobrazena jen část výsledků; NIS vrátil příliš mnoho záznamů.
+# $id: the record's ID in the NIS.
+patient-nis-record = záznam NIS { $id }
+patient-nis-born = Narozen(a)
+patient-nis-gender-male = muž
+patient-nis-gender-female = žena
+patient-nis-identity-matches = rodné číslo souhlasí
+patient-nis-identity-conflicts = rodné číslo se liší
+patient-nis-identity-unverified = rodné číslo nelze ověřit
+patient-nis-name-spelling = jméno zapsáno jinak (bez diakritiky)
+patient-nis-name-different = jméno se liší
+patient-nis-confirm = Potvrzuji, že jde o stejnou osobu
+patient-nis-link = Propojit
+patient-nis-linked = Propojeno se záznamem NIS { $id }
+patient-nis-linked-matches = Rodné číslo souhlasilo.
+patient-nis-linked-unverified = Rodné číslo nebylo možné ověřit, propojení potvrdil uživatel.
+# $name: who linked it; $at: the day (YYYY-MM-DD).
+patient-nis-linked-by = Propojil(a) { $name }, { $at }.
+patient-nis-phase-note = Údaje z NIS se zatím nenačítají; propojení je první krok importu.
+patient-nis-unlink = Zrušit propojení
+patient-nis-register-label = Národní registr (ukázka):

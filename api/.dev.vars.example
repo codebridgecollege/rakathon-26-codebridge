@@ -10,3 +10,5 @@ AI_GATEWAY_TOKEN=
 # `openssl rand -base64 32`; it encrypts the login-transaction cookies.
 OIDC_CLIENT_SECRET=
 SESSION_KEY=
+# The NIS over FHIR (api/AGENTS.md, "NIS over FHIR"): an org with auth mode backend_services names its private key's
+# secret in NIS_CONFIG, for example NIS_FNO_KEY (a PKCS#8 PEM). Not needed for the local test server (auth mode none).

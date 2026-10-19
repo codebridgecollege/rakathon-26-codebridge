@@ -5,5 +5,6 @@ declare namespace Cloudflare {
     TEST_SEED_STAFF: string;
     TEST_SEED_STAFF_B: string;
     TEST_SOURCES: Record<string, string>;
+    TEST_NIS_BUNDLES: string;
   }
 }
