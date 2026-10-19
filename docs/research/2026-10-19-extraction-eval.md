@@ -13,29 +13,36 @@ Status: working notes, 2026-10-19. Synthetic data only (cases 10, S01-S04). Mode
 Expectations of `samples/expected/*.json` per failure kind, with the AI runs added (pass / fail / not run). Before
 the AI runs, every expectation that needs a diagnosis, request, identity or similar check was "not run".
 
-| Failure kind | v1, whole document | v2, whole document | v2, page by page | v3, page by page |
-|---|---|---|---|---|
-| critical fact left out | 3 / 3 / 1 | 6 / 0 / 1 | 6 / 0 / 1 | 7 / 0 / 0 |
-| wrong date | 4 / 0 / 0 | 4 / 0 / 0 | 4 / 0 / 0 | 4 / 0 / 0 |
-| negation read as positive | 3 / 5 / 0 | 7 / 1 / 0 | 7 / 1 / 0 (8 / 0 after the regex fix below) | 8 / 0 / 0 |
-| patients mixed up | 7 / 0 / 1 | 7 / 0 / 1 | 7 / 0 / 1 | 7 / 0 / 1 |
-| report missing | 1 / 0 / 5 | 1 / 0 / 5 | 1 / 0 / 5 | 1 / 0 / 5 |
-| request without result | 3 / 4 / 0 | 7 / 0 / 0 | 7 / 0 / 0 | 7 / 0 / 0 |
-| poor scan | 13 / 0 / 3 (+1 known) | same | same | same |
+| Failure kind | v1, whole document | v2, whole document | v2, page by page | v3 | v4 | v5 |
+|---|---|---|---|---|---|---|
+| critical fact left out | 3 / 3 / 1 | 6 / 0 / 1 | 6 / 0 / 1 | 7 / 0 / 0 | 7 / 0 / 0 | 7 / 0 / 0 |
+| wrong date | 4 / 0 / 0 | 4 / 0 / 0 | 4 / 0 / 0 | 4 / 0 / 0 | 4 / 0 / 0 | 4 / 0 / 0 |
+| negation read as positive | 3 / 5 / 0 | 7 / 1 / 0 | 7 / 1 / 0 (8 / 0 after the regex fix below) | 8 / 0 / 0 | 7 / 1 / 0 | 8 / 0 / 0 |
+| patients mixed up | 7 / 0 / 1 | 7 / 0 / 1 | 7 / 0 / 1 | 7 / 0 / 1 | 7 / 0 / 1 | 7 / 0 / 1 |
+| report missing | 1 / 0 / 5 | 1 / 0 / 5 | 1 / 0 / 5 | 1 / 0 / 5 | 1 / 0 / 5 | 1 / 0 / 5 |
+| request without result | 3 / 4 / 0 | 7 / 0 / 0 | 7 / 0 / 0 | 7 / 0 / 0 | 7 / 0 / 0 | 7 / 0 / 0 |
+| poor scan | 13 / 0 / 3 (+1 known) | same | same | same | same | same |
+
+v3 to v5 are page by page. The v4 failure: the misread liver sentence of S03 came out as a "verify" imaging fact, not
+as a metastasis fact, so the expectation that looks for a liver metastasis fact found none; v5 asks for a separate
+metastasis fact wherever a finding mentions metastases. In no version was the misread a clear fact.
 
 "Report missing" stays not run: it needs the cross-document rule for cited reports (milestone 4). One "patients mixed
 up" expectation needs the contradiction rule. The poor-scan items not run need medication (bisoprolol), which this step
 does not extract yet.
 
-Facts kept (clear / verify / quarantined) with v3, page by page:
+Facts kept with v3 and v5 (clear / verify / quarantined):
 
-| Case | Facts | Clear | Verify | Quarantined |
-|---|---|---|---|---|
-| 10 | 126 | 86 | 40 | 0 |
-| S01 | 64 | 49 | 15 | 0 |
-| S02 | 64 | 53 | 11 | 0 |
-| S03 (poor scan) | 29 | 0 | 29 | 0 |
-| S04 (two patients) | 41 | 20 | 21 | 4 (every fact from the other woman's page) |
+| Case | v3 | v5 |
+|---|---|---|
+| 10 | 126: 86 / 40 / 0 | 112: 71 / 41 / 0 |
+| S01 | 64: 49 / 15 / 0 | 59: 46 / 13 / 0 |
+| S02 | 64: 53 / 11 / 0 | 70: 53 / 17 / 0 |
+| S03 (poor scan) | 29: 0 / 29 / 0 | 33: 6 / 27 / 0 (the six clear ones are on the readable CT page) |
+| S04 (two patients) | 41: 20 / 21 / 4 | 46: 37 / 9 / 5 (every fact from the other woman's page) |
+
+The count moves by 10-20 % between runs of the same prompt (temperature fixed at 1), so a difference of that size
+between versions is not an effect.
 
 ## Decisions the measurements made
 
@@ -65,7 +72,21 @@ can be checked in code, by a "verify" mark:
 It also found whole kinds missing (allergy, smoking, spirometry): v3 adds `allergy`, `risk_factor` and
 `exam_finding`. Lab values come from the deterministic lab parser; medication is not extracted yet.
 
-The audit of v3 is recorded below when it is done.
+A second audit (v3) found the four patterns fixed or marked, but new clear errors (sunitinib without its stop date,
+an outdated performance status shown clear, "HER2 1+ (negativní)" as a negation, a specimen description as a
+histology result) and over-flagging: a date in the report header and a negation elsewhere in the quote made most core
+facts "verify". v4 and v5 answer both (see "Checks added after the reviews"). The audit of v5 is below.
+
+## Checks added after the reviews
+
+A separate code review and the clinical audits added: a quote found twice on the page is anchored where the fact's
+date or words are, or marked (`quote_ambiguous`); a date counts as near when it is on the quote's lines or in the page
+header (`date_outside_quote` otherwise); negation is judged on the clause that holds the fact; a code not in the quote
+on a page with several codes is marked (`code_outside_quote`); joined TNM ("cT3bN1M0") is split, an unrecognised
+category ("MO") is marked (`tnm_unrecognised`), and the stage kind comes from the written prefix; a plan for something
+the documents show as done is marked (`done_elsewhere`); an undated performance status next to a dated one is marked
+(`undated`); a request is linked to a result only by the same modality and region; "RČ" in a header is a label, not
+another patient; facts are never merged across quarantine; a day and month without a year get no sort form.
 
 ## A test hole found on the way
 
@@ -73,6 +94,29 @@ Both S03 expectations about the planted misread "prokázáno" (for "neprokázán
 `(?i)jat|liver|hepat`, which does not match "játra". The "absent" expectation (no clear liver metastasis) therefore
 passed whatever the run held. The regex is now `(?i)j[aá]t|liver|hepat`, and `pipeline/tests/test_eval.py` checks
 that a clear confirmed liver metastasis fails it.
+
+## The audit of v5: what is still wrong while shown as clear
+
+Clear, non-quarantined facts checked against the documents (WRONG / OVERREACH / MISKIND): case 10, 71 facts: 1 / 3 / 3;
+S01, 46: 3 / 1 / 2; S02, 53: 0 / 0 / 1; S03, 6: 0 / 0 / 0; S04, 32: 0 / 0 / 0. Over-flagging improved in S02, S03 and
+S04 (diagnosis, stages, histology and receptors clear and correct).
+
+What remains needs rules across facts, not per-fact checks, and is the reason these facts must not drive the case view
+yet:
+- **A therapy line without its stop date** when the stop is written in another sentence (case 10 sunitinib: "léčbu
+  sunitinibem ukončuji" on page 2). Needs merging the line's facts (start, dose changes, stop) into one line.
+- **Two results for one exam that disagree** (11/2025: PD and iUPD) and **a finding that disagrees with the same
+  report's conclusion** (S03: the misread "prokázáno" liver metastasis, verify, next to "bez známek vzdálených
+  metastáz"). Needs the contradiction rule (like with like).
+- **An older finding next to a newer one of the same kind** (S01: "bez fatické poruchy" 8.1.2026 and "lehká
+  expresivní fatická porucha" 6.10.2026, both clear). Needs "superseded by a later fact".
+- **Miskinds:** dose changes as separate therapy lines, blood-count toxicity as histology, a specimen description as
+  histology.
+- **Plans already done** that `done_elsewhere` misses (radiotherapy given 1-2/2026 still "planned").
+
+After the audit: "Histol." now counts as histology (the check missed the abbreviation and marked the S01 diagnosis),
+and a report's header date no longer counts as near for a plan or a request ("Sledování vhodné" took the header date).
+These two were not re-audited.
 
 ## Open
 

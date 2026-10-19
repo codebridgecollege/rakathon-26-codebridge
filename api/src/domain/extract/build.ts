@@ -71,7 +71,8 @@ export const NEG =
   /(?<![\p{L}])(bez|neg\.?|neguje|negovan\w*|negativ\w*|neprokaz\w*|nepotvrz\w*|nebyl\w*|nejsou|neni|zadn\w*|vyloucen\w*|nezjist\w*|nenalez\w*|nenachaz\w*|nezobraz\w*|nevid\w*|nema\w*|absenc\w*|nezvets\w*|chybi\w*|nezastizen\w*|nezachycen\w*|nepritomn\w*|ne)(?![\p{L}])|(?<!\d)0\s*\/\s*\d+|(?<![\p{L}\d])[cpy]{0,2}m0(?![\d])/u;
 // Wording of a request or a plan, on folded text.
 const NOT_DONE = /(objedn|zadan|zadost|planovan|indikovan|doporuc|k vysetreni|odeslan|bude provedeno|naplanovan)/;
-const HISTOLOGY = /(histolog|biops|bioptick|cytolog|patolog)/;
+// "Histol. 9.12.2025" is the usual abbreviation, so the stem is "histol".
+const HISTOLOGY = /(histol|biops|bioptick|cytolog|patolog)/;
 const MKN = /(?<![A-Z\d])[A-Z]\d{2}(?:\.\d{1,2})?(?![\d])/g;
 
 type Doubt = CertaintyReason;
@@ -303,7 +304,9 @@ export async function buildFromAnswer(o: {
       if (f.date_as_written) {
         if (contains(page.text, f.date_as_written) || contains(pseudo.text, f.date_as_written)) {
           date = parseDate(f.date_as_written);
-          const near = contains(linesAround(page.text, os, oe), f.date_as_written) || contains(header(page.text), f.date_as_written);
+          // The header date is the date of the report and of its findings, not of a plan the report makes.
+          const inHeader = f.kind !== "plan" && f.kind !== "request" && contains(header(page.text), f.date_as_written);
+          const near = contains(linesAround(page.text, os, oe), f.date_as_written) || inHeader;
           if (!near) doubt("date_outside_quote", `Datum „${f.date_as_written}“ není u citace; ověřte, že patří k tomuto faktu.`);
         } else doubt("date_not_in_text", `Datum „${f.date_as_written}“ v textu strany není; neuvedeno.`);
       }
