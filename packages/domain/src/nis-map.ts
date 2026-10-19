@@ -466,7 +466,10 @@ export function mapNisResources(system: string, resources: readonly R[]): Mapped
         break;
       }
       case "Encounter": {
-        const cls = str((Array.isArray(r.class) ? r.class[0] : r.class)?.code);
+        // Encounter.class is one Coding in R4. Its code counts only in HL7's ActCode system (or with no system), so a
+        // local "AMB" of another code list is not read as outpatient.
+        const klass = r.class as R | undefined;
+        const cls = !klass?.system || klass.system === "http://terminology.hl7.org/CodeSystem/v3-ActCode" ? str(klass?.code) : null;
         const date = fhirDate(r.period?.start);
         drafts.push({
           ...frame("visit", source(r), date, VISIT_STATUS[r.status] ?? "documented", codesOf(r.type?.[0])),
@@ -475,7 +478,9 @@ export function mapNisResources(system: string, resources: readonly R[]): Mapped
             type: (cls && VISIT_CLASS[cls]) || "other",
             type_as_written: textOf(r.type?.[0]),
             department: str(r.serviceProvider?.display),
+            // A reason given only as a reference (reasonReference) has no text here; the referenced Condition is its own fact.
             reason: textOf(r.reasonCode?.[0]),
+            end_as_written: str(r.period?.end),
           },
         });
         break;

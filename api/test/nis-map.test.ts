@@ -85,9 +85,9 @@ describe("S01 and S02 from the NIS", () => {
     ]);
     expect(ofKind(run, "medication").every((f) => f.status === "documented")).toBe(true);
     // The two outpatient visits from the record, for the timeline.
-    expect(ofKind(run, "visit").map((f) => [f.value.type, f.value.type_as_written, f.date.sort, f.status])).toEqual([
-      ["outpatient", "Ambulantní vyšetření vstupní", "2026-01-08", "done"],
-      ["outpatient", "Ambulantní vyšetření kontrolní", "2026-10-06", "done"],
+    expect(ofKind(run, "visit").map((f) => [f.value.type, f.value.type_as_written, f.value.department, f.date.sort, f.status])).toEqual([
+      ["outpatient", "Ambulantní vyšetření vstupní", "Onkologická ambulance - neuroonkologie", "2026-01-08", "done"],
+      ["outpatient", "Ambulantní vyšetření kontrolní", "Onkologická ambulance - neuroonkologie", "2026-10-06", "done"],
     ]);
   });
 

@@ -5962,6 +5962,14 @@
      "resource": "Observation/8812",
      "version": "3",
      "last_updated": null
+    },
+    {
+     "id": "src-e",
+     "type": "nis",
+     "system": "https://nis.fno.example/fhir",
+     "resource": "Encounter/301",
+     "version": "1",
+     "last_updated": null
     }
    ],
    "key": "lab_result|S_HSCRP|draw:undated|doc:10_pacient"
@@ -6039,6 +6047,14 @@
      "resource": "Observation/8812",
      "version": "3",
      "last_updated": null
+    },
+    {
+     "id": "src-e",
+     "type": "nis",
+     "system": "https://nis.fno.example/fhir",
+     "resource": "Encounter/301",
+     "version": "1",
+     "last_updated": null
     }
    ],
    "key": "lab_result|kreatinin|draw:17.9.2026 7:40|req:ž 2611/04|doc:10_lab+nis:Observation/8812"
@@ -6109,6 +6125,14 @@
      "resource": "Observation/8812",
      "version": "3",
      "last_updated": null
+    },
+    {
+     "id": "src-e",
+     "type": "nis",
+     "system": "https://nis.fno.example/fhir",
+     "resource": "Encounter/301",
+     "version": "1",
+     "last_updated": null
     }
    ],
    "key": "diagnosis|C64|confirmed_histology|2022-06-02"
@@ -6172,6 +6196,14 @@
      "system": "https://nis.fno.example/fhir",
      "resource": "Observation/8812",
      "version": "3",
+     "last_updated": null
+    },
+    {
+     "id": "src-e",
+     "type": "nis",
+     "system": "https://nis.fno.example/fhir",
+     "resource": "Encounter/301",
+     "version": "1",
      "last_updated": null
     }
    ],
@@ -6237,6 +6269,14 @@
      "system": "https://nis.fno.example/fhir",
      "resource": "Observation/8812",
      "version": "3",
+     "last_updated": null
+    },
+    {
+     "id": "src-e",
+     "type": "nis",
+     "system": "https://nis.fno.example/fhir",
+     "resource": "Encounter/301",
+     "version": "1",
      "last_updated": null
     }
    ],
@@ -6305,6 +6345,14 @@
      "resource": "Observation/8812",
      "version": "3",
      "last_updated": null
+    },
+    {
+     "id": "src-e",
+     "type": "nis",
+     "system": "https://nis.fno.example/fhir",
+     "resource": "Encounter/301",
+     "version": "1",
+     "last_updated": null
     }
    ],
    "key": "stage|pathological|2022-06-02"
@@ -6370,6 +6418,14 @@
      "resource": "Observation/8812",
      "version": "3",
      "last_updated": null
+    },
+    {
+     "id": "src-e",
+     "type": "nis",
+     "system": "https://nis.fno.example/fhir",
+     "resource": "Encounter/301",
+     "version": "1",
+     "last_updated": null
     }
    ],
    "key": "metastasis|mozek|2023-03"
@@ -6433,6 +6489,14 @@
      "system": "https://nis.fno.example/fhir",
      "resource": "Observation/8812",
      "version": "3",
+     "last_updated": null
+    },
+    {
+     "id": "src-e",
+     "type": "nis",
+     "system": "https://nis.fno.example/fhir",
+     "resource": "Encounter/301",
+     "version": "1",
      "last_updated": null
     }
    ],
@@ -6501,6 +6565,14 @@
      "resource": "Observation/8812",
      "version": "3",
      "last_updated": null
+    },
+    {
+     "id": "src-e",
+     "type": "nis",
+     "system": "https://nis.fno.example/fhir",
+     "resource": "Encounter/301",
+     "version": "1",
+     "last_updated": null
     }
    ],
    "key": "systemic_therapy|everolimus|line:3|start:9/2026"
@@ -6566,6 +6638,14 @@
      "resource": "Observation/8812",
      "version": "3",
      "last_updated": null
+    },
+    {
+     "id": "src-e",
+     "type": "nis",
+     "system": "https://nis.fno.example/fhir",
+     "resource": "Encounter/301",
+     "version": "1",
+     "last_updated": null
     }
    ],
    "key": "radiotherapy|th10|2024"
@@ -6630,6 +6710,14 @@
      "system": "https://nis.fno.example/fhir",
      "resource": "Observation/8812",
      "version": "3",
+     "last_updated": null
+    },
+    {
+     "id": "src-e",
+     "type": "nis",
+     "system": "https://nis.fno.example/fhir",
+     "resource": "Encounter/301",
+     "version": "1",
      "last_updated": null
     }
    ],
@@ -6697,6 +6785,14 @@
      "resource": "Observation/8812",
      "version": "3",
      "last_updated": null
+    },
+    {
+     "id": "src-e",
+     "type": "nis",
+     "system": "https://nis.fno.example/fhir",
+     "resource": "Encounter/301",
+     "version": "1",
+     "last_updated": null
     }
    ],
    "key": "vital_sign|blood_pressure|undated"
@@ -6763,6 +6859,14 @@
      "resource": "Observation/8812",
      "version": "3",
      "last_updated": null
+    },
+    {
+     "id": "src-e",
+     "type": "nis",
+     "system": "https://nis.fno.example/fhir",
+     "resource": "Encounter/301",
+     "version": "1",
+     "last_updated": null
     }
    ],
    "key": "vital_sign|obvod pasu|undated"
@@ -6827,6 +6931,14 @@
      "resource": "Observation/8812",
      "version": "3",
      "last_updated": null
+    },
+    {
+     "id": "src-e",
+     "type": "nis",
+     "system": "https://nis.fno.example/fhir",
+     "resource": "Encounter/301",
+     "version": "1",
+     "last_updated": null
     }
    ],
    "key": "performance_status|ecog|undated"
@@ -6890,6 +7002,14 @@
      "resource": "Observation/8812",
      "version": "3",
      "last_updated": null
+    },
+    {
+     "id": "src-e",
+     "type": "nis",
+     "system": "https://nis.fno.example/fhir",
+     "resource": "Encounter/301",
+     "version": "1",
+     "last_updated": null
     }
    ],
    "key": "exam_finding|břicho|měkké, nebolestivé|undated"
@@ -6951,6 +7071,14 @@
      "system": "https://nis.fno.example/fhir",
      "resource": "Observation/8812",
      "version": "3",
+     "last_updated": null
+    },
+    {
+     "id": "src-e",
+     "type": "nis",
+     "system": "https://nis.fno.example/fhir",
+     "resource": "Encounter/301",
+     "version": "1",
      "last_updated": null
     }
    ],
@@ -7020,6 +7148,14 @@
      "resource": "Observation/8812",
      "version": "3",
      "last_updated": null
+    },
+    {
+     "id": "src-e",
+     "type": "nis",
+     "system": "https://nis.fno.example/fhir",
+     "resource": "Encounter/301",
+     "version": "1",
+     "last_updated": null
     }
    ],
    "key": "comorbidity|I10|undated"
@@ -7081,6 +7217,14 @@
      "system": "https://nis.fno.example/fhir",
      "resource": "Observation/8812",
      "version": "3",
+     "last_updated": null
+    },
+    {
+     "id": "src-e",
+     "type": "nis",
+     "system": "https://nis.fno.example/fhir",
+     "resource": "Encounter/301",
+     "version": "1",
      "last_updated": null
     }
    ],
@@ -7149,6 +7293,14 @@
      "resource": "Observation/8812",
      "version": "3",
      "last_updated": null
+    },
+    {
+     "id": "src-e",
+     "type": "nis",
+     "system": "https://nis.fno.example/fhir",
+     "resource": "Encounter/301",
+     "version": "1",
+     "last_updated": null
     }
    ],
    "key": "medication|afinitor|start:2026-09-19"
@@ -7212,6 +7364,14 @@
      "resource": "Observation/8812",
      "version": "3",
      "last_updated": null
+    },
+    {
+     "id": "src-e",
+     "type": "nis",
+     "system": "https://nis.fno.example/fhir",
+     "resource": "Encounter/301",
+     "version": "1",
+     "last_updated": null
     }
    ],
    "key": "contraindication|ace inhibitor s everolimem|undated"
@@ -7274,6 +7434,14 @@
      "system": "https://nis.fno.example/fhir",
      "resource": "Observation/8812",
      "version": "3",
+     "last_updated": null
+    },
+    {
+     "id": "src-e",
+     "type": "nis",
+     "system": "https://nis.fno.example/fhir",
+     "resource": "Encounter/301",
+     "version": "1",
      "last_updated": null
     }
    ],
@@ -7339,6 +7507,14 @@
      "resource": "Observation/8812",
      "version": "3",
      "last_updated": null
+    },
+    {
+     "id": "src-e",
+     "type": "nis",
+     "system": "https://nis.fno.example/fhir",
+     "resource": "Encounter/301",
+     "version": "1",
+     "last_updated": null
     }
    ],
    "key": "adverse_event|stomatitida g2|undated"
@@ -7402,6 +7578,14 @@
      "system": "https://nis.fno.example/fhir",
      "resource": "Observation/8812",
      "version": "3",
+     "last_updated": null
+    },
+    {
+     "id": "src-e",
+     "type": "nis",
+     "system": "https://nis.fno.example/fhir",
+     "resource": "Encounter/301",
+     "version": "1",
      "last_updated": null
     }
    ],
@@ -7467,6 +7651,14 @@
      "resource": "Observation/8812",
      "version": "3",
      "last_updated": null
+    },
+    {
+     "id": "src-e",
+     "type": "nis",
+     "system": "https://nis.fno.example/fhir",
+     "resource": "Encounter/301",
+     "version": "1",
+     "last_updated": null
     }
    ],
    "key": "risk_factor|smoking|undated"
@@ -7529,6 +7721,14 @@
      "system": "https://nis.fno.example/fhir",
      "resource": "Observation/8812",
      "version": "3",
+     "last_updated": null
+    },
+    {
+     "id": "src-e",
+     "type": "nis",
+     "system": "https://nis.fno.example/fhir",
+     "resource": "Encounter/301",
+     "version": "1",
      "last_updated": null
     }
    ],
@@ -7594,6 +7794,14 @@
      "resource": "Observation/8812",
      "version": "3",
      "last_updated": null
+    },
+    {
+     "id": "src-e",
+     "type": "nis",
+     "system": "https://nis.fno.example/fhir",
+     "resource": "Encounter/301",
+     "version": "1",
+     "last_updated": null
     }
    ],
    "key": "request|projednání nálezu mr mozku na nch semináři|undated"
@@ -7658,6 +7866,14 @@
      "resource": "Observation/8812",
      "version": "3",
      "last_updated": null
+    },
+    {
+     "id": "src-e",
+     "type": "nis",
+     "system": "https://nis.fno.example/fhir",
+     "resource": "Encounter/301",
+     "version": "1",
+     "last_updated": null
     }
    ],
    "key": "decision|mdt|2026-10-01"
@@ -7721,6 +7937,14 @@
      "resource": "Observation/8812",
      "version": "3",
      "last_updated": null
+    },
+    {
+     "id": "src-e",
+     "type": "nis",
+     "system": "https://nis.fno.example/fhir",
+     "resource": "Encounter/301",
+     "version": "1",
+     "last_updated": null
     }
    ],
    "key": "plan|kontrolní ct|za 3 měsíce"
@@ -7737,7 +7961,7 @@
     "note": null,
     "quarantined": false,
     "sources": [
-     "src-n"
+     "src-e"
     ],
     "kind": "visit",
     "date": {
@@ -7749,7 +7973,8 @@
      "type": "outpatient",
      "type_as_written": "Ambulantní vyšetření kontrolní",
      "department": "Onkologická ambulance",
-     "reason": null
+     "reason": null,
+     "end_as_written": "6.10.2026"
     }
    },
    "sources": [
@@ -7785,6 +8010,14 @@
      "system": "https://nis.fno.example/fhir",
      "resource": "Observation/8812",
      "version": "3",
+     "last_updated": null
+    },
+    {
+     "id": "src-e",
+     "type": "nis",
+     "system": "https://nis.fno.example/fhir",
+     "resource": "Encounter/301",
+     "version": "1",
      "last_updated": null
     }
    ],
@@ -7854,6 +8087,14 @@
      "system": "https://nis.fno.example/fhir",
      "resource": "Observation/8812",
      "version": "3",
+     "last_updated": null
+    },
+    {
+     "id": "src-e",
+     "type": "nis",
+     "system": "https://nis.fno.example/fhir",
+     "resource": "Encounter/301",
+     "version": "1",
      "last_updated": null
     }
    ],

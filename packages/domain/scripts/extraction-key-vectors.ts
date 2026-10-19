@@ -18,6 +18,7 @@ const sources: Source[] = [
   { id: "src-a", type: "document", document_id: "10_pacient", part: "10_pacient/p2", page: 3, quote: "S_HSCRP: 9,5 mg/1 [O ... 5]", quote_text: "tesseract", anchor: null, reported_as: "original", identity: "matches", reading_check: null },
   { id: "src-b", type: "document", document_id: "10_lab", part: null, page: 1, quote: "Kreatinin 107", quote_text: "pdf_text", anchor: null, reported_as: "original", identity: "matches", reading_check: null },
   { id: "src-n", type: "nis", system: "https://nis.fno.example/fhir", resource: "Observation/8812", version: "3", last_updated: null },
+  { id: "src-e", type: "nis", system: "https://nis.fno.example/fhir", resource: "Encounter/301", version: "1", last_updated: null },
 ];
 
 const frame = {
@@ -62,7 +63,7 @@ const facts: DraftFact[] = [
   { ...frame, kind: "request", status: "requested", date: undated, value: { what: "Projednání nálezu MR mozku na NCH semináři", request_kind: "consultation", result_fact: null } },
   { ...frame, kind: "decision", date: day("1.10.2026", "2026-10-01"), value: { body: "mdt", body_as_written: "MDT uro", text: "Pokračovat v léčbě" } },
   { ...frame, kind: "plan", status: "planned", date: { as_written: "za 3 měsíce", precision: null, sort: null }, value: { what: "Kontrolní CT", when_as_written: "za 3 měsíce" } },
-  { ...frame, kind: "visit", status: "done", origin: "nis", sources: ["src-n"], date: day("6.10.2026", "2026-10-06"), value: { type: "outpatient", type_as_written: "Ambulantní vyšetření kontrolní", department: "Onkologická ambulance", reason: null } },
+  { ...frame, kind: "visit", status: "done", origin: "nis", sources: ["src-e"], date: day("6.10.2026", "2026-10-06"), value: { type: "outpatient", type_as_written: "Ambulantní vyšetření kontrolní", department: "Onkologická ambulance", reason: null, end_as_written: "6.10.2026" } },
   { ...frame, kind: "interval", origin: "assistant", certainty: "inferred", sources: [], based_on: ["f-1", "f-2"], date: undated, value: { from_fact: "f-1", to_fact: "f-2", days: 38, length_as_computed: "38 dní", from_precision: "day", to_precision: "day" } },
 ];
 

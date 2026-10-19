@@ -4164,13 +4164,21 @@
             "null"
           ],
           "description": "Why the visit took place, as written."
+        },
+        "end_as_written": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "The end of a stay (discharge) as written; null for a visit without one or a stay still going on."
         }
       },
       "required": [
         "type",
         "type_as_written",
         "department",
-        "reason"
+        "reason",
+        "end_as_written"
       ],
       "additionalProperties": false,
       "description": "A visit or hospital stay (an outpatient visit, an admission, a consultation). It goes on the timeline."

@@ -405,6 +405,8 @@ export interface VisitValue {
   department: string | null;
   /** Why the visit took place, as written. */
   reason: string | null;
+  /** The end of a stay (discharge) as written; null for a visit without one or a stay still going on. */
+  end_as_written: string | null;
 }
 
 /** Always origin "assistant": a length between two facts, shown as a fact, never a verdict. */

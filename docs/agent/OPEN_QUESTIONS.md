@@ -156,18 +156,21 @@ experience.
   challenge data in `data/` stay in our repository once it is published?
   (`HACKATHON.md`)
 
-## Decide as a team
+## Needs a clinical expert
 
-- [ ] **Needs a clinical expert:** a NIS `MedicationStatement` maps to
+- [ ] A NIS `MedicationStatement` maps to
   `medication`; telling an oncology line (`systemic_therapy`, with its line
   number) from other drugs needs a drug classification (ATC) the NIS may
   send. Map by ATC L01/L02 when it is there? Until decided, every NIS drug
   stays `medication` (Juro, 2026-10-19).
-- [ ] **Needs a clinical expert:** the NIS import marks a diagnosis
+- [ ] The NIS import marks a diagnosis
   `primary` only when exactly one primary cancer code is present. With two
   cancers, should the doctor pick, or does FNO's NIS mark the one under
   discussion? Until decided, no diagnosis is marked when there are two
   (Juro, 2026-10-19).
+
+## Decide as a team
+
 - [ ] How do NIS facts and document facts merge in the case view? (That a
   NIS run never says "neuvedeno v dostupné dokumentaci" is decided:
   EXTRACTION-FORMAT.md, "Decisions".)

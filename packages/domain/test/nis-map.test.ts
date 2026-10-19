@@ -218,14 +218,22 @@ describe("requests, reports, treatment", () => {
       enc("b", { class: { code: "IMP" }, reasonCode: [{ text: "Plánovaná operace" }], period: { start: "2026-08-10T08:00:00+02:00" } }),
       enc("c", { class: { code: "VR" }, status: "planned" }),
       enc("d", { class: { code: "AMB" }, status: "cancelled" }),
+      enc("e", { class: { code: "AMB" }, status: "entered-in-error" }),
+      enc("f", { class: { system: "https://example.cz/local", code: "AMB" }, status: "in-progress", type: [{ coding: [{ system: "http://snomed.info/sct", code: "11429006", display: "Konzultace" }] }] }),
     ]);
     expect(m.drafts.map((d) => [d.kind, d.status, d.value, d.date.sort])).toEqual([
-      ["visit", "done", { type: "outpatient", type_as_written: "Ambulantní vyšetření kontrolní", department: "Onkologická ambulance", reason: null }, "2026-10-06"],
-      ["visit", "done", { type: "admission", type_as_written: null, department: null, reason: "Plánovaná operace" }, "2026-08-10T08:00"],
-      ["visit", "planned", { type: "other", type_as_written: null, department: null, reason: null }, null],
+      ["visit", "done", { type: "outpatient", type_as_written: "Ambulantní vyšetření kontrolní", department: "Onkologická ambulance", reason: null, end_as_written: "2026-10-06" }, "2026-10-06"],
+      ["visit", "done", { type: "admission", type_as_written: null, department: null, reason: "Plánovaná operace", end_as_written: null }, "2026-08-10T08:00"],
+      ["visit", "planned", { type: "other", type_as_written: null, department: null, reason: null, end_as_written: null }, null],
+      // A local "AMB" is not HL7's; a visit still going on is documented, not done; a coded type keeps its code.
+      ["visit", "documented", { type: "other", type_as_written: "Konzultace", department: null, reason: null, end_as_written: null }, null],
     ]);
+    expect(m.drafts[3]!.codes).toEqual([{ system: "snomed-ct", code: "11429006", assigned_by: "source", display: "Konzultace" }]);
     expect(m.drafts[2]!.not_stated).toEqual(["date"]);
-    expect(m.skipped).toEqual([{ resource: "Encounter/d", reason: "void_status" }]);
+    expect(m.skipped).toEqual([
+      { resource: "Encounter/d", reason: "void_status" },
+      { resource: "Encounter/e", reason: "void_status" },
+    ]);
     const { run, validation } = nisRun({ caseId: "X", system: SYS, resources: [enc("a", { class: { code: "AMB" }, period: { start: "2026-10-06" } })], runId: "r", createdAt: "2026-10-19T10:00:00Z", previous: null, supersedes: null });
     expect(validation.issues).toEqual([]);
     expect(run.facts[0]!.key).toBe("visit|outpatient|2026-10-06");
