@@ -5,3 +5,4 @@ export * from "./match";
 export * from "./validate";
 export * from "./backing";
 export * from "./rules";
+export * from "./compose";
