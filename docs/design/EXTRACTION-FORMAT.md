@@ -656,13 +656,13 @@ refresh route come with the run publishing (stream A part 2, stream B).
   - A breaking change becomes `/3`, together with a converter from `/2`; old runs stay readable through the converter.
   - An unknown fact kind is shown as a plain fact (its text and sources) instead of breaking the view.
 - **D1 for this format** (`docs/design/DATABASE.md`, "Extraction runs"):
-  - `extraction_runs.producer` (`fixture`, `pipeline`, `nis`), `seeded`, `schema` and `supersedes` (migration 0015); `kind` remains as a computed column until a later migration drops it;
-  - `alert_identities` and `alert_events` keyed by alert ID, with the alert instances in the run file (0015); the `/1` alerts and their events stay read-only in `alerts` and `alert_events_v1`;
-  - `fact_ids`, every fact ID ever issued for a case (0015);
-  - `fact_confirmations` (0015);
-  - `fact_edits.fact_id` for `f:<fact id>` keys (0015);
+  - `extraction_runs.producer` (`fixture`, `pipeline`, `nis`), `seeded`, `schema` and `supersedes` (migration 0016); `kind` remains as a computed column until a later migration drops it;
+  - `alert_identities` and `alert_events` keyed by alert ID, with the alert instances in the run file (0016); the `/1` alerts and their events stay read-only in `alerts` and `alert_events_v1`;
+  - `fact_ids`, every fact ID ever issued for a case (0016);
+  - `fact_confirmations` (0016);
+  - `fact_edits.fact_id` for `f:<fact id>` keys (0016);
   - `documents.lifecycle` `superseded` and `withdrawn` (migration 0013, a column apart from the processing `state`);
-  - `document_parts.part_id`, the stable part ID (0015).
+  - `document_parts.part_id`, the stable part ID (0016).
 
 ## Converting the existing fixtures
 

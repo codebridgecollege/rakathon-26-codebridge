@@ -87,7 +87,7 @@ export const demo = new Hono<AppEnv>().post("/admin/reset-demo", async (c) => {
          CASE WHEN json_array(${archived.map((m) => `(SELECT COUNT(*) FROM ${m.t} WHERE org_id = ?org)`).join(", ")}) = ?1 THEN 1 ELSE 0 END`,
       JSON.stringify(archived.map((m) => m.count)),
     ),
-    // The triggers (migrations 0011, 0015 and later) remove this org's uploaded documents, every run the seed did not write
+    // The triggers (migrations 0011, 0016 and later) remove this org's uploaded documents, every run the seed did not write
     // with the fact and alert IDs it issued, and the upload sessions; the seeded run of each case becomes current again.
     q("UPDATE demo_state SET reset_in_progress = 1 WHERE org_id = ?org"),
     ...MUTABLE_DELETE_ORDER.map((t) => q(`DELETE FROM ${t} WHERE org_id = ?org`)),

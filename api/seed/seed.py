@@ -885,9 +885,9 @@ def main() -> None:
     # The append-only triggers are checked by name, not by counting all triggers, so a later migration that adds
     # other triggers (0013 adds the document lifecycle ones) does not fail the seed.
     have = {r["name"] for r in d1_query(t, "SELECT name FROM sqlite_master WHERE type='trigger'")}
-    # 0015 adds the append-only triggers of the codebridge.extraction/2 tables and redefines the reset trigger.
+    # 0016 adds the append-only triggers of the codebridge.extraction/2 tables and redefines the reset trigger.
     want = set(trigger_names((MIGRATIONS / "0002_append_only.sql").read_text()))
-    want |= {n for n in trigger_names((MIGRATIONS / "0015_extraction_v2.sql").read_text()) if n.endswith(("_no_update", "_no_delete")) or n == "demo_reset_uploads"}
+    want |= {n for n in trigger_names((MIGRATIONS / "0016_extraction_v2.sql").read_text()) if n.endswith(("_no_update", "_no_delete")) or n == "demo_reset_uploads"}
     missing = sorted(want - have)
     if missing or counts["p"] != len(patients) or counts["pg"] != page_count_total:
         sys.exit(f"seed: verification failed (missing append-only triggers {missing}; expected {len(patients)} patients,"

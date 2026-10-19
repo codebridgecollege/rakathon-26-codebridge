@@ -970,9 +970,9 @@ describe("migration 0011 on data from before orgs", () => {
     const oldRows: Record<string, Record<string, unknown>[]> = {};
     for (const t of Object.keys(oldCounts)) oldRows[t] = await q(`SELECT * FROM ${t}`);
 
-    // Up to the migration before 0015, which moves the /1 alert events aside and recomputes run columns on purpose
+    // Up to the migration before 0016, which moves the /1 alert events aside and recomputes run columns on purpose
     // (test/runs.test.ts checks it on its own).
-    await applyD1Migrations(env.DB, migrations.filter((m) => m.name < "0015"));
+    await applyD1Migrations(env.DB, migrations.filter((m) => m.name < "0016"));
 
     for (const [t, n] of Object.entries(oldCounts)) {
       expect((await one<{ n: number }>(`SELECT COUNT(*) AS n FROM ${t}`)).n, t).toBe(n);

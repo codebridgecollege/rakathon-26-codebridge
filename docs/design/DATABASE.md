@@ -93,13 +93,13 @@ The tables fall into groups (the full list is in `api/migrations/`):
 An extraction run is one extraction of one case in the format `codebridge.extraction/2` (`docs/design/EXTRACTION-FORMAT.md`).
 The run itself is a JSON object in R2 (`org/<org>/extract/<case>/<run id>.json` for a seeded run, `org/<org>/runs/...` for
 any other, which the demo reset deletes), written before its D1 row, so D1 never
-points at a missing object. Migration `0015_extraction_v2.sql` set up the tables below; `api/src/store/runs.ts` writes
+points at a missing object. Migration `0016_extraction_v2.sql` set up the tables below; `api/src/store/runs.ts` writes
 them (`storeRun` validates the run first and refuses an invalid one; `matchInputs` and `prepareRun` give a producer what
 the matcher needs).
 
 | Table or column | What it holds |
 |---|---|
-| `extraction_runs` | One row per run: `producer` (`fixture`, `pipeline`, `nis`), `seeded` (1 = written by the seed; the demo reset keeps exactly these), `schema` (`codebridge.extraction/1` or `/2`, the format of the R2 object), `supersedes` (the run it replaced; both stay), `is_current` (one per case). `kind` is computed from `producer` and exists only for the Worker deployed during the 0015 migration window; a later migration drops it. |
+| `extraction_runs` | One row per run: `producer` (`fixture`, `pipeline`, `nis`), `seeded` (1 = written by the seed; the demo reset keeps exactly these), `schema` (`codebridge.extraction/1` or `/2`, the format of the R2 object), `supersedes` (the run it replaced; both stay), `is_current` (one per case). `kind` is computed from `producer` and exists only for the Worker deployed during the 0016 migration window; a later migration drops it. |
 | `fact_ids` | Every fact ID ever issued for a case, with the run that first issued it. The matcher (`packages/domain/src/extraction/match.ts`) takes them as `issuedIds`, so a retired ID never goes to a different fact. Rows never change. |
 | `alert_identities` | Every alert ID a case has had (`al-` and 8 hex digits derived from rule and subject, unique within a case), with its rule, subject and kind. Rows never change. |
 | `alert_events` | Acknowledge, resolve, reopen, by case and alert ID; the latest event is the alert's state. It references `alert_identities`, so an event always names an alert the case really had. |

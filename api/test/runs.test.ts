@@ -1,4 +1,4 @@
-// codebridge.extraction/2 storage (src/store/runs.ts) and migration 0015: the copy rules of the rebuilt tables, the demo
+// codebridge.extraction/2 storage (src/store/runs.ts) and migration 0016: the copy rules of the rebuilt tables, the demo
 // reset that keeps seeded runs only, run storage that refuses an invalid run and registers its IDs, and the matcher's
 // inputs from D1.
 import { beforeEach, describe, expect, it } from "vitest";
@@ -156,7 +156,7 @@ describe("matchInputs", () => {
   });
 });
 
-describe("the demo reset (trigger demo_reset_uploads, migration 0015)", () => {
+describe("the demo reset (trigger demo_reset_uploads, migration 0016)", () => {
   it("removes unseeded runs with the IDs they issued and what doctors did with them, and makes the seeded run current again", async () => {
     const { run } = prepareRun(await matchInputs(env.DB, env.DOCS, "demo-a", "NO-A"), draftOfA({ symptom: "bolest hlavy" }));
     await storeNew(run);
@@ -232,11 +232,11 @@ describe("the demo reset (trigger demo_reset_uploads, migration 0015)", () => {
   });
 });
 
-describe("migration 0015 on data from 0014", () => {
+describe("migration 0016 on data from 0015", () => {
   it("copies runs with producer, seeded and schema, moves /1 alert events aside, keeps alerts, and gives parts their IDs", async () => {
     await reset();
     const all = env.TEST_MIGRATIONS;
-    await applyD1Migrations(env.DB, all.filter((m) => m.name < "0015"));
+    await applyD1Migrations(env.DB, all.filter((m) => m.name < "0016"));
     const TS = "2026-10-15T10:00:00.000Z";
     const s = (x: string) => env.DB.prepare(x);
     await env.DB.batch([

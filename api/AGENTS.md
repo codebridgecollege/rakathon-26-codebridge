@@ -39,8 +39,8 @@ deploy follows.
   on the new schema. A migration therefore has to work with the Worker already deployed: add tables and columns, and
   never drop or rename what the deployed code reads in the same change. To remove something, first ship code that no
   longer reads it, then drop it in a later migration. A migration that cannot work with the old code (0011 rebuilds every
-  org table; 0015 rebuilds the extraction runs and alert events, so until the deploy ends the old Worker's intake attach
-  and alert events fail, its alert history shows empty, and `seed.py` from before 0015 fails on the computed `kind`)
+  org table; 0016 rebuilds the extraction runs and alert events, so until the deploy ends the old Worker's intake attach
+  and alert events fail, its alert history shows empty, and `seed.py` from before 0016 fails on the computed `kind`)
   needs a person watching the merge (below, "Organizations").
 - **No cancelled runs on `main`.** On other refs a newer push cancels the running workflow; on `main` it waits
   (`cancel-in-progress` is off there), so a run is never stopped between the migration and the deploy. A deploy that
