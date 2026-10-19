@@ -21,7 +21,7 @@
 // Logs carry the purpose, prompt reference, upstream status, attempts, duration and counts; never text or images.
 import { NonRetryableError } from "cloudflare:workflows";
 import type { Viewer } from "@codebridge/domain/access";
-import { countKinds, detectIdentifiers, pseudonymize, type CaseIdentity, type Pseudonymized } from "../domain/pseudonymize";
+import { countKinds, detectIdentifiers, pseudonymize, type CaseIdentity, type Pseudonymized, type TitledNumbers } from "../domain/pseudonymize";
 import { loadPrompt, type LoadedPrompt, type PromptId } from "../prompts";
 import { orgKey, orgStmt } from "../store/sql";
 import { sha256Hex } from "../store/work";
@@ -140,7 +140,8 @@ export type ModelMeta = {
 
 export type ModelResult = {
   // The model's answer, still pseudonymized: placeholders such as [PACIENT] stay until the caller maps a quote back
-  // with `pseudonymized[i]` (domain/pseudonymize.ts, originalRange).
+  // with `pseudonymized[i].originalRange` (domain/pseudonymize.ts). Its mapping is in private fields, so returning
+  // this result from a Workflow step stores no name; still, return the stored output's R2 key instead.
   output: string;
   json: unknown;
   pseudonymized: Pseudonymized[];
@@ -168,7 +169,9 @@ export async function callModel(env: Env, req: ModelRequest): Promise<ModelResul
     if (im.png.byteLength > cfg.maxImageBytes) throw new ModelError("too_large", false);
   }
 
-  const parts = (req.text ?? []).map((t) => ({ ref: t.ref, p: pseudonymize(t.text, req.identity) }));
+  // One numbering of titled names for the whole call, so [LEKAR_1] is the same person in every part.
+  const titled: TitledNumbers = new Map();
+  const parts = (req.text ?? []).map((t) => ({ ref: t.ref, p: pseudonymize(t.text, req.identity, titled) }));
   // Parts are labelled by position only: a document ID or file name may itself name the patient.
   const content: Record<string, unknown>[] = [
     ...parts.map((x, i) => ({ type: "text", text: `[Část ${i + 1}]\n${x.p.text}` })),
@@ -201,9 +204,11 @@ export async function callModel(env: Env, req: ModelRequest): Promise<ModelResul
   const meta: ModelMeta = { provider: cfg.provider, model: cfg.model, prompt: prompt.ref, prompt_sha256: prompt.sha256, temperature: null, input_sha256: inputSha, cached: false, call_id: null };
 
   const hit = await (await env.DOCS.get(key))?.json<{ output: string }>().catch(() => null);
-  if (hit && typeof hit.output === "string") {
+  const hitJson = hit && typeof hit.output === "string" ? parseOutput(hit.output, !!prompt.schema) : undefined;
+  // A cache entry that does not parse is treated as a miss and overwritten.
+  if (hit && hitJson !== undefined) {
     console.log(JSON.stringify({ route: "model", purpose: req.purpose, prompt: prompt.ref, cached: true }));
-    return { output: hit.output, json: prompt.schema ? JSON.parse(hit.output) : null, pseudonymized: parts.map((x) => x.p), meta: { ...meta, cached: true } };
+    return { output: hit.output, json: hitJson, pseudonymized: parts.map((x) => x.p), meta: { ...meta, cached: true } };
   }
 
   const refs = pageRefs(req, images);
@@ -249,19 +254,25 @@ export async function callModel(env: Env, req: ModelRequest): Promise<ModelResul
   }
   const choice = d?.choices?.[0];
   const output = choice?.message?.content ?? null;
+  // The provider's content filter answers the same way every time: not worth a retry.
+  if (choice?.finish_reason === "content_filter") throw await fail("refused", false);
   // A cut-off answer would look complete; it is refused, and a longer limit is a prompt or config change.
   if (output === null || choice?.finish_reason === "length") throw await fail("bad_output", choice?.finish_reason !== "length");
-  let json: unknown = null;
-  if (prompt.schema) {
-    try {
-      json = JSON.parse(output);
-    } catch {
-      throw await fail("bad_output", true);
-    }
-  }
+  const json = parseOutput(output, !!prompt.schema);
+  if (json === undefined) throw await fail("bad_output", true);
   await finish(env, req.org, callId, { state: "done", attempts, status: res.status, code: null, ms });
   await env.DOCS.put(key, JSON.stringify({ output, ...meta, cached: undefined, created_at: iso() }), { httpMetadata: { contentType: "application/json" } });
   return { output, json, pseudonymized: parts.map((x) => x.p), meta };
+}
+
+// The answer as JSON for a prompt with a schema (undefined when it does not parse), null for a text prompt.
+function parseOutput(output: string, schema: boolean): unknown {
+  if (!schema) return null;
+  try {
+    return JSON.parse(output);
+  } catch {
+    return undefined;
+  }
 }
 
 // The pages a call sends, once each: a page as text and as an image is still one page sent.
@@ -290,10 +301,10 @@ async function commitBudgetAndAudit(env: Env, req: ModelRequest, cfg: Cfg, promp
     () => new ModelError("budget_case", false),
   );
   for (const r of c.refs) {
-    if (r.page === null) continue;
+    // A part without a page number (a whole short document) is budgeted as that document's page "none".
     tx.guard(
       "model_budget_page",
-      "(SELECT COUNT(*) FROM access_log WHERE org_id = ?org AND case_id = ? AND action = 'model.call' AND document_id = ? AND page_n = ? AND at > ?) < ?",
+      "(SELECT COUNT(*) FROM access_log WHERE org_id = ?org AND case_id = ? AND action = 'model.call' AND document_id = ? AND page_n IS ? AND at > ?) < ?",
       [req.caseId, r.docId, r.page, since, cfg.budget.callsPerPage],
       () => new ModelError("budget_page", false),
     );
@@ -314,5 +325,11 @@ async function commitBudgetAndAudit(env: Env, req: ModelRequest, cfg: Cfg, promp
 }
 
 async function finish(env: Env, org: string, callId: string, r: { state: "done" | "error"; attempts: number; status: number | null; code: ModelErrorCode | null; ms: number }) {
-  await orgStmt(env.DB, org, "UPDATE model_calls SET state = ?1, attempts = ?2, upstream_status = ?3, error_code = ?4, ms = ?5, finished_at = ?6 WHERE org_id = ?org AND id = ?7", r.state, r.attempts, r.status, r.code, r.ms, iso(), callId).run();
+  // The outcome row is bookkeeping: a failure to write it must not hide the call's own result or error. The row then
+  // stays 'sending', and the access-log rows already record that the pages were sent.
+  try {
+    await orgStmt(env.DB, org, "UPDATE model_calls SET state = ?1, attempts = ?2, upstream_status = ?3, error_code = ?4, ms = ?5, finished_at = ?6 WHERE org_id = ?org AND id = ?7", r.state, r.attempts, r.status, r.code, r.ms, iso(), callId).run();
+  } catch {
+    console.log(JSON.stringify({ route: "model", store: "model_call_outcome_failed" }));
+  }
 }

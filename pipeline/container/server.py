@@ -49,14 +49,15 @@ POST /v1/labs               body: {"pages": [{"n", "text", "layer_text", "readab
   and "quote"). A page without readability_level counts as not readable: its points are unclear_ocr.
 
 POST /v1/redact             body: {"pages": [{"n", "png_b64", "words"}],
-                                   "identity": {"names": [str], "staff": [str], "birth_number": str|null,
+                                   "identity": {"names": [[str]], "staff": [[str]], "birth_number": str|null,
                                                 "birth_date": str|null},
                                    "ink_marks": bool}
   200 {"pages": [{"n": int, "png_b64": str, "hits": [{"reason": str, "box": [x, y, w, h]}]}]}
   Blacks out direct identifiers on page images before they may leave for a cloud model (option B in
-  docs/design/DATA-PROTECTION.md). names and staff are folded name forms (lower case, no diacritics, declined), which
+  docs/design/DATA-PROTECTION.md). names and staff are folded name forms (lower case, no diacritics, declined), one
+  list per name part (a plain list of strings counts each as its own part), which
   the Worker computes from the case record and the org's staff (api/src/domain/pseudonymize.ts, nameForms); staff
-  forms count only on a capitalized word. ink_marks also blacks out dark areas no OCR word covers (signatures,
+  a form counts on a capitalized word, or in any case next to another part of the same name. ink_marks also blacks out dark areas no OCR word covers (signatures,
   stamps, handwriting; best effort). Hits carry the reason and the box, never the value. At most MAX_BATCH pages.
 
 Errors: {"error": {"code": str, "message_cs": str}} with
@@ -210,13 +211,22 @@ def labs_(body: bytes, _query) -> tuple[dict, int]:
     return result, len(data["pages"])
 
 
+def _name_groups(value) -> dict[str, int]:
+    """Folded name form -> its name part: a list of strings (one part each) or a list of lists (forms per part)."""
+    out: dict[str, int] = {}
+    for i, part in enumerate(value if isinstance(value, list) else []):
+        for x in part if isinstance(part, list) else [part]:
+            if isinstance(x, str) and len(x) > 1:
+                out[redact.fold(x)] = i
+    return out
+
+
 def redact_(body: bytes, _query) -> tuple[dict, int]:
     data = _json(body)
     ident = data.get("identity") or {}
     if not isinstance(ident, dict) or len(data["pages"]) > MAX_BATCH:
         raise ApiError(400, "bad_request", f"Očekávám identitu a nejvýš {MAX_BATCH} stran.")
-    names = {redact.fold(x) for x in ident.get("names") or [] if isinstance(x, str) and len(x) > 1}
-    staff = {redact.fold(x) for x in ident.get("staff") or [] if isinstance(x, str) and len(x) > 1}
+    names, staff = _name_groups(ident.get("names")), _name_groups(ident.get("staff"))
     bn = ident.get("birth_number") if isinstance(ident.get("birth_number"), str) else None
     bd = ident.get("birth_date") if isinstance(ident.get("birth_date"), str) else None
     out = []

@@ -79,7 +79,7 @@ export type Labs = { draws: unknown[]; tests: LabTest[]; indices: unknown[]; unp
 export type RedactionHit = { reason: string; box: [number, number, number, number] };
 export type RedactBody = {
   pages: { n: number; png_b64: string; words: Word[] }[];
-  identity: { names: string[]; staff: string[]; birth_number: string | null; birth_date: string | null };
+  identity: { names: string[][]; staff: string[][]; birth_number: string | null; birth_date: string | null };
   ink_marks: boolean;
 };
 

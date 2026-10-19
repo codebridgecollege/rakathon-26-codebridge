@@ -134,7 +134,7 @@ def test_redact_blacks_out_case_identity_and_returns_no_values(base):
     blacked out with identity from the case record; the answer names reasons and boxes, never the values."""
     d = REPO / "data/derived/pages/S02_pacient"
     entry = json.loads((REPO / "fixtures/data/mock-case-S02.json").read_text())["list_entry"]
-    names = [part.lower() for part in entry["name"].split()]
+    names = [[part.lower()] for part in entry["name"].split()]
     png = (d / "p1.png").read_bytes()
     status, body = call(base + "/v1/redact", {
         "pages": [{"n": 1, "png_b64": base64.b64encode(png).decode(), "words": page_index.tess_words(d / "p1.tess.tsv")}],
@@ -156,6 +156,18 @@ def test_redact_staff_only_when_capitalized():
             {"t": "malé", "b": [90, 0, 40, 10]}, {"t": "pánve", "b": [135, 0, 40, 10]}]
     hits = redact.find([line], set(), {"mala", "male", "malou"})
     assert [h["box"][0] for h in hits] == [0]
+
+
+def test_redact_names_need_capital_or_a_neighbour():
+    words = [{"t": t, "b": [i * 60, 100, 50, 15]} for i, t in enumerate(["CT", "hlavy", "Hlava", "jan", "hlava"])]
+    hits = redact.find(redact.lines_from_words(words), {"hlava": 1, "hlavy": 1, "jan": 0})
+    assert [h["box"][0] for h in hits] == [120, 180, 240]
+
+
+def test_redact_split_birth_number():
+    words = [{"t": t, "b": [i * 60, 100, 50, 15]} for i, t in enumerate(["r.č.", "585614", "/", "1234", "CRP", "1234"])]
+    hits = redact.find(redact.lines_from_words(words), set(), birth_number="585614/1234")
+    assert [h["box"][0] for h in hits] == [60, 180]
 
 
 def test_redact_mid_line_birth_date():

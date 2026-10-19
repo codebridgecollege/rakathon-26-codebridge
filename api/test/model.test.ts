@@ -55,7 +55,7 @@ describe("callModel", () => {
     // Nothing about the document leaves except its text: no document ID or file name.
     expect(sent).not.toContain("A_pacient");
     expect(r.meta).toMatchObject({ provider: "azure-openai", model: "test-model", prompt: "read-page-cs@1", temperature: null, cached: false });
-    expect(r.pseudonymized[0]!.mapping.get("[RC]")).toEqual([BN]);
+    expect(r.pseudonymized[0]!.originals("[RC]")).toEqual([BN]);
   });
 
   it("refuses and sends nothing when an identifier remains anywhere in the payload", async () => {
@@ -195,9 +195,10 @@ describe("callModel", () => {
     expect(calls[0]!.headers.get("api-key")).toBeNull();
   });
 
-  it("refuses a truncated answer and a too large input", async () => {
-    mockFetch(answer("Přepis bez kon", "length"));
+  it("refuses a truncated or filtered answer and a too large input", async () => {
+    mockFetch(sequence(answer("Přepis bez kon", "length"), answer("", "content_filter")));
     await expect(callModel(testEnv(), await request())).rejects.toMatchObject({ code: "bad_output", retryable: false });
+    await expect(callModel(testEnv(), await request({ text: [{ ref: { docId: "A_pacient", page: 2 }, text: "Jiná." }] }))).rejects.toMatchObject({ code: "refused", retryable: false });
     await expect(callModel(testEnv({ MODEL_MAX_INPUT_CHARS: "100" }), await request({ text: [{ ref: { docId: "A_pacient", page: 2 }, text: "x".repeat(200) }] }))).rejects.toMatchObject({ code: "too_large" });
   });
 });
@@ -215,9 +216,9 @@ describe("page images", () => {
     });
     const identity = await loadCaseIdentity(env.DB, "demo-a", "NO-A");
     const [page] = await redactPages(testEnv(), { org: "demo-a", caseId: "NO-A", docId: "A_pacient", identity }, [{ n: 1, png: PNG, words: [] }]);
-    const sentToReader = await calls[0]!.json<{ identity: { names: string[]; staff: string[]; birth_number: string } }>();
-    expect(sentToReader.identity.names).toEqual(expect.arrayContaining(["testova", "testove", "pacientka", "pacientky"]));
-    expect(sentToReader.identity.staff).toEqual(expect.arrayContaining(["novak", "novaka", "svobodova", "byvaly"]));
+    const sentToReader = await calls[0]!.json<{ identity: { names: string[][]; staff: string[][]; birth_number: string } }>();
+    expect(sentToReader.identity.names.flat()).toEqual(expect.arrayContaining(["testova", "testove", "pacientka", "pacientky"]));
+    expect(sentToReader.identity.staff.flat()).toEqual(expect.arrayContaining(["novak", "novaka", "svobodova", "byvaly"]));
     expect(sentToReader.identity.birth_number).toBe(BN);
     expect(page).toBeInstanceOf(RedactedPage);
     expect(page!.reasons).toEqual(["jméno pacienta"]);

@@ -67,15 +67,24 @@ MAX_VALUE_TOKENS = 3  # a field value is a few words; beyond that the line has m
 MAX_GAP = 200  # px at 150 dpi; a token far to the right belongs to another column
 
 
-DATE = re.compile(r"^\d{1,2}\.\d{1,2}\.\d{2,4}[.,;]?$")
+# A leading "*" (a birth marker, but also a bullet as OCR reads it) is allowed on the patient's own date only.
+DATE = re.compile(r"^\*?\d{1,2}[./]\d{1,2}[./]\d{2,4}[.,;]?$")
 BIRTH_LABELS = ("nar", "narozen", "narozena")
 
 
-def find(lines: list[list[dict]], names: set[str], staff: set[str] = frozenset(),
+def _groups(names) -> dict[str, object]:
+    """Name forms -> the name part they belong to. A plain set counts each form as its own part."""
+    return dict(names) if isinstance(names, dict) else {f: f for f in names}
+
+
+def find(lines: list[list[dict]], names, staff=frozenset(),
          birth_number: str | None = None, birth_date: str | None = None) -> list[dict]:
-    """The direct identifiers on a page. `names` are the patient's name forms (folded), matched in any case;
-    `staff` are the org's staff name forms (folded), matched only when the word is capitalized, because several
-    staff names are ordinary words ("Malá", "Černý"). birth_number and birth_date come from the case record."""
+    """The direct identifiers on a page. `names` are the patient's name forms and `staff` the org's staff name
+    forms (folded), each a set or a dict form -> name part. A name form counts when the word is capitalized, or
+    next to a form of another part of the same name ("jan hlava", not "hlavy Hlava"), because
+    many names are ordinary words ("Malá", "Hlava": "malé pánve", "CT hlavy" stay readable); the same rule as the
+    text pseudonymization (api/src/domain/pseudonymize.ts). birth_number and birth_date come from the case record."""
+    names, staff = _groups(names), _groups(staff)
     bn_digits = re.sub(r"\D", "", birth_number or "")
     bd = _date_key(birth_date) if birth_date else None
     hits = []
@@ -85,14 +94,20 @@ def find(lines: list[list[dict]], names: set[str], staff: set[str] = frozenset()
             f = fold(w["t"])
             near = i > 0 and w["b"][0] - (line[i - 1]["b"][0] + line[i - 1]["b"][2]) < MAX_GAP
             prev = fold(line[i - 1]["t"]) if i > 0 else ""
+            nxt = fold(line[i + 1]["t"]) if i + 1 < len(line) else ""
+            capital = w["t"][:1].isupper()
+            digits = re.sub(r"\D", "", w["t"])
+            prev_digits = re.sub(r"\D", "", line[i - 1]["t"]) if i > 0 else ""
             reason = None
             if LABEL_GLUED.match(f.replace(" ", "")):
                 reason = "hodnota identifikačního pole"
-            elif f in names:
+            elif f in names and (capital or _paired(names, f, prev, nxt)):
                 reason = "jméno pacienta"
-            elif f in staff and w["t"][:1].isupper():
+            elif f in staff and (capital or _paired(staff, f, prev, nxt)):
                 reason = "jméno lékaře"
-            elif len(bn_digits) >= 9 and re.sub(r"\D", "", w["t"]) in (bn_digits, bn_digits[:6]):
+            elif len(bn_digits) >= 9 and digits and (digits in (bn_digits, bn_digits[:6]) or (
+                    # "585614 / 1234" read as separate tokens: the ending after the first half or a lone slash
+                    digits == bn_digits[6:] and (prev_digits == bn_digits[:6] or line[i - 1]["t"] == "/"))):
                 reason = "rodné číslo"
             elif DATE.match(w["t"]) and (prev in BIRTH_LABELS or (bd is not None and _date_key(w["t"]) == bd)):
                 # "Lipenská Věra, nar. 14.6.1958": "nar." in the middle of a line, with the date as its own token.
@@ -121,9 +136,13 @@ def find(lines: list[list[dict]], names: set[str], staff: set[str] = frozenset()
     return hits
 
 
+def _paired(groups: dict, f: str, prev: str, nxt: str) -> bool:
+    return any(o in groups and groups[o] != groups[f] for o in (prev, nxt))
+
+
 def _date_key(s: str) -> tuple | None:
-    m = re.search(r"(\d{1,2})\.(\d{1,2})\.(\d{4})", s.replace(" ", ""))
-    return (int(m[1]), int(m[2]), m[3]) if m else None
+    m = re.search(r"(\d{1,2})[./](\d{1,2})[./](\d{4}|\d{2})(?!\d)", s.replace(" ", ""))
+    return (int(m[1]), int(m[2]), m[3][-2:]) if m else None
 
 
 def lines_from_words(words: list[dict]) -> list[list[dict]]:

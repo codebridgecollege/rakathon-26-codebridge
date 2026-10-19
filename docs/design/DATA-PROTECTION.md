@@ -373,23 +373,32 @@ it yet that sends real documents; the extraction prompts come in phase 2.
   Sweden Central ([gateway check](../research/2026-10-19-azure-gateway-check.md));
   another EU model is a configuration change.
 - **Pseudonymized text.** Before a call, the Worker replaces in every text
-  part: the case patient's name in any case and Czech declension
-  ("Lipenské", "VĚROU"), also without diacritics as OCR writes it; the
-  birth number (any `######/####` and the patient's own in any spacing);
-  the birth date (after "nar." and the patient's own in any format); phone
-  numbers, e-mail addresses and form fields (Jméno, Příjmení, Bydliště,
-  Adresa, Telefon); the org's staff names; any name after a title (MUDr.,
-  doc., Mgr., ...). Placeholders are `[PACIENT]`, `[RC]`,
-  `[DATUM_NAROZENI]`, `[TELEFON]`, `[EMAIL]`, `[ADRESA]`, `[JMENO]`,
-  `[PERSONAL_n]` (one number per staff member) and `[LEKAR_n]`. The mapping
-  back stays in the Worker's memory for the length of the call; it is
-  never in a prompt, a log line, a Workflow step result, the cache or D1.
-  Text parts are labelled by position, not by document ID or file name.
-- **A gate on the whole payload.** The same rules run over everything that
-  would be sent (prompt, text, schema); any hit refuses the call
-  (`identifier_remains`) and logs only the counts per kind. Images are
-  accepted only as `RedactedPage` objects, which only the redaction step
-  makes, for the same org and case.
+  part: the case patient's name in its Czech declensions ("Lipenské",
+  "VĚROU"), also without diacritics as OCR writes it, and double surnames
+  part by part; any birth number with a slash, a ten-digit one that passes
+  the birth-number check (month, day, divisible by 11), and the patient's
+  own in any spacing; a birth date after "nar." (also with slashes or a
+  two-digit year) and the patient's own (from the record, or from the
+  birth number) in any format; phone numbers with +420 or after "tel.",
+  "mobil", "fax"; e-mail addresses; form fields (Jméno, Příjmení,
+  Bydliště, Adresa, Telefon) and the name after "Pacient:"; the org's
+  staff names; any name after a title (MUDr., doc., Mgr., ...).
+  Placeholders are `[PACIENT]`, `[RC]`, `[DATUM_NAROZENI]`, `[TELEFON]`,
+  `[EMAIL]`, `[ADRESA]`, `[JMENO]`, `[PERSONAL_n]` (one number per staff
+  member) and `[LEKAR_n]` (one number per titled name, the same in every
+  part of one call). The mapping back stays in the Worker's memory for the
+  length of the call, in private fields that a structured clone or JSON
+  does not copy; it is never in a prompt, a log line, a Workflow step
+  result, the cache or D1. Text parts are labelled by position, not by
+  document ID or file name.
+- **A gate on the whole payload.** The same rules run again over
+  everything that would be sent (prompt, text parts, schema); any hit
+  refuses the call (`identifier_remains`) and logs only the counts per
+  kind. Because the rules are the same, the gate catches identifiers in
+  parts that were never pseudonymized (a prompt or a schema that names a
+  patient, a code path that skipped the step), not what the rules
+  themselves miss. Images are accepted only as `RedactedPage` objects,
+  which only the redaction step makes, for the same org and case.
 - **Page images are redacted first** by the page reader (`/v1/redact` in
   `pipeline/container/server.py`), with the names from the case record and
   the org's staff in D1, never from fixture files. It also blacks out dark
@@ -412,13 +421,18 @@ it yet that sends real documents; the extraction prompts come in phase 2.
 
 **Known limits of the pseudonymization**, to state to FNO and the jury:
 
-- Staff names alone are matched only when capitalized, because several are
-  ordinary Czech words ("Malá", "Černý", "Veselá": "malé pánve" must stay
-  readable). A staff surname written in lower case and on its own is missed;
-  a staff full name (first name and surname together) and any name after a
-  title are matched in any case. A capitalized ordinary word at the start
-  of a sentence that equals a staff name ("Malá pánev") is replaced, which
-  loses that word for the model.
+- A name part alone (the patient's or a staff member's) is matched only
+  when capitalized, because many names are ordinary Czech words ("Malá",
+  "Černý", "Hlava": "malé pánve", "CT hlavy" must stay readable). Two parts
+  of the same name together ("věra lipenská") and any name after a title
+  are matched in any case. So a name part written in lower case on its own
+  is missed, and a capitalized ordinary word that equals a name part ("Malá
+  pánev" at the start of a sentence) is replaced, which loses that word for
+  the model. The page images follow the same rule.
+- A phone number without +420 or a label is not matched: nine digits in
+  groups of three are as often a lab row ("Na 138 140 137").
+- A birth date after "*" is matched only when it is the patient's own:
+  OCR reads a bullet before an event date as "*" too.
 - The staff list holds surnames only (D1 `users.sur`), so a staff first
   name alone is not matched.
 - Names of other people without a title or a form label (relatives,

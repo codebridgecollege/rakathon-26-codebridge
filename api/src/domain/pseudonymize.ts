@@ -2,9 +2,10 @@
 //
 // The case patient's name, birth number, birth date, address and phone, and the names of the org's staff, are
 // replaced by placeholders such as [PACIENT] or [PERSONAL_2]. The mapping back to the original text stays in the
-// Worker's memory (`Pseudonymized.spans`, `.mapping`): it is never part of a prompt, a log line, a Workflow step result
-// or an R2 object. `detectIdentifiers` runs the same rules over the final payload, and the model call refuses to send
-// it when anything is found (services/model.ts).
+// Worker's memory (private fields of `Pseudonymized`): it is never part of a prompt, a log line, a Workflow step result
+// or an R2 object. The model call runs `detectIdentifiers` again over everything it would send and refuses when
+// anything is found (services/model.ts). The same rules, so this catches identifiers in parts that were never
+// pseudonymized (the prompt, the schema), not the misses of the rules themselves.
 //
 // Pseudonymized text is still personal data (GDPR recital 26): diagnoses, dates and places stay, on purpose, because
 // they are the medical content.
@@ -14,11 +15,11 @@
 //
 // Known limits (documented in DATA-PROTECTION.md):
 // - An OCR misread inside a name ("Lipcnská") is not matched.
-// - Staff names are matched only when capitalized, because several are ordinary Czech words ("Malá", "Černý",
-//   "Veselá": "malé pánve" must stay readable). A staff name written in lower case is missed.
-// - The patient's name is matched in any case: their identity outweighs an over-replaced ordinary word.
+// - A name part alone is matched only when capitalized, because many names are ordinary Czech words ("Malá", "Černý",
+//   "Hlava": "malé pánve", "CT hlavy" must stay readable). Two parts of one name together match in any case.
 // - Other people's names without a title (relatives, external doctors) are found only after a title (MUDr., ...)
-//   or a form label (Jméno:, Příjmení:); there is no Czech name recognizer yet.
+//   or a form label (Jméno:, Pacientka:); there is no Czech name recognizer yet.
+// - A phone number without +420 or a label ("tel.") is not matched: it cannot be told from a lab row.
 
 export type CaseIdentity = {
   // The patient as the case record holds them (D1 `patients`); any field may be missing.
@@ -89,20 +90,38 @@ export function nameForms(name: string): string[] {
   return [...new Set([...forms].map(fold))];
 }
 
-// Name parts long enough to be a name; initials and particles are not matched on their own.
-const nameParts = (names: string[]) =>
-  [...new Set(names.flatMap((n) => (n ?? "").split(/[\s,]+/)).map((p) => p.replace(/[.()]/g, "").trim()).filter((p) => p.length > 2))];
+// Name parts long enough to be a name; initials and particles are not matched on their own. A double surname
+// ("Nováková-Svobodová") is split, because the text is split into words at the hyphen too.
+export const nameParts = (names: string[]) =>
+  [...new Set(names.flatMap((n) => (n ?? "").split(/[\s,\-]+/)).map((p) => p.replace(/[.()]/g, "").trim()).filter((p) => p.length > 2))];
 
-// "12.3.1964" -> a pattern that also matches "12. 03. 1964" and "1964-03-12".
+// The birth date a Czech birth number encodes (yymmdd, women +50 on the month, +20 since 2004), used when the record
+// states no birth date. Nine digits: born before 1954.
+export function birthDateFromNumber(bn: string | null): string | null {
+  const d = (bn ?? "").replace(/\D/g, "");
+  if (d.length !== 9 && d.length !== 10) return null;
+  const yy = Number(d.slice(0, 2));
+  let mm = Number(d.slice(2, 4));
+  const dd = Number(d.slice(4, 6));
+  if (mm > 70) mm -= 70;
+  else if (mm > 50) mm -= 50;
+  else if (mm > 20) mm -= 20;
+  if (mm < 1 || mm > 12 || dd < 1 || dd > 31) return null;
+  const year = d.length === 9 || yy >= 54 ? 1900 + yy : 2000 + yy;
+  return `${dd}.${mm}.${year}`;
+}
+
+export const birthDateOf = (id: CaseIdentity) => id.birthDate ?? birthDateFromNumber(id.birthNumber);
+
+// "12.3.1964" -> a pattern that also matches "12. 03. 1964", "12/3/1964", "12.3.64" and "1964-03-12".
 function datePattern(asWritten: string): string | null {
-  const m = /(\d{1,2})\s*\.\s*(\d{1,2})\s*\.\s*(\d{4})/.exec(asWritten);
+  const m = /(\d{1,2})\s*[./]\s*(\d{1,2})\s*[./]\s*(\d{4})/.exec(asWritten);
   if (!m) return null;
   const d = Number(m[1]);
   const mo = Number(m[2]);
   const y = m[3]!;
-  const dd = `0?${d}`;
-  const mm = `0?${mo}`;
-  return `(?:${dd}\\s*\\.\\s*${mm}\\s*\\.\\s*${y}|${y}-${String(mo).padStart(2, "0")}-${String(d).padStart(2, "0")})`;
+  const sep = "\\s*[./]\\s*";
+  return `(?:0?${d}${sep}0?${mo}${sep}(?:${y}|${y.slice(2)})|${y}-${String(mo).padStart(2, "0")}-${String(d).padStart(2, "0")})`;
 }
 
 // "645312/1234" -> digits with any spacing or slash between them.
@@ -112,21 +131,42 @@ function birthNumberPattern(bn: string): string | null {
   return digits.split("").join("[\\s/]{0,2}");
 }
 
-// Titles match in any case ("MUDR.", "mudr."), the name after them only when capitalized, so "MUDr. Novák
-// doporučuje" takes "Novák" and not the verb. JavaScript has no case-insensitive group, so each letter is a class.
+// A ten-digit number that is a valid Czech birth number (a real month, a real day, divisible by 11), so another
+// patient's birth number without a slash is caught without taking every ten-digit lab or order number.
+function looksLikeBirthNumber(digits: string): boolean {
+  if (digits.length !== 10) return false;
+  if (!birthDateFromNumber(digits)) return false;
+  const n = Number(digits);
+  const first9 = Number(digits.slice(0, 9));
+  return n % 11 === 0 || (first9 % 11 === 10 && digits[9] === "0");
+}
+
+// Titles match in any case ("MUDR.", "mudr."). Short titles that are also ordinary abbreviations (Dr, Bc, Ing, doc,
+// prof, Mgr, prim) count only with their dot, so "BC ER+" (breast cancer) is not a title; the long ones may also be
+// followed by a space. Only spaces and tabs may follow, so a title at the end of a line does not take the next line
+// ("MUDr.\nDiagnóza:"). JavaScript has no case-insensitive group, so each letter is a class.
 const anyCase = (w: string) => w.replace(/[a-z]/g, (c) => `[${c}${c.toUpperCase()}]`);
-const TITLES = ["mudr", "mddr", "mvdr", "doc", "prof", "phdr", "mgr", "bc", "ing", "judr", "rndr", "dr", "prim"].map(anyCase).join("|");
-// A title, then one or two words on the same line: "MUDr. Jana Hofrová", "MUDr.Hofrová", "prim. MUDr. Novák",
-// "MUDr. NOVÁK", "mudr. novák". The first word after a title is a name in any case; a second word must be in title
-// case, so "MUDr. Novák CT" keeps "CT". A title must end in a dot or a space, so the start of an upper-case word
-// ("DRENÁŽ", "INGUINÁLNÍ") is not a title.
-const TITLED = new RegExp(`(?<![\\p{L}])(?:${TITLES})(?:\\.[\\s,]*|[\\s,]+)(?:(?:${TITLES})(?:\\.\\s*|\\s+))*(\\p{L}[\\p{L}-]+(?:[ \\t]+\\p{Lu}\\p{Ll}[\\p{L}-]*)?)`, "gu");
-const BIRTH_NUMBER = /(?<!\d)\d{6}\s?\/\s?\d{3,4}(?!\d)/g;
-const BIRTH_LABEL = /(?<![\p{L}])(?:nar|narozena|narozen|dat\.\s*nar|datum\s+narozeni)\.?\s*:?\s*(\d{1,2}\s*\.\s*\d{1,2}\s*\.\s*\d{2,4})/giu;
-const PHONE = /(?<![\d])(?:\+420[\s-]?)?\d{3}[\s-]?\d{3}[\s-]?\d{3}(?![\d])/g;
+const LONG_TITLES = ["mudr", "mddr", "mvdr", "phdr", "judr", "rndr"].map(anyCase).join("|");
+const SHORT_TITLES = ["doc", "prof", "mgr", "bc", "ing", "dr", "prim"].map(anyCase).join("|");
+const TITLE = `(?:(?:${LONG_TITLES})(?:\\.[ \\t,]*|[ \\t,]+)|(?:${SHORT_TITLES})\\.[ \\t,]*)`;
+// A title (or several), then one or two words on the same line: "MUDr. Jana Hofrová", "MUDr.Hofrová", "prim. MUDr.
+// Novák", "MUDr. NOVÁK", "mudr. novák". The first word after a title is a name in any case; a second word must be in
+// title case, so "MUDr. Novák CT" keeps "CT".
+const TITLED = new RegExp(`(?<![\\p{L}])${TITLE}+(\\p{L}[\\p{L}-]+(?:[ \\t]+\\p{Lu}\\p{Ll}[\\p{L}-]*)?)`, "gu");
+const BIRTH_NUMBER = /(?<!\d)\d{6}[ \t]?\/[ \t]?\d{3,4}(?!\d)/g;
+const TEN_DIGITS = /(?<![\d/])(\d{6})[ \t]?(\d{4})(?![\d/])/g;
+// "nar. 14.6.1958", "narozena 14/06/58", "dat. nar.: 14. 6. 1958"; on the folded text. Not "*14.6.1958": OCR reads a
+// bullet before an event date as "*" too; the patient's own birth date is matched wherever it stands (below).
+const BIRTH_LABEL = /(?<![\p{L}])(?:nar|narozena|narozen|dat\.[ \t]*nar|datum[ \t]+narozeni)\.?[ \t]*:?[ \t]*(\d{1,2}[ \t]*[./][ \t]*\d{1,2}[ \t]*[./][ \t]*\d{2,4})/gu;
+// Phone numbers only with the country code or after a label: an unlabelled group of nine digits is as likely a lab
+// row ("Na 138 140 137") or a cell count ("PLT 250 000 000").
+const PHONE_INTL = /\+420[ -]?\d{3}[ -]?\d{3}[ -]?\d{3}(?!\d)/g;
+const PHONE_LABEL = /(?<![\p{L}])(?:tel|telefon|mobil|mob|fax)\.?[ \t]*(?:c\.)?[ \t]*:?[ \t]*(\d{3}[ -]?\d{3}[ -]?\d{3})(?!\d)/gu;
 const EMAIL = /[\w.+-]+@[\w-]+(?:\.[\w-]+)+/g;
 // A form label at the start of a line (or after a separator), then its value to the end of the line.
 const FIELD = /(?:^|[\n|;])[ \t]*(jmeno a prijmeni|jmeno|prijmeni|trvale bydliste|bydliste|adresa|kontaktni osoba|zakonny zastupce|telefon|tel|e-mail|email)[ \t]*[.:]{1,2}[ \t]*([^\n|;]+)/g;
+// "Pacientka: Nováková Jana, 63 let": the capitalized words right after the label (any patient, also a wrong one).
+const PATIENT_LABEL = /(?:^|[\n|;])[ \t]*(?:pacient|pacientka|jmeno pacienta)[ \t]*:[ \t]*/g;
 
 const PLACEHOLDER: Record<Exclude<IdentifierKind, "staff_name" | "titled_name">, string> = {
   patient_name: "[PACIENT]",
@@ -138,8 +178,12 @@ const PLACEHOLDER: Record<Exclude<IdentifierKind, "staff_name" | "titled_name">,
   name_field: "[JMENO]",
 };
 
+// Numbers given to names after a title. One map serves all text parts of one model call, so "[LEKAR_1]" is the same
+// doctor in every part.
+export type TitledNumbers = Map<string, number>;
+
 // Every identifier in `text`, non-overlapping, in order. Pure; used both to pseudonymize and to check a payload.
-export function detectIdentifiers(text: string, id: CaseIdentity): Hit[] {
+export function detectIdentifiers(text: string, id: CaseIdentity, titled: TitledNumbers = new Map()): Hit[] {
   const f = fold(text);
   const hits: Hit[] = [];
   const push = (start: number, end: number, kind: IdentifierKind, placeholder = PLACEHOLDER[kind as keyof typeof PLACEHOLDER]) => {
@@ -156,41 +200,54 @@ export function detectIdentifiers(text: string, id: CaseIdentity): Hit[] {
   // Word tokens of the folded text, with the original's first letter for the capitalization rule.
   const words: { w: string; start: number; end: number; upper: boolean }[] = [];
   each(/[\p{L}]+/gu, (m) => words.push({ w: m[0], start: m.index, end: m.index + m[0].length, upper: /\p{Lu}/u.test(text[m.index]!) }));
+  // Two words are one name when only spaces, a comma or a hyphen (on the same line) separate them.
+  const joined = (a: { end: number }, b: { start: number }) => /^[ \t,\-]+$/.test(f.slice(a.end, b.start));
 
-  const patientForms = new Set(nameParts(id.patientNames).flatMap(nameForms));
-  for (const w of words) if (patientForms.has(w.w)) push(w.start, w.end, "patient_name");
-
-  // Staff placeholders are numbered by the person, so the model can tell two authors apart without their names.
-  // A staff name alone counts only when capitalized; a full name (two parts of the same person next to each other,
-  // "jana nováková") counts in any case, because two parts together are not an ordinary phrase.
-  id.staffNames.forEach((person, i) => {
-    const parts = nameParts([person]);
-    const forms = new Set(parts.flatMap(nameForms));
-    const ph = `[PERSONAL_${i + 1}]`;
+  // A person's name parts match when capitalized (also in capitals, as OCR and forms write surnames), or in any case
+  // when two parts of the same person stand together ("věra lipenská"). A lone lower-case form is an ordinary word as
+  // often as a name ("hlavy" for a patient Hlava), so it is left; DATA-PROTECTION.md lists the limit.
+  const person = (names: string[], kind: IdentifierKind, ph?: string) => {
+    // Form -> the name part it declines, so "hlavy Hlava" (one part twice) is not taken for a full name.
+    const partOf = new Map<string, number>();
+    nameParts(names).forEach((part, i) => nameForms(part).forEach((f) => partOf.set(f, i)));
     words.forEach((w, k) => {
-      if (!forms.has(w.w)) return;
+      const mine = partOf.get(w.w);
+      if (mine === undefined) return;
+      const other = (o: typeof w | undefined) => !!o && partOf.has(o.w) && partOf.get(o.w) !== mine;
       const next = words[k + 1];
-      const pair = parts.length > 1 && next && forms.has(next.w) && next.w !== w.w && /^[\s,]+$/.test(f.slice(w.end, next.start));
-      if (pair) {
-        push(w.start, w.end, "staff_name", ph);
-        push(next.start, next.end, "staff_name", ph);
-      } else if (w.upper) push(w.start, w.end, "staff_name", ph);
+      const prev = words[k - 1];
+      if (w.upper || (other(next) && joined(w, next!)) || (other(prev) && joined(prev!, w))) push(w.start, w.end, kind, ph);
     });
-  });
+  };
+  person(id.patientNames, "patient_name");
+  // Staff placeholders are numbered by the person, so the model can tell two authors apart without their names.
+  id.staffNames.forEach((name, i) => person([name], "staff_name", `[PERSONAL_${i + 1}]`));
 
-  // Names after a title are numbered by their first appearance in this text.
-  const titled = new Map<string, number>();
   each(TITLED, (m) => {
     const name = m[1]!;
     const start = m.index + m[0].length - name.length;
     // A staff or patient name after a title keeps its own placeholder, and takes no number here.
     if (hits.some((h) => h.start === start)) return;
-    const key = name.toLowerCase();
+    const key = fold(name);
     if (!titled.has(key)) titled.set(key, titled.size + 1);
     push(start, start + name.length, "titled_name", `[LEKAR_${titled.get(key)}]`);
   }, text);
 
+  each(PATIENT_LABEL, (m) => {
+    // The capitalized words after the label, up to three, are the name; "63 let" or a lower-case word ends it.
+    let at = m.index + m[0].length;
+    for (let n = 0; n < 3; n++) {
+      const w = /^(\p{Lu}[\p{L}-]*)[ \t,]*/u.exec(text.slice(at));
+      if (!w) break;
+      push(at, at + w[1]!.length, "name_field");
+      at += w[0].length;
+    }
+  });
+
   each(BIRTH_NUMBER, (m) => push(m.index, m.index + m[0].length, "birth_number"));
+  each(TEN_DIGITS, (m) => {
+    if (looksLikeBirthNumber(m[1]! + m[2]!)) push(m.index, m.index + m[0].length, "birth_number");
+  });
   const bn = id.birthNumber ? birthNumberPattern(id.birthNumber) : null;
   if (bn) each(new RegExp(`(?<!\\d)${bn}(?!\\d)`, "g"), (m) => push(m.index, m.index + m[0].length, "birth_number"));
 
@@ -198,10 +255,12 @@ export function detectIdentifiers(text: string, id: CaseIdentity): Hit[] {
     const v = m[1]!;
     push(m.index + m[0].length - v.length, m.index + m[0].length, "birth_date");
   });
-  const bd = id.birthDate ? datePattern(id.birthDate) : null;
+  const birth = birthDateOf(id);
+  const bd = birth ? datePattern(birth) : null;
   if (bd) each(new RegExp(`(?<!\\d)${bd}(?!\\d)`, "g"), (m) => push(m.index, m.index + m[0].length, "birth_date"));
 
-  each(PHONE, (m) => push(m.index, m.index + m[0].length, "phone"));
+  each(PHONE_INTL, (m) => push(m.index, m.index + m[0].length, "phone"));
+  each(PHONE_LABEL, (m) => push(m.index + m[0].length - m[1]!.length, m.index + m[0].length, "phone"));
   each(EMAIL, (m) => push(m.index, m.index + m[0].length, "email"));
   each(FIELD, (m) => {
     const label = m[1]!;
@@ -225,20 +284,50 @@ export function detectIdentifiers(text: string, id: CaseIdentity): Hit[] {
   return out;
 }
 
-export type Pseudonymized = {
-  text: string;
-  // Placeholder -> the original strings it replaced. Server-side only.
-  mapping: Map<string, string[]>;
-  // Where each placeholder sits in `text` and what it replaced in the original, for mapping a quote back.
-  spans: { start: number; end: number; origStart: number; origEnd: number; placeholder: string }[];
-  counts: Partial<Record<IdentifierKind, number>>;
-};
+type Span = { start: number; end: number; origStart: number; origEnd: number; placeholder: string };
 
-export function pseudonymize(text: string, id: CaseIdentity): Pseudonymized {
-  const hits = detectIdentifiers(text, id);
+// The pseudonymized text with its way back. The mapping and the spans are private fields: structured clone (a
+// Workflow step result, a queue message) and JSON.stringify copy only `text` and `counts`, so a caller that returns
+// this object from a step does not store the patient's name in the Workflow engine.
+export class Pseudonymized {
+  readonly #mapping: Map<string, string[]>;
+  readonly #spans: Span[];
+  constructor(
+    readonly text: string,
+    readonly counts: Partial<Record<IdentifierKind, number>>,
+    mapping: Map<string, string[]>,
+    spans: Span[],
+  ) {
+    this.#mapping = mapping;
+    this.#spans = spans;
+  }
+
+  // The original strings a placeholder replaced. Server-side only.
+  originals(placeholder: string): string[] {
+    return [...(this.#mapping.get(placeholder) ?? [])];
+  }
+
+  // A range in the pseudonymized text -> the same range in the original text, so a quote the model returns can be
+  // anchored in the page text the source viewer shows. A range that starts or ends inside a placeholder widens to it.
+  originalRange(start: number, end: number): [number, number] {
+    const map = (pos: number, edge: "start" | "end") => {
+      let delta = 0;
+      for (const s of this.#spans) {
+        if (pos < s.start) break;
+        if (pos < s.end || (edge === "end" && pos === s.end)) return edge === "start" ? s.origStart : pos === s.start ? s.origStart : s.origEnd;
+        delta += s.origEnd - s.origStart - (s.end - s.start);
+      }
+      return pos + delta;
+    };
+    return [map(start, "start"), map(end, "end")];
+  }
+}
+
+export function pseudonymize(text: string, id: CaseIdentity, titled: TitledNumbers = new Map()): Pseudonymized {
+  const hits = detectIdentifiers(text, id, titled);
   const mapping = new Map<string, string[]>();
-  const spans: Pseudonymized["spans"] = [];
-  const counts: Pseudonymized["counts"] = {};
+  const spans: Span[] = [];
+  const counts: Partial<Record<IdentifierKind, number>> = {};
   let out = "";
   let at = 0;
   for (const h of hits) {
@@ -253,22 +342,7 @@ export function pseudonymize(text: string, id: CaseIdentity): Pseudonymized {
     at = h.end;
   }
   out += text.slice(at);
-  return { text: out, mapping, spans, counts };
-}
-
-// A range in the pseudonymized text -> the same range in the original text, so a quote the model returns can be
-// anchored in the page text the source viewer shows. A range that starts or ends inside a placeholder widens to it.
-export function originalRange(p: Pseudonymized, start: number, end: number): [number, number] {
-  const map = (pos: number, edge: "start" | "end") => {
-    let delta = 0;
-    for (const s of p.spans) {
-      if (pos < s.start) break;
-      if (pos < s.end || (edge === "end" && pos === s.end)) return edge === "start" ? s.origStart : pos === s.start ? s.origStart : s.origEnd;
-      delta += s.origEnd - s.origStart - (s.end - s.start);
-    }
-    return pos + delta;
-  };
-  return [map(start, "start"), map(end, "end")];
+  return new Pseudonymized(out, counts, mapping, spans);
 }
 
 // Counts per kind, for a refusal or a log line: never the values.
