@@ -241,6 +241,8 @@ export type CallAnswer = {
   pages: number[];
   parts: Pseudonymized[];
   answer: ModelAnswer;
+  /** The document part these pages are (document_parts "<doc>/p<ordinal>"), for source.part; default the document's. */
+  part?: string | null;
 };
 
 type Draft = DraftFact & { draft_id: string; _doubts: Doubt[] };
@@ -259,15 +261,32 @@ function linesAround(text: string, s: number, e: number): string {
 const HEADER_LINES = 8;
 const header = (text: string) => text.split("\n").slice(0, HEADER_LINES).join("\n");
 
-export async function buildFromAnswer(o: {
-  caseId: string;
+/** draft_ids of a fragment (docs/research/2026-10-20-case-merge-contract.md): "ai:<doc>:<n>". */
+export type FragmentIds = { draft: (n: number) => string };
+export const aiFragmentIds = (docId: string): FragmentIds => ({ draft: (n) => `ai:${docId}:${n}` });
+
+export type DraftedDocument = {
+  sources: DocumentSource[];
+  /** Facts without key or ID, each with its draft_id; prepareRun (store/runs.ts) assigns keys and IDs. */
+  facts: (DraftFact & { draft_id: string })[];
+  checks: Check[];
+  report: BuildReport;
+};
+
+/**
+ * The checked facts of one document as a fragment's content: drafted facts, their sources and the checks of the kinds
+ * this step looks for. No IDs, no alerts: the case merge (ProcessCase) composes fragments, prepareRun assigns IDs, and
+ * the case rules raise the alerts on the final IDs. Without `ids`, draft_ids are "d<n>".
+ */
+export async function draftDocument(o: {
   doc: DocumentInput;
   calls: CallAnswer[];
   /** Pages the model would not read (content filter, budget): listed as not read, never as "nothing found". */
   unreadPages?: number[];
-  previous?: Pick<ExtractionRun, "facts" | "sources"> | null;
-  issuedIds?: Iterable<string>;
-}): Promise<BuildResult> {
+  ids?: FragmentIds;
+  /** The part of a page index, for the unread pages of a document split into parts. */
+  partOf?: (pageIndex: number) => string | null;
+}): Promise<DraftedDocument> {
   const { doc } = o;
   const report: BuildReport = { kept: 0, verify: 0, quarantined: 0, dropped: {}, reasons: {} };
   const drop = (r: DropReason) => (report.dropped[r] = (report.dropped[r] ?? 0) + 1);
@@ -409,7 +428,7 @@ export async function buildFromAnswer(o: {
       const srcBody: Omit<DocumentSource, "id"> = {
         type: "document",
         document_id: doc.documentId,
-        part: doc.part,
+        part: call.part ?? doc.part,
         page: page.page,
         quote,
         quote_text: page.quoteText,
@@ -420,11 +439,13 @@ export async function buildFromAnswer(o: {
       };
       // One source per passage and way of reporting it.
       const existing = [...sources.values()].find((s) => s.page === srcBody.page && s.anchor?.char_range[0] === os && s.anchor?.char_range[1] === oe && s.reported_as === srcBody.reported_as);
+      // Derived from the passage (document, part, page, quote), so the same passage gets the same ID across producers and
+      // reruns and a fact's sources stay stable.
       const sourceId = existing?.id ?? sourceIdFor(srcBody, new Set(sources.keys()));
       if (!existing) sources.set(sourceId, { id: sourceId, ...srcBody });
 
       drafts.push({
-        draft_id: `d${drafts.length}`,
+        draft_id: o.ids ? o.ids.draft(drafts.length + 1) : `d${drafts.length}`,
         _doubts: doubts,
         kind: f.kind,
         subject: f.kind === "family_history" ? "relative" : f.subject,
@@ -510,8 +531,7 @@ export async function buildFromAnswer(o: {
     }
   }
 
-  const sourceList: Source[] = [...sources.values()];
-  const { facts } = assignFactIds(o.caseId, merged.map(({ _doubts, ...rest }) => rest), sourceList, o.previous ?? null, { issuedIds: o.issuedIds ?? [] });
+  const facts = merged.map(({ _doubts, ...rest }) => rest);
   report.kept = facts.length;
   report.verify = facts.filter((f) => f.certainty === "verify").length;
   report.quarantined = facts.filter((f) => f.quarantined).length;
@@ -519,13 +539,38 @@ export async function buildFromAnswer(o: {
   // A page no call sent, or the model would not read, is listed as not read: its absence of facts is not "nothing found".
   const sent = new Set(o.calls.flatMap((c) => c.pages));
   const unread = new Set(o.unreadPages ?? []);
-  const covered = [{ document_id: doc.documentId, part: doc.part }];
+  // The parts the calls read (each call one part in the Worker), or the document as a whole.
+  const parts = [...new Set(o.calls.map((c) => c.part ?? doc.part))];
+  const covered = (parts.length ? parts : [doc.part]).map((part) => ({ document_id: doc.documentId, part }));
   const unreadable = doc.pages
-    .filter((p, i) => p.readability === "empty" || unread.has(i) || !sent.has(i))
-    .map((p) => ({ document_id: doc.documentId, part: doc.part, page: p.page }));
+    .map((p, i) => ({ p, i }))
+    .filter(({ p, i }) => p.readability === "empty" || unread.has(i) || !sent.has(i))
+    .map(({ p, i }) => ({ document_id: doc.documentId, part: o.partOf?.(i) ?? doc.part, page: p.page }));
+  const checks: Check[] = EXTRACT_KINDS.map((k) => ({ id: `chk-${k}`, looks_for: k, expected: null, covered, unreadable, result: facts.some((f) => f.kind === k) ? ("found" as const) : ("nothing_found" as const) }));
+  return { sources: [...sources.values()], facts, checks, report };
+}
+
+/**
+ * The offline harness's whole run for one document: the drafted document with IDs (assignFactIds), an identity check
+ * and identity alert of its own, and the request rule. In the Worker these come from the case merge instead: identity
+ * from the pipeline's fragment, the rules from the case rules.
+ */
+export async function buildFromAnswer(o: {
+  caseId: string;
+  doc: DocumentInput;
+  calls: CallAnswer[];
+  unreadPages?: number[];
+  previous?: Pick<ExtractionRun, "facts" | "sources"> | null;
+  issuedIds?: Iterable<string>;
+}): Promise<BuildResult> {
+  const { doc } = o;
+  const d = await draftDocument(o);
+  const sources = new Map(d.sources.map((x) => [x.id, x]));
+  const { facts } = assignFactIds(o.caseId, d.facts, d.sources, o.previous ?? null, { issuedIds: o.issuedIds ?? [] });
+  const first = d.checks[0]!;
   const checks: Check[] = [
-    ...EXTRACT_KINDS.map((k) => ({ id: `chk-${k}`, looks_for: k, expected: null, covered, unreadable, result: facts.some((f) => f.kind === k) ? ("found" as const) : ("nothing_found" as const) })),
-    { id: "chk-identity", looks_for: "identity", expected: null, covered, unreadable, result: doc.pages.some((p) => p.identity === "conflicts") ? "found" : "nothing_found" },
+    ...d.checks,
+    { id: "chk-identity", looks_for: "identity", expected: null, covered: first.covered, unreadable: first.unreadable, result: doc.pages.some((p) => p.identity === "conflicts") ? "found" : "nothing_found" },
   ];
   const identityAlerts: Alert[] = doc.pages
     .filter((p) => p.identity === "conflicts")
@@ -534,5 +579,5 @@ export async function buildFromAnswer(o: {
       const onPage = facts.filter((f: Fact) => f.sources.some((sid) => sources.get(sid)?.page === p.page)).map((f) => f.id);
       return { id: alertId({ rule: "identity_page_conflict", subject }), rule: "identity_page_conflict", subject, kind: "identity", facts: onPage, message: { id: "alert-identity-page", args: { document: doc.documentId, page: p.page } }, note: null };
     });
-  return { sources: sourceList, facts, checks, alerts: [...requestsWithoutResult(facts), ...identityAlerts], report };
+  return { sources: d.sources as Source[], facts, checks, alerts: [...requestsWithoutResult(facts), ...identityAlerts], report: d.report };
 }

@@ -342,6 +342,32 @@ the same everywhere. No Workflow calls it yet.
   `api/.cache/extract/` (gitignored), keyed by prompt version, prompt hash and payload hash; `--cache-only` reruns the
   checks without a call. Results: `docs/research/2026-10-19-extraction-eval.md`.
 
+## ExtractDocumentWorkflow (issue #20)
+
+`src/workflows/extract-document.ts`, binding `EXTRACT_DOCUMENT`. It is the AI part of a document after its pipeline run
+and writes `<output_prefix>fragment-ai.json` for the case merge (contract: `docs/research/2026-10-20-case-merge-contract.md`).
+- **Off by default:** `MODEL_ORGS` lists the orgs it runs for (`"*"` all, `""` none), and the model must be configured
+  (`modelOn`). `startExtraction(env, {org, caseId, docId, runId})` is for the pipeline run's end to call (stream B wires it with ProcessCase; nothing calls it yet). It ends by
+  starting `PROCESS_CASE` when that binding exists.
+- **Steps:**
+  - `plan`;
+  - `read p<n>` for each page that needs vision (`domain/extract/plan.ts`): redact, model, `/v1/compare`, then
+    `p<n>.vision.json`;
+  - `extract <part>` for each part: model, then `ai-part-<ordinal>.json`, the pseudonymized answer;
+  - `fragment`;
+  - `case`.
+
+  Each model step runs under `MODEL_STEP`. A refusal that waiting will not change (budget, content filter) leaves the
+  page or part unread, and a busy provider is retried by the step. Step results hold IDs, counts and codes only.
+- **The pseudonymization mapping is never stored:** the fragment step rebuilds it with `pseudonymizeParts` from the same
+  texts.
+- **Identity comes from the pipeline's `identity.json` per page,** not from the model's reading. A page that shows
+  another patient is never sent to the model (the pseudonymization knows only the case's identifiers); it is listed
+  as unread, and the pipeline's fragment keeps its facts quarantined.
+- **A step whose retries run out** (busy endpoint, page reader down) leaves its page or part unread with code `busy`;
+  the fragment is still written. A newer pipeline run of the document stops this one (`run_not_current`).
+- **Tests:** `test/extract-document.test.ts`.
+
 ## Upload from a phone (issue #10)
 
 Design and contract: `docs/design/PHONE-UPLOAD.md`, section "As implemented".

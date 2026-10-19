@@ -50,6 +50,9 @@
     // Issue #20: the model the document pipeline sends pseudonymized text and redacted page images to
     // (src/services/model.ts). Provider "azure-openai" reads the AZURE_OPENAI_KEY secret; "openai-compatible" reads
     // MODEL_API_KEY. Without the key the model is off. Checked 2026-10-19: docs/research/2026-10-19-azure-gateway-check.md.
+    // The orgs whose documents the AI extraction reads ("*": all). Empty: off everywhere; real patients need FNO's
+    // clearance for any cloud model first (DATA-PROTECTION.md).
+    "MODEL_ORGS": "",
     "MODEL_PROVIDER": "azure-openai",
     "MODEL_BASE": "https://apim-rakathon-q7146n.azure-api.net/openai/v1",
     "MODEL_NAME": "gpt-6-luna-dz-eu",
@@ -118,7 +121,10 @@
   "workflows": [
     { "name": "codebridge-speaker-pass", "binding": "SPEAKER_PASS", "class_name": "SpeakerPassWorkflow" },
     // Step 6: one stored PDF through the deterministic pipeline (render, Tesseract, readability, labs), no LLM.
-    { "name": "codebridge-process-document", "binding": "PROCESS_DOCUMENT", "class_name": "ProcessDocumentWorkflow" }
+    { "name": "codebridge-process-document", "binding": "PROCESS_DOCUMENT", "class_name": "ProcessDocumentWorkflow" },
+    // Issue #20: the AI part of a document after its pipeline run (vision reading, fact extraction), ending in the
+    // case merge. Only for orgs in MODEL_ORGS.
+    { "name": "codebridge-extract-document", "binding": "EXTRACT_DOCUMENT", "class_name": "ExtractDocumentWorkflow" }
   ],
   // The audio sweep (src/scheduled.ts): deletes audio every other path should already have deleted.
   "triggers": { "crons": ["*/15 * * * *"] },

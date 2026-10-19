@@ -29,6 +29,7 @@ import { session } from "./routes/session";
 
 export { SpeakerPassWorkflow } from "./workflows/speaker-pass";
 export { ProcessDocumentWorkflow } from "./workflows/process-document";
+export { ExtractDocumentWorkflow } from "./workflows/extract-document";
 
 // The data routes (step 2) resolve the person from the directory first; listed by path so an unknown /api path
 // still answers the plain JSON 404 instead of touching the database.
