@@ -105,7 +105,8 @@ export function factText(f: Fact | { kind: string; value: unknown }): string {
     case "performance_status":
       return join(v.scale, v.value_as_written);
     case "medication":
-      return join(v.drug, v.strength, v.dosing);
+      // A stopped drug says when, as the document writes it.
+      return [join(v.drug, v.strength, v.dosing), str(v.stop_as_written)].filter(Boolean).join(", ");
     case "contraindication":
       return String(v.what ?? "");
     case "allergy":

@@ -406,11 +406,14 @@ export function mapNisResources(system: string, resources: readonly R[]): Mapped
         }
         const start = fhirDate(r.effectivePeriod?.start ?? r.effectiveDateTime);
         const end = str(r.effectivePeriod?.end);
-        const said = [MED_TEXT[r.status], end ? `do ${end}` : null].filter(Boolean).join(", ");
+        const status = r.status === "not-taken" ? "documented" : (MED_STATUS[r.status] ?? "documented");
+        // The end date is the stop only for a stopped drug; a still-active drug with an end is a planned end, kept in the text.
+        const stopped = status === "stopped";
+        const said = [MED_TEXT[r.status], end && !stopped ? `do ${end}` : null].filter(Boolean).join(", ");
         drafts.push({
-          ...frame("medication", source(r), start, r.status === "not-taken" ? "documented" : (MED_STATUS[r.status] ?? "documented"), codesOf(r.medicationCodeableConcept)),
+          ...frame("medication", source(r), start, status, codesOf(r.medicationCodeableConcept)),
           negated: r.status === "not-taken",
-          value: { drug, strength: null, dosing: str(r.dosage?.[0]?.text), change: null, indication: textOf(r.reasonCode?.[0]), text: said || null },
+          value: { drug, strength: null, dosing: str(r.dosage?.[0]?.text), change: null, indication: textOf(r.reasonCode?.[0]), text: said || null, stop_as_written: stopped ? end : null },
         });
         break;
       }

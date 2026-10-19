@@ -245,7 +245,7 @@ changes between runs, their link breaks.
 |---|---|
 | `lab_result` | code (or name as written), draw date and time as written, requisition number if any, document |
 | `diagnosis` | code or normalised text, disease status, date |
-| `medication` | drug, period start (a dose change starts a new medication fact with its own start, so "Prednison 1 mg/kg/den" and "Prednison 0,5 mg/kg od 12.5.2023" are two facts); for an entry with no start, also the document part it is listed in, so the same drug listed undated at two visits gives two facts (the part ID is stable, never a position) |
+| `medication` | drug, period start (a dose change starts a new medication fact with its own start, so "Prednison 1 mg/kg/den" and "Prednison 0,5 mg/kg od 12.5.2023" are two facts); for an entry with no start, also the sorted set of document parts it is quoted from (`part:10_pacient/p0`; a source without a part counts as its document, a NIS source as its record), so the same drug listed undated in two reports gives two facts instead of a merge or a "#2". A part ID (`<document>/p<n>`) is stable only while the file is split into parts the same way: a re-split, or a source gaining a part or a further part (an identical entry repeated at a later visit, kept as a further source), changes the key, and the fact keeps its ID only through the matcher's similarity step, which refuses an ambiguous match |
 | `systemic_therapy` | drug or regimen, line, start; for an entry with no start (an anticancer drug in a medication list), also the document part it is listed in, as for `medication` |
 | `stage` | stage kind, date |
 | `imaging`, `procedure`, `histology` | type and region, date |
@@ -289,7 +289,7 @@ JSON Schema defines them exactly).
 | `exam_finding` | body region, finding text | 13 |
 | `symptom` | text | 5 (2 negated) |
 | `comorbidity` | text, MKN-10 code if given | 11 |
-| `medication` | drug, strength, dosing, change, indication, `stop_as_written` (when the document says the drug was stopped, as written; the fact then has `status: stopped`); not for anticancer drugs, see below | 14 |
+| `medication` | drug, strength, dosing, change, indication, `stop_as_written` (when the document says the drug was stopped, as written; the fact then has `status: stopped` or `interrupted`, which the validator checks); not for anticancer drugs, see below | 14 |
 | `contraindication` | what (a drug interaction, for example an ACE inhibitor with everolimus), stated by the document or inferred by the assistant | 1 |
 | `allergy` | substance, reaction | 0 |
 | `adverse_event` | text, grade if stated, related therapy | about 4 |
@@ -302,7 +302,7 @@ JSON Schema defines them exactly).
 | `visit` | one visit or hospital stay: type (`outpatient`, `admission`, `consultation`, `emergency`, `other`), its name as written, department as written, reason as written, the end of a stay as written | 2, plus 1 planned |
 | `interval` | from fact, to fact, length as computed, both dates' precision (always `origin: assistant`, shown as a fact, never a verdict) | (computed) |
 
-**Anticancer drugs are `systemic_therapy`, never `medication`.** Everolimus,
+**Anticancer drugs in documents are `systemic_therapy`, never `medication`.** Everolimus,
 sunitinib, nivolumab and the like are `systemic_therapy` facts even where a
 medication list names them. The list entry is a further source of an
 existing therapy fact only when it states nothing beyond that fact; an
@@ -313,7 +313,18 @@ fact with its own start, as for `medication`. Supportive drugs given with
 the therapy (antiemetics, corticosteroids) stay `medication`. Which drugs
 count as anticancer (an ATC-based list or a clinician's call) is open in
 [`OPEN_QUESTIONS.md`](../agent/OPEN_QUESTIONS.md); until it is settled,
-producers follow the drug's role in the document.
+document producers follow the drug's role in the document, and the NIS
+producer keeps every drug `medication` (see "The NIS producer"). The case
+view's medication list ("Farmakologická anamnéza") shows a current
+anticancer drug quoted from that list next to the other drugs, so the
+list stays complete while the oncology lines show the therapy line.
+
+A key rule change (here, undated medication and therapy entries gaining
+their parts) re-keys facts of runs stored earlier. The matcher's
+similarity step carries their IDs over when the match is unambiguous; two
+identical entries in one run (same drug, dosing and quote) do not match
+unambiguously, get new IDs, and their confirmations show as "potvrzeno
+dříve, v novém zpracování chybí".
 
 **One fact per statement.** The bundled items of today split up:
 - the plan line becomes `plan` facts, one per item; a planned visit or check-up in it ("kontrola 9.10.2026") is a `visit` with status `planned`, not a `plan`, so it shows once on the timeline;
@@ -674,7 +685,7 @@ only as far as the record states them.
 | `Observation` stating a stage group | `stage` | `stage_kind` from LOINC 21908-9 (clinical) or 21902-2 (pathological), or the NIS's own label naming one kind only (cTNM, pTNM, ypTNM for `post_neoadjuvant`); a label naming two kinds, disagreeing with the code, or naming ycTNM is skipped as ambiguous; the separate T, N and M observations are skipped, because as facts they would read as several stages of one day; `tnm_as_written` as given, `tnm` left null; `as_of` the effective date |
 | `Condition` | `diagnosis` | text and MKN-10 code as given; `disease_status` only from what the record states (`provisional` and the like give `suspected`, clinical status `recurrence` or `remission`); a confirmed diagnosis stays without a status, because the record does not say it was confirmed by histology; `refuted` is a negated fact; `entered-in-error` is not mapped; `resolved`, `inactive` or an abatement give "verify" with the end date in the reason; the date is the onset only (never `recordedDate`, which is when the entry was made) |
 | `Procedure` | `procedure` | `completed` is `done`; `in-progress` stays `documented` with "probíhá (dle NIS)" in the text, because the format has no "in progress"; `not-done` is a negated fact |
-| `MedicationStatement` | `medication` | drug and dosage text as given; `unknown` and `active` are `documented`; `completed` and `stopped` are both `stopped`, with the text saying which, and the end date in the text |
+| `MedicationStatement` | `medication` | drug and dosage text as given; `unknown` and `active` are `documented`; `completed` and `stopped` are both `stopped`, with the text saying which, and the end date as written in `stop_as_written`; every NIS drug stays `medication`, anticancer drugs included, until the classification question (ATC) in OPEN_QUESTIONS.md is settled |
 | `ServiceRequest` | `request` | `active` is `requested` (a sent request is not a done exam); `completed` is `done`; `unknown` is `documented`; `result_fact` only when a report of this NIS names the request in `basedOn` (a versioned or absolute reference counts; when several reports do, the final one with the lowest ID) |
 | `DiagnosticReport`, category RAD | `imaging` | modality from the start of the report's name, the rest is the region; the conclusion is the finding |
 | `DiagnosticReport`, category PAT | `histology` | the report's name as the specimen, the conclusion as the result |

@@ -206,7 +206,8 @@ describe("requests, reports, treatment", () => {
       ["medication", "stopped", false],
     ]);
     expect(m.drafts[3]!.value).toMatchObject({ text: "probíhá (dle NIS)" });
-    expect(m.drafts[4]!.value).toMatchObject({ text: "ukončeno (dle NIS dokončeno), do 2026-05-18" });
+    // A stopped drug's end date is its stop, as the record writes it; the text keeps only the status.
+    expect(m.drafts[4]!.value).toMatchObject({ text: "ukončeno (dle NIS dokončeno)", stop_as_written: "2026-05-18" });
     expect(m.drafts[0]!.value).toMatchObject({ drug: "Enoxaparin", dosing: "80 mg s.c. á 12 hod.", strength: null });
     expect(m.skipped.map((s) => s.reason)).toEqual(["not_clinical"]);
   });

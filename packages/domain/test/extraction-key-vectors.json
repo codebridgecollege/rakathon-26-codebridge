@@ -6220,6 +6220,19 @@
      "reading_check": null
     },
     {
+     "id": "src-c",
+     "type": "document",
+     "document_id": "10_pacient",
+     "part": "10_pacient/p10",
+     "page": 5,
+     "quote": "Spiriva 2-0-0",
+     "quote_text": "pdf_text",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
      "id": "src-n",
      "type": "nis",
      "system": "https://nis.fno.example/fhir",
@@ -6305,6 +6318,19 @@
      "reading_check": null
     },
     {
+     "id": "src-c",
+     "type": "document",
+     "document_id": "10_pacient",
+     "part": "10_pacient/p10",
+     "page": 5,
+     "quote": "Spiriva 2-0-0",
+     "quote_text": "pdf_text",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
      "id": "src-n",
      "type": "nis",
      "system": "https://nis.fno.example/fhir",
@@ -6376,6 +6402,19 @@
      "part": null,
      "page": 1,
      "quote": "Kreatinin 107",
+     "quote_text": "pdf_text",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
+     "id": "src-c",
+     "type": "document",
+     "document_id": "10_pacient",
+     "part": "10_pacient/p10",
+     "page": 5,
+     "quote": "Spiriva 2-0-0",
      "quote_text": "pdf_text",
      "anchor": null,
      "reported_as": "original",
@@ -6455,6 +6494,19 @@
      "reading_check": null
     },
     {
+     "id": "src-c",
+     "type": "document",
+     "document_id": "10_pacient",
+     "part": "10_pacient/p10",
+     "page": 5,
+     "quote": "Spiriva 2-0-0",
+     "quote_text": "pdf_text",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
      "id": "src-n",
      "type": "nis",
      "system": "https://nis.fno.example/fhir",
@@ -6521,6 +6573,19 @@
      "part": null,
      "page": 1,
      "quote": "Kreatinin 107",
+     "quote_text": "pdf_text",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
+     "id": "src-c",
+     "type": "document",
+     "document_id": "10_pacient",
+     "part": "10_pacient/p10",
+     "page": 5,
+     "quote": "Spiriva 2-0-0",
      "quote_text": "pdf_text",
      "anchor": null,
      "reported_as": "original",
@@ -6603,6 +6668,19 @@
      "reading_check": null
     },
     {
+     "id": "src-c",
+     "type": "document",
+     "document_id": "10_pacient",
+     "part": "10_pacient/p10",
+     "page": 5,
+     "quote": "Spiriva 2-0-0",
+     "quote_text": "pdf_text",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
      "id": "src-n",
      "type": "nis",
      "system": "https://nis.fno.example/fhir",
@@ -6676,6 +6754,19 @@
      "reading_check": null
     },
     {
+     "id": "src-c",
+     "type": "document",
+     "document_id": "10_pacient",
+     "part": "10_pacient/p10",
+     "page": 5,
+     "quote": "Spiriva 2-0-0",
+     "quote_text": "pdf_text",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
      "id": "src-n",
      "type": "nis",
      "system": "https://nis.fno.example/fhir",
@@ -6741,6 +6832,19 @@
      "part": null,
      "page": 1,
      "quote": "Kreatinin 107",
+     "quote_text": "pdf_text",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
+     "id": "src-c",
+     "type": "document",
+     "document_id": "10_pacient",
+     "part": "10_pacient/p10",
+     "page": 5,
+     "quote": "Spiriva 2-0-0",
      "quote_text": "pdf_text",
      "anchor": null,
      "reported_as": "original",
@@ -6823,6 +6927,19 @@
      "reading_check": null
     },
     {
+     "id": "src-c",
+     "type": "document",
+     "document_id": "10_pacient",
+     "part": "10_pacient/p10",
+     "page": 5,
+     "quote": "Spiriva 2-0-0",
+     "quote_text": "pdf_text",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
      "id": "src-n",
      "type": "nis",
      "system": "https://nis.fno.example/fhir",
@@ -6896,6 +7013,19 @@
      "reading_check": null
     },
     {
+     "id": "src-c",
+     "type": "document",
+     "document_id": "10_pacient",
+     "part": "10_pacient/p10",
+     "page": 5,
+     "quote": "Spiriva 2-0-0",
+     "quote_text": "pdf_text",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
      "id": "src-n",
      "type": "nis",
      "system": "https://nis.fno.example/fhir",
@@ -6962,6 +7092,19 @@
      "part": null,
      "page": 1,
      "quote": "Kreatinin 107",
+     "quote_text": "pdf_text",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
+     "id": "src-c",
+     "type": "document",
+     "document_id": "10_pacient",
+     "part": "10_pacient/p10",
+     "page": 5,
+     "quote": "Spiriva 2-0-0",
      "quote_text": "pdf_text",
      "anchor": null,
      "reported_as": "original",
@@ -7043,6 +7186,19 @@
      "reading_check": null
     },
     {
+     "id": "src-c",
+     "type": "document",
+     "document_id": "10_pacient",
+     "part": "10_pacient/p10",
+     "page": 5,
+     "quote": "Spiriva 2-0-0",
+     "quote_text": "pdf_text",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
      "id": "src-n",
      "type": "nis",
      "system": "https://nis.fno.example/fhir",
@@ -7110,6 +7266,19 @@
      "part": null,
      "page": 1,
      "quote": "Kreatinin 107",
+     "quote_text": "pdf_text",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
+     "id": "src-c",
+     "type": "document",
+     "document_id": "10_pacient",
+     "part": "10_pacient/p10",
+     "page": 5,
+     "quote": "Spiriva 2-0-0",
      "quote_text": "pdf_text",
      "anchor": null,
      "reported_as": "original",
@@ -7189,6 +7358,19 @@
      "reading_check": null
     },
     {
+     "id": "src-c",
+     "type": "document",
+     "document_id": "10_pacient",
+     "part": "10_pacient/p10",
+     "page": 5,
+     "quote": "Spiriva 2-0-0",
+     "quote_text": "pdf_text",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
      "id": "src-n",
      "type": "nis",
      "system": "https://nis.fno.example/fhir",
@@ -7260,6 +7442,19 @@
      "reading_check": null
     },
     {
+     "id": "src-c",
+     "type": "document",
+     "document_id": "10_pacient",
+     "part": "10_pacient/p10",
+     "page": 5,
+     "quote": "Spiriva 2-0-0",
+     "quote_text": "pdf_text",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
      "id": "src-n",
      "type": "nis",
      "system": "https://nis.fno.example/fhir",
@@ -7323,6 +7518,19 @@
      "part": null,
      "page": 1,
      "quote": "Kreatinin 107",
+     "quote_text": "pdf_text",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
+     "id": "src-c",
+     "type": "document",
+     "document_id": "10_pacient",
+     "part": "10_pacient/p10",
+     "page": 5,
+     "quote": "Spiriva 2-0-0",
      "quote_text": "pdf_text",
      "anchor": null,
      "reported_as": "original",
@@ -7406,6 +7614,19 @@
      "reading_check": null
     },
     {
+     "id": "src-c",
+     "type": "document",
+     "document_id": "10_pacient",
+     "part": "10_pacient/p10",
+     "page": 5,
+     "quote": "Spiriva 2-0-0",
+     "quote_text": "pdf_text",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
      "id": "src-n",
      "type": "nis",
      "system": "https://nis.fno.example/fhir",
@@ -7469,6 +7690,19 @@
      "part": null,
      "page": 1,
      "quote": "Kreatinin 107",
+     "quote_text": "pdf_text",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
+     "id": "src-c",
+     "type": "document",
+     "document_id": "10_pacient",
+     "part": "10_pacient/p10",
+     "page": 5,
+     "quote": "Spiriva 2-0-0",
      "quote_text": "pdf_text",
      "anchor": null,
      "reported_as": "original",
@@ -7551,6 +7785,19 @@
      "reading_check": null
     },
     {
+     "id": "src-c",
+     "type": "document",
+     "document_id": "10_pacient",
+     "part": "10_pacient/p10",
+     "page": 5,
+     "quote": "Spiriva 2-0-0",
+     "quote_text": "pdf_text",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
      "id": "src-n",
      "type": "nis",
      "system": "https://nis.fno.example/fhir",
@@ -7619,6 +7866,19 @@
      "part": null,
      "page": 1,
      "quote": "Kreatinin 107",
+     "quote_text": "pdf_text",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
+     "id": "src-c",
+     "type": "document",
+     "document_id": "10_pacient",
+     "part": "10_pacient/p10",
+     "page": 5,
+     "quote": "Spiriva 2-0-0",
      "quote_text": "pdf_text",
      "anchor": null,
      "reported_as": "original",
@@ -7701,6 +7961,19 @@
      "reading_check": null
     },
     {
+     "id": "src-c",
+     "type": "document",
+     "document_id": "10_pacient",
+     "part": "10_pacient/p10",
+     "page": 5,
+     "quote": "Spiriva 2-0-0",
+     "quote_text": "pdf_text",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
      "id": "src-n",
      "type": "nis",
      "system": "https://nis.fno.example/fhir",
@@ -7776,6 +8049,19 @@
      "reading_check": null
     },
     {
+     "id": "src-c",
+     "type": "document",
+     "document_id": "10_pacient",
+     "part": "10_pacient/p10",
+     "page": 5,
+     "quote": "Spiriva 2-0-0",
+     "quote_text": "pdf_text",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
      "id": "src-n",
      "type": "nis",
      "system": "https://nis.fno.example/fhir",
@@ -7793,6 +8079,95 @@
     }
    ],
    "key": "medication|spiriva|start:undated|part:10_lab"
+  },
+  {
+   "fact": {
+    "subject": "patient",
+    "status": "documented",
+    "negated": false,
+    "not_stated": [],
+    "origin": "document",
+    "certainty": "clear",
+    "codes": [],
+    "note": null,
+    "quarantined": false,
+    "sources": [
+     "src-a",
+     "src-c"
+    ],
+    "kind": "medication",
+    "date": {
+     "as_written": null,
+     "precision": null,
+     "sort": null
+    },
+    "value": {
+     "drug": "Spiriva",
+     "strength": null,
+     "dosing": "2-0-0",
+     "change": null,
+     "indication": null,
+     "text": null
+    }
+   },
+   "sources": [
+    {
+     "id": "src-a",
+     "type": "document",
+     "document_id": "10_pacient",
+     "part": "10_pacient/p2",
+     "page": 3,
+     "quote": "S_HSCRP: 9,5 mg/1 [O ... 5]",
+     "quote_text": "tesseract",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
+     "id": "src-b",
+     "type": "document",
+     "document_id": "10_lab",
+     "part": null,
+     "page": 1,
+     "quote": "Kreatinin 107",
+     "quote_text": "pdf_text",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
+     "id": "src-c",
+     "type": "document",
+     "document_id": "10_pacient",
+     "part": "10_pacient/p10",
+     "page": 5,
+     "quote": "Spiriva 2-0-0",
+     "quote_text": "pdf_text",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
+     "id": "src-n",
+     "type": "nis",
+     "system": "https://nis.fno.example/fhir",
+     "resource": "Observation/8812",
+     "version": "3",
+     "last_updated": null
+    },
+    {
+     "id": "src-e",
+     "type": "nis",
+     "system": "https://nis.fno.example/fhir",
+     "resource": "Encounter/301",
+     "version": "1",
+     "last_updated": null
+    }
+   ],
+   "key": "medication|spiriva|start:undated|part:10_pacient/p10+part:10_pacient/p2"
   },
   {
    "fact": {
@@ -7845,6 +8220,19 @@
      "part": null,
      "page": 1,
      "quote": "Kreatinin 107",
+     "quote_text": "pdf_text",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
+     "id": "src-c",
+     "type": "document",
+     "document_id": "10_pacient",
+     "part": "10_pacient/p10",
+     "page": 5,
+     "quote": "Spiriva 2-0-0",
      "quote_text": "pdf_text",
      "anchor": null,
      "reported_as": "original",
@@ -7928,6 +8316,19 @@
      "reading_check": null
     },
     {
+     "id": "src-c",
+     "type": "document",
+     "document_id": "10_pacient",
+     "part": "10_pacient/p10",
+     "page": 5,
+     "quote": "Spiriva 2-0-0",
+     "quote_text": "pdf_text",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
      "id": "src-n",
      "type": "nis",
      "system": "https://nis.fno.example/fhir",
@@ -7999,6 +8400,19 @@
      "reading_check": null
     },
     {
+     "id": "src-c",
+     "type": "document",
+     "document_id": "10_pacient",
+     "part": "10_pacient/p10",
+     "page": 5,
+     "quote": "Spiriva 2-0-0",
+     "quote_text": "pdf_text",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
      "id": "src-n",
      "type": "nis",
      "system": "https://nis.fno.example/fhir",
@@ -8063,6 +8477,19 @@
      "part": null,
      "page": 1,
      "quote": "Kreatinin 107",
+     "quote_text": "pdf_text",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
+     "id": "src-c",
+     "type": "document",
+     "document_id": "10_pacient",
+     "part": "10_pacient/p10",
+     "page": 5,
+     "quote": "Spiriva 2-0-0",
      "quote_text": "pdf_text",
      "anchor": null,
      "reported_as": "original",
@@ -8142,6 +8569,19 @@
      "reading_check": null
     },
     {
+     "id": "src-c",
+     "type": "document",
+     "document_id": "10_pacient",
+     "part": "10_pacient/p10",
+     "page": 5,
+     "quote": "Spiriva 2-0-0",
+     "quote_text": "pdf_text",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
      "id": "src-n",
      "type": "nis",
      "system": "https://nis.fno.example/fhir",
@@ -8207,6 +8647,19 @@
      "part": null,
      "page": 1,
      "quote": "Kreatinin 107",
+     "quote_text": "pdf_text",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
+     "id": "src-c",
+     "type": "document",
+     "document_id": "10_pacient",
+     "part": "10_pacient/p10",
+     "page": 5,
+     "quote": "Spiriva 2-0-0",
      "quote_text": "pdf_text",
      "anchor": null,
      "reported_as": "original",
@@ -8286,6 +8739,19 @@
      "reading_check": null
     },
     {
+     "id": "src-c",
+     "type": "document",
+     "document_id": "10_pacient",
+     "part": "10_pacient/p10",
+     "page": 5,
+     "quote": "Spiriva 2-0-0",
+     "quote_text": "pdf_text",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
      "id": "src-n",
      "type": "nis",
      "system": "https://nis.fno.example/fhir",
@@ -8350,6 +8816,19 @@
      "part": null,
      "page": 1,
      "quote": "Kreatinin 107",
+     "quote_text": "pdf_text",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
+     "id": "src-c",
+     "type": "document",
+     "document_id": "10_pacient",
+     "part": "10_pacient/p10",
+     "page": 5,
+     "quote": "Spiriva 2-0-0",
      "quote_text": "pdf_text",
      "anchor": null,
      "reported_as": "original",
@@ -8429,6 +8908,19 @@
      "reading_check": null
     },
     {
+     "id": "src-c",
+     "type": "document",
+     "document_id": "10_pacient",
+     "part": "10_pacient/p10",
+     "page": 5,
+     "quote": "Spiriva 2-0-0",
+     "quote_text": "pdf_text",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
      "id": "src-n",
      "type": "nis",
      "system": "https://nis.fno.example/fhir",
@@ -8501,6 +8993,19 @@
      "reading_check": null
     },
     {
+     "id": "src-c",
+     "type": "document",
+     "document_id": "10_pacient",
+     "part": "10_pacient/p10",
+     "page": 5,
+     "quote": "Spiriva 2-0-0",
+     "quote_text": "pdf_text",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
      "id": "src-n",
      "type": "nis",
      "system": "https://nis.fno.example/fhir",
@@ -8565,6 +9070,19 @@
      "part": null,
      "page": 1,
      "quote": "Kreatinin 107",
+     "quote_text": "pdf_text",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
+     "id": "src-c",
+     "type": "document",
+     "document_id": "10_pacient",
+     "part": "10_pacient/p10",
+     "page": 5,
+     "quote": "Spiriva 2-0-0",
      "quote_text": "pdf_text",
      "anchor": null,
      "reported_as": "original",
@@ -8646,6 +9164,19 @@
      "reading_check": null
     },
     {
+     "id": "src-c",
+     "type": "document",
+     "document_id": "10_pacient",
+     "part": "10_pacient/p10",
+     "page": 5,
+     "quote": "Spiriva 2-0-0",
+     "quote_text": "pdf_text",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
      "id": "src-n",
      "type": "nis",
      "system": "https://nis.fno.example/fhir",
@@ -8716,6 +9247,19 @@
      "part": null,
      "page": 1,
      "quote": "Kreatinin 107",
+     "quote_text": "pdf_text",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
+     "id": "src-c",
+     "type": "document",
+     "document_id": "10_pacient",
+     "part": "10_pacient/p10",
+     "page": 5,
+     "quote": "Spiriva 2-0-0",
      "quote_text": "pdf_text",
      "anchor": null,
      "reported_as": "original",

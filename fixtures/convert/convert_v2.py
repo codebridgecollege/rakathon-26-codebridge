@@ -20,6 +20,7 @@ and prints the conversion report (counts, alert mapping, view coverage, quote mi
 import argparse
 import hashlib
 import json
+import subprocess
 import re
 import sys
 from collections import Counter, defaultdict
@@ -513,14 +514,24 @@ def run_frame(case_id: str, document: str, n_parts: int) -> dict[str, Any]:
     }
 
 
+def committed_run(case_id: str) -> dict[str, Any] | None:
+    """The run as committed at HEAD, or None outside a checkout or for a run not committed yet."""
+    rel = (RUNS / f"{case_id}.json").relative_to(REPO).as_posix()
+    try:
+        out = subprocess.run(["git", "-C", str(REPO), "show", f"HEAD:{rel}"], capture_output=True, check=True)
+    except (OSError, subprocess.CalledProcessError):
+        return None
+    return json.loads(out.stdout.decode("utf-8"))
+
+
 def finish(b: Builder, frame: dict[str, Any]) -> tuple[dict[str, Any], dict[str, str]]:
     b.build_sources()
     drafts = b.drafts()
-    # The checked-in run is the previous run: a change to the converter or to a key rule then keeps every fact's ID that
+    # The committed run (HEAD) is the previous run: a change to the converter or to a key rule then keeps every fact ID
     # the matcher can carry over, so references in D1 and in the guidance files stay valid (EXTRACTION-FORMAT.md,
-    # "Fact identity"). Without the file (a first conversion) every ID is new.
-    prev_path = RUNS / f"{b.case_id}.json"
-    previous = json.loads(prev_path.read_text(encoding="utf-8")) if prev_path.exists() else None
+    # "Fact identity"). HEAD, not the working file, so --check still catches a hand edit of an ID in the working tree.
+    # IDs therefore depend on the committed history, not on the case and key alone; a first conversion mints them new.
+    previous = committed_run(b.case_id)
     result = assign_fact_ids(b.case_id, drafts, b.sources, previous)
     ids = {d["draft_id"]: f["id"] for d, f in zip(drafts, result.facts)}
     # ID and key first, so a reader of the JSON sees which fact it is before its content.

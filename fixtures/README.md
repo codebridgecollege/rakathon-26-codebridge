@@ -37,8 +37,10 @@ patients the team invented ([`samples/README.md`](../samples/README.md)); nothin
 - **Extraction runs (`data/runs/`).** `uv run --project pipeline python fixtures/convert/convert_v2.py` (add `--check`
   to compare without writing). The facts are written by hand in `convert/case10_v2.py` and `convert/synthetic_v2.py`;
   the script refuses to write when a quote is not verbatim in its page text (`data/derived/pages/<stem>/p<n>.layer.txt`),
-  when a run fails the validator, or when a patient identifier ends up in a run. Fact IDs follow from the case and each
-  fact's key, so a rerun keeps them. It also re-keys the guideline and deviation files, so rerun it after
+  when a run fails the validator, or when a patient identifier ends up in a run. Fact IDs are carried over from the run committed at
+  HEAD by the format's matcher (a new fact's ID is minted from the case and its key), so a rerun, a converter change or
+  a key-rule change keeps every ID the matcher can match. `--check` compares with the working files, so a hand edit of
+  a run is caught. A conversion outside a checkout (no committed runs) mints different IDs. It also re-keys the guideline and deviation files, so rerun it after
   `guidelines_case_10.py`, which writes `patient_facts` as plain text.
 
 After any change, reseed the Worker (see [`api/AGENTS.md`](../api/AGENTS.md)).

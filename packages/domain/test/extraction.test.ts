@@ -346,6 +346,18 @@ describe("guards from the separate review", () => {
     expect(codes(run)).toEqual(["negation_mismatch"]);
   });
 
+  it("rejects a medication with a stated stop that is not stopped", () => {
+    const run = example();
+    const lab = run.facts[0]!;
+    const med = { ...lab, kind: "medication", status: "documented", date: { as_written: "28.4.2023", precision: "day", sort: "2023-04-28" }, codes: [], value: { drug: "Prednison", strength: null, dosing: null, change: null, indication: null, text: null, stop_as_written: "ukončen 26.7.2023" } } as unknown as Fact;
+    med.key = buildFactKey(med, new Map(run.sources.map((s) => [s.id, s])));
+    med.id = "f-0aa0aa";
+    run.facts.push(med);
+    expect(codes(run)).toEqual(["stop_without_stopped_status"]);
+    med.status = "stopped";
+    expect(codes(run)).toEqual([]);
+  });
+
   it("rejects a relative's subject outside family history", () => {
     const run = example();
     run.facts[4]!.subject = "relative";

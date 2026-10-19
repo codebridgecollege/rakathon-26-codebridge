@@ -127,8 +127,9 @@ export function buildFactKey(fact: DraftFact | Fact, sources: ReadonlyMap<string
       return join(fact.kind, firstCode(fact) ?? normText(fact.value.text), fact.value.disease_status ?? "status:none", dateSeg(d));
     case "medication": {
       // A dose change starts a new medication fact with its own start, so the start date is part of the key. Most list
-      // entries state no start; the same drug listed undated at two visits is then told apart by the document part it
-      // is listed in (a stable ID, never a position), so the two entries neither merge nor depend on a "#2" suffix.
+      // entries state no start; the same drug listed undated in two reports is then told apart by the set of document
+      // parts it is quoted from, so the two entries neither merge nor depend on a "#2" suffix. A part ID is stable only
+      // while the file is split the same way; a re-split or a further source re-keys, and the matcher carries the ID.
       const start = dateSeg(d);
       const parts = [fact.kind, normText(fact.value.drug), `start:${start}`];
       if (start === "undated") parts.push(partSeg(fact, sources));
