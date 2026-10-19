@@ -63,7 +63,7 @@ def compare_labs(result: dict, mock: dict, page_of) -> dict:
     counts = {"same": 0, "verify": 0, "silent": 0, "missing": 0}
     # Which points were missing or silent, by test code and page only (a code is no patient data), so a difference
     # between two builds can be traced; and whether the parser listed a missing point's page as unparsed.
-    unparsed_pages = {page_of({"page": u.get("n"), "doc_id": u.get("doc_id")}) for u in result.get("unparsed", [])}
+    unparsed = [(page_of({"page": u.get("n"), "doc_id": u.get("doc_id")}), u.get("reason"), u.get("code")) for u in result.get("unparsed", [])]
     problems = []
     for t in mock["tests"]:
         for mp in t["points"]:
@@ -71,7 +71,7 @@ def compare_labs(result: dict, mock: dict, page_of) -> dict:
             if len(got) != 1:
                 counts["missing"] += 1
                 problems.append({"kind": "missing", "code": t["code"], "page": mp["source"]["page"], "found": len(got),
-                                 "page_has_unparsed": mp["source"]["page"] in unparsed_pages})
+                                 "unparsed_on_page": sorted({(r, c or "") for pg, r, c in unparsed if pg == mp["source"]["page"]})})
             elif got[0]["certainty"] == "unclear_ocr":
                 counts["verify"] += 1
             else:

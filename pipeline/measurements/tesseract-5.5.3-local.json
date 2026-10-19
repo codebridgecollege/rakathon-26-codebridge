@@ -412,14 +412,32 @@
      "code": "S_AST",
      "page": 4,
      "found": 0,
-     "page_has_unparsed": true
+     "unparsed_on_page": [
+      [
+       "lab_like_not_parsed",
+       ""
+      ],
+      [
+       "only_second_reading",
+       "S_AST"
+      ]
+     ]
     },
     {
      "kind": "missing",
      "code": "S_AST",
      "page": 3,
      "found": 0,
-     "page_has_unparsed": true
+     "unparsed_on_page": [
+      [
+       "lab_like_not_parsed",
+       ""
+      ],
+      [
+       "only_second_reading",
+       "S_AST"
+      ]
+     ]
     }
    ]
   },
