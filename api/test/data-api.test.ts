@@ -232,11 +232,12 @@ describe("source pages", () => {
 
 describe("audit guarantees", () => {
   it("answers 500 and returns no content when the audit insert fails", async () => {
-    setStoreFactory((e) => ({
-      dir: new D1Directory(e.DB),
-      cases: new D1Cases(e.DB),
+    setStoreFactory((e, org) => ({
+      org,
+      dir: new D1Directory(e.DB, org),
+      cases: new D1Cases(e.DB, org),
       blobs: new R2Blobs(e.DOCS),
-      audit: Object.assign(new D1Audit(e.DB), { append: async () => { throw new Error("D1 down"); } }),
+      audit: Object.assign(new D1Audit(e.DB, org), { append: async () => { throw new Error("D1 down"); } }),
     }));
     const routes = ["/api/patients", "/api/cases/NO-A", "/api/cases/NO-A/extraction", "/api/cases/NO-A/documents", "/api/cases/NO-A/alerts",
       "/api/cases/NO-A/decisions", "/api/cases/NO-A/history", "/api/cases/NO-A/guidance", "/api/cases/NO-A/prognosis",

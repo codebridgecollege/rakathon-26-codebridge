@@ -16,7 +16,8 @@ import { sha256Hex } from "../store/work";
 import { caseDocuments } from "../store/documents";
 import { deletePrefix, discardIntake, intakeState } from "../store/intake";
 import { docOut } from "./documents";
-import { actorOf, answer, caseFor, isoNow, label, now, statesFor, tx } from "./write-context";
+import { actorOf, answer, caseFor, isoNow, label, now, orgQuery, statesFor, tx } from "./write-context";
+import { orgKey } from "../store/sql";
 
 type Prepared = {
   schema: string;
@@ -60,8 +61,8 @@ export const intake = new Hono<AppEnv>()
     const id = c.req.param("id");
     await openIntake(c, id, "stav příjmu pacienta");
     await audit(c, { action: "intake.view", case_id: id, what_cs: "zobrazil(a) stav příjmu pacienta" });
-    const { verdict } = await intakeState(c.env.DB, id);
-    const docs = await caseDocuments(c.env.DB, id);
+    const { verdict } = await intakeState(c.env.DB, c.var.viewer.org, id);
+    const docs = await caseDocuments(c.env.DB, c.var.viewer.org, id);
     const { docByUpload: _m, ...v } = verdict;
     return c.json({ case_id: id, ...v, documents: docs.map(docOut) });
   })
@@ -69,17 +70,17 @@ export const intake = new Hono<AppEnv>()
     const id = c.req.param("id");
     const { core } = await openIntake(c, id, "dokončení příjmu pacienta");
     const db = c.env.DB;
-    const { docs, verdict } = await intakeState(db, id);
-    const caseRow = await db.prepare("SELECT referral_sha256 FROM cases WHERE id = ?1").bind(id).first<{ referral_sha256: string | null }>();
+    const { docs, verdict } = await intakeState(db, c.var.viewer.org, id);
+    const caseRow = await orgQuery(c, "SELECT referral_sha256 FROM cases WHERE org_id = ?org AND id = ?1", id).first<{ referral_sha256: string | null }>();
     const from = caseRow?.referral_sha256 ? "z žádosti FHIR" : "z žádosti";
     const at = isoNow();
     const day = pragueDay(now());
-    const t = tx(c).onConstraint(/cases_intake_fixture|UNIQUE constraint failed: cases\.intake_fixture/, () => D.fixtureUsed());
-    t.guard("intake_open", "(SELECT intake_open FROM cases WHERE id = ?) = 1", [id], () => D.intakeDone());
+    const t = tx(c).onConstraint(/cases_intake_fixture|UNIQUE constraint failed: cases\.org_id, cases\.intake_fixture/, () => D.fixtureUsed());
+    t.guard("intake_open", "(SELECT intake_open FROM cases WHERE org_id = ?org AND id = ?) = 1", [id], () => D.intakeDone());
     // The documents the verdict rests on are the ones still there.
     t.guard(
       "docs",
-      "(SELECT group_concat(id || ':' || COALESCE(sha256, ''), ',') FROM (SELECT id, sha256 FROM documents WHERE case_id = ? AND origin = 'upload' ORDER BY id)) IS ?",
+      "(SELECT group_concat(id || ':' || COALESCE(sha256, ''), ',') FROM (SELECT id, sha256 FROM documents WHERE org_id = ?org AND case_id = ? AND origin = 'upload' ORDER BY id)) IS ?",
       [id, docs.length ? [...docs].sort((a, b) => (a.id < b.id ? -1 : 1)).map((d) => `${d.id}:${d.sha256 ?? ""}`).join(",") : null],
       () => D.conflict(),
     );
@@ -106,7 +107,7 @@ export const intake = new Hono<AppEnv>()
       const draft = { schema: "codebridge.extraction/1", case_id: id, processing: "partial", syn, alert_ids: { flag: [], gap: alertRows.map((a) => a.id) } };
       runId = `prep-${id}-${(await sha256Hex(JSON.stringify(draft))).slice(0, 8)}`;
       const body = JSON.stringify({ ...draft, run_id: runId });
-      const key = `uploads/${id}/extract/${runId}.json`;
+      const key = orgKey(c.var.viewer.org, `uploads/${id}/extract/${runId}.json`);
       // Page assets: the seed stored each upload's pages under its name; they are copied to the uploaded document.
       const pageRows: unknown[] = [];
       const partRows: unknown[] = [];
@@ -116,7 +117,7 @@ export const intake = new Hono<AppEnv>()
           const stem = name.replace(/\.pdf$/i, "");
           for (const m of prep.pages[name] ?? []) {
             const src = `fixtures/${fid}/pages/${stem}/p${m.n}`;
-            const dst = `uploads/${id}/${docId}/pages/p${m.n}`;
+            const dst = orgKey(c.var.viewer.org, `uploads/${id}/${docId}/pages/p${m.n}`);
             for (const ext of ["json", "png", ...(m.redacted ? ["redacted.png"] : [])]) {
               const o = await c.env.DOCS.get(`${src}.${ext}`);
               if (!o) throw new ApiError(503, "seed_missing", "Stránky ukázkového pacienta na serveru chybí; spusťte seed (api/AGENTS.md).");
@@ -138,52 +139,52 @@ export const intake = new Hono<AppEnv>()
         throw e;
       }
       t.run(
-        `INSERT INTO extraction_runs (id, case_id, kind, producer, model, prompt_version, temperature, input_hashes_json, r2_key, sha256, is_current, created_at)
-         VALUES (?1, ?2, 'seed_fixture', 'prepared-fixture', NULL, NULL, NULL, ?3, ?4, ?5, 1, ?6)`,
+        `INSERT INTO extraction_runs (org_id, id, case_id, kind, producer, model, prompt_version, temperature, input_hashes_json, r2_key, sha256, is_current, created_at)
+         VALUES (?org, ?1, ?2, 'seed_fixture', 'prepared-fixture', NULL, NULL, NULL, ?3, ?4, ?5, 1, ?6)`,
         runId, id, JSON.stringify(Object.fromEntries(docs.filter((d) => d.fixture_id === fid).map((d) => [d.id, d.sha256]))), key, await sha256Hex(body), at,
       );
       if (alertRows.length)
         t.run(
-          `INSERT INTO alerts (id, case_id, run_id, origin, position, kind, text_cs, relevant)
-           SELECT json_extract(value, '$.id'), ?1, ?2, json_extract(value, '$.origin'), json_extract(value, '$.position'), json_extract(value, '$.kind'),
+          `INSERT INTO alerts (org_id, id, case_id, run_id, origin, position, kind, text_cs, relevant)
+           SELECT ?org, json_extract(value, '$.id'), ?1, ?2, json_extract(value, '$.origin'), json_extract(value, '$.position'), json_extract(value, '$.kind'),
              json_extract(value, '$.text_cs'), json_extract(value, '$.relevant') FROM json_each(?3)`,
           id, runId, JSON.stringify(alertRows.map((a) => ({ id: a.id, origin: a.origin, position: a.position, kind: a.kind, text_cs: a.text_cs, relevant: a.relevant ? 1 : 0 }))),
         );
       t.run(
-        `INSERT INTO pages (document_id, n, json_r2_key, image_r2_key, redacted_r2_key, width, height, engine, mean_conf, low_conf_words, is_empty, verify_count,
+        `INSERT INTO pages (org_id, document_id, n, json_r2_key, image_r2_key, redacted_r2_key, width, height, engine, mean_conf, low_conf_words, is_empty, verify_count,
            redaction_count, redaction_reasons_json)
-         SELECT json_extract(value, '$.d'), json_extract(value, '$.n'), json_extract(value, '$.j'), json_extract(value, '$.i'), json_extract(value, '$.r'),
+         SELECT ?org, json_extract(value, '$.d'), json_extract(value, '$.n'), json_extract(value, '$.j'), json_extract(value, '$.i'), json_extract(value, '$.r'),
            json_extract(value, '$.w'), json_extract(value, '$.h'), json_extract(value, '$.e'), json_extract(value, '$.mc'), json_extract(value, '$.lc'),
            json_extract(value, '$.em'), json_extract(value, '$.vc'), json_extract(value, '$.rc'), json_extract(value, '$.rr') FROM json_each(?1)`,
         JSON.stringify(pageRows),
       );
       t.run(
-        `INSERT INTO document_parts (document_id, ordinal, title_cs, type, date, pages_json, readability, reason_cs, upload_name)
-         SELECT json_extract(value, '$.d'), 0, json_extract(value, '$.t'), json_extract(value, '$.ty'), json_extract(value, '$.dt'), json_extract(value, '$.p'),
+        `INSERT INTO document_parts (org_id, document_id, ordinal, title_cs, type, date, pages_json, readability, reason_cs, upload_name)
+         SELECT ?org, json_extract(value, '$.d'), 0, json_extract(value, '$.t'), json_extract(value, '$.ty'), json_extract(value, '$.dt'), json_extract(value, '$.p'),
            json_extract(value, '$.r'), json_extract(value, '$.rs'), json_extract(value, '$.u') FROM json_each(?1)`,
         JSON.stringify(partRows),
       );
       // The same person (checked by the verdict), so the birth date the fixture's documents state becomes the patient's,
       // where the referral gave none; the page derives the age from it.
       t.run(
-        "UPDATE patients SET birth_as_written = COALESCE(birth_as_written, (SELECT birth_as_written FROM fixture_patients WHERE fixture_id = ?1)) WHERE id = ?2",
+        "UPDATE patients SET birth_as_written = COALESCE(birth_as_written, (SELECT birth_as_written FROM fixture_patients WHERE fixture_id = ?1)) WHERE org_id = ?org AND id = ?2",
         fid, core.patient_id,
       );
       // Only the fixture's files are prepared; a listed extra file stays "nezpracováno".
-      t.run("UPDATE documents SET state = 'prepared', processing = 'processed' WHERE case_id = ?1 AND origin = 'upload' AND fixture_id = ?2", id, fid);
+      t.run("UPDATE documents SET state = 'prepared', processing = 'processed' WHERE org_id = ?org AND case_id = ?1 AND origin = 'upload' AND fixture_id = ?2", id, fid);
       // The question typed in the referral wins; without one, the documents' question with its source.
       t.run(
         `UPDATE cases SET intake_open = 0, intake_fixture = ?1, processing_level = 'partial', diagnosis_text = ?2, summary_one_line = ?3, page_count = ?4,
            question_text = COALESCE(question_text, ?5), question_explicit = CASE WHEN question_text IS NULL THEN ?6 ELSE question_explicit END,
            question_purpose = COALESCE(question_purpose, ?7), question_source_json = CASE WHEN question_text IS NULL THEN ?8 ELSE question_source_json END,
-           updated_on = ?9 WHERE id = ?10`,
+           updated_on = ?9 WHERE org_id = ?org AND id = ?10`,
         fid, row.diagnosis_text, row.summary_one_line, row.page_count, row.question_text, row.question_explicit ? 1 : 0, row.question_purpose,
         row.question_source_json ? JSON.stringify(row.question_source_json) : null, day, id,
       );
       t.audit({ action: "intake.complete", what_cs: `vytvořil(a) pacienta ${from} a ${docsCs(docs.length)}`, case_id: id });
       t.audit({ action: "intake.prepared", what_cs: "připojena předem připravená data ukázkového pacienta (otisky všech dokumentů souhlasí)", case_id: id, target_type: "extraction_run", target_id: runId });
     } else {
-      t.run("UPDATE cases SET intake_open = 0, updated_on = ?1 WHERE id = ?2", day, id);
+      t.run("UPDATE cases SET intake_open = 0, updated_on = ?1 WHERE org_id = ?org AND id = ?2", day, id);
       t.audit({ action: "intake.complete", what_cs: `vytvořil(a) pacienta ${from} a ${docsCs(docs.length)} (nezpracováno)`, case_id: id });
     }
     try {
@@ -202,7 +203,7 @@ export const intake = new Hono<AppEnv>()
   .delete("/cases/:id/intake", async (c) => {
     const id = c.req.param("id");
     await openIntake(c, id, "zrušení příjmu pacienta");
-    await discardIntake(c.env, id, c.var.viewer, c.req.header("cf-ray") ?? null, "user");
+    await discardIntake(c.env, c.var.viewer.org, id, c.var.viewer, c.req.header("cf-ray") ?? null, "user");
     return answer(c, { discarded: id });
   });
 

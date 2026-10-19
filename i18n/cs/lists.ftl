@@ -66,6 +66,8 @@ patients-rc-missing = Rodné číslo neuvedeno v dostupné dokumentaci
 patients-age-computed = vypočteno z data narození
 patients-book = Naplánovat
 patients-none = Žádný pacient neodpovídá filtru.
+# An org with no patients at all (demo org B after its reset), where no filter is to blame.
+patients-empty = Zatím žádný pacient.
 patients-shown-all = Zobrazeno všech { $n }
 patients-shown-range = Zobrazeno { $from }-{ $to } z { $total }
 patients-paged = Stránkovat

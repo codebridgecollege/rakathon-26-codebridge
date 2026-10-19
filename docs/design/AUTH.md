@@ -1,9 +1,11 @@
 # Login, organizations and users
 
-Status: proposal, 2026-10-18. Nothing here is built yet. This is work
-after the hackathon. When it is built, `CLAUDE.md` ("skip login and
-OAuth"; "the demo has no login") and [`INTEGRATION.md`](INTEGRATION.md)
-(the user picker as a stand-in for login) are updated in the same change.
+Status: steps 1 and 2 (organizations, people and memberships, org
+scoping, the per-org demo reset) are built, 2026-10-19; see "As
+implemented (steps 1-2)" at the end. Steps 3 to 5 (the login) are not.
+When the login is built, `CLAUDE.md` ("skip login and OAuth"; "the demo
+has no login") and [`INTEGRATION.md`](INTEGRATION.md) (the user picker as
+a stand-in for login) are updated in the same change.
 
 The app has no real login today. The demo picks a user from a list, and
 all data belongs to one shared demo. For the MVP the app needs:
@@ -36,7 +38,7 @@ Terms used below:
    The database itself refuses cross-org references (composite foreign
    keys), and tests sign in as one org and try another's IDs.
 5. **Demo:**
-   - two demo orgs: "Ukázková nemocnice A" (today's data) and "Ukázková nemocnice B" (one synthetic patient);
+   - two demo orgs: "Ukázková nemocnice A" (today's data) and "Ukázková nemocnice B" (no patient data: its departments and people only, for the team's own test data);
    - after one real login, a demo org keeps a role switcher, so the presenter changes roles without logging in again.
 6. **The user picker remains for local development and the browser test
    suite** (`AUTH_MODE=demo`). One browser spec runs the real login flow
@@ -291,3 +293,116 @@ access runbook in `api/AGENTS.md` is replaced.
 - **Two demo orgs:** "Ukázková nemocnice A" and "Ukázková nemocnice B".
 - **Session lifetimes:** 12 hours at most; 1 hour idle in hospital orgs, the full 12 hours in demo orgs.
 - **Shared tables for the MVP,** with the upgrade paths in [`DATABASE.md`](DATABASE.md).
+
+## As implemented (steps 1-2)
+
+Built 2026-10-19 on branch `auth-orgs`. The runbook is in `api/AGENTS.md`,
+section "Organizations".
+
+**What exists:**
+- **Migration 0011** creates `orgs`, `memberships`, `user_identities` and
+  `auth_sessions` (the last two unused until step 3), rebuilds every org
+  table with `org_id NOT NULL` and no default, composite foreign keys
+  `(org_id, x_id)`, references to people through `memberships(org_id,
+  user_id)`, unique keys that start with `org_id` wherever orgs could share
+  a value (keys on IDs that are unique across orgs, such as a decision's
+  version per case, stay as they were), and re-creates the
+  append-only and demo-reset triggers scoped to the row's org. Today's
+  data goes to demo org A (`demo-a`). `access_log.auth_mode` accepts
+  `'oidc'`, and a new column `acted_as_membership` names the membership
+  acted as.
+- **Two demo orgs** in the seed: "Ukázková nemocnice A" (`demo-a`, the
+  hackathon demo) and "Ukázková nemocnice B" (`demo-b`). Org B holds no
+  patient data (user decision 2026-10-19): the seed gives it only its two
+  departments and four people with their memberships, and its demo reset
+  returns it to that empty setup. The team puts its own test data there;
+  a patient created in org B stays in org B. Each org has two doctors with
+  e-mails, a coordinator and an administrator (`lekar1.a@codebridge.demo`,
+  `lekar2.a@...`, `koordinator.a@...`, `admin.a@...`, and the same with
+  `.b`); org A keeps its other ten demo doctors. `seed/reset.json` has a
+  section per org, and `seed.py` stops if a clinical or case row, or an R2
+  object, is seeded into org B.
+- **The org reaches every query.** SQL names the org as `?org`, bound by
+  one function (`orgStmt`, `src/store/sql.ts`) that the org-bound stores,
+  the write batch (`Tx`) and the route helper `orgQuery` use. Routes take
+  the org from the viewer's membership, workflows from their parameters,
+  the cron job loops over the orgs. A record of another org answers as if
+  it did not exist (404, or the route's own "not found" refusal).
+- **Scoped places:** idempotency keys by org, person and key;
+  break-the-glass and team checks by org; the phone upload acts with the
+  membership of the upload session's org; the duplicate birth-number
+  check, the slot calendar and seminar days are per org; case numbers
+  count per org.
+- **Per-org demo reset:** scoped deletes and triggers, the org's own data
+  epoch, an archive under `org/<id>/audit-archive/`, people never
+  deleted.
+- **R2:** new org files go under `org/<org_id>/` (documents, uploads,
+  audio, page images, extraction outputs, summary cache, the audit
+  archive); keys already stored keep working.
+- **API:** `/api/me` returns the person, the acting membership, all of the
+  person's memberships, the active org and its data epoch;
+  `/api/demo/memberships` (demo mode only) lists the picker's entries by
+  org; the picker shows one group per org.
+- **Tests:** isolation tests for every route (`api/test/orgs.test.ts`), a
+  migration test on the pre-org schema, a reminder test that flags SQL
+  without `org_id`, per-org reset tests, a look-alike org B in the shared
+  test fixture (a test-only case, since the seeded org B is empty), and
+  the browser suite's `specs/orgs.spec.ts` (every screen of the empty org
+  B, none of org A in it, and a patient created there staying there).
+
+**Deviations from this design:**
+- **Write SQL stays in the route handlers.** Reads moved behind the
+  org-bound stores or `orgQuery`, and every write statement runs through
+  `Tx`, which is bound to the viewer's org; the statements themselves were
+  not moved into one named store function each. The single binding
+  function and the scan test take the place of that move; a store rewrite
+  for another database (DATABASE.md, upgrade paths) would move them.
+- **No `department` column on memberships.** A person's departments in an
+  org stay in `dept_members` (now per org and referencing the
+  membership), because one person can sit in several departments, with an
+  order on the staff screen.
+- **Activity.** A membership is active while `active_until` is empty; the
+  staff screen's "remove" ends the membership instead of deactivating the
+  person, so a person removed in one org still acts in another.
+  `active_from` is recorded but not enforced, and an end date in the future
+  is not supported yet.
+- **Case IDs.** The internal ID is the org's prefix plus the case number
+  (no prefix in demo org A, so its IDs are unchanged; `B-` in org B), and
+  `cases.case_no` holds the per-org number. The app still shows the
+  internal ID, so a case created in org B reads `B-NO-100`; showing
+  `case_no` belongs to the frontend step.
+- **Names are the person's.** Renaming someone on one org's staff screen
+  would rename them in every org they belong to, and the name check sees
+  only the acting org; their function is per org. Nothing can give a
+  person a second membership yet (every writer uses the person's id as the
+  membership id), so this and "acts in another org" below only apply once
+  step 3 provisions memberships; fix the rename then (check names across
+  the person's orgs, or keep the name per membership).
+- **The data epoch on `/api/health`** is the picked demo user's org (demo
+  mode) or demo org A, since that route answers before any login; the app
+  takes the epoch of its own org from `/api/me` and every answer.
+- **Reset details.** Row IDs are not reset (`sqlite_sequence` is shared by
+  all orgs), a membership added after the seed is ended rather than
+  deleted (so a login session acting with it would stay valid), and
+  `seed.py --reset` upserts people, orgs and their demo state instead of
+  deleting them.
+- **Workflows started before the deploy** carry no org; they mean demo org
+  A, which held all data at the time.
+- **The upload session's token hash** stays a key across orgs: the phone
+  is not logged in, so the token picks the session and the session names
+  its org.
+- **The access log's `org_id`** has no foreign key, like its other IDs: the
+  audit must outlive the rows it names.
+- **Known leak: shared counters.** Task, drafted-task and edit-log IDs are
+  AUTOINCREMENT numbers shared by all orgs and reach the browser, so a user
+  who writes twice can count another org's writes in between. Opaque or
+  per-org IDs would close it.
+- **Guideline and prognosis data** stay global R2 keys by case ID
+  (`guidance/`, `prognosis/`): the case ID is unique across orgs and the
+  case is opened (with its org check) before they are read.
+- **Deploying needs a watched merge.** CI applies the D1 migrations on
+  `main` right before the deploy (`api/AGENTS.md`, "Migrations in CI"),
+  but old and new code do not run on each other's schema, so merging needs
+  the steps in `api/AGENTS.md` ("Migrating a deployed database"): nothing
+  queued before, the reseed after.
+

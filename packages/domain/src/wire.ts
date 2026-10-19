@@ -26,11 +26,30 @@ export type Health = {
   limits: { stt_audio_bytes: number; summary_chars: number; audio_part_bytes: number; audio_max_minutes: number };
 };
 
+// An organization (AUTH.md): a hospital or another customer; every patient, case and document belongs to one.
+export type OrgRef = { id: string; name: string; short_name: string; is_demo: boolean };
+
+// A person's role, function and department in one org.
+export type MembershipRef = { id: string; org: OrgRef; role: Role; fn: string; dept: { id: string; name: string } | null };
+
+// GET /me: the person, the membership the request acts with (user keeps the shape the app reads: the person's id and
+// name with that membership's role and department), every active membership of the person, and the active org with
+// its data epoch.
 export type Me = {
   user: { id: string; name: string; role: Role; dept: { id: string; name: string } | null };
+  membership_id: string;
+  memberships: MembershipRef[];
+  org: OrgRef;
+  data_epoch: number | null;
   auth_mode: "demo" | "access";
   impersonating: boolean;
   notice_cs: string | null;
+};
+
+// GET /demo/memberships (AUTH_MODE=demo only): the picker's entries, grouped by org. An entry is a membership, so a
+// person in two orgs appears once in each; its id is what X-Demo-User sends.
+export type DemoPicker = {
+  orgs: (OrgRef & { people: { id: string; user_id: string; name: string; role: Role; fn: string; dept: string | null }[] })[];
 };
 
 export type StaffPerson = { id: string; pre: string; sur: string; post: string; fn: string };

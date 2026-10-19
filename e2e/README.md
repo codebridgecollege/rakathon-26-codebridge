@@ -76,7 +76,7 @@ Against another Worker (a preview alias or the demo):
 E2E_BASE_URL=https://<worker-host> E2E_ALLOW_RESET=<worker-host> npm --prefix e2e test
 ```
 
-Every test resets the demo through `POST /api/admin/reset-demo` before it starts (`fixtures.ts`), which wipes what
+Every test resets both demo orgs through `POST /api/admin/reset-demo` before it starts (`fixtures.ts`), which wipes what
 other people did on that Worker. The suite therefore refuses a non-local URL unless `E2E_ALLOW_RESET` names that
 host; use it on a preview alias, or on the shared demo only when nobody is using it. The local check cannot see
 `wrangler dev --remote`, which serves on localhost but writes to the deployed D1 and R2: never run the suite against
@@ -101,9 +101,13 @@ minutes with the seeded state cached and 4 to 6 minutes when it seeds.
 - `playwright.config.ts`: one Playwright worker per Worker (`servers.ts`: `E2E_BASE_URLS`, a comma-separated list
   that `run-parallel.mjs` sets, or `E2E_BASE_URL`, default `http://localhost:8787`), single tests spread over the
   workers when there are several, Chromium, `cs-CZ`, Europe/Prague.
-- `global-setup.ts` and `reset.ts`: check every Worker and reset its demo.
+- `global-setup.ts` and `reset.ts`: check every Worker and reset its demo. A reset acts in the org of the
+  administrator who asks for it (the seed has two demo orgs, `docs/design/AUTH.md`), so the fixture resets both: demo
+  org A, with the hackathon demo, and demo org B, which the seed leaves empty (departments and people, no patient
+  data). `specs/orgs.spec.ts` checks every screen of the empty org B, that an org B user sees none of org A, and that a
+  patient created in org B stays there.
 - `fixtures.ts`: the base URL of the test's Worker (from the Playwright worker's `parallelIndex`), an auto fixture that
-  resets that demo before every test and fails a test on any uncaught page error or any content security policy
+  resets both demo orgs of that Worker before every test and fails a test on any uncaught page error or any content security policy
   violation Chromium reports in the console (pages opened in a second browser context, the phone and the second
   doctor, are not watched), and the `App` helper (open a route, pick the user, open a patient, open a tab, find a
   dialog).
@@ -174,6 +178,7 @@ Screens and features from `docs/design/PRODUCT.md` against the spec files in `sp
 | S-8, F-39 Staff | doctor reads only; coordinator adds (appears in the picker, survives reload), renames, removes | `staff-admin` |
 | S-7 Administrace | visible to the administrator only, access log with the doctor's earlier case view, demo reset from the UI | `staff-admin` |
 | Autosave conflicts | a second doctor's saved draft makes my save show "Koncept mezitím upravil(a) ..." with their name; "Načíst uloženou verzi" loads theirs | `conflicts` |
+| Organizations (AUTH.md) | the picker's users of both orgs; the empty org B's patient list, calendar, tasks, staff and access log hold none of org A; an org A case link leads back; a patient created in org B stays there | `orgs` |
 | Roles | picker, doctor may edit and approve, coordinator changes status but not clinical content, administrator only reads | `roles`, `discussion`, `tasks`, `calendar` |
 | F-36 Mobile web | no sideways scroll at 400 px on the list, calendar, tasks and patient tabs | `phone-width` |
 | Accessibility | axe (WCAG 2.1 A/AA, serious and critical) on the list screens, every tab of NO-010 and NO-S01, the discussion card and four dialogs; dialog focus and Tab trap, also for the phone dialog stacked over another | `accessibility` |

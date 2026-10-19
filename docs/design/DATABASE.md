@@ -1,7 +1,8 @@
 # Database architecture
 
-Status: design, 2026-10-18. The data model below exists; organizations
-(`org_id`) are planned in [`AUTH.md`](AUTH.md) and not built yet.
+Status: design, 2026-10-18. Organizations (`org_id`, [`AUTH.md`](AUTH.md)
+steps 1 and 2) are built, 2026-10-19; see "As implemented (steps 1-2)" at
+the end.
 
 How CodeBridge stores its data, how organizations are kept apart, and how
 that changes when a hospital needs stronger separation.
@@ -43,8 +44,9 @@ Clinical data is stored only in D1 and R2. Nothing clinical is stored in
 the browser (beyond the page shown) or in logs.
 
 **The schema** is built by numbered migrations in `api/migrations/`
-(`wrangler d1 migrations apply`), and `api/seed/seed.py` loads the
-synthetic demo data.
+(`wrangler d1 migrations apply`; CI applies them to the deployed
+database on `main` right before the deploy, `api/AGENTS.md`), and
+`api/seed/seed.py` loads the synthetic demo data.
 
 **R2 prefixes:**
 
@@ -169,3 +171,55 @@ built on a D1 batch, with it.
 - **The retention periods** FNO sets.
 - **Which hospital, if any, first needs physical separation,** and which option it wants.
 - **Whether D1 offers dynamic bindings by then;** verify before choosing option 1.
+
+## As implemented (steps 1-2)
+
+Built 2026-10-19 (migration `0011_orgs.sql`; the runbook is in
+`api/AGENTS.md`, section "Organizations"). Everything in "Organizations:
+shared tables" above holds, with these details:
+
+- **Tables with `org_id`:** every table in the groups above except
+  `users`, `roles`, `orgs`, `user_identities` and the global demo data
+  (`fixture_files`, `fixture_patients`, `seed_meta`). `auth_sessions` has
+  one for step 3. `demo_state` is keyed by `org_id`.
+- **Unique keys per org:** `slots (org_id, day, time)` and `(org_id,
+  case_id)`, `sessions (org_id, day)`, attendance sets and rows by `(org_id,
+  set_key, ...)`, `idempotency_keys (org_id, user_id, key)`, documents
+  `(org_id, case_id, file_name)` and `(org_id, case_id, sha256)`, the intake
+  fixture `(org_id, intake_fixture)`, departments `(org_id, name)`, cases
+  `(org_id, case_no)` and `(org_id, source_file)`. Keys on globally unique
+  IDs (a decision's version per case, a transcript line's client id per
+  case, one active pipeline run per document) stay as they were: the ID
+  already fixes the org.
+- **Keys across orgs on purpose:** `users.email` (a person),
+  `upload_sessions.token_hash` (the phone finds its session by the token,
+  then acts in the session's org) and `audio_uploads.r2_key`.
+- **Columns without a foreign key**, guarded by the store functions and the
+  isolation tests: `access_log.org_id` and `case_id`, `notifications.case_id`
+  and `to_user_id`, `idempotency_keys`, `upload_sessions.case_id`, and the
+  person columns that had no foreign key before either: `created_by` of
+  cases, jobs, pipeline runs, transcript lines, audio uploads, upload
+  sessions and notifications, `case_members.added_by`,
+  `attendance_sets.updated_by` and `tasks.confirmed_by`.
+- **AUTOINCREMENT IDs** (tasks, drafted tasks, the edit log) count across
+  all orgs, so their gaps show how much other orgs write; a known leak
+  (AUTH.md).
+- **Case numbers:** `cases.case_no` counts per org (`NO-100`, ...);
+  `cases.id` is `orgs.case_id_prefix` plus the number (no prefix in demo
+  org A, `B-` in org B), so it is unique across orgs.
+- **Demo org B is empty:** the seed writes only its org row, demo state,
+  departments, people and memberships, and no R2 object; `seed.py` stops
+  otherwise. Its reset section restores just those.
+- **R2:** the seed writes org A's objects under `org/demo-a/`; org B's own
+  data goes under `org/demo-b/` once someone creates it (guideline and prognosis data stay global, keyed by
+  the case ID, which is unique across orgs); new uploads, audio, pipeline outputs, extraction
+  outputs, summary caches and audit archives go under the org. Rows
+  written before keep their keys (`docs/`, `pages/`, `uploads/`, `audio/`,
+  `extract/`), which stay readable; demo org A's reset also clears the old
+  `uploads/`, `audio/`, `jobs/` and `cache/summary/` prefixes. R2 lifecycle
+  rules match a prefix, so each org needs its own rules (`api/AGENTS.md`).
+- **The demo reset** is one D1 batch for one org, 45 statements for org A
+  with today's seed: the org's rows are deleted with `WHERE org_id`, the
+  triggers delete that org's uploaded rows, and the append-only triggers let
+  a row go only while its own org's reset runs.
+

@@ -22,8 +22,35 @@ npm run types                    # after any wrangler.jsonc change; CI fails on 
 ```
 
 CI (`.github/workflows/deploy-worker.yml`) tests the Worker, the app and both packages, stages the files, checks the
-app's size budget, and deploys `main` to production and `backend` to the `backend` preview alias. A manual deploy is
-`npm run deploy`.
+app's size budget, and deploys `main` to production and `backend` to the `backend` preview alias. On `main` it applies
+the D1 migrations right before the deploy (below, "Migrations in CI"). A manual deploy is `npm run deploy`.
+
+### Migrations in CI
+
+The deploy job on `main` runs, in this order: stage the files, `npx wrangler d1 migrations apply codebridge-mdt
+--remote` (from `api/`, with the repository's `CLOUDFLARE_API_TOKEN`, which has D1 Edit, and `CLOUDFLARE_ACCOUNT_ID`),
+then `wrangler deploy`. wrangler answers its own "Ok to proceed?" with yes in CI. A failed migration fails the step, so
+the job stops and the old Worker keeps serving; D1 runs each migration file as one batch, so the failed file is not half
+applied, but files before it in the same run stay applied. With no new migration the step only reports that and the
+deploy follows.
+
+- **The window.** Between the migration and the end of `wrangler deploy` (usually under a minute) the old Worker runs
+  on the new schema. A migration therefore has to work with the Worker already deployed: add tables and columns, and
+  never drop or rename what the deployed code reads in the same change. To remove something, first ship code that no
+  longer reads it, then drop it in a later migration. A migration that cannot work with the old code (0011 rebuilds every
+  org table) needs a person watching the merge (below, "Organizations").
+- **No cancelled runs on `main`.** On other refs a newer push cancels the running workflow; on `main` it waits
+  (`cancel-in-progress` is off there), so a run is never stopped between the migration and the deploy. A deploy that
+  fails after a successful migration leaves the old code on the new schema until someone reruns the job or runs
+  `npm run deploy`.
+- **The `backend` preview never migrates.** It uses the same database as production, so a schema change must reach
+  `main` first; uploading a `backend` version whose code needs a migration that `main` has not applied breaks the
+  preview, and migrating from the preview would break production. Push such a change to `backend` only after it is on
+  `main`.
+- **The manual fallback** stays: `npm run migrate:remote` from `api/` with your own wrangler login applies the same
+  migrations when the CI step fails on the token, the network or Cloudflare. A migration whose SQL fails fails by hand
+  too: fix it forward with a new migration (files before it in the run stay applied), never by editing an applied file.
+  Do not run it while a `main` deploy job is running.
 
 ## Static files, headers and redirects (frontend step 13)
 
@@ -87,9 +114,10 @@ uv run seed/seed.py --dry-run            # write seed/out/ only (SQL, R2 manifes
   demo Worker) allows reset-demo.
   `CLINICAL_ACCESS` is `all_roles` (demo default: every role reads clinical content)
   or `doctors_only` (INTEGRATION.md); open question in `docs/agent/OPEN_QUESTIONS.md`.
-- Demo mode takes the user from `X-Demo-User: <staff id>` or the `cb_demo_user` cookie
-  (page images cannot send a header); default `d2p1`. Access mode maps the verified
-  e-mail to `users.email`.
+- Demo mode takes the membership from `X-Demo-User: <membership id>` or the `cb_demo_user` cookie
+  (page images cannot send a header); default `d2p1` (demo org A). A person's id still works and means their first
+  active membership. Access mode maps the verified e-mail to `users.email`, then to the person's first active
+  membership (the login of step 3 lets a person in several orgs choose). See "Organizations" below.
 - D1 limits: GLOB/LIKE patterns at most 50 bytes, 100 KB per SQL statement, and an
   unused bound value is an error.
 
@@ -104,19 +132,22 @@ Design and the exact contract: `docs/research/backend-steps/step-4.md`, section 
   commits one D1 batch through `src/store/write.ts`: guards first (each re-checks a value the route read; a false one
   fails `write_guards`' CHECK and rolls back the whole batch), the changes, the access-log rows. Map a constraint to a
   Czech refusal with `tx.onConstraint`, never by catching a 500.
-- Every write sends `X-Data-Epoch` (from `/api/health` `demo.data_epoch`); a stale one answers 409 `data_reset`.
+- Every write sends `X-Data-Epoch`, the data epoch of the org it acts in (from `/api/me`, `/api/workflow` or any
+  write answer; `/api/health` gives the picked demo user's org, or demo org A); a stale one answers 409 `data_reset`.
   Approve and new case need `Idempotency-Key`; a retry with the same body replays the first answer.
 - Answers are `{ data, data_epoch, state }`; `state` is what the page applies (`src/store/work.ts`, `caseStates`).
 - Access-log lines carry no patient text (names, birth numbers, conclusions, quotes, file names, typed reasons);
   `test/write.test.ts` checks every line it writes. Refusals (403) are logged by `middleware/write-guard.ts`.
-- `POST /api/admin/reset-demo` (administrator, `DEMO_RESET_ENABLED=true`): archives the audit to R2
-  `audit-archive/<time>.jsonl`, then one batch empties the mutable tables and reinserts the rows from R2
-  `seed/reset.json` (written by `seed.py`; identity is not in it, seeded patient rows stay in D1), bumps
-  `demo_state.data_epoch`, aborts open audio uploads and deletes R2 `uploads/`, `audio/`, `jobs/`, `cache/summary/`.
-  45 statements with today's seed (step 6 rows go through a trigger, see below); keep it under 50 (the Workers Free
-  per-invocation limit) when adding tables.
-- Append-only triggers allow DELETE only while `demo_state.reset_in_progress = 1` (migration 0003). A pilot database
-  must not have that exception.
+- `POST /api/admin/reset-demo` (an administrator of a demo org, `DEMO_RESET_ENABLED=true`) resets that org only:
+  archives its audit to R2 `org/<org>/audit-archive/<time>.jsonl`, then one batch empties the org's mutable tables
+  (`WHERE org_id = ...`) and reinserts the org's section of R2 `seed/reset.json` (written by `seed.py`; identity is not
+  in it, seeded patient rows stay in D1), bumps that org's `demo_state.data_epoch`, aborts its open audio uploads and
+  deletes R2 `org/<org>/uploads/`, `audio/`, `jobs/`, `cache/summary/` (for demo org A also the same prefixes without
+  `org/`, used before orgs). People (`users`) are never deleted: the reset upserts the seeded people and memberships
+  and ends any other membership of the org. Row ids are not reset (`sqlite_sequence` is shared by all orgs). 45
+  statements for org A with today's seed (step 6 rows go through a trigger, see below).
+- Append-only triggers allow DELETE of a row only while its own org's `demo_state.reset_in_progress = 1` (migration
+  0011), so a reset of one org cannot delete another org's history. A pilot database must not have that exception.
 - Deviation assessments have no write route (user decision 2026-10-17).
 
 ## AI recording and the speaker pass (step 5)
@@ -145,13 +176,23 @@ built.
   npx wrangler r2 bucket lifecycle remove codebridge-mdt --name audio-backstop-1d -J eu   # a bucket set up before 2026-10-18
   npx wrangler r2 bucket lifecycle add codebridge-mdt summary-cache-30d cache/summary/ --expire-days 30 -J eu -y
   ```
-- Deploy before migrating when a migration drops what old code reads: migration 0009 drops
-  `transcript_passes.audio_on_failure`, which the previous Worker's Workflow and cron query read, while the new code
-  works on either schema. So `npm run deploy` first, then `npm run migrate:remote`.
+
+  New objects go under `org/<org>/` (migration 0011), and an R2 rule matches a prefix only, so each org gets its own
+  rules; the ones above keep covering objects written before orgs. For each demo org (`demo-a`, `demo-b`):
+
+  ```
+  npx wrangler r2 bucket lifecycle add codebridge-mdt audio-backstop-7d-demo-a org/demo-a/audio/ --expire-days 7 --abort-multipart-days 7 -J eu -y
+  npx wrangler r2 bucket lifecycle add codebridge-mdt summary-cache-30d-demo-a org/demo-a/cache/summary/ --expire-days 30 -J eu -y
+  npx wrangler r2 bucket lifecycle add codebridge-mdt audit-archive-30d-demo-a org/demo-a/audit-archive/ --expire-days 30 -J eu -y
+  ```
+  A hospital org gets the audio and cache rules but no audit-archive rule (its archive follows FNO's retention).
+- A migration that drops what the deployed code reads breaks it in the window above, because CI migrates first. Ship
+  it in two changes: code that works on either schema, then the drop. (Migration 0009, which drops
+  `transcript_passes.audio_on_failure`, was applied by hand after the deploy, before CI migrated.)
 - Deploying: the Workflow and the cron trigger are registered only by `wrangler deploy` (`npm run deploy`), not by
   `wrangler versions upload`, which CI uses for the `backend` preview alias. A preview's approvals start instances of
   the Workflow as the last `wrangler deploy` registered it, so deploy after changing `src/workflows/`.
-- `seed.py --reset` empties the audio tables but does not delete R2 `audio/` objects (nor step 6's `uploads/`); reset-demo does, and the
+- `seed.py --reset` empties the audio tables but does not delete R2 audio objects (nor step 6's uploads); reset-demo does, and the
   lifecycle rule removes the rest within about eight days.
 - Workflow tests: `introspectWorkflow(env.SPEAKER_PASS)` with `await using`, `disableRetryDelays()`. The Workflow runs
   with the Worker's bindings, not the per-test env, so `vitest.config.ts` pins its secrets and endpoints to `.test`
@@ -166,7 +207,7 @@ Design and contract: `docs/research/backend-steps/step-6.md`, section "As implem
   `UPLOAD_POLICY=fixtures_only` stores the bytes of registered synthetic fixtures only (`fixture_files` by SHA-256); any
   other file gets a listing row (name, size, media type, uploader, time; `original_r2_key`, `sha256`, `fixture_id` NULL,
   `content_stored: false` in the answer) and nothing in R2. A repeat (same bytes or same name) answers 200 with the
-  document already there. Files live under R2 `uploads/<case>/`, which reset-demo and the intake
+  document already there. Files live under R2 `org/<org>/uploads/<case>/`, which reset-demo and the intake
   discard delete. Rules in `src/domain/documents.ts`; the fixture's patient (`fixture_patients`, D1 only) is compared
   with the case's patient and only the result (`matches`, `conflicts`, `cannot_verify`) leaves the server.
 - Intake: `src/routes/intake.ts`, `src/store/intake.ts`, rules in `src/domain/intake.ts` and `packages/domain/src/fhir.ts`. An
@@ -175,8 +216,8 @@ Design and contract: `docs/research/backend-steps/step-6.md`, section "As implem
   `seed.py` (identity scan strict, quotes checked on their page). Keep every new list or write route consistent with
   that rule (`caseFor`, `openCase`, `listCases`, `visibleCaseIds`).
 - Reset: rows added by uploads, intakes and pipeline runs are removed by the trigger `demo_reset_uploads` (it fires on
-  the reset batch's `reset_in_progress = 1` update), so the reset batch stays at its size (45 statements locally). A new
-  table written by these routes goes into that trigger, not into the batch.
+  reset batch's `reset_in_progress = 1` update of that org, and deletes that org's rows only), so the reset batch stays
+  at its size. A new table written by these routes goes into that trigger, not into the batch.
 - Pipeline without an LLM: `src/workflows/process-document.ts` (binding `PROCESS_DOCUMENT`), `src/routes/pipeline.ts`,
   `src/services/pagekit.ts`. PageKit is `pipeline/container/server.py`; the Worker reaches it at `PAGEKIT_URL` or,
   once configured, through a `PAGEKIT` container binding; with neither the pipeline answers 503 `pipeline_off`. Step
@@ -229,6 +270,48 @@ phone link `/u#<token>` still works. 302 and not 301, so browsers do not cache i
 npx --prefix api wrangler pages dev api/pages-redirect --port 8860
 curl -sI 'http://localhost:8860/patient/10/labs?x=1'   # 302, location .../patient/10/labs?x=1
 ```
+
+## Organizations (AUTH.md steps 1 and 2)
+
+Design: `docs/design/AUTH.md` and `docs/design/DATABASE.md`, each with a section "As implemented (steps 1-2)".
+
+- **Schema (migration 0011).** `orgs`; `users` is the person (name, titles, e-mail, active); `memberships` holds a
+  person's role, function and activity in one org (one per person and org; in demo org A its id is the person's id);
+  `user_identities` and `auth_sessions` exist for the login of step 3 and are unused. Every org table has `org_id NOT
+  NULL` with no default, `UNIQUE (org_id, id)` on parents, composite foreign keys `(org_id, x_id)`, references to people
+  through `memberships(org_id, user_id)`, and unique keys that start with `org_id`. `cases.case_no` is the number people
+  see, counted per org; `cases.id` is unique across orgs (`orgs.case_id_prefix`: none in demo org A, `B-` in org B).
+  The app still shows `cases.id`, so org B's cases read `B-NO-...` until the frontend shows `case_no` (step 4).
+- **One way to bind the org.** SQL names the org as `?org`; `orgStmt(db, org, sql, ...args)` (`src/store/sql.ts`)
+  binds it as the next numbered parameter, `Tx` (`src/store/write.ts`) does the same for its statements and guards, and
+  `orgQuery(c, sql, ...args)` (`src/routes/write-context.ts`) reads in the viewer's org. The org-bound stores
+  (`D1Directory`, `D1Cases`, `D1Audit`, `D1Work`) take the org in their constructor. Routes take the org from the viewer
+  (the membership), workflows get it in their parameters (`org`; an instance started before orgs has none and means
+  demo org A, `src/domain/orgs.ts`), and the cron job loops over the orgs. A record of another org answers as if it did
+  not exist (404, or the route's own "not found" refusal).
+- **Checks.** `test/org-sql.test.ts` flags any SQL string in `src/` that touches an org table without naming `org_id`
+  (a reminder: joins and subqueries escape it; mark a statement that is global by design, or a fragment whose caller
+  adds the org, with `/* org-scope: <reason> */`). `test/orgs.test.ts` acts in org B with org A's IDs on every route and
+  requires 404 or empty answers and org A unchanged. `test/data.ts` seeds a look-alike org B with one case for every
+  test (test data only; the real seed's org B is empty, below).
+- **Demo org B is empty.** The seed gives demo org B ("Ukázková nemocnice B") its setup only: the org, its two
+  departments and four people (`lekar1.b`, `lekar2.b`, `koordinator.b`, `admin.b` `@codebridge.demo`) with their
+  memberships. It holds no patient, case, document, alert, slot or task; that is where the team puts its own test data,
+  and its demo reset returns it to the empty setup. `seed.py` stops when a seeded row of any other table, or an R2 object
+  under `org/demo-b/` or keyed by a `B-` case ID, belongs to org B.
+- **Migrating a deployed database.** 0011 rebuilds every org table, and old and new code do not run on each other's
+  schema. CI applies it on `main` right before the deploy ("Migrations in CI"), so merging this needs a person watching:
+  first check that no job or pipeline run is queued or running (a step of an old Workflow that runs after the migration
+  fails for good), merge, and watch the `main` deploy job (if its migration step fails on the token or the network, run
+  `npm run migrate:remote` by hand and rerun the job; a SQL failure needs a fix, see the fallback above). Once it has deployed, run `npm run seed:remote:reset` (the reset document's format changed,
+  and org B and the demo e-mails come from the seed), and redeploy `backend` from a branch with these changes. The demo
+  is down in between: the old Worker runs on the new schema until the deploy finishes, and the data is wrong until the
+  reseed. Rows written before keep their R2 keys
+  (`docs/`, `pages/`, `uploads/`, `audio/` without the `org/` prefix), which stay readable. Add the per-org lifecycle
+  rules above.
+- **Adding an org.** A row in `orgs` (a short lowercase id, a unique `case_id_prefix`), its `demo_state` row,
+  memberships for its people, departments and their members. A demo org also needs its section in `seed/reset.json`
+  (`seed.py`) and its default staff in `packages/domain/src/staff-default.ts`; the lifecycle rules for its prefix.
 
 ## Where configuration lives
 

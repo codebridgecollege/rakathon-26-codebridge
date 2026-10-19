@@ -1,9 +1,9 @@
 // Who is using the app and whether the server's data is loaded: boot,
-// switchApiUser(). The demo has no login; the user is picked by hand and travels as a staff id (X-Demo-User, and the
+// switchApiUser(). The demo has no login; the user is picked by hand and travels as a membership id (X-Demo-User, and the
 // cb_demo_user cookie for page images). The UI says so in the picker's label.
 import { defineStore } from "pinia";
 import { ref } from "vue";
-import { ApiError, type Health, type Me, type WorkflowState } from "@codebridge/api-client";
+import { ApiError, type DemoPicker, type Health, type Me, type WorkflowState } from "@codebridge/api-client";
 import { onDataReset, useApi } from "../lib/api";
 import { useCasesStore } from "./cases";
 import { usePatientsStore } from "./patients";
@@ -13,7 +13,7 @@ import { useUploadsStore } from "./uploads";
 
 export type Notice = { message_cs: string | null; message_id: string | null };
 
-// Page images load through <img>, which cannot send a header, so the same staff id also goes in a cookie.
+// Page images load through <img>, which cannot send a header, so the same membership id also goes in a cookie.
 function setDemoUserCookie(id: string) {
   try {
     document.cookie = `cb_demo_user=${encodeURIComponent(id)}; path=/; SameSite=Strict`;
@@ -31,6 +31,9 @@ export const useSessionStore = defineStore("session", () => {
   const me = ref<Me | null>(null);
   // A failed boot or switch; shown in the main area.
   const error = ref<Notice | null>(null);
+  // The picker's entries grouped by org (AUTH.md: an entry is a membership, not a person). Null when the server has no
+  // such list, and the header then builds today's picker from the staff store.
+  const picker = ref<DemoPicker["orgs"] | null>(null);
   const resetting = ref(false);
   // Separate so tests can observe a reload instead of navigating away.
   let reload = () => location.reload();
@@ -52,7 +55,7 @@ export const useSessionStore = defineStore("session", () => {
   async function loadFromApi() {
     const api = useApi();
     const who = await api.me();
-    setDemoUser(who.user.id);
+    setDemoUser(who.membership_id);
     // Case data loads per case when a case is opened (cases store); /workflow is the stored state of every case this
     // user may read, so a reload shows what the server holds.
     const [staff, list, tasks, wf] = await Promise.all([api.staff(), api.patients(), api.tasks("all"), api.workflow()]);
@@ -60,6 +63,20 @@ export const useSessionStore = defineStore("session", () => {
     usePatientsStore().replace(list.patients, list.total);
     useWorkflowStore().replace(wf, tasks.tasks);
     me.value = who;
+  }
+
+  // Only a demo server lists memberships; any failure (404 on an older server) falls back to the staff-based picker.
+  async function loadPicker() {
+    if (health.value?.auth_mode !== "demo") {
+      picker.value = null;
+      return;
+    }
+    // The list on screen stays until the new one arrives, so a refresh after a staff change does not flicker.
+    try {
+      picker.value = (await useApi().demoMemberships()).orgs;
+    } catch {
+      picker.value = null;
+    }
   }
 
   async function boot() {
@@ -71,6 +88,7 @@ export const useSessionStore = defineStore("session", () => {
       if (h.service !== "codebridge-mdt" || h.features?.data !== true) throw new ApiError("no_data", 0, null, "api-error-no-api");
       health.value = h;
       await loadFromApi();
+      await loadPicker();
       phase.value = "ready";
     } catch (e) {
       setDemoUser(null);
@@ -134,7 +152,11 @@ export const useSessionStore = defineStore("session", () => {
   // also update its list row and the task list, so the header's badge and the list follow every write.
   function applyState(st: WorkflowState | null | undefined) {
     if (!st) return;
-    if (st.staff) useStaffStore().apply(st.staff);
+    if (st.staff) {
+      useStaffStore().apply(st.staff);
+      // A staff change adds, renames or removes picker entries; the picker is the server's list of memberships.
+      void loadPicker();
+    }
     if (st.patient) usePatientsStore().upsert(st.patient);
     for (const cs of Object.values(st.cases ?? {})) {
       const file = usePatientsStore().applyCase(cs);
@@ -147,5 +169,5 @@ export const useSessionStore = defineStore("session", () => {
     reload = fn;
   }
 
-  return { phase, health, me, error, resetting, boot, switchUser, onBeforeUserSwitch, onUserSwitchCheck, onUserLeaving, onUserSwitched, applyState, loadFromApi, setReload };
+  return { phase, health, me, picker, error, resetting, boot, switchUser, onBeforeUserSwitch, onUserSwitchCheck, onUserLeaving, onUserSwitched, applyState, loadFromApi, setReload };
 });

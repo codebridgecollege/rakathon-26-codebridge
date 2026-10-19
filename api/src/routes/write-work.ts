@@ -18,9 +18,10 @@ import { IdempotentReplay } from "../store/write";
 import { taskOut } from "../store/work";
 import { audit } from "../middleware/audit";
 import { modeOf, openCase } from "./access-check";
-import { actorOf, answer, caseFor, isoNow, label, newId, now, statesFor, tx, work } from "./write-context";
+import { actorOf, answer, caseFor, isoNow, label, newId, now, orgQuery, statesFor, tx, work } from "./write-context";
 import { bodySha, replayIdempotent, todayPrague } from "./write-cases";
 import { hooks } from "./hooks";
+import { orgById } from "../store/people";
 
 // The cases a viewer may read: every case for the coordinator and the administrator; the team's cases and the cases
 // with a valid break-the-glass grant for a doctor.
@@ -28,16 +29,13 @@ async function visibleCaseIds(c: import("hono").Context<AppEnv>): Promise<string
   const v = c.var.viewer;
   if (listsAllCases(v)) {
     // An open intake (step 6) is its creator's draft, not yet a case of the MDT.
-    const r = await c.env.DB.prepare("SELECT id FROM cases WHERE intake_open = 0 ORDER BY list_order").all<{ id: string }>();
+    const r = await orgQuery(c, "SELECT id FROM cases WHERE org_id = ?org AND intake_open = 0 ORDER BY list_order").all<{ id: string }>();
     return r.results.map((x) => x.id);
   }
-  const r = await c.env.DB.prepare(
-    `SELECT c.id FROM cases c WHERE c.intake_open = 0 AND (EXISTS (SELECT 1 FROM case_members m WHERE m.case_id = c.id AND (m.user_id = ?1
-       OR m.dept_id IN (SELECT dm.dept_id FROM dept_members dm WHERE dm.user_id = ?1)))
-     OR EXISTS (SELECT 1 FROM case_access_grants g WHERE g.case_id = c.id AND g.user_id = ?1 AND g.expires_at > ?2)
-     ) ORDER BY c.list_order`,
-  )
-    .bind(v.id, now().toISOString())
+  const r = await orgQuery(c, `SELECT c.id FROM cases c WHERE c.org_id = ?org AND c.intake_open = 0 AND (EXISTS (SELECT 1 FROM case_members m WHERE m.org_id = ?org AND m.case_id = c.id AND (m.user_id = ?1
+       OR m.dept_id IN (SELECT dm.dept_id FROM dept_members dm WHERE dm.org_id = ?org AND dm.user_id = ?1)))
+     OR EXISTS (SELECT 1 FROM case_access_grants g WHERE g.org_id = ?org AND g.case_id = c.id AND g.user_id = ?1 AND g.expires_at > ?2)
+     ) ORDER BY c.list_order`, v.id, now().toISOString())
     .all<{ id: string }>();
   return r.results.map((x) => x.id);
 }
@@ -77,7 +75,7 @@ export const writeWork = new Hono<AppEnv>()
   // ---------- tasks ----------
   .patch("/tasks/:id", async (c) => {
     const tid = Number(c.req.param("id"));
-    const t0 = Number.isInteger(tid) ? await c.env.DB.prepare("SELECT id, case_id, done, assignee_user_id FROM tasks WHERE id = ?1").bind(tid).first<{ id: number; case_id: string; done: number; assignee_user_id: string | null }>() : null;
+    const t0 = Number.isInteger(tid) ? await orgQuery(c, "SELECT id, case_id, done, assignee_user_id FROM tasks WHERE org_id = ?org AND id = ?1", tid).first<{ id: number; case_id: string; done: number; assignee_user_id: string | null }>() : null;
     label(c, "úloha hotovo", t0?.case_id ?? null);
     if (!t0) throw D.taskNotFound();
     const { breakGlass, access } = await caseFor(c, t0.case_id, "task.done", { assignee: t0.assignee_user_id === c.var.viewer.id });
@@ -87,15 +85,15 @@ export const writeWork = new Hono<AppEnv>()
     const done = setDone(t0.done === 1, b.done, b.expected_done);
     const t = tx(c, breakGlass);
     const v = c.var.viewer;
-    t.guard("done", "(SELECT done FROM tasks WHERE id = ?) = ?", [tid, t0.done], () => D.taskChanged());
+    t.guard("done", "(SELECT done FROM tasks WHERE org_id = ?org AND id = ?) = ?", [tid, t0.done], () => D.taskChanged());
     t.run(
-      "UPDATE tasks SET done = ?1, done_by = ?2, done_by_name = ?3, done_at = ?4 WHERE id = ?5",
+      "UPDATE tasks SET done = ?1, done_by = ?2, done_by_name = ?3, done_at = ?4 WHERE org_id = ?org AND id = ?5",
       done ? 1 : 0, done ? v.id : null, done ? v.name : null, done ? isoNow() : null, tid,
     );
     t.audit({ action: "task.done", what_cs: done ? "označil(a) úlohu jako hotovou" : "vrátil(a) úlohu mezi otevřené", case_id: t0.case_id, target_type: "task", target_id: String(tid) });
     await t.commit();
     if (!fullAccess) {
-      const row = await c.env.DB.prepare("SELECT t.*, c.source_file FROM tasks t JOIN cases c ON c.id = t.case_id WHERE t.id = ?1").bind(tid).first<Record<string, unknown>>();
+      const row = await orgQuery(c, "SELECT t.*, c.source_file FROM tasks t JOIN cases c ON c.id = t.case_id AND c.org_id = t.org_id WHERE t.org_id = ?org AND t.id = ?1", tid).first<Record<string, unknown>>();
       return answer(c, { task: row ? taskOut(row) : null });
     }
     return answer(c, {}, { cases: await statesFor(c, [t0.case_id]) });
@@ -112,20 +110,17 @@ export const writeWork = new Hono<AppEnv>()
     assertCan(actorOf(c), "digest.send");
     const v = c.var.viewer;
     const since = new Date(now().getTime() - DIGEST_MIN_INTERVAL_S * 1000).toISOString();
-    if (await c.env.DB.prepare("SELECT 1 AS x FROM notifications WHERE kind = 'digest' AND created_by = ?1 AND created_at > ?2").bind(v.id, since).first()) throw D.digestTooSoon();
+    if (await orgQuery(c, "SELECT 1 AS x FROM notifications WHERE org_id = ?org AND kind = 'digest' AND created_by = ?1 AND created_at > ?2", v.id, since).first()) throw D.digestTooSoon();
     const ids = await visibleCaseIds(c);
     const j = JSON.stringify(ids);
-    const n = await c.env.DB.prepare(
-      `SELECT (SELECT COUNT(*) FROM tasks WHERE done = 0 AND case_id IN (SELECT value FROM json_each(?1)))
-            + (SELECT COUNT(*) FROM task_suggestions WHERE state = 'draft' AND case_id IN (SELECT value FROM json_each(?1))) AS n`,
-    )
-      .bind(j)
+    const n = await orgQuery(c, `SELECT (SELECT COUNT(*) FROM tasks WHERE org_id = ?org AND done = 0 AND case_id IN (SELECT value FROM json_each(?1)))
+            + (SELECT COUNT(*) FROM task_suggestions WHERE org_id = ?org AND state = 'draft' AND case_id IN (SELECT value FROM json_each(?1))) AS n`, j)
       .first<{ n: number }>();
     const coord = (await work(c).staff()).coordinator;
     const t = tx(c);
     // Only a count and the link: an e-mail never carries medical data (CLAUDE.md, notifications).
     t.run(
-      "INSERT INTO notifications (id, kind, to_user_id, case_id, count, link, created_by, created_by_name, created_at) VALUES (?1, 'digest', ?2, NULL, ?3, '/', ?4, ?5, ?6)",
+      "INSERT INTO notifications (org_id, id, kind, to_user_id, case_id, count, link, created_by, created_by_name, created_at) VALUES (?org, ?1, 'digest', ?2, NULL, ?3, '/', ?4, ?5, ?6)",
       newId(), coord?.id ?? null, n?.n ?? 0, v.id, v.name, isoNow(),
     );
     t.audit({ action: "digest.send", what_cs: `odeslal(a) přehled úloh e-mailem (${n?.n ?? 0})` });
@@ -140,19 +135,19 @@ export const writeWork = new Hono<AppEnv>()
     const b = c.var.body;
     const day = typeof b.day === "string" ? b.day : "";
     const [booked, open] = await Promise.all([
-      c.env.DB.prepare("SELECT case_id FROM slots WHERE day = ?1 ORDER BY time").bind(day).all<{ case_id: string }>(),
-      c.env.DB.prepare("SELECT day, ended_at FROM sessions WHERE day = ?1").bind(day).first<{ day: string; ended_at: string | null }>(),
+      orgQuery(c, "SELECT case_id FROM slots WHERE org_id = ?org AND day = ?1 ORDER BY time", day).all<{ case_id: string }>(),
+      orgQuery(c, "SELECT day, ended_at FROM sessions WHERE org_id = ?org AND day = ?1", day).first<{ day: string; ended_at: string | null }>(),
     ]);
     startSession(b.day, booked.results.length, open);
     const t = tx(c);
     const v = c.var.viewer;
     const at = isoNow();
-    t.guard("booked", "EXISTS (SELECT 1 FROM slots WHERE day = ?)", [day], () => D.noCasesThatDay());
-    t.guard("not_running", "NOT EXISTS (SELECT 1 FROM sessions WHERE day = ? AND ended_at IS NULL)", [day], () => D.sessionRunning());
+    t.guard("booked", "EXISTS (SELECT 1 FROM slots WHERE org_id = ?org AND day = ?)", [day], () => D.noCasesThatDay());
+    t.guard("not_running", "NOT EXISTS (SELECT 1 FROM sessions WHERE org_id = ?org AND day = ? AND ended_at IS NULL)", [day], () => D.sessionRunning());
     // A day's session can be ended and started again; the row is reused.
     t.run(
-      `INSERT INTO sessions (day, started_by, started_by_name, started_at, ended_at) VALUES (?1, ?2, ?3, ?4, NULL)
-       ON CONFLICT(day) DO UPDATE SET started_by = ?2, started_by_name = ?3, started_at = ?4, ended_at = NULL`,
+      `INSERT INTO sessions (org_id, day, started_by, started_by_name, started_at, ended_at) VALUES (?org, ?1, ?2, ?3, ?4, NULL)
+       ON CONFLICT(org_id, day) DO UPDATE SET started_by = ?2, started_by_name = ?3, started_at = ?4, ended_at = NULL`,
       day, v.id, v.name, at,
     );
     t.audit({ action: "session.start", what_cs: "zahájil(a) MDT", case_id: booked.results[0]!.case_id });
@@ -163,12 +158,12 @@ export const writeWork = new Hono<AppEnv>()
     label(c, "ukončení MDT");
     assertCan(actorOf(c), "session.write");
     const day = c.req.param("day");
-    const open = await c.env.DB.prepare("SELECT day, ended_at FROM sessions WHERE day = ?1").bind(day).first<{ day: string; ended_at: string | null }>();
+    const open = await orgQuery(c, "SELECT day, ended_at FROM sessions WHERE org_id = ?org AND day = ?1", day).first<{ day: string; ended_at: string | null }>();
     endSession(open);
-    const first = await c.env.DB.prepare("SELECT case_id FROM slots WHERE day = ?1 ORDER BY time LIMIT 1").bind(day).first<{ case_id: string }>();
+    const first = await orgQuery(c, "SELECT case_id FROM slots WHERE org_id = ?org AND day = ?1 ORDER BY time LIMIT 1", day).first<{ case_id: string }>();
     const t = tx(c);
-    t.guard("running", "EXISTS (SELECT 1 FROM sessions WHERE day = ? AND ended_at IS NULL)", [day], () => D.sessionNotFound());
-    t.run("UPDATE sessions SET ended_at = ?1 WHERE day = ?2", isoNow(), day);
+    t.guard("running", "EXISTS (SELECT 1 FROM sessions WHERE org_id = ?org AND day = ? AND ended_at IS NULL)", [day], () => D.sessionNotFound());
+    t.run("UPDATE sessions SET ended_at = ?1 WHERE org_id = ?org AND day = ?2", isoNow(), day);
     t.audit({ action: "session.end", what_cs: "ukončil(a) MDT", case_id: first?.case_id ?? null });
     await t.commit();
     await hooks.onSessionEnded(c, day);
@@ -201,17 +196,17 @@ export const writeWork = new Hono<AppEnv>()
     const t = tx(c);
     const v = c.var.viewer;
     const at = isoNow();
-    t.guard("version", "COALESCE((SELECT version FROM attendance_sets WHERE set_key = ?), 0) = ?", [key, att.version], () => D.attendanceConflict());
-    t.run("DELETE FROM attendance WHERE set_key = ?1", key);
+    t.guard("version", "COALESCE((SELECT version FROM attendance_sets WHERE org_id = ?org AND set_key = ?), 0) = ?", [key, att.version], () => D.attendanceConflict());
+    t.run("DELETE FROM attendance WHERE org_id = ?org AND set_key = ?1", key);
     if (rows.length)
       t.run(
-        `INSERT INTO attendance (set_key, dept_id, position, user_id, user_name)
-         SELECT ?1, json_extract(value, '$.d'), json_extract(value, '$.p'), json_extract(value, '$.u'), json_extract(value, '$.n') FROM json_each(?2)`,
+        `INSERT INTO attendance (org_id, set_key, dept_id, position, user_id, user_name)
+         SELECT ?org, ?1, json_extract(value, '$.d'), json_extract(value, '$.p'), json_extract(value, '$.u'), json_extract(value, '$.n') FROM json_each(?2)`,
         key, JSON.stringify(rows.map((r) => ({ d: r.dept_id, p: r.position, u: r.user_id, n: r.user_name }))),
       );
     t.run(
-      `INSERT INTO attendance_sets (set_key, version, updated_by, updated_at) VALUES (?1, 1, ?2, ?3)
-       ON CONFLICT(set_key) DO UPDATE SET version = version + 1, updated_by = ?2, updated_at = ?3`,
+      `INSERT INTO attendance_sets (org_id, set_key, version, updated_by, updated_at) VALUES (?org, ?1, 1, ?2, ?3)
+       ON CONFLICT(org_id, set_key) DO UPDATE SET version = version + 1, updated_by = ?2, updated_at = ?3`,
       key, v.id, at,
     );
     t.audit({ action: "attendance.set", what_cs: `upravil(a) přítomné na MDT (${rows.length})`, case_id: caseId });
@@ -236,13 +231,15 @@ export const writeWork = new Hono<AppEnv>()
     const b = c.var.body;
     const ref = validateReferral(b);
     const rcN = normalizeRc(ref.birth_number);
+    // Only this org's records count: a birth number known in another org is neither a duplicate here nor revealed.
     const existing = (
-      await c.env.DB.prepare(
+      await orgQuery(
+        c,
         // An open intake (step 6) is its creator's draft, not a record yet: it neither counts nor gets named.
-        "SELECT c.id AS case_id, c.source_file AS file FROM patients p JOIN cases c ON c.patient_id = p.id WHERE replace(p.birth_number, '/', '') = ?1 AND c.intake_open = 0 ORDER BY c.list_order",
-      )
-        .bind(rcN)
-        .all<{ case_id: string; file: string }>()
+        `SELECT c.id AS case_id, c.source_file AS file FROM patients p JOIN cases c ON c.patient_id = p.id AND c.org_id = p.org_id
+         WHERE p.org_id = ?org AND replace(p.birth_number, '/', '') = ?1 AND c.intake_open = 0 ORDER BY c.list_order`,
+        rcN,
+      ).all<{ case_id: string; file: string }>()
     ).results;
     let override: { reason: string | null } | null;
     try {
@@ -270,14 +267,22 @@ export const writeWork = new Hono<AppEnv>()
       ).results;
       fixtureId = fps.find((fp) => samePerson(fp, { full_name: `${ref.first_name} ${ref.last_name}`, birth_number: ref.birth_number }))?.fixture_id ?? null;
       if (fixtureId)
-        fixtureTaken = !!(await c.env.DB.prepare("SELECT 1 AS x FROM cases WHERE id = ?1 OR intake_fixture = ?2").bind(`NO-${fixtureId}`, fixtureId).first());
+        fixtureTaken = !!(await orgQuery(c, "SELECT 1 AS x FROM cases WHERE org_id = ?org AND (case_no = ?1 OR intake_fixture = ?2)", `NO-${fixtureId}`, fixtureId).first());
     }
-    const max = await c.env.DB.prepare(
-      "SELECT MAX(CAST(substr(id, 4) AS INTEGER)) AS n, MAX(list_order) AS o FROM cases WHERE id GLOB 'NO-[0-9]*'",
+    // The case number people see counts per org, so it neither collides with nor reveals another org's cases; the
+    // internal ID adds the org's prefix (none in demo org A), which keeps it unique across orgs.
+    const max = await orgQuery(
+      c,
+      "SELECT MAX(CAST(substr(case_no, 4) AS INTEGER)) AS n, MAX(list_order) AS o FROM cases WHERE org_id = ?org AND case_no GLOB 'NO-[0-9]*'",
     ).first<{ n: number | null; o: number | null }>();
-    const lastOrder = (await c.env.DB.prepare("SELECT MAX(list_order) AS o FROM cases").first<{ o: number | null }>())?.o ?? 0;
+    const lastOrder = (await orgQuery(c, "SELECT MAX(list_order) AS o FROM cases WHERE org_id = ?org").first<{ o: number | null }>())?.o ?? 0;
     const n = Math.max(100, (max?.n ?? 0) + 1);
-    const { id, file } = intakeCaseId(fixtureId, fixtureTaken, n);
+    // An org without its row would fall back to org A's empty prefix and could take org A's IDs; refuse instead.
+    const org = await orgById(c.env.DB, c.var.viewer.org);
+    if (!org) throw E.notConfigured();
+    const prefix = org.case_id_prefix;
+    const { id: caseNo, file } = intakeCaseId(fixtureId, fixtureTaken, n);
+    const id = `${prefix}${caseNo}`;
     const v = c.var.viewer;
     const at = isoNow();
     const day = todayPrague();
@@ -288,26 +293,31 @@ export const writeWork = new Hono<AppEnv>()
     t.idempotency(key, "create_case", sha, data, 200, at);
     // A second record for a known birth number only with the override; re-checked inside the batch.
     if (!override)
-      t.guard("no_duplicate", "NOT EXISTS (SELECT 1 FROM patients p JOIN cases c ON c.patient_id = p.id WHERE replace(p.birth_number, '/', '') = ? AND c.intake_open = 0)", [rcN], () => D.duplicateBirthNumber({}));
-    t.guard("id_free", "NOT EXISTS (SELECT 1 FROM cases WHERE id = ?)", [id], () => D.conflict());
+      t.guard(
+        "no_duplicate",
+        "NOT EXISTS (SELECT 1 FROM patients p JOIN cases c ON c.patient_id = p.id AND c.org_id = p.org_id WHERE p.org_id = ?org AND replace(p.birth_number, '/', '') = ? AND c.intake_open = 0)",
+        [rcN],
+        () => D.duplicateBirthNumber({}),
+      );
+    t.guard("id_free", "NOT EXISTS (SELECT 1 FROM cases WHERE id = ? OR (org_id = ?org AND case_no = ?))", [id, caseNo], () => D.conflict());
     t.run(
-      "INSERT INTO patients (id, full_name, name_as_written, birth_number, data_origin, created_at) VALUES (?1, ?2, ?3, ?4, 'codebridge_synthetic', ?5)",
+      "INSERT INTO patients (org_id, id, full_name, name_as_written, birth_number, data_origin, created_at) VALUES (?org, ?1, ?2, ?3, ?4, 'codebridge_synthetic', ?5)",
       `pt-${id}`, `${ref.first_name} ${ref.last_name}`, `${ref.last_name} ${ref.first_name}`, ref.birth_number, at,
     );
     t.run(
-      `INSERT INTO cases (id, patient_id, source_file, list_order, status, processing_level, question_text, question_explicit, question_purpose,
+      `INSERT INTO cases (org_id, id, case_no, patient_id, source_file, list_order, status, processing_level, question_text, question_explicit, question_purpose,
          diagnosis_text, summary_one_line, owner_user_id, owner_name, referring_dept, submitted_on, updated_on, duplicate_override_reason, created_by, created_at,
          intake_open, referral_sha256)
-       VALUES (?1, ?2, ?3, ?4, 'new', 'none', ?5, ?6, NULL, ?7, NULL, ?8, ?9, ?10, ?11, ?11, ?12, ?13, ?14, ?15, ?16)`,
+       VALUES (?org, ?1, ?17, ?2, ?3, ?4, 'new', 'none', ?5, ?6, NULL, ?7, NULL, ?8, ?9, ?10, ?11, ?11, ?12, ?13, ?14, ?15, ?16)`,
       id, `pt-${id}`, file, lastOrder + 1, ref.question, ref.question ? 1 : 0,
       // The documents decide the diagnosis; until a doctor reviews them the list says so instead of guessing.
-      "Čeká na kontrolu lékařem", staff.idByName.get(owner) ?? null, owner, ref.dept, day, override?.reason ?? null, v.id, at, intake ? 1 : 0, referralSha,
+      "Čeká na kontrolu lékařem", staff.idByName.get(owner) ?? null, owner, ref.dept, day, override?.reason ?? null, v.id, at, intake ? 1 : 0, referralSha, caseNo,
     );
     if (NEW_CASE_MEMBERS === "all_mdt_departments")
-      t.run("INSERT INTO case_members (case_id, dept_id, reason, added_by, added_at) SELECT ?1, id, 'nový případ: oddělení MDT', ?2, ?3 FROM departments", id, v.id, at);
-    t.run("INSERT INTO case_members (case_id, user_id, reason, added_by, added_at) VALUES (?1, ?2, 'založil(a) případ', ?2, ?3)", id, v.id, at);
+      t.run("INSERT INTO case_members (org_id, case_id, dept_id, reason, added_by, added_at) SELECT ?org, ?1, id, 'nový případ: oddělení MDT', ?2, ?3 FROM departments WHERE org_id = ?org", id, v.id, at);
+    t.run("INSERT INTO case_members (org_id, case_id, user_id, reason, added_by, added_at) VALUES (?org, ?1, ?2, 'založil(a) případ', ?2, ?3)", id, v.id, at);
     const ownerId = staff.idByName.get(owner);
-    if (ownerId && ownerId !== v.id) t.run("INSERT INTO case_members (case_id, user_id, reason, added_by, added_at) VALUES (?1, ?2, 'odesílající lékař', ?3, ?4)", id, ownerId, v.id, at);
+    if (ownerId && ownerId !== v.id) t.run("INSERT INTO case_members (org_id, case_id, user_id, reason, added_by, added_at) VALUES (?org, ?1, ?2, 'odesílající lékař', ?3, ?4)", id, ownerId, v.id, at);
     t.audit({ action: intake ? "intake.start" : "case.create", what_cs: intake ? "založil(a) příjem nového pacienta (rozpracováno, dokumenty se nahrávají)" : "vytvořil(a) případ", case_id: id });
     // A typed reason is staff free text that may name the patient; it stays with the case, the log only says it exists.
     if (override)
@@ -320,7 +330,11 @@ export const writeWork = new Hono<AppEnv>()
         if (r) return r;
       }
       if (e instanceof DomainError && e.code === "duplicate_birth_number") {
-        const dup = await c.env.DB.prepare("SELECT c.id AS case_id, c.source_file AS file FROM patients p JOIN cases c ON c.patient_id = p.id WHERE replace(p.birth_number, '/', '') = ?1 AND c.intake_open = 0").bind(rcN).all<{ case_id: string; file: string }>();
+        const dup = await orgQuery(
+          c,
+          "SELECT c.id AS case_id, c.source_file AS file FROM patients p JOIN cases c ON c.patient_id = p.id AND c.org_id = p.org_id WHERE p.org_id = ?org AND replace(p.birth_number, '/', '') = ?1 AND c.intake_open = 0",
+          rcN,
+        ).all<{ case_id: string; file: string }>();
         throw D.duplicateBirthNumber(await visibleDuplicate(c, dup.results));
       }
       throw e;
@@ -339,7 +353,7 @@ async function visibleDuplicate(c: import("hono").Context<AppEnv>, existing: { c
 
 async function suggestionRoute(c: import("hono").Context<AppEnv>, kind: "edit" | "confirm" | "dismiss") {
   const sid = Number(c.req.param("id"));
-  const s = Number.isInteger(sid) ? await c.env.DB.prepare("SELECT * FROM task_suggestions WHERE id = ?1").bind(sid).first<SuggestionRow>() : null;
+  const s = Number.isInteger(sid) ? await orgQuery(c, "SELECT * FROM task_suggestions WHERE org_id = ?org AND id = ?1", sid).first<SuggestionRow>() : null;
   label(c, kind === "edit" ? "úprava návrhu úlohy" : kind === "confirm" ? "potvrzení návrhu úlohy" : "zamítnutí návrhu úlohy", s?.case_id ?? null);
   if (!s) throw D.suggestionNotFound();
   const { breakGlass } = await caseFor(c, s.case_id, "suggestion.decide");
@@ -347,7 +361,7 @@ async function suggestionRoute(c: import("hono").Context<AppEnv>, kind: "edit" |
   const at = isoNow();
   const t = tx(c, breakGlass);
   if (s.state === "superseded") throw D.suggestionSuperseded();
-  t.guard("draft", "(SELECT state FROM task_suggestions WHERE id = ?) = 'draft'", [sid], () => D.suggestionDecided(null));
+  t.guard("draft", "(SELECT state FROM task_suggestions WHERE org_id = ?org AND id = ?) = 'draft'", [sid], () => D.suggestionDecided(null));
   if (kind === "edit") {
     const staff = await work(c).staff();
     const b = c.var.body;
@@ -361,7 +375,7 @@ async function suggestionRoute(c: import("hono").Context<AppEnv>, kind: "edit" |
     if (b.due !== undefined) (set("due", next.due), set("due_source", next.due_source), set("due_by", next.due_by));
     if (!sets.length) throw D.invalidInput();
     args.push(sid);
-    t.run(`UPDATE task_suggestions SET ${sets.join(", ")} WHERE id = ?${args.length}`, ...args);
+    t.run(`UPDATE task_suggestions SET ${sets.join(", ")} WHERE org_id = ?org AND id = ?${args.length}`, ...args);
     t.audit({ action: "suggestion.edit", what_cs: "upravil(a) návrh úlohy", case_id: s.case_id, target_type: "suggestion", target_id: String(sid) });
   } else if (kind === "confirm") {
     const task = confirmTask(s, v.name);
@@ -369,22 +383,22 @@ async function suggestionRoute(c: import("hono").Context<AppEnv>, kind: "edit" |
     const who = task.who || staff.coordinator?.name || "neurčeno";
     // The task keeps where its due date came from, so the label travels with it.
     t.run(
-      `INSERT INTO tasks (case_id, text, assignee_user_id, assignee_name, due, due_source, due_by, timing, from_suggestion_id, confirmed_by, created_by, created_at)
-       VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)`,
+      `INSERT INTO tasks (org_id, case_id, text, assignee_user_id, assignee_name, due, due_source, due_by, timing, from_suggestion_id, confirmed_by, created_by, created_at)
+       VALUES (?org, ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)`,
       s.case_id, task.text, staff.idByName.get(who) ?? null, who, task.due, task.due_source, task.due_by, task.timing, sid, v.name, v.id, at,
     );
-    t.run("UPDATE task_suggestions SET state = 'confirmed', decided_by = ?1, decided_by_name = ?2, decided_at = ?3 WHERE id = ?4", v.id, v.name, at, sid);
+    t.run("UPDATE task_suggestions SET state = 'confirmed', decided_by = ?1, decided_by_name = ?2, decided_at = ?3 WHERE org_id = ?org AND id = ?4", v.id, v.name, at, sid);
     t.audit({ action: "suggestion.confirm", what_cs: "potvrdil(a) návrh úlohy", case_id: s.case_id, target_type: "suggestion", target_id: String(sid) });
   } else {
     if (s.state !== "draft") throw D.suggestionDecided(s.decided_by_name);
-    t.run("UPDATE task_suggestions SET state = 'dismissed', decided_by = ?1, decided_by_name = ?2, decided_at = ?3 WHERE id = ?4", v.id, v.name, at, sid);
+    t.run("UPDATE task_suggestions SET state = 'dismissed', decided_by = ?1, decided_by_name = ?2, decided_at = ?3 WHERE org_id = ?org AND id = ?4", v.id, v.name, at, sid);
     t.audit({ action: "suggestion.dismiss", what_cs: "zamítl(a) návrh úlohy", case_id: s.case_id, target_type: "suggestion", target_id: String(sid) });
   }
   try {
     await t.commit();
   } catch (e) {
     if (e instanceof DomainError && e.code === "suggestion_decided") {
-      const now2 = await c.env.DB.prepare("SELECT state, decided_by_name FROM task_suggestions WHERE id = ?1").bind(sid).first<{ state: string; decided_by_name: string | null }>();
+      const now2 = await orgQuery(c, "SELECT state, decided_by_name FROM task_suggestions WHERE org_id = ?org AND id = ?1", sid).first<{ state: string; decided_by_name: string | null }>();
       if (now2?.state === "superseded") throw D.suggestionSuperseded();
       throw D.suggestionDecided(now2?.decided_by_name ?? null);
     }

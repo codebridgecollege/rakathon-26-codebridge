@@ -24,7 +24,18 @@ const listView = useListViewStore();
 // The area is the first part of the path (/patients, /calendar/2026-10-19, /patient/10/labs).
 const view = computed(() => route.path.split("/")[1] || "patients");
 const userName = computed(() => session.me?.user.name ?? "");
-const userId = computed(() => session.me?.user.id ?? "");
+// The picker value is the membership id (AUTH.md); the person's id equals it only in demo org A.
+const userId = computed(() => session.me?.membership_id ?? session.me?.user.id ?? "");
+// Option text as the old picker rendered it: doctors by name, the coordinator and administrator with their function in
+// brackets (the browser suite selects them by that label).
+const optText = (p: { role: string; name: string; fn: string }) =>
+  p.role === "coordinator"
+    ? $t("user-picker-with-function", { name: p.name, fn: p.fn || $t("user-coordinator-function-default") })
+    : p.role === "admin"
+      ? $t("user-picker-with-function", { name: p.name, fn: $t("user-admin-function") })
+      : p.name;
+const roleFn = (p: { role: string; fn: string }) =>
+  p.fn || (p.role === "coordinator" ? $t("user-coordinator-tooltip-default") : p.role === "admin" ? $t("user-admin-function") : "");
 const isAdmin = computed(() => session.me?.user.role === "admin");
 const openTasks = computed(() => workflow.openTaskCount(userName.value, staff.coord?.name ?? null, (f) => patients.byFile(f)?.owner));
 
@@ -68,6 +79,12 @@ async function onUser(ev: Event) {
     <span id="recpill"><RecorderPill /></span>
     <span class="who"><span class="lbl">{{ $t("user-picker-label") }}</span>
       <select id="user" :aria-label="$t('user-picker-aria')" :value="userId" @change="onUser">
+        <template v-if="session.picker">
+          <optgroup v-for="o in session.picker" :key="o.id" :label="o.name">
+            <option v-for="p in o.people" :key="p.id" :value="p.id" :title="[roleFn(p), p.dept].filter(Boolean).join(', ')">{{ optText(p) }}</option>
+          </optgroup>
+        </template>
+        <template v-else>
         <optgroup v-for="d in staff.doctorsByDept" :key="d.id" :label="d.name">
           <option v-for="p in d.people" :key="p.id" :value="p.id" :title="[p.fn, d.name].filter(Boolean).join(', ')">{{ p.name }}</option>
         </optgroup>
@@ -79,6 +96,7 @@ async function onUser(ev: Event) {
             {{ $t("user-picker-with-function", { name: staff.admin.name, fn: $t("user-admin-function") }) }}
           </option>
         </optgroup>
+        </template>
       </select>
     </span>
   </header>

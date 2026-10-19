@@ -8,7 +8,7 @@ import { usePhoneStore, PHONE_POLL_MS } from "../app/stores/phone";
 import { useIntakeStore } from "../app/stores/intake";
 import { useSessionStore } from "../app/stores/session";
 import { useToastStore } from "../app/stores/toast";
-import { mockApi, deferred } from "./helpers";
+import { mockApi, deferred, meOrg } from "./helpers";
 
 type Call = { url: string; init: RequestInit };
 const method = (c: Call) => c.init.method ?? "GET";
@@ -19,7 +19,7 @@ const S01 = { file: "S01_pacient.pdf", id: "NO-S01" };
 
 beforeEach(() => {
   setActivePinia(createPinia());
-  useSessionStore().me = { user: { id: "d2p1", name: "MUDr. Svobodová", role: "doctor", dept: null }, auth_mode: "demo", impersonating: false, notice_cs: null };
+  useSessionStore().me = { user: { id: "d2p1", name: "MUDr. Svobodová", role: "doctor", dept: null }, ...meOrg("d2p1"), auth_mode: "demo", impersonating: false, notice_cs: null };
 });
 afterEach(() => {
   vi.useRealTimers();

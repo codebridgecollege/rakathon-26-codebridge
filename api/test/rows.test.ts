@@ -11,7 +11,7 @@ const base: CaseJoinRow = {
   age_as_written: null, identity_warning: null, name_note_cs: null, name_note_source_json: null, data_origin: "fno_challenge",
   slot_day: null, slot_time: null,
 };
-const v = (role: Viewer["role"]): Viewer => ({ id: "x", name: "x", role, dept: null, authMode: "demo", impersonating: false });
+const v = (role: Viewer["role"]): Viewer => ({ id: "x", name: "x", role, dept: null, authMode: "demo", impersonating: false, org: "demo-a", membershipId: "x" });
 
 describe("patientRow", () => {
   it("maps a case without a slot, not fully processed", () => {

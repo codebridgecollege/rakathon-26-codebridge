@@ -5,9 +5,11 @@ import type { Viewer } from "@codebridge/domain/access";
 import { staffName } from "../domain/rows";
 import { PCM_BYTES_PER_SECOND, partsToComplete, type Mark } from "../domain/transcript";
 import { auditStatement } from "./write";
+import { orgKey, orgStmt } from "./sql";
 
 export type UploadRow = {
   id: string;
+  org_id: string;
   case_id: string;
   recording_id: string;
   pass_id: string | null;
@@ -21,14 +23,21 @@ export type UploadRow = {
 
 const iso = () => new Date().toISOString();
 
-export const audioKey = (caseId: string, uploadId: string) => `audio/${caseId}/${uploadId}.pcm`;
+// Under the case's org (DATABASE.md, R2 prefixes); uploads made before orgs keep their audio/<case>/... key.
+export const audioKey = (org: string, caseId: string, uploadId: string) => orgKey(org, `audio/${caseId}/${uploadId}.pcm`);
 
-// The person an automatic step acts for in the access log: the doctor who approved (Workflow) or who recorded (cron).
-// The log's role column needs a real role, so the row names a person, and the line says it was the AI recording.
-export async function actorFor(db: D1Database, userId: string, authMode: "demo" | "access"): Promise<Viewer> {
-  const u = await db.prepare("SELECT id, pre, sur, post, role_id FROM users WHERE id = ?1").bind(userId).first<{ id: string; pre: string; sur: string; post: string; role_id: string }>();
+// The person an automatic step acts for in the access log: the doctor who approved (Workflow) or who recorded (cron),
+// with their membership in the org the step works in. The log's role column needs a real role, so the row names a
+// person, and the line says it was the AI recording.
+export async function actorFor(db: D1Database, org: string, userId: string, authMode: "demo" | "access"): Promise<Viewer> {
+  const u = await orgStmt(
+    db,
+    org,
+    "SELECT u.id, u.pre, u.sur, u.post, m.role_id, m.id AS membership_id FROM memberships m JOIN users u ON u.id = m.user_id WHERE m.org_id = ?org AND m.user_id = ?1",
+    userId,
+  ).first<{ id: string; pre: string; sur: string; post: string; role_id: string; membership_id: string }>();
   const role = u && ["doctor", "coordinator", "admin"].includes(u.role_id) ? (u.role_id as Viewer["role"]) : "doctor";
-  return { id: userId, name: u ? staffName(u) : userId, role, dept: null, authMode, impersonating: false };
+  return { id: userId, name: u ? staffName(u) : userId, role, dept: null, authMode, impersonating: false, org, membershipId: u?.membership_id ?? userId };
 }
 
 const authModeOf = (env: Env): "demo" | "access" => (env.AUTH_MODE === "access" ? "access" : "demo");
@@ -50,60 +59,56 @@ async function dropObject(bucket: R2Bucket, u: UploadRow): Promise<void> {
 
 export type PurgeResult = { deleted: number; cases: string[] };
 
-// Deletes the given uploads' audio and records why. Passes that had not finished become 'purged'; the audit gets one
-// line per case that lost audio. reason_cs is shown in the UI and the log ("případ uzavřen", "konec MDT", ...).
-export async function purgeUploads(env: Env, uploads: UploadRow[], reason_cs: string, actor: Viewer | null, requestId: string | null = null, what_cs?: string): Promise<PurgeResult> {
+// Deletes the given uploads' audio of one org and records why. Passes that had not finished become 'purged'; the audit
+// gets one line per case that lost audio. reason_cs is shown in the UI and the log ("případ uzavřen", "konec MDT", ...).
+export async function purgeUploads(env: Env, org: string, uploads: UploadRow[], reason_cs: string, actor: Viewer | null, requestId: string | null = null, what_cs?: string): Promise<PurgeResult> {
   const db = env.DB;
-  const live = uploads.filter((u) => u.state === "open" || u.state === "completed");
+  // Only this org's uploads: the statements below are scoped to it, so another org's row would be left half done.
+  const live = uploads.filter((u) => u.org_id === org && (u.state === "open" || u.state === "completed"));
   if (!live.length) return { deleted: 0, cases: [] };
   for (const u of live) await dropObject(env.DOCS, u);
   const at = iso();
   const stmts: D1PreparedStatement[] = [];
   for (const u of live) {
     stmts.push(
-      db.prepare("UPDATE audio_uploads SET state = ?1, r2_upload_id = NULL, deleted_at = ?2, delete_reason = ?3 WHERE id = ?4 AND state IN ('open','completed')")
-        .bind(u.state === "open" ? "aborted" : "deleted", at, reason_cs, u.id),
+      orgStmt(db, org, "UPDATE audio_uploads SET state = ?1, r2_upload_id = NULL, deleted_at = ?2, delete_reason = ?3 WHERE org_id = ?org AND id = ?4 AND state IN ('open','completed')", u.state === "open" ? "aborted" : "deleted", at, reason_cs, u.id),
       // Segment times are not audio, but they say when the case was discussed; nothing needs them once the audio is gone.
-      db.prepare("DELETE FROM audio_segments WHERE upload_id = ?1").bind(u.id),
-      db.prepare("DELETE FROM audio_parts WHERE upload_id = ?1").bind(u.id),
+      orgStmt(db, org, "DELETE FROM audio_segments WHERE org_id = ?org AND upload_id = ?1", u.id),
+      orgStmt(db, org, "DELETE FROM audio_parts WHERE org_id = ?org AND upload_id = ?1", u.id),
     );
     if (u.pass_id) {
       stmts.push(
-        db.prepare("UPDATE transcript_passes SET state = 'purged', purge_reason = ?1, audio_deleted_at = ?2, updated_at = ?2 WHERE id = ?3 AND state IN ('queued','running')").bind(reason_cs, at, u.pass_id),
-        db.prepare("UPDATE transcript_passes SET audio_deleted_at = ?1, purge_reason = COALESCE(purge_reason, ?2), updated_at = ?1 WHERE id = ?3 AND audio_deleted_at IS NULL").bind(at, reason_cs, u.pass_id),
+        orgStmt(db, org, "UPDATE transcript_passes SET state = 'purged', purge_reason = ?1, audio_deleted_at = ?2, updated_at = ?2 WHERE org_id = ?org AND id = ?3 AND state IN ('queued','running')", reason_cs, at, u.pass_id),
+        orgStmt(db, org, "UPDATE transcript_passes SET audio_deleted_at = ?1, purge_reason = COALESCE(purge_reason, ?2), updated_at = ?1 WHERE org_id = ?org AND id = ?3 AND audio_deleted_at IS NULL", at, reason_cs, u.pass_id),
       );
     }
   }
   const cases = [...new Set(live.map((u) => u.case_id))];
   const mode = authModeOf(env);
   for (const caseId of cases) {
-    const who = actor ?? (await actorFor(db, live.find((u) => u.case_id === caseId)!.created_by, mode));
+    const who = actor ?? (await actorFor(db, org, live.find((u) => u.case_id === caseId)!.created_by, mode));
     stmts.push(auditStatement(db, who, { action: "recording.audio_deleted", what_cs: what_cs ?? `AI záznam: zvuk smazán bez rozlišení mluvčích (${reason_cs})`, case_id: caseId }, { requestId, epoch: null }));
   }
   await db.batch(stmts);
   return { deleted: live.length, cases };
 }
 
-const UPLOAD_COLS = "u.id, u.case_id, u.recording_id, u.pass_id, u.r2_key, u.r2_upload_id, u.state, u.bytes, u.created_by, u.created_at";
+const UPLOAD_COLS = "u.id, u.org_id, u.case_id, u.recording_id, u.pass_id, u.r2_key, u.r2_upload_id, u.state, u.bytes, u.created_by, u.created_at";
 
 // Every stored audio of a case: it was closed, so nothing will process it.
-export async function uploadsOfCase(db: D1Database, caseId: string): Promise<UploadRow[]> {
-  return (await db.prepare(`SELECT ${UPLOAD_COLS} FROM audio_uploads u WHERE u.case_id = ?1 AND u.state IN ('open','completed')`).bind(caseId).all<UploadRow>()).results;
+export async function uploadsOfCase(db: D1Database, org: string, caseId: string): Promise<UploadRow[]> {
+  return (await orgStmt(db, org, `SELECT ${UPLOAD_COLS} FROM audio_uploads u WHERE u.org_id = ?org AND u.case_id = ?1 AND u.state IN ('open','completed')`, caseId).all<UploadRow>()).results;
 }
 
 // The seminar ended: audio of its cases that no pass will use. Audio a failed pass kept for "Zkusit znovu" stays
 // until the case closes (user decision 2026-10-18); the cron sweep's age limit still applies to it.
-export async function uploadsAtSessionEnd(db: D1Database, day: string): Promise<UploadRow[]> {
+export async function uploadsAtSessionEnd(db: D1Database, org: string, day: string): Promise<UploadRow[]> {
   return (
-    await db
-      .prepare(
-        `SELECT ${UPLOAD_COLS} FROM audio_uploads u
-         LEFT JOIN transcript_passes p ON p.id = u.pass_id
-         WHERE u.state IN ('open','completed')
-           AND (u.case_id IN (SELECT case_id FROM slots WHERE day = ?1) OR u.recording_id IN (SELECT id FROM recordings WHERE session_day = ?1))
-           AND (u.pass_id IS NULL OR p.state NOT IN ('queued','running','error'))`,
-      )
-      .bind(day)
+    await orgStmt(db, org, `SELECT ${UPLOAD_COLS} FROM audio_uploads u
+         LEFT JOIN transcript_passes p ON p.id = u.pass_id AND p.org_id = u.org_id
+         WHERE u.org_id = ?org AND u.state IN ('open','completed')
+           AND (u.case_id IN (SELECT case_id FROM slots WHERE org_id = ?org AND day = ?1) OR u.recording_id IN (SELECT id FROM recordings WHERE org_id = ?org AND session_day = ?1))
+           AND (u.pass_id IS NULL OR p.state NOT IN ('queued','running','error'))`, day)
       .all<UploadRow>()
   ).results;
 }
@@ -111,40 +116,37 @@ export async function uploadsAtSessionEnd(db: D1Database, day: string): Promise<
 // The cron sweep: (a) audio no pass has claimed older than the short limit, (b) any audio older than the long limit
 // (what a failed pass kept for "Zkusit znovu"), (c) audio of a pass that ended well, (d) unclaimed audio of a recording
 // whose seminar has ended, (e) audio of a closed case.
-export async function uploadsForSweep(db: D1Database, unclaimedBefore: string, keptBefore: string): Promise<UploadRow[]> {
+export async function uploadsForSweep(db: D1Database, org: string, unclaimedBefore: string, keptBefore: string): Promise<UploadRow[]> {
   return (
-    await db
-      .prepare(
-        `SELECT ${UPLOAD_COLS} FROM audio_uploads u
-         LEFT JOIN transcript_passes p ON p.id = u.pass_id
-         LEFT JOIN recordings r ON r.id = u.recording_id
-         LEFT JOIN sessions s ON s.day = r.session_day
-         WHERE u.state IN ('open','completed') AND (
+    // The seminar day is the org's own: another org's seminar on the same day never ends this one's recordings.
+    await orgStmt(db, org, `SELECT ${UPLOAD_COLS} FROM audio_uploads u
+         LEFT JOIN transcript_passes p ON p.id = u.pass_id AND p.org_id = u.org_id
+         LEFT JOIN recordings r ON r.id = u.recording_id AND r.org_id = u.org_id
+         LEFT JOIN sessions s ON s.org_id = u.org_id AND s.day = r.session_day
+         WHERE u.org_id = ?org AND u.state IN ('open','completed') AND (
            (u.created_at < ?1 AND u.pass_id IS NULL)
            OR u.created_at < ?2
            OR p.state IN ('done','empty','purged')
            -- Unapproved audio of a seminar that has ended: no pass will use it.
            OR (u.pass_id IS NULL AND r.session_day IS NOT NULL AND s.ended_at IS NOT NULL AND s.ended_at > r.started_at)
            -- A closed case takes no audio; whatever a race left behind goes.
-           OR (u.case_id IN (SELECT id FROM cases WHERE status = 'closed') AND (u.pass_id IS NULL OR p.state NOT IN ('queued','running')))
-         ) LIMIT 200`,
-      )
-      .bind(unclaimedBefore, keptBefore)
+           OR (u.case_id IN (SELECT id FROM cases WHERE org_id = ?org AND status = 'closed') AND (u.pass_id IS NULL OR p.state NOT IN ('queued','running')))
+         ) LIMIT 200`, unclaimedBefore, keptBefore)
       .all<UploadRow>()
   ).results;
 }
 
-export async function uploadsOfPass(db: D1Database, passId: string): Promise<UploadRow[]> {
-  return (await db.prepare(`SELECT ${UPLOAD_COLS} FROM audio_uploads u WHERE u.pass_id = ?1 ORDER BY u.created_at, u.id`).bind(passId).all<UploadRow>()).results;
+export async function uploadsOfPass(db: D1Database, org: string, passId: string): Promise<UploadRow[]> {
+  return (await orgStmt(db, org, `SELECT ${UPLOAD_COLS} FROM audio_uploads u WHERE u.org_id = ?org AND u.pass_id = ?1 ORDER BY u.created_at, u.id`, passId).all<UploadRow>()).results;
 }
 
 export type FinalizeResult = { state: "ready" | "empty" | "purged"; bytes: number; seconds: number };
 
 // Completes the pass's open uploads from the parts D1 recorded. Retry-safe: a completed upload reports its size, and a
 // completion that landed in R2 but not in D1 (a retry after a crash) is found by its object.
-export async function finalizeForPass(env: Env, passId: string, partBytes: number): Promise<FinalizeResult> {
+export async function finalizeForPass(env: Env, org: string, passId: string, partBytes: number): Promise<FinalizeResult> {
   const db = env.DB;
-  const ups = await uploadsOfPass(db, passId);
+  const ups = await uploadsOfPass(db, org, passId);
   let bytes = 0;
   let purged = ups.length > 0;
   for (const u of ups) {
@@ -155,12 +157,12 @@ export async function finalizeForPass(env: Env, passId: string, partBytes: numbe
       continue;
     }
     const parts = partsToComplete(
-      (await db.prepare("SELECT part_number, bytes, etag FROM audio_parts WHERE upload_id = ?1").bind(u.id).all<{ part_number: number; bytes: number; etag: string }>()).results,
+      (await orgStmt(db, org, "SELECT part_number, bytes, etag FROM audio_parts WHERE org_id = ?org AND upload_id = ?1", u.id).all<{ part_number: number; bytes: number; etag: string }>()).results,
       partBytes,
     ) as { part_number: number; bytes: number; etag: string }[];
     if (!parts.length) {
       await dropObject(env.DOCS, u);
-      await db.prepare("UPDATE audio_uploads SET state = 'aborted', r2_upload_id = NULL, deleted_at = ?1, delete_reason = 'bez zvuku' WHERE id = ?2 AND state = 'open'").bind(iso(), u.id).run();
+      await orgStmt(db, org, "UPDATE audio_uploads SET state = 'aborted', r2_upload_id = NULL, deleted_at = ?1, delete_reason = 'bez zvuku' WHERE org_id = ?org AND id = ?2 AND state = 'open'", iso(), u.id).run();
       continue;
     }
     const size = parts.reduce((a, p) => a + p.bytes, 0);
@@ -170,7 +172,7 @@ export async function finalizeForPass(env: Env, passId: string, partBytes: numbe
       const head = await env.DOCS.head(u.r2_key);
       if (!head || head.size !== size) throw e;
     }
-    await db.prepare("UPDATE audio_uploads SET state = 'completed', r2_upload_id = NULL, bytes = ?1, completed_at = ?2 WHERE id = ?3 AND state = 'open'").bind(size, iso(), u.id).run();
+    await orgStmt(db, org, "UPDATE audio_uploads SET state = 'completed', r2_upload_id = NULL, bytes = ?1, completed_at = ?2 WHERE org_id = ?org AND id = ?3 AND state = 'open'", size, iso(), u.id).run();
     bytes += size;
   }
   if (purged) return { state: "purged", bytes: 0, seconds: 0 };
@@ -178,18 +180,18 @@ export async function finalizeForPass(env: Env, passId: string, partBytes: numbe
 }
 
 // The pass's completed objects in recording order, with the visit marks on the joined timeline.
-export async function joinedAudio(env: Env, passId: string): Promise<{ objects: { key: string; size: number }[]; total: number; marks: Mark[] }> {
+export async function joinedAudio(env: Env, org: string, passId: string): Promise<{ objects: { key: string; size: number }[]; total: number; marks: Mark[] }> {
   const db = env.DB;
-  const ups = (await uploadsOfPass(db, passId)).filter((u) => u.state === "completed" && u.bytes > 0);
+  const ups = (await uploadsOfPass(db, org, passId)).filter((u) => u.state === "completed" && u.bytes > 0);
   const objects: { key: string; size: number }[] = [];
   const marks: Mark[] = [];
   let offset = 0;
   for (const u of ups) {
-    const segs = (await db.prepare("SELECT start_sample, wall_ms FROM audio_segments WHERE upload_id = ?1 ORDER BY start_sample").bind(u.id).all<{ start_sample: number; wall_ms: number }>()).results;
+    const segs = (await orgStmt(db, org, "SELECT start_sample, wall_ms FROM audio_segments WHERE org_id = ?org AND upload_id = ?1 ORDER BY start_sample", u.id).all<{ start_sample: number; wall_ms: number }>()).results;
     const at0 = offset / PCM_BYTES_PER_SECOND;
     // The page sends a mark at sample 0 with the first part; if it is missing, the recording's start is the best estimate.
     if (!segs.length || segs[0]!.start_sample !== 0) {
-      const r = await db.prepare("SELECT started_at FROM recordings WHERE id = ?1").bind(u.recording_id).first<{ started_at: string }>();
+      const r = await orgStmt(db, org, "SELECT started_at FROM recordings WHERE org_id = ?org AND id = ?1", u.recording_id).first<{ started_at: string }>();
       marks.push({ at_s: at0, wall_ms: r ? Date.parse(r.started_at) : 0 });
     }
     for (const s of segs) marks.push({ at_s: at0 + (s.start_sample * 2) / PCM_BYTES_PER_SECOND, wall_ms: s.wall_ms });
@@ -227,20 +229,19 @@ export function concatObjects(bucket: R2Bucket, objects: { key: string; size: nu
 }
 
 // The pass's last step: its audio goes, whatever the pass did. The audit line commits with the change.
-export async function deleteForPass(env: Env, passId: string, audit: { actor: Viewer; what_cs: string; case_id: string }): Promise<number> {
+export async function deleteForPass(env: Env, org: string, passId: string, audit: { actor: Viewer; what_cs: string; case_id: string }): Promise<number> {
   const db = env.DB;
-  const ups = (await uploadsOfPass(db, passId)).filter((u) => u.state === "open" || u.state === "completed");
+  const ups = (await uploadsOfPass(db, org, passId)).filter((u) => u.state === "open" || u.state === "completed");
   for (const u of ups) await dropObject(env.DOCS, u);
   const at = iso();
   const stmts: D1PreparedStatement[] = [];
   for (const u of ups)
     stmts.push(
-      db.prepare("UPDATE audio_uploads SET state = ?1, r2_upload_id = NULL, deleted_at = ?2, delete_reason = 'rozlišení mluvčích skončilo' WHERE id = ?3 AND state IN ('open','completed')")
-        .bind(u.state === "open" ? "aborted" : "deleted", at, u.id),
-      db.prepare("DELETE FROM audio_segments WHERE upload_id = ?1").bind(u.id),
-      db.prepare("DELETE FROM audio_parts WHERE upload_id = ?1").bind(u.id),
+      orgStmt(db, org, "UPDATE audio_uploads SET state = ?1, r2_upload_id = NULL, deleted_at = ?2, delete_reason = 'rozlišení mluvčích skončilo' WHERE org_id = ?org AND id = ?3 AND state IN ('open','completed')", u.state === "open" ? "aborted" : "deleted", at, u.id),
+      orgStmt(db, org, "DELETE FROM audio_segments WHERE org_id = ?org AND upload_id = ?1", u.id),
+      orgStmt(db, org, "DELETE FROM audio_parts WHERE org_id = ?org AND upload_id = ?1", u.id),
     );
-  stmts.push(db.prepare("UPDATE transcript_passes SET audio_deleted_at = COALESCE(audio_deleted_at, ?1), updated_at = ?1 WHERE id = ?2").bind(at, passId));
+  stmts.push(orgStmt(db, org, "UPDATE transcript_passes SET audio_deleted_at = COALESCE(audio_deleted_at, ?1), updated_at = ?1 WHERE org_id = ?org AND id = ?2", at, passId));
   if (ups.length) stmts.push(auditStatement(db, audit.actor, { action: "recording.audio_deleted", what_cs: audit.what_cs, case_id: audit.case_id }, { requestId: null, epoch: null }));
   await db.batch(stmts);
   return ups.length;
@@ -249,14 +250,14 @@ export async function deleteForPass(env: Env, passId: string, audit: { actor: Vi
 // Audio a failed pass kept for "Zkusit znovu", checked in R2 as well as in D1: the lifecycle rule may have removed an
 // object the cron sweep had not recorded yet. Audio that is partly gone is deleted here, so the page stops offering a
 // retry and the case keeps its live transcript and the summary made from it.
-export async function passKeepsAudio(env: Env, passId: string, requestId: string | null): Promise<boolean> {
-  const ups = (await uploadsOfPass(env.DB, passId)).filter((u) => u.state === "open" || u.state === "completed");
+export async function passKeepsAudio(env: Env, org: string, passId: string, requestId: string | null): Promise<boolean> {
+  const ups = (await uploadsOfPass(env.DB, org, passId)).filter((u) => u.state === "open" || u.state === "completed");
   if (!ups.length) return false;
   for (const u of ups) {
     if (u.state !== "completed") continue;
     const h = await env.DOCS.head(u.r2_key);
     if (!h || h.size !== u.bytes) {
-      await purgeUploads(env, ups, "zvuk už není k dispozici", null, requestId, "AI záznam: zvuk smazán (už není k dispozici)");
+      await purgeUploads(env, org, ups, "zvuk už není k dispozici", null, requestId, "AI záznam: zvuk smazán (už není k dispozici)");
       return false;
     }
   }

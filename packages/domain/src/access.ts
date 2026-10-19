@@ -3,7 +3,8 @@
 
 export type Role = "doctor" | "coordinator" | "admin";
 
-// The person a request acts for, resolved from the directory (users table).
+// The person a request acts for and the membership they act with (AUTH.md): id is the person (users), org and
+// membershipId the membership whose role, function and data the request uses. Every store call takes org.
 export type Viewer = {
   id: string;
   name: string;
@@ -11,6 +12,8 @@ export type Viewer = {
   dept: { id: string; name: string } | null;
   authMode: "demo" | "access";
   impersonating: boolean;
+  org: string;
+  membershipId: string;
 };
 
 // CLINICAL_ACCESS in wrangler.jsonc. "all_roles" keeps the demo's behaviour, where the coordinator and the

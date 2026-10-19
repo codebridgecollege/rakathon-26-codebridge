@@ -3,7 +3,7 @@
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { env } from "cloudflare:workers";
 import { call, testEnv } from "./helpers";
-import { FAKE_NAME, SQL, loadFixture } from "./data";
+import { FAKE_NAME, loadFixture, resetDoc } from "./data";
 import { Tx } from "../src/store/write";
 import { D } from "@codebridge/domain/errors";
 import { COORDINATOR_EDITS_PROTOCOL } from "@codebridge/domain/config";
@@ -20,7 +20,8 @@ async function w(method: string, path: string, body: unknown = {}, user = "d2p1"
   return { status: r.status, body: (await r.json()) as Body };
 }
 const q = async <T = Record<string, unknown>>(sql: string, ...args: unknown[]) => (await env.DB.prepare(sql).bind(...args).all<T>()).results;
-const count = async (table: string, where = "1") => ((await q<{ n: number }>(`SELECT COUNT(*) AS n FROM ${table} WHERE ${where}`))[0]!.n);
+// Org A's rows: the fixture's org B look-alikes must stay as they are, and never count here.
+const count = async (table: string, where = "1", org = "demo-a") => ((await q<{ n: number }>(`SELECT COUNT(*) AS n FROM ${table} WHERE org_id = '${org}' AND (${where})`))[0]!.n);
 const log = () => q<{ actor_user_id: string; acted_as_role: string; case_id: string | null; action: string; what_cs: string; break_glass_reason: string | null }>("SELECT * FROM access_log ORDER BY id");
 const decisionsBody = (o: Record<string, unknown> = {}) => ({
   protocol_version: 1,
@@ -47,14 +48,14 @@ beforeEach(async () => {
 
 describe("guards roll back the whole batch", () => {
   it("leaves no change and no audit row when a later guard fails", async () => {
-    const v = { id: "d2p1", name: "MUDr. Svobodová", role: "doctor" as const, dept: null, authMode: "demo" as const, impersonating: false };
+    const v = { id: "d2p1", name: "MUDr. Svobodová", role: "doctor" as const, dept: null, authMode: "demo" as const, impersonating: false, org: "demo-a", membershipId: "d2p1" };
     const t = new Tx(env.DB, v, { requestId: null, epoch: 1 });
     t.guard("ok", "(SELECT status FROM cases WHERE id = ?) = ?", ["NO-A", "ready"], () => D.conflict());
     t.guard("fails", "(SELECT status FROM cases WHERE id = ?) = ?", ["NO-B", "done"], () => D.statusChanged());
     t.run("UPDATE cases SET status = 'closed' WHERE id = 'NO-A'");
     t.audit({ action: "x", what_cs: "y" });
     await expect(t.commit()).rejects.toMatchObject({ code: "status_changed" });
-    expect((await q("SELECT status FROM cases ORDER BY id")).map((r) => r.status)).toEqual(["ready", "new"]);
+    expect((await q("SELECT status FROM cases WHERE org_id = 'demo-a' ORDER BY id")).map((r) => r.status)).toEqual(["ready", "new"]);
     expect(await count("access_log")).toBe(0);
     expect(await count("write_guards")).toBe(0);
   });
@@ -362,15 +363,18 @@ describe("view events", () => {
 });
 
 describe("reset-demo", () => {
-  const MUTABLE = /^\s*INSERT INTO (users|departments|dept_members|cases|case_members|slots|tasks) /;
   async function putResetDoc() {
-    await env.DOCS.put("seed/reset.json", JSON.stringify({ seed_version: "test", statements: SQL.filter((s) => MUTABLE.test(s)), patient_ids: ["pt-A", "pt-B"] }));
+    await env.DOCS.put("seed/reset.json", JSON.stringify(resetDoc()));
   }
+  // Every org's rows (org B's included: org A's reset must leave them as they were). Row ids are not compared: they
+  // count on across orgs (sqlite_sequence is global), so a reseed in one org gives new ids.
   const snapshot = async () => {
     const out: Record<string, unknown> = {};
-    for (const t of ["users", "departments", "dept_members", "patients", "cases", "case_members", "status_history", "slots", "protocols", "decisions", "tasks", "task_suggestions", "edit_log", "fact_edits", "alert_events", "attendance", "documents", "alerts", "pages"])
+    for (const t of ["users", "memberships", "departments", "dept_members", "patients", "cases", "case_members", "status_history", "slots", "protocols", "decisions", "tasks", "task_suggestions", "edit_log", "fact_edits", "alert_events", "attendance", "documents", "alerts", "pages"])
       // Insert-time defaults (created_at and the like) are the only columns a reseed may change.
-      out[t] = (await q(`SELECT * FROM ${t} ORDER BY rowid`)).map((r) => Object.fromEntries(Object.entries(r).filter(([k]) => !/^(created_at|added_at|booked_at)$/.test(k))));
+      out[t] = (await q(`SELECT * FROM ${t}`))
+        .map((r) => Object.fromEntries(Object.entries(r).filter(([k]) => !/^(created_at|added_at|booked_at)$/.test(k) && !(k === "id" && typeof r.id === "number"))))
+        .sort((a, b) => (JSON.stringify(a) < JSON.stringify(b) ? -1 : 1));
     return out;
   };
 
@@ -393,8 +397,10 @@ describe("reset-demo", () => {
     expect(r.body.data!.statements as number).toBeLessThan(50);
     expect(await snapshot()).toEqual(before);
     expect((await log()).map((l) => l.what_cs)).toEqual(["obnovil(a) ukázková data (seed test)"]);
-    const archive = await env.DOCS.list({ prefix: "audit-archive/" });
+    // The archive is the org's own.
+    const archive = await env.DOCS.list({ prefix: "org/demo-a/audit-archive/" });
     expect(archive.objects).toHaveLength(1);
+    expect((await env.DOCS.list({ prefix: "audit-archive/" })).objects).toHaveLength(0);
     expect(await env.DOCS.get("uploads/x.pdf")).toBeNull();
     expect(await env.DOCS.get("extract/NO-A/run-A.json")).not.toBeNull();
     // A tab from before the reset cannot write; the append-only triggers are back on.
@@ -491,7 +497,7 @@ describe("review findings (step 4)", () => {
   });
 
   it("refuses a batch whose epoch changed after the request's check", async () => {
-    const v = { id: "d2p1", name: "MUDr. Svobodová", role: "doctor" as const, dept: null, authMode: "demo" as const, impersonating: false };
+    const v = { id: "d2p1", name: "MUDr. Svobodová", role: "doctor" as const, dept: null, authMode: "demo" as const, impersonating: false, org: "demo-a", membershipId: "d2p1" };
     const t = new Tx(env.DB, v, { requestId: null, epoch: 1 });
     t.run("UPDATE cases SET status = 'closed' WHERE id = 'NO-A'");
     await env.DB.prepare("UPDATE demo_state SET data_epoch = 2").run();

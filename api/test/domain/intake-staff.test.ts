@@ -3,6 +3,7 @@ import { env } from "cloudflare:workers";
 import { duplicateDecision, evaluateIntake, intakeCaseId, intakeFixtureOf, samePerson, validateReferral, type IntakeInput } from "../../src/domain/intake";
 import { fhirToForm } from "@codebridge/domain/fhir";
 import { compareIdentity } from "../../src/domain/documents";
+import { DEFAULT_STAFF_B } from "@codebridge/domain/staff-default";
 import { DEFAULT_STAFF, nameTaken, removePerson, renamePerson, validateDeptName, validatePerson, type StaffUser } from "../../src/domain/staff";
 
 const form = { first_name: "Jana", last_name: "Testová", birth_number: "645312/1234", consent: true };
@@ -59,6 +60,14 @@ describe("staff", () => {
     const seed = env.TEST_SEED_STAFF;
     expect(seed).toContain("STAFF_DEPTS = [");
     for (const d of DEFAULT_STAFF) {
+      expect(seed).toContain(`("${d.name}", [${d.people.map((p) => `"${p.sur}"`).join(", ")}])`);
+    }
+  });
+
+  it("has the same default staff of demo org B as the seed's STAFF_DEPTS_B", () => {
+    const seed = env.TEST_SEED_STAFF_B;
+    expect(seed).toContain("STAFF_DEPTS_B = [");
+    for (const d of DEFAULT_STAFF_B) {
       expect(seed).toContain(`("${d.name}", [${d.people.map((p) => `"${p.sur}"`).join(", ")}])`);
     }
   });

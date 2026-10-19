@@ -1,12 +1,12 @@
 import { test as base, expect, type Page, type Locator } from "@playwright/test";
-import { resetDemo } from "./reset";
+import { ORG_ADMINS, resetDemo } from "./reset";
 import { BASE_URLS } from "./servers";
 
 // Helpers drive the app only through what a user sees: roles, accessible names, labels and Czech text. They never
 // read page globals or data-* attributes, so a change to markup that keeps what a user sees keeps the tests green.
 
 type Fixtures = {
-  // Auto fixture: resets the demo of this test's Worker before every test and fails the test on an uncaught page
+  // Auto fixture: resets both demo orgs of this test's Worker before every test and fails the test on an uncaught page
   // error or a content security policy violation.
   fresh: void;
   app: App;
@@ -21,7 +21,9 @@ export const test = base.extend<Fixtures>({
   },
   fresh: [
     async ({ page, baseURL }, use) => {
-      await resetDemo(baseURL!);
+      // Both demo orgs: org B starts empty (people and departments only), and a test that writes there (orgs.spec.ts)
+      // must not leave its patient for the next test on this Worker.
+      for (const admin of ORG_ADMINS) await resetDemo(baseURL!, admin);
       const errors: string[] = [];
       page.on("pageerror", (e) => errors.push(e.message));
       // Chromium reports every blocked load, script, style or connection as a console error naming the policy; a
@@ -85,7 +87,12 @@ export class App {
 
   // The demo has no login: the user picker in the header stands in for it.
   async loginAs(label: string): Promise<void> {
+    // A switch reloads the new user's data; the role the page acts on is set once that is in, and the page shows no
+    // signal for it, so the suite waits for the last read of the switch (the workflow) when the user really changes.
+    const selected = await this.userPicker.getByRole("option", { selected: true }).textContent();
+    const loaded = selected?.trim() === label ? null : this.page.waitForResponse((r) => new URL(r.url()).pathname === "/api/workflow");
     await this.userPicker.selectOption({ label });
+    await loaded;
     await expect(this.userPicker.getByRole("option", { selected: true })).toHaveText(label);
   }
 

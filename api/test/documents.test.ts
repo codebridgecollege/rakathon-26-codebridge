@@ -9,7 +9,8 @@ import { FAKE_NAME, loadFixture } from "./data";
 type Body = { data?: Record<string, any>; data_epoch?: number; state?: Record<string, any>; error?: { code: string; message_cs: string } };
 
 const q = async <T = Record<string, unknown>>(sql: string, ...args: unknown[]) => (await env.DB.prepare(sql).bind(...args).all<T>()).results;
-const count = async (table: string, where = "1") => (await q<{ n: number }>(`SELECT COUNT(*) AS n FROM ${table} WHERE ${where}`))[0]!.n;
+// Org A's rows: the fixture's org B look-alikes must stay as they are, and never count here.
+const count = async (table: string, where = "1", org = "demo-a") => (await q<{ n: number }>(`SELECT COUNT(*) AS n FROM ${table} WHERE org_id = '${org}' AND (${where})`))[0]!.n;
 const log = () => q<{ action: string; what_cs: string; case_id: string | null; target_id: string | null }>("SELECT * FROM access_log ORDER BY id");
 const seenLog: string[] = [];
 
@@ -52,7 +53,8 @@ async function w(method: string, path: string, body: unknown = {}, user = "d2p1"
   const r = await call(`/api${path}`, { method, headers: { "content-type": "application/json", "x-demo-user": user, "x-data-epoch": "1" }, body: JSON.stringify(body) });
   return { status: r.status, body: (await r.json()) as Body };
 }
-const uploadsInR2 = async () => (await env.DOCS.list({ prefix: "uploads/" })).objects.map((o) => o.key);
+// Uploads go under the case's org (DATABASE.md, R2 prefixes).
+const uploadsInR2 = async () => (await env.DOCS.list({ prefix: "org/demo-a/uploads/" })).objects.map((o) => o.key);
 
 beforeEach(async () => {
   for (const r of await log().catch(() => [])) seenLog.push(r.what_cs);
@@ -70,7 +72,7 @@ describe("upload of a registered fixture", () => {
     const row = (await q<{ original_r2_key: string; sha256: string; origin: string }>("SELECT * FROM documents WHERE id = ?1", d.id))[0]!;
     expect(row.origin).toBe("upload");
     const obj = await env.DOCS.get(row.original_r2_key);
-    expect(row.original_r2_key).toBe(`uploads/NO-A/${d.id}.pdf`);
+    expect(row.original_r2_key).toBe(`org/demo-a/uploads/NO-A/${d.id}.pdf`);
     expect(new Uint8Array(await obj!.arrayBuffer())).toEqual(MINE);
     const lines = (await log()).filter((l) => l.action === "document.upload");
     expect(lines).toHaveLength(1);
@@ -156,7 +158,7 @@ describe("any other file is listed, never stored", () => {
   });
 
   it("refuses uploads to an approved or closed case", async () => {
-    await env.DB.prepare("INSERT INTO protocols (case_id, conclusion, state) VALUES ('NO-A', 'x', 'approved')").run();
+    await env.DB.prepare("INSERT INTO protocols (org_id, case_id, conclusion, state) VALUES ('demo-a', 'NO-A', 'x', 'approved')").run();
     const r = await upload("NO-A", MINE);
     expect([r.status, r.body.error!.code]).toEqual([409, "case_locked"]);
     await env.DB.prepare("UPDATE cases SET status = 'closed' WHERE id = 'NO-B'").run();
@@ -216,12 +218,12 @@ describe("listing and removal", () => {
 describe("reset-demo removes uploads", () => {
   it("deletes upload rows through the reset trigger and keeps the seeded documents", async () => {
     await upload("NO-A", MINE);
-    await env.DB.prepare("INSERT INTO pages (document_id, n, json_r2_key, image_r2_key, width, height, engine, is_empty) SELECT id, 1, 'x', 'y', 1, 1, 'tesseract', 0 FROM documents WHERE origin = 'upload'").run();
-    await env.DB.prepare("UPDATE demo_state SET reset_in_progress = 1 WHERE id = 1").run();
+    await env.DB.prepare("INSERT INTO pages (org_id, document_id, n, json_r2_key, image_r2_key, width, height, engine, is_empty) SELECT org_id, id, 1, 'x', 'y', 1, 1, 'tesseract', 0 FROM documents WHERE origin = 'upload'").run();
+    await env.DB.prepare("UPDATE demo_state SET reset_in_progress = 1 WHERE org_id = 'demo-a'").run();
     expect(await count("documents", "origin = 'upload'")).toBe(0);
     expect(await count("pages", "document_id LIKE 'up-%'")).toBe(0);
     expect(await count("documents", "origin = 'seed'")).toBe(2);
-    await env.DB.prepare("UPDATE demo_state SET reset_in_progress = 0 WHERE id = 1").run();
+    await env.DB.prepare("UPDATE demo_state SET reset_in_progress = 0 WHERE org_id = 'demo-a'").run();
   });
 });
 

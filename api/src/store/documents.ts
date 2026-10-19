@@ -1,5 +1,7 @@
 // D1 reads for uploads and the document pipeline (step 6): the fixture registry, a case's documents and the state an
-// upload depends on. Writes go through the guarded batch in store/write.ts.
+// upload depends on. Writes go through the guarded batch in store/write.ts. Everything but the fixture registry is
+// read in one org.
+import { orgStmt } from "./sql";
 
 export type FixtureRow = {
   sha256: string;
@@ -49,8 +51,9 @@ const DOC_SELECT = `SELECT d.id, d.case_id, d.file_name, d.page_count, d.size_by
   d.original_r2_key, d.uploaded_by, trim(u.pre || ' ' || u.sur || CASE WHEN u.post <> '' THEN ', ' || u.post ELSE '' END) AS uploaded_by_name,
   d.created_at, d.state, d.state_detail_cs, d.fixture_id, d.identity, d.title_cs, d.doc_type, d.doc_date, d.readability,
   d.readability_reasons_json, d.source
-  FROM documents d LEFT JOIN users u ON u.id = d.uploaded_by`;
+  FROM documents d LEFT JOIN users u ON u.id = d.uploaded_by /* org-scope: the caller's WHERE names d.org_id */`;
 
+// The fixture registry is global: the same synthetic files can be uploaded in any demo org.
 export function fixtureByHash(db: D1Database, sha: string) {
   return db
     .prepare(
@@ -69,31 +72,32 @@ export function fixtureFiles(db: D1Database, fixtureId: string, kind: FixtureRow
     .then((r) => r.results);
 }
 
-export async function caseDocuments(db: D1Database, caseId: string) {
-  return (await db.prepare(`${DOC_SELECT} WHERE d.case_id = ?1 ORDER BY d.created_at, d.id`).bind(caseId).all<DocRow>()).results;
+export async function caseDocuments(db: D1Database, org: string, caseId: string) {
+  return (await orgStmt(db, org, `${DOC_SELECT} WHERE d.org_id = ?org AND d.case_id = ?1 ORDER BY d.created_at, d.id`, caseId).all<DocRow>()).results;
 }
 
 // The documents a phone sent through one upload session, for the desktop's poll.
-export async function sessionDocuments(db: D1Database, sessionId: string) {
-  return (await db.prepare(`${DOC_SELECT} WHERE d.upload_session_id = ?1 ORDER BY d.created_at, d.id`).bind(sessionId).all<DocRow>()).results;
+export async function sessionDocuments(db: D1Database, org: string, sessionId: string) {
+  return (await orgStmt(db, org, `${DOC_SELECT} WHERE d.org_id = ?org AND d.upload_session_id = ?1 ORDER BY d.created_at, d.id`, sessionId).all<DocRow>()).results;
 }
 
-export function documentRow(db: D1Database, id: string) {
-  return db.prepare(`${DOC_SELECT} WHERE d.id = ?1`).bind(id).first<DocRow>();
+// A document of another org reads as missing.
+export function documentRow(db: D1Database, org: string, id: string) {
+  return orgStmt(db, org, `${DOC_SELECT} WHERE d.org_id = ?org AND d.id = ?1`, id).first<DocRow>();
 }
 
 // What decides whether a case takes uploads: closed, or a conclusion approved (the approved record must not change
 // under it, as canUpload() in the page), and the case's patient for the identity check.
-export async function uploadContext(db: D1Database, caseId: string) {
-  return db
-    .prepare(
-      `SELECT c.status, c.created_by, p.full_name, p.name_as_written, p.birth_number,
-         EXISTS (SELECT 1 FROM protocols pr WHERE pr.case_id = c.id AND pr.state = 'approved') AS approved,
-         (SELECT COUNT(*) FROM documents d WHERE d.case_id = c.id) AS doc_count
-       FROM cases c JOIN patients p ON p.id = c.patient_id WHERE c.id = ?1`,
-    )
-    .bind(caseId)
-    .first<{
+export async function uploadContext(db: D1Database, org: string, caseId: string) {
+  return orgStmt(
+    db,
+    org,
+    `SELECT c.status, c.created_by, p.full_name, p.name_as_written, p.birth_number,
+       EXISTS (SELECT 1 FROM protocols pr WHERE pr.org_id = ?org AND pr.case_id = c.id AND pr.state = 'approved') AS approved,
+       (SELECT COUNT(*) FROM documents d WHERE d.org_id = ?org AND d.case_id = c.id) AS doc_count
+     FROM cases c JOIN patients p ON p.id = c.patient_id AND p.org_id = c.org_id WHERE c.org_id = ?org AND c.id = ?1`,
+    caseId,
+  ).first<{
       status: string;
       created_by: string | null;
       full_name: string;
@@ -105,4 +109,4 @@ export async function uploadContext(db: D1Database, caseId: string) {
 }
 
 // The guard every upload write re-checks inside its batch.
-export const UNLOCKED_COND = "(SELECT status FROM cases WHERE id = ?) <> 'closed' AND NOT EXISTS (SELECT 1 FROM protocols WHERE case_id = ? AND state = 'approved')";
+export const UNLOCKED_COND = "(SELECT status FROM cases WHERE org_id = ?org AND id = ?) <> 'closed' AND NOT EXISTS (SELECT 1 FROM protocols WHERE org_id = ?org AND case_id = ? AND state = 'approved')";

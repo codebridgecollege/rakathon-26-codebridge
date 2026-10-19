@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { env } from "cloudflare:workers";
 import { introspectWorkflow } from "cloudflare:test";
 import { call, mockFetch, testEnv } from "./helpers";
-import { FAKE_NAME, SQL, loadFixture } from "./data";
+import { FAKE_NAME, loadFixture, resetDoc } from "./data";
 import { sweep } from "../src/scheduled";
 import { providerDelay } from "../src/workflows/speaker-pass";
 import { wordsToLines, safeCode, partsToComplete, transcriptText } from "../src/domain/transcript";
@@ -93,7 +93,7 @@ async function settle(wf: Awaited<ReturnType<typeof introspectWorkflow>>) {
 
 beforeEach(async () => {
   await loadFixture();
-  await env.DB.prepare("INSERT INTO sessions (day, started_by, started_at) VALUES (?1, 'd2p1', ?2)").bind(DAY, new Date(Date.now() - 3600_000).toISOString()).run();
+  await env.DB.prepare("INSERT INTO sessions (org_id, day, started_by, started_at) VALUES ('demo-a', ?1, 'd2p1', ?2)").bind(DAY, new Date(Date.now() - 3600_000).toISOString()).run();
 });
 afterEach(() => vi.restoreAllMocks());
 
@@ -211,7 +211,7 @@ describe("audio parts", () => {
     expect(parts[0]!.etag).not.toBe(first.etag);
     expect(await q("SELECT start_sample FROM audio_segments ORDER BY start_sample")).toEqual([{ start_sample: 0 }, { start_sample: 16000 }]);
     const up = await one("SELECT * FROM audio_uploads");
-    expect(up.r2_key).toBe(`audio/NO-A/${up.id}.pcm`);
+    expect(up.r2_key).toBe(`org/demo-a/audio/NO-A/${up.id}.pcm`);
     expect(up.r2_key).not.toContain(DAY);
     expect((await log()).filter((l) => l.action === "recording.audio_stored")).toHaveLength(1);
   });
@@ -244,7 +244,7 @@ describe("purge", () => {
     const rec = await startRecording();
     await part("NO-A", 1, pcm(1), { rec, final: true });
     const up = await one("SELECT * FROM audio_uploads");
-    await env.DB.prepare("INSERT INTO protocols (case_id, conclusion) VALUES ('NO-A', '')").run();
+    await env.DB.prepare("INSERT INTO protocols (org_id, case_id, conclusion) VALUES ('demo-a', 'NO-A', '')").run();
     const r = await w("POST", "/cases/NO-A/status", { to: "closed", expected_status: "ready" });
     expect(r.status).toBe(200);
     expect(await one("SELECT state, delete_reason FROM audio_uploads")).toEqual({ state: "aborted", delete_reason: "případ uzavřen" });
@@ -277,11 +277,10 @@ describe("purge", () => {
     const rec = await startRecording();
     await part("NO-A", 1, pcm(1), { rec, final: true });
     await w("POST", "/cases/NO-A/transcript/lines", lineBody(rec, [{ id: lid(1), at: Date.now(), text: "věta" }]));
-    const MUTABLE = /^\s*INSERT INTO (users|departments|dept_members|cases|case_members|slots|tasks) /;
-    await env.DOCS.put("seed/reset.json", JSON.stringify({ seed_version: "t", statements: SQL.filter((x) => MUTABLE.test(x)), patient_ids: ["pt-A", "pt-B"] }));
+    await env.DOCS.put("seed/reset.json", JSON.stringify(resetDoc("t")));
     const r = await w("POST", "/admin/reset-demo", { confirm: "OBNOVIT" }, "admin");
     expect(r.status).toBe(200);
-    expect((await env.DOCS.list({ prefix: "audio/" })).objects).toEqual([]);
+    expect((await env.DOCS.list({ prefix: "org/demo-a/audio/" })).objects).toEqual([]);
     for (const t of ["recordings", "transcript_lines", "audio_uploads", "audio_parts", "audio_segments"]) expect(await q(`SELECT * FROM ${t}`)).toEqual([]);
   });
 });
@@ -380,7 +379,7 @@ describe("SpeakerPassWorkflow", () => {
     const pass = lines.body.passes[0];
     expect(pass).toMatchObject({ state: "done", line_count: 2, speaker_count: 2, job_state: "done", audio_kept: false });
     expect(lines.body.summaries).toMatchObject([{ state: "done", basis: "speaker_pass", label: "ai_draft", text: "Kontrolní CT hrudníku za 3 měsíce." }]);
-    expect((await env.DOCS.list({ prefix: "audio/" })).objects).toEqual([]);
+    expect((await env.DOCS.list({ prefix: "org/demo-a/audio/" })).objects).toEqual([]);
     // The decision and protocol hold the doctor's conclusion only.
     expect((await one("SELECT conclusion FROM decisions")).conclusion).toBe("Kontrolní CT za 3 měsíce.");
     expect((await one("SELECT conclusion FROM protocols")).conclusion).toBe("Kontrolní CT za 3 měsíce.");
@@ -426,7 +425,7 @@ describe("SpeakerPassWorkflow", () => {
     expect(tr.body.passes[0]).not.toHaveProperty("audio_on_failure");
     expect(tr.body.lines.map((l: any) => l.text)).toEqual(LINES);
     expect(tr.body.summaries[0]).toMatchObject({ state: "done", basis: "live_only" });
-    expect((await env.DOCS.list({ prefix: "audio/" })).objects).toHaveLength(1);
+    expect((await env.DOCS.list({ prefix: "org/demo-a/audio/" })).objects).toHaveLength(1);
     const job = await get(`/jobs/${jobId}`);
     expect(job.body).toMatchObject({ state: "error", error_code: "eleven_4xx" });
     expect(JSON.stringify(job.body)).not.toContain("invalid");
@@ -457,7 +456,7 @@ describe("SpeakerPassWorkflow", () => {
     await inst.waitForStatus("complete");
     expect((await get("/cases/NO-A/transcript")).body.passes[0]).toMatchObject({ state: "error", audio_kept: true });
     // The lifecycle rule removed the object before the cron sweep recorded it.
-    for (const o of (await env.DOCS.list({ prefix: "audio/" })).objects) await env.DOCS.delete(o.key);
+    for (const o of (await env.DOCS.list({ prefix: "org/demo-a/audio/" })).objects) await env.DOCS.delete(o.key);
     const before = calls.length;
     expect((await w("POST", `/jobs/${jobId}/retry`, {})).body.error?.code).toBe("not_retryable");
     expect(await wf.get()).toHaveLength(1);
@@ -550,8 +549,8 @@ describe("SpeakerPassWorkflow", () => {
     // Closed case: an upload a race left open after the close.
     await env.DB.batch([
       env.DB.prepare("UPDATE cases SET status = 'closed' WHERE id = 'NO-B'"),
-      env.DB.prepare("INSERT INTO recordings (id, started_by, started_by_name, started_at) VALUES ('rec-x', 'd2p1', 'x', ?1)").bind(new Date().toISOString()),
-      env.DB.prepare("INSERT INTO audio_uploads (id, case_id, recording_id, r2_key, state, created_by, created_at) VALUES ('up-x', 'NO-B', 'rec-x', 'audio/NO-B/up-x.pcm', 'completed', 'd2p1', ?1)").bind(new Date().toISOString()),
+      env.DB.prepare("INSERT INTO recordings (org_id, id, started_by, started_by_name, started_at) VALUES ('demo-a', 'rec-x', 'd2p1', 'x', ?1)").bind(new Date().toISOString()),
+      env.DB.prepare("INSERT INTO audio_uploads (org_id, id, case_id, recording_id, r2_key, state, created_by, created_at) VALUES ('demo-a', 'up-x', 'NO-B', 'rec-x', 'audio/NO-B/up-x.pcm', 'completed', 'd2p1', ?1)").bind(new Date().toISOString()),
     ]);
     await env.DOCS.put("audio/NO-B/up-x.pcm", pcm(1));
     expect((await sweep(env)).purged).toBe(1);
@@ -569,7 +568,7 @@ describe("SpeakerPassWorkflow", () => {
     await recordCase();
     const text = transcriptText(LINES.map((t) => ({ speaker: null, text: t })));
     const sha = await sha256Hex(`gpt-6-luna-dz-eu\n${PROMPT_VERSION}\n${await sha256Hex(PROMPT)}\n${text}`);
-    await env.DOCS.put(`cache/summary/NO-A/${sha}.json`, JSON.stringify({ summary: "Z mezipaměti." }));
+    await env.DOCS.put(`org/demo-a/cache/summary/NO-A/${sha}.json`, JSON.stringify({ summary: "Z mezipaměti." }));
     // Silence from ElevenLabs: no words, so the live lines stay (never replaced by nothing) and are summarized.
     const { wf, inst, calls } = await runPass({ eleven: [() => elevenWords([])], azure: [() => azure("nemá se volat")] });
     await using _ = wf;
