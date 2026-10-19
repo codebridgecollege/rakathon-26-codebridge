@@ -8,6 +8,7 @@ import { introspectWorkflow } from "cloudflare:test";
 import { call, mockFetch, testEnv } from "./helpers";
 import { FAKE_NAME, loadFixture } from "./data";
 import { sweep } from "../src/scheduled";
+import { POOL_SIZE, pageReader, pipelineAvailable, pipelineOn, poolInstance } from "../src/services/page-reader";
 
 const q = async <T = Record<string, unknown>>(sql: string, ...args: unknown[]) => (await env.DB.prepare(sql).bind(...args).all<T>()).results;
 const one = async <T = Record<string, any>>(sql: string, ...args: unknown[]) => (await q<T>(sql, ...args))[0]!;
@@ -158,6 +159,9 @@ describe("starting a run", () => {
     for (const i of await wf.get()) await i.waitForStatus("complete");
     const off = await w("POST", `/documents/${DOC}/process`, {}, "d2p1", testEnv({ PAGE_READER_URL: "" }));
     expect([off.status, off.body.error.code]).toEqual([503, "pipeline_off"]);
+    // Demo org A is not in the deployed PIPELINE_ORGS: the route answers as if no page reader existed.
+    const notListed = await w("POST", `/documents/${DOC}/process`, {}, "d2p1", testEnv({ PIPELINE_ORGS: "demo-b" }));
+    expect([notListed.status, notListed.body.error.code]).toEqual([503, "pipeline_off"]);
     expect((await w("POST", `/documents/${DOC}/process`, {}, "admin")).status).toBe(403);
     expect((await w("POST", `/documents/${DOC}/process`, {}, "d1p1")).body.error.code).toBe("not_member");
   });
@@ -190,5 +194,29 @@ describe("starting a run", () => {
     for (const i of await wf.get()) await i.waitForStatus("complete");
     expect(await one("SELECT state, processing FROM documents WHERE id = 'A_pacient'")).toEqual({ state: null, processing: "processed" });
     expect((await one("SELECT state FROM pipeline_runs WHERE document_id = 'A_pacient'")).state).toBe("done");
+  });
+});
+
+describe("page reader routing", () => {
+  it("uses the container only when PAGE_READER_CONTAINER is on, and names instances from a small pool by case", async () => {
+    const base = { PAGE_READER_URL: "", PAGE_READER: {}, PIPELINE_ORGS: "*" } as unknown as Env;
+    expect(pipelineAvailable({ ...base, PAGE_READER_CONTAINER: "off" })).toBe(false);
+    expect(pipelineAvailable({ ...base, PAGE_READER_CONTAINER: "on" })).toBe(true);
+    expect(pipelineAvailable({ ...base, PAGE_READER_CONTAINER: "on", PAGE_READER: undefined } as unknown as Env)).toBe(false);
+    expect(pipelineAvailable({ ...base, PAGE_READER_URL: "http://localhost:8080", PAGE_READER_CONTAINER: "off" })).toBe(true);
+    // Per org: the deployed host lists demo org B only, so demo org A looks as it always has.
+    const deployed = { ...base, PAGE_READER_CONTAINER: "on", PIPELINE_ORGS: "demo-b" };
+    expect([pipelineOn(deployed, "demo-a"), pipelineOn(deployed, "demo-b")]).toEqual([false, true]);
+    expect(pipelineOn({ ...deployed, PIPELINE_ORGS: "" }, "demo-b")).toBe(false);
+    expect(pipelineOn({ ...deployed, PAGE_READER_CONTAINER: "off" }, "demo-b")).toBe(false);
+    // Every case lands on one of POOL_SIZE names, the same one every time, and no name carries the case ID.
+    const names = new Set(Array.from({ length: 200 }, (_, i) => poolInstance(`NO-${i}`)));
+    expect([...names].sort()).toEqual(Array.from({ length: POOL_SIZE }, (_, i) => `pool-${i}`));
+    expect(poolInstance("NO-S02")).toBe(poolInstance("NO-S02"));
+    // A call reaches the instance named for its case.
+    const seen: string[] = [];
+    const ns = { getByName: (n: string) => (seen.push(n), { fetch: async () => Response.json({ ok: true, versions: {} }) }) };
+    await pageReader.healthz({ ...base, PAGE_READER_CONTAINER: "on", PAGE_READER: ns } as unknown as Env, poolInstance("NO-S02"));
+    expect(seen).toEqual([poolInstance("NO-S02")]);
   });
 });

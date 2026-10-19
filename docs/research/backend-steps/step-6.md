@@ -885,7 +885,8 @@ rules) are not built.
   server's answer, and the identity alert shows on the row and on the
   case. A file the server did not take (unreachable, rate limit) stays
   listed in the browser only. The pipeline's states and "Přečíst bez AI"
-  show only when `/api/health` reports `features.pipeline`. Embedded mode
+  show only when `/api/me` reports `features.pipeline` for the acting org
+  (issue #18; before, `/api/health`). Embedded mode
   keeps the browser-only list.
 
 ### Intake on the server (6a-2)
@@ -995,14 +996,16 @@ rules) are not built.
   pozorování asistenta, ne dokumentace"; a poor or empty document carries
   "Dokument je špatně čitelný, vyžádejte lepší kopii."),
   `POST /api/admin/pipeline/warm`. `/api/health` reports
-  `features.pipeline`. The documents tab offers "Přečíst bez AI" on each
+  `features.pipeline` (a page reader is reachable) and `/api/me` whether the
+  acting org may use it (`PIPELINE_ORGS`). The documents tab offers "Přečíst bez AI" on each
   uploaded document in API mode and shows the run's summary next to the
   prepared data.
 - How the Worker reaches the page reader (`api/src/services/page-reader.ts`):
   `PAGE_READER_URL` (local work: the Python service on port 8080; tests: a
-  mocked host), else a `PAGE_READER` container binding, else the pipeline is
-  off (503 `pipeline_off`). The container binding is not configured: see
-  "Deploy" below.
+  mocked host), else the `PAGE_READER` container binding when
+  `PAGE_READER_CONTAINER` is "on", else the pipeline is off (503
+  `pipeline_off`); it is also off for an org not in `PIPELINE_ORGS`. See the
+  container below.
 - Acceptance, measured locally with `wrangler dev`, the Python service
   and Homebrew Tesseract 5.5.3 (`node api/scripts/e2e-intake.mjs
   http://localhost:8799 --pipeline --reset`): re-processing S02's four lab
@@ -1023,18 +1026,48 @@ rules) are not built.
   identity in the stored extraction, the quote found on the uploaded
   file's page, the wrong-patient result on NO-S01) and then ran
   reset-demo (45 statements, nothing left in `uploads/`).
-- The page reader container is not deployed, so the deployed Worker reports
-  `features.pipeline: false` and the pipeline answers 503 there. What
-  blocked it: `wrangler deploy` builds the image with the local Docker
-  daemon, and Docker Desktop on the deploying machine did not answer
-  (`docker ps` hung; it was not restarted). The account accepts
-  `wrangler containers list`. To deploy once Docker works: add
-  `@cloudflare/containers`, a `PageReader` class (`extends Container`,
-  `defaultPort = 8080`, `sleepAfter = "15m"`) exported from
-  `src/index.ts`, and in `wrangler.jsonc` a `containers` entry (`class_name:
+- The page reader container (issue #18): `api/src/services/page-reader-container.ts`
+  (`PageReader extends Container` from `@cloudflare/containers` 0.3.7,
+  `defaultPort = 8080`, `sleepAfter = "15m"`, `enableInternet = false`) lives in
+  its own Worker, `codebridge-page-reader` (`api/page-reader.wrangler.jsonc`,
+  `src/page-reader-worker.ts`), with the `containers` entry (`class_name:
   "PageReader"`, `image: "../pipeline/container/Dockerfile"`,
-  `image_build_context: ".."`, `instance_type: "standard-1"`,
-  `max_instances: 2`, `constraints: { jurisdiction: "eu" }`), a durable
-  object binding `PAGE_READER` and a migration `new_sqlite_classes:
-  ["PageReader"]`; `services/page-reader.ts` already uses the binding when
-  `PAGE_READER_URL` is empty. Then run `POST /api/admin/pipeline/warm`.
+  `image_build_context: ".."`, `instance_type: "standard-1"`, `max_instances: 3`,
+  `constraints: { jurisdiction: "eu" }`) and the migration `v1-page-reader`
+  (`new_sqlite_classes: ["PageReader"]`). The API Worker only binds it
+  (`durable_objects.bindings` with `script_name: "codebridge-page-reader"`):
+  a Worker that defines a Durable Object class gets no preview URLs, and
+  `wrangler versions upload` (the `backend` alias) refuses a pending class
+  migration. The tests give workerd an empty stand-in Worker of that name
+  (`vitest.config.ts`); `wrangler dev` shows the binding "not connected".
+  - **Image built in CI.** The `deploy` job of
+    `.github/workflows/deploy-worker.yml` on `main` runs `wrangler deploy -c
+    page-reader.wrangler.jsonc`, which builds the image with the runner's
+    Docker and pushes it to Cloudflare's registry; nobody builds it locally.
+    It runs before the D1 migration, after a check that
+    `CLOUDFLARE_API_TOKEN` can run `wrangler containers list` (the account
+    permission "Containers: Edit"), so a missing permission or an image that
+    does not build stops the job before anything changes. The `backend`
+    preview binds the page reader `main` deployed, so the first deploy must
+    come from `main`.
+    `.github/workflows/pipeline.yml` builds the same image on every change to
+    `pipeline/`, checks `/healthz` (Tesseract 5.3.0, the Czech model), reads
+    one page of an S02 lab sheet through `/v1/pages`, and runs the pytest
+    suite inside the image, so the tests run on the deployed Tesseract.
+  - **Instances by case.** Calls name an instance from a pool of three by a
+    hash of the case ID (`poolInstance`; `POOL_SIZE` equals `max_instances`):
+    however many documents run at once, at most three instances start, and
+    two cases can run side by side. A case's documents queue on one
+    half-vCPU instance (server.py works one request at a time), so the steps
+    that wait for it have the 10-minute OCR timeout. The warm route
+    (`POST /api/admin/pipeline/warm`) calls `/healthz` on all three; run it
+    before a demo, since the first call after a deploy starts cold.
+  - **Switches.** `PAGE_READER_CONTAINER` is "off" in `wrangler.jsonc`, so
+    `wrangler dev`, the tests and the browser suite never reach for a
+    container; CI's deploy commands and `npm run deploy` pass
+    `--var PAGE_READER_CONTAINER:on`.
+    `PIPELINE_ORGS` ("demo-b" deployed, "*" in the tests) lists the orgs the
+    pipeline runs for: `/api/me` reports `features.pipeline` for the acting
+    org, and the page shows processing states and "Přečíst bez AI" only then,
+    so demo org A looks as before. `/api/health` `features.pipeline` now says
+    only that the host reaches a page reader.

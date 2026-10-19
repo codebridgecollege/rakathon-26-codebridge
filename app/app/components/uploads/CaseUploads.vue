@@ -27,7 +27,7 @@ const uploads = useUploadsStore();
 const session = useSessionStore();
 const lang = () => document.documentElement.lang || "cs";
 // The pipeline's states show only while it runs on the server; otherwise every file is "Nahráno", as before the server.
-const pipeline = computed(() => session.health?.features.pipeline === true);
+const pipeline = computed(() => session.me?.features?.pipeline === true);
 const PIPE_STATES = ["queued", "processing", "processed", "failed"];
 
 watch(

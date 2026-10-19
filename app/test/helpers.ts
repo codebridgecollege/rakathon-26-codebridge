@@ -75,4 +75,5 @@ export const meOrg = (membership: string) => ({
   real_user: null,
   role_switch: null,
   nis: null,
+  features: { pipeline: false },
 });
