@@ -4,7 +4,8 @@ import { defineComponent, h, type Component } from "vue";
 import { mount } from "@vue/test-utils";
 import { createPinia, setActivePinia, type Pinia } from "pinia";
 import { createFluentVue } from "fluent-vue";
-import type { CaseState, PatientRow } from "@codebridge/api-client";
+import type { CaseState, ExtractionDocument, PatientRow } from "@codebridge/api-client";
+import type { ExtractionRun } from "@codebridge/domain/extraction/types";
 import { bundlesFor } from "../app/lib/i18n";
 import { setApi } from "../app/lib/api";
 import { providePatient } from "../app/composables/usePatient";
@@ -17,8 +18,10 @@ import { mockApi, row, meOrg } from "./helpers";
 
 export type PatientSetup = {
   p?: Partial<PatientRow>;
-  // The extraction's data as the server sends it ({ case, extra } or { syn }); null for an unprocessed case.
-  extraction?: { case?: unknown; extra?: unknown; syn?: unknown } | null;
+  // The case's codebridge.extraction/2 run as the server sends it; null for an unprocessed case.
+  extraction?: ExtractionRun | null;
+  // The stored documents with their parts that come with the run (none when left out).
+  documents?: ExtractionDocument[];
   wf?: Partial<CaseState>;
   role?: "doctor" | "coordinator" | "admin";
   userName?: string;
@@ -40,7 +43,7 @@ export function setupPatient(s: PatientSetup = {}) {
   const cases = useCasesStore();
   if (s.extraction !== undefined) {
     const e = cases.caseOf(p.file);
-    Object.assign(e, { state: "ready", data: { file: p.file, id: p.id, extraction: s.extraction }, error: null, loadedAt: 1 });
+    Object.assign(e, { state: "ready", data: { file: p.file, id: p.id, extraction: s.extraction, documents: s.documents ?? [] }, error: null, loadedAt: 1 });
     if (s.guide) e.guide = s.guide;
   }
   if (s.wf) useWorkflowStore().cases[p.id] = { case_id: p.id, file: p.file, ...s.wf };

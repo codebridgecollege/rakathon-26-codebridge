@@ -10,16 +10,16 @@
 import { defineStore } from "pinia";
 import { reactive, ref } from "vue";
 import { ApiError, type Extraction, type PatientRow } from "@codebridge/api-client";
+import { EXTRACTION_SCHEMA } from "@codebridge/domain/extraction/types";
 import { useApi } from "../lib/api";
 
 // It bounds how much patient data one tab holds. A privacy-for-convenience trade-off: a larger cache would make
 // switching cases faster.
 export const CASE_CACHE_MAX = 5;
 
-// The server's extraction objects as they come ({ case, extra } or { syn }); null for a case without a run, which the
-// screens show as "not processed". Converting them to the screens' shape (fromFullExtraction, fromSyn) is ported with
-// the screens.
-export type CaseData = { file: string; id: string; extraction: Extraction["data"] };
+// The server's reply as it comes: the case's codebridge.extraction/2 run (null for a case without one, which the screens
+// show as "not processed") and its stored documents with their parts. fromExtraction() builds the screens' shape.
+export type CaseData = { file: string; id: string; extraction: Extraction["data"]; documents: Extraction["documents"] };
 export type CaseError = { code: string; status: number | null; message_cs: string | null; message_id: string | null };
 export type CaseEntry = {
   state: "absent" | "loading" | "ready" | "error";
@@ -35,7 +35,7 @@ export type CaseEntry = {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type Guidance = { loading?: boolean; error?: { message_cs: string | null; message_id: string | null } } & Record<string, any>;
 
-const unprocessed = (p: Pick<PatientRow, "file" | "id">): CaseData => ({ file: p.file, id: p.id, extraction: null });
+const unprocessed = (p: Pick<PatientRow, "file" | "id">): CaseData => ({ file: p.file, id: p.id, extraction: null, documents: [] });
 
 export const useCasesStore = defineStore("cases", () => {
   const entries = reactive(new Map<string, CaseEntry>());
@@ -93,10 +93,10 @@ export const useCasesStore = defineStore("cases", () => {
     try {
       const ex = await useApi().extraction(p.id);
       const d = ex.data ?? null;
-      // All knowledge of the reply's shape sits here, data is null (no run) or holds
-      // { case, extra } or { syn }. Anything else is an error on the case, never data that merely looks valid.
-      if (d !== null && (typeof d !== "object" || (!("case" in d) && !("syn" in d)))) throw new ApiError("bad_shape", 200, null, "case-data-bad-shape");
-      data = { file: p.file, id: p.id, extraction: d };
+      // All knowledge of the reply's shape sits here: data is null (no run, or a run in the old format) or a
+      // codebridge.extraction/2 run. Anything else is an error on the case, never data that merely looks valid.
+      if (d !== null && (typeof d !== "object" || d.schema !== EXTRACTION_SCHEMA || !Array.isArray(d.facts))) throw new ApiError("bad_shape", 200, null, "case-data-bad-shape");
+      data = { file: p.file, id: p.id, extraction: d, documents: Array.isArray(ex.documents) ? ex.documents : [] };
     } catch (x) {
       err = x instanceof ApiError ? x : new ApiError("network", 0, null, "api-error-network");
     }
@@ -149,9 +149,7 @@ export const useCasesStore = defineStore("cases", () => {
     if (entries.get(docFile)?.state === "ready") return docFile;
     for (const [f, e] of entries) {
       if (e.state !== "ready" || !e.data) continue;
-      const d = e.data.extraction as { syn?: { documents?: { file?: string }[] }; extra?: { documents?: { file?: string }[] } } | null;
-      const docs = d?.syn?.documents ?? d?.extra?.documents ?? [];
-      if (docs.some((x) => x.file === docFile)) return f;
+      if (e.data.documents.some((x) => x.file === docFile)) return f;
     }
     return null;
   }

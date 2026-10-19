@@ -7,7 +7,7 @@
 // server does not send, so it is left out.
 import { computed } from "vue";
 import { useFluent } from "fluent-vue";
-import { refAt, type Item, type SourceRef } from "@codebridge/domain/case-data";
+import type { Item, SourceRef } from "@codebridge/domain/case-data";
 import { quoteLang } from "@codebridge/domain/guideline";
 import { usePatient } from "../../composables/usePatient";
 import { usePatientViewStore } from "../../stores/patientView";
@@ -21,7 +21,7 @@ import PastPassage from "./PastPassage.vue";
 const { $t } = useFluent();
 const c = usePatient();
 const view = usePatientViewStore();
-const { G, GL, past, anyStmt } = useGuide(c, $t);
+const { G, GL, past, anyStmt, sourcesOf } = useGuide(c, $t);
 
 const errText = computed(() => {
   const e = G.value.error;
@@ -36,8 +36,10 @@ const rowOf = (x: Item) => {
   const pastSt = x.past_statement_id ? past.value.find((st) => st.id === x.past_statement_id) : undefined;
   const all = pastSt ? [pastSt, ...statements] : statements;
   const guidelines = [...new Map(all.map((st) => [st.guideline_id, GL(st.guideline_id)])).values()];
-  const quotes = ((x.source_refs || []) as number[]).map((i) => refAt(c.cd.value, i)).filter(Boolean) as SourceRef[];
-  return { x, all, guidelines, quotes };
+  // The documentation's own passages, by the facts the finding rests on; a fact the current run does not show is
+  // flagged in the row.
+  const src = sourcesOf(x.source_fact_ids);
+  return { x, all, guidelines, quotes: src.refs, unresolved: src.unresolved };
 };
 const rows = computed(() => findings.value.map(rowOf));
 
@@ -51,9 +53,14 @@ const GROUPS: Record<string, string> = {
   "past-2l-after-io": "patient-dev-group-systemic",
   "past-3l-after-io-tki": "patient-dev-group-systemic",
 };
-// The decision's own words: the reference the statement names, else the first source of its oncology row.
-const decisionRef = (x: Item): SourceRef | undefined =>
-  refAt(c.cd.value, Number.isInteger(x.decision_ref) ? x.decision_ref : ((c.cd.value?.record?.onco_detailed || [])[x.row_index]?.refs || [])[0]);
+// The decision's own words: the first passage of the facts the statement names as the decision, else of its row's
+// fact.
+const decisionSrc = (x: Item) => {
+  const d = sourcesOf(x.decision_fact_ids);
+  return d.refs.length ? d : sourcesOf(x.row_fact_id ? [x.row_fact_id] : []);
+};
+const decisionRef = (x: Item): SourceRef | undefined => decisionSrc(x).refs[0];
+const decisionUnresolved = (x: Item) => sourcesOf([...((x.decision_fact_ids || []) as string[]), ...(x.row_fact_id ? [x.row_fact_id] : [])]).unresolved.length > 0;
 const edRange = (e: Item) => $t("patient-dev-edition-range", { from: fmtDate($t, e.valid_from), to: e.valid_to ? fmtDate($t, e.valid_to) : $t("patient-dev-edition-until-now") });
 const COLS = ["patient-dev-col-finding", "patient-dev-col-area", "patient-dev-col-severity", "patient-dev-col-guideline", "patient-dev-col-year", "patient-dev-col-passage", "patient-dev-col-quote", "patient-dev-col-consequence"];
 </script>
@@ -85,7 +92,7 @@ const COLS = ["patient-dev-col-finding", "patient-dev-col-area", "patient-dev-co
                 <Gap v-else />
                 <p v-if="r.x.risk_basis_cs" class="note"><span lang="cs">{{ r.x.risk_basis_cs }}</span> <a class="linkbtn small" :href="r.x.risk_basis_url" target="_blank" rel="noopener">{{ $t("patient-dev-risk-basis-link") }}</a></p>
               </td>
-              <td><template v-if="r.quotes.length"><p v-for="(ref, i) in r.quotes" :key="i" class="dev-context"><q lang="cs">{{ ref.quote }}</q> <button class="linkbtn small" data-src @click="c.openSource(ref)">{{ $t("patient-src-page-button", { n: String(ref.page) }) }}</button></p></template><Gap v-else /></td>
+              <td><template v-if="r.quotes.length"><p v-for="(ref, i) in r.quotes" :key="i" class="dev-context"><q lang="cs">{{ ref.quote }}</q> <button class="linkbtn small" data-src @click="c.openSource(ref)">{{ $t("patient-src-page-button", { n: String(ref.page) }) }}</button></p></template><Gap v-else /><p v-if="r.unresolved.length" class="muted small">{{ $t("patient-guide-fact-unresolved") }}</p></td>
               <td><span lang="cs">{{ r.x.clinical_consequence_cs }}</span><span class="note">{{ $t("patient-dev-consequence-note") }}</span></td>
             </tr>
           </tbody>
@@ -110,7 +117,7 @@ const COLS = ["patient-dev-col-finding", "patient-dev-col-area", "patient-dev-co
                 <td><template v-if="x.edition"><b lang="cs">{{ x.edition.name }}</b><span class="note" lang="cs">{{ x.edition.society || "" }} · {{ x.edition.version || "" }}</span></template><Gap v-else /></td>
                 <td><template v-if="x.edition">{{ x.edition.year }}<span class="note">{{ edRange(x.edition) }}</span></template><Gap v-else /></td>
                 <td><PastPassage :x="x" /></td>
-                <td><template v-if="decisionRef(x)"><q lang="cs">{{ decisionRef(x)!.quote }}</q><span class="note"><button class="linkbtn small" data-src @click="c.openSource(decisionRef(x))"><span lang="cs">{{ c.docTitle(decisionRef(x)!) }}</span>{{ $t("patient-dev-doc-page", { page: String(decisionRef(x)!.page) }) }}</button></span></template><Gap v-else /></td>
+                <td><template v-if="decisionRef(x)"><q lang="cs">{{ decisionRef(x)!.quote }}</q><span class="note"><button class="linkbtn small" data-src @click="c.openSource(decisionRef(x))"><span lang="cs">{{ c.docTitle(decisionRef(x)!) }}</span>{{ $t("patient-dev-doc-page", { page: String(decisionRef(x)!.page) }) }}</button></span></template><Gap v-else /><span v-if="decisionUnresolved(x)" class="muted small"> {{ $t("patient-guide-fact-unresolved") }}</span></td>
                 <td><Gap /></td>
               </tr>
             </tbody>

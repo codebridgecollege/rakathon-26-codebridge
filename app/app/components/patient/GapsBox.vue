@@ -1,6 +1,7 @@
 <script setup lang="ts">
 // The brief's alert panel behind "⚠ Upozornění": the alerts for the MDT question first
-// (CLAUDE.md: question-relevant alerts first), then the brief's own data gaps; the full list stays in the tab.
+// (CLAUDE.md: question-relevant alerts first), then the other missing-document alerts, which are always signalled on
+// the brief; the full list stays in the tab.
 import { computed } from "vue";
 import { useRouter } from "vue-router";
 import { useFluent } from "fluent-vue";
@@ -15,7 +16,8 @@ const c = usePatient();
 const router = useRouter();
 
 const t = computed(() => topAlerts(c.cd.value?.alerts ?? null, c.alertHist.value));
-const gaps = computed(() => t.value.open.filter((f) => String(f.i).startsWith("gap:")));
+// Missing documents and a page of another patient are always signalled on the brief (CLAUDE.md), relevant or not.
+const gaps = computed(() => t.value.open.filter((f) => !f.relevant && (f.kind === "missing" || f.kind === "identity")));
 
 function allAlerts() {
   void router.push({ name: "patient", params: { nr: nrOf(c.p.value.file), tab: "alerts" } });
@@ -33,8 +35,8 @@ function allAlerts() {
     </div>
     <p v-if="!t.top.length && !gaps.length" class="muted small">{{ $t("patient-gaps-none") }}</p>
     <template v-if="gaps.length">
-      <!-- A case without an extracted brief has data gaps of its documents, not of a summary. -->
-      <span class="label" style="display:block;margin-top:12px">{{ c.sec.value.brief ? $t("patient-gaps-brief") : $t("patient-gaps-documents") }}</span>
+      <!-- A case without an extracted brief misses documents, not parts of a summary. -->
+      <span class="label" style="display:block;margin-top:12px">{{ $t("patient-gaps-documents") }}</span>
       <div class="alerts" role="list" style="margin-top:6px">
         <AlertRow v-for="f in gaps" :key="String(f.i)" :f="f" compact />
       </div>

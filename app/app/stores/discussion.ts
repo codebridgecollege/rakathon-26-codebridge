@@ -231,7 +231,7 @@ export const useDiscussionStore = defineStore("discussion", () => {
   // The guideline layer is not needed (switched off, or a case without one), has arrived, or failed.
   function guideSettled(file: string): boolean {
     const data = useCasesStore().readyData(file);
-    const sec = sectionsOf(data ? fromExtraction(data.file, data.id, data.extraction) : null);
+    const sec = sectionsOf(data ? fromExtraction(data.file, data.id, data.extraction, data.documents) : null);
     const g = useCasesStore().entries.get(file)?.guide;
     return !(usePatientViewStore().guideOn && sec.guidance && (!g || g.loading || !(g.statements || g.error)));
   }

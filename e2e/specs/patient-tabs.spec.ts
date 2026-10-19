@@ -91,7 +91,8 @@ test("Upozornění groups the alerts and labels them as the assistant's observat
   await expect(app.main.getByRole("heading", { level: 3, name: "K dotazu na MDT" })).toBeVisible();
   await expect(app.main.getByRole("heading", { level: 3, name: "Ostatní upozornění" })).toBeVisible();
   await expect(app.main.getByRole("heading", { level: 4, name: "Rozpor, další" })).toBeVisible();
-  await expect(app.main.getByRole("heading", { level: 4, name: "Chronologie, další" })).toBeVisible();
+  // The chronology alert rests on facts the drafted question rests on, so it is among the question's alerts now.
+  await expect(app.main.getByRole("heading", { level: 4, name: "Nejasné, další" })).toBeVisible();
   await expect(app.main.getByText(/Nejnovější ambulantní závěr je tedy na s\. 3/)).toBeVisible();
 });
 

@@ -1,5 +1,5 @@
 // The FHIR R4 export as the doctor sees it: the dialog's text, download and copy, the audit event, and the Bundle's
-// Czech labels from the real catalog. Case NO-010's synthetic seed extraction.
+// Czech labels from the real catalog. Case NO-010's converted codebridge.extraction/2 run.
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -12,13 +12,13 @@ import FhirDialog from "../app/components/patient/FhirDialog.vue";
 import { makeBundle } from "../app/lib/i18n";
 import { fmtWhen } from "../app/lib/dates";
 import { lastToast, mountInCase, setupPatient, type PatientSetup } from "./patient";
+import { docsOf, edit, runOf } from "./helpers";
 
 // Vitest runs from app/; the jsdom environment gives no file URL to resolve against.
 const read = (p: string) => readFileSync(resolve(process.cwd(), "..", p), "utf8");
-// The committed fixtures the seed builds case NO-010's extraction from (api/seed/out is gitignored, so a clean
-// checkout or CI has no seed output to read).
-const seed = { case: JSON.parse(read("fixtures/data/mock-case-10.json")), extra: JSON.parse(read("fixtures/data/mock-case-10-extra.json")) };
-const mq = seed.case.mdt_question;
+// Case 10's list row carries the drafted MDT question; the committed fixture the seed builds it from (api/seed/out is
+// gitignored, so a clean checkout or CI has no seed output to read).
+const mq = JSON.parse(read("fixtures/data/mock-case-10.json")).mdt_question;
 const cs = makeBundle("cs");
 const t = (id: string, args?: Record<string, string | number>) => cs.formatPattern(cs.getMessage(id)!.value!, args);
 
@@ -26,7 +26,8 @@ const t = (id: string, args?: Record<string, string | number>) => cs.formatPatte
 function exportCase(s: PatientSetup = {}) {
   const setup = setupPatient({
     p: { name: "Daniel Poláček", draft: mq.question_draft_cs, qkind: mq.question_kind, basis: mq.question_basis, identitySource: null, ...s.p },
-    extraction: { case: seed.case, extra: seed.extra },
+    extraction: runOf("NO-010"),
+    documents: docsOf("NO-010"),
     routes: { "/audit/events": { ok: true } },
     ...s,
   });
@@ -81,7 +82,8 @@ describe("Export FHIR dialog", () => {
   it("reads the case header first when the name's source has not arrived yet", async () => {
     const setup = setupPatient({
       p: { name: "Daniel Poláček", draft: mq.question_draft_cs, qkind: mq.question_kind, basis: mq.question_basis },
-      extraction: { case: seed.case, extra: seed.extra },
+      extraction: runOf("NO-010"),
+    documents: docsOf("NO-010"),
       routes: { "/audit/events": { ok: true }, "/cases/NO-010": { id: "NO-010", identitySource: { file: "10_pacient.pdf", page: 1, quote: "Poláček Daniel" } } },
     });
     let ctx!: PatientCtx;
@@ -161,7 +163,7 @@ describe("the Bundle's Czech labels", () => {
   });
 
   it("exports a doctor's question with its tag", () => {
-    const { o } = exportCase({ wf: { edits: { q: { id: 1, text: "Indikace k radiochirurgii?", by: "MUDr. Novák", when: "not-a-date" } } } });
+    const { o } = exportCase({ wf: { edits: { q: edit("Indikace k radiochirurgii?", "MUDr. Novák", { when: "not-a-date" }) } } });
     expect(sections(o.bundle)[0].text.div).toBe('<div xmlns="http://www.w3.org/1999/xhtml">Indikace k radiochirurgii? [doplněno lékařem]</div>');
   });
 
@@ -175,18 +177,11 @@ describe("the Bundle's Czech labels", () => {
 
 describe("our code systems", () => {
   // The validator checks the assistant-flag CodeSystem as complete, so an alert kind it lacks makes the Bundle invalid.
-  // The kinds come straight from the case data, so the committed case and the committed example are checked against it.
-  it("the alert kinds of case 10 and of the committed example are all defined", () => {
+  // The kinds come straight from the runs' alerts, so the committed runs and the committed example are checked against it.
+  it("the alert kinds of the demo runs and of the committed example are all defined", () => {
     const defined = new Set((JSON.parse(read("fhir/definitions/CodeSystem-assistant-flag.json")).concept as { code: string }[]).map((c) => c.code));
     const kinds = new Set<string>();
-    const walk = (o: unknown): void => {
-      if (Array.isArray(o)) return o.forEach(walk);
-      if (!o || typeof o !== "object") return;
-      const r = o as Record<string, unknown>;
-      if (Array.isArray(r.flags)) for (const f of r.flags as { kind?: string }[]) if (f.kind) kinds.add(f.kind);
-      Object.values(r).forEach(walk);
-    };
-    walk(seed);
+    for (const id of ["NO-010", "NO-S01", "NO-S02"] as const) for (const a of runOf(id).alerts) kinds.add(a.kind);
     for (const e of JSON.parse(read("fhir/examples/case-10-bundle.json")).entry as { resource: any }[]) {
       if (e.resource.resourceType !== "DetectedIssue") continue;
       for (const c of e.resource.code.coding as { system: string; code: string }[]) if (c.system.endsWith("/assistant-flag")) kinds.add(c.code);
@@ -199,11 +194,16 @@ describe("our code systems", () => {
 describe("catalog use", () => {
   const ftl = read("i18n/cs/patient.ftl");
 
-  it("passes only literal patient-fhir- IDs, and every one is in the catalog", () => {
+  it("passes only literal patient-fhir- IDs and the alerts' own message IDs, and every one is in the catalog", () => {
     const builder = read("packages/domain/src/fhir-export.ts");
     const calls = [...builder.matchAll(/\bt\(([^,)]+)/g)].map((m) => m[1]!.trim());
     expect(calls.length).toBeGreaterThan(20);
-    for (const c of calls) expect(c).toMatch(/^"patient-fhir-[a-z0-9-]+"$/);
+    // The one computed ID is an alert's Fluent message, which the run names (EXTRACTION-FORMAT.md, "Alerts").
+    // The negation label is the patient view's own message, so a negated fact reads the same in the export as on screen.
+    for (const c of calls) if (c !== "f.message.id" && c !== '"patient-fact-negated"') expect(c).toMatch(/^"patient-fhir-[a-z0-9-]+"$/);
+    expect(calls.filter((c) => c === "f.message.id")).toHaveLength(1);
+    const alerts = read("i18n/cs/alerts.ftl");
+    for (const id of ["NO-010", "NO-S01", "NO-S02"] as const) for (const a of runOf(id).alerts) expect(alerts, a.message.id).toMatch(new RegExp(`^${a.message.id} =`, "m"));
     const ids = [...(builder + read("app/app/components/patient/FhirDialog.vue")).matchAll(/["'](patient-fhir-[a-z0-9-]+)["']/g)].map((m) => m[1]!);
     for (const id of new Set(ids)) expect(ftl, id).toMatch(new RegExp(`^${id} =`, "m"));
   });

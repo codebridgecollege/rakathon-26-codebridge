@@ -37,7 +37,7 @@ const locked = computed(() => pr.value.state === "approved");
 const frozen = computed(() => discussion.frozenOf(props.o.file));
 const sec = computed(() => {
   const d = cases.readyData(props.o.file);
-  return sectionsOf(d ? fromExtraction(d.file, d.id, d.extraction) : null);
+  return sectionsOf(d ? fromExtraction(d.file, d.id, d.extraction, d.documents) : null);
 });
 const picks = computed(() => ["summary", ...(sec.value.anamnesis ? ["anamnesis"] : []), ...(sec.value.record ? FIND : [])]);
 const picked = computed<ReadonlySet<string>>(() => (locked.value && frozen.value.pickSnap ? new Set(frozen.value.pickSnap) : report.picked));

@@ -51,7 +51,8 @@ test("brief shows the summary, the current state and the missing-documents warni
   await gaps.click();
   await expect(app.main.getByRole("button", { name: "⚠ Upozornění · chybí podklady ▴" })).toHaveAttribute("aria-expanded", "true");
   await expect(app.main.getByText("Upozornění k dotazu na MDT")).toBeVisible();
-  await expect(app.main.getByText(/Drobná osteoplastická ložiska do 7 mm/).first()).toBeVisible();
+  // Alert text is the run's Fluent message, its fact argument shown as the fact's line.
+  await expect(app.main.getByText(/Originální zpráva v dostupné dokumentaci chybí, jen citace: MR mozek/).first()).toBeVisible();
 });
 
 test("an unprocessed case says its missing documents were not checked", async ({ app }) => {
@@ -136,12 +137,13 @@ test("alerts: acknowledge, resolve and reopen, and the history survives a reload
   await expect(app.main.getByRole("heading", { level: 2, name: "Upozornění" })).toBeVisible();
   await expect(app.main.getByText("Pozorování asistenta, ne klinický závěr. Upozornění neblokují projednání.")).toBeVisible();
 
-  const age = /Věk a rodné číslo neuvedeny v dostupné dokumentaci/;
+  // One alert per missing field (alert IDs follow rule and subject), worded by its Fluent message.
+  const age = /Věk: neuvedeno v dostupné dokumentaci/;
   await alertEntry(app.main, age).getByRole("button", { name: "Vyřešeno" }).click();
   const done = app.main.getByText(/^Vyřešené \/ vzaté na vědomí \(1\)$/);
   await expect(done).toBeVisible();
 
-  const chrono = /Výsledek neurochirurgického semináře k nálezu MR neuveden/;
+  const chrono = /Požadavek bez výsledku v dostupné dokumentaci: projednání nálezu MR mozku/;
   await alertEntry(app.main, chrono, "Vzít na vědomí").getByRole("button", { name: "Vzít na vědomí" }).click();
   await expect(app.main.getByText(/^Vyřešené \/ vzaté na vědomí \(2\)$/)).toBeVisible();
 

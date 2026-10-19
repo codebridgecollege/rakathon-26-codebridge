@@ -14,6 +14,7 @@ import { usePatientsStore } from "../../stores/patients";
 import { useOverlayStore } from "../../stores/overlay";
 import PatientHeader from "./PatientHeader.vue";
 import BriefBlock from "./BriefBlock.vue";
+import OrphanList from "./OrphanList.vue";
 import ConclusionBox from "./ConclusionBox.vue";
 import TabOverview from "./TabOverview.vue";
 import TabAnamnesis from "./TabAnamnesis.vue";
@@ -125,6 +126,7 @@ function retry() {
     <template v-else>
       <PatientHeader :with-question="!c.sec.value.brief" />
       <BriefBlock />
+      <OrphanList />
       <div class="tabs" role="tablist">
         <button v-for="t in tabs" :key="t" class="tab" role="tab" :aria-selected="current === t" @click="openTab(t)">{{ $t(TAB_ID[t]) }}</button>
       </div>

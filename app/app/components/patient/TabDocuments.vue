@@ -104,10 +104,9 @@ onBeforeUnmount(() => {
 });
 
 const pipelineOn = computed(() => !!session.me?.features?.pipeline);
-const uploaded = computed(() => all.value.some((d) => d.file));
-// "citace v ambulantní zprávě, původní popis v PDF není" becomes "citováno v ambulantní zprávě": the row adds
-// "originál chybí" itself, so the data's own "original missing" clause would say it twice.
-const citedIn = (t: string) => String(t).replace(/,\s*původní popis v PDF není/i, "").replace(/^citace v\b/i, "citováno v");
+// A case made by intake holds one stored file per document; a seeded case one PDF with all its parts.
+const ownFile = (d: DocumentInfo) => !!d.file && d.file !== dd.value.file;
+const uploaded = computed(() => all.value.some(ownFile));
 const firstPage = (d: DocumentInfo) => ({ file: d.file || dd.value.file, page: (d.pages || [1])[0]! });
 const openDoc = (d: DocumentInfo) => c.openSource(firstPage(d));
 // The "+ Nahrát dokument" dialog (UploadDialog.vue), drawn by the patient screen's overlay host.
@@ -134,7 +133,7 @@ const openUpload = () => overlay.open({ kind: "upload", file: c.p.value.file });
         </thead>
         <tbody>
           <tr v-for="d in docs" :key="all.indexOf(d)" class="click" data-src @click="openDoc(d)">
-            <td><b lang="cs">{{ d.title_cs }}</b><span v-if="d.embedded_in_cs" class="note"><span lang="cs">{{ citedIn(d.embedded_in_cs) }}</span>{{ $t("patient-docs-original-missing") }}</span><DocPipeline v-if="pipelineOn && d.file" :file="d.file" /></td>
+            <td><b lang="cs">{{ d.title_cs }}</b><span v-if="d.cited" class="note">{{ $t("patient-docs-cited") }}{{ $t("patient-docs-original-missing") }}</span><DocPipeline v-if="pipelineOn && ownFile(d)" :file="d.file!" /></td>
             <td lang="cs">{{ d.type }}</td>
             <td class="num"><span v-if="d.date" lang="cs">{{ d.date }}</span><Gap v-else /></td>
             <td class="num">{{ (d.pages || []).join(", ") }}</td>
