@@ -18,7 +18,7 @@ cp .dev.vars.example .dev.vars   # local keys, gitignored; agents never read it
 npm run dev                      # stage-assets.sh builds the app and stages it into .assets, then wrangler dev (demo mode)
 npm run dev:oidc                 # the same with the login (AUTH_MODE=oidc); needs OIDC_CLIENT_SECRET and SESSION_KEY in .dev.vars
 npm run typecheck
-npm test                         # Vitest in workerd with local D1/R2 and the migrations; outbound fetch is mocked
+npm test                         # Vitest in workerd with local D1/R2 and the migrations; outbound fetch is mocked; one file at a time (vitest.config.ts)
 npm run types                    # after any wrangler.jsonc change; CI fails on a stale file
 ```
 
