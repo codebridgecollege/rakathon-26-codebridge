@@ -3,8 +3,12 @@
 // is checked in app/test/patient-fhir.test.ts against the real catalog. Synthetic values only.
 import { describe, expect, it } from "vitest";
 import { fhirBundle, fhirDate, fhirJson, questionPlain, type FhirRow } from "../src/fhir-export";
-import { fromFullExtraction, type Item } from "../src/case-data";
+import type { CaseData, Item } from "../src/case-data";
+import { fromFullExtraction } from "./old-view";
 import { qState } from "../src/case-view";
+import { fromExtraction } from "../src/case-data";
+import type { ExtractionRun } from "../src/extraction/types";
+import run10 from "../../../fixtures/data/runs/NO-010.json";
 
 const t = (id: string, args?: Record<string, string | number>) => (args ? `${id}${JSON.stringify(args)}` : id);
 const NOW = "2026-10-18T10:00:00.000Z";
@@ -37,7 +41,7 @@ const CASE: Item = {
     { code: "S_X", name_cs: "X", value: "neg.", unit: "", date: null, source: src(3, "X neg.") },
   ],
   labs_note_cs: null,
-  flags: [{ kind: "missing", text_cs: "Chybí histologie.", note: "Pozorování asistenta.", based_on: [src(3, "histologie")] }],
+  flags: [{ id: "al-00000001", kind: "missing", rule: "original_report_missing", message: { id: "alert-original-report-missing", args: { fact: "f-000000aa" } }, note: "Pozorování asistenta.", fact_ids: [], based_on: [src(3, "histologie")] }],
   ocr_quality_note: "Text vrstva je špatná.",
 };
 type Row = FhirRow & { question: string | null; qkind: string | null };
@@ -54,7 +58,7 @@ const row = (x: Partial<Row> = {}): Row => ({
   ...x,
 });
 const build = (p = row(), edit?: Parameters<typeof qState>[1], confirm?: Parameters<typeof qState>[2]) =>
-  fhirBundle({ p, cd: fromFullExtraction(CASE.file, p.id, CASE, {}), q: qState(p, edit, confirm) }, deps());
+  fhirBundle({ p, cd: fromFullExtraction(CASE.file, p.id, CASE, {}) as unknown as CaseData, q: qState(p, edit, confirm) }, deps());
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const all = (b: any, type: string) => b.entry.map((e: any) => e.resource).filter((r: any) => r.resourceType === type);
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -91,7 +95,7 @@ describe("fhirBundle", () => {
     // A sex the document states is exported.
     const doc = { ...CASE, patient: { ...CASE.patient, sex: "žena", sex_certainty: "documented" } };
     const p = row();
-    expect(all(fhirBundle({ p, cd: fromFullExtraction(CASE.file, p.id, doc, {}), q: qState(p, undefined, undefined) }, deps()), "Patient")[0].gender).toBe("female");
+    expect(all(fhirBundle({ p, cd: fromFullExtraction(CASE.file, p.id, doc, {}) as unknown as CaseData, q: qState(p, undefined, undefined) }, deps()), "Patient")[0].gender).toBe("female");
   });
 
   it("gives the Patient a Provenance from the row's identity source, with the name as quoted", () => {
@@ -107,7 +111,7 @@ describe("fhirBundle", () => {
     // Case data that still holds the source (a local extraction, not stripped by the seed) is used when the row has none.
     const p = row({ identitySource: null });
     const local = { ...CASE, patient: { ...(CASE.patient as Item), source: src(1, "Pacient z místní extrakce") } };
-    const b2 = fhirBundle({ p, cd: fromFullExtraction(CASE.file, p.id, local, {}), q: qState(p, undefined, undefined) }, deps());
+    const b2 = fhirBundle({ p, cd: fromFullExtraction(CASE.file, p.id, local, {}) as unknown as CaseData, q: qState(p, undefined, undefined) }, deps());
     expect(provFor(b2, patientUrl(b2))[0].entity[0].extension[1].valueString).toBe("Pacient z místní extrakce");
   });
 
@@ -145,7 +149,7 @@ describe("fhirBundle", () => {
     expect(hyp.note).toEqual([{ text: 'patient-fhir-date-in-doc{"date":"4/2022"}' }]);
     const withTx = { ...CASE, sections: { past_treatment: [{ text_cs: "Nefrektomie vpravo", date: "4/2022", source: src(1, "NE") }] } };
     const p = row();
-    const [proc] = all(fhirBundle({ p, cd: fromFullExtraction(CASE.file, p.id, withTx, {}), q: qState(p, undefined, undefined) }, deps()), "Procedure");
+    const [proc] = all(fhirBundle({ p, cd: fromFullExtraction(CASE.file, p.id, withTx, {}) as unknown as CaseData, q: qState(p, undefined, undefined) }, deps()), "Procedure");
     expect(proc).toMatchObject({ status: "unknown", performedDateTime: "2022-04", code: { text: "Nefrektomie vpravo" } });
   });
 
@@ -161,7 +165,7 @@ describe("fhirBundle", () => {
     const issues = all(b, "DetectedIssue");
     expect(issues.map((i: Item) => i.code.coding[0].code).sort()).toEqual(["missing", "unclear"]);
     const missing = issues.find((i: Item) => i.code.coding[0].code === "missing");
-    expect(missing).toMatchObject({ status: "preliminary", author: { reference: deviceUrl }, detail: "Chybí histologie. (Pozorování asistenta.)" });
+    expect(missing).toMatchObject({ status: "preliminary", author: { reference: deviceUrl }, detail: `alert-original-report-missing{"fact":"patient-alert-fact-unavailable"} (Pozorování asistenta.)` });
     expect(byUrl(b, missing.implicated[0].reference).resourceType).toBe("DocumentReference");
   });
 
@@ -227,5 +231,15 @@ describe("questionPlain", () => {
     const p = row();
     expect(questionPlain(t, qState(p, undefined, { text: null, by: "MUDr. A", when: "1. 1. 2026" }))).toMatch(/^Jaký postup\? patient-fhir-q-confirmed\{"by":"MUDr. A","when":"1. 1. 2026"\} patient-fhir-basis/);
     expect(questionPlain(t, qState(row({ draft: null }), undefined, undefined))).toBe("patient-fhir-q-none");
+  });
+});
+
+describe("FHIR export of a codebridge.extraction/2 run", () => {
+  it("labels a recorded negative whose text does not say so, in the value and the narrative", () => {
+    const cd = fromExtraction("10_pacient.pdf", "NO-010", run10 as unknown as ExtractionRun);
+    const b = fhirBundle({ p: row(), cd, q: qState(row(), undefined, undefined) }, deps());
+    const pe = all(b, "Observation").find((o: Item) => String(o.valueString ?? "").includes("plicní embolie"));
+    expect(pe.valueString).toBe('patient-fact-negated{"text":"plicní embolie"}');
+    expect(pe.text.div).toContain("patient-fact-negated");
   });
 });

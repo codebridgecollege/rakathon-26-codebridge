@@ -259,14 +259,6 @@ discussion-report-basis-part = { $key ->
 }
 discussion-report-basis-list-only = only data from the list
 discussion-report-h-missing = Missing documents
-discussion-report-h-missing-unclear = Missing and unclear documents
-# The kind of a data gap that is not a missing document, before its text.
-discussion-report-gap-kind = { $kind ->
-    [missing] Missing
-    [contradiction] Contradiction
-    [chronology] Chronology
-   *[unclear] Unclear
-}
 discussion-report-gap-src = ({ $file }, p. { $page })
 # The PDF file's properties, its running head and page footer.
 discussion-report-pdf-title = GLIDE MDT - MDT record - { $id }

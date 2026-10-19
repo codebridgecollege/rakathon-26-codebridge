@@ -173,3 +173,8 @@ class ExtractionRun(TypedDict, total=False):
     alerts: list[Alert]
     brief: dict[str, Any] | None
     question_draft: dict[str, Any] | None
+    views: dict[str, Any] | None
+
+
+# The composed views a run may carry (types.ts VIEW_NAMES), in the order the format lists them.
+VIEW_NAMES = ("onco_lines", "other_diagnoses", "timeline")

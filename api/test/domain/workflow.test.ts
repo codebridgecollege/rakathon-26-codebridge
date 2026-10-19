@@ -1,7 +1,8 @@
 // Alerts, fact edits, the drafted question, drafted tasks, tasks, attendance, sessions, break-the-glass.
 import { describe, expect, it } from "vitest";
-import { alertState, missingSignal, parseAlertKey, transition } from "../../src/domain/alerts";
-import { revertEdit, saveEdit } from "@codebridge/domain/edits";
+import { ALERT_ID, alertState, missingSignal, transition } from "../../src/domain/alerts";
+import { factIdOfKey, revertEdit, saveEdit } from "@codebridge/domain/edits";
+import { confirmTransition, confirmationState, confirmedContent, stableJson } from "@codebridge/domain/confirmations";
 import { confirmDraft } from "../../src/domain/question";
 import { confirmTask, editSuggestion, type SuggestionRow } from "../../src/domain/suggestions";
 import { setDone } from "../../src/domain/tasks";
@@ -34,23 +35,81 @@ describe("alerts", () => {
     expect(missingSignal([{ kind: "missing", state: "open" }, { kind: "missing", state: "ack" }, { kind: "missing", state: "resolved" }, { kind: "unclear", state: "open" }])).toBe(2);
   });
 
-  it("parses the app's alert keys", () => {
-    expect(parseAlertKey("3")).toEqual({ origin: "flag", position: 3 });
-    expect(parseAlertKey("gap:1")).toEqual({ origin: "gap", position: 1 });
-    expect(parseAlertKey("f.1")).toBeNull();
+  it("takes alert IDs of codebridge.extraction/2 only, never a position", () => {
+    expect(ALERT_ID.test("al-77205d20")).toBe(true);
+    for (const k of ["3", "gap:1", "al-77205d2", "al-77205D20", "al-77205d20x"]) expect(ALERT_ID.test(k), k).toBe(false);
   });
 });
 
 describe("fact edits", () => {
   it("saves, treats an empty or unchanged text as a revert, and refuses a stale edit id", () => {
-    expect(saveEdit("od:1:e", null, "nový text", "původní", null)).toEqual({ kind: "save", text: "nový text" });
-    expect(saveEdit("od:1:e", { log_id: 5, by_name: "x" }, "", "původní", 5)).toEqual({ kind: "revert" });
-    expect(saveEdit("od:1:e", { log_id: 5, by_name: "x" }, "původní", "původní", 5)).toEqual({ kind: "revert" });
-    expect(saveEdit("od:1:e", null, "původní", "původní", null)).toEqual({ kind: "noop" });
-    expect(() => saveEdit("od:1:e", { log_id: 6, by_name: "MUDr. Novák" }, "x", "y", 5)).toThrow(expect.objectContaining({ code: "edit_conflict", message_cs: "Údaj mezitím upravil(a) MUDr. Novák." }));
-    expect(() => saveEdit("od:1:e", { log_id: 6, by_name: "x" }, "x", "y", null)).toThrow(expect.objectContaining({ code: "edit_conflict" }));
+    expect(saveEdit("f:f-8d41c2:e", null, "nový text", "původní", null)).toEqual({ kind: "save", text: "nový text" });
+    expect(saveEdit("f:f-8d41c2:e", { log_id: 5, by_name: "x" }, "", "původní", 5)).toEqual({ kind: "revert" });
+    expect(saveEdit("f:f-8d41c2:e", { log_id: 5, by_name: "x" }, "původní", "původní", 5)).toEqual({ kind: "revert" });
+    expect(saveEdit("f:f-8d41c2:e", null, "původní", "původní", null)).toEqual({ kind: "noop" });
+    expect(() => saveEdit("f:f-8d41c2:e", { log_id: 6, by_name: "MUDr. Novák" }, "x", "y", 5)).toThrow(expect.objectContaining({ code: "edit_conflict", message_cs: "Údaj mezitím upravil(a) MUDr. Novák." }));
+    expect(() => saveEdit("f:f-8d41c2:e", { log_id: 6, by_name: "x" }, "x", "y", null)).toThrow(expect.objectContaining({ code: "edit_conflict" }));
     expect(() => saveEdit("bad key!", null, "x", "y", null)).toThrow(expect.objectContaining({ code: "invalid_input" }));
     expect(revertEdit("brief", null, null)).toEqual({ kind: "noop" });
+  });
+
+  it("takes field keys and f:<fact id> keys with a part; names the fact of an f: key", () => {
+    for (const k of ["brief", "q", "dx", "assess:3", "sev:12:note", "f:f-8d41c2", "f:f-0a1b2c3d", "f:f-0a1b2c3d:line", "f:f-0a1b2c3d:t"])
+      expect(saveEdit(k, null, "x", "y", null), k).toEqual({ kind: "save", text: "x" });
+    for (const k of ["f:f-8d41c", "f:f-0a1b2c3d4", "f:f-0A1B2C3D", "f:f-0a1b2c3d:x", "f:al-77205d20", "f-0a1b2c3d", "brief:x", "Novák"])
+      expect(() => saveEdit(k, null, "x", "y", null), k).toThrow(expect.objectContaining({ code: "invalid_input" }));
+    expect(factIdOfKey("f:f-0a1b2c3d:line")).toBe("f-0a1b2c3d");
+    expect(factIdOfKey("f:f-8d41c2")).toBe("f-8d41c2");
+    expect(factIdOfKey("brief")).toBeNull();
+    expect(factIdOfKey("f:f-0a1b2c3d:x")).toBeNull();
+  });
+
+  it("refuses a new text under an old positional key, but lets a doctor revert an edit stored under one", () => {
+    expect(() => saveEdit("od:1:e", null, "nový text", "původní", null)).toThrow(expect.objectContaining({ code: "edit_key_legacy" }));
+    expect(() => saveEdit("od:1:e", { log_id: 5, by_name: "x" }, "jiný text", "původní", 5)).toThrow(expect.objectContaining({ code: "edit_key_legacy" }));
+    expect(saveEdit("od:1:e", { log_id: 5, by_name: "x" }, "", "původní", 5)).toEqual({ kind: "revert" });
+    expect(revertEdit("od:1:e", { log_id: 5, by_name: "x" }, 5)).toEqual({ kind: "revert" });
+    expect(revertEdit("OA:2", null, null)).toEqual({ kind: "noop" });
+  });
+});
+
+describe("fact confirmations", () => {
+  const fact = {
+    kind: "performance_status" as const,
+    subject: "patient" as const,
+    negated: false,
+    status: "documented" as const,
+    date: { as_written: null, precision: null, sort: null },
+    value: { scale: "ECOG", value_as_written: "1", value_numeric: 1 },
+    origin: "document" as const,
+    codes: [
+      { system: "mkn-10", code: "C20", assigned_by: "source" as const },
+      { system: "snomed-ct", code: "1", assigned_by: "assistant" as const, display: "x" },
+    ],
+    not_stated: ["date", "edition"],
+  };
+
+  it("hashes frame, value, codes and open fields the same whatever their order, and differently when any changes", () => {
+    const reordered = { value: { value_numeric: 1, value_as_written: "1", scale: "ECOG" }, date: { sort: null, precision: null, as_written: null }, status: "documented" as const, negated: false, subject: "patient" as const, kind: "performance_status" as const,
+      origin: "document" as const, codes: [...fact.codes].reverse().map((c) => ({ ...c, display: null })), not_stated: ["edition", "date"] };
+    expect(confirmedContent(reordered)).toBe(confirmedContent(fact));
+    expect(confirmedContent({ ...fact, value: { ...fact.value, value_as_written: "2", value_numeric: 2 } })).not.toBe(confirmedContent(fact));
+    expect(confirmedContent({ ...fact, negated: true })).not.toBe(confirmedContent(fact));
+    expect(confirmedContent({ ...fact, origin: "assistant" })).not.toBe(confirmedContent(fact));
+    expect(confirmedContent({ ...fact, codes: [{ system: "mkn-10", code: "C18.7", assigned_by: "source" }, fact.codes[1]!] })).not.toBe(confirmedContent(fact));
+    expect(confirmedContent({ ...fact, not_stated: ["date"] })).not.toBe(confirmedContent(fact));
+    expect(stableJson({ b: [2, { d: 1, c: null }], a: "x" })).toBe('{"a":"x","b":[2,{"c":null,"d":1}]}');
+  });
+
+  it("is confirmed only for the value confirmed; a changed value asks again", () => {
+    expect(confirmationState([], "a")).toBe("unconfirmed");
+    expect(confirmationState([{ action: "confirm", value_sha256: "a" }], "a")).toBe("confirmed");
+    expect(confirmationState([{ action: "confirm", value_sha256: "a" }], "b")).toBe("changed");
+    expect(confirmationState([{ action: "confirm", value_sha256: "a" }, { action: "withdraw", value_sha256: "a" }], "a")).toBe("unconfirmed");
+    expect(confirmTransition("unconfirmed", "confirm", "unconfirmed")).toBe("confirm");
+    expect(confirmTransition("changed", "confirm", "changed")).toBe("confirm");
+    expect(() => confirmTransition("confirmed", "confirm", "confirmed")).toThrow(expect.objectContaining({ code: "confirm_action_not_allowed" }));
+    expect(() => confirmTransition("confirmed", "withdraw", "unconfirmed")).toThrow(expect.objectContaining({ code: "confirmation_changed" }));
   });
 });
 

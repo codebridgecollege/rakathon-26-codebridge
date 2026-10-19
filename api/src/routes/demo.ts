@@ -20,15 +20,18 @@ import { actorOf, answer, isoNow, label } from "./write-context";
 const MUTABLE_DELETE_ORDER = [
   "access_log", "audio_segments", "audio_parts", "audio_uploads", "transcript_summaries", "transcript_lines",
   "transcript_passes", "jobs", "recordings", "write_guards", "idempotency_keys", "case_access_grants",
-  "notifications", "alert_events", "edit_log", "fact_edits", "question_confirmations", "tasks", "task_suggestions", "decisions",
+  "notifications", "alert_events", "alert_events_v1", "fact_confirmations", "edit_log", "fact_edits", "question_confirmations", "tasks", "task_suggestions", "decisions",
   "protocols", "attendance_sets", "attendance", "sessions", "slots", "status_history", "case_members", "cases", "dept_members",
   "departments",
 ] as const;
 // The append-only history archived before the reset (synthetic data only).
-const ARCHIVED = ["access_log", "decisions", "edit_log", "alert_events", "status_history", "question_confirmations"] as const;
+const ARCHIVED = [
+  "access_log", "decisions", "edit_log", "alert_events", "alert_events_v1", "fact_confirmations", "status_history", "question_confirmations",
+] as const;
 // Prefixes Steps 5 and 6 write, under the org; seed objects (pages/, docs/, extract/, guidance/, seed/, fixtures/) are
 // never touched.
-const R2_TRANSIENT = ["uploads/", "audio/", "jobs/", "cache/summary/", "cache/model/"];
+// runs/: extraction runs the seed did not write (src/store/runs.ts); their D1 rows go with the reset trigger.
+const R2_TRANSIENT = ["uploads/", "audio/", "jobs/", "cache/summary/", "cache/model/", "runs/"];
 
 // seed/reset.json (written by seed.py): one section per demo org.
 type ResetSection = { statements: string[]; patient_ids: string[]; membership_ids: string[] };
@@ -84,7 +87,8 @@ export const demo = new Hono<AppEnv>().post("/admin/reset-demo", async (c) => {
          CASE WHEN json_array(${archived.map((m) => `(SELECT COUNT(*) FROM ${m.t} WHERE org_id = ?org)`).join(", ")}) = ?1 THEN 1 ELSE 0 END`,
       JSON.stringify(archived.map((m) => m.count)),
     ),
-    // The triggers of migration 0011 remove this org's uploaded documents, intake runs and upload sessions on it.
+    // The triggers (migrations 0011, 0016 and later) remove this org's uploaded documents, every run the seed did not write
+    // with the fact and alert IDs it issued, and the upload sessions; the seeded run of each case becomes current again.
     q("UPDATE demo_state SET reset_in_progress = 1 WHERE org_id = ?org"),
     ...MUTABLE_DELETE_ORDER.map((t) => q(`DELETE FROM ${t} WHERE org_id = ?org`)),
     q("DELETE FROM patients WHERE org_id = ?org AND id NOT IN (SELECT value FROM json_each(?1))", JSON.stringify(sec.patient_ids)),

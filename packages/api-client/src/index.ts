@@ -6,6 +6,7 @@ import type {
   CreatedCase,
   CreatedUploadSession,
   DemoPicker,
+  EarlierFact,
   Extraction,
   FhirReferral,
   IntakeCompleted,
@@ -150,7 +151,9 @@ export function createApiClient(opts: ClientOptions = {}) {
     caseHeader: (caseId: string, viaLink = false) => t.get<Loose>(`/cases/${enc(caseId)}`, { query: viaLink ? { via: "link" } : undefined }),
     // One request per case load; the server writes a "case.data" access-log row, so it is never prefetched.
     extraction: (caseId: string) => t.get<Extraction>(`/cases/${enc(caseId)}/extraction`, { timeout: 20000 }),
-    alerts: (caseId: string) => t.get<Loose>(`/cases/${enc(caseId)}/alerts`),
+    // The value an earlier run gave a fact a doctor confirmed (also a "case.data" access-log row); asked only when the
+    // current run gives that fact another value.
+    earlierFact: (caseId: string, runId: string, factId: string) => t.get<EarlierFact>(`/cases/${enc(caseId)}/runs/${enc(runId)}/facts/${enc(factId)}`),
     decisions: (caseId: string) => t.get<Loose>(`/cases/${enc(caseId)}/decisions`),
     history: (caseId: string) => t.get<Loose>(`/cases/${enc(caseId)}/history`),
     guidance: (caseId: string) => t.get<Loose>(`/cases/${enc(caseId)}/guidance`),
@@ -192,8 +195,13 @@ export function createApiClient(opts: ClientOptions = {}) {
     confirmQuestion: (caseId: string, body: Loose) => w("POST", `/cases/${enc(caseId)}/question/confirm`, body),
     putEdit: (caseId: string, key: string, body: Loose) => w("PUT", `/cases/${enc(caseId)}/edits/${enc(key)}`, body),
     deleteEdit: (caseId: string, key: string, body: Loose) => w("DELETE", `/cases/${enc(caseId)}/edits/${enc(key)}`, body),
-    alertEvent: (caseId: string, key: string | number, body: { action: string; expected_state: unknown }) =>
-      w("POST", `/cases/${enc(caseId)}/alerts/${enc(key)}/events`, body),
+    // By alert ID ("al-" and 8 hex digits) of the current run; the latest event is the alert's state.
+    alertEvent: (caseId: string, alertId: string, body: { action: "ack" | "resolved" | "reopen"; expected_state: "open" | "ack" | "resolved" }) =>
+      w("POST", `/cases/${enc(caseId)}/alerts/${enc(alertId)}/events`, body),
+    // A doctor confirms one fact of the current run, or withdraws the confirmation; expected_state is the state the
+    // page showed (packages/domain/src/confirmations.ts confirmationState).
+    factConfirmation: (caseId: string, factId: string, body: { action: "confirm" | "withdraw"; expected_state: "unconfirmed" | "confirmed" | "changed" }) =>
+      w("POST", `/cases/${enc(caseId)}/facts/${enc(factId)}/confirmations`, body),
     breakGlass: (caseId: string, body: { reason: string }) => w("POST", `/cases/${enc(caseId)}/break-glass`, body),
 
     // ---------- tasks, sessions, attendance ----------

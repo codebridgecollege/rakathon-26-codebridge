@@ -1,7 +1,8 @@
 // Readers of the open case's guideline layer. The
 // guidance reply is the server's JSON as it comes; these helpers only look things up in it.
 import { computed } from "vue";
-import { refAt, type Item, type SourceRef } from "@codebridge/domain/case-data";
+import type { Item } from "@codebridge/domain/case-data";
+import { factRefs } from "@codebridge/domain/run-view";
 import type { PatientCtx } from "../composables/usePatient";
 import type { T } from "./dates";
 
@@ -17,10 +18,10 @@ export function useGuide(c: PatientCtx, t: T) {
     const where = st.pdf_page ? t("patient-guide-cite-page", { page: String(st.printed_page || st.pdf_page) }) : t("patient-guide-cite-abstract");
     return `${g.name || ""}, ${g.society || ""} ${g.year || ""}${g.version ? `, ${g.version}` : ""}; ${st.section || ""}; ${where}`;
   };
-  // The documented facts a statement applies to, each with the case's sources it rests on.
-  const factRefs = (fact: string): SourceRef[] =>
-    (((G.value.fact_refs || {}) as Record<string, number[]>)[fact] || []).map((i) => refAt(c.cd.value, i)).filter(Boolean) as SourceRef[];
-  return { G, GL, stmts, past, anyStmt, citeOf, factRefs };
+  // The passages of the facts a guideline item names by fact ID; IDs the current run does not show come back as
+  // unresolved, for the view to flag.
+  const sourcesOf = (ids: unknown) => factRefs(c.cd.value, ids);
+  return { G, GL, stmts, past, anyStmt, citeOf, sourcesOf };
 }
 
 // A page of a guideline: "s. 1338" when the printed page is known, else "s. PDF 7", so nobody looks for a PDF page

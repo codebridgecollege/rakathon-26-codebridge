@@ -18,6 +18,7 @@ const MATRIX: [Action, boolean, boolean, boolean][] = [
   ["decision.new_version", true, false, false],
   ["question.confirm", true, false, false],
   ["fact.edit", true, false, false],
+  ["fact.confirm", true, false, false],
   ["suggestion.decide", true, false, false],
   ["task.done", true, true, false],
   ["alert.act", true, COORDINATOR_ACTS_ON_ALERTS, false],

@@ -3,27 +3,38 @@ import { env } from "cloudflare:workers";
 import { loadFixture } from "./data";
 
 const run = (sql: string) => env.DB.prepare(sql).run();
-const APPEND_ONLY = ["decisions", "status_history", "edit_log", "alert_events", "question_confirmations", "access_log"];
+const APPEND_ONLY = [
+  "decisions", "status_history", "edit_log", "alert_events", "question_confirmations", "access_log", "alert_events_v1", "fact_confirmations", "fact_ids",
+  "alert_identities",
+];
 
 beforeEach(() => loadFixture());
 
 describe("D1 schema", () => {
   it("has every append-only trigger after the migrations", async () => {
     const r = await env.DB.prepare("SELECT name FROM sqlite_master WHERE type = 'trigger'").all<{ name: string }>();
-    // 13 append-only triggers, the 5 document lifecycle triggers (migration 0013), and the reset triggers that remove
-    // uploads (0005), upload sessions (0010), model calls (0014) and NIS links (0015), and make seeded documents current
-    // again (0013).
+    // 12 append-only triggers and the decision chain check (0002, 0011), 8 more append-only ones on the /2 tables
+    // (0016), the part ID default (0016), the 5 document lifecycle triggers (0013), and the reset triggers that remove
+    // uploads and unseeded runs (0005, 0016), upload sessions (0010), model calls (0014) and NIS links (0015), and make
+    // seeded documents current again (0013).
     const RESET = ["demo_reset_uploads", "demo_reset_upload_sessions", "demo_reset_document_lifecycle", "demo_reset_model_calls", "demo_reset_nis_links"];
     const lifecycle = r.results.filter((t) => t.name.startsWith("documents_lifecycle_"));
     expect(lifecycle).toHaveLength(5);
-    expect(r.results.filter((t) => !RESET.includes(t.name) && !lifecycle.includes(t))).toHaveLength(13);
+    const rest = r.results.filter((t) => !RESET.includes(t.name) && !lifecycle.includes(t)).map((t) => t.name);
+    expect(rest).toHaveLength(22);
+    for (const t of APPEND_ONLY) expect(rest).toEqual(expect.arrayContaining([`${t}_no_update`, `${t}_no_delete`]));
+    expect(rest).toEqual(expect.arrayContaining(["decisions_supersede_same_case", "document_parts_part_id"]));
     for (const t of RESET) expect(r.results.map((x) => x.name)).toContain(t);
   });
 
   it("refuses UPDATE and DELETE on every append-only table", async () => {
     await run("INSERT INTO status_history (org_id, case_id, from_status, to_status, by_name, how) VALUES ('demo-a','NO-A','new','ready','x','ručně')");
     await run("INSERT INTO edit_log (org_id, case_id, key, text, by_user_id, by_name) VALUES ('demo-a','NO-A','k','t','d2p1','x')");
-    await run("INSERT INTO alert_events (org_id, alert_id, action, by_user_id, by_name) VALUES ('demo-a','al-1','ack','d2p1','x')");
+    await run("INSERT INTO alert_events_v1 (org_id, alert_id, action, by_user_id, by_name) VALUES ('demo-a','al-1','ack','d2p1','x')");
+    await run("INSERT INTO alert_events (org_id, case_id, alert_id, action, by_user_id, by_name) VALUES ('demo-a','NO-A','al-77205d20','ack','d2p1','x')");
+    await run(
+      `INSERT INTO fact_confirmations (org_id, case_id, fact_id, action, value_sha256, run_id, by_user_id, by_name) VALUES ('demo-a','NO-A','f-5a0b11','confirm','${"0".repeat(64)}','run-A2','d2p1','x')`,
+    );
     await run("INSERT INTO question_confirmations (org_id, case_id, text, by_user_id, by_name) VALUES ('demo-a','NO-A','t','d2p1','x')");
     await run(
       "INSERT INTO access_log (org_id, actor_user_id, actor_name, acted_as_role, auth_mode, action, what_cs) VALUES ('demo-a','d2p1','x','doctor','demo','a','b')",

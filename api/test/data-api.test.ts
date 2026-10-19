@@ -1,6 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { call, testEnv } from "./helpers";
-import { accessLog, as, FAKE_NAME, loadFixture, NAME_QUOTE } from "./data";
+import { env } from "cloudflare:workers";
+import type { Extraction } from "@codebridge/domain/wire";
+import { alertId, assignKeys, validateRun, type ExtractionRun, type Fact } from "@codebridge/domain/extraction/index";
+import { accessLog, as, FAKE_NAME, loadFixture, NAME_QUOTE, RUN_A2, RUN_A2_ID, RUN_A2_KEY } from "./data";
 import { setStoreFactory } from "../src/store";
 import { D1Audit, D1Cases, D1Directory } from "../src/store/d1";
 import { R2Blobs } from "../src/store/r2";
@@ -121,7 +124,7 @@ describe("/api/patients", () => {
 describe("case reads", () => {
   it("answers 404 for an unknown case and 403 not_member for a doctor outside the team, without content", async () => {
     expect(await errCode(await call("/api/cases/NO-X"))).toBe("case_not_found");
-    for (const path of ["/api/cases/NO-A", "/api/cases/NO-A/extraction", "/api/cases/NO-A/alerts", "/api/cases/NO-A/guidance"]) {
+    for (const path of ["/api/cases/NO-A", "/api/cases/NO-A/extraction", "/api/cases/NO-A/guidance"]) {
       const r = await call(path, as("d1p1"));
       expect(r.status).toBe(403);
       expect(await errCode(r)).toBe("not_member");
@@ -132,7 +135,7 @@ describe("case reads", () => {
   it("logs a case open with actor, role and case, and marks a link open", async () => {
     const r = await call("/api/cases/NO-A");
     expect(r.status).toBe(200);
-    expect(await r.json()).toMatchObject({ id: "NO-A", members: [{ dept: "Klinická onkologie" }], run: { id: "run-A" } });
+    expect(await r.json()).toMatchObject({ id: "NO-A", members: [{ dept: "Klinická onkologie" }], run: { id: "run-A2", producer: "fixture" } });
     await call("/api/cases/NO-A?via=link");
     const log = await accessLog();
     expect(log.map((l) => [l.action, l.case_id, l.acted_as_role, l.what_cs])).toEqual([
@@ -157,17 +160,94 @@ describe("case reads", () => {
 
   // The stripping itself happens in the seed (api/seed/seed.py, checked by its identity scan and key check); this
   // proves the route passes the stored object through without adding identity from the patients table.
-  it("serves the extraction without identity from the patients table", async () => {
-    const body = await (await call("/api/cases/NO-A/extraction")).json<{ processing: string; run: { id: string }; data: Record<string, unknown> }>();
-    expect(body.processing).toBe("full");
-    expect(body.run.id).toBe("run-A");
-    expect(Object.keys(body.data).sort()).toEqual(["alert_ids", "case", "extra"]);
+  it("serves the current codebridge.extraction/2 run as stored, without identity from the patients table", async () => {
+    const body = await (await call("/api/cases/NO-A/extraction")).json<Extraction>();
+    expect(body).toMatchObject({ case_id: "NO-A", processing: "full", run: { id: RUN_A2_ID, producer: "fixture", created_at: "2026-10-18T12:00:00.000Z" } });
+    expect(body.data).toEqual(RUN_A2);
+    expect(Object.keys(body.run!).sort()).toEqual(["created_at", "id", "producer"]);
     expect(JSON.stringify(body)).not.toContain(FAKE_NAME);
     expect((await accessLog()).map((l) => l.action)).toEqual(["case.data"]);
   });
 
+  it("leaves out a quarantined fact and the source only it cites; the identity alert stays, naming document and page", async () => {
+    const other = { id: "src-other", type: "document" as const, document_id: "A_pacient", part: "A_pacient/p0", page: 2, quote: "Jiný Pacient, bolest hlavy",
+      quote_text: "vision" as const, anchor: null, reported_as: "original" as const, identity: "conflicts" as const, reading_check: null };
+    const draft = { kind: "symptom" as const, subject: "patient" as const, value: { text: "bolest hlavy" }, date: { as_written: null, precision: null, sort: null },
+      status: "documented" as const, negated: false, not_stated: [], origin: "document" as const, certainty: "clear" as const, codes: [], note: null,
+      quarantined: true, sources: ["src-other"] };
+    const [q] = assignKeys([draft], [...RUN_A2.sources, other]);
+    const fact = { ...q!, id: "f-0000a1a1" } as Fact;
+    const alert = { rule: "identity_conflict", subject: "A_pacient|2", kind: "identity" as const, facts: [fact.id], message: { id: "alert-identity-conflict", args: { document: "A_pacient", page: 2 } }, note: null };
+    const run: ExtractionRun = { ...RUN_A2, sources: [...RUN_A2.sources, other], facts: [...RUN_A2.facts, fact], alerts: [...RUN_A2.alerts, { ...alert, id: alertId(alert) }] };
+    expect(validateRun(run).issues).toEqual([]);
+    await env.DOCS.put(RUN_A2_KEY, JSON.stringify(run));
+    const body = await (await call("/api/cases/NO-A/extraction")).json<Extraction>();
+    const text = JSON.stringify(body);
+    expect(text).not.toContain("Jiný Pacient");
+    expect(text).not.toContain("src-other");
+    expect(body.data!.facts.map((f) => f.id)).toEqual(RUN_A2.facts.map((f) => f.id));
+    expect(body.data!.sources).toEqual(RUN_A2.sources);
+    expect(body.data!.alerts.find((a) => a.kind === "identity")).toMatchObject({ id: alertId(alert), facts: [], message: { args: { document: "A_pacient", page: 2 } } });
+  });
+
+  it("serves a current run in the old format /1 as not processed: run named, data null", async () => {
+    await env.DB.batch([
+      env.DB.prepare(`UPDATE extraction_runs SET is_current = 0 WHERE id = '${RUN_A2_ID}'`),
+      env.DB.prepare("UPDATE extraction_runs SET is_current = 1 WHERE id = 'run-A'"),
+    ]);
+    expect(await (await call("/api/cases/NO-A/extraction")).json()).toMatchObject({
+      case_id: "NO-A",
+      processing: "full",
+      run: { id: "run-A", producer: "fixture", created_at: "2026-10-17T12:00:00.000Z" },
+      data: null,
+    });
+  });
+
+  it("sends the case's stored documents with their parts next to the run, which names parts by ID only", async () => {
+    const body = await (await call("/api/cases/NO-A/extraction")).json<Extraction>();
+    expect(Array.isArray(body.documents)).toBe(true);
+    for (const d of body.documents) {
+      expect(Object.keys(d).sort()).toEqual(["file", "id", "note_cs", "page_count", "parts"]);
+      for (const p of d.parts) expect(Object.keys(p).sort()).toEqual(["date", "date_note_cs", "pages", "readability", "reason_cs", "title_cs", "type"]);
+    }
+    // One request, one access-log row.
+    expect((await accessLog()).map((l) => l.action)).toEqual(["case.data"]);
+  });
+
+  it("serves one fact of an earlier run of the case, for the value a doctor confirmed; logged like the case data", async () => {
+    const fact = RUN_A2.facts[0]!;
+    const r = await call(`/api/cases/NO-A/runs/${RUN_A2_ID}/facts/${fact.id}`);
+    expect(r.status).toBe(200);
+    expect(await r.json()).toEqual({ run_id: RUN_A2_ID, fact });
+    expect((await accessLog()).map((l) => l.action)).toEqual(["case.data"]);
+    // Another case's run, an unknown fact and a malformed ID are all "not found".
+    expect(await errCode(await call(`/api/cases/NO-B/runs/${RUN_A2_ID}/facts/${fact.id}`))).toBe("fact_not_found");
+    expect(await errCode(await call(`/api/cases/NO-A/runs/${RUN_A2_ID}/facts/f-00000000`))).toBe("fact_not_found");
+    expect(await errCode(await call(`/api/cases/NO-A/runs/${RUN_A2_ID}/facts/x`))).toBe("fact_not_found");
+  });
+
+  it("does not serve an earlier value of a fact the current run quarantines", async () => {
+    const fact = RUN_A2.facts[0]!;
+    // The earlier run is a copy of run-A2 under another ID; the current run then quarantines the fact.
+    await env.DB.prepare(
+      `INSERT INTO extraction_runs (id, org_id, case_id, producer, seeded, schema, supersedes, input_hashes_json, r2_key, sha256, is_current, created_at)
+       SELECT 'run-A1', org_id, case_id, producer, seeded, schema, NULL, input_hashes_json, 'org/demo-a/extract/NO-A/run-A1.json', sha256, 0, '2026-10-17T12:00:00.000Z'
+       FROM extraction_runs WHERE id = '${RUN_A2_ID}'`,
+    ).run();
+    await env.DOCS.put("org/demo-a/extract/NO-A/run-A1.json", JSON.stringify(RUN_A2));
+    expect((await call(`/api/cases/NO-A/runs/run-A1/facts/${fact.id}`)).status).toBe(200);
+    const src = RUN_A2.sources.find((s) => s.id === fact.sources[0])!;
+    const quarantined = { ...RUN_A2, sources: RUN_A2.sources.map((s) => (s === src ? { ...s, identity: "conflicts" } : s)), facts: RUN_A2.facts.map((f) => (f.id === fact.id ? { ...f, quarantined: true } : f)) };
+    await env.DOCS.put(RUN_A2_KEY, JSON.stringify(quarantined));
+    expect(await errCode(await call(`/api/cases/NO-A/runs/run-A1/facts/${fact.id}`))).toBe("fact_not_found");
+  });
+
+  it("has no alert list of its own any more: alerts are part of the run", async () => {
+    expect((await call("/api/cases/NO-A/alerts")).status).toBe(404);
+  });
+
   it("answers processing none for a case without a run", async () => {
-    expect(await (await call("/api/cases/NO-B/extraction")).json()).toEqual({ case_id: "NO-B", processing: "none", run: null, data: null });
+    expect(await (await call("/api/cases/NO-B/extraction")).json()).toMatchObject({ case_id: "NO-B", processing: "none", run: null, data: null });
   });
 
   it("treats an unknown CLINICAL_ACCESS value as the strict rule", async () => {
@@ -186,11 +266,9 @@ describe("case reads", () => {
     expect(await errCode(await call("/api/cases/NO-A", as("admin"), strict))).toBe("role_forbidden");
   });
 
-  it("serves documents, alerts, decisions, history, guidance and prognosis", async () => {
+  it("serves documents, decisions, history, guidance and prognosis", async () => {
     const docs = await (await call("/api/cases/NO-A/documents")).json<{ documents: { id: string; parts: { pages: number[] }[] }[] }>();
     expect(docs.documents[0]).toMatchObject({ id: "A_pacient", page_count: 2, parts: [{ pages: [1, 2] }] });
-    const al = await (await call("/api/cases/NO-A/alerts")).json<{ alerts: { ui_key: unknown; relevant: boolean }[] }>();
-    expect(al.alerts.map((a) => a.ui_key)).toEqual([0, "gap:0"]);
     expect(await (await call("/api/cases/NO-A/decisions")).json()).toEqual({ decisions: [] });
     expect(await (await call("/api/cases/NO-A/history")).json()).toEqual({ status: [], edits: [], question_confirmations: [] });
     expect(await (await call("/api/cases/NO-A/guidance")).json()).toMatchObject({ guidelines: [{ id: "g1" }], prior_assessments: {} });
@@ -199,7 +277,7 @@ describe("case reads", () => {
     });
     expect(await (await call("/api/cases/NO-A/prognosis")).json()).toEqual({ saved: [{ patient_id: "A_pacient.pdf" }] });
     expect((await accessLog()).map((l) => l.action)).toEqual([
-      "case.documents", "case.alerts", "case.history", "case.history", "guidance.load", "guidance.load", "prognosis.view",
+      "case.documents", "case.history", "case.history", "guidance.load", "guidance.load", "prognosis.view",
     ]);
   });
 });
@@ -251,7 +329,7 @@ describe("audit guarantees", () => {
       blobs: new R2Blobs(e.DOCS),
       audit: Object.assign(new D1Audit(e.DB, org), { append: async () => { throw new Error("D1 down"); } }),
     }));
-    const routes = ["/api/patients", "/api/cases/NO-A", "/api/cases/NO-A/extraction", "/api/cases/NO-A/documents", "/api/cases/NO-A/alerts",
+    const routes = ["/api/patients", "/api/cases/NO-A", "/api/cases/NO-A/extraction", "/api/cases/NO-A/documents",
       "/api/cases/NO-A/decisions", "/api/cases/NO-A/history", "/api/cases/NO-A/guidance", "/api/cases/NO-A/prognosis",
       "/api/documents/A_pacient/pages/1", "/api/documents/A_pacient/pages/1/image"];
     for (const path of routes) {

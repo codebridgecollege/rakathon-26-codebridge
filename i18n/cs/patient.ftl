@@ -168,7 +168,6 @@ patient-gaps-title = Upozornění
 patient-gaps-for-question = Upozornění k dotazu na MDT
 patient-gaps-all = Všechna upozornění
 patient-gaps-none = Žádná aktivní upozornění.
-patient-gaps-brief = Chybějící a nejasné údaje ve stručném souhrnu
 patient-gaps-documents = Chybějící a nejasné podklady
 
 ## Alerts (the assistant's observations; they never block the discussion)
@@ -181,10 +180,14 @@ patient-alerts-more-contradiction = Rozpor, další
 patient-alerts-more-missing = Chybí, další
 patient-alerts-more-chronology = Chronologie, další
 patient-alerts-more-unclear = Nejasné, další
+patient-alerts-more-poor-copy = Špatná kopie, další
+patient-alerts-more-identity = Jiný pacient, další
 patient-alert-kind-missing = Chybí
 patient-alert-kind-contradiction = Rozpor
 patient-alert-kind-chronology = Chronologie
 patient-alert-kind-unclear = Nejasné
+patient-alert-kind-poor-copy = Špatná kopie
+patient-alert-kind-identity = Jiný pacient
 patient-alert-ack = Vzít na vědomí
 patient-alert-resolve = Vyřešeno
 patient-alert-reopen = Vrátit
@@ -921,3 +924,41 @@ patient-nis-linked-by = Propojil(a) { $name }, { $at }.
 patient-nis-phase-note = Údaje z NIS se zatím nenačítají; propojení je první krok importu.
 patient-nis-unlink = Zrušit propojení
 patient-nis-register-label = Národní registr (ukázka):
+
+## The extraction run (codebridge.extraction/2): checks per section, negations, confirmations, orphaned edits.
+# A section the processing did not look for; "-" with the gap wording stays for "looked, nothing there".
+patient-check-not-run = nezkontrolováno
+patient-check-not-run-tip = Zpracování tuto část v dokumentech nehledalo.
+# $pages: page numbers, comma separated.
+patient-check-unreadable = Nečitelné strany: { $pages }
+# A fact the document states as absent, when its own text does not say so ("plicní embolie"). Never "neguje".
+patient-fact-negated = { $text } (negativní nález)
+patient-alert-fact-unavailable = údaj, který aktuální zpracování neukazuje
+patient-alert-unresolved = Upozornění odkazuje na údaj, který aktuální zpracování neukazuje.
+patient-guide-fact-unresolved = Údaj v aktuálním zpracování chybí.
+patient-docs-cited = citace v jiné zprávě
+patient-confirm = Potvrdit
+# $text: the line being confirmed.
+patient-confirm-label = Potvrdit údaj: { $text }
+patient-confirm-withdraw = Zrušit potvrzení
+patient-confirm-withdraw-label = Zrušit potvrzení údaje: { $text }
+patient-confirmed = potvrzeno: { $who }, { $when }
+patient-confirm-changed = Potvrzeno dříve v jiném znění ({ $who }, { $when })
+patient-confirm-then = Dříve: { $text }
+patient-confirm-now = Nyní: { $text }
+patient-confirm-again = Potvrdit nové znění
+patient-confirm-then-loading = načítám dřívější znění…
+patient-confirm-then-unavailable = dřívější znění nelze načíst
+patient-orphans-title = Potvrzeno dříve, v novém zpracování chybí
+patient-orphans-hint = Tato potvrzení a úpravy patří k údajům, které aktuální zpracování neobsahuje. Žádné se nezahodilo.
+patient-orphan-edit = Úprava „{ $text }“ ({ $who }, { $when })
+patient-orphan-edit-orig = původně: { $orig }
+patient-orphan-position = uložena k pozici v dřívějším zobrazení
+patient-orphan-missing = údaj v novém zpracování chybí
+patient-orphan-confirmation = Potvrzený údaj „{ $text }“ ({ $who }, { $when })
+patient-orphan-not-shown = údaj se v aktuálním zobrazení neukazuje
+# A section whose facts exist but none can be shown (a page of another patient holds them back).
+patient-check-hidden = údaje nejsou zobrazeny, viz upozornění
+patient-orphan-revert = Odebrat úpravu
+patient-edit-source-changed = zdroj se změnil
+patient-edit-source-changed-tip = Při úpravě zněl údaj: { $then }. Nyní: { $now }.

@@ -6,7 +6,10 @@ import { CASE_CACHE_MAX, useCasesStore } from "../app/stores/cases";
 import { setApi } from "../app/lib/api";
 import { deferred, mockApi, row } from "./helpers";
 
-const extraction = (id: string) => ({ case_id: id, processing: "full", run: { id: "r1" }, data: { case: { file: "x" }, extra: {} } });
+// The store only checks the reply's shape, so a run's top level is enough; the documents come along as sent.
+const run = (id: string) => ({ schema: "codebridge.extraction/2", case_id: id, facts: [] });
+const docs = [{ id: "d1", file: "x.pdf", page_count: 1, note_cs: null, parts: [] }];
+const extraction = (id: string) => ({ case_id: id, processing: "full", run: { id: "r1" }, data: run(id), documents: docs });
 const caseIdOf = (url: string) => decodeURIComponent(url.split("/")[3] ?? "");
 
 beforeEach(() => {
@@ -32,7 +35,7 @@ describe("case cache", () => {
     await s.ensureCase(p);
     expect(m.calls).toHaveLength(1);
     expect(s.caseOf(p.file).state).toBe("ready");
-    expect(s.readyData(p.file)?.extraction).toEqual({ case: { file: "x" }, extra: {} });
+    expect(s.readyData(p.file)).toEqual({ file: p.file, id: "NO-001", extraction: run("NO-001"), documents: docs });
   });
 
   it("marks a case the server lists as unprocessed ready without a request", () => {
@@ -40,7 +43,7 @@ describe("case cache", () => {
     setApi(m.api);
     const s = useCasesStore();
     s.ensureCase(row(2, { processing: "none" }));
-    expect(s.readyData("2_pacient.pdf")).toEqual({ file: "2_pacient.pdf", id: "NO-002", extraction: null });
+    expect(s.readyData("2_pacient.pdf")).toEqual({ file: "2_pacient.pdf", id: "NO-002", extraction: null, documents: [] });
     expect(m.calls).toHaveLength(0);
   });
 
@@ -130,6 +133,14 @@ describe("case cache", () => {
     await s.ensureCase(row(8));
     expect(s.caseOf("8_pacient.pdf")).toMatchObject({ state: "error", error: { code: "bad_shape", message_id: "case-data-bad-shape" } });
     expect(s.readyData("8_pacient.pdf")).toBeNull();
+  });
+
+  it("refuses a reply in the old format ({ case, extra }) instead of showing it as data", async () => {
+    const m = mockApi({ "/cases/NO-007/extraction": { data: { case: { file: "x" }, extra: {} } } });
+    setApi(m.api);
+    const s = useCasesStore();
+    await s.ensureCase(row(7));
+    expect(s.caseOf("7_pacient.pdf")).toMatchObject({ state: "error", error: { code: "bad_shape" } });
   });
 
   it("reads a case's state without creating an entry", () => {

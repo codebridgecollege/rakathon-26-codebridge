@@ -94,7 +94,7 @@ function openEvent(i: number) {
         <template v-for="r in rows" :key="r.e.i">
           <div v-if="r.year !== undefined" class="tlyear"><span>{{ r.year ?? $t("patient-tl-undated") }}</span></div>
           <button type="button" :class="['ev', `kind-${r.e.category}`, r.e.status === 'planned' ? 'planned' : '']" :aria-pressed="view.selTl === r.e.i" @click="openEvent(r.e.i)">
-            <span class="date"><span lang="cs">{{ r.e.date || $t("patient-tl-undated") }}</span><template v-if="r.e.status === 'planned'">{{ $t("patient-tl-planned") }}</template></span><span class="pin"><CatIcon :k="r.e.category" /></span> <span class="category">{{ catLabel(r.e.category) }}</span><span class="t"><span lang="cs">{{ r.e.title_cs }}</span><template v-if="r.note">{{ " " }}<span class="mk obs" :title="r.note" :aria-label="r.note" lang="cs">i</span></template></span><span class="d" lang="cs">{{ r.e.text_cs }}</span>
+            <span class="date"><span lang="cs">{{ r.e.date || $t("patient-tl-undated") }}</span><template v-if="r.e.status === 'planned'">{{ $t("patient-tl-planned") }}</template></span><span class="pin"><CatIcon :k="r.e.category" /></span> <span class="category">{{ catLabel(r.e.category) }}</span><span class="t"><span lang="cs">{{ r.e.negation_label ? $t("patient-fact-negated", { text: String(r.e.title_cs) }) : r.e.title_cs }}</span><template v-if="r.note">{{ " " }}<span class="mk obs" :title="r.note" :aria-label="r.note" lang="cs">i</span></template></span><span class="d" lang="cs">{{ r.e.text_cs }}</span>
           </button>
         </template>
       </div>

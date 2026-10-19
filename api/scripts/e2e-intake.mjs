@@ -76,17 +76,26 @@ assert.equal(done.j.data.attached, true);
 console.log(`intake complete: attached=${done.j.data.attached}, run ${done.j.data.run_id}`);
 
 const ex = await api("GET", `/cases/${id}/extraction`);
-const syn = ex.j.data.syn;
+const run = ex.j.data;
+assert.equal(run?.schema, "codebridge.extraction/2", "the intake attaches a codebridge.extraction/2 run");
 const raw = JSON.stringify(ex.j);
-for (const bad of [f.first_name, f.last_name, f.birth_number, f.birth_number.replace("/", "")]) assert.ok(!raw.includes(bad), "no identity in the stored extraction");
-const points = syn.labs_series.tests.reduce((s, t) => s + t.points.length, 0);
-console.log(`extraction: ${syn.documents.length} documents, ${syn.labs_series.tests.length} tests x ${syn.labs_series.draws.length} draws (${points} points), ${syn.data_gaps.length} gaps; no identity`);
-const ref = syn.labs_series.tests[0].points[0].source;
-const docId = ref.file.replace(/\.pdf$/, "");
-const page = await api("GET", `/documents/${docId}/pages/${ref.page}`);
-assert.equal(page.status, 200);
-assert.ok(page.j.text.replace(/\*/g, "").includes(ref.quote), "the quote is on the uploaded file's page");
-console.log(`source page of an uploaded file: ${docId} s. ${ref.page} (${page.j.of} s.), quote found`);
+for (const bad of [f.first_name, f.last_name, f.birth_number, f.birth_number.replace("/", ""), "@upload"]) assert.ok(!raw.includes(bad), "no identity or placeholder in the stored extraction");
+const labs = run.facts.filter((x) => x.kind === "lab_result");
+console.log(`extraction: ${run.documents.length} documents, ${run.facts.length} facts (${labs.length} lab results), ${run.alerts.length} alerts; no identity`);
+// Every quote is on the page of the uploaded file its source names: the page numbers were mapped from the combined PDF.
+const pageText = new Map();
+let quotes = 0;
+for (const src of run.sources.filter((x) => x.type === "document")) {
+  const k = `${src.document_id}/${src.page}`;
+  if (!pageText.has(k)) {
+    const pg = await api("GET", `/documents/${src.document_id}/pages/${src.page}`);
+    assert.equal(pg.status, 200, `page ${k}`);
+    pageText.set(k, pg.j.text.replace(/\*/g, "").replace(/\s+/g, " "));
+  }
+  assert.ok(pageText.get(k).includes(src.quote.replace(/\s+/g, " ")), `the quote of ${src.id} is on ${k}`);
+  quotes++;
+}
+console.log(`sources: ${quotes} quotes, each found on its uploaded file's page (${pageText.size} pages)`);
 const docs = await api("GET", `/cases/${id}/documents`);
 console.log(`documents: ${docs.j.documents.map((d) => d.state).join(", ")}; level ${docs.j.processing_level}`);
 

@@ -5,7 +5,8 @@
 // stored snapshot). Every value is escaped here; nothing in the result comes from the data unescaped.
 import type { CaseState, PatientRow } from "@codebridge/api-client";
 import { docTitle, fromExtraction, refAt, sectionsOf, type CaseData, type Item, type SourceRef } from "@codebridge/domain/case-data";
-import { alertKeyIn, alertState, ocrCleared, qState, type AlertEvent, type Edit } from "@codebridge/domain/case-view";
+import { alertState, ocrCleared, qState, type AlertEvent, type Edit } from "@codebridge/domain/case-view";
+import { alertArgs } from "@codebridge/domain/run-view";
 import { questionPlain } from "@codebridge/domain/fhir-export";
 import logo from "../assets/glide-logo.png?inline";
 import { useCasesStore } from "../stores/cases";
@@ -34,8 +35,6 @@ export type ReportProto = { state: "draft" | "approved"; concl: string; steps: {
 export const FIND = ["clinical_finding", "imaging", "histology", "past_treatment", "current_state"] as const;
 // The history sections in the order the Czech anamnesis is written (ANAM); labels are patient-anam-section.
 const ANAM = ["OA", "RA", "PA", "SA", "FA", "AA", "abusus", "EA", "preventive"] as const;
-// Gap kinds that print their kind before the text; any other kind prints its text only.
-const GAP_KINDS = new Set(["missing", "contradiction", "chronology", "unclear"]);
 
 export const esc = (s: unknown) =>
   String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
@@ -57,7 +56,7 @@ const drugNote = (m: Item) => m.comment_line_cs || [m.indication_cs, m.change_cs
 // session bar), so it reads that case's entry, never the patient context.
 function caseDataOf(file: string): CaseData | null {
   const d = useCasesStore().readyData(file);
-  return d ? fromExtraction(d.file, d.id, d.extraction) : null;
+  return d ? fromExtraction(d.file, d.id, d.extraction, d.documents) : null;
 }
 
 // "Podklady": what the report can and cannot say about the documents. A case whose data failed to load is never
@@ -72,15 +71,14 @@ function reportBasis(t: T, p: PatientRow, cd: CaseData | null, failed: boolean, 
   const head = sec.record
     ? ""
     : `${h}<p>${esc(t("discussion-report-basis-partial", { synthetic: p.synthetic ? "yes" : "no", done: done.join(", ") || t("discussion-report-basis-list-only") }))}</p>`;
-  // Open missing-document alerts first, then the data gaps; a gap that is not "missing" says its kind.
-  const flags = (cd.alerts?.flags || []).filter((f, i) => f.kind === "missing" && alertState(hist, i).state !== "resolved");
-  const items: Item[] = [...flags, ...(cd.alerts?.gaps || [])];
-  const src = (g: Item): SourceRef | undefined => g.source || (g.based_on || g.refs || [])[0];
-  const label = items.some((g) => g.kind !== "missing") ? t("discussion-report-h-missing-unclear") : t("discussion-report-h-missing");
+  // The open missing-document alerts, in the report's language (its fact arguments as the facts' lines).
+  const items: Item[] = (cd.alerts?.flags || []).filter((f) => f.kind === "missing" && alertState(hist, f.id).state !== "resolved");
+  const src = (g: Item): SourceRef | undefined => (g.based_on || [])[0];
+  const label = t("discussion-report-h-missing");
   const li = (g: Item) => {
-    const kind = g.kind !== "missing" && GAP_KINDS.has(g.kind) ? `${t("discussion-report-gap-kind", { kind: g.kind })}: ` : "";
     const s = src(g);
-    return `<li>${esc(kind)}${esc(g.text_cs)}${s ? ` ${esc(t("discussion-report-gap-src", { file: String(s.file ?? ""), page: String(s.page ?? "") }))}` : ""}</li>`;
+    const text = t(g.message.id, alertArgs(cd, g as never, t).args);
+    return `<li>${esc(text)}${s ? ` ${esc(t("discussion-report-gap-src", { file: String(s.file ?? ""), page: String(s.page ?? "") }))}` : ""}</li>`;
   };
   return head + (items.length ? `<h4>${esc(label)}</h4><ul>${items.map(li).join("")}</ul>` : "");
 }
@@ -97,7 +95,7 @@ export function reportHtmlFor(t: T, file: string, pr: ReportProto, present: stri
   const cs: Partial<CaseState> = caseStateOf(useWorkflowStore().cases, p) ?? {};
   const edits = (cs.edits ?? {}) as Record<string, Edit>;
   const edOf = (k: string) => edits[k];
-  const hist = ((cs.alertHist ?? []) as AlertEvent[]).map((x) => ({ ...x, i: alertKeyIn(x.i) }));
+  const hist: AlertEvent[] = (cs.alertHist ?? []).map((x) => ({ i: x.alert_id, action: x.action, who: x.who, when: x.when }));
   const picked = useReportStore().picked;
   const guideOn = usePatientViewStore().guideOn;
   const cd = caseDataOf(file);
@@ -142,17 +140,20 @@ export function reportHtmlFor(t: T, file: string, pr: ReportProto, present: stri
     (f.certainty === "conflicting" ? ` ${f.note_cs ? t("discussion-report-tag-conflict-note", { note: String(f.note_cs) }) : t("discussion-report-tag-conflict")}` : "") +
     (f.change_status === "planned_unconfirmed" ? tag("discussion-report-tag-planned") : "");
   const rf = (f: Item) => ((f.refs || []) as unknown[]).map((j) => `<span class="src">${refTxt(refAt(cd, j))}</span>`).join("");
-  const anamItem = (k: string, f: Item, i: number) =>
+  // Edits are keyed by the item's fact ("f:<fact id>" with the part), as the anamnesis tab stores them.
+  const anamItem = (k: string, f: Item) =>
     k === "FA"
-      ? `${esc(edRep(`fa:${i}:line`, drugLine(f)))}${drugNote(f) || edOf(`fa:${i}:note`) ? ` (${esc(edRep(`fa:${i}:note`, drugNote(f)))})` : ""}${esc(mt(f))}${rf(f)}`
-      : `${f.term_cs ? `<b>${esc(edRep(`${k}:${i}:t`, f.term_cs))}</b>` : ""}${f.comment_cs ? `${f.term_cs ? ", " : ""}${esc(edRep(`${k}:${i}:c`, f.comment_cs))}` : ""}${esc(mt(f))}${rf(f)}`;
+      ? `${esc(edRep(`${f.key}:line`, drugLine(f)))}${drugNote(f) || edOf(`${f.key}:note`) ? ` (${esc(edRep(`${f.key}:note`, drugNote(f)))})` : ""}${esc(mt(f))}${rf(f)}`
+      : `${f.term_cs ? `<b>${esc(edRep(`${f.key}:t`, f.term_cs))}</b>` : ""}${f.comment_cs ? `${f.term_cs ? ", " : ""}${esc(edRep(`${f.key}:c`, f.comment_cs))}` : ""}${esc(mt(f))}${rf(f)}`;
+  // An empty section prints what its check says: the gap wording, or that it was not checked.
+  const emptySection = (k: string) => (cd?.run?.sections[k]?.result === "not_run" ? t("patient-check-not-run") : gap);
   const withAnam = sec.anamnesis && picked.has("anamnesis");
   // Every section is listed; an empty one prints the gap wording (allergies must never just vanish).
   const anamLines = withAnam
     ? ANAM.map((k) => {
         const xs = A[k] || [];
         const warn = A.FA_warnings || [];
-        return `<li><span style="text-decoration:underline">${esc(t("patient-anam-section", { key: k }))}:</span> ${xs.length ? xs.map((f, i) => anamItem(k, f, i)).join("; ") : esc(gap)}${k === "FA" && warn.length ? `<br><b>${esc(t("discussion-report-fa-warning"))}</b> ${warn.map((f, i) => anamItem("faw", f, i)).join("; ")}` : ""}</li>`;
+        return `<li><span style="text-decoration:underline">${esc(t("patient-anam-section", { key: k }))}:</span> ${xs.length ? xs.map((f) => anamItem(k, f)).join("; ") : esc(emptySection(k))}${k === "FA" && warn.length ? `<br><b>${esc(t("discussion-report-fa-warning"))}</b> ${warn.map((f) => anamItem("faw", f)).join("; ")}` : ""}</li>`;
       }).join("")
     : "";
 

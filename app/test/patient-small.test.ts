@@ -7,6 +7,7 @@ import Marks from "../app/components/patient/Marks.vue";
 import SrcLinks from "../app/components/patient/SrcLinks.vue";
 import { useOverlayStore } from "../app/stores/overlay";
 import { mountInCase, setupPatient } from "./patient";
+import { edit } from "./helpers";
 
 describe("gap dash", () => {
   it("shows a dash whose tooltip is the fixed gap wording", () => {
@@ -28,7 +29,7 @@ describe("doctor edits", () => {
   });
 
   it("shows the doctor's text marked as edited, with who, when and the original in the tooltip", () => {
-    const s = setupPatient({ wf: { edits: { dx: { id: 1, text: "Opraveno", by: "MUDr. Novák", when: "not-a-date" } } } });
+    const s = setupPatient({ wf: { edits: { dx: edit("Opraveno", "MUDr. Novák", { when: "not-a-date" }) } } });
     const w = mountInCase(Ed, s, { k: "dx", orig: "" });
     expect(w.get(".edited").text()).toBe("Opraveno");
     expect(w.get(".edtag").text()).toBe("upraveno");

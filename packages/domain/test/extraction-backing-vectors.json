@@ -1,0 +1,346 @@
+{
+  "description": "Cases for backingProblems (packages/domain/src/extraction/backing.ts) and backing_problems (pipeline/extraction_format/backing.py): a composed text, the evidence of its facts (all_negated: every fact is a recorded negative; absent means false), and the problems both must report. Hand-written; edit only on a deliberate change of the rule.",
+  "cases": [
+    {
+      "name": "everything backed",
+      "text": "3. paliativní linie everolimus 5 mg denně od 3.9.2026",
+      "texts": [
+        "everolimus 3 3.9.2026",
+        "Everolimus Sandoz 5 mg 1-0-0"
+      ],
+      "negated": false,
+      "want": []
+    },
+    {
+      "name": "a number not in the facts",
+      "text": "everolimus 10 mg denně",
+      "texts": [
+        "everolimus 5 mg"
+      ],
+      "negated": false,
+      "want": [
+        "number"
+      ]
+    },
+    {
+      "name": "decimal comma and point are one number",
+      "text": "redukce na 37,5 mg",
+      "texts": [
+        "37.5 mg"
+      ],
+      "negated": false,
+      "want": []
+    },
+    {
+      "name": "a code or grade is not a number",
+      "text": "světlobuněčný karcinom G2, pT2a, C64",
+      "texts": [
+        "světlobuněčný karcinom"
+      ],
+      "negated": false,
+      "want": []
+    },
+    {
+      "name": "a month backed by a full date",
+      "text": "nefrektomie 6/2022",
+      "texts": [
+        "2.6.2022"
+      ],
+      "negated": false,
+      "want": []
+    },
+    {
+      "name": "a two-digit year",
+      "text": "CT 9/23",
+      "texts": [
+        "9/2023"
+      ],
+      "negated": false,
+      "want": []
+    },
+    {
+      "name": "a full date needs the day",
+      "text": "CT 14.9.2026",
+      "texts": [
+        "9/2026"
+      ],
+      "negated": false,
+      "want": [
+        "date"
+      ]
+    },
+    {
+      "name": "spaced and OCR dates",
+      "text": "kontrola 14. 9. 2026 a 22.5.2026",
+      "texts": [
+        "14.9.2026",
+        "22,5,2026"
+      ],
+      "negated": false,
+      "want": []
+    },
+    {
+      "name": "an ISO sort backs a date",
+      "text": "od 9/2026",
+      "texts": [
+        "2026-09-03"
+      ],
+      "negated": false,
+      "want": []
+    },
+    {
+      "name": "a year alone",
+      "text": "kolonoskopie v roce 2028",
+      "texts": [
+        "r.2028"
+      ],
+      "negated": false,
+      "want": []
+    },
+    {
+      "name": "a date not in the facts",
+      "text": "CT 8/2026",
+      "texts": [
+        "CT 26.7.2026"
+      ],
+      "negated": false,
+      "want": [
+        "date"
+      ]
+    },
+    {
+      "name": "a negation backed by a negated fact",
+      "text": "bez plicní embolie",
+      "texts": [
+        "plicní embolie"
+      ],
+      "negated": true,
+      "want": []
+    },
+    {
+      "name": "a negation backed by the same cue in the text",
+      "text": "eupnoe, bez cyanózy",
+      "texts": [
+        "eupnoe, bez cyanózy, bez ikteru"
+      ],
+      "negated": false,
+      "want": []
+    },
+    {
+      "name": "a negation the facts do not hold",
+      "text": "nová ložiska nepřibyla",
+      "texts": [
+        "nová ložiska"
+      ],
+      "negated": false,
+      "want": [
+        "negation"
+      ]
+    },
+    {
+      "name": "a capitalised negation",
+      "text": "Bez známek progrese",
+      "texts": [
+        "bez známek progrese"
+      ],
+      "negated": false,
+      "want": []
+    },
+    {
+      "name": "a side backed",
+      "text": "nefrektomie vpravo, uzlina v levém hilu",
+      "texts": [
+        "nefrektomie vpravo",
+        "levý hilus, uzlina vlevo"
+      ],
+      "negated": false,
+      "want": []
+    },
+    {
+      "name": "a side the facts do not hold",
+      "text": "stenóza vlevo",
+      "texts": [
+        "stenóza vpravo"
+      ],
+      "negated": false,
+      "want": [
+        "side"
+      ]
+    },
+    {
+      "name": "regular is not right",
+      "text": "akce pravidelná",
+      "texts": [
+        "akce srdeční"
+      ],
+      "negated": false,
+      "want": []
+    },
+    {
+      "name": "every problem at once, in order",
+      "text": "bez metastáz vlevo, 7 mm, 1.1.2020",
+      "texts": [
+        "metastázy vpravo 5 mm 2.2.2021"
+      ],
+      "negated": false,
+      "want": [
+        "date",
+        "number",
+        "negation",
+        "side"
+      ]
+    },
+    {
+      "name": "digits inside a date are not numbers",
+      "text": "MR 14.9.2026",
+      "texts": [
+        "MR mozku 14.9.2026"
+      ],
+      "negated": false,
+      "want": []
+    },
+    {
+      "name": "a slash ratio that is no month",
+      "text": "3+/5 uzlin, 1/2-0-0",
+      "texts": [
+        "pN1(3+/5)",
+        "1/2-0-0"
+      ],
+      "negated": false,
+      "want": []
+    },
+    {
+      "name": "a text over recorded negatives only must say so",
+      "text": "plicní embolie",
+      "texts": [
+        "plicní embolie"
+      ],
+      "negated": true,
+      "all_negated": true,
+      "want": [
+        "negation"
+      ]
+    },
+    {
+      "name": "a negated fact with its cue in the text",
+      "text": "bez plicní embolie",
+      "texts": [
+        "plicní embolie"
+      ],
+      "negated": true,
+      "all_negated": true,
+      "want": []
+    },
+    {
+      "name": "a dose backed only by an ordinal is not backed",
+      "text": "everolimus 3 mg",
+      "texts": [
+        "3. paliativní linie everolimus",
+        "everolimus 5 mg"
+      ],
+      "negated": false,
+      "want": [
+        "number"
+      ]
+    },
+    {
+      "name": "a unit must match",
+      "text": "nodulus 3 mm",
+      "texts": [
+        "nodulus 3 cm"
+      ],
+      "negated": false,
+      "want": [
+        "number"
+      ]
+    },
+    {
+      "name": "a number inside a date backs its parts",
+      "text": "17. den po cyklu",
+      "texts": [
+        "2. cyklus 17.4.2023"
+      ],
+      "negated": false,
+      "want": []
+    },
+    {
+      "name": "a two-digit year is a year",
+      "text": "kontrola 14.9.25",
+      "texts": [
+        "kontrola 14.9.2026"
+      ],
+      "negated": false,
+      "want": [
+        "date"
+      ]
+    },
+    {
+      "name": "a day and month without a year",
+      "text": "kontrola 14.9.",
+      "texts": [
+        "14. 9. 2026"
+      ],
+      "negated": false,
+      "want": []
+    },
+    {
+      "name": "a month name is a month",
+      "text": "CT v září 2026",
+      "texts": [
+        "CT 26.7.2026"
+      ],
+      "negated": false,
+      "want": [
+        "date"
+      ]
+    },
+    {
+      "name": "a month name backed by a month",
+      "text": "CT v září 2026",
+      "texts": [
+        "CT 9/2026"
+      ],
+      "negated": false,
+      "want": []
+    },
+    {
+      "name": "an inflected cue is the same cue",
+      "text": "ŽÁDNÉ nové léze",
+      "texts": [
+        "žádná nová ložiska"
+      ],
+      "negated": false,
+      "want": []
+    },
+    {
+      "name": "more Czech negations",
+      "text": "metastázy neprokázány, uzliny nehmatné",
+      "texts": [
+        "metastázy",
+        "uzliny"
+      ],
+      "negated": false,
+      "want": [
+        "negation"
+      ]
+    },
+    {
+      "name": "a dose is not a year",
+      "text": "metformin 2000 mg",
+      "texts": [
+        "metformin 2000 mg denně"
+      ],
+      "negated": false,
+      "want": []
+    },
+    {
+      "name": "a roman numeral is part of the word",
+      "text": "stadium Ⅳ4",
+      "texts": [
+        "stadium"
+      ],
+      "negated": false,
+      "want": []
+    }
+  ]
+}

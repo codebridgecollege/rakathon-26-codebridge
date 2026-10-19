@@ -3,3 +3,4 @@ export * from "./types";
 export * from "./keys";
 export * from "./match";
 export * from "./validate";
+export * from "./backing";

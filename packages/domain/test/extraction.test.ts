@@ -365,6 +365,8 @@ describe("guards from the separate review", () => {
     run.facts[2]!.quarantined = true;
     run.alerts[0]!.facts = [];
     run.question_draft = null;
+    // The worked examples' timeline card rests on the same request; composed views are tested in extraction-views.
+    run.views = null;
     run.checks.push({ id: "chk-x", looks_for: "original_report", expected: { of_fact: "f-3c90de" }, covered: [], unreadable: [], result: "nothing_found" });
     run.alerts.push({ id: alertId({ rule: "page_identity_conflict", subject: "p" }), rule: "page_identity_conflict", subject: "p", kind: "identity", facts: ["f-3c90de"], message: { id: "x", args: {} }, note: null });
     expect(validateRun(run).issues.map((i) => [i.code, i.path])).toEqual([

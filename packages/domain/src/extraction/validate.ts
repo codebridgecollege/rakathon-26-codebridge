@@ -7,8 +7,9 @@
 // @cfworker/json-schema is used because it validates without generating code at runtime, which Workers forbid.
 import { Validator, type OutputUnit } from "@cfworker/json-schema";
 import schema from "../../schema/extraction-2.schema.json";
-import { alertId, baseKey, buildFactKey } from "./keys";
-import { EXTRACTION_SCHEMA, FACT_KINDS, type ExtractionRun, type Fact, type FactDate, type Source } from "./types";
+import { backingProblems, type Evidence } from "./backing";
+import { alertId, baseKey, buildFactKey, valueText, viewLineId } from "./keys";
+import { EXTRACTION_SCHEMA, FACT_KINDS, VIEW_NAMES, type ExtractionRun, type Fact, type FactDate, type Source } from "./types";
 
 export type IssueCode =
   | "schema"
@@ -35,7 +36,14 @@ export type IssueCode =
   | "date_precision"
   | "negation_mismatch"
   | "subject_mismatch"
-  | "check_result_mismatch";
+  | "check_result_mismatch"
+  | "sentence_unbacked"
+  | "view_line_without_facts"
+  | "view_line_id_mismatch"
+  | "duplicate_view_line_id"
+  | "view_line_unbacked"
+  | "view_line_date_unbacked"
+  | "view_line_status_mismatch";
 
 export interface Issue {
   /** JSON pointer into the run, for example "/facts/3/sources/0". */
@@ -167,6 +175,23 @@ function duplicates<T>(items: readonly T[], idOf: (x: T) => string, path: (i: nu
     seen.add(id);
   });
   return out;
+}
+
+/**
+ * What a set of facts says, for backing a composed text: their values, codes and dates, and the passages they quote.
+ * A fact's note and certainty reason are the assistant's words, so they back nothing.
+ */
+export function evidenceOf(facts: readonly Fact[], sources: ReadonlyMap<string, Source>): Evidence {
+  const texts: string[] = [];
+  for (const f of facts) {
+    texts.push(valueText(f.value), f.date.as_written ?? "", f.date.sort ?? "");
+    for (const c of f.codes) texts.push(c.code, c.display ?? "");
+    for (const id of f.sources) {
+      const s = sources.get(id);
+      if (s?.type === "document") texts.push(s.quote);
+    }
+  }
+  return { texts: texts.filter(Boolean), negated: facts.some((f) => f.negated), allNegated: facts.length > 0 && facts.every((f) => f.negated) };
 }
 
 /** The rules a JSON Schema cannot express. Assumes the run passed the schema. */
@@ -310,6 +335,11 @@ export function referenceIssues(run: ExtractionRun): Issue[] {
       if (!hasFact(id)) push(path, "unknown_fact", `unknown fact ${id}`);
       else useOf(path, id);
     });
+    // Every date, number, negation and side of the sentence must be in its facts (EXTRACTION-FORMAT.md, "The brief").
+    const evidence = evidenceOf(s.facts.map((id) => facts.get(id)).filter((f): f is Fact => !!f), sources);
+    if (s.facts.length) for (const problem of backingProblems(s.text, evidence)) {
+      push(`/brief/sentences/${i}/text`, "sentence_unbacked", `a ${problem} in the sentence is not in its facts`);
+    }
   });
   run.question_draft?.basis.forEach((b, i) => {
     b.facts.forEach((id, j) => {
@@ -318,5 +348,45 @@ export function referenceIssues(run: ExtractionRun): Issue[] {
       else useOf(path, id);
     });
   });
+
+  // Composed lines say only what their facts say: they exist, are not quarantined, and back every date, number,
+  // negation and side of the text (backing.ts). The ID follows from the view and the facts, so an edit follows them.
+  for (const view of VIEW_NAMES) {
+    const lines = run.views?.[view];
+    if (!lines) continue;
+    issues.push(...duplicates(lines, (l) => l.id, (i) => `/views/${view}/${i}/id`, "duplicate_view_line_id", "view line ID"));
+    lines.forEach((l, i) => {
+      const p = `/views/${view}/${i}`;
+      if (!l.facts.length) push(`${p}/facts`, "view_line_without_facts", "a view line must point at the facts it states");
+      l.facts.forEach((id, j) => {
+        if (!hasFact(id)) push(`${p}/facts/${j}`, "unknown_fact", `unknown fact ${id}`);
+        else useOf(`${p}/facts/${j}`, id);
+      });
+      const want = viewLineId(view, l.facts);
+      if (l.id !== want) push(`${p}/id`, "view_line_id_mismatch", `view line ID ${l.id} should be ${want} (view and facts)`);
+      const dateProblem = datePrecisionProblem(l.date);
+      if (dateProblem) push(`${p}/date`, "date_precision", dateProblem);
+      const own = l.facts.map((id) => facts.get(id)).filter((f): f is Fact => !!f);
+      // The line is filed under the date of one of its facts, never a date of its own (a wrong or outdated date).
+      if (l.date.sort && own.length && !own.some((f) => f.date.sort === l.date.sort)) {
+        push(`${p}/date`, "view_line_date_unbacked", "the line's date is not the date of any of its facts");
+      }
+      // A planned or requested line rests on a planned or requested fact; a line over only planned facts never reads as
+      // performed.
+      const ahead = (s: string) => s === "planned" || s === "requested";
+      if (own.length && (ahead(l.status) ? !own.some((f) => ahead(f.status)) : own.every((f) => ahead(f.status)))) {
+        push(`${p}/status`, "view_line_status_mismatch", `the line's status ${l.status} does not fit its facts' statuses`);
+      }
+      const evidence = evidenceOf(own, sources);
+      for (const field of ["text", "title", "detail"] as const) {
+        const text = l[field];
+        if (!text || !l.facts.length) continue;
+        // The message names the kind of problem only: the text is clinical and issues may be logged.
+        for (const problem of backingProblems(text, evidence)) {
+          push(`${p}/${field}`, "view_line_unbacked", `a ${problem} in the line's ${field} is not in its facts`);
+        }
+      }
+    });
+  }
   return issues;
 }

@@ -70,6 +70,17 @@
               "type": "null"
             }
           ]
+        },
+        "views": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/ComposedViews"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Optional composed lines (added within /2); a run without them is shown fact by fact."
         }
       },
       "required": [
@@ -4652,6 +4663,122 @@
         "facts"
       ],
       "additionalProperties": false
+    },
+    "ComposedViews": {
+      "type": "object",
+      "properties": {
+        "onco_lines": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ViewLine"
+          },
+          "description": "The oncology summary, one line per event as clinicians write it."
+        },
+        "other_diagnoses": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ViewLine"
+          },
+          "description": "The other diagnoses next to the oncology summary."
+        },
+        "timeline": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ViewLine"
+          },
+          "description": "The timeline cards."
+        },
+        "made_by": {
+          "$ref": "#/definitions/MadeBy"
+        }
+      },
+      "required": [
+        "made_by"
+      ],
+      "additionalProperties": false,
+      "description": "Lines composed from the facts by a producer (the fixture conversion, later a composition step). Optional: a run without them is shown fact by fact. Each list is the whole view in its display order."
+    },
+    "ViewLine": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Derived from the view's name and the sorted fact IDs (keys.ts viewLineId), so a doctor's edit follows the facts.",
+          "pattern": "^vl-[0-9a-f]{8}$"
+        },
+        "text": {
+          "type": "string",
+          "description": "The line, in the content language."
+        },
+        "title": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "A timeline card's heading; null for a summary line."
+        },
+        "detail": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "A timeline card's longer text; null for a summary line."
+        },
+        "date": {
+          "$ref": "#/definitions/FactDate",
+          "description": "The date the line is filed under. A partial date stays partial."
+        },
+        "category": {
+          "$ref": "#/definitions/ViewCategory"
+        },
+        "status": {
+          "$ref": "#/definitions/FactStatus",
+          "description": "\"planned\" and \"requested\" never read as performed."
+        },
+        "facts": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "The facts the line states; at least one.",
+          "minItems": 1
+        },
+        "note": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "The assistant's note on the line, in the content language."
+        }
+      },
+      "required": [
+        "id",
+        "text",
+        "title",
+        "detail",
+        "date",
+        "category",
+        "status",
+        "facts",
+        "note"
+      ],
+      "additionalProperties": false,
+      "description": "One line of a composed view: the wording a producer chose for one or more facts, as a clinician writes a summary line (\"St. p. 2. linii sunitinib 50 mg denně; toxicita: ...\"). It never adds content: every date, number, negation and side in the text must be backed by its facts, as for a brief sentence."
+    },
+    "ViewCategory": {
+      "type": "string",
+      "enum": [
+        "imaging",
+        "systemic",
+        "medication",
+        "mdt",
+        "surgery",
+        "pathology",
+        "radiotherapy",
+        "laboratory",
+        "clinical"
+      ],
+      "description": "The event categories a composed line is filed under, the same as the timeline's."
     }
   }
 }

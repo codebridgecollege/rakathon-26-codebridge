@@ -18,49 +18,13 @@ import { useOverlayStore } from "../app/stores/overlay";
 import { useCasesStore } from "../app/stores/cases";
 import { useWorkflowStore } from "../app/stores/workflow";
 import { lastToast, mountInCase, setupPatient, type PatientSetup } from "./patient";
+import { docsOf, edit, runOf } from "./helpers";
 
 const SRC = (page: number, quote: string) => ({ file: "10_pacient.pdf", page, quote });
 const reply = (state: unknown = {}) => ({ data: {}, data_epoch: 1, state });
 
-// A full case shaped like the real extraction (fewer fields), synthetic text.
-function fullCase(extra: Record<string, unknown> = {}, caseOver: Record<string, unknown> = {}) {
-  return {
-    case: {
-      page_count: 5,
-      flags: [
-        { kind: "missing", text_cs: "Otázka pro MDT neuvedena.", based_on: [SRC(3, "Zadávám k projednání.")], note: "Pozorování asistenta. Formulář chybí.", relevant: true },
-        { kind: "contradiction", text_cs: "Dvě různá data operace.", based_on: [SRC(1, "op. 2.6.2022")] },
-        { kind: "chronology", text_cs: "Strany nejsou v pořadí.", based_on: [SRC(2, "restaging 3/2022")] },
-      ],
-      sections: { imaging: [] },
-      ...caseOver,
-    },
-    extra: {
-      refs: [SRC(1, "C64 diag. 4/2022"), SRC(1, "nefrektomie 2.6.2022"), SRC(4, "Subj. toleruje výborně."), SRC(4, "TK 155/70")],
-      onco_summary_v3_cs: "Pacient s karcinomem ledviny [1]. Nyní ložisko v mozečku [2].",
-      onco_summary_v3_refs: [SRC(1, "C64 diag. 4/2022"), SRC(1, "MR mozku")],
-      data_gaps_v3: [{ kind: "missing", text_cs: "Věk neuveden.", refs: [] }],
-      diagnosis_headline: { histology_cs: "Světlobuněčný karcinom", grade_cs: "G2", tnm_cs: "pT2a pN1 M0", tnm_context_cs: "stadium při diagnóze", histology_date_cs: "2.6.2022", ocr_note_cs: "V OCR „MO“.", mkn_cs: "C64 Novotvar ledviny", refs: [0, 1] },
-      onco_compact_v3: { lines: [{ text_cs: "St. p. nefrektomii", kind: "surgery", date_sort: "2022-06-02", refs: [1] }, { text_cs: "Plánována kontrola", kind: "plan", refs: [] }] },
-      status_praesens: {
-        exam_title_cs: "Ambulantní kontrola",
-        exam_date_cs: null,
-        items: [
-          { group: "subjective", label_cs: "Subjektivně", text_cs: "Toleruje výborně.", refs: [2] },
-          { group: "objective", label_cs: "Vitální funkce", text_cs: "krevní tlak 155/70 mmHg, pulz 68/min", refs: [3] },
-          { group: "objective", label_cs: "Zevní genitál", text_cs: "nevyšetřen", refs: [3] },
-        ],
-      },
-      timeline_cards_v3: [
-        { date: "2.6.2022", date_sort: "2022-06-02", kind: "surgery", title_cs: "Nefrektomie", text_cs: "vpravo", source: SRC(1, "nefrektomie") },
-        { date: "4/2022", date_sort: "2022-04", kind: "diagnosis", title_cs: "Diagnóza", text_cs: "karcinom", source: SRC(1, "diag. 4/2022"), note_cs: "Den neuveden." },
-        { date: "10/2026", date_sort: "2026-10", kind: "imaging", status: "planned", title_cs: "MR mozku", text_cs: "kontrola" },
-      ],
-      documents: [{ title_cs: "Ambulantní zpráva", pages: [1, 2, 3, 4] }],
-      ...extra,
-    },
-  };
-}
+// Case 10 as the server sends it: the converted codebridge.extraction/2 run and its stored documents.
+const case10 = () => ({ extraction: runOf("NO-010"), documents: docsOf("NO-010") });
 
 function withRouter(s: ReturnType<typeof setupPatient>, comp: unknown, props: Record<string, unknown> = {}) {
   const router = createRouter({ history: createMemoryHistory(), routes: [{ path: "/:p(.*)*", name: "view", component: { render: () => null } }, { path: "/patient/:nr/:tab?", name: "patient", component: { render: () => null } }] });
@@ -77,7 +41,7 @@ afterEach(() => {
 
 describe("case header", () => {
   it("shows the case ID, owner, slot, and a dash with the gap wording for the missing birth number and age", () => {
-    const s = setupPatient({ p: { status: "ready", slot: { day: "2026-10-22", time: "14:00" }, name: "Daniel Poláček" }, extraction: fullCase() });
+    const s = setupPatient({ p: { status: "ready", slot: { day: "2026-10-22", time: "14:00" }, name: "Daniel Poláček" }, ...case10() });
     const w = mountInCase(PatientHeader, s);
     expect(w.text()).toContain("NO-010");
     expect(w.get("h1").text()).toBe("Poláček DanielRČ: -Věk: -");
@@ -88,7 +52,8 @@ describe("case header", () => {
   });
 
   it("offers FHIR export only when the case has finding groups, and no report while loading", () => {
-    const s = setupPatient({ extraction: { syn: { documents: [] } } });
+    // S01's run has no record, so no finding groups.
+    const s = setupPatient({ extraction: runOf("NO-S01"), documents: docsOf("NO-S01") });
     const w = mountInCase(PatientHeader, s, { withReport: false });
     expect(w.findAll("button.btn").map((b) => b.text())).toEqual(["Naplánovat"]);
     expect(w.text()).toContain("Příští MDT: nenaplánováno");
@@ -186,7 +151,7 @@ describe("the MDT question", () => {
   });
 
   it("labels no question a doctor edited or confirmed, and never the referral's explicit question", () => {
-    const edited = mountInCase(QuestionBox, setupPatient({ p: draft, wf: { edits: { q: { text: "Upravená otázka?", by: "MUDr. A", when: "t" } } } }));
+    const edited = mountInCase(QuestionBox, setupPatient({ p: draft, wf: { edits: { q: edit("Upravená otázka?", "MUDr. A", { when: "t" }) } } }));
     expect(edited.text()).toContain("Upravená otázka?");
     expect(edited.find(".qlbl").exists()).toBe(false);
     const confirmed = mountInCase(QuestionBox, setupPatient({ p: draft, wf: { qConfirm: { text: draft.draft, by: "MUDr. A", when: "t" } } }));
@@ -217,7 +182,7 @@ describe("missing-document signal", () => {
   });
 
   it("fills the button amber when a document is missing, and opens the panel", async () => {
-    const s = setupPatient({ extraction: fullCase() });
+    const s = setupPatient({ ...case10() });
     const w = withRouter(s, BriefBlock).w;
     const b = w.get("button.gapsbtn");
     expect(b.text()).toBe("⚠ Upozornění · chybí podklady ▾");
@@ -225,55 +190,73 @@ describe("missing-document signal", () => {
     await b.trigger("click");
     expect(w.get("button.gapsbtn").attributes("aria-expanded")).toBe("true");
     expect(w.text()).toContain("Upozornění k dotazu na MDT");
-    expect(w.text()).toContain("Chybějící a nejasné údaje ve stručném souhrnu");
+    // The question's alert first, then the missing documents that do not bear on the question.
+    expect(w.text()).toContain("Výslovná otázka pro MDT neuvedena v dostupné dokumentaci.");
+    expect(w.text()).toContain("Chybějící a nejasné podklady");
+    expect(w.text()).toContain("Originální zpráva v dostupné dokumentaci chybí, jen citace: světlobuněčný renální adenokarcinom G2");
     expect(w.text()).toContain("Pozorování asistenta, ne klinický závěr. Upozornění neblokují projednání.");
   });
 });
 
 describe("brief", () => {
   it("links each clause to its source and lists the sources", async () => {
-    const s = setupPatient({ extraction: fullCase() });
+    const s = setupPatient({ ...case10() });
     const w = withRouter(s, BriefBlock).w;
     expect(w.get("h2").text()).toBe("Stručný souhrn");
+    // One link per brief sentence of the run, each opening the passages of the facts it rests on.
     const links = w.findAll(".prose .srcl");
-    expect(links.map((l) => l.text())).toEqual(["Pacient s karcinomem ledviny", "Nyní ložisko v mozečku"]);
-    expect(w.get("details.srcs summary").text()).toBe("Zdroje (2)");
+    expect(links.map((l) => l.text())).toEqual(runOf("NO-010").brief!.sentences.map((x) => x.text));
+    expect(links[0]!.text()).toMatch(/^Pacient s metastatickým světlobuněčným renálním karcinomem G2/);
+    expect(w.get("details.srcs summary").text()).toBe("Zdroje (18)");
   });
 
   it("says a case without a brief shows the list's summary, with what was processed", () => {
-    const s = setupPatient({ p: { summary: "Jednořádkový souhrn.", pages: 9 }, extraction: { syn: { documents: [{ title_cs: "A" }], data_gaps: [] } } });
+    // S01's run looked at labs and requests only, so it has no brief.
+    const s = setupPatient({ p: { summary: "Jednořádkový souhrn.", pages: 9 }, extraction: runOf("NO-S01"), documents: docsOf("NO-S01") });
     const w = withRouter(s, BriefBlock).w;
-    expect(w.get(".chip.st-new").text()).toBe("Zpracováno: dokumenty, chybějící podklady");
+    expect(w.get(".chip.st-new").text()).toBe("Zpracováno: dokumenty, chybějící podklady, laboratoř");
     expect(w.text()).toContain("Souhrn ze seznamu pacientů, bez odkazů na zdroj. Zdroj: 10_pacient.pdf, 9 s.");
   });
 });
 
 describe("alerts tab", () => {
   it("lists question alerts first, the rest by kind, and labels them as the assistant's observations", () => {
-    const w = mountInCase(TabAlerts, setupPatient({ extraction: fullCase() }));
+    // The consultation-form alert's note, given the prefix a producer may repeat.
+    const run = runOf("NO-010");
+    run.alerts.find((a) => a.id === "al-d7fce3c0")!.note = "Pozorování asistenta. Formulář FNO má pole „Otázka na NOCO“.";
+    const w = mountInCase(TabAlerts, setupPatient({ extraction: run, documents: docsOf("NO-010") }));
     expect(w.findAll("h3").map((x) => x.text())).toEqual(["K dotazu na MDT", "Ostatní upozornění"]);
-    expect(w.findAll("h4").map((x) => x.text())).toEqual(["Rozpor, další", "Chybí, další", "Chronologie, další"]);
+    expect(w.findAll("h4").map((x) => x.text())).toEqual(["Rozpor, další", "Chybí, další", "Nejasné, další"]);
     expect(w.text()).toContain("Pozorování asistenta, ne klinický závěr. Upozornění neblokují projednání.");
+    // The question's alerts come first, with their messages in the interface language.
+    const top = w.findAll(".alert").map((a) => a.text());
+    expect(top[0]).toMatch(/^ChybíVýslovná otázka pro MDT neuvedena v dostupné dokumentaci\. Účel dle dokumentu: projednání nálezu MR mozku/);
+    expect(top[1]).toMatch(/^ChybíKonzultační formulář v dostupné dokumentaci nenalezen\./);
     // The note keeps its text without the repeated prefix.
-    expect(w.text()).toContain("Formulář chybí.");
+    expect(w.text()).toContain("Formulář FNO má pole „Otázka na NOCO“.");
     expect(w.text()).not.toContain("Pozorování asistenta. Formulář");
   });
 
   it("shows an acknowledgement at once, stores it against the state seen, and archives it", async () => {
-    const s = setupPatient({ extraction: fullCase(), routes: { "/cases/NO-010/alerts/1/events": reply({ cases: { "NO-010": { alertHist: [{ i: 1, action: "ack", who: "MUDr. Svobodová", when: "2026-10-16T10:00:00Z" }] } } }) } });
+    // Events are keyed by the alert's ID, here the date contradiction's.
+    const s = setupPatient({
+      ...case10(),
+      routes: { "/cases/NO-010/alerts/al-4b4cc309/events": reply({ cases: { "NO-010": { alertHist: [{ alert_id: "al-4b4cc309", action: "ack", who: "MUDr. Svobodová", when: "2026-10-16T10:00:00Z" }] } } }) },
+    });
     const w = mountInCase(TabAlerts, s);
-    const row = w.findAll(".alert").find((a) => a.text().includes("Dvě různá data operace."))!;
+    const row = w.findAll(".alert").find((a) => a.text().includes("Rozdílné datum téhož vyšetření"))!;
     await row.findAll("button").find((b) => b.text() === "Vzít na vědomí")!.trigger("click");
     await flushPromises();
+    expect(s.calls.at(-1)!.url).toBe("/api/cases/NO-010/alerts/al-4b4cc309/events");
     expect(JSON.parse(String(s.calls.at(-1)!.init.body))).toEqual({ action: "ack", expected_state: "open" });
     expect(w.get("details.resolved summary").text()).toBe("Vyřešené / vzaté na vědomí (1)");
     expect(w.get("details.resolved").text()).toContain("Vzal(a) na vědomí MUDr. Svobodová");
   });
 
   it("takes a refused event back out", async () => {
-    const s = setupPatient({ extraction: fullCase(), routes: { "/cases/NO-010/alerts/1/events": [409, { error: { code: "alert_changed", message_cs: "Upozornění mezitím změnil kolega." } }], "/workflow": { data_epoch: 1, cases: {}, att: {}, sessions: [], mails: [] } } });
+    const s = setupPatient({ ...case10(), routes: { "/cases/NO-010/alerts/al-4b4cc309/events": [409, { error: { code: "alert_changed", message_cs: "Upozornění mezitím změnil kolega." } }], "/workflow": { data_epoch: 1, cases: {}, att: {}, sessions: [], mails: [] } } });
     const w = mountInCase(TabAlerts, s);
-    const row = w.findAll(".alert").find((a) => a.text().includes("Dvě různá data operace."))!;
+    const row = w.findAll(".alert").find((a) => a.text().includes("Rozdílné datum téhož vyšetření"))!;
     await row.findAll("button").find((b) => b.text() === "Vyřešeno")!.trigger("click");
     await flushPromises();
     expect(w.find("details.resolved").exists()).toBe(false);
@@ -282,21 +265,39 @@ describe("alerts tab", () => {
   });
 
   it("offers no alert actions to the administrator", () => {
-    const w = mountInCase(TabAlerts, setupPatient({ role: "admin", extraction: fullCase() }));
+    const w = mountInCase(TabAlerts, setupPatient({ role: "admin", ...case10() }));
     expect(w.findAll(".alert").length).toBeGreaterThan(0);
     expect(w.findAll(".albtns button")).toHaveLength(0);
   });
 });
 
 describe("timeline", () => {
-  const s = () => setupPatient({ extraction: fullCase() });
+  const s = () => setupPatient({ ...case10() });
 
   it("counts events and categories, keeps partial dates, and marks plans", () => {
     const w = mountInCase(TimelineCard, s());
-    expect(w.get('[role="status"]').text()).toBe("Zobrazeno 3 z 3 událostí · 9 z 9 kategorií");
-    expect(w.findAll(".ev .date").map((d) => d.text())).toEqual(["4/2022", "2.6.2022", "10/2026 · plán"]);
-    expect(w.findAll(".tlyear").map((y) => y.text())).toEqual(["2022", "2026"]);
-    expect(w.get(".ev .mk").attributes("title")).toBe("Den neuveden.");
+    // Case 10's 16 timeline cards (views.timeline), a partial date kept as written, the undated plan last.
+    expect(w.get('[role="status"]').text()).toBe("Zobrazeno 16 z 16 událostí · 9 z 9 kategorií");
+    expect(w.findAll(".ev .date").map((d) => d.text())).toEqual([
+      "4/2022",
+      "2.6.2022",
+      "25.10.2022",
+      "6.3.2023",
+      "27.3.2023",
+      "27.6.2023",
+      "21.11.2023",
+      "10.11.2025",
+      "16.1.2026",
+      "27.1.2026",
+      "28.4.2026",
+      "26.8.2026",
+      "3.9.2026",
+      "14.9.2026",
+      "9.10.2026 · plán",
+      "Bez data · plán",
+    ]);
+    expect(w.findAll(".tlyear").map((y) => y.text())).toEqual(["2022", "2023", "2025", "2026", "Bez data"]);
+    expect(w.get(".ev .mk").attributes("title")).toBe("Přesný den ani vyšetření, kterým byla diagnóza stanovena, uvedeny nejsou.");
   });
 
   it("hides a category, and 'Vše' turns all on or off", async () => {
@@ -304,52 +305,63 @@ describe("timeline", () => {
     const boxes = w.findAll('input[type="checkbox"]');
     const imaging = boxes[1]!;
     await imaging.setValue(false);
-    expect(w.get('[role="status"]').text()).toBe("Zobrazeno 2 z 3 událostí · 8 z 9 kategorií");
+    // Six of the 16 cards are imaging.
+    expect(w.get('[role="status"]').text()).toBe("Zobrazeno 10 z 16 událostí · 8 z 9 kategorií");
     expect((boxes[0]!.element as HTMLInputElement).indeterminate).toBe(true);
     await boxes[0]!.setValue(true);
-    expect(w.get('[role="status"]').text()).toBe("Zobrazeno 3 z 3 událostí · 9 z 9 kategorií");
+    expect(w.get('[role="status"]').text()).toBe("Zobrazeno 16 z 16 událostí · 9 z 9 kategorií");
     await w.findAll('input[type="checkbox"]')[0]!.setValue(false);
     expect(w.text()).toContain("Všechny kategorie jsou skryté. Zaškrtněte kategorii nebo Vše.");
   });
 
   it("opens an event's own source", async () => {
-    const w = mountInCase(TimelineCard, setupPatient({ extraction: fullCase(), routes: { "/documents/10_pacient/pages/1": { n: 1, pages: [{ n: 1 }] } } }));
+    const w = mountInCase(TimelineCard, setupPatient({ ...case10(), routes: { "/documents/10_pacient/pages/1": { n: 1, pages: [{ n: 1 }] } } }));
     await w.findAll(".ev")[0]!.trigger("click");
-    expect(useOverlayStore().current).toMatchObject({ kind: "source", cite: SRC(1, "diag. 4/2022"), page: 1 });
+    expect(useOverlayStore().current).toMatchObject({ kind: "source", cite: SRC(1, "C64 \nZhoubný novotvar ledviny mimo pánvičku \nRCC lok. pokročilý diag. 4/2022"), page: 1 });
   });
 });
 
 describe("overview cards", () => {
   it("shows the stage at diagnosis with its date and the OCR doubt, and the compact lines with pins", () => {
-    const w = mountInCase(OncoCard, setupPatient({ extraction: fullCase() }));
-    expect(w.get(".dxh").text()).toContain("Světlobuněčný karcinom, G2, pT2a pN1 M0");
+    const w = mountInCase(OncoCard, setupPatient({ ...case10() }));
+    expect(w.get(".dxh").text()).toContain("Světlobuněčný renální adenokarcinom, G2, pT2a pN1 M0");
     expect(w.get(".dxh").text()).toContain("pT2a pN1 M0✎ (pTNM při diagnóze, 6/2022)");
-    expect(w.get(".dxh .mk.ocr").attributes("title")).toBe("Ověřit čtení: V OCR „MO“.");
-    expect(w.findAll(".orow .dt").map((d) => d.text())).toEqual(["2. 6. 2022", ""]);
-    expect(w.findAll(".lpin").map((p) => p.attributes("aria-label"))).toEqual(["Chirurgie a výkony", "Klinický stav a ostatní, plánováno"]);
-    expect(w.get("details.srcs summary").text()).toBe("Zdroje (2)");
+    expect(w.get(".dxh .mk.ocr").attributes("title")).toBe("Ověřit čtení: V textu „MO“, čteno jako M0.");
+    // Case 10's 16 composed oncology lines (views.onco_lines), by date, the last two planned.
+    const dates = w.findAll(".orow .dt").map((d) => d.text());
+    expect(dates).toHaveLength(16);
+    expect(dates.slice(0, 3)).toEqual(["2. 6. 2022", "25. 10. 2022", "6. 3. 2023"]);
+    expect(dates.at(-1)).toBe("9. 10. 2026");
+    const pins = w.findAll(".lpin").map((p) => p.attributes("aria-label"));
+    expect(pins.slice(0, 3)).toEqual(["Chirurgie a výkony", "Chirurgie a výkony", "Zobrazovací vyšetření"]);
+    expect(pins.slice(-2)).toEqual(["Systémová protinádorová léčba, plánováno", "Klinický stav a ostatní, plánováno"]);
+    expect(w.get("details.srcs summary").text()).toBe("Zdroje (66)");
   });
 
   it("numbers the current state's sources in reading order, leaves out what was not examined, and dashes a missing value", () => {
-    const w = mountInCase(StatusCard, setupPatient({ extraction: fullCase() }));
+    const w = mountInCase(StatusCard, setupPatient({ ...case10() }));
     const text = w.get(".stc").text();
-    expect(text).toContain("Subjektivně: Toleruje výborně[1].");
-    expect(text).toContain("TK/P 155/70 mmHg / 68/min[2], TT -, PS (ECOG) -.");
+    expect(text).toMatch(/^Subjektivně: Nově předepsaný everolimus toleruje výborně, nemá s ním žádný problém\[1\], Nechutenství není/);
+    expect(text).toContain("Krevní tlak nyní neměřil, protože byl na dovolené[5].Objektivně: TK/P 155/70 mmHg[6] / 68/min[6], TT -, PS (ECOG) 1[7];");
+    expect(text).toContain("jizvy pod pravým i levým obloukem žeberním klidné[18].");
+    // The run states "Zevní genitál: nevyšetřen" and "per rectum: nevyšetřen"; neither shows.
     expect(text).not.toContain("nevyšetřen");
-    expect(w.findAll(".stc .gapq")).toHaveLength(2);
+    // The temperature is not stated: one dash with the gap wording.
+    expect(w.findAll(".stc .gapq")).toHaveLength(1);
   });
 });
 
 describe("edit dialog", () => {
+  // A composed line's edit, keyed by the line ID ("v:" and the ID, edits.ts), never by its position.
   const open = (s: PatientSetup) => {
     const setup = setupPatient(s);
-    const o = { kind: "edit" as const, file: setup.p.file, key: "oc:0", orig: "Původní řádek", isQuestion: false };
+    const o = { kind: "edit" as const, file: setup.p.file, key: "v:vl-a8eede21", orig: "Původní řádek", isQuestion: false };
     useOverlayStore().open(o);
     return { setup, w: mountInCase(EditDialog, setup, { o }) };
   };
 
   it("saves a doctor's text next to the original, naming the edit it replaces", async () => {
-    const { setup, w } = open({ routes: { "/cases/NO-010/edits/oc%3A0": reply() } });
+    const { setup, w } = open({ routes: { "/cases/NO-010/edits/v%3Avl-a8eede21": reply() } });
     expect(w.text()).toContain("Úprava se uloží jako změna od MUDr. Svobodová s časem.");
     await w.get("textarea").setValue("Opravený řádek");
     await w.findAll("button").find((b) => b.text() === "Uložit")!.trigger("click");
@@ -361,7 +373,7 @@ describe("edit dialog", () => {
   });
 
   it("reverts an existing edit, and saving the original text counts as a revert", async () => {
-    const { setup, w } = open({ wf: { edits: { "oc:0": { id: 7, text: "Opravený", by: "MUDr. A", when: "t" } } }, routes: { "/cases/NO-010/edits/oc%3A0": reply() } });
+    const { setup, w } = open({ wf: { edits: { "v:vl-a8eede21": edit("Opravený", "MUDr. A", { id: 7, when: "t" }) } }, routes: { "/cases/NO-010/edits/v%3Avl-a8eede21": reply() } });
     await w.get("textarea").setValue("Původní řádek");
     await w.findAll("button").find((b) => b.text() === "Uložit")!.trigger("click");
     await flushPromises();

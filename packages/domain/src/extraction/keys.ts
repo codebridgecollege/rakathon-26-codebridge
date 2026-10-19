@@ -252,3 +252,12 @@ export function pairSubject(a: string, b: string): string {
 export function alertId(alert: Pick<Alert, "rule" | "subject">): string {
   return `al-${fnv1a32(`${alert.rule}|${alert.subject}`)}`;
 }
+
+/**
+ * The ID of a composed view line (types.ts ViewLine): the view's name and the line's facts, sorted, nothing else. A
+ * doctor's edit of the line is keyed by it, so the edit follows the facts, not the line's position; when the line
+ * comes to rest on other facts, the edit shows as missing from the new processing instead of moving silently.
+ */
+export function viewLineId(view: string, facts: readonly string[]): string {
+  return `vl-${fnv1a32(`${view}|${[...facts].sort().join("|")}`)}`;
+}

@@ -1,0 +1,5147 @@
+{
+ "schema": "codebridge.extraction/2",
+ "case_id": "NO-S02",
+ "content_language": "cs",
+ "run": {
+  "id": "fixture-NO-S02-v2",
+  "producer": "fixture",
+  "created_at": "2026-10-19T00:00:00Z",
+  "stages": [
+   {
+    "name": "convert",
+    "engine": "fixtures/convert/convert_v2.py"
+   }
+  ],
+  "supersedes": null
+ },
+ "documents": [
+  {
+   "document_id": "S02_pacient",
+   "sha256": "45878ba7a55efe4d1591452cbf73bb3111eefe5a77da69cc7a234f69427f3a3b",
+   "parts": [
+    "S02_pacient/p0",
+    "S02_pacient/p1",
+    "S02_pacient/p2",
+    "S02_pacient/p3",
+    "S02_pacient/p4",
+    "S02_pacient/p5",
+    "S02_pacient/p6"
+   ]
+  }
+ ],
+ "sources": [
+  {
+   "id": "src-7cf4516d",
+   "type": "document",
+   "document_id": "S02_pacient",
+   "part": "S02_pacient/p0",
+   "page": 1,
+   "quote": "9.3.2026 koloskopie (popis z NIS): exofytický tumor rekta 6-11 cm od anu, semicirkulární, odebrána\nbiopsie, zbytek tračníku bez patologie",
+   "quote_text": "pdf_text",
+   "anchor": null,
+   "reported_as": "cited",
+   "identity": "matches",
+   "reading_check": null
+  },
+  {
+   "id": "src-0454c50a",
+   "type": "document",
+   "document_id": "S02_pacient",
+   "part": "S02_pacient/p0",
+   "page": 1,
+   "quote": "MR pánve 16.3.2026 (popis z NIS): tumor rekta s šířením do mezorekta 7 mm za muscularis propria, 2\nsuspektní mezorektální uzliny, MRF negativní, EMVI negativní, závěr cT3b cN1",
+   "quote_text": "pdf_text",
+   "anchor": null,
+   "reported_as": "cited",
+   "identity": "matches",
+   "reading_check": null
+  },
+  {
+   "id": "src-6060d19a",
+   "type": "document",
+   "document_id": "S02_pacient",
+   "part": "S02_pacient/p0",
+   "page": 1,
+   "quote": "CT hrudníku a břicha 17.3.2026 (popis z NIS): bez známek vzdálených metastáz",
+   "quote_text": "pdf_text",
+   "anchor": null,
+   "reported_as": "cited",
+   "identity": "matches",
+   "reading_check": null
+  },
+  {
+   "id": "src-3a860500",
+   "type": "document",
+   "document_id": "S02_pacient",
+   "part": "S02_pacient/p0",
+   "page": 1,
+   "quote": "20.3.2026 MDT: indikována neoadjuvantní chemoradioterapie",
+   "quote_text": "pdf_text",
+   "anchor": null,
+   "reported_as": "cited",
+   "identity": "matches",
+   "reading_check": null
+  },
+  {
+   "id": "src-054d82a0",
+   "type": "document",
+   "document_id": "S02_pacient",
+   "part": "S02_pacient/p0",
+   "page": 1,
+   "quote": "7.4.2026 - 18.5.2026 neoadjuvantní CHRT: RT 50,4 Gy/28 fr. na oblast pánve + kapecitabin 825 mg/m2\n2x denně ve dnech RT, bez přerušení",
+   "quote_text": "pdf_text",
+   "anchor": null,
+   "reported_as": "cited",
+   "identity": "matches",
+   "reading_check": null
+  },
+  {
+   "id": "src-784d3712",
+   "type": "document",
+   "document_id": "S02_pacient",
+   "part": "S02_pacient/p0",
+   "page": 1,
+   "quote": "MR pánve 20.7.2026 (popis z NIS): regrese tumoru, reziduální ztluštění stěny rekta, bez suspektních\nuzlin, MRF negativní",
+   "quote_text": "pdf_text",
+   "anchor": null,
+   "reported_as": "cited",
+   "identity": "matches",
+   "reading_check": null
+  },
+  {
+   "id": "src-10f37356",
+   "type": "document",
+   "document_id": "S02_pacient",
+   "part": "S02_pacient/p0",
+   "page": 1,
+   "quote": "11.8.2026 nízká přední resekce rekta s TME, staplerová anastomóza, protektivní ileostomie (operační\nprotokol v NIS)",
+   "quote_text": "pdf_text",
+   "anchor": null,
+   "reported_as": "cited",
+   "identity": "matches",
+   "reading_check": null
+  },
+  {
+   "id": "src-1e09af9b",
+   "type": "document",
+   "document_id": "S02_pacient",
+   "part": "S02_pacient/p0",
+   "page": 1,
+   "quote": "7.10.2026 odeslána žádanka na CT hrudníku, břicha a pánve pro vzestup CEA, t.č. výsledek nemáme",
+   "quote_text": "pdf_text",
+   "anchor": null,
+   "reported_as": "original",
+   "identity": "matches",
+   "reading_check": null
+  },
+  {
+   "id": "src-c8a83cfa",
+   "type": "document",
+   "document_id": "S02_pacient",
+   "part": "S02_pacient/p3",
+   "page": 5,
+   "quote": "B_LKC: 7,42 10^9/l [4 ... 10]",
+   "quote_text": "pdf_text",
+   "anchor": null,
+   "reported_as": "original",
+   "identity": "matches",
+   "reading_check": null
+  },
+  {
+   "id": "src-264ca194",
+   "type": "document",
+   "document_id": "S02_pacient",
+   "part": "S02_pacient/p3",
+   "page": 5,
+   "quote": "B_NEU: 4,85 10^9/l [2 ... 7]",
+   "quote_text": "pdf_text",
+   "anchor": null,
+   "reported_as": "original",
+   "identity": "matches",
+   "reading_check": null
+  },
+  {
+   "id": "src-593066d5",
+   "type": "document",
+   "document_id": "S02_pacient",
+   "part": "S02_pacient/p3",
+   "page": 5,
+   "quote": "B_LYMFO: 1,72 10^9/l [0.8 ... 4]",
+   "quote_text": "pdf_text",
+   "anchor": null,
+   "reported_as": "original",
+   "identity": "matches",
+   "reading_check": null
+  },
+  {
+   "id": "src-9d7e83be",
+   "type": "document",
+   "document_id": "S02_pacient",
+   "part": "S02_pacient/p3",
+   "page": 5,
+   "quote": "B_HB: 108 g/l [120 ... 160]",
+   "quote_text": "pdf_text",
+   "anchor": null,
+   "reported_as": "original",
+   "identity": "matches",
+   "reading_check": null
+  },
+  {
+   "id": "src-ce763ade",
+   "type": "document",
+   "document_id": "S02_pacient",
+   "part": "S02_pacient/p3",
+   "page": 5,
+   "quote": "B_PLT: 352 10^9/l [150 ... 400]",
+   "quote_text": "pdf_text",
+   "anchor": null,
+   "reported_as": "original",
+   "identity": "matches",
+   "reading_check": null
+  },
+  {
+   "id": "src-618bd2e2",
+   "type": "document",
+   "document_id": "S02_pacient",
+   "part": "S02_pacient/p3",
+   "page": 5,
+   "quote": "S_UREA: 4,6 mmol/l [2.9 ... 8.2]",
+   "quote_text": "pdf_text",
+   "anchor": null,
+   "reported_as": "original",
+   "identity": "matches",
+   "reading_check": null
+  },
+  {
+   "id": "src-3d7ea7e8",
+   "type": "document",
+   "document_id": "S02_pacient",
+   "part": "S02_pacient/p3",
+   "page": 5,
+   "quote": "S_CREAE: 66 µmol/l [44 ... 80]",
+   "quote_text": "pdf_text",
+   "anchor": null,
+   "reported_as": "original",
+   "identity": "matches",
+   "reading_check": null
+  },
+  {
+   "id": "src-e3196372",
+   "type": "document",
+   "document_id": "S02_pacient",
+   "part": "S02_pacient/p3",
+   "page": 5,
+   "quote": "S_NA: 139 mmol/l [136 ... 145]",
+   "quote_text": "pdf_text",
+   "anchor": null,
+   "reported_as": "original",
+   "identity": "matches",
+   "reading_check": null
+  },
+  {
+   "id": "src-8a366122",
+   "type": "document",
+   "document_id": "S02_pacient",
+   "part": "S02_pacient/p3",
+   "page": 5,
+   "quote": "S_K: 4,32 mmol/l [3.5 ... 5.1]",
+   "quote_text": "pdf_text",
+   "anchor": null,
+   "reported_as": "original",
+   "identity": "matches",
+   "reading_check": null
+  },
+  {
+   "id": "src-7b6ef57f",
+   "type": "document",
+   "document_id": "S02_pacient",
+   "part": "S02_pacient/p3",
+   "page": 5,
+   "quote": "S_BIL: 7,8 µmol/l [0 ... 21]",
+   "quote_text": "pdf_text",
+   "anchor": null,
+   "reported_as": "original",
+   "identity": "matches",
+   "reading_check": null
+  },
+  {
+   "id": "src-710372c2",
+   "type": "document",
+   "document_id": "S02_pacient",
+   "part": "S02_pacient/p3",
+   "page": 5,
+   "quote": "S_ALT: 0,31 µkat/l [0.17 ... 0.58]",
+   "quote_text": "pdf_text",
+   "anchor": null,
+   "reported_as": "original",
+   "identity": "matches",
+   "reading_check": null
+  },
+  {
+   "id": "src-ccce3865",
+   "type": "document",
+   "document_id": "S02_pacient",
+   "part": "S02_pacient/p3",
+   "page": 5,
+   "quote": "S_AST: 0,35 µkat/l [0.17 ... 0.58]",
+   "quote_text": "pdf_text",
+   "anchor": null,
+   "reported_as": "original",
+   "identity": "matches",
+   "reading_check": null
+  },
+  {
+   "id": "src-dba94ab5",
+   "type": "document",
+   "document_id": "S02_pacient",
+   "part": "S02_pacient/p3",
+   "page": 5,
+   "quote": "S_GGT: 0,42 µkat/l [0.14 ... 0.68]",
+   "quote_text": "pdf_text",
+   "anchor": null,
+   "reported_as": "original",
+   "identity": "matches",
+   "reading_check": null
+  },
+  {
+   "id": "src-6dc0497c",
+   "type": "document",
+   "document_id": "S02_pacient",
+   "part": "S02_pacient/p3",
+   "page": 5,
+   "quote": "S_ALP: 1,12 µkat/l [0.58 ... 1.74]",
+   "quote_text": "pdf_text",
+   "anchor": null,
+   "reported_as": "original",
+   "identity": "matches",
+   "reading_check": null
+  },
+  {
+   "id": "src-6e970e87",
+   "type": "document",
+   "document_id": "S02_pacient",
+   "part": "S02_pacient/p3",
+   "page": 5,
+   "quote": "S_ALB: 38,4 g/l [35 ... 52]",
+   "quote_text": "pdf_text",
+   "anchor": null,
+   "reported_as": "original",
+   "identity": "matches",
+   "reading_check": null
+  },
+  {
+   "id": "src-d95a5aec",
+   "type": "document",
+   "document_id": "S02_pacient",
+   "part": "S02_pacient/p3",
+   "page": 5,
+   "quote": "S_HSCRP: 8,4 mg/l [0 ... 5]",
+   "quote_text": "pdf_text",
+   "anchor": null,
+   "reported_as": "original",
+   "identity": "matches",
+   "reading_check": null
+  },
+  {
+   "id": "src-18897a70",
+   "type": "document",
+   "document_id": "S02_pacient",
+   "part": "S02_pacient/p3",
+   "page": 5,
+   "quote": "S_CEA: 14,8 µg/l [0 ... 5]",
+   "quote_text": "pdf_text",
+   "anchor": null,
+   "reported_as": "original",
+   "identity": "matches",
+   "reading_check": null
+  },
+  {
+   "id": "src-f5ba3cf0",
+   "type": "document",
+   "document_id": "S02_pacient",
+   "part": "S02_pacient/p3",
+   "page": 5,
+   "quote": "S_CA199: 48,2 kU/l [0 ... 37]",
+   "quote_text": "pdf_text",
+   "anchor": null,
+   "reported_as": "original",
+   "identity": "matches",
+   "reading_check": null
+  },
+  {
+   "id": "src-33196f1f",
+   "type": "document",
+   "document_id": "S02_pacient",
+   "part": "S02_pacient/p4",
+   "page": 6,
+   "quote": "B_LKC: 3,41 10^9/l [4 ... 10]",
+   "quote_text": "pdf_text",
+   "anchor": null,
+   "reported_as": "original",
+   "identity": "matches",
+   "reading_check": null
+  },
+  {
+   "id": "src-c658967c",
+   "type": "document",
+   "document_id": "S02_pacient",
+   "part": "S02_pacient/p4",
+   "page": 6,
+   "quote": "B_NEU: 2,36 10^9/l [2 ... 7]",
+   "quote_text": "pdf_text",
+   "anchor": null,
+   "reported_as": "original",
+   "identity": "matches",
+   "reading_check": null
+  },
+  {
+   "id": "src-34107dcc",
+   "type": "document",
+   "document_id": "S02_pacient",
+   "part": "S02_pacient/p4",
+   "page": 6,
+   "quote": "B_LYMFO: 0,52 10^9/l [0.8 ... 4]",
+   "quote_text": "pdf_text",
+   "anchor": null,
+   "reported_as": "original",
+   "identity": "matches",
+   "reading_check": null
+  },
+  {
+   "id": "src-b786cb9d",
+   "type": "document",
+   "document_id": "S02_pacient",
+   "part": "S02_pacient/p4",
+   "page": 6,
+   "quote": "B_HB: 112 g/l [120 ... 160]",
+   "quote_text": "pdf_text",
+   "anchor": null,
+   "reported_as": "original",
+   "identity": "matches",
+   "reading_check": null
+  },
+  {
+   "id": "src-00b40d1b",
+   "type": "document",
+   "document_id": "S02_pacient",
+   "part": "S02_pacient/p4",
+   "page": 6,
+   "quote": "B_PLT: 168 10^9/l [150 ... 400]",
+   "quote_text": "pdf_text",
+   "anchor": null,
+   "reported_as": "original",
+   "identity": "matches",
+   "reading_check": null
+  },
+  {
+   "id": "src-6ccb548c",
+   "type": "document",
+   "document_id": "S02_pacient",
+   "part": "S02_pacient/p4",
+   "page": 6,
+   "quote": "S_UREA: 5,1 mmol/l [2.9 ... 8.2]",
+   "quote_text": "pdf_text",
+   "anchor": null,
+   "reported_as": "original",
+   "identity": "matches",
+   "reading_check": null
+  },
+  {
+   "id": "src-746a6dec",
+   "type": "document",
+   "document_id": "S02_pacient",
+   "part": "S02_pacient/p4",
+   "page": 6,
+   "quote": "S_CREAE: 71 µmol/l [44 ... 80]",
+   "quote_text": "pdf_text",
+   "anchor": null,
+   "reported_as": "original",
+   "identity": "matches",
+   "reading_check": null
+  },
+  {
+   "id": "src-e6a62816",
+   "type": "document",
+   "document_id": "S02_pacient",
+   "part": "S02_pacient/p4",
+   "page": 6,
+   "quote": "S_NA: 140 mmol/l [136 ... 145]",
+   "quote_text": "pdf_text",
+   "anchor": null,
+   "reported_as": "original",
+   "identity": "matches",
+   "reading_check": null
+  },
+  {
+   "id": "src-e3038892",
+   "type": "document",
+   "document_id": "S02_pacient",
+   "part": "S02_pacient/p4",
+   "page": 6,
+   "quote": "S_K: 4,18 mmol/l [3.5 ... 5.1]",
+   "quote_text": "pdf_text",
+   "anchor": null,
+   "reported_as": "original",
+   "identity": "matches",
+   "reading_check": null
+  },
+  {
+   "id": "src-7da2a3b1",
+   "type": "document",
+   "document_id": "S02_pacient",
+   "part": "S02_pacient/p4",
+   "page": 6,
+   "quote": "S_BIL: 9,4 µmol/l [0 ... 21]",
+   "quote_text": "pdf_text",
+   "anchor": null,
+   "reported_as": "original",
+   "identity": "matches",
+   "reading_check": null
+  },
+  {
+   "id": "src-ebf22b02",
+   "type": "document",
+   "document_id": "S02_pacient",
+   "part": "S02_pacient/p4",
+   "page": 6,
+   "quote": "S_ALT: 0,44 µkat/l [0.17 ... 0.58]",
+   "quote_text": "pdf_text",
+   "anchor": null,
+   "reported_as": "original",
+   "identity": "matches",
+   "reading_check": null
+  },
+  {
+   "id": "src-4686717e",
+   "type": "document",
+   "document_id": "S02_pacient",
+   "part": "S02_pacient/p4",
+   "page": 6,
+   "quote": "S_AST: 0,41 µkat/l [0.17 ... 0.58]",
+   "quote_text": "pdf_text",
+   "anchor": null,
+   "reported_as": "original",
+   "identity": "matches",
+   "reading_check": null
+  },
+  {
+   "id": "src-879037d9",
+   "type": "document",
+   "document_id": "S02_pacient",
+   "part": "S02_pacient/p4",
+   "page": 6,
+   "quote": "S_GGT: 0,51 µkat/l [0.14 ... 0.68]",
+   "quote_text": "pdf_text",
+   "anchor": null,
+   "reported_as": "original",
+   "identity": "matches",
+   "reading_check": null
+  },
+  {
+   "id": "src-e6600a44",
+   "type": "document",
+   "document_id": "S02_pacient",
+   "part": "S02_pacient/p4",
+   "page": 6,
+   "quote": "S_ALP: 1,05 µkat/l [0.58 ... 1.74]",
+   "quote_text": "pdf_text",
+   "anchor": null,
+   "reported_as": "original",
+   "identity": "matches",
+   "reading_check": null
+  },
+  {
+   "id": "src-d4f1e623",
+   "type": "document",
+   "document_id": "S02_pacient",
+   "part": "S02_pacient/p4",
+   "page": 6,
+   "quote": "S_ALB: 40,1 g/l [35 ... 52]",
+   "quote_text": "pdf_text",
+   "anchor": null,
+   "reported_as": "original",
+   "identity": "matches",
+   "reading_check": null
+  },
+  {
+   "id": "src-fc916f4a",
+   "type": "document",
+   "document_id": "S02_pacient",
+   "part": "S02_pacient/p4",
+   "page": 6,
+   "quote": "S_HSCRP: 3,1 mg/l [0 ... 5]",
+   "quote_text": "pdf_text",
+   "anchor": null,
+   "reported_as": "original",
+   "identity": "matches",
+   "reading_check": null
+  },
+  {
+   "id": "src-07c09324",
+   "type": "document",
+   "document_id": "S02_pacient",
+   "part": "S02_pacient/p4",
+   "page": 6,
+   "quote": "S_CEA: 5,8 µg/l [0 ... 5]",
+   "quote_text": "pdf_text",
+   "anchor": null,
+   "reported_as": "original",
+   "identity": "matches",
+   "reading_check": null
+  },
+  {
+   "id": "src-613e8951",
+   "type": "document",
+   "document_id": "S02_pacient",
+   "part": "S02_pacient/p4",
+   "page": 6,
+   "quote": "S_CA199: 31,5 kU/l [0 ... 37]",
+   "quote_text": "pdf_text",
+   "anchor": null,
+   "reported_as": "original",
+   "identity": "matches",
+   "reading_check": null
+  },
+  {
+   "id": "src-2ee9b6b5",
+   "type": "document",
+   "document_id": "S02_pacient",
+   "part": "S02_pacient/p5",
+   "page": 7,
+   "quote": "B_LKC: 6,88 10^9/l [4 ... 10]",
+   "quote_text": "pdf_text",
+   "anchor": null,
+   "reported_as": "original",
+   "identity": "matches",
+   "reading_check": null
+  },
+  {
+   "id": "src-ad03b120",
+   "type": "document",
+   "document_id": "S02_pacient",
+   "part": "S02_pacient/p5",
+   "page": 7,
+   "quote": "B_NEU: 4,41 10^9/l [2 ... 7]",
+   "quote_text": "pdf_text",
+   "anchor": null,
+   "reported_as": "original",
+   "identity": "matches",
+   "reading_check": null
+  },
+  {
+   "id": "src-b2e13e68",
+   "type": "document",
+   "document_id": "S02_pacient",
+   "part": "S02_pacient/p5",
+   "page": 7,
+   "quote": "B_LYMFO: 0,74 10^9/l [0.8 ... 4]",
+   "quote_text": "pdf_text",
+   "anchor": null,
+   "reported_as": "original",
+   "identity": "matches",
+   "reading_check": null
+  },
+  {
+   "id": "src-46ff63b1",
+   "type": "document",
+   "document_id": "S02_pacient",
+   "part": "S02_pacient/p5",
+   "page": 7,
+   "quote": "B_HB: 116 g/l [120 ... 160]",
+   "quote_text": "pdf_text",
+   "anchor": null,
+   "reported_as": "original",
+   "identity": "matches",
+   "reading_check": null
+  },
+  {
+   "id": "src-533b4727",
+   "type": "document",
+   "document_id": "S02_pacient",
+   "part": "S02_pacient/p5",
+   "page": 7,
+   "quote": "B_PLT: 241 10^9/l [150 ... 400]",
+   "quote_text": "pdf_text",
+   "anchor": null,
+   "reported_as": "original",
+   "identity": "matches",
+   "reading_check": null
+  },
+  {
+   "id": "src-5b96af25",
+   "type": "document",
+   "document_id": "S02_pacient",
+   "part": "S02_pacient/p5",
+   "page": 7,
+   "quote": "S_UREA: 9,8 mmol/l [2.9 ... 8.2]",
+   "quote_text": "pdf_text",
+   "anchor": null,
+   "reported_as": "original",
+   "identity": "matches",
+   "reading_check": null
+  },
+  {
+   "id": "src-be636ca7",
+   "type": "document",
+   "document_id": "S02_pacient",
+   "part": "S02_pacient/p5",
+   "page": 7,
+   "quote": "S_CREAE: 104 µmol/l [44 ... 80]",
+   "quote_text": "pdf_text",
+   "anchor": null,
+   "reported_as": "original",
+   "identity": "matches",
+   "reading_check": null
+  },
+  {
+   "id": "src-17fc4594",
+   "type": "document",
+   "document_id": "S02_pacient",
+   "part": "S02_pacient/p5",
+   "page": 7,
+   "quote": "S_NA: 133 mmol/l [136 ... 145]",
+   "quote_text": "pdf_text",
+   "anchor": null,
+   "reported_as": "original",
+   "identity": "matches",
+   "reading_check": null
+  },
+  {
+   "id": "src-b95538d9",
+   "type": "document",
+   "document_id": "S02_pacient",
+   "part": "S02_pacient/p5",
+   "page": 7,
+   "quote": "S_K: 3,38 mmol/l [3.5 ... 5.1]",
+   "quote_text": "pdf_text",
+   "anchor": null,
+   "reported_as": "original",
+   "identity": "matches",
+   "reading_check": null
+  },
+  {
+   "id": "src-d88a52ab",
+   "type": "document",
+   "document_id": "S02_pacient",
+   "part": "S02_pacient/p5",
+   "page": 7,
+   "quote": "S_BIL: 6,9 µmol/l [0 ... 21]",
+   "quote_text": "pdf_text",
+   "anchor": null,
+   "reported_as": "original",
+   "identity": "matches",
+   "reading_check": null
+  },
+  {
+   "id": "src-84d3035b",
+   "type": "document",
+   "document_id": "S02_pacient",
+   "part": "S02_pacient/p5",
+   "page": 7,
+   "quote": "S_ALT: 0,29 µkat/l [0.17 ... 0.58]",
+   "quote_text": "pdf_text",
+   "anchor": null,
+   "reported_as": "original",
+   "identity": "matches",
+   "reading_check": null
+  },
+  {
+   "id": "src-19b019bf",
+   "type": "document",
+   "document_id": "S02_pacient",
+   "part": "S02_pacient/p5",
+   "page": 7,
+   "quote": "S_AST: 0,33 µkat/l [0.17 ... 0.58]",
+   "quote_text": "pdf_text",
+   "anchor": null,
+   "reported_as": "original",
+   "identity": "matches",
+   "reading_check": null
+  },
+  {
+   "id": "src-980cc596",
+   "type": "document",
+   "document_id": "S02_pacient",
+   "part": "S02_pacient/p5",
+   "page": 7,
+   "quote": "S_GGT: 0,47 µkat/l [0.14 ... 0.68]",
+   "quote_text": "pdf_text",
+   "anchor": null,
+   "reported_as": "original",
+   "identity": "matches",
+   "reading_check": null
+  },
+  {
+   "id": "src-fee6810a",
+   "type": "document",
+   "document_id": "S02_pacient",
+   "part": "S02_pacient/p5",
+   "page": 7,
+   "quote": "S_ALP: 1,21 µkat/l [0.58 ... 1.74]",
+   "quote_text": "pdf_text",
+   "anchor": null,
+   "reported_as": "original",
+   "identity": "matches",
+   "reading_check": null
+  },
+  {
+   "id": "src-b245cdd0",
+   "type": "document",
+   "document_id": "S02_pacient",
+   "part": "S02_pacient/p5",
+   "page": 7,
+   "quote": "S_ALB: 33,6 g/l [35 ... 52]",
+   "quote_text": "pdf_text",
+   "anchor": null,
+   "reported_as": "original",
+   "identity": "matches",
+   "reading_check": null
+  },
+  {
+   "id": "src-2c712aaf",
+   "type": "document",
+   "document_id": "S02_pacient",
+   "part": "S02_pacient/p5",
+   "page": 7,
+   "quote": "S_HSCRP: 12,6 mg/l [0 ... 5]",
+   "quote_text": "pdf_text",
+   "anchor": null,
+   "reported_as": "original",
+   "identity": "matches",
+   "reading_check": null
+  },
+  {
+   "id": "src-ea1c27e2",
+   "type": "document",
+   "document_id": "S02_pacient",
+   "part": "S02_pacient/p5",
+   "page": 7,
+   "quote": "S_CEA: 2,9 µg/l [0 ... 5]",
+   "quote_text": "pdf_text",
+   "anchor": null,
+   "reported_as": "original",
+   "identity": "matches",
+   "reading_check": null
+  },
+  {
+   "id": "src-6c6271b0",
+   "type": "document",
+   "document_id": "S02_pacient",
+   "part": "S02_pacient/p5",
+   "page": 7,
+   "quote": "S_CA199: 19,4 kU/l [0 ... 37]",
+   "quote_text": "pdf_text",
+   "anchor": null,
+   "reported_as": "original",
+   "identity": "matches",
+   "reading_check": null
+  },
+  {
+   "id": "src-67299b17",
+   "type": "document",
+   "document_id": "S02_pacient",
+   "part": "S02_pacient/p6",
+   "page": 8,
+   "quote": "B_LKC: 6,15 10^9/l [4 ... 10]",
+   "quote_text": "pdf_text",
+   "anchor": null,
+   "reported_as": "original",
+   "identity": "matches",
+   "reading_check": null
+  },
+  {
+   "id": "src-9697fad9",
+   "type": "document",
+   "document_id": "S02_pacient",
+   "part": "S02_pacient/p6",
+   "page": 8,
+   "quote": "B_NEU: 3,92 10^9/l [2 ... 7]",
+   "quote_text": "pdf_text",
+   "anchor": null,
+   "reported_as": "original",
+   "identity": "matches",
+   "reading_check": null
+  },
+  {
+   "id": "src-9b3a7f32",
+   "type": "document",
+   "document_id": "S02_pacient",
+   "part": "S02_pacient/p6",
+   "page": 8,
+   "quote": "B_LYMFO: 0,98 10^9/l [0.8 ... 4]",
+   "quote_text": "pdf_text",
+   "anchor": null,
+   "reported_as": "original",
+   "identity": "matches",
+   "reading_check": null
+  },
+  {
+   "id": "src-70226fb4",
+   "type": "document",
+   "document_id": "S02_pacient",
+   "part": "S02_pacient/p6",
+   "page": 8,
+   "quote": "B_HB: 124 g/l [120 ... 160]",
+   "quote_text": "pdf_text",
+   "anchor": null,
+   "reported_as": "original",
+   "identity": "matches",
+   "reading_check": null
+  },
+  {
+   "id": "src-4374896a",
+   "type": "document",
+   "document_id": "S02_pacient",
+   "part": "S02_pacient/p6",
+   "page": 8,
+   "quote": "B_PLT: 226 10^9/l [150 ... 400]",
+   "quote_text": "pdf_text",
+   "anchor": null,
+   "reported_as": "original",
+   "identity": "matches",
+   "reading_check": null
+  },
+  {
+   "id": "src-ec22b1c0",
+   "type": "document",
+   "document_id": "S02_pacient",
+   "part": "S02_pacient/p6",
+   "page": 8,
+   "quote": "S_UREA: 6,2 mmol/l [2.9 ... 8.2]",
+   "quote_text": "pdf_text",
+   "anchor": null,
+   "reported_as": "original",
+   "identity": "matches",
+   "reading_check": null
+  },
+  {
+   "id": "src-4e1adbfb",
+   "type": "document",
+   "document_id": "S02_pacient",
+   "part": "S02_pacient/p6",
+   "page": 8,
+   "quote": "S_CREAE: 78 µmol/l [44 ... 80]",
+   "quote_text": "pdf_text",
+   "anchor": null,
+   "reported_as": "original",
+   "identity": "matches",
+   "reading_check": null
+  },
+  {
+   "id": "src-471b3dff",
+   "type": "document",
+   "document_id": "S02_pacient",
+   "part": "S02_pacient/p6",
+   "page": 8,
+   "quote": "S_NA: 138 mmol/l [136 ... 145]",
+   "quote_text": "pdf_text",
+   "anchor": null,
+   "reported_as": "original",
+   "identity": "matches",
+   "reading_check": null
+  },
+  {
+   "id": "src-5517e578",
+   "type": "document",
+   "document_id": "S02_pacient",
+   "part": "S02_pacient/p6",
+   "page": 8,
+   "quote": "S_K: 4,05 mmol/l [3.5 ... 5.1]",
+   "quote_text": "pdf_text",
+   "anchor": null,
+   "reported_as": "original",
+   "identity": "matches",
+   "reading_check": null
+  },
+  {
+   "id": "src-29b23fb9",
+   "type": "document",
+   "document_id": "S02_pacient",
+   "part": "S02_pacient/p6",
+   "page": 8,
+   "quote": "S_BIL: 8,1 µmol/l [0 ... 21]",
+   "quote_text": "pdf_text",
+   "anchor": null,
+   "reported_as": "original",
+   "identity": "matches",
+   "reading_check": null
+  },
+  {
+   "id": "src-d27718c7",
+   "type": "document",
+   "document_id": "S02_pacient",
+   "part": "S02_pacient/p6",
+   "page": 8,
+   "quote": "S_ALT: 0,36 µkat/l [0.17 ... 0.58]",
+   "quote_text": "pdf_text",
+   "anchor": null,
+   "reported_as": "original",
+   "identity": "matches",
+   "reading_check": null
+  },
+  {
+   "id": "src-621f53f2",
+   "type": "document",
+   "document_id": "S02_pacient",
+   "part": "S02_pacient/p6",
+   "page": 8,
+   "quote": "S_AST: 0,38 µkat/l [0.17 ... 0.58]",
+   "quote_text": "pdf_text",
+   "anchor": null,
+   "reported_as": "original",
+   "identity": "matches",
+   "reading_check": null
+  },
+  {
+   "id": "src-f7c1ade9",
+   "type": "document",
+   "document_id": "S02_pacient",
+   "part": "S02_pacient/p6",
+   "page": 8,
+   "quote": "S_GGT: 0,55 µkat/l [0.14 ... 0.68]",
+   "quote_text": "pdf_text",
+   "anchor": null,
+   "reported_as": "original",
+   "identity": "matches",
+   "reading_check": null
+  },
+  {
+   "id": "src-5f3dd498",
+   "type": "document",
+   "document_id": "S02_pacient",
+   "part": "S02_pacient/p6",
+   "page": 8,
+   "quote": "S_ALP: 1,34 µkat/l [0.58 ... 1.74]",
+   "quote_text": "pdf_text",
+   "anchor": null,
+   "reported_as": "original",
+   "identity": "matches",
+   "reading_check": null
+  },
+  {
+   "id": "src-67c8fa26",
+   "type": "document",
+   "document_id": "S02_pacient",
+   "part": "S02_pacient/p6",
+   "page": 8,
+   "quote": "S_ALB: 39,2 g/l [35 ... 52]",
+   "quote_text": "pdf_text",
+   "anchor": null,
+   "reported_as": "original",
+   "identity": "matches",
+   "reading_check": null
+  },
+  {
+   "id": "src-a66c305a",
+   "type": "document",
+   "document_id": "S02_pacient",
+   "part": "S02_pacient/p6",
+   "page": 8,
+   "quote": "S_HSCRP: 4,2 mg/l [0 ... 5]",
+   "quote_text": "pdf_text",
+   "anchor": null,
+   "reported_as": "original",
+   "identity": "matches",
+   "reading_check": null
+  },
+  {
+   "id": "src-4b86b49a",
+   "type": "document",
+   "document_id": "S02_pacient",
+   "part": "S02_pacient/p6",
+   "page": 8,
+   "quote": "S_CEA: 9,6 µg/l [0 ... 5]",
+   "quote_text": "pdf_text",
+   "anchor": null,
+   "reported_as": "original",
+   "identity": "matches",
+   "reading_check": null
+  },
+  {
+   "id": "src-fa189afd",
+   "type": "document",
+   "document_id": "S02_pacient",
+   "part": "S02_pacient/p6",
+   "page": 8,
+   "quote": "S_CA199: 27,8 kU/l [0 ... 37]",
+   "quote_text": "pdf_text",
+   "anchor": null,
+   "reported_as": "original",
+   "identity": "matches",
+   "reading_check": null
+  }
+ ],
+ "facts": [
+  {
+   "id": "f-1e32c73e",
+   "key": "imaging|mr|pánev|2026-03-16",
+   "kind": "imaging",
+   "subject": "patient",
+   "value": {
+    "modality": "MR",
+    "region": "pánev",
+    "finding_text": "tumor rekta s šířením do mezorekta 7 mm za muscularis propria, 2 suspektní mezorektální uzliny, MRF negativní, EMVI negativní, závěr cT3b cN1",
+    "response": null
+   },
+   "date": {
+    "as_written": "16.3.2026",
+    "precision": "day",
+    "sort": "2026-03-16"
+   },
+   "status": "done",
+   "negated": false,
+   "not_stated": [],
+   "origin": "document",
+   "certainty": "clear",
+   "certainty_reason": null,
+   "codes": [],
+   "note": null,
+   "quarantined": false,
+   "sources": [
+    "src-0454c50a"
+   ]
+  },
+  {
+   "id": "f-34a483c0",
+   "key": "request|ct hrudníku, břicha a pánve|7.10.2026",
+   "kind": "request",
+   "subject": "patient",
+   "value": {
+    "what": "CT hrudníku, břicha a pánve",
+    "request_kind": "exam",
+    "result_fact": null
+   },
+   "date": {
+    "as_written": "7.10.2026",
+    "precision": "day",
+    "sort": "2026-10-07"
+   },
+   "status": "requested",
+   "negated": false,
+   "not_stated": [],
+   "origin": "document",
+   "certainty": "clear",
+   "certainty_reason": null,
+   "codes": [],
+   "note": null,
+   "quarantined": false,
+   "sources": [
+    "src-1e09af9b"
+   ]
+  },
+  {
+   "id": "f-7530e081",
+   "key": "procedure|koloskopie|tračník a rektum|2026-03-09",
+   "kind": "procedure",
+   "subject": "patient",
+   "value": {
+    "name": "koloskopie",
+    "region": "tračník a rektum",
+    "text": "exofytický tumor rekta 6-11 cm od anu, semicirkulární, odebrána biopsie, zbytek tračníku bez patologie"
+   },
+   "date": {
+    "as_written": "9.3.2026",
+    "precision": "day",
+    "sort": "2026-03-09"
+   },
+   "status": "done",
+   "negated": false,
+   "not_stated": [],
+   "origin": "document",
+   "certainty": "clear",
+   "certainty_reason": null,
+   "codes": [],
+   "note": null,
+   "quarantined": false,
+   "sources": [
+    "src-7cf4516d"
+   ]
+  },
+  {
+   "id": "f-bd3f5174",
+   "key": "imaging|ct|hrudník a břicho|2026-03-17",
+   "kind": "imaging",
+   "subject": "patient",
+   "value": {
+    "modality": "CT",
+    "region": "hrudník a břicho",
+    "finding_text": "bez známek vzdálených metastáz",
+    "response": null
+   },
+   "date": {
+    "as_written": "17.3.2026",
+    "precision": "day",
+    "sort": "2026-03-17"
+   },
+   "status": "done",
+   "negated": false,
+   "not_stated": [],
+   "origin": "document",
+   "certainty": "clear",
+   "certainty_reason": null,
+   "codes": [],
+   "note": null,
+   "quarantined": false,
+   "sources": [
+    "src-6060d19a"
+   ]
+  },
+  {
+   "id": "f-66f0624b",
+   "key": "metastasis|vzdálené metastázy|2026-03-17",
+   "kind": "metastasis",
+   "subject": "patient",
+   "value": {
+    "site": "vzdálené metastázy",
+    "status": "excluded",
+    "basis": "imaging",
+    "text": "bez známek vzdálených metastáz"
+   },
+   "date": {
+    "as_written": "17.3.2026",
+    "precision": "day",
+    "sort": "2026-03-17"
+   },
+   "status": "documented",
+   "negated": true,
+   "not_stated": [],
+   "origin": "document",
+   "certainty": "clear",
+   "certainty_reason": null,
+   "codes": [],
+   "note": null,
+   "quarantined": false,
+   "sources": [
+    "src-6060d19a"
+   ]
+  },
+  {
+   "id": "f-00a76763",
+   "key": "imaging|mr|pánev|2026-07-20",
+   "kind": "imaging",
+   "subject": "patient",
+   "value": {
+    "modality": "MR",
+    "region": "pánev",
+    "finding_text": "regrese tumoru, reziduální ztluštění stěny rekta, bez suspektních uzlin, MRF negativní",
+    "response": null
+   },
+   "date": {
+    "as_written": "20.7.2026",
+    "precision": "day",
+    "sort": "2026-07-20"
+   },
+   "status": "done",
+   "negated": false,
+   "not_stated": [],
+   "origin": "document",
+   "certainty": "clear",
+   "certainty_reason": null,
+   "codes": [],
+   "note": null,
+   "quarantined": false,
+   "sources": [
+    "src-784d3712"
+   ]
+  },
+  {
+   "id": "f-fc9f8efd",
+   "key": "procedure|nízká přední resekce rekta s tme, staplerová anastomóza, protektivní ileostomie|rektum|2026-08-11",
+   "kind": "procedure",
+   "subject": "patient",
+   "value": {
+    "name": "nízká přední resekce rekta s TME, staplerová anastomóza, protektivní ileostomie",
+    "region": "rektum",
+    "text": null
+   },
+   "date": {
+    "as_written": "11.8.2026",
+    "precision": "day",
+    "sort": "2026-08-11"
+   },
+   "status": "done",
+   "negated": false,
+   "not_stated": [],
+   "origin": "document",
+   "certainty": "clear",
+   "certainty_reason": null,
+   "codes": [],
+   "note": null,
+   "quarantined": false,
+   "sources": [
+    "src-10f37356"
+   ]
+  },
+  {
+   "id": "f-a5f20d7a",
+   "key": "decision|mdt|2026-03-20",
+   "kind": "decision",
+   "subject": "patient",
+   "value": {
+    "body": "mdt",
+    "body_as_written": "MDT",
+    "text": "indikována neoadjuvantní chemoradioterapie"
+   },
+   "date": {
+    "as_written": "20.3.2026",
+    "precision": "day",
+    "sort": "2026-03-20"
+   },
+   "status": "documented",
+   "negated": false,
+   "not_stated": [],
+   "origin": "document",
+   "certainty": "clear",
+   "certainty_reason": null,
+   "codes": [],
+   "note": null,
+   "quarantined": false,
+   "sources": [
+    "src-3a860500"
+   ]
+  },
+  {
+   "id": "f-b5dae22e",
+   "key": "radiotherapy|pánev|2026-04-07",
+   "kind": "radiotherapy",
+   "subject": "patient",
+   "value": {
+    "target": "pánev",
+    "dose": "50,4 Gy",
+    "fractions": "28 fr.",
+    "text": "neoadjuvantní CHRT: RT 50,4 Gy/28 fr. na oblast pánve, konkomitantně kapecitabin, bez přerušení"
+   },
+   "date": {
+    "as_written": "7.4.2026 - 18.5.2026",
+    "precision": "day",
+    "sort": "2026-04-07"
+   },
+   "status": "done",
+   "negated": false,
+   "not_stated": [],
+   "origin": "document",
+   "certainty": "clear",
+   "certainty_reason": null,
+   "codes": [],
+   "note": null,
+   "quarantined": false,
+   "sources": [
+    "src-054d82a0"
+   ]
+  },
+  {
+   "id": "f-c93f789f",
+   "key": "systemic_therapy|kapecitabin 825 mg/m2 2x denně ve dnech rt|line:none|start:7.4.2026",
+   "kind": "systemic_therapy",
+   "subject": "patient",
+   "value": {
+    "regimen": "kapecitabin 825 mg/m2 2x denně ve dnech RT",
+    "line": null,
+    "start": "7.4.2026",
+    "stop": "18.5.2026",
+    "reason_stopped": null,
+    "text": "konkomitantně s RT v rámci neoadjuvantní CHRT"
+   },
+   "date": {
+    "as_written": "7.4.2026 - 18.5.2026",
+    "precision": "day",
+    "sort": "2026-04-07"
+   },
+   "status": "done",
+   "negated": false,
+   "not_stated": [],
+   "origin": "document",
+   "certainty": "clear",
+   "certainty_reason": null,
+   "codes": [],
+   "note": null,
+   "quarantined": false,
+   "sources": [
+    "src-054d82a0"
+   ]
+  },
+  {
+   "id": "f-d96383c0",
+   "key": "lab_result|B_LKC|draw:10.3.2026 07:25|req:s02-260310-01|doc:S02_pacient",
+   "kind": "lab_result",
+   "subject": "patient",
+   "value": {
+    "name_as_written": "Leukocyty",
+    "value_as_written": "7,42",
+    "value_numeric": 7.42,
+    "unit_as_written": "10^9/l",
+    "unit": "10^9/l",
+    "reference_range": "4 ... 10",
+    "reference_low": 4,
+    "reference_high": 10,
+    "out_of_range": null,
+    "out_of_range_origin": null,
+    "draw": {
+     "as_written": "10.3.2026 07:25",
+     "requisition": "S02-260310-01",
+     "specimen": null
+    }
+   },
+   "date": {
+    "as_written": "10.3.2026 07:25",
+    "precision": "minute",
+    "sort": "2026-03-10T07:25"
+   },
+   "status": "documented",
+   "negated": false,
+   "not_stated": [],
+   "origin": "document",
+   "certainty": "clear",
+   "certainty_reason": null,
+   "codes": [
+    {
+     "system": "fno-local-lab",
+     "code": "B_LKC",
+     "assigned_by": "source"
+    }
+   ],
+   "note": null,
+   "quarantined": false,
+   "sources": [
+    "src-c8a83cfa"
+   ]
+  },
+  {
+   "id": "f-8bb26eed",
+   "key": "lab_result|B_LKC|draw:2.6.2026 07:40|req:s02-260602-01|doc:S02_pacient",
+   "kind": "lab_result",
+   "subject": "patient",
+   "value": {
+    "name_as_written": "Leukocyty",
+    "value_as_written": "3,41",
+    "value_numeric": 3.41,
+    "unit_as_written": "10^9/l",
+    "unit": "10^9/l",
+    "reference_range": "4 ... 10",
+    "reference_low": 4,
+    "reference_high": 10,
+    "out_of_range": "low",
+    "out_of_range_origin": "document",
+    "draw": {
+     "as_written": "2.6.2026 07:40",
+     "requisition": "S02-260602-01",
+     "specimen": null
+    }
+   },
+   "date": {
+    "as_written": "2.6.2026 07:40",
+    "precision": "minute",
+    "sort": "2026-06-02T07:40"
+   },
+   "status": "documented",
+   "negated": false,
+   "not_stated": [],
+   "origin": "document",
+   "certainty": "clear",
+   "certainty_reason": null,
+   "codes": [
+    {
+     "system": "fno-local-lab",
+     "code": "B_LKC",
+     "assigned_by": "source"
+    }
+   ],
+   "note": null,
+   "quarantined": false,
+   "sources": [
+    "src-33196f1f"
+   ]
+  },
+  {
+   "id": "f-a2b9aa06",
+   "key": "lab_result|B_LKC|draw:15.9.2026 07:30|req:s02-260915-01|doc:S02_pacient",
+   "kind": "lab_result",
+   "subject": "patient",
+   "value": {
+    "name_as_written": "Leukocyty",
+    "value_as_written": "6,88",
+    "value_numeric": 6.88,
+    "unit_as_written": "10^9/l",
+    "unit": "10^9/l",
+    "reference_range": "4 ... 10",
+    "reference_low": 4,
+    "reference_high": 10,
+    "out_of_range": null,
+    "out_of_range_origin": null,
+    "draw": {
+     "as_written": "15.9.2026 07:30",
+     "requisition": "S02-260915-01",
+     "specimen": null
+    }
+   },
+   "date": {
+    "as_written": "15.9.2026 07:30",
+    "precision": "minute",
+    "sort": "2026-09-15T07:30"
+   },
+   "status": "documented",
+   "negated": false,
+   "not_stated": [],
+   "origin": "document",
+   "certainty": "clear",
+   "certainty_reason": null,
+   "codes": [
+    {
+     "system": "fno-local-lab",
+     "code": "B_LKC",
+     "assigned_by": "source"
+    }
+   ],
+   "note": null,
+   "quarantined": false,
+   "sources": [
+    "src-2ee9b6b5"
+   ]
+  },
+  {
+   "id": "f-b5233a2b",
+   "key": "lab_result|B_LKC|draw:6.10.2026 07:20|req:s02-261006-01|doc:S02_pacient",
+   "kind": "lab_result",
+   "subject": "patient",
+   "value": {
+    "name_as_written": "Leukocyty",
+    "value_as_written": "6,15",
+    "value_numeric": 6.15,
+    "unit_as_written": "10^9/l",
+    "unit": "10^9/l",
+    "reference_range": "4 ... 10",
+    "reference_low": 4,
+    "reference_high": 10,
+    "out_of_range": null,
+    "out_of_range_origin": null,
+    "draw": {
+     "as_written": "6.10.2026 07:20",
+     "requisition": "S02-261006-01",
+     "specimen": null
+    }
+   },
+   "date": {
+    "as_written": "6.10.2026 07:20",
+    "precision": "minute",
+    "sort": "2026-10-06T07:20"
+   },
+   "status": "documented",
+   "negated": false,
+   "not_stated": [],
+   "origin": "document",
+   "certainty": "clear",
+   "certainty_reason": null,
+   "codes": [
+    {
+     "system": "fno-local-lab",
+     "code": "B_LKC",
+     "assigned_by": "source"
+    }
+   ],
+   "note": null,
+   "quarantined": false,
+   "sources": [
+    "src-67299b17"
+   ]
+  },
+  {
+   "id": "f-57b96e2e",
+   "key": "lab_result|B_NEU|draw:10.3.2026 07:25|req:s02-260310-01|doc:S02_pacient",
+   "kind": "lab_result",
+   "subject": "patient",
+   "value": {
+    "name_as_written": "Neutrofily (abs.)",
+    "value_as_written": "4,85",
+    "value_numeric": 4.85,
+    "unit_as_written": "10^9/l",
+    "unit": "10^9/l",
+    "reference_range": "2 ... 7",
+    "reference_low": 2,
+    "reference_high": 7,
+    "out_of_range": null,
+    "out_of_range_origin": null,
+    "draw": {
+     "as_written": "10.3.2026 07:25",
+     "requisition": "S02-260310-01",
+     "specimen": null
+    }
+   },
+   "date": {
+    "as_written": "10.3.2026 07:25",
+    "precision": "minute",
+    "sort": "2026-03-10T07:25"
+   },
+   "status": "documented",
+   "negated": false,
+   "not_stated": [],
+   "origin": "document",
+   "certainty": "clear",
+   "certainty_reason": null,
+   "codes": [
+    {
+     "system": "fno-local-lab",
+     "code": "B_NEU",
+     "assigned_by": "source"
+    }
+   ],
+   "note": null,
+   "quarantined": false,
+   "sources": [
+    "src-264ca194"
+   ]
+  },
+  {
+   "id": "f-8c27c0d3",
+   "key": "lab_result|B_NEU|draw:2.6.2026 07:40|req:s02-260602-01|doc:S02_pacient",
+   "kind": "lab_result",
+   "subject": "patient",
+   "value": {
+    "name_as_written": "Neutrofily (abs.)",
+    "value_as_written": "2,36",
+    "value_numeric": 2.36,
+    "unit_as_written": "10^9/l",
+    "unit": "10^9/l",
+    "reference_range": "2 ... 7",
+    "reference_low": 2,
+    "reference_high": 7,
+    "out_of_range": null,
+    "out_of_range_origin": null,
+    "draw": {
+     "as_written": "2.6.2026 07:40",
+     "requisition": "S02-260602-01",
+     "specimen": null
+    }
+   },
+   "date": {
+    "as_written": "2.6.2026 07:40",
+    "precision": "minute",
+    "sort": "2026-06-02T07:40"
+   },
+   "status": "documented",
+   "negated": false,
+   "not_stated": [],
+   "origin": "document",
+   "certainty": "clear",
+   "certainty_reason": null,
+   "codes": [
+    {
+     "system": "fno-local-lab",
+     "code": "B_NEU",
+     "assigned_by": "source"
+    }
+   ],
+   "note": null,
+   "quarantined": false,
+   "sources": [
+    "src-c658967c"
+   ]
+  },
+  {
+   "id": "f-b53e42b4",
+   "key": "lab_result|B_NEU|draw:15.9.2026 07:30|req:s02-260915-01|doc:S02_pacient",
+   "kind": "lab_result",
+   "subject": "patient",
+   "value": {
+    "name_as_written": "Neutrofily (abs.)",
+    "value_as_written": "4,41",
+    "value_numeric": 4.41,
+    "unit_as_written": "10^9/l",
+    "unit": "10^9/l",
+    "reference_range": "2 ... 7",
+    "reference_low": 2,
+    "reference_high": 7,
+    "out_of_range": null,
+    "out_of_range_origin": null,
+    "draw": {
+     "as_written": "15.9.2026 07:30",
+     "requisition": "S02-260915-01",
+     "specimen": null
+    }
+   },
+   "date": {
+    "as_written": "15.9.2026 07:30",
+    "precision": "minute",
+    "sort": "2026-09-15T07:30"
+   },
+   "status": "documented",
+   "negated": false,
+   "not_stated": [],
+   "origin": "document",
+   "certainty": "clear",
+   "certainty_reason": null,
+   "codes": [
+    {
+     "system": "fno-local-lab",
+     "code": "B_NEU",
+     "assigned_by": "source"
+    }
+   ],
+   "note": null,
+   "quarantined": false,
+   "sources": [
+    "src-ad03b120"
+   ]
+  },
+  {
+   "id": "f-65ed03a1",
+   "key": "lab_result|B_NEU|draw:6.10.2026 07:20|req:s02-261006-01|doc:S02_pacient",
+   "kind": "lab_result",
+   "subject": "patient",
+   "value": {
+    "name_as_written": "Neutrofily (abs.)",
+    "value_as_written": "3,92",
+    "value_numeric": 3.92,
+    "unit_as_written": "10^9/l",
+    "unit": "10^9/l",
+    "reference_range": "2 ... 7",
+    "reference_low": 2,
+    "reference_high": 7,
+    "out_of_range": null,
+    "out_of_range_origin": null,
+    "draw": {
+     "as_written": "6.10.2026 07:20",
+     "requisition": "S02-261006-01",
+     "specimen": null
+    }
+   },
+   "date": {
+    "as_written": "6.10.2026 07:20",
+    "precision": "minute",
+    "sort": "2026-10-06T07:20"
+   },
+   "status": "documented",
+   "negated": false,
+   "not_stated": [],
+   "origin": "document",
+   "certainty": "clear",
+   "certainty_reason": null,
+   "codes": [
+    {
+     "system": "fno-local-lab",
+     "code": "B_NEU",
+     "assigned_by": "source"
+    }
+   ],
+   "note": null,
+   "quarantined": false,
+   "sources": [
+    "src-9697fad9"
+   ]
+  },
+  {
+   "id": "f-e6bf6049",
+   "key": "lab_result|B_LYMFO|draw:10.3.2026 07:25|req:s02-260310-01|doc:S02_pacient",
+   "kind": "lab_result",
+   "subject": "patient",
+   "value": {
+    "name_as_written": "Lymfocyty (abs.)",
+    "value_as_written": "1,72",
+    "value_numeric": 1.72,
+    "unit_as_written": "10^9/l",
+    "unit": "10^9/l",
+    "reference_range": "0.8 ... 4",
+    "reference_low": 0.8,
+    "reference_high": 4,
+    "out_of_range": null,
+    "out_of_range_origin": null,
+    "draw": {
+     "as_written": "10.3.2026 07:25",
+     "requisition": "S02-260310-01",
+     "specimen": null
+    }
+   },
+   "date": {
+    "as_written": "10.3.2026 07:25",
+    "precision": "minute",
+    "sort": "2026-03-10T07:25"
+   },
+   "status": "documented",
+   "negated": false,
+   "not_stated": [],
+   "origin": "document",
+   "certainty": "clear",
+   "certainty_reason": null,
+   "codes": [
+    {
+     "system": "fno-local-lab",
+     "code": "B_LYMFO",
+     "assigned_by": "source"
+    }
+   ],
+   "note": null,
+   "quarantined": false,
+   "sources": [
+    "src-593066d5"
+   ]
+  },
+  {
+   "id": "f-50b191a6",
+   "key": "lab_result|B_LYMFO|draw:2.6.2026 07:40|req:s02-260602-01|doc:S02_pacient",
+   "kind": "lab_result",
+   "subject": "patient",
+   "value": {
+    "name_as_written": "Lymfocyty (abs.)",
+    "value_as_written": "0,52",
+    "value_numeric": 0.52,
+    "unit_as_written": "10^9/l",
+    "unit": "10^9/l",
+    "reference_range": "0.8 ... 4",
+    "reference_low": 0.8,
+    "reference_high": 4,
+    "out_of_range": "low",
+    "out_of_range_origin": "document",
+    "draw": {
+     "as_written": "2.6.2026 07:40",
+     "requisition": "S02-260602-01",
+     "specimen": null
+    }
+   },
+   "date": {
+    "as_written": "2.6.2026 07:40",
+    "precision": "minute",
+    "sort": "2026-06-02T07:40"
+   },
+   "status": "documented",
+   "negated": false,
+   "not_stated": [],
+   "origin": "document",
+   "certainty": "clear",
+   "certainty_reason": null,
+   "codes": [
+    {
+     "system": "fno-local-lab",
+     "code": "B_LYMFO",
+     "assigned_by": "source"
+    }
+   ],
+   "note": null,
+   "quarantined": false,
+   "sources": [
+    "src-34107dcc"
+   ]
+  },
+  {
+   "id": "f-9b773a5b",
+   "key": "lab_result|B_LYMFO|draw:15.9.2026 07:30|req:s02-260915-01|doc:S02_pacient",
+   "kind": "lab_result",
+   "subject": "patient",
+   "value": {
+    "name_as_written": "Lymfocyty (abs.)",
+    "value_as_written": "0,74",
+    "value_numeric": 0.74,
+    "unit_as_written": "10^9/l",
+    "unit": "10^9/l",
+    "reference_range": "0.8 ... 4",
+    "reference_low": 0.8,
+    "reference_high": 4,
+    "out_of_range": "low",
+    "out_of_range_origin": "document",
+    "draw": {
+     "as_written": "15.9.2026 07:30",
+     "requisition": "S02-260915-01",
+     "specimen": null
+    }
+   },
+   "date": {
+    "as_written": "15.9.2026 07:30",
+    "precision": "minute",
+    "sort": "2026-09-15T07:30"
+   },
+   "status": "documented",
+   "negated": false,
+   "not_stated": [],
+   "origin": "document",
+   "certainty": "clear",
+   "certainty_reason": null,
+   "codes": [
+    {
+     "system": "fno-local-lab",
+     "code": "B_LYMFO",
+     "assigned_by": "source"
+    }
+   ],
+   "note": null,
+   "quarantined": false,
+   "sources": [
+    "src-b2e13e68"
+   ]
+  },
+  {
+   "id": "f-7cd173fe",
+   "key": "lab_result|B_LYMFO|draw:6.10.2026 07:20|req:s02-261006-01|doc:S02_pacient",
+   "kind": "lab_result",
+   "subject": "patient",
+   "value": {
+    "name_as_written": "Lymfocyty (abs.)",
+    "value_as_written": "0,98",
+    "value_numeric": 0.98,
+    "unit_as_written": "10^9/l",
+    "unit": "10^9/l",
+    "reference_range": "0.8 ... 4",
+    "reference_low": 0.8,
+    "reference_high": 4,
+    "out_of_range": null,
+    "out_of_range_origin": null,
+    "draw": {
+     "as_written": "6.10.2026 07:20",
+     "requisition": "S02-261006-01",
+     "specimen": null
+    }
+   },
+   "date": {
+    "as_written": "6.10.2026 07:20",
+    "precision": "minute",
+    "sort": "2026-10-06T07:20"
+   },
+   "status": "documented",
+   "negated": false,
+   "not_stated": [],
+   "origin": "document",
+   "certainty": "clear",
+   "certainty_reason": null,
+   "codes": [
+    {
+     "system": "fno-local-lab",
+     "code": "B_LYMFO",
+     "assigned_by": "source"
+    }
+   ],
+   "note": null,
+   "quarantined": false,
+   "sources": [
+    "src-9b3a7f32"
+   ]
+  },
+  {
+   "id": "f-ed3c081c",
+   "key": "lab_result|B_HB|draw:10.3.2026 07:25|req:s02-260310-01|doc:S02_pacient",
+   "kind": "lab_result",
+   "subject": "patient",
+   "value": {
+    "name_as_written": "Hemoglobin",
+    "value_as_written": "108",
+    "value_numeric": 108,
+    "unit_as_written": "g/l",
+    "unit": "g/l",
+    "reference_range": "120 ... 160",
+    "reference_low": 120,
+    "reference_high": 160,
+    "out_of_range": "low",
+    "out_of_range_origin": "document",
+    "draw": {
+     "as_written": "10.3.2026 07:25",
+     "requisition": "S02-260310-01",
+     "specimen": null
+    }
+   },
+   "date": {
+    "as_written": "10.3.2026 07:25",
+    "precision": "minute",
+    "sort": "2026-03-10T07:25"
+   },
+   "status": "documented",
+   "negated": false,
+   "not_stated": [],
+   "origin": "document",
+   "certainty": "clear",
+   "certainty_reason": null,
+   "codes": [
+    {
+     "system": "fno-local-lab",
+     "code": "B_HB",
+     "assigned_by": "source"
+    }
+   ],
+   "note": null,
+   "quarantined": false,
+   "sources": [
+    "src-9d7e83be"
+   ]
+  },
+  {
+   "id": "f-f2a42a31",
+   "key": "lab_result|B_HB|draw:2.6.2026 07:40|req:s02-260602-01|doc:S02_pacient",
+   "kind": "lab_result",
+   "subject": "patient",
+   "value": {
+    "name_as_written": "Hemoglobin",
+    "value_as_written": "112",
+    "value_numeric": 112,
+    "unit_as_written": "g/l",
+    "unit": "g/l",
+    "reference_range": "120 ... 160",
+    "reference_low": 120,
+    "reference_high": 160,
+    "out_of_range": "low",
+    "out_of_range_origin": "document",
+    "draw": {
+     "as_written": "2.6.2026 07:40",
+     "requisition": "S02-260602-01",
+     "specimen": null
+    }
+   },
+   "date": {
+    "as_written": "2.6.2026 07:40",
+    "precision": "minute",
+    "sort": "2026-06-02T07:40"
+   },
+   "status": "documented",
+   "negated": false,
+   "not_stated": [],
+   "origin": "document",
+   "certainty": "clear",
+   "certainty_reason": null,
+   "codes": [
+    {
+     "system": "fno-local-lab",
+     "code": "B_HB",
+     "assigned_by": "source"
+    }
+   ],
+   "note": null,
+   "quarantined": false,
+   "sources": [
+    "src-b786cb9d"
+   ]
+  },
+  {
+   "id": "f-d5b905da",
+   "key": "lab_result|B_HB|draw:15.9.2026 07:30|req:s02-260915-01|doc:S02_pacient",
+   "kind": "lab_result",
+   "subject": "patient",
+   "value": {
+    "name_as_written": "Hemoglobin",
+    "value_as_written": "116",
+    "value_numeric": 116,
+    "unit_as_written": "g/l",
+    "unit": "g/l",
+    "reference_range": "120 ... 160",
+    "reference_low": 120,
+    "reference_high": 160,
+    "out_of_range": "low",
+    "out_of_range_origin": "document",
+    "draw": {
+     "as_written": "15.9.2026 07:30",
+     "requisition": "S02-260915-01",
+     "specimen": null
+    }
+   },
+   "date": {
+    "as_written": "15.9.2026 07:30",
+    "precision": "minute",
+    "sort": "2026-09-15T07:30"
+   },
+   "status": "documented",
+   "negated": false,
+   "not_stated": [],
+   "origin": "document",
+   "certainty": "clear",
+   "certainty_reason": null,
+   "codes": [
+    {
+     "system": "fno-local-lab",
+     "code": "B_HB",
+     "assigned_by": "source"
+    }
+   ],
+   "note": null,
+   "quarantined": false,
+   "sources": [
+    "src-46ff63b1"
+   ]
+  },
+  {
+   "id": "f-1fb192af",
+   "key": "lab_result|B_HB|draw:6.10.2026 07:20|req:s02-261006-01|doc:S02_pacient",
+   "kind": "lab_result",
+   "subject": "patient",
+   "value": {
+    "name_as_written": "Hemoglobin",
+    "value_as_written": "124",
+    "value_numeric": 124,
+    "unit_as_written": "g/l",
+    "unit": "g/l",
+    "reference_range": "120 ... 160",
+    "reference_low": 120,
+    "reference_high": 160,
+    "out_of_range": null,
+    "out_of_range_origin": null,
+    "draw": {
+     "as_written": "6.10.2026 07:20",
+     "requisition": "S02-261006-01",
+     "specimen": null
+    }
+   },
+   "date": {
+    "as_written": "6.10.2026 07:20",
+    "precision": "minute",
+    "sort": "2026-10-06T07:20"
+   },
+   "status": "documented",
+   "negated": false,
+   "not_stated": [],
+   "origin": "document",
+   "certainty": "clear",
+   "certainty_reason": null,
+   "codes": [
+    {
+     "system": "fno-local-lab",
+     "code": "B_HB",
+     "assigned_by": "source"
+    }
+   ],
+   "note": null,
+   "quarantined": false,
+   "sources": [
+    "src-70226fb4"
+   ]
+  },
+  {
+   "id": "f-f1a64076",
+   "key": "lab_result|B_PLT|draw:10.3.2026 07:25|req:s02-260310-01|doc:S02_pacient",
+   "kind": "lab_result",
+   "subject": "patient",
+   "value": {
+    "name_as_written": "Trombocyty",
+    "value_as_written": "352",
+    "value_numeric": 352,
+    "unit_as_written": "10^9/l",
+    "unit": "10^9/l",
+    "reference_range": "150 ... 400",
+    "reference_low": 150,
+    "reference_high": 400,
+    "out_of_range": null,
+    "out_of_range_origin": null,
+    "draw": {
+     "as_written": "10.3.2026 07:25",
+     "requisition": "S02-260310-01",
+     "specimen": null
+    }
+   },
+   "date": {
+    "as_written": "10.3.2026 07:25",
+    "precision": "minute",
+    "sort": "2026-03-10T07:25"
+   },
+   "status": "documented",
+   "negated": false,
+   "not_stated": [],
+   "origin": "document",
+   "certainty": "clear",
+   "certainty_reason": null,
+   "codes": [
+    {
+     "system": "fno-local-lab",
+     "code": "B_PLT",
+     "assigned_by": "source"
+    }
+   ],
+   "note": null,
+   "quarantined": false,
+   "sources": [
+    "src-ce763ade"
+   ]
+  },
+  {
+   "id": "f-cb71320b",
+   "key": "lab_result|B_PLT|draw:2.6.2026 07:40|req:s02-260602-01|doc:S02_pacient",
+   "kind": "lab_result",
+   "subject": "patient",
+   "value": {
+    "name_as_written": "Trombocyty",
+    "value_as_written": "168",
+    "value_numeric": 168,
+    "unit_as_written": "10^9/l",
+    "unit": "10^9/l",
+    "reference_range": "150 ... 400",
+    "reference_low": 150,
+    "reference_high": 400,
+    "out_of_range": null,
+    "out_of_range_origin": null,
+    "draw": {
+     "as_written": "2.6.2026 07:40",
+     "requisition": "S02-260602-01",
+     "specimen": null
+    }
+   },
+   "date": {
+    "as_written": "2.6.2026 07:40",
+    "precision": "minute",
+    "sort": "2026-06-02T07:40"
+   },
+   "status": "documented",
+   "negated": false,
+   "not_stated": [],
+   "origin": "document",
+   "certainty": "clear",
+   "certainty_reason": null,
+   "codes": [
+    {
+     "system": "fno-local-lab",
+     "code": "B_PLT",
+     "assigned_by": "source"
+    }
+   ],
+   "note": null,
+   "quarantined": false,
+   "sources": [
+    "src-00b40d1b"
+   ]
+  },
+  {
+   "id": "f-314fb9dc",
+   "key": "lab_result|B_PLT|draw:15.9.2026 07:30|req:s02-260915-01|doc:S02_pacient",
+   "kind": "lab_result",
+   "subject": "patient",
+   "value": {
+    "name_as_written": "Trombocyty",
+    "value_as_written": "241",
+    "value_numeric": 241,
+    "unit_as_written": "10^9/l",
+    "unit": "10^9/l",
+    "reference_range": "150 ... 400",
+    "reference_low": 150,
+    "reference_high": 400,
+    "out_of_range": null,
+    "out_of_range_origin": null,
+    "draw": {
+     "as_written": "15.9.2026 07:30",
+     "requisition": "S02-260915-01",
+     "specimen": null
+    }
+   },
+   "date": {
+    "as_written": "15.9.2026 07:30",
+    "precision": "minute",
+    "sort": "2026-09-15T07:30"
+   },
+   "status": "documented",
+   "negated": false,
+   "not_stated": [],
+   "origin": "document",
+   "certainty": "clear",
+   "certainty_reason": null,
+   "codes": [
+    {
+     "system": "fno-local-lab",
+     "code": "B_PLT",
+     "assigned_by": "source"
+    }
+   ],
+   "note": null,
+   "quarantined": false,
+   "sources": [
+    "src-533b4727"
+   ]
+  },
+  {
+   "id": "f-31a4ed09",
+   "key": "lab_result|B_PLT|draw:6.10.2026 07:20|req:s02-261006-01|doc:S02_pacient",
+   "kind": "lab_result",
+   "subject": "patient",
+   "value": {
+    "name_as_written": "Trombocyty",
+    "value_as_written": "226",
+    "value_numeric": 226,
+    "unit_as_written": "10^9/l",
+    "unit": "10^9/l",
+    "reference_range": "150 ... 400",
+    "reference_low": 150,
+    "reference_high": 400,
+    "out_of_range": null,
+    "out_of_range_origin": null,
+    "draw": {
+     "as_written": "6.10.2026 07:20",
+     "requisition": "S02-261006-01",
+     "specimen": null
+    }
+   },
+   "date": {
+    "as_written": "6.10.2026 07:20",
+    "precision": "minute",
+    "sort": "2026-10-06T07:20"
+   },
+   "status": "documented",
+   "negated": false,
+   "not_stated": [],
+   "origin": "document",
+   "certainty": "clear",
+   "certainty_reason": null,
+   "codes": [
+    {
+     "system": "fno-local-lab",
+     "code": "B_PLT",
+     "assigned_by": "source"
+    }
+   ],
+   "note": null,
+   "quarantined": false,
+   "sources": [
+    "src-4374896a"
+   ]
+  },
+  {
+   "id": "f-8f9ac00a",
+   "key": "lab_result|S_UREA|draw:10.3.2026 07:25|req:s02-260310-01|doc:S02_pacient",
+   "kind": "lab_result",
+   "subject": "patient",
+   "value": {
+    "name_as_written": "Urea",
+    "value_as_written": "4,6",
+    "value_numeric": 4.6,
+    "unit_as_written": "mmol/l",
+    "unit": "mmol/l",
+    "reference_range": "2.9 ... 8.2",
+    "reference_low": 2.9,
+    "reference_high": 8.2,
+    "out_of_range": null,
+    "out_of_range_origin": null,
+    "draw": {
+     "as_written": "10.3.2026 07:25",
+     "requisition": "S02-260310-01",
+     "specimen": null
+    }
+   },
+   "date": {
+    "as_written": "10.3.2026 07:25",
+    "precision": "minute",
+    "sort": "2026-03-10T07:25"
+   },
+   "status": "documented",
+   "negated": false,
+   "not_stated": [],
+   "origin": "document",
+   "certainty": "clear",
+   "certainty_reason": null,
+   "codes": [
+    {
+     "system": "fno-local-lab",
+     "code": "S_UREA",
+     "assigned_by": "source"
+    }
+   ],
+   "note": null,
+   "quarantined": false,
+   "sources": [
+    "src-618bd2e2"
+   ]
+  },
+  {
+   "id": "f-57f6a917",
+   "key": "lab_result|S_UREA|draw:2.6.2026 07:40|req:s02-260602-01|doc:S02_pacient",
+   "kind": "lab_result",
+   "subject": "patient",
+   "value": {
+    "name_as_written": "Urea",
+    "value_as_written": "5,1",
+    "value_numeric": 5.1,
+    "unit_as_written": "mmol/l",
+    "unit": "mmol/l",
+    "reference_range": "2.9 ... 8.2",
+    "reference_low": 2.9,
+    "reference_high": 8.2,
+    "out_of_range": null,
+    "out_of_range_origin": null,
+    "draw": {
+     "as_written": "2.6.2026 07:40",
+     "requisition": "S02-260602-01",
+     "specimen": null
+    }
+   },
+   "date": {
+    "as_written": "2.6.2026 07:40",
+    "precision": "minute",
+    "sort": "2026-06-02T07:40"
+   },
+   "status": "documented",
+   "negated": false,
+   "not_stated": [],
+   "origin": "document",
+   "certainty": "clear",
+   "certainty_reason": null,
+   "codes": [
+    {
+     "system": "fno-local-lab",
+     "code": "S_UREA",
+     "assigned_by": "source"
+    }
+   ],
+   "note": null,
+   "quarantined": false,
+   "sources": [
+    "src-6ccb548c"
+   ]
+  },
+  {
+   "id": "f-5300e948",
+   "key": "lab_result|S_UREA|draw:15.9.2026 07:30|req:s02-260915-01|doc:S02_pacient",
+   "kind": "lab_result",
+   "subject": "patient",
+   "value": {
+    "name_as_written": "Urea",
+    "value_as_written": "9,8",
+    "value_numeric": 9.8,
+    "unit_as_written": "mmol/l",
+    "unit": "mmol/l",
+    "reference_range": "2.9 ... 8.2",
+    "reference_low": 2.9,
+    "reference_high": 8.2,
+    "out_of_range": "high",
+    "out_of_range_origin": "document",
+    "draw": {
+     "as_written": "15.9.2026 07:30",
+     "requisition": "S02-260915-01",
+     "specimen": null
+    }
+   },
+   "date": {
+    "as_written": "15.9.2026 07:30",
+    "precision": "minute",
+    "sort": "2026-09-15T07:30"
+   },
+   "status": "documented",
+   "negated": false,
+   "not_stated": [],
+   "origin": "document",
+   "certainty": "clear",
+   "certainty_reason": null,
+   "codes": [
+    {
+     "system": "fno-local-lab",
+     "code": "S_UREA",
+     "assigned_by": "source"
+    }
+   ],
+   "note": null,
+   "quarantined": false,
+   "sources": [
+    "src-5b96af25"
+   ]
+  },
+  {
+   "id": "f-27f82675",
+   "key": "lab_result|S_UREA|draw:6.10.2026 07:20|req:s02-261006-01|doc:S02_pacient",
+   "kind": "lab_result",
+   "subject": "patient",
+   "value": {
+    "name_as_written": "Urea",
+    "value_as_written": "6,2",
+    "value_numeric": 6.2,
+    "unit_as_written": "mmol/l",
+    "unit": "mmol/l",
+    "reference_range": "2.9 ... 8.2",
+    "reference_low": 2.9,
+    "reference_high": 8.2,
+    "out_of_range": null,
+    "out_of_range_origin": null,
+    "draw": {
+     "as_written": "6.10.2026 07:20",
+     "requisition": "S02-261006-01",
+     "specimen": null
+    }
+   },
+   "date": {
+    "as_written": "6.10.2026 07:20",
+    "precision": "minute",
+    "sort": "2026-10-06T07:20"
+   },
+   "status": "documented",
+   "negated": false,
+   "not_stated": [],
+   "origin": "document",
+   "certainty": "clear",
+   "certainty_reason": null,
+   "codes": [
+    {
+     "system": "fno-local-lab",
+     "code": "S_UREA",
+     "assigned_by": "source"
+    }
+   ],
+   "note": null,
+   "quarantined": false,
+   "sources": [
+    "src-ec22b1c0"
+   ]
+  },
+  {
+   "id": "f-39d7d235",
+   "key": "lab_result|S_CREAE|draw:10.3.2026 07:25|req:s02-260310-01|doc:S02_pacient",
+   "kind": "lab_result",
+   "subject": "patient",
+   "value": {
+    "name_as_written": "Kreatinin",
+    "value_as_written": "66",
+    "value_numeric": 66,
+    "unit_as_written": "µmol/l",
+    "unit": "µmol/l",
+    "reference_range": "44 ... 80",
+    "reference_low": 44,
+    "reference_high": 80,
+    "out_of_range": null,
+    "out_of_range_origin": null,
+    "draw": {
+     "as_written": "10.3.2026 07:25",
+     "requisition": "S02-260310-01",
+     "specimen": null
+    }
+   },
+   "date": {
+    "as_written": "10.3.2026 07:25",
+    "precision": "minute",
+    "sort": "2026-03-10T07:25"
+   },
+   "status": "documented",
+   "negated": false,
+   "not_stated": [],
+   "origin": "document",
+   "certainty": "clear",
+   "certainty_reason": null,
+   "codes": [
+    {
+     "system": "fno-local-lab",
+     "code": "S_CREAE",
+     "assigned_by": "source"
+    }
+   ],
+   "note": null,
+   "quarantined": false,
+   "sources": [
+    "src-3d7ea7e8"
+   ]
+  },
+  {
+   "id": "f-e931a29a",
+   "key": "lab_result|S_CREAE|draw:2.6.2026 07:40|req:s02-260602-01|doc:S02_pacient",
+   "kind": "lab_result",
+   "subject": "patient",
+   "value": {
+    "name_as_written": "Kreatinin",
+    "value_as_written": "71",
+    "value_numeric": 71,
+    "unit_as_written": "µmol/l",
+    "unit": "µmol/l",
+    "reference_range": "44 ... 80",
+    "reference_low": 44,
+    "reference_high": 80,
+    "out_of_range": null,
+    "out_of_range_origin": null,
+    "draw": {
+     "as_written": "2.6.2026 07:40",
+     "requisition": "S02-260602-01",
+     "specimen": null
+    }
+   },
+   "date": {
+    "as_written": "2.6.2026 07:40",
+    "precision": "minute",
+    "sort": "2026-06-02T07:40"
+   },
+   "status": "documented",
+   "negated": false,
+   "not_stated": [],
+   "origin": "document",
+   "certainty": "clear",
+   "certainty_reason": null,
+   "codes": [
+    {
+     "system": "fno-local-lab",
+     "code": "S_CREAE",
+     "assigned_by": "source"
+    }
+   ],
+   "note": null,
+   "quarantined": false,
+   "sources": [
+    "src-746a6dec"
+   ]
+  },
+  {
+   "id": "f-5a1a85df",
+   "key": "lab_result|S_CREAE|draw:15.9.2026 07:30|req:s02-260915-01|doc:S02_pacient",
+   "kind": "lab_result",
+   "subject": "patient",
+   "value": {
+    "name_as_written": "Kreatinin",
+    "value_as_written": "104",
+    "value_numeric": 104,
+    "unit_as_written": "µmol/l",
+    "unit": "µmol/l",
+    "reference_range": "44 ... 80",
+    "reference_low": 44,
+    "reference_high": 80,
+    "out_of_range": "high",
+    "out_of_range_origin": "document",
+    "draw": {
+     "as_written": "15.9.2026 07:30",
+     "requisition": "S02-260915-01",
+     "specimen": null
+    }
+   },
+   "date": {
+    "as_written": "15.9.2026 07:30",
+    "precision": "minute",
+    "sort": "2026-09-15T07:30"
+   },
+   "status": "documented",
+   "negated": false,
+   "not_stated": [],
+   "origin": "document",
+   "certainty": "clear",
+   "certainty_reason": null,
+   "codes": [
+    {
+     "system": "fno-local-lab",
+     "code": "S_CREAE",
+     "assigned_by": "source"
+    }
+   ],
+   "note": null,
+   "quarantined": false,
+   "sources": [
+    "src-be636ca7"
+   ]
+  },
+  {
+   "id": "f-25f41f02",
+   "key": "lab_result|S_CREAE|draw:6.10.2026 07:20|req:s02-261006-01|doc:S02_pacient",
+   "kind": "lab_result",
+   "subject": "patient",
+   "value": {
+    "name_as_written": "Kreatinin",
+    "value_as_written": "78",
+    "value_numeric": 78,
+    "unit_as_written": "µmol/l",
+    "unit": "µmol/l",
+    "reference_range": "44 ... 80",
+    "reference_low": 44,
+    "reference_high": 80,
+    "out_of_range": null,
+    "out_of_range_origin": null,
+    "draw": {
+     "as_written": "6.10.2026 07:20",
+     "requisition": "S02-261006-01",
+     "specimen": null
+    }
+   },
+   "date": {
+    "as_written": "6.10.2026 07:20",
+    "precision": "minute",
+    "sort": "2026-10-06T07:20"
+   },
+   "status": "documented",
+   "negated": false,
+   "not_stated": [],
+   "origin": "document",
+   "certainty": "clear",
+   "certainty_reason": null,
+   "codes": [
+    {
+     "system": "fno-local-lab",
+     "code": "S_CREAE",
+     "assigned_by": "source"
+    }
+   ],
+   "note": null,
+   "quarantined": false,
+   "sources": [
+    "src-4e1adbfb"
+   ]
+  },
+  {
+   "id": "f-03f57f1a",
+   "key": "lab_result|S_NA|draw:10.3.2026 07:25|req:s02-260310-01|doc:S02_pacient",
+   "kind": "lab_result",
+   "subject": "patient",
+   "value": {
+    "name_as_written": "Sodík",
+    "value_as_written": "139",
+    "value_numeric": 139,
+    "unit_as_written": "mmol/l",
+    "unit": "mmol/l",
+    "reference_range": "136 ... 145",
+    "reference_low": 136,
+    "reference_high": 145,
+    "out_of_range": null,
+    "out_of_range_origin": null,
+    "draw": {
+     "as_written": "10.3.2026 07:25",
+     "requisition": "S02-260310-01",
+     "specimen": null
+    }
+   },
+   "date": {
+    "as_written": "10.3.2026 07:25",
+    "precision": "minute",
+    "sort": "2026-03-10T07:25"
+   },
+   "status": "documented",
+   "negated": false,
+   "not_stated": [],
+   "origin": "document",
+   "certainty": "clear",
+   "certainty_reason": null,
+   "codes": [
+    {
+     "system": "fno-local-lab",
+     "code": "S_NA",
+     "assigned_by": "source"
+    }
+   ],
+   "note": null,
+   "quarantined": false,
+   "sources": [
+    "src-e3196372"
+   ]
+  },
+  {
+   "id": "f-c0fc5767",
+   "key": "lab_result|S_NA|draw:2.6.2026 07:40|req:s02-260602-01|doc:S02_pacient",
+   "kind": "lab_result",
+   "subject": "patient",
+   "value": {
+    "name_as_written": "Sodík",
+    "value_as_written": "140",
+    "value_numeric": 140,
+    "unit_as_written": "mmol/l",
+    "unit": "mmol/l",
+    "reference_range": "136 ... 145",
+    "reference_low": 136,
+    "reference_high": 145,
+    "out_of_range": null,
+    "out_of_range_origin": null,
+    "draw": {
+     "as_written": "2.6.2026 07:40",
+     "requisition": "S02-260602-01",
+     "specimen": null
+    }
+   },
+   "date": {
+    "as_written": "2.6.2026 07:40",
+    "precision": "minute",
+    "sort": "2026-06-02T07:40"
+   },
+   "status": "documented",
+   "negated": false,
+   "not_stated": [],
+   "origin": "document",
+   "certainty": "clear",
+   "certainty_reason": null,
+   "codes": [
+    {
+     "system": "fno-local-lab",
+     "code": "S_NA",
+     "assigned_by": "source"
+    }
+   ],
+   "note": null,
+   "quarantined": false,
+   "sources": [
+    "src-e6a62816"
+   ]
+  },
+  {
+   "id": "f-9b3a4298",
+   "key": "lab_result|S_NA|draw:15.9.2026 07:30|req:s02-260915-01|doc:S02_pacient",
+   "kind": "lab_result",
+   "subject": "patient",
+   "value": {
+    "name_as_written": "Sodík",
+    "value_as_written": "133",
+    "value_numeric": 133,
+    "unit_as_written": "mmol/l",
+    "unit": "mmol/l",
+    "reference_range": "136 ... 145",
+    "reference_low": 136,
+    "reference_high": 145,
+    "out_of_range": "low",
+    "out_of_range_origin": "document",
+    "draw": {
+     "as_written": "15.9.2026 07:30",
+     "requisition": "S02-260915-01",
+     "specimen": null
+    }
+   },
+   "date": {
+    "as_written": "15.9.2026 07:30",
+    "precision": "minute",
+    "sort": "2026-09-15T07:30"
+   },
+   "status": "documented",
+   "negated": false,
+   "not_stated": [],
+   "origin": "document",
+   "certainty": "clear",
+   "certainty_reason": null,
+   "codes": [
+    {
+     "system": "fno-local-lab",
+     "code": "S_NA",
+     "assigned_by": "source"
+    }
+   ],
+   "note": null,
+   "quarantined": false,
+   "sources": [
+    "src-17fc4594"
+   ]
+  },
+  {
+   "id": "f-817d4305",
+   "key": "lab_result|S_NA|draw:6.10.2026 07:20|req:s02-261006-01|doc:S02_pacient",
+   "kind": "lab_result",
+   "subject": "patient",
+   "value": {
+    "name_as_written": "Sodík",
+    "value_as_written": "138",
+    "value_numeric": 138,
+    "unit_as_written": "mmol/l",
+    "unit": "mmol/l",
+    "reference_range": "136 ... 145",
+    "reference_low": 136,
+    "reference_high": 145,
+    "out_of_range": null,
+    "out_of_range_origin": null,
+    "draw": {
+     "as_written": "6.10.2026 07:20",
+     "requisition": "S02-261006-01",
+     "specimen": null
+    }
+   },
+   "date": {
+    "as_written": "6.10.2026 07:20",
+    "precision": "minute",
+    "sort": "2026-10-06T07:20"
+   },
+   "status": "documented",
+   "negated": false,
+   "not_stated": [],
+   "origin": "document",
+   "certainty": "clear",
+   "certainty_reason": null,
+   "codes": [
+    {
+     "system": "fno-local-lab",
+     "code": "S_NA",
+     "assigned_by": "source"
+    }
+   ],
+   "note": null,
+   "quarantined": false,
+   "sources": [
+    "src-471b3dff"
+   ]
+  },
+  {
+   "id": "f-f4411d64",
+   "key": "lab_result|S_K|draw:10.3.2026 07:25|req:s02-260310-01|doc:S02_pacient",
+   "kind": "lab_result",
+   "subject": "patient",
+   "value": {
+    "name_as_written": "Draslík",
+    "value_as_written": "4,32",
+    "value_numeric": 4.32,
+    "unit_as_written": "mmol/l",
+    "unit": "mmol/l",
+    "reference_range": "3.5 ... 5.1",
+    "reference_low": 3.5,
+    "reference_high": 5.1,
+    "out_of_range": null,
+    "out_of_range_origin": null,
+    "draw": {
+     "as_written": "10.3.2026 07:25",
+     "requisition": "S02-260310-01",
+     "specimen": null
+    }
+   },
+   "date": {
+    "as_written": "10.3.2026 07:25",
+    "precision": "minute",
+    "sort": "2026-03-10T07:25"
+   },
+   "status": "documented",
+   "negated": false,
+   "not_stated": [],
+   "origin": "document",
+   "certainty": "clear",
+   "certainty_reason": null,
+   "codes": [
+    {
+     "system": "fno-local-lab",
+     "code": "S_K",
+     "assigned_by": "source"
+    }
+   ],
+   "note": null,
+   "quarantined": false,
+   "sources": [
+    "src-8a366122"
+   ]
+  },
+  {
+   "id": "f-de85df69",
+   "key": "lab_result|S_K|draw:2.6.2026 07:40|req:s02-260602-01|doc:S02_pacient",
+   "kind": "lab_result",
+   "subject": "patient",
+   "value": {
+    "name_as_written": "Draslík",
+    "value_as_written": "4,18",
+    "value_numeric": 4.18,
+    "unit_as_written": "mmol/l",
+    "unit": "mmol/l",
+    "reference_range": "3.5 ... 5.1",
+    "reference_low": 3.5,
+    "reference_high": 5.1,
+    "out_of_range": null,
+    "out_of_range_origin": null,
+    "draw": {
+     "as_written": "2.6.2026 07:40",
+     "requisition": "S02-260602-01",
+     "specimen": null
+    }
+   },
+   "date": {
+    "as_written": "2.6.2026 07:40",
+    "precision": "minute",
+    "sort": "2026-06-02T07:40"
+   },
+   "status": "documented",
+   "negated": false,
+   "not_stated": [],
+   "origin": "document",
+   "certainty": "clear",
+   "certainty_reason": null,
+   "codes": [
+    {
+     "system": "fno-local-lab",
+     "code": "S_K",
+     "assigned_by": "source"
+    }
+   ],
+   "note": null,
+   "quarantined": false,
+   "sources": [
+    "src-e3038892"
+   ]
+  },
+  {
+   "id": "f-886838e2",
+   "key": "lab_result|S_K|draw:15.9.2026 07:30|req:s02-260915-01|doc:S02_pacient",
+   "kind": "lab_result",
+   "subject": "patient",
+   "value": {
+    "name_as_written": "Draslík",
+    "value_as_written": "3,38",
+    "value_numeric": 3.38,
+    "unit_as_written": "mmol/l",
+    "unit": "mmol/l",
+    "reference_range": "3.5 ... 5.1",
+    "reference_low": 3.5,
+    "reference_high": 5.1,
+    "out_of_range": "low",
+    "out_of_range_origin": "document",
+    "draw": {
+     "as_written": "15.9.2026 07:30",
+     "requisition": "S02-260915-01",
+     "specimen": null
+    }
+   },
+   "date": {
+    "as_written": "15.9.2026 07:30",
+    "precision": "minute",
+    "sort": "2026-09-15T07:30"
+   },
+   "status": "documented",
+   "negated": false,
+   "not_stated": [],
+   "origin": "document",
+   "certainty": "clear",
+   "certainty_reason": null,
+   "codes": [
+    {
+     "system": "fno-local-lab",
+     "code": "S_K",
+     "assigned_by": "source"
+    }
+   ],
+   "note": null,
+   "quarantined": false,
+   "sources": [
+    "src-b95538d9"
+   ]
+  },
+  {
+   "id": "f-70e496f7",
+   "key": "lab_result|S_K|draw:6.10.2026 07:20|req:s02-261006-01|doc:S02_pacient",
+   "kind": "lab_result",
+   "subject": "patient",
+   "value": {
+    "name_as_written": "Draslík",
+    "value_as_written": "4,05",
+    "value_numeric": 4.05,
+    "unit_as_written": "mmol/l",
+    "unit": "mmol/l",
+    "reference_range": "3.5 ... 5.1",
+    "reference_low": 3.5,
+    "reference_high": 5.1,
+    "out_of_range": null,
+    "out_of_range_origin": null,
+    "draw": {
+     "as_written": "6.10.2026 07:20",
+     "requisition": "S02-261006-01",
+     "specimen": null
+    }
+   },
+   "date": {
+    "as_written": "6.10.2026 07:20",
+    "precision": "minute",
+    "sort": "2026-10-06T07:20"
+   },
+   "status": "documented",
+   "negated": false,
+   "not_stated": [],
+   "origin": "document",
+   "certainty": "clear",
+   "certainty_reason": null,
+   "codes": [
+    {
+     "system": "fno-local-lab",
+     "code": "S_K",
+     "assigned_by": "source"
+    }
+   ],
+   "note": null,
+   "quarantined": false,
+   "sources": [
+    "src-5517e578"
+   ]
+  },
+  {
+   "id": "f-4a77c9da",
+   "key": "lab_result|S_BIL|draw:10.3.2026 07:25|req:s02-260310-01|doc:S02_pacient",
+   "kind": "lab_result",
+   "subject": "patient",
+   "value": {
+    "name_as_written": "Bilirubin celkový",
+    "value_as_written": "7,8",
+    "value_numeric": 7.8,
+    "unit_as_written": "µmol/l",
+    "unit": "µmol/l",
+    "reference_range": "0 ... 21",
+    "reference_low": 0,
+    "reference_high": 21,
+    "out_of_range": null,
+    "out_of_range_origin": null,
+    "draw": {
+     "as_written": "10.3.2026 07:25",
+     "requisition": "S02-260310-01",
+     "specimen": null
+    }
+   },
+   "date": {
+    "as_written": "10.3.2026 07:25",
+    "precision": "minute",
+    "sort": "2026-03-10T07:25"
+   },
+   "status": "documented",
+   "negated": false,
+   "not_stated": [],
+   "origin": "document",
+   "certainty": "clear",
+   "certainty_reason": null,
+   "codes": [
+    {
+     "system": "fno-local-lab",
+     "code": "S_BIL",
+     "assigned_by": "source"
+    }
+   ],
+   "note": null,
+   "quarantined": false,
+   "sources": [
+    "src-7b6ef57f"
+   ]
+  },
+  {
+   "id": "f-bdccd2a7",
+   "key": "lab_result|S_BIL|draw:2.6.2026 07:40|req:s02-260602-01|doc:S02_pacient",
+   "kind": "lab_result",
+   "subject": "patient",
+   "value": {
+    "name_as_written": "Bilirubin celkový",
+    "value_as_written": "9,4",
+    "value_numeric": 9.4,
+    "unit_as_written": "µmol/l",
+    "unit": "µmol/l",
+    "reference_range": "0 ... 21",
+    "reference_low": 0,
+    "reference_high": 21,
+    "out_of_range": null,
+    "out_of_range_origin": null,
+    "draw": {
+     "as_written": "2.6.2026 07:40",
+     "requisition": "S02-260602-01",
+     "specimen": null
+    }
+   },
+   "date": {
+    "as_written": "2.6.2026 07:40",
+    "precision": "minute",
+    "sort": "2026-06-02T07:40"
+   },
+   "status": "documented",
+   "negated": false,
+   "not_stated": [],
+   "origin": "document",
+   "certainty": "clear",
+   "certainty_reason": null,
+   "codes": [
+    {
+     "system": "fno-local-lab",
+     "code": "S_BIL",
+     "assigned_by": "source"
+    }
+   ],
+   "note": null,
+   "quarantined": false,
+   "sources": [
+    "src-7da2a3b1"
+   ]
+  },
+  {
+   "id": "f-8b0cfb58",
+   "key": "lab_result|S_BIL|draw:15.9.2026 07:30|req:s02-260915-01|doc:S02_pacient",
+   "kind": "lab_result",
+   "subject": "patient",
+   "value": {
+    "name_as_written": "Bilirubin celkový",
+    "value_as_written": "6,9",
+    "value_numeric": 6.9,
+    "unit_as_written": "µmol/l",
+    "unit": "µmol/l",
+    "reference_range": "0 ... 21",
+    "reference_low": 0,
+    "reference_high": 21,
+    "out_of_range": null,
+    "out_of_range_origin": null,
+    "draw": {
+     "as_written": "15.9.2026 07:30",
+     "requisition": "S02-260915-01",
+     "specimen": null
+    }
+   },
+   "date": {
+    "as_written": "15.9.2026 07:30",
+    "precision": "minute",
+    "sort": "2026-09-15T07:30"
+   },
+   "status": "documented",
+   "negated": false,
+   "not_stated": [],
+   "origin": "document",
+   "certainty": "clear",
+   "certainty_reason": null,
+   "codes": [
+    {
+     "system": "fno-local-lab",
+     "code": "S_BIL",
+     "assigned_by": "source"
+    }
+   ],
+   "note": null,
+   "quarantined": false,
+   "sources": [
+    "src-d88a52ab"
+   ]
+  },
+  {
+   "id": "f-0738acc5",
+   "key": "lab_result|S_BIL|draw:6.10.2026 07:20|req:s02-261006-01|doc:S02_pacient",
+   "kind": "lab_result",
+   "subject": "patient",
+   "value": {
+    "name_as_written": "Bilirubin celkový",
+    "value_as_written": "8,1",
+    "value_numeric": 8.1,
+    "unit_as_written": "µmol/l",
+    "unit": "µmol/l",
+    "reference_range": "0 ... 21",
+    "reference_low": 0,
+    "reference_high": 21,
+    "out_of_range": null,
+    "out_of_range_origin": null,
+    "draw": {
+     "as_written": "6.10.2026 07:20",
+     "requisition": "S02-261006-01",
+     "specimen": null
+    }
+   },
+   "date": {
+    "as_written": "6.10.2026 07:20",
+    "precision": "minute",
+    "sort": "2026-10-06T07:20"
+   },
+   "status": "documented",
+   "negated": false,
+   "not_stated": [],
+   "origin": "document",
+   "certainty": "clear",
+   "certainty_reason": null,
+   "codes": [
+    {
+     "system": "fno-local-lab",
+     "code": "S_BIL",
+     "assigned_by": "source"
+    }
+   ],
+   "note": null,
+   "quarantined": false,
+   "sources": [
+    "src-29b23fb9"
+   ]
+  },
+  {
+   "id": "f-7e63f63e",
+   "key": "lab_result|S_ALT|draw:10.3.2026 07:25|req:s02-260310-01|doc:S02_pacient",
+   "kind": "lab_result",
+   "subject": "patient",
+   "value": {
+    "name_as_written": "ALT",
+    "value_as_written": "0,31",
+    "value_numeric": 0.31,
+    "unit_as_written": "µkat/l",
+    "unit": "µkat/l",
+    "reference_range": "0.17 ... 0.58",
+    "reference_low": 0.17,
+    "reference_high": 0.58,
+    "out_of_range": null,
+    "out_of_range_origin": null,
+    "draw": {
+     "as_written": "10.3.2026 07:25",
+     "requisition": "S02-260310-01",
+     "specimen": null
+    }
+   },
+   "date": {
+    "as_written": "10.3.2026 07:25",
+    "precision": "minute",
+    "sort": "2026-03-10T07:25"
+   },
+   "status": "documented",
+   "negated": false,
+   "not_stated": [],
+   "origin": "document",
+   "certainty": "clear",
+   "certainty_reason": null,
+   "codes": [
+    {
+     "system": "fno-local-lab",
+     "code": "S_ALT",
+     "assigned_by": "source"
+    }
+   ],
+   "note": null,
+   "quarantined": false,
+   "sources": [
+    "src-710372c2"
+   ]
+  },
+  {
+   "id": "f-acc44a63",
+   "key": "lab_result|S_ALT|draw:2.6.2026 07:40|req:s02-260602-01|doc:S02_pacient",
+   "kind": "lab_result",
+   "subject": "patient",
+   "value": {
+    "name_as_written": "ALT",
+    "value_as_written": "0,44",
+    "value_numeric": 0.44,
+    "unit_as_written": "µkat/l",
+    "unit": "µkat/l",
+    "reference_range": "0.17 ... 0.58",
+    "reference_low": 0.17,
+    "reference_high": 0.58,
+    "out_of_range": null,
+    "out_of_range_origin": null,
+    "draw": {
+     "as_written": "2.6.2026 07:40",
+     "requisition": "S02-260602-01",
+     "specimen": null
+    }
+   },
+   "date": {
+    "as_written": "2.6.2026 07:40",
+    "precision": "minute",
+    "sort": "2026-06-02T07:40"
+   },
+   "status": "documented",
+   "negated": false,
+   "not_stated": [],
+   "origin": "document",
+   "certainty": "clear",
+   "certainty_reason": null,
+   "codes": [
+    {
+     "system": "fno-local-lab",
+     "code": "S_ALT",
+     "assigned_by": "source"
+    }
+   ],
+   "note": null,
+   "quarantined": false,
+   "sources": [
+    "src-ebf22b02"
+   ]
+  },
+  {
+   "id": "f-0ee08d84",
+   "key": "lab_result|S_ALT|draw:15.9.2026 07:30|req:s02-260915-01|doc:S02_pacient",
+   "kind": "lab_result",
+   "subject": "patient",
+   "value": {
+    "name_as_written": "ALT",
+    "value_as_written": "0,29",
+    "value_numeric": 0.29,
+    "unit_as_written": "µkat/l",
+    "unit": "µkat/l",
+    "reference_range": "0.17 ... 0.58",
+    "reference_low": 0.17,
+    "reference_high": 0.58,
+    "out_of_range": null,
+    "out_of_range_origin": null,
+    "draw": {
+     "as_written": "15.9.2026 07:30",
+     "requisition": "S02-260915-01",
+     "specimen": null
+    }
+   },
+   "date": {
+    "as_written": "15.9.2026 07:30",
+    "precision": "minute",
+    "sort": "2026-09-15T07:30"
+   },
+   "status": "documented",
+   "negated": false,
+   "not_stated": [],
+   "origin": "document",
+   "certainty": "clear",
+   "certainty_reason": null,
+   "codes": [
+    {
+     "system": "fno-local-lab",
+     "code": "S_ALT",
+     "assigned_by": "source"
+    }
+   ],
+   "note": null,
+   "quarantined": false,
+   "sources": [
+    "src-84d3035b"
+   ]
+  },
+  {
+   "id": "f-62e3fa71",
+   "key": "lab_result|S_ALT|draw:6.10.2026 07:20|req:s02-261006-01|doc:S02_pacient",
+   "kind": "lab_result",
+   "subject": "patient",
+   "value": {
+    "name_as_written": "ALT",
+    "value_as_written": "0,36",
+    "value_numeric": 0.36,
+    "unit_as_written": "µkat/l",
+    "unit": "µkat/l",
+    "reference_range": "0.17 ... 0.58",
+    "reference_low": 0.17,
+    "reference_high": 0.58,
+    "out_of_range": null,
+    "out_of_range_origin": null,
+    "draw": {
+     "as_written": "6.10.2026 07:20",
+     "requisition": "S02-261006-01",
+     "specimen": null
+    }
+   },
+   "date": {
+    "as_written": "6.10.2026 07:20",
+    "precision": "minute",
+    "sort": "2026-10-06T07:20"
+   },
+   "status": "documented",
+   "negated": false,
+   "not_stated": [],
+   "origin": "document",
+   "certainty": "clear",
+   "certainty_reason": null,
+   "codes": [
+    {
+     "system": "fno-local-lab",
+     "code": "S_ALT",
+     "assigned_by": "source"
+    }
+   ],
+   "note": null,
+   "quarantined": false,
+   "sources": [
+    "src-d27718c7"
+   ]
+  },
+  {
+   "id": "f-a4c57dfb",
+   "key": "lab_result|S_AST|draw:10.3.2026 07:25|req:s02-260310-01|doc:S02_pacient",
+   "kind": "lab_result",
+   "subject": "patient",
+   "value": {
+    "name_as_written": "AST",
+    "value_as_written": "0,35",
+    "value_numeric": 0.35,
+    "unit_as_written": "µkat/l",
+    "unit": "µkat/l",
+    "reference_range": "0.17 ... 0.58",
+    "reference_low": 0.17,
+    "reference_high": 0.58,
+    "out_of_range": null,
+    "out_of_range_origin": null,
+    "draw": {
+     "as_written": "10.3.2026 07:25",
+     "requisition": "S02-260310-01",
+     "specimen": null
+    }
+   },
+   "date": {
+    "as_written": "10.3.2026 07:25",
+    "precision": "minute",
+    "sort": "2026-03-10T07:25"
+   },
+   "status": "documented",
+   "negated": false,
+   "not_stated": [],
+   "origin": "document",
+   "certainty": "clear",
+   "certainty_reason": null,
+   "codes": [
+    {
+     "system": "fno-local-lab",
+     "code": "S_AST",
+     "assigned_by": "source"
+    }
+   ],
+   "note": null,
+   "quarantined": false,
+   "sources": [
+    "src-ccce3865"
+   ]
+  },
+  {
+   "id": "f-cd117220",
+   "key": "lab_result|S_AST|draw:2.6.2026 07:40|req:s02-260602-01|doc:S02_pacient",
+   "kind": "lab_result",
+   "subject": "patient",
+   "value": {
+    "name_as_written": "AST",
+    "value_as_written": "0,41",
+    "value_numeric": 0.41,
+    "unit_as_written": "µkat/l",
+    "unit": "µkat/l",
+    "reference_range": "0.17 ... 0.58",
+    "reference_low": 0.17,
+    "reference_high": 0.58,
+    "out_of_range": null,
+    "out_of_range_origin": null,
+    "draw": {
+     "as_written": "2.6.2026 07:40",
+     "requisition": "S02-260602-01",
+     "specimen": null
+    }
+   },
+   "date": {
+    "as_written": "2.6.2026 07:40",
+    "precision": "minute",
+    "sort": "2026-06-02T07:40"
+   },
+   "status": "documented",
+   "negated": false,
+   "not_stated": [],
+   "origin": "document",
+   "certainty": "clear",
+   "certainty_reason": null,
+   "codes": [
+    {
+     "system": "fno-local-lab",
+     "code": "S_AST",
+     "assigned_by": "source"
+    }
+   ],
+   "note": null,
+   "quarantined": false,
+   "sources": [
+    "src-4686717e"
+   ]
+  },
+  {
+   "id": "f-c818dc1d",
+   "key": "lab_result|S_AST|draw:15.9.2026 07:30|req:s02-260915-01|doc:S02_pacient",
+   "kind": "lab_result",
+   "subject": "patient",
+   "value": {
+    "name_as_written": "AST",
+    "value_as_written": "0,33",
+    "value_numeric": 0.33,
+    "unit_as_written": "µkat/l",
+    "unit": "µkat/l",
+    "reference_range": "0.17 ... 0.58",
+    "reference_low": 0.17,
+    "reference_high": 0.58,
+    "out_of_range": null,
+    "out_of_range_origin": null,
+    "draw": {
+     "as_written": "15.9.2026 07:30",
+     "requisition": "S02-260915-01",
+     "specimen": null
+    }
+   },
+   "date": {
+    "as_written": "15.9.2026 07:30",
+    "precision": "minute",
+    "sort": "2026-09-15T07:30"
+   },
+   "status": "documented",
+   "negated": false,
+   "not_stated": [],
+   "origin": "document",
+   "certainty": "clear",
+   "certainty_reason": null,
+   "codes": [
+    {
+     "system": "fno-local-lab",
+     "code": "S_AST",
+     "assigned_by": "source"
+    }
+   ],
+   "note": null,
+   "quarantined": false,
+   "sources": [
+    "src-19b019bf"
+   ]
+  },
+  {
+   "id": "f-8978b518",
+   "key": "lab_result|S_AST|draw:6.10.2026 07:20|req:s02-261006-01|doc:S02_pacient",
+   "kind": "lab_result",
+   "subject": "patient",
+   "value": {
+    "name_as_written": "AST",
+    "value_as_written": "0,38",
+    "value_numeric": 0.38,
+    "unit_as_written": "µkat/l",
+    "unit": "µkat/l",
+    "reference_range": "0.17 ... 0.58",
+    "reference_low": 0.17,
+    "reference_high": 0.58,
+    "out_of_range": null,
+    "out_of_range_origin": null,
+    "draw": {
+     "as_written": "6.10.2026 07:20",
+     "requisition": "S02-261006-01",
+     "specimen": null
+    }
+   },
+   "date": {
+    "as_written": "6.10.2026 07:20",
+    "precision": "minute",
+    "sort": "2026-10-06T07:20"
+   },
+   "status": "documented",
+   "negated": false,
+   "not_stated": [],
+   "origin": "document",
+   "certainty": "clear",
+   "certainty_reason": null,
+   "codes": [
+    {
+     "system": "fno-local-lab",
+     "code": "S_AST",
+     "assigned_by": "source"
+    }
+   ],
+   "note": null,
+   "quarantined": false,
+   "sources": [
+    "src-621f53f2"
+   ]
+  },
+  {
+   "id": "f-7d134925",
+   "key": "lab_result|S_GGT|draw:10.3.2026 07:25|req:s02-260310-01|doc:S02_pacient",
+   "kind": "lab_result",
+   "subject": "patient",
+   "value": {
+    "name_as_written": "GGT",
+    "value_as_written": "0,42",
+    "value_numeric": 0.42,
+    "unit_as_written": "µkat/l",
+    "unit": "µkat/l",
+    "reference_range": "0.14 ... 0.68",
+    "reference_low": 0.14,
+    "reference_high": 0.68,
+    "out_of_range": null,
+    "out_of_range_origin": null,
+    "draw": {
+     "as_written": "10.3.2026 07:25",
+     "requisition": "S02-260310-01",
+     "specimen": null
+    }
+   },
+   "date": {
+    "as_written": "10.3.2026 07:25",
+    "precision": "minute",
+    "sort": "2026-03-10T07:25"
+   },
+   "status": "documented",
+   "negated": false,
+   "not_stated": [],
+   "origin": "document",
+   "certainty": "clear",
+   "certainty_reason": null,
+   "codes": [
+    {
+     "system": "fno-local-lab",
+     "code": "S_GGT",
+     "assigned_by": "source"
+    }
+   ],
+   "note": null,
+   "quarantined": false,
+   "sources": [
+    "src-dba94ab5"
+   ]
+  },
+  {
+   "id": "f-2c8ba64a",
+   "key": "lab_result|S_GGT|draw:2.6.2026 07:40|req:s02-260602-01|doc:S02_pacient",
+   "kind": "lab_result",
+   "subject": "patient",
+   "value": {
+    "name_as_written": "GGT",
+    "value_as_written": "0,51",
+    "value_numeric": 0.51,
+    "unit_as_written": "µkat/l",
+    "unit": "µkat/l",
+    "reference_range": "0.14 ... 0.68",
+    "reference_low": 0.14,
+    "reference_high": 0.68,
+    "out_of_range": null,
+    "out_of_range_origin": null,
+    "draw": {
+     "as_written": "2.6.2026 07:40",
+     "requisition": "S02-260602-01",
+     "specimen": null
+    }
+   },
+   "date": {
+    "as_written": "2.6.2026 07:40",
+    "precision": "minute",
+    "sort": "2026-06-02T07:40"
+   },
+   "status": "documented",
+   "negated": false,
+   "not_stated": [],
+   "origin": "document",
+   "certainty": "clear",
+   "certainty_reason": null,
+   "codes": [
+    {
+     "system": "fno-local-lab",
+     "code": "S_GGT",
+     "assigned_by": "source"
+    }
+   ],
+   "note": null,
+   "quarantined": false,
+   "sources": [
+    "src-879037d9"
+   ]
+  },
+  {
+   "id": "f-88ed864f",
+   "key": "lab_result|S_GGT|draw:15.9.2026 07:30|req:s02-260915-01|doc:S02_pacient",
+   "kind": "lab_result",
+   "subject": "patient",
+   "value": {
+    "name_as_written": "GGT",
+    "value_as_written": "0,47",
+    "value_numeric": 0.47,
+    "unit_as_written": "µkat/l",
+    "unit": "µkat/l",
+    "reference_range": "0.14 ... 0.68",
+    "reference_low": 0.14,
+    "reference_high": 0.68,
+    "out_of_range": null,
+    "out_of_range_origin": null,
+    "draw": {
+     "as_written": "15.9.2026 07:30",
+     "requisition": "S02-260915-01",
+     "specimen": null
+    }
+   },
+   "date": {
+    "as_written": "15.9.2026 07:30",
+    "precision": "minute",
+    "sort": "2026-09-15T07:30"
+   },
+   "status": "documented",
+   "negated": false,
+   "not_stated": [],
+   "origin": "document",
+   "certainty": "clear",
+   "certainty_reason": null,
+   "codes": [
+    {
+     "system": "fno-local-lab",
+     "code": "S_GGT",
+     "assigned_by": "source"
+    }
+   ],
+   "note": null,
+   "quarantined": false,
+   "sources": [
+    "src-980cc596"
+   ]
+  },
+  {
+   "id": "f-9f9f8c32",
+   "key": "lab_result|S_GGT|draw:6.10.2026 07:20|req:s02-261006-01|doc:S02_pacient",
+   "kind": "lab_result",
+   "subject": "patient",
+   "value": {
+    "name_as_written": "GGT",
+    "value_as_written": "0,55",
+    "value_numeric": 0.55,
+    "unit_as_written": "µkat/l",
+    "unit": "µkat/l",
+    "reference_range": "0.14 ... 0.68",
+    "reference_low": 0.14,
+    "reference_high": 0.68,
+    "out_of_range": null,
+    "out_of_range_origin": null,
+    "draw": {
+     "as_written": "6.10.2026 07:20",
+     "requisition": "S02-261006-01",
+     "specimen": null
+    }
+   },
+   "date": {
+    "as_written": "6.10.2026 07:20",
+    "precision": "minute",
+    "sort": "2026-10-06T07:20"
+   },
+   "status": "documented",
+   "negated": false,
+   "not_stated": [],
+   "origin": "document",
+   "certainty": "clear",
+   "certainty_reason": null,
+   "codes": [
+    {
+     "system": "fno-local-lab",
+     "code": "S_GGT",
+     "assigned_by": "source"
+    }
+   ],
+   "note": null,
+   "quarantined": false,
+   "sources": [
+    "src-f7c1ade9"
+   ]
+  },
+  {
+   "id": "f-1453f1f2",
+   "key": "lab_result|S_ALP|draw:10.3.2026 07:25|req:s02-260310-01|doc:S02_pacient",
+   "kind": "lab_result",
+   "subject": "patient",
+   "value": {
+    "name_as_written": "ALP",
+    "value_as_written": "1,12",
+    "value_numeric": 1.12,
+    "unit_as_written": "µkat/l",
+    "unit": "µkat/l",
+    "reference_range": "0.58 ... 1.74",
+    "reference_low": 0.58,
+    "reference_high": 1.74,
+    "out_of_range": null,
+    "out_of_range_origin": null,
+    "draw": {
+     "as_written": "10.3.2026 07:25",
+     "requisition": "S02-260310-01",
+     "specimen": null
+    }
+   },
+   "date": {
+    "as_written": "10.3.2026 07:25",
+    "precision": "minute",
+    "sort": "2026-03-10T07:25"
+   },
+   "status": "documented",
+   "negated": false,
+   "not_stated": [],
+   "origin": "document",
+   "certainty": "clear",
+   "certainty_reason": null,
+   "codes": [
+    {
+     "system": "fno-local-lab",
+     "code": "S_ALP",
+     "assigned_by": "source"
+    }
+   ],
+   "note": null,
+   "quarantined": false,
+   "sources": [
+    "src-6dc0497c"
+   ]
+  },
+  {
+   "id": "f-cc160b8f",
+   "key": "lab_result|S_ALP|draw:2.6.2026 07:40|req:s02-260602-01|doc:S02_pacient",
+   "kind": "lab_result",
+   "subject": "patient",
+   "value": {
+    "name_as_written": "ALP",
+    "value_as_written": "1,05",
+    "value_numeric": 1.05,
+    "unit_as_written": "µkat/l",
+    "unit": "µkat/l",
+    "reference_range": "0.58 ... 1.74",
+    "reference_low": 0.58,
+    "reference_high": 1.74,
+    "out_of_range": null,
+    "out_of_range_origin": null,
+    "draw": {
+     "as_written": "2.6.2026 07:40",
+     "requisition": "S02-260602-01",
+     "specimen": null
+    }
+   },
+   "date": {
+    "as_written": "2.6.2026 07:40",
+    "precision": "minute",
+    "sort": "2026-06-02T07:40"
+   },
+   "status": "documented",
+   "negated": false,
+   "not_stated": [],
+   "origin": "document",
+   "certainty": "clear",
+   "certainty_reason": null,
+   "codes": [
+    {
+     "system": "fno-local-lab",
+     "code": "S_ALP",
+     "assigned_by": "source"
+    }
+   ],
+   "note": null,
+   "quarantined": false,
+   "sources": [
+    "src-e6600a44"
+   ]
+  },
+  {
+   "id": "f-321cd3d0",
+   "key": "lab_result|S_ALP|draw:15.9.2026 07:30|req:s02-260915-01|doc:S02_pacient",
+   "kind": "lab_result",
+   "subject": "patient",
+   "value": {
+    "name_as_written": "ALP",
+    "value_as_written": "1,21",
+    "value_numeric": 1.21,
+    "unit_as_written": "µkat/l",
+    "unit": "µkat/l",
+    "reference_range": "0.58 ... 1.74",
+    "reference_low": 0.58,
+    "reference_high": 1.74,
+    "out_of_range": null,
+    "out_of_range_origin": null,
+    "draw": {
+     "as_written": "15.9.2026 07:30",
+     "requisition": "S02-260915-01",
+     "specimen": null
+    }
+   },
+   "date": {
+    "as_written": "15.9.2026 07:30",
+    "precision": "minute",
+    "sort": "2026-09-15T07:30"
+   },
+   "status": "documented",
+   "negated": false,
+   "not_stated": [],
+   "origin": "document",
+   "certainty": "clear",
+   "certainty_reason": null,
+   "codes": [
+    {
+     "system": "fno-local-lab",
+     "code": "S_ALP",
+     "assigned_by": "source"
+    }
+   ],
+   "note": null,
+   "quarantined": false,
+   "sources": [
+    "src-fee6810a"
+   ]
+  },
+  {
+   "id": "f-4816f23d",
+   "key": "lab_result|S_ALP|draw:6.10.2026 07:20|req:s02-261006-01|doc:S02_pacient",
+   "kind": "lab_result",
+   "subject": "patient",
+   "value": {
+    "name_as_written": "ALP",
+    "value_as_written": "1,34",
+    "value_numeric": 1.34,
+    "unit_as_written": "µkat/l",
+    "unit": "µkat/l",
+    "reference_range": "0.58 ... 1.74",
+    "reference_low": 0.58,
+    "reference_high": 1.74,
+    "out_of_range": null,
+    "out_of_range_origin": null,
+    "draw": {
+     "as_written": "6.10.2026 07:20",
+     "requisition": "S02-261006-01",
+     "specimen": null
+    }
+   },
+   "date": {
+    "as_written": "6.10.2026 07:20",
+    "precision": "minute",
+    "sort": "2026-10-06T07:20"
+   },
+   "status": "documented",
+   "negated": false,
+   "not_stated": [],
+   "origin": "document",
+   "certainty": "clear",
+   "certainty_reason": null,
+   "codes": [
+    {
+     "system": "fno-local-lab",
+     "code": "S_ALP",
+     "assigned_by": "source"
+    }
+   ],
+   "note": null,
+   "quarantined": false,
+   "sources": [
+    "src-5f3dd498"
+   ]
+  },
+  {
+   "id": "f-5ebf9b90",
+   "key": "lab_result|S_ALB|draw:10.3.2026 07:25|req:s02-260310-01|doc:S02_pacient",
+   "kind": "lab_result",
+   "subject": "patient",
+   "value": {
+    "name_as_written": "Albumin",
+    "value_as_written": "38,4",
+    "value_numeric": 38.4,
+    "unit_as_written": "g/l",
+    "unit": "g/l",
+    "reference_range": "35 ... 52",
+    "reference_low": 35,
+    "reference_high": 52,
+    "out_of_range": null,
+    "out_of_range_origin": null,
+    "draw": {
+     "as_written": "10.3.2026 07:25",
+     "requisition": "S02-260310-01",
+     "specimen": null
+    }
+   },
+   "date": {
+    "as_written": "10.3.2026 07:25",
+    "precision": "minute",
+    "sort": "2026-03-10T07:25"
+   },
+   "status": "documented",
+   "negated": false,
+   "not_stated": [],
+   "origin": "document",
+   "certainty": "clear",
+   "certainty_reason": null,
+   "codes": [
+    {
+     "system": "fno-local-lab",
+     "code": "S_ALB",
+     "assigned_by": "source"
+    }
+   ],
+   "note": null,
+   "quarantined": false,
+   "sources": [
+    "src-6e970e87"
+   ]
+  },
+  {
+   "id": "f-d464d0bd",
+   "key": "lab_result|S_ALB|draw:2.6.2026 07:40|req:s02-260602-01|doc:S02_pacient",
+   "kind": "lab_result",
+   "subject": "patient",
+   "value": {
+    "name_as_written": "Albumin",
+    "value_as_written": "40,1",
+    "value_numeric": 40.1,
+    "unit_as_written": "g/l",
+    "unit": "g/l",
+    "reference_range": "35 ... 52",
+    "reference_low": 35,
+    "reference_high": 52,
+    "out_of_range": null,
+    "out_of_range_origin": null,
+    "draw": {
+     "as_written": "2.6.2026 07:40",
+     "requisition": "S02-260602-01",
+     "specimen": null
+    }
+   },
+   "date": {
+    "as_written": "2.6.2026 07:40",
+    "precision": "minute",
+    "sort": "2026-06-02T07:40"
+   },
+   "status": "documented",
+   "negated": false,
+   "not_stated": [],
+   "origin": "document",
+   "certainty": "clear",
+   "certainty_reason": null,
+   "codes": [
+    {
+     "system": "fno-local-lab",
+     "code": "S_ALB",
+     "assigned_by": "source"
+    }
+   ],
+   "note": null,
+   "quarantined": false,
+   "sources": [
+    "src-d4f1e623"
+   ]
+  },
+  {
+   "id": "f-46ae2056",
+   "key": "lab_result|S_ALB|draw:15.9.2026 07:30|req:s02-260915-01|doc:S02_pacient",
+   "kind": "lab_result",
+   "subject": "patient",
+   "value": {
+    "name_as_written": "Albumin",
+    "value_as_written": "33,6",
+    "value_numeric": 33.6,
+    "unit_as_written": "g/l",
+    "unit": "g/l",
+    "reference_range": "35 ... 52",
+    "reference_low": 35,
+    "reference_high": 52,
+    "out_of_range": "low",
+    "out_of_range_origin": "document",
+    "draw": {
+     "as_written": "15.9.2026 07:30",
+     "requisition": "S02-260915-01",
+     "specimen": null
+    }
+   },
+   "date": {
+    "as_written": "15.9.2026 07:30",
+    "precision": "minute",
+    "sort": "2026-09-15T07:30"
+   },
+   "status": "documented",
+   "negated": false,
+   "not_stated": [],
+   "origin": "document",
+   "certainty": "clear",
+   "certainty_reason": null,
+   "codes": [
+    {
+     "system": "fno-local-lab",
+     "code": "S_ALB",
+     "assigned_by": "source"
+    }
+   ],
+   "note": null,
+   "quarantined": false,
+   "sources": [
+    "src-b245cdd0"
+   ]
+  },
+  {
+   "id": "f-fcb5137b",
+   "key": "lab_result|S_ALB|draw:6.10.2026 07:20|req:s02-261006-01|doc:S02_pacient",
+   "kind": "lab_result",
+   "subject": "patient",
+   "value": {
+    "name_as_written": "Albumin",
+    "value_as_written": "39,2",
+    "value_numeric": 39.2,
+    "unit_as_written": "g/l",
+    "unit": "g/l",
+    "reference_range": "35 ... 52",
+    "reference_low": 35,
+    "reference_high": 52,
+    "out_of_range": null,
+    "out_of_range_origin": null,
+    "draw": {
+     "as_written": "6.10.2026 07:20",
+     "requisition": "S02-261006-01",
+     "specimen": null
+    }
+   },
+   "date": {
+    "as_written": "6.10.2026 07:20",
+    "precision": "minute",
+    "sort": "2026-10-06T07:20"
+   },
+   "status": "documented",
+   "negated": false,
+   "not_stated": [],
+   "origin": "document",
+   "certainty": "clear",
+   "certainty_reason": null,
+   "codes": [
+    {
+     "system": "fno-local-lab",
+     "code": "S_ALB",
+     "assigned_by": "source"
+    }
+   ],
+   "note": null,
+   "quarantined": false,
+   "sources": [
+    "src-67c8fa26"
+   ]
+  },
+  {
+   "id": "f-8f3858c7",
+   "key": "lab_result|S_HSCRP|draw:10.3.2026 07:25|req:s02-260310-01|doc:S02_pacient",
+   "kind": "lab_result",
+   "subject": "patient",
+   "value": {
+    "name_as_written": "CRP",
+    "value_as_written": "8,4",
+    "value_numeric": 8.4,
+    "unit_as_written": "mg/l",
+    "unit": "mg/l",
+    "reference_range": "0 ... 5",
+    "reference_low": 0,
+    "reference_high": 5,
+    "out_of_range": "high",
+    "out_of_range_origin": "document",
+    "draw": {
+     "as_written": "10.3.2026 07:25",
+     "requisition": "S02-260310-01",
+     "specimen": null
+    }
+   },
+   "date": {
+    "as_written": "10.3.2026 07:25",
+    "precision": "minute",
+    "sort": "2026-03-10T07:25"
+   },
+   "status": "documented",
+   "negated": false,
+   "not_stated": [],
+   "origin": "document",
+   "certainty": "clear",
+   "certainty_reason": null,
+   "codes": [
+    {
+     "system": "fno-local-lab",
+     "code": "S_HSCRP",
+     "assigned_by": "source"
+    }
+   ],
+   "note": null,
+   "quarantined": false,
+   "sources": [
+    "src-d95a5aec"
+   ]
+  },
+  {
+   "id": "f-f3a3d544",
+   "key": "lab_result|S_HSCRP|draw:2.6.2026 07:40|req:s02-260602-01|doc:S02_pacient",
+   "kind": "lab_result",
+   "subject": "patient",
+   "value": {
+    "name_as_written": "CRP",
+    "value_as_written": "3,1",
+    "value_numeric": 3.1,
+    "unit_as_written": "mg/l",
+    "unit": "mg/l",
+    "reference_range": "0 ... 5",
+    "reference_low": 0,
+    "reference_high": 5,
+    "out_of_range": null,
+    "out_of_range_origin": null,
+    "draw": {
+     "as_written": "2.6.2026 07:40",
+     "requisition": "S02-260602-01",
+     "specimen": null
+    }
+   },
+   "date": {
+    "as_written": "2.6.2026 07:40",
+    "precision": "minute",
+    "sort": "2026-06-02T07:40"
+   },
+   "status": "documented",
+   "negated": false,
+   "not_stated": [],
+   "origin": "document",
+   "certainty": "clear",
+   "certainty_reason": null,
+   "codes": [
+    {
+     "system": "fno-local-lab",
+     "code": "S_HSCRP",
+     "assigned_by": "source"
+    }
+   ],
+   "note": null,
+   "quarantined": false,
+   "sources": [
+    "src-fc916f4a"
+   ]
+  },
+  {
+   "id": "f-a9a0b741",
+   "key": "lab_result|S_HSCRP|draw:15.9.2026 07:30|req:s02-260915-01|doc:S02_pacient",
+   "kind": "lab_result",
+   "subject": "patient",
+   "value": {
+    "name_as_written": "CRP",
+    "value_as_written": "12,6",
+    "value_numeric": 12.6,
+    "unit_as_written": "mg/l",
+    "unit": "mg/l",
+    "reference_range": "0 ... 5",
+    "reference_low": 0,
+    "reference_high": 5,
+    "out_of_range": "high",
+    "out_of_range_origin": "document",
+    "draw": {
+     "as_written": "15.9.2026 07:30",
+     "requisition": "S02-260915-01",
+     "specimen": null
+    }
+   },
+   "date": {
+    "as_written": "15.9.2026 07:30",
+    "precision": "minute",
+    "sort": "2026-09-15T07:30"
+   },
+   "status": "documented",
+   "negated": false,
+   "not_stated": [],
+   "origin": "document",
+   "certainty": "clear",
+   "certainty_reason": null,
+   "codes": [
+    {
+     "system": "fno-local-lab",
+     "code": "S_HSCRP",
+     "assigned_by": "source"
+    }
+   ],
+   "note": null,
+   "quarantined": false,
+   "sources": [
+    "src-2c712aaf"
+   ]
+  },
+  {
+   "id": "f-ff585edc",
+   "key": "lab_result|S_HSCRP|draw:6.10.2026 07:20|req:s02-261006-01|doc:S02_pacient",
+   "kind": "lab_result",
+   "subject": "patient",
+   "value": {
+    "name_as_written": "CRP",
+    "value_as_written": "4,2",
+    "value_numeric": 4.2,
+    "unit_as_written": "mg/l",
+    "unit": "mg/l",
+    "reference_range": "0 ... 5",
+    "reference_low": 0,
+    "reference_high": 5,
+    "out_of_range": null,
+    "out_of_range_origin": null,
+    "draw": {
+     "as_written": "6.10.2026 07:20",
+     "requisition": "S02-261006-01",
+     "specimen": null
+    }
+   },
+   "date": {
+    "as_written": "6.10.2026 07:20",
+    "precision": "minute",
+    "sort": "2026-10-06T07:20"
+   },
+   "status": "documented",
+   "negated": false,
+   "not_stated": [],
+   "origin": "document",
+   "certainty": "clear",
+   "certainty_reason": null,
+   "codes": [
+    {
+     "system": "fno-local-lab",
+     "code": "S_HSCRP",
+     "assigned_by": "source"
+    }
+   ],
+   "note": null,
+   "quarantined": false,
+   "sources": [
+    "src-a66c305a"
+   ]
+  },
+  {
+   "id": "f-3a44a9c6",
+   "key": "lab_result|S_CEA|draw:10.3.2026 07:25|req:s02-260310-01|doc:S02_pacient",
+   "kind": "lab_result",
+   "subject": "patient",
+   "value": {
+    "name_as_written": "CEA",
+    "value_as_written": "14,8",
+    "value_numeric": 14.8,
+    "unit_as_written": "µg/l",
+    "unit": "µg/l",
+    "reference_range": "0 ... 5",
+    "reference_low": 0,
+    "reference_high": 5,
+    "out_of_range": "high",
+    "out_of_range_origin": "document",
+    "draw": {
+     "as_written": "10.3.2026 07:25",
+     "requisition": "S02-260310-01",
+     "specimen": null
+    }
+   },
+   "date": {
+    "as_written": "10.3.2026 07:25",
+    "precision": "minute",
+    "sort": "2026-03-10T07:25"
+   },
+   "status": "documented",
+   "negated": false,
+   "not_stated": [],
+   "origin": "document",
+   "certainty": "clear",
+   "certainty_reason": null,
+   "codes": [
+    {
+     "system": "fno-local-lab",
+     "code": "S_CEA",
+     "assigned_by": "source"
+    }
+   ],
+   "note": null,
+   "quarantined": false,
+   "sources": [
+    "src-18897a70"
+   ]
+  },
+  {
+   "id": "f-acdf385b",
+   "key": "lab_result|S_CEA|draw:2.6.2026 07:40|req:s02-260602-01|doc:S02_pacient",
+   "kind": "lab_result",
+   "subject": "patient",
+   "value": {
+    "name_as_written": "CEA",
+    "value_as_written": "5,8",
+    "value_numeric": 5.8,
+    "unit_as_written": "µg/l",
+    "unit": "µg/l",
+    "reference_range": "0 ... 5",
+    "reference_low": 0,
+    "reference_high": 5,
+    "out_of_range": "high",
+    "out_of_range_origin": "document",
+    "draw": {
+     "as_written": "2.6.2026 07:40",
+     "requisition": "S02-260602-01",
+     "specimen": null
+    }
+   },
+   "date": {
+    "as_written": "2.6.2026 07:40",
+    "precision": "minute",
+    "sort": "2026-06-02T07:40"
+   },
+   "status": "documented",
+   "negated": false,
+   "not_stated": [],
+   "origin": "document",
+   "certainty": "clear",
+   "certainty_reason": null,
+   "codes": [
+    {
+     "system": "fno-local-lab",
+     "code": "S_CEA",
+     "assigned_by": "source"
+    }
+   ],
+   "note": null,
+   "quarantined": false,
+   "sources": [
+    "src-07c09324"
+   ]
+  },
+  {
+   "id": "f-40f1b06c",
+   "key": "lab_result|S_CEA|draw:15.9.2026 07:30|req:s02-260915-01|doc:S02_pacient",
+   "kind": "lab_result",
+   "subject": "patient",
+   "value": {
+    "name_as_written": "CEA",
+    "value_as_written": "2,9",
+    "value_numeric": 2.9,
+    "unit_as_written": "µg/l",
+    "unit": "µg/l",
+    "reference_range": "0 ... 5",
+    "reference_low": 0,
+    "reference_high": 5,
+    "out_of_range": null,
+    "out_of_range_origin": null,
+    "draw": {
+     "as_written": "15.9.2026 07:30",
+     "requisition": "S02-260915-01",
+     "specimen": null
+    }
+   },
+   "date": {
+    "as_written": "15.9.2026 07:30",
+    "precision": "minute",
+    "sort": "2026-09-15T07:30"
+   },
+   "status": "documented",
+   "negated": false,
+   "not_stated": [],
+   "origin": "document",
+   "certainty": "clear",
+   "certainty_reason": null,
+   "codes": [
+    {
+     "system": "fno-local-lab",
+     "code": "S_CEA",
+     "assigned_by": "source"
+    }
+   ],
+   "note": null,
+   "quarantined": false,
+   "sources": [
+    "src-ea1c27e2"
+   ]
+  },
+  {
+   "id": "f-357afe99",
+   "key": "lab_result|S_CEA|draw:6.10.2026 07:20|req:s02-261006-01|doc:S02_pacient",
+   "kind": "lab_result",
+   "subject": "patient",
+   "value": {
+    "name_as_written": "CEA",
+    "value_as_written": "9,6",
+    "value_numeric": 9.6,
+    "unit_as_written": "µg/l",
+    "unit": "µg/l",
+    "reference_range": "0 ... 5",
+    "reference_low": 0,
+    "reference_high": 5,
+    "out_of_range": "high",
+    "out_of_range_origin": "document",
+    "draw": {
+     "as_written": "6.10.2026 07:20",
+     "requisition": "S02-261006-01",
+     "specimen": null
+    }
+   },
+   "date": {
+    "as_written": "6.10.2026 07:20",
+    "precision": "minute",
+    "sort": "2026-10-06T07:20"
+   },
+   "status": "documented",
+   "negated": false,
+   "not_stated": [],
+   "origin": "document",
+   "certainty": "clear",
+   "certainty_reason": null,
+   "codes": [
+    {
+     "system": "fno-local-lab",
+     "code": "S_CEA",
+     "assigned_by": "source"
+    }
+   ],
+   "note": null,
+   "quarantined": false,
+   "sources": [
+    "src-4b86b49a"
+   ]
+  },
+  {
+   "id": "f-d4567360",
+   "key": "lab_result|S_CA199|draw:10.3.2026 07:25|req:s02-260310-01|doc:S02_pacient",
+   "kind": "lab_result",
+   "subject": "patient",
+   "value": {
+    "name_as_written": "CA 19-9",
+    "value_as_written": "48,2",
+    "value_numeric": 48.2,
+    "unit_as_written": "kU/l",
+    "unit": "kU/l",
+    "reference_range": "0 ... 37",
+    "reference_low": 0,
+    "reference_high": 37,
+    "out_of_range": "high",
+    "out_of_range_origin": "document",
+    "draw": {
+     "as_written": "10.3.2026 07:25",
+     "requisition": "S02-260310-01",
+     "specimen": null
+    }
+   },
+   "date": {
+    "as_written": "10.3.2026 07:25",
+    "precision": "minute",
+    "sort": "2026-03-10T07:25"
+   },
+   "status": "documented",
+   "negated": false,
+   "not_stated": [],
+   "origin": "document",
+   "certainty": "clear",
+   "certainty_reason": null,
+   "codes": [
+    {
+     "system": "fno-local-lab",
+     "code": "S_CA199",
+     "assigned_by": "source"
+    }
+   ],
+   "note": null,
+   "quarantined": false,
+   "sources": [
+    "src-f5ba3cf0"
+   ]
+  },
+  {
+   "id": "f-c22cd60d",
+   "key": "lab_result|S_CA199|draw:2.6.2026 07:40|req:s02-260602-01|doc:S02_pacient",
+   "kind": "lab_result",
+   "subject": "patient",
+   "value": {
+    "name_as_written": "CA 19-9",
+    "value_as_written": "31,5",
+    "value_numeric": 31.5,
+    "unit_as_written": "kU/l",
+    "unit": "kU/l",
+    "reference_range": "0 ... 37",
+    "reference_low": 0,
+    "reference_high": 37,
+    "out_of_range": null,
+    "out_of_range_origin": null,
+    "draw": {
+     "as_written": "2.6.2026 07:40",
+     "requisition": "S02-260602-01",
+     "specimen": null
+    }
+   },
+   "date": {
+    "as_written": "2.6.2026 07:40",
+    "precision": "minute",
+    "sort": "2026-06-02T07:40"
+   },
+   "status": "documented",
+   "negated": false,
+   "not_stated": [],
+   "origin": "document",
+   "certainty": "clear",
+   "certainty_reason": null,
+   "codes": [
+    {
+     "system": "fno-local-lab",
+     "code": "S_CA199",
+     "assigned_by": "source"
+    }
+   ],
+   "note": null,
+   "quarantined": false,
+   "sources": [
+    "src-613e8951"
+   ]
+  },
+  {
+   "id": "f-89f1f326",
+   "key": "lab_result|S_CA199|draw:15.9.2026 07:30|req:s02-260915-01|doc:S02_pacient",
+   "kind": "lab_result",
+   "subject": "patient",
+   "value": {
+    "name_as_written": "CA 19-9",
+    "value_as_written": "19,4",
+    "value_numeric": 19.4,
+    "unit_as_written": "kU/l",
+    "unit": "kU/l",
+    "reference_range": "0 ... 37",
+    "reference_low": 0,
+    "reference_high": 37,
+    "out_of_range": null,
+    "out_of_range_origin": null,
+    "draw": {
+     "as_written": "15.9.2026 07:30",
+     "requisition": "S02-260915-01",
+     "specimen": null
+    }
+   },
+   "date": {
+    "as_written": "15.9.2026 07:30",
+    "precision": "minute",
+    "sort": "2026-09-15T07:30"
+   },
+   "status": "documented",
+   "negated": false,
+   "not_stated": [],
+   "origin": "document",
+   "certainty": "clear",
+   "certainty_reason": null,
+   "codes": [
+    {
+     "system": "fno-local-lab",
+     "code": "S_CA199",
+     "assigned_by": "source"
+    }
+   ],
+   "note": null,
+   "quarantined": false,
+   "sources": [
+    "src-6c6271b0"
+   ]
+  },
+  {
+   "id": "f-63a6f34b",
+   "key": "lab_result|S_CA199|draw:6.10.2026 07:20|req:s02-261006-01|doc:S02_pacient",
+   "kind": "lab_result",
+   "subject": "patient",
+   "value": {
+    "name_as_written": "CA 19-9",
+    "value_as_written": "27,8",
+    "value_numeric": 27.8,
+    "unit_as_written": "kU/l",
+    "unit": "kU/l",
+    "reference_range": "0 ... 37",
+    "reference_low": 0,
+    "reference_high": 37,
+    "out_of_range": null,
+    "out_of_range_origin": null,
+    "draw": {
+     "as_written": "6.10.2026 07:20",
+     "requisition": "S02-261006-01",
+     "specimen": null
+    }
+   },
+   "date": {
+    "as_written": "6.10.2026 07:20",
+    "precision": "minute",
+    "sort": "2026-10-06T07:20"
+   },
+   "status": "documented",
+   "negated": false,
+   "not_stated": [],
+   "origin": "document",
+   "certainty": "clear",
+   "certainty_reason": null,
+   "codes": [
+    {
+     "system": "fno-local-lab",
+     "code": "S_CA199",
+     "assigned_by": "source"
+    }
+   ],
+   "note": null,
+   "quarantined": false,
+   "sources": [
+    "src-fa189afd"
+   ]
+  }
+ ],
+ "checks": [
+  {
+   "id": "chk-diagnosis",
+   "looks_for": "diagnosis",
+   "expected": null,
+   "covered": [],
+   "unreadable": [],
+   "result": "not_run"
+  },
+  {
+   "id": "chk-histology",
+   "looks_for": "histology",
+   "expected": null,
+   "covered": [],
+   "unreadable": [],
+   "result": "not_run"
+  },
+  {
+   "id": "chk-stage",
+   "looks_for": "stage",
+   "expected": null,
+   "covered": [],
+   "unreadable": [],
+   "result": "not_run"
+  },
+  {
+   "id": "chk-metastasis",
+   "looks_for": "metastasis",
+   "expected": null,
+   "covered": [],
+   "unreadable": [],
+   "result": "not_run"
+  },
+  {
+   "id": "chk-procedure",
+   "looks_for": "procedure",
+   "expected": null,
+   "covered": [],
+   "unreadable": [],
+   "result": "not_run"
+  },
+  {
+   "id": "chk-systemic-therapy",
+   "looks_for": "systemic_therapy",
+   "expected": null,
+   "covered": [],
+   "unreadable": [],
+   "result": "not_run"
+  },
+  {
+   "id": "chk-radiotherapy",
+   "looks_for": "radiotherapy",
+   "expected": null,
+   "covered": [],
+   "unreadable": [],
+   "result": "not_run"
+  },
+  {
+   "id": "chk-imaging",
+   "looks_for": "imaging",
+   "expected": null,
+   "covered": [],
+   "unreadable": [],
+   "result": "not_run"
+  },
+  {
+   "id": "chk-lab-result",
+   "looks_for": "lab_result",
+   "expected": null,
+   "covered": [
+    {
+     "document_id": "S02_pacient",
+     "part": "S02_pacient/p3"
+    },
+    {
+     "document_id": "S02_pacient",
+     "part": "S02_pacient/p4"
+    },
+    {
+     "document_id": "S02_pacient",
+     "part": "S02_pacient/p5"
+    },
+    {
+     "document_id": "S02_pacient",
+     "part": "S02_pacient/p6"
+    }
+   ],
+   "unreadable": [],
+   "result": "found"
+  },
+  {
+   "id": "chk-vital-sign",
+   "looks_for": "vital_sign",
+   "expected": null,
+   "covered": [],
+   "unreadable": [],
+   "result": "not_run"
+  },
+  {
+   "id": "chk-performance-status",
+   "looks_for": "performance_status",
+   "expected": null,
+   "covered": [],
+   "unreadable": [],
+   "result": "not_run"
+  },
+  {
+   "id": "chk-exam-finding",
+   "looks_for": "exam_finding",
+   "expected": null,
+   "covered": [],
+   "unreadable": [],
+   "result": "not_run"
+  },
+  {
+   "id": "chk-symptom",
+   "looks_for": "symptom",
+   "expected": null,
+   "covered": [],
+   "unreadable": [],
+   "result": "not_run"
+  },
+  {
+   "id": "chk-comorbidity",
+   "looks_for": "comorbidity",
+   "expected": null,
+   "covered": [],
+   "unreadable": [],
+   "result": "not_run"
+  },
+  {
+   "id": "chk-medication",
+   "looks_for": "medication",
+   "expected": null,
+   "covered": [],
+   "unreadable": [],
+   "result": "not_run"
+  },
+  {
+   "id": "chk-contraindication",
+   "looks_for": "contraindication",
+   "expected": null,
+   "covered": [],
+   "unreadable": [],
+   "result": "not_run"
+  },
+  {
+   "id": "chk-allergy",
+   "looks_for": "allergy",
+   "expected": null,
+   "covered": [],
+   "unreadable": [],
+   "result": "not_run"
+  },
+  {
+   "id": "chk-adverse-event",
+   "looks_for": "adverse_event",
+   "expected": null,
+   "covered": [],
+   "unreadable": [],
+   "result": "not_run"
+  },
+  {
+   "id": "chk-prognostic-score",
+   "looks_for": "prognostic_score",
+   "expected": null,
+   "covered": [],
+   "unreadable": [],
+   "result": "not_run"
+  },
+  {
+   "id": "chk-risk-factor",
+   "looks_for": "risk_factor",
+   "expected": null,
+   "covered": [],
+   "unreadable": [],
+   "result": "not_run"
+  },
+  {
+   "id": "chk-family-history",
+   "looks_for": "family_history",
+   "expected": null,
+   "covered": [],
+   "unreadable": [],
+   "result": "not_run"
+  },
+  {
+   "id": "chk-request",
+   "looks_for": "request",
+   "expected": null,
+   "covered": [
+    {
+     "document_id": "S02_pacient",
+     "part": "S02_pacient/p0"
+    }
+   ],
+   "unreadable": [],
+   "result": "found"
+  },
+  {
+   "id": "chk-decision",
+   "looks_for": "decision",
+   "expected": null,
+   "covered": [],
+   "unreadable": [],
+   "result": "not_run"
+  },
+  {
+   "id": "chk-plan",
+   "looks_for": "plan",
+   "expected": null,
+   "covered": [],
+   "unreadable": [],
+   "result": "not_run"
+  },
+  {
+   "id": "chk-visit",
+   "looks_for": "visit",
+   "expected": null,
+   "covered": [],
+   "unreadable": [],
+   "result": "not_run"
+  },
+  {
+   "id": "chk-interval",
+   "looks_for": "interval",
+   "expected": null,
+   "covered": [],
+   "unreadable": [],
+   "result": "not_run"
+  },
+  {
+   "id": "chk-report-s2-mr1",
+   "looks_for": "original_report",
+   "expected": {
+    "of_fact": "f-1e32c73e"
+   },
+   "covered": [
+    {
+     "document_id": "S02_pacient",
+     "part": null
+    }
+   ],
+   "unreadable": [],
+   "result": "nothing_found"
+  },
+  {
+   "id": "chk-report-s2-colo",
+   "looks_for": "original_report",
+   "expected": {
+    "of_fact": "f-7530e081"
+   },
+   "covered": [
+    {
+     "document_id": "S02_pacient",
+     "part": null
+    }
+   ],
+   "unreadable": [],
+   "result": "nothing_found"
+  },
+  {
+   "id": "chk-report-s2-ct-staging",
+   "looks_for": "original_report",
+   "expected": {
+    "of_fact": "f-bd3f5174"
+   },
+   "covered": [
+    {
+     "document_id": "S02_pacient",
+     "part": null
+    }
+   ],
+   "unreadable": [],
+   "result": "nothing_found"
+  },
+  {
+   "id": "chk-report-s2-mr2",
+   "looks_for": "original_report",
+   "expected": {
+    "of_fact": "f-00a76763"
+   },
+   "covered": [
+    {
+     "document_id": "S02_pacient",
+     "part": null
+    }
+   ],
+   "unreadable": [],
+   "result": "nothing_found"
+  },
+  {
+   "id": "chk-report-s2-op",
+   "looks_for": "original_report",
+   "expected": {
+    "of_fact": "f-fc9f8efd"
+   },
+   "covered": [
+    {
+     "document_id": "S02_pacient",
+     "part": null
+    }
+   ],
+   "unreadable": [],
+   "result": "nothing_found"
+  },
+  {
+   "id": "chk-report-s2-mdt",
+   "looks_for": "original_report",
+   "expected": {
+    "of_fact": "f-a5f20d7a"
+   },
+   "covered": [
+    {
+     "document_id": "S02_pacient",
+     "part": null
+    }
+   ],
+   "unreadable": [],
+   "result": "nothing_found"
+  },
+  {
+   "id": "chk-report-s2-rt",
+   "looks_for": "original_report",
+   "expected": {
+    "of_fact": "f-b5dae22e"
+   },
+   "covered": [
+    {
+     "document_id": "S02_pacient",
+     "part": null
+    }
+   ],
+   "unreadable": [],
+   "result": "nothing_found"
+  }
+ ],
+ "alerts": [
+  {
+   "id": "al-a2a12662",
+   "rule": "original_report_missing",
+   "subject": "f-1e32c73e",
+   "kind": "missing",
+   "facts": [
+    "f-1e32c73e"
+   ],
+   "message": {
+    "id": "alert-original-report-missing",
+    "args": {
+     "fact": "f-1e32c73e"
+    }
+   },
+   "note": null
+  },
+  {
+   "id": "al-98ddbef8",
+   "rule": "request_without_result",
+   "subject": "f-34a483c0",
+   "kind": "missing",
+   "facts": [
+    "f-34a483c0"
+   ],
+   "message": {
+    "id": "alert-request-without-result",
+    "args": {
+     "fact": "f-34a483c0"
+    }
+   },
+   "note": null
+  },
+  {
+   "id": "al-5d7cdeb6",
+   "rule": "original_report_missing",
+   "subject": "f-7530e081",
+   "kind": "missing",
+   "facts": [
+    "f-7530e081"
+   ],
+   "message": {
+    "id": "alert-original-report-missing",
+    "args": {
+     "fact": "f-7530e081"
+    }
+   },
+   "note": null
+  },
+  {
+   "id": "al-ff796a41",
+   "rule": "original_report_missing",
+   "subject": "f-bd3f5174",
+   "kind": "missing",
+   "facts": [
+    "f-bd3f5174"
+   ],
+   "message": {
+    "id": "alert-original-report-missing",
+    "args": {
+     "fact": "f-bd3f5174"
+    }
+   },
+   "note": null
+  },
+  {
+   "id": "al-3e7a131f",
+   "rule": "original_report_missing",
+   "subject": "f-00a76763",
+   "kind": "missing",
+   "facts": [
+    "f-00a76763"
+   ],
+   "message": {
+    "id": "alert-original-report-missing",
+    "args": {
+     "fact": "f-00a76763"
+    }
+   },
+   "note": null
+  },
+  {
+   "id": "al-8782e922",
+   "rule": "original_report_missing",
+   "subject": "f-fc9f8efd",
+   "kind": "missing",
+   "facts": [
+    "f-fc9f8efd"
+   ],
+   "message": {
+    "id": "alert-original-report-missing",
+    "args": {
+     "fact": "f-fc9f8efd"
+    }
+   },
+   "note": null
+  },
+  {
+   "id": "al-10e5691d",
+   "rule": "original_report_missing",
+   "subject": "f-a5f20d7a",
+   "kind": "missing",
+   "facts": [
+    "f-a5f20d7a"
+   ],
+   "message": {
+    "id": "alert-original-report-missing",
+    "args": {
+     "fact": "f-a5f20d7a"
+    }
+   },
+   "note": "Záznam MDT 20.3.2026 (indikace neoadjuvance) v dokumentaci není, rozhodnutí je jen převzaté v ambulantní zprávě."
+  },
+  {
+   "id": "al-b775999b",
+   "rule": "original_report_missing",
+   "subject": "f-b5dae22e",
+   "kind": "missing",
+   "facts": [
+    "f-b5dae22e",
+    "f-c93f789f"
+   ],
+   "message": {
+    "id": "alert-original-report-missing",
+    "args": {
+     "fact": "f-b5dae22e"
+    }
+   },
+   "note": "Závěrečná zpráva radioterapie / onkologie o neoadjuvantní CHRT v dokumentaci není, CHRT je jen převzatá v ambulantní zprávě."
+  }
+ ],
+ "brief": null,
+ "question_draft": null,
+ "views": null
+}

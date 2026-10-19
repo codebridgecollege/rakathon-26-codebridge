@@ -17,15 +17,19 @@ from .keys import (
     pair_subject,
     source_id_for,
     value_text,
+    view_line_id,
 )
 from .match import MATCH_MARGIN, MATCH_THRESHOLD, MatchResult, assign_fact_ids, same_frame, similarity
-from .types import ALERT_KINDS, EXTRACTION_SCHEMA, FACT_KINDS
-from .validate import Issue, ValidationResult, date_precision_problem, reference_issues, validate_run
+from .backing import Evidence, backing_problems
+from .types import ALERT_KINDS, EXTRACTION_SCHEMA, FACT_KINDS, VIEW_NAMES
+from .validate import Issue, ValidationResult, date_precision_problem, evidence_of, reference_issues, validate_run
 
 __all__ = [
     "ALERT_KINDS",
     "EXTRACTION_SCHEMA",
+    "Evidence",
     "FACT_KINDS",
+    "VIEW_NAMES",
     "MATCH_MARGIN",
     "MATCH_THRESHOLD",
     "Issue",
@@ -34,10 +38,12 @@ __all__ = [
     "alert_id",
     "assign_fact_ids",
     "assign_keys",
+    "backing_problems",
     "base_key",
     "build_fact_key",
     "date_precision_problem",
     "date_seg",
+    "evidence_of",
     "fnv1a32",
     "js_str",
     "mint_fact_id",
@@ -49,4 +55,5 @@ __all__ = [
     "source_id_for",
     "value_text",
     "validate_run",
+    "view_line_id",
 ]

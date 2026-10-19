@@ -38,7 +38,8 @@ export function numberPlain(cond: string, from: number, orgAt: number): string {
 export const ORG_TABLES = [
   "memberships", "departments", "dept_members", "patients", "cases", "case_members", "case_access_grants", "status_history",
   "slots", "sessions", "attendance", "attendance_sets", "protocols", "decisions", "task_suggestions", "tasks",
-  "question_confirmations", "fact_edits", "edit_log", "extraction_runs", "alerts", "alert_events", "documents",
+  "question_confirmations", "fact_edits", "edit_log", "extraction_runs", "alerts", "alert_events", "alert_events_v1", "alert_identities",
+  "fact_ids", "fact_confirmations", "documents",
   "document_parts", "pages", "pipeline_runs", "upload_sessions", "recordings", "jobs", "transcript_passes", "transcript_lines",
   "transcript_summaries", "audio_uploads", "audio_parts", "audio_segments", "notifications", "idempotency_keys", "write_guards",
   "demo_state", "access_log", "auth_sessions", "model_calls", "patient_nis_links",

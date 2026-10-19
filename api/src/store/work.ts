@@ -8,6 +8,7 @@ import type { Status } from "@codebridge/domain/status";
 import type { AttRow, StaffDept } from "../domain/attendance";
 import type { StaffUser } from "../domain/staff";
 import { assertOrg, orgStmt } from "./sql";
+import type { AlertHistItem, EditEntry, FactConfirmation } from "@codebridge/domain/wire";
 
 export type CaseCore = {
   id: string;
@@ -147,7 +148,7 @@ export class D1Work {
     if (!ids.length) return {};
     const j = JSON.stringify(ids);
     const q = (sql: string) => this.q(sql, j);
-    const [cases, hist, protos, decs, tasks, suggs, edits, elog, qc, aev] = await this.db.batch([
+    const [cases, hist, protos, decs, tasks, suggs, edits, elog, qc, aev, conf] = await this.db.batch([
       q(`SELECT c.id, c.source_file, c.status, c.updated_on, c.question_draft, s.day AS slot_day, s.time AS slot_time
          FROM cases c LEFT JOIN slots s ON s.case_id = c.id AND s.org_id = c.org_id WHERE c.org_id = ?org AND c.id IN (${IN_IDS})`),
       q(`SELECT case_id, from_status, to_status, by_name, at, how FROM status_history WHERE org_id = ?org AND case_id IN (${IN_IDS}) ORDER BY at, id`),
@@ -158,9 +159,10 @@ export class D1Work {
       q(`SELECT * FROM fact_edits WHERE org_id = ?org AND case_id IN (${IN_IDS})`),
       q(`SELECT * FROM edit_log WHERE org_id = ?org AND case_id IN (${IN_IDS}) ORDER BY at, id`),
       q(`SELECT * FROM question_confirmations WHERE org_id = ?org AND case_id IN (${IN_IDS}) ORDER BY at, id`),
-      q(`SELECT e.action, e.by_name, e.at, a.case_id, a.origin, a.position FROM alert_events e
-         JOIN alerts a ON a.id = e.alert_id AND a.org_id = e.org_id JOIN extraction_runs r ON r.id = a.run_id AND r.org_id = a.org_id AND r.is_current = 1
-         WHERE e.org_id = ?org AND a.case_id IN (${IN_IDS}) ORDER BY e.at, e.id`),
+      // By alert and fact ID (codebridge.extraction/2), every run: the page matches them against the current run and lists
+      // what the current run no longer has.
+      q(`SELECT case_id, alert_id, action, by_name, at FROM alert_events WHERE org_id = ?org AND case_id IN (${IN_IDS}) ORDER BY at, id`),
+      q(`SELECT case_id, fact_id, action, value_sha256, run_id, by_name, at FROM fact_confirmations WHERE org_id = ?org AND case_id IN (${IN_IDS}) ORDER BY at, id`),
     ]);
     type R = Record<string, unknown>;
     const rows = (x: D1Result | undefined) => (x?.results ?? []) as R[];
@@ -233,7 +235,10 @@ export class D1Work {
           ? Object.fromEntries(
               rows(edits)
                 .filter((e) => e.case_id === id)
-                .map((e) => [e.key as string, { id: (e.log_id as number) ?? null, text: e.text as string, orig: (e.orig as string) ?? null, by: e.by_name as string, when: e.at as string }]),
+                .map((e) => [
+                  e.key as string,
+                  { id: (e.log_id as number) ?? null, text: e.text as string, orig: (e.orig as string) ?? null, by: e.by_name as string, when: e.at as string, fact_id: (e.fact_id as string) ?? null },
+                ]),
             )
           : {},
         editLog: clinical
@@ -246,7 +251,19 @@ export class D1Work {
         alertHist: clinical
           ? rows(aev)
               .filter((e) => e.case_id === id)
-              .map((e) => ({ i: e.origin === "flag" ? (e.position as number) : `gap:${e.position}`, action: e.action as string, who: e.by_name as string, when: e.at as string }))
+              .map((e) => ({ alert_id: e.alert_id as string, action: e.action as AlertHistItem["action"], who: e.by_name as string, when: e.at as string }))
+          : [],
+        confirmations: clinical
+          ? rows(conf)
+              .filter((e) => e.case_id === id)
+              .map((e) => ({
+                fact_id: e.fact_id as string,
+                action: e.action as FactConfirmation["action"],
+                value_sha256: e.value_sha256 as string,
+                run_id: e.run_id as string,
+                who: e.by_name as string,
+                when: e.at as string,
+              }))
           : [],
         clinical,
       };
@@ -329,11 +346,12 @@ export type CaseState = {
   decisions: Record<string, unknown>[];
   tasks: ReturnType<typeof taskOut>[];
   sugg: Record<string, unknown>[];
-  edits: Record<string, unknown>;
+  edits: Record<string, EditEntry>;
   editLog: Record<string, unknown>[];
   qConfirm: { text: string; by: string; when: string } | null;
   draft_sha: string | null;
-  alertHist: Record<string, unknown>[];
+  alertHist: AlertHistItem[];
+  confirmations: FactConfirmation[];
   clinical: boolean;
 };
 export type AttSet = { key: string; version: number; byName: Record<string, string[]>; byId: Record<string, string[]> };

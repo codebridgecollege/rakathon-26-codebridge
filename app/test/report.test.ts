@@ -2,8 +2,6 @@
 // wording, the ticks, the snapshot without identity that the server stores, the server's markup rules, the dialog and
 // the PDF's file name. Case NO-010's synthetic seed extraction.
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
 import { flushPromises } from "@vue/test-utils";
 import { validateReportHtml } from "../../api/src/domain/report";
 import { makeBundle } from "../app/lib/i18n";
@@ -16,9 +14,8 @@ import { useAttendanceStore } from "../app/stores/attendance";
 import { useDiscussionStore } from "../app/stores/discussion";
 import ReportDialog from "../app/components/discussion/ReportDialog.vue";
 import { lastToast, mountInCase, setupPatient, type PatientSetup } from "./patient";
+import { docsOf, runOf } from "./helpers";
 
-const read = (p: string) => readFileSync(resolve(process.cwd(), "..", p), "utf8");
-const seed = { case: JSON.parse(read("fixtures/data/mock-case-10.json")), extra: JSON.parse(read("fixtures/data/mock-case-10-extra.json")) };
 const cs = makeBundle("cs");
 const t = (id: string, args?: Record<string, string | number>) => cs.formatPattern(cs.getMessage(id)!.value!, args);
 
@@ -31,7 +28,8 @@ const approved: ReportProto = { state: "approved", concl: "Stereotaktická radio
 function setup(s: PatientSetup = {}) {
   return setupPatient({
     p: { name: NAME, rc: RC, age: "45 let", slot: { day: "2026-10-22", time: "14:00" }, ...s.p },
-    extraction: { case: seed.case, extra: seed.extra },
+    extraction: runOf("NO-010"),
+    documents: docsOf("NO-010"),
     routes: { "/audit/events": { ok: true } },
     ...s,
   });
@@ -139,30 +137,39 @@ describe("reportHtmlFor", () => {
   });
 
   it("prints the certainty tags and numbers sources in the old order: anamnesis, brief, findings", () => {
-    const extra = structuredClone(seed.extra);
-    extra.anamnesis_v3.RA = [{ term_cs: "Term", comment_cs: "pozn.", certainty: "conflicting", note_cs: "jiný rok", refs: [] }];
-    extra.anamnesis_v3.PA = [{ term_cs: "Plán", change_status: "planned_unconfirmed", ocr_note_cs: "čteno", ocr_check: { mark: false } }];
-    extra.anamnesis_v3.SA = [{ term_cs: "Neguje", negated: true, certainty: "inferred" }];
-    setup({ extraction: { case: seed.case, extra } });
+    // Four of case 10's comorbidities, each given one kind of doubt.
+    const run = runOf("NO-010");
+    const fact = (id: string) => run.facts.find((f) => f.id === id)!;
+    Object.assign(fact("f-ffa5e9d3"), { certainty: "conflicting", certainty_reason: { code: "conflict", text: "jiný rok" } });
+    Object.assign(fact("f-71e20468"), { certainty: "verify", certainty_reason: { code: "ocr_char_swap", text: "čteno" } });
+    Object.assign(fact("f-a6c09f9f"), { status: "planned" });
+    Object.assign(fact("f-5847159f"), { negated: true, certainty: "inferred" });
+    setup({ extraction: run });
     useReportStore().setPicked("anamnesis", true);
     const html = reportHtmlFor(t, file, draft, []);
-    expect(html).toContain("<b>Term</b>, pozn. [rozpor mezi dokumenty: jiný rok]</li>");
-    // An OCR doubt both readings cleared prints no "verify" tag.
-    expect(html).toContain("<b>Plán</b> [plánováno, neověřeno]</li>");
-    expect(html).toContain("<b>Neguje</b> [zápor v dokumentu] [pozorování asistenta]</li>");
+    expect(html).toContain('<b>Hypertenzní nemoc</b> [rozpor mezi dokumenty: jiný rok]<span class="src">');
+    expect(html).toContain('<b>Hyperlipoproteinémie</b>, na dietě [ověřit čtení]<span class="src">');
+    expect(html).toContain('<b>Korové cysty ledvin</b> [plánováno, neověřeno]<span class="src">');
+    // A recorded negative whose text does not say it is labelled as one, and tagged.
+    // A recorded negative prints its tag once, never a second label in the text.
+    expect(html).toContain('<b>Cysta jater v segmentu S2</b> [zápor v dokumentu] [pozorování asistenta]<span class="src">');
     // The anamnesis is numbered first, although the brief prints above it.
     expect(html.indexOf('<span class="src"> [1]</span>')).toBeGreaterThan(html.indexOf("<h4>Anamnéza</h4>"));
     expect(html.indexOf("<h4>NO</h4>")).toBeLessThan(html.indexOf("<h4>Anamnéza</h4>"));
   });
 
-  it("prints a partial case's processed parts and its missing documents with their kind and source", () => {
-    setup({
-      extraction: { syn: { documents: [{ title_cs: "Zpráva", pages: [1] }], data_gaps: [{ kind: "missing", text_cs: "Chybí histologie", source: { file: "a.pdf", page: 2 } }, { kind: "unclear", text_cs: "Nejasné datum" }] } },
-    });
+  it("prints a partial case's processed parts and its open missing documents with their source", () => {
+    // S01's run looked at labs and requests only. Its four missing-document alerts print in the report's language, the
+    // fact argument as the fact's own line; a resolved one is left out.
+    setup({ extraction: runOf("NO-S01"), documents: docsOf("NO-S01"), wf: { alertHist: [{ alert_id: "al-a46f91fa", action: "resolved", who: "MUDr. X", when: "2026-10-18T10:00:00Z" }] } });
     const html = reportHtmlFor(t, file, draft, []);
     expect(html).toContain(
-      "<h4>Podklady</h4><p>Syntetický pacient: zpracované jsou dokumenty, chybějící podklady; anamnéza a nálezy se do reportu netisknou.</p><h4>Chybějící a nejasné podklady</h4><ul><li>Chybí histologie (a.pdf, s. 2)</li><li>Nejasné: Nejasné datum</li></ul>",
+      "<h4>Podklady</h4><p>Syntetický pacient: zpracované jsou dokumenty, chybějící podklady, laboratoř; anamnéza a nálezy se do reportu netisknou.</p><h4>Chybějící podklady</h4><ul>" +
+        "<li>Originální zpráva v dostupné dokumentaci chybí, jen citace: MR mozek: další progrese sytící se složky v okolí resekční dutiny vlevo F na 24 x 19 mm, nové sytící se ložisko v genu corporis callosi 11 mm, závěr progrese dle RANO (S01_pacient.pdf, s. 1)</li>" +
+        "<li>Požadavek bez výsledku v dostupné dokumentaci: PET/CT s 18F-FET (S01_pacient.pdf, s. 1)</li>" +
+        "<li>Originální zpráva v dostupné dokumentaci chybí, jen citace: glioblastom, IDH-wildtype, CNS WHO grade 4, MGMT promotor metylován, Ki-67 cca 40 % (S01_pacient.pdf, s. 6)</li></ul>",
     );
+    expect(html).not.toContain("resekce tumoru vlevo F");
     // No finding groups to tick without a record, and no source list.
     expect(html).not.toContain("<h4>Zdroje</h4>");
   });

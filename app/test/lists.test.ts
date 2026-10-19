@@ -25,7 +25,7 @@ import PatientsView from "../app/components/lists/PatientsView.vue";
 import TasksView from "../app/components/lists/TasksView.vue";
 import CalendarView from "../app/components/lists/CalendarView.vue";
 import AdminView from "../app/components/lists/AdminView.vue";
-import { deferred, meOrg, mockApi, row } from "./helpers";
+import { deferred, docsOf, edit, meOrg, mockApi, row, runOf } from "./helpers";
 
 const cs = makeBundle("cs");
 const fmt = (id: string, args: Record<string, string | number> = {}) => cs.formatPattern(cs.getMessage(id)!.value!, args);
@@ -103,13 +103,14 @@ describe("list catalog", () => {
 
 describe("calendar card data", () => {
   const p = row(10, { diagnosis: "karcinom ledviny", explicit: false, draft: "Indikace k radioterapii?", question: null });
-  const extra = { diagnosis_headline: { histology_cs: "Světlobuněčný karcinom", tnm_cs: "pT3a", tnm_context_cs: "pTNM při diagnóze", ocr_note_cs: "MO/M0" }, onco_summary_v3_cs: "Souhrn [1] případu [2]." };
-  const cd = { file: p.file, id: p.id, extraction: { case: {}, extra } };
+  // Case 10's converted run: its diagnosis headline carries an OCR doubt ("MO" read as M0) and its brief [n] marks.
+  const cd = { file: p.file, id: p.id, extraction: runOf("NO-010"), documents: docsOf("NO-010") };
+  const context = "Patologické TNM (pT, pN) z nefrektomie 2.6.2022, 3 z 5 uzlin pozitivní; M0 jen dle vstupní dokumentace. Stadium při diagnóze, ne aktuální stav.";
 
   it("reads the diagnosis line, the question and the brief, with the doctor's edits", () => {
     expect(dxLine(p, undefined, null)).toEqual({ text: "karcinom ledviny", edited: false, context: null, verify: false });
-    expect(dxLine(p, undefined, cd)).toEqual({ text: "Světlobuněčný karcinom, pT3a", edited: false, context: "pTNM při diagnóze", verify: true });
-    const edited: Partial<CaseState> = { edits: { dx: { text: "Opraveno", by: "MUDr. X", when: "" }, q: { text: "Upravená otázka", by: "MUDr. X", when: "" } } };
+    expect(dxLine(p, undefined, cd)).toEqual({ text: "Světlobuněčný renální adenokarcinom, G2, pT2a pN1 M0", edited: false, context, verify: true });
+    const edited: Partial<CaseState> = { edits: { dx: edit("Opraveno"), q: edit("Upravená otázka") } };
     // An edit replaces the base text and drops the OCR mark it answered.
     expect(dxLine(p, edited, cd)).toMatchObject({ text: "Opraveno", edited: true, verify: false });
     expect(questionOf(p, undefined)).toEqual({ text: "Indikace k radioterapii?", draft: true });
@@ -120,9 +121,15 @@ describe("calendar card data", () => {
     expect(questionOf(p, { qConfirm: { text: "Starší návrh?", by: "MUDr. X", when: "" } })).toEqual({ text: "Indikace k radioterapii?", draft: true });
     // The referral's explicit question is never a draft.
     expect(questionOf(row(12, { explicit: true, question: "Výslovná otázka?", draft: null }), undefined)).toEqual({ text: "Výslovná otázka?", draft: false });
-    expect(briefOf(undefined, cd)).toEqual({ text: "Souhrn případu.", edited: false });
-    // A synthetic patient's extraction has no brief.
-    expect(briefOf(undefined, { file: p.file, id: p.id, extraction: { syn: {} } })).toBeNull();
+    const brief = briefOf(undefined, cd);
+    expect(brief?.edited).toBe(false);
+    expect(brief?.text).toMatch(/^Pacient s metastatickým světlobuněčným renálním karcinomem G2, stav po pravostranné nefrektomii/);
+    expect(brief?.text).toMatch(/M0 dle vstupní dokumentace\)\. Následně histologicky/);
+    expect(brief?.text).not.toMatch(/\[\d+\]/);
+    expect(briefOf({ edits: { brief: edit("Upravený souhrn") } }, cd)).toEqual({ text: "Upravený souhrn", edited: true });
+    // A run that looked only at labs and requests (S01) has no brief, and neither has a case without a run.
+    expect(briefOf(undefined, { file: "S01_pacient.pdf", id: "NO-S01", extraction: runOf("NO-S01"), documents: docsOf("NO-S01") })).toBeNull();
+    expect(briefOf(undefined, null)).toBeNull();
   });
 
   it("locks a slot an approved decision was made on, and links the case view", () => {

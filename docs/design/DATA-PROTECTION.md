@@ -176,7 +176,10 @@ synthetic patients.
   returns nothing. The admin view (Administrace) shows it. Opening a case
   writes `case.open`; its first load in this tab writes `case.data` (and
   `guidance.load` for the guideline layer); reopening a case still in
-  memory writes only `case.open`. Opening the saved prognosis writes
+  memory writes only `case.open`. Showing the earlier value of a fact a
+  doctor confirmed (a later processing changed it, or no longer has it)
+  reads that fact from the earlier run and writes one more `case.data`
+  row per fact. Opening the saved prognosis writes
   `prognosis.view`. Refused requests (403) are not logged. A search text in
   `/api/patients?q=` would sit in the URL and so in Workers Logs; the
   page does not use it yet, and it should move to a request body first.

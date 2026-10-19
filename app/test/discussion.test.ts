@@ -15,7 +15,7 @@ import { useRecorderStore } from "../app/stores/recorder";
 import { useSessionStore } from "../app/stores/session";
 import { useCasesStore } from "../app/stores/cases";
 import { lastToast, mountInCase, setupPatient } from "./patient";
-import { deferred } from "./helpers";
+import { deferred, runOf } from "./helpers";
 
 const STAFF = {
   depts: [
@@ -27,8 +27,8 @@ const STAFF = {
   roles: { d1p1: "doctor", u1: "doctor", coord: "coordinator" } as Record<string, "doctor" | "coordinator" | "admin">,
 };
 const ok = (data: unknown = {}, state: unknown = {}) => ({ data, data_epoch: null, state });
-// An extraction of the "full" level, the one that has a guideline layer (sectionsOf().guidance).
-const FULL = { case: { sections: {} }, extra: { refs: [{ file: "10_pacient.pdf", page: 1, quote: "MR mozku" }], onco_detailed_v3: [{ refs: [0] }] } };
+// A run of the "full" level, the one that has a guideline layer (sectionsOf().guidance): case 10's.
+const FULL = runOf("NO-010");
 const reply = (init: RequestInit) => JSON.parse(String(init.body ?? "{}"));
 
 function setup(o: Parameters<typeof setupPatient>[0] = {}) {
@@ -256,7 +256,7 @@ describe("approval guards and what ends with a case", () => {
     // A second click while it waits is the same approval, not a second one.
     await d.approve(s.p.file, doctor);
     expect(calls).toHaveLength(0);
-    Object.assign(useCasesStore().caseOf(s.p.file), { state: "ready", data: { file: s.p.file, id: s.p.id, extraction: null }, loadedAt: 1 });
+    Object.assign(useCasesStore().caseOf(s.p.file), { state: "ready", data: { file: s.p.file, id: s.p.id, extraction: null, documents: [] }, loadedAt: 1 });
     await done;
     expect(calls).toHaveLength(1);
     expect(d.approving(s.p.file)).toBe(false);

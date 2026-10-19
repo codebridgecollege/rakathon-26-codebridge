@@ -311,6 +311,8 @@ def test_quarantined_fact_in_check_or_alert_subject():
     run["facts"][2]["quarantined"] = True
     run["alerts"][0]["facts"] = []
     run["question_draft"] = None
+    # The worked examples' timeline card rests on the same request; composed views are tested in test_extraction_views.
+    run["views"] = None
     run["checks"].append({"id": "chk-x", "looks_for": "original_report", "expected": {"of_fact": "f-3c90de"}, "covered": [], "unreadable": [], "result": "nothing_found"})
     run["alerts"].append({"id": alert_id({"rule": "page_identity_conflict", "subject": "p"}), "rule": "page_identity_conflict", "subject": "p", "kind": "identity", "facts": ["f-3c90de"], "message": {"id": "x", "args": {}}, "note": None})
     assert [(i.code, i.path) for i in validate_run(run).issues] == [

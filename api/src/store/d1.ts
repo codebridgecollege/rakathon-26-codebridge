@@ -4,8 +4,8 @@
 import type { Viewer } from "@codebridge/domain/access";
 import type { CaseJoinRow, StatusHistItem } from "../domain/rows";
 import { assertOrg, orgStmt } from "./sql";
+import { currentRunRow } from "./runs";
 import type {
-  AlertRow,
   AuditEntry,
   AuditFilter,
   AuditRow,
@@ -16,7 +16,6 @@ import type {
   DirectoryStore,
   DocumentRow,
   PageRow,
-  RunRow,
   StaffDirectory,
   TaskRow,
   UserRow,
@@ -154,7 +153,7 @@ export class D1Cases extends OrgBound implements CaseStore {
   }
 
   currentRun(caseId: string) {
-    return this.q("SELECT id, kind, created_at, r2_key, case_id FROM extraction_runs WHERE org_id = ?org AND case_id = ?1 AND is_current = 1", caseId).first<RunRow>();
+    return currentRunRow(this.db, this.org, caseId);
   }
 
   private async withParts(docs: Omit<DocumentRow, "parts">[]): Promise<DocumentRow[]> {
@@ -195,16 +194,6 @@ export class D1Cases extends OrgBound implements CaseStore {
 
   async pages(docId: string) {
     const r = await this.q("SELECT document_id, n, json_r2_key, image_r2_key, redacted_r2_key, is_empty FROM pages WHERE org_id = ?org AND document_id = ?1 ORDER BY n", docId).all<PageRow>();
-    return r.results;
-  }
-
-  async alerts(caseId: string) {
-    const r = await this.q(
-      `SELECT a.id, a.origin, a.position, a.kind, a.text_cs, a.relevant, a.run_id FROM alerts a
-       JOIN extraction_runs r ON r.id = a.run_id AND r.org_id = a.org_id AND r.is_current = 1
-       WHERE a.org_id = ?org AND a.case_id = ?1 ORDER BY a.origin <> 'flag', a.position`,
-      caseId,
-    ).all<AlertRow>();
     return r.results;
   }
 

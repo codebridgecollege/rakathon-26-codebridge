@@ -39,7 +39,9 @@ deploy follows.
   on the new schema. A migration therefore has to work with the Worker already deployed: add tables and columns, and
   never drop or rename what the deployed code reads in the same change. To remove something, first ship code that no
   longer reads it, then drop it in a later migration. A migration that cannot work with the old code (0011 rebuilds every
-  org table) needs a person watching the merge (below, "Organizations").
+  org table; 0016 rebuilds the extraction runs and alert events, so until the deploy ends the old Worker's intake attach
+  and alert events fail, its alert history shows empty, and `seed.py` from before 0016 fails on the computed `kind`)
+  needs a person watching the merge (below, "Organizations").
 - **No cancelled runs on `main`.** On other refs a newer push cancels the running workflow; on `main` it waits
   (`cancel-in-progress` is off there), so a run is never stopped between the migration and the deploy. A deploy that
   fails after a successful migration leaves the old code on the new schema until someone reruns the job or runs
@@ -106,7 +108,32 @@ uv run seed/seed.py --dry-run            # write seed/out/ only (SQL, R2 manifes
 - Identity lives in the `patients` table only. The seed fails when a patient's name
   or birth number is left in stored JSON or case rows outside a `quote` field;
   `seed/out/identity-scan.txt` lists paths, never values.
+- Extraction runs: the seed stores the converted `codebridge.extraction/2` runs of NO-010 and NO-S01
+  (`fixtures/data/runs/`) byte for byte under R2 `org/<org>/extract/<case>/<run id>.json`, with their `extraction_runs`
+  row (`producer` fixture, `seeded` 1, schema `/2`), their fact IDs in `fact_ids` and their alerts in `alert_identities`.
+  It stops before writing anything when a run fails `pipeline/extraction_format`'s `validate_run`, reads a document
+  that is not the seeded PDF (by SHA-256), names a part that is not a seeded `document_parts.part_id`
+  (`<document id>/p<index>`), or when guidance names a run or fact ID that is not in NO-010's run. After seeding it
+  reads both run objects back from R2 and compares them with the files, and checks the D1 counts (no `/1` run or
+  `alerts` row left). It writes no `/1` run and nothing into `alerts`.
 - After changing a fixture, reseed.
+- **Production needs a reseed after the `codebridge.extraction/2` stack is merged** (PRs #39, #36 and the seed and app
+  PRs, merged together): migration 0016 keeps the deployed `/1` runs, which the API serves as not processed, and the
+  old `fixtures/S02/prepared.json`, which the intake refuses as `seed_missing`. A person runs it after the deploy job
+  on `main` has finished (the seed applies migrations, so it must run against the new schema), from the repository
+  root with wrangler logged in to the team's account:
+
+  ```
+  uv run api/seed/seed.py --target remote --reset
+  ```
+
+  It wipes and reseeds the shared demo, including its access log, and ends with "verified: ...". CI does not run it.
+  Between the deploy and the reseed, case 10 and S01 show as not processed and the S02 intake answers 503
+  `seed_missing`, so the reseed follows the deploy at once and before any demo. The reseed leaves the old `/1` run
+  objects (`org/demo-a/extract/<case>/seed-<case>-<sha8>.json` and the unprefixed `extract/...`) in R2 with no row
+  pointing at them; they hold no identity, and nothing reads them.
+- A local wrangler state that applied `0015_extraction_v2.sql` from an earlier `stream-a2-server` checkout fails on
+  `0016_extraction_v2.sql` (its tables exist already); delete `api/.wrangler/state` and run `npm run seed:local`.
 - Routes that return case content check role and membership
   (`packages/domain/src/access.ts`) and write an `access_log` row before reading the content
   (`src/middleware/audit.ts`); a failed insert answers 500 with no content.
@@ -142,10 +169,12 @@ Design and the exact contract: `docs/research/backend-steps/step-4.md`, section 
   archives its audit to R2 `org/<org>/audit-archive/<time>.jsonl`, then one batch empties the org's mutable tables
   (`WHERE org_id = ...`) and reinserts the org's section of R2 `seed/reset.json` (written by `seed.py`; identity is not
   in it, seeded patient rows stay in D1), bumps that org's `demo_state.data_epoch`, aborts its open audio uploads and
-  deletes R2 `org/<org>/uploads/`, `audio/`, `jobs/`, `cache/summary/` (for demo org A also the same prefixes without
-  `org/`, used before orgs). People (`users`) are never deleted: the reset upserts the seeded people and memberships
-  and ends any other membership of the org. Row ids are not reset (`sqlite_sequence` is shared by all orgs). 45
-  statements for org A with today's seed (step 6 rows go through a trigger, see below).
+  deletes R2 `org/<org>/uploads/`, `audio/`, `jobs/`, `cache/summary/`, `cache/model/`, `runs/` (for demo org A also
+  the same prefixes without `org/`, used before orgs). People (`users`) are never deleted: the reset upserts the seeded
+  people and memberships and ends any other membership of the org. Row ids are not reset (`sqlite_sequence` is shared
+  by all orgs). Step 6 rows and every extraction run the seed did not write (`seeded = 0`, with the fact and alert IDs
+  it issued first) go through the trigger `demo_reset_uploads`, which also makes the seeded run of such a case current
+  again (`docs/design/DATABASE.md`, "Extraction runs"); the runs' R2 objects are under `runs/`.
 - Append-only triggers allow DELETE of a row only while its own org's `demo_state.reset_in_progress = 1` (migration
   0011), so a reset of one org cannot delete another org's history. A pilot database must not have that exception.
 - Deviation assessments have no write route (user decision 2026-10-17).
@@ -217,9 +246,19 @@ Design and contract: `docs/research/backend-steps/step-6.md`, section "As implem
   with migration 0013's lifecycle columns: a neutral row and its runs stay; file, outputs, pages, parts, name and hash go.
 - Intake: `src/routes/intake.ts`, `src/store/intake.ts`, rules in `src/domain/intake.ts` and `packages/domain/src/fhir.ts`. An
   open intake (`cases.intake_open = 1`) is hidden from lists and the workflow, takes uploads only, and is 404 to anyone
-  but its creator; the cron sweep removes it after 24 hours. The attach reads `fixtures/<id>/prepared.json`, written by
-  `seed.py` (identity scan strict, quotes checked on their page). Keep every new list or write route consistent with
-  that rule (`caseFor`, `openCase`, `listCases`, `visibleCaseIds`).
+  but its creator; the cron sweep removes it after 24 hours. Keep every new list or write route consistent with that
+  rule (`caseFor`, `openCase`, `listCases`, `visibleCaseIds`).
+- The attach reads `fixtures/<id>/prepared.json` (schema `codebridge.prepared/2`), written by `seed.py`
+  `prepared_fixture()` from `fixtures/data/runs/NO-S02.json`. That run numbers pages across the combined PDF
+  `S02_pacient.pdf` (parts `S02_pacient/p<k>`, the index in the fixture's `documents`); the seed re-points every
+  source, check and alert at the uploaded file of that part, with the page inside the file (combined pages `[1, 2]` of
+  the first document become pages 1 and 2 of its file, combined page 3 becomes page 1 of the next), and writes the
+  uploaded documents' IDs as `@upload:<file name>` and their one part as `@upload-part:<file name>`. The seed stops
+  when a reference cannot be mapped, a quote is not on its page, or the finished run would fail the validator (it
+  finishes the run itself with stand-in IDs to check). On completion the Worker swaps in the uploaded documents' IDs
+  and parts (`<document id>/p0`, the part row it inserts), derives the source IDs again, assigns the case's fact IDs
+  through `matchInputs` and `prepareRun`, and stores the run with `storeRun` (`producer` fixture, `seeded` 0, under
+  R2 `runs/`, so the demo reset removes it). An invalid or old prepared file answers 503 `seed_missing`.
 - Reset: rows added by uploads, intakes and pipeline runs are removed by the trigger `demo_reset_uploads` (it fires on
   reset batch's `reset_in_progress = 1` update of that org, and deletes that org's rows only), so the reset batch stays
   at its size. A new table written by these routes goes into that trigger, not into the batch.

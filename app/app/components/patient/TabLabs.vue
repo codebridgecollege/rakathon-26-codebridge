@@ -21,8 +21,10 @@ const { $t } = useFluent();
 const c = usePatient();
 const view = usePatientViewStore();
 
-// Only a chartable series enters the case data (fromSyn), so this is a plain read.
+// The adapter (run-view.ts) builds a series only from at least two draws dated to the day, so this is a plain read.
 const ser = computed<LabSeries | null>(() => c.cd.value?.labs?.series || null);
+// The lab sheets' pages the processing could not read: said, so a value never looks complete when a page was lost.
+const unreadable = computed(() => [...new Set((c.cd.value?.run?.sections.labs?.unreadable ?? []).map((u) => u.page))].sort((a, b) => a - b).join(", "));
 const sel = computed<LabTest | undefined>(() => ser.value?.tests.find((t) => t.code === view.labSel) || ser.value?.tests[0]);
 
 const flag = (o: string | null | undefined) => (o === "high" ? "hi" : o === "low" ? "lo" : "");
@@ -45,6 +47,7 @@ const firstPage = computed<SourceRef | null>(() => (first.value ? { file: first.
 <template>
   <section v-if="ser" class="card">
     <div class="head"><h2>{{ $t("patient-labs-title-trend") }}</h2><span class="muted small">{{ $t("patient-labs-draws", { n: ser.draws.length }) }}</span></div>
+    <p v-if="unreadable" class="muted small">{{ $t("patient-check-unreadable", { pages: unreadable }) }}</p>
     <p class="small" style="margin:0 0 10px"><span v-if="ser.note_cs" lang="cs">{{ ser.note_cs }}</span> {{ $t("patient-labs-trend-hint") }}</p>
     <div class="scroll">
       <table class="tbl lm">
@@ -76,6 +79,7 @@ const firstPage = computed<SourceRef | null>(() => (first.value ? { file: first.
   </section>
   <section v-else class="card">
     <div class="head"><h2>{{ $t("patient-labs-title-values") }}</h2></div>
+    <p v-if="unreadable" class="muted small">{{ $t("patient-check-unreadable", { pages: unreadable }) }}</p>
     <div class="scroll labscroll">
       <table class="tbl">
         <thead>

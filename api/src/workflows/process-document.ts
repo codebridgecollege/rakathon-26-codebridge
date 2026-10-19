@@ -17,6 +17,7 @@ import { orgStmt } from "../store/sql";
 import { LEGACY_ORG } from "../domain/orgs";
 import { auditStatement } from "../store/write";
 import { diffLabs, pipelineErrorCs, PIPELINE_BATCH, READABILITY_CS, type PreparedPoint } from "../domain/pipeline";
+import { EXTRACTION_SCHEMA, type ExtractionRun, type LabResultFact } from "@codebridge/domain/extraction/types";
 
 // org: the case's org, given by the route that starts the run (a Workflow has no request); a run started before orgs
 // has none, and all data of that time is demo org A's.
@@ -264,16 +265,26 @@ export class ProcessDocumentWorkflow extends WorkflowEntrypoint<Env, ProcessDocu
   }
 }
 
-// The prepared extraction's lab points of this document, when the case has one (an intake attach or the seed).
+// The prepared run's lab values of this document, when the case has a codebridge.extraction/2 run (an intake attach
+// or the seed): its lab_result facts quoted from this document. A quarantined fact is not compared (it rests on a page
+// that shows another patient).
 async function preparedPoints(env: Env, org: string, caseId: string, docId: string): Promise<PreparedPoint[] | null> {
-  const run = await orgStmt(env.DB, org, "SELECT r2_key FROM extraction_runs WHERE org_id = ?org AND case_id = ?1 AND is_current = 1", caseId).first<{ r2_key: string }>();
-  if (!run) return null;
+  const run = await orgStmt(env.DB, org, "SELECT r2_key, schema FROM extraction_runs WHERE org_id = ?org AND case_id = ?1 AND is_current = 1", caseId).first<{ r2_key: string; schema: string }>();
+  if (!run || run.schema !== EXTRACTION_SCHEMA) return null;
   const o = await env.DOCS.get(run.r2_key);
   if (!o) return null;
-  const ex = await o.json<{ syn?: { labs_series?: { tests?: { code: string; unit: string; reference_range: string; points: { value: string; date: string | null; time: string | null; source?: { file?: string } }[] }[] } } }>();
-  const tests = ex.syn?.labs_series?.tests ?? [];
-  const pts = tests.flatMap((t) =>
-    t.points.filter((x) => x.source?.file === `${docId}.pdf`).map((x) => ({ code: t.code, value: x.value, unit: t.unit, reference_range: t.reference_range, date: x.date, time: x.time })),
-  );
+  const ex = await o.json<ExtractionRun>();
+  const fromDoc = new Set(ex.sources.filter((s) => s.type === "document" && s.document_id === docId).map((s) => s.id));
+  const pts = ex.facts
+    .filter((f): f is LabResultFact => f.kind === "lab_result" && !f.quarantined && f.sources.some((s) => fromDoc.has(s)))
+    .map((f) => ({
+      code: f.codes[0]?.code ?? f.value.name_as_written,
+      value: f.value.value_as_written,
+      unit: f.value.unit ?? f.value.unit_as_written ?? "",
+      reference_range: f.value.reference_range ?? "",
+      // The draw as the comparison reads it: the ISO day and the time, when the sheet gives them.
+      date: f.date.sort ? f.date.sort.slice(0, 10) : null,
+      time: f.date.sort && f.date.sort.length > 10 ? f.date.sort.slice(11, 16) : null,
+    }));
   return pts.length ? pts : null;
 }

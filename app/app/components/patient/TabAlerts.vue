@@ -18,6 +18,8 @@ const GROUPS: [string, string][] = [
   ["missing", "patient-alerts-more-missing"],
   ["chronology", "patient-alerts-more-chronology"],
   ["unclear", "patient-alerts-more-unclear"],
+  ["poor_copy", "patient-alerts-more-poor-copy"],
+  ["identity", "patient-alerts-more-identity"],
 ];
 const groups = computed(() => GROUPS.map(([k, id]) => ({ k, id, items: rest.value.filter((f) => f.kind === k) })).filter((g) => g.items.length));
 </script>

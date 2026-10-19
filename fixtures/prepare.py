@@ -42,7 +42,7 @@ def guidance() -> str:
 
     The seed stores it in R2. PDFs are not bundled: the viewer opens each guideline online at the cited page.
     """
-    out = {"guidelines": [], "statements": [], "pages": [], "not_retrieved": [], "literature": [], "queries": [], "past_statements": [], "fact_refs": {}}
+    out = {"guidelines": [], "statements": [], "pages": [], "not_retrieved": [], "literature": [], "queries": [], "past_statements": [], "fact_refs": []}
     for name in ("guidelines-case-10.json", "guidelines-case-10-more.json"):
         f = DATA / name
         if f.exists():
@@ -50,7 +50,8 @@ def guidance() -> str:
             for key in ("guidelines", "statements", "pages", "not_retrieved"):
                 out[key] += part.get(key, [])
     # Past decisions for the retrospective deviations. guidelines-case-10-past.json gives each decision's place in the
-    # documentation (decision_cs, row_index, decision_ref); the guideline passage comes only from
+    # documentation (decision_cs; row_fact_id, the fact of its oncology line; decision_fact_ids, the facts it rests on, in
+    # the run named by run_id); the guideline passage comes only from
     # guidelines-case-10-past-historic.json, which quotes the edition valid on the decision date. The past file's own
     # quotes cite the 2026 edition and are not used, so a past decision is never measured against a later edition.
     past = DATA / "guidelines-case-10-past.json"
@@ -66,7 +67,7 @@ def guidance() -> str:
                 out["guidelines"].append({**{k: ed[k] for k in ("id", "name", "society", "year", "version", "url", "pdf_url")}, "type_cs": same.get("type_cs", "")})
                 known.add(ed["id"])
         for st in json.loads(past.read_text()).get("statements", []):
-            row = {k: st[k] for k in ("id", "decision_cs", "row_index", "decision_ref") if k in st}
+            row = {k: st[k] for k in ("id", "decision_cs", "row_fact_id", "decision_fact_ids") if k in st}
             it = by_id.get(st["id"])
             if not it:
                 # No passage was looked up in the edition valid at the time: the item shows the decision without a quote.
@@ -91,11 +92,14 @@ def guidance() -> str:
                     if q.get("quote") and q.get("pdf_page"):
                         out["pages"].append({"guideline_id": ed["id"], "pdf_page": q["pdf_page"], "text": q["quote"]})
             out["past_statements"].append(row)
-    # Each patient fact a statement rests on gets its source passages (indexes into the case's refs), so the doctor
-    # can open the documentation behind the "Proč" part of an entry.
+    # Each patient fact a statement rests on names the facts of the case's run that state it ({text, fact_ids}), so the
+    # doctor can open the documentation behind the "Proč" part of an entry through the facts' sources. The statements'
+    # own patient_facts carry the same fact IDs; fact_refs_run_id names the run they belong to.
     fact_refs = DATA / "guideline-fact-refs-case-10.json"
     if fact_refs.exists():
-        out["fact_refs"] = json.loads(fact_refs.read_text()).get("facts", {})
+        refs_doc = json.loads(fact_refs.read_text())
+        out["fact_refs"] = refs_doc.get("facts", [])
+        out["fact_refs_run_id"] = refs_doc.get("run_id")
     # Several files may cite the same page; join their excerpts so the viewer finds every quote on it.
     merged = {}
     for pg in out["pages"]:

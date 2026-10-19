@@ -48,7 +48,7 @@ function seedInputsHash() {
     else if (!p.endsWith(".md")) h.update(path.relative(root, p)).update(readFileSync(p));
   };
   // package-lock.json: a new Wrangler may store local state differently.
-  for (const p of ["package-lock.json", "api/migrations", "api/seed/seed.py", "fixtures", "data/derived", "data/rakathon-26", "samples"]) {
+  for (const p of ["package-lock.json", "api/migrations", "api/seed/seed.py", "pipeline/extraction_format", "packages/domain/schema", "fixtures", "data/derived", "data/rakathon-26", "samples"]) {
     const full = path.join(root, p);
     if (existsSync(full)) add(full);
   }

@@ -3,6 +3,8 @@
 // intake here. A registered fixture's prepared extraction is attached only when every one of that fixture's files is
 // uploaded (by hash), no other fixture's file is, and the referral's name and birth number match the fixture's patient;
 // otherwise the case is listed with its documents "nezpracováno". Listed files (content not kept) stay as they are. Design: step-6.md "As implemented".
+// The attached extraction is a codebridge.extraction/2 run (docs/design/EXTRACTION-FORMAT.md), stored through
+// store/runs.ts like any other producer's run: not seeded, so the demo reset removes it.
 import { Hono } from "hono";
 import type { AppEnv } from "../types";
 import { ApiError, E } from "../http/errors";
@@ -19,11 +21,21 @@ import { docOut } from "./documents";
 import { actorOf, answer, caseFor, isoNow, label, now, orgQuery, statesFor, tx } from "./write-context";
 import { orgKey } from "../store/sql";
 import { autoStart } from "./pipeline-start";
+import { matchInputs, prepareRun, RunInvalid, storeRun, type DraftRun } from "../store/runs";
+import { sourceIdFor, type Source } from "@codebridge/domain/extraction/index";
 
+// fixtures/<id>/prepared.json as api/seed/seed.py prepared_fixture() writes it.
 type Prepared = {
   schema: string;
   fixture_id: string;
-  syn: Record<string, unknown>;
+  /**
+   * The fixture's run over the files the intake uploads, as a draft (no fact or alert IDs; facts carry draft_id). The
+   * seed has already mapped each reference from the combined PDF to one uploaded file per document, with the page
+   * numbered inside that file; what it cannot know is the uploaded documents' IDs, written as placeholders.
+   */
+  run: DraftRun;
+  /** The part each uploaded file becomes (document_parts), by upload name. */
+  documents: { upload_name: string; title_cs: string; type: string | null; date: string | null; readability: string | null; reason_cs: string | null }[];
   case_row: {
     diagnosis_text: string | null;
     summary_one_line: string | null;
@@ -33,9 +45,50 @@ type Prepared = {
     question_source_json: unknown;
     page_count: number | null;
   };
-  alerts: { origin: "gap"; position: number; kind: string; text_cs: string; relevant: boolean; basis: string }[];
   pages: Record<string, { n: number; width: number; height: number; engine: string; mean_conf: number | null; low_conf_words: number | null; is_empty: boolean; verify_count: number; redacted: boolean; redaction_count: number | null; redaction_reasons: string[] | null }[]>;
 };
+const PREPARED_SCHEMA = "codebridge.prepared/2";
+// The placeholders of the prepared run (seed.py UPLOAD_DOC, UPLOAD_PART): an uploaded file's document ID, and its one
+// part, "<document id>/p0" (the part row this route inserts).
+const UPLOAD_DOC = "@upload:";
+const UPLOAD_PART = "@upload-part:";
+
+/**
+ * The prepared run pointed at this intake's uploaded documents: placeholders become document and part IDs, each
+ * document carries the uploaded file's hash, and every source ID is derived again from where its passage now is
+ * (keys.ts sourceIdFor), so the run's sources are named as a run read from these documents would name them. A
+ * placeholder for a file that was not uploaded is an internal error: the verdict requires every fixture file.
+ */
+export function uploadRun(draft: DraftRun, docByUpload: Record<string, string>, shaById: Map<string, string | null>): DraftRun {
+  const docId = (name: string) => {
+    const id = docByUpload[name];
+    if (!id) throw E.internal();
+    return id;
+  };
+  const swap = (o: unknown): unknown => {
+    if (Array.isArray(o)) return o.map(swap);
+    if (o && typeof o === "object") return Object.fromEntries(Object.entries(o).map(([k, v]) => [k, swap(v)]));
+    if (typeof o === "string" && o.startsWith(UPLOAD_PART)) return `${docId(o.slice(UPLOAD_PART.length))}/p0`;
+    if (typeof o === "string" && o.startsWith(UPLOAD_DOC)) return docId(o.slice(UPLOAD_DOC.length));
+    return o;
+  };
+  const d = swap(draft) as DraftRun;
+  const taken = new Set<string>();
+  const renamed = new Map<string, string>();
+  const sources = d.sources.map((src) => {
+    const { id: old, ...rest } = src;
+    const id = sourceIdFor(rest as Parameters<typeof sourceIdFor>[0], taken);
+    taken.add(id);
+    renamed.set(old, id);
+    return { ...src, id } as Source;
+  });
+  return {
+    ...d,
+    documents: d.documents.map((x) => ({ ...x, sha256: shaById.get(x.document_id) ?? x.sha256 })),
+    sources,
+    facts: d.facts.map((f) => ({ ...f, sources: f.sources.map((x) => renamed.get(x) ?? x) })),
+  };
+}
 
 const docsCs = (n: number) => `${n} ${n === 1 ? "nahraného dokumentu" : "nahraných dokumentů"}`;
 
@@ -90,29 +143,33 @@ export const intake = new Hono<AppEnv>()
     if (verdict.ready && verdict.fixture_id) {
       const fid = verdict.fixture_id;
       const prep = await (await c.env.DOCS.get(`fixtures/${fid}/prepared.json`))?.json<Prepared>();
-      if (!prep) throw new ApiError(503, "seed_missing", "Předem připravená data ukázkového pacienta na serveru chybí; spusťte seed (api/AGENTS.md).");
-      // Every reference into the fixture's combined PDF was written by the seed as "@upload:<name>"; it becomes the
-      // uploaded document, so the source view opens the page of the file the user uploaded.
+      // A prepared file from before the codebridge.extraction/2 seed counts as missing: the seed writes the new one.
+      if (!prep || prep.schema !== PREPARED_SCHEMA) throw new ApiError(503, "seed_missing", "Předem připravená data ukázkového pacienta na serveru chybí; spusťte seed (api/AGENTS.md).");
+      // The case row's question source names the combined PDF's pages as "@upload:<name>"; it becomes the uploaded file.
       const swap = (o: unknown) => {
         let s = JSON.stringify(o);
         for (const [name, docId] of Object.entries(verdict.docByUpload)) s = s.replaceAll(JSON.stringify(`@upload:${name}`), JSON.stringify(`${docId}.pdf`));
         if (s.includes('"@upload:')) throw E.internal();
         return JSON.parse(s);
       };
-      const syn = { ...swap(prep.syn), file: core.source_file };
-      (syn.list_entry as Record<string, unknown>).file = core.source_file;
       const row = swap(prep.case_row) as Prepared["case_row"];
-      const alertRows = await Promise.all(
-        prep.alerts.map(async (a) => ({ ...a, id: `al-${(await sha256Hex(`${id}|${a.origin}|${a.kind}|${a.text_cs}|${a.basis}`)).slice(0, 16)}` })),
-      );
-      const draft = { schema: "codebridge.extraction/1", case_id: id, processing: "partial", syn, alert_ids: { flag: [], gap: alertRows.map((a) => a.id) } };
-      runId = `prep-${id}-${(await sha256Hex(JSON.stringify(draft))).slice(0, 8)}`;
-      const body = JSON.stringify({ ...draft, run_id: runId });
-      const key = orgKey(c.var.viewer.org, `uploads/${id}/extract/${runId}.json`);
+      const fixtureDocs = docs.filter((d) => d.fixture_id === fid);
+      // The run: placeholders become this case's documents, then the matcher assigns the case's fact IDs against what
+      // the case already has (matchInputs: an intake case has no run yet, but the call is the same for every producer).
+      const draft = uploadRun(prep.run, verdict.docByUpload, new Map(fixtureDocs.map((d) => [d.id, d.sha256])));
+      const inputs = await matchInputs(db, c.env.DOCS, c.var.viewer.org, id);
+      // The case ID and the time make the run ID unique across orgs and repeated demos (extraction_runs.id is the key).
+      const newRunId = `fixture-${id}-${(await sha256Hex(`${c.var.viewer.org}|${id}|${at}`)).slice(0, 8)}`;
+      const { run } = prepareRun(inputs, {
+        ...draft,
+        case_id: id,
+        // Provenance: the attach gave the run this case's documents and fact IDs.
+        run: { ...draft.run, id: newRunId, created_at: at, stages: [...draft.run.stages, { name: "intake_attach", engine: "api/src/routes/intake.ts" }] },
+      });
       // Page assets: the seed stored each upload's pages under its name; they are copied to the uploaded document.
       const pageRows: unknown[] = [];
       const partRows: unknown[] = [];
-      const titles = new Map(((prep.syn.documents as { upload_name?: string; title_cs: string; type: string; date: string | null; readability: string; reason_cs: string }[]) || []).map((d) => [d.upload_name, d]));
+      const titles = new Map(prep.documents.map((d) => [d.upload_name, d]));
       try {
         for (const [name, docId] of Object.entries(verdict.docByUpload)) {
           const stem = name.replace(/\.pdf$/i, "");
@@ -130,27 +187,30 @@ export const intake = new Hono<AppEnv>()
               mc: m.mean_conf, lc: m.low_conf_words, em: m.is_empty ? 1 : 0, vc: m.verify_count, rc: m.redaction_count, rr: m.redaction_reasons ? JSON.stringify(m.redaction_reasons) : null,
             });
           }
+          // Every uploaded file is one part of the run ("<document id>/p0"), so each must have its part row.
           const d = titles.get(name);
-          if (d) partRows.push({ d: docId, t: d.title_cs, ty: d.type, dt: d.date, p: JSON.stringify((prep.pages[name] ?? []).map((m) => m.n)), r: d.readability, rs: d.reason_cs, u: name });
+          if (!d) throw E.internal();
+          partRows.push({ d: docId, t: d.title_cs, ty: d.type, dt: d.date, p: JSON.stringify((prep.pages[name] ?? []).map((m) => m.n)), r: d.readability, rs: d.reason_cs, u: name });
         }
-        await c.env.DOCS.put(key, body, { httpMetadata: { contentType: "application/json" } });
-        written.push(key);
+        // Validates the run (an invalid one is refused before anything of it is written), writes it to R2 under runs/
+        // (not seeded) and queues its row, fact IDs and alert identities into this batch.
+        const stored = await storeRun(t, { db, docs: c.env.DOCS }, run, {
+          seeded: false,
+          inputHashes: Object.fromEntries(fixtureDocs.flatMap((d) => (d.sha256 ? [[d.id, d.sha256]] : []))),
+        });
+        written.push(stored.r2_key);
+        runId = run.run.id;
       } catch (e) {
         if (written.length) await c.env.DOCS.delete(written).catch(() => {});
+        // A prepared run the validator refuses was written by another version of the seed; reseeding fixes it.
+        if (e instanceof RunInvalid) {
+          // Codes and paths only (RunInvalid carries no values from the run), so a Python/TypeScript validator mismatch
+          // can be told apart from a stale seed in the Worker's log.
+          console.error("intake: prepared run refused", JSON.stringify(e.issues.slice(0, 10)));
+          throw new ApiError(503, "seed_missing", "Předem připravená data ukázkového pacienta neodpovídají serveru; spusťte seed znovu (api/AGENTS.md).");
+        }
         throw e;
       }
-      t.run(
-        `INSERT INTO extraction_runs (org_id, id, case_id, kind, producer, model, prompt_version, temperature, input_hashes_json, r2_key, sha256, is_current, created_at)
-         VALUES (?org, ?1, ?2, 'seed_fixture', 'prepared-fixture', NULL, NULL, NULL, ?3, ?4, ?5, 1, ?6)`,
-        runId, id, JSON.stringify(Object.fromEntries(docs.filter((d) => d.fixture_id === fid).map((d) => [d.id, d.sha256]))), key, await sha256Hex(body), at,
-      );
-      if (alertRows.length)
-        t.run(
-          `INSERT INTO alerts (org_id, id, case_id, run_id, origin, position, kind, text_cs, relevant)
-           SELECT ?org, json_extract(value, '$.id'), ?1, ?2, json_extract(value, '$.origin'), json_extract(value, '$.position'), json_extract(value, '$.kind'),
-             json_extract(value, '$.text_cs'), json_extract(value, '$.relevant') FROM json_each(?3)`,
-          id, runId, JSON.stringify(alertRows.map((a) => ({ id: a.id, origin: a.origin, position: a.position, kind: a.kind, text_cs: a.text_cs, relevant: a.relevant ? 1 : 0 }))),
-        );
       t.run(
         `INSERT INTO pages (org_id, document_id, n, json_r2_key, image_r2_key, redacted_r2_key, width, height, engine, mean_conf, low_conf_words, is_empty, verify_count,
            redaction_count, redaction_reasons_json)
@@ -160,8 +220,8 @@ export const intake = new Hono<AppEnv>()
         JSON.stringify(pageRows),
       );
       t.run(
-        `INSERT INTO document_parts (org_id, document_id, ordinal, title_cs, type, date, pages_json, readability, reason_cs, upload_name)
-         SELECT ?org, json_extract(value, '$.d'), 0, json_extract(value, '$.t'), json_extract(value, '$.ty'), json_extract(value, '$.dt'), json_extract(value, '$.p'),
+        `INSERT INTO document_parts (org_id, document_id, ordinal, part_id, title_cs, type, date, pages_json, readability, reason_cs, upload_name)
+         SELECT ?org, json_extract(value, '$.d'), 0, json_extract(value, '$.d') || '/p0', json_extract(value, '$.t'), json_extract(value, '$.ty'), json_extract(value, '$.dt'), json_extract(value, '$.p'),
            json_extract(value, '$.r'), json_extract(value, '$.rs'), json_extract(value, '$.u') FROM json_each(?1)`,
         JSON.stringify(partRows),
       );
@@ -183,7 +243,7 @@ export const intake = new Hono<AppEnv>()
         row.question_source_json ? JSON.stringify(row.question_source_json) : null, day, id,
       );
       t.audit({ action: "intake.complete", what_cs: `vytvořil(a) pacienta ${from} a ${docsCs(docs.length)}`, case_id: id });
-      t.audit({ action: "intake.prepared", what_cs: "připojena předem připravená data ukázkového pacienta (otisky všech dokumentů souhlasí)", case_id: id, target_type: "extraction_run", target_id: runId });
+      t.audit({ action: "intake.prepared", what_cs: "připojena předem připravená data ukázkového pacienta (otisky všech dokumentů souhlasí)", case_id: id, target_type: "extraction_run", target_id: run.run.id });
     } else {
       t.run("UPDATE cases SET intake_open = 0, updated_on = ?1 WHERE org_id = ?org AND id = ?2", day, id);
       t.audit({ action: "intake.complete", what_cs: `vytvořil(a) pacienta ${from} a ${docsCs(docs.length)} (nezpracováno)`, case_id: id });

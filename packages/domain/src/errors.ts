@@ -24,6 +24,7 @@ export const D = {
   notDoctorApprove: err(403, "not_doctor", "Závěr schvaluje lékař."),
   notDoctorSuggestion: err(403, "not_doctor", "Návrh úlohy potvrzuje lékař."),
   notDoctorEdit: err(403, "not_doctor", "Údaje upravuje lékař."),
+  notDoctorConfirm: err(403, "not_doctor", "Údaje potvrzuje lékař."),
   notMember: err(403, "not_member", "Nejste v týmu tohoto případu. Lékař mimo tým může případ otevřít s uvedením důvodu."),
   caseNotFound: err(404, "case_not_found", "Případ nebyl nalezen."),
   taskNotFound: err(404, "task_not_found", "Úloha nebyla nalezena."),
@@ -79,6 +80,13 @@ export const D = {
   editConflict: (name: string) => new DomainError(409, "edit_conflict", `Údaj mezitím upravil(a) ${name || "jiný uživatel"}.`),
   alertStateChanged: err(409, "alert_state_changed", "Stav upozornění mezitím změnil jiný uživatel."),
   alertActionNotAllowed: err(422, "alert_action_not_allowed", "Tuto akci u upozornění nelze provést."),
+  legacyEditKey: err(422, "edit_key_legacy", "Údaj patří ke staršímu zpracování; úpravu lze jen vrátit, uložte ji u údaje v novém zpracování."),
+  // fact confirmations (codebridge.extraction/2)
+  factNotFound: err(404, "fact_not_found", "Údaj v aktuálním zpracování není."),
+  factQuarantined: err(409, "fact_quarantined", "Údaj pochází ze stránky, která patří jinému pacientovi; nelze ho potvrdit ani upravit."),
+  confirmationChanged: err(409, "confirmation_changed", "Potvrzení údaje mezitím změnil jiný lékař."),
+  confirmActionNotAllowed: err(422, "confirm_action_not_allowed", "Tuto akci u údaje nelze provést."),
+  runStale: err(409, "run_stale", "Případ mezitím dostal jiné zpracování; spusťte zpracování znovu."),
   // sessions and attendance
   sessionRunning: err(409, "session_running", "MDT na tento den už probíhá."),
   noCasesThatDay: err(409, "no_cases_that_day", "Na tento den není naplánován žádný případ."),

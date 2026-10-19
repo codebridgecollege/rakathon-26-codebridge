@@ -16,7 +16,7 @@ const props = defineProps<{ x: Item }>();
 const { $t } = useFluent();
 const c = usePatient();
 const view = usePatientViewStore();
-const { GL, citeOf, factRefs } = useGuide(c, $t);
+const { GL, citeOf, sourcesOf } = useGuide(c, $t);
 
 const g = computed(() => GL(props.x.guideline_id));
 const tier = computed(() => tiersOf(props.x)[0]);
@@ -27,7 +27,9 @@ const tierLabel = computed(() => {
 });
 const cats = computed(() => categoriesOf(props.x));
 const lang = computed(() => quoteLang(g.value));
-const facts = computed(() => ((props.x.patient_facts || []) as string[]).map((f) => ({ f, refs: factRefs(f) })));
+// Each documented fact the statement applies to, with its passages; a fact the current processing does not show is
+// flagged, never dropped.
+const facts = computed(() => ((props.x.patient_facts || []) as { text: string; fact_ids?: string[] }[]).map((pf) => ({ f: pf.text, ...sourcesOf(pf.fact_ids) })));
 const onToggle = (e: Event) => (view.gleOpen = { ...view.gleOpen, [props.x.id]: (e.target as HTMLDetailsElement).open });
 </script>
 
@@ -38,7 +40,7 @@ const onToggle = (e: Event) => (view.gleOpen = { ...view.gleOpen, [props.x.id]: 
       <div class="glbody">
         <p class="glwhy"><b>{{ $t("patient-guide-why") }}</b> <span lang="cs">{{ x.applies_because_cs || "" }}</span></p>
         <ul v-if="facts.length" class="glfacts">
-          <li v-for="(it, i) in facts" :key="i"><span lang="cs">{{ it.f }}</span> <SrcLinks v-if="it.refs.length" :refs="it.refs" /><span v-else class="muted small">{{ $t("patient-guide-no-source") }}</span></li>
+          <li v-for="(it, i) in facts" :key="i"><span lang="cs">{{ it.f }}</span> <SrcLinks v-if="it.refs.length" :refs="it.refs" /><span v-else class="muted small">{{ $t("patient-guide-no-source") }}</span><span v-if="it.unresolved.length" class="muted small"> {{ $t("patient-guide-fact-unresolved") }}</span></li>
         </ul>
         <p class="glmeta"><span :lang="lang">{{ g.name || "" }}, {{ g.society || "" }} {{ g.year || "" }}<template v-if="g.type_cs"> · {{ g.type_cs }}</template> · {{ x.section || "" }}</span> · {{ pageOf($t, x) }} · {{ $t("patient-guide-original-grade") }} <template v-if="x.type === 'guideline_text'">{{ $t("patient-guide-grade-chapter-text") }}</template><template v-else><span :lang="lang">{{ x.evidence || $t("patient-guide-grade-none") }}</span><template v-if="cats.length">{{ " " }}{{ $t("patient-guide-grade-categories", { cats: cats.join(", ") }) }}</template></template> · <button class="linkbtn small" :title="citeOf(x)" @click="openGuide(c, x.id)">{{ $t("patient-guide-open") }}</button></p>
       </div>

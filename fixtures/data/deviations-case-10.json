@@ -1,4 +1,5 @@
 {
+  "run_id": "fixture-NO-010-v2",
   "case_file": "10_pacient.pdf",
   "basis": "Curated comparison of synthetic case documentation with the existing cited guideline passages. No row establishes negligent care or an individual outcome.",
   "findings": [
@@ -12,8 +13,16 @@
       "severity": null,
       "risk_basis_cs": "EASL, tabulka 14: inhibitory mTOR u HBsAg pozitivních ve skupině středního rizika reaktivace. Jde o kategorii rizika, nikoli určenou závažnost odchylky nebo pacientovo individuální riziko.",
       "risk_basis_url": "https://easlcampus.eu/sites/default/files/2025-08/EASL_CPGs_on_management_of_HBV_infection.pdf#page=42",
-      "source_refs": [83, 32, 67],
-      "statement_ids": ["im-easl-hbvr-assess", "im-easl-hbvr-prophylaxis"]
+      "statement_ids": [
+        "im-easl-hbvr-assess",
+        "im-easl-hbvr-prophylaxis"
+      ],
+      "source_fact_ids": [
+        "f-968f6d75",
+        "f-2cb5d3e3",
+        "f-460c4602",
+        "f-c4b6586a"
+      ]
     },
     {
       "id": "blood-pressure-above-general-target",
@@ -23,8 +32,19 @@
       "interpretation_cs": "Dne 10. 2. 2026 byl TK 174/92 a medikace byla upravena přidáním Orcalu. Pozdější nedatovaný záznam uvádí 155/70 a přerušení domácího měření. Individuální cíl, tolerance léčby a dlouhodobá kompenzace nejsou doloženy; nejde o důkaz současné nekontrolované hypertenze ani nevhodné léčby.",
       "clinical_consequence_cs": "Citované doporučení spojuje léčbu k cílovému TK se snížením kardiovaskulárního rizika. Pacientův individuální cíl ani dopad uvedených hodnot na jeho prognózu nelze z těchto záznamů určit.",
       "severity": null,
-      "source_refs": [76, 78, 94, 100, 101, 95],
-      "statement_ids": ["im-esc-target", "im-esc-lenient-target"]
+      "statement_ids": [
+        "im-esc-target",
+        "im-esc-lenient-target"
+      ],
+      "source_fact_ids": [
+        "f-f37c0046",
+        "f-0b81e319",
+        "f-c62fce4b",
+        "f-e222cadb",
+        "f-c4d2eb76",
+        "f-f48d89a3",
+        "f-6ef44a93"
+      ]
     },
     {
       "id": "shortened-induction-with-toxicity",
@@ -34,9 +54,17 @@
       "interpretation_cs": "Indikovány byly čtyři cykly nivolumabu s ipilimumabem. Dokumentovány jsou dva a poté gastrointestinální a plicní toxicita s kortikoterapií. Následná udržovací léčba nivolumabem je doložena; výslovný záznam o ukončení kombinace chybí. Podklady neprokazují neodůvodněnou odchylku.",
       "clinical_consequence_cs": "Dopad kratší indukce na účinnost nelze z dostupných záznamů určit. Doložená toxicita je důležitým kontextem změny režimu, nikoli důkazem pochybení.",
       "severity": null,
-      "source_refs": [9, 10, 46, 11, 12, 13],
       "statement_ids": [],
-      "past_statement_id": "past-nivo-ipi-regimen"
+      "past_statement_id": "past-nivo-ipi-regimen",
+      "source_fact_ids": [
+        "f-14dfebfc",
+        "f-cb75a876",
+        "f-b4110ac6",
+        "f-24babadf",
+        "f-c5e5ed32",
+        "f-8425851b",
+        "f-49b84a6d"
+      ]
     },
     {
       "id": "nch-result-not-documented",
@@ -46,8 +74,14 @@
       "interpretation_cs": "MR uvádí suspektní ložisko do 3 mm, nikoli potvrzenou mozkovou metastázu. Odeslání nálezu na NCH seminář je uvedeno, jeho závěr ale v podkladech není. Nelze tvrdit, že seminář neproběhl nebo že léčba byla opožděna.",
       "clinical_consequence_cs": "Bez závěru semináře nelze z dokumentace rekonstruovat odsouhlasený postup pro suspektní ložisko v CNS. Není tím prokázána absence léčby ani zhoršení výsledku.",
       "severity": null,
-      "source_refs": [70, 36, 41],
-      "statement_ids": ["eano-bm-board"]
+      "statement_ids": [
+        "eano-bm-board"
+      ],
+      "source_fact_ids": [
+        "f-5f20f17f",
+        "f-a0522e68",
+        "f-e7f16bae"
+      ]
     }
   ]
 }

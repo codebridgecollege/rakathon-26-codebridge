@@ -1,4 +1,5 @@
 {
+  "run_id": "fixture-NO-010-v2",
   "guidelines": [
     {
       "id": "us-astro-2022-bm",
@@ -72,8 +73,20 @@
       "evidence": "Strong recommendation (as stated in the abstract); the quality of evidence per recommendation is in the full text, which was not retrieved",
       "applies_because_cs": "MR mozku popisuje jediné ložisko (omezený počet) a dokumentace uvádí ECOG PS 1 (v rozmezí 0 až 2). Ložisko je zatím jen suspektní z metastázy, histologicky nepotvrzené. Citace je ze souhrnu (abstraktu), ne z plného znění doporučení.",
       "patient_facts": [
-        "MR mozku 14. 9. 2026: solitární sytící se nodulus v pravé hemisféře mozečku do 3 mm, suspekce na metastázu, jiná sytící se ložiska nejsou",
-        "ECOG PS 1"
+        {
+          "text": "MR mozku 14. 9. 2026: solitární sytící se nodulus v pravé hemisféře mozečku do 3 mm, suspekce na metastázu, jiná sytící se ložiska nejsou",
+          "fact_ids": [
+            "f-5f20f17f",
+            "f-a0522e68",
+            "f-0bb4816a"
+          ]
+        },
+        {
+          "text": "ECOG PS 1",
+          "fact_ids": [
+            "f-3cfe8dd6"
+          ]
+        }
       ],
       "kind": "brain_metastasis",
       "type": "recommendation",
@@ -89,9 +102,28 @@
       "evidence": "Conditional recommendation (as stated in the abstract); quality of evidence not given in the abstract",
       "applies_because_cs": "Pacient je na systémové léčbě (everolimus od 3. 9. 2026) a na cílený dotaz neguje závratě a poruchy rovnováhy, uvádí občasné mžitky před očima. Zda je ložisko asymptomatické a zda je everolimus pro tento účel léčba s účinkem v CNS, je na posouzení lékaře; dokumentace to neuvádí. Citace je ze souhrnu, ne z plného znění.",
       "patient_facts": [
-        "Everolimus 5 mg denně od 3. 9. 2026 (3. linie); dle nejnovějšího ambulantního závěru navýšení na 10 mg denně od 19. 9. 2026",
-        "Na cílený dotaz neguje závratě či poruchy rovnováhy, někdy během dne mžitky před očima",
-        "MR mozku 14. 9. 2026: solitární ložisko do 3 mm v pravé hemisféře mozečku, suspekce na metastázu"
+        {
+          "text": "Everolimus 5 mg denně od 3. 9. 2026 (3. linie); dle nejnovějšího ambulantního závěru navýšení na 10 mg denně od 19. 9. 2026",
+          "fact_ids": [
+            "f-2cb5d3e3",
+            "f-460c4602",
+            "f-c4b6586a"
+          ]
+        },
+        {
+          "text": "Na cílený dotaz neguje závratě či poruchy rovnováhy, někdy během dne mžitky před očima",
+          "fact_ids": [
+            "f-f824c844",
+            "f-39129d76"
+          ]
+        },
+        {
+          "text": "MR mozku 14. 9. 2026: solitární ložisko do 3 mm v pravé hemisféře mozečku, suspekce na metastázu",
+          "fact_ids": [
+            "f-5f20f17f",
+            "f-a0522e68"
+          ]
+        }
       ],
       "kind": "brain_metastasis",
       "type": "recommendation",
@@ -107,9 +139,28 @@
       "evidence": "Strength and evidence quality are not stated in the abstract; they are in the full text, which was not retrieved",
       "applies_because_cs": "Ložisko v mozečku je suspektní z metastázy a pacient je na systémové léčbě (everolimus). Onkolog zapsal ‚bez klin. známek mozkových mts‘; pacient neguje závratě a poruchy rovnováhy a uvádí občasné mžitky před očima, jejich souvislost s ložiskem dokumentace nehodnotí. Citace je ze souhrnu, ne z plného znění.",
       "patient_facts": [
-        "MR mozku 14. 9. 2026: solitární sytící se nodulus v pravé hemisféře mozečku do 3 mm, suspekce na metastázu",
-        "Everolimus 5 mg denně od 3. 9. 2026 (3. linie); dle nejnovějšího ambulantního závěru navýšení na 10 mg denně od 19. 9. 2026",
-        "Na cílený dotaz neguje závratě či poruchy rovnováhy, někdy během dne mžitky před očima"
+        {
+          "text": "MR mozku 14. 9. 2026: solitární sytící se nodulus v pravé hemisféře mozečku do 3 mm, suspekce na metastázu",
+          "fact_ids": [
+            "f-5f20f17f",
+            "f-a0522e68"
+          ]
+        },
+        {
+          "text": "Everolimus 5 mg denně od 3. 9. 2026 (3. linie); dle nejnovějšího ambulantního závěru navýšení na 10 mg denně od 19. 9. 2026",
+          "fact_ids": [
+            "f-2cb5d3e3",
+            "f-460c4602",
+            "f-c4b6586a"
+          ]
+        },
+        {
+          "text": "Na cílený dotaz neguje závratě či poruchy rovnováhy, někdy během dne mžitky před očima",
+          "fact_ids": [
+            "f-f824c844",
+            "f-39129d76"
+          ]
+        }
       ],
       "kind": "brain_metastasis",
       "type": "recommendation",
@@ -125,9 +176,28 @@
       "evidence": "Strength and evidence quality are not stated in the abstract; they are in the full text, which was not retrieved",
       "applies_because_cs": "Ložisko je suspektní z metastázy a pacient je na systémové léčbě, otázka odložení lokální léčby je tedy otevřená. Souhrn jmenuje systémové režimy jen pro nemalobuněčný karcinom plic, karcinom prsu a melanom, ne pro karcinom ledviny. Onkolog zapsal ‚bez klin. známek mozkových mts‘; souvislost občasných mžitek před očima s ložiskem dokumentace nehodnotí. Citace je ze souhrnu, ne z plného znění.",
       "patient_facts": [
-        "MR mozku 14. 9. 2026: solitární sytící se nodulus v pravé hemisféře mozečku do 3 mm, suspekce na metastázu",
-        "Everolimus 5 mg denně od 3. 9. 2026 (3. linie); dle nejnovějšího ambulantního závěru navýšení na 10 mg denně od 19. 9. 2026",
-        "Na cílený dotaz neguje závratě či poruchy rovnováhy, někdy během dne mžitky před očima"
+        {
+          "text": "MR mozku 14. 9. 2026: solitární sytící se nodulus v pravé hemisféře mozečku do 3 mm, suspekce na metastázu",
+          "fact_ids": [
+            "f-5f20f17f",
+            "f-a0522e68"
+          ]
+        },
+        {
+          "text": "Everolimus 5 mg denně od 3. 9. 2026 (3. linie); dle nejnovějšího ambulantního závěru navýšení na 10 mg denně od 19. 9. 2026",
+          "fact_ids": [
+            "f-2cb5d3e3",
+            "f-460c4602",
+            "f-c4b6586a"
+          ]
+        },
+        {
+          "text": "Na cílený dotaz neguje závratě či poruchy rovnováhy, někdy během dne mžitky před očima",
+          "fact_ids": [
+            "f-f824c844",
+            "f-39129d76"
+          ]
+        }
       ],
       "kind": "brain_metastasis",
       "type": "recommendation",
@@ -143,10 +213,33 @@
       "evidence": "LoE 1, strong recommendation, strong consensus",
       "applies_because_cs": "Pacient je HBsAg pozitivní a od 3. 9. 2026 užívá everolimus (inhibitor mTOR); Tabulka 14 (str. 42) uvádí u HBsAg-pozitivních inhibitory mTOR ve skupině středního rizika reaktivace (1-10 %). Sunitinib (do 8/2026) a nivolumab s ipilimumabem (do 12/2025) již skončily. Zařazení sunitinibu do řádku tabulky ‚Tyrosine kinase inhibitors‘ (vysoké riziko) je čtení asistenta, nejisté. HBV DNA, anti-HBc a hepatologické vyšetření: neuvedeno v dostupné dokumentaci.",
       "patient_facts": [
-        "HBsAg pozit. pac. (anamnéza v dokumentaci)",
-        "Everolimus 5 mg denně od 3. 9. 2026 (3. linie); dle nejnovějšího ambulantního závěru navýšení na 10 mg denně od 19. 9. 2026",
-        "Sunitinib 1-8/2026 (ukončen)",
-        "Nivolumab + ipilimumab, udržovací nivolumab do 12/2025 (ukončeno)"
+        {
+          "text": "HBsAg pozit. pac. (anamnéza v dokumentaci)",
+          "fact_ids": [
+            "f-968f6d75"
+          ]
+        },
+        {
+          "text": "Everolimus 5 mg denně od 3. 9. 2026 (3. linie); dle nejnovějšího ambulantního závěru navýšení na 10 mg denně od 19. 9. 2026",
+          "fact_ids": [
+            "f-2cb5d3e3",
+            "f-460c4602",
+            "f-c4b6586a"
+          ]
+        },
+        {
+          "text": "Sunitinib 1-8/2026 (ukončen)",
+          "fact_ids": [
+            "f-7f0d261e"
+          ]
+        },
+        {
+          "text": "Nivolumab + ipilimumab, udržovací nivolumab do 12/2025 (ukončeno)",
+          "fact_ids": [
+            "f-cb75a876",
+            "f-49b84a6d"
+          ]
+        }
       ],
       "kind": "comorbidity",
       "type": "recommendation",
@@ -162,8 +255,20 @@
       "evidence": "LoE 1, strong recommendation, strong consensus",
       "applies_because_cs": "Pacient je HBsAg pozitivní a užívá everolimus; Tabulka 14 (str. 42) uvádí u HBsAg-pozitivních inhibitory mTOR ve skupině středního rizika reaktivace (1-10 %). NA = nukleos(t)idová analoga. Antivirová léčba nebo profylaxe HBV: neuvedeno v dostupné dokumentaci (v chronické medikaci není).",
       "patient_facts": [
-        "HBsAg pozitivní",
-        "Everolimus 5 mg denně od 3. 9. 2026 (3. linie); dle nejnovějšího ambulantního závěru navýšení na 10 mg denně od 19. 9. 2026"
+        {
+          "text": "HBsAg pozitivní",
+          "fact_ids": [
+            "f-968f6d75"
+          ]
+        },
+        {
+          "text": "Everolimus 5 mg denně od 3. 9. 2026 (3. linie); dle nejnovějšího ambulantního závěru navýšení na 10 mg denně od 19. 9. 2026",
+          "fact_ids": [
+            "f-2cb5d3e3",
+            "f-460c4602",
+            "f-c4b6586a"
+          ]
+        }
       ],
       "kind": "comorbidity",
       "type": "recommendation",
@@ -179,8 +284,18 @@
       "evidence": "LoE 3, strong recommendation, strong consensus",
       "applies_because_cs": "Platí, pokud lékaři u HBsAg-pozitivního pacienta na everolimu indikují profylaxi reaktivace HBV. ETV = entekavir, TAF/TDF = tenofovir alafenamid / tenofovir disoproxil fumarát. Stejné doporučení dále uvádí délku profylaxe po skončení imunosupresivní léčby (viz dokument).",
       "patient_facts": [
-        "HBsAg pozitivní",
-        "Everolimus od 3. 9. 2026"
+        {
+          "text": "HBsAg pozitivní",
+          "fact_ids": [
+            "f-968f6d75"
+          ]
+        },
+        {
+          "text": "Everolimus od 3. 9. 2026",
+          "fact_ids": [
+            "f-2cb5d3e3"
+          ]
+        }
       ],
       "kind": "comorbidity",
       "type": "recommendation",
@@ -196,10 +311,32 @@
       "evidence": "Text of the guideline, not a numbered recommendation (no class or level of evidence)",
       "applies_because_cs": "Pacient dostával sunitinib (inhibitor tyrozinkináz receptorů VEGF) 1-8/2026; při interním vyšetření 10. 2. 2026 TK 174/92. Hypertenze je uvedena v osobní anamnéze s chronickou medikací Kapidin; souvislost s protinádorovou léčbou dokumentace neuvádí.",
       "patient_facts": [
-        "Arteriální hypertenze v osobní anamnéze, chronická medikace Kapidin 20 mg 1-0-0",
-        "TK 174/92 při interním vyšetření 10. 2. 2026 (během léčby sunitinibem)",
-        "TK 155/70 později",
-        "Sunitinib 1-8/2026"
+        {
+          "text": "Arteriální hypertenze v osobní anamnéze, chronická medikace Kapidin 20 mg 1-0-0",
+          "fact_ids": [
+            "f-ffa5e9d3",
+            "f-b428d800"
+          ]
+        },
+        {
+          "text": "TK 174/92 při interním vyšetření 10. 2. 2026 (během léčby sunitinibem)",
+          "fact_ids": [
+            "f-0b81e319",
+            "f-7f0d261e"
+          ]
+        },
+        {
+          "text": "TK 155/70 později",
+          "fact_ids": [
+            "f-f48d89a3"
+          ]
+        },
+        {
+          "text": "Sunitinib 1-8/2026",
+          "fact_ids": [
+            "f-7f0d261e"
+          ]
+        }
       ],
       "kind": "comorbidity",
       "type": "guideline_text",
@@ -215,10 +352,32 @@
       "evidence": "Text of the guideline, not a numbered recommendation (no class or level of evidence)",
       "applies_because_cs": "Pacient dostával sunitinib (inhibitor tyrozinkináz) 1-8/2026; při interním vyšetření 10. 2. 2026 TK 174/92, později 155/70. Hypertenze je uvedena v osobní anamnéze s chronickou medikací Kapidin; souvislost s protinádorovou léčbou dokumentace neuvádí.",
       "patient_facts": [
-        "Arteriální hypertenze v osobní anamnéze, chronická medikace Kapidin 20 mg 1-0-0",
-        "TK 174/92 při interním vyšetření 10. 2. 2026 (během léčby sunitinibem)",
-        "TK 155/70 později",
-        "Sunitinib 1-8/2026"
+        {
+          "text": "Arteriální hypertenze v osobní anamnéze, chronická medikace Kapidin 20 mg 1-0-0",
+          "fact_ids": [
+            "f-ffa5e9d3",
+            "f-b428d800"
+          ]
+        },
+        {
+          "text": "TK 174/92 při interním vyšetření 10. 2. 2026 (během léčby sunitinibem)",
+          "fact_ids": [
+            "f-0b81e319",
+            "f-7f0d261e"
+          ]
+        },
+        {
+          "text": "TK 155/70 později",
+          "fact_ids": [
+            "f-f48d89a3"
+          ]
+        },
+        {
+          "text": "Sunitinib 1-8/2026",
+          "fact_ids": [
+            "f-7f0d261e"
+          ]
+        }
       ],
       "kind": "comorbidity",
       "type": "guideline_text",
@@ -234,10 +393,32 @@
       "evidence": "Text of the guideline, not a numbered recommendation (no class or level of evidence)",
       "applies_because_cs": "Platí pro hypertenzi způsobenou protinádorovou léčbou. Hypertenze je uvedena v osobní anamnéze s chronickou medikací Kapidin; souvislost s protinádorovou léčbou dokumentace neuvádí.",
       "patient_facts": [
-        "Arteriální hypertenze v osobní anamnéze, chronická medikace Kapidin 20 mg 1-0-0",
-        "TK 174/92 při interním vyšetření 10. 2. 2026 (během léčby sunitinibem)",
-        "TK 155/70 později",
-        "Sunitinib 1-8/2026"
+        {
+          "text": "Arteriální hypertenze v osobní anamnéze, chronická medikace Kapidin 20 mg 1-0-0",
+          "fact_ids": [
+            "f-ffa5e9d3",
+            "f-b428d800"
+          ]
+        },
+        {
+          "text": "TK 174/92 při interním vyšetření 10. 2. 2026 (během léčby sunitinibem)",
+          "fact_ids": [
+            "f-0b81e319",
+            "f-7f0d261e"
+          ]
+        },
+        {
+          "text": "TK 155/70 později",
+          "fact_ids": [
+            "f-f48d89a3"
+          ]
+        },
+        {
+          "text": "Sunitinib 1-8/2026",
+          "fact_ids": [
+            "f-7f0d261e"
+          ]
+        }
       ],
       "kind": "comorbidity",
       "type": "guideline_text",
@@ -253,11 +434,38 @@
       "evidence": "Class I, Level A",
       "applies_because_cs": "Pacient má hypertenzi s chronickou medikací Kapidin 20 mg 1-0-0; od 10. 2. 2026 přidán Orcal 10 mg ½-0-0. Při interním vyšetření 10. 2. 2026 TK 174/92, dle pacienta doma prav. TK kolem 150; později v ordinaci 155/70 (doma tehdy neměřil, byl na dovolené). Tyto hodnoty jsou nad cílovým rozmezím systolického tlaku. Dokumentace uvádí, že ACE-inhibitory jsou kontraindikovány pro zvýšené riziko anafylaxe (pacient je na everolimu). Snášenlivost léčby: neuvedeno v dostupné dokumentaci.",
       "patient_facts": [
-        "TK 174/92 při interním vyšetření 10. 2. 2026, dle pacienta doma prav. TK kolem 150",
-        "Od 10. 2. 2026 nově Orcal 10 mg ½-0-0, poučen o domácím měření TK",
-        "Chronická medikace: Kapidin 20 mg 1-0-0",
-        "TK 155/70 později; doma tehdy TK neměřil (dovolená)",
-        "Kontraindikovány jsou ACEi pro zvýšené riziko anafylaxe"
+        {
+          "text": "TK 174/92 při interním vyšetření 10. 2. 2026, dle pacienta doma prav. TK kolem 150",
+          "fact_ids": [
+            "f-0b81e319",
+            "f-c62fce4b"
+          ]
+        },
+        {
+          "text": "Od 10. 2. 2026 nově Orcal 10 mg ½-0-0, poučen o domácím měření TK",
+          "fact_ids": [
+            "f-e222cadb"
+          ]
+        },
+        {
+          "text": "Chronická medikace: Kapidin 20 mg 1-0-0",
+          "fact_ids": [
+            "f-b428d800"
+          ]
+        },
+        {
+          "text": "TK 155/70 později; doma tehdy TK neměřil (dovolená)",
+          "fact_ids": [
+            "f-f48d89a3",
+            "f-c4d2eb76"
+          ]
+        },
+        {
+          "text": "Kontraindikovány jsou ACEi pro zvýšené riziko anafylaxe",
+          "fact_ids": [
+            "f-6ef44a93"
+          ]
+        }
       ],
       "kind": "comorbidity",
       "type": "recommendation",
@@ -273,8 +481,22 @@
       "evidence": "Class IIb, Level C",
       "applies_because_cs": "Pacient má metastatický karcinom ledviny s progresí po dvou liniích léčby. Zda má omezenou předpokládanou délku života nebo klinicky významnou křehkost, dokumentace neuvádí a je to klinický úsudek lékaře; asistent jej nečiní.",
       "patient_facts": [
-        "Metastatický světlobuněčný karcinom ledviny, progrese po 1. a 2. linii, od 3. 9. 2026 everolimus",
-        "ECOG PS 1"
+        {
+          "text": "Metastatický světlobuněčný karcinom ledviny, progrese po 1. a 2. linii, od 3. 9. 2026 everolimus",
+          "fact_ids": [
+            "f-868a242f",
+            "f-1cc45871",
+            "f-42bdd4a3",
+            "f-77039580",
+            "f-2cb5d3e3"
+          ]
+        },
+        {
+          "text": "ECOG PS 1",
+          "fact_ids": [
+            "f-3cfe8dd6"
+          ]
+        }
       ],
       "kind": "comorbidity",
       "type": "recommendation",

@@ -1,37 +1,29 @@
 import { describe, expect, it } from "vitest";
-import { docTitle, fromExtraction, fromFullExtraction, fromSyn, nrOf, sectionsOf, tabsFor, unprocessedCase } from "../src/case-data";
+import { docTitle, fromExtraction, nrOf, sectionsOf, tabsFor, unprocessedCase } from "../src/case-data";
+import type { ExtractionRun } from "../src/extraction/types";
+import run10 from "../../../fixtures/data/runs/NO-010.json";
+import runS01 from "../../../fixtures/data/runs/NO-S01.json";
 
-// Synthetic values only.
+// Synthetic values only (the converted fixtures of case 10 and S01).
 const full = () =>
-  fromFullExtraction(
-    "10_pacient.pdf",
-    "NO-010",
-    { page_count: 5, labs: [{ name_cs: "Kreatinin", value: "107", source: { file: "10_pacient.pdf", page: 3 } }], flags: [{ kind: "missing", text_cs: "Chybí MR." }], sections: { imaging: [] }, timeline: [{ type: "diagnosis", label_cs: "Diagnóza", date: "4/2022" }] },
-    { onco_summary_v3_cs: "Souhrn [1].", onco_summary_v3_refs: [{ file: "10_pacient.pdf", page: 1, quote: "q" }], refs: [{ file: "10_pacient.pdf", page: 1, quote: "r" }], data_gaps_v3: [{ kind: "missing", text_cs: "Věk neuveden." }], documents: [{ title_cs: "Zpráva", pages: [1, 2] }] },
-  );
+  fromExtraction("10_pacient.pdf", "NO-010", run10 as unknown as ExtractionRun, [
+    { id: "10_pacient", file: "10_pacient.pdf", page_count: 5, note_cs: null, parts: [{ title_cs: "Zpráva", pages: [1, 2] }] },
+  ]);
 
 describe("case data", () => {
-  it("maps a full extraction, keeping a missing part null rather than empty", () => {
+  it("builds a full case from a run", () => {
     const cd = full();
     expect(cd.level).toBe("full");
-    expect(cd.brief?.text_cs).toBe("Souhrn [1].");
+    expect(cd.brief?.text_cs).toMatch(/^Pacient s metastatickým/);
     expect(cd.brief?.reason_cs).toBeNull();
-    expect(cd.record?.status_praesens).toBeNull();
-    expect(cd.record?.anamnesis).toBeNull();
-    expect(cd.alerts?.gaps).toHaveLength(1);
     expect(cd.documents?.pages).toBe(5);
   });
 
-  it("maps the older timeline shape once, so every reader sees one event shape", () => {
-    const ev = full().record!.timeline[0]!;
-    expect(ev).toMatchObject({ kind: "diagnosis", title_cs: "Diagnóza", text_cs: "Diagnóza", status: "done", date: "4/2022" });
-  });
-
-  it("never lets a synthetic or single-draw lab series into the case data, so no chart is invented", () => {
-    const draws = [{ date: "2026-01-08" }, { date: "2026-05-12" }];
-    expect(fromSyn({ labs_series: { draws, tests: [] } }, "S01_pacient.pdf", "NO-S01").labs?.series).toBeTruthy();
-    expect(fromSyn({ labs_series: { draws, tests: [], synthetic: true } }, "S01_pacient.pdf", "NO-S01").labs).toBeNull();
-    expect(fromSyn({ labs_series: { draws: draws.slice(0, 1), tests: [] } }, "S01_pacient.pdf", "NO-S01").labs).toBeNull();
+  it("a run that looked only at labs and requests has no record, so nothing reads as 'nothing found'", () => {
+    const cd = fromExtraction("S01_pacient.pdf", "NO-S01", runS01 as unknown as ExtractionRun);
+    expect(cd.level).toBe("partial");
+    expect(cd.record).toBeNull();
+    expect(cd.labs?.series?.draws).toHaveLength(4);
   });
 
   it("treats a case without a run as unprocessed, never as 'nothing found'", () => {
@@ -42,8 +34,8 @@ describe("case data", () => {
   });
 
   it("shows the tabs the data supports, in the fixed order", () => {
-    expect(tabsFor(sectionsOf(full()))).toEqual(["documents", "labs", "alerts", "next", "dev", "prognosis"]);
-    const syn = fromSyn({ documents: [{ title_cs: "A" }], data_gaps: [], labs_series: { draws: [{ date: "a" }, { date: "b" }], tests: [] } }, "S01_pacient.pdf", "NO-S01");
+    expect(tabsFor(sectionsOf(full()))).toEqual(["overview", "anamnesis", "documents", "labs", "alerts", "next", "dev", "prognosis"]);
+    const syn = fromExtraction("S01_pacient.pdf", "NO-S01", runS01 as unknown as ExtractionRun);
     expect(tabsFor(sectionsOf(syn))).toEqual(["documents", "labs", "alerts", "prognosis"]);
   });
 

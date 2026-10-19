@@ -73,7 +73,7 @@ jobs:
           cache-dependency-path: |
             package-lock.json
             e2e/package-lock.json
-      # The seed (api/seed/seed.py) is a uv script with no dependencies.
+      # The seed (api/seed/seed.py) is a uv script; uv installs its one dependency (jsonschema, for the run validator).
       - uses: astral-sh/setup-uv@v6
         with:
           version: "0.12.0"
@@ -107,7 +107,7 @@ jobs:
           path: |
             api/.wrangler/e2e/seed
             api/.wrangler/e2e/seed.stamp
-          key: e2e-seed-${{ runner.os }}-${{ hashFiles('package-lock.json', 'api/migrations/**', 'api/seed/seed.py', 'fixtures/**', 'data/derived/**', 'data/rakathon-26/**', 'samples/**') }}
+          key: e2e-seed-${{ runner.os }}-${{ hashFiles('package-lock.json', 'api/migrations/**', 'api/seed/seed.py', 'pipeline/extraction_format/**', 'packages/domain/schema/**', 'fixtures/**', 'data/derived/**', 'data/rakathon-26/**', 'samples/**') }}
       # Seeds one local state, copies it per Worker, starts the Workers, runs the suite and stops them.
       - name: Browser suite
         run: npm --prefix e2e run test:parallel

@@ -1,5 +1,6 @@
 # /// script
 # requires-python = ">=3.11"
+# dependencies = ["jsonschema==4.23.0"]
 # ///
 """Seed the Worker's D1 database and R2 bucket from the synthetic fixtures in the repository.
 
@@ -10,6 +11,10 @@ Usage (from the repository root or from api/):
 
 Reads only synthetic data that is committed: fixtures/data/, data/derived/, data/rakathon-26/ (the organizers'
 synthetic challenge PDFs) and samples/. It never opens private/.
+
+Extraction runs are the converted codebridge.extraction/2 files in fixtures/data/runs/ (fixtures/convert/convert_v2.py),
+stored unchanged after pipeline/extraction_format's validator accepts them; a run it refuses stops the seed before
+anything is written.
 
 Identity (name, birth number, birth date, age, insurer) goes to the D1 `patients` table only. The case-side JSON
 stored in R2 (extraction, guidance, prognosis) is stripped of it, and an identity scan stops the seed when a
@@ -31,9 +36,15 @@ from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
+# The codebridge.extraction/2 validator and matcher (pipeline/extraction_format) are the Python twin of the Worker's, so
+# the seed refuses a run the Worker's storeRun would refuse. The package has no installer entry; it is imported from its
+# folder, which is why the path goes in before the import.
+sys.path.insert(0, str(ROOT / "pipeline"))
+from extraction_format import VIEW_NAMES, alert_id, assign_fact_ids, source_id_for, validate_run, view_line_id  # noqa: E402
 API = ROOT / "api"
 OUT = API / "seed" / "out"
 DATA = ROOT / "fixtures" / "data"
+RUNS = DATA / "runs"  # converted codebridge.extraction/2 runs, one per case (NO-010, NO-S01, NO-S02)
 DERIVED = ROOT / "data" / "derived"
 FNO_PDFS = ROOT / "data" / "rakathon-26" / "2_AI asistent MDT"
 SAMPLES = ROOT / "samples"
@@ -48,7 +59,8 @@ MAX_STATEMENT = 90_000  # D1 refuses SQL statements over 100 KB; keep a margin.
 TABLES = [
     "departments", "dept_members", "patients", "patient_nis_links", "cases", "case_members", "status_history",
     "slots", "sessions", "attendance", "protocols", "decisions", "task_suggestions", "tasks",
-    "question_confirmations", "fact_edits", "edit_log", "extraction_runs", "alerts", "alert_events",
+    "question_confirmations", "fact_edits", "edit_log", "extraction_runs", "alerts", "alert_events_v1", "alert_identities", "alert_events",
+    "fact_ids", "fact_confirmations",
     "documents", "document_parts", "pages", "fixture_files", "fixture_patients", "recordings", "jobs", "transcript_passes",
     "transcript_lines", "transcript_summaries", "audio_uploads", "audio_parts", "audio_segments", "access_log", "seed_meta", "attendance_sets", "notifications", "case_access_grants", "idempotency_keys",
     "write_guards", "auth_sessions",
@@ -293,41 +305,234 @@ def scan(obj, pats, path, hits):
             hits.append((path, "value"))
 
 
-def strip_case10(case, extra):
-    c = json.loads(json.dumps(case))
-    e = json.loads(json.dumps(extra))
-    pat = c.get("patient", {})
-    for k in ("name", "name_as_written", "birth_number", "birth_date", "age", "insurer", "source"):
-        pat.pop(k, None)
-    # The page text lives in the per-page objects; v3 does not read this copy.
-    c.pop("full_text_by_page", None)
-    # Other patients' details become their own case rows.
-    e.pop("others", None)
-    return c, e
+# ---------- codebridge.extraction/2 runs ----------
+def load_run(cid: str) -> tuple[dict, bytes]:
+    """The converted run of one case and its file bytes. The seed stores the bytes unchanged, so the object in R2 is the
+    file in the repository; a run the validator refuses, or one whose frame is not a first fixture run, stops the seed."""
+    path = RUNS / f"{cid}.json"
+    if not path.exists():
+        sys.exit(f"seed: {path.relative_to(ROOT)} is missing; run fixtures/convert/convert_v2.py (fixtures/README.md)")
+    body = path.read_bytes()
+    run = json.loads(body)
+    v = validate_run(run)
+    if not v.ok:
+        # Codes and paths only: a message could carry patient text from the run.
+        sys.exit(f"seed: {path.relative_to(ROOT)} is not a valid codebridge.extraction/2 run: "
+                 + "; ".join(f"{i.code} at {i.path}" for i in v.issues[:8]))
+    frame = run["run"]
+    if run["case_id"] != cid or frame["producer"] != "fixture" or frame.get("supersedes") is not None:
+        sys.exit(f"seed: {path.relative_to(ROOT)} must be the first fixture run of {cid} (case_id, producer fixture, no supersedes)")
+    return run, body
 
 
-def strip_syn(s):
-    s = json.loads(json.dumps(s))
-    le = s.get("list_entry", {})
-    s["list_entry"] = {"file": le.get("file"), "page_count": le.get("page_count")}
-    s.pop("others_entry", None)
-    s.pop("fhir_referral", None)
-    return s
+def check_run_documents(run: dict, seeded_docs: dict[str, str], seeded_parts: set[str]) -> None:
+    """Every document the run read is the seeded PDF with the same bytes, and every part it names is a seeded
+    document_parts.part_id, so a source opens the page it quotes and the documents tab lists the run's parts."""
+    for d in run["documents"]:
+        sha = seeded_docs.get(d["document_id"])
+        if sha is None:
+            sys.exit(f"seed: run {run['run']['id']} reads {d['document_id']}, which is not a seeded document of {run['case_id']}")
+        if d.get("sha256") != sha:
+            sys.exit(f"seed: run {run['run']['id']} was made from another version of {d['document_id']} (sha256 differs or is missing)")
+        missing = sorted(set(d["parts"]) - seeded_parts)
+        if missing:
+            sys.exit(f"seed: run {run['run']['id']} names parts that are not seeded: {missing[:5]}")
+
+
+def fact_ids_of(obj) -> set[str]:
+    """Every fact ID a guidance file names (fact_ids, fact_id, row_fact_id, decision_fact_ids, source_fact_ids)."""
+    out: set[str] = set()
+    if isinstance(obj, dict):
+        for k, v in obj.items():
+            if k.endswith("fact_ids") and isinstance(v, list):
+                out |= {x for x in v if isinstance(x, str)}
+            elif k.endswith("fact_id") and isinstance(v, str):
+                out.add(v)
+            else:
+                out |= fact_ids_of(v)
+    elif isinstance(obj, list):
+        for v in obj:
+            out |= fact_ids_of(v)
+    return out
 
 
 # ---------- the prepared extraction of the intake fixture (step 6) ----------
-def prepared_fixture(s, sid, page_index, row, pats):
-    """R2 objects for one intake fixture: fixtures/<sid>/prepared.json and the page JSON and images of each upload."""
+# Placeholders in the prepared run for what exists only once the files are uploaded: the uploaded document's ID and its
+# one part. POST /api/cases/:id/intake/complete (api/src/routes/intake.ts) swaps them for the real IDs.
+UPLOAD_DOC = "@upload:"
+UPLOAD_PART = "@upload-part:"
+
+
+def run_for_uploads(run: dict, s: dict, pages: dict, upload_sha: dict[str, str]) -> dict:
+    """The fixture's run, made over the combined PDF (one document, a part per clinical document, pages numbered across
+    the whole PDF), re-pointed at the files the intake uploads: one document per file, one part per document, pages
+    numbered inside the file. The result is a draft (api/src/store/runs.ts DraftRun): facts carry their fixture ID as
+    draft_id and no ID or key, alerts no ID, since IDs depend on the case the intake creates (prepareRun assigns them).
+    Stops when a reference to the combined PDF cannot be mapped (a page in two documents or in none, a whole-PDF alert
+    argument, a page argument without its one part) or a quote is not on the page it maps to."""
+    stem = s["file"].removesuffix(".pdf")
+    # Part ordinals count every document of the combined PDF, uploaded or not (C-1: the index in syn.documents).
+    by_part = {f"{stem}/p{k}": d for k, d in enumerate(s.get("documents") or [])}
+    uploads = [d for d in s.get("documents") or [] if d.get("upload_name")]
+    names = [d["upload_name"] for d in uploads]
+    if len(set(names)) != len(names):
+        sys.exit(f"seed: two documents of {s['file']} share an upload file; the intake maps one part to one file")
+    by_page = {}
+    for d in uploads:
+        for k in d["pages"]:
+            if k in by_page:
+                sys.exit(f"seed: page {k} of {s['file']} belongs to two documents; a reference by page alone is ambiguous")
+            by_page[k] = d
+    norm = lambda t: re.sub(r"\s+", " ", t.replace("*", "")).strip()  # noqa: E731
+
+    def upload_of(document_id, part, page):
+        if document_id != stem:
+            sys.exit(f"seed: the {s['file']} run refers to document {document_id}")
+        if part is None and page is None:
+            sys.exit(f"seed: a reference to the whole of {s['file']} cannot point at one uploaded file")
+        d = by_part.get(part) if part is not None else by_page.get(page)
+        if d is None or not d.get("upload_name"):
+            sys.exit(f"seed: {part or document_id} page {page} of {s['file']} is in no uploaded file")
+        if page is not None and page not in d["pages"]:
+            sys.exit(f"seed: page {page} is not a page of {part}")
+        return d
+
+    def where(x: dict, page_key="page") -> dict:
+        d = upload_of(x["document_id"], x.get("part"), x.get(page_key))
+        out = {**x, "document_id": UPLOAD_DOC + d["upload_name"], "part": UPLOAD_PART + d["upload_name"] if x.get("part") else None}
+        if x.get(page_key) is not None:
+            out[page_key] = d["pages"].index(x[page_key]) + 1
+        return out
+
+    sources = []
+    for src in run["sources"]:
+        if src["type"] != "document":
+            sources.append(src)
+            continue
+        if norm(src["quote"]) not in norm(pages[src["page"]]["text"]):
+            sys.exit(f"seed: a quote of {stem} page {src['page']} is not in that page's text ({src['id']})")
+        sources.append(where(src))
+
+    def covered(entries):
+        out = []
+        for x in entries:
+            if x.get("part") is None and x.get("page") is None:
+                # The whole combined PDF: every uploaded file.
+                out += [{**x, "document_id": UPLOAD_DOC + n, "part": None} for n in names]
+            else:
+                out.append(where(x))
+        return out
+
+    def ref(v):
+        """An alert subject or argument that names one part of the combined PDF becomes that part's uploaded file. Any
+        other reference to the combined PDF (the whole PDF, an unknown part) has no single file and stops the seed."""
+        if isinstance(v, str) and v in by_part:
+            return UPLOAD_PART + upload_of(stem, v, None)["upload_name"]
+        if isinstance(v, str) and (v == stem or v.startswith(stem + "/")):
+            sys.exit(f"seed: an alert of {stem} names {v}, which is no single uploaded file")
+        return v
+
+    def subject(v: str) -> str:
+        # A pair subject ("a|b") may name two parts; each side is mapped on its own.
+        return "|".join(ref(x) for x in v.split("|"))
+
+    def args(a: dict) -> dict:
+        out = {k: ref(v) for k, v in a.items()}
+        named_parts = [v for v in a.values() if isinstance(v, str) and v in by_part]
+        for k, v in a.items():
+            if k == "page" or k.endswith("_page"):
+                # A page argument is numbered across the combined PDF; it is renumbered inside the file of the one
+                # part the same alert names, or the seed stops rather than show a page of another file.
+                if not isinstance(v, int) or len(named_parts) != 1:
+                    sys.exit(f"seed: an alert of {stem} has a page argument {k} that cannot be tied to one uploaded file")
+                out[k] = upload_of(stem, named_parts[0], v)["pages"].index(v) + 1
+        return out
+
+    return {
+        **run,
+        "documents": [{"document_id": UPLOAD_DOC + n, "sha256": upload_sha[n], "parts": [UPLOAD_PART + n]} for n in names],
+        "sources": sources,
+        "facts": [{**{k: v for k, v in f.items() if k not in ("id", "key")}, "draft_id": f["id"]} for f in run["facts"]],
+        "alerts": [{**{k: v for k, v in a.items() if k != "id"}, "subject": subject(a["subject"]),
+                    "message": {**a["message"], "args": args(a["message"]["args"])}} for a in run["alerts"]],
+        "checks": [{**c, "covered": covered(c["covered"]), "unreadable": [where(x) for x in c["unreadable"]]} for c in run["checks"]],
+        # Provenance: the run was re-pointed at the uploads after the conversion.
+        "run": {**{k: v for k, v in run["run"].items() if k != "supersedes"},
+                "stages": [*run["run"]["stages"], {"name": "map_to_uploads", "engine": "api/seed/seed.py run_for_uploads"}]},
+    }
+
+
+def finalize_upload_run(draft: dict, doc_ids: dict[str, str], case_id: str, run_id: str) -> dict:
+    """What the intake does with the draft (api/src/routes/intake.ts uploadRun, then prepareRun with no previous run):
+    swap the placeholders, derive the source IDs from where each passage now is, assign fact IDs for the case, rewrite
+    every draft reference and derive the alert IDs. The seed runs it with stand-in document IDs and validates the result,
+    so a draft the Worker's storeRun would refuse is never stored."""
+    def swap(o):
+        if isinstance(o, dict):
+            return {k: swap(v) for k, v in o.items()}
+        if isinstance(o, list):
+            return [swap(v) for v in o]
+        if isinstance(o, str) and o.startswith(UPLOAD_PART):
+            return f"{doc_ids[o.removeprefix(UPLOAD_PART)]}/p0"
+        if isinstance(o, str) and o.startswith(UPLOAD_DOC):
+            return doc_ids[o.removeprefix(UPLOAD_DOC)]
+        return o
+
+    d = swap(draft)
+    taken: set[str] = set()
+    new_src: dict[str, str] = {}
+    sources = []
+    for src in d["sources"]:
+        sid = source_id_for({k: v for k, v in src.items() if k != "id"}, taken)
+        taken.add(sid)
+        new_src[src["id"]] = sid
+        sources.append({**src, "id": sid})
+    drafts = [{**f, "sources": [new_src[x] for x in f["sources"]]} for f in d["facts"]]
+    m = assign_fact_ids(case_id, drafts, sources, None)
+    final = {f["draft_id"]: m.facts[i]["id"] for i, f in enumerate(drafts)}
+    fid = lambda x: final.get(x, x)  # noqa: E731
+
+    def subject(sv: str) -> str:
+        return "|".join(sorted(fid(x) for x in sv.split("|"))) if "|" in sv else fid(sv)
+
+    alerts = []
+    for a in d["alerts"]:
+        subj = subject(a["subject"])
+        args = {k: fid(v) if isinstance(v, str) else v for k, v in a["message"]["args"].items()}
+        alerts.append({"id": alert_id({"rule": a["rule"], "subject": subj}), **a, "subject": subj,
+                       "facts": [fid(x) for x in a["facts"]], "message": {**a["message"], "args": args}})
+    brief = d.get("brief")
+    qd = d.get("question_draft")
+    views = d.get("views")
+    if views:
+        # A composed line's ID follows from its view and its facts (view_line_id), so it is derived again.
+        views = {**views, **{name: [{**ln, "id": view_line_id(name, [fid(x) for x in ln["facts"]]), "facts": [fid(x) for x in ln["facts"]]}
+                                    for ln in views[name]] for name in VIEW_NAMES if views.get(name) is not None}}
+    return {
+        **d, "case_id": case_id, "run": {**d["run"], "id": run_id, "supersedes": None},
+        "sources": sources, "facts": m.facts, "alerts": alerts,
+        "checks": [{**c, "expected": {"of_fact": fid(c["expected"]["of_fact"])}} if c.get("expected") else c for c in d["checks"]],
+        "brief": {**brief, "sentences": [{**x, "facts": [fid(y) for y in x["facts"]]} for x in brief["sentences"]]} if brief else None,
+        "question_draft": {**qd, "basis": [{**b, "facts": [fid(y) for y in b["facts"]]} for b in qd["basis"]]} if qd else None,
+        **({"views": views} if "views" in d else {}),
+    }
+
+
+def prepared_fixture(s, sid, page_index, row, pats, run):
+    """R2 objects for one intake fixture: fixtures/<sid>/prepared.json (the draft run over the uploads, the documents'
+    titles, the case row and the page metadata) and the page JSON and images of each upload."""
     combined = s["file"]
     pages = {p["n"]: p for p in page_index.get(combined, {}).get("pages", [])}
     uploads = [d for d in s.get("documents") or [] if d.get("upload_name")]
+    upload_dir = SAMPLES / combined.removesuffix(".pdf") / "upload"
+    upload_sha = {d["upload_name"]: sha256_file(upload_dir / d["upload_name"]) for d in uploads}
     where = {}  # combined page -> (upload name, page inside the upload)
     for d in uploads:
         for j, k in enumerate(d["pages"], 1):
             where[k] = (d["upload_name"], j)
-    norm = lambda t: re.sub(r"\s+", " ", t.replace("*", "")).strip()  # noqa: E731
-    missing_quotes = []
 
+    # The case row's question source is a /1-style reference {file, page, quote} into the combined PDF (the cases
+    # table's question_source_json); it points at the uploaded file as "@upload:<name>" with the page inside it.
     def rewrite(o):
         if isinstance(o, dict):
             o = {k: rewrite(v) for k, v in o.items()}
@@ -335,27 +540,35 @@ def prepared_fixture(s, sid, page_index, row, pats):
                 if o["page"] not in where:
                     sys.exit(f"seed: {combined} page {o['page']} is in no upload")
                 name, j = where[o["page"]]
-                q = o.get("quote")
-                if q and norm(q) not in norm(pages[o["page"]]["text"]):
-                    missing_quotes.append(f"{name} s. {j}")
                 o = {**o, "file": f"@upload:{name}", "page": j, "orig_file": combined, "orig_page": o["page"]}
             return o
         if isinstance(o, list):
             return [rewrite(v) for v in o]
         return o
 
-    syn = rewrite(strip_syn(s))
-    syn["documents"] = [{**d, "file": f"@upload:{d['upload_name']}", "orig_pages": d["pages"], "pages": list(range(1, len(d["pages"]) + 1))}
-                        if d.get("upload_name") else d for d in syn.get("documents") or []]
-    syn["list_entry"] = {"file": combined, "page_count": s["list_entry"].get("page_count")}
+    # The fixture run must be the one made from this combined PDF, as the seeded runs are checked against theirs.
+    combined_pdf = SAMPLES / combined.removesuffix(".pdf") / combined
+    if [d.get("sha256") for d in run["documents"]] != [sha256_file(combined_pdf)]:
+        sys.exit(f"seed: {RUNS.relative_to(ROOT)}/{run['case_id']}.json was not made from {combined} (sha256 differs)")
+    draft = run_for_uploads(run, s, pages, upload_sha)
+    # The draft as the Worker will finish it, with each upload's file stem standing in for its document ID: it must pass
+    # the validator, and it must say what the fixture run says (the same fact keys and alert rules), only over other files.
+    stand_in = {n: n.removesuffix(".pdf") for n in upload_sha}
+    trial = finalize_upload_run(draft, stand_in, run["case_id"], run["run"]["id"])
+    v = validate_run(trial)
+    if not v.ok:
+        sys.exit(f"seed: the {sid} run over the uploads is not valid: " + "; ".join(f"{i.code} at {i.path}" for i in v.issues[:8]))
+    # A lab result's key names its document ("doc:<id>"), which is now the uploaded file; the rest must be equal.
+    keys = lambda r: sorted(re.sub(r"\|doc:[^|]*", "|doc:", f["key"]) for f in r["facts"])  # noqa: E731
+    if keys(trial) != keys(run) or sorted(a["rule"] for a in trial["alerts"]) != sorted(a["rule"] for a in run["alerts"]):
+        sys.exit(f"seed: the {sid} run over the uploads states other facts or alerts than {RUNS.relative_to(ROOT)}/{run['case_id']}.json")
+
     case_row = rewrite({
         "diagnosis_text": row.get("diagnosis"), "summary_one_line": row.get("summary"), "question_text": row.get("question"),
         "question_explicit": bool(row.get("explicit")), "question_purpose": row.get("purpose"),
         "question_source_json": row.get("_question_source"), "page_count": row.get("pages"),
     })
-    gaps = [{"origin": "gap", "position": i, "kind": g["kind"], "text_cs": g["text_cs"], "relevant": bool(g.get("relevant")),
-             "basis": f"{(g.get('source') or {}).get('orig_file')}:{(g.get('source') or {}).get('orig_page')}:{(g.get('source') or {}).get('quote')}"}
-            for i, g in enumerate(syn.get("data_gaps") or [])]
+    documents = [{k: d.get(k) for k in ("upload_name", "title_cs", "type", "date", "readability", "reason_cs")} for d in uploads]
     page_meta, objs = {}, []
     for d in uploads:
         stem = d["upload_name"].removesuffix(".pdf")
@@ -377,16 +590,15 @@ def prepared_fixture(s, sid, page_index, row, pats):
                          "verify_count": len(pg.get("verify") or []), "redacted": bool(red), "redaction_count": red["count"] if red else None,
                          "redaction_reasons": red["reasons"] if red else None})
         page_meta[d["upload_name"]] = meta
-    if missing_quotes:
-        sys.exit(f"seed: {len(missing_quotes)} rewritten quotes not found on their page: {', '.join(missing_quotes[:5])}")
-    doc = {"schema": "codebridge.prepared/1", "fixture_id": sid, "syn": syn, "case_row": case_row, "alerts": gaps, "pages": page_meta}
+    doc = {"schema": "codebridge.prepared/2", "fixture_id": sid, "run": draft, "documents": documents, "case_row": case_row, "pages": page_meta}
     # Strict for this file: not even a quote may carry the patient's name or birth number (step 6 acceptance).
     hits = []
     scan(doc, pats, ["prepared"], hits)
     if hits:
         sys.exit("seed: identity in the prepared extraction: " + ", ".join(".".join(map(str, h[0])) for h in hits[:5]))
     objs.append({"key": f"fixtures/{sid}/prepared.json", "body": jdump(doc).encode(), "content_type": "application/json"})
-    print(f"prepared {sid}: {len(uploads)} uploads, {sum(len(m) for m in page_meta.values())} pages, {len(gaps)} gaps, quotes checked")
+    print(f"prepared {sid}: {len(uploads)} uploads, {sum(len(m) for m in page_meta.values())} pages, {len(draft['facts'])} facts,"
+          f" {len(draft['alerts'])} alerts, quotes checked, run valid over the uploads")
     return objs
 
 
@@ -587,6 +799,8 @@ def main() -> None:
     for s in syn:
         doc_parts[s["file"]] = (s.get("documents") or [], None)
     page_count_total = 0
+    seeded_docs: dict[str, dict[str, str]] = {}  # case -> {document id: sha256}, for the runs' document check
+    seeded_parts: set[str] = set()  # every document_parts.part_id
     for p in rows:
         f = p["file"]
         stem = f.removesuffix(".pdf")
@@ -596,14 +810,17 @@ def main() -> None:
         pages = page_index.get(f, {}).get("pages", [])
         r2.append({"key": org_key(ORG_A, f"docs/{p['id']}/{stem}.pdf"), "file": pdf, "content_type": "application/pdf"})
         parts, note = doc_parts.get(f, ([], None))
+        seeded_docs.setdefault(p["id"], {})[stem] = sha256_file(pdf)
         sql.append(insert("documents", {
             "id": stem, "org_id": ORG_A, "case_id": p["id"], "file_name": f, "page_count": len(pages), "original_r2_key": org_key(ORG_A, f"docs/{p['id']}/{stem}.pdf"),
             "sha256": sha256_file(pdf), "size_bytes": pdf.stat().st_size, "origin": "seed",
             "processing": "processed" if f in doc_parts else "unprocessed", "note_cs": note,
         }))
+        # A part's ID is <document id>/p<index in the fixture's documents list>, the ID the converted runs use (C-1).
         for k, d in enumerate(parts):
+            seeded_parts.add(f"{stem}/p{k}")
             sql.append(insert("document_parts", {
-                "org_id": ORG_A, "document_id": stem, "ordinal": k, "title_cs": d["title_cs"], "type": d.get("type"), "date": d.get("date"),
+                "org_id": ORG_A, "document_id": stem, "ordinal": k, "part_id": f"{stem}/p{k}", "title_cs": d["title_cs"], "type": d.get("type"), "date": d.get("date"),
                 "date_note_cs": d.get("date_note_cs"), "pages_json": d.get("pages") or [], "readability": d.get("readability"),
                 "reason_cs": d.get("reason_cs"), "upload_name": d.get("upload_name"),
             }))
@@ -629,35 +846,31 @@ def main() -> None:
             }))
             page_count_total += 1
 
-    # 6. Extraction runs and alerts (case 10 and the synthetic patient S01).
-    def alert_rows(cid, flags, gaps, org=ORG_A):
-        out, ids = [], {"flag": [], "gap": []}
-        for origin, items in (("flag", flags), ("gap", gaps)):
-            for pos, it in enumerate(items):
-                src = (it.get("based_on") or it.get("refs") or [it.get("source")] or [None])[0] or {}
-                basis = f"{src.get('file')}:{src.get('page')}:{src.get('quote')}"
-                aid = "al-" + sha256_bytes(f"{cid}|{origin}|{it['kind']}|{it['text_cs']}|{basis}".encode())[:16]
-                ids[origin].append(aid)
-                out.append({"id": aid, "org_id": org, "case_id": cid, "origin": origin, "position": pos, "kind": it["kind"],
-                            "text_cs": it["text_cs"], "relevant": bool(it.get("relevant"))})
-        return out, ids
-
-    extractions = []  # (case id, json object)
-    c10, e10 = strip_case10(case, extra)
-    al10, ids10 = alert_rows("NO-010", case.get("flags") or [], extra.get("data_gaps_v3") or [])
-    extractions.append(("NO-010", {"case": c10, "extra": e10, "alert_ids": ids10}, al10, "full", ORG_A))
-    for s in syn:
-        if s.get("intake_demo"):
-            continue  # S02 enters through "Nový pacient" (Step 6); only its upload files are stored below.
-        cid = case_id(s["file"])
-        al, ids = alert_rows(cid, [], s.get("data_gaps") or [])
-        extractions.append((cid, {"syn": strip_syn(s), "alert_ids": ids}, al, "partial", ORG_A))
+    # 6. Extraction runs: the converted codebridge.extraction/2 runs of case 10 and the synthetic patient S01, validated
+    # by load_run. S02 enters through "Nový pacient" (step 6): its run is the intake's prepared draft (section 8).
+    runs = {}  # case id -> (run, file bytes)
+    for p in rows:
+        if (RUNS / f"{p['id']}.json").exists():
+            runs[p["id"]] = load_run(p["id"])
+    if set(runs) != {"NO-010", "NO-S01"}:
+        sys.exit(f"seed: expected the runs of NO-010 and NO-S01 in {RUNS.relative_to(ROOT)}, found {sorted(runs)}")
+    for cid, (run, _body) in runs.items():
+        check_run_documents(run, seeded_docs.get(cid, {}), seeded_parts)
+    # The guidance of case 10 points at facts by ID (guideline-fact-refs, patient_facts, deviations); each ID must be a
+    # fact of the run it names, or the "Proč" links would open nothing.
+    run10 = runs["NO-010"][0]
+    # The merged guidance keeps only fact_refs_run_id, so the run each source file names is read from the file itself.
+    g_runs = {v for k, v in guidance.items() if k.endswith("run_id")} | {
+        json.loads(f.read_text()).get("run_id") for f in DATA.glob("*case-10*.json")} - {None}
+    if g_runs - {run10["run"]["id"]}:
+        sys.exit(f"seed: guidance/NO-010 names runs {sorted(g_runs)}, not the seeded {run10['run']['id']}")
+    unknown = fact_ids_of(guidance) - {f["id"] for f in run10["facts"]}
+    if unknown:
+        sys.exit(f"seed: guidance/NO-010 names fact IDs that are not in {run10['run']['id']}: {sorted(unknown)[:5]}")
 
     # 9 (before anything is written). Identity scan over every case-side JSON and every case row.
     pats = identity_patterns(patients)
-    stored_json = {}
-    for cid, data, _, processing, _org in extractions:
-        stored_json[f"extract/{cid}"] = {"schema": "codebridge.extraction/1", "case_id": cid, "processing": processing, **data}
+    stored_json = {f"extract/{cid}": run for cid, (run, _body) in runs.items()}
     stored_json["guidance/NO-010"] = guidance
     stored_json["prognosis/NO-010"] = prognosis
     hits = []
@@ -674,18 +887,6 @@ def main() -> None:
         scan({"case": case, "syn": syn, "list": others_list}, patient_patterns(pt), ["control"], control)
         if not control:
             sys.exit(f"seed: identity scan self-check failed for {pt['id']} (its name is not found in the unstripped fixtures)")
-    # Belt and braces: the identity keys themselves must be gone from every stored extraction.
-    for name, obj in stored_json.items():
-        if not name.startswith("extract/"):
-            continue
-        pat = obj.get("case", {}).get("patient", {})
-        left = [k for k in ("name", "name_as_written", "birth_number", "birth_date", "age", "insurer", "source") if k in pat]
-        left += [k for k in ("full_text_by_page",) if k in obj.get("case", {})] + [k for k in ("others",) if k in obj.get("extra", {})]
-        le = obj.get("syn", {}).get("list_entry", {})
-        left += [f"list_entry.{k}" for k in le if k not in ("file", "page_count")]
-        left += [k for k in ("others_entry", "fhir_referral") if k in obj.get("syn", {})]
-        if left:
-            sys.exit(f"seed: identity keys left in {name}: {left}")
     bad = [h for h in hits if not is_quote_path(h[0])]
     lines = [f"{'OK  ' if is_quote_path(p) else 'FAIL'} {kind} {'.'.join(map(str, p))}" for p, kind in hits]
     (OUT / "identity-scan.txt").write_text(
@@ -695,19 +896,21 @@ def main() -> None:
     if bad:
         sys.exit("seed: identity found outside quotes; see api/seed/out/identity-scan.txt")
 
-    for cid, data, al, processing, org in extractions:
-        doc = stored_json[f"extract/{cid}"]
-        body = jdump(doc).encode()
-        run_id = f"seed-{cid}-{sha256_bytes(body)[:8]}"
-        doc = {**doc, "run_id": run_id}
-        body = jdump(doc).encode()
-        key = org_key(org, f"extract/{cid}/{run_id}.json")
+    # The run file's bytes go to R2 unchanged; D1 gets its row (seeded, so the demo reset keeps it), every fact ID it
+    # issues (the matcher's issuedIds) and every alert identity (what acknowledgements attach to).
+    for cid, (run, body) in runs.items():
+        run_id = run["run"]["id"]
+        key = org_key(ORG_A, f"extract/{cid}/{run_id}.json")
         r2.append({"key": key, "body": body, "content_type": "application/json"})
         sql.append(insert("extraction_runs", {
-            "id": run_id, "org_id": org, "case_id": cid, "kind": "seed_fixture", "model": None, "prompt_version": None, "temperature": None,
-            "input_hashes_json": hashes, "r2_key": key, "sha256": sha256_bytes(body), "is_current": True,
+            "id": run_id, "org_id": ORG_A, "case_id": cid, "producer": "fixture", "seeded": 1, "schema": run["schema"],
+            "supersedes": None, "model": None, "prompt_version": None, "temperature": None,
+            "input_hashes_json": {f"fixtures/data/runs/{cid}.json": sha256_bytes(body), **{d["document_id"]: d.get("sha256") for d in run["documents"]}},
+            "r2_key": key, "sha256": sha256_bytes(body), "is_current": True, "created_at": run["run"]["created_at"],
         }))
-        sql += [insert("alerts", {**x, "run_id": run_id}) for x in al]
+        sql += [insert("fact_ids", {"org_id": ORG_A, "case_id": cid, "fact_id": f["id"], "first_run_id": run_id}) for f in run["facts"]]
+        sql += [insert("alert_identities", {"org_id": ORG_A, "case_id": cid, "id": a["id"], "rule": a["rule"], "subject": a["subject"],
+                                            "kind": a["kind"], "first_run_id": run_id}) for a in run["alerts"]]
     # Guidance and the saved prognosis replay have no table of their own: the Worker reads them by their fixed key.
     r2.append({"key": "guidance/NO-010.json", "body": jdump(guidance).encode(), "content_type": "application/json"})
     r2.append({"key": "prognosis/NO-010/saved-2026-10-22.json", "body": jdump(prognosis).encode(), "content_type": "application/json"})
@@ -763,9 +966,10 @@ def main() -> None:
                                  "title_cs": d["title_cs"] if d else None, "doc_type": d.get("type") if d else None,
                                  "doc_date": d.get("date") if d else None, "page_count": len(d["pages"]) if d else None,
                                  "combined_pages_json": d["pages"] if d else None})
-        # The prepared extraction an intake attaches (POST /api/cases/:id/intake/complete), written for one PDF per
-        # document: every reference into the combined PDF becomes "@upload:<upload name>" with the page inside that
-        # upload (the Worker swaps in the uploaded document's id), and each upload's pages are stored under its name.
+        # The prepared extraction an intake attaches (POST /api/cases/:id/intake/complete): the fixture's converted run
+        # (fixtures/data/runs/NO-S02.json) re-pointed from the combined PDF to one uploaded file per document, with each
+        # page numbered inside its file (run_for_uploads); the Worker swaps in the uploaded documents' IDs and assigns
+        # the case's fact IDs. Each upload's pages are stored under its name.
         # The intake patient is not in patients (it enters through "Nový pacient"), so its own patterns are added, with
         # the same self-check as above: they must find the patient in the unstripped fixture.
         fx_pats = patient_patterns({"full_name": le["name"], "birth_number": le.get("rc"),
@@ -774,7 +978,8 @@ def main() -> None:
         scan(s, fx_pats, ["control"], control)
         if not control:
             sys.exit(f"seed: identity scan self-check failed for fixture {sid}")
-        prepared_objs = prepared_fixture(s, sid, page_index, list_patient(le, None, {}, syn_by_file), pats + fx_pats)
+        fx_run, _ = load_run(case_id(s["file"]))
+        prepared_objs = prepared_fixture(s, sid, page_index, list_patient(le, None, {}, syn_by_file), pats + fx_pats, fx_run)
         r2.extend(prepared_objs)
     # Titles end up in documents rows outside patients, so they get the identity scan too.
     fx_hits = []
@@ -874,18 +1079,43 @@ def main() -> None:
         sys.exit("seed: d1 execute failed (writes stay paused while demo_state.reset_in_progress = 1;"
                  f" rerun with --reset):\n{r.stderr[-2000:] or r.stdout[-2000:]}")
 
-    # 13. Verify counts and that every append-only trigger exists.
+    # 13. Verify counts, the runs and that every append-only trigger exists.
     counts = d1_query(t, "SELECT (SELECT COUNT(*) FROM patients) p, (SELECT COUNT(*) FROM cases) c, (SELECT COUNT(*) FROM documents) d,"
-                         " (SELECT COUNT(*) FROM pages) pg, (SELECT COUNT(*) FROM alerts) a, (SELECT COUNT(*) FROM tasks) t,"
-                         " (SELECT COUNT(*) FROM fixture_files) f")[0]
+                         " (SELECT COUNT(*) FROM pages) pg, (SELECT COUNT(*) FROM tasks) t, (SELECT COUNT(*) FROM fixture_files) f,"
+                         " (SELECT COUNT(*) FROM extraction_runs WHERE seeded = 1 AND is_current = 1 AND schema = 'codebridge.extraction/2') r2,"
+                         " (SELECT COUNT(*) FROM extraction_runs WHERE schema <> 'codebridge.extraction/2') r1, (SELECT COUNT(*) FROM alerts) a1,"
+                         " (SELECT COUNT(*) FROM fact_ids) fi, (SELECT COUNT(*) FROM alert_identities) ai")[0]
     print("seeded:", counts)
+    run_parts = sorted({x for run, _ in runs.values() for d in run["documents"] for x in d["parts"]})
+    parts_found = d1_query(t, f"SELECT COUNT(*) AS n FROM document_parts WHERE org_id = {lit(ORG_A)} AND part_id IN"
+                              f" (SELECT value FROM json_each({lit(jdump(run_parts))}))")[0]["n"]
+    want_counts = {"r2": len(runs), "r1": 0, "a1": 0, "fi": sum(len(r["facts"]) for r, _ in runs.values()),
+                   "ai": sum(len(r["alerts"]) for r, _ in runs.values())}
+    wrong = {k: (counts[k], v) for k, v in want_counts.items() if counts[k] != v}
+    if parts_found != len(run_parts):
+        wrong["run parts in document_parts"] = (parts_found, len(run_parts))
+    # Each stored run object is the fixture file, byte for byte (the R2 read-back of the two runs).
+    for cid, (run, body) in runs.items():
+        back = OUT / "verify" / f"{cid}.json"
+        back.parent.mkdir(parents=True, exist_ok=True)
+        wrangler(["r2", "object", "get", f"{BUCKET}/{org_key(ORG_A, f'extract/{cid}/{run['run']['id']}.json')}", "--file", str(back), *loc])
+        if back.read_bytes() != body:
+            wrong[f"R2 run of {cid}"] = ("differs", "the fixture file")
+        back.unlink()
     # The append-only triggers are checked by name, not by counting all triggers, so a later migration that adds
     # other triggers (0013 adds the document lifecycle ones) does not fail the seed.
     have = {r["name"] for r in d1_query(t, "SELECT name FROM sqlite_master WHERE type='trigger'")}
-    missing = sorted(set(trigger_names((MIGRATIONS / "0002_append_only.sql").read_text())) - have)
-    if missing or counts["p"] != len(patients) or counts["pg"] != page_count_total:
-        sys.exit(f"seed: verification failed (missing append-only triggers {missing}; expected {len(patients)} patients,"
-                 f" {page_count_total} pages, got {counts['p']} and {counts['pg']})")
+    # 0016 adds the append-only triggers of the codebridge.extraction/2 tables and redefines the reset trigger.
+    want = set(trigger_names((MIGRATIONS / "0002_append_only.sql").read_text()))
+    want |= {n for n in trigger_names((MIGRATIONS / "0016_extraction_v2.sql").read_text()) if n.endswith(("_no_update", "_no_delete")) or n == "demo_reset_uploads"}
+    # 0015 removes the NIS links at a demo reset; without the trigger a reset would leave links to deleted patients.
+    want |= set(trigger_names((MIGRATIONS / "0015_patient_nis_links.sql").read_text()))
+    missing = sorted(want - have)
+    if missing or wrong or counts["p"] != len(patients) or counts["pg"] != page_count_total:
+        sys.exit(f"seed: verification failed (missing triggers {missing}; got vs expected {wrong}; expected"
+                 f" {len(patients)} patients, {page_count_total} pages, got {counts['p']} and {counts['pg']})")
+    print(f"verified: {len(runs)} seeded /2 runs current and equal to their files, {want_counts['fi']} fact IDs,"
+          f" {want_counts['ai']} alert identities, {len(run_parts)} run parts seeded, no /1 run or alert")
 
 
 if __name__ == "__main__":

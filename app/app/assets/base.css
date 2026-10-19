@@ -843,6 +843,10 @@ h3 { letter-spacing: -.02em; }
 .patient-identity .st-scheduled { color: #b5d1ff; }
 .patient-identity .st-new, .patient-identity .st-closed { color: #d1dfe4; }
 .patient-identity .question { color: var(--fg); }
+/* The question box is light inside the dark header, so its button ("Potvrdit otázku" on a drafted question) goes back
+   to the light-surface look; the header's white-on-transparent button would be white on #f3f7f8 there (WCAG 1.4.3). */
+.patient-identity .question .btn { background: var(--surface); border-color: var(--line-strong); color: var(--fg); }
+.patient-identity .question .btn:hover { background: var(--sunk); }
 .patient-identity .stpop { color: var(--fg); }
 .patient-identity .stpop .label { color: var(--muted); }
 @media (max-width: 640px) {

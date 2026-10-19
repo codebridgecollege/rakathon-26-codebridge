@@ -264,14 +264,6 @@ discussion-report-basis-part = { $key ->
 }
 discussion-report-basis-list-only = len údaje zo zoznamu
 discussion-report-h-missing = Chýbajúce podklady
-discussion-report-h-missing-unclear = Chýbajúce a nejasné podklady
-# The kind of a data gap that is not a missing document, before its text.
-discussion-report-gap-kind = { $kind ->
-    [missing] Chýba
-    [contradiction] Rozpor
-    [chronology] Chronológia
-   *[unclear] Nejasné
-}
 discussion-report-gap-src = ({ $file }, s. { $page })
 # The PDF file's properties, its running head and page footer.
 discussion-report-pdf-title = GLIDE MDT - Záznam z MDT - { $id }

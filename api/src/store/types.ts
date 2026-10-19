@@ -16,7 +16,8 @@ export type StaffDirectory = {
 
 export type CaseFilter = { q?: string; status?: string; dept?: string; from?: string; to?: string; page: number; pageSize: number };
 
-export type RunRow = { id: string; kind: string; created_at: string; r2_key: string; case_id: string };
+// The current extraction run of a case (store/runs.ts has the /2 reads and writes).
+export type RunRow = { id: string; producer: string; seeded: number; schema: string; created_at: string; r2_key: string; case_id: string };
 
 export type DocumentRow = {
   id: string;
@@ -43,16 +44,6 @@ export type PageRow = {
   image_r2_key: string;
   redacted_r2_key: string | null;
   is_empty: number;
-};
-
-export type AlertRow = {
-  id: string;
-  origin: "flag" | "gap";
-  position: number;
-  kind: string;
-  text_cs: string;
-  relevant: number;
-  run_id: string;
 };
 
 export type TaskRow = {
@@ -128,7 +119,6 @@ export interface CaseStore {
   documents(caseId: string): Promise<DocumentRow[]>;
   documentById(id: string): Promise<DocumentRow | null>;
   pages(docId: string): Promise<PageRow[]>;
-  alerts(caseId: string): Promise<AlertRow[]>;
   tasks(viewer: Viewer, onlyMember: boolean, mine: boolean): Promise<TaskRow[]>;
   decisions(caseId: string): Promise<DecisionRow[]>;
   editHistory(caseId: string): Promise<unknown[]>;
