@@ -272,6 +272,8 @@ export type CaseDocuments = { case_id: string; processing_level: "full" | "parti
 
 // "Import z NIS" (issue #22): the link a patient row has to a NIS record, and the candidates of a search.
 export type NisLink = { nis_patient_id: string; nis_version: string | null; identity_check: string; by_name: string; at: string };
+// GET /cases/:id/nis/record: the record a fact rests on, its fields as the record gives them, and the whole record.
+export type NisRecord = { label_cs: string; resource: string; version: string | null; last_updated: string | null; fields: { field: string; value: string }[]; record: Record<string, unknown> };
 export type NisRegisterStub = { status: "stub"; message_cs: string };
 export type NisStatus = { label_cs: string; has_birth_number: boolean; link: NisLink | null; national_register: NisRegisterStub };
 export type NisSearch = {

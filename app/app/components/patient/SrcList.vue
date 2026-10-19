@@ -19,7 +19,8 @@ const short = (q: string | undefined) => {
     <summary>{{ $t("patient-src-list", { label: label || $t("patient-src-list-label"), n: list.length }) }}</summary>
     <ol class="refs">
       <li v-for="(r, i) in list" :key="i">
-        <button data-src @click="c.openSource(r)"><span lang="cs">{{ c.docTitle(r) }}</span>{{ $t("patient-src-list-page", { page: String(r.page) }) }}<span lang="cs">„{{ short(r.quote) }}“</span></button>
+        <button v-if="r.nis" data-src @click="c.openSource(r)">{{ c.docTitle(r) }}</button>
+        <button v-else data-src @click="c.openSource(r)"><span lang="cs">{{ c.docTitle(r) }}</span>{{ $t("patient-src-list-page", { page: String(r.page) }) }}<span lang="cs">„{{ short(r.quote) }}“</span></button>
       </li>
     </ol>
   </details>

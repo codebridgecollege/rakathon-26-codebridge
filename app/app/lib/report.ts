@@ -117,8 +117,11 @@ export function reportHtmlFor(t: T, file: string, pr: ReportProto, present: stri
     return i + 1;
   };
   const refTxt = (r: SourceRef | undefined | null) => (r ? ` [${num(r)}]` : "");
+  // A NIS record is named as such on paper too, never by the case's file.
   const docTitleOf = (r: SourceRef) =>
-    docTitle(
+    r.nis
+      ? t("patient-src-nis-title", { resource: r.nis.resource })
+      : docTitle(
       r,
       (f) => {
         const c = cases.caseFileOfDoc(f);
@@ -201,7 +204,7 @@ export function reportHtmlFor(t: T, file: string, pr: ReportProto, present: stri
     <h4>${esc(t("discussion-report-h-concl"))}</h4><p id="rep-concl">${esc(pr.concl || t("discussion-report-concl-none"))}</p>
     <h4>${esc(t("discussion-report-h-steps"))}</h4>${steps.length ? `<ul>${steps.map((x) => `<li>${esc(t("discussion-report-step", { text: x.text, who: x.who, due: fmtDate(t, x.due) }))}</li>`).join("")}</ul>` : `<p>${esc(t("discussion-report-steps-none"))}</p>`}
     ${sec.guidance && guideOn && pst.length ? `<h4>${esc(t("discussion-report-h-dev"))}</h4><p>${esc(t("discussion-report-dev-none"))}</p>` : ""}
-    ${list.length ? `<h4>${esc(t("discussion-report-h-sources"))}</h4><ol class="src">${list.map((r) => `<li>${esc(r.quote ? t("discussion-report-source-quote", { title: docTitleOf(r), page: String(r.page ?? ""), quote: quoteOf(r.quote) }) : t("discussion-report-source", { title: docTitleOf(r), page: String(r.page ?? "") }))}</li>`).join("")}</ol>` : ""}
+    ${list.length ? `<h4>${esc(t("discussion-report-h-sources"))}</h4><ol class="src">${list.map((r) => `<li>${esc(r.nis ? docTitleOf(r) : r.quote ? t("discussion-report-source-quote", { title: docTitleOf(r), page: String(r.page ?? ""), quote: quoteOf(r.quote) }) : t("discussion-report-source", { title: docTitleOf(r), page: String(r.page ?? "") }))}</li>`).join("")}</ol>` : ""}
     <p class="src" style="margin-top:14px">${esc(t("discussion-report-legend"))}</p>
     <div class="signatures" aria-label="${esc(t("discussion-report-signatures"))}"><div class="signature">${esc(t("discussion-report-signature"))}</div><div class="signature">${esc(t("discussion-report-signature"))}</div></div></article>`;
 }

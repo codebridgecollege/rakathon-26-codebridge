@@ -10,6 +10,7 @@ import SourceViewer from "./SourceViewer.vue";
 import GuideDrawer from "./GuideDrawer.vue";
 import FhirDialog from "./FhirDialog.vue";
 import NisDialog from "./NisDialog.vue";
+import NisRecordPanel from "./NisRecordPanel.vue";
 import PgRefsDrawer from "./PgRefsDrawer.vue";
 import PgPanelDrawer from "./PgPanelDrawer.vue";
 import UploadDialog from "./UploadDialog.vue";
@@ -95,6 +96,7 @@ onBeforeUnmount(() => {
       <GuideDrawer v-else-if="overlay.current.kind === 'guide'" :o="overlay.current" />
       <FhirDialog v-else-if="overlay.current.kind === 'fhir'" :o="overlay.current" />
       <NisDialog v-else-if="overlay.current.kind === 'nis'" :o="overlay.current" />
+      <NisRecordPanel v-else-if="overlay.current.kind === 'nisrecord'" :o="overlay.current" />
       <PgRefsDrawer v-else-if="overlay.current.kind === 'pgrefs'" :o="overlay.current" />
       <PgPanelDrawer v-else-if="overlay.current.kind === 'pgpanel'" :o="overlay.current" />
       <UploadDialog v-else-if="overlay.current.kind === 'upload'" :o="overlay.current" />

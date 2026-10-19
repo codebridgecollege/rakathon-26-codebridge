@@ -92,7 +92,7 @@ const COLS = ["patient-dev-col-finding", "patient-dev-col-area", "patient-dev-co
                 <Gap v-else />
                 <p v-if="r.x.risk_basis_cs" class="note"><span lang="cs">{{ r.x.risk_basis_cs }}</span> <a class="linkbtn small" :href="r.x.risk_basis_url" target="_blank" rel="noopener">{{ $t("patient-dev-risk-basis-link") }}</a></p>
               </td>
-              <td><template v-if="r.quotes.length"><p v-for="(ref, i) in r.quotes" :key="i" class="dev-context"><q lang="cs">{{ ref.quote }}</q> <button class="linkbtn small" data-src @click="c.openSource(ref)">{{ $t("patient-src-page-button", { n: String(ref.page) }) }}</button></p></template><Gap v-else /><p v-if="r.unresolved.length" class="muted small">{{ $t("patient-guide-fact-unresolved") }}</p></td>
+              <td><template v-if="r.quotes.length"><p v-for="(ref, i) in r.quotes" :key="i" class="dev-context"><q lang="cs">{{ ref.quote }}</q> <button class="linkbtn small" data-src @click="c.openSource(ref)">{{ ref.nis ? $t("patient-src-nis") : $t("patient-src-page-button", { n: String(ref.page) }) }}</button></p></template><Gap v-else /><p v-if="r.unresolved.length" class="muted small">{{ $t("patient-guide-fact-unresolved") }}</p></td>
               <td><span lang="cs">{{ r.x.clinical_consequence_cs }}</span><span class="note">{{ $t("patient-dev-consequence-note") }}</span></td>
             </tr>
           </tbody>
@@ -117,7 +117,7 @@ const COLS = ["patient-dev-col-finding", "patient-dev-col-area", "patient-dev-co
                 <td><template v-if="x.edition"><b lang="cs">{{ x.edition.name }}</b><span class="note" lang="cs">{{ x.edition.society || "" }} · {{ x.edition.version || "" }}</span></template><Gap v-else /></td>
                 <td><template v-if="x.edition">{{ x.edition.year }}<span class="note">{{ edRange(x.edition) }}</span></template><Gap v-else /></td>
                 <td><PastPassage :x="x" /></td>
-                <td><template v-if="decisionRef(x)"><q lang="cs">{{ decisionRef(x)!.quote }}</q><span class="note"><button class="linkbtn small" data-src @click="c.openSource(decisionRef(x))"><span lang="cs">{{ c.docTitle(decisionRef(x)!) }}</span>{{ $t("patient-dev-doc-page", { page: String(decisionRef(x)!.page) }) }}</button></span></template><Gap v-else /><span v-if="decisionUnresolved(x)" class="muted small"> {{ $t("patient-guide-fact-unresolved") }}</span></td>
+                <td><template v-if="decisionRef(x)"><q lang="cs">{{ decisionRef(x)!.quote }}</q><span class="note"><button class="linkbtn small" data-src @click="c.openSource(decisionRef(x))"><span lang="cs">{{ c.docTitle(decisionRef(x)!) }}</span><template v-if="!decisionRef(x)!.nis">{{ $t("patient-dev-doc-page", { page: String(decisionRef(x)!.page) }) }}</template></button></span></template><Gap v-else /><span v-if="decisionUnresolved(x)" class="muted small"> {{ $t("patient-guide-fact-unresolved") }}</span></td>
                 <td><Gap /></td>
               </tr>
             </tbody>

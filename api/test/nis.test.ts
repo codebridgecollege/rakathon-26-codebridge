@@ -264,6 +264,71 @@ describe("linking", () => {
   });
 });
 
+describe("záznam z NIS", () => {
+  // NO-B's patient linked to S01's NIS record (the link route needs a typed birth number; the row is what it writes).
+  const linkS01 = () =>
+    env.DB.prepare(
+      "INSERT INTO patient_nis_links (org_id, patient_id, nis_system, nis_patient_id, identity_check, by_user_id, by_name) VALUES ('demo-a','pt-B',?1,'cb-s01','cannot_verify','d2p1','x')",
+    ).bind(BASE).run();
+  const lab = "Observation/cb-s01-lab-2026-10-06-s-creae";
+
+  it("reads the cited record of the linked patient, logged, with its fields as the record gives them", async () => {
+    server();
+    await linkS01();
+    const r = await get(`/cases/NO-B/nis/record?resource=${encodeURIComponent(lab)}`);
+    expect(r.status).toBe(200);
+    expect(r.body).toMatchObject({ resource: lab, version: "1", label_cs: "Testovací NIS" });
+    expect(r.body.fields).toEqual(expect.arrayContaining([{ field: "value", value: "142 µmol/l" }, { field: "reference_range", value: "59 ... 104" }]));
+    expect(r.body.record.resourceType).toBe("Observation");
+    expect((await accessLog()).map((x) => [x.action, x.case_id, x.target_id])).toEqual([["nis.view", "NO-B", lab]]);
+  });
+
+  it("answers not found for a record of another patient, and refuses other types, no link, other roles and orgs", async () => {
+    server();
+    await linkS01();
+    expect((await get(`/cases/NO-B/nis/record?resource=${encodeURIComponent("Observation/cb-s02-lab-2026-10-06-s-cea")}`)).body.error?.code).toBe("nis_record_not_found");
+    expect((await get("/cases/NO-B/nis/record?resource=Patient%2Fcb-s01")).body.error?.code).toBe("invalid_input");
+    expect((await get("/cases/NO-B/nis/record?resource=Observation%2F..")).body.error?.code).toBe("invalid_input");
+    expect((await get(`/cases/NO-A/nis/record?resource=${encodeURIComponent(lab)}`)).body.error?.code).toBe("nis_not_linked");
+    // Cited from another NIS: not looked up in this one under the same ID.
+    expect((await get(`/cases/NO-B/nis/record?resource=${encodeURIComponent(lab)}&system=${encodeURIComponent("https://other.example/fhir")}`)).body.error?.code).toBe("nis_record_not_found");
+    // A record the NIS no longer has.
+    expect((await get(`/cases/NO-B/nis/record?resource=${encodeURIComponent("Observation/gone")}`)).body.error?.code).toBe("nis_record_not_found");
+    const both = nisEnv({ NIS_CONFIG: JSON.stringify({ "demo-a": JSON.parse(CONFIG)["demo-a"], "demo-b": JSON.parse(CONFIG)["demo-a"] }) });
+    expect((await get(`/cases/NO-B/nis/record?resource=${encodeURIComponent(lab)}`, "b-doc", both)).status).toBe(404);
+    // Only the reads of the other patient's record and of the missing one reached the NIS.
+    expect(fhir.requests.filter((x) => x.method === "GET")).toHaveLength(2);
+  });
+
+  it("follows the case's clinical read rules: CLINICAL_ACCESS, the team, a break-the-glass grant", async () => {
+    server();
+    await linkS01();
+    const url = `/cases/NO-A/nis/record?resource=${encodeURIComponent(lab)}`;
+    await env.DB.prepare("UPDATE patient_nis_links SET patient_id = 'pt-A' WHERE org_id = 'demo-a'").run();
+    const strict = nisEnv({ CLINICAL_ACCESS: "doctors_only" });
+    expect((await get(url, "coord", strict)).status).toBe(403);
+    expect((await get(url, "admin", strict)).status).toBe(403);
+    expect((await get(url, "coord")).status).toBe(200);
+    // d1p1 is not on NO-A's team; with a grant the read is allowed and its row names the grant.
+    expect((await get(url, "d1p1")).status).toBe(403);
+    expect((await w("POST", "/cases/NO-A/break-glass", { reason: "konzultace na žádost onkologa" }, "d1p1")).status).toBe(200);
+    expect((await get(url, "d1p1")).status).toBe(200);
+    const rows = await q<{ action: string; break_glass_reason: string | null }>("SELECT action, break_glass_reason FROM access_log WHERE action = 'nis.view' ORDER BY id");
+    expect(rows.at(-1)!.break_glass_reason).toBeTruthy();
+  });
+
+  it("leaves contained resources and the narrative out of the answer", async () => {
+    server();
+    await linkS01();
+    const o = JSON.parse(env.TEST_NIS_BUNDLES)["s01"].entry.find((e: { resource: { id: string } }) => `Observation/${e.resource.id}` === lab).resource;
+    fhir.load({ resourceType: "Bundle", type: "transaction", entry: [{ resource: { ...o, contained: [{ resourceType: "Patient", id: "p", name: [{ family: "Křemínek" }] }], text: { status: "generated", div: "<div>Křemínek</div>" } }, request: { method: "PUT", url: lab } }] });
+    const r = await get(`/cases/NO-B/nis/record?resource=${encodeURIComponent(lab)}`);
+    expect(r.status).toBe(200);
+    expect(JSON.stringify(r.body)).not.toContain("Křemínek");
+    expect(r.body.version).toBe("2");
+  });
+});
+
 describe("FHIR connector", () => {
   const cfg = { base_url: BASE, label_cs: "x", auth: { mode: "none" as const } };
   // No wall clock in these tests: backoff waits are zero, and the request timeout and operation deadline are far

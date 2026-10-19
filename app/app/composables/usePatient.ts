@@ -96,11 +96,16 @@ export function providePatient(file: ComputedRef<string>, t: T): PatientCtx {
     canSetStatus: computed(() => role.value === "doctor" || role.value === "coordinator"),
     edOf: (key) => edits.value[key],
     openSource: (r) => {
-      if (r) void source.openSource(t, r, file.value);
+      // A NIS record has no page to open: its own panel shows it.
+      if (r?.nis) overlay.open({ kind: "nisrecord", caseId: p.value.id, ref: r.nis });
+      else if (r) void source.openSource(t, r, file.value);
     },
     openEdit: (key, orig) => overlay.open({ kind: "edit", file: file.value, key, orig: orig ?? "", isQuestion: key === "q" }),
+    // A NIS record is no document of the case: it is named as a NIS record, never by the case's file.
     docTitle: (r) =>
-      docTitleOf(
+      r.nis
+        ? t("patient-src-nis-title", { resource: r.nis.resource })
+        : docTitleOf(
         r,
         (f) => {
           const c = cases.caseFileOfDoc(f);

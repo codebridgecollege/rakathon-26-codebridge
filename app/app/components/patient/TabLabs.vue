@@ -38,10 +38,11 @@ const pick = (t: LabTest) => (view.labSel = t.code);
 const labs = computed<LabValue[]>(() => c.cd.value?.labs?.values || []);
 const same = (get: (l: LabValue) => string) => labs.value.length > 1 && labs.value.every((l) => get(l) === get(labs.value[0]!));
 const oneDate = computed(() => same((l) => l.date || ""));
-const oneSrc = computed(() => same((l) => `${l.source.file}|${l.source.page}`));
+// NIS values each rest on their own record: they never share one source line.
+const oneSrc = computed(() => same((l) => (l.source.nis ? `nis|${l.source.nis.resource}` : `${l.source.file}|${l.source.page}`)));
 const valueStyle = (l: LabValue) => (l.out_of_range ? `color:var(--${l.out_of_range === "high" ? "conflict" : "change"});font-weight:700` : "");
 const first = computed(() => labs.value[0]);
-const firstPage = computed<SourceRef | null>(() => (first.value ? { file: first.value.source.file, page: first.value.source.page } : null));
+const firstPage = computed<SourceRef | null>(() => (first.value ? (first.value.source.nis ? first.value.source : { file: first.value.source.file, page: first.value.source.page }) : null));
 </script>
 
 <template>
@@ -99,7 +100,7 @@ const firstPage = computed<SourceRef | null>(() => (first.value ? { file: first.
             <td lang="cs">{{ l.unit }}</td>
             <td class="num" lang="cs">{{ l.reference_range }}</td>
             <td v-if="!oneDate" class="muted"><span v-if="l.date" lang="cs">{{ l.date }}</span><Gap v-else /></td>
-            <td v-if="!oneSrc"><button class="linkbtn small" data-src @click="c.openSource(l.source)">{{ $t("patient-labs-row-source", { page: String(l.source.page) }) }}</button></td>
+            <td v-if="!oneSrc"><button class="linkbtn small" data-src @click="c.openSource(l.source)">{{ l.source.nis ? $t("patient-src-nis") : $t("patient-labs-row-source", { page: String(l.source.page) }) }}</button></td>
           </tr>
         </tbody>
       </table>
@@ -107,7 +108,7 @@ const firstPage = computed<SourceRef | null>(() => (first.value ? { file: first.
     <details class="srcs labsrcs">
       <summary>{{ $t("patient-labs-sources") }}</summary>
       <p class="small" style="margin:6px 0" lang="cs">{{ c.cd.value?.labs?.note_cs }}</p>
-      <p v-if="first && (oneDate || oneSrc)" class="small muted" style="margin:0 0 6px">{{ $t("patient-labs-all-values") }}<span v-if="oneDate">{{ $t("patient-labs-head-date") }}<span v-if="first.date" lang="cs">{{ first.date }}</span><Gap v-else /></span><template v-if="oneDate && oneSrc"> · </template><span v-if="oneSrc">{{ $t("patient-labs-head-source") }}<button class="linkbtn small" data-src @click="c.openSource(firstPage)"><span lang="cs">{{ c.docTitle(first.source) }}</span>{{ $t("patient-labs-head-source-page", { page: String(first.source.page) }) }}</button></span><template v-if="oneSrc">{{ $t("patient-labs-head-click-name") }}</template></p>
+      <p v-if="first && (oneDate || oneSrc)" class="small muted" style="margin:0 0 6px">{{ $t("patient-labs-all-values") }}<span v-if="oneDate">{{ $t("patient-labs-head-date") }}<span v-if="first.date" lang="cs">{{ first.date }}</span><Gap v-else /></span><template v-if="oneDate && oneSrc"> · </template><span v-if="oneSrc">{{ $t("patient-labs-head-source") }}<button class="linkbtn small" data-src @click="c.openSource(firstPage)"><span lang="cs">{{ c.docTitle(first.source) }}</span><template v-if="!first.source.nis">{{ $t("patient-labs-head-source-page", { page: String(first.source.page) }) }}</template></button></span><template v-if="oneSrc">{{ $t("patient-labs-head-click-name") }}</template></p>
       <p class="muted small" style="margin:0">{{ $t("patient-labs-no-trend") }}</p>
     </details>
   </section>

@@ -984,3 +984,37 @@ patient-check-hidden = údaje nie sú zobrazené, pozri upozornenia
 patient-orphan-revert = Odobrať úpravu
 patient-edit-source-changed = zdroj sa zmenil
 patient-edit-source-changed-tip = Pri úprave znel údaj: { $then }. Teraz: { $now }.
+
+# Slovak, "Záznam z NIS" (issue #22). See the Czech file for what each message is.
+
+patient-src-nis = záznam z NIS
+patient-nisrec-title = Záznam z NIS
+patient-nisrec-cited = Údaj prevzatý zo záznamu { $resource }:
+patient-nisrec-cited-version = verzia
+patient-nisrec-cited-updated = zmenené
+patient-src-nis-title = záznam z NIS { $resource }
+patient-nisrec-loading = Načítavam záznam z NIS…
+patient-nisrec-source = Zdroj: { $label } (čítané teraz, len čítanie)
+patient-nisrec-changed = Záznam sa v NIS od prevzatia údaja zmenil. Nižšie je jeho súčasný stav; údaj sa otvorením nemení.
+patient-nisrec-now = Súčasný stav záznamu v NIS
+patient-nisrec-show-record = Zobraziť celý záznam
+patient-nisrec-hide-record = Skryť celý záznam
+patient-nisrec-field-status = Stav
+patient-nisrec-field-verification = Overenie
+patient-nisrec-field-clinical_status = Klinický stav
+patient-nisrec-field-category = Kategória
+patient-nisrec-field-class = Typ kontaktu
+patient-nisrec-field-name = Názov
+patient-nisrec-field-codes = Kódy
+patient-nisrec-field-value = Hodnota
+patient-nisrec-field-interpretation = Interpretácia
+patient-nisrec-field-reference_range = Referenčné medze
+patient-nisrec-field-date = Dátum
+patient-nisrec-field-onset = Vznik
+patient-nisrec-field-abatement = Ukončenie
+patient-nisrec-field-dosage = Dávkovanie
+patient-nisrec-field-reason = Dôvod
+patient-nisrec-field-department = Pracovisko
+patient-nisrec-field-conclusion = Záver
+patient-nisrec-field-note = Poznámka
+patient-nisrec-field-issued = Vydané
