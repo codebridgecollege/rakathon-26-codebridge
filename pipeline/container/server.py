@@ -234,6 +234,8 @@ def _name_groups(value) -> dict[str, int]:
 
 def compare_(body: bytes, _query) -> tuple[dict, int]:
     data = _json(body)
+    if len(data["pages"]) > MAX_BATCH:
+        raise ApiError(400, "bad_request", f"Nejvýš {MAX_BATCH} stran.")
     out = []
     try:
         for p in data["pages"]:
@@ -242,7 +244,8 @@ def compare_(body: bytes, _query) -> tuple[dict, int]:
                 raise TypeError
             words = p.get("words") or []
             out.append({"n": int(p["n"]), "verify": page_index.disagreements(page_index.vision_tokens(text), words, text)})
-    except (KeyError, TypeError, ValueError):
+    except (KeyError, TypeError, ValueError, AttributeError):
+        # AttributeError: a word that is not an object ({t, c, b}).
         raise ApiError(400, "bad_request", "Strana nemá očekávaný tvar (n, text, words).") from None
     return {"pages": out}, len(out)
 

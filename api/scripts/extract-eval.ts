@@ -125,6 +125,9 @@ async function main() {
   const readPrompt = await loadPrompt("read-page-cs");
   // --vision auto (default): pages that need it (needsVision); all: every page; off: none.
   const vision = args.includes("--vision") ? args[args.indexOf("--vision") + 1]! : "auto";
+  if (!["auto", "all", "off"].includes(vision)) throw new Error("--vision takes auto, all or off");
+  // --stored-vision gives the committed p<n>.vision.md to the pages the vision model does not read live: with
+  // --vision off, to every page that has one.
   const storedVision = args.includes("--stored-vision");
   const staff = seedStaff();
 
@@ -176,15 +179,21 @@ async function main() {
     // compared with Tesseract's words, and every disagreement is an "ověřit" range that marks the facts quoting it.
     const pages: PageReading[] = [];
     let visionPages = 0;
+    const fellBack: string[] = [];
     for (const n of ns) {
       const info = infos[String(n)];
       let r = readPage(dir, n, info, storedVision);
       if (vision === "all" || (vision === "auto" && needsVision(info))) {
         const red = tool<{ png_b64: string; reasons: string[] }>(["redact", dir, String(n)], JSON.stringify(imageIdentity(identity)));
         const got = await ask(readPrompt, [], [red.png_b64], `read p${n}`);
+        if (!got || got === "filtered") fellBack.push(`p${n}:${got === "filtered" ? "content filter" : "no answer"}`);
         if (got && got !== "filtered") {
           const text = got.output;
-          const verify = tool<{ verify: [number, number][] }>(["compare", dir, String(n)], text).verify;
+          let verify = tool<{ verify: [number, number][] }>(["compare", dir, String(n)], text).verify;
+          // The comparison marks what the vision reading reads differently, not what it leaves out. A reading much
+          // shorter than Tesseract's (a skipped line, a skipped column) is marked as a whole.
+          const words = (s: string) => s.split(/\s+/).filter((t) => /[\p{L}\d]/u.test(t)).length;
+          if (r.words && words(text) < 0.85 * r.words.length) verify = [[0, text.length]];
           // The page's readability stays: it describes the scan, and a defect in the image itself reads cleanly.
           r = { ...r, text, quoteText: "vision", engine: `vision ${model} ${readPrompt.ref}`, verify };
           visionPages++;
@@ -246,7 +255,7 @@ async function main() {
     writeFileSync(join(out, `${c.id}.json`), JSON.stringify(run, null, 1));
     const ids = pages.map((p) => `p${p.page}:${p.identity}`).join(" ");
     const filtered = failed.length ? `, not read ${failed.join(" ")}` : "";
-    console.log(`${c.id}: ${visionPages} page(s) read by vision; ${fromModel} from the model in ${calls.length} call(s)${filtered}, kept ${built.report.kept} (verify ${built.report.verify}, quarantined ${built.report.quarantined}), dropped ${JSON.stringify(built.report.dropped)}, reasons ${JSON.stringify(built.report.reasons)}${seconds ? `, ${seconds.toFixed(1)} s` : ", cached"}; ${ids}`);
+    console.log(`${c.id}: ${visionPages} page(s) read by vision${fellBack.length ? ` (fell back: ${fellBack.join(" ")})` : ""}; ${fromModel} from the model in ${calls.length} call(s)${filtered}, kept ${built.report.kept} (verify ${built.report.verify}, quarantined ${built.report.quarantined}), dropped ${JSON.stringify(built.report.dropped)}, reasons ${JSON.stringify(built.report.reasons)}${seconds ? `, ${seconds.toFixed(1)} s` : ", cached"}; ${ids}`);
   }
 }
 
