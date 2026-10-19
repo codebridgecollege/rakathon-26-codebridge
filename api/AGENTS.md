@@ -422,3 +422,60 @@ Before setting `AI_GATEWAY_BASE`, check on a scratch gateway that (a) it
 accepts the APIM host and the `/openai/v1/chat/completions` path, (b)
 whether it retries 429 itself (then lower `LLM_MAX_ATTEMPTS`), and (c) its
 logging is off.
+
+## NIS over FHIR (issue #22, phase 1)
+
+The NIS is the hospital information system; the Worker reads it over FHIR R4, never writes to it
+(`docs/design/INTEGRATION.md`). Phase 1 finds the case's patient there and links one record; importing documents and
+structured data comes next. Test server and test data: [`fhir/nis/README.md`](../fhir/nis/README.md).
+
+- **Configuration.** The var `NIS_CONFIG` is a JSON object keyed by org id; `"{}"` (the default in `wrangler.jsonc`)
+  means no org has a NIS, `/api/me` answers `nis: null`, and the page shows no "Import z NIS". An entry:
+  `{"base_url": "https://...", "label_cs": "...", "auth": {...}, "mtls_binding": "NIS_MTLS"}`. `src/services/fhir.ts`
+  (`nisConfig`) checks it and fails closed (500 `misconfigured`, logged with a fixed reason code, never the value):
+  https only (plain http for `localhost`, `127.0.0.1` or a `.test` host), no credentials, query or fragment in the URL.
+  Auth modes:
+  - `{"mode": "backend_services", "token_url", "client_id", "scope", "key_secret", "alg": "RS384"|"ES384", "kid"?}`:
+    SMART Backend Services, a client_credentials grant with a signed JWT assertion (five minutes, a new `jti` each
+    time, sent once). The private key (PKCS#8 PEM) is a Worker secret whose name must start with `NIS_`
+    (`npx wrangler secret put NIS_FNO_KEY`), so a typo cannot hand the login's or the LLM's key to the NIS. Tokens are
+    cached per isolate, per org and client, until a minute before they expire; a 401 drops the cached token and the
+    request goes once more with a new one. The NIS then sees the app, not the user, so our access log is the record of
+    who pulled what (INTEGRATION.md).
+  - `{"mode": "smart_user"}`: the user's own token from a SMART on FHIR launch. The launch is not built; a configured org
+    answers 503 `nis_launch_missing`.
+  - `{"mode": "none"}`: the local test server only; refused for any other host.
+  - `mtls_binding` names a Workers mTLS certificate binding (`mtls_certificates` in `wrangler.jsonc`, added when FNO
+    issues the certificate; the name must start with `NIS_`); its `fetch` then carries every NIS call. Not tested
+    against a real binding.
+- **Connector** (`src/services/fhir.ts`). Search is `POST <base>/Patient/_search` with a form body
+  (`identifier=https://ncez.mzcr.cz/fhir/sid/rcis|<rc with slash>,...|<rc digits>`, both stored forms, `_count=50`) and
+  `Prefer: handling=strict`, so a server that does not know the parameter refuses instead of answering with everyone.
+  The birth number is never in a URL we send: a `next` link that carries it (some servers copy the search parameters
+  into it) is not followed, nor is one outside the base URL (compared as parsed URLs, so `/fhir/../x` and `/fhirx` do
+  not pass); paging stops at 5 pages or 50 records and the answer says `truncated`. Redirects are not followed (a 307
+  would resend the body elsewhere); a 3xx is an upstream error. 429 and 503 back off (3 attempts, Retry-After
+  honoured; `services/retry.ts`). Each request has at most 15 s, and one operation (token, search and its pages, or a
+  read) 30 s in all. Logs: operation, upstream status, attempts, duration, counts; never a URL, body or token. Before
+  each search and each read, the route's `onPull` writes an access-log row (`nis.search` "hledal(a) pacienta v NIS",
+  `nis.read` "otevřel(a) záznam pacienta v NIS"; no patient text). It records the attempt, so it is written even if
+  the NIS then fails; the pages and the token call of that operation have no rows of their own. If the row cannot be
+  written, nothing is pulled.
+- **Routes** (`src/routes/nis.ts`, action `nis.link`: doctors on the case's team or holding a break-the-glass grant,
+  whose reason every row then names, and the coordinator; like uploads): `GET /cases/:id/nis` (the stored link, no NIS
+  call), `POST /cases/:id/nis/search` (body `birth_number` only when the patient row has none; a typed number that
+  differs from the row's is refused, and so is a row number that does not parse), `POST /cases/:id/nis/link`
+  (`nis_patient_id`, and `confirm_unverified: true` when the row has no birth number or the name differs),
+  `DELETE /cases/:id/nis/link` (works without a configured NIS, so a link can always be removed). Search answers only
+  the records that carry the searched birth number; any other record the NIS sent is counted in `other_records_hidden`
+  and never shown. Link reads the Patient again from the NIS and refuses a different birth number, an inactive record
+  and one the NIS merged into another (`Patient.link` `replaced-by`; the answer names the survivor). Candidates carry
+  name, birth date, gender, NIS id, version and the match results (`packages/domain/src/nis.ts`), never the birth
+  number. The answers include the national register as a visible stub (`national_register.status: "stub"`).
+- **Table** `patient_nis_links` (migration 0015): one link per patient row and one patient row per
+  NIS record in an org, with who linked it, when, the NIS base URL and version, and `identity_check` (`matches`,
+  `matches_name_differs` or `cannot_verify`; the last two only after the person confirmed). It is its own table
+  because the app never changes a seeded patient row; the trigger `demo_reset_nis_links` removes an org's links on
+  reset-demo.
+- **Tests.** `test/nis.test.ts` runs the connector and the routes against `fhir/nis/memory-server.ts` loaded with the
+  test Bundles (no PDF bytes); `test/orgs.test.ts` probes the four routes from org B.

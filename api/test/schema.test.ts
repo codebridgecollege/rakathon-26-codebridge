@@ -11,8 +11,9 @@ describe("D1 schema", () => {
   it("has every append-only trigger after the migrations", async () => {
     const r = await env.DB.prepare("SELECT name FROM sqlite_master WHERE type = 'trigger'").all<{ name: string }>();
     // 13 append-only triggers, the 5 document lifecycle triggers (migration 0013), and the reset triggers that remove
-    // uploads (0005), upload sessions (0010) and model calls (0014), and make seeded documents current again (0013).
-    const RESET = ["demo_reset_uploads", "demo_reset_upload_sessions", "demo_reset_document_lifecycle", "demo_reset_model_calls"];
+    // uploads (0005), upload sessions (0010), model calls (0014) and NIS links (0015), and make seeded documents current
+    // again (0013).
+    const RESET = ["demo_reset_uploads", "demo_reset_upload_sessions", "demo_reset_document_lifecycle", "demo_reset_model_calls", "demo_reset_nis_links"];
     const lifecycle = r.results.filter((t) => t.name.startsWith("documents_lifecycle_"));
     expect(lifecycle).toHaveLength(5);
     expect(r.results.filter((t) => !RESET.includes(t.name) && !lifecycle.includes(t))).toHaveLength(13);

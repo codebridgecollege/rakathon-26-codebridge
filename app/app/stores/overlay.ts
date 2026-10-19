@@ -19,6 +19,8 @@ export type Overlay =
   | { kind: "guide"; id: string }
   | { kind: "edit"; file: string; key: string; orig: string; isQuestion: boolean }
   | { kind: "fhir"; id: string; bundle: unknown }
+  // "Import z NIS" of one case (issue #22): search the hospital system and link the patient's record.
+  | { kind: "nis"; caseId: string }
   | { kind: "pgrefs"; hit: number }
   | { kind: "pgpanel"; panel: number }
   | { kind: "breakglass"; file: string; msg: string }

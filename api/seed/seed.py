@@ -46,7 +46,7 @@ MAX_STATEMENT = 90_000  # D1 refuses SQL statements over 100 KB; keep a margin.
 # memberships, roles and user_identities are not in it: orgs, people and memberships are upserted, never deleted (AUTH.md,
 # "Demo reset is per org"; a membership outside the seed is ended), and each org keeps its data epoch across a reseed.
 TABLES = [
-    "departments", "dept_members", "patients", "cases", "case_members", "status_history",
+    "departments", "dept_members", "patients", "patient_nis_links", "cases", "case_members", "status_history",
     "slots", "sessions", "attendance", "protocols", "decisions", "task_suggestions", "tasks",
     "question_confirmations", "fact_edits", "edit_log", "extraction_runs", "alerts", "alert_events",
     "documents", "document_parts", "pages", "fixture_files", "fixture_patients", "recordings", "jobs", "transcript_passes",

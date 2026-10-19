@@ -2,6 +2,7 @@ import path from "node:path";
 import { readFileSync, readdirSync } from "node:fs";
 import { cloudflareTest, readD1Migrations } from "@cloudflare/vitest-plugin";
 import { defineConfig } from "vitest/config";
+import { buildBundles } from "../fhir/nis/bundles.ts";
 
 // Tests run inside workerd with the bindings from wrangler.jsonc (local D1 and R2), so they exercise the same
 // runtime as production. The migrations are read here in Node and applied inside the tests (test/data.ts).
@@ -19,6 +20,15 @@ export default defineConfig(async () => {
       .filter((f) => f.endsWith(".ts") && !f.endsWith("worker-configuration.d.ts"))
       .map((f) => [f, readFileSync(path.join(src, f), "utf8")]),
   );
+  // The NIS test Bundles (fhir/nis/bundles.ts) without the PDF bytes, for the in-memory FHIR server in test/nis.test.ts.
+  const json = (p: string) => JSON.parse(readFileSync(path.join(import.meta.dirname, "..", p), "utf8"));
+  const nisBundles = buildBundles({
+    case10: json("fixtures/data/mock-case-10.json"),
+    s01: json("fixtures/data/mock-case-S01.json"),
+    s02: json("fixtures/data/mock-case-S02.json"),
+    s02Referral: json("samples/S02_pacient/upload/zadost-fhir.json"),
+    pdf: () => null,
+  });
   return {
     plugins: [
       cloudflareTest({
@@ -31,6 +41,7 @@ export default defineConfig(async () => {
             TEST_SEED_STAFF: staffBlock,
             TEST_SEED_STAFF_B: staffBlockB,
             TEST_SOURCES: sources,
+            TEST_NIS_BUNDLES: JSON.stringify(nisBundles),
             ELEVENLABS_API_KEY: "test-el",
             AZURE_OPENAI_KEY: "test-az",
             AI_GATEWAY_TOKEN: "",
@@ -43,6 +54,8 @@ export default defineConfig(async () => {
             DATA_API: "on",
             // Step 6: the document Workflow calls the page reader here; the tests mock this host.
             PAGE_READER_URL: "https://page-reader.test",
+            // Issue #22: no org has a NIS unless a test sets one.
+            NIS_CONFIG: "{}",
           },
         },
       }),

@@ -1,0 +1,13 @@
+# HAPI FHIR JPA server as a local NIS stand-in (fhir/nis/README.md). Pinned by tag and digest so every machine runs
+# the same server. Published on 127.0.0.1 only; the in-memory H2 database is lost when the container stops.
+#   docker compose -f fhir/nis/docker-compose.yml up -d
+#   node fhir/nis/build.ts && node fhir/nis/seed.ts http://localhost:8091/fhir
+services:
+  hapi:
+    image: hapiproject/hapi:v8.12.0-2@sha256:0ff86aac4c7bd13a1ee226444a70263bb46ed1c28ef543c30a44f865b80ca04e
+    ports:
+      - "127.0.0.1:8091:8080"
+    environment:
+      hapi.fhir.fhir_version: R4
+      # Our test Bundles use PUT with ids such as "cb-s02"; HAPI accepts client ids that are not purely numeric.
+      hapi.fhir.client_id_strategy: ALPHANUMERIC

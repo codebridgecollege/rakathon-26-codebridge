@@ -84,6 +84,11 @@
     // Step 6 (b-1): where the page reader service runs (src/services/page-reader.ts). "" with no PAGE_READER container binding
     // switches the document pipeline off; local work sets it to the Python service, http://localhost:8080.
     "PAGE_READER_URL": "",
+    // Issue #22: each org's NIS (hospital system) over FHIR R4, as JSON keyed by org id; "{}" means none, and the page
+    // shows no "Import z NIS". Shape and auth modes: src/services/fhir.ts and api/AGENTS.md, "NIS over FHIR". Local
+    // work points an org at the test server: --var 'NIS_CONFIG:{"demo-a":{"base_url":"http://127.0.0.1:8090/fhir",
+    // "label_cs":"Testovací NIS (syntetická data)","auth":{"mode":"none"}}}'.
+    "NIS_CONFIG": "{}",
     "GIT_SHA": "dev"
   },
   // Limits are per Cloudflare location and approximate (eventually consistent). Generous on purpose:

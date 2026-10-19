@@ -52,6 +52,14 @@ point into the team's design discussion; the citation forms are in
   after the meeting? (juro-notes; chatgpt R 10:29)
 - [ ] Can one patient's data sit in different systems than another's?
   (juro-notes)
+- [ ] NIS over FHIR (issue #22): how the NIS stores the birth number
+  (`rcis` system, with or without the slash), whether it accepts a POST
+  `_search`, how it reports merged duplicates (`Patient.link`), which auth
+  mode (SMART Backend Services or a SMART on FHIR launch) with which
+  token endpoint, scopes, algorithm and key registration, whether mutual
+  TLS is required, and which MKN-10 code form and lab code lists (NČLP)
+  it sends. The full list is in `docs/design/INTEGRATION.md`, "Questions
+  for FNO".
 
 - [ ] **Would FNO ever accept a Cloudflare-hosted backend for real
   patient data,** or only on its own servers? It decides whether the

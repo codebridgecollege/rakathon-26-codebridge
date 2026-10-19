@@ -85,3 +85,4 @@ api/seed/out/
 scripts/cover/shots/
 docs/submission/variants/*@2x.png
 docs/submission/og@2x.png
+fhir/nis/out/

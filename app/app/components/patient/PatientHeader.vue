@@ -9,6 +9,7 @@ import { usePatient } from "../../composables/usePatient";
 import { useOverlayStore } from "../../stores/overlay";
 import { useWorkflowStore } from "../../stores/workflow";
 import { useListViewStore } from "../../stores/listView";
+import { useSessionStore } from "../../stores/session";
 import { slotText } from "../../lib/dates";
 import { ageNum, surnameFirst } from "../../lib/patientRow";
 import { openFhirExport } from "../../lib/fhirExport";
@@ -43,6 +44,13 @@ function schedule() {
 function startMdt() {
   if (p.value.slot) overlay.open({ kind: "start", day: p.value.slot.day, from: p.value.file, attOnly: false });
 }
+// "Import z NIS" only where the org has a NIS configured (/api/me), and for the roles that may search it; elsewhere
+// the button does not exist, so the demo shows nothing that cannot work.
+const session = useSessionStore();
+const canNis = computed(() => !!session.me?.nis && (session.me.user.role === "doctor" || session.me.user.role === "coordinator"));
+function nis() {
+  overlay.open({ kind: "nis", caseId: p.value.id });
+}
 // The report dialog and its PDF (components/discussion/ReportDialog.vue).
 function report() {
   overlay.open({ kind: "report", file: c.p.value.file });
@@ -68,6 +76,7 @@ function report() {
       <div class="row">
         <button class="btn" @click="schedule">{{ p.slot ? $t("patient-action-reschedule") : $t("patient-action-schedule") }}</button>
         <button v-if="p.slot && !live" class="btn" @click="startMdt">{{ $t("patient-action-start-mdt") }}</button>
+        <button v-if="canNis" class="btn" @click="nis">{{ $t("patient-action-nis") }}</button>
         <button v-if="c.cd.value?.record?.sections" class="btn" @click="openFhirExport(c, $t)">{{ $t("patient-action-fhir") }}</button>
         <button v-if="props.withReport" class="btn primary" @click="report">{{ $t("patient-action-report") }}</button>
       </div>

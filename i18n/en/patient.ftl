@@ -883,3 +883,42 @@ patient-fhir-basis = { $role ->
         [purpose] Purpose in the document
        *[other] Based on
     }: “{ $quote }” ({ $file }, p. { $page }).
+
+# English, "Import z NIS" (issue #22). See the Czech file for what each message is.
+
+patient-action-nis = Import from NIS
+patient-nis-title = Import from NIS
+patient-nis-heading = Import from NIS · { $id }
+patient-nis-source = Source: { $label } (FHIR R4, read only)
+patient-nis-intro = Searches the NIS by birth number. Pick the right record yourself; nothing is merged automatically.
+patient-nis-rc-label = Birth number
+patient-nis-rc-placeholder = 123456/7890
+patient-nis-rc-missing = The patient has no birth number in CodeBridge. Enter it; you then confirm the link by hand.
+patient-nis-search-own = Search the NIS by the patient's birth number
+patient-nis-search = Search the NIS
+patient-nis-none = The NIS has no record with this birth number.
+patient-nis-duplicates = The NIS holds several records for this birth number. Pick the right one; CodeBridge does not merge them.
+patient-nis-truncated = Only part of the results from the NIS is shown.
+patient-nis-hidden = { $n ->
+        [one] The NIS returned { $n } record without the searched birth number; it is not shown.
+       *[other] The NIS returned { $n } records without the searched birth number; they are not shown.
+    }
+patient-nis-record = NIS record { $id }
+patient-nis-born = Born
+patient-nis-gender-male = male
+patient-nis-gender-female = female
+patient-nis-identity-matches = birth number matches
+patient-nis-identity-conflicts = birth number differs
+patient-nis-identity-unverified = birth number cannot be checked
+patient-nis-name-spelling = name written differently (no diacritics)
+patient-nis-name-different = name differs
+patient-nis-confirm = I confirm this is the same person
+patient-nis-link = Link
+patient-nis-linked = Linked to NIS record { $id }
+patient-nis-linked-matches = The birth number matched.
+patient-nis-linked-unverified = The birth number could not be checked; the user confirmed the link.
+patient-nis-linked-name-differs = The birth number matched, the name differed; the user confirmed the link.
+patient-nis-linked-by = Linked by { $name }, { $at }.
+patient-nis-phase-note = Data from the NIS is not loaded yet; the link is the first step of the import.
+patient-nis-unlink = Remove link
+patient-nis-register-label = National register (demonstration):

@@ -58,6 +58,12 @@ The rules from `CLAUDE.md` carry over:
   FHIR" to the access log, and the dialog warns that the file holds the
   patient's identity.
 
+## The NIS test server
+
+The other direction, reading from a hospital's NIS (its information system)
+over FHIR, has its own synthetic test data and a local test server in
+[`nis/`](nis/README.md) (issue #22).
+
 ## Our definitions
 
 `definitions/` holds what is ours, under the canonical base
