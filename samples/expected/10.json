@@ -11,6 +11,13 @@
     {"id": "10-nch-seminar-alert", "failure_kind": "request_without_result", "expect": "present",
      "about": "The request without a result raises the request_without_result alert",
      "alert": {"rule": "request_without_result", "fact.kind": "request"}, "needs": ["request"]},
+    {"id": "10-mr-brain-report-missing", "failure_kind": "report_missing", "expect": "present",
+     "about": "The outpatient report of page 1 quotes the brain MR of 14.9.2026 done at NNJ; its radiology report is not in the documents",
+     "alert": {"kind": "missing", "fact.kind": "imaging", "fact.date.sort": "2026-09-14"},
+     "known_failure": "The extraction (extract-facts-cs@5) marks the quoted MR as reported_as original, so the case rule sees an original report. Fix in the extraction prompt or its checks (stream D, #20), not in the rule."},
+    {"id": "10-no-stage-contradiction", "failure_kind": "reference", "expect": "absent",
+     "about": "The pathological stage at diagnosis (2.6.2022) is the only stage: no stage contradiction",
+     "alert": {"kind": "contradiction", "fact.kind": "stage"}},
     {"id": "10-lab-sheet-undated", "failure_kind": "wrong_date", "expect": "absent",
      "about": "Patient 10's lab sheet prints no draw date: no lab value gets a date",
      "fact": {"kind": "lab_result", "date.sort": {"ne": null}}}

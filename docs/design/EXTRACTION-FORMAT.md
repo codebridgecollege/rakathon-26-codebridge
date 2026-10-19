@@ -413,6 +413,28 @@ on, is the assistant's observation, and never blocks anything.
 - **Contradictions** are raised only between facts of the same kind about the same time (same analyte and draw; same stage kind and `as_of`). A pathological stage after surgery against a clinical stage at diagnosis is not a contradiction.
 - **One list.** Today's two overlapping lists become one.
 
+### The case rules
+
+The rules that need every fact of the case (`packages/domain/src/extraction/rules.ts`) run when a run is published,
+after `prepareRun` and before `storeRun` (`applyCaseRules`). They see final fact IDs, skip quarantined facts, and
+replace the alerts and checks of their own rules, leaving every other alert alone. The run's stages record
+`codebridge case-rules@<n>`.
+
+| Rule | Kind | Subject | Raised when |
+|---|---|---|---|
+| `original_report_missing` | missing | the expected report, `report\|<kind>\|<modality>\|<region stems>\|<date>` (the fact ID when undated) | an imaging, histology, procedure, MDT decision or radiotherapy fact is only cited (`reported_as: cited`), and no fact of the same kind and exam has an original or NIS source. Same exam: the same date, or a cited month containing the original's day (a year alone never links, and an original dated less precisely than the citation is a summary line, not the report); for a histology also an original up to 21 days apart (the report date against the sampling date); a modality and region that do not differ, where an unstated region or specimen does not differ. A negated imaging or histology fact is a negative finding and needs its report; a negated procedure was not done and does not. The facts of one report (a histology with its receptors) form one alert; facts of different kinds never do, so a found biopsy protocol does not hide a missing histology report. |
+| `original_reports_missing` | missing | `cited_exams\|<hash of the missing reports' subjects>` | more than 3 reports are missing: one grouped alert with the count (issue #49 proposal, pending expert review). Its identity is the set of missing reports, so a newly missing report is a new alert, never hidden by an earlier acknowledgement. |
+| `request_without_result` | missing | the request (the lowest fact ID when one request is mentioned twice) | a `requested` request has no `result_fact` and no done exam of the same modality and region anywhere in the case on the same day or later (a result dated only by the request's month does not count); never for the MDT referral itself |
+| `lab_value_differs`, `stage_differs`, `dosing_differs`, `performance_status_differs`, `metastasis_status_differs`, `histology_grade_differs` | contradiction | the pair | two facts of the same kind about the same thing and time disagree: same analyte, specimen, draw time or requisition and unit; same stage kind and fact date (only TNM categories both state); same drug and start (undated pairs are `unclear`); same scale and date; one site and date stated and excluded; one named specimen and date with two grades in one grading system |
+| `response_assessment_differs` | contradiction or unclear | the pair | two response categories for what may be one exam (same day, or a month containing the day; modality and region that do not differ); `unclear` when one date is a month or the response systems differ |
+| `therapy_stop_before_start`, `date_after_processing`, `result_before_request` | chronology | the fact, or the pair | the dates cannot be in this order, compared at the coarser precision; a written range counts from its first date as a start and to its last as a stop; "after processing" means after the run's day in Prague |
+
+Each check of a missing report has `looks_for: original_report` and the report's first fact; `chk-contradiction`
+and `chk-chronology` say the rules ran, so "none found" and "not checked" stay apart. `supersededFacts` names, for
+the current-state views and the brief, the facts a newer dated fact of the same slot replaces (performance status per
+scale, metastasis per site, stage per kind, diagnosis per code, vital sign per measurement); the older one stays in
+the run as history.
+
 ## The brief
 
 The brief is a list of sentences, each pointing to the facts it states.

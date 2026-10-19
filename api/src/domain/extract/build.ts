@@ -19,6 +19,8 @@
 import type { Alert, Check, CertaintyReason, DocumentSource, DraftFact, IdentityResult, QuoteText, Source } from "@codebridge/domain/extraction/types";
 import { alertId, sourceIdFor, valueText } from "@codebridge/domain/extraction/keys";
 import { assignFactIds } from "@codebridge/domain/extraction/match";
+// The same rule the case merge applies over all documents (rules.ts); here it sees one document's facts.
+import { requestsWithoutResult } from "@codebridge/domain/extraction/rules";
 import type { ExtractionRun, Fact } from "@codebridge/domain/extraction/types";
 import { matchImage, type Word } from "@codebridge/domain/quote-match";
 import { fold, type Pseudonymized } from "../pseudonymize";
@@ -175,59 +177,6 @@ function valueOf(f: ModelFact, stageKind: "clinical" | "pathological" | "post_ne
     case "contraindication":
       return { what: f.text, stated_by: "document" };
   }
-}
-
-// ---------------------------------------------------------------------------------------------------------------------
-// Request without result
-
-// What was requested: the kind of exam (modality or body) and the other words (the region). Generic words
-// ("doplnit výsledek", "projednání") say nothing about what.
-const GENERIC = new Set(["na", "pro", "za", "ve", "do", "a", "s", "k", "z", "doplnit", "vysledek", "vysledku", "projednani", "vysetreni", "zadost", "pozadavek", "zadanka", "odeslan", "odeslana", "pripadu", "nalezu", "kontrolni", "kontrola"]);
-const MODALITIES = ["ct", "mr", "mri", "pet", "rtg", "usg", "uz", "scint", "kolonosk", "gastrosk", "bronchosk", "endosk", "mamogr", "spirom", "ekg", "echo", "histolog", "biops", "seminar", "konzil", "genetick"];
-const tokens = (s: string) => fold(s).split(/[^\p{L}\d]+/u).filter((w) => w.length >= 2 && !GENERIC.has(w));
-const modalityOf = (t: string) => MODALITIES.find((m) => t === m || (m.length > 3 && t.startsWith(m)));
-
-function asked(text: string) {
-  const ts = tokens(text);
-  const modalities = new Set(ts.map(modalityOf).filter((m): m is string => !!m));
-  const region = new Set(ts.filter((t) => !modalityOf(t) && t.length >= 4).map((t) => t.slice(0, 5)));
-  return { modalities, region };
-}
-
-// A result answers a request when it is the same kind of exam and, if the request names a region, shares it: "CT
-// mozku" is not answered by "CT hrudníku". A request that names neither is never linked.
-function answers(req: ReturnType<typeof asked>, result: string): boolean {
-  const r = asked(result);
-  if (!req.modalities.size) return false;
-  if (![...req.modalities].some((m) => r.modalities.has(m))) return false;
-  return !req.region.size || [...req.region].some((w) => r.region.has(w));
-}
-
-// A request with no later result in the run (CLAUDE.md failure case: "a referral with no result"; a sent request is not
-// a done exam). Doubtful pairs stay unlinked, so the alert errs toward "the result is missing", which a doctor can
-// dismiss; a wrong link would hide a gap. A decision answers only a consultation, never an exam.
-export function requestsWithoutResult(facts: Fact[]): Alert[] {
-  const out: { alert: Alert; date: string | null; what: ReturnType<typeof asked> }[] = [];
-  for (const r of facts) {
-    if (r.kind !== "request" || r.status !== "requested" || r.quarantined || r.value.result_fact) continue;
-    // The referral to an MDT, or its question, is what the case view is being prepared for; its result is the
-    // coming meeting. A seminar or a consultation elsewhere is not, and keeps its alert.
-    if (r.value.request_kind === "mdt") continue;
-    const what = asked(r.value.what);
-    const since = r.date.sort;
-    const resultKinds = r.value.request_kind === "exam" ? ["imaging", "procedure", "histology"] : ["imaging", "procedure", "histology", "decision"];
-    const result = facts.find((f) => resultKinds.includes(f.kind) && f.status === "done" && !f.quarantined && !!f.date.sort && !!since && f.date.sort >= since && answers(what, valueText(f.value)));
-    if (result) continue;
-    // The same dated request mentioned twice ("odeslána žádanka na CT" and "doplnit výsledek CT (žádanka 7.10.)") is
-    // one alert resting on both facts, not two warnings. Undated requests are never merged.
-    const twin = since ? out.find((o) => o.date === since && answers(o.what, r.value.what)) : undefined;
-    if (twin) {
-      twin.alert.facts.push(r.id);
-      continue;
-    }
-    out.push({ date: since, what, alert: { id: alertId({ rule: "request_without_result", subject: r.id }), rule: "request_without_result", subject: r.id, kind: "missing", facts: [r.id], message: { id: "alert-request-without-result", args: { fact: r.id } }, note: null } });
-  }
-  return out.map((o) => o.alert);
 }
 
 export async function sha256Hex(s: string): Promise<string> {
