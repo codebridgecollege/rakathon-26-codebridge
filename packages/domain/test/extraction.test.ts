@@ -5,6 +5,9 @@ import {
   assignKeys,
   buildFactKey,
   dateSeg,
+  datePrecisionProblem,
+  valueText,
+  type MatchOptions,
   fnv1a32,
   normText,
   pairSubject,
@@ -25,6 +28,17 @@ const vectors = vectorsJson as unknown as {
   date_seg: [Fact["date"], string][];
   fact_keys: { fact: DraftFact; sources: Source[]; key: string }[];
   alert_ids: [{ rule: string; subject: string }, string][];
+  value_text: [unknown, string][];
+  collisions: { facts: DraftFact[]; sources: Source[]; keys: string[] }[];
+  date_precision: [Fact["date"], boolean][];
+  matches: {
+    name: string;
+    previous: ExtractionRun | null;
+    drafts: DraftFact[];
+    sources: Source[];
+    options: MatchOptions;
+    expected: { ids: string[]; keys: string[]; how: Record<string, string>; dropped: string[] };
+  }[];
 };
 const codes = (run: ExtractionRun) => validateRun(run).issues.map((i) => i.code);
 
@@ -45,6 +59,20 @@ describe("shared key vectors (same file as the Python tests)", () => {
   });
   it("alert IDs", () => {
     for (const [a, id] of vectors.alert_ids) expect(alertId(a)).toBe(id);
+  });
+  it("value text, collisions and date precision", () => {
+    for (const [v, text] of vectors.value_text) expect(valueText(v)).toBe(text);
+    for (const c of vectors.collisions) expect(assignKeys(c.facts, c.sources).map((f) => f.key)).toEqual(c.keys);
+    for (const [d, bad] of vectors.date_precision) expect(datePrecisionProblem(d) !== null).toBe(bad);
+  });
+  it("matcher scenarios", () => {
+    for (const m of vectors.matches) {
+      const res = assignFactIds("NO-010", m.drafts, m.sources, m.previous, m.options);
+      expect(res.facts.map((f) => f.id), m.name).toEqual(m.expected.ids);
+      expect(res.facts.map((f) => f.key), m.name).toEqual(m.expected.keys);
+      expect(Object.fromEntries(res.how), m.name).toEqual(m.expected.how);
+      expect(res.dropped, m.name).toEqual(m.expected.dropped);
+    }
   });
 });
 
@@ -78,15 +106,20 @@ describe("fact keys", () => {
     expect(a).toBe("medication|afinitor|start:undated");
     expect(b).toBe("medication|afinitor|start:2026-09-19");
   });
-  it("two draws of one test on one day without a time get a suffix in source order", () => {
+  it("two draws of one test on one day without a time get a suffix by content, never by position", () => {
     const run = example();
-    const lab = run.facts[0]!;
-    const second = { ...lab, sources: ["src-0001"] };
-    // The copy is listed first, but its source (src-0001) comes after the original's (src-7c1e) in the run's source
-    // list, so the original keeps the plain key. Only the document counts in a lab key, so both share it.
-    const keyed = assignKeys([second, lab], run.sources);
-    expect(keyed[1]!.key).toBe("lab_result|S_HSCRP|draw:undated|doc:10_pacient");
-    expect(keyed[0]!.key).toBe("lab_result|S_HSCRP|draw:undated|doc:10_pacient#2");
+    const lab = run.facts[0] as Extract<Fact, { kind: "lab_result" }>;
+    const second = { ...lab, value: { ...lab.value, value_as_written: "12,0", value_numeric: 12 } };
+    const plain = "lab_result|S_HSCRP|draw:undated|doc:10_pacient";
+    // "12,0" sorts before "9,5", so the second draw keeps the plain key whatever the order of facts or sources.
+    for (const [facts, sources] of [
+      [[lab, second], run.sources],
+      [[second, lab], [...run.sources].reverse()],
+    ] as const) {
+      const keyed = assignKeys(facts, sources);
+      expect(keyed.find((f) => f.value === second.value)!.key).toBe(plain);
+      expect(keyed.find((f) => f.value === lab.value)!.key).toBe(`${plain}#2`);
+    }
   });
   it("pair subjects do not depend on the order of comparison", () => {
     expect(pairSubject("f-b", "f-a")).toBe(pairSubject("f-a", "f-b"));
@@ -268,5 +301,85 @@ describe("validator", () => {
     const run = example();
     run.facts[6]!.origin = "document";
     expect(codes(run)).toContain("interval_not_assistant");
+  });
+});
+
+describe("guards from the separate review", () => {
+  it("a flipped negation, subject or status never keeps the ID a doctor confirmed", () => {
+    const prev = example();
+    for (const change of [{ negated: false }, { status: "done" }, { subject: "relative" }] as const) {
+      const d = drafts(prev);
+      const i = "negated" in change ? 4 : 2;
+      d[i] = { ...d[i]!, ...change } as DraftFact;
+      const res = assignFactIds("NO-010", d, prev.sources, prev);
+      expect(res.facts[i]!.id).not.toBe(prev.facts[i]!.id);
+      expect(res.dropped).toContain(prev.facts[i]!.id);
+    }
+  });
+
+  it("a fact from a withdrawn document does not pass its ID to the same statement elsewhere", () => {
+    const prev = example();
+    const res = assignFactIds("NO-010", drafts(prev), prev.sources, prev, { retiredDocuments: ["10_pacient"] });
+    for (const i of [0, 1, 2, 3, 4]) expect(res.facts[i]!.id).not.toBe(prev.facts[i]!.id);
+    expect(res.facts[5]!.id).toBe(prev.facts[5]!.id);
+    expect(res.dropped).toEqual(["f-8d41c2", "f-0b19e4", "f-3c90de", "f-5a0b11", "f-5a0b12"]);
+  });
+
+  it("an ID issued in an older run is never minted again", () => {
+    const prev = example();
+    const first = assignFactIds("NO-010", drafts(prev), prev.sources, null).facts[0]!.id;
+    const again = assignFactIds("NO-010", drafts(prev), prev.sources, null, { issuedIds: [first] }).facts[0]!.id;
+    expect(again).not.toBe(first);
+  });
+
+  it("rejects a partial date that gained a day, and precision without a sort form", () => {
+    const run = example();
+    run.facts[1]!.date = { as_written: "6/2022", precision: "month", sort: "2022-06-02" };
+    expect(codes(run)).toContain("date_precision");
+    run.facts[1]!.date = { as_written: "6/2022", precision: "month", sort: null };
+    expect(codes(run)).toContain("date_precision");
+  });
+
+  it("rejects a metastasis whose status and negation disagree", () => {
+    const run = example();
+    run.facts[4]!.negated = false;
+    expect(codes(run)).toEqual(["negation_mismatch"]);
+  });
+
+  it("rejects a relative's subject outside family history", () => {
+    const run = example();
+    run.facts[4]!.subject = "relative";
+    expect(codes(run)).toEqual(["subject_mismatch"]);
+  });
+
+  it("rejects a check that says nothing found next to facts of its kind, or found with none", () => {
+    const run = example();
+    run.checks[1]!.result = "nothing_found";
+    run.checks[0]!.result = "found";
+    expect(codes(run)).toEqual(["check_result_mismatch", "check_result_mismatch"]);
+  });
+
+  it("a quarantined fact may not be a check's expected fact or an alert's subject", () => {
+    const run = example();
+    (run.sources[2] as { identity: string }).identity = "conflicts";
+    run.facts[2]!.quarantined = true;
+    run.alerts[0]!.facts = [];
+    run.question_draft = null;
+    run.checks.push({ id: "chk-x", looks_for: "original_report", expected: { of_fact: "f-3c90de" }, covered: [], unreadable: [], result: "nothing_found" });
+    run.alerts.push({ id: alertId({ rule: "page_identity_conflict", subject: "p" }), rule: "page_identity_conflict", subject: "p", kind: "identity", facts: ["f-3c90de"], message: { id: "x", args: {} }, note: null });
+    expect(validateRun(run).issues.map((i) => [i.code, i.path])).toEqual([
+      ["quarantined_in_use", "/alerts/0/subject"],
+      ["quarantined_in_use", `/checks/${run.checks.length - 1}/expected/of_fact`],
+    ]);
+  });
+
+  it("reports source errors against the source's own type only, including a missing field", () => {
+    const run = example() as unknown as { sources: Record<string, unknown>[] };
+    run.sources[0]!.quote_text = "ocr";
+    run.sources[1]!.extra = 1;
+    delete run.sources[1]!.quote;
+    const issues = validateRun(run).issues;
+    expect(issues.every((i) => i.code === "schema")).toBe(true);
+    expect(issues.map((i) => i.path).sort()).toEqual(["/sources/0/quote_text", "/sources/1", "/sources/1/extra"]);
   });
 });

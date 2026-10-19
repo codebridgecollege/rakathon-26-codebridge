@@ -5,15 +5,17 @@ equal the one the Worker builds. Both sides are tested against packages/domain/t
 a rule in both files at once (docs/design/EXTRACTION-FORMAT.md, "Fact identity").
 """
 
+import math
 import re
 import unicodedata
 from collections.abc import Mapping, Sequence
+from decimal import Decimal
 from typing import Any
 
-# JavaScript's \s, written out: Python's \s differs (it lacks U+FEFF), and a different space rule would give the
-# Python pipeline different keys from the Worker.
-_JS_SPACE = (
-    "\t\n\v\f\r   " + "".join(map(chr, range(0x2000, 0x200B))) + "    　﻿"
+# JavaScript's \s (and what trim() removes), as code points: Python's \s and strip() differ (they lack U+FEFF and
+# include U+001C..U+001F), and a different space rule would give the Python pipeline different keys from the Worker.
+_JS_SPACE = "".join(
+    map(chr, [0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x20, 0xA0, 0x1680, *range(0x2000, 0x200B), 0x2028, 0x2029, 0x202F, 0x205F, 0x3000, 0xFEFF])
 )
 _SPACE_CLASS = re.escape(_JS_SPACE)
 _SPACES = re.compile(f"[{_SPACE_CLASS}]+")
@@ -32,23 +34,70 @@ def fnv1a32(text: str) -> str:
     return f"{h:08x}"
 
 
-def _lower(text: str) -> str:
-    # str.lower() and JavaScript's toLowerCase() agree except for capital sigma at a word end (JS gives the final form).
-    # Czech text has no sigma, and fact keys never compare Greek, so the plain lower() is kept.
-    return text.lower()
-
-
 def norm_text(text: str | None) -> str:
-    """Text as a key segment: NFC, lower case, whitespace collapsed, trailing punctuation dropped, "|" as "/"."""
+    """Text as a key segment: NFC, invisible format characters (category Cf: soft hyphen, zero-width space) removed,
+    lower case, whitespace collapsed, trailing punctuation dropped, "|" as "/"."""
     if text is None:
         return ""
-    t = _lower(unicodedata.normalize("NFC", text)).replace("|", "/")
+    t = "".join(ch for ch in unicodedata.normalize("NFC", text) if unicodedata.category(ch) != "Cf")
+    t = t.lower().replace("|", "/")
     t = _SPACES.sub(" ", t).strip(_JS_SPACE)
     return _TRAILING.sub("", t)
 
 
 def _code_seg(code: str) -> str:
-    return code.strip().replace("|", "/")
+    return code.strip(_JS_SPACE).replace("|", "/")
+
+
+def _js_number(x: float) -> str:
+    """Number::toString from ECMAScript: shortest round-trip digits, exponent form below 1e-6 and from 1e21."""
+    if math.isnan(x):
+        return "NaN"
+    if math.isinf(x):
+        return "Infinity" if x > 0 else "-Infinity"
+    if x == 0:
+        return "0"
+    sign = "-" if x < 0 else ""
+    _, digits_t, exp = Decimal(repr(abs(x))).normalize().as_tuple()
+    digits = "".join(map(str, digits_t))
+    k = len(digits)
+    n = k + int(exp)  # the value is 0.digits * 10**n
+    if k <= n <= 21:
+        out = digits + "0" * (n - k)
+    elif 0 < n <= 21:
+        out = f"{digits[:n]}.{digits[n:]}"
+    elif -6 < n <= 0:
+        out = "0." + "0" * (-n) + digits
+    else:
+        e = n - 1
+        out = digits[0] + (f".{digits[1:]}" if k > 1 else "") + f"e{'+' if e > 0 else '-'}{abs(e)}"
+    return sign + out
+
+
+def js_str(value: Any) -> str:
+    """String(value) as JavaScript writes it, for numbers and booleans in keys, value text and source IDs."""
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    if isinstance(value, (int, float)):
+        # JSON integers arrive as int in Python and as a double in JS.
+        return _js_number(float(value)) if isinstance(value, float) or abs(value) >= 10**21 else str(value)
+    return str(value)
+
+
+def value_text(value: Any) -> str:
+    """All strings in a value, flattened in key order, as valueText in keys.ts."""
+    if value is None:
+        return ""
+    if isinstance(value, (str, int, float, bool)):
+        return js_str(value)
+    if isinstance(value, list):
+        return " ".join(value_text(v) for v in value)
+    # Object keys sort by UTF-16 code units in JS; the UTF-16 encoding compares the same way.
+    return " ".join(value_text(value[k]) for k in sorted(value, key=_utf16))
+
+
+def _utf16(text: str) -> bytes:
+    return text.encode("utf-16-be", "surrogatepass")
 
 
 def date_seg(date: Mapping[str, Any]) -> str:
@@ -89,15 +138,6 @@ def _join(*parts: Any) -> str:
     return "|".join(str(p) for p in parts)
 
 
-def _js_str(value: Any) -> str:
-    """String(value) as JavaScript writes it, for the few non-string key segments (a therapy line)."""
-    if isinstance(value, bool):
-        return "true" if value else "false"
-    if isinstance(value, float) and value.is_integer():
-        return str(int(value))
-    return str(value)
-
-
 def build_fact_key(fact: Mapping[str, Any], sources: Mapping[str, Mapping[str, Any]]) -> str:
     """The key of a fact, per kind, without the collision suffix. Mirrors buildFactKey in keys.ts line by line."""
     kind = fact["kind"]
@@ -112,12 +152,12 @@ def build_fact_key(fact: Mapping[str, Any], sources: Mapping[str, Mapping[str, A
         parts.append(_origin_seg(fact, sources))
         return _join(*parts)
     if kind == "diagnosis":
-        return _join(kind, _code_or(fact, norm_text(v["text"])), v["disease_status"] or "status:none", date_seg(d))
+        return _join(kind, _code_or(fact, norm_text(v["text"])), "status:none" if v["disease_status"] is None else v["disease_status"], date_seg(d))
     if kind == "medication":
         return _join(kind, norm_text(v["drug"]), f"start:{date_seg(d)}")
     if kind == "systemic_therapy":
         start = norm_text(v["start"]) or date_seg(d)
-        line = "none" if v["line"] is None else _js_str(v["line"])
+        line = "none" if v["line"] is None else js_str(v["line"])
         return _join(kind, norm_text(v["regimen"]), f"line:{line}", f"start:{start}")
     if kind == "stage":
         return _join(kind, v["stage_kind"], date_seg(d))
@@ -165,21 +205,31 @@ def base_key(key: str) -> str:
     return _SUFFIX.sub("", key)
 
 
-def _source_order(fact: Mapping[str, Any], order: Mapping[str, int]) -> float:
-    return min((order.get(s, float("inf")) for s in fact["sources"]), default=float("inf"))
+def _content_order(fact: Mapping[str, Any], sources: Mapping[str, Mapping[str, Any]]) -> bytes:
+    """What orders facts that share a key: their content, never their position (contentOrder in keys.ts)."""
+    quotes = []
+    for sid in fact["sources"]:
+        s = sources.get(sid)
+        if s is None:
+            quotes.append("")
+        elif s["type"] == "document":
+            quotes.append(f"{s['document_id']}|{norm_text(s['quote'])}")
+        else:
+            quotes.append(f"nis|{s['resource']}")
+    quotes.sort(key=_utf16)
+    return _utf16(value_text(fact["value"]) + "\0" + "\0".join(quotes))
 
 
 def assign_keys(facts: Sequence[Mapping[str, Any]], sources: Sequence[Mapping[str, Any]]) -> list[dict[str, Any]]:
-    """Keys for all facts of a run; facts sharing a key get "#2", "#3" in the order of their first source."""
+    """Keys for all facts of a run; facts sharing a key get "#2", "#3" in the order of their content."""
     by_id = {s["id"]: s for s in sources}
-    order = {s["id"]: i for i, s in enumerate(sources)}
     groups: dict[str, list[int]] = {}
     for i, f in enumerate(facts):
         groups.setdefault(build_fact_key(f, by_id), []).append(i)
     out: list[str] = [""] * len(facts)
     for key, members in groups.items():
-        # Ties in source order fall back to the input order, as in keys.ts.
-        members.sort(key=lambda i: (_source_order(facts[i], order), i))
+        # UTF-16 bytes compare like JS strings; identical content falls back to the input order, as in keys.ts.
+        members.sort(key=lambda i: (_content_order(facts[i], by_id), i))
         for n, i in enumerate(members):
             out[i] = key if n == 0 else f"{key}#{n + 1}"
     return [{**f, "key": out[i]} for i, f in enumerate(facts)]
@@ -198,7 +248,7 @@ def mint_fact_id(case_id: str, key: str, taken: set[str] | frozenset[str]) -> st
 def source_id_for(source: Mapping[str, Any], taken: set[str] | frozenset[str] = frozenset()) -> str:
     """A source ID from where the passage is, so a re-run over the same page gives the same ID."""
     if source["type"] == "document":
-        base = f"{source['document_id']}|{source.get('part') or ''}|{source['page']}|{source['quote']}"
+        base = f"{source['document_id']}|{source.get('part') or ''}|{js_str(source['page'])}|{source['quote']}"
     else:
         base = f"{source['system']}|{source['resource']}|{source.get('version') or ''}"
     salt = 0

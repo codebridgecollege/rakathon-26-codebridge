@@ -11,14 +11,16 @@ from .keys import (
     build_fact_key,
     date_seg,
     fnv1a32,
+    js_str,
     mint_fact_id,
     norm_text,
     pair_subject,
     source_id_for,
+    value_text,
 )
-from .match import MATCH_MARGIN, MATCH_THRESHOLD, MatchResult, assign_fact_ids, similarity
+from .match import MATCH_MARGIN, MATCH_THRESHOLD, MatchResult, assign_fact_ids, same_frame, similarity
 from .types import ALERT_KINDS, EXTRACTION_SCHEMA, FACT_KINDS
-from .validate import Issue, ValidationResult, reference_issues, validate_run
+from .validate import Issue, ValidationResult, date_precision_problem, reference_issues, validate_run
 
 __all__ = [
     "ALERT_KINDS",
@@ -34,13 +36,17 @@ __all__ = [
     "assign_keys",
     "base_key",
     "build_fact_key",
+    "date_precision_problem",
     "date_seg",
     "fnv1a32",
+    "js_str",
     "mint_fact_id",
     "norm_text",
     "pair_subject",
     "reference_issues",
+    "same_frame",
     "similarity",
     "source_id_for",
+    "value_text",
     "validate_run",
 ]

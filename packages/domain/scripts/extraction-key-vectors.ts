@@ -1,12 +1,15 @@
-// Writes test/extraction-key-vectors.json: inputs and the keys and IDs keys.ts builds for them. The TypeScript and the
-// Python tests (pipeline/tests/test_extraction_format.py) both check against this file, so a key built by the Python
-// pipeline equals the one the Worker builds. Rerun only on a deliberate key change, and say so in the change: every
-// changed key moves doctor confirmations to the matcher's similarity step.
+// Writes test/extraction-key-vectors.json: inputs and the keys, IDs and matcher results the TypeScript builds for them.
+// The TypeScript and the Python tests (pipeline/tests/test_extraction_format.py) both check against this file, so a key
+// or an ID built by the Python pipeline equals the one the Worker builds. Rerun only on a deliberate change, and say so
+// in the change: every changed key moves doctor confirmations to the matcher's similarity step.
 //
-//   node packages/domain/scripts/extraction-key-vectors.ts      (Node 23.6 or newer runs TypeScript directly)
+//   npx jiti packages/domain/scripts/extraction-key-vectors.ts     (jiti resolves the package's extensionless imports)
 import { writeFileSync } from "node:fs";
-import { alertId, buildFactKey, dateSeg, fnv1a32, normText, pairSubject } from "../src/extraction/keys.ts";
-import type { DraftFact, FactDate, Source } from "../src/extraction/types.ts";
+import { alertId, assignKeys, buildFactKey, dateSeg, fnv1a32, normText, pairSubject, valueText } from "../src/extraction/keys";
+import { assignFactIds, type MatchOptions } from "../src/extraction/match";
+import type { DraftFact, ExtractionRun, FactDate, Source } from "../src/extraction/types";
+import { datePrecisionProblem } from "../src/extraction/validate";
+import worked from "../schema/examples/worked-examples.json";
 
 const undated: FactDate = { as_written: null, precision: null, sort: null };
 const day = (as_written: string, sort: string): FactDate => ({ as_written, precision: "day", sort });
@@ -64,10 +67,52 @@ const facts: DraftFact[] = [
 
 const byId = new Map(sources.map((s) => [s.id, s]));
 const texts = ["", "NO-010|al", "Žluťoučký kůň", "S_HSCRP", "é", "😀 emoji"];
+
+// Matcher scenarios over the worked examples: each is a previous run, the new drafts and options, and the result.
+const run = (): ExtractionRun => JSON.parse(JSON.stringify(worked));
+const draftsOf = (r: ExtractionRun): DraftFact[] => r.facts.map(({ id: _i, key: _k, ...rest }) => rest as DraftFact);
+const scenario = (name: string, previous: ExtractionRun | null, drafts: DraftFact[], sourcesOf: Source[], options: MatchOptions = {}) => {
+  const res = assignFactIds("NO-010", drafts, sourcesOf, previous, options);
+  const expected = { ids: res.facts.map((f) => f.id), keys: res.facts.map((f) => f.key), how: Object.fromEntries(res.how), dropped: res.dropped };
+  return { name, previous, drafts, sources: sourcesOf, options, expected };
+};
+const prev = run();
+const reworded = draftsOf(prev);
+const req = reworded[2] as Extract<DraftFact, { kind: "request" }>;
+reworded[2] = { ...req, value: { ...req.value, what: "projednání nálezu MR mozku na neurochirurgickém semináři FNO" } };
+const flipped = draftsOf(prev);
+flipped[4] = { ...flipped[4]!, negated: false } as DraftFact;
+const lab = draftsOf(prev)[0] as Extract<DraftFact, { kind: "lab_result" }>;
+const twoDraws: DraftFact[] = [lab, { ...lab, value: { ...lab.value, value_as_written: "12,0", value_numeric: 12 } }];
+const moved = draftsOf(prev).map((f) => ({ ...f, date: { as_written: "1.1.2030", precision: "day", sort: "2030-01-01" } }) as DraftFact);
+const matches = [
+  scenario("first run", null, draftsOf(prev), prev.sources),
+  scenario("reordered", prev, [...draftsOf(prev)].reverse(), prev.sources),
+  scenario("reworded request", prev, reworded, prev.sources),
+  scenario("negation flipped", prev, flipped, prev.sources),
+  scenario("metastasis dropped", prev, draftsOf(prev).filter((f) => f.kind !== "metastasis"), prev.sources),
+  scenario("withdrawn document", prev, draftsOf(prev), prev.sources, { retiredDocuments: ["10_pacient"] }),
+  scenario("issued IDs", null, draftsOf(prev), prev.sources, { issuedIds: [prev.facts[0]!.id] }),
+  scenario("all dates moved", prev, moved, prev.sources),
+  scenario("two draws, sources reversed", null, twoDraws, [...prev.sources].reverse()),
+];
+
 const vectors = {
   fnv1a32: texts.map((t) => [t, fnv1a32(t)]),
-  norm_text: ["  Hypertenzní  nemoc. ", "A|B", "Ca\tprsu;", "ÉCOG ", "é"].map((t) => [t, normText(t)]),
-  date_seg: [undated, day("2.6.2022", "2022-06-02"), { as_written: "03/2024", precision: "month", sort: "2024-03-15" }, { as_written: " Base line CT z 03/2023 ", precision: null, sort: null }, { as_written: "14.9.2026 10:05", precision: "minute", sort: "2026-09-14T10:05:00+02:00" }].map((d) => [d, dateSeg(d as FactDate)]),
+  norm_text: ["  Hypertenzní  nemoc. ", "A|B", "Ca\tprsu;", "ÉCOG ", "é", "meta\u00adstáza", "Ca\u200bprsu", "\ufeffHypertenze\u3000"].map((t) => [t, normText(t)]),
+  date_seg: [undated, day("2.6.2022", "2022-06-02"), { as_written: "03/2024", precision: "month", sort: "2024-03" }, { as_written: " Base line CT z 03/2023 ", precision: null, sort: null }, { as_written: "14.9.2026 10:05", precision: "minute", sort: "2026-09-14T10:05:00+02:00" }].map((d) => [d, dateSeg(d as FactDate)]),
+  date_precision: [
+    undated,
+    day("2.6.2022", "2022-06-02"),
+    { as_written: "6/2022", precision: "month", sort: "2022-06-02" },
+    { as_written: "6/2022", precision: "month", sort: null },
+    { as_written: "2024", precision: "year", sort: "2024" },
+    { as_written: "14.9.2026 10:05", precision: "minute", sort: "2026-09-14T10:05:00+02:00" },
+  ].map((d) => [d, datePrecisionProblem(d as FactDate) !== null]),
+  // Numbers as JavaScript writes them: they feed the similarity score and the collision order.
+  value_text: [{ b: 1e-7, a: 1e21, c: [0.1, 2, true, null] }, { x: 123456789012345680000, y: 0.000001, z: 1.5e-10 }, { t: "Žluť", n: 107, f: 9.5 }].map((v) => [v, valueText(v)]),
+  collisions: [{ facts: twoDraws, sources: [...prev.sources].reverse(), keys: assignKeys(twoDraws, [...prev.sources].reverse()).map((f) => f.key) }],
+  matches,
   fact_keys: facts.map((fact) => ({ fact, sources, key: buildFactKey(fact, byId) })),
   alert_ids: [
     { rule: "request_without_result", subject: "f-3c90de" },

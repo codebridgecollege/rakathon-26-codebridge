@@ -26,7 +26,7 @@ SCHEMA_PATH = Path(os.environ.get("CODEBRIDGE_EXTRACTION_SCHEMA", _DEFAULT_SCHEM
 
 # Composite steps only say "a subschema had errors"; the step inside them says which.
 _WRAPPERS = {"$ref", "anyOf", "allOf", "oneOf", "properties", "items", "if", "then", "else"}
-_FACT_PATH = re.compile(r"^/facts/\d+")
+_ITEM_PATH = re.compile(r"^/(facts|sources)/\d+")
 
 
 @dataclass(frozen=True)
@@ -53,13 +53,20 @@ def _run_validator() -> Draft7Validator:
 
 
 @cache
-def _fact_validator(kind: str) -> Draft7Validator | None:
-    """One validator per fact kind, so an invalid fact says what is wrong instead of failing 25 alternatives."""
-    name = "".join(w[:1].upper() + w[1:] for w in kind.split("_")) + "Fact"
+def _def_validator(name: str) -> Draft7Validator | None:
+    """One validator per member of a union (a fact kind, a source type), so an invalid item says what is wrong with
+    it instead of the errors of every alternative it is not."""
     schema = _schema()
     if name not in schema.get("definitions", {}):
         return None
     return Draft7Validator({**schema, "$ref": f"#/definitions/{name}"})
+
+
+def _pascal(snake: str) -> str:
+    return "".join(w[:1].upper() + w[1:] for w in snake.split("_"))
+
+
+_SOURCE_DEFS = {"document": "DocumentSource", "nis": "NisSource"}
 
 
 def _pointer(path: Iterable[Any]) -> str:
@@ -76,24 +83,38 @@ def _leaves(err: ValidationError) -> list[ValidationError]:
     return [err]
 
 
+def _message(leaf: ValidationError) -> str:
+    """A message without the offending value: jsonschema quotes it, and a value may be patient text."""
+    if leaf.validator == "required":
+        return leaf.message  # names the missing field, never a value
+    if leaf.validator == "enum":
+        return f"value is not one of {json.dumps(leaf.validator_value, ensure_ascii=False)}"
+    if leaf.validator == "type":
+        return f"value is not of type {json.dumps(leaf.validator_value)}"
+    if leaf.validator == "const":
+        return f"value is not {json.dumps(leaf.validator_value, ensure_ascii=False)}"
+    return f"value fails {leaf.validator}"
+
+
 def _schema_issues(errors: Iterable[ValidationError], prefix: str = "") -> list[Issue]:
-    leaves = [leaf for e in errors for leaf in _leaves(e)]
-    paths = [_pointer(leaf.absolute_path) for leaf in leaves]
-    # Keep the deepest location, as validate.ts does: an enclosing object's error repeats what its field says.
-    deepest = [(p, leaf) for p, leaf in zip(paths, leaves) if not any(q != p and q.startswith(f"{p}/") for q in paths)]
-    out: dict[str, Issue] = {}
-    for p, leaf in deepest:
-        if leaf.validator in _WRAPPERS and any(q == p and x.validator not in _WRAPPERS for q, x in deepest):
-            continue
-        if leaf.validator == "additionalProperties":
-            # jsonschema reports an unknown field at its parent; validate.ts reports it at the field itself.
+    # (path, keyword, message) per innermost error. jsonschema reports an unknown field at its parent, validate.ts at
+    # the field itself, so it is moved to the field before the deepest-location filter.
+    found: list[tuple[str, str, str]] = []
+    for leaf in (x for e in errors for x in _leaves(e)):
+        p = _pointer(leaf.absolute_path)
+        if leaf.validator == "additionalProperties" and isinstance(leaf.instance, dict):
             known = set((leaf.schema or {}).get("properties", {}))
-            for extra in sorted(k for k in leaf.instance if k not in known):
-                path = f"{prefix}{p}/{extra}"
-                out.setdefault(f"{path}|unknown", Issue(path, "schema", f"unknown field {extra}"))
+            found += [(f"{p}/{k}", "additionalProperties", f"unknown field {k}") for k in sorted(leaf.instance) if k not in known]
+        else:
+            found.append((p, str(leaf.validator), _message(leaf)))
+    paths = [p for p, _, _ in found]
+    # Keep the deepest location, as validate.ts does; a missing required field is reported at its parent and kept.
+    deepest = [x for x in found if x[1] == "required" or not any(q != x[0] and q.startswith(f"{x[0]}/") for q in paths)]
+    out: dict[str, Issue] = {}
+    for p, keyword, message in deepest:
+        if keyword in _WRAPPERS and any(q == p and k not in _WRAPPERS for q, k, _ in deepest):
             continue
-        path = prefix + p
-        out.setdefault(f"{path}|{leaf.message}", Issue(path, "schema", leaf.message))
+        out.setdefault(f"{p}|{message}", Issue(prefix + p, "schema", message))
     return list(out.values())
 
 
@@ -101,8 +122,8 @@ def validate_run(run: Any) -> ValidationResult:
     """Validates a run. `ok` is False when there is any issue; the run must then not be stored."""
     issues: list[Issue] = []
     top = list(_run_validator().iter_errors(run))
-    # Fact errors are reported per fact below, with the fact's own schema.
-    issues += [i for i in _schema_issues(top) if not _FACT_PATH.match(i.path)]
+    # Fact and source errors are reported per item below, with the item's own schema.
+    issues += [i for i in _schema_issues(top) if not _ITEM_PATH.match(i.path)]
     if not isinstance(run, dict) or run.get("schema") != EXTRACTION_SCHEMA:
         return ValidationResult(False, issues)
     facts = run.get("facts") if isinstance(run.get("facts"), list) else []
@@ -111,12 +132,38 @@ def validate_run(run: Any) -> ValidationResult:
         if not isinstance(kind, str) or kind not in FACT_KINDS:
             issues.append(Issue(f"/facts/{i}/kind", "unknown_kind", f"unknown fact kind {json.dumps(kind, ensure_ascii=False)}"))
             continue
-        issues += _schema_issues(_fact_validator(kind).iter_errors(f), f"/facts/{i}")  # type: ignore[union-attr]
+        issues += _schema_issues(_def_validator(f"{_pascal(kind)}Fact").iter_errors(f), f"/facts/{i}")  # type: ignore[union-attr]
+    sources = run.get("sources") if isinstance(run.get("sources"), list) else []
+    for i, s in enumerate(sources):
+        stype = s.get("type") if isinstance(s, dict) else None
+        name = _SOURCE_DEFS.get(stype) if isinstance(stype, str) else None
+        if name is None:
+            issues.append(Issue(f"/sources/{i}/type", "schema", f"unknown source type {json.dumps(stype, ensure_ascii=False)}"))
+            continue
+        issues += _schema_issues(_def_validator(name).iter_errors(s), f"/sources/{i}")  # type: ignore[union-attr]
     # Reference rules need well-formed arrays; with schema errors present they would only add noise.
     if issues:
         return ValidationResult(False, issues)
     issues += reference_issues(run)
     return ValidationResult(not issues, issues)
+
+
+_SORT_FORM = {
+    "year": re.compile(r"^[0-9]{4}\Z"),
+    "month": re.compile(r"^[0-9]{4}-[0-9]{2}\Z"),
+    "day": re.compile(r"^[0-9]{4}-[0-9]{2}-[0-9]{2}\Z"),
+    "minute": re.compile(r"^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}"),
+}
+
+
+def date_precision_problem(date: Mapping[str, Any]) -> str | None:
+    """Why a fact date's sort form does not fit its precision, or None (datePrecisionProblem in validate.ts)."""
+    precision, sort = date.get("precision"), date.get("sort")
+    if (precision is None) != (sort is None):
+        return "precision and sort are set together or not at all"
+    if precision and sort and not _SORT_FORM[precision].match(sort):
+        return f"sort form {sort} does not match precision {precision}"
+    return None
 
 
 def _duplicates(items: list[Mapping[str, Any]], id_of: Callable[[Mapping[str, Any]], str], path: Callable[[int], str], code: str, what: str) -> list[Issue]:
@@ -182,7 +229,21 @@ def reference_issues(run: Mapping[str, Any]) -> list[Issue]:
         resolved = bool(f["sources"]) or f["origin"] == "assistant"
         want = build_fact_key(f, sources)
         if resolved and all(s in sources for s in f["sources"]) and base_key(f["key"]) != want:
-            push(f"{p}/key", "key_mismatch", f"key {json.dumps(f['key'], ensure_ascii=False)} should be {json.dumps(want, ensure_ascii=False)}")
+            # The message names no key: keys hold clinical text, and issues may be logged.
+            push(f"{p}/key", "key_mismatch", f"the key of fact {f['id']} does not follow from its kind and values")
+
+        # A partial date stays partial: "03/2024" must not gain a day in its sort form, which the timeline orders by.
+        problem = date_precision_problem(f["date"])
+        if problem:
+            push(f"{p}/date", "date_precision", problem)
+        # "Bez metastáz" is a recorded negative; the status and the negation must say the same.
+        if f["kind"] == "metastasis" and (v["status"] == "excluded") != f["negated"]:
+            want_neg = "true" if v["status"] == "excluded" else "false"
+            push(f"{p}/negated", "negation_mismatch", f"metastasis status {v['status']} needs negated: {want_neg}")
+        # A relative's disease is family history and never becomes the patient's.
+        if (f["kind"] == "family_history") != (f["subject"] == "relative"):
+            msg = "family history is about a relative" if f["kind"] == "family_history" else f"a {f['kind']} fact is about the patient"
+            push(f"{p}/subject", "subject_mismatch", msg)
 
         conflicting = any(sources.get(s, {}).get("type") == "document" and sources[s].get("identity") == "conflicts" for s in f["sources"])
         if conflicting and not f["quarantined"]:
@@ -217,6 +278,10 @@ def reference_issues(run: Mapping[str, Any]) -> list[Issue]:
                 push(f"{p}/facts/{j}", "unknown_fact", f"unknown fact {fid}")
             elif a["kind"] != "identity":
                 use_of(f"{p}/facts/{j}", fid)
+        # A rule's subject names the facts it is about (one ID, or a sorted pair); a quarantined one may not be among them.
+        if a["kind"] != "identity":
+            for fid in a["subject"].split("|"):
+                use_of(f"{p}/subject", fid)
         want = alert_id(a)
         if a["id"] != want:
             push(f"{p}/id", "alert_id_mismatch", f"alert ID {a['id']} should be {want} (rule and subject)")
@@ -229,6 +294,13 @@ def reference_issues(run: Mapping[str, Any]) -> list[Issue]:
         p = f"/checks/{i}"
         if c["expected"] and c["expected"]["of_fact"] not in facts:
             push(f"{p}/expected/of_fact", "unknown_fact", f"unknown fact {c['expected']['of_fact']}")
+        elif c["expected"]:
+            use_of(f"{p}/expected/of_fact", c["expected"]["of_fact"])
+        # A check for a fact kind must agree with the facts (quarantined facts count: the documents do state them).
+        if not c["expected"] and c["looks_for"] in FACT_KINDS and c["result"] != "not_run":
+            has = any(f["kind"] == c["looks_for"] for f in run["facts"])
+            if (c["result"] == "found") != has:
+                push(f"{p}/result", "check_result_mismatch", f"check {c['id']} says {c['result']} but the run has {'' if has else 'no '}{c['looks_for']} facts")
         for j, x in enumerate(c["covered"]):
             check_doc_part(f"{p}/covered/{j}", x["document_id"], x["part"])
         for j, x in enumerate(c["unreadable"]):

@@ -8,7 +8,7 @@
 import { Validator, type OutputUnit } from "@cfworker/json-schema";
 import schema from "../../schema/extraction-2.schema.json";
 import { alertId, baseKey, buildFactKey } from "./keys";
-import { EXTRACTION_SCHEMA, FACT_KINDS, type ExtractionRun, type Fact, type Source } from "./types";
+import { EXTRACTION_SCHEMA, FACT_KINDS, type ExtractionRun, type Fact, type FactDate, type Source } from "./types";
 
 export type IssueCode =
   | "schema"
@@ -31,7 +31,11 @@ export type IssueCode =
   | "quarantine_without_conflict"
   | "quarantine_without_identity_alert"
   | "quarantined_in_use"
-  | "sentence_without_facts";
+  | "sentence_without_facts"
+  | "date_precision"
+  | "negation_mismatch"
+  | "subject_mismatch"
+  | "check_result_mismatch";
 
 export interface Issue {
   /** JSON pointer into the run, for example "/facts/3/sources/0". */
@@ -50,22 +54,27 @@ const DEFS = (schema as { definitions: Definitions }).definitions;
 
 const runValidator = new Validator(schema as object, "7", false);
 
-/** One validator per fact kind, so an invalid fact reports what is wrong with it instead of 25 failed alternatives. */
-const factValidators = new Map<string, Validator>();
-function factValidator(kind: string): Validator | null {
-  const name = `${kind
-    .split("_")
-    .map((w) => w[0]!.toUpperCase() + w.slice(1))
-    .join("")}Fact`;
+/**
+ * One validator per member of a union (a fact kind, a source type), so an invalid fact or source reports what is wrong
+ * with it instead of the errors of every alternative it is not.
+ */
+const defValidators = new Map<string, Validator>();
+function defValidator(name: string): Validator | null {
   if (!DEFS[name]) return null;
-  let v = factValidators.get(name);
+  let v = defValidators.get(name);
   if (!v) {
     // The whole schema with another root, so its $id and definitions resolve the same way as for the run.
     v = new Validator({ ...(schema as object), $ref: `#/definitions/${name}` }, "7", false);
-    factValidators.set(name, v);
+    defValidators.set(name, v);
   }
   return v;
 }
+const pascal = (snake: string) =>
+  snake
+    .split("_")
+    .map((w) => w[0]!.toUpperCase() + w.slice(1))
+    .join("");
+const SOURCE_DEFS: Record<string, string> = { document: "DocumentSource", nis: "NisSource" };
 
 const WRAPPER_KEYWORDS = new Set(["$ref", "anyOf", "allOf", "oneOf", "properties", "items", "if", "then", "else"]);
 
@@ -73,8 +82,11 @@ function schemaIssues(errors: OutputUnit[], prefix = ""): Issue[] {
   // The validator reports every enclosing step too ($ref, properties, anyOf), and a property that fails its own schema
   // is reported again by additionalProperties as if it were unknown. The deepest location carries the real problem, so
   // only those are kept, and an additionalProperties echo is kept only when nothing else explains the location.
+  // A missing required field is reported at its parent, which has deeper errors too, so it is always kept.
   const locs = errors.map((e) => e.instanceLocation);
-  const deepest = errors.filter((e) => !locs.some((l) => l !== e.instanceLocation && l.startsWith(`${e.instanceLocation}/`)));
+  const deepest = errors.filter(
+    (e) => e.keyword === "required" || !locs.some((l) => l !== e.instanceLocation && l.startsWith(`${e.instanceLocation}/`)),
+  );
   const out = new Map<string, Issue>();
   const echo = (e: OutputUnit) => e.keyword === "false" || e.keyword === "additionalProperties";
   // A $ref or anyOf step at the same location only says "a subschema had errors"; the step inside it says which.
@@ -96,8 +108,8 @@ export function validateRun(input: unknown): ValidationResult {
   const issues: Issue[] = [];
   const top = runValidator.validate(input);
   if (!top.valid) {
-    // Fact errors are reported per fact below, with the fact's own schema.
-    issues.push(...schemaIssues(top.errors).filter((i) => !/^\/facts\/\d+/.test(i.path)));
+    // Fact and source errors are reported per item below, with the item's own schema.
+    issues.push(...schemaIssues(top.errors).filter((i) => !/^\/(facts|sources)\/\d+/.test(i.path)));
   }
   if (typeof input !== "object" || input === null) return { ok: false, issues };
   const run = input as Partial<ExtractionRun>;
@@ -110,13 +122,40 @@ export function validateRun(input: unknown): ValidationResult {
       issues.push({ path: `/facts/${i}/kind`, code: "unknown_kind", message: `unknown fact kind ${JSON.stringify(kind)}` });
       return;
     }
-    const r = factValidator(kind)!.validate(f);
+    const r = defValidator(`${pascal(kind)}Fact`)!.validate(f);
     if (!r.valid) issues.push(...schemaIssues(r.errors, `/facts/${i}`));
+  });
+  const sources = Array.isArray(run.sources) ? run.sources : [];
+  sources.forEach((s, i) => {
+    const type = (s as { type?: unknown })?.type;
+    const def = typeof type === "string" ? SOURCE_DEFS[type] : undefined;
+    if (!def) {
+      issues.push({ path: `/sources/${i}/type`, code: "schema", message: `unknown source type ${JSON.stringify(type)}` });
+      return;
+    }
+    const r = defValidator(def)!.validate(s);
+    if (!r.valid) issues.push(...schemaIssues(r.errors, `/sources/${i}`));
   });
   // Reference rules need well-formed arrays; with schema errors present they would only add noise.
   if (issues.length) return { ok: false, issues };
   issues.push(...referenceIssues(run as ExtractionRun));
   return { ok: issues.length === 0, issues };
+}
+
+const SORT_FORM: Record<string, RegExp> = {
+  year: /^\d{4}$/,
+  month: /^\d{4}-\d{2}$/,
+  day: /^\d{4}-\d{2}-\d{2}$/,
+  minute: /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/,
+};
+
+/** Why a fact date's sort form does not fit its precision, or null. */
+export function datePrecisionProblem(date: FactDate): string | null {
+  if ((date.precision === null) !== (date.sort === null)) return "precision and sort are set together or not at all";
+  if (date.precision && date.sort && !SORT_FORM[date.precision]!.test(date.sort)) {
+    return `sort form ${date.sort} does not match precision ${date.precision}`;
+  }
+  return null;
 }
 
 function duplicates<T>(items: readonly T[], idOf: (x: T) => string, path: (i: number) => string, code: IssueCode, what: string): Issue[] {
@@ -184,7 +223,20 @@ export function referenceIssues(run: ExtractionRun): Issue[] {
     const resolved = f.sources.length > 0 || f.origin === "assistant";
     const want = buildFactKey(f, sources);
     if (resolved && f.sources.every((s) => sources.has(s)) && baseKey(f.key) !== want) {
-      push(`${p}/key`, "key_mismatch", `key ${JSON.stringify(f.key)} should be ${JSON.stringify(want)}`);
+      // The message names no key: keys hold clinical text, and issues may be logged.
+      push(`${p}/key`, "key_mismatch", `the key of fact ${f.id} does not follow from its kind and values`);
+    }
+
+    // A partial date stays partial: "03/2024" must not gain a day in its sort form, which the timeline orders by.
+    const dateProblem = datePrecisionProblem(f.date);
+    if (dateProblem) push(`${p}/date`, "date_precision", dateProblem);
+    // "Bez metastáz" is a recorded negative; the status and the negation must say the same.
+    if (f.kind === "metastasis" && (f.value.status === "excluded") !== f.negated) {
+      push(`${p}/negated`, "negation_mismatch", `metastasis status ${f.value.status} needs negated: ${f.value.status === "excluded"}`);
+    }
+    // A relative's disease is family history and never becomes the patient's.
+    if ((f.kind === "family_history") !== (f.subject === "relative")) {
+      push(`${p}/subject`, "subject_mismatch", f.kind === "family_history" ? "family history is about a relative" : `a ${f.kind} fact is about the patient`);
     }
 
     const conflicting = f.sources.some((s) => {
@@ -223,6 +275,8 @@ export function referenceIssues(run: ExtractionRun): Issue[] {
       if (!hasFact(id)) push(`${p}/facts/${j}`, "unknown_fact", `unknown fact ${id}`);
       else if (a.kind !== "identity") useOf(`${p}/facts/${j}`, id);
     });
+    // A rule's subject names the facts it is about (one ID, or a sorted pair); a quarantined one may not be among them.
+    if (a.kind !== "identity") a.subject.split("|").forEach((id) => useOf(`${p}/subject`, id));
     const want = alertId(a);
     if (a.id !== want) push(`${p}/id`, "alert_id_mismatch", `alert ID ${a.id} should be ${want} (rule and subject)`);
     if (a.kind === "contradiction") {
@@ -234,6 +288,16 @@ export function referenceIssues(run: ExtractionRun): Issue[] {
   run.checks.forEach((c, i) => {
     const p = `/checks/${i}`;
     if (c.expected && !hasFact(c.expected.of_fact)) push(`${p}/expected/of_fact`, "unknown_fact", `unknown fact ${c.expected.of_fact}`);
+    else if (c.expected) useOf(`${p}/expected/of_fact`, c.expected.of_fact);
+    // A check for a fact kind must agree with the facts: "nothing found" next to real facts would show "neuvedeno"
+    // over documented content, and "found" with none would hide a gap. Quarantined facts count as found, since the
+    // documents do state something; the identity alert says why it is not shown.
+    if (!c.expected && (FACT_KINDS as readonly string[]).includes(c.looks_for) && c.result !== "not_run") {
+      const any = run.facts.some((f) => f.kind === c.looks_for);
+      if ((c.result === "found") !== any) {
+        push(`${p}/result`, "check_result_mismatch", `check ${c.id} says ${c.result} but the run has ${any ? "" : "no "}${c.looks_for} facts`);
+      }
+    }
     c.covered.forEach((x, j) => checkDocPart(`${p}/covered/${j}`, x.document_id, x.part));
     c.unreadable.forEach((x, j) => checkDocPart(`${p}/unreadable/${j}`, x.document_id, x.part));
   });

@@ -45,6 +45,18 @@
   [
    "é",
    "é"
+  ],
+  [
+   "meta­stáza",
+   "metastáza"
+  ],
+  [
+   "Ca​prsu",
+   "caprsu"
+  ],
+  [
+   "﻿Hypertenze　",
+   "hypertenze"
   ]
  ],
  "date_seg": [
@@ -68,7 +80,7 @@
    {
     "as_written": "03/2024",
     "precision": "month",
-    "sort": "2024-03-15"
+    "sort": "2024-03"
    },
    "2024-03"
   ],
@@ -88,6 +100,5788 @@
    },
    "2026-09-14T10:05"
   ]
+ ],
+ "date_precision": [
+  [
+   {
+    "as_written": null,
+    "precision": null,
+    "sort": null
+   },
+   false
+  ],
+  [
+   {
+    "as_written": "2.6.2022",
+    "precision": "day",
+    "sort": "2022-06-02"
+   },
+   false
+  ],
+  [
+   {
+    "as_written": "6/2022",
+    "precision": "month",
+    "sort": "2022-06-02"
+   },
+   true
+  ],
+  [
+   {
+    "as_written": "6/2022",
+    "precision": "month",
+    "sort": null
+   },
+   true
+  ],
+  [
+   {
+    "as_written": "2024",
+    "precision": "year",
+    "sort": "2024"
+   },
+   false
+  ],
+  [
+   {
+    "as_written": "14.9.2026 10:05",
+    "precision": "minute",
+    "sort": "2026-09-14T10:05:00+02:00"
+   },
+   false
+  ]
+ ],
+ "value_text": [
+  [
+   {
+    "b": 1e-7,
+    "a": 1e+21,
+    "c": [
+     0.1,
+     2,
+     true,
+     null
+    ]
+   },
+   "1e+21 1e-7 0.1 2 true "
+  ],
+  [
+   {
+    "x": 123456789012345680000,
+    "y": 0.000001,
+    "z": 1.5e-10
+   },
+   "123456789012345680000 0.000001 1.5e-10"
+  ],
+  [
+   {
+    "t": "Žluť",
+    "n": 107,
+    "f": 9.5
+   },
+   "9.5 107 Žluť"
+  ]
+ ],
+ "collisions": [
+  {
+   "facts": [
+    {
+     "kind": "lab_result",
+     "subject": "patient",
+     "value": {
+      "name_as_written": "hsCRP",
+      "value_as_written": "9,5",
+      "value_numeric": 9.5,
+      "unit_as_written": "mg/1",
+      "unit": "mg/l",
+      "reference_range": "0 ... 5",
+      "reference_low": 0,
+      "reference_high": 5,
+      "out_of_range": "high",
+      "out_of_range_origin": "assistant",
+      "draw": {
+       "as_written": null,
+       "requisition": null,
+       "specimen": null
+      }
+     },
+     "date": {
+      "as_written": null,
+      "precision": null,
+      "sort": null
+     },
+     "status": "documented",
+     "negated": false,
+     "not_stated": [
+      "draw"
+     ],
+     "origin": "document",
+     "certainty": "verify",
+     "certainty_reason": {
+      "code": "ocr_char_swap",
+      "text": "V textu „mg/1“ a „O“, čteno jako mg/l a 0."
+     },
+     "codes": [
+      {
+       "system": "fno-local-lab",
+       "code": "S_HSCRP",
+       "assigned_by": "source"
+      }
+     ],
+     "note": null,
+     "quarantined": false,
+     "sources": [
+      "src-7c1e"
+     ]
+    },
+    {
+     "kind": "lab_result",
+     "subject": "patient",
+     "value": {
+      "name_as_written": "hsCRP",
+      "value_as_written": "12,0",
+      "value_numeric": 12,
+      "unit_as_written": "mg/1",
+      "unit": "mg/l",
+      "reference_range": "0 ... 5",
+      "reference_low": 0,
+      "reference_high": 5,
+      "out_of_range": "high",
+      "out_of_range_origin": "assistant",
+      "draw": {
+       "as_written": null,
+       "requisition": null,
+       "specimen": null
+      }
+     },
+     "date": {
+      "as_written": null,
+      "precision": null,
+      "sort": null
+     },
+     "status": "documented",
+     "negated": false,
+     "not_stated": [
+      "draw"
+     ],
+     "origin": "document",
+     "certainty": "verify",
+     "certainty_reason": {
+      "code": "ocr_char_swap",
+      "text": "V textu „mg/1“ a „O“, čteno jako mg/l a 0."
+     },
+     "codes": [
+      {
+       "system": "fno-local-lab",
+       "code": "S_HSCRP",
+       "assigned_by": "source"
+      }
+     ],
+     "note": null,
+     "quarantined": false,
+     "sources": [
+      "src-7c1e"
+     ]
+    }
+   ],
+   "sources": [
+    {
+     "id": "src-nis-41",
+     "type": "nis",
+     "system": "https://nis.fno.example/fhir",
+     "resource": "Observation/8812",
+     "version": "3",
+     "last_updated": "2026-09-17T08:12:00+02:00"
+    },
+    {
+     "id": "src-0042",
+     "type": "document",
+     "document_id": "10_pacient",
+     "part": "10_pacient/p1",
+     "page": 4,
+     "quote": "ECOG PS 1, bez klinických známek mozkových metastáz",
+     "quote_text": "tesseract",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
+     "id": "src-0041",
+     "type": "document",
+     "document_id": "10_pacient",
+     "part": "10_pacient/p1",
+     "page": 4,
+     "quote": "Doporučeno projednání nálezu MR mozku na neurochirurgickém semináři.",
+     "quote_text": "tesseract",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
+     "id": "src-0001",
+     "type": "document",
+     "document_id": "10_pacient",
+     "part": "10_pacient/p0",
+     "page": 1,
+     "quote": "pT2a pN1(3+/5) MO",
+     "quote_text": "tesseract",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
+     "id": "src-7c1e",
+     "type": "document",
+     "document_id": "10_pacient",
+     "part": "10_pacient/p2",
+     "page": 3,
+     "quote": "S_HSCRP: 9,5 mg/1 [O ... 5]",
+     "quote_text": "tesseract",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": {
+      "mark": true,
+      "tokens": [
+       {
+        "pdf_text": "mg/1",
+        "tesseract": "mg/1",
+        "vision": "mg/l",
+        "rule": "differ"
+       }
+      ]
+     }
+    }
+   ],
+   "keys": [
+    "lab_result|S_HSCRP|draw:undated|doc:10_pacient#2",
+    "lab_result|S_HSCRP|draw:undated|doc:10_pacient"
+   ]
+  }
+ ],
+ "matches": [
+  {
+   "name": "first run",
+   "previous": null,
+   "drafts": [
+    {
+     "kind": "lab_result",
+     "subject": "patient",
+     "value": {
+      "name_as_written": "hsCRP",
+      "value_as_written": "9,5",
+      "value_numeric": 9.5,
+      "unit_as_written": "mg/1",
+      "unit": "mg/l",
+      "reference_range": "0 ... 5",
+      "reference_low": 0,
+      "reference_high": 5,
+      "out_of_range": "high",
+      "out_of_range_origin": "assistant",
+      "draw": {
+       "as_written": null,
+       "requisition": null,
+       "specimen": null
+      }
+     },
+     "date": {
+      "as_written": null,
+      "precision": null,
+      "sort": null
+     },
+     "status": "documented",
+     "negated": false,
+     "not_stated": [
+      "draw"
+     ],
+     "origin": "document",
+     "certainty": "verify",
+     "certainty_reason": {
+      "code": "ocr_char_swap",
+      "text": "V textu „mg/1“ a „O“, čteno jako mg/l a 0."
+     },
+     "codes": [
+      {
+       "system": "fno-local-lab",
+       "code": "S_HSCRP",
+       "assigned_by": "source"
+      }
+     ],
+     "note": null,
+     "quarantined": false,
+     "sources": [
+      "src-7c1e"
+     ]
+    },
+    {
+     "kind": "stage",
+     "subject": "patient",
+     "value": {
+      "tnm_as_written": "pT2a pN1(3+/5) MO",
+      "tnm": "pT2a pN1 M0",
+      "stage_kind": "pathological",
+      "edition": null,
+      "as_of": "2.6.2022",
+      "at_diagnosis": true
+     },
+     "date": {
+      "as_written": "2.6.2022",
+      "precision": "day",
+      "sort": "2022-06-02"
+     },
+     "status": "documented",
+     "negated": false,
+     "not_stated": [
+      "edition"
+     ],
+     "origin": "document",
+     "certainty": "verify",
+     "certainty_reason": {
+      "code": "ocr_char_swap",
+      "text": "V textu „MO“, čteno jako M0."
+     },
+     "codes": [],
+     "note": null,
+     "quarantined": false,
+     "sources": [
+      "src-0001"
+     ]
+    },
+    {
+     "kind": "request",
+     "subject": "patient",
+     "value": {
+      "what": "projednání nálezu MR mozku na neurochirurgickém semináři",
+      "request_kind": "consultation",
+      "result_fact": null
+     },
+     "date": {
+      "as_written": null,
+      "precision": null,
+      "sort": null
+     },
+     "status": "requested",
+     "negated": false,
+     "not_stated": [
+      "date"
+     ],
+     "origin": "document",
+     "certainty": "clear",
+     "codes": [],
+     "note": null,
+     "quarantined": false,
+     "sources": [
+      "src-0041"
+     ]
+    },
+    {
+     "kind": "performance_status",
+     "subject": "patient",
+     "value": {
+      "scale": "ECOG",
+      "value_as_written": "1",
+      "value_numeric": 1
+     },
+     "date": {
+      "as_written": null,
+      "precision": null,
+      "sort": null
+     },
+     "status": "documented",
+     "negated": false,
+     "not_stated": [],
+     "origin": "document",
+     "certainty": "clear",
+     "codes": [],
+     "note": null,
+     "quarantined": false,
+     "sources": [
+      "src-0042"
+     ]
+    },
+    {
+     "kind": "metastasis",
+     "subject": "patient",
+     "value": {
+      "site": "mozek",
+      "status": "excluded",
+      "basis": "clinical",
+      "text": "bez klinických známek mozkových metastáz"
+     },
+     "date": {
+      "as_written": null,
+      "precision": null,
+      "sort": null
+     },
+     "status": "documented",
+     "negated": true,
+     "not_stated": [],
+     "origin": "document",
+     "certainty": "clear",
+     "codes": [],
+     "note": null,
+     "quarantined": false,
+     "sources": [
+      "src-0042"
+     ]
+    },
+    {
+     "kind": "lab_result",
+     "subject": "patient",
+     "value": {
+      "name_as_written": "Kreatinin",
+      "value_as_written": "107",
+      "value_numeric": 107,
+      "unit_as_written": "µmol/l",
+      "unit": "µmol/l",
+      "reference_range": "59 ... 104",
+      "reference_low": 59,
+      "reference_high": 104,
+      "out_of_range": "high",
+      "out_of_range_origin": "document",
+      "draw": {
+       "as_written": "2026-09-17",
+       "requisition": null,
+       "specimen": "sérum"
+      }
+     },
+     "date": {
+      "as_written": "2026-09-17",
+      "precision": "day",
+      "sort": "2026-09-17"
+     },
+     "status": "documented",
+     "negated": false,
+     "not_stated": [],
+     "origin": "nis",
+     "certainty": "clear",
+     "codes": [
+      {
+       "system": "fno-local-lab",
+       "code": "S_CREA",
+       "assigned_by": "source"
+      }
+     ],
+     "note": null,
+     "quarantined": false,
+     "sources": [
+      "src-nis-41"
+     ]
+    },
+    {
+     "kind": "interval",
+     "subject": "patient",
+     "value": {
+      "from_fact": "f-0b19e4",
+      "to_fact": "f-6e2201",
+      "days": 1568,
+      "length_as_computed": "1568 dní",
+      "from_precision": "day",
+      "to_precision": "day"
+     },
+     "date": {
+      "as_written": null,
+      "precision": null,
+      "sort": null
+     },
+     "status": "documented",
+     "negated": false,
+     "not_stated": [],
+     "origin": "assistant",
+     "certainty": "inferred",
+     "codes": [],
+     "note": null,
+     "quarantined": false,
+     "sources": [],
+     "based_on": [
+      "f-0b19e4",
+      "f-6e2201"
+     ]
+    }
+   ],
+   "sources": [
+    {
+     "id": "src-7c1e",
+     "type": "document",
+     "document_id": "10_pacient",
+     "part": "10_pacient/p2",
+     "page": 3,
+     "quote": "S_HSCRP: 9,5 mg/1 [O ... 5]",
+     "quote_text": "tesseract",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": {
+      "mark": true,
+      "tokens": [
+       {
+        "pdf_text": "mg/1",
+        "tesseract": "mg/1",
+        "vision": "mg/l",
+        "rule": "differ"
+       }
+      ]
+     }
+    },
+    {
+     "id": "src-0001",
+     "type": "document",
+     "document_id": "10_pacient",
+     "part": "10_pacient/p0",
+     "page": 1,
+     "quote": "pT2a pN1(3+/5) MO",
+     "quote_text": "tesseract",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
+     "id": "src-0041",
+     "type": "document",
+     "document_id": "10_pacient",
+     "part": "10_pacient/p1",
+     "page": 4,
+     "quote": "Doporučeno projednání nálezu MR mozku na neurochirurgickém semináři.",
+     "quote_text": "tesseract",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
+     "id": "src-0042",
+     "type": "document",
+     "document_id": "10_pacient",
+     "part": "10_pacient/p1",
+     "page": 4,
+     "quote": "ECOG PS 1, bez klinických známek mozkových metastáz",
+     "quote_text": "tesseract",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
+     "id": "src-nis-41",
+     "type": "nis",
+     "system": "https://nis.fno.example/fhir",
+     "resource": "Observation/8812",
+     "version": "3",
+     "last_updated": "2026-09-17T08:12:00+02:00"
+    }
+   ],
+   "options": {},
+   "expected": {
+    "ids": [
+     "f-dffc4d94",
+     "f-76e20da5",
+     "f-e7f16bae",
+     "f-3cfe8dd6",
+     "f-816154af",
+     "f-1f07ee77",
+     "f-dcb7d780"
+    ],
+    "keys": [
+     "lab_result|S_HSCRP|draw:undated|doc:10_pacient",
+     "stage|pathological|2022-06-02",
+     "request|projednání nálezu mr mozku na neurochirurgickém semináři|undated",
+     "performance_status|ecog|undated",
+     "metastasis|mozek|undated",
+     "lab_result|S_CREA|draw:2026-09-17|nis:Observation/8812",
+     "interval|f-0b19e4|f-6e2201"
+    ],
+    "how": {
+     "f-dffc4d94": "new",
+     "f-76e20da5": "new",
+     "f-e7f16bae": "new",
+     "f-3cfe8dd6": "new",
+     "f-816154af": "new",
+     "f-1f07ee77": "new",
+     "f-dcb7d780": "new"
+    },
+    "dropped": []
+   }
+  },
+  {
+   "name": "reordered",
+   "previous": {
+    "schema": "codebridge.extraction/2",
+    "case_id": "NO-010",
+    "content_language": "cs",
+    "run": {
+     "id": "run-2026-10-19T10:04:11Z-a1b2",
+     "producer": "fixture",
+     "created_at": "2026-10-19T10:04:11Z",
+     "stages": [
+      {
+       "name": "convert",
+       "engine": "EXTRACTION-FORMAT.md worked examples"
+      }
+     ],
+     "supersedes": null
+    },
+    "documents": [
+     {
+      "document_id": "10_pacient",
+      "sha256": null,
+      "parts": [
+       "10_pacient/p0",
+       "10_pacient/p1",
+       "10_pacient/p2"
+      ]
+     }
+    ],
+    "sources": [
+     {
+      "id": "src-7c1e",
+      "type": "document",
+      "document_id": "10_pacient",
+      "part": "10_pacient/p2",
+      "page": 3,
+      "quote": "S_HSCRP: 9,5 mg/1 [O ... 5]",
+      "quote_text": "tesseract",
+      "anchor": null,
+      "reported_as": "original",
+      "identity": "matches",
+      "reading_check": {
+       "mark": true,
+       "tokens": [
+        {
+         "pdf_text": "mg/1",
+         "tesseract": "mg/1",
+         "vision": "mg/l",
+         "rule": "differ"
+        }
+       ]
+      }
+     },
+     {
+      "id": "src-0001",
+      "type": "document",
+      "document_id": "10_pacient",
+      "part": "10_pacient/p0",
+      "page": 1,
+      "quote": "pT2a pN1(3+/5) MO",
+      "quote_text": "tesseract",
+      "anchor": null,
+      "reported_as": "original",
+      "identity": "matches",
+      "reading_check": null
+     },
+     {
+      "id": "src-0041",
+      "type": "document",
+      "document_id": "10_pacient",
+      "part": "10_pacient/p1",
+      "page": 4,
+      "quote": "Doporučeno projednání nálezu MR mozku na neurochirurgickém semináři.",
+      "quote_text": "tesseract",
+      "anchor": null,
+      "reported_as": "original",
+      "identity": "matches",
+      "reading_check": null
+     },
+     {
+      "id": "src-0042",
+      "type": "document",
+      "document_id": "10_pacient",
+      "part": "10_pacient/p1",
+      "page": 4,
+      "quote": "ECOG PS 1, bez klinických známek mozkových metastáz",
+      "quote_text": "tesseract",
+      "anchor": null,
+      "reported_as": "original",
+      "identity": "matches",
+      "reading_check": null
+     },
+     {
+      "id": "src-nis-41",
+      "type": "nis",
+      "system": "https://nis.fno.example/fhir",
+      "resource": "Observation/8812",
+      "version": "3",
+      "last_updated": "2026-09-17T08:12:00+02:00"
+     }
+    ],
+    "facts": [
+     {
+      "id": "f-8d41c2",
+      "key": "lab_result|S_HSCRP|draw:undated|doc:10_pacient",
+      "kind": "lab_result",
+      "subject": "patient",
+      "value": {
+       "name_as_written": "hsCRP",
+       "value_as_written": "9,5",
+       "value_numeric": 9.5,
+       "unit_as_written": "mg/1",
+       "unit": "mg/l",
+       "reference_range": "0 ... 5",
+       "reference_low": 0,
+       "reference_high": 5,
+       "out_of_range": "high",
+       "out_of_range_origin": "assistant",
+       "draw": {
+        "as_written": null,
+        "requisition": null,
+        "specimen": null
+       }
+      },
+      "date": {
+       "as_written": null,
+       "precision": null,
+       "sort": null
+      },
+      "status": "documented",
+      "negated": false,
+      "not_stated": [
+       "draw"
+      ],
+      "origin": "document",
+      "certainty": "verify",
+      "certainty_reason": {
+       "code": "ocr_char_swap",
+       "text": "V textu „mg/1“ a „O“, čteno jako mg/l a 0."
+      },
+      "codes": [
+       {
+        "system": "fno-local-lab",
+        "code": "S_HSCRP",
+        "assigned_by": "source"
+       }
+      ],
+      "note": null,
+      "quarantined": false,
+      "sources": [
+       "src-7c1e"
+      ]
+     },
+     {
+      "id": "f-0b19e4",
+      "key": "stage|pathological|2022-06-02",
+      "kind": "stage",
+      "subject": "patient",
+      "value": {
+       "tnm_as_written": "pT2a pN1(3+/5) MO",
+       "tnm": "pT2a pN1 M0",
+       "stage_kind": "pathological",
+       "edition": null,
+       "as_of": "2.6.2022",
+       "at_diagnosis": true
+      },
+      "date": {
+       "as_written": "2.6.2022",
+       "precision": "day",
+       "sort": "2022-06-02"
+      },
+      "status": "documented",
+      "negated": false,
+      "not_stated": [
+       "edition"
+      ],
+      "origin": "document",
+      "certainty": "verify",
+      "certainty_reason": {
+       "code": "ocr_char_swap",
+       "text": "V textu „MO“, čteno jako M0."
+      },
+      "codes": [],
+      "note": null,
+      "quarantined": false,
+      "sources": [
+       "src-0001"
+      ]
+     },
+     {
+      "id": "f-3c90de",
+      "key": "request|projednání nálezu mr mozku na neurochirurgickém semináři|undated",
+      "kind": "request",
+      "subject": "patient",
+      "value": {
+       "what": "projednání nálezu MR mozku na neurochirurgickém semináři",
+       "request_kind": "consultation",
+       "result_fact": null
+      },
+      "date": {
+       "as_written": null,
+       "precision": null,
+       "sort": null
+      },
+      "status": "requested",
+      "negated": false,
+      "not_stated": [
+       "date"
+      ],
+      "origin": "document",
+      "certainty": "clear",
+      "codes": [],
+      "note": null,
+      "quarantined": false,
+      "sources": [
+       "src-0041"
+      ]
+     },
+     {
+      "id": "f-5a0b11",
+      "key": "performance_status|ecog|undated",
+      "kind": "performance_status",
+      "subject": "patient",
+      "value": {
+       "scale": "ECOG",
+       "value_as_written": "1",
+       "value_numeric": 1
+      },
+      "date": {
+       "as_written": null,
+       "precision": null,
+       "sort": null
+      },
+      "status": "documented",
+      "negated": false,
+      "not_stated": [],
+      "origin": "document",
+      "certainty": "clear",
+      "codes": [],
+      "note": null,
+      "quarantined": false,
+      "sources": [
+       "src-0042"
+      ]
+     },
+     {
+      "id": "f-5a0b12",
+      "key": "metastasis|mozek|undated",
+      "kind": "metastasis",
+      "subject": "patient",
+      "value": {
+       "site": "mozek",
+       "status": "excluded",
+       "basis": "clinical",
+       "text": "bez klinických známek mozkových metastáz"
+      },
+      "date": {
+       "as_written": null,
+       "precision": null,
+       "sort": null
+      },
+      "status": "documented",
+      "negated": true,
+      "not_stated": [],
+      "origin": "document",
+      "certainty": "clear",
+      "codes": [],
+      "note": null,
+      "quarantined": false,
+      "sources": [
+       "src-0042"
+      ]
+     },
+     {
+      "id": "f-6e2201",
+      "key": "lab_result|S_CREA|draw:2026-09-17|nis:Observation/8812",
+      "kind": "lab_result",
+      "subject": "patient",
+      "value": {
+       "name_as_written": "Kreatinin",
+       "value_as_written": "107",
+       "value_numeric": 107,
+       "unit_as_written": "µmol/l",
+       "unit": "µmol/l",
+       "reference_range": "59 ... 104",
+       "reference_low": 59,
+       "reference_high": 104,
+       "out_of_range": "high",
+       "out_of_range_origin": "document",
+       "draw": {
+        "as_written": "2026-09-17",
+        "requisition": null,
+        "specimen": "sérum"
+       }
+      },
+      "date": {
+       "as_written": "2026-09-17",
+       "precision": "day",
+       "sort": "2026-09-17"
+      },
+      "status": "documented",
+      "negated": false,
+      "not_stated": [],
+      "origin": "nis",
+      "certainty": "clear",
+      "codes": [
+       {
+        "system": "fno-local-lab",
+        "code": "S_CREA",
+        "assigned_by": "source"
+       }
+      ],
+      "note": null,
+      "quarantined": false,
+      "sources": [
+       "src-nis-41"
+      ]
+     },
+     {
+      "id": "f-9f0001",
+      "key": "interval|f-0b19e4|f-6e2201",
+      "kind": "interval",
+      "subject": "patient",
+      "value": {
+       "from_fact": "f-0b19e4",
+       "to_fact": "f-6e2201",
+       "days": 1568,
+       "length_as_computed": "1568 dní",
+       "from_precision": "day",
+       "to_precision": "day"
+      },
+      "date": {
+       "as_written": null,
+       "precision": null,
+       "sort": null
+      },
+      "status": "documented",
+      "negated": false,
+      "not_stated": [],
+      "origin": "assistant",
+      "certainty": "inferred",
+      "codes": [],
+      "note": null,
+      "quarantined": false,
+      "sources": [],
+      "based_on": [
+       "f-0b19e4",
+       "f-6e2201"
+      ]
+     }
+    ],
+    "checks": [
+     {
+      "id": "chk-allergy",
+      "looks_for": "allergy",
+      "expected": null,
+      "covered": [
+       {
+        "document_id": "10_pacient",
+        "part": "10_pacient/p0"
+       },
+       {
+        "document_id": "10_pacient",
+        "part": "10_pacient/p1"
+       }
+      ],
+      "unreadable": [
+       {
+        "document_id": "10_pacient",
+        "part": "10_pacient/p2",
+        "page": 4
+       }
+      ],
+      "result": "nothing_found"
+     },
+     {
+      "id": "chk-lab_result",
+      "looks_for": "lab_result",
+      "expected": null,
+      "covered": [
+       {
+        "document_id": "10_pacient",
+        "part": "10_pacient/p2"
+       }
+      ],
+      "unreadable": [],
+      "result": "found"
+     }
+    ],
+    "alerts": [
+     {
+      "id": "al-77205d20",
+      "rule": "request_without_result",
+      "subject": "f-3c90de",
+      "kind": "missing",
+      "facts": [
+       "f-3c90de"
+      ],
+      "message": {
+       "id": "alert-request-without-result",
+       "args": {
+        "fact": "f-3c90de"
+       }
+      },
+      "note": null
+     }
+    ],
+    "brief": {
+     "sentences": [
+      {
+       "text": "Patologické stadium pT2a pN1 M0 z 2.6.2022.",
+       "facts": [
+        "f-0b19e4"
+       ]
+      }
+     ],
+     "made_by": {
+      "model": null,
+      "prompt": null
+     }
+    },
+    "question_draft": {
+     "text": "Jaký postup doporučuje neurochirurgický seminář u solitárního ložiska v pravé mozečkové hemisféře?",
+     "question_kind": "document_purpose",
+     "basis": [
+      {
+       "role": "purpose",
+       "facts": [
+        "f-3c90de"
+       ]
+      }
+     ]
+    }
+   },
+   "drafts": [
+    {
+     "kind": "interval",
+     "subject": "patient",
+     "value": {
+      "from_fact": "f-0b19e4",
+      "to_fact": "f-6e2201",
+      "days": 1568,
+      "length_as_computed": "1568 dní",
+      "from_precision": "day",
+      "to_precision": "day"
+     },
+     "date": {
+      "as_written": null,
+      "precision": null,
+      "sort": null
+     },
+     "status": "documented",
+     "negated": false,
+     "not_stated": [],
+     "origin": "assistant",
+     "certainty": "inferred",
+     "codes": [],
+     "note": null,
+     "quarantined": false,
+     "sources": [],
+     "based_on": [
+      "f-0b19e4",
+      "f-6e2201"
+     ]
+    },
+    {
+     "kind": "lab_result",
+     "subject": "patient",
+     "value": {
+      "name_as_written": "Kreatinin",
+      "value_as_written": "107",
+      "value_numeric": 107,
+      "unit_as_written": "µmol/l",
+      "unit": "µmol/l",
+      "reference_range": "59 ... 104",
+      "reference_low": 59,
+      "reference_high": 104,
+      "out_of_range": "high",
+      "out_of_range_origin": "document",
+      "draw": {
+       "as_written": "2026-09-17",
+       "requisition": null,
+       "specimen": "sérum"
+      }
+     },
+     "date": {
+      "as_written": "2026-09-17",
+      "precision": "day",
+      "sort": "2026-09-17"
+     },
+     "status": "documented",
+     "negated": false,
+     "not_stated": [],
+     "origin": "nis",
+     "certainty": "clear",
+     "codes": [
+      {
+       "system": "fno-local-lab",
+       "code": "S_CREA",
+       "assigned_by": "source"
+      }
+     ],
+     "note": null,
+     "quarantined": false,
+     "sources": [
+      "src-nis-41"
+     ]
+    },
+    {
+     "kind": "metastasis",
+     "subject": "patient",
+     "value": {
+      "site": "mozek",
+      "status": "excluded",
+      "basis": "clinical",
+      "text": "bez klinických známek mozkových metastáz"
+     },
+     "date": {
+      "as_written": null,
+      "precision": null,
+      "sort": null
+     },
+     "status": "documented",
+     "negated": true,
+     "not_stated": [],
+     "origin": "document",
+     "certainty": "clear",
+     "codes": [],
+     "note": null,
+     "quarantined": false,
+     "sources": [
+      "src-0042"
+     ]
+    },
+    {
+     "kind": "performance_status",
+     "subject": "patient",
+     "value": {
+      "scale": "ECOG",
+      "value_as_written": "1",
+      "value_numeric": 1
+     },
+     "date": {
+      "as_written": null,
+      "precision": null,
+      "sort": null
+     },
+     "status": "documented",
+     "negated": false,
+     "not_stated": [],
+     "origin": "document",
+     "certainty": "clear",
+     "codes": [],
+     "note": null,
+     "quarantined": false,
+     "sources": [
+      "src-0042"
+     ]
+    },
+    {
+     "kind": "request",
+     "subject": "patient",
+     "value": {
+      "what": "projednání nálezu MR mozku na neurochirurgickém semináři",
+      "request_kind": "consultation",
+      "result_fact": null
+     },
+     "date": {
+      "as_written": null,
+      "precision": null,
+      "sort": null
+     },
+     "status": "requested",
+     "negated": false,
+     "not_stated": [
+      "date"
+     ],
+     "origin": "document",
+     "certainty": "clear",
+     "codes": [],
+     "note": null,
+     "quarantined": false,
+     "sources": [
+      "src-0041"
+     ]
+    },
+    {
+     "kind": "stage",
+     "subject": "patient",
+     "value": {
+      "tnm_as_written": "pT2a pN1(3+/5) MO",
+      "tnm": "pT2a pN1 M0",
+      "stage_kind": "pathological",
+      "edition": null,
+      "as_of": "2.6.2022",
+      "at_diagnosis": true
+     },
+     "date": {
+      "as_written": "2.6.2022",
+      "precision": "day",
+      "sort": "2022-06-02"
+     },
+     "status": "documented",
+     "negated": false,
+     "not_stated": [
+      "edition"
+     ],
+     "origin": "document",
+     "certainty": "verify",
+     "certainty_reason": {
+      "code": "ocr_char_swap",
+      "text": "V textu „MO“, čteno jako M0."
+     },
+     "codes": [],
+     "note": null,
+     "quarantined": false,
+     "sources": [
+      "src-0001"
+     ]
+    },
+    {
+     "kind": "lab_result",
+     "subject": "patient",
+     "value": {
+      "name_as_written": "hsCRP",
+      "value_as_written": "9,5",
+      "value_numeric": 9.5,
+      "unit_as_written": "mg/1",
+      "unit": "mg/l",
+      "reference_range": "0 ... 5",
+      "reference_low": 0,
+      "reference_high": 5,
+      "out_of_range": "high",
+      "out_of_range_origin": "assistant",
+      "draw": {
+       "as_written": null,
+       "requisition": null,
+       "specimen": null
+      }
+     },
+     "date": {
+      "as_written": null,
+      "precision": null,
+      "sort": null
+     },
+     "status": "documented",
+     "negated": false,
+     "not_stated": [
+      "draw"
+     ],
+     "origin": "document",
+     "certainty": "verify",
+     "certainty_reason": {
+      "code": "ocr_char_swap",
+      "text": "V textu „mg/1“ a „O“, čteno jako mg/l a 0."
+     },
+     "codes": [
+      {
+       "system": "fno-local-lab",
+       "code": "S_HSCRP",
+       "assigned_by": "source"
+      }
+     ],
+     "note": null,
+     "quarantined": false,
+     "sources": [
+      "src-7c1e"
+     ]
+    }
+   ],
+   "sources": [
+    {
+     "id": "src-7c1e",
+     "type": "document",
+     "document_id": "10_pacient",
+     "part": "10_pacient/p2",
+     "page": 3,
+     "quote": "S_HSCRP: 9,5 mg/1 [O ... 5]",
+     "quote_text": "tesseract",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": {
+      "mark": true,
+      "tokens": [
+       {
+        "pdf_text": "mg/1",
+        "tesseract": "mg/1",
+        "vision": "mg/l",
+        "rule": "differ"
+       }
+      ]
+     }
+    },
+    {
+     "id": "src-0001",
+     "type": "document",
+     "document_id": "10_pacient",
+     "part": "10_pacient/p0",
+     "page": 1,
+     "quote": "pT2a pN1(3+/5) MO",
+     "quote_text": "tesseract",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
+     "id": "src-0041",
+     "type": "document",
+     "document_id": "10_pacient",
+     "part": "10_pacient/p1",
+     "page": 4,
+     "quote": "Doporučeno projednání nálezu MR mozku na neurochirurgickém semináři.",
+     "quote_text": "tesseract",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
+     "id": "src-0042",
+     "type": "document",
+     "document_id": "10_pacient",
+     "part": "10_pacient/p1",
+     "page": 4,
+     "quote": "ECOG PS 1, bez klinických známek mozkových metastáz",
+     "quote_text": "tesseract",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
+     "id": "src-nis-41",
+     "type": "nis",
+     "system": "https://nis.fno.example/fhir",
+     "resource": "Observation/8812",
+     "version": "3",
+     "last_updated": "2026-09-17T08:12:00+02:00"
+    }
+   ],
+   "options": {},
+   "expected": {
+    "ids": [
+     "f-9f0001",
+     "f-6e2201",
+     "f-5a0b12",
+     "f-5a0b11",
+     "f-3c90de",
+     "f-0b19e4",
+     "f-8d41c2"
+    ],
+    "keys": [
+     "interval|f-0b19e4|f-6e2201",
+     "lab_result|S_CREA|draw:2026-09-17|nis:Observation/8812",
+     "metastasis|mozek|undated",
+     "performance_status|ecog|undated",
+     "request|projednání nálezu mr mozku na neurochirurgickém semináři|undated",
+     "stage|pathological|2022-06-02",
+     "lab_result|S_HSCRP|draw:undated|doc:10_pacient"
+    ],
+    "how": {
+     "f-6e2201": "key",
+     "f-5a0b12": "key",
+     "f-5a0b11": "key",
+     "f-3c90de": "key",
+     "f-0b19e4": "key",
+     "f-8d41c2": "key",
+     "f-9f0001": "key"
+    },
+    "dropped": []
+   }
+  },
+  {
+   "name": "reworded request",
+   "previous": {
+    "schema": "codebridge.extraction/2",
+    "case_id": "NO-010",
+    "content_language": "cs",
+    "run": {
+     "id": "run-2026-10-19T10:04:11Z-a1b2",
+     "producer": "fixture",
+     "created_at": "2026-10-19T10:04:11Z",
+     "stages": [
+      {
+       "name": "convert",
+       "engine": "EXTRACTION-FORMAT.md worked examples"
+      }
+     ],
+     "supersedes": null
+    },
+    "documents": [
+     {
+      "document_id": "10_pacient",
+      "sha256": null,
+      "parts": [
+       "10_pacient/p0",
+       "10_pacient/p1",
+       "10_pacient/p2"
+      ]
+     }
+    ],
+    "sources": [
+     {
+      "id": "src-7c1e",
+      "type": "document",
+      "document_id": "10_pacient",
+      "part": "10_pacient/p2",
+      "page": 3,
+      "quote": "S_HSCRP: 9,5 mg/1 [O ... 5]",
+      "quote_text": "tesseract",
+      "anchor": null,
+      "reported_as": "original",
+      "identity": "matches",
+      "reading_check": {
+       "mark": true,
+       "tokens": [
+        {
+         "pdf_text": "mg/1",
+         "tesseract": "mg/1",
+         "vision": "mg/l",
+         "rule": "differ"
+        }
+       ]
+      }
+     },
+     {
+      "id": "src-0001",
+      "type": "document",
+      "document_id": "10_pacient",
+      "part": "10_pacient/p0",
+      "page": 1,
+      "quote": "pT2a pN1(3+/5) MO",
+      "quote_text": "tesseract",
+      "anchor": null,
+      "reported_as": "original",
+      "identity": "matches",
+      "reading_check": null
+     },
+     {
+      "id": "src-0041",
+      "type": "document",
+      "document_id": "10_pacient",
+      "part": "10_pacient/p1",
+      "page": 4,
+      "quote": "Doporučeno projednání nálezu MR mozku na neurochirurgickém semináři.",
+      "quote_text": "tesseract",
+      "anchor": null,
+      "reported_as": "original",
+      "identity": "matches",
+      "reading_check": null
+     },
+     {
+      "id": "src-0042",
+      "type": "document",
+      "document_id": "10_pacient",
+      "part": "10_pacient/p1",
+      "page": 4,
+      "quote": "ECOG PS 1, bez klinických známek mozkových metastáz",
+      "quote_text": "tesseract",
+      "anchor": null,
+      "reported_as": "original",
+      "identity": "matches",
+      "reading_check": null
+     },
+     {
+      "id": "src-nis-41",
+      "type": "nis",
+      "system": "https://nis.fno.example/fhir",
+      "resource": "Observation/8812",
+      "version": "3",
+      "last_updated": "2026-09-17T08:12:00+02:00"
+     }
+    ],
+    "facts": [
+     {
+      "id": "f-8d41c2",
+      "key": "lab_result|S_HSCRP|draw:undated|doc:10_pacient",
+      "kind": "lab_result",
+      "subject": "patient",
+      "value": {
+       "name_as_written": "hsCRP",
+       "value_as_written": "9,5",
+       "value_numeric": 9.5,
+       "unit_as_written": "mg/1",
+       "unit": "mg/l",
+       "reference_range": "0 ... 5",
+       "reference_low": 0,
+       "reference_high": 5,
+       "out_of_range": "high",
+       "out_of_range_origin": "assistant",
+       "draw": {
+        "as_written": null,
+        "requisition": null,
+        "specimen": null
+       }
+      },
+      "date": {
+       "as_written": null,
+       "precision": null,
+       "sort": null
+      },
+      "status": "documented",
+      "negated": false,
+      "not_stated": [
+       "draw"
+      ],
+      "origin": "document",
+      "certainty": "verify",
+      "certainty_reason": {
+       "code": "ocr_char_swap",
+       "text": "V textu „mg/1“ a „O“, čteno jako mg/l a 0."
+      },
+      "codes": [
+       {
+        "system": "fno-local-lab",
+        "code": "S_HSCRP",
+        "assigned_by": "source"
+       }
+      ],
+      "note": null,
+      "quarantined": false,
+      "sources": [
+       "src-7c1e"
+      ]
+     },
+     {
+      "id": "f-0b19e4",
+      "key": "stage|pathological|2022-06-02",
+      "kind": "stage",
+      "subject": "patient",
+      "value": {
+       "tnm_as_written": "pT2a pN1(3+/5) MO",
+       "tnm": "pT2a pN1 M0",
+       "stage_kind": "pathological",
+       "edition": null,
+       "as_of": "2.6.2022",
+       "at_diagnosis": true
+      },
+      "date": {
+       "as_written": "2.6.2022",
+       "precision": "day",
+       "sort": "2022-06-02"
+      },
+      "status": "documented",
+      "negated": false,
+      "not_stated": [
+       "edition"
+      ],
+      "origin": "document",
+      "certainty": "verify",
+      "certainty_reason": {
+       "code": "ocr_char_swap",
+       "text": "V textu „MO“, čteno jako M0."
+      },
+      "codes": [],
+      "note": null,
+      "quarantined": false,
+      "sources": [
+       "src-0001"
+      ]
+     },
+     {
+      "id": "f-3c90de",
+      "key": "request|projednání nálezu mr mozku na neurochirurgickém semináři|undated",
+      "kind": "request",
+      "subject": "patient",
+      "value": {
+       "what": "projednání nálezu MR mozku na neurochirurgickém semináři",
+       "request_kind": "consultation",
+       "result_fact": null
+      },
+      "date": {
+       "as_written": null,
+       "precision": null,
+       "sort": null
+      },
+      "status": "requested",
+      "negated": false,
+      "not_stated": [
+       "date"
+      ],
+      "origin": "document",
+      "certainty": "clear",
+      "codes": [],
+      "note": null,
+      "quarantined": false,
+      "sources": [
+       "src-0041"
+      ]
+     },
+     {
+      "id": "f-5a0b11",
+      "key": "performance_status|ecog|undated",
+      "kind": "performance_status",
+      "subject": "patient",
+      "value": {
+       "scale": "ECOG",
+       "value_as_written": "1",
+       "value_numeric": 1
+      },
+      "date": {
+       "as_written": null,
+       "precision": null,
+       "sort": null
+      },
+      "status": "documented",
+      "negated": false,
+      "not_stated": [],
+      "origin": "document",
+      "certainty": "clear",
+      "codes": [],
+      "note": null,
+      "quarantined": false,
+      "sources": [
+       "src-0042"
+      ]
+     },
+     {
+      "id": "f-5a0b12",
+      "key": "metastasis|mozek|undated",
+      "kind": "metastasis",
+      "subject": "patient",
+      "value": {
+       "site": "mozek",
+       "status": "excluded",
+       "basis": "clinical",
+       "text": "bez klinických známek mozkových metastáz"
+      },
+      "date": {
+       "as_written": null,
+       "precision": null,
+       "sort": null
+      },
+      "status": "documented",
+      "negated": true,
+      "not_stated": [],
+      "origin": "document",
+      "certainty": "clear",
+      "codes": [],
+      "note": null,
+      "quarantined": false,
+      "sources": [
+       "src-0042"
+      ]
+     },
+     {
+      "id": "f-6e2201",
+      "key": "lab_result|S_CREA|draw:2026-09-17|nis:Observation/8812",
+      "kind": "lab_result",
+      "subject": "patient",
+      "value": {
+       "name_as_written": "Kreatinin",
+       "value_as_written": "107",
+       "value_numeric": 107,
+       "unit_as_written": "µmol/l",
+       "unit": "µmol/l",
+       "reference_range": "59 ... 104",
+       "reference_low": 59,
+       "reference_high": 104,
+       "out_of_range": "high",
+       "out_of_range_origin": "document",
+       "draw": {
+        "as_written": "2026-09-17",
+        "requisition": null,
+        "specimen": "sérum"
+       }
+      },
+      "date": {
+       "as_written": "2026-09-17",
+       "precision": "day",
+       "sort": "2026-09-17"
+      },
+      "status": "documented",
+      "negated": false,
+      "not_stated": [],
+      "origin": "nis",
+      "certainty": "clear",
+      "codes": [
+       {
+        "system": "fno-local-lab",
+        "code": "S_CREA",
+        "assigned_by": "source"
+       }
+      ],
+      "note": null,
+      "quarantined": false,
+      "sources": [
+       "src-nis-41"
+      ]
+     },
+     {
+      "id": "f-9f0001",
+      "key": "interval|f-0b19e4|f-6e2201",
+      "kind": "interval",
+      "subject": "patient",
+      "value": {
+       "from_fact": "f-0b19e4",
+       "to_fact": "f-6e2201",
+       "days": 1568,
+       "length_as_computed": "1568 dní",
+       "from_precision": "day",
+       "to_precision": "day"
+      },
+      "date": {
+       "as_written": null,
+       "precision": null,
+       "sort": null
+      },
+      "status": "documented",
+      "negated": false,
+      "not_stated": [],
+      "origin": "assistant",
+      "certainty": "inferred",
+      "codes": [],
+      "note": null,
+      "quarantined": false,
+      "sources": [],
+      "based_on": [
+       "f-0b19e4",
+       "f-6e2201"
+      ]
+     }
+    ],
+    "checks": [
+     {
+      "id": "chk-allergy",
+      "looks_for": "allergy",
+      "expected": null,
+      "covered": [
+       {
+        "document_id": "10_pacient",
+        "part": "10_pacient/p0"
+       },
+       {
+        "document_id": "10_pacient",
+        "part": "10_pacient/p1"
+       }
+      ],
+      "unreadable": [
+       {
+        "document_id": "10_pacient",
+        "part": "10_pacient/p2",
+        "page": 4
+       }
+      ],
+      "result": "nothing_found"
+     },
+     {
+      "id": "chk-lab_result",
+      "looks_for": "lab_result",
+      "expected": null,
+      "covered": [
+       {
+        "document_id": "10_pacient",
+        "part": "10_pacient/p2"
+       }
+      ],
+      "unreadable": [],
+      "result": "found"
+     }
+    ],
+    "alerts": [
+     {
+      "id": "al-77205d20",
+      "rule": "request_without_result",
+      "subject": "f-3c90de",
+      "kind": "missing",
+      "facts": [
+       "f-3c90de"
+      ],
+      "message": {
+       "id": "alert-request-without-result",
+       "args": {
+        "fact": "f-3c90de"
+       }
+      },
+      "note": null
+     }
+    ],
+    "brief": {
+     "sentences": [
+      {
+       "text": "Patologické stadium pT2a pN1 M0 z 2.6.2022.",
+       "facts": [
+        "f-0b19e4"
+       ]
+      }
+     ],
+     "made_by": {
+      "model": null,
+      "prompt": null
+     }
+    },
+    "question_draft": {
+     "text": "Jaký postup doporučuje neurochirurgický seminář u solitárního ložiska v pravé mozečkové hemisféře?",
+     "question_kind": "document_purpose",
+     "basis": [
+      {
+       "role": "purpose",
+       "facts": [
+        "f-3c90de"
+       ]
+      }
+     ]
+    }
+   },
+   "drafts": [
+    {
+     "kind": "lab_result",
+     "subject": "patient",
+     "value": {
+      "name_as_written": "hsCRP",
+      "value_as_written": "9,5",
+      "value_numeric": 9.5,
+      "unit_as_written": "mg/1",
+      "unit": "mg/l",
+      "reference_range": "0 ... 5",
+      "reference_low": 0,
+      "reference_high": 5,
+      "out_of_range": "high",
+      "out_of_range_origin": "assistant",
+      "draw": {
+       "as_written": null,
+       "requisition": null,
+       "specimen": null
+      }
+     },
+     "date": {
+      "as_written": null,
+      "precision": null,
+      "sort": null
+     },
+     "status": "documented",
+     "negated": false,
+     "not_stated": [
+      "draw"
+     ],
+     "origin": "document",
+     "certainty": "verify",
+     "certainty_reason": {
+      "code": "ocr_char_swap",
+      "text": "V textu „mg/1“ a „O“, čteno jako mg/l a 0."
+     },
+     "codes": [
+      {
+       "system": "fno-local-lab",
+       "code": "S_HSCRP",
+       "assigned_by": "source"
+      }
+     ],
+     "note": null,
+     "quarantined": false,
+     "sources": [
+      "src-7c1e"
+     ]
+    },
+    {
+     "kind": "stage",
+     "subject": "patient",
+     "value": {
+      "tnm_as_written": "pT2a pN1(3+/5) MO",
+      "tnm": "pT2a pN1 M0",
+      "stage_kind": "pathological",
+      "edition": null,
+      "as_of": "2.6.2022",
+      "at_diagnosis": true
+     },
+     "date": {
+      "as_written": "2.6.2022",
+      "precision": "day",
+      "sort": "2022-06-02"
+     },
+     "status": "documented",
+     "negated": false,
+     "not_stated": [
+      "edition"
+     ],
+     "origin": "document",
+     "certainty": "verify",
+     "certainty_reason": {
+      "code": "ocr_char_swap",
+      "text": "V textu „MO“, čteno jako M0."
+     },
+     "codes": [],
+     "note": null,
+     "quarantined": false,
+     "sources": [
+      "src-0001"
+     ]
+    },
+    {
+     "kind": "request",
+     "subject": "patient",
+     "value": {
+      "what": "projednání nálezu MR mozku na neurochirurgickém semináři FNO",
+      "request_kind": "consultation",
+      "result_fact": null
+     },
+     "date": {
+      "as_written": null,
+      "precision": null,
+      "sort": null
+     },
+     "status": "requested",
+     "negated": false,
+     "not_stated": [
+      "date"
+     ],
+     "origin": "document",
+     "certainty": "clear",
+     "codes": [],
+     "note": null,
+     "quarantined": false,
+     "sources": [
+      "src-0041"
+     ]
+    },
+    {
+     "kind": "performance_status",
+     "subject": "patient",
+     "value": {
+      "scale": "ECOG",
+      "value_as_written": "1",
+      "value_numeric": 1
+     },
+     "date": {
+      "as_written": null,
+      "precision": null,
+      "sort": null
+     },
+     "status": "documented",
+     "negated": false,
+     "not_stated": [],
+     "origin": "document",
+     "certainty": "clear",
+     "codes": [],
+     "note": null,
+     "quarantined": false,
+     "sources": [
+      "src-0042"
+     ]
+    },
+    {
+     "kind": "metastasis",
+     "subject": "patient",
+     "value": {
+      "site": "mozek",
+      "status": "excluded",
+      "basis": "clinical",
+      "text": "bez klinických známek mozkových metastáz"
+     },
+     "date": {
+      "as_written": null,
+      "precision": null,
+      "sort": null
+     },
+     "status": "documented",
+     "negated": true,
+     "not_stated": [],
+     "origin": "document",
+     "certainty": "clear",
+     "codes": [],
+     "note": null,
+     "quarantined": false,
+     "sources": [
+      "src-0042"
+     ]
+    },
+    {
+     "kind": "lab_result",
+     "subject": "patient",
+     "value": {
+      "name_as_written": "Kreatinin",
+      "value_as_written": "107",
+      "value_numeric": 107,
+      "unit_as_written": "µmol/l",
+      "unit": "µmol/l",
+      "reference_range": "59 ... 104",
+      "reference_low": 59,
+      "reference_high": 104,
+      "out_of_range": "high",
+      "out_of_range_origin": "document",
+      "draw": {
+       "as_written": "2026-09-17",
+       "requisition": null,
+       "specimen": "sérum"
+      }
+     },
+     "date": {
+      "as_written": "2026-09-17",
+      "precision": "day",
+      "sort": "2026-09-17"
+     },
+     "status": "documented",
+     "negated": false,
+     "not_stated": [],
+     "origin": "nis",
+     "certainty": "clear",
+     "codes": [
+      {
+       "system": "fno-local-lab",
+       "code": "S_CREA",
+       "assigned_by": "source"
+      }
+     ],
+     "note": null,
+     "quarantined": false,
+     "sources": [
+      "src-nis-41"
+     ]
+    },
+    {
+     "kind": "interval",
+     "subject": "patient",
+     "value": {
+      "from_fact": "f-0b19e4",
+      "to_fact": "f-6e2201",
+      "days": 1568,
+      "length_as_computed": "1568 dní",
+      "from_precision": "day",
+      "to_precision": "day"
+     },
+     "date": {
+      "as_written": null,
+      "precision": null,
+      "sort": null
+     },
+     "status": "documented",
+     "negated": false,
+     "not_stated": [],
+     "origin": "assistant",
+     "certainty": "inferred",
+     "codes": [],
+     "note": null,
+     "quarantined": false,
+     "sources": [],
+     "based_on": [
+      "f-0b19e4",
+      "f-6e2201"
+     ]
+    }
+   ],
+   "sources": [
+    {
+     "id": "src-7c1e",
+     "type": "document",
+     "document_id": "10_pacient",
+     "part": "10_pacient/p2",
+     "page": 3,
+     "quote": "S_HSCRP: 9,5 mg/1 [O ... 5]",
+     "quote_text": "tesseract",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": {
+      "mark": true,
+      "tokens": [
+       {
+        "pdf_text": "mg/1",
+        "tesseract": "mg/1",
+        "vision": "mg/l",
+        "rule": "differ"
+       }
+      ]
+     }
+    },
+    {
+     "id": "src-0001",
+     "type": "document",
+     "document_id": "10_pacient",
+     "part": "10_pacient/p0",
+     "page": 1,
+     "quote": "pT2a pN1(3+/5) MO",
+     "quote_text": "tesseract",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
+     "id": "src-0041",
+     "type": "document",
+     "document_id": "10_pacient",
+     "part": "10_pacient/p1",
+     "page": 4,
+     "quote": "Doporučeno projednání nálezu MR mozku na neurochirurgickém semináři.",
+     "quote_text": "tesseract",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
+     "id": "src-0042",
+     "type": "document",
+     "document_id": "10_pacient",
+     "part": "10_pacient/p1",
+     "page": 4,
+     "quote": "ECOG PS 1, bez klinických známek mozkových metastáz",
+     "quote_text": "tesseract",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
+     "id": "src-nis-41",
+     "type": "nis",
+     "system": "https://nis.fno.example/fhir",
+     "resource": "Observation/8812",
+     "version": "3",
+     "last_updated": "2026-09-17T08:12:00+02:00"
+    }
+   ],
+   "options": {},
+   "expected": {
+    "ids": [
+     "f-8d41c2",
+     "f-0b19e4",
+     "f-3c90de",
+     "f-5a0b11",
+     "f-5a0b12",
+     "f-6e2201",
+     "f-9f0001"
+    ],
+    "keys": [
+     "lab_result|S_HSCRP|draw:undated|doc:10_pacient",
+     "stage|pathological|2022-06-02",
+     "request|projednání nálezu mr mozku na neurochirurgickém semináři fno|undated",
+     "performance_status|ecog|undated",
+     "metastasis|mozek|undated",
+     "lab_result|S_CREA|draw:2026-09-17|nis:Observation/8812",
+     "interval|f-0b19e4|f-6e2201"
+    ],
+    "how": {
+     "f-8d41c2": "key",
+     "f-0b19e4": "key",
+     "f-5a0b11": "key",
+     "f-5a0b12": "key",
+     "f-6e2201": "key",
+     "f-3c90de": "similar",
+     "f-9f0001": "key"
+    },
+    "dropped": []
+   }
+  },
+  {
+   "name": "negation flipped",
+   "previous": {
+    "schema": "codebridge.extraction/2",
+    "case_id": "NO-010",
+    "content_language": "cs",
+    "run": {
+     "id": "run-2026-10-19T10:04:11Z-a1b2",
+     "producer": "fixture",
+     "created_at": "2026-10-19T10:04:11Z",
+     "stages": [
+      {
+       "name": "convert",
+       "engine": "EXTRACTION-FORMAT.md worked examples"
+      }
+     ],
+     "supersedes": null
+    },
+    "documents": [
+     {
+      "document_id": "10_pacient",
+      "sha256": null,
+      "parts": [
+       "10_pacient/p0",
+       "10_pacient/p1",
+       "10_pacient/p2"
+      ]
+     }
+    ],
+    "sources": [
+     {
+      "id": "src-7c1e",
+      "type": "document",
+      "document_id": "10_pacient",
+      "part": "10_pacient/p2",
+      "page": 3,
+      "quote": "S_HSCRP: 9,5 mg/1 [O ... 5]",
+      "quote_text": "tesseract",
+      "anchor": null,
+      "reported_as": "original",
+      "identity": "matches",
+      "reading_check": {
+       "mark": true,
+       "tokens": [
+        {
+         "pdf_text": "mg/1",
+         "tesseract": "mg/1",
+         "vision": "mg/l",
+         "rule": "differ"
+        }
+       ]
+      }
+     },
+     {
+      "id": "src-0001",
+      "type": "document",
+      "document_id": "10_pacient",
+      "part": "10_pacient/p0",
+      "page": 1,
+      "quote": "pT2a pN1(3+/5) MO",
+      "quote_text": "tesseract",
+      "anchor": null,
+      "reported_as": "original",
+      "identity": "matches",
+      "reading_check": null
+     },
+     {
+      "id": "src-0041",
+      "type": "document",
+      "document_id": "10_pacient",
+      "part": "10_pacient/p1",
+      "page": 4,
+      "quote": "Doporučeno projednání nálezu MR mozku na neurochirurgickém semináři.",
+      "quote_text": "tesseract",
+      "anchor": null,
+      "reported_as": "original",
+      "identity": "matches",
+      "reading_check": null
+     },
+     {
+      "id": "src-0042",
+      "type": "document",
+      "document_id": "10_pacient",
+      "part": "10_pacient/p1",
+      "page": 4,
+      "quote": "ECOG PS 1, bez klinických známek mozkových metastáz",
+      "quote_text": "tesseract",
+      "anchor": null,
+      "reported_as": "original",
+      "identity": "matches",
+      "reading_check": null
+     },
+     {
+      "id": "src-nis-41",
+      "type": "nis",
+      "system": "https://nis.fno.example/fhir",
+      "resource": "Observation/8812",
+      "version": "3",
+      "last_updated": "2026-09-17T08:12:00+02:00"
+     }
+    ],
+    "facts": [
+     {
+      "id": "f-8d41c2",
+      "key": "lab_result|S_HSCRP|draw:undated|doc:10_pacient",
+      "kind": "lab_result",
+      "subject": "patient",
+      "value": {
+       "name_as_written": "hsCRP",
+       "value_as_written": "9,5",
+       "value_numeric": 9.5,
+       "unit_as_written": "mg/1",
+       "unit": "mg/l",
+       "reference_range": "0 ... 5",
+       "reference_low": 0,
+       "reference_high": 5,
+       "out_of_range": "high",
+       "out_of_range_origin": "assistant",
+       "draw": {
+        "as_written": null,
+        "requisition": null,
+        "specimen": null
+       }
+      },
+      "date": {
+       "as_written": null,
+       "precision": null,
+       "sort": null
+      },
+      "status": "documented",
+      "negated": false,
+      "not_stated": [
+       "draw"
+      ],
+      "origin": "document",
+      "certainty": "verify",
+      "certainty_reason": {
+       "code": "ocr_char_swap",
+       "text": "V textu „mg/1“ a „O“, čteno jako mg/l a 0."
+      },
+      "codes": [
+       {
+        "system": "fno-local-lab",
+        "code": "S_HSCRP",
+        "assigned_by": "source"
+       }
+      ],
+      "note": null,
+      "quarantined": false,
+      "sources": [
+       "src-7c1e"
+      ]
+     },
+     {
+      "id": "f-0b19e4",
+      "key": "stage|pathological|2022-06-02",
+      "kind": "stage",
+      "subject": "patient",
+      "value": {
+       "tnm_as_written": "pT2a pN1(3+/5) MO",
+       "tnm": "pT2a pN1 M0",
+       "stage_kind": "pathological",
+       "edition": null,
+       "as_of": "2.6.2022",
+       "at_diagnosis": true
+      },
+      "date": {
+       "as_written": "2.6.2022",
+       "precision": "day",
+       "sort": "2022-06-02"
+      },
+      "status": "documented",
+      "negated": false,
+      "not_stated": [
+       "edition"
+      ],
+      "origin": "document",
+      "certainty": "verify",
+      "certainty_reason": {
+       "code": "ocr_char_swap",
+       "text": "V textu „MO“, čteno jako M0."
+      },
+      "codes": [],
+      "note": null,
+      "quarantined": false,
+      "sources": [
+       "src-0001"
+      ]
+     },
+     {
+      "id": "f-3c90de",
+      "key": "request|projednání nálezu mr mozku na neurochirurgickém semináři|undated",
+      "kind": "request",
+      "subject": "patient",
+      "value": {
+       "what": "projednání nálezu MR mozku na neurochirurgickém semináři",
+       "request_kind": "consultation",
+       "result_fact": null
+      },
+      "date": {
+       "as_written": null,
+       "precision": null,
+       "sort": null
+      },
+      "status": "requested",
+      "negated": false,
+      "not_stated": [
+       "date"
+      ],
+      "origin": "document",
+      "certainty": "clear",
+      "codes": [],
+      "note": null,
+      "quarantined": false,
+      "sources": [
+       "src-0041"
+      ]
+     },
+     {
+      "id": "f-5a0b11",
+      "key": "performance_status|ecog|undated",
+      "kind": "performance_status",
+      "subject": "patient",
+      "value": {
+       "scale": "ECOG",
+       "value_as_written": "1",
+       "value_numeric": 1
+      },
+      "date": {
+       "as_written": null,
+       "precision": null,
+       "sort": null
+      },
+      "status": "documented",
+      "negated": false,
+      "not_stated": [],
+      "origin": "document",
+      "certainty": "clear",
+      "codes": [],
+      "note": null,
+      "quarantined": false,
+      "sources": [
+       "src-0042"
+      ]
+     },
+     {
+      "id": "f-5a0b12",
+      "key": "metastasis|mozek|undated",
+      "kind": "metastasis",
+      "subject": "patient",
+      "value": {
+       "site": "mozek",
+       "status": "excluded",
+       "basis": "clinical",
+       "text": "bez klinických známek mozkových metastáz"
+      },
+      "date": {
+       "as_written": null,
+       "precision": null,
+       "sort": null
+      },
+      "status": "documented",
+      "negated": true,
+      "not_stated": [],
+      "origin": "document",
+      "certainty": "clear",
+      "codes": [],
+      "note": null,
+      "quarantined": false,
+      "sources": [
+       "src-0042"
+      ]
+     },
+     {
+      "id": "f-6e2201",
+      "key": "lab_result|S_CREA|draw:2026-09-17|nis:Observation/8812",
+      "kind": "lab_result",
+      "subject": "patient",
+      "value": {
+       "name_as_written": "Kreatinin",
+       "value_as_written": "107",
+       "value_numeric": 107,
+       "unit_as_written": "µmol/l",
+       "unit": "µmol/l",
+       "reference_range": "59 ... 104",
+       "reference_low": 59,
+       "reference_high": 104,
+       "out_of_range": "high",
+       "out_of_range_origin": "document",
+       "draw": {
+        "as_written": "2026-09-17",
+        "requisition": null,
+        "specimen": "sérum"
+       }
+      },
+      "date": {
+       "as_written": "2026-09-17",
+       "precision": "day",
+       "sort": "2026-09-17"
+      },
+      "status": "documented",
+      "negated": false,
+      "not_stated": [],
+      "origin": "nis",
+      "certainty": "clear",
+      "codes": [
+       {
+        "system": "fno-local-lab",
+        "code": "S_CREA",
+        "assigned_by": "source"
+       }
+      ],
+      "note": null,
+      "quarantined": false,
+      "sources": [
+       "src-nis-41"
+      ]
+     },
+     {
+      "id": "f-9f0001",
+      "key": "interval|f-0b19e4|f-6e2201",
+      "kind": "interval",
+      "subject": "patient",
+      "value": {
+       "from_fact": "f-0b19e4",
+       "to_fact": "f-6e2201",
+       "days": 1568,
+       "length_as_computed": "1568 dní",
+       "from_precision": "day",
+       "to_precision": "day"
+      },
+      "date": {
+       "as_written": null,
+       "precision": null,
+       "sort": null
+      },
+      "status": "documented",
+      "negated": false,
+      "not_stated": [],
+      "origin": "assistant",
+      "certainty": "inferred",
+      "codes": [],
+      "note": null,
+      "quarantined": false,
+      "sources": [],
+      "based_on": [
+       "f-0b19e4",
+       "f-6e2201"
+      ]
+     }
+    ],
+    "checks": [
+     {
+      "id": "chk-allergy",
+      "looks_for": "allergy",
+      "expected": null,
+      "covered": [
+       {
+        "document_id": "10_pacient",
+        "part": "10_pacient/p0"
+       },
+       {
+        "document_id": "10_pacient",
+        "part": "10_pacient/p1"
+       }
+      ],
+      "unreadable": [
+       {
+        "document_id": "10_pacient",
+        "part": "10_pacient/p2",
+        "page": 4
+       }
+      ],
+      "result": "nothing_found"
+     },
+     {
+      "id": "chk-lab_result",
+      "looks_for": "lab_result",
+      "expected": null,
+      "covered": [
+       {
+        "document_id": "10_pacient",
+        "part": "10_pacient/p2"
+       }
+      ],
+      "unreadable": [],
+      "result": "found"
+     }
+    ],
+    "alerts": [
+     {
+      "id": "al-77205d20",
+      "rule": "request_without_result",
+      "subject": "f-3c90de",
+      "kind": "missing",
+      "facts": [
+       "f-3c90de"
+      ],
+      "message": {
+       "id": "alert-request-without-result",
+       "args": {
+        "fact": "f-3c90de"
+       }
+      },
+      "note": null
+     }
+    ],
+    "brief": {
+     "sentences": [
+      {
+       "text": "Patologické stadium pT2a pN1 M0 z 2.6.2022.",
+       "facts": [
+        "f-0b19e4"
+       ]
+      }
+     ],
+     "made_by": {
+      "model": null,
+      "prompt": null
+     }
+    },
+    "question_draft": {
+     "text": "Jaký postup doporučuje neurochirurgický seminář u solitárního ložiska v pravé mozečkové hemisféře?",
+     "question_kind": "document_purpose",
+     "basis": [
+      {
+       "role": "purpose",
+       "facts": [
+        "f-3c90de"
+       ]
+      }
+     ]
+    }
+   },
+   "drafts": [
+    {
+     "kind": "lab_result",
+     "subject": "patient",
+     "value": {
+      "name_as_written": "hsCRP",
+      "value_as_written": "9,5",
+      "value_numeric": 9.5,
+      "unit_as_written": "mg/1",
+      "unit": "mg/l",
+      "reference_range": "0 ... 5",
+      "reference_low": 0,
+      "reference_high": 5,
+      "out_of_range": "high",
+      "out_of_range_origin": "assistant",
+      "draw": {
+       "as_written": null,
+       "requisition": null,
+       "specimen": null
+      }
+     },
+     "date": {
+      "as_written": null,
+      "precision": null,
+      "sort": null
+     },
+     "status": "documented",
+     "negated": false,
+     "not_stated": [
+      "draw"
+     ],
+     "origin": "document",
+     "certainty": "verify",
+     "certainty_reason": {
+      "code": "ocr_char_swap",
+      "text": "V textu „mg/1“ a „O“, čteno jako mg/l a 0."
+     },
+     "codes": [
+      {
+       "system": "fno-local-lab",
+       "code": "S_HSCRP",
+       "assigned_by": "source"
+      }
+     ],
+     "note": null,
+     "quarantined": false,
+     "sources": [
+      "src-7c1e"
+     ]
+    },
+    {
+     "kind": "stage",
+     "subject": "patient",
+     "value": {
+      "tnm_as_written": "pT2a pN1(3+/5) MO",
+      "tnm": "pT2a pN1 M0",
+      "stage_kind": "pathological",
+      "edition": null,
+      "as_of": "2.6.2022",
+      "at_diagnosis": true
+     },
+     "date": {
+      "as_written": "2.6.2022",
+      "precision": "day",
+      "sort": "2022-06-02"
+     },
+     "status": "documented",
+     "negated": false,
+     "not_stated": [
+      "edition"
+     ],
+     "origin": "document",
+     "certainty": "verify",
+     "certainty_reason": {
+      "code": "ocr_char_swap",
+      "text": "V textu „MO“, čteno jako M0."
+     },
+     "codes": [],
+     "note": null,
+     "quarantined": false,
+     "sources": [
+      "src-0001"
+     ]
+    },
+    {
+     "kind": "request",
+     "subject": "patient",
+     "value": {
+      "what": "projednání nálezu MR mozku na neurochirurgickém semináři",
+      "request_kind": "consultation",
+      "result_fact": null
+     },
+     "date": {
+      "as_written": null,
+      "precision": null,
+      "sort": null
+     },
+     "status": "requested",
+     "negated": false,
+     "not_stated": [
+      "date"
+     ],
+     "origin": "document",
+     "certainty": "clear",
+     "codes": [],
+     "note": null,
+     "quarantined": false,
+     "sources": [
+      "src-0041"
+     ]
+    },
+    {
+     "kind": "performance_status",
+     "subject": "patient",
+     "value": {
+      "scale": "ECOG",
+      "value_as_written": "1",
+      "value_numeric": 1
+     },
+     "date": {
+      "as_written": null,
+      "precision": null,
+      "sort": null
+     },
+     "status": "documented",
+     "negated": false,
+     "not_stated": [],
+     "origin": "document",
+     "certainty": "clear",
+     "codes": [],
+     "note": null,
+     "quarantined": false,
+     "sources": [
+      "src-0042"
+     ]
+    },
+    {
+     "kind": "metastasis",
+     "subject": "patient",
+     "value": {
+      "site": "mozek",
+      "status": "excluded",
+      "basis": "clinical",
+      "text": "bez klinických známek mozkových metastáz"
+     },
+     "date": {
+      "as_written": null,
+      "precision": null,
+      "sort": null
+     },
+     "status": "documented",
+     "negated": false,
+     "not_stated": [],
+     "origin": "document",
+     "certainty": "clear",
+     "codes": [],
+     "note": null,
+     "quarantined": false,
+     "sources": [
+      "src-0042"
+     ]
+    },
+    {
+     "kind": "lab_result",
+     "subject": "patient",
+     "value": {
+      "name_as_written": "Kreatinin",
+      "value_as_written": "107",
+      "value_numeric": 107,
+      "unit_as_written": "µmol/l",
+      "unit": "µmol/l",
+      "reference_range": "59 ... 104",
+      "reference_low": 59,
+      "reference_high": 104,
+      "out_of_range": "high",
+      "out_of_range_origin": "document",
+      "draw": {
+       "as_written": "2026-09-17",
+       "requisition": null,
+       "specimen": "sérum"
+      }
+     },
+     "date": {
+      "as_written": "2026-09-17",
+      "precision": "day",
+      "sort": "2026-09-17"
+     },
+     "status": "documented",
+     "negated": false,
+     "not_stated": [],
+     "origin": "nis",
+     "certainty": "clear",
+     "codes": [
+      {
+       "system": "fno-local-lab",
+       "code": "S_CREA",
+       "assigned_by": "source"
+      }
+     ],
+     "note": null,
+     "quarantined": false,
+     "sources": [
+      "src-nis-41"
+     ]
+    },
+    {
+     "kind": "interval",
+     "subject": "patient",
+     "value": {
+      "from_fact": "f-0b19e4",
+      "to_fact": "f-6e2201",
+      "days": 1568,
+      "length_as_computed": "1568 dní",
+      "from_precision": "day",
+      "to_precision": "day"
+     },
+     "date": {
+      "as_written": null,
+      "precision": null,
+      "sort": null
+     },
+     "status": "documented",
+     "negated": false,
+     "not_stated": [],
+     "origin": "assistant",
+     "certainty": "inferred",
+     "codes": [],
+     "note": null,
+     "quarantined": false,
+     "sources": [],
+     "based_on": [
+      "f-0b19e4",
+      "f-6e2201"
+     ]
+    }
+   ],
+   "sources": [
+    {
+     "id": "src-7c1e",
+     "type": "document",
+     "document_id": "10_pacient",
+     "part": "10_pacient/p2",
+     "page": 3,
+     "quote": "S_HSCRP: 9,5 mg/1 [O ... 5]",
+     "quote_text": "tesseract",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": {
+      "mark": true,
+      "tokens": [
+       {
+        "pdf_text": "mg/1",
+        "tesseract": "mg/1",
+        "vision": "mg/l",
+        "rule": "differ"
+       }
+      ]
+     }
+    },
+    {
+     "id": "src-0001",
+     "type": "document",
+     "document_id": "10_pacient",
+     "part": "10_pacient/p0",
+     "page": 1,
+     "quote": "pT2a pN1(3+/5) MO",
+     "quote_text": "tesseract",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
+     "id": "src-0041",
+     "type": "document",
+     "document_id": "10_pacient",
+     "part": "10_pacient/p1",
+     "page": 4,
+     "quote": "Doporučeno projednání nálezu MR mozku na neurochirurgickém semináři.",
+     "quote_text": "tesseract",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
+     "id": "src-0042",
+     "type": "document",
+     "document_id": "10_pacient",
+     "part": "10_pacient/p1",
+     "page": 4,
+     "quote": "ECOG PS 1, bez klinických známek mozkových metastáz",
+     "quote_text": "tesseract",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
+     "id": "src-nis-41",
+     "type": "nis",
+     "system": "https://nis.fno.example/fhir",
+     "resource": "Observation/8812",
+     "version": "3",
+     "last_updated": "2026-09-17T08:12:00+02:00"
+    }
+   ],
+   "options": {},
+   "expected": {
+    "ids": [
+     "f-8d41c2",
+     "f-0b19e4",
+     "f-3c90de",
+     "f-5a0b11",
+     "f-816154af",
+     "f-6e2201",
+     "f-9f0001"
+    ],
+    "keys": [
+     "lab_result|S_HSCRP|draw:undated|doc:10_pacient",
+     "stage|pathological|2022-06-02",
+     "request|projednání nálezu mr mozku na neurochirurgickém semináři|undated",
+     "performance_status|ecog|undated",
+     "metastasis|mozek|undated",
+     "lab_result|S_CREA|draw:2026-09-17|nis:Observation/8812",
+     "interval|f-0b19e4|f-6e2201"
+    ],
+    "how": {
+     "f-8d41c2": "key",
+     "f-0b19e4": "key",
+     "f-3c90de": "key",
+     "f-5a0b11": "key",
+     "f-6e2201": "key",
+     "f-816154af": "new",
+     "f-9f0001": "key"
+    },
+    "dropped": [
+     "f-5a0b12"
+    ]
+   }
+  },
+  {
+   "name": "metastasis dropped",
+   "previous": {
+    "schema": "codebridge.extraction/2",
+    "case_id": "NO-010",
+    "content_language": "cs",
+    "run": {
+     "id": "run-2026-10-19T10:04:11Z-a1b2",
+     "producer": "fixture",
+     "created_at": "2026-10-19T10:04:11Z",
+     "stages": [
+      {
+       "name": "convert",
+       "engine": "EXTRACTION-FORMAT.md worked examples"
+      }
+     ],
+     "supersedes": null
+    },
+    "documents": [
+     {
+      "document_id": "10_pacient",
+      "sha256": null,
+      "parts": [
+       "10_pacient/p0",
+       "10_pacient/p1",
+       "10_pacient/p2"
+      ]
+     }
+    ],
+    "sources": [
+     {
+      "id": "src-7c1e",
+      "type": "document",
+      "document_id": "10_pacient",
+      "part": "10_pacient/p2",
+      "page": 3,
+      "quote": "S_HSCRP: 9,5 mg/1 [O ... 5]",
+      "quote_text": "tesseract",
+      "anchor": null,
+      "reported_as": "original",
+      "identity": "matches",
+      "reading_check": {
+       "mark": true,
+       "tokens": [
+        {
+         "pdf_text": "mg/1",
+         "tesseract": "mg/1",
+         "vision": "mg/l",
+         "rule": "differ"
+        }
+       ]
+      }
+     },
+     {
+      "id": "src-0001",
+      "type": "document",
+      "document_id": "10_pacient",
+      "part": "10_pacient/p0",
+      "page": 1,
+      "quote": "pT2a pN1(3+/5) MO",
+      "quote_text": "tesseract",
+      "anchor": null,
+      "reported_as": "original",
+      "identity": "matches",
+      "reading_check": null
+     },
+     {
+      "id": "src-0041",
+      "type": "document",
+      "document_id": "10_pacient",
+      "part": "10_pacient/p1",
+      "page": 4,
+      "quote": "Doporučeno projednání nálezu MR mozku na neurochirurgickém semináři.",
+      "quote_text": "tesseract",
+      "anchor": null,
+      "reported_as": "original",
+      "identity": "matches",
+      "reading_check": null
+     },
+     {
+      "id": "src-0042",
+      "type": "document",
+      "document_id": "10_pacient",
+      "part": "10_pacient/p1",
+      "page": 4,
+      "quote": "ECOG PS 1, bez klinických známek mozkových metastáz",
+      "quote_text": "tesseract",
+      "anchor": null,
+      "reported_as": "original",
+      "identity": "matches",
+      "reading_check": null
+     },
+     {
+      "id": "src-nis-41",
+      "type": "nis",
+      "system": "https://nis.fno.example/fhir",
+      "resource": "Observation/8812",
+      "version": "3",
+      "last_updated": "2026-09-17T08:12:00+02:00"
+     }
+    ],
+    "facts": [
+     {
+      "id": "f-8d41c2",
+      "key": "lab_result|S_HSCRP|draw:undated|doc:10_pacient",
+      "kind": "lab_result",
+      "subject": "patient",
+      "value": {
+       "name_as_written": "hsCRP",
+       "value_as_written": "9,5",
+       "value_numeric": 9.5,
+       "unit_as_written": "mg/1",
+       "unit": "mg/l",
+       "reference_range": "0 ... 5",
+       "reference_low": 0,
+       "reference_high": 5,
+       "out_of_range": "high",
+       "out_of_range_origin": "assistant",
+       "draw": {
+        "as_written": null,
+        "requisition": null,
+        "specimen": null
+       }
+      },
+      "date": {
+       "as_written": null,
+       "precision": null,
+       "sort": null
+      },
+      "status": "documented",
+      "negated": false,
+      "not_stated": [
+       "draw"
+      ],
+      "origin": "document",
+      "certainty": "verify",
+      "certainty_reason": {
+       "code": "ocr_char_swap",
+       "text": "V textu „mg/1“ a „O“, čteno jako mg/l a 0."
+      },
+      "codes": [
+       {
+        "system": "fno-local-lab",
+        "code": "S_HSCRP",
+        "assigned_by": "source"
+       }
+      ],
+      "note": null,
+      "quarantined": false,
+      "sources": [
+       "src-7c1e"
+      ]
+     },
+     {
+      "id": "f-0b19e4",
+      "key": "stage|pathological|2022-06-02",
+      "kind": "stage",
+      "subject": "patient",
+      "value": {
+       "tnm_as_written": "pT2a pN1(3+/5) MO",
+       "tnm": "pT2a pN1 M0",
+       "stage_kind": "pathological",
+       "edition": null,
+       "as_of": "2.6.2022",
+       "at_diagnosis": true
+      },
+      "date": {
+       "as_written": "2.6.2022",
+       "precision": "day",
+       "sort": "2022-06-02"
+      },
+      "status": "documented",
+      "negated": false,
+      "not_stated": [
+       "edition"
+      ],
+      "origin": "document",
+      "certainty": "verify",
+      "certainty_reason": {
+       "code": "ocr_char_swap",
+       "text": "V textu „MO“, čteno jako M0."
+      },
+      "codes": [],
+      "note": null,
+      "quarantined": false,
+      "sources": [
+       "src-0001"
+      ]
+     },
+     {
+      "id": "f-3c90de",
+      "key": "request|projednání nálezu mr mozku na neurochirurgickém semináři|undated",
+      "kind": "request",
+      "subject": "patient",
+      "value": {
+       "what": "projednání nálezu MR mozku na neurochirurgickém semináři",
+       "request_kind": "consultation",
+       "result_fact": null
+      },
+      "date": {
+       "as_written": null,
+       "precision": null,
+       "sort": null
+      },
+      "status": "requested",
+      "negated": false,
+      "not_stated": [
+       "date"
+      ],
+      "origin": "document",
+      "certainty": "clear",
+      "codes": [],
+      "note": null,
+      "quarantined": false,
+      "sources": [
+       "src-0041"
+      ]
+     },
+     {
+      "id": "f-5a0b11",
+      "key": "performance_status|ecog|undated",
+      "kind": "performance_status",
+      "subject": "patient",
+      "value": {
+       "scale": "ECOG",
+       "value_as_written": "1",
+       "value_numeric": 1
+      },
+      "date": {
+       "as_written": null,
+       "precision": null,
+       "sort": null
+      },
+      "status": "documented",
+      "negated": false,
+      "not_stated": [],
+      "origin": "document",
+      "certainty": "clear",
+      "codes": [],
+      "note": null,
+      "quarantined": false,
+      "sources": [
+       "src-0042"
+      ]
+     },
+     {
+      "id": "f-5a0b12",
+      "key": "metastasis|mozek|undated",
+      "kind": "metastasis",
+      "subject": "patient",
+      "value": {
+       "site": "mozek",
+       "status": "excluded",
+       "basis": "clinical",
+       "text": "bez klinických známek mozkových metastáz"
+      },
+      "date": {
+       "as_written": null,
+       "precision": null,
+       "sort": null
+      },
+      "status": "documented",
+      "negated": true,
+      "not_stated": [],
+      "origin": "document",
+      "certainty": "clear",
+      "codes": [],
+      "note": null,
+      "quarantined": false,
+      "sources": [
+       "src-0042"
+      ]
+     },
+     {
+      "id": "f-6e2201",
+      "key": "lab_result|S_CREA|draw:2026-09-17|nis:Observation/8812",
+      "kind": "lab_result",
+      "subject": "patient",
+      "value": {
+       "name_as_written": "Kreatinin",
+       "value_as_written": "107",
+       "value_numeric": 107,
+       "unit_as_written": "µmol/l",
+       "unit": "µmol/l",
+       "reference_range": "59 ... 104",
+       "reference_low": 59,
+       "reference_high": 104,
+       "out_of_range": "high",
+       "out_of_range_origin": "document",
+       "draw": {
+        "as_written": "2026-09-17",
+        "requisition": null,
+        "specimen": "sérum"
+       }
+      },
+      "date": {
+       "as_written": "2026-09-17",
+       "precision": "day",
+       "sort": "2026-09-17"
+      },
+      "status": "documented",
+      "negated": false,
+      "not_stated": [],
+      "origin": "nis",
+      "certainty": "clear",
+      "codes": [
+       {
+        "system": "fno-local-lab",
+        "code": "S_CREA",
+        "assigned_by": "source"
+       }
+      ],
+      "note": null,
+      "quarantined": false,
+      "sources": [
+       "src-nis-41"
+      ]
+     },
+     {
+      "id": "f-9f0001",
+      "key": "interval|f-0b19e4|f-6e2201",
+      "kind": "interval",
+      "subject": "patient",
+      "value": {
+       "from_fact": "f-0b19e4",
+       "to_fact": "f-6e2201",
+       "days": 1568,
+       "length_as_computed": "1568 dní",
+       "from_precision": "day",
+       "to_precision": "day"
+      },
+      "date": {
+       "as_written": null,
+       "precision": null,
+       "sort": null
+      },
+      "status": "documented",
+      "negated": false,
+      "not_stated": [],
+      "origin": "assistant",
+      "certainty": "inferred",
+      "codes": [],
+      "note": null,
+      "quarantined": false,
+      "sources": [],
+      "based_on": [
+       "f-0b19e4",
+       "f-6e2201"
+      ]
+     }
+    ],
+    "checks": [
+     {
+      "id": "chk-allergy",
+      "looks_for": "allergy",
+      "expected": null,
+      "covered": [
+       {
+        "document_id": "10_pacient",
+        "part": "10_pacient/p0"
+       },
+       {
+        "document_id": "10_pacient",
+        "part": "10_pacient/p1"
+       }
+      ],
+      "unreadable": [
+       {
+        "document_id": "10_pacient",
+        "part": "10_pacient/p2",
+        "page": 4
+       }
+      ],
+      "result": "nothing_found"
+     },
+     {
+      "id": "chk-lab_result",
+      "looks_for": "lab_result",
+      "expected": null,
+      "covered": [
+       {
+        "document_id": "10_pacient",
+        "part": "10_pacient/p2"
+       }
+      ],
+      "unreadable": [],
+      "result": "found"
+     }
+    ],
+    "alerts": [
+     {
+      "id": "al-77205d20",
+      "rule": "request_without_result",
+      "subject": "f-3c90de",
+      "kind": "missing",
+      "facts": [
+       "f-3c90de"
+      ],
+      "message": {
+       "id": "alert-request-without-result",
+       "args": {
+        "fact": "f-3c90de"
+       }
+      },
+      "note": null
+     }
+    ],
+    "brief": {
+     "sentences": [
+      {
+       "text": "Patologické stadium pT2a pN1 M0 z 2.6.2022.",
+       "facts": [
+        "f-0b19e4"
+       ]
+      }
+     ],
+     "made_by": {
+      "model": null,
+      "prompt": null
+     }
+    },
+    "question_draft": {
+     "text": "Jaký postup doporučuje neurochirurgický seminář u solitárního ložiska v pravé mozečkové hemisféře?",
+     "question_kind": "document_purpose",
+     "basis": [
+      {
+       "role": "purpose",
+       "facts": [
+        "f-3c90de"
+       ]
+      }
+     ]
+    }
+   },
+   "drafts": [
+    {
+     "kind": "lab_result",
+     "subject": "patient",
+     "value": {
+      "name_as_written": "hsCRP",
+      "value_as_written": "9,5",
+      "value_numeric": 9.5,
+      "unit_as_written": "mg/1",
+      "unit": "mg/l",
+      "reference_range": "0 ... 5",
+      "reference_low": 0,
+      "reference_high": 5,
+      "out_of_range": "high",
+      "out_of_range_origin": "assistant",
+      "draw": {
+       "as_written": null,
+       "requisition": null,
+       "specimen": null
+      }
+     },
+     "date": {
+      "as_written": null,
+      "precision": null,
+      "sort": null
+     },
+     "status": "documented",
+     "negated": false,
+     "not_stated": [
+      "draw"
+     ],
+     "origin": "document",
+     "certainty": "verify",
+     "certainty_reason": {
+      "code": "ocr_char_swap",
+      "text": "V textu „mg/1“ a „O“, čteno jako mg/l a 0."
+     },
+     "codes": [
+      {
+       "system": "fno-local-lab",
+       "code": "S_HSCRP",
+       "assigned_by": "source"
+      }
+     ],
+     "note": null,
+     "quarantined": false,
+     "sources": [
+      "src-7c1e"
+     ]
+    },
+    {
+     "kind": "stage",
+     "subject": "patient",
+     "value": {
+      "tnm_as_written": "pT2a pN1(3+/5) MO",
+      "tnm": "pT2a pN1 M0",
+      "stage_kind": "pathological",
+      "edition": null,
+      "as_of": "2.6.2022",
+      "at_diagnosis": true
+     },
+     "date": {
+      "as_written": "2.6.2022",
+      "precision": "day",
+      "sort": "2022-06-02"
+     },
+     "status": "documented",
+     "negated": false,
+     "not_stated": [
+      "edition"
+     ],
+     "origin": "document",
+     "certainty": "verify",
+     "certainty_reason": {
+      "code": "ocr_char_swap",
+      "text": "V textu „MO“, čteno jako M0."
+     },
+     "codes": [],
+     "note": null,
+     "quarantined": false,
+     "sources": [
+      "src-0001"
+     ]
+    },
+    {
+     "kind": "request",
+     "subject": "patient",
+     "value": {
+      "what": "projednání nálezu MR mozku na neurochirurgickém semináři",
+      "request_kind": "consultation",
+      "result_fact": null
+     },
+     "date": {
+      "as_written": null,
+      "precision": null,
+      "sort": null
+     },
+     "status": "requested",
+     "negated": false,
+     "not_stated": [
+      "date"
+     ],
+     "origin": "document",
+     "certainty": "clear",
+     "codes": [],
+     "note": null,
+     "quarantined": false,
+     "sources": [
+      "src-0041"
+     ]
+    },
+    {
+     "kind": "performance_status",
+     "subject": "patient",
+     "value": {
+      "scale": "ECOG",
+      "value_as_written": "1",
+      "value_numeric": 1
+     },
+     "date": {
+      "as_written": null,
+      "precision": null,
+      "sort": null
+     },
+     "status": "documented",
+     "negated": false,
+     "not_stated": [],
+     "origin": "document",
+     "certainty": "clear",
+     "codes": [],
+     "note": null,
+     "quarantined": false,
+     "sources": [
+      "src-0042"
+     ]
+    },
+    {
+     "kind": "lab_result",
+     "subject": "patient",
+     "value": {
+      "name_as_written": "Kreatinin",
+      "value_as_written": "107",
+      "value_numeric": 107,
+      "unit_as_written": "µmol/l",
+      "unit": "µmol/l",
+      "reference_range": "59 ... 104",
+      "reference_low": 59,
+      "reference_high": 104,
+      "out_of_range": "high",
+      "out_of_range_origin": "document",
+      "draw": {
+       "as_written": "2026-09-17",
+       "requisition": null,
+       "specimen": "sérum"
+      }
+     },
+     "date": {
+      "as_written": "2026-09-17",
+      "precision": "day",
+      "sort": "2026-09-17"
+     },
+     "status": "documented",
+     "negated": false,
+     "not_stated": [],
+     "origin": "nis",
+     "certainty": "clear",
+     "codes": [
+      {
+       "system": "fno-local-lab",
+       "code": "S_CREA",
+       "assigned_by": "source"
+      }
+     ],
+     "note": null,
+     "quarantined": false,
+     "sources": [
+      "src-nis-41"
+     ]
+    },
+    {
+     "kind": "interval",
+     "subject": "patient",
+     "value": {
+      "from_fact": "f-0b19e4",
+      "to_fact": "f-6e2201",
+      "days": 1568,
+      "length_as_computed": "1568 dní",
+      "from_precision": "day",
+      "to_precision": "day"
+     },
+     "date": {
+      "as_written": null,
+      "precision": null,
+      "sort": null
+     },
+     "status": "documented",
+     "negated": false,
+     "not_stated": [],
+     "origin": "assistant",
+     "certainty": "inferred",
+     "codes": [],
+     "note": null,
+     "quarantined": false,
+     "sources": [],
+     "based_on": [
+      "f-0b19e4",
+      "f-6e2201"
+     ]
+    }
+   ],
+   "sources": [
+    {
+     "id": "src-7c1e",
+     "type": "document",
+     "document_id": "10_pacient",
+     "part": "10_pacient/p2",
+     "page": 3,
+     "quote": "S_HSCRP: 9,5 mg/1 [O ... 5]",
+     "quote_text": "tesseract",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": {
+      "mark": true,
+      "tokens": [
+       {
+        "pdf_text": "mg/1",
+        "tesseract": "mg/1",
+        "vision": "mg/l",
+        "rule": "differ"
+       }
+      ]
+     }
+    },
+    {
+     "id": "src-0001",
+     "type": "document",
+     "document_id": "10_pacient",
+     "part": "10_pacient/p0",
+     "page": 1,
+     "quote": "pT2a pN1(3+/5) MO",
+     "quote_text": "tesseract",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
+     "id": "src-0041",
+     "type": "document",
+     "document_id": "10_pacient",
+     "part": "10_pacient/p1",
+     "page": 4,
+     "quote": "Doporučeno projednání nálezu MR mozku na neurochirurgickém semináři.",
+     "quote_text": "tesseract",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
+     "id": "src-0042",
+     "type": "document",
+     "document_id": "10_pacient",
+     "part": "10_pacient/p1",
+     "page": 4,
+     "quote": "ECOG PS 1, bez klinických známek mozkových metastáz",
+     "quote_text": "tesseract",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
+     "id": "src-nis-41",
+     "type": "nis",
+     "system": "https://nis.fno.example/fhir",
+     "resource": "Observation/8812",
+     "version": "3",
+     "last_updated": "2026-09-17T08:12:00+02:00"
+    }
+   ],
+   "options": {},
+   "expected": {
+    "ids": [
+     "f-8d41c2",
+     "f-0b19e4",
+     "f-3c90de",
+     "f-5a0b11",
+     "f-6e2201",
+     "f-9f0001"
+    ],
+    "keys": [
+     "lab_result|S_HSCRP|draw:undated|doc:10_pacient",
+     "stage|pathological|2022-06-02",
+     "request|projednání nálezu mr mozku na neurochirurgickém semináři|undated",
+     "performance_status|ecog|undated",
+     "lab_result|S_CREA|draw:2026-09-17|nis:Observation/8812",
+     "interval|f-0b19e4|f-6e2201"
+    ],
+    "how": {
+     "f-8d41c2": "key",
+     "f-0b19e4": "key",
+     "f-3c90de": "key",
+     "f-5a0b11": "key",
+     "f-6e2201": "key",
+     "f-9f0001": "key"
+    },
+    "dropped": [
+     "f-5a0b12"
+    ]
+   }
+  },
+  {
+   "name": "withdrawn document",
+   "previous": {
+    "schema": "codebridge.extraction/2",
+    "case_id": "NO-010",
+    "content_language": "cs",
+    "run": {
+     "id": "run-2026-10-19T10:04:11Z-a1b2",
+     "producer": "fixture",
+     "created_at": "2026-10-19T10:04:11Z",
+     "stages": [
+      {
+       "name": "convert",
+       "engine": "EXTRACTION-FORMAT.md worked examples"
+      }
+     ],
+     "supersedes": null
+    },
+    "documents": [
+     {
+      "document_id": "10_pacient",
+      "sha256": null,
+      "parts": [
+       "10_pacient/p0",
+       "10_pacient/p1",
+       "10_pacient/p2"
+      ]
+     }
+    ],
+    "sources": [
+     {
+      "id": "src-7c1e",
+      "type": "document",
+      "document_id": "10_pacient",
+      "part": "10_pacient/p2",
+      "page": 3,
+      "quote": "S_HSCRP: 9,5 mg/1 [O ... 5]",
+      "quote_text": "tesseract",
+      "anchor": null,
+      "reported_as": "original",
+      "identity": "matches",
+      "reading_check": {
+       "mark": true,
+       "tokens": [
+        {
+         "pdf_text": "mg/1",
+         "tesseract": "mg/1",
+         "vision": "mg/l",
+         "rule": "differ"
+        }
+       ]
+      }
+     },
+     {
+      "id": "src-0001",
+      "type": "document",
+      "document_id": "10_pacient",
+      "part": "10_pacient/p0",
+      "page": 1,
+      "quote": "pT2a pN1(3+/5) MO",
+      "quote_text": "tesseract",
+      "anchor": null,
+      "reported_as": "original",
+      "identity": "matches",
+      "reading_check": null
+     },
+     {
+      "id": "src-0041",
+      "type": "document",
+      "document_id": "10_pacient",
+      "part": "10_pacient/p1",
+      "page": 4,
+      "quote": "Doporučeno projednání nálezu MR mozku na neurochirurgickém semináři.",
+      "quote_text": "tesseract",
+      "anchor": null,
+      "reported_as": "original",
+      "identity": "matches",
+      "reading_check": null
+     },
+     {
+      "id": "src-0042",
+      "type": "document",
+      "document_id": "10_pacient",
+      "part": "10_pacient/p1",
+      "page": 4,
+      "quote": "ECOG PS 1, bez klinických známek mozkových metastáz",
+      "quote_text": "tesseract",
+      "anchor": null,
+      "reported_as": "original",
+      "identity": "matches",
+      "reading_check": null
+     },
+     {
+      "id": "src-nis-41",
+      "type": "nis",
+      "system": "https://nis.fno.example/fhir",
+      "resource": "Observation/8812",
+      "version": "3",
+      "last_updated": "2026-09-17T08:12:00+02:00"
+     }
+    ],
+    "facts": [
+     {
+      "id": "f-8d41c2",
+      "key": "lab_result|S_HSCRP|draw:undated|doc:10_pacient",
+      "kind": "lab_result",
+      "subject": "patient",
+      "value": {
+       "name_as_written": "hsCRP",
+       "value_as_written": "9,5",
+       "value_numeric": 9.5,
+       "unit_as_written": "mg/1",
+       "unit": "mg/l",
+       "reference_range": "0 ... 5",
+       "reference_low": 0,
+       "reference_high": 5,
+       "out_of_range": "high",
+       "out_of_range_origin": "assistant",
+       "draw": {
+        "as_written": null,
+        "requisition": null,
+        "specimen": null
+       }
+      },
+      "date": {
+       "as_written": null,
+       "precision": null,
+       "sort": null
+      },
+      "status": "documented",
+      "negated": false,
+      "not_stated": [
+       "draw"
+      ],
+      "origin": "document",
+      "certainty": "verify",
+      "certainty_reason": {
+       "code": "ocr_char_swap",
+       "text": "V textu „mg/1“ a „O“, čteno jako mg/l a 0."
+      },
+      "codes": [
+       {
+        "system": "fno-local-lab",
+        "code": "S_HSCRP",
+        "assigned_by": "source"
+       }
+      ],
+      "note": null,
+      "quarantined": false,
+      "sources": [
+       "src-7c1e"
+      ]
+     },
+     {
+      "id": "f-0b19e4",
+      "key": "stage|pathological|2022-06-02",
+      "kind": "stage",
+      "subject": "patient",
+      "value": {
+       "tnm_as_written": "pT2a pN1(3+/5) MO",
+       "tnm": "pT2a pN1 M0",
+       "stage_kind": "pathological",
+       "edition": null,
+       "as_of": "2.6.2022",
+       "at_diagnosis": true
+      },
+      "date": {
+       "as_written": "2.6.2022",
+       "precision": "day",
+       "sort": "2022-06-02"
+      },
+      "status": "documented",
+      "negated": false,
+      "not_stated": [
+       "edition"
+      ],
+      "origin": "document",
+      "certainty": "verify",
+      "certainty_reason": {
+       "code": "ocr_char_swap",
+       "text": "V textu „MO“, čteno jako M0."
+      },
+      "codes": [],
+      "note": null,
+      "quarantined": false,
+      "sources": [
+       "src-0001"
+      ]
+     },
+     {
+      "id": "f-3c90de",
+      "key": "request|projednání nálezu mr mozku na neurochirurgickém semináři|undated",
+      "kind": "request",
+      "subject": "patient",
+      "value": {
+       "what": "projednání nálezu MR mozku na neurochirurgickém semináři",
+       "request_kind": "consultation",
+       "result_fact": null
+      },
+      "date": {
+       "as_written": null,
+       "precision": null,
+       "sort": null
+      },
+      "status": "requested",
+      "negated": false,
+      "not_stated": [
+       "date"
+      ],
+      "origin": "document",
+      "certainty": "clear",
+      "codes": [],
+      "note": null,
+      "quarantined": false,
+      "sources": [
+       "src-0041"
+      ]
+     },
+     {
+      "id": "f-5a0b11",
+      "key": "performance_status|ecog|undated",
+      "kind": "performance_status",
+      "subject": "patient",
+      "value": {
+       "scale": "ECOG",
+       "value_as_written": "1",
+       "value_numeric": 1
+      },
+      "date": {
+       "as_written": null,
+       "precision": null,
+       "sort": null
+      },
+      "status": "documented",
+      "negated": false,
+      "not_stated": [],
+      "origin": "document",
+      "certainty": "clear",
+      "codes": [],
+      "note": null,
+      "quarantined": false,
+      "sources": [
+       "src-0042"
+      ]
+     },
+     {
+      "id": "f-5a0b12",
+      "key": "metastasis|mozek|undated",
+      "kind": "metastasis",
+      "subject": "patient",
+      "value": {
+       "site": "mozek",
+       "status": "excluded",
+       "basis": "clinical",
+       "text": "bez klinických známek mozkových metastáz"
+      },
+      "date": {
+       "as_written": null,
+       "precision": null,
+       "sort": null
+      },
+      "status": "documented",
+      "negated": true,
+      "not_stated": [],
+      "origin": "document",
+      "certainty": "clear",
+      "codes": [],
+      "note": null,
+      "quarantined": false,
+      "sources": [
+       "src-0042"
+      ]
+     },
+     {
+      "id": "f-6e2201",
+      "key": "lab_result|S_CREA|draw:2026-09-17|nis:Observation/8812",
+      "kind": "lab_result",
+      "subject": "patient",
+      "value": {
+       "name_as_written": "Kreatinin",
+       "value_as_written": "107",
+       "value_numeric": 107,
+       "unit_as_written": "µmol/l",
+       "unit": "µmol/l",
+       "reference_range": "59 ... 104",
+       "reference_low": 59,
+       "reference_high": 104,
+       "out_of_range": "high",
+       "out_of_range_origin": "document",
+       "draw": {
+        "as_written": "2026-09-17",
+        "requisition": null,
+        "specimen": "sérum"
+       }
+      },
+      "date": {
+       "as_written": "2026-09-17",
+       "precision": "day",
+       "sort": "2026-09-17"
+      },
+      "status": "documented",
+      "negated": false,
+      "not_stated": [],
+      "origin": "nis",
+      "certainty": "clear",
+      "codes": [
+       {
+        "system": "fno-local-lab",
+        "code": "S_CREA",
+        "assigned_by": "source"
+       }
+      ],
+      "note": null,
+      "quarantined": false,
+      "sources": [
+       "src-nis-41"
+      ]
+     },
+     {
+      "id": "f-9f0001",
+      "key": "interval|f-0b19e4|f-6e2201",
+      "kind": "interval",
+      "subject": "patient",
+      "value": {
+       "from_fact": "f-0b19e4",
+       "to_fact": "f-6e2201",
+       "days": 1568,
+       "length_as_computed": "1568 dní",
+       "from_precision": "day",
+       "to_precision": "day"
+      },
+      "date": {
+       "as_written": null,
+       "precision": null,
+       "sort": null
+      },
+      "status": "documented",
+      "negated": false,
+      "not_stated": [],
+      "origin": "assistant",
+      "certainty": "inferred",
+      "codes": [],
+      "note": null,
+      "quarantined": false,
+      "sources": [],
+      "based_on": [
+       "f-0b19e4",
+       "f-6e2201"
+      ]
+     }
+    ],
+    "checks": [
+     {
+      "id": "chk-allergy",
+      "looks_for": "allergy",
+      "expected": null,
+      "covered": [
+       {
+        "document_id": "10_pacient",
+        "part": "10_pacient/p0"
+       },
+       {
+        "document_id": "10_pacient",
+        "part": "10_pacient/p1"
+       }
+      ],
+      "unreadable": [
+       {
+        "document_id": "10_pacient",
+        "part": "10_pacient/p2",
+        "page": 4
+       }
+      ],
+      "result": "nothing_found"
+     },
+     {
+      "id": "chk-lab_result",
+      "looks_for": "lab_result",
+      "expected": null,
+      "covered": [
+       {
+        "document_id": "10_pacient",
+        "part": "10_pacient/p2"
+       }
+      ],
+      "unreadable": [],
+      "result": "found"
+     }
+    ],
+    "alerts": [
+     {
+      "id": "al-77205d20",
+      "rule": "request_without_result",
+      "subject": "f-3c90de",
+      "kind": "missing",
+      "facts": [
+       "f-3c90de"
+      ],
+      "message": {
+       "id": "alert-request-without-result",
+       "args": {
+        "fact": "f-3c90de"
+       }
+      },
+      "note": null
+     }
+    ],
+    "brief": {
+     "sentences": [
+      {
+       "text": "Patologické stadium pT2a pN1 M0 z 2.6.2022.",
+       "facts": [
+        "f-0b19e4"
+       ]
+      }
+     ],
+     "made_by": {
+      "model": null,
+      "prompt": null
+     }
+    },
+    "question_draft": {
+     "text": "Jaký postup doporučuje neurochirurgický seminář u solitárního ložiska v pravé mozečkové hemisféře?",
+     "question_kind": "document_purpose",
+     "basis": [
+      {
+       "role": "purpose",
+       "facts": [
+        "f-3c90de"
+       ]
+      }
+     ]
+    }
+   },
+   "drafts": [
+    {
+     "kind": "lab_result",
+     "subject": "patient",
+     "value": {
+      "name_as_written": "hsCRP",
+      "value_as_written": "9,5",
+      "value_numeric": 9.5,
+      "unit_as_written": "mg/1",
+      "unit": "mg/l",
+      "reference_range": "0 ... 5",
+      "reference_low": 0,
+      "reference_high": 5,
+      "out_of_range": "high",
+      "out_of_range_origin": "assistant",
+      "draw": {
+       "as_written": null,
+       "requisition": null,
+       "specimen": null
+      }
+     },
+     "date": {
+      "as_written": null,
+      "precision": null,
+      "sort": null
+     },
+     "status": "documented",
+     "negated": false,
+     "not_stated": [
+      "draw"
+     ],
+     "origin": "document",
+     "certainty": "verify",
+     "certainty_reason": {
+      "code": "ocr_char_swap",
+      "text": "V textu „mg/1“ a „O“, čteno jako mg/l a 0."
+     },
+     "codes": [
+      {
+       "system": "fno-local-lab",
+       "code": "S_HSCRP",
+       "assigned_by": "source"
+      }
+     ],
+     "note": null,
+     "quarantined": false,
+     "sources": [
+      "src-7c1e"
+     ]
+    },
+    {
+     "kind": "stage",
+     "subject": "patient",
+     "value": {
+      "tnm_as_written": "pT2a pN1(3+/5) MO",
+      "tnm": "pT2a pN1 M0",
+      "stage_kind": "pathological",
+      "edition": null,
+      "as_of": "2.6.2022",
+      "at_diagnosis": true
+     },
+     "date": {
+      "as_written": "2.6.2022",
+      "precision": "day",
+      "sort": "2022-06-02"
+     },
+     "status": "documented",
+     "negated": false,
+     "not_stated": [
+      "edition"
+     ],
+     "origin": "document",
+     "certainty": "verify",
+     "certainty_reason": {
+      "code": "ocr_char_swap",
+      "text": "V textu „MO“, čteno jako M0."
+     },
+     "codes": [],
+     "note": null,
+     "quarantined": false,
+     "sources": [
+      "src-0001"
+     ]
+    },
+    {
+     "kind": "request",
+     "subject": "patient",
+     "value": {
+      "what": "projednání nálezu MR mozku na neurochirurgickém semináři",
+      "request_kind": "consultation",
+      "result_fact": null
+     },
+     "date": {
+      "as_written": null,
+      "precision": null,
+      "sort": null
+     },
+     "status": "requested",
+     "negated": false,
+     "not_stated": [
+      "date"
+     ],
+     "origin": "document",
+     "certainty": "clear",
+     "codes": [],
+     "note": null,
+     "quarantined": false,
+     "sources": [
+      "src-0041"
+     ]
+    },
+    {
+     "kind": "performance_status",
+     "subject": "patient",
+     "value": {
+      "scale": "ECOG",
+      "value_as_written": "1",
+      "value_numeric": 1
+     },
+     "date": {
+      "as_written": null,
+      "precision": null,
+      "sort": null
+     },
+     "status": "documented",
+     "negated": false,
+     "not_stated": [],
+     "origin": "document",
+     "certainty": "clear",
+     "codes": [],
+     "note": null,
+     "quarantined": false,
+     "sources": [
+      "src-0042"
+     ]
+    },
+    {
+     "kind": "metastasis",
+     "subject": "patient",
+     "value": {
+      "site": "mozek",
+      "status": "excluded",
+      "basis": "clinical",
+      "text": "bez klinických známek mozkových metastáz"
+     },
+     "date": {
+      "as_written": null,
+      "precision": null,
+      "sort": null
+     },
+     "status": "documented",
+     "negated": true,
+     "not_stated": [],
+     "origin": "document",
+     "certainty": "clear",
+     "codes": [],
+     "note": null,
+     "quarantined": false,
+     "sources": [
+      "src-0042"
+     ]
+    },
+    {
+     "kind": "lab_result",
+     "subject": "patient",
+     "value": {
+      "name_as_written": "Kreatinin",
+      "value_as_written": "107",
+      "value_numeric": 107,
+      "unit_as_written": "µmol/l",
+      "unit": "µmol/l",
+      "reference_range": "59 ... 104",
+      "reference_low": 59,
+      "reference_high": 104,
+      "out_of_range": "high",
+      "out_of_range_origin": "document",
+      "draw": {
+       "as_written": "2026-09-17",
+       "requisition": null,
+       "specimen": "sérum"
+      }
+     },
+     "date": {
+      "as_written": "2026-09-17",
+      "precision": "day",
+      "sort": "2026-09-17"
+     },
+     "status": "documented",
+     "negated": false,
+     "not_stated": [],
+     "origin": "nis",
+     "certainty": "clear",
+     "codes": [
+      {
+       "system": "fno-local-lab",
+       "code": "S_CREA",
+       "assigned_by": "source"
+      }
+     ],
+     "note": null,
+     "quarantined": false,
+     "sources": [
+      "src-nis-41"
+     ]
+    },
+    {
+     "kind": "interval",
+     "subject": "patient",
+     "value": {
+      "from_fact": "f-0b19e4",
+      "to_fact": "f-6e2201",
+      "days": 1568,
+      "length_as_computed": "1568 dní",
+      "from_precision": "day",
+      "to_precision": "day"
+     },
+     "date": {
+      "as_written": null,
+      "precision": null,
+      "sort": null
+     },
+     "status": "documented",
+     "negated": false,
+     "not_stated": [],
+     "origin": "assistant",
+     "certainty": "inferred",
+     "codes": [],
+     "note": null,
+     "quarantined": false,
+     "sources": [],
+     "based_on": [
+      "f-0b19e4",
+      "f-6e2201"
+     ]
+    }
+   ],
+   "sources": [
+    {
+     "id": "src-7c1e",
+     "type": "document",
+     "document_id": "10_pacient",
+     "part": "10_pacient/p2",
+     "page": 3,
+     "quote": "S_HSCRP: 9,5 mg/1 [O ... 5]",
+     "quote_text": "tesseract",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": {
+      "mark": true,
+      "tokens": [
+       {
+        "pdf_text": "mg/1",
+        "tesseract": "mg/1",
+        "vision": "mg/l",
+        "rule": "differ"
+       }
+      ]
+     }
+    },
+    {
+     "id": "src-0001",
+     "type": "document",
+     "document_id": "10_pacient",
+     "part": "10_pacient/p0",
+     "page": 1,
+     "quote": "pT2a pN1(3+/5) MO",
+     "quote_text": "tesseract",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
+     "id": "src-0041",
+     "type": "document",
+     "document_id": "10_pacient",
+     "part": "10_pacient/p1",
+     "page": 4,
+     "quote": "Doporučeno projednání nálezu MR mozku na neurochirurgickém semináři.",
+     "quote_text": "tesseract",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
+     "id": "src-0042",
+     "type": "document",
+     "document_id": "10_pacient",
+     "part": "10_pacient/p1",
+     "page": 4,
+     "quote": "ECOG PS 1, bez klinických známek mozkových metastáz",
+     "quote_text": "tesseract",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
+     "id": "src-nis-41",
+     "type": "nis",
+     "system": "https://nis.fno.example/fhir",
+     "resource": "Observation/8812",
+     "version": "3",
+     "last_updated": "2026-09-17T08:12:00+02:00"
+    }
+   ],
+   "options": {
+    "retiredDocuments": [
+     "10_pacient"
+    ]
+   },
+   "expected": {
+    "ids": [
+     "f-dffc4d94",
+     "f-76e20da5",
+     "f-e7f16bae",
+     "f-3cfe8dd6",
+     "f-816154af",
+     "f-6e2201",
+     "f-9f0001"
+    ],
+    "keys": [
+     "lab_result|S_HSCRP|draw:undated|doc:10_pacient",
+     "stage|pathological|2022-06-02",
+     "request|projednání nálezu mr mozku na neurochirurgickém semináři|undated",
+     "performance_status|ecog|undated",
+     "metastasis|mozek|undated",
+     "lab_result|S_CREA|draw:2026-09-17|nis:Observation/8812",
+     "interval|f-0b19e4|f-6e2201"
+    ],
+    "how": {
+     "f-6e2201": "key",
+     "f-dffc4d94": "new",
+     "f-76e20da5": "new",
+     "f-e7f16bae": "new",
+     "f-3cfe8dd6": "new",
+     "f-816154af": "new",
+     "f-9f0001": "key"
+    },
+    "dropped": [
+     "f-8d41c2",
+     "f-0b19e4",
+     "f-3c90de",
+     "f-5a0b11",
+     "f-5a0b12"
+    ]
+   }
+  },
+  {
+   "name": "issued IDs",
+   "previous": null,
+   "drafts": [
+    {
+     "kind": "lab_result",
+     "subject": "patient",
+     "value": {
+      "name_as_written": "hsCRP",
+      "value_as_written": "9,5",
+      "value_numeric": 9.5,
+      "unit_as_written": "mg/1",
+      "unit": "mg/l",
+      "reference_range": "0 ... 5",
+      "reference_low": 0,
+      "reference_high": 5,
+      "out_of_range": "high",
+      "out_of_range_origin": "assistant",
+      "draw": {
+       "as_written": null,
+       "requisition": null,
+       "specimen": null
+      }
+     },
+     "date": {
+      "as_written": null,
+      "precision": null,
+      "sort": null
+     },
+     "status": "documented",
+     "negated": false,
+     "not_stated": [
+      "draw"
+     ],
+     "origin": "document",
+     "certainty": "verify",
+     "certainty_reason": {
+      "code": "ocr_char_swap",
+      "text": "V textu „mg/1“ a „O“, čteno jako mg/l a 0."
+     },
+     "codes": [
+      {
+       "system": "fno-local-lab",
+       "code": "S_HSCRP",
+       "assigned_by": "source"
+      }
+     ],
+     "note": null,
+     "quarantined": false,
+     "sources": [
+      "src-7c1e"
+     ]
+    },
+    {
+     "kind": "stage",
+     "subject": "patient",
+     "value": {
+      "tnm_as_written": "pT2a pN1(3+/5) MO",
+      "tnm": "pT2a pN1 M0",
+      "stage_kind": "pathological",
+      "edition": null,
+      "as_of": "2.6.2022",
+      "at_diagnosis": true
+     },
+     "date": {
+      "as_written": "2.6.2022",
+      "precision": "day",
+      "sort": "2022-06-02"
+     },
+     "status": "documented",
+     "negated": false,
+     "not_stated": [
+      "edition"
+     ],
+     "origin": "document",
+     "certainty": "verify",
+     "certainty_reason": {
+      "code": "ocr_char_swap",
+      "text": "V textu „MO“, čteno jako M0."
+     },
+     "codes": [],
+     "note": null,
+     "quarantined": false,
+     "sources": [
+      "src-0001"
+     ]
+    },
+    {
+     "kind": "request",
+     "subject": "patient",
+     "value": {
+      "what": "projednání nálezu MR mozku na neurochirurgickém semináři",
+      "request_kind": "consultation",
+      "result_fact": null
+     },
+     "date": {
+      "as_written": null,
+      "precision": null,
+      "sort": null
+     },
+     "status": "requested",
+     "negated": false,
+     "not_stated": [
+      "date"
+     ],
+     "origin": "document",
+     "certainty": "clear",
+     "codes": [],
+     "note": null,
+     "quarantined": false,
+     "sources": [
+      "src-0041"
+     ]
+    },
+    {
+     "kind": "performance_status",
+     "subject": "patient",
+     "value": {
+      "scale": "ECOG",
+      "value_as_written": "1",
+      "value_numeric": 1
+     },
+     "date": {
+      "as_written": null,
+      "precision": null,
+      "sort": null
+     },
+     "status": "documented",
+     "negated": false,
+     "not_stated": [],
+     "origin": "document",
+     "certainty": "clear",
+     "codes": [],
+     "note": null,
+     "quarantined": false,
+     "sources": [
+      "src-0042"
+     ]
+    },
+    {
+     "kind": "metastasis",
+     "subject": "patient",
+     "value": {
+      "site": "mozek",
+      "status": "excluded",
+      "basis": "clinical",
+      "text": "bez klinických známek mozkových metastáz"
+     },
+     "date": {
+      "as_written": null,
+      "precision": null,
+      "sort": null
+     },
+     "status": "documented",
+     "negated": true,
+     "not_stated": [],
+     "origin": "document",
+     "certainty": "clear",
+     "codes": [],
+     "note": null,
+     "quarantined": false,
+     "sources": [
+      "src-0042"
+     ]
+    },
+    {
+     "kind": "lab_result",
+     "subject": "patient",
+     "value": {
+      "name_as_written": "Kreatinin",
+      "value_as_written": "107",
+      "value_numeric": 107,
+      "unit_as_written": "µmol/l",
+      "unit": "µmol/l",
+      "reference_range": "59 ... 104",
+      "reference_low": 59,
+      "reference_high": 104,
+      "out_of_range": "high",
+      "out_of_range_origin": "document",
+      "draw": {
+       "as_written": "2026-09-17",
+       "requisition": null,
+       "specimen": "sérum"
+      }
+     },
+     "date": {
+      "as_written": "2026-09-17",
+      "precision": "day",
+      "sort": "2026-09-17"
+     },
+     "status": "documented",
+     "negated": false,
+     "not_stated": [],
+     "origin": "nis",
+     "certainty": "clear",
+     "codes": [
+      {
+       "system": "fno-local-lab",
+       "code": "S_CREA",
+       "assigned_by": "source"
+      }
+     ],
+     "note": null,
+     "quarantined": false,
+     "sources": [
+      "src-nis-41"
+     ]
+    },
+    {
+     "kind": "interval",
+     "subject": "patient",
+     "value": {
+      "from_fact": "f-0b19e4",
+      "to_fact": "f-6e2201",
+      "days": 1568,
+      "length_as_computed": "1568 dní",
+      "from_precision": "day",
+      "to_precision": "day"
+     },
+     "date": {
+      "as_written": null,
+      "precision": null,
+      "sort": null
+     },
+     "status": "documented",
+     "negated": false,
+     "not_stated": [],
+     "origin": "assistant",
+     "certainty": "inferred",
+     "codes": [],
+     "note": null,
+     "quarantined": false,
+     "sources": [],
+     "based_on": [
+      "f-0b19e4",
+      "f-6e2201"
+     ]
+    }
+   ],
+   "sources": [
+    {
+     "id": "src-7c1e",
+     "type": "document",
+     "document_id": "10_pacient",
+     "part": "10_pacient/p2",
+     "page": 3,
+     "quote": "S_HSCRP: 9,5 mg/1 [O ... 5]",
+     "quote_text": "tesseract",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": {
+      "mark": true,
+      "tokens": [
+       {
+        "pdf_text": "mg/1",
+        "tesseract": "mg/1",
+        "vision": "mg/l",
+        "rule": "differ"
+       }
+      ]
+     }
+    },
+    {
+     "id": "src-0001",
+     "type": "document",
+     "document_id": "10_pacient",
+     "part": "10_pacient/p0",
+     "page": 1,
+     "quote": "pT2a pN1(3+/5) MO",
+     "quote_text": "tesseract",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
+     "id": "src-0041",
+     "type": "document",
+     "document_id": "10_pacient",
+     "part": "10_pacient/p1",
+     "page": 4,
+     "quote": "Doporučeno projednání nálezu MR mozku na neurochirurgickém semináři.",
+     "quote_text": "tesseract",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
+     "id": "src-0042",
+     "type": "document",
+     "document_id": "10_pacient",
+     "part": "10_pacient/p1",
+     "page": 4,
+     "quote": "ECOG PS 1, bez klinických známek mozkových metastáz",
+     "quote_text": "tesseract",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
+     "id": "src-nis-41",
+     "type": "nis",
+     "system": "https://nis.fno.example/fhir",
+     "resource": "Observation/8812",
+     "version": "3",
+     "last_updated": "2026-09-17T08:12:00+02:00"
+    }
+   ],
+   "options": {
+    "issuedIds": [
+     "f-8d41c2"
+    ]
+   },
+   "expected": {
+    "ids": [
+     "f-dffc4d94",
+     "f-76e20da5",
+     "f-e7f16bae",
+     "f-3cfe8dd6",
+     "f-816154af",
+     "f-1f07ee77",
+     "f-dcb7d780"
+    ],
+    "keys": [
+     "lab_result|S_HSCRP|draw:undated|doc:10_pacient",
+     "stage|pathological|2022-06-02",
+     "request|projednání nálezu mr mozku na neurochirurgickém semináři|undated",
+     "performance_status|ecog|undated",
+     "metastasis|mozek|undated",
+     "lab_result|S_CREA|draw:2026-09-17|nis:Observation/8812",
+     "interval|f-0b19e4|f-6e2201"
+    ],
+    "how": {
+     "f-dffc4d94": "new",
+     "f-76e20da5": "new",
+     "f-e7f16bae": "new",
+     "f-3cfe8dd6": "new",
+     "f-816154af": "new",
+     "f-1f07ee77": "new",
+     "f-dcb7d780": "new"
+    },
+    "dropped": []
+   }
+  },
+  {
+   "name": "all dates moved",
+   "previous": {
+    "schema": "codebridge.extraction/2",
+    "case_id": "NO-010",
+    "content_language": "cs",
+    "run": {
+     "id": "run-2026-10-19T10:04:11Z-a1b2",
+     "producer": "fixture",
+     "created_at": "2026-10-19T10:04:11Z",
+     "stages": [
+      {
+       "name": "convert",
+       "engine": "EXTRACTION-FORMAT.md worked examples"
+      }
+     ],
+     "supersedes": null
+    },
+    "documents": [
+     {
+      "document_id": "10_pacient",
+      "sha256": null,
+      "parts": [
+       "10_pacient/p0",
+       "10_pacient/p1",
+       "10_pacient/p2"
+      ]
+     }
+    ],
+    "sources": [
+     {
+      "id": "src-7c1e",
+      "type": "document",
+      "document_id": "10_pacient",
+      "part": "10_pacient/p2",
+      "page": 3,
+      "quote": "S_HSCRP: 9,5 mg/1 [O ... 5]",
+      "quote_text": "tesseract",
+      "anchor": null,
+      "reported_as": "original",
+      "identity": "matches",
+      "reading_check": {
+       "mark": true,
+       "tokens": [
+        {
+         "pdf_text": "mg/1",
+         "tesseract": "mg/1",
+         "vision": "mg/l",
+         "rule": "differ"
+        }
+       ]
+      }
+     },
+     {
+      "id": "src-0001",
+      "type": "document",
+      "document_id": "10_pacient",
+      "part": "10_pacient/p0",
+      "page": 1,
+      "quote": "pT2a pN1(3+/5) MO",
+      "quote_text": "tesseract",
+      "anchor": null,
+      "reported_as": "original",
+      "identity": "matches",
+      "reading_check": null
+     },
+     {
+      "id": "src-0041",
+      "type": "document",
+      "document_id": "10_pacient",
+      "part": "10_pacient/p1",
+      "page": 4,
+      "quote": "Doporučeno projednání nálezu MR mozku na neurochirurgickém semináři.",
+      "quote_text": "tesseract",
+      "anchor": null,
+      "reported_as": "original",
+      "identity": "matches",
+      "reading_check": null
+     },
+     {
+      "id": "src-0042",
+      "type": "document",
+      "document_id": "10_pacient",
+      "part": "10_pacient/p1",
+      "page": 4,
+      "quote": "ECOG PS 1, bez klinických známek mozkových metastáz",
+      "quote_text": "tesseract",
+      "anchor": null,
+      "reported_as": "original",
+      "identity": "matches",
+      "reading_check": null
+     },
+     {
+      "id": "src-nis-41",
+      "type": "nis",
+      "system": "https://nis.fno.example/fhir",
+      "resource": "Observation/8812",
+      "version": "3",
+      "last_updated": "2026-09-17T08:12:00+02:00"
+     }
+    ],
+    "facts": [
+     {
+      "id": "f-8d41c2",
+      "key": "lab_result|S_HSCRP|draw:undated|doc:10_pacient",
+      "kind": "lab_result",
+      "subject": "patient",
+      "value": {
+       "name_as_written": "hsCRP",
+       "value_as_written": "9,5",
+       "value_numeric": 9.5,
+       "unit_as_written": "mg/1",
+       "unit": "mg/l",
+       "reference_range": "0 ... 5",
+       "reference_low": 0,
+       "reference_high": 5,
+       "out_of_range": "high",
+       "out_of_range_origin": "assistant",
+       "draw": {
+        "as_written": null,
+        "requisition": null,
+        "specimen": null
+       }
+      },
+      "date": {
+       "as_written": null,
+       "precision": null,
+       "sort": null
+      },
+      "status": "documented",
+      "negated": false,
+      "not_stated": [
+       "draw"
+      ],
+      "origin": "document",
+      "certainty": "verify",
+      "certainty_reason": {
+       "code": "ocr_char_swap",
+       "text": "V textu „mg/1“ a „O“, čteno jako mg/l a 0."
+      },
+      "codes": [
+       {
+        "system": "fno-local-lab",
+        "code": "S_HSCRP",
+        "assigned_by": "source"
+       }
+      ],
+      "note": null,
+      "quarantined": false,
+      "sources": [
+       "src-7c1e"
+      ]
+     },
+     {
+      "id": "f-0b19e4",
+      "key": "stage|pathological|2022-06-02",
+      "kind": "stage",
+      "subject": "patient",
+      "value": {
+       "tnm_as_written": "pT2a pN1(3+/5) MO",
+       "tnm": "pT2a pN1 M0",
+       "stage_kind": "pathological",
+       "edition": null,
+       "as_of": "2.6.2022",
+       "at_diagnosis": true
+      },
+      "date": {
+       "as_written": "2.6.2022",
+       "precision": "day",
+       "sort": "2022-06-02"
+      },
+      "status": "documented",
+      "negated": false,
+      "not_stated": [
+       "edition"
+      ],
+      "origin": "document",
+      "certainty": "verify",
+      "certainty_reason": {
+       "code": "ocr_char_swap",
+       "text": "V textu „MO“, čteno jako M0."
+      },
+      "codes": [],
+      "note": null,
+      "quarantined": false,
+      "sources": [
+       "src-0001"
+      ]
+     },
+     {
+      "id": "f-3c90de",
+      "key": "request|projednání nálezu mr mozku na neurochirurgickém semináři|undated",
+      "kind": "request",
+      "subject": "patient",
+      "value": {
+       "what": "projednání nálezu MR mozku na neurochirurgickém semináři",
+       "request_kind": "consultation",
+       "result_fact": null
+      },
+      "date": {
+       "as_written": null,
+       "precision": null,
+       "sort": null
+      },
+      "status": "requested",
+      "negated": false,
+      "not_stated": [
+       "date"
+      ],
+      "origin": "document",
+      "certainty": "clear",
+      "codes": [],
+      "note": null,
+      "quarantined": false,
+      "sources": [
+       "src-0041"
+      ]
+     },
+     {
+      "id": "f-5a0b11",
+      "key": "performance_status|ecog|undated",
+      "kind": "performance_status",
+      "subject": "patient",
+      "value": {
+       "scale": "ECOG",
+       "value_as_written": "1",
+       "value_numeric": 1
+      },
+      "date": {
+       "as_written": null,
+       "precision": null,
+       "sort": null
+      },
+      "status": "documented",
+      "negated": false,
+      "not_stated": [],
+      "origin": "document",
+      "certainty": "clear",
+      "codes": [],
+      "note": null,
+      "quarantined": false,
+      "sources": [
+       "src-0042"
+      ]
+     },
+     {
+      "id": "f-5a0b12",
+      "key": "metastasis|mozek|undated",
+      "kind": "metastasis",
+      "subject": "patient",
+      "value": {
+       "site": "mozek",
+       "status": "excluded",
+       "basis": "clinical",
+       "text": "bez klinických známek mozkových metastáz"
+      },
+      "date": {
+       "as_written": null,
+       "precision": null,
+       "sort": null
+      },
+      "status": "documented",
+      "negated": true,
+      "not_stated": [],
+      "origin": "document",
+      "certainty": "clear",
+      "codes": [],
+      "note": null,
+      "quarantined": false,
+      "sources": [
+       "src-0042"
+      ]
+     },
+     {
+      "id": "f-6e2201",
+      "key": "lab_result|S_CREA|draw:2026-09-17|nis:Observation/8812",
+      "kind": "lab_result",
+      "subject": "patient",
+      "value": {
+       "name_as_written": "Kreatinin",
+       "value_as_written": "107",
+       "value_numeric": 107,
+       "unit_as_written": "µmol/l",
+       "unit": "µmol/l",
+       "reference_range": "59 ... 104",
+       "reference_low": 59,
+       "reference_high": 104,
+       "out_of_range": "high",
+       "out_of_range_origin": "document",
+       "draw": {
+        "as_written": "2026-09-17",
+        "requisition": null,
+        "specimen": "sérum"
+       }
+      },
+      "date": {
+       "as_written": "2026-09-17",
+       "precision": "day",
+       "sort": "2026-09-17"
+      },
+      "status": "documented",
+      "negated": false,
+      "not_stated": [],
+      "origin": "nis",
+      "certainty": "clear",
+      "codes": [
+       {
+        "system": "fno-local-lab",
+        "code": "S_CREA",
+        "assigned_by": "source"
+       }
+      ],
+      "note": null,
+      "quarantined": false,
+      "sources": [
+       "src-nis-41"
+      ]
+     },
+     {
+      "id": "f-9f0001",
+      "key": "interval|f-0b19e4|f-6e2201",
+      "kind": "interval",
+      "subject": "patient",
+      "value": {
+       "from_fact": "f-0b19e4",
+       "to_fact": "f-6e2201",
+       "days": 1568,
+       "length_as_computed": "1568 dní",
+       "from_precision": "day",
+       "to_precision": "day"
+      },
+      "date": {
+       "as_written": null,
+       "precision": null,
+       "sort": null
+      },
+      "status": "documented",
+      "negated": false,
+      "not_stated": [],
+      "origin": "assistant",
+      "certainty": "inferred",
+      "codes": [],
+      "note": null,
+      "quarantined": false,
+      "sources": [],
+      "based_on": [
+       "f-0b19e4",
+       "f-6e2201"
+      ]
+     }
+    ],
+    "checks": [
+     {
+      "id": "chk-allergy",
+      "looks_for": "allergy",
+      "expected": null,
+      "covered": [
+       {
+        "document_id": "10_pacient",
+        "part": "10_pacient/p0"
+       },
+       {
+        "document_id": "10_pacient",
+        "part": "10_pacient/p1"
+       }
+      ],
+      "unreadable": [
+       {
+        "document_id": "10_pacient",
+        "part": "10_pacient/p2",
+        "page": 4
+       }
+      ],
+      "result": "nothing_found"
+     },
+     {
+      "id": "chk-lab_result",
+      "looks_for": "lab_result",
+      "expected": null,
+      "covered": [
+       {
+        "document_id": "10_pacient",
+        "part": "10_pacient/p2"
+       }
+      ],
+      "unreadable": [],
+      "result": "found"
+     }
+    ],
+    "alerts": [
+     {
+      "id": "al-77205d20",
+      "rule": "request_without_result",
+      "subject": "f-3c90de",
+      "kind": "missing",
+      "facts": [
+       "f-3c90de"
+      ],
+      "message": {
+       "id": "alert-request-without-result",
+       "args": {
+        "fact": "f-3c90de"
+       }
+      },
+      "note": null
+     }
+    ],
+    "brief": {
+     "sentences": [
+      {
+       "text": "Patologické stadium pT2a pN1 M0 z 2.6.2022.",
+       "facts": [
+        "f-0b19e4"
+       ]
+      }
+     ],
+     "made_by": {
+      "model": null,
+      "prompt": null
+     }
+    },
+    "question_draft": {
+     "text": "Jaký postup doporučuje neurochirurgický seminář u solitárního ložiska v pravé mozečkové hemisféře?",
+     "question_kind": "document_purpose",
+     "basis": [
+      {
+       "role": "purpose",
+       "facts": [
+        "f-3c90de"
+       ]
+      }
+     ]
+    }
+   },
+   "drafts": [
+    {
+     "kind": "lab_result",
+     "subject": "patient",
+     "value": {
+      "name_as_written": "hsCRP",
+      "value_as_written": "9,5",
+      "value_numeric": 9.5,
+      "unit_as_written": "mg/1",
+      "unit": "mg/l",
+      "reference_range": "0 ... 5",
+      "reference_low": 0,
+      "reference_high": 5,
+      "out_of_range": "high",
+      "out_of_range_origin": "assistant",
+      "draw": {
+       "as_written": null,
+       "requisition": null,
+       "specimen": null
+      }
+     },
+     "date": {
+      "as_written": "1.1.2030",
+      "precision": "day",
+      "sort": "2030-01-01"
+     },
+     "status": "documented",
+     "negated": false,
+     "not_stated": [
+      "draw"
+     ],
+     "origin": "document",
+     "certainty": "verify",
+     "certainty_reason": {
+      "code": "ocr_char_swap",
+      "text": "V textu „mg/1“ a „O“, čteno jako mg/l a 0."
+     },
+     "codes": [
+      {
+       "system": "fno-local-lab",
+       "code": "S_HSCRP",
+       "assigned_by": "source"
+      }
+     ],
+     "note": null,
+     "quarantined": false,
+     "sources": [
+      "src-7c1e"
+     ]
+    },
+    {
+     "kind": "stage",
+     "subject": "patient",
+     "value": {
+      "tnm_as_written": "pT2a pN1(3+/5) MO",
+      "tnm": "pT2a pN1 M0",
+      "stage_kind": "pathological",
+      "edition": null,
+      "as_of": "2.6.2022",
+      "at_diagnosis": true
+     },
+     "date": {
+      "as_written": "1.1.2030",
+      "precision": "day",
+      "sort": "2030-01-01"
+     },
+     "status": "documented",
+     "negated": false,
+     "not_stated": [
+      "edition"
+     ],
+     "origin": "document",
+     "certainty": "verify",
+     "certainty_reason": {
+      "code": "ocr_char_swap",
+      "text": "V textu „MO“, čteno jako M0."
+     },
+     "codes": [],
+     "note": null,
+     "quarantined": false,
+     "sources": [
+      "src-0001"
+     ]
+    },
+    {
+     "kind": "request",
+     "subject": "patient",
+     "value": {
+      "what": "projednání nálezu MR mozku na neurochirurgickém semináři",
+      "request_kind": "consultation",
+      "result_fact": null
+     },
+     "date": {
+      "as_written": "1.1.2030",
+      "precision": "day",
+      "sort": "2030-01-01"
+     },
+     "status": "requested",
+     "negated": false,
+     "not_stated": [
+      "date"
+     ],
+     "origin": "document",
+     "certainty": "clear",
+     "codes": [],
+     "note": null,
+     "quarantined": false,
+     "sources": [
+      "src-0041"
+     ]
+    },
+    {
+     "kind": "performance_status",
+     "subject": "patient",
+     "value": {
+      "scale": "ECOG",
+      "value_as_written": "1",
+      "value_numeric": 1
+     },
+     "date": {
+      "as_written": "1.1.2030",
+      "precision": "day",
+      "sort": "2030-01-01"
+     },
+     "status": "documented",
+     "negated": false,
+     "not_stated": [],
+     "origin": "document",
+     "certainty": "clear",
+     "codes": [],
+     "note": null,
+     "quarantined": false,
+     "sources": [
+      "src-0042"
+     ]
+    },
+    {
+     "kind": "metastasis",
+     "subject": "patient",
+     "value": {
+      "site": "mozek",
+      "status": "excluded",
+      "basis": "clinical",
+      "text": "bez klinických známek mozkových metastáz"
+     },
+     "date": {
+      "as_written": "1.1.2030",
+      "precision": "day",
+      "sort": "2030-01-01"
+     },
+     "status": "documented",
+     "negated": true,
+     "not_stated": [],
+     "origin": "document",
+     "certainty": "clear",
+     "codes": [],
+     "note": null,
+     "quarantined": false,
+     "sources": [
+      "src-0042"
+     ]
+    },
+    {
+     "kind": "lab_result",
+     "subject": "patient",
+     "value": {
+      "name_as_written": "Kreatinin",
+      "value_as_written": "107",
+      "value_numeric": 107,
+      "unit_as_written": "µmol/l",
+      "unit": "µmol/l",
+      "reference_range": "59 ... 104",
+      "reference_low": 59,
+      "reference_high": 104,
+      "out_of_range": "high",
+      "out_of_range_origin": "document",
+      "draw": {
+       "as_written": "2026-09-17",
+       "requisition": null,
+       "specimen": "sérum"
+      }
+     },
+     "date": {
+      "as_written": "1.1.2030",
+      "precision": "day",
+      "sort": "2030-01-01"
+     },
+     "status": "documented",
+     "negated": false,
+     "not_stated": [],
+     "origin": "nis",
+     "certainty": "clear",
+     "codes": [
+      {
+       "system": "fno-local-lab",
+       "code": "S_CREA",
+       "assigned_by": "source"
+      }
+     ],
+     "note": null,
+     "quarantined": false,
+     "sources": [
+      "src-nis-41"
+     ]
+    },
+    {
+     "kind": "interval",
+     "subject": "patient",
+     "value": {
+      "from_fact": "f-0b19e4",
+      "to_fact": "f-6e2201",
+      "days": 1568,
+      "length_as_computed": "1568 dní",
+      "from_precision": "day",
+      "to_precision": "day"
+     },
+     "date": {
+      "as_written": "1.1.2030",
+      "precision": "day",
+      "sort": "2030-01-01"
+     },
+     "status": "documented",
+     "negated": false,
+     "not_stated": [],
+     "origin": "assistant",
+     "certainty": "inferred",
+     "codes": [],
+     "note": null,
+     "quarantined": false,
+     "sources": [],
+     "based_on": [
+      "f-0b19e4",
+      "f-6e2201"
+     ]
+    }
+   ],
+   "sources": [
+    {
+     "id": "src-7c1e",
+     "type": "document",
+     "document_id": "10_pacient",
+     "part": "10_pacient/p2",
+     "page": 3,
+     "quote": "S_HSCRP: 9,5 mg/1 [O ... 5]",
+     "quote_text": "tesseract",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": {
+      "mark": true,
+      "tokens": [
+       {
+        "pdf_text": "mg/1",
+        "tesseract": "mg/1",
+        "vision": "mg/l",
+        "rule": "differ"
+       }
+      ]
+     }
+    },
+    {
+     "id": "src-0001",
+     "type": "document",
+     "document_id": "10_pacient",
+     "part": "10_pacient/p0",
+     "page": 1,
+     "quote": "pT2a pN1(3+/5) MO",
+     "quote_text": "tesseract",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
+     "id": "src-0041",
+     "type": "document",
+     "document_id": "10_pacient",
+     "part": "10_pacient/p1",
+     "page": 4,
+     "quote": "Doporučeno projednání nálezu MR mozku na neurochirurgickém semináři.",
+     "quote_text": "tesseract",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
+     "id": "src-0042",
+     "type": "document",
+     "document_id": "10_pacient",
+     "part": "10_pacient/p1",
+     "page": 4,
+     "quote": "ECOG PS 1, bez klinických známek mozkových metastáz",
+     "quote_text": "tesseract",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
+     "id": "src-nis-41",
+     "type": "nis",
+     "system": "https://nis.fno.example/fhir",
+     "resource": "Observation/8812",
+     "version": "3",
+     "last_updated": "2026-09-17T08:12:00+02:00"
+    }
+   ],
+   "options": {},
+   "expected": {
+    "ids": [
+     "f-8b8fbb92",
+     "f-5bc9b4d0",
+     "f-62683988",
+     "f-88a8554c",
+     "f-a5872fb7",
+     "f-1f07ee77",
+     "f-dcb7d780"
+    ],
+    "keys": [
+     "lab_result|S_HSCRP|draw:1.1.2030|doc:10_pacient",
+     "stage|pathological|2030-01-01",
+     "request|projednání nálezu mr mozku na neurochirurgickém semináři|1.1.2030",
+     "performance_status|ecog|2030-01-01",
+     "metastasis|mozek|2030-01-01",
+     "lab_result|S_CREA|draw:2026-09-17|nis:Observation/8812",
+     "interval|f-0b19e4|f-6e2201"
+    ],
+    "how": {
+     "f-8b8fbb92": "new",
+     "f-5bc9b4d0": "new",
+     "f-62683988": "new",
+     "f-88a8554c": "new",
+     "f-a5872fb7": "new",
+     "f-1f07ee77": "new",
+     "f-dcb7d780": "new"
+    },
+    "dropped": [
+     "f-8d41c2",
+     "f-0b19e4",
+     "f-3c90de",
+     "f-5a0b11",
+     "f-5a0b12",
+     "f-6e2201",
+     "f-9f0001"
+    ]
+   }
+  },
+  {
+   "name": "two draws, sources reversed",
+   "previous": null,
+   "drafts": [
+    {
+     "kind": "lab_result",
+     "subject": "patient",
+     "value": {
+      "name_as_written": "hsCRP",
+      "value_as_written": "9,5",
+      "value_numeric": 9.5,
+      "unit_as_written": "mg/1",
+      "unit": "mg/l",
+      "reference_range": "0 ... 5",
+      "reference_low": 0,
+      "reference_high": 5,
+      "out_of_range": "high",
+      "out_of_range_origin": "assistant",
+      "draw": {
+       "as_written": null,
+       "requisition": null,
+       "specimen": null
+      }
+     },
+     "date": {
+      "as_written": null,
+      "precision": null,
+      "sort": null
+     },
+     "status": "documented",
+     "negated": false,
+     "not_stated": [
+      "draw"
+     ],
+     "origin": "document",
+     "certainty": "verify",
+     "certainty_reason": {
+      "code": "ocr_char_swap",
+      "text": "V textu „mg/1“ a „O“, čteno jako mg/l a 0."
+     },
+     "codes": [
+      {
+       "system": "fno-local-lab",
+       "code": "S_HSCRP",
+       "assigned_by": "source"
+      }
+     ],
+     "note": null,
+     "quarantined": false,
+     "sources": [
+      "src-7c1e"
+     ]
+    },
+    {
+     "kind": "lab_result",
+     "subject": "patient",
+     "value": {
+      "name_as_written": "hsCRP",
+      "value_as_written": "12,0",
+      "value_numeric": 12,
+      "unit_as_written": "mg/1",
+      "unit": "mg/l",
+      "reference_range": "0 ... 5",
+      "reference_low": 0,
+      "reference_high": 5,
+      "out_of_range": "high",
+      "out_of_range_origin": "assistant",
+      "draw": {
+       "as_written": null,
+       "requisition": null,
+       "specimen": null
+      }
+     },
+     "date": {
+      "as_written": null,
+      "precision": null,
+      "sort": null
+     },
+     "status": "documented",
+     "negated": false,
+     "not_stated": [
+      "draw"
+     ],
+     "origin": "document",
+     "certainty": "verify",
+     "certainty_reason": {
+      "code": "ocr_char_swap",
+      "text": "V textu „mg/1“ a „O“, čteno jako mg/l a 0."
+     },
+     "codes": [
+      {
+       "system": "fno-local-lab",
+       "code": "S_HSCRP",
+       "assigned_by": "source"
+      }
+     ],
+     "note": null,
+     "quarantined": false,
+     "sources": [
+      "src-7c1e"
+     ]
+    }
+   ],
+   "sources": [
+    {
+     "id": "src-nis-41",
+     "type": "nis",
+     "system": "https://nis.fno.example/fhir",
+     "resource": "Observation/8812",
+     "version": "3",
+     "last_updated": "2026-09-17T08:12:00+02:00"
+    },
+    {
+     "id": "src-0042",
+     "type": "document",
+     "document_id": "10_pacient",
+     "part": "10_pacient/p1",
+     "page": 4,
+     "quote": "ECOG PS 1, bez klinických známek mozkových metastáz",
+     "quote_text": "tesseract",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
+     "id": "src-0041",
+     "type": "document",
+     "document_id": "10_pacient",
+     "part": "10_pacient/p1",
+     "page": 4,
+     "quote": "Doporučeno projednání nálezu MR mozku na neurochirurgickém semináři.",
+     "quote_text": "tesseract",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
+     "id": "src-0001",
+     "type": "document",
+     "document_id": "10_pacient",
+     "part": "10_pacient/p0",
+     "page": 1,
+     "quote": "pT2a pN1(3+/5) MO",
+     "quote_text": "tesseract",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
+     "id": "src-7c1e",
+     "type": "document",
+     "document_id": "10_pacient",
+     "part": "10_pacient/p2",
+     "page": 3,
+     "quote": "S_HSCRP: 9,5 mg/1 [O ... 5]",
+     "quote_text": "tesseract",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": {
+      "mark": true,
+      "tokens": [
+       {
+        "pdf_text": "mg/1",
+        "tesseract": "mg/1",
+        "vision": "mg/l",
+        "rule": "differ"
+       }
+      ]
+     }
+    }
+   ],
+   "options": {},
+   "expected": {
+    "ids": [
+     "f-f2f33265",
+     "f-dffc4d94"
+    ],
+    "keys": [
+     "lab_result|S_HSCRP|draw:undated|doc:10_pacient#2",
+     "lab_result|S_HSCRP|draw:undated|doc:10_pacient"
+    ],
+    "how": {
+     "f-f2f33265": "new",
+     "f-dffc4d94": "new"
+    },
+    "dropped": []
+   }
+  }
  ],
  "fact_keys": [
   {

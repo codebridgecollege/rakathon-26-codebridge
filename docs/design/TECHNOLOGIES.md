@@ -121,6 +121,7 @@ development and corrected by hand after two reviews
 | MKN-10 | used in data | Diagnosis codes as written in the documents; shown below the histology, because doctors read the histology and stage first |
 | TNM, ECOG PS, iRECIST | used in data | Kept exactly as written; TNM labeled as stage at diagnosis |
 | NČLP | planned | Lab codes, kept as the source gives them |
+| JSON Schema (draft 7) | used (extraction format) | The extraction format `codebridge.extraction/2` ([`EXTRACTION-FORMAT.md`](EXTRACTION-FORMAT.md)): generated from the TypeScript types by ts-json-schema-generator 2.9.0, checked in the Worker by `@cfworker/json-schema` 4.1.1 (no code generation at runtime, which Workers forbid) and in the Python pipeline by `jsonschema` 4.23.0 |
 
 ## Development tools (not part of the product)
 

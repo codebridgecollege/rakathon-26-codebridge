@@ -13,11 +13,13 @@ from extraction_format import (
     assign_fact_ids,
     assign_keys,
     build_fact_key,
+    date_precision_problem,
     date_seg,
     fnv1a32,
     norm_text,
     pair_subject,
     validate_run,
+    value_text,
 )
 
 DOMAIN = REPO / "packages/domain"
@@ -66,6 +68,31 @@ def test_alert_ids(alert, want):
     assert alert_id(alert) == want
 
 
+@pytest.mark.parametrize(("value", "want"), VECTORS["value_text"])
+def test_value_text(value, want):
+    assert value_text(value) == want
+
+
+@pytest.mark.parametrize(("date", "bad"), VECTORS["date_precision"])
+def test_date_precision(date, bad):
+    assert (date_precision_problem(date) is not None) == bad
+
+
+@pytest.mark.parametrize("vector", VECTORS["collisions"])
+def test_collisions(vector):
+    assert [f["key"] for f in assign_keys(vector["facts"], vector["sources"])] == vector["keys"]
+
+
+@pytest.mark.parametrize("m", VECTORS["matches"], ids=lambda m: m["name"])
+def test_matcher_scenarios(m):
+    opts = m["options"]
+    res = assign_fact_ids("NO-010", m["drafts"], m["sources"], m["previous"], opts.get("retiredDocuments", ()), opts.get("issuedIds", ()))
+    assert [f["id"] for f in res.facts] == m["expected"]["ids"]
+    assert [f["key"] for f in res.facts] == m["expected"]["keys"]
+    assert res.how == m["expected"]["how"]
+    assert res.dropped == m["expected"]["dropped"]
+
+
 def test_vectors_cover_every_fact_kind():
     from extraction_format import FACT_KINDS
 
@@ -82,13 +109,14 @@ def test_worked_example_keys():
     assert build_fact_key(run["facts"][1], src) == "stage|pathological|2022-06-02"
 
 
-def test_collision_suffix_in_source_order():
+def test_collision_suffix_by_content_not_position():
     run = example()
     lab = run["facts"][0]
-    second = {**lab, "sources": ["src-0001"]}
-    keyed = assign_keys([second, lab], run["sources"])
-    assert keyed[1]["key"] == "lab_result|S_HSCRP|draw:undated|doc:10_pacient"
-    assert keyed[0]["key"] == "lab_result|S_HSCRP|draw:undated|doc:10_pacient#2"
+    second = {**lab, "value": {**lab["value"], "value_as_written": "12,0", "value_numeric": 12}}
+    plain = "lab_result|S_HSCRP|draw:undated|doc:10_pacient"
+    for facts, sources in (([lab, second], run["sources"]), ([second, lab], list(reversed(run["sources"])))):
+        keyed = {f["value"]["value_as_written"]: f["key"] for f in assign_keys(facts, sources)}
+        assert keyed == {"12,0": plain, "9,5": f"{plain}#2"}
 
 
 def test_pair_subject_is_order_free():
@@ -237,3 +265,67 @@ def test_interval_is_the_assistants():
     run = example()
     run["facts"][6]["origin"] = "document"
     assert "interval_not_assistant" in codes(run)
+
+
+# Guards added after the separate review: the same cases as the TypeScript tests.
+
+
+def test_flipped_negation_subject_or_status_gets_a_new_id():
+    prev = example()
+    for i, change in ((4, {"negated": False}), (2, {"status": "done"}), (2, {"subject": "relative"})):
+        d = drafts(prev)
+        d[i] = {**d[i], **change}
+        res = assign_fact_ids("NO-010", d, prev["sources"], prev)
+        assert res.facts[i]["id"] != prev["facts"][i]["id"]
+        assert prev["facts"][i]["id"] in res.dropped
+
+
+def test_partial_date_that_gained_a_day():
+    run = example()
+    run["facts"][1]["date"] = {"as_written": "6/2022", "precision": "month", "sort": "2022-06-02"}
+    assert "date_precision" in codes(run)
+
+
+def test_metastasis_negation_mismatch():
+    run = example()
+    run["facts"][4]["negated"] = False
+    assert codes(run) == ["negation_mismatch"]
+
+
+def test_relative_subject_outside_family_history():
+    run = example()
+    run["facts"][4]["subject"] = "relative"
+    assert codes(run) == ["subject_mismatch"]
+
+
+def test_check_result_mismatch():
+    run = example()
+    run["checks"][1]["result"] = "nothing_found"
+    run["checks"][0]["result"] = "found"
+    assert codes(run) == ["check_result_mismatch", "check_result_mismatch"]
+
+
+def test_quarantined_fact_in_check_or_alert_subject():
+    run = example()
+    run["sources"][2]["identity"] = "conflicts"
+    run["facts"][2]["quarantined"] = True
+    run["alerts"][0]["facts"] = []
+    run["question_draft"] = None
+    run["checks"].append({"id": "chk-x", "looks_for": "original_report", "expected": {"of_fact": "f-3c90de"}, "covered": [], "unreadable": [], "result": "nothing_found"})
+    run["alerts"].append({"id": alert_id({"rule": "page_identity_conflict", "subject": "p"}), "rule": "page_identity_conflict", "subject": "p", "kind": "identity", "facts": ["f-3c90de"], "message": {"id": "x", "args": {}}, "note": None})
+    assert [(i.code, i.path) for i in validate_run(run).issues] == [
+        ("quarantined_in_use", "/alerts/0/subject"),
+        ("quarantined_in_use", f"/checks/{len(run['checks']) - 1}/expected/of_fact"),
+    ]
+
+
+def test_source_errors_against_own_type_without_values():
+    run = example()
+    run["sources"][0]["quote_text"] = "ocr"
+    run["sources"][1]["extra"] = 1
+    del run["sources"][1]["quote"]
+    issues = validate_run(run).issues
+    assert all(i.code == "schema" for i in issues)
+    assert sorted(i.path for i in issues) == ["/sources/0/quote_text", "/sources/1", "/sources/1/extra"]
+    # The bad value itself never lands in a message: it may be patient text.
+    assert not any("ocr" in i.message for i in issues)

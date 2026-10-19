@@ -32,13 +32,16 @@ export function fnv1a32(text: string): string {
 }
 
 /**
- * Text as a key segment: NFC, lower case, whitespace collapsed, trailing punctuation dropped. Diacritics stay, because
- * in Czech they change the word. A "|" would split the key, so it becomes "/".
+ * Text as a key segment: NFC, invisible format characters removed, lower case, whitespace collapsed, trailing
+ * punctuation dropped. Diacritics stay, because in Czech they change the word. A soft hyphen or zero-width space from
+ * OCR would otherwise change the key and send the fact to the matcher's weaker similarity step. A "|" would split the
+ * key, so it becomes "/".
  */
 export function normText(text: string | null | undefined): string {
   if (text == null) return "";
   return text
     .normalize("NFC")
+    .replace(/\p{Cf}/gu, "")
     .toLowerCase()
     .replace(/\|/g, "/")
     .replace(/\s+/g, " ")
@@ -167,21 +170,36 @@ export function baseKey(key: string): string {
   return key.replace(/#\d+$/, "");
 }
 
-/** Where a fact's first source sits in the run's source list, for ordering facts that share a key. */
-function sourceOrder(fact: { sources: string[] }, order: ReadonlyMap<string, number>): number {
-  let best = Number.MAX_SAFE_INTEGER;
-  for (const id of fact.sources) best = Math.min(best, order.get(id) ?? Number.MAX_SAFE_INTEGER);
-  return best;
+/** All strings in a value, flattened in key order: what the fact says, independent of field order. */
+export function valueText(value: unknown): string {
+  if (value == null) return "";
+  if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") return String(value);
+  if (Array.isArray(value)) return value.map(valueText).join(" ");
+  return Object.keys(value as object)
+    .sort()
+    .map((k) => valueText((value as Record<string, unknown>)[k]))
+    .join(" ");
+}
+
+/**
+ * What orders facts that share a key: their content (value, then the quoted passages), never their position, so a
+ * producer that lists sources in another order does not swap "#2" and "#3" and with them the IDs.
+ */
+function contentOrder(fact: DraftFact | Fact, sources: ReadonlyMap<string, Source>): string {
+  const quotes = fact.sources
+    .map((id) => sources.get(id))
+    .map((s) => (!s ? "" : s.type === "document" ? `${s.document_id}|${normText(s.quote)}` : `nis|${s.resource}`))
+    .sort();
+  return `${valueText(fact.value)}\u0000${quotes.join("\u0000")}`;
 }
 
 /**
  * Keys for all facts of a run. Two facts with the same key (two draws of one test on one day without a time) get a
- * suffix in the order of their sources: the first keeps the plain key, the next get "#2", "#3".
+ * suffix in the order of their content: the first keeps the plain key, the next get "#2", "#3".
  */
 export function assignKeys<F extends DraftFact | Fact>(facts: readonly F[], sources: readonly Source[]): (F & { key: string })[] {
   const byId = new Map(sources.map((s) => [s.id, s]));
-  const order = new Map(sources.map((s, i) => [s.id, i]));
-  const keyed = facts.map((f, i) => ({ f, i, key: buildFactKey(f, byId) }));
+  const keyed = facts.map((f, i) => ({ f, i, key: buildFactKey(f, byId), order: contentOrder(f, byId) }));
   const groups = new Map<string, typeof keyed>();
   for (const k of keyed) {
     const g = groups.get(k.key);
@@ -190,8 +208,9 @@ export function assignKeys<F extends DraftFact | Fact>(facts: readonly F[], sour
   }
   const out: string[] = new Array(facts.length);
   for (const [key, group] of groups) {
-    // Ties in source order fall back to the input order, so the result is deterministic for a given run.
-    group.sort((a, b) => sourceOrder(a.f, order) - sourceOrder(b.f, order) || a.i - b.i);
+    // Compared by UTF-16 code units (Python compares the UTF-16 encoding to match). Identical content falls back to
+    // the input order; such facts are indistinguishable, so which one gets "#2" cannot move a confirmation.
+    group.sort((a, b) => (a.order < b.order ? -1 : a.order > b.order ? 1 : a.i - b.i));
     group.forEach((k, n) => (out[k.i] = n === 0 ? key : `${key}#${n + 1}`));
   }
   return facts.map((f, i) => ({ ...f, key: out[i]! }));

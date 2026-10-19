@@ -232,8 +232,11 @@ The ID is what doctor confirmations, edits and alerts attach to. If it
 changes between runs, their link breaks.
 
 1. **`key`.** Every fact gets a deterministic `key` from its kind and the values that identify it, as defined per kind in the table below. The key never contains a page number or a position.
-2. **Matching against the previous run.** The run reuses the previous run's `id` for the fact with the same key. If no key matches, a matcher looks for the previous fact of the same kind with the most similar value and sources, and reuses its ID when it is clearly the same fact. Otherwise the fact gets a new ID.
-3. **Collisions.** Two facts with the same key in one run (two draws of the same test on one day without a time) get a suffix in order of their sources. The validator rejects a run with duplicate IDs.
+2. **Matching against the previous run.** The run reuses the previous run's `id` for the fact with the same key. If no key matches, a matcher looks for the previous fact of the same kind with the most similar value and sources, and reuses its ID when it is clearly the same fact. Otherwise the fact gets a new ID. Three guards keep a confirmation from moving onto a different finding:
+   - **Same frame.** An ID is reused only when `negated`, `subject`, `status` and the date (as a key segment) are unchanged. These sit outside `value`, so the view's "same ID, different value" check would not see them change; "no headache" confirmed must never become "headache" confirmed, and a sent request never a done exam. A change gives a new ID, and the earlier confirmation shows as missing from the new processing.
+   - **Retired documents.** A previous fact resting only on a document marked superseded or withdrawn since that run is not matched, even when another document says the same; its confirmation shows as missing.
+   - **No reuse of retired IDs.** A new ID is never one issued before for the case (the caller passes every ID issued so far).
+3. **Collisions.** Two facts with the same key in one run (two draws of the same test on one day without a time) get a suffix (`#2`, `#3`) in order of their content (value, then quoted passages), never of their position. The validator rejects a run with duplicate IDs.
 
 | Kind | Key |
 |---|---|
@@ -244,7 +247,21 @@ changes between runs, their link breaks.
 | `stage` | stage kind, date |
 | `imaging`, `procedure`, `histology` | type and region, date |
 | `request`, `plan` | what, date as written |
-| other kinds | kind, normalised text, date |
+| `metastasis` | site, date |
+| `radiotherapy` | target, date |
+| `vital_sign` | what was measured (`blood_pressure`, or the label as written for `other`), date; not the reading, so a corrected reading keeps the ID and the view shows both values |
+| `performance_status`, `prognostic_score` | scale or score name, date |
+| `risk_factor` | type, date |
+| `allergy` | substance, date |
+| `family_history` | relation, condition, date |
+| `decision` | body (MDT, KOC, ...), date |
+| `contraindication` | what, date |
+| `comorbidity` | code or normalised text, date |
+| `exam_finding` | region, normalised text, date |
+| `symptom`, `adverse_event` | normalised text, date |
+| `interval` | the IDs of its two ends |
+
+Normalised text is NFC, without invisible format characters (soft hyphen, zero-width space), lower case, with whitespace collapsed and trailing punctuation dropped; diacritics stay.
 
 ### Fact kinds
 
@@ -328,7 +345,7 @@ found, but page 4 was unreadable" is visible.
 Checks for documents name what they **expect**:
 
 ```json
-{ "id": "chk-report-mr-brain-2026-09-14", "looks_for": "original_report", "expected": { "of_fact": "f-1a77e0" }, "result": "nothing_found" }
+{ "id": "chk-report-mr-brain-2026-09-14", "looks_for": "original_report", "expected": { "of_fact": "f-1a77e0" }, "covered": [ { "document_id": "10_pacient", "part": null } ], "unreadable": [], "result": "nothing_found" }
 ```
 
 This says an original radiology report for a cited MR was looked for and
@@ -526,10 +543,10 @@ MR neuveden v dostupné dokumentaci."
 ```json
 {
   "id": "f-3c90de",
-  "key": "request|projednání nálezu MR mozku na NCH semináři|undated",
+  "key": "request|projednání nálezu mr mozku na neurochirurgickém semináři|undated",
   "kind": "request",
   "subject": "patient",
-  "value": { "what": "projednání nálezu MR mozku na neurochirurgickém semináři", "result_fact": null },
+  "value": { "what": "projednání nálezu MR mozku na neurochirurgickém semináři", "request_kind": "consultation", "result_fact": null },
   "date": { "as_written": null, "precision": null, "sort": null },
   "status": "requested",
   "negated": false,
@@ -560,9 +577,18 @@ subject. Neither value wins silently.
 - **JSON Schema.** The format is defined in `packages/domain`: TypeScript types, a JSON Schema generated from them, and the same schema checked by the Python pipeline. Every run is validated before it is stored. The validator rejects:
   - duplicate fact IDs;
   - a fact without sources (unless `origin: assistant` with `based_on`);
-  - unknown source IDs;
-  - an alert whose facts do not exist.
-- **Code.** TypeScript: `packages/domain/src/extraction` (types, keys and IDs, the matcher, the validator); the schema is generated into `packages/domain/schema/extraction-2.schema.json` by `npm run schema -w @codebridge/domain`, and a test fails when the checked-in file is stale. Python: `pipeline/extraction_format`, the same functions and issue codes, validating with `jsonschema` against the same file (`CODEBRIDGE_EXTRACTION_SCHEMA` overrides the path where `packages/` is not present, such as the page-reader container). Both sides test against `packages/domain/test/extraction-key-vectors.json`; regenerate it only on a deliberate key change.
+  - unknown source IDs, documents and parts;
+  - an alert whose facts do not exist, or whose ID does not follow from its rule and subject;
+  - a key that does not follow from the fact;
+  - a partial date that gained precision (`sort` must fit `precision`: "2024-03" for a month, never "2024-03-15");
+  - a metastasis whose `status: excluded` and `negated` disagree;
+  - `subject: relative` outside `family_history`, and `family_history` about the patient;
+  - a check for a fact kind that says `nothing_found` while such facts exist, or `found` with none;
+  - a quarantined fact used anywhere outside its identity alert (brief, question, other alerts and their subjects, checks, intervals);
+  - a contradiction between facts of different kinds.
+
+  Issue messages name fact IDs and field names, never patient text, so callers may log them; act on the code and the path.
+- **Code.** TypeScript: `packages/domain/src/extraction` (types, keys and IDs, the matcher, the validator); the schema is generated into `packages/domain/schema/extraction-2.schema.json` by `npm run schema -w @codebridge/domain`, and a test fails when the checked-in file is stale. Python: `pipeline/extraction_format`, the same functions and issue codes, validating with `jsonschema` against the same file (`CODEBRIDGE_EXTRACTION_SCHEMA` overrides the path where `packages/` is not present, such as the page-reader container). Both sides test against `packages/domain/test/extraction-key-vectors.json`; regenerate it (`npx jiti packages/domain/scripts/extraction-key-vectors.ts`) only on a deliberate change; it also holds matcher scenarios, so the two matchers give the same IDs.
 - **Versioning:**
   - Adding an optional field keeps `/2`.
   - A breaking change becomes `/3`, together with a converter from `/2`; old runs stay readable through the converter.

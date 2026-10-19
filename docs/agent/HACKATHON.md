@@ -214,6 +214,10 @@ Declare this list to the jury and mentors.
   4.13.13, `jose` 6.2.12, Wrangler 4.147.0, TypeScript 5.9.3, and Vitest
   4.1.11 with `@cloudflare/vitest-plugin` 1.3.6. Cloudflare AI Gateway is
   wired as an option but off.
+- JSON Schema libraries for the extraction format (written during the
+  event): ts-json-schema-generator 2.9.0 (generates the schema from the
+  TypeScript types), `@cfworker/json-schema` 4.1.1 (validates in the
+  Worker) and Python `jsonschema` 4.23.0 (validates in the pipeline).
 - Cloudflare D1 (database `codebridge-mdt`) and R2 (bucket
   `codebridge-mdt`), both created on 2026-10-17 with the EU jurisdiction,
   holding the seeded synthetic demo data (`api/seed/seed.py`). `wrangler d1

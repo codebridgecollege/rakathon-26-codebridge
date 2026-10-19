@@ -8,7 +8,7 @@
 //   3. otherwise a new ID.
 // A wrong reuse would move a doctor's confirmation onto another fact, which is worse than a lost link (the view lists
 // a lost one under "potvrzeno dříve, v novém zpracování chybí"), so step 2 is strict.
-import { normText, mintFactId, assignKeys } from "./keys";
+import { assignKeys, dateSeg, mintFactId, normText, valueText } from "./keys";
 import type { DraftFact, ExtractionRun, Fact, Source } from "./types";
 
 /** How a fact got its ID, for the run's log and the tests. */
@@ -37,15 +37,21 @@ function jaccard(a: Set<string>, b: Set<string>): number {
   return both / (a.size + b.size - both);
 }
 
-/** All strings in a value, flattened: what the fact says, independent of field order. */
-function valueText(value: unknown): string {
-  if (value == null) return "";
-  if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") return String(value);
-  if (Array.isArray(value)) return value.map(valueText).join(" ");
-  return Object.keys(value as object)
-    .sort()
-    .map((k) => valueText((value as Record<string, unknown>)[k]))
-    .join(" ");
+/**
+ * Whether two facts can be the same fact at all. Negation, subject, status and date sit outside `value`, so the view's
+ * "same ID, different value" check would not see them change: "no headache" confirmed must never turn into "headache"
+ * confirmed, a relative's disease never into the patient's, a sent request never into a done exam, and a stage
+ * confirmed for 2022 never into one for 2026. A change in any of them gives a new ID, and the earlier confirmation shows
+ * as missing from the new processing. Dates compare as key segments, so "2.6.2022" and "02.06.2022" are the same.
+ */
+export function sameFrame(a: DraftFact | Fact, b: DraftFact | Fact): boolean {
+  return (
+    a.kind === b.kind &&
+    a.negated === b.negated &&
+    a.subject === b.subject &&
+    a.status === b.status &&
+    dateSeg(a.date) === dateSeg(b.date)
+  );
 }
 
 /** Where a fact's evidence is, comparable across runs (source IDs may differ): document and quote, or NIS record. */
@@ -66,7 +72,7 @@ export function similarity(
   b: Fact,
   bSources: ReadonlyMap<string, Source>,
 ): number {
-  if (a.kind !== b.kind) return 0;
+  if (!sameFrame(a, b)) return 0;
   const v = jaccard(tokens(`${valueText(a.value)} ${a.date.as_written ?? ""}`), tokens(`${valueText(b.value)} ${b.date.as_written ?? ""}`));
   const ea = evidence(a, aSources);
   const eb = evidence(b, bSources);
@@ -96,7 +102,7 @@ function matchRound(drafts: readonly Drafted[], sources: readonly Source[], st: 
   // 1. Same key.
   keyed.forEach((f, i) => {
     const p = st.prevByKey.get(f.key);
-    if (p && p.kind === f.kind && !st.usedPrev.has(p.id)) {
+    if (p && sameFrame(p, f) && !st.usedPrev.has(p.id)) {
       ids[i] = p.id;
       st.usedPrev.add(p.id);
       st.how.set(p.id, "key");
@@ -130,7 +136,8 @@ function matchRound(drafts: readonly Drafted[], sources: readonly Source[], st: 
     st.how.set(cand.p.id, "similar");
   }
 
-  // 3. New IDs. Every previous ID counts as taken, so a retired ID is never handed to a different fact.
+  // 3. New IDs. Previous IDs (and, with options.issuedIds, all IDs ever issued) count as taken, so an ID retired from
+  // one fact is not handed to a different one.
   for (const id of ids) if (id) st.taken.add(id);
   keyed.forEach((f, i) => {
     if (ids[i]) return;
@@ -149,21 +156,42 @@ function matchRound(drafts: readonly Drafted[], sources: readonly Source[], st: 
  * draft a `draft_id` and using those in the references; they are rewritten to the final IDs here. Intervals are keyed
  * by the IDs of their two ends, so they get their IDs in a second round, after the facts they point at.
  */
+export interface MatchOptions {
+  /**
+   * Documents marked superseded or withdrawn since the previous run. A previous fact that rests only on them is not
+   * matched, even when a current document says the same: its confirmation was given on that document and shows as
+   * missing from the new processing instead of moving to another document's fact.
+   */
+  retiredDocuments?: Iterable<string>;
+  /** Every fact ID ever issued for the case (from D1), so a new fact never takes an ID retired in an older run. */
+  issuedIds?: Iterable<string>;
+}
+
 export function assignFactIds(
   caseId: string,
   drafts: readonly Drafted[],
   sources: readonly Source[],
   previous: Pick<ExtractionRun, "facts" | "sources"> | null,
+  options: MatchOptions = {},
 ): MatchResult {
-  const prevFacts = previous?.facts ?? [];
+  const allPrev = previous?.facts ?? [];
+  const prevSrc = new Map((previous?.sources ?? []).map((s) => [s.id, s]));
+  const retired = new Set(options.retiredDocuments ?? []);
+  const onRetired = (f: Fact) =>
+    f.sources.length > 0 &&
+    f.sources.every((id) => {
+      const s = prevSrc.get(id);
+      return s?.type === "document" && retired.has(s.document_id);
+    });
+  const prevFacts = allPrev.filter((f) => !onRetired(f));
   const st: RoundState = {
     caseId,
     prevFacts,
     prevByKey: new Map(prevFacts.map((f) => [f.key, f])),
-    prevSrc: new Map((previous?.sources ?? []).map((s) => [s.id, s])),
+    prevSrc,
     curSrc: new Map(sources.map((s) => [s.id, s])),
     usedPrev: new Set(),
-    taken: new Set(prevFacts.map((p) => p.id)),
+    taken: new Set([...allPrev.map((p) => p.id), ...(options.issuedIds ?? [])]),
     how: new Map(),
   };
   const finals: { key: string; id: string }[] = new Array(drafts.length);
@@ -198,6 +226,6 @@ export function assignFactIds(
     if (out.kind === "interval") out.value = { ...out.value, from_fact: remap(out.value.from_fact), to_fact: remap(out.value.to_fact) };
     return out;
   });
-  const dropped = prevFacts.filter((p) => !st.usedPrev.has(p.id)).map((p) => p.id);
+  const dropped = allPrev.filter((p) => !st.usedPrev.has(p.id)).map((p) => p.id);
   return { facts, how: st.how, dropped };
 }

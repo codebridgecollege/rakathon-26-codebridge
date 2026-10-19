@@ -7,11 +7,11 @@ order of the steps must stay equal to match.ts.
 """
 
 import unicodedata
-from collections.abc import Mapping, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import Any, Literal
 
-from .keys import assign_keys, mint_fact_id, norm_text
+from .keys import assign_keys, date_seg, mint_fact_id, norm_text, value_text
 
 MatchHow = Literal["key", "similar", "new"]
 
@@ -41,23 +41,16 @@ def _jaccard(a: set[str], b: set[str]) -> float:
     return both / (len(a) + len(b) - both)
 
 
-def _js_str(value: Any) -> str:
-    if isinstance(value, bool):
-        return "true" if value else "false"
-    if isinstance(value, float) and value.is_integer():
-        return str(int(value))
-    return str(value)
-
-
-def _value_text(value: Any) -> str:
-    """All strings in a value, flattened, as valueText in match.ts."""
-    if value is None:
-        return ""
-    if isinstance(value, (str, int, float, bool)):
-        return _js_str(value)
-    if isinstance(value, list):
-        return " ".join(_value_text(v) for v in value)
-    return " ".join(_value_text(value[k]) for k in sorted(value))
+def same_frame(a: Mapping[str, Any], b: Mapping[str, Any]) -> bool:
+    """Whether two facts can be the same fact at all (sameFrame in match.ts): negation, subject, status and date sit
+    outside `value`, so the view would not see them change under a kept ID."""
+    return (
+        a["kind"] == b["kind"]
+        and a["negated"] == b["negated"]
+        and a["subject"] == b["subject"]
+        and a["status"] == b["status"]
+        and date_seg(a["date"]) == date_seg(b["date"])
+    )
 
 
 def _evidence(fact: Mapping[str, Any], sources: Mapping[str, Mapping[str, Any]]) -> set[str]:
@@ -72,11 +65,11 @@ def _evidence(fact: Mapping[str, Any], sources: Mapping[str, Mapping[str, Any]])
 
 def similarity(a: Mapping[str, Any], a_src: Mapping[str, Mapping[str, Any]], b: Mapping[str, Any], b_src: Mapping[str, Mapping[str, Any]]) -> float:
     """0..1: value text weighs more than sources, because a re-read page may quote the same fact differently."""
-    if a["kind"] != b["kind"]:
+    if not same_frame(a, b):
         return 0.0
     v = _jaccard(
-        _tokens(f"{_value_text(a['value'])} {a['date'].get('as_written') or ''}"),
-        _tokens(f"{_value_text(b['value'])} {b['date'].get('as_written') or ''}"),
+        _tokens(f"{value_text(a['value'])} {a['date'].get('as_written') or ''}"),
+        _tokens(f"{value_text(b['value'])} {b['date'].get('as_written') or ''}"),
     )
     ea, eb = _evidence(a, a_src), _evidence(b, b_src)
     if not ea or not eb:
@@ -111,7 +104,7 @@ def _match_round(drafts: Sequence[Mapping[str, Any]], sources: Sequence[Mapping[
     # 1. Same key.
     for i, f in enumerate(keyed):
         p = st.prev_by_key.get(f["key"])
-        if p is not None and p["kind"] == f["kind"] and p["id"] not in st.used_prev:
+        if p is not None and same_frame(p, f) and p["id"] not in st.used_prev:
             ids[i] = p["id"]
             st.used_prev.add(p["id"])
             st.how[p["id"]] = "key"
@@ -164,20 +157,34 @@ def assign_fact_ids(
     drafts: Sequence[Mapping[str, Any]],
     sources: Sequence[Mapping[str, Any]],
     previous: Mapping[str, Any] | None,
+    retired_documents: Iterable[str] = (),
+    issued_ids: Iterable[str] = (),
 ) -> MatchResult:
     """Keys and IDs for a new run's facts; `previous` is the case's current run (its facts and sources) or None.
 
     Drafts may carry a `draft_id` that based_on, result_fact and interval ends use before IDs exist; they are
     rewritten to the final IDs. Intervals are keyed by their ends' IDs, so they get IDs in a second round.
+    `retired_documents` (superseded or withdrawn since the previous run): previous facts resting only on them are not
+    matched, so their confirmations show as missing instead of moving to another document's fact. `issued_ids`: every
+    fact ID ever issued for the case, so a new fact never takes a retired one. As MatchOptions in match.ts.
     """
-    prev_facts = list(previous["facts"]) if previous else []
+    all_prev = list(previous["facts"]) if previous else []
+    prev_src = {s["id"]: s for s in (previous["sources"] if previous else [])}
+    retired = set(retired_documents)
+
+    def on_retired(f: Mapping[str, Any]) -> bool:
+        return bool(f["sources"]) and all(
+            prev_src.get(s, {}).get("type") == "document" and prev_src[s]["document_id"] in retired for s in f["sources"]
+        )
+
+    prev_facts = [f for f in all_prev if not on_retired(f)]
     st = _State(
         case_id=case_id,
         prev_facts=prev_facts,
         prev_by_key={f["key"]: f for f in prev_facts},
-        prev_src={s["id"]: s for s in (previous["sources"] if previous else [])},
+        prev_src=prev_src,
         cur_src={s["id"]: s for s in sources},
-        taken={p["id"] for p in prev_facts},
+        taken={p["id"] for p in all_prev} | set(issued_ids),
     )
     finals: list[tuple[str, str]] = [("", "")] * len(drafts)
     draft_to_final: dict[str, str] = {}
@@ -214,5 +221,5 @@ def assign_fact_ids(
         if out["kind"] == "interval":
             out["value"] = {**out["value"], "from_fact": remap(out["value"]["from_fact"]), "to_fact": remap(out["value"]["to_fact"])}
         facts.append(out)
-    dropped = [p["id"] for p in prev_facts if p["id"] not in st.used_prev]
+    dropped = [p["id"] for p in all_prev if p["id"] not in st.used_prev]
     return MatchResult(facts=facts, how=st.how, dropped=dropped)
