@@ -333,9 +333,10 @@ OpenID Connect (OIDC, the standard login protocol); design and details in
   page images, text and lab values go to R2 (EU) under the run's prefix.
   The page reader (the container) has no secrets, no storage and no outbound
   network, and logs only method, path, status, duration and page counts.
-  It is meant to run in the EU (`constraints.jurisdiction: "eu"` once the
-  container is deployed; today it runs locally, see step-6.md "As
-  implemented"). Nothing in slice 6b-1 sends a page to a cloud model.
+  It runs in the EU as a Cloudflare Container (`constraints.jurisdiction:
+  "eu"`, outbound network off with `enableInternet = false`; step-6.md "As
+  implemented"), only for the orgs in `PIPELINE_ORGS`. Nothing in slice
+  6b-1 sends a page to a cloud model.
 
 ### Upload from a phone (issue #10)
 

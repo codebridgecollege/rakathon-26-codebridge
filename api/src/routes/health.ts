@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import type { AppEnv } from "../types";
-import { pipelineOn } from "../services/page-reader";
+import { pipelineAvailable } from "../services/page-reader";
 import { orgStmt } from "../store/sql";
 import { demoMembership } from "../store/people";
 import { demoUserOf } from "../middleware/viewer";
@@ -47,8 +47,8 @@ export const health = new Hono<AppEnv>().get("/", async (c) => {
     version: c.env.GIT_SHA || "unknown",
     auth_mode: c.env.AUTH_MODE,
     // transcripts: the server stores the AI recording and runs the speaker pass (step 5); the page then uses it.
-    // pipeline: the document pipeline without an LLM can run (step 6: PAGE_READER_URL or the page reader container is set).
-    features: { stt: !!c.env.ELEVENLABS_API_KEY, summarize: !!c.env.AZURE_OPENAI_KEY, data: !!seeded, transcripts: !!seeded && !!c.env.SPEAKER_PASS, pipeline: !!seeded && pipelineOn(c.env) },
+    // pipeline: this host reaches a page reader (step 6); whether an org may use it is /api/me features.pipeline.
+    features: { stt: !!c.env.ELEVENLABS_API_KEY, summarize: !!c.env.AZURE_OPENAI_KEY, data: !!seeded, transcripts: !!seeded && !!c.env.SPEAKER_PASS, pipeline: !!seeded && pipelineAvailable(c.env) },
     seeded_at: seeded,
     demo: demo ? { ...demo, reset_enabled: c.env.DEMO_RESET_ENABLED === "true" } : null,
     limits: {

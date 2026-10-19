@@ -81,9 +81,15 @@
     // local work). The page promises 20 MB per file.
     "UPLOAD_POLICY": "fixtures_only",
     "UPLOAD_MAX_BYTES": "20971520",
-    // Step 6 (b-1): where the page reader service runs (src/services/page-reader.ts). "" with no PAGE_READER container binding
-    // switches the document pipeline off; local work sets it to the Python service, http://localhost:8080.
+    // Step 6 (b-1): where the page reader service runs (src/services/page-reader.ts). PAGE_READER_URL wins when set:
+    // local work points it at the Python service, http://localhost:8080. Otherwise PAGE_READER_CONTAINER "on" uses the
+    // PAGE_READER container binding below. "off" here so anything that does not say otherwise fails closed (wrangler dev,
+    // the tests, the browser suite run no container); CI's deploy commands pass `--var PAGE_READER_CONTAINER:on`.
     "PAGE_READER_URL": "",
+    "PAGE_READER_CONTAINER": "off",
+    // The orgs the pipeline runs for (comma-separated org ids, "*" for all). Demo org A stays as the demo has always
+    // looked (no processing states, no "Přečíst bez AI"); demo org B is the team's test org.
+    "PIPELINE_ORGS": "demo-b",
     // Issue #22: each org's NIS (hospital system) over FHIR R4, as JSON keyed by org id; "{}" means none, and the page
     // shows no "Import z NIS". Shape and auth modes: src/services/fhir.ts and api/AGENTS.md, "NIS over FHIR". Local
     // work points an org at the test server: --var 'NIS_CONFIG:{"demo-a":{"base_url":"http://127.0.0.1:8090/fhir",
@@ -110,5 +116,11 @@
     { "name": "codebridge-process-document", "binding": "PROCESS_DOCUMENT", "class_name": "ProcessDocumentWorkflow" }
   ],
   // The audio sweep (src/scheduled.ts): deletes audio every other path should already have deleted.
-  "triggers": { "crons": ["*/15 * * * *"] }
+  "triggers": { "crons": ["*/15 * * * *"] },
+  // Step 6: the page reader container. Its class lives in its own Worker, codebridge-page-reader
+  // (page-reader.wrangler.jsonc, src/page-reader-worker.ts), which holds the containers entry (EU jurisdiction) and the
+  // class migration; this Worker only binds it. A Worker that defines a Durable Object class would lose the backend
+  // branch's preview alias. Locally the binding points at a Worker that is not running, so PAGE_READER_CONTAINER stays
+  // "off" there.
+  "durable_objects": { "bindings": [{ "name": "PAGE_READER", "class_name": "PageReader", "script_name": "codebridge-page-reader" }] }
 }

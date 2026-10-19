@@ -41,6 +41,14 @@ describe("/api/me and /api/staff", () => {
     expect(await r.json()).toMatchObject({ user: { id: "d2p1", name: "MUDr. Svobodová", role: "doctor", dept: { id: "d2" } }, auth_mode: "demo" });
   });
 
+  it("reports the document pipeline per org: off in demo org A, on in demo org B with the deployed PIPELINE_ORGS", async () => {
+    const deployed = testEnv({ PIPELINE_ORGS: "demo-b" });
+    expect(((await (await call("/api/me", as("d2p1"), deployed)).json()) as any).features).toEqual({ pipeline: false });
+    expect(((await (await call("/api/me", as("b-doc"), deployed)).json()) as any).features).toEqual({ pipeline: true });
+    // No page reader at all: off everywhere, whatever the list says.
+    expect(((await (await call("/api/me", as("b-doc"), testEnv({ PIPELINE_ORGS: "*", PAGE_READER_URL: "" }))).json()) as any).features).toEqual({ pipeline: false });
+  });
+
   it("takes the person from the header, then from the cookie", async () => {
     expect(await (await call("/api/me", as("coord"))).json()).toMatchObject({ user: { id: "coord", role: "coordinator" } });
     expect(await (await call("/api/me", { headers: { cookie: "cb_demo_user=admin" } })).json()).toMatchObject({ user: { id: "admin" } });

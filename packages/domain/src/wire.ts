@@ -53,6 +53,9 @@ export type Me = {
   notice_cs: string | null;
   // The org's NIS (hospital system over FHIR), null when the org has none: the page then shows no "Import z NIS".
   nis: { label_cs: string } | null;
+  // What this org may use on this host. pipeline: the document pipeline without an LLM runs for this org (the host
+  // offers it and PIPELINE_ORGS lists the org); the page shows processing states and "Přečíst bez AI" only then.
+  features: { pipeline: boolean };
 };
 
 export type RoleSwitchEntry = { membership_id: string; name: string; role: Role; fn: string; own: boolean };

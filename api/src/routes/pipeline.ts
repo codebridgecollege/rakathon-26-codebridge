@@ -9,7 +9,7 @@ import { audit } from "../middleware/audit";
 import { UNLOCKED_COND, documentRow, uploadContext } from "../store/documents";
 import { assertUnlocked } from "./documents";
 import { UP } from "../domain/documents";
-import { PageReaderError, pageReader, pipelineOn } from "../services/page-reader";
+import { POOL_SIZE, PageReaderError, pageReader, pipelineAvailable, pipelineOn } from "../services/page-reader";
 import { openCase } from "./access-check";
 import { actorOf, answer, caseFor, isoNow, label, newId, orgQuery, tx } from "./write-context";
 import { orgKey } from "../store/sql";
@@ -39,7 +39,7 @@ export const pipeline = new Hono<AppEnv>()
     const u = await uploadContext(c.env.DB, c.var.viewer.org, d.case_id);
     if (!u) throw E.caseNotFound();
     assertUnlocked(u);
-    if (!pipelineOn(c.env)) throw off();
+    if (!pipelineOn(c.env, c.var.viewer.org)) throw off();
     if (!d.original_r2_key || !d.sha256) throw new ApiError(409, "no_file", "Dokument nemá uložený soubor ke zpracování.");
     const runId = `pl-${newId()}`;
     const at = isoNow();
@@ -74,13 +74,13 @@ export const pipeline = new Hono<AppEnv>()
     await openCase(c, d.case_id, "clinical");
     await audit(c, { action: "pipeline.view", case_id: d.case_id, document_id: docId, what_cs: "zobrazil(a) výsledek zpracování dokumentu bez AI" });
     const r = await orgQuery(c, "SELECT * FROM pipeline_runs WHERE org_id = ?org AND document_id = ?1 ORDER BY created_at DESC, id DESC LIMIT 1", docId).first<RunRow>();
-    if (!r) return c.json({ document_id: docId, run: null, enabled: pipelineOn(c.env) });
+    if (!r) return c.json({ document_id: docId, run: null, enabled: pipelineOn(c.env, c.var.viewer.org) });
     const out = r.state === "done";
     const get = async (name: string) => (out ? ((await (await c.env.DOCS.get(`${r.output_prefix}${name}`))?.json<Record<string, unknown>>()) ?? null) : null);
     const reasons = r.readability_reasons_json ? (JSON.parse(r.readability_reasons_json) as string[]) : [];
     return c.json({
       document_id: docId,
-      enabled: pipelineOn(c.env),
+      enabled: pipelineOn(c.env, c.var.viewer.org),
       run: {
         id: r.id, state: r.state, stage: r.stage, stage_cs: r.stage ? STAGE_CS[r.stage] ?? null : null, error_code: r.error_code, by: r.created_by_name, started_at: r.created_at, finished_at: r.finished_at,
         // Always labelled: this is the assistant's reading of the page by Tesseract, compared with the PDF text layer.
@@ -96,13 +96,15 @@ export const pipeline = new Hono<AppEnv>()
       diff_points: ((await get("diff.json")) as { points?: unknown } | null)?.points ?? null,
     });
   })
-  // Before a demo: the first call after a deploy waits for the container image (minutes); this brings it up.
+  // Before a demo: the first call after a deploy waits for the container image (minutes); this brings up every
+  // instance of the pool, since any case may land on any of them.
   .post("/admin/pipeline/warm", async (c) => {
     label(c, "zahřátí zpracování dokumentů");
     assertCan(actorOf(c), "demo.reset");
-    if (!pipelineOn(c.env)) throw off();
+    if (!pipelineAvailable(c.env)) throw off();
     try {
-      const h = await pageReader.healthz(c.env, "warm");
+      const all = await Promise.all(Array.from({ length: POOL_SIZE }, (_, i) => pageReader.healthz(c.env, `pool-${i}`)));
+      const h = { ok: all.every((x) => x.ok), versions: all[0]!.versions };
       await tx(c).audit({ action: "pipeline.warm", what_cs: "ověřil(a) službu pro čtení stránek" }).commit();
       return answer(c, { ok: h.ok, versions: h.versions });
     } catch (e) {

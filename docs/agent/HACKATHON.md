@@ -238,9 +238,10 @@ Declare this list to the jury and mentors.
 - Cloudflare Workflows (`codebridge-process-document`, binding
   `PROCESS_DOCUMENT`) for the document pipeline without an LLM (step 6,
   issue #7), calling the page reader service (`pipeline/`: PyMuPDF 1.24.10,
-  Pillow 10.4.0, Tesseract with the Czech model, pytest). The Cloudflare
-  Container for the page reader is written (`pipeline/container/Dockerfile`) but
-  not deployed on 2026-10-17: the build needs a running Docker daemon.
+  Pillow 10.4.0, Tesseract with the Czech model, pytest). The page reader
+  runs as a Cloudflare Container (`@cloudflare/containers` 0.3.7, Worker
+  `codebridge-page-reader`, EU jurisdiction), its image built by
+  `wrangler deploy` on GitHub Actions (issue #18).
 - ChatGPT, used by Soňa for brainstorming and UI sketches
   (`docs/sources/design/`).
 - Claude artifacts (claude.ai), for publishing the early UI mocks

@@ -219,17 +219,25 @@ Design and contract: `docs/research/backend-steps/step-6.md`, section "As implem
   reset batch's `reset_in_progress = 1` update of that org, and deletes that org's rows only), so the reset batch stays
   at its size. A new table written by these routes goes into that trigger, not into the batch.
 - Pipeline without an LLM: `src/workflows/process-document.ts` (binding `PROCESS_DOCUMENT`), `src/routes/pipeline.ts`,
-  `src/services/page-reader.ts`. The page reader is `pipeline/container/server.py`; the Worker reaches it at `PAGE_READER_URL` or,
-  once configured, through a `PAGE_READER` container binding; with neither the pipeline answers 503 `pipeline_off`. Step
-  results hold ids, counts and codes only (`test/pipeline.test.ts`). Runs are `pipeline_runs`, never the case's view.
+  `src/services/page-reader.ts`. The page reader is `pipeline/container/server.py`; the Worker reaches it at `PAGE_READER_URL` or
+  through the `PAGE_READER` container binding when `PAGE_READER_CONTAINER` is "on" (only the deploy commands set it);
+  with neither the pipeline answers 503 `pipeline_off`. The class `PageReader` (`src/services/page-reader-container.ts`)
+  lives in its own Worker `codebridge-page-reader` (`page-reader.wrangler.jsonc`, `src/page-reader-worker.ts`), which
+  holds the `containers` entry (EU jurisdiction); this Worker binds it by `script_name`, so it keeps its preview alias.
+  `PIPELINE_ORGS` lists the orgs the pipeline runs for (deployed: `demo-b`, so demo org A looks as before); `/api/me`
+  reports it as `features.pipeline`. Instances are a pool of three named by case (`poolInstance`). The image is built
+  only in CI: the `main` deploy job runs `wrangler deploy -c page-reader.wrangler.jsonc` before the D1 migration (the
+  token needs "Containers: Edit"), and `.github/workflows/pipeline.yml` builds it on every change to `pipeline/` and runs
+  pytest inside it. Never build it locally. Step results hold ids, counts and codes only (`test/pipeline.test.ts`). Runs are
+  `pipeline_runs`, never the case's view.
 - Local end to end with the real files:
 
   ```
   cd pipeline && uv run python container/server.py --port 8080      # the page reader (needs tesseract with ces)
-  cd api && npm run seed:local && npx wrangler dev --port 8799 --var PAGE_READER_URL:http://localhost:8080
+  cd api && npm run seed:local && npx wrangler dev --port 8799 --var PAGE_READER_URL:http://localhost:8080 --var PIPELINE_ORGS:*
   node api/scripts/e2e-intake.mjs http://localhost:8799 --pipeline --reset
   ```
-- Python tests of the pipeline: `cd pipeline && uv run pytest -q`.
+- Python tests of the pipeline: `cd pipeline && uv run pytest -q` (CI runs them inside the container image).
 
 ## Model interface (issue #20, stream D phase 1)
 

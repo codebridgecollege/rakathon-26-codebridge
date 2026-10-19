@@ -103,7 +103,7 @@ onBeforeUnmount(() => {
   document.removeEventListener("keydown", onKey, true);
 });
 
-const pipelineOn = computed(() => !!session.health?.features?.pipeline);
+const pipelineOn = computed(() => !!session.me?.features?.pipeline);
 const uploaded = computed(() => all.value.some((d) => d.file));
 // "citace v ambulantní zprávě, původní popis v PDF není" becomes "citováno v ambulantní zprávě": the row adds
 // "originál chybí" itself, so the data's own "original missing" clause would say it twice.
