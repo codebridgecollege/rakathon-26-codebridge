@@ -349,6 +349,20 @@ The view overlays them on the current run:
 
 PRODUCT.md names no subset of critical facts, so the case view offers the confirmation on every line of the oncology summary; a line is confirmed when each of its facts is.
 
+**A re-extraction** goes through the same steps as the first run, so all of the above holds for it:
+1. `matchInputs`;
+2. `prepareRun`, which carries the IDs over;
+3. `withCaseRulesAndViews` (the case rules, then the composed views);
+4. the brief;
+5. `storeRun`.
+
+`api/test/reextract.test.ts` checks this end to end:
+- a confirmed value read again keeps its confirmation;
+- a value read differently under the same ID is "changed" and asks again;
+- a fact gone from the documents, or one whose date changed (a new ID), is listed under "potvrzeno dříve, v novém zpracování chybí".
+
+`confirmedFactIds` (`api/src/store/runs.ts`) gives the facts whose confirmation stands for the current value. The brief treats them as verified, even when the extraction marked them "verify".
+
 ## Checks
 
 Each check says what it looked for, over which documents, and what came
