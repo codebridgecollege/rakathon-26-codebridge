@@ -110,8 +110,9 @@ describe("fact keys", () => {
     const run = example();
     const lab = run.facts[0] as Extract<Fact, { kind: "lab_result" }>;
     const second = { ...lab, value: { ...lab.value, value_as_written: "12,0", value_numeric: 12 } };
-    const plain = "lab_result|S_HSCRP|draw:undated|doc:10_pacient";
-    // "12,0" sorts before "9,5", so the second draw keeps the plain key whatever the order of facts or sources.
+    // Both values are quoted by the same passage, so the passage cannot tell them apart: "#2" by content. "12,0" sorts
+    // before "9,5", so the second draw keeps the unsuffixed key whatever the order of facts or sources.
+    const plain = "lab_result|S_HSCRP|draw:undated|doc:10_pacient|src:7e986229";
     for (const [facts, sources] of [
       [[lab, second], run.sources],
       [[second, lab], [...run.sources].reverse()],
@@ -120,6 +121,22 @@ describe("fact keys", () => {
       expect(keyed.find((f) => f.value === second.value)!.key).toBe(plain);
       expect(keyed.find((f) => f.value === lab.value)!.key).toBe(`${plain}#2`);
     }
+  });
+  it("a lone undated lab value keeps a key without its quote; a second one with its own passage gives both a passage", () => {
+    const run = example();
+    const lab = run.facts[0] as Extract<Fact, { kind: "lab_result" }>;
+    expect(assignKeys([lab], run.sources)[0]!.key).toBe("lab_result|S_HSCRP|draw:undated|doc:10_pacient");
+    const src = { ...(run.sources[0] as Extract<Source, { type: "document" }>), id: "src-x2", quote: "S_HSCRP: 12,0 mg/l [0 ... 5]" };
+    const second = { ...lab, sources: ["src-x2"], value: { ...lab.value, value_as_written: "12,0", value_numeric: 12 } };
+    const keys = assignKeys([lab, second], [...run.sources, src]).map((f) => f.key);
+    expect(keys.every((k) => /\|src:[0-9a-f]{8}$/.test(k))).toBe(true);
+    expect(new Set(keys).size).toBe(2);
+    // The validator accepts both forms of a lab key.
+    const r = example();
+    r.sources.push(src);
+    r.facts.push({ ...(second as Fact), id: "f-0bb0bb", key: keys[1]! });
+    r.facts[0]!.key = keys[0]!;
+    expect(codes(r)).toEqual([]);
   });
   it("pair subjects do not depend on the order of comparison", () => {
     expect(pairSubject("f-b", "f-a")).toBe(pairSubject("f-a", "f-b"));

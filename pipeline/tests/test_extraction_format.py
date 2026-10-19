@@ -113,7 +113,8 @@ def test_collision_suffix_by_content_not_position():
     run = example()
     lab = run["facts"][0]
     second = {**lab, "value": {**lab["value"], "value_as_written": "12,0", "value_numeric": 12}}
-    plain = "lab_result|S_HSCRP|draw:undated|doc:10_pacient"
+    # One passage for both values: "#2" by content on top of the passage hash.
+    plain = "lab_result|S_HSCRP|draw:undated|doc:10_pacient|src:7e986229"
     for facts, sources in (([lab, second], run["sources"]), ([second, lab], list(reversed(run["sources"])))):
         keyed = {f["value"]["value_as_written"]: f["key"] for f in assign_keys(facts, sources)}
         assert keyed == {"12,0": plain, "9,5": f"{plain}#2"}

@@ -8,7 +8,7 @@
 import { Validator, type OutputUnit } from "@cfworker/json-schema";
 import schema from "../../schema/extraction-2.schema.json";
 import { backingProblems, type Evidence } from "./backing";
-import { alertId, baseKey, buildFactKey, valueText, viewLineId } from "./keys";
+import { alertId, baseKey, buildFactKey, passageSuffix, valueText, viewLineId } from "./keys";
 import { EXTRACTION_SCHEMA, FACT_KINDS, VIEW_NAMES, type ExtractionRun, type Fact, type FactDate, type Source } from "./types";
 
 export type IssueCode =
@@ -248,7 +248,10 @@ export function referenceIssues(run: ExtractionRun): Issue[] {
     // the source document, so with a missing source the issue above is the real one and the key is not judged.
     const resolved = f.sources.length > 0 || f.origin === "assistant";
     const want = buildFactKey(f, sources);
-    if (resolved && f.sources.every((s) => sources.has(s)) && baseKey(f.key) !== want) {
+    // A lab value that shares its key with another one carries its passage in the key as well (assignKeys).
+    const passage = passageSuffix(f, sources);
+    const keyOk = baseKey(f.key) === want || (passage !== null && baseKey(f.key) === `${want}|${passage}`);
+    if (resolved && f.sources.every((s) => sources.has(s)) && !keyOk) {
       // The message names no key: keys hold clinical text, and issues may be logged.
       push(`${p}/key`, "key_mismatch", `the key of fact ${f.id} does not follow from its kind and values`);
     }

@@ -239,11 +239,11 @@ changes between runs, their link breaks.
    - **Same frame.** An ID is reused only when `negated`, `subject`, `status` and the date (as a key segment) are unchanged. These sit outside `value`, so the view's "same ID, different value" check would not see them change; "no headache" confirmed must never become "headache" confirmed, and a sent request never a done exam. A change gives a new ID, and the earlier confirmation shows as missing from the new processing.
    - **Retired documents.** A previous fact resting only on a document marked superseded or withdrawn since that run is not matched, even when another document says the same; its confirmation shows as missing.
    - **No reuse of retired IDs.** A new ID is never one issued before for the case (the caller passes every ID issued so far).
-3. **Collisions.** Two facts with the same key in one run (two draws of the same test on one day without a time) get a suffix (`#2`, `#3`) in order of their content (value, then quoted passages), never of their position. The validator rejects a run with duplicate IDs.
+3. **Collisions.** Two lab values with the same key first take their quoted passages into it (see the table). Facts that still share a key (two draws of the same test on one day without a time quoted by one passage, two identical list entries) get a suffix (`#2`, `#3`) in order of their content (value, then quoted passages), never of their position. The validator rejects a run with duplicate IDs.
 
 | Kind | Key |
 |---|---|
-| `lab_result` | code (or name as written), draw date and time as written, requisition number if any, document |
+| `lab_result` | code (or name as written), draw date and time as written, requisition number if any, document. When two values of one run share all of that and no requisition names the draw (for example no draw date, the same date without a time, or the same garbled reading), each also takes a hash of its quoted passages (`src:7e986229`), so they do not depend on a "#2" a re-read value could swap. A lone value keeps the key without its quote, so a re-read quote does not cost it its ID. Two values quoted by the same passage (one table row holding both draws) still get "#2". The trade-off: a value of such a pair whose quote is re-read ("9,5" read as "9,8") gets a new ID, and its confirmation shows as missing instead of moving to the other draw |
 | `diagnosis` | code or normalised text, disease status, date |
 | `medication` | drug, period start (a dose change starts a new medication fact with its own start, so "Prednison 1 mg/kg/den" and "Prednison 0,5 mg/kg od 12.5.2023" are two facts); for an entry with no start, also the sorted set of document parts it is quoted from (`part:10_pacient/p0`; a source without a part counts as its document, a NIS source as its record), so the same drug listed undated in two reports gives two facts instead of a merge or a "#2". A part ID (`<document>/p<n>`) is stable only while the file is split into parts the same way: a re-split, or a source gaining a part or a further part (an identical entry repeated at a later visit, kept as a further source), changes the key, and the fact keeps its ID only through the matcher's similarity step, which refuses an ambiguous match |
 | `systemic_therapy` | drug or regimen, line, start; for an entry with no start (an anticancer drug in a medication list), also the document part it is listed in, as for `medication` |
@@ -320,7 +320,12 @@ anticancer drug quoted from that list next to the other drugs, so the
 list stays complete while the oncology lines show the therapy line.
 
 A key rule change (here, undated medication and therapy entries gaining
-their parts) re-keys facts of runs stored earlier. The matcher's
+their parts, and colliding lab values gaining their passages) re-keys facts
+of runs stored earlier, and so does a second undated value of a test
+appearing in a later run (the first one's key gains its passage). The
+similarity step carries such an ID when the quote is unchanged; when the
+first value's quote is also re-read in the same run, nothing matches its
+old key or its old passage, and it gets a new ID. The matcher's
 similarity step carries their IDs over when the match is unambiguous; two
 identical entries in one run (same drug, dosing and quote) do not match
 unambiguously, get new IDs, and their confirmations show as "potvrzeno
@@ -693,7 +698,7 @@ what those pages say, until a doctor resolves it.
 
 What changed from today:
 - `out_of_range_origin: "assistant"` says the "high" was computed from the range, not printed by the lab. Today that's only in a note.
-- `not_stated: ["draw"]` says the documents give no draw date.
+- `not_stated: ["draw"]` says the documents give no draw date. It is the run's only hsCRP value, so its key holds no passage; a second undated hsCRP in the document would add `|src:<hash>` to both keys.
 - The quote keeps "mg/1"; the corrected unit is in the fact.
 
 **The view shows:** a table row "hsCRP 9,5 mg/l (0 ... 5) ↑" with the
