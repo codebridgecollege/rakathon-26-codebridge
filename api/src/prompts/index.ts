@@ -4,6 +4,8 @@
 // a forgotten bump still changes the cache key and shows in the run's metadata.
 import { PROMPT as SUMMARIZE_CS } from "./summarize-cs";
 import { TEXT as READ_PAGE_CS } from "./read-page-cs";
+import { TEXT as EXTRACT_FACTS_CS } from "./extract-facts-cs";
+import { EXTRACT_SCHEMA } from "../domain/extract/schema";
 import { sha256Hex } from "../store/work";
 
 export type PromptDef = {
@@ -19,6 +21,7 @@ export type PromptDef = {
 export const PROMPTS = {
   "summarize-cs": { version: 1, text: SUMMARIZE_CS },
   "read-page-cs": { version: 1, text: READ_PAGE_CS, images: true },
+  "extract-facts-cs": { version: 1, text: EXTRACT_FACTS_CS, schema: EXTRACT_SCHEMA },
 } satisfies Record<string, PromptDef>;
 
 export type PromptId = keyof typeof PROMPTS;

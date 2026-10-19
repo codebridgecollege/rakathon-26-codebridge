@@ -28,6 +28,8 @@ dist/
 
 # Node
 node_modules/
+# Model answers and bundles of the offline extraction harness (api/scripts/extract-eval.ts)
+api/.cache/
 .next/
 .nuxt/
 .output/
