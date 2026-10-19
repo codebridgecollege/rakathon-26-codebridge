@@ -95,7 +95,8 @@ function readability(dir: string): Record<number, PageReading["readability"]> {
 
 async function main() {
   const args = process.argv.slice(2);
-  const out = resolve(args[args.indexOf("--out") + 1] ?? join(REPO, "samples/derived/runs-ai"));
+  // The runs hold verbatim quotes, so they go to the gitignored cache unless --out names another folder.
+  const out = resolve(args.includes("--out") ? args[args.indexOf("--out") + 1]! : join(API, ".cache/runs-ai"));
   const only = args.flatMap((a, i) => (args[i - 1] === "--case" ? [a] : []));
   const cacheOnly = args.includes("--cache-only");
   const cacheDir = join(API, ".cache/extract");
@@ -167,6 +168,7 @@ async function main() {
     let seconds = 0;
     const calls: CallAnswer[] = [];
     const unreadPages: number[] = [];
+    const failed: string[] = [];
     const all = pages.map((_, i) => i);
     const whole = perPage ? "filtered" : await extract(all);
     if (whole === null) continue;
@@ -175,7 +177,10 @@ async function main() {
       for (const i of all) {
         const one = await extract([i]);
         if (one && one !== "filtered") calls.push(one);
-        else unreadPages.push(i);
+        else {
+          unreadPages.push(i);
+          failed.push(`p${i + 1}:${one === "filtered" ? "content filter" : "no answer"}`);
+        }
       }
     const built = await buildFromAnswer({ caseId: c.id, doc: { documentId: c.documentId, part: null, pages }, calls, unreadPages });
     const fromModel = calls.reduce((n, x) => n + x.answer.facts.length, 0);
@@ -194,7 +199,7 @@ async function main() {
     };
     writeFileSync(join(out, `${c.id}.json`), JSON.stringify(run, null, 1));
     const ids = pages.map((p) => `p${p.page}:${p.identity}`).join(" ");
-    const filtered = unreadPages.length ? `, not read (content filter) p${unreadPages.map((i) => i + 1).join(",")}` : "";
+    const filtered = failed.length ? `, not read ${failed.join(" ")}` : "";
     console.log(`${c.id}: ${fromModel} from the model in ${calls.length} call(s)${filtered}, kept ${built.report.kept} (verify ${built.report.verify}, quarantined ${built.report.quarantined}), dropped ${JSON.stringify(built.report.dropped)}, reasons ${JSON.stringify(built.report.reasons)}${seconds ? `, ${seconds.toFixed(1)} s` : ", cached"}; ${ids}`);
   }
 }

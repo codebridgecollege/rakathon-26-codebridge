@@ -7,19 +7,18 @@ const pad = (n: number) => String(n).padStart(2, "0");
 const valid = (y: number, m: number, d?: number) =>
   y >= 1900 && y <= 2100 && m >= 1 && m <= 12 && (d === undefined || (d >= 1 && new Date(Date.UTC(y, m - 1, d)).getUTCDate() === d));
 
-// Two-digit years ("12.3.26") are read as 20yy up to the current year + 1, else 19yy; such a date is still kept as
-// written, and the sort form only orders it.
-function year(y: string, now = new Date()): number {
-  if (y.length === 4) return Number(y);
-  const n = Number(y);
-  return 2000 + n <= now.getUTCFullYear() + 1 ? 2000 + n : 1900 + n;
-}
+// Two-digit years ("12.3.26"): 00-50 are 20yy, 51-99 are 19yy. A fixed rule, not the clock, so the same text always
+// sorts the same; the date is still kept as written.
+const year = (y: string) => (y.length === 4 ? Number(y) : Number(y) <= 50 ? 2000 + Number(y) : 1900 + Number(y));
 
 export function parseDate(asWritten: string | null | undefined): FactDate {
   const w = (asWritten ?? "").trim();
   const none: FactDate = { as_written: w || null, precision: null, sort: null };
   if (!w) return { as_written: null, precision: null, sort: null };
-  // 12.3.2026 14:05 / 12. 3. 2026
+  // A range whose first end has no year ("12.3.-15.3.2026"): the start's year is not written, so no sort form rather
+  // than the end date standing for the start.
+  if (/(?<!\d)\d{1,2}\s*\.\s*\d{1,2}\s*\.\s*[-–]/.test(w)) return none;
+  // 12.3.2026 14:05 / 12. 3. 2026 / 12.3.26
   let m = /(?<!\d)(\d{1,2})\s*\.\s*(\d{1,2})\s*\.\s*(\d{4}|\d{2})(?!\d)(?:\s+(\d{1,2}):(\d{2}))?/.exec(w);
   if (m) {
     const y = year(m[3]!);
@@ -33,15 +32,16 @@ export function parseDate(asWritten: string | null | undefined): FactDate {
   // 2026-03-12
   m = /(?<!\d)(\d{4})-(\d{2})-(\d{2})(?!\d)/.exec(w);
   if (m && valid(Number(m[1]), Number(m[2]), Number(m[3]))) return { as_written: w, precision: "day", sort: `${m[1]}-${m[2]}-${m[3]}` };
-  // 3/2024, 03/2024, 3.2024, 3/24
-  m = /(?<![\d.])(\d{1,2})\s*[/.]\s*(\d{4}|\d{2})(?![\d./])/.exec(w);
+  // Month and year: "3/2024", "03/24", "3.2024". With a dot only a four-digit year, because "5.10" is a day and a
+  // month without a year, not May 2010.
+  m = /(?<![\d./])(\d{1,2})\s*(?:\/\s*(\d{4}|\d{2})|\.\s*(\d{4}))(?![\d./])/.exec(w);
   if (m) {
-    const y = year(m[2]!);
+    const y = year((m[2] ?? m[3])!);
     const mo = Number(m[1]);
     if (valid(y, mo)) return { as_written: w, precision: "month", sort: `${y}-${pad(mo)}` };
   }
-  // 2024 alone
-  m = /(?<!\d)(19\d{2}|20\d{2})(?!\d)/.exec(w);
+  // A year alone.
+  m = /(?<![\d./])(19\d{2}|20\d{2})(?![\d./])/.exec(w);
   if (m) return { as_written: w, precision: "year", sort: m[1]! };
   return none;
 }

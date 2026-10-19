@@ -139,7 +139,9 @@ describe("fact extraction checks", () => {
       fact({ kind: "stage", quote: "Stadium před léčbou: cT3b cN1 cM0", text: "cT3b cN1 cM0", tnm_as_written: "cT3b cN2 cM0", stage_kind: "clinical" }),
       fact({ kind: "imaging", status: "done", quote: "7.10.2026 odeslána žádanka na CT hrudníku, břicha a pánve, t.č. výsledek nemáme", text: "CT", modality: "CT" }),
     ]);
-    expect(r.facts.map((f) => f.certainty_reason?.code)).toEqual(["number_not_in_quote", "status_unclear"]);
+    expect(r.facts[0]!.certainty_reason?.code).toBe("number_not_in_quote");
+    // "výsledek nemáme" is also a negation in the quote; the request wording is among the reasons.
+    expect(r.facts[1]!.certainty_reason?.text).toContain("žádost nebo plán");
 
     const poor = await build([fact({ quote: "C20 Zhoubný novotvar konečníku", text: "x" })], [page(1, P1, { readability: "poor" })]);
     expect(poor.facts[0]!.certainty_reason?.code).toBe("poor_copy");
@@ -225,6 +227,81 @@ describe("fact extraction checks", () => {
   });
 });
 
+describe("checks found by review", () => {
+  it("normalises joined TNM, marks an unrecognised category, and takes the stage kind from the prefix", async () => {
+    expect(normalizeTnm("cT3bN1M0")).toBe("cT3b N1 M0");
+    expect(normalizeTnm("T2N0M0 G3")).toBe("T2 N0 M0");
+    const text = P1 + "\nStadium: pT2 pN0 MO";
+    const r = await build(
+      [
+        fact({ kind: "stage", quote: "Stadium: pT2 pN0 MO", text: "pT2 pN0 MO", tnm_as_written: "pT2 pN0 MO", stage_kind: null }),
+      ],
+      [page(1, text)],
+    );
+    expect(r.facts[0]).toMatchObject({ value: { stage_kind: "pathological", tnm: "pT2 pN0" }, certainty: "verify", certainty_reason: { code: "tnm_unrecognised" } });
+    const none = await build([fact({ kind: "stage", quote: "Stadium před léčbou: cT3b cN1 cM0", text: "T3 N1", tnm_as_written: null, stage_kind: null })]);
+    expect(none.facts[0]!.certainty).toBe("verify");
+  });
+
+  it("never invents a performance status of 0", async () => {
+    const r = await build([fact({ kind: "performance_status", quote: "C20 Zhoubný novotvar konečníku", text: "ECOG", scale: "ECOG", value_as_written: null })]);
+    expect(r.facts[0]!.value).toMatchObject({ value_numeric: null, value_as_written: "" });
+  });
+
+  it("anchors a quote that is on the page twice where the fact's words are, or marks it", async () => {
+    const text = "Závěr: bez metastáz\nplíce čisté\n\n\n\nCT jater 3.3.2026:\nbez metastáz";
+    const r = await build([fact({ kind: "metastasis", quote: "bez metastáz", text: "jater bez metastáz", site: "játra", negated: true, metastasis_status: "excluded", date_as_written: "3.3.2026" })], [page(1, text)]);
+    const s = r.sources[0]!;
+    expect(s.type === "document" && s.anchor!.char_range[0]).toBe(text.lastIndexOf("bez metastáz"));
+    const amb = await build([fact({ kind: "metastasis", quote: "bez metastáz", text: "metastázy", negated: true, metastasis_status: "excluded" })], [page(1, "bez metastáz\nbez metastáz")]);
+    expect(amb.facts[0]!.certainty_reason?.code).toBe("quote_ambiguous");
+  });
+
+  it("does not close a request with a result of another region or kind", async () => {
+    const text = "1.10.2026 odeslán požadavek na CT mozku\nCT hrudníku 5.10.2026 bez ložisek\nMDT 6.10.2026 doporučuje PET/CT";
+    const pg = [page(1, text)];
+    const r = await build(
+      [
+        fact({ kind: "request", status: "requested", quote: "1.10.2026 odeslán požadavek na CT mozku", text: "CT mozku", request_kind: "exam", date_as_written: "1.10.2026" }),
+        fact({ kind: "imaging", status: "done", quote: "CT hrudníku 5.10.2026 bez ložisek", text: "CT hrudníku bez ložisek", modality: "CT", negated: true, date_as_written: "5.10.2026" }),
+      ],
+      pg,
+    );
+    expect(r.alerts.map((a) => a.rule)).toEqual(["request_without_result"]);
+  });
+
+  it("never merges a fact of the patient's page with one of another patient's page", async () => {
+    const d = (part: number, quote: string) => fact({ part, kind: "comorbidity", quote, text: "DM", negated: true });
+    const r = await build([d(1, "DM neguje."), d(2, "DM neguje.")], [page(1, P1), page(2, P2 + "\nDM neguje.")]);
+    expect(r.facts.map((f) => f.quarantined)).toEqual([false, true]);
+  });
+
+  it("marks a code that is not in the quote when the page prints several", async () => {
+    const text = P1 + "\nI10 Arteriální hypertenze";
+    const r = await build([fact({ kind: "diagnosis", quote: "Adenokarcinom rekta, G2, diag. 3/2026", text: "Adenokarcinom rekta", code: "I10", date_as_written: "3/2026" })], [page(1, text)]);
+    expect(r.facts[0]).toMatchObject({ codes: [{ code: "I10" }], certainty: "verify", certainty_reason: { code: "code_outside_quote" } });
+  });
+
+  it("lists a page no call sent as not read", async () => {
+    const pages = [page(1, P1), page(2, P2)];
+    const r = await buildFromAnswer({ caseId: "NO-T", doc: { documentId: "T_pacient", part: null, pages }, calls: [{ pages: [0], parts: [pseudonymize(P1, ID)], answer: { facts: [] } }] });
+    expect(r.checks[0]!.unreadable.map((u) => u.page)).toEqual([2]);
+  });
+
+  it("marks a plan for a therapy the documents show as started", async () => {
+    const text = "Do 2. linie indikován sunitinib.\nSunitinib od 27.1.2026.";
+    const r = await build(
+      [
+        fact({ kind: "plan", status: "planned", quote: "Do 2. linie indikován sunitinib.", text: "sunitinib 2. linie" }),
+        fact({ kind: "systemic_therapy", status: "done", quote: "Sunitinib od 27.1.2026.", text: "sunitinib", date_as_written: "27.1.2026" }),
+      ],
+      [page(1, text)],
+    );
+    expect(r.facts[0]).toMatchObject({ kind: "plan", certainty: "verify", certainty_reason: { code: "done_elsewhere" } });
+    expect(r.facts[1]!.certainty).toBe("clear");
+  });
+});
+
 describe("dates, quotes and page identity", () => {
   it("keeps a partial date partial", () => {
     expect(parseDate("3/2024")).toEqual({ as_written: "3/2024", precision: "month", sort: "2024-03" });
@@ -233,6 +310,12 @@ describe("dates, quotes and page identity", () => {
     expect(parseDate("20.9.2026 07:40")).toEqual({ as_written: "20.9.2026 07:40", precision: "minute", sort: "2026-09-20T07:40" });
     expect(parseDate("31.2.2026").sort).toBeNull();
     expect(parseDate("loni na jaře")).toEqual({ as_written: "loni na jaře", precision: null, sort: null });
+    // A day and a month without a year get no year; a range without the start's year gets no sort form.
+    expect(parseDate("5.10").sort).toBeNull();
+    expect(parseDate("3.24").sort).toBeNull();
+    expect(parseDate("3/24")).toMatchObject({ precision: "month", sort: "2024-03" });
+    expect(parseDate("12.3.-15.3.2026").sort).toBeNull();
+    expect(parseDate("7.4.2026 - 18.5.2026").sort).toBe("2026-04-07");
   });
 
   it("finds a quote across line breaks but not with other words", () => {
@@ -246,5 +329,10 @@ describe("dates, quotes and page identity", () => {
     // The same surname with another first name and birth number is another person.
     expect(pageIdentity("Lipenská Jana, nar. 1.1.1950, r.č. 505101/1234", ID)).toBe("conflicts");
     expect(pageIdentity("Hb 120 g/l, CRP 5 mg/l", ID)).toBe("cannot_verify");
+    // The usual header of the patient's own page is not a conflict ("RČ" is a label, not another name).
+    expect(pageIdentity("Pacient: Lipenská Věra, RČ 585614/1234", ID)).toBe("matches");
+    expect(pageIdentity("Pacientka: Lipenská Věra\nDg.: C20", ID)).toBe("matches");
+    // A name and its birth label on separate lines.
+    expect(pageIdentity("Vrbenská Lenka,\nnar. 18.4.1959", ID)).toBe("conflicts");
   });
 });

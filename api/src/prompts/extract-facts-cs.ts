@@ -28,5 +28,11 @@ Pravidla:
 16. "Indikován" nebo "doporučen" je "planned" jen tehdy, když dokument neuvádí, že léčba či výkon už začaly či proběhly; jinak "done" s datem zahájení.
 17. Citace musí obsahovat to, co fakt tvrdí: u diagnózy vyber větu s jejím popisem a stavem, ne jen řádek s kódem (kód se kontroluje v celé straně).
 18. Pole, která se k druhu faktu nehodí, nech null.
+19. Výsledky receptorů a markerů (ER, PR, HER2, Ki-67, PD-L1, EGFR, ALK, MMR) jsou naměřené výsledky histologie: "negated": false i u "HER2 negativní (1+)"; hodnotu napiš do "text".
+20. "tumour_type" jen u pozitivního nálezu nádoru; u záporného ("DCIS nezastižen") null a nález do "text".
+21. Popis vzorku bez výsledku (např. "core-cut biopsie, 4 válečky") není samostatný fakt histologie; patří do "specimen" faktu s výsledkem.
+22. Změna dávky téže léčby (snížení, navýšení) není nová linie: jeden fakt "systemic_therapy" pro linii, změnu uveď v "text".
+23. Alergie: "alergie neguje" je "kind": "allergy", "text": "alergie", "negated": true.
+24. Metastázy uvedené v nálezu zobrazení či histologie (potvrzené, suspektní i vyloučené) vypiš navíc jako samostatný fakt "metastasis" se "site" (orgán) a "metastasis_status"; nález zobrazení zůstává faktem "imaging".
 
 Druhy faktů: diagnosis, histology (specimen, tumour_type, grade), stage, metastasis (site, metastasis_status), imaging (modality, region, text = nález), procedure (text = výkon, region), systemic_therapy (text = režim či lék, line, stop_as_written, reason_stopped), radiotherapy (text = cíl, dose), request (text = co bylo vyžádáno, request_kind), plan (text = co je plánováno), decision (decision_body, text = rozhodnutí), family_history (text = onemocnění), symptom (text), performance_status (scale, value_as_written), comorbidity (text, code), allergy (text = látka, reaction; "alergie neguje" = negated true), risk_factor (risk_type, text, pack_years: kouření "40 balíčkoroků" = 40, nekuřák = negated true), exam_finding (region, text: fyzikální nález, funkční vyšetření jako spirometrie s hodnotami, klinický dojem).`;

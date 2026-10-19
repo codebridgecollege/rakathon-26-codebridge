@@ -497,6 +497,9 @@ def evaluate_case(spec: dict, ai_dir: Path | None = None) -> dict:
     run = to_run(spec["case"], docs)
     ai_file = ai_dir / f"{spec['case']}.json" if ai_dir else None
     ai_counts = None
+    if ai_file and not ai_file.exists():
+        # Said aloud, so a case the extraction skipped is not mistaken for one it ran over.
+        print(f"no AI run for {spec['case']} in {ai_dir}", file=sys.stderr)
     if ai_file and ai_file.exists():
         ai = json.loads(ai_file.read_text())
         add_ai_run(run, ai)
