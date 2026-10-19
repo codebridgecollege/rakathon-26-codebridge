@@ -30,6 +30,12 @@ export default defineConfig(async () => {
     pdf: () => null,
   });
   return {
+    // One test file at a time. The plugin documents storage isolation per test file, but here files running in
+    // parallel did see each other's D1 writes: test/nis.test.ts failed in 2 of 6 full runs in loadFixture with
+    // "UNIQUE constraint failed: roles.id" (rows inserted between its reset() and its insert), and in none of 4 runs
+    // with files one at a time. The Workflows run in the Worker with its own bindings, which the files share. Slower
+    // (about 60 s instead of 20 to 35 s) but every run gives the same answer.
+    test: { fileParallelism: false },
     plugins: [
       cloudflareTest({
         wrangler: { configPath: "./wrangler.jsonc" },
