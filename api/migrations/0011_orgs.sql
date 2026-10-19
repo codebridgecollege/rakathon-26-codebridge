@@ -175,7 +175,7 @@ CREATE TABLE patients (
 );
 
 CREATE TABLE cases (
-  id                    TEXT PRIMARY KEY,    -- unique across orgs: 'NO-010' in org A, 'B-NO-S01' in org B
+  id                    TEXT PRIMARY KEY,    -- unique across orgs: 'NO-010' in org A, 'B-NO-100' in org B
   org_id                TEXT NOT NULL REFERENCES orgs(id),
   case_no               TEXT NOT NULL,       -- the number people see, counted per org ('NO-010')
   patient_id            TEXT NOT NULL,
@@ -498,7 +498,7 @@ CREATE TABLE alert_events (                  -- append-only; latest event is the
 
 -- ---------- 8. Documents and pages ----------
 CREATE TABLE documents (                     -- one uploaded or seeded file
-  id              TEXT PRIMARY KEY,          -- seed: PDF stem ('10_pacient'; 'b-S01_pacient' in org B); uploads: UUID
+  id              TEXT PRIMARY KEY,          -- seed: PDF stem ('10_pacient'); uploads: UUID
   org_id          TEXT NOT NULL REFERENCES orgs(id),
   case_id         TEXT NOT NULL,
   file_name       TEXT NOT NULL,             -- '10_pacient.pdf'

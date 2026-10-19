@@ -23,8 +23,35 @@ npm run types                    # after any wrangler.jsonc change; CI fails on 
 ```
 
 CI (`.github/workflows/deploy-worker.yml`) tests the Worker, the app and both packages, stages the files, checks the
-app's size budget, and deploys `main` to production and `backend` to the `backend` preview alias. A manual deploy is
-`npm run deploy`.
+app's size budget, and deploys `main` to production and `backend` to the `backend` preview alias. On `main` it applies
+the D1 migrations right before the deploy (below, "Migrations in CI"). A manual deploy is `npm run deploy`.
+
+### Migrations in CI
+
+The deploy job on `main` runs, in this order: stage the files, `npx wrangler d1 migrations apply codebridge-mdt
+--remote` (from `api/`, with the repository's `CLOUDFLARE_API_TOKEN`, which has D1 Edit, and `CLOUDFLARE_ACCOUNT_ID`),
+then `wrangler deploy`. wrangler answers its own "Ok to proceed?" with yes in CI. A failed migration fails the step, so
+the job stops and the old Worker keeps serving; D1 runs each migration file as one batch, so the failed file is not half
+applied, but files before it in the same run stay applied. With no new migration the step only reports that and the
+deploy follows.
+
+- **The window.** Between the migration and the end of `wrangler deploy` (usually under a minute) the old Worker runs
+  on the new schema. A migration therefore has to work with the Worker already deployed: add tables and columns, and
+  never drop or rename what the deployed code reads in the same change. To remove something, first ship code that no
+  longer reads it, then drop it in a later migration. A migration that cannot work with the old code (0011 rebuilds every
+  org table) needs a person watching the merge (below, "Organizations").
+- **No cancelled runs on `main`.** On other refs a newer push cancels the running workflow; on `main` it waits
+  (`cancel-in-progress` is off there), so a run is never stopped between the migration and the deploy. A deploy that
+  fails after a successful migration leaves the old code on the new schema until someone reruns the job or runs
+  `npm run deploy`.
+- **The `backend` preview never migrates.** It uses the same database as production, so a schema change must reach
+  `main` first; uploading a `backend` version whose code needs a migration that `main` has not applied breaks the
+  preview, and migrating from the preview would break production. Push such a change to `backend` only after it is on
+  `main`.
+- **The manual fallback** stays: `npm run migrate:remote` from `api/` with your own wrangler login applies the same
+  migrations when the CI step fails on the token, the network or Cloudflare. A migration whose SQL fails fails by hand
+  too: fix it forward with a new migration (files before it in the run stay applied), never by editing an applied file.
+  Do not run it while a `main` deploy job is running.
 
 ## Static files, headers and redirects (frontend step 13)
 
@@ -159,9 +186,9 @@ built.
   npx wrangler r2 bucket lifecycle add codebridge-mdt audit-archive-30d-demo-a org/demo-a/audit-archive/ --expire-days 30 -J eu -y
   ```
   A hospital org gets the audio and cache rules but no audit-archive rule (its archive follows FNO's retention).
-- Deploy before migrating when a migration drops what old code reads: migration 0009 drops
-  `transcript_passes.audio_on_failure`, which the previous Worker's Workflow and cron query read, while the new code
-  works on either schema. So `npm run deploy` first, then `npm run migrate:remote`.
+- A migration that drops what the deployed code reads breaks it in the window above, because CI migrates first. Ship
+  it in two changes: code that works on either schema, then the drop. (Migration 0009, which drops
+  `transcript_passes.audio_on_failure`, was applied by hand after the deploy, before CI migrated.)
 - Deploying: the Workflow and the cron trigger are registered only by `wrangler deploy` (`npm run deploy`), not by
   `wrangler versions upload`, which CI uses for the `backend` preview alias. A preview's approvals start instances of
   the Workflow as the last `wrangler deploy` registered it, so deploy after changing `src/workflows/`.
@@ -265,14 +292,21 @@ Design: `docs/design/AUTH.md` and `docs/design/DATABASE.md`, each with a section
 - **Checks.** `test/org-sql.test.ts` flags any SQL string in `src/` that touches an org table without naming `org_id`
   (a reminder: joins and subqueries escape it; mark a statement that is global by design, or a fragment whose caller
   adds the org, with `/* org-scope: <reason> */`). `test/orgs.test.ts` acts in org B with org A's IDs on every route and
-  requires 404 or empty answers and org A unchanged. `test/data.ts` seeds a look-alike org B for every test.
+  requires 404 or empty answers and org A unchanged. `test/data.ts` seeds a look-alike org B with one case for every
+  test (test data only; the real seed's org B is empty, below).
+- **Demo org B is empty.** The seed gives demo org B ("Ukázková nemocnice B") its setup only: the org, its two
+  departments and four people (`lekar1.b`, `lekar2.b`, `koordinator.b`, `admin.b` `@codebridge.demo`) with their
+  memberships. It holds no patient, case, document, alert, slot or task; that is where the team puts its own test data,
+  and its demo reset returns it to the empty setup. `seed.py` stops when a seeded row of any other table, or an R2 object
+  under `org/demo-b/` or keyed by a `B-` case ID, belongs to org B.
 - **Migrating a deployed database.** 0011 rebuilds every org table, and old and new code do not run on each other's
-  schema. CI deploys `main` (and uploads the `backend` preview, which uses the same database) without migrating, so
-  merging this needs a person at the keyboard: first check that no job or pipeline run is queued or running (a step of
-  an old Workflow that runs after the migration fails for good), merge, and as soon as the `main` deploy job starts run
-  `npm run migrate:remote`; once it has deployed, `npm run seed:remote:reset` (the reset document's format changed, and
-  org B and the demo e-mails come from the seed), and redeploy `backend` from a branch with these changes. The demo is
-  down in between. Rows written before keep their R2 keys
+  schema. CI applies it on `main` right before the deploy ("Migrations in CI"), so merging this needs a person watching:
+  first check that no job or pipeline run is queued or running (a step of an old Workflow that runs after the migration
+  fails for good), merge, and watch the `main` deploy job (if its migration step fails on the token or the network, run
+  `npm run migrate:remote` by hand and rerun the job; a SQL failure needs a fix, see the fallback above). Once it has deployed, run `npm run seed:remote:reset` (the reset document's format changed,
+  and org B and the demo e-mails come from the seed), and redeploy `backend` from a branch with these changes. The demo
+  is down in between: the old Worker runs on the new schema until the deploy finishes, and the data is wrong until the
+  reseed. Rows written before keep their R2 keys
   (`docs/`, `pages/`, `uploads/`, `audio/` without the `org/` prefix), which stay readable. Add the per-org lifecycle
   rules above.
 - **Adding an org.** A row in `orgs` (a short lowercase id, a unique `case_id_prefix`), its `demo_state` row,
@@ -330,8 +364,9 @@ proves who someone is, and orgs, memberships and roles stay in D1.
   out their passwords (below the list, `zitadel-demo-accounts.mjs`); set `SESSION_KEY`; check with
   `npx wrangler secret list` that `OIDC_CLIENT_SECRET` is there, and if not, `npx wrangler secret put
   OIDC_CLIENT_SECRET` from the password manager. It also needs migration 0012 (`auth_sessions` with the membership
-  acted as, `created_by_actor`) before the code runs: deploy with the migration as in "Migrating a deployed database" above (0011 and 0012 go together when #14 and this merge at
-  once), then check by hand against the real Zitadel instance: `/api/health` shows `auth_mode: "oidc"`; the app at `/`
+  acted as, `created_by_actor`) before the code runs; CI applies it on `main` right before the deploy ("Migrations in
+  CI"; 0011 and 0012 go together when #14 and this merge at once, so follow "Migrating a deployed database" above).
+  Then check by hand against the real Zitadel instance: `/api/health` shows `auth_mode: "oidc"`; the app at `/`
   goes to Zitadel's Czech login page; `admin.a` logs in and lands where it started; "Přepnout roli" to a doctor and
   back; Administrace shows "Ing. Kovář (jako MUDr. ...)"; "Odhlásit" ends at Zitadel and back on the login page; repeat
   on the `backend` preview host. The phone upload (`/u`) needs no login: its routes answer before the session check.

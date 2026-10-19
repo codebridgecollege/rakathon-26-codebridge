@@ -9,7 +9,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { env } from "cloudflare:workers";
 import { applyD1Migrations, reset } from "cloudflare:test";
 import { call, mockFetch, testEnv } from "./helpers";
-import { B_NAME, FAKE_NAME, loadFixture, resetDoc } from "./data";
+import { B_NAME, FAKE_NAME, MUTABLE_B, loadFixture, resetDoc } from "./data";
 import { ORG_TABLES } from "../src/store/sql";
 import { sweep } from "../src/scheduled";
 
@@ -523,6 +523,48 @@ describe("break-the-glass", () => {
 });
 
 describe("staff and demo resets", () => {
+  // The real seed leaves demo org B empty (people and departments only, api/seed/seed.py); its reset section then holds
+  // only those rows and no patient. The fixture's org B has a case, so this test gives org B the seed's shape first.
+  it("an empty demo org answers empty lists, keeps a patient created there in it, and its reset empties it again", async () => {
+    const setup = MUTABLE_B.filter((x) => /^INSERT INTO (users|memberships|departments|dept_members) /.test(x));
+    expect(setup).toHaveLength(4);
+    const doc = resetDoc();
+    await env.DOCS.put("seed/reset.json", JSON.stringify({ ...doc, orgs: { ...doc.orgs, "demo-b": { statements: setup, patient_ids: [], membership_ids: ["b-doc", "b-coord", "b-admin"] } } }));
+    const before = await snapshotA();
+    // The fixture also seeds org B a document, its page, an extraction run and an alert, which a reset keeps (seed
+    // rows); the real seed has none in org B, so they go first, inside an org B reset window as the triggers require.
+    await env.DB.batch([
+      "UPDATE demo_state SET reset_in_progress = 1 WHERE org_id = 'demo-b'",
+      ...["alerts", "extraction_runs", "pages", "document_parts", "documents"].map((t) => `DELETE FROM ${t} WHERE org_id = 'demo-b'`),
+      "UPDATE demo_state SET reset_in_progress = 0 WHERE org_id = 'demo-b'",
+    ].map((x) => env.DB.prepare(x)));
+    expect((await w("POST", "/admin/reset-demo", { confirm: "OBNOVIT" }, "b-admin")).status).toBe(200);
+    const e2 = { "x-data-epoch": "2" };
+    for (const t of ["patients", "cases", "documents", "alerts", "slots", "tasks"]) expect(await q(`SELECT * FROM ${t} WHERE org_id = 'demo-b'`), t).toEqual([]);
+    expect((await q("SELECT id FROM departments WHERE org_id = 'demo-b'")).map((r) => r.id)).toEqual(["b-d1"]);
+    // Every list a screen reads answers, and empty.
+    const pts = await get("/patients", "b-doc");
+    expect([pts.status, pts.body.patients, pts.body.total]).toEqual([200, [], 0]);
+    expect((await get("/tasks", "b-coord")).body.tasks).toEqual([]);
+    const wf = await get("/workflow", "b-coord");
+    expect([wf.status, Object.keys(wf.body.cases ?? {})]).toEqual([200, []]);
+    for (const path of ["/calendar", "/staff", "/me"]) expect((await get(path, "b-doc")).status, path).toBe(200);
+    expect((await get("/admin/access-log", "b-admin")).status).toBe(200);
+
+    // A patient created in the empty org stays in it.
+    const made = await w("POST", "/cases", form("700101/1234"), "b-doc", { ...key(40), ...e2 });
+    expect(made.status).toBe(200);
+    expect(made.body.data!.case_id).toBe("B-NO-100");
+    expect((await get("/patients", "b-doc")).body.patients.map((x: { id: string }) => x.id)).toEqual(["B-NO-100"]);
+    expect((await q("SELECT org_id FROM patients WHERE birth_number = '700101/1234'")).map((r) => r.org_id)).toEqual(["demo-b"]);
+
+    // The next reset returns org B to its people and departments, and org A never changed.
+    expect((await w("POST", "/admin/reset-demo", { confirm: "OBNOVIT" }, "b-admin", e2)).status).toBe(200);
+    for (const t of ["patients", "cases"]) expect(await q(`SELECT * FROM ${t} WHERE org_id = 'demo-b'`), t).toEqual([]);
+    expect((await q("SELECT id FROM memberships WHERE org_id = 'demo-b' AND active_until IS NULL ORDER BY id")).map((r) => r.id)).toEqual(["b-admin", "b-coord", "b-doc"]);
+    expect(await snapshotA()).toEqual(before);
+  });
+
   it("the staff reset in org B leaves org A's departments and names alone", async () => {
     const deptsA = await q("SELECT * FROM departments WHERE org_id = 'demo-a' ORDER BY id");
     const before = await snapshotA();

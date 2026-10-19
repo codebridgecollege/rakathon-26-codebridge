@@ -39,7 +39,7 @@ Terms used below:
    The database itself refuses cross-org references (composite foreign
    keys), and tests sign in as one org and try another's IDs.
 5. **Demo:**
-   - two demo orgs: "Ukázková nemocnice A" (today's data) and "Ukázková nemocnice B" (one synthetic patient);
+   - two demo orgs: "Ukázková nemocnice A" (today's data) and "Ukázková nemocnice B" (no patient data: its departments and people only, for the team's own test data);
    - after one real login, a demo org keeps a role switcher, so the presenter changes roles without logging in again.
 6. **The user picker remains for local development and the browser test
    suite** (`AUTH_MODE=demo`). One browser spec runs the real login flow
@@ -313,12 +313,16 @@ section "Organizations".
   `'oidc'`, and a new column `acted_as_membership` names the membership
   acted as.
 - **Two demo orgs** in the seed: "Ukázková nemocnice A" (`demo-a`, the
-  hackathon demo) and "Ukázková nemocnice B" (`demo-b`, the synthetic
-  patient S01 with its own case, document, departments and people). Each
-  has two doctors with e-mails, a coordinator and an administrator
-  (`lekar1.a@codebridge.demo`, `lekar2.a@...`, `koordinator.a@...`,
-  `admin.a@...`, and the same with `.b`); org A keeps its other ten demo
-  doctors. `seed/reset.json` has a section per org.
+  hackathon demo) and "Ukázková nemocnice B" (`demo-b`). Org B holds no
+  patient data (user decision 2026-10-19): the seed gives it only its two
+  departments and four people with their memberships, and its demo reset
+  returns it to that empty setup. The team puts its own test data there;
+  a patient created in org B stays in org B. Each org has two doctors with
+  e-mails, a coordinator and an administrator (`lekar1.a@codebridge.demo`,
+  `lekar2.a@...`, `koordinator.a@...`, `admin.a@...`, and the same with
+  `.b`); org A keeps its other ten demo doctors. `seed/reset.json` has a
+  section per org, and `seed.py` stops if a clinical or case row, or an R2
+  object, is seeded into org B.
 - **The org reaches every query.** SQL names the org as `?org`, bound by
   one function (`orgStmt`, `src/store/sql.ts`) that the org-bound stores,
   the write batch (`Tx`) and the route helper `orgQuery` use. Routes take
@@ -343,7 +347,9 @@ section "Organizations".
 - **Tests:** isolation tests for every route (`api/test/orgs.test.ts`), a
   migration test on the pre-org schema, a reminder test that flags SQL
   without `org_id`, per-org reset tests, a look-alike org B in the shared
-  test fixture, and the browser suite's `specs/orgs.spec.ts`.
+  test fixture (a test-only case, since the seeded org B is empty), and
+  the browser suite's `specs/orgs.spec.ts` (every screen of the empty org
+  B, none of org A in it, and a patient created there staying there).
 
 **Deviations from this design:**
 - **Write SQL stays in the route handlers.** Reads moved behind the
@@ -364,8 +370,8 @@ section "Organizations".
 - **Case IDs.** The internal ID is the org's prefix plus the case number
   (no prefix in demo org A, so its IDs are unchanged; `B-` in org B), and
   `cases.case_no` holds the per-org number. The app still shows the
-  internal ID, so org B's case reads `B-NO-S01`; showing `case_no` belongs
-  to the frontend step.
+  internal ID, so a case created in org B reads `B-NO-100`; showing
+  `case_no` belongs to the frontend step.
 - **Names are the person's.** Renaming someone on one org's staff screen
   would rename them in every org they belong to, and the name check sees
   only the acting org; their function is per org. Nothing can give a
@@ -395,10 +401,11 @@ section "Organizations".
 - **Guideline and prognosis data** stay global R2 keys by case ID
   (`guidance/`, `prognosis/`): the case ID is unique across orgs and the
   case is opened (with its org check) before they are read.
-- **Deploying needs a coordinated migration.** CI deploys `main` without
-  migrating, and old and new code do not run on each other's schema, so
-  merging needs the steps in `api/AGENTS.md` ("Migrating a deployed
-  database") right after the deploy.
+- **Deploying needs a watched merge.** CI applies the D1 migrations on
+  `main` right before the deploy (`api/AGENTS.md`, "Migrations in CI"),
+  but old and new code do not run on each other's schema, so merging needs
+  the steps in `api/AGENTS.md` ("Migrating a deployed database"): nothing
+  queued before, the reseed after.
 
 ## As implemented (steps 3-4)
 

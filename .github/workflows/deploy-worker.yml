@@ -1,6 +1,7 @@
 # Tests the API Worker, the Nuxt app and the shared packages, runs the browser suite (e2e/) against local Workers,
 # then deploys the Worker with the app at /: main -> production (codebridge-mdt.<subdomain>.workers.dev), backend ->
-# preview alias "backend". The deploy runs only when the unit tests and the browser suite both pass.
+# preview alias "backend". The deploy runs only when the unit tests and the browser suite both pass; on main it applies
+# the D1 migrations first.
 name: Deploy worker
 
 # The browser suite reads e2e/ and drives everything the Worker serves; the tests read the fixtures and the samples.
@@ -15,10 +16,11 @@ on:
 
 # One run per branch or pull request; a newer push replaces the older run. main (production) and backend (a preview
 # version) deploy to different targets, so neither cancels the other, and runs that cannot deploy (pull requests,
-# manual runs on other branches) never cancel a deploy.
+# manual runs on other branches) never cancel a deploy. On main a newer run waits instead of cancelling: a cancel
+# between the D1 migration and the deploy would leave the old Worker on the new schema.
 concurrency:
   group: deploy-worker-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
   test:
@@ -140,6 +142,13 @@ jobs:
       - run: npm ci
         working-directory: .
       - run: npm run stage
+      # The deployed D1 gets the new migrations right before the code that needs them, so a merge never serves new code
+      # on an old schema. Only main migrates: the backend preview uses the same database, so a schema change reaches it
+      # through main first (api/AGENTS.md, "Migrations in CI"). wrangler answers its own prompt with yes in CI and exits
+      # non-zero when a migration fails, which stops the job before the deploy.
+      - name: Apply D1 migrations (main)
+        if: github.ref == 'refs/heads/main'
+        run: npx wrangler d1 migrations apply codebridge-mdt --remote
       - name: Deploy production (main)
         if: github.ref == 'refs/heads/main'
         run: npx wrangler deploy --var GIT_SHA:${{ github.sha }}

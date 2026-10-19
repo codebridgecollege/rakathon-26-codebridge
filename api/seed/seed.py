@@ -107,7 +107,8 @@ STAFF_DEPTS_B = [
 COORD_B = {"id": "b-coord", "pre": "Bc.", "sur": "Holubová", "post": "", "fn": "koordinátorka MDT", "role": "coordinator"}
 ADMIN_B = {"id": "b-admin", "pre": "Ing.", "sur": "Pospíšil", "post": "", "fn": "správce systému", "role": "admin"}
 
-# Organizations (docs/design/AUTH.md): demo org A holds the hackathon demo, demo org B one synthetic patient (S01). The
+# Organizations (docs/design/AUTH.md): demo org A holds the hackathon demo. Demo org B holds no patient data, only its
+# departments and people, so the team's own test data there starts from an empty org and its reset returns to that. The
 # case ID prefix keeps internal IDs unique across orgs; each org counts its case numbers (case_no) on its own.
 ORG_A, ORG_B = "demo-a", "demo-b"
 ORGS = [
@@ -652,72 +653,6 @@ def main() -> None:
         al, ids = alert_rows(cid, [], s.get("data_gaps") or [])
         extractions.append((cid, {"syn": strip_syn(s), "alert_ids": ids}, al, "partial", ORG_A))
 
-    # 3b. Demo org B: one synthetic patient (S01), its own case, document, pages and extraction. Its internal IDs differ
-    # from org A's copy of the same synthetic patient (IDs are unique across orgs); the case number is the same,
-    # because each org counts its own. Source references point at org B's document by its id ("<doc id>.pdf"), as an
-    # intake's prepared data does, so the source view opens org B's pages.
-    s01 = next(x for x in syn if x["file"] == "S01_pacient.pdf")
-    b_case, b_doc, b_pid = "B-NO-S01", "b-S01_pacient", "pt-B-S01"
-    a_s01 = next(c for c in cases if c["id"] == "NO-S01")
-    a_s01_pt = next(x for x in patients if x["id"] == "pt-S01")
-    patients.append({**a_s01_pt, "id": b_pid, "org_id": ORG_B})
-    b_owner = users_b[0]
-    cases.append({**a_s01, "id": b_case, "org_id": ORG_B, "case_no": "NO-S01", "patient_id": b_pid, "list_order": 0, "status": "scheduled",
-                  "owner_user_id": b_owner["id"], "owner_name": staff_name(b_owner), "owner_is_example": True,
-                  "referring_dept": "Ukázková nemocnice B, onkologie", "referring_dept_is_example": True})
-
-    def to_b_doc(o):
-        if isinstance(o, dict):
-            o = {k: to_b_doc(v) for k, v in o.items()}
-            if o.get("file") == "S01_pacient.pdf" and "page" in o:
-                o["file"] = f"{b_doc}.pdf"
-            return o
-        if isinstance(o, list):
-            return [to_b_doc(v) for v in o]
-        return o
-    al_b, ids_b = alert_rows(b_case, [], s01.get("data_gaps") or [], ORG_B)
-    extractions.append((b_case, {"syn": to_b_doc(strip_syn(s01)), "alert_ids": ids_b}, al_b, "partial", ORG_B))
-    sql.append(insert("patients", patients[-1]))
-    sql.append(insert("cases", cases[-1]))
-    sql += [insert("case_members", {"org_id": ORG_B, "case_id": b_case, "dept_id": d["id"], "reason": "seed: oddělení MDT"}) for d in depts_b]
-    # The same day and time as org A's first slot: each org books its own calendar.
-    sql.append(insert("slots", {"org_id": ORG_B, "day": "2026-10-22", "time": "14:00", "case_id": b_case}))
-    pdf_b = SAMPLES / "S01_pacient" / "S01_pacient.pdf"
-    pages_b = page_index.get("S01_pacient.pdf", {}).get("pages", [])
-    r2.append({"key": org_key(ORG_B, f"docs/{b_case}/S01_pacient.pdf"), "file": pdf_b, "content_type": "application/pdf"})
-    sql.append(insert("documents", {
-        "id": b_doc, "org_id": ORG_B, "case_id": b_case, "file_name": "S01_pacient.pdf", "page_count": len(pages_b),
-        "original_r2_key": org_key(ORG_B, f"docs/{b_case}/S01_pacient.pdf"), "sha256": sha256_file(pdf_b), "size_bytes": pdf_b.stat().st_size,
-        "origin": "seed", "processing": "processed", "note_cs": None,
-    }))
-    for k, d in enumerate(doc_parts["S01_pacient.pdf"][0]):
-        sql.append(insert("document_parts", {
-            "org_id": ORG_B, "document_id": b_doc, "ordinal": k, "title_cs": d["title_cs"], "type": d.get("type"), "date": d.get("date"),
-            "date_note_cs": d.get("date_note_cs"), "pages_json": d.get("pages") or [], "readability": d.get("readability"),
-            "reason_cs": d.get("reason_cs"), "upload_name": d.get("upload_name"),
-        }))
-    for pg in pages_b:
-        n = pg["n"]
-        folder = DERIVED / "pages" / "S01_pacient"
-        red = pg.get("redacted")
-        body = {"n": n, "size": pg["size"], "text": pg["text"], "engine": pg["engine"], "words": pg["words"],
-                "mean_conf": pg.get("mean_conf"), "low_conf_words": pg.get("low_conf_words"), "verify": pg.get("verify") or [],
-                "redacted": {"count": red["count"], "reasons": red["reasons"]} if red else None}
-        base = org_key(ORG_B, f"pages/{b_doc}/p{n}")
-        r2.append({"key": f"{base}.json", "body": jdump(body).encode(), "content_type": "application/json"})
-        r2.append({"key": f"{base}.png", "file": folder / f"p{n}.png", "content_type": "image/png"})
-        if red:
-            r2.append({"key": f"{base}.redacted.png", "file": folder / f"p{n}.redacted.png", "content_type": "image/png"})
-        sql.append(insert("pages", {
-            "org_id": ORG_B, "document_id": b_doc, "n": n, "json_r2_key": f"{base}.json", "image_r2_key": f"{base}.png",
-            "redacted_r2_key": f"{base}.redacted.png" if red else None,
-            "width": pg["size"][0], "height": pg["size"][1], "engine": pg["engine"], "mean_conf": pg.get("mean_conf"),
-            "low_conf_words": pg.get("low_conf_words"), "is_empty": bool(re.fullmatch(r"\s*\[prázdná stránka\]\s*", pg["text"])),
-            "verify_count": len(pg.get("verify") or []), "redaction_count": red["count"] if red else None,
-            "redaction_reasons_json": red["reasons"] if red else None,
-        }))
-        page_count_total += 1
-
     # 9 (before anything is written). Identity scan over every case-side JSON and every case row.
     pats = identity_patterns(patients)
     stored_json = {}
@@ -868,6 +803,16 @@ def main() -> None:
     suffix = [f"UPDATE demo_state SET reset_in_progress = 0, data_epoch = data_epoch + {1 if a.reset else 0}, seed_version = {lit(git)},"
               f" reset_at = {lit(now) if a.reset else 'reset_at'}, reset_by = {lit('seed.py') if a.reset else 'reset_by'};"]
     sql = sql + suffix
+    # Demo org B is the team's empty org (a user decision): its seed is its setup only, people and departments. A row of
+    # any other table, or an R2 object under its prefix, would put patient or case data back into it.
+    b_setup = {"users", "memberships", "departments", "dept_members"}
+    b_rows = sorted({t for t, r in ROWS if (r.get("org_id") or r.get("_org")) == ORG_B} - b_setup)
+    # Global prefixes (extract/, guidance/, prognosis/) are keyed by case ID, so an org B case ("B-...") counts as well.
+    b_prefix = ORGS[1]["case_id_prefix"]
+    b_rows += sorted({t for t, r in ROWS if str(r.get("case_id") or "").startswith(b_prefix)} - set(b_rows))
+    b_keys = [o["key"] for o in r2 if o["key"].startswith(org_key(ORG_B, "")) or f"/{b_prefix}" in o["key"]]
+    if b_rows or b_keys:
+        sys.exit(f"seed: demo org B must hold no patient or case data; found rows in {b_rows} and {len(b_keys)} R2 objects")
     # seed/reset.json: per demo org, the mutable tables' rows for reset-demo, grouped so the reset stays one small D1
     # batch, the seeded patients (kept) and the seeded memberships (restored; any other membership of the org ends).
     reset_doc = {"seed_version": git, "seeded_at": now, "tables": MUTABLE, "orgs": {
