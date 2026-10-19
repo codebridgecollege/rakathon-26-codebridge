@@ -17,7 +17,8 @@ import { buildFromAnswer, sha256Hex, type CallAnswer, type PageReading } from ".
 import { pageIdentity } from "../src/domain/extract/identity";
 import type { ModelAnswer } from "../src/domain/extract/schema";
 import type { CaseIdentity } from "../src/domain/pseudonymize";
-import { loadPrompt } from "../src/prompts";
+import { loadPrompt, type LoadedPrompt } from "../src/prompts";
+import { imageIdentity } from "../src/services/redaction";
 import { buildPayload } from "../src/services/model-payload";
 import { fetchWithRetry } from "../src/services/retry";
 
@@ -71,27 +72,34 @@ function tessWords(tsv: string) {
     .map((r) => ({ t: r[11]!.trim(), b: [7, 6, 8, 9].map((i) => Math.round(Number(r[i]) / 2)) as [number, number, number, number], c: Math.round(Number(r[10])) }));
 }
 
-// The reading the model gets: the stored vision transcription when there is one, else the PDF text layer when it
-// has text, else Tesseract. Phase 2's page reading replaces the stored transcriptions with read-page-cs output.
-function readPage(dir: string, n: number): Omit<PageReading, "identity"> {
+// The page tools of the container, run from pipeline/harness_tools.py: readability, redaction, reading comparison.
+function tool<T>(args: string[], input = ""): T {
+  const out = execFileSync("uv", ["run", "--quiet", "python", "harness_tools.py", ...args], { cwd: join(REPO, "pipeline"), encoding: "utf8", input, stdio: ["pipe", "pipe", "ignore"], maxBuffer: 64 * 1024 * 1024 });
+  return JSON.parse(out.trim().split("\n").pop()!) as T;
+}
+
+type PageInfo = { level: NonNullable<PageReading["readability"]>; disagreements: number; layer_chars: number };
+
+// The reading the extraction gets without the vision model: the PDF text layer when it has text, else Tesseract,
+// judged by the page's readability. (The stored p<n>.vision.md transcriptions of the development cases came from a
+// development sub-agent, with no prompt in the repository; they are used only with --stored-vision.)
+function readPage(dir: string, n: number, info: PageInfo | undefined, storedVision: boolean): Omit<PageReading, "identity"> {
   const f = (ext: string) => join(dir, `p${n}.${ext}`);
   const words = existsSync(f("tess.tsv")) ? tessWords(readFileSync(f("tess.tsv"), "utf8")) : null;
-  const base = { page: n, words, readability: null, verify: [] as [number, number][] };
-  if (existsSync(f("vision.md"))) return { ...base, text: readFileSync(f("vision.md"), "utf8"), quoteText: "vision", engine: "vision (stored transcription)" };
+  const base = { page: n, words, readability: info?.level ?? null, verify: [] as [number, number][] };
+  if (storedVision && existsSync(f("vision.md"))) {
+    const text = readFileSync(f("vision.md"), "utf8");
+    return { ...base, text, quoteText: "vision", engine: "vision (stored transcription)", verify: tool<{ verify: [number, number][] }>(["compare", dir, String(n)], text).verify };
+  }
   const layer = existsSync(f("layer.txt")) ? readFileSync(f("layer.txt"), "utf8") : "";
   if (layer.trim().length > 40) return { ...base, text: layer, quoteText: "pdf_text", engine: "pdf text layer" };
   return { ...base, text: readFileSync(f("tess.txt"), "utf8"), quoteText: "tesseract", engine: "tesseract (stored output)" };
 }
 
-// Each page's readability as the page reader judges it (pipeline/eval.py read_document, the container's /v1/analyze),
-// from the stored Tesseract output. It describes the scan, so it applies to the text layer and Tesseract readings; the
-// stored vision transcriptions are judged by phase 2's page reading instead.
-function readability(dir: string): Record<number, PageReading["readability"]> {
-  const code = "import json,sys; from pathlib import Path; from eval import read_document; " +
-    "d = read_document('x', Path(sys.argv[1])); print(json.dumps({p['n']: p['level'] for p in d['pages']}))";
-  const out = execFileSync("uv", ["run", "--quiet", "python", "-c", code, dir], { cwd: join(REPO, "pipeline"), encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] });
-  return JSON.parse(out.trim().split("\n").pop()!);
-}
+// Which pages the vision model reads: a page that is not judged good, whose text layer and Tesseract disagree on
+// several tokens, or that has no text layer (a scan). Agreement of two OCR readings does not prove them right (FNO's
+// text layers are OCR too), so "fair" pages are read as well.
+const needsVision = (info: PageInfo | undefined) => !info || info.level !== "good" || info.disagreements >= 3 || info.layer_chars < 40;
 
 async function main() {
   const args = process.argv.slice(2);
@@ -114,6 +122,13 @@ async function main() {
   // page by page 105 (docs/research/2026-10-19-extraction-eval.md). --whole sends the document in one call.
   const perPage = !args.includes("--whole");
   const prompt = await loadPrompt(PROMPT_ID);
+  const readPrompt = await loadPrompt("read-page-cs");
+  // --vision auto (default): pages that need it (needsVision); all: every page; off: none.
+  const vision = args.includes("--vision") ? args[args.indexOf("--vision") + 1]! : "auto";
+  if (!["auto", "all", "off"].includes(vision)) throw new Error("--vision takes auto, all or off");
+  // --stored-vision gives the committed p<n>.vision.md to the pages the vision model does not read live: with
+  // --vision off, to every page that has one.
+  const storedVision = args.includes("--stored-vision");
   const staff = seedStaff();
 
   for (const c of CASES.filter((c) => !only.length || only.includes(c.id))) {
@@ -124,24 +139,21 @@ async function main() {
     }
     const ns = readdirSync(dir).flatMap((f) => /^p(\d+)\.tess\.txt$/.exec(f)?.[1] ?? []).map(Number).sort((a, b) => a - b);
     const identity: CaseIdentity = { patientNames: c.patientNames, birthNumber: c.birthNumber, birthDate: null, staffNames: staff };
-    const levels = readability(dir);
-    const pages: PageReading[] = ns.map((n) => {
-      const r = readPage(dir, n);
-      return { ...r, readability: r.quoteText === "vision" ? null : (levels[n] ?? null), identity: pageIdentity(r.text, identity) };
-    });
-    // One call over the given pages. "filtered" when the provider's content filter refuses it; null on another failure.
-    const extract = async (idx: number[]): Promise<CallAnswer | "filtered" | null> => {
-      const { body, parts } = buildPayload({ prompt, text: idx.map((i) => ({ ref: pages[i]!.page, text: pages[i]!.text })), imagesBase64: [], identity, model, maxOutputTokens: MAX_OUTPUT_TOKENS, reasoningEffort: effort, maxInputChars: 200000, purpose: "extract_facts" });
+    const infos = tool<Record<string, PageInfo>>(["readability", dir]);
+    let seconds = 0;
+    // One model call, cached by prompt and payload. "filtered" when the content filter refuses it; null on a failure.
+    const ask = async (p: LoadedPrompt, text: { ref: number; text: string }[], images: string[], label: string) => {
+      const { body, parts } = buildPayload({ prompt: p, text, imagesBase64: images, identity, model, maxOutputTokens: MAX_OUTPUT_TOKENS, reasoningEffort: effort, maxInputChars: 200000, purpose: label });
       const payload = JSON.stringify(body);
       const inputSha = await sha256Hex(payload);
-      const cacheFile = join(cacheDir, `${prompt.ref}-${prompt.sha256.slice(0, 12)}-${inputSha}.json`);
+      const cacheFile = join(cacheDir, `${p.ref}-${p.sha256.slice(0, 12)}-${inputSha}.json`);
       let output: string;
       if (existsSync(cacheFile)) {
         const hit = JSON.parse(readFileSync(cacheFile, "utf8"));
-        if (hit.filtered) return "filtered";
+        if (hit.filtered) return "filtered" as const;
         output = hit.output;
       } else if (cacheOnly || !key) {
-        console.log(`${c.id} pages ${idx.map((i) => i + 1).join(",")}: no cached answer${key ? "" : " and no key"}`);
+        console.log(`${c.id} ${label}: no cached answer${key ? "" : " and no key"}`);
         return null;
       } else {
         const t0 = Date.now();
@@ -150,22 +162,56 @@ async function main() {
         const d = (await res.json().catch(() => null)) as { choices?: { message?: { content?: string }; finish_reason?: string }[]; usage?: unknown } | null;
         const choice = d?.choices?.[0];
         if (choice?.finish_reason === "content_filter") {
-          writeFileSync(cacheFile, JSON.stringify({ filtered: true, model, prompt: prompt.ref }));
-          return "filtered";
+          writeFileSync(cacheFile, JSON.stringify({ filtered: true, model, prompt: p.ref }));
+          return "filtered" as const;
         }
         if (!res.ok || !choice?.message?.content || choice.finish_reason !== "stop") {
-          console.log(`${c.id} pages ${idx.map((i) => i + 1).join(",")}: model answered ${res.status}, finish ${choice?.finish_reason ?? "-"}, attempts ${attempts}`);
+          console.log(`${c.id} ${label}: model answered ${res.status}, finish ${choice?.finish_reason ?? "-"}, attempts ${attempts}`);
           return null;
         }
         output = choice.message.content;
-        writeFileSync(cacheFile, JSON.stringify({ output, model, prompt: prompt.ref, usage: d?.usage ?? null }));
+        writeFileSync(cacheFile, JSON.stringify({ output, model, prompt: p.ref, usage: d?.usage ?? null }));
       }
-      return { pages: idx, parts: parts.map((x) => x.p), answer: JSON.parse(output) as ModelAnswer };
+      return { output, parts: parts.map((x) => x.p) };
+    };
+
+    // The page readings. A page that needs it is read by the vision model from its redacted image; its reading is
+    // compared with Tesseract's words, and every disagreement is an "ověřit" range that marks the facts quoting it.
+    const pages: PageReading[] = [];
+    let visionPages = 0;
+    const fellBack: string[] = [];
+    for (const n of ns) {
+      const info = infos[String(n)];
+      let r = readPage(dir, n, info, storedVision);
+      if (vision === "all" || (vision === "auto" && needsVision(info))) {
+        const red = tool<{ png_b64: string; reasons: string[] }>(["redact", dir, String(n)], JSON.stringify(imageIdentity(identity)));
+        const got = await ask(readPrompt, [], [red.png_b64], `read p${n}`);
+        if (!got || got === "filtered") fellBack.push(`p${n}:${got === "filtered" ? "content filter" : "no answer"}`);
+        if (got && got !== "filtered") {
+          const text = got.output;
+          let verify = tool<{ verify: [number, number][] }>(["compare", dir, String(n)], text).verify;
+          // The comparison marks what the vision reading reads differently, not what it leaves out. A reading much
+          // shorter than Tesseract's (a skipped line, a skipped column) is marked as a whole.
+          const words = (s: string) => s.split(/\s+/).filter((t) => /[\p{L}\d]/u.test(t)).length;
+          if (r.words && words(text) < 0.85 * r.words.length) verify = [[0, text.length]];
+          // The page's readability stays: it describes the scan, and a defect in the image itself reads cleanly.
+          r = { ...r, text, quoteText: "vision", engine: `vision ${model} ${readPrompt.ref}`, verify };
+          visionPages++;
+        }
+      }
+      // Whose page it is comes from the local, unredacted reading: the vision model saw the names blacked out.
+      const local = readPage(dir, n, info, false);
+      pages.push({ ...r, identity: pageIdentity(local.text, identity) });
+    }
+
+    const extract = async (idx: number[]): Promise<CallAnswer | "filtered" | null> => {
+      const got = await ask(prompt, idx.map((i) => ({ ref: pages[i]!.page, text: pages[i]!.text })), [], `pages ${idx.map((i) => i + 1).join(",")}`);
+      if (!got || got === "filtered") return got;
+      return { pages: idx, parts: got.parts, answer: JSON.parse(got.output) as ModelAnswer };
     };
 
     // Page by page (or, with --whole, the document in one call, falling back to pages when the content filter
     // refuses it); a page still refused is listed as not read.
-    let seconds = 0;
     const calls: CallAnswer[] = [];
     const unreadPages: number[] = [];
     const failed: string[] = [];
@@ -188,7 +234,16 @@ async function main() {
       schema: "codebridge.extraction/2",
       case_id: c.id,
       content_language: "cs",
-      run: { id: `run-ai-${c.id}`, producer: "pipeline", created_at: new Date().toISOString(), stages: [{ name: "extract_facts", model, prompt: prompt.ref, prompt_sha256: prompt.sha256, temperature: null }], supersedes: null },
+      run: {
+        id: `run-ai-${c.id}`,
+        producer: "pipeline",
+        created_at: new Date().toISOString(),
+        stages: [
+          ...(visionPages ? [{ name: "read_pages", model, prompt: readPrompt.ref, prompt_sha256: readPrompt.sha256, temperature: null }] : []),
+          { name: "extract_facts", model, prompt: prompt.ref, prompt_sha256: prompt.sha256, temperature: null },
+        ],
+        supersedes: null,
+      },
       documents: [{ document_id: c.documentId, sha256: null, parts: [] }],
       sources: built.sources,
       facts: built.facts,
@@ -200,7 +255,7 @@ async function main() {
     writeFileSync(join(out, `${c.id}.json`), JSON.stringify(run, null, 1));
     const ids = pages.map((p) => `p${p.page}:${p.identity}`).join(" ");
     const filtered = failed.length ? `, not read ${failed.join(" ")}` : "";
-    console.log(`${c.id}: ${fromModel} from the model in ${calls.length} call(s)${filtered}, kept ${built.report.kept} (verify ${built.report.verify}, quarantined ${built.report.quarantined}), dropped ${JSON.stringify(built.report.dropped)}, reasons ${JSON.stringify(built.report.reasons)}${seconds ? `, ${seconds.toFixed(1)} s` : ", cached"}; ${ids}`);
+    console.log(`${c.id}: ${visionPages} page(s) read by vision${fellBack.length ? ` (fell back: ${fellBack.join(" ")})` : ""}; ${fromModel} from the model in ${calls.length} call(s)${filtered}, kept ${built.report.kept} (verify ${built.report.verify}, quarantined ${built.report.quarantined}), dropped ${JSON.stringify(built.report.dropped)}, reasons ${JSON.stringify(built.report.reasons)}${seconds ? `, ${seconds.toFixed(1)} s` : ", cached"}; ${ids}`);
   }
 }
 

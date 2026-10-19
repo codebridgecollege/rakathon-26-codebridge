@@ -306,6 +306,40 @@ describe("checks found by review", () => {
   });
 });
 
+describe("one report against itself", () => {
+  it("marks metastases stated and denied for the same date, both ways", async () => {
+    const text = "CT 16.9.2026\nMetastatické postižení jater prokázáno.\nZávěr: bez známek vzdálených metastáz.";
+    const r = await build(
+      [
+        fact({ kind: "metastasis", quote: "Metastatické postižení jater prokázáno.", text: "metastázy jater", site: "játra", metastasis_status: "confirmed", date_as_written: "16.9.2026" }),
+        fact({ kind: "metastasis", quote: "Závěr: bez známek vzdálených metastáz.", text: "bez známek vzdálených metastáz", site: "vzdálené", metastasis_status: "excluded", negated: true, date_as_written: "16.9.2026" }),
+      ],
+      [page(1, text)],
+    );
+    expect(r.facts.map((f) => f.certainty_reason?.code)).toEqual(["contradicts_same_date", "contradicts_same_date"]);
+  });
+
+  it("does not take nodes for distant metastases or one organ for another, and sees an exclusion without the negated flag", async () => {
+    const text = "CT 16.9.2026\nMetastatické postižení mediastinálních uzlin.\nMetastázy jater prokázány.\nBez metastáz v plicích.\nZávěr: bez známek vzdálených metastáz.";
+    const at = (quote: string, o: Partial<ModelFact>) => fact({ kind: "metastasis", quote, date_as_written: "16.9.2026", ...o });
+    const nodes = await build([
+      at("Metastatické postižení mediastinálních uzlin.", { text: "metastázy uzlin", site: "mediastinální uzliny", metastasis_status: "confirmed" }),
+      at("Závěr: bez známek vzdálených metastáz.", { text: "bez známek vzdálených metastáz", site: "vzdálené", metastasis_status: "excluded", negated: true }),
+    ], [page(1, text)]);
+    expect(nodes.facts.map((f) => f.certainty)).toEqual(["clear", "clear"]);
+    const organs = await build([
+      at("Metastázy jater prokázány.", { text: "metastázy jater", site: "játra", metastasis_status: "confirmed" }),
+      at("Bez metastáz v plicích.", { text: "bez metastáz v plicích", site: "plíce", metastasis_status: "excluded", negated: true }),
+    ], [page(1, text)]);
+    expect(organs.facts.map((f) => f.certainty)).toEqual(["clear", "clear"]);
+    const flagless = await build([
+      at("Metastázy jater prokázány.", { text: "metastázy jater", site: "játra", metastasis_status: "confirmed" }),
+      at("Závěr: bez známek vzdálených metastáz.", { text: "bez známek vzdálených metastáz", site: "vzdálené", metastasis_status: "excluded", negated: false }),
+    ], [page(1, text)]);
+    expect(flagless.facts[0]!.certainty_reason?.code).toBe("contradicts_same_date");
+  });
+});
+
 describe("medication", () => {
   it("keeps a medication with its strength from the quote, and marks a strength the quote does not hold", async () => {
     const text = P1 + "\nBisoprolol 1,25 mg 1-0-0\nod 19.9.2026 Prednison zvyšuji na 10 mg 1-0-0";

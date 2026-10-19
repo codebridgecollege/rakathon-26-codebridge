@@ -129,6 +129,10 @@ export const pageReader = {
     pageReaderJson<{ pages: RawPage[] }>(env, instance, `/v1/pages?from=${from}&to=${to}`, pdf(b)),
   analyze: (env: Env, instance: string, pages: Omit<RawPage, "png_b64">[]) =>
     pageReaderJson<{ pages: { n: number; page: PageRecord; readability: Readability }[]; document: { level: Readability["level"]; reasons_cs: string[] } }>(env, instance, "/v1/analyze", json({ pages })),
+  // Where a vision reading disagrees with Tesseract's words (/v1/compare): the "ověřit" ranges of a page read by the
+  // vision model (issue #20).
+  compare: (env: Env, instance: string, pages: { n: number; text: string; words: Word[] }[]) =>
+    pageReaderJson<{ pages: { n: number; verify: VerifyItem[] }[] }>(env, instance, "/v1/compare", json({ pages })),
   // Black out direct identifiers on page images (pipeline/container/server.py, /v1/redact); see services/redaction.ts.
   redact: (env: Env, instance: string, body: RedactBody) =>
     pageReaderJson<{ pages: { n: number; png_b64: string; hits: RedactionHit[] }[] }>(env, instance, "/v1/redact", json(body)),

@@ -457,6 +457,29 @@ export async function buildFromAnswer(o: {
         d._doubts.push({ code: "undated", text: "Údaj nemá datum a dokumentace uvádí i datovaný údaj téže škály; ověřte, který je aktuální." });
     }
   }
+  // Within one report: metastases stated and denied for the same date ("Metastatické postižení jater prokázáno" next to
+  // "bez známek vzdálených metastáz" in the conclusion of the same CT). Like with like (same kind, same time), so both
+  // are marked; which one holds is the doctor's reading of the source. On S03 the first is a misread the image itself
+  // carries, which no reading can catch.
+  for (const d of drafts) {
+    if (d.kind !== "metastasis" || d.quarantined || d.negated || d.value.status === "excluded" || !d.date.sort) continue;
+    // A positive metastasis without a date is not compared: "the same time" cannot be told.
+    const site = fold(d.value.site).trim();
+    // Regional nodes are not distant metastases: "metastatické postižení uzlin" and "bez vzdálených metastáz" is N1 M0.
+    const regional = /uzl|lymf/.test(site);
+    const denied = drafts.filter((x) => {
+      if (x === d || x.quarantined || x.date.sort !== d.date.sort || (x.kind !== "metastasis" && x.kind !== "imaging")) return false;
+      if (!(x.negated || (x.kind === "metastasis" && x.value.status === "excluded"))) return false;
+      const said = fold(valueText(x.value));
+      if (!/metast/.test(said)) return false;
+      const distant = /vzdalen|vsech|zadn/.test(said);
+      return (distant && !regional) || (site.length >= 4 && said.includes(site.slice(0, 4)));
+    });
+    if (!denied.length) continue;
+    const doubt = { code: "contradicts_same_date", text: "Tentýž den dokumentace metastázy jednou uvádí a jednou vylučuje; ověřte ve zdroji." };
+    d._doubts.push(doubt);
+    for (const x of denied) x._doubts.push(doubt);
+  }
   for (const d of drafts) {
     for (const x of d._doubts) report.reasons[x.code] = (report.reasons[x.code] ?? 0) + 1;
     if (d._doubts.length) Object.assign(d, { certainty: "verify", certainty_reason: { code: d._doubts[0]!.code, text: d._doubts.map((x) => x.text).join(" ") } });

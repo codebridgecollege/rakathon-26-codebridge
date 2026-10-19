@@ -122,6 +122,14 @@ def find(lines: list[list[dict]], names, staff=frozenset(),
                 reason = "jméno lékaře"
             elif i > 0 and fold(line[i - 1]["t"]) in TITLES:
                 reason = "jméno lékaře"
+            elif (i > 1 and fold(line[i - 2]["t"]) in TITLES and near and w["t"][:1].isupper()
+                  and (hits and hits[-1]["reason"] == "jméno lékaře")):
+                # "MUDr. Jana Brabcová": the surname after a first name, as the text pseudonymization takes two words.
+                reason = "jméno lékaře"
+            elif (i > 0 and TITLE_GLUED.match(fold(line[i - 1]["t"])) and near and w["t"][:1].isupper()
+                  and (hits and hits[-1]["reason"] == "jméno lékaře")):
+                # "MUDr.Jana Brabcová", the title glued to the first name.
+                reason = "jméno lékaře"
             elif after_label > 0 and near and not f.endswith(":"):
                 reason = "hodnota identifikačního pole"
             after_label = after_label - 1 if near else 0

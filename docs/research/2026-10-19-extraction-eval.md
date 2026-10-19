@@ -145,6 +145,65 @@ Open from the medication audit: medication facts without a start date from two v
 field (the format's medication value has none); the format document models everolimus as a medication while the
 prompt sends anticancer drugs to `systemic_therapy`. These are format questions for stream A.
 
+## Page reading with the vision model
+
+A correction first. Until this slice, the harness gave the extraction the stored `p<n>.vision.md` wherever one
+existed. For S01, S02 and S04 that file is the Markdown we wrote the sample from (scripts/render_samples.py), and for
+case 10 a transcription a development sub-agent made with no prompt in the repository. So the measurements above for
+those cases measure the extraction on an ideal reading, not the reading the pipeline would have. Now the harness gives
+the extraction the PDF text layer, or Tesseract when there is none, and the stored files only with `--stored-vision`.
+
+The vision reading (prompt `read-page-cs@1`) reads a page from its image after redaction (the redaction of
+`/v1/redact`, run locally by `pipeline/harness_tools.py`: the case's names, birth number and birth date, the org's
+staff names, up to two words after a title, signatures and stamps blacked out; the review found that only the first
+word after "MUDr." was blacked out, so doctors' surnames reached the model in the first runs, which is fixed). Its text
+is compared with Tesseract's words (`/v1/compare`, the page index's disagreement rules): a word the two read
+differently is an "ověřit" range, and a fact whose quote overlaps one is marked (`ocr_check`). The comparison does not
+mark what the vision reading leaves out; a reading with fewer than 85 % of Tesseract's word count is therefore marked
+as a whole. The pages it reads (`--vision auto`): every
+page not judged "good", whose readings disagree on three or more tokens, or with no text layer. Two rules came from the
+first S03 run:
+
+- **The page's readability stays when the vision model reads it.** The planted D2 misread ("prokázáno" for
+  "neprokázáno") is in the scan's image itself; the vision model read it as cleanly as the rest, and both readings
+  agreed. With readability dropped for vision pages, the liver metastasis came out clear: a clear-but-wrong fact.
+- **Whose page it is comes from the local, unredacted reading.** The vision model sees the names blacked out, so its
+  text cannot say whose page it is.
+
+And one rule in the checks: metastases stated and denied for the same date (the misread sentence and the same CT's
+conclusion "bez známek vzdálených metastáz") are both marked (`contradicts_same_date`), a like-with-like contradiction
+within one report.
+
+Same prompt (v7), same cases, with and without the vision reading (pass / fail / not run):
+
+| Failure kind | vision off | vision auto |
+|---|---|---|
+| critical fact left out | 7 / 0 / 0 | 7 / 0 / 0 |
+| wrong date | 4 / 0 / 0 | 4 / 0 / 0 |
+| negation read as positive | 7 / 1 / 0 | 8 / 0 / 0 |
+| patients mixed up | 7 / 0 / 1 | 7 / 0 / 1 |
+| report missing | 1 / 0 / 5 | 1 / 0 / 5 |
+| request without result | 7 / 0 / 0 | 7 / 0 / 0 |
+| poor scan | 16 / 0 / 0 (+1 known) | 16 / 0 / 0 (+1 known) |
+
+Pages read by vision (`--stored-vision` gives the committed `p<n>.vision.md` only to pages the vision model does not
+read live, so to every page with `--vision off`): case 10 5 of 5, S01 5 of 7, S02 7 of 8, S03 3 of 3, S04 1 of 5. Facts (clear / verify), off
+and auto: case 10 78/50 and 90/48, S01 66/13 and 58/16, S02 53/16 and 45/23, S03 7/33 and 7/35, S04 37/6 and 35/13.
+
+S03's planted misreads:
+
+| Defect | Without vision | With vision |
+|---|---|---|
+| D1 bisoprolol 1,25 mg (OCR 4,25) | fact "4,25 mg", verify (poor page) | first run "1,25 mg", the right value; second run (new redacted image) "2,5 mg", a new misread; verify both times (poor page; the readings disagree there) |
+| D2 liver metastases "neprokázáno" (image shows "prokázáno") | a verify imaging fact, no metastasis fact (the failure above) | a metastasis fact "prokázáno", verify (`contradicts_same_date`) |
+| D3, D4 draw date, D5 potassium | lab parser, unchanged | unchanged |
+
+In no run did a planted misread become a clear fact. The vision reading read D1 right once and wrong once (a
+different wrong value), and could not fix D2, which the image itself carries and only the report's own conclusion
+contradicts. So on a poor scan the vision reading does not make a value trustworthy; the page's readability mark and
+the disagreement marks do the work. The second run (after the review's fixes) gave the same pass / fail table as the
+first.
+
 ## Open
 
 - Medication extraction (the S03 bisoprolol dose misread needs it).
