@@ -53,6 +53,26 @@ export async function currentRun(db: D1Database, docs: R2Bucket, org: string, ca
   return { row, data: await obj.json<ExtractionRun>() };
 }
 
+/**
+ * The run as the case view receives it: the stored run minus its quarantined content. A quarantined fact rests on a
+ * page that shows another patient, so neither the fact nor a source that only it cites may reach the browser
+ * (CLAUDE.md: expose as little as possible). Its ID also leaves every alert's `facts`; the identity alert itself stays,
+ * and its message arguments name the document and page. The result is therefore not a whole run for validateRun.
+ */
+export function withoutQuarantined(run: ExtractionRun): ExtractionRun {
+  const gone = new Set(run.facts.filter((f) => f.quarantined).map((f) => f.id));
+  if (!gone.size) return run;
+  const facts = run.facts.filter((f) => !gone.has(f.id));
+  const kept = new Set(facts.flatMap((f) => f.sources));
+  const onlyQuarantined = new Set(run.facts.filter((f) => gone.has(f.id)).flatMap((f) => f.sources).filter((s) => !kept.has(s)));
+  return {
+    ...run,
+    facts,
+    sources: run.sources.filter((s) => !onlyQuarantined.has(s.id)),
+    alerts: run.alerts.map((a) => ({ ...a, facts: a.facts.filter((id) => !gone.has(id)) })),
+  };
+}
+
 /** What the matcher needs from D1 for a new run of a case (match.ts assignFactIds). */
 export type MatchInputs = {
   caseId: string;

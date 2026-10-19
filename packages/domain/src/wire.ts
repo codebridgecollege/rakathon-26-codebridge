@@ -196,7 +196,9 @@ export type Workflow = {
 
 // GET /cases/:id/extraction: the case's current run in codebridge.extraction/2 (docs/design/EXTRACTION-FORMAT.md),
 // which holds no patient identity. run and data are null for a case without a run; data alone is null when the current
-// run is still in the old format /1 (the case shows as not processed until it is reseeded or processed again).
+// run is still in the old format /1 (the case shows as not processed until it is reseeded or processed again). data is
+// the run minus its quarantined facts, the sources only they cite, and their IDs in alerts (EXTRACTION-FORMAT.md, "How
+// the case view uses it"), so it is not a whole run for validateRun.
 export type ExtractionRunInfo = { id: string; producer: Producer; created_at: string };
 export type Extraction = { case_id: string; processing: string; run: ExtractionRunInfo | null; data: ExtractionRun | null };
 

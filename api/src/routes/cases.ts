@@ -7,6 +7,7 @@ import { identitySource, patientRow } from "../domain/rows";
 import { modeOf, openCase } from "./access-check";
 import { EXTRACTION_SCHEMA, type ExtractionRun, type Producer } from "@codebridge/domain/extraction/index";
 import type { Extraction } from "@codebridge/domain/wire";
+import { withoutQuarantined } from "../store/runs";
 
 const EMPTY_GUIDANCE = { guidelines: [], statements: [], pages: [], literature: [], queries: [], not_retrieved: [], prior_assessments: {} };
 
@@ -72,10 +73,12 @@ export const cases = new Hono<AppEnv>()
     // A run in the old format /1 has no fact or alert IDs to attach confirmations to; the case shows as not processed
     // until it is reseeded or processed again.
     if (run.schema !== EXTRACTION_SCHEMA) return c.json<Extraction>({ case_id: id, processing: row.processing_level, run: info, data: null });
-    // The run holds no patient identity (EXTRACTION-FORMAT.md); it goes out as stored. Its alerts are part of it.
-    const data = await c.var.stores.blobs.getJson<ExtractionRun>(run.r2_key);
-    if (!data) throw E.dataUnavailable();
-    return c.json<Extraction>({ case_id: id, processing: row.processing_level, run: info, data });
+    // The run holds no patient identity (EXTRACTION-FORMAT.md). It goes out minus its quarantined content: a fact from a
+    // page that shows another patient, and a source only such facts cite, never reach the browser; the identity alert
+    // stays and names document and page. So the payload is not a whole run for validateRun. Its alerts are part of it.
+    const stored = await c.var.stores.blobs.getJson<ExtractionRun>(run.r2_key);
+    if (!stored) throw E.dataUnavailable();
+    return c.json<Extraction>({ case_id: id, processing: row.processing_level, run: info, data: withoutQuarantined(stored) });
   })
   .get("/cases/:id/decisions", async (c) => {
     const id = c.req.param("id");

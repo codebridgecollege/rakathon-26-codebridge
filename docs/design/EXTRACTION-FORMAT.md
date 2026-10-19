@@ -424,6 +424,12 @@ confirmation is stored in D1 (`question_confirmations`), as today.
 
 ## How the case view uses it
 
+The view receives the current run through `GET /cases/:id/extraction`, minus its quarantined content: the server
+removes every quarantined fact, every source that only quarantined facts cite, and the quarantined fact IDs from the
+alerts' `facts` (`withoutQuarantined` in `api/src/store/runs.ts`). A page that shows another patient never reaches the
+browser through the run; the identity alert stays and its message names the document and page. The payload is
+therefore not a whole run and need not pass `validateRun`; the stored run does.
+
 | View part | Computed from |
 |---|---|
 | Diagnosis headline | `diagnosis` + `histology` + `stage` facts, the stage shown with its kind and date ("pT2a pN1 M0, patologické stadium při diagnóze, 2.6.2022") |

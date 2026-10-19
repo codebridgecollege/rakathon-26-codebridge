@@ -2,7 +2,8 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { call, testEnv } from "./helpers";
 import { env } from "cloudflare:workers";
 import type { Extraction } from "@codebridge/domain/wire";
-import { accessLog, as, FAKE_NAME, loadFixture, NAME_QUOTE, RUN_A2, RUN_A2_ID } from "./data";
+import { alertId, assignKeys, validateRun, type ExtractionRun, type Fact } from "@codebridge/domain/extraction/index";
+import { accessLog, as, FAKE_NAME, loadFixture, NAME_QUOTE, RUN_A2, RUN_A2_ID, RUN_A2_KEY } from "./data";
 import { setStoreFactory } from "../src/store";
 import { D1Audit, D1Cases, D1Directory } from "../src/store/d1";
 import { R2Blobs } from "../src/store/r2";
@@ -166,6 +167,27 @@ describe("case reads", () => {
     expect(Object.keys(body.run!).sort()).toEqual(["created_at", "id", "producer"]);
     expect(JSON.stringify(body)).not.toContain(FAKE_NAME);
     expect((await accessLog()).map((l) => l.action)).toEqual(["case.data"]);
+  });
+
+  it("leaves out a quarantined fact and the source only it cites; the identity alert stays, naming document and page", async () => {
+    const other = { id: "src-other", type: "document" as const, document_id: "A_pacient", part: "A_pacient/p0", page: 2, quote: "Jiný Pacient, bolest hlavy",
+      quote_text: "vision" as const, anchor: null, reported_as: "original" as const, identity: "conflicts" as const, reading_check: null };
+    const draft = { kind: "symptom" as const, subject: "patient" as const, value: { text: "bolest hlavy" }, date: { as_written: null, precision: null, sort: null },
+      status: "documented" as const, negated: false, not_stated: [], origin: "document" as const, certainty: "clear" as const, codes: [], note: null,
+      quarantined: true, sources: ["src-other"] };
+    const [q] = assignKeys([draft], [...RUN_A2.sources, other]);
+    const fact = { ...q!, id: "f-0000a1a1" } as Fact;
+    const alert = { rule: "identity_conflict", subject: "A_pacient|2", kind: "identity" as const, facts: [fact.id], message: { id: "alert-identity-conflict", args: { document: "A_pacient", page: 2 } }, note: null };
+    const run: ExtractionRun = { ...RUN_A2, sources: [...RUN_A2.sources, other], facts: [...RUN_A2.facts, fact], alerts: [...RUN_A2.alerts, { ...alert, id: alertId(alert) }] };
+    expect(validateRun(run).issues).toEqual([]);
+    await env.DOCS.put(RUN_A2_KEY, JSON.stringify(run));
+    const body = await (await call("/api/cases/NO-A/extraction")).json<Extraction>();
+    const text = JSON.stringify(body);
+    expect(text).not.toContain("Jiný Pacient");
+    expect(text).not.toContain("src-other");
+    expect(body.data!.facts.map((f) => f.id)).toEqual(RUN_A2.facts.map((f) => f.id));
+    expect(body.data!.sources).toEqual(RUN_A2.sources);
+    expect(body.data!.alerts.find((a) => a.kind === "identity")).toMatchObject({ id: alertId(alert), facts: [], message: { args: { document: "A_pacient", page: 2 } } });
   });
 
   it("serves a current run in the old format /1 as not processed: run named, data null", async () => {
