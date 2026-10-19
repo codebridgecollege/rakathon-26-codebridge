@@ -54,6 +54,11 @@ const facts: DraftFact[] = [
   { ...frame, kind: "comorbidity", date: undated, codes: [{ system: "mkn-10", code: "I10", assigned_by: "source" }], value: { text: "Hypertenze" } },
   { ...frame, kind: "comorbidity", date: undated, value: { text: "  CHOPN   II. st.  " } },
   { ...frame, kind: "medication", date: day("19.9.2026", "2026-09-19"), value: { drug: "Afinitor", strength: "10 mg", dosing: "1-0-0", change: "navýšení", indication: null, text: null } },
+  // Undated list entries: the document part tells two visits' lists apart (a part-less source falls back to its document).
+  { ...frame, kind: "medication", date: undated, value: { drug: "Spiriva", strength: null, dosing: "1-0-1", change: null, indication: null, text: null } },
+  { ...frame, kind: "medication", date: undated, sources: ["src-b"], value: { drug: "Spiriva", strength: null, dosing: "2-0-0", change: null, indication: null, text: null } },
+  { ...frame, kind: "medication", date: undated, sources: ["src-n", "src-a"], value: { drug: "Spiriva", strength: null, dosing: null, change: null, indication: null, text: null } },
+  { ...frame, kind: "medication", status: "stopped", date: { as_written: "28.4.2023", precision: "day", sort: "2023-04-28" }, value: { drug: "Prednison", strength: "1 mg/kg/den", dosing: null, change: null, indication: null, text: null, stop_as_written: "ukončen 26.7.2023" } },
   { ...frame, kind: "contraindication", date: undated, value: { what: "ACE inhibitor s everolimem", stated_by: "assistant" } },
   { ...frame, kind: "allergy", date: undated, value: { substance: "Penicilin", reaction: null } },
   { ...frame, kind: "adverse_event", date: undated, value: { text: "Stomatitida G2", grade: "2", related_therapy: "everolimus" } },

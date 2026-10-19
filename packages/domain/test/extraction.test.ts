@@ -103,7 +103,7 @@ describe("fact keys", () => {
     }) as DraftFact;
     const a = buildFactKey(med({ as_written: null, precision: null, sort: null }, "5 mg"), src);
     const b = buildFactKey(med({ as_written: "19.9.2026", precision: "day", sort: "2026-09-19" }, "10 mg"), src);
-    expect(a).toBe("medication|afinitor|start:undated");
+    expect(a).toBe("medication|afinitor|start:undated|part:10_pacient/p2");
     expect(b).toBe("medication|afinitor|start:2026-09-19");
   });
   it("two draws of one test on one day without a time get a suffix by content, never by position", () => {

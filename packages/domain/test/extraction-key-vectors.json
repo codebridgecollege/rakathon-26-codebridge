@@ -1138,6 +1138,50 @@
        ]
       }
      ]
+    },
+    "views": {
+     "onco_lines": [
+      {
+       "id": "vl-14d38b72",
+       "text": "pT2a pN1 M0, patologické stadium při diagnóze 2.6.2022",
+       "title": null,
+       "detail": null,
+       "date": {
+        "as_written": "2.6.2022",
+        "precision": "day",
+        "sort": "2022-06-02"
+       },
+       "category": "pathology",
+       "status": "documented",
+       "facts": [
+        "f-0b19e4"
+       ],
+       "note": null
+      }
+     ],
+     "timeline": [
+      {
+       "id": "vl-d47e2447",
+       "text": "nález MR mozku zadán k projednání",
+       "title": "Neurochirurgický seminář",
+       "detail": "Ošetřující lékař zadal nález MR mozku k projednání na neurochirurgickém semináři.",
+       "date": {
+        "as_written": null,
+        "precision": null,
+        "sort": null
+       },
+       "category": "mdt",
+       "status": "requested",
+       "facts": [
+        "f-3c90de"
+       ],
+       "note": "Termín v dokumentaci neuveden."
+      }
+     ],
+     "made_by": {
+      "model": null,
+      "prompt": null
+     }
     }
    },
    "drafts": [
@@ -1912,6 +1956,50 @@
        ]
       }
      ]
+    },
+    "views": {
+     "onco_lines": [
+      {
+       "id": "vl-14d38b72",
+       "text": "pT2a pN1 M0, patologické stadium při diagnóze 2.6.2022",
+       "title": null,
+       "detail": null,
+       "date": {
+        "as_written": "2.6.2022",
+        "precision": "day",
+        "sort": "2022-06-02"
+       },
+       "category": "pathology",
+       "status": "documented",
+       "facts": [
+        "f-0b19e4"
+       ],
+       "note": null
+      }
+     ],
+     "timeline": [
+      {
+       "id": "vl-d47e2447",
+       "text": "nález MR mozku zadán k projednání",
+       "title": "Neurochirurgický seminář",
+       "detail": "Ošetřující lékař zadal nález MR mozku k projednání na neurochirurgickém semináři.",
+       "date": {
+        "as_written": null,
+        "precision": null,
+        "sort": null
+       },
+       "category": "mdt",
+       "status": "requested",
+       "facts": [
+        "f-3c90de"
+       ],
+       "note": "Termín v dokumentaci neuveden."
+      }
+     ],
+     "made_by": {
+      "model": null,
+      "prompt": null
+     }
     }
    },
    "drafts": [
@@ -2686,6 +2774,50 @@
        ]
       }
      ]
+    },
+    "views": {
+     "onco_lines": [
+      {
+       "id": "vl-14d38b72",
+       "text": "pT2a pN1 M0, patologické stadium při diagnóze 2.6.2022",
+       "title": null,
+       "detail": null,
+       "date": {
+        "as_written": "2.6.2022",
+        "precision": "day",
+        "sort": "2022-06-02"
+       },
+       "category": "pathology",
+       "status": "documented",
+       "facts": [
+        "f-0b19e4"
+       ],
+       "note": null
+      }
+     ],
+     "timeline": [
+      {
+       "id": "vl-d47e2447",
+       "text": "nález MR mozku zadán k projednání",
+       "title": "Neurochirurgický seminář",
+       "detail": "Ošetřující lékař zadal nález MR mozku k projednání na neurochirurgickém semináři.",
+       "date": {
+        "as_written": null,
+        "precision": null,
+        "sort": null
+       },
+       "category": "mdt",
+       "status": "requested",
+       "facts": [
+        "f-3c90de"
+       ],
+       "note": "Termín v dokumentaci neuveden."
+      }
+     ],
+     "made_by": {
+      "model": null,
+      "prompt": null
+     }
     }
    },
    "drafts": [
@@ -3462,6 +3594,50 @@
        ]
       }
      ]
+    },
+    "views": {
+     "onco_lines": [
+      {
+       "id": "vl-14d38b72",
+       "text": "pT2a pN1 M0, patologické stadium při diagnóze 2.6.2022",
+       "title": null,
+       "detail": null,
+       "date": {
+        "as_written": "2.6.2022",
+        "precision": "day",
+        "sort": "2022-06-02"
+       },
+       "category": "pathology",
+       "status": "documented",
+       "facts": [
+        "f-0b19e4"
+       ],
+       "note": null
+      }
+     ],
+     "timeline": [
+      {
+       "id": "vl-d47e2447",
+       "text": "nález MR mozku zadán k projednání",
+       "title": "Neurochirurgický seminář",
+       "detail": "Ošetřující lékař zadal nález MR mozku k projednání na neurochirurgickém semináři.",
+       "date": {
+        "as_written": null,
+        "precision": null,
+        "sort": null
+       },
+       "category": "mdt",
+       "status": "requested",
+       "facts": [
+        "f-3c90de"
+       ],
+       "note": "Termín v dokumentaci neuveden."
+      }
+     ],
+     "made_by": {
+      "model": null,
+      "prompt": null
+     }
     }
    },
    "drafts": [
@@ -4209,6 +4385,50 @@
        ]
       }
      ]
+    },
+    "views": {
+     "onco_lines": [
+      {
+       "id": "vl-14d38b72",
+       "text": "pT2a pN1 M0, patologické stadium při diagnóze 2.6.2022",
+       "title": null,
+       "detail": null,
+       "date": {
+        "as_written": "2.6.2022",
+        "precision": "day",
+        "sort": "2022-06-02"
+       },
+       "category": "pathology",
+       "status": "documented",
+       "facts": [
+        "f-0b19e4"
+       ],
+       "note": null
+      }
+     ],
+     "timeline": [
+      {
+       "id": "vl-d47e2447",
+       "text": "nález MR mozku zadán k projednání",
+       "title": "Neurochirurgický seminář",
+       "detail": "Ošetřující lékař zadal nález MR mozku k projednání na neurochirurgickém semináři.",
+       "date": {
+        "as_written": null,
+        "precision": null,
+        "sort": null
+       },
+       "category": "mdt",
+       "status": "requested",
+       "facts": [
+        "f-3c90de"
+       ],
+       "note": "Termín v dokumentaci neuveden."
+      }
+     ],
+     "made_by": {
+      "model": null,
+      "prompt": null
+     }
     }
    },
    "drafts": [
@@ -5340,6 +5560,50 @@
        ]
       }
      ]
+    },
+    "views": {
+     "onco_lines": [
+      {
+       "id": "vl-14d38b72",
+       "text": "pT2a pN1 M0, patologické stadium při diagnóze 2.6.2022",
+       "title": null,
+       "detail": null,
+       "date": {
+        "as_written": "2.6.2022",
+        "precision": "day",
+        "sort": "2022-06-02"
+       },
+       "category": "pathology",
+       "status": "documented",
+       "facts": [
+        "f-0b19e4"
+       ],
+       "note": null
+      }
+     ],
+     "timeline": [
+      {
+       "id": "vl-d47e2447",
+       "text": "nález MR mozku zadán k projednání",
+       "title": "Neurochirurgický seminář",
+       "detail": "Ošetřující lékař zadal nález MR mozku k projednání na neurochirurgickém semináři.",
+       "date": {
+        "as_written": null,
+        "precision": null,
+        "sort": null
+       },
+       "category": "mdt",
+       "status": "requested",
+       "facts": [
+        "f-3c90de"
+       ],
+       "note": "Termín v dokumentaci neuveden."
+      }
+     ],
+     "made_by": {
+      "model": null,
+      "prompt": null
+     }
     }
    },
    "drafts": [
@@ -7304,6 +7568,308 @@
     }
    ],
    "key": "medication|afinitor|start:2026-09-19"
+  },
+  {
+   "fact": {
+    "subject": "patient",
+    "status": "documented",
+    "negated": false,
+    "not_stated": [],
+    "origin": "document",
+    "certainty": "clear",
+    "codes": [],
+    "note": null,
+    "quarantined": false,
+    "sources": [
+     "src-a"
+    ],
+    "kind": "medication",
+    "date": {
+     "as_written": null,
+     "precision": null,
+     "sort": null
+    },
+    "value": {
+     "drug": "Spiriva",
+     "strength": null,
+     "dosing": "1-0-1",
+     "change": null,
+     "indication": null,
+     "text": null
+    }
+   },
+   "sources": [
+    {
+     "id": "src-a",
+     "type": "document",
+     "document_id": "10_pacient",
+     "part": "10_pacient/p2",
+     "page": 3,
+     "quote": "S_HSCRP: 9,5 mg/1 [O ... 5]",
+     "quote_text": "tesseract",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
+     "id": "src-b",
+     "type": "document",
+     "document_id": "10_lab",
+     "part": null,
+     "page": 1,
+     "quote": "Kreatinin 107",
+     "quote_text": "pdf_text",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
+     "id": "src-n",
+     "type": "nis",
+     "system": "https://nis.fno.example/fhir",
+     "resource": "Observation/8812",
+     "version": "3",
+     "last_updated": null
+    },
+    {
+     "id": "src-e",
+     "type": "nis",
+     "system": "https://nis.fno.example/fhir",
+     "resource": "Encounter/301",
+     "version": "1",
+     "last_updated": null
+    }
+   ],
+   "key": "medication|spiriva|start:undated|part:10_pacient/p2"
+  },
+  {
+   "fact": {
+    "subject": "patient",
+    "status": "documented",
+    "negated": false,
+    "not_stated": [],
+    "origin": "document",
+    "certainty": "clear",
+    "codes": [],
+    "note": null,
+    "quarantined": false,
+    "sources": [
+     "src-b"
+    ],
+    "kind": "medication",
+    "date": {
+     "as_written": null,
+     "precision": null,
+     "sort": null
+    },
+    "value": {
+     "drug": "Spiriva",
+     "strength": null,
+     "dosing": "2-0-0",
+     "change": null,
+     "indication": null,
+     "text": null
+    }
+   },
+   "sources": [
+    {
+     "id": "src-a",
+     "type": "document",
+     "document_id": "10_pacient",
+     "part": "10_pacient/p2",
+     "page": 3,
+     "quote": "S_HSCRP: 9,5 mg/1 [O ... 5]",
+     "quote_text": "tesseract",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
+     "id": "src-b",
+     "type": "document",
+     "document_id": "10_lab",
+     "part": null,
+     "page": 1,
+     "quote": "Kreatinin 107",
+     "quote_text": "pdf_text",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
+     "id": "src-n",
+     "type": "nis",
+     "system": "https://nis.fno.example/fhir",
+     "resource": "Observation/8812",
+     "version": "3",
+     "last_updated": null
+    },
+    {
+     "id": "src-e",
+     "type": "nis",
+     "system": "https://nis.fno.example/fhir",
+     "resource": "Encounter/301",
+     "version": "1",
+     "last_updated": null
+    }
+   ],
+   "key": "medication|spiriva|start:undated|part:10_lab"
+  },
+  {
+   "fact": {
+    "subject": "patient",
+    "status": "documented",
+    "negated": false,
+    "not_stated": [],
+    "origin": "document",
+    "certainty": "clear",
+    "codes": [],
+    "note": null,
+    "quarantined": false,
+    "sources": [
+     "src-n",
+     "src-a"
+    ],
+    "kind": "medication",
+    "date": {
+     "as_written": null,
+     "precision": null,
+     "sort": null
+    },
+    "value": {
+     "drug": "Spiriva",
+     "strength": null,
+     "dosing": null,
+     "change": null,
+     "indication": null,
+     "text": null
+    }
+   },
+   "sources": [
+    {
+     "id": "src-a",
+     "type": "document",
+     "document_id": "10_pacient",
+     "part": "10_pacient/p2",
+     "page": 3,
+     "quote": "S_HSCRP: 9,5 mg/1 [O ... 5]",
+     "quote_text": "tesseract",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
+     "id": "src-b",
+     "type": "document",
+     "document_id": "10_lab",
+     "part": null,
+     "page": 1,
+     "quote": "Kreatinin 107",
+     "quote_text": "pdf_text",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
+     "id": "src-n",
+     "type": "nis",
+     "system": "https://nis.fno.example/fhir",
+     "resource": "Observation/8812",
+     "version": "3",
+     "last_updated": null
+    },
+    {
+     "id": "src-e",
+     "type": "nis",
+     "system": "https://nis.fno.example/fhir",
+     "resource": "Encounter/301",
+     "version": "1",
+     "last_updated": null
+    }
+   ],
+   "key": "medication|spiriva|start:undated|nis:Observation/8812+part:10_pacient/p2"
+  },
+  {
+   "fact": {
+    "subject": "patient",
+    "status": "stopped",
+    "negated": false,
+    "not_stated": [],
+    "origin": "document",
+    "certainty": "clear",
+    "codes": [],
+    "note": null,
+    "quarantined": false,
+    "sources": [
+     "src-a"
+    ],
+    "kind": "medication",
+    "date": {
+     "as_written": "28.4.2023",
+     "precision": "day",
+     "sort": "2023-04-28"
+    },
+    "value": {
+     "drug": "Prednison",
+     "strength": "1 mg/kg/den",
+     "dosing": null,
+     "change": null,
+     "indication": null,
+     "text": null,
+     "stop_as_written": "ukončen 26.7.2023"
+    }
+   },
+   "sources": [
+    {
+     "id": "src-a",
+     "type": "document",
+     "document_id": "10_pacient",
+     "part": "10_pacient/p2",
+     "page": 3,
+     "quote": "S_HSCRP: 9,5 mg/1 [O ... 5]",
+     "quote_text": "tesseract",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
+     "id": "src-b",
+     "type": "document",
+     "document_id": "10_lab",
+     "part": null,
+     "page": 1,
+     "quote": "Kreatinin 107",
+     "quote_text": "pdf_text",
+     "anchor": null,
+     "reported_as": "original",
+     "identity": "matches",
+     "reading_check": null
+    },
+    {
+     "id": "src-n",
+     "type": "nis",
+     "system": "https://nis.fno.example/fhir",
+     "resource": "Observation/8812",
+     "version": "3",
+     "last_updated": null
+    },
+    {
+     "id": "src-e",
+     "type": "nis",
+     "system": "https://nis.fno.example/fhir",
+     "resource": "Encounter/301",
+     "version": "1",
+     "last_updated": null
+    }
+   ],
+   "key": "medication|prednison|start:2023-04-28"
   },
   {
    "fact": {

@@ -339,6 +339,12 @@ export interface MedicationValue {
   change: string | null;
   indication: string | null;
   text: string | null;
+  /**
+   * When the drug was stopped, as written ("ukončen 26.7.2023", "do 5/2024"); null or absent when the document states
+   * no end. A fact whose drug the document says was stopped has `status: "stopped"`. Optional, so runs written before
+   * the field existed stay valid.
+   */
+  stop_as_written?: string | null;
 }
 
 export interface ContraindicationValue {

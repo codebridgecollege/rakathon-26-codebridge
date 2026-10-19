@@ -516,7 +516,12 @@ def run_frame(case_id: str, document: str, n_parts: int) -> dict[str, Any]:
 def finish(b: Builder, frame: dict[str, Any]) -> tuple[dict[str, Any], dict[str, str]]:
     b.build_sources()
     drafts = b.drafts()
-    result = assign_fact_ids(b.case_id, drafts, b.sources, None)
+    # The checked-in run is the previous run: a change to the converter or to a key rule then keeps every fact's ID that
+    # the matcher can carry over, so references in D1 and in the guidance files stay valid (EXTRACTION-FORMAT.md,
+    # "Fact identity"). Without the file (a first conversion) every ID is new.
+    prev_path = RUNS / f"{b.case_id}.json"
+    previous = json.loads(prev_path.read_text(encoding="utf-8")) if prev_path.exists() else None
+    result = assign_fact_ids(b.case_id, drafts, b.sources, previous)
     ids = {d["draft_id"]: f["id"] for d, f in zip(drafts, result.facts)}
     # ID and key first, so a reader of the JSON sees which fact it is before its content.
     facts = [{"id": f["id"], "key": f["key"], **{k: v for k, v in f.items() if k not in ("id", "key")}} for f in result.facts]

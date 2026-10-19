@@ -245,7 +245,7 @@ changes between runs, their link breaks.
 |---|---|
 | `lab_result` | code (or name as written), draw date and time as written, requisition number if any, document |
 | `diagnosis` | code or normalised text, disease status, date |
-| `medication` | drug, period start (a dose change starts a new medication fact with its own start, so "5 mg" and "10 mg od 19.9.2026" are two facts) |
+| `medication` | drug, period start (a dose change starts a new medication fact with its own start, so "Prednison 1 mg/kg/den" and "Prednison 0,5 mg/kg od 12.5.2023" are two facts); for an entry with no start, also the document part it is listed in, so the same drug listed undated at two visits gives two facts (the part ID is stable, never a position) |
 | `systemic_therapy` | drug or regimen, line, start |
 | `stage` | stage kind, date |
 | `imaging`, `procedure`, `histology` | type and region, date |
@@ -289,7 +289,7 @@ JSON Schema defines them exactly).
 | `exam_finding` | body region, finding text | 13 |
 | `symptom` | text | 5 (2 negated) |
 | `comorbidity` | text, MKN-10 code if given | 11 |
-| `medication` | drug, strength, dosing, change, indication | 13 |
+| `medication` | drug, strength, dosing, change, indication, `stop_as_written` (when the document says the drug was stopped, as written; the fact then has `status: stopped`); not for anticancer drugs, see below | 13 |
 | `contraindication` | what (a drug interaction, for example an ACE inhibitor with everolimus), stated by the document or inferred by the assistant | 1 |
 | `allergy` | substance, reaction | 0 |
 | `adverse_event` | text, grade if stated, related therapy | about 4 |
@@ -301,6 +301,17 @@ JSON Schema defines them exactly).
 | `plan` | one planned item: what, when | about 5 (today in 2 bundled lines) |
 | `visit` | one visit or hospital stay: type (`outpatient`, `admission`, `consultation`, `emergency`, `other`), its name as written, department as written, reason as written, the end of a stay as written | 2, plus 1 planned |
 | `interval` | from fact, to fact, length as computed, both dates' precision (always `origin: assistant`, shown as a fact, never a verdict) | (computed) |
+
+**Anticancer drugs are `systemic_therapy`, never `medication`.** Everolimus,
+sunitinib, nivolumab and the like are `systemic_therapy` facts even where a
+medication list names them; that list entry is a further source of the
+therapy fact when it says the same, and a dose change stated there (for
+example "od 19.9.2026 navýšení na 10 mg") is its own `systemic_therapy`
+fact with its own start, as for `medication`. Supportive drugs given with
+the therapy (antiemetics, corticosteroids) stay `medication`. Which drugs
+count as anticancer (an ATC-based list or a clinician's call) is open in
+[`OPEN_QUESTIONS.md`](../agent/OPEN_QUESTIONS.md); until it is settled,
+producers follow the drug's role in the document.
 
 **One fact per statement.** The bundled items of today split up:
 - the plan line becomes `plan` facts, one per item; a planned visit or check-up in it ("kontrola 9.10.2026") is a `visit` with status `planned`, not a `plan`, so it shows once on the timeline;

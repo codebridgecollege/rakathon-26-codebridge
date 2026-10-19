@@ -84,6 +84,17 @@ function originSeg(fact: Pick<Fact, "sources">, sources: ReadonlyMap<string, Sou
   return docs.size ? [...docs].sort().join("+") : "doc:none";
 }
 
+/** The document parts a fact is quoted from (the document when a source names no part, the record for NIS). */
+function partSeg(fact: Pick<Fact, "sources">, sources: ReadonlyMap<string, Source>): string {
+  const parts = new Set<string>();
+  for (const id of fact.sources) {
+    const s = sources.get(id);
+    if (!s) continue;
+    parts.add(s.type === "document" ? `part:${s.part ?? s.document_id}` : `nis:${s.resource}`);
+  }
+  return parts.size ? [...parts].sort().join("+") : "part:none";
+}
+
 function firstCode(fact: Pick<Fact, "codes">): string | null {
   const own = fact.codes.find((c) => c.assigned_by === "source") ?? fact.codes[0];
   return own ? codeSeg(own.code) : null;
@@ -114,9 +125,15 @@ export function buildFactKey(fact: DraftFact | Fact, sources: ReadonlyMap<string
     }
     case "diagnosis":
       return join(fact.kind, firstCode(fact) ?? normText(fact.value.text), fact.value.disease_status ?? "status:none", dateSeg(d));
-    case "medication":
-      // A dose change starts a new medication fact with its own start, so the start date is part of the key.
-      return join(fact.kind, normText(fact.value.drug), `start:${dateSeg(d)}`);
+    case "medication": {
+      // A dose change starts a new medication fact with its own start, so the start date is part of the key. Most list
+      // entries state no start; the same drug listed undated at two visits is then told apart by the document part it
+      // is listed in (a stable ID, never a position), so the two entries neither merge nor depend on a "#2" suffix.
+      const start = dateSeg(d);
+      const parts = [fact.kind, normText(fact.value.drug), `start:${start}`];
+      if (start === "undated") parts.push(partSeg(fact, sources));
+      return join(...parts);
+    }
     case "systemic_therapy": {
       const v = fact.value;
       const start = normText(v.start) || dateSeg(d);
