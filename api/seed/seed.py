@@ -1071,9 +1071,11 @@ def main() -> None:
     # 0016 adds the append-only triggers of the codebridge.extraction/2 tables and redefines the reset trigger.
     want = set(trigger_names((MIGRATIONS / "0002_append_only.sql").read_text()))
     want |= {n for n in trigger_names((MIGRATIONS / "0016_extraction_v2.sql").read_text()) if n.endswith(("_no_update", "_no_delete")) or n == "demo_reset_uploads"}
+    # 0015 removes the NIS links at a demo reset; without the trigger a reset would leave links to deleted patients.
+    want |= set(trigger_names((MIGRATIONS / "0015_patient_nis_links.sql").read_text()))
     missing = sorted(want - have)
     if missing or wrong or counts["p"] != len(patients) or counts["pg"] != page_count_total:
-        sys.exit(f"seed: verification failed (missing append-only triggers {missing}; got vs expected {wrong}; expected"
+        sys.exit(f"seed: verification failed (missing triggers {missing}; got vs expected {wrong}; expected"
                  f" {len(patients)} patients, {page_count_total} pages, got {counts['p']} and {counts['pg']})")
     print(f"verified: {len(runs)} seeded /2 runs current and equal to their files, {want_counts['fi']} fact IDs,"
           f" {want_counts['ai']} alert identities, {len(run_parts)} run parts seeded, no /1 run or alert")
