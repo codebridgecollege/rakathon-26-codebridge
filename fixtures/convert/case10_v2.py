@@ -385,6 +385,49 @@ BRIEF_FACTS = [
     ["req_nch"],
 ]
 
+# Today's composed lines with the facts each states, in today's order and wording (views.onco_lines, views.timeline,
+# views.other_diagnoses; EXTRACTION-FORMAT.md "Composed views"). Started from the passages each line cites (the
+# --report view map) and completed where a line states a fact its passages do not show: the 5 mg dose of line 12,
+# the planned pulmonary visit of line 15. The validator checks every date, number, negation and side against them.
+ONCO_LINES = [
+    ["h_neph", "stage", "p_neph"],
+    ["h_ln", "p_ln", "m_pa"],
+    ["i_base", "m_med", "i_base_p2"],
+    ["t_nivoipi", "d_koc_nivo", "ps_imdc", "ae_git", "ae_pneu", "med_pred"],
+    ["t_nivo_maint", "i_ct2306", "i_rs_11_2023", "i_rs_2_2024", "i_rs_6_2024", "i_rs_10_2024", "i_rs_2_2025", "i_rs_6_2025"],
+    ["p_chin", "h_chin", "m_chin"],
+    ["i_ct2511", "i_ct2511_p1"],
+    ["i_ct2601"],
+    ["t_suni", "d_koc_suni", "ae_renal", "ae_mineral", "ae_thrombo", "ae_hepat", "i_ct2608"],
+    ["i_ctag", "dx_pe_neg", "i_osteo"],
+    ["i_ct2604"],
+    ["i_ct2608"],
+    ["t_evero", "d_koc_evero", "pl_cabo", "med_evero5"],
+    ["i_mr", "m_cereb", "m_intracran_neg", "c_fazekas"],
+    ["med_evero5", "med_evero10", "pl_evero"],
+    ["req_nch", "vis_next", "pl_ct", "vis_pulm_next", "pl_colo"],
+]
+TIMELINE_CARDS = [
+    ["dx"],
+    ["h_neph", "stage", "p_neph"],
+    ["i_ct2209", "m_pa_susp", "h_ln", "p_ln", "m_pa"],
+    ["i_base", "m_med", "ps_imdc", "i_base_p2"],
+    ["d_koc_nivo", "t_nivoipi", "ae_git", "ae_pneu", "med_pred"],
+    ["i_ct2306", "t_nivo_maint", "i_rs_11_2023", "i_rs_2_2024", "i_rs_6_2024", "i_rs_10_2024", "i_rs_2_2025", "i_rs_6_2025"],
+    ["p_chin", "h_chin", "m_chin", "sym_chin"],
+    ["i_ct2511", "i_ct2511_p1"],
+    ["i_ct2601"],
+    ["d_koc_suni", "t_suni", "ae_renal", "ae_mineral", "ae_thrombo", "ae_hepat", "i_ct2608"],
+    ["i_ct2604"],
+    ["i_ct2608", "t_suni"],
+    ["t_evero", "d_koc_evero", "pl_cabo", "med_evero5", "med_evero10", "pl_evero"],
+    ["i_mr", "m_cereb", "m_intracran_neg", "c_fazekas"],
+    ["req_nch"],
+    ["vis_next", "pl_bp"],
+]
+OTHER_DX = ["rf_hbsag", "c_hn", "c_copd", "c_hlp", "rf_smoking", "c_dyspnea", "dx_pe_neg", "ex_ekg", "med_orcal", "c_hyperglyc",
+            "c_kidneycysts", "c_livercyst", "c_ild", "i_uz", "c_pad", "med_calcichew", "c_hypoca", "c_hyperk"]
+
 QUESTION_BASIS = [("purpose", ["req_nch"]), ("finding", ["i_mr", "m_cereb"]), ("finding", ["t_evero", "d_koc_evero"])]
 
 # Sections the view shows, each with what this fixture covered. All 13 parts were read by hand when the fixture was

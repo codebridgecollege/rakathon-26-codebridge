@@ -610,6 +610,82 @@ export interface QuestionDraft {
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
+// Composed views
+
+/** The event categories a composed line is filed under, the same as the timeline's. */
+export type ViewCategory =
+  | "imaging"
+  | "systemic"
+  | "medication"
+  | "mdt"
+  | "surgery"
+  | "pathology"
+  | "radiotherapy"
+  | "laboratory"
+  | "clinical";
+
+export const VIEW_CATEGORIES = [
+  "imaging",
+  "systemic",
+  "medication",
+  "mdt",
+  "surgery",
+  "pathology",
+  "radiotherapy",
+  "laboratory",
+  "clinical",
+] as const satisfies readonly ViewCategory[];
+
+/**
+ * One line of a composed view: the wording a producer chose for one or more facts, as a clinician writes a summary
+ * line ("St. p. 2. linii sunitinib 50 mg denně; toxicita: ..."). It never adds content: every date, number, negation
+ * and side in the text must be backed by its facts, as for a brief sentence.
+ */
+export interface ViewLine {
+  /**
+   * Derived from the view's name and the sorted fact IDs (keys.ts viewLineId), so a doctor's edit follows the facts.
+   * @pattern ^vl-[0-9a-f]{8}$
+   */
+  id: string;
+  /** The line, in the content language. */
+  text: string;
+  /** A timeline card's heading; null for a summary line. */
+  title: string | null;
+  /** A timeline card's longer text; null for a summary line. */
+  detail: string | null;
+  /** The date the line is filed under. A partial date stays partial. */
+  date: FactDate;
+  category: ViewCategory;
+  /** "planned" and "requested" never read as performed. */
+  status: FactStatus;
+  /**
+   * The facts the line states; at least one.
+   * @minItems 1
+   */
+  facts: string[];
+  /** The assistant's note on the line, in the content language. */
+  note: string | null;
+}
+
+/**
+ * Lines composed from the facts by a producer (the fixture conversion, later a composition step). Optional: a run
+ * without them is shown fact by fact. Each list is the whole view in its display order.
+ */
+export interface ComposedViews {
+  /** The oncology summary, one line per event as clinicians write it. */
+  onco_lines?: ViewLine[];
+  /** The other diagnoses next to the oncology summary. */
+  other_diagnoses?: ViewLine[];
+  /** The timeline cards. */
+  timeline?: ViewLine[];
+  made_by: MadeBy;
+}
+
+/** The names of the composed views, in the order the format lists them. */
+export const VIEW_NAMES = ["onco_lines", "other_diagnoses", "timeline"] as const satisfies readonly (keyof ComposedViews)[];
+export type ViewName = (typeof VIEW_NAMES)[number];
+
+// ---------------------------------------------------------------------------------------------------------------------
 // The run
 
 /** One extraction of one case. Never changed after it is written. */
@@ -627,4 +703,6 @@ export interface ExtractionRun {
   alerts: Alert[];
   brief: Brief | null;
   question_draft: QuestionDraft | null;
+  /** Optional composed lines (added within /2); a run without them is shown fact by fact. */
+  views?: ComposedViews | null;
 }

@@ -17,8 +17,9 @@ from typing import Any
 from jsonschema import Draft7Validator
 from jsonschema.exceptions import ValidationError
 
-from .keys import alert_id, base_key, build_fact_key
-from .types import EXTRACTION_SCHEMA, FACT_KINDS
+from .backing import Evidence, backing_problems
+from .keys import alert_id, base_key, build_fact_key, value_text, view_line_id
+from .types import EXTRACTION_SCHEMA, FACT_KINDS, VIEW_NAMES
 
 # The schema lives with the TypeScript types. A container that does not copy packages/ sets the path explicitly.
 _DEFAULT_SCHEMA = Path(__file__).resolve().parents[2] / "packages/domain/schema/extraction-2.schema.json"
@@ -177,6 +178,20 @@ def _duplicates(items: list[Mapping[str, Any]], id_of: Callable[[Mapping[str, An
     return out
 
 
+def evidence_of(facts: list[Mapping[str, Any]], sources: Mapping[str, Mapping[str, Any]]) -> Evidence:
+    """What a set of facts says, for backing a composed text: values, codes, dates and quoted passages (evidenceOf)."""
+    texts: list[str] = []
+    for f in facts:
+        texts += [value_text(f["value"]), f["date"].get("as_written") or "", f["date"].get("sort") or ""]
+        for c in f["codes"]:
+            texts += [c["code"], c.get("display") or ""]
+        for sid in f["sources"]:
+            src = sources.get(sid)
+            if src and src["type"] == "document":
+                texts.append(src["quote"])
+    return Evidence([t for t in texts if t], any(f["negated"] for f in facts), bool(facts) and all(f["negated"] for f in facts))
+
+
 def reference_issues(run: Mapping[str, Any]) -> list[Issue]:
     """The rules a JSON Schema cannot express. Assumes the run passed the schema. Same order and codes as validate.ts."""
     issues: list[Issue] = []
@@ -316,6 +331,10 @@ def reference_issues(run: Mapping[str, Any]) -> list[Issue]:
                 push(path, "unknown_fact", f"unknown fact {fid}")
             else:
                 use_of(path, fid)
+        # Every date, number, negation and side of the sentence must be in its facts.
+        evidence = evidence_of([facts[fid] for fid in s["facts"] if fid in facts], sources)
+        for problem in backing_problems(s["text"], evidence) if s["facts"] else []:
+            push(f"/brief/sentences/{i}/text", "sentence_unbacked", f"a {problem} in the sentence is not in its facts")
     for i, b in enumerate((run.get("question_draft") or {}).get("basis", [])):
         for j, fid in enumerate(b["facts"]):
             path = f"/question_draft/basis/{i}/facts/{j}"
@@ -323,4 +342,48 @@ def reference_issues(run: Mapping[str, Any]) -> list[Issue]:
                 push(path, "unknown_fact", f"unknown fact {fid}")
             else:
                 use_of(path, fid)
+
+    # Composed lines say only what their facts say; the ID follows from the view and the facts (validate.ts).
+    for view in VIEW_NAMES:
+        lines = (run.get("views") or {}).get(view)
+        if not lines:
+            continue
+        seen: set[str] = set()
+        for i, line in enumerate(lines):
+            p = f"/views/{view}/{i}"
+            if line["id"] in seen:
+                push(f"{p}/id", "duplicate_view_line_id", f"duplicate view line ID {line['id']}")
+            seen.add(line["id"])
+        for i, line in enumerate(lines):
+            p = f"/views/{view}/{i}"
+            if not line["facts"]:
+                push(f"{p}/facts", "view_line_without_facts", "a view line must point at the facts it states")
+            for j, fid in enumerate(line["facts"]):
+                if fid not in facts:
+                    push(f"{p}/facts/{j}", "unknown_fact", f"unknown fact {fid}")
+                else:
+                    use_of(f"{p}/facts/{j}", fid)
+            want = view_line_id(view, line["facts"])
+            if line["id"] != want:
+                push(f"{p}/id", "view_line_id_mismatch", f"view line ID {line['id']} should be {want} (view and facts)")
+            problem = date_precision_problem(line["date"])
+            if problem:
+                push(f"{p}/date", "date_precision", problem)
+            own = [facts[fid] for fid in line["facts"] if fid in facts]
+            # Filed under the date of one of its facts; a planned line rests on a planned fact (validate.ts).
+            if line["date"]["sort"] and own and not any(f["date"]["sort"] == line["date"]["sort"] for f in own):
+                push(f"{p}/date", "view_line_date_unbacked", "the line's date is not the date of any of its facts")
+
+            def ahead(s: str) -> bool:
+                return s in ("planned", "requested")
+
+            if own and (not any(ahead(f["status"]) for f in own) if ahead(line["status"]) else all(ahead(f["status"]) for f in own)):
+                push(f"{p}/status", "view_line_status_mismatch", f"the line's status {line['status']} does not fit its facts' statuses")
+            evidence = evidence_of(own, sources)
+            for field in ("text", "title", "detail"):
+                text = line.get(field)
+                if not text or not line["facts"]:
+                    continue
+                for problem in backing_problems(text, evidence):
+                    push(f"{p}/{field}", "view_line_unbacked", f"a {problem} in the line's {field} is not in its facts")
     return issues

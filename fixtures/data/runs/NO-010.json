@@ -9858,5 +9858,676 @@
     ]
    }
   ]
+ },
+ "views": {
+  "onco_lines": [
+   {
+    "id": "vl-b9271685",
+    "text": "St. p. transperitoneální nefrektomii vpravo s retroperitoneální lymfadenektomií",
+    "title": null,
+    "detail": null,
+    "date": {
+     "as_written": "2.6.2022",
+     "precision": "day",
+     "sort": "2022-06-02"
+    },
+    "category": "surgery",
+    "status": "done",
+    "facts": [
+     "f-645cb30b",
+     "f-76e20da5",
+     "f-5acde13c"
+    ],
+    "note": null
+   },
+   {
+    "id": "vl-845563b6",
+    "text": "St. p. exstirpaci paraaortální lymfatické uzliny vlevo, histologicky metastáza světlobuněčného renálního karcinomu G2, R0",
+    "title": null,
+    "detail": null,
+    "date": {
+     "as_written": "25.10.2022",
+     "precision": "day",
+     "sort": "2022-10-25"
+    },
+    "category": "surgery",
+    "status": "done",
+    "facts": [
+     "f-72b56a3a",
+     "f-eee2606f",
+     "f-868a242f"
+    ],
+    "note": null
+   },
+   {
+    "id": "vl-5cbe041a",
+    "text": "Vstupní CT (výchozí pro imunoterapii): patologická mediastinální a plicní hilová lymfadenopatie charakteru hypervaskularizovaných metastáz",
+    "title": null,
+    "detail": null,
+    "date": {
+     "as_written": "6.3.2023",
+     "precision": "day",
+     "sort": "2023-03-06"
+    },
+    "category": "imaging",
+    "status": "done",
+    "facts": [
+     "f-5f31455d",
+     "f-5561e4e8",
+     "f-1a53fbe8"
+    ],
+    "note": "V souhrnu zprávy je tento restaging datován 3/2022; podle pořadí událostí jde zřejmě o 3/2023, ověřit."
+   },
+   {
+    "id": "vl-49eac968",
+    "text": "St. p. nivolumab + ipilimumab, 2 cykly (2. cyklus 17.4.2023) ze 4 indikovaných, dle IMDC střední prognóza; po 2. cyklu gastrointestinální toxicita 1. stupně a plicní toxicita 1.-2. stupně, kortikoterapie prednisonem od 28.4.2023",
+    "title": null,
+    "detail": null,
+    "date": {
+     "as_written": "27.3.2023",
+     "precision": "day",
+     "sort": "2023-03-27"
+    },
+    "category": "systemic",
+    "status": "done",
+    "facts": [
+     "f-cb75a876",
+     "f-14dfebfc",
+     "f-8ad6cbe7",
+     "f-b4110ac6",
+     "f-24babadf",
+     "f-c5e5ed32"
+    ],
+    "note": "Pořadí linie zpráva u této léčby neuvádí (sunitinib je ve zprávě 2. linie); důvod podání jen 2 cyklů výslovně uveden není."
+   },
+   {
+    "id": "vl-6327aaad",
+    "text": "St. p. udržovací léčbě nivolumabem do 29.12.2025, dle CT 6/2023 až 6/2025 iPR",
+    "title": null,
+    "detail": null,
+    "date": {
+     "as_written": "27.6.2023",
+     "precision": "day",
+     "sort": "2023-06-27"
+    },
+    "category": "systemic",
+    "status": "done",
+    "facts": [
+     "f-49b84a6d",
+     "f-8425851b",
+     "f-85234817",
+     "f-b2d8d3dc",
+     "f-aed8cd90",
+     "f-badb1f0b",
+     "f-ab1c174d",
+     "f-a71c1101"
+    ],
+    "note": "Důvod ukončení výslovně neuveden; CT 11/2025 hodnoceno jako progrese."
+   },
+   {
+    "id": "vl-67de301b",
+    "text": "St. p. excizi ložiska na bradě vlevo, histologicky kožní metastáza světlobuněčného renálního karcinomu, grade 2 dle ISUP, odstraněna kompletně",
+    "title": null,
+    "detail": null,
+    "date": {
+     "as_written": "21.11.2023",
+     "precision": "day",
+     "sort": "2023-11-21"
+    },
+    "category": "surgery",
+    "status": "done",
+    "facts": [
+     "f-c8f97b8a",
+     "f-ffb46a12",
+     "f-1cc45871"
+    ],
+    "note": null
+   },
+   {
+    "id": "vl-cb426bd4",
+    "text": "CT plic a břicha: nově patologická lymfatická uzlina v levém plicním hilu, mírná progrese retroperitoneální lymfadenopatie oproti CT 6/2025; závěr CT „dle iRECIST PD“, souhrn zprávy „iUPD“",
+    "title": null,
+    "detail": null,
+    "date": {
+     "as_written": "10.11.2025",
+     "precision": "day",
+     "sort": "2025-11-10"
+    },
+    "category": "imaging",
+    "status": "done",
+    "facts": [
+     "f-dedc159b",
+     "f-43786da4"
+    ],
+    "note": null
+   },
+   {
+    "id": "vl-4f711757",
+    "text": "CT hrudníku a břicha: progrese lymfatických uzlin v levém plicním hilu a jedné lymfatické uzliny retroperitonea, regrese mediastinální a pravostranné hilové lymfadenopatie, dle iRECIST iCPD",
+    "title": null,
+    "detail": null,
+    "date": {
+     "as_written": "16.1.2026",
+     "precision": "day",
+     "sort": "2026-01-16"
+    },
+    "category": "imaging",
+    "status": "done",
+    "facts": [
+     "f-42bdd4a3"
+    ],
+    "note": null
+   },
+   {
+    "id": "vl-d2343740",
+    "text": "St. p. 2. linii sunitinib 50 mg denně; toxicita: progrese renální insuficience, minerálová dysbalance, trombocytopenie G2-3, hepatopatie G2; redukce na 37,5 mg od 25.2.2026 a na 25 mg od 26.3.2026; ukončen pro progresi dle CT 8/2026",
+    "title": null,
+    "detail": null,
+    "date": {
+     "as_written": "27.1.2026",
+     "precision": "day",
+     "sort": "2026-01-27"
+    },
+    "category": "systemic",
+    "status": "done",
+    "facts": [
+     "f-7f0d261e",
+     "f-c1194c3e",
+     "f-5076f93d",
+     "f-199a24a6",
+     "f-55698c8f",
+     "f-4b98ef8a",
+     "f-77039580"
+    ],
+    "note": "Přesné datum ukončení sunitinibu neuvedeno."
+   },
+   {
+    "id": "vl-8b41adcf",
+    "text": "CT angiografie plicnice: bez plicní embolie; v dokumentaci drobná osteoplastická ložiska do 7 mm v přechodu hrudní a bederní páteře",
+    "title": null,
+    "detail": null,
+    "date": {
+     "as_written": "10.2.2026",
+     "precision": "day",
+     "sort": "2026-02-10"
+    },
+    "category": "imaging",
+    "status": "done",
+    "facts": [
+     "f-346b6e43",
+     "f-20056b19",
+     "f-a14d6c6a"
+    ],
+    "note": "Ke kterému vyšetření věta o osteoplastických ložiscích patří, nelze z textu určit; její hodnocení ve zprávě chybí."
+   },
+   {
+    "id": "vl-6ecf238d",
+    "text": "CT hrudníku a břicha: regrese sledovaných lézí o cca 24 %, nová ložiska nepřibyla, dle iRECIST iSD",
+    "title": null,
+    "detail": null,
+    "date": {
+     "as_written": "28.4.2026",
+     "precision": "day",
+     "sort": "2026-04-28"
+    },
+    "category": "imaging",
+    "status": "done",
+    "facts": [
+     "f-a32dc01f"
+    ],
+    "note": null
+   },
+   {
+    "id": "vl-b86fc04a",
+    "text": "CT hrudníku, břicha a malé pánve: progrese lymfatických uzlin v levém plicním hilu a v retroperitoneu paraaortálně vlevo oproti CT 4/2026 i vstupnímu CT před sunitinibem (1/2026), dle onkologické zprávy PD",
+    "title": null,
+    "detail": null,
+    "date": {
+     "as_written": "26.8.2026",
+     "precision": "day",
+     "sort": "2026-08-26"
+    },
+    "category": "imaging",
+    "status": "done",
+    "facts": [
+     "f-77039580"
+    ],
+    "note": "Kategorie PD pochází z onkologické zprávy; text závěru CT je v dokumentu useknutý."
+   },
+   {
+    "id": "vl-1599aa3e",
+    "text": "3. paliativní linie everolimus 5 mg denně; cabozantinib (par. 16) ponechán do 4. linie",
+    "title": null,
+    "detail": null,
+    "date": {
+     "as_written": "3.9.2026",
+     "precision": "day",
+     "sort": "2026-09-03"
+    },
+    "category": "systemic",
+    "status": "done",
+    "facts": [
+     "f-2cb5d3e3",
+     "f-15dfed8f",
+     "f-b6176568",
+     "f-460c4602"
+    ],
+    "note": null
+   },
+   {
+    "id": "vl-68462623",
+    "text": "MR mozku: solitérní sytící se uzlík do 3 mm v pravé mozečkové hemisféře, suspektní metastáza, jiné sytící se léze intrakraniálně nejsou; gliózy supratentoriálně Fazekas gr. III",
+    "title": null,
+    "detail": null,
+    "date": {
+     "as_written": "14.9.2026",
+     "precision": "day",
+     "sort": "2026-09-14"
+    },
+    "category": "imaging",
+    "status": "done",
+    "facts": [
+     "f-5f20f17f",
+     "f-a0522e68",
+     "f-0bb4816a",
+     "f-f257f250"
+    ],
+    "note": null
+   },
+   {
+    "id": "vl-1c63ab52",
+    "text": "Navýšení everolimu z 5 na 10 mg denně dle nejnovějšího ambulantního závěru, při netoleranci návrat na 5 mg",
+    "title": null,
+    "detail": null,
+    "date": {
+     "as_written": "19.9.2026",
+     "precision": "day",
+     "sort": "2026-09-19"
+    },
+    "category": "systemic",
+    "status": "planned",
+    "facts": [
+     "f-460c4602",
+     "f-c4b6586a",
+     "f-1076df05"
+    ],
+    "note": null
+   },
+   {
+    "id": "vl-5cc4752b",
+    "text": "Plánováno ve zprávě: projednání nálezu MR mozku na neurochirurgickém semináři, kontrola 9.10.2026 s odběrem krevního obrazu a biochemie, kontrolní CT hrudníku, břicha a malé pánve, kontrola v plicní ambulanci, kontrolní kolonoskopie v roce 2028",
+    "title": null,
+    "detail": null,
+    "date": {
+     "as_written": "9.10.2026",
+     "precision": "day",
+     "sort": "2026-10-09"
+    },
+    "category": "clinical",
+    "status": "planned",
+    "facts": [
+     "f-e7f16bae",
+     "f-b9c83a62",
+     "f-277c29ce",
+     "f-f3908fab",
+     "f-266a6b47"
+    ],
+    "note": "Datum semináře ve zprávě uvedeno není. U kontrolního CT zpráva uvádí jen čas (9.20 hod.), datum ne."
+   }
+  ],
+  "other_diagnoses": [
+   {
+    "id": "vl-2f6435dd",
+    "text": "Další diagnózy: HBsAg pozitivita, hypertenzní nemoc (2/2026 dekompenzovaná), chronická obstrukční plicní nemoc II/B u kuřáka, suspektní intersticiální plicní postižení, st. p. kortikoterapii, hyperlipoproteinémie na dietě, anamnesticky hyperglykémie nalačno, korové cysty ledvin, cysta jater v segmentu S2, sklerotické změny tepen dolních končetin se stenózou v proximálním úseku podkolenní tepny vpravo; dle medikace hypokalcémie a mírná hyperkalémie",
+    "title": null,
+    "detail": null,
+    "date": {
+     "as_written": null,
+     "precision": null,
+     "sort": null
+    },
+    "category": "clinical",
+    "status": "documented",
+    "facts": [
+     "f-968f6d75",
+     "f-ffa5e9d3",
+     "f-cbfd2ba7",
+     "f-71e20468",
+     "f-d6694c46",
+     "f-f37c0046",
+     "f-20056b19",
+     "f-b078b9fa",
+     "f-e222cadb",
+     "f-dd0b67a5",
+     "f-a6c09f9f",
+     "f-5847159f",
+     "f-a01cdb4e",
+     "f-ac08228c",
+     "f-b830373d",
+     "f-d965adbd",
+     "f-9bdb3c86",
+     "f-9771dadd"
+    ],
+    "note": null
+   }
+  ],
+  "timeline": [
+   {
+    "id": "vl-a8eede21",
+    "text": "renální karcinom lokálně pokročilý",
+    "title": "Diagnóza: renální karcinom",
+    "detail": "Zhoubný novotvar ledviny mimo pánvičku (C64), renální karcinom lokálně pokročilý.",
+    "date": {
+     "as_written": "4/2022",
+     "precision": "month",
+     "sort": "2022-04"
+    },
+    "category": "clinical",
+    "status": "done",
+    "facts": [
+     "f-a421be9b"
+    ],
+    "note": "Přesný den ani vyšetření, kterým byla diagnóza stanovena, uvedeny nejsou."
+   },
+   {
+    "id": "vl-a3ff2b81",
+    "text": "s retroperitoneální lymfadenektomií; histologie: světlobuněčný renální adenokarcinom G2, pT2a pN1 (3 z 5 uzlin pozitivní) M0",
+    "title": "Nefrektomie vpravo",
+    "detail": "Transperitoneální nefrektomie vpravo s retroperitoneální lymfadenektomií. Histologie: světlobuněčný renální adenokarcinom G2, pT2a pN1 (3 z 5 uzlin pozitivní) M0.",
+    "date": {
+     "as_written": "2.6.2022",
+     "precision": "day",
+     "sort": "2022-06-02"
+    },
+    "category": "surgery",
+    "status": "done",
+    "facts": [
+     "f-645cb30b",
+     "f-76e20da5",
+     "f-5acde13c"
+    ],
+    "note": "Původní histologická zpráva v PDF není, jen citace ve zprávě."
+   },
+   {
+    "id": "vl-4a9964f8",
+    "text": "histologie: metastáza světlobuněčného renálního karcinomu G2, R0",
+    "title": "Exstirpace paraaortální lymfatické uzliny vlevo",
+    "detail": "CT 7.9.2022 popsalo suspektní metastázu v paraaortální lymfatické uzlině vlevo, 20 mm. Histologie: metastáza světlobuněčného renálního karcinomu G2, R0.",
+    "date": {
+     "as_written": "25.10.2022",
+     "precision": "day",
+     "sort": "2022-10-25"
+    },
+    "category": "surgery",
+    "status": "done",
+    "facts": [
+     "f-39634875",
+     "f-87c3dc85",
+     "f-72b56a3a",
+     "f-eee2606f",
+     "f-868a242f"
+    ],
+    "note": null
+   },
+   {
+    "id": "vl-94c7a177",
+    "text": "mediastinální a plicní hilová lymfadenopatie charakteru metastáz",
+    "title": "Vstupní CT s kontrastní látkou",
+    "detail": "Patologická mediastinální a plicní hilová lymfadenopatie charakteru hypervaskularizovaných metastáz. Dle IMDC střední prognóza (1 faktor).",
+    "date": {
+     "as_written": "6.3.2023",
+     "precision": "day",
+     "sort": "2023-03-06"
+    },
+    "category": "imaging",
+    "status": "done",
+    "facts": [
+     "f-5f31455d",
+     "f-5561e4e8",
+     "f-8ad6cbe7",
+     "f-1a53fbe8"
+    ],
+    "note": "Souhrn na str. 2 uvádí toto vyšetření jako „3/2022“, str. 1 jako 6.3.2023; rozpor, ověřit."
+   },
+   {
+    "id": "vl-9f125a19",
+    "text": "nivolumab 3 mg/kg + ipilimumab 1 mg/kg každé 3 týdny",
+    "title": "1. linie: nivolumab + ipilimumab",
+    "detail": "Indikovány 4 cykly, schváleno komisí komplexního onkologického centra; dokumentovány 2 cykly, druhý 17.4.2023. Po 2. cyklu gastrointestinální toxicita 1. stupně a plicní toxicita (IPP) 1.-2. stupně, prednison od 28.4.2023 do 26.7.2023.",
+    "date": {
+     "as_written": "27.3.2023",
+     "precision": "day",
+     "sort": "2023-03-27"
+    },
+    "category": "systemic",
+    "status": "done",
+    "facts": [
+     "f-14dfebfc",
+     "f-cb75a876",
+     "f-b4110ac6",
+     "f-24babadf",
+     "f-c5e5ed32"
+    ],
+    "note": "Výslovné ukončení kombinace v textu chybí."
+   },
+   {
+    "id": "vl-1adaf0a1",
+    "text": "240 mg každé 2 týdny, do 29.12.2025",
+    "title": "Udržovací nivolumab",
+    "detail": "Po CT 6/2023 s částečnou odpovědí dle iRECIST udržovací nivolumab. Kontrolní CT 11/2023 až 6/2025: trvá částečná odpověď dle iRECIST.",
+    "date": {
+     "as_written": "27.6.2023",
+     "precision": "day",
+     "sort": "2023-06-27"
+    },
+    "category": "systemic",
+    "status": "done",
+    "facts": [
+     "f-8425851b",
+     "f-49b84a6d",
+     "f-85234817",
+     "f-b2d8d3dc",
+     "f-aed8cd90",
+     "f-badb1f0b",
+     "f-ab1c174d",
+     "f-a71c1101"
+    ],
+    "note": null
+   },
+   {
+    "id": "vl-b9e610b1",
+    "text": "histologie: kožní metastáza světlobuněčného renálního karcinomu, grade 2 dle ISUP",
+    "title": "Excize ložiska na bradě vlevo",
+    "detail": "Excize ložiska brady vlevo s podezřením na iritovaný intradermální névus. Histologie: kožní metastáza světlobuněčného (konvenčního) renálního karcinomu, grade 2 dle ISUP, odstraněna kompletně. Dle pacienta ložisko pozoroval přibližně od 6/2023.",
+    "date": {
+     "as_written": "21.11.2023",
+     "precision": "day",
+     "sort": "2023-11-21"
+    },
+    "category": "pathology",
+    "status": "done",
+    "facts": [
+     "f-c8f97b8a",
+     "f-ffb46a12",
+     "f-1cc45871",
+     "f-345cd046"
+    ],
+    "note": null
+   },
+   {
+    "id": "vl-d5a6e490",
+    "text": "nová patologická lymfatická uzlina v levém plicním hilu",
+    "title": "CT plic a břicha",
+    "detail": "Oproti vstupnímu CT 3/2023 trvá mírná částečná regrese retroperitoneální lymfadenopatie vlevo, oproti CT 6/2025 však mírná progrese velikosti. Nově patologická lymfatická uzlina v levém plicním hilu; dle iRECIST progrese.",
+    "date": {
+     "as_written": "10.11.2025",
+     "precision": "day",
+     "sort": "2025-11-10"
+    },
+    "category": "imaging",
+    "status": "done",
+    "facts": [
+     "f-dedc159b",
+     "f-43786da4"
+    ],
+    "note": "Hodnocení se v dokumentu liší: jednou „PD (progressive disease)“, jinde „iUPD“."
+   },
+   {
+    "id": "vl-537cd07b",
+    "text": "progrese lymfatických uzlin v levém hilu a jedné lymfatické uzliny v retroperitoneu",
+    "title": "CT hrudníku a břicha",
+    "detail": "Oproti vstupnímu CT regrese mediastinální a pravostranné hilové lymfadenopatie; v levém hilu velikostní progrese uzlin oproti vstupnímu i předchozímu CT. Další progrese jedné lymfatické uzliny v retroperitoneu, jiná uzlina v regresi; dle iRECIST potvrzená progrese.",
+    "date": {
+     "as_written": "16.1.2026",
+     "precision": "day",
+     "sort": "2026-01-16"
+    },
+    "category": "imaging",
+    "status": "done",
+    "facts": [
+     "f-42bdd4a3"
+    ],
+    "note": null
+   },
+   {
+    "id": "vl-6633b4a4",
+    "text": "50 mg denně v režimu 4 týdny léčby a 2 týdny pauza",
+    "title": "2. linie: sunitinib",
+    "detail": "Schváleno komisí komplexního onkologického centra. Při dávce 50 mg denně progrese renální insuficience, minerálová dysbalance a trombocytopenie stupně 2-3. Od 25.2.2026 redukce o 1 stupeň na 37,5 mg denně (hepatopatie stupně 2), od 26.3.2026 o 2 stupně na 25 mg denně. Ukončen po CT 8/2026 pro progresi.",
+    "date": {
+     "as_written": "27.1.2026",
+     "precision": "day",
+     "sort": "2026-01-27"
+    },
+    "category": "systemic",
+    "status": "done",
+    "facts": [
+     "f-c1194c3e",
+     "f-7f0d261e",
+     "f-5076f93d",
+     "f-199a24a6",
+     "f-55698c8f",
+     "f-4b98ef8a",
+     "f-77039580"
+    ],
+    "note": null
+   },
+   {
+    "id": "vl-e7aed7b1",
+    "text": "regrese sledovaných lézí přibližně o 24 %",
+    "title": "CT hrudníku a břicha",
+    "detail": "Oproti vstupnímu CT 1/2026 mírná regrese lymfatických uzlin v levém plicním hilu a částečná regrese patologické lymfatické uzliny v retroperitoneu, nová ložiska nepřibyla; stabilizace dle iRECIST.",
+    "date": {
+     "as_written": "28.4.2026",
+     "precision": "day",
+     "sort": "2026-04-28"
+    },
+    "category": "imaging",
+    "status": "done",
+    "facts": [
+     "f-a32dc01f"
+    ],
+    "note": null
+   },
+   {
+    "id": "vl-4392cf70",
+    "text": "progrese lymfatických uzlin v levém plicním hilu a paraaortálně vlevo",
+    "title": "CT hrudníku, břicha a malé pánve",
+    "detail": "Oproti CT 4/2026 i vstupnímu CT 1/2026 velikostní progrese lymfatických uzlin v levém plicním hilu a v retroperitoneu paraaortálně vlevo. Sunitinib proto ukončen.",
+    "date": {
+     "as_written": "26.8.2026",
+     "precision": "day",
+     "sort": "2026-08-26"
+    },
+    "category": "imaging",
+    "status": "done",
+    "facts": [
+     "f-77039580",
+     "f-7f0d261e"
+    ],
+    "note": null
+   },
+   {
+    "id": "vl-d3afde94",
+    "text": "5 mg denně; od 19.9.2026 navýšení na 10 mg denně dle nejnovějšího závěru",
+    "title": "3. linie: everolimus",
+    "detail": "Schváleno komisí komplexního onkologického centra; cabozantinib ponechán do 4. linie. Dle nejnovějšího ambulantního závěru navýšení dávky na 10 mg denně od 19.9.2026, při netoleranci návrat k 5 mg denně.",
+    "date": {
+     "as_written": "3.9.2026",
+     "precision": "day",
+     "sort": "2026-09-03"
+    },
+    "category": "systemic",
+    "status": "done",
+    "facts": [
+     "f-2cb5d3e3",
+     "f-15dfed8f",
+     "f-b6176568",
+     "f-460c4602",
+     "f-c4b6586a",
+     "f-1076df05"
+    ],
+    "note": null
+   },
+   {
+    "id": "vl-f8c6139f",
+    "text": "suspektní solitérní metastáza v pravé mozečkové hemisféře do 3 mm",
+    "title": "MR mozku",
+    "detail": "Solitérní postkontrastně se sytící nodulus v pravé mozečkové hemisféře do 3 mm, suspektní solitérní metastáza; jiné sytící se léze intrakraniálně nejsou. Supratentoriálně gliózy Fazekas stupeň III.",
+    "date": {
+     "as_written": "14.9.2026",
+     "precision": "day",
+     "sort": "2026-09-14"
+    },
+    "category": "imaging",
+    "status": "done",
+    "facts": [
+     "f-5f20f17f",
+     "f-a0522e68",
+     "f-0bb4816a",
+     "f-f257f250"
+    ],
+    "note": "Původní popis MR v PDF není, jen citace závěru."
+   },
+   {
+    "id": "vl-4ab3b26c",
+    "text": "nález MR mozku zadán k projednání",
+    "title": "Neurochirurgický seminář",
+    "detail": "Ošetřující lékař zadal nález MR mozku k projednání na neurochirurgickém semináři.",
+    "date": {
+     "as_written": null,
+     "precision": null,
+     "sort": null
+    },
+    "category": "mdt",
+    "status": "planned",
+    "facts": [
+     "f-e7f16bae"
+    ],
+    "note": "Termín ani formulovaná otázka v dokumentu uvedeny nejsou."
+   },
+   {
+    "id": "vl-64ac3952",
+    "text": "kontrola s odběrem krevního obrazu a biochemie",
+    "title": "Kontrola v ambulanci",
+    "detail": "Plánována kontrola s odběrem krevního obrazu a biochemie; domácí měření krevního tlaku.",
+    "date": {
+     "as_written": "9.10.2026",
+     "precision": "day",
+     "sort": "2026-10-09"
+    },
+    "category": "clinical",
+    "status": "planned",
+    "facts": [
+     "f-b9c83a62",
+     "f-68b005ef"
+    ],
+    "note": "Zda kontrola na str. 4 je tato kontrola, dokument neuvádí."
+   }
+  ],
+  "made_by": {
+   "model": null,
+   "prompt": null
+  }
  }
 }

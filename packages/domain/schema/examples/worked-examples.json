@@ -6,11 +6,24 @@
     "id": "run-2026-10-19T10:04:11Z-a1b2",
     "producer": "fixture",
     "created_at": "2026-10-19T10:04:11Z",
-    "stages": [{ "name": "convert", "engine": "EXTRACTION-FORMAT.md worked examples" }],
+    "stages": [
+      {
+        "name": "convert",
+        "engine": "EXTRACTION-FORMAT.md worked examples"
+      }
+    ],
     "supersedes": null
   },
   "documents": [
-    { "document_id": "10_pacient", "sha256": null, "parts": ["10_pacient/p0", "10_pacient/p1", "10_pacient/p2"] }
+    {
+      "document_id": "10_pacient",
+      "sha256": null,
+      "parts": [
+        "10_pacient/p0",
+        "10_pacient/p1",
+        "10_pacient/p2"
+      ]
+    }
   ],
   "sources": [
     {
@@ -26,7 +39,14 @@
       "identity": "matches",
       "reading_check": {
         "mark": true,
-        "tokens": [{ "pdf_text": "mg/1", "tesseract": "mg/1", "vision": "mg/l", "rule": "differ" }]
+        "tokens": [
+          {
+            "pdf_text": "mg/1",
+            "tesseract": "mg/1",
+            "vision": "mg/l",
+            "rule": "differ"
+          }
+        ]
       }
     },
     {
@@ -94,19 +114,40 @@
         "reference_high": 5,
         "out_of_range": "high",
         "out_of_range_origin": "assistant",
-        "draw": { "as_written": null, "requisition": null, "specimen": null }
+        "draw": {
+          "as_written": null,
+          "requisition": null,
+          "specimen": null
+        }
       },
-      "date": { "as_written": null, "precision": null, "sort": null },
+      "date": {
+        "as_written": null,
+        "precision": null,
+        "sort": null
+      },
       "status": "documented",
       "negated": false,
-      "not_stated": ["draw"],
+      "not_stated": [
+        "draw"
+      ],
       "origin": "document",
       "certainty": "verify",
-      "certainty_reason": { "code": "ocr_char_swap", "text": "V textu „mg/1“ a „O“, čteno jako mg/l a 0." },
-      "codes": [{ "system": "fno-local-lab", "code": "S_HSCRP", "assigned_by": "source" }],
+      "certainty_reason": {
+        "code": "ocr_char_swap",
+        "text": "V textu „mg/1“ a „O“, čteno jako mg/l a 0."
+      },
+      "codes": [
+        {
+          "system": "fno-local-lab",
+          "code": "S_HSCRP",
+          "assigned_by": "source"
+        }
+      ],
       "note": null,
       "quarantined": false,
-      "sources": ["src-7c1e"]
+      "sources": [
+        "src-7c1e"
+      ]
     },
     {
       "id": "f-0b19e4",
@@ -121,17 +162,28 @@
         "as_of": "2.6.2022",
         "at_diagnosis": true
       },
-      "date": { "as_written": "2.6.2022", "precision": "day", "sort": "2022-06-02" },
+      "date": {
+        "as_written": "2.6.2022",
+        "precision": "day",
+        "sort": "2022-06-02"
+      },
       "status": "documented",
       "negated": false,
-      "not_stated": ["edition"],
+      "not_stated": [
+        "edition"
+      ],
       "origin": "document",
       "certainty": "verify",
-      "certainty_reason": { "code": "ocr_char_swap", "text": "V textu „MO“, čteno jako M0." },
+      "certainty_reason": {
+        "code": "ocr_char_swap",
+        "text": "V textu „MO“, čteno jako M0."
+      },
       "codes": [],
       "note": null,
       "quarantined": false,
-      "sources": ["src-0001"]
+      "sources": [
+        "src-0001"
+      ]
     },
     {
       "id": "f-3c90de",
@@ -143,24 +195,40 @@
         "request_kind": "consultation",
         "result_fact": null
       },
-      "date": { "as_written": null, "precision": null, "sort": null },
+      "date": {
+        "as_written": null,
+        "precision": null,
+        "sort": null
+      },
       "status": "requested",
       "negated": false,
-      "not_stated": ["date"],
+      "not_stated": [
+        "date"
+      ],
       "origin": "document",
       "certainty": "clear",
       "codes": [],
       "note": null,
       "quarantined": false,
-      "sources": ["src-0041"]
+      "sources": [
+        "src-0041"
+      ]
     },
     {
       "id": "f-5a0b11",
       "key": "performance_status|ecog|undated",
       "kind": "performance_status",
       "subject": "patient",
-      "value": { "scale": "ECOG", "value_as_written": "1", "value_numeric": 1 },
-      "date": { "as_written": null, "precision": null, "sort": null },
+      "value": {
+        "scale": "ECOG",
+        "value_as_written": "1",
+        "value_numeric": 1
+      },
+      "date": {
+        "as_written": null,
+        "precision": null,
+        "sort": null
+      },
       "status": "documented",
       "negated": false,
       "not_stated": [],
@@ -169,15 +237,26 @@
       "codes": [],
       "note": null,
       "quarantined": false,
-      "sources": ["src-0042"]
+      "sources": [
+        "src-0042"
+      ]
     },
     {
       "id": "f-5a0b12",
       "key": "metastasis|mozek|undated",
       "kind": "metastasis",
       "subject": "patient",
-      "value": { "site": "mozek", "status": "excluded", "basis": "clinical", "text": "bez klinických známek mozkových metastáz" },
-      "date": { "as_written": null, "precision": null, "sort": null },
+      "value": {
+        "site": "mozek",
+        "status": "excluded",
+        "basis": "clinical",
+        "text": "bez klinických známek mozkových metastáz"
+      },
+      "date": {
+        "as_written": null,
+        "precision": null,
+        "sort": null
+      },
       "status": "documented",
       "negated": true,
       "not_stated": [],
@@ -186,7 +265,9 @@
       "codes": [],
       "note": null,
       "quarantined": false,
-      "sources": ["src-0042"]
+      "sources": [
+        "src-0042"
+      ]
     },
     {
       "id": "f-6e2201",
@@ -204,18 +285,34 @@
         "reference_high": 104,
         "out_of_range": "high",
         "out_of_range_origin": "document",
-        "draw": { "as_written": "2026-09-17", "requisition": null, "specimen": "sérum" }
+        "draw": {
+          "as_written": "2026-09-17",
+          "requisition": null,
+          "specimen": "sérum"
+        }
       },
-      "date": { "as_written": "2026-09-17", "precision": "day", "sort": "2026-09-17" },
+      "date": {
+        "as_written": "2026-09-17",
+        "precision": "day",
+        "sort": "2026-09-17"
+      },
       "status": "documented",
       "negated": false,
       "not_stated": [],
       "origin": "nis",
       "certainty": "clear",
-      "codes": [{ "system": "fno-local-lab", "code": "S_CREA", "assigned_by": "source" }],
+      "codes": [
+        {
+          "system": "fno-local-lab",
+          "code": "S_CREA",
+          "assigned_by": "source"
+        }
+      ],
       "note": null,
       "quarantined": false,
-      "sources": ["src-nis-41"]
+      "sources": [
+        "src-nis-41"
+      ]
     },
     {
       "id": "f-9f0001",
@@ -230,7 +327,11 @@
         "from_precision": "day",
         "to_precision": "day"
       },
-      "date": { "as_written": null, "precision": null, "sort": null },
+      "date": {
+        "as_written": null,
+        "precision": null,
+        "sort": null
+      },
       "status": "documented",
       "negated": false,
       "not_stated": [],
@@ -240,7 +341,10 @@
       "note": null,
       "quarantined": false,
       "sources": [],
-      "based_on": ["f-0b19e4", "f-6e2201"]
+      "based_on": [
+        "f-0b19e4",
+        "f-6e2201"
+      ]
     }
   ],
   "checks": [
@@ -249,17 +353,34 @@
       "looks_for": "allergy",
       "expected": null,
       "covered": [
-        { "document_id": "10_pacient", "part": "10_pacient/p0" },
-        { "document_id": "10_pacient", "part": "10_pacient/p1" }
+        {
+          "document_id": "10_pacient",
+          "part": "10_pacient/p0"
+        },
+        {
+          "document_id": "10_pacient",
+          "part": "10_pacient/p1"
+        }
       ],
-      "unreadable": [{ "document_id": "10_pacient", "part": "10_pacient/p2", "page": 4 }],
+      "unreadable": [
+        {
+          "document_id": "10_pacient",
+          "part": "10_pacient/p2",
+          "page": 4
+        }
+      ],
       "result": "nothing_found"
     },
     {
       "id": "chk-lab_result",
       "looks_for": "lab_result",
       "expected": null,
-      "covered": [{ "document_id": "10_pacient", "part": "10_pacient/p2" }],
+      "covered": [
+        {
+          "document_id": "10_pacient",
+          "part": "10_pacient/p2"
+        }
+      ],
       "unreadable": [],
       "result": "found"
     }
@@ -270,8 +391,15 @@
       "rule": "request_without_result",
       "subject": "f-3c90de",
       "kind": "missing",
-      "facts": ["f-3c90de"],
-      "message": { "id": "alert-request-without-result", "args": { "fact": "f-3c90de" } },
+      "facts": [
+        "f-3c90de"
+      ],
+      "message": {
+        "id": "alert-request-without-result",
+        "args": {
+          "fact": "f-3c90de"
+        }
+      },
       "note": null
     }
   ],
@@ -279,14 +407,70 @@
     "sentences": [
       {
         "text": "Patologické stadium pT2a pN1 M0 z 2.6.2022.",
-        "facts": ["f-0b19e4"]
+        "facts": [
+          "f-0b19e4"
+        ]
       }
     ],
-    "made_by": { "model": null, "prompt": null }
+    "made_by": {
+      "model": null,
+      "prompt": null
+    }
   },
   "question_draft": {
     "text": "Jaký postup doporučuje neurochirurgický seminář u solitárního ložiska v pravé mozečkové hemisféře?",
     "question_kind": "document_purpose",
-    "basis": [{ "role": "purpose", "facts": ["f-3c90de"] }]
+    "basis": [
+      {
+        "role": "purpose",
+        "facts": [
+          "f-3c90de"
+        ]
+      }
+    ]
+  },
+  "views": {
+    "onco_lines": [
+      {
+        "id": "vl-14d38b72",
+        "text": "pT2a pN1 M0, patologické stadium při diagnóze 2.6.2022",
+        "title": null,
+        "detail": null,
+        "date": {
+          "as_written": "2.6.2022",
+          "precision": "day",
+          "sort": "2022-06-02"
+        },
+        "category": "pathology",
+        "status": "documented",
+        "facts": [
+          "f-0b19e4"
+        ],
+        "note": null
+      }
+    ],
+    "timeline": [
+      {
+        "id": "vl-d47e2447",
+        "text": "nález MR mozku zadán k projednání",
+        "title": "Neurochirurgický seminář",
+        "detail": "Ošetřující lékař zadal nález MR mozku k projednání na neurochirurgickém semináři.",
+        "date": {
+          "as_written": null,
+          "precision": null,
+          "sort": null
+        },
+        "category": "mdt",
+        "status": "requested",
+        "facts": [
+          "f-3c90de"
+        ],
+        "note": "Termín v dokumentaci neuveden."
+      }
+    ],
+    "made_by": {
+      "model": null,
+      "prompt": null
+    }
   }
 }

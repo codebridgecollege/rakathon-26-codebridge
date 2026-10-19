@@ -31,7 +31,7 @@ REPO = HERE.parents[1]
 sys.path.insert(0, str(REPO / "pipeline"))
 sys.path.insert(0, str(HERE))
 
-from extraction_format import alert_id, assign_fact_ids, pair_subject, source_id_for, validate_run  # noqa: E402
+from extraction_format import alert_id, assign_fact_ids, pair_subject, source_id_for, validate_run, view_line_id  # noqa: E402
 
 import case10_v2 as C10  # noqa: E402
 from spec import AlertSpec, Q, Spec  # noqa: E402
@@ -599,8 +599,55 @@ def build_case10(report: dict[str, Any]) -> tuple[dict[str, Any], dict[str, str]
     mq = case["mdt_question"]
     run["question_draft"] = {"text": mq["question_draft_cs"], "question_kind": mq["question_kind"],
                              "basis": [{"role": role, "facts": [ids[h] for h in hs]} for role, hs in C10.QUESTION_BASIS]}
+    run["views"] = compose_views_case10(run, ids)
     report["view_coverage"] = view_coverage_case10(b)
     return run, ids, b
+
+
+# Today's line kinds as the view's event categories. A planned compact line is filed by what it plans (as the view's
+# compactKind did): a line about a drug or a treatment line is systemic, any other plan clinical.
+CATEGORY = {"surgery": "surgery", "imaging": "imaging", "systemic": "systemic", "pathology": "pathology", "mdt": "mdt",
+            "diagnosis": "clinical", "visit": "clinical"}
+PLAN_SYSTEMIC = re.compile(r"everolim|sunitinib|nivolumab|ipilimumab|kabozantinib|cabozantinib|linie", re.IGNORECASE)
+
+
+def view_line(view: str, facts: list[str], text: str, title: str | None, detail: str | None, sort: str | None,
+              by_id: dict[str, dict[str, Any]], category: str, status: str, note: str | None) -> dict[str, Any]:
+    """One composed line. Its date is the date of the first of its facts filed under the line's day (today's date_sort),
+    kept as that fact writes it; a line without a date stays undated."""
+    date = {"as_written": None, "precision": None, "sort": None}
+    if sort:
+        match = next((by_id[f]["date"] for f in facts if by_id[f]["date"]["sort"] == sort), None)
+        if match is None:
+            raise SystemExit(f"{view}: no fact of the line is dated {sort}")
+        date = match
+    return {"id": view_line_id(view, facts), "text": text, "title": title, "detail": detail, "date": date,
+            "category": category, "status": status, "facts": facts, "note": note}
+
+
+def compose_views_case10(run: dict[str, Any], ids: dict[str, str]) -> dict[str, Any]:
+    """Today's onco lines, timeline cards and other diagnoses in today's wording, each pointing at the facts it states
+    (case10_v2.ONCO_LINES, TIMELINE_CARDS, OTHER_DX). The validator checks them like brief sentences."""
+    extra = C10.EXTRA
+    by_id = {f["id"]: f for f in run["facts"]}
+    lines = extra["onco_compact_v3"]["lines"]
+    cards = extra["timeline_cards_v3"]
+    if len(lines) != len(C10.ONCO_LINES) or len(cards) != len(C10.TIMELINE_CARDS):
+        raise SystemExit("case 10 views: the fact lists do not match today's lines and cards")
+    onco = []
+    for line, handles in zip(lines, C10.ONCO_LINES):
+        planned = line["kind"] == "plan"
+        category = ("systemic" if PLAN_SYSTEMIC.search(line["text_cs"]) else "clinical") if planned else CATEGORY[line["kind"]]
+        onco.append(view_line("onco_lines", [ids[h] for h in handles], line["text_cs"], None, None, line.get("date_sort"), by_id,
+                              category, "planned" if planned else "done", line.get("note_cs")))
+    timeline = []
+    for card, handles in zip(cards, C10.TIMELINE_CARDS):
+        status = "planned" if card["status"] == "planned" else "done"
+        timeline.append(view_line("timeline", [ids[h] for h in handles], card["text_cs"], card["title_cs"], card.get("detail_cs"),
+                                  card.get("date_sort"), by_id, CATEGORY[card["kind"]], status, card.get("note_cs")))
+    other = extra["onco_compact_v3"]["other_dx_cs"]
+    others = [view_line("other_diagnoses", [ids[h] for h in C10.OTHER_DX], other, None, None, None, by_id, "clinical", "documented", None)]
+    return {"onco_lines": onco, "other_diagnoses": others, "timeline": timeline, "made_by": {"model": None, "prompt": None}}
 
 
 def visit_specs(visits: list[tuple[Spec, list[str]]]) -> list[Spec]:
@@ -708,6 +755,7 @@ def build_synthetic(cfg: dict[str, Any], report: dict[str, Any]) -> tuple[dict[s
     run["alerts"] = resolve_alerts(cfg["alerts"], ids, lab_ids)
     run["brief"] = None
     run["question_draft"] = None
+    run["views"] = None
     # Today's gaps, each mapped to the alerts that replace it.
     report["gaps"] = [{"old": f"data_gaps[{i}]", "text": g["text_cs"]} for i, g in enumerate(s["data_gaps"])]
     return run, ids, b

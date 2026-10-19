@@ -269,3 +269,8 @@ def pair_subject(a: str, b: str) -> str:
 def alert_id(alert: Mapping[str, Any]) -> str:
     """The alert ID: the rule plus its subject, nothing else."""
     return "al-" + fnv1a32(f"{alert['rule']}|{alert['subject']}")
+
+
+def view_line_id(view: str, facts: list[str]) -> str:
+    """The ID of a composed view line: the view's name and the line's facts, sorted, nothing else (viewLineId)."""
+    return "vl-" + fnv1a32(f"{view}|{'|'.join(sorted(facts))}")

@@ -63,9 +63,12 @@ run, and one that cannot follow is shown, never dropped.
   "checks": [ ],
   "alerts": [ ],
   "brief": { },
-  "question_draft": { }
+  "question_draft": { },
+  "views": { }
 }
 ```
+
+`views` is optional (see "Composed views").
 
 - **`content_language`** is the language of the documents. Assistant text in the run stays in that language (I18N decision, 2026-10-18), with one exception: alert texts, which are Fluent messages and follow the UI language (see "Alerts").
 - **No patient identity in the run.** Name, birth number and birth date live only in D1 `patients` (DATA-PROTECTION.md). The run refers to the case by ID. Quotes are the exception: they are verbatim, and if a quote happens to contain a name, it stays as written, as today.
@@ -407,7 +410,63 @@ facts:
 - every negation in the sentence is backed by a negated fact ("jiná ložiska … nejsou" needs one);
 - every side (vpravo, vlevo) and every drug name is backed by a fact.
 
-A sentence that fails, or has no facts, is dropped.
+A sentence that fails, or has no facts, is dropped. The validator checks
+the dates, numbers, negations and sides (see "Composed views" for how);
+drug names stay the producer's check, because the format has no drug list.
+A producer that wrote briefs before this check must pass it now.
+
+## Composed views
+
+A clinician's summary line often states several facts at once: "St. p.
+nivolumab + ipilimumab, 2 cykly ze 4 indikovaných, dle IMDC střední
+prognóza; po 2. cyklu gastrointestinální toxicita 1. stupně" is a therapy,
+a prognostic score and two adverse events. Computed fact by fact, the
+oncology summary of case 10 would have about 48 lines instead of 16. A
+producer may therefore add composed lines: its own wording for one or more
+facts, checked against them like brief sentences.
+
+```json
+{
+  "onco_lines": [
+    {
+      "id": "vl-3f0c9a12",
+      "text": "St. p. udržovací léčbě nivolumabem do 29.12.2025, dle CT 6/2023 až 6/2025 iPR",
+      "title": null,
+      "detail": null,
+      "date": { "as_written": "27.6.2023", "precision": "day", "sort": "2023-06-27" },
+      "category": "systemic",
+      "status": "done",
+      "facts": ["f-49b84a6d", "f-8425851b", "f-a71c1101"],
+      "note": "Důvod ukončení výslovně neuveden; CT 11/2025 hodnoceno jako progrese."
+    }
+  ],
+  "other_diagnoses": [ ],
+  "timeline": [ ],
+  "made_by": { "model": null, "prompt": null }
+}
+```
+
+- **Optional.** `views` and each list in it may be absent. A run without a list is shown fact by fact (see "How the case view uses it"), so a new patient's run needs none. Each list present is the whole view, in display order.
+- **The lists:** `onco_lines` (the oncology summary), `other_diagnoses` (the line of other diagnoses beside it), `timeline` (the timeline cards; `title` is the card's heading and `detail` its longer text, both null on a summary line).
+- **`date`** is the date the line is filed under, as one of its facts writes it; a partial date stays partial. **`category`** is one of the timeline's event categories (`imaging`, `systemic`, `medication`, `mdt`, `surgery`, `pathology`, `radiotherapy`, `laboratory`, `clinical`). **`status`** uses the fact statuses, so a planned or requested line never reads as performed.
+- **`id`** is `vl-` and the FNV-1a hash of the view's name and the sorted fact IDs (`viewLineId` in keys.ts). A doctor's edit of a line is keyed by it, so it follows the facts, not the line's position. When a later run composes the line from other facts, the line gets a new ID and the old edit shows in the "potvrzeno dříve, v novém zpracování chybí" list, never on another line.
+- **`note`** is the assistant's note on the line, in the content language.
+- **The text adds nothing.** The validator rejects a line, in its `text`, `title` and `detail`, that holds:
+  - a date none of its facts holds ("6/2022" is backed by a fact dated 2.6.2022; "14.9.2026" is not backed by "9/2026"; "14.9.25", "14.9." and "září 2026" are dates too);
+  - a number none of its facts holds ("37,5" and "37.5" are one number; digits glued to a letter, such as "G2" or "pT2a", are a code, not a number). A number with a unit ("5 mg", "3 mm", "24 %", "2 cykly") needs the same number with the same unit, so "3. linie" does not back "3 mg";
+  - a negation ("bez", "není", "nejsou", "neguje", "nepřibyla", "neprokázány", "žádná", ...) when none of its facts is negated and none states the same word ("eupnoe, bez cyanózy" in an exam finding); inflected forms count as one word;
+  - no negation at all when every one of its facts is a recorded negative ("plicní embolie" over a negated fact);
+  - a side (vpravo, vlevo, pravý, levý, oboustranně) none of its facts states.
+
+  What backs a line is what its facts say: their values, codes, dates and quoted passages. A fact's `note` and `certainty_reason` are the assistant's words and back nothing. The same check applies to brief sentences. It guards against invented content; it is not a proof that the wording is right (a negation word or a number may be backed by another statement among the same facts), and drug names are not checked.
+- **The line follows its facts.** Its `date` is the date of one of its facts; a `planned` or `requested` line rests on a planned or requested fact, and a line over planned facts only is never `done`.
+- **Facts must exist and must not be quarantined**, and a line needs at least one fact. The view shows a line or a brief sentence only when it may show every fact it rests on, so a quarantined fact never shows through a line's wording.
+- **Deploying.** A validator from before `views` rejects a run that has them (unknown fields are refused), so the code that validates runs ships before or with the first producer that writes them.
+
+The converted case 10 carries today's 16 oncology lines, the other
+diagnoses and the 16 timeline cards this way (`fixtures/convert/case10_v2.py`,
+`ONCO_LINES`, `TIMELINE_CARDS`, `OTHER_DX`). A composition step of the
+pipeline can write the same lists later.
 
 ## The drafted MDT question
 
@@ -433,11 +492,12 @@ therefore not a whole run and need not pass `validateRun`; the stored run does.
 | View part | Computed from |
 |---|---|
 | Diagnosis headline | `diagnosis` + `histology` + `stage` facts, the stage shown with its kind and date ("pT2a pN1 M0, patologické stadium při diagnóze, 2.6.2022") |
-| Oncology lines | `procedure`, `systemic_therapy`, `radiotherapy`, `imaging`, `metastasis`, `decision`, `plan` facts, by date, with their `note` |
-| Timeline | every dated fact, by `date.sort`; undated under "Bez data"; `plan` and `request` facts marked as planned or requested; `visit` facts as their own entries (a visit or a stay, with its end when given), marked planned when planned |
+| Oncology lines | `views.onco_lines` when the run has it; otherwise one line per `procedure`, `systemic_therapy`, `radiotherapy`, `imaging`, `metastasis`, `decision`, `plan` fact, by date, with its `note` |
+| Other diagnoses | `views.other_diagnoses` when the run has it; otherwise the non-primary `diagnosis` facts and the `comorbidity` facts |
+| Timeline | `views.timeline` when the run has it; otherwise every dated fact of an event kind (the oncology kinds, `histology`, `diagnosis`, `request`, `visit`), by `date.sort`; undated under "Bez data"; `plan` and `request` facts marked as planned or requested; `visit` facts as their own entries (a visit or a stay, with its end when given), marked planned when planned |
 | Labs | `lab_result` facts grouped by code into series with `value_numeric`. Every case can show a trend, and a single value shows as a table row. |
-| Anamnesis | `comorbidity`, `medication`, `contraindication`, `allergy`, `risk_factor`, `family_history` facts, each section with its check |
-| Current state | `vital_sign`, `performance_status`, `exam_finding`, `symptom` facts. No more matching of Czech label strings. |
+| Anamnesis | `comorbidity`, `medication`, `contraindication`, `allergy`, `risk_factor`, `family_history` facts, each section with its check. A check that found facts of its kind none of which the section lists (the risk-factor check behind both abusus and EA) shows that section as nothing found. A negated fact whose text does not say the negation carries a negation label, here and in every other view part. |
+| Current state | `vital_sign`, `performance_status`, `exam_finding`, `symptom` facts (and a clinically excluded metastasis) of one exam, grouped by kind; no more matching of Czech label strings. The exam is the document part holding the most undated state findings (the current exam's findings carry no date of their own, an older exam quoted beside them does), else the part of the latest dated ones; that part's `visit` fact names it. Known limit: when a producer dates the current exam, an older part with undated findings wins; a producer-marked current visit would replace this rule (OPEN_QUESTIONS.md). |
 | Alerts | `alerts`, with the facts each rests on |
 | Brief | `brief.sentences` |
 | Source viewer | the fact's sources: a document page with the highlighted passage and its "ověřit" tokens, or the NIS record |
@@ -647,7 +707,8 @@ refresh route come with the run publishing (stream A part 2, stream B).
   - `subject: relative` outside `family_history`, and `family_history` about the patient;
   - a check for a fact kind that says `nothing_found` while such facts exist, or `found` with none;
   - a quarantined fact used anywhere outside its identity alert (brief, question, other alerts and their subjects, checks, intervals);
-  - a contradiction between facts of different kinds.
+  - a contradiction between facts of different kinds;
+  - a brief sentence or a composed line whose dates, numbers, negations or sides its facts do not hold, a composed line without facts, and a line ID that does not follow from its view and facts.
 
   Issue messages name fact IDs and field names, never patient text, so callers may log them; act on the code and the path.
 - **Code.** TypeScript: `packages/domain/src/extraction` (types, keys and IDs, the matcher, the validator); the schema is generated into `packages/domain/schema/extraction-2.schema.json` by `npm run schema -w @codebridge/domain`, and a test fails when the checked-in file is stale. Python: `pipeline/extraction_format`, the same functions and issue codes, validating with `jsonschema` against the same file (`CODEBRIDGE_EXTRACTION_SCHEMA` overrides the path where `packages/` is not present, such as the page-reader container). Both sides test against `packages/domain/test/extraction-key-vectors.json`; regenerate it (`npx jiti packages/domain/scripts/extraction-key-vectors.ts`) only on a deliberate change; it also holds matcher scenarios, so the two matchers give the same IDs.
