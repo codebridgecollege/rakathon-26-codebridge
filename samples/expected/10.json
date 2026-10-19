@@ -1,0 +1,18 @@
+{
+  "schema": "codebridge.eval-expected/1",
+  "case": "10",
+  "about": "Reference case: FNO's synthetic patient 10 (data/rakathon-26), the case the demo is built on",
+  "documents": [{"document_id": "10_pacient", "pages_dir": "data/derived/pages/10_pacient"}],
+  "reference_labs": "fixtures/data/mock-case-10.json",
+  "expectations": [
+    {"id": "10-nch-seminar-requested", "failure_kind": "request_without_result", "expect": "present",
+     "about": "The MRI finding was sent to the neurosurgical seminar; the seminar's result is not in the documents",
+     "fact": {"kind": "request", "status": "requested", "value.result_fact": null, "source.quote": {"regex": "NCH semin"}}},
+    {"id": "10-nch-seminar-alert", "failure_kind": "request_without_result", "expect": "present",
+     "about": "The request without a result raises the request_without_result alert",
+     "alert": {"rule": "request_without_result", "fact.kind": "request"}, "needs": ["request"]},
+    {"id": "10-lab-sheet-undated", "failure_kind": "wrong_date", "expect": "absent",
+     "about": "Patient 10's lab sheet prints no draw date: no lab value gets a date",
+     "fact": {"kind": "lab_result", "date.sort": {"ne": null}}}
+  ]
+}

@@ -1,0 +1,36 @@
+# Tests the document pipeline (pipeline/page_reader) and runs the evaluation over the sample cases
+# (pipeline/eval.py, expected outputs in samples/expected/). A new failure against a CLAUDE.md failure case, or a
+# known failure that now passes without its mark removed, fails the run.
+name: Pipeline
+
+# The evaluation reads the stored page readings (data/derived, samples/derived), the samples and the prepared cases.
+on:
+  push:
+    branches: [main]
+    paths: ["pipeline/**", "samples/**", "data/derived/**", "fixtures/data/**", ".github/workflows/pipeline.yml"]
+  pull_request:
+    paths: ["pipeline/**", "samples/**", "data/derived/**", "fixtures/data/**", ".github/workflows/pipeline.yml"]
+  workflow_dispatch:
+
+concurrency:
+  group: pipeline-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: pipeline
+    steps:
+      - uses: actions/checkout@v4
+      # The OCR path tests run Tesseract live on the S02 upload PDFs; the other tests read stored output.
+      - name: Install Tesseract with the Czech model
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends tesseract-ocr tesseract-ocr-ces
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.12.0"
+      - name: Tests
+        run: uv run --locked pytest -q
+      - name: Evaluation
+        run: uv run --locked python eval.py --check

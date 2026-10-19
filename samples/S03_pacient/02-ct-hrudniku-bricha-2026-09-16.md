@@ -1,0 +1,21 @@
+Radiodiagnostické oddělení
+
+# CT hrudníku a břicha s k. l.
+
+**Klenovský Bořivoj**, nar. 7.11.1957, r.č. 571107/1003, poj. 211
+Datum vyšetření: 16.9.2026, popis: 17.9.2026
+Indikace: tumor PHL, staging
+
+*Popis:*
+V pravém horním laloku solidní ložisko 38 x 29 mm se spikulacemi, bez kontaktu s hrudní stěnou.
+Hilové a mediastinální uzliny nezvětšené, do 8 mm v krátké ose.
+Pleurální výpotek není. Centrilobulární emfyzém v obou horních lalocích.
+Játra normální velikosti, homogenní struktury. Metastatické postižení jater neprokázáno.
+Nadledviny štíhlé, bez ložisek. Ledviny bez městnání.
+Skelet bez osteolytických a osteoplastických ložisek.
+
+*Závěr:*
+Tumor pravého horního laloku 38 mm, bez zvětšených uzlin, bez známek vzdálených metastáz.
+Klasifikace: cT2a cN0 cM0.
+
+MUDr. Petr Vavřinec, radiodiagnostické oddělení

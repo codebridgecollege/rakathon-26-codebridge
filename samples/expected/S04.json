@@ -1,0 +1,39 @@
+{
+  "schema": "codebridge.eval-expected/1",
+  "case": "S04",
+  "about": "Two patients in one referral: page 4 is another woman's CT (samples/S04_pacient)",
+  "documents": [{"document_id": "S04_pacient", "pages_dir": "samples/derived/pages/S04_pacient"}],
+  "labs": [
+    {"code": "B_LKC", "page": 5, "value": "6,48", "unit": "10^9/l", "date": "2026-10-01", "time": "07:35"},
+    {"code": "B_HB", "page": 5, "value": "132", "unit": "g/l", "date": "2026-10-01", "time": "07:35"},
+    {"code": "B_PLT", "page": 5, "value": "254", "unit": "10^9/l", "date": "2026-10-01", "time": "07:35"},
+    {"code": "S_CREAE", "page": 5, "value": "71", "unit": "µmol/l", "date": "2026-10-01", "time": "07:35"},
+    {"code": "S_BIL", "page": 5, "value": "9,2", "unit": "µmol/l", "date": "2026-10-01", "time": "07:35"},
+    {"code": "S_ALT", "page": 5, "value": "0,31", "unit": "µkat/l", "date": "2026-10-01", "time": "07:35"},
+    {"code": "S_AST", "page": 5, "value": "0,29", "unit": "µkat/l", "date": "2026-10-01", "time": "07:35"},
+    {"code": "S_ALP", "page": 5, "value": "1,12", "unit": "µkat/l", "date": "2026-10-01", "time": "07:35"}
+  ],
+  "expectations": [
+    {"id": "S04-identity-alert", "failure_kind": "patients_mixed_up", "expect": "present",
+     "about": "Page 4 shows another patient (Vrbenská Lenka, other birth number): an identity alert names the page",
+     "alert": {"kind": "identity"}},
+    {"id": "S04-page-4-quarantined", "failure_kind": "patients_mixed_up", "expect": "absent",
+     "about": "No fact from page 4 is shown: every one is quarantined",
+     "fact": {"source.page": 4, "quarantined": false}, "needs": ["identity"]},
+    {"id": "S04-page-4-identity-conflicts", "failure_kind": "patients_mixed_up", "expect": "present",
+     "about": "The source on page 4 records identity: conflicts",
+     "fact": {"source.page": 4, "source.identity": "conflicts"}, "needs": ["identity"]},
+    {"id": "S04-no-liver-metastases", "failure_kind": "patients_mixed_up", "expect": "absent",
+     "about": "The other woman's liver and bone metastases never become this patient's (her CT of 22.9.2026 has none)",
+     "fact": {"kind": "metastasis", "value.status": "confirmed", "quarantined": false}, "needs": ["identity", "metastasis"]},
+    {"id": "S04-own-pages-not-quarantined", "failure_kind": "patients_mixed_up", "expect": "absent",
+     "about": "Facts from the patient's own pages (1-3, 5) are not quarantined",
+     "fact": {"source.page": {"in": [1, 2, 3, 5]}, "quarantined": true}, "needs": ["identity"]},
+    {"id": "S04-diagnosis", "failure_kind": "critical_fact_left_out", "expect": "present",
+     "about": "The diagnosis C50.4 invasive carcinoma of the left breast, confirmed by histology",
+     "fact": {"kind": "diagnosis", "codes.code": "C50.4", "value.disease_status": "confirmed_histology"}},
+    {"id": "S04-mammography-report-missing", "failure_kind": "report_missing", "expect": "present",
+     "about": "Mammography and ultrasound of 2.9.2026 are only quoted (popis z NIS)",
+     "alert": {"kind": "missing", "fact.kind": "imaging", "fact.date.sort": "2026-09-02"}}
+  ]
+}

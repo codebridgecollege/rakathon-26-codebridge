@@ -1,0 +1,21 @@
+Laboratoř klinické biochemie a hematologie
+Výsledky laboratorních vyšetření
+Vrbenská Ludmila, nar. 3.2.1961, r.č. 615203/1006, poj. 207
+Žádající: mammologická poradna, MUDr. Markéta Jedličková
+Odběr: 1.10.2026 07:35, příjem vzorku: 1.10.2026 07:58, vydáno: 1.10.2026 09:40
+Č. žádanky: S04-261001-01
+Primární vzorek: krev, sérum
+Krevní obraz:
+B_LKC: 6,48 10^9/l [4 ... 10]
+B_HB: 132 g/l [120 ... 160]
+B_PLT: 254 10^9/l [150 ... 400]
+Sérum, plazma - dusík. metab.:
+S_CREAE: 71 µmol/l [44 ... 80]
+Sérum, plazma - jaterní testy:
+S_BIL: 9,2 µmol/l [0 ... 21]
+S_ALT: 0,31 µkat/l [0.17 ... 0.58]
+S_AST: 0,29 µkat/l [0.17 ... 0.58]
+S_ALP: 1,12 µkat/l [0.58 ... 1.74]
+Hodnoty mimo referenční mez jsou vytištěny tučně.
+Uvolnila: Mgr. Jitka Rybízková, klinická biochemička
+SYNTETICKÝ DOKUMENT - fiktivní pacient, vytvořeno týmem CodeBridge pro Rakathon 2026 · strana 5

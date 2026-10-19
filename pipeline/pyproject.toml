@@ -1,6 +1,7 @@
 # page-reader: the deterministic document pipeline (render, OCR, page index, readability, labs, redaction).
 #
 #   cd pipeline && uv run pytest -q            # tests; the OCR tests need tesseract with the ces model
+#   cd pipeline && uv run python eval.py --check   # evaluation against samples/expected (CI runs both)
 #   cd pipeline && uv run python container/server.py --port 8080   # the container's HTTP API locally
 #   uv export --no-dev --format requirements-txt --no-emit-project > requirements.lock   # after uv lock
 #
