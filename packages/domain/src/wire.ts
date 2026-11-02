@@ -40,7 +40,9 @@ export type MembershipRef = { id: string; org: OrgRef; role: Role; fn: string; d
 // name with that membership's role and department), every active membership of the person, and the active org with
 // its data epoch.
 export type Me = {
-  user: { id: string; name: string; role: Role; dept: { id: string; name: string } | null };
+  // administers: the membership may do what the administrator does (the administrator by role, or a doctor who also
+  // administers the org); the page shows the administration and staff editing by it.
+  user: { id: string; name: string; role: Role; administers: boolean; dept: { id: string; name: string } | null };
   membership_id: string;
   memberships: MembershipRef[];
   org: OrgRef;
@@ -62,12 +64,12 @@ export type Me = {
   features: { pipeline: boolean; keeps_uploads: boolean };
 };
 
-export type RoleSwitchEntry = { membership_id: string; name: string; role: Role; fn: string; own: boolean };
+export type RoleSwitchEntry = { membership_id: string; name: string; role: Role; fn: string; administers: boolean; own: boolean };
 
 // GET /demo/memberships (AUTH_MODE=demo only): the picker's entries, grouped by org. An entry is a membership, so a
 // person in two orgs appears once in each; its id is what X-Demo-User sends.
 export type DemoPicker = {
-  orgs: (OrgRef & { people: { id: string; user_id: string; name: string; role: Role; fn: string; dept: string | null }[] })[];
+  orgs: (OrgRef & { people: { id: string; user_id: string; name: string; role: Role; fn: string; administers: boolean; dept: string | null }[] })[];
 };
 
 export type StaffPerson = { id: string; pre: string; sur: string; post: string; fn: string };

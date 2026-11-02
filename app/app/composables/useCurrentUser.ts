@@ -13,7 +13,8 @@ export function useCurrentUser() {
   const role = computed(() => session.me?.user.role ?? null);
   const isDoctor = computed(() => role.value === "doctor");
   const isCoordinator = computed(() => role.value === "coordinator");
-  const isAdmin = computed(() => role.value === "admin");
+  // The administrator, or a doctor who also administers the org (Me.user.administers): either sees the administration.
+  const isAdmin = computed(() => session.me?.user.administers ?? role.value === "admin");
   // Doctors and the coordinator run the cases (status, slots, sessions, attendance, task done); the administrator reads.
   const canRunCases = computed(() => isDoctor.value || isCoordinator.value);
   // The coordinator and the administrator edit the staff list; doctors read it.

@@ -32,7 +32,7 @@ beforeEach(() => {
   pinia = createPinia();
   setActivePinia(pinia);
   document.body.innerHTML = '<div id="overlay"></div><div id="phoneup" class="phonelayer"></div>';
-  useSessionStore().me = { user: { id: "d2p1", name: "MUDr. Svobodová", role: "doctor", dept: null }, ...meOrg("d2p1"), auth_mode: "demo", impersonating: false, notice_cs: null };
+  useSessionStore().me = { user: { id: "d2p1", name: "MUDr. Svobodová", role: "doctor", administers: false, dept: null }, ...meOrg("d2p1"), auth_mode: "demo", impersonating: false, notice_cs: null };
   setApi(mockApi({}).api);
 });
 

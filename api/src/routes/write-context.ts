@@ -26,7 +26,7 @@ export const work = (c: Context<AppEnv>) => new D1Work(c.env.DB, c.var.viewer.or
 // A read in the viewer's org: sql names the org as ?org and uses numbered parameters.
 export const orgQuery = (c: Context<AppEnv>, sql: string, ...args: unknown[]) => orgStmt(c.env.DB, c.var.viewer.org, sql, ...args);
 
-export const actorOf = (c: Context<AppEnv>): Actor => ({ id: c.var.viewer.id, name: c.var.viewer.name, role: c.var.viewer.role });
+export const actorOf = (c: Context<AppEnv>): Actor => ({ id: c.var.viewer.id, name: c.var.viewer.name, role: c.var.viewer.role, administers: c.var.viewer.administers });
 
 export function tx(c: Context<AppEnv>, breakGlass: string | null = null) {
   return new Tx(c.env.DB, c.var.viewer, { requestId: c.req.header("cf-ray") ?? null, epoch: c.var.epoch ?? null, breakGlass });

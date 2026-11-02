@@ -3,7 +3,8 @@
 import { D } from "@codebridge/domain/errors";
 import { staffName } from "./rows";
 
-export type StaffUser = { id: string; pre: string; sur: string; post: string; fn: string; role: string; active: number };
+// administers: 1 when the membership also administers the org (memberships.administers).
+export type StaffUser = { id: string; pre: string; sur: string; post: string; fn: string; role: string; active: number; administers?: number };
 
 export const nameTaken = (name: string, users: StaffUser[], exceptId?: string) =>
   users.some((u) => u.active === 1 && u.id !== exceptId && staffName(u).toLowerCase() === name.toLowerCase());
@@ -41,8 +42,9 @@ export function validateDeptName(name: unknown, depts: { name: string }[]): stri
 
 export function removePerson(u: StaffUser, actorId: string): void {
   if (u.id === actorId) throw D.cannotRemoveSelf();
-  // The coordinator and the administrator are roles, not department staff; the staff screen cannot remove them.
-  if (u.role === "coordinator" || u.role === "admin") throw D.roleForbidden();
+  // The coordinator and the administrator are roles, not department staff; the staff screen cannot remove them. A
+  // doctor who administers the org counts as its administrator here, so the org never loses its demo login this way.
+  if (u.role === "coordinator" || u.role === "admin" || u.administers === 1) throw D.roleForbidden();
 }
 
 // The fictional default staff lives in the shared package, so the app reads the same list.

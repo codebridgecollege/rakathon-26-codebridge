@@ -46,7 +46,8 @@ export async function checkServer(base: string): Promise<void> {
   }
 }
 
-// The administrators of the two demo orgs (api/seed/seed.py). A reset acts in the org of the user who asks for it.
+// The administrators of the two demo orgs (api/seed/seed.py): org A's by role, org B's a doctor who also administers
+// the org. A reset acts in the org of the user who asks for it.
 export const ORG_ADMINS = ["admin", "b-admin"] as const;
 
 // Restores one demo org's seeded data: every test starts from the same data whatever the previous one wrote. The

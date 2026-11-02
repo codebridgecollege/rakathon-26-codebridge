@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import type { AppEnv } from "../types";
 import { E } from "../http/errors";
-import type { Role } from "@codebridge/domain/access";
+import { administers, type Role } from "@codebridge/domain/access";
 import { demoPicker, membershipsOut, orgById, orgOut, roleSwitchMemberships } from "../store/people";
 import { staffName } from "../domain/rows";
 import { work } from "./write-context";
@@ -28,11 +28,12 @@ export const directory = new Hono<AppEnv>()
             name: staffName(m),
             role: m.role_id as Role,
             fn: m.fn,
+            administers: m.administers === 1,
             own: u.mode === "oidc" && m.id === u.membershipId,
           }))
         : null;
     return c.json({
-      user: { id: v.id, name: v.name, role: v.role, dept: v.dept },
+      user: { id: v.id, name: v.name, role: v.role, administers: administers(v), dept: v.dept },
       membership_id: v.membershipId,
       memberships,
       org: orgOut(org),

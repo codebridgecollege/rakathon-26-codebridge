@@ -624,6 +624,21 @@ describe("staff and demo resets", () => {
     expect(await snapshotA()).toEqual(before);
   });
 
+  // A clinic head (memberships.administers, migration 0020): org B's demo administrator account in the real seed.
+  it("a doctor who administers org B has the administrator's rights, stays a doctor, and the staff tools never end them", async () => {
+    expect((await get("/admin/access-log", "b-doc")).status).toBe(403);
+    await env.DB.prepare("UPDATE memberships SET administers = 1 WHERE id = 'b-doc'").run();
+    expect((await get("/me", "b-doc")).body.user).toMatchObject({ role: "doctor", administers: true });
+    expect((await get("/me", "b-coord")).body.user.administers).toBe(false);
+    expect((await get("/me", "b-admin")).body.user.administers).toBe(true);
+    expect((await get("/admin/access-log", "b-doc")).status).toBe(200);
+    // b-doc is not on org B's default staff list, so without the flag the staff reset would end their membership.
+    expect((await w("POST", "/staff/reset", {}, "b-coord")).status).toBe(200);
+    expect((await one("SELECT active_until FROM memberships WHERE id = 'b-doc'")).active_until).toBeNull();
+    expect((await w("DELETE", "/staff/people/b-doc", {}, "b-coord")).body.error?.code).toBe("role_forbidden");
+    expect((await one("SELECT active_until FROM memberships WHERE id = 'b-doc'")).active_until).toBeNull();
+  });
+
   it("org B renaming a person who is also in org A renames the person (names are the person's, AUTH.md)", async () => {
     await d1p1InB();
     const r = await w("PATCH", "/staff/people/d1p1", { field: "sur", value: "Přejmenovaný", expected: "Novák" }, "b-coord");

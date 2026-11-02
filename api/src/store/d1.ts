@@ -30,7 +30,7 @@ const CASE_SELECT = `SELECT c.*, p.full_name, p.name_as_written, p.birth_number,
   FROM cases c JOIN patients p ON p.id = c.patient_id AND p.org_id = c.org_id LEFT JOIN slots s ON s.case_id = c.id AND s.org_id = c.org_id`;
 
 // A person as this org knows them: the name from users; role, function and activity from the membership here.
-export const ORG_USER = `SELECT u.id, u.pre, u.sur, u.post, m.fn, m.role_id, m.id AS membership_id,
+export const ORG_USER = `SELECT u.id, u.pre, u.sur, u.post, m.fn, m.role_id, m.administers, m.id AS membership_id,
   CASE WHEN u.active = 1 AND m.active_until IS NULL THEN 1 ELSE 0 END AS active
   FROM memberships m JOIN users u ON u.id = m.user_id /* org-scope: the caller's WHERE names m.org_id */`;
 
@@ -86,7 +86,8 @@ export class D1Directory extends OrgBound implements DirectoryStore {
         people: (people!.results as Record<string, unknown>[]).filter((p) => p.dept_id === d.id).map(person),
       })),
       coord: ((u) => (u ? person(u) : null))(us.find((u) => u.role_id === "coordinator")),
-      admin: ((u) => (u ? person(u) : null))(us.find((u) => u.role_id === "admin")),
+      // The org's administrator: the administrator role, or else a doctor who administers the org (memberships.administers).
+      admin: ((u) => (u ? person(u) : null))(us.find((u) => u.role_id === "admin") ?? us.find((u) => u.administers === 1)),
       roles: Object.fromEntries(us.map((u) => [u.id, u.role_id])),
     };
   }

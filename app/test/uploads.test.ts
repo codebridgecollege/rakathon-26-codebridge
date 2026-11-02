@@ -19,7 +19,7 @@ const S01 = { file: "S01_pacient.pdf", id: "NO-S01" };
 
 beforeEach(() => {
   setActivePinia(createPinia());
-  useSessionStore().me = { user: { id: "d2p1", name: "MUDr. Svobodová", role: "doctor", dept: null }, ...meOrg("d2p1"), auth_mode: "demo", impersonating: false, notice_cs: null };
+  useSessionStore().me = { user: { id: "d2p1", name: "MUDr. Svobodová", role: "doctor", administers: false, dept: null }, ...meOrg("d2p1"), auth_mode: "demo", impersonating: false, notice_cs: null };
 });
 afterEach(() => {
   vi.useRealTimers();

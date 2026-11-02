@@ -1,10 +1,11 @@
 // Who may change what (step-4.md section 2). Pure: the route loads membership and passes it in. Every rule checks the
 // acting user's role; the access log stores who acted and in which role.
-import type { Role } from "./access";
+import { administers, type Role } from "./access";
 import { D } from "./errors";
 import { COORDINATOR_ACTS_ON_ALERTS, COORDINATOR_EDITS_PROTOCOL } from "./config";
 
-export type Actor = { id: string; name: string; role: Role };
+// administers: the membership also holds the administrator's rights (Viewer.administers).
+export type Actor = { id: string; name: string; role: Role; administers?: boolean };
 
 export type Action =
   | "status.move" // manual status change, close, reopen
@@ -98,7 +99,9 @@ export function allowed(actor: Actor, action: Action, ctx?: CaseAccess): boolean
 export function assertCan(actor: Actor, action: Action, ctx?: CaseAccess): void {
   // The assignee may close their own task even without a role on the case (a coordinator task assigned to a nurse).
   if (action === "task.done" && ctx?.assignee) return;
-  if (!MATRIX[action].has(actor.role)) throw (DOCTOR_REFUSAL[action] ?? D.roleForbidden)();
+  // A membership that administers (a doctor who heads the clinic) may also do what the administrator's row allows.
+  const byAdmin = administers(actor) && MATRIX[action].has("admin");
+  if (!MATRIX[action].has(actor.role) && !byAdmin) throw (DOCTOR_REFUSAL[action] ?? D.roleForbidden)();
   if (CASE_SCOPED.has(action) && actor.role === "doctor" && !(ctx?.member || ctx?.grant)) throw D.notMember();
 }
 

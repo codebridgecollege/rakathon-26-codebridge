@@ -17,7 +17,7 @@ const ok = <T>(data: T, state: unknown = {}) => ({ data, data_epoch: 1, state })
 const doc = (id: string, name: string, extra: Record<string, unknown> = {}) => ({ id, name, file: name, origin: "upload", size: 10, identity: "ok", identity_cs: null, type_cs: null, source: null, ...extra });
 
 function asDoctor() {
-  useSessionStore().me = { user: { id: "d2p1", name: "MUDr. Svobodová", role: "doctor", dept: null }, ...meOrg("d2p1"), auth_mode: "demo", impersonating: false, notice_cs: null };
+  useSessionStore().me = { user: { id: "d2p1", name: "MUDr. Svobodová", role: "doctor", administers: false, dept: null }, ...meOrg("d2p1"), auth_mode: "demo", impersonating: false, notice_cs: null };
 }
 
 const nav = { openPatient: vi.fn(), showList: vi.fn() };
@@ -60,7 +60,7 @@ async function openFilled(s = useIntakeStore()) {
 describe("opening", () => {
   it("is for doctors and the coordinator; others get a note", async () => {
     server();
-    useSessionStore().me = { user: { id: "admin", name: "Ing. Kovář", role: "admin", dept: null }, ...meOrg("admin"), auth_mode: "demo", impersonating: false, notice_cs: null };
+    useSessionStore().me = { user: { id: "admin", name: "Ing. Kovář", role: "admin", administers: true, dept: null }, ...meOrg("admin"), auth_mode: "demo", impersonating: false, notice_cs: null };
     const s = useIntakeStore();
     expect(await s.open()).toBe(false);
     expect(s.isOpen).toBe(false);
