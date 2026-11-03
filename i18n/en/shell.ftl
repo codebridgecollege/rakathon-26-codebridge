@@ -43,6 +43,7 @@ account-menu = Account
 account-role-doctor = doctor
 account-role-coordinator = coordinator
 account-role-admin = system administrator
+account-role-doctor-admin = doctor and system administrator
 account-logged-in-as = Signed in: { $name }
 account-switch-org = Switch organization
 account-switch-role = Switch role

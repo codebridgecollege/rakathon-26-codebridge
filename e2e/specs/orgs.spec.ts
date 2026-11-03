@@ -10,7 +10,8 @@ import { resetDemo } from "../reset";
 
 const B_DOCTOR = "MUDr. Vlčková";
 const B_COORD = "Bc. Holubová (koordinátorka MDT)";
-const B_ADMIN = "Ing. Pospíšil (správce systému)";
+// Org B's administrator account is a clinic head: a doctor who also administers the org (memberships.administers).
+const B_ADMIN = "prof. MUDr. Šebesta, CSc. (přednosta kliniky a správce systému)";
 const A_DOCTOR = "MUDr. Svobodová";
 // Org A's patients, its people and a seeded task: none of them may show in org B.
 const A_PATIENTS = ["Poláček Daniel", "Palajová Martina", "Křemínek Radovan"];
@@ -74,7 +75,7 @@ test("org B's staff screen lists org B's departments and people only", async ({ 
   for (const name of ["Svobodová", "Marková", "Neurochirurgie"]) await expect(app.main.getByText(name, { exact: false })).toHaveCount(0);
 });
 
-test("org B's administrator opens Administrace with org B's access log only", async ({ app }) => {
+test("org B's administrating clinic head opens Administrace with org B's access log only", async ({ app }) => {
   await app.open();
   // An org A doctor opens a case, so org A's log has a case view org B must not show.
   await app.openPatient("Poláček Daniel");

@@ -100,7 +100,7 @@ export class D1Work {
     const [users, depts, members] = await this.db.batch([
       // Everyone this org has had, also those who left (their names stay in history); active as of the membership.
       this.q(
-        `SELECT u.id, u.pre, u.sur, u.post, m.fn, m.role_id AS role, CASE WHEN u.active = 1 AND m.active_until IS NULL THEN 1 ELSE 0 END AS active
+        `SELECT u.id, u.pre, u.sur, u.post, m.fn, m.role_id AS role, m.administers, CASE WHEN u.active = 1 AND m.active_until IS NULL THEN 1 ELSE 0 END AS active
          FROM memberships m JOIN users u ON u.id = m.user_id WHERE m.org_id = ?org ORDER BY u.id`,
       ),
       this.q("SELECT id, name, sort FROM departments WHERE org_id = ?org ORDER BY sort, id"),

@@ -16,7 +16,8 @@ const busy = ref(false);
 
 const me = computed(() => session.me);
 const ROLE_ID: Record<Role, string> = { doctor: "account-role-doctor", coordinator: "account-role-coordinator", admin: "account-role-admin" };
-const roleText = (r: Role) => $t(ROLE_ID[r]);
+// A doctor who also administers the org is named as both, so the presenter sees why the administration is there.
+const roleText = (r: Role, administers = false) => $t(r === "doctor" && administers ? "account-role-doctor-admin" : ROLE_ID[r]);
 const otherOrgs = computed(() => (me.value?.memberships ?? []).filter((m) => m.org.id !== me.value?.org.id));
 const roles = computed(() => me.value?.role_switch ?? null);
 
@@ -27,7 +28,7 @@ async function act(fn: () => Promise<boolean>) {
     const ok = await fn();
     if (ok) open.value = false;
     // The administration is for administrators only; a switch away from that role leaves it.
-    if (ok && router.currentRoute.value.path.startsWith("/admin") && me.value?.user.role !== "admin") void router.push("/patients");
+    if (ok && router.currentRoute.value.path.startsWith("/admin") && !(me.value?.user.administers ?? me.value?.user.role === "admin")) void router.push("/patients");
   } finally {
     busy.value = false;
   }
@@ -61,7 +62,7 @@ onBeforeUnmount(() => {
       {{ me.user.name }} <span class="lbl">· {{ me.org.short_name }}</span> ▾
     </button>
     <div v-if="open" class="fpop acctpop" role="dialog" :aria-label="$t('account-menu')">
-      <span><b>{{ me.user.name }}</b>, {{ roleText(me.user.role) }}</span>
+      <span><b>{{ me.user.name }}</b>, {{ roleText(me.user.role, me.user.administers) }}</span>
       <span class="muted small">{{ me.org.name }}</span>
       <span v-if="me.real_user" class="muted small">{{ $t("account-logged-in-as", { name: me.real_user.name }) }}</span>
       <template v-if="otherOrgs.length">
@@ -78,7 +79,7 @@ onBeforeUnmount(() => {
           :aria-pressed="r.membership_id === me.membership_id"
           @click="r.membership_id !== me.membership_id && toRole(r.membership_id)"
         >
-          {{ $t("account-role-entry", { name: r.name, role: roleText(r.role) }) }}
+          {{ $t("account-role-entry", { name: r.name, role: roleText(r.role, r.administers) }) }}
         </button>
         <span class="muted small">{{ $t("account-switch-role-help") }}</span>
       </template>

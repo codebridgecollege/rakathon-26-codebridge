@@ -14,11 +14,13 @@ export type MemberRow = {
   post: string;
   // 1 only when both the person and this membership are active.
   active: number;
+  // 1 when the membership also administers the org (memberships.administers, migration 0020).
+  administers: number;
 };
 
 export type OrgRow = { id: string; name: string; short_name: string; is_demo: number; case_id_prefix: string };
 
-const MEMBER_SELECT = `SELECT m.id, m.org_id, m.user_id, m.role_id, m.fn, u.pre, u.sur, u.post,
+const MEMBER_SELECT = `SELECT m.id, m.org_id, m.user_id, m.role_id, m.fn, m.administers, u.pre, u.sur, u.post,
   CASE WHEN u.active = 1 AND m.active_until IS NULL THEN 1 ELSE 0 END AS active
   FROM memberships m JOIN users u ON u.id = m.user_id`;
 
@@ -80,7 +82,7 @@ export async function demoPicker(db: D1Database) {
       ...orgOut(o),
       people: ms
         .filter((m) => m.org_id === o.id)
-        .map((m) => ({ id: m.id, user_id: m.user_id, name: staffName(m), role: m.role_id as Role, fn: m.fn, dept: m.dept ?? null })),
+        .map((m) => ({ id: m.id, user_id: m.user_id, name: staffName(m), role: m.role_id as Role, fn: m.fn, administers: m.administers === 1, dept: m.dept ?? null })),
     })),
   };
 }

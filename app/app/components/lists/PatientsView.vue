@@ -22,12 +22,14 @@ import { DEMO_TODAY } from "@codebridge/domain/calendar";
 import { surnameFirst } from "@codebridge/domain/names";
 import { STATUS_CLASS, caseRoute } from "../../lib/lists";
 import { useListText } from "../../composables/useListText";
+import { useCurrentUser } from "../../composables/useCurrentUser";
 import { usePatientsStore } from "../../stores/patients";
 import { useListViewStore } from "../../stores/listView";
 import ColumnFilter from "./ColumnFilter.vue";
 
 const emit = defineEmits<{ openNewPatient: [] }>();
 const { $t } = useFluent();
+const { showsSyntheticTag } = useCurrentUser();
 const router = useRouter();
 const patients = usePatientsStore();
 const v = useListViewStore();
@@ -203,7 +205,7 @@ const age = (p: PatientRow) => ageOf(p, DEMO_TODAY);
               <td>
                 <b>{{ surnameFirst(p) }}</b>
                 <template v-if="p.warn">{{ " " }}<span class="tag ocr">{{ $t("patients-verify-identity") }}</span></template>
-                <template v-if="p.synthetic">{{ " " }}<span class="chip plain k-unclear syntag" :title="$t('patients-synthetic-tooltip')">{{ $t("patients-synthetic") }}</span></template>
+                <template v-if="p.synthetic && showsSyntheticTag">{{ " " }}<span class="chip plain k-unclear syntag" :title="$t('patients-synthetic-tooltip')">{{ $t("patients-synthetic") }}</span></template>
               </td>
               <td class="num" :class="{ muted: !p.rc }" :title="p.rc ? '' : $t('patients-rc-missing')">{{ p.rc || "-" }}</td>
               <td class="num" :class="{ muted: !age(p) }" :title="age(p)?.computed ? $t('patients-age-computed') : undefined">{{ age(p)?.n ?? "-" }}</td>

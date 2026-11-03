@@ -33,6 +33,7 @@ account-menu = Účet
 account-role-doctor = lékař
 account-role-coordinator = koordinátor
 account-role-admin = správce systému
+account-role-doctor-admin = lékař a správce systému
 # After a role switch in a demo org: who is really logged in.
 account-logged-in-as = Přihlášen(a): { $name }
 account-switch-org = Přepnout organizaci

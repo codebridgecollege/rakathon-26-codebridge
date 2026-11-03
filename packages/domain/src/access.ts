@@ -17,7 +17,17 @@ export type Viewer = {
   org: string;
   membershipId: string;
   actor?: { id: string; name: string };
+  // The membership also administers the org (memberships.administers): a doctor such as a clinic head who keeps the
+  // doctor's role and rules and also gets the administrator's rights. Unset means no.
+  administers?: boolean;
 };
+
+// Whether the viewer may do what the administrator does (the access log, the staff list, the demo reset): the
+// administrator by role, any other membership by its administers flag. The administrator's restrictions (no clinical
+// content in the strict mode, no tasks) stay tied to the role, so a doctor who administers still reads as a doctor.
+export function administers(v: { role: Role; administers?: boolean }): boolean {
+  return v.role === "admin" || v.administers === true;
+}
 
 // CLINICAL_ACCESS in wrangler.jsonc. "all_roles" keeps the demo's behaviour, where the coordinator and the
 // administrator open every case like a doctor. "doctors_only" applies INTEGRATION.md: the coordinator sees the case
@@ -57,7 +67,7 @@ export function redactsListFor(v: Viewer, mode: ClinicalAccess): boolean {
 }
 
 export function canReadAuditLog(v: Viewer): boolean {
-  return v.role === "admin";
+  return administers(v);
 }
 
 // Tasks name a case and an action on it; the administrator has no clinical role, so none in the strict mode.

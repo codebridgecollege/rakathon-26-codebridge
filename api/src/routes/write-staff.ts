@@ -169,7 +169,8 @@ export const writeStaff = new Hono<AppEnv>()
     if (!defaults) throw D.resetDisabled();
     const staff = await work(c).staff();
     const defaultIds = new Set(defaults.depts.flatMap((d) => d.people.map((p) => p.id)));
-    const extra = staff.users.filter((u) => u.active === 1 && (u.role === "doctor" || u.role === "staff") && !defaultIds.has(u.id));
+    // A doctor who administers the org is its administrator, not department staff, so the default list keeps them.
+    const extra = staff.users.filter((u) => u.active === 1 && (u.role === "doctor" || u.role === "staff") && u.administers !== 1 && !defaultIds.has(u.id));
     // A person outside the defaults with open tasks cannot silently leave; the full reset-demo is the tool then.
     if (extra.length) {
       const busy = await orgQuery(c, "SELECT 1 AS x FROM tasks WHERE org_id = ?org AND done = 0 AND assignee_user_id IN (SELECT value FROM json_each(?1)) LIMIT 1", JSON.stringify(extra.map((u) => u.id))).first();

@@ -136,6 +136,7 @@ entries.
 - **Roles:**
   - `doctor`, `coordinator` and `admin`, as the database calls them today;
   - `staff` for a membership with no login.
+- **A doctor who also administers the org.** `memberships.administers = 1` (migration 0020) gives a membership the administrator's rights (the staff list, the access log, the demo reset) on top of its own role. The role stays `doctor`, so team membership and the doctor-only confirmations still apply, and the administrator's restrictions (no clinical content in the strict mode, no tasks) do not. The staff screen cannot remove such a person and its default-list reset keeps them. Demo org B's administrator account (`admin.b@…`) is such a clinic head, prof. MUDr. Šebesta, so a presenter who logs in with it acts as a senior doctor with admin rights. Privacy trade-off: one login then holds clinical access and the full access log together, which the separate roles keep apart; hospital orgs should keep them separate. The access log records such a person's staff edits and demo resets under their role (`doctor`), so it does not show that admin rights were used. Such a doctor has no department, so pickers built from departments leave them out, and approving a conclusion adds no attendance row for them.
   
   Roles stay ours. A hospital IdP's role or group claims can be mapped onto memberships later, as `INTEGRATION.md` describes for Entra app roles.
 
@@ -237,7 +238,7 @@ own deployment without rewriting the app.
 - **Zitadel:**
   - one project ("GLIDE MDT") and one confidential web app (the Worker), with the production and preview callback addresses;
   - self-registration off;
-  - for each demo org: two doctors, a coordinator and an administrator, with verified e-mails such as `lekar1.a@…`.
+  - for each demo org: two doctors, a coordinator and an administrator, with verified e-mails such as `lekar1.a@…`; in demo org B the administrator account is a doctor who also administers the org (above).
 - **Passwords** are never in the repository; they go to the team through a password manager.
 - **The seed** creates the matching people and memberships in D1 with the same e-mails. The first login links them.
 - **Presenters** log in once as the demo org's administrator or a doctor, then switch roles from the account menu.

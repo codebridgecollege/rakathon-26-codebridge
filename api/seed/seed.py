@@ -117,7 +117,11 @@ STAFF_DEPTS_B = [
     ("Radiologie", ["Zeman"]),
 ]
 COORD_B = {"id": "b-coord", "pre": "Bc.", "sur": "Holubová", "post": "", "fn": "koordinátorka MDT", "role": "coordinator"}
-ADMIN_B = {"id": "b-admin", "pre": "Ing.", "sur": "Pospíšil", "post": "", "fn": "správce systému", "role": "admin"}
+# Org B's demo administrator account is a senior doctor who also administers the org (memberships.administers): the
+# presenter logs in once with it and gets every doctor's right plus the administrator's. The id and e-mail stay the
+# administrator account's, so existing logins and the reset keep pointing at it.
+ADMIN_B = {"id": "b-admin", "pre": "prof. MUDr.", "sur": "Šebesta", "post": "CSc.", "fn": "přednosta kliniky a správce systému",
+           "role": "doctor", "administers": 1}
 
 # Organizations (docs/design/AUTH.md): demo org A holds the hackathon demo. Demo org B holds no patient data, only its
 # departments and people, so the team's own test data there starts from an empty org and its reset returns to that. The
@@ -165,7 +169,8 @@ def staff(org=ORG_A, spec=None, prefix="", coord=None, admin=None):
 def person_rows(org, users):
     """users rows (the person) and memberships rows (role and function in this org; the membership id is the person's)."""
     people = [{"id": u["id"], "pre": u["pre"], "sur": u["sur"], "post": u["post"], "email": EMAILS.get(u["id"])} for u in users]
-    ms = [{"id": u["id"], "org_id": org, "user_id": u["id"], "role_id": u["role"], "fn": u["fn"], "active_from": ACTIVE_FROM} for u in users]
+    ms = [{"id": u["id"], "org_id": org, "user_id": u["id"], "role_id": u["role"], "fn": u["fn"],
+           "administers": u.get("administers", 0), "active_from": ACTIVE_FROM} for u in users]
     return people, ms
 
 
@@ -627,7 +632,8 @@ CONFLICT = {
     # {org} is filled per org: a person is renamed only when they have a membership in the org being reset.
     "users": "ON CONFLICT(id) DO UPDATE SET pre = excluded.pre, sur = excluded.sur, post = excluded.post, email = excluded.email, active = 1"
              " WHERE EXISTS (SELECT 1 FROM memberships m WHERE m.org_id = {org} AND m.user_id = users.id)",
-    "memberships": "ON CONFLICT(id) DO UPDATE SET role_id = excluded.role_id, fn = excluded.fn, active_until = NULL WHERE memberships.org_id = excluded.org_id",
+    "memberships": "ON CONFLICT(id) DO UPDATE SET role_id = excluded.role_id, fn = excluded.fn, administers = excluded.administers,"
+                   " active_until = NULL WHERE memberships.org_id = excluded.org_id",
 }
 
 

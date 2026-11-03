@@ -25,8 +25,8 @@ export const DEFAULT_STAFF = deptsOf("", [
 ]);
 export const DEFAULT_COORDINATOR: Coordinator = { id: "coord", pre: "Bc.", sur: "Marková", post: "", fn: "koordinátorka MDT" };
 
-// Demo org B ("Ukázková nemocnice B"): two doctors, a coordinator and an administrator. Surnames differ from org A's,
-// so a name in the user picker names one person.
+// Demo org B ("Ukázková nemocnice B"): two doctors, a coordinator, and a clinic head who also administers the org (in
+// api/seed/seed.py, outside the departments). Surnames differ from org A's, so a name in the user picker names one person.
 export const DEFAULT_STAFF_B = deptsOf("b-", [
   ["Onkologie", ["Vlčková"]],
   ["Radiologie", ["Zeman"]],

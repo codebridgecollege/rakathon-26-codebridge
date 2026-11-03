@@ -29,6 +29,7 @@ export async function viewerOf(stores: ReturnType<typeof makeStores>, m: MemberR
     impersonating: false,
     org: m.org_id,
     membershipId: m.id,
+    administers: m.administers === 1,
   };
 }
 

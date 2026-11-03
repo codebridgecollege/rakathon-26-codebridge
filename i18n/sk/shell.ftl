@@ -44,6 +44,7 @@ account-menu = Účet
 account-role-doctor = lekár
 account-role-coordinator = koordinátor
 account-role-admin = správca systému
+account-role-doctor-admin = lekár a správca systému
 account-logged-in-as = Prihlásený(á): { $name }
 account-switch-org = Prepnúť organizáciu
 account-switch-role = Prepnúť rolu

@@ -28,16 +28,20 @@ const userName = computed(() => session.me?.user.name ?? "");
 // The picker value is the membership id (AUTH.md); the person's id equals it only in demo org A.
 const userId = computed(() => session.me?.membership_id ?? session.me?.user.id ?? "");
 // Option text as the old picker rendered it: doctors by name, the coordinator and administrator with their function in
-// brackets (the browser suite selects them by that label).
-const optText = (p: { role: string; name: string; fn: string }) =>
+// brackets (the browser suite selects them by that label). A doctor who also administers the org shows their function
+// too, so the picker tells them apart from the other doctors.
+const optText = (p: { role: string; name: string; fn: string; administers?: boolean }) =>
   p.role === "coordinator"
     ? $t("user-picker-with-function", { name: p.name, fn: p.fn || $t("user-coordinator-function-default") })
     : p.role === "admin"
       ? $t("user-picker-with-function", { name: p.name, fn: $t("user-admin-function") })
-      : p.name;
+      : p.administers
+        ? $t("user-picker-with-function", { name: p.name, fn: p.fn || $t("user-admin-function") })
+        : p.name;
 const roleFn = (p: { role: string; fn: string }) =>
   p.fn || (p.role === "coordinator" ? $t("user-coordinator-tooltip-default") : p.role === "admin" ? $t("user-admin-function") : "");
-const isAdmin = computed(() => session.me?.user.role === "admin");
+// The administrator, or a doctor who also administers the org.
+const isAdmin = computed(() => session.me?.user.administers ?? session.me?.user.role === "admin");
 const openTasks = computed(() => workflow.openTaskCount(userName.value, staff.coord?.name ?? null, (f) => patients.byFile(f)?.owner));
 
 // The audit log is for administrators only; the staff list is read-only for doctors but visible to all.
@@ -95,7 +99,7 @@ async function onUser(ev: Event) {
             {{ $t("user-picker-with-function", { name: staff.coord.name, fn: staff.coord.fn || $t("user-coordinator-function-default") }) }}
           </option>
           <option v-if="staff.admin" :value="staff.admin.id" :title="$t('user-admin-function')">
-            {{ $t("user-picker-with-function", { name: staff.admin.name, fn: $t("user-admin-function") }) }}
+            {{ $t("user-picker-with-function", { name: staff.admin.name, fn: staff.admin.fn || $t("user-admin-function") }) }}
           </option>
         </optgroup>
         </template>
