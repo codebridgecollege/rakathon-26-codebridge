@@ -5,8 +5,6 @@
   "type": "module",
   "scripts": {
     "dev": "nuxt dev",
-    "dev:static": "STATIC_COPY=1 nuxt dev --port 3000",
-    "record:static": "node scripts/record-static.mjs",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
