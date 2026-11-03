@@ -36,7 +36,6 @@ lists-dialog-cancel = Zrušit
 ## Patient database (S-1)
 
 patients-title = Databáze pacientů
-patients-subtitle = Pacienti odeslaní k projednání na neuroonkologickém MDT
 patients-new = + Nový pacient
 patients-search-placeholder = Hledat ID, jméno, diagnózu
 patients-search-label = Hledat
@@ -327,3 +326,30 @@ admin-edit-orig = Původně:
 admin-edit-new = Nově:
 admin-edits-none = Zatím žádné úpravy. Záznam vznikne, když lékař v případu pacienta opraví údaj tužkou ✎.
 admin-footer = Role správce zde slouží jen k náhledu záznamu; v reálné aplikaci by správce neměl přístup ke klinickému obsahu případů. V reálné aplikaci by byl na serveru nemocnice, neměnný a s dobou uchování podle předpisů FNO.
+
+## Team settings (Administrace) and the patient list's MDT name
+
+patients-subtitle-named = Pacienti odeslaní k projednání: { $name }
+patients-subtitle-unnamed = Pacienti odeslaní k projednání na MDT
+patients-setup-missing = Dokončete nastavení týmu: název MDT a obvyklý termín.
+patients-setup-open = Otevřít nastavení
+setup-title = Nastavení týmu
+setup-intro = Vaše jméno se ukáže vpravo nahoře, název MDT nad seznamem pacientů.
+setup-pre = Titul před jménem
+setup-sur = Příjmení
+setup-post = Titul za jménem
+setup-mdt-name = Název MDT
+setup-weekday = Obvyklý den
+setup-time = Obvyklý čas
+setup-weekday-none = Nevybráno
+setup-weekday-1 = Pondělí
+setup-weekday-2 = Úterý
+setup-weekday-3 = Středa
+setup-weekday-4 = Čtvrtek
+setup-weekday-5 = Pátek
+setup-weekday-6 = Sobota
+setup-weekday-7 = Neděle
+setup-save = Uložit
+setup-saved = Nastavení uloženo.
+setup-failed = Nastavení se nepodařilo uložit.
+setup-note = Kalendář se podle obvyklého termínu zatím neřídí.

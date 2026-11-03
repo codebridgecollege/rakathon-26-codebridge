@@ -395,7 +395,7 @@ describe("every route, acting in org B with org A's IDs", () => {
     const covered = new Set([
       ...PROBES.map((p) => `${p.method} ${p.name.replace(/^\w+ /, "").replace(/ \(.*\)$/, "").replace(/\?.*$/, "")}`),
       "GET /patients", "GET /tasks", "GET /calendar", "GET /workflow", "GET /staff", "GET /admin/access-log", "GET /me", "GET /demo/memberships", "GET /",
-      "POST /sessions", "DELETE /sessions/:day", "PUT /attendance/:key", "POST /recordings", "POST /notifications/digest", "POST /staff/departments",
+      "PATCH /staff/mdt", "POST /sessions", "DELETE /sessions/:day", "PUT /attendance/:key", "POST /recordings", "POST /notifications/digest", "POST /staff/departments",
       "POST /cases", "POST /fhir/referral", "POST /admin/pipeline/warm", "POST /staff/reset", "POST /admin/reset-demo",
       // The phone's two routes take a session token, which names its org; the upload-sessions tests cover them.
       "GET /upload-sessions/current", "POST /upload-sessions/current/files",
@@ -637,6 +637,17 @@ describe("staff and demo resets", () => {
     expect((await one("SELECT active_until FROM memberships WHERE id = 'b-doc'")).active_until).toBeNull();
     expect((await w("DELETE", "/staff/people/b-doc", {}, "b-coord")).body.error?.code).toBe("role_forbidden");
     expect((await one("SELECT active_until FROM memberships WHERE id = 'b-doc'")).active_until).toBeNull();
+  });
+
+  it("org B's administrator sets org B's MDT only; a doctor may not, and a bad time is refused", async () => {
+    const body = { name: "Plicní MDT", weekday: 2, time: "15:30" };
+    const orgA = await get("/me", "coord");
+    expect((await w("PATCH", "/staff/mdt", body, "b-doc")).body.error?.code).toBe("role_forbidden");
+    expect((await w("PATCH", "/staff/mdt", { ...body, time: "25:00" }, "b-admin")).status).toBe(422);
+    expect((await w("PATCH", "/staff/mdt", { ...body, name: " " }, "b-admin")).status).toBe(422);
+    expect((await w("PATCH", "/staff/mdt", body, "b-admin")).status).toBe(200);
+    expect((await get("/me", "b-coord")).body.mdt).toEqual({ name: "Plicní MDT", weekday: 2, time: "15:30" });
+    expect((await get("/me", "coord")).body.mdt).toEqual(orgA.body.mdt);
   });
 
   it("org B renaming a person who is also in org A renames the person (names are the person's, AUTH.md)", async () => {

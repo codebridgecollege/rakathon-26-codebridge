@@ -756,6 +756,8 @@ def main() -> None:
                    f" {o['is_demo']}, {lit(o['case_id_prefix'])}) ON CONFLICT(id) DO UPDATE SET name = excluded.name, short_name = excluded.short_name,"
                    " is_demo = excluded.is_demo, case_id_prefix = excluded.case_id_prefix;")
         sql.append(f"INSERT INTO demo_state (org_id, data_epoch) VALUES ({lit(o['id'])}, 1) ON CONFLICT(org_id) DO NOTHING;")
+    # Demo org A's MDT, as migration 0021 sets it on a database that already holds the org. A team's own settings stay.
+    sql.append(f"UPDATE orgs SET mdt_name = COALESCE(mdt_name, 'Neuroonkologické MDT'), mdt_weekday = COALESCE(mdt_weekday, 4), mdt_time = COALESCE(mdt_time, '14:00') WHERE id = {lit(ORG_A)};")
     for org, us, ds, dms in ((ORG_A, users, depts, members), (ORG_B, users_b, depts_b, members_b)):
         people, mems = person_rows(org, us)
         sql += [insert("users", x | {"_org": org}) for x in people]

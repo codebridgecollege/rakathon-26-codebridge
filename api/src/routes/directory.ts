@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import type { AppEnv } from "../types";
 import { E } from "../http/errors";
 import { administers, type Role } from "@codebridge/domain/access";
-import { demoPicker, membershipsOut, orgById, orgOut, roleSwitchMemberships } from "../store/people";
+import { demoPicker, mdtOfOrg, membershipsOut, orgById, orgOut, roleSwitchMemberships } from "../store/people";
 import { staffName } from "../domain/rows";
 import { work } from "./write-context";
 import { nisConfig, nisConfigured } from "../services/fhir";
@@ -18,7 +18,7 @@ export const directory = new Hono<AppEnv>()
     const u = c.var.user;
     // The memberships and the org switch belong to the person logged in, also while acting as someone else.
     const person = v.actor?.id ?? v.id;
-    const [org, memberships, st] = await Promise.all([orgById(c.env.DB, v.org), membershipsOut(c.env.DB, person), work(c).epoch()]);
+    const [org, memberships, st, mdt] = await Promise.all([orgById(c.env.DB, v.org), membershipsOut(c.env.DB, person), work(c).epoch(), mdtOfOrg(c.env.DB, v.org)]);
     if (!org) throw E.unknownUser();
     // "Přepnout roli" exists after a real login in a demo org only.
     const roleSwitch =
@@ -37,6 +37,7 @@ export const directory = new Hono<AppEnv>()
       membership_id: v.membershipId,
       memberships,
       org: orgOut(org),
+      mdt,
       data_epoch: st?.data_epoch ?? null,
       auth_mode: v.authMode,
       impersonating: v.impersonating,

@@ -7,12 +7,15 @@ import { computed, onBeforeUnmount, watch } from "vue";
 import { useRouter } from "vue-router";
 import { useFluent } from "fluent-vue";
 import { nrOf, tabsFor, type Tab } from "@codebridge/domain/case-data";
+import { inSession, runningSession } from "@codebridge/domain/discussion";
 import { providePatient } from "../../composables/usePatient";
 import { useTabAddress } from "../../composables/useTabAddress";
 import { useCasesStore } from "../../stores/cases";
 import { usePatientViewStore } from "../../stores/patientView";
 import { usePatientsStore } from "../../stores/patients";
 import { useOverlayStore } from "../../stores/overlay";
+import { useWorkflowStore } from "../../stores/workflow";
+import { useMdtPanelStore } from "../../stores/mdtPanel";
 import PatientHeader from "./PatientHeader.vue";
 import BriefBlock from "./BriefBlock.vue";
 import OrphanList from "./OrphanList.vue";
@@ -28,6 +31,7 @@ import TabPrognosis from "./TabPrognosis.vue";
 import AlertSignal from "./AlertSignal.vue";
 import OverlayHost from "./OverlayHost.vue";
 import SessionBar from "../discussion/SessionBar.vue";
+import MdtPanel from "../discussion/MdtPanel.vue";
 import DiscussionCard from "../discussion/DiscussionCard.vue";
 
 const props = defineProps<{ file: string; tab: string | null }>();
@@ -53,6 +57,10 @@ const TAB_ID: Record<Tab, string> = {
   prognosis: "patient-tab-prognosis",
 };
 const state = computed(() => c.entry.value.state);
+const workflow = useWorkflowStore();
+const mdtPanel = useMdtPanelStore();
+// The side panel comes with a running MDT, for a case on its agenda, unless this computer chose the whole window.
+const panelShown = computed(() => mdtPanel.open && inSession(c.p.value, runningSession(workflow.sessions)));
 const tabs = computed(() => tabsFor(c.sec.value));
 const current = computed<Tab>(() => (tabs.value.find((t) => t === props.tab) ?? tabs.value[0] ?? "prognosis") as Tab);
 
@@ -96,6 +104,7 @@ function retry() {
 
 <template>
   <div class="page">
+    <MdtPanel v-if="panelShown" />
     <SessionBar :tab="tab || current" />
     <div class="row"><button class="linkbtn" @click="backToList">{{ $t("patient-back") }}</button></div>
     <template v-if="state === 'absent' || state === 'loading'">

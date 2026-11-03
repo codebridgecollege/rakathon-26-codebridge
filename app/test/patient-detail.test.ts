@@ -74,6 +74,15 @@ describe("case header", () => {
   });
 });
 
+describe("a case with nothing processed", () => {
+  it("says the documents are not processed and offers an upload instead of an empty page", () => {
+    const s = setupPatient({});
+    const w = mountInCase(BriefBlock, s);
+    expect(w.text()).toContain("Dokumentace zatím není zpracovaná");
+    expect(w.findAll("button").map((b) => b.text())).toContain("Nahrát dokument");
+  });
+});
+
 describe("status menu", () => {
   it("offers a doctor the allowed moves and shows an empty history", async () => {
     const s = setupPatient({ p: { status: "ready", slot: { day: "2026-10-22", time: "14:00" } } });

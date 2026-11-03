@@ -110,6 +110,22 @@ All made by the team on 2026-10-16.
 5. The status moves to "Projednán" on its own; a click on the next case
    in the session bar opens it on the same tab.
 
+### During the MDT: the side panel
+
+Soňa's request (2026-11-03): while the radiologist shows images in PACS it is easy to lose focus in a long meeting, so
+the patient stays visible at a glance. A running MDT opens a side panel beside the patient view on a wide window. A
+computer can choose "Celé okno" instead; the choice stays in that browser. Next to the PACS viewer on one computer, a
+narrow window shows only the panel.
+
+- **What it shows:** age, PS, the MDT question, contraindications stated in the documents, comorbidities, allergies,
+  treatment (with what is planned, marked), examinations (newest first, five with "Zobrazit vše"), up to three of the
+  assistant's open alerts with a count of the rest. Each item opens its source and keeps its certainty mark and negation.
+  A part the extraction does not hold shows "-" with the gap wording; a case not loaded or not processed says that instead.
+- **No treatment hints:** the panel does not say which comorbidity bears on which treatment. Matching on wording misread
+  negations, and such a rule needs a named guideline, so it belongs in the guideline layer (F-27) if the team wants it.
+- **PACS is a labelled stub:** "Otevřít v PACS (ukázka)" says that PACS is not connected. See
+  [`OPEN_QUESTIONS.md`](../agent/OPEN_QUESTIONS.md).
+
 ### After the MDT: report and tasks
 
 1. The header's "Stáhnout report (PDF)" opens a dialog where the doctor

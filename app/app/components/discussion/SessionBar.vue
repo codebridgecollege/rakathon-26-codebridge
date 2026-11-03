@@ -17,6 +17,7 @@ import { useAttendanceStore } from "../../stores/attendance";
 import { useDiscussionStore } from "../../stores/discussion";
 import { useOverlayStore } from "../../stores/overlay";
 import { useRecorderStore } from "../../stores/recorder";
+import { useMdtPanelStore } from "../../stores/mdtPanel";
 import { useApi } from "../../lib/api";
 import { caseWrite } from "../../lib/writes";
 import { toast } from "../../lib/toast";
@@ -33,6 +34,7 @@ const att = useAttendanceStore();
 const disc = useDiscussionStore();
 const overlay = useOverlayStore();
 const rec = useRecorderStore();
+const mdtPanel = useMdtPanelStore();
 
 const session = computed(() => runningSession(workflow.sessions));
 const shown = computed(() => inSession(c.p.value, session.value));
@@ -106,6 +108,7 @@ onBeforeUnmount(() => window.removeEventListener("resize", measureTop));
       </button>
     </div>
     <button class="btn small" :disabled="!next" :aria-label="$t('discussion-session-next')" @click="next && go(next.file)">›</button>
+    <button v-if="!mdtPanel.open" class="btn small" @click="mdtPanel.choose('panel')">{{ $t("mdt-panel-show") }}</button>
     <button class="btn small" @click="attendance">{{ $t("discussion-session-present", { n: present }) }}</button>
     <button class="btn small" @click="end">{{ $t("discussion-session-end") }}</button>
   </div>

@@ -46,6 +46,8 @@ export type Me = {
   membership_id: string;
   memberships: MembershipRef[];
   org: OrgRef;
+  // The team's MDT as Administrace sets it: its name, the usual weekday (1 Monday to 7 Sunday) and time; null until set.
+  mdt: { name: string | null; weekday: number | null; time: string | null };
   data_epoch: number | null;
   auth_mode: "demo" | "oidc";
   impersonating: boolean;

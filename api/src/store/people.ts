@@ -58,6 +58,12 @@ export function orgById(db: D1Database, id: string) {
   return db.prepare("SELECT id, name, short_name, is_demo, case_id_prefix FROM orgs WHERE id = ?1").bind(id).first<OrgRow>();
 }
 
+// The team's MDT as Administrace sets it (migration 0021); null parts are not set yet.
+export async function mdtOfOrg(db: D1Database, id: string) {
+  const r = await db.prepare("SELECT mdt_name, mdt_weekday, mdt_time FROM orgs WHERE id = ?1").bind(id).first<{ mdt_name: string | null; mdt_weekday: number | null; mdt_time: string | null }>();
+  return { name: r?.mdt_name ?? null, weekday: r?.mdt_weekday ?? null, time: r?.mdt_time ?? null };
+}
+
 export const orgOut = (o: OrgRow) => ({ id: o.id, name: o.name, short_name: o.short_name, is_demo: o.is_demo === 1 });
 
 // The demo picker (AUTH_MODE=demo): every membership that can act, grouped by org, doctors by department first, then

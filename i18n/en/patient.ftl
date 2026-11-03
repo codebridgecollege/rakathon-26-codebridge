@@ -1003,3 +1003,31 @@ patient-nisrec-field-department = Department
 patient-nisrec-field-conclusion = Conclusion
 patient-nisrec-field-note = Note
 patient-nisrec-field-issued = Issued
+
+## MDT side panel (a running MDT; the patient at a glance while images are shown in PACS)
+
+mdt-panel-label = Patient overview for the MDT
+mdt-panel-position = Case { $n } of { $total }
+mdt-panel-whole-window = Whole window
+mdt-panel-show = Side panel
+mdt-panel-age = Age
+mdt-panel-ps = PS
+mdt-panel-pacs = Open in PACS (demo)
+mdt-panel-pacs-stub = Demo: this is where the patient's images open in the hospital's PACS. PACS is not connected yet.
+mdt-panel-unprocessed = This patient's documents are not processed yet, so the overview has nothing to show.
+mdt-panel-risks = What the documents state
+mdt-panel-comorbidities = Comorbidities
+mdt-panel-allergies = Allergies
+mdt-panel-treatment = Treatment
+mdt-panel-contraindications = Contraindications in the documents
+mdt-panel-exams = Examinations
+mdt-panel-alerts = Assistant's alerts
+mdt-panel-show-all = Show all ({ $n })
+mdt-panel-show-fewer = Show fewer
+mdt-panel-more-alerts = { $n } more alerts are on the Alerts tab.
+
+## A case with nothing processed
+
+patient-empty-title = The documents are not processed yet
+patient-empty-text = The summary, disease course and other tabs appear once they are processed. Until then, this page shows what was filled in when the patient was created.
+patient-empty-upload = Upload a document

@@ -55,7 +55,6 @@ lists-dialog-cancel = Cancel
 ## Patient database (S-1)
 
 patients-title = Patient database
-patients-subtitle = Patients referred for discussion at the neuro-oncology MDT
 patients-new = + New patient
 patients-search-placeholder = Search ID, name, diagnosis
 patients-search-label = Search
@@ -334,3 +333,30 @@ admin-edit-orig = Originally:
 admin-edit-new = New:
 admin-edits-none = No edits yet. An entry appears when a doctor corrects a value with the pencil ✎ in a patient's case.
 admin-footer = Here the administrator role only previews the log; in a real application the administrator would have no access to the clinical content of cases. In a real application the log would be on the hospital's server, immutable, and kept as long as FNO's rules require.
+
+## Team settings (Administrace) and the patient list's MDT name
+
+patients-subtitle-named = Patients referred for discussion: { $name }
+patients-subtitle-unnamed = Patients referred for discussion at the MDT
+patients-setup-missing = Finish setting up your team: the MDT's name and usual time.
+patients-setup-open = Open settings
+setup-title = Team settings
+setup-intro = Your name shows at the top right, the MDT's name above the patient list.
+setup-pre = Title before the name
+setup-sur = Surname
+setup-post = Title after the name
+setup-mdt-name = MDT name
+setup-weekday = Usual day
+setup-time = Usual time
+setup-weekday-none = Not chosen
+setup-weekday-1 = Monday
+setup-weekday-2 = Tuesday
+setup-weekday-3 = Wednesday
+setup-weekday-4 = Thursday
+setup-weekday-5 = Friday
+setup-weekday-6 = Saturday
+setup-weekday-7 = Sunday
+setup-save = Save
+setup-saved = Settings saved.
+setup-failed = The settings could not be saved.
+setup-note = The calendar does not follow the usual time yet.

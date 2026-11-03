@@ -23,13 +23,18 @@ import { surnameFirst } from "@codebridge/domain/names";
 import { STATUS_CLASS, caseRoute } from "../../lib/lists";
 import { useListText } from "../../composables/useListText";
 import { useCurrentUser } from "../../composables/useCurrentUser";
+import { useSessionStore } from "../../stores/session";
 import { usePatientsStore } from "../../stores/patients";
 import { useListViewStore } from "../../stores/listView";
 import ColumnFilter from "./ColumnFilter.vue";
 
 const emit = defineEmits<{ openNewPatient: [] }>();
 const { $t } = useFluent();
-const { showsSyntheticTag } = useCurrentUser();
+const { showsSyntheticTag, isAdmin } = useCurrentUser();
+const session = useSessionStore();
+// The team's MDT names the list; an administrator of a team that has not set it up is asked to.
+const mdtName = computed(() => session.me?.mdt?.name ?? null);
+const setupMissing = computed(() => isAdmin.value && !mdtName.value);
 const router = useRouter();
 const patients = usePatientsStore();
 const v = useListViewStore();
@@ -161,8 +166,9 @@ const age = (p: PatientRow) => ageOf(p, DEMO_TODAY);
 
 <template>
   <div class="page">
+    <div v-if="setupMissing" class="question" role="status"><span>{{ $t("patients-setup-missing") }}</span> <router-link to="/admin">{{ $t("patients-setup-open") }}</router-link></div>
     <div class="pagehead">
-      <div><h1>{{ $t("patients-title") }}</h1><div class="muted small">{{ $t("patients-subtitle") }}</div></div>
+      <div><h1>{{ $t("patients-title") }}</h1><div class="muted small">{{ mdtName ? $t("patients-subtitle-named", { name: mdtName }) : $t("patients-subtitle-unnamed") }}</div></div>
       <button class="btn primary" @click="emit('openNewPatient')">{{ $t("patients-new") }}</button>
     </div>
     <div class="toolbar">

@@ -2,6 +2,7 @@
 // Screen S-7, Administrace, for the administrator only: the server's access log (read
 // each time the screen opens; reading it is logged too), the reset of the shared demo data where the server allows
 // it, and the doctors' edits of extracted facts.
+import TeamSetup from "./TeamSetup.vue";
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { ApiError } from "@codebridge/api-client";
 import { useFluent } from "fluent-vue";
@@ -98,6 +99,7 @@ const caseIdOf = (file: string) => patients.byFile(file)?.id ?? file;
   <div v-if="!me.isAdmin.value" class="page"><p class="muted">{{ $t("admin-only") }}</p></div>
   <div v-else class="page">
     <div class="pagehead"><div><h1>{{ $t("admin-title") }}</h1><div class="muted small">{{ $t("admin-subtitle") }}</div></div></div>
+    <TeamSetup />
     <section v-if="resetEnabled" class="card">
       <div class="head"><h2>{{ $t("admin-demo-title") }}</h2><button class="btn" @click="resetOpen = true">{{ $t("admin-reset") }}</button></div>
       <p class="muted small" style="margin:0">{{ $t("admin-reset-what") }}</p>

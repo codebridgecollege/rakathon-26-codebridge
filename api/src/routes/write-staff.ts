@@ -33,6 +33,21 @@ function dropFromAttendance(t: Tx, userId: string, by: string, at: string) {
 }
 
 export const writeStaff = new Hono<AppEnv>()
+  // The team's MDT (Administrace, migration 0021): its name and when it usually meets.
+  .patch("/staff/mdt", async (c) => {
+    label(c, "personál: nastavení MDT");
+    assertCan(actorOf(c), "staff.write");
+    const b = c.var.body;
+    const name = typeof b.name === "string" ? b.name.trim().slice(0, 120) : "";
+    const weekday: unknown = b.weekday ?? null;
+    const time: unknown = b.time ?? null;
+    if (!name || (weekday !== null && !(Number.isInteger(weekday) && (weekday as number) >= 1 && (weekday as number) <= 7)) || (time !== null && !(typeof time === "string" && /^([01]\d|2[0-3]):[0-5]\d$/.test(time)))) throw D.invalidInput();
+    const t = tx(c);
+    t.run("UPDATE orgs SET mdt_name = ?1, mdt_weekday = ?2, mdt_time = ?3 WHERE id = ?org", name, weekday, time);
+    t.audit({ action: "staff.mdt_edit", what_cs: `nastavil(a) MDT: ${name}` });
+    await t.commit();
+    return answer(c, {});
+  })
   .post("/staff/departments", async (c) => {
     label(c, "personál: nové pracoviště");
     assertCan(actorOf(c), "staff.write");

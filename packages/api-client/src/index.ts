@@ -275,6 +275,7 @@ export function createApiClient(opts: ClientOptions = {}) {
     deleteDepartment: (id: string) => w("DELETE", `/staff/departments/${enc(id)}`, {}),
     addPerson: (deptId: string, body: Loose) => w("POST", `/staff/departments/${enc(deptId)}/people`, body),
     patchPerson: (id: string, body: Loose) => w("PATCH", `/staff/people/${enc(id)}`, body),
+    patchMdt: (body: { name: string; weekday: number | null; time: string | null }) => w("PATCH", "/staff/mdt", body),
     deletePerson: (id: string) => w("DELETE", `/staff/people/${enc(id)}`, {}),
     resetStaff: () => w("POST", "/staff/reset", {}),
     resetDemo: (body: { confirm: string }) => w("POST", "/admin/reset-demo", body),

@@ -7,6 +7,7 @@ import { useFluent } from "fluent-vue";
 import { linkProse, stripMarkers } from "@codebridge/domain/case-view";
 import { usePatient } from "../../composables/usePatient";
 import { usePatientViewStore } from "../../stores/patientView";
+import { useOverlayStore } from "../../stores/overlay";
 import Ed from "./Ed.vue";
 import Prose from "./Prose.vue";
 import SrcList from "./SrcList.vue";
@@ -21,6 +22,9 @@ import DiscussionCard from "../discussion/DiscussionCard.vue";
 const { $t } = useFluent();
 const c = usePatient();
 const view = usePatientViewStore();
+const overlay = useOverlayStore();
+// A case with nothing processed offers the next step instead of an empty page.
+const openUpload = () => overlay.open({ kind: "upload", file: c.p.value.file });
 
 const brief = computed(() => c.cd.value?.brief ?? null);
 const prose = computed(() => linkProse(brief.value?.text_cs, brief.value?.refs));
@@ -64,7 +68,12 @@ const processed = computed(() => {
       <QuestionBox in-brief />
     </template>
     <template v-else>
-      <p class="prose" lang="cs">{{ c.p.value.summary || "" }}</p>
+      <p v-if="c.p.value.summary" class="prose" lang="cs">{{ c.p.value.summary }}</p>
+      <div v-if="!c.cd.value?.record" class="question" role="status">
+        <b>{{ $t("patient-empty-title") }}</b>
+        <p style="margin:6px 0 10px">{{ $t("patient-empty-text") }}</p>
+        <button v-if="c.canSetStatus.value" class="btn" @click="openUpload">{{ $t("patient-empty-upload") }}</button>
+      </div>
       <p class="muted small" style="margin:0"><span v-if="c.cd.value?.note_cs" lang="cs">{{ c.cd.value.note_cs }}</span><template v-else>{{ $t("patient-brief-from-list") }}</template> {{ $t("patient-brief-source", { file: c.p.value.file, pages: c.p.value.pages || "?" }) }}</p>
     </template>
     <TimelineCard v-if="c.sec.value.timeline" inline />

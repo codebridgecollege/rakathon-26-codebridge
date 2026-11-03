@@ -1009,3 +1009,31 @@ patient-nisrec-field-department = Pracoviště
 patient-nisrec-field-conclusion = Závěr
 patient-nisrec-field-note = Poznámka
 patient-nisrec-field-issued = Vydáno
+
+## MDT side panel (a running MDT; the patient at a glance while images are shown in PACS)
+
+mdt-panel-label = Přehled pacienta pro MDT
+mdt-panel-position = Případ { $n } z { $total }
+mdt-panel-whole-window = Celé okno
+mdt-panel-show = Boční panel
+mdt-panel-age = Věk
+mdt-panel-ps = PS
+mdt-panel-pacs = Otevřít v PACS (ukázka)
+mdt-panel-pacs-stub = Ukázka: tady se otevřou snímky pacienta v PACS nemocnice. PACS zatím není propojený.
+mdt-panel-unprocessed = Dokumentace tohoto pacienta zatím není zpracovaná, přehled proto nemá co ukázat.
+mdt-panel-risks = Co uvádí dokumentace
+mdt-panel-comorbidities = Komorbidity
+mdt-panel-allergies = Alergie
+mdt-panel-treatment = Léčba
+mdt-panel-contraindications = Kontraindikace v dokumentaci
+mdt-panel-exams = Vyšetření
+mdt-panel-alerts = Upozornění asistenta
+mdt-panel-show-all = Zobrazit vše ({ $n })
+mdt-panel-show-fewer = Zobrazit méně
+mdt-panel-more-alerts = Další upozornění: { $n }. Najdete je v záložce Upozornění.
+
+## A case with nothing processed
+
+patient-empty-title = Dokumentace zatím není zpracovaná
+patient-empty-text = Souhrn, průběh onemocnění a další záložky se ukážou, až bude zpracovaná. Do té doby tu je to, co bylo vyplněno při založení pacienta.
+patient-empty-upload = Nahrát dokument

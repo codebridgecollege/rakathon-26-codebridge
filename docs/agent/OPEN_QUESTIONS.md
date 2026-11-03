@@ -304,3 +304,20 @@ Settle these only if one becomes relevant.
   says the postgraduate institute (ILF). Check if we win. (eHealth,
   page 21)
 
+## Opening PACS from the app (asked 2026-11-03)
+
+Soňa wants the MDT side panel to sit next to the imaging. The realistic version opens the hospital's own viewer on the
+right patient through a link (the IHE Invoke Image Display profile), with no images passing through our app. Open: which
+PACS FNO uses, whether it accepts such a link, and how its login works. The app shows a labelled stub until then.
+
+## Two people in one MDT (asked 2026-11-03)
+
+PACS and the panel on one computer, the note-taker on another. Conflicting saves are already refused, but the other
+screen does not update by itself. `GET /workflow` writes an access-log row on each read, so polling it would fill the
+log: live updates need a read that logs nothing clinical, such as one that says only whether anything changed.
+
+## Teams inside an org (asked 2026-11-03)
+
+Soňa wants each MDT (lung, breast, ENT) to see only its own patients, and screens that differ per team (spirometry for
+lung). Access today is per case (`case_members`); there is no team above the case. Open: whether a team is an org or a
+new level inside one, and who assigns people to it.
