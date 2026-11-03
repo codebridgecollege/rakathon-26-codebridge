@@ -41,7 +41,7 @@ const task = (id: number, file: string, done: boolean) => ({ id, pid: file, case
 function server(over: Record<string, unknown> = {}) {
   return mockApi({
     "/health": { ok: true, service: "codebridge-mdt", features: { data: true }, demo: { data_epoch: 1, reset_enabled: true } },
-    "/me": { user: { id: "d2p1", name: "MUDr. Svobodová", role: "doctor", dept: null }, auth_mode: "demo", impersonating: false, notice_cs: null },
+    "/me": { user: { id: "d2p1", name: "MUDr. Svobodová", role: "doctor", dept: null }, ...meOrg("d2p1"), auth_mode: "demo", impersonating: false, notice_cs: null },
     "/staff": staff,
     "/patients": {
       patients: [
@@ -339,7 +339,7 @@ describe("tasks screen", () => {
   });
 
   it("does not let the administrator tick a task", async () => {
-    const m = server({ "/me": { user: { id: "admin", name: "Ing. Kovář", role: "admin", dept: null }, auth_mode: "demo", impersonating: false, notice_cs: null } });
+    const m = server({ "/me": { user: { id: "admin", name: "Ing. Kovář", role: "admin", dept: null }, ...meOrg("admin"), auth_mode: "demo", impersonating: false, notice_cs: null } });
     setApi(m.api);
     await useSessionStore().boot();
     useListViewStore().taskScope = "all";
