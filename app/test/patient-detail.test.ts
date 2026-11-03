@@ -19,6 +19,7 @@ import { useCasesStore } from "../app/stores/cases";
 import { useWorkflowStore } from "../app/stores/workflow";
 import { lastToast, mountInCase, setupPatient, type PatientSetup } from "./patient";
 import { docsOf, edit, runOf } from "./helpers";
+import { useSessionStore } from "../app/stores/session";
 
 const SRC = (page: number, quote: string) => ({ file: "10_pacient.pdf", page, quote });
 const reply = (state: unknown = {}) => ({ data: {}, data_epoch: 1, state });
@@ -64,6 +65,12 @@ describe("case header", () => {
     const w = mountInCase(PatientHeader, s);
     expect(w.get(".question.missing").text()).toBe("Ověřit identitu: Jméno se v dokumentech liší.");
     expect(w.get(".syntag").text()).toBe("syntetický pacient");
+  });
+
+  it("does not show the synthetic patient label in demo org B", () => {
+    const s = setupPatient({ p: { synthetic: true } });
+    useSessionStore().me!.org.id = "demo-b";
+    expect(mountInCase(PatientHeader, s).find(".syntag").exists()).toBe(false);
   });
 });
 

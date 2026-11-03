@@ -10,6 +10,7 @@ import { useOverlayStore } from "../../stores/overlay";
 import { useWorkflowStore } from "../../stores/workflow";
 import { useListViewStore } from "../../stores/listView";
 import { useSessionStore } from "../../stores/session";
+import { useCurrentUser } from "../../composables/useCurrentUser";
 import { slotText } from "../../lib/dates";
 import { ageNum, surnameFirst } from "../../lib/patientRow";
 import { openFhirExport } from "../../lib/fhirExport";
@@ -47,6 +48,7 @@ function startMdt() {
 // "Import z NIS" only where the org has a NIS configured (/api/me), and for the roles that may search it; elsewhere
 // the button does not exist, so the demo shows nothing that cannot work.
 const session = useSessionStore();
+const { showsSyntheticTag } = useCurrentUser();
 const canNis = computed(() => !!session.me?.nis && (session.me.user.role === "doctor" || session.me.user.role === "coordinator"));
 function nis() {
   overlay.open({ kind: "nis", caseId: p.value.id });
@@ -64,7 +66,7 @@ function report() {
         <div class="row">
           <span class="label">{{ p.id }}</span>
           <StatusMenu />
-          <span v-if="p.synthetic" class="chip plain k-unclear syntag" :title="$t('patient-synthetic-tooltip')">{{ $t("patient-synthetic") }}</span>
+          <span v-if="p.synthetic && showsSyntheticTag" class="chip plain k-unclear syntag" :title="$t('patient-synthetic-tooltip')">{{ $t("patient-synthetic") }}</span>
         </div>
         <h1 style="margin-top:4px"><span lang="cs">{{ surnameFirst(p) }}</span><span class="idp">{{ $t("patient-header-rc") }} <span v-if="p.rc" lang="cs">{{ p.rc }}</span><Gap v-else /></span><span class="idp">{{ $t("patient-header-age") }} <span v-if="age">{{ age }}</span><Gap v-else /></span></h1>
         <div v-if="p.warn" class="question missing" style="margin:8px 0 0;padding:6px 10px"><b>{{ $t("patient-header-verify-identity") }}</b> <span lang="cs">{{ p.warn }}</span></div>
