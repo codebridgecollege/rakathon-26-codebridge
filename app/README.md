@@ -100,6 +100,24 @@ npm run dev                              # stages the app and the headers into .
 # http://localhost:8787/          the app; /?dev=1 shows the patient count read from the server
 ```
 
+### Static copy (UI work without a backend)
+
+For changing screens and styles only: `nuxt dev` answers every `/api` request from answers recorded into
+`app/static-demo/`, so no Worker, database, seed or keys are needed, and edits show at once (hot reload).
+
+```
+npm ci                                   # at the root, once
+npm run dev:static -w @codebridge/app    # http://localhost:3000/
+```
+
+- **What it shows:** the seeded synthetic demo data (no real patient), as the demo's default doctor, MUDr. Svobodová.
+  Every list, case tab and source page image of the 11 demo cases reads as on the real server.
+- **What it cannot do:** nothing is stored. Every write (status change, booking, edit, upload) answers "Statická kopie:
+  změny se neukládají". Switching the demo user keeps showing MUDr. Svobodová's data, and the Administrace page shows
+  org A's administrator's access log.
+- **Refreshing the data** after the backend changes its answers: run the local Worker with seeded data (above), then
+  `npm run record:static -w @codebridge/app` (it reads http://localhost:8787 and rewrites `app/static-demo/`).
+
 The end-to-end suite runs against it (`e2e/README.md`):
 
 ```

@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "ui-static",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev:static", "-w", "app"],
+      "port": 3000
+    },
+    {
+      "name": "worker-demo",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "-w", "api"],
+      "port": 8787
+    }
+  ]
+}
