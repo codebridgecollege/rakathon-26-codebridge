@@ -356,7 +356,6 @@ patients-subtitle-unnamed = Pacienti odoslaní na prerokovanie na MDT
 patients-setup-missing = Dokončite nastavenie tímu: názov MDT a obvyklý termín.
 patients-setup-open = Otvoriť nastavenie
 setup-title = Nastavenie tímu
-setup-intro = Vaše meno sa ukáže vpravo hore, názov MDT nad zoznamom pacientov.
 setup-pre = Titul pred menom
 setup-sur = Priezvisko
 setup-post = Titul za menom
@@ -375,3 +374,15 @@ setup-save = Uložiť
 setup-saved = Nastavenie uložené.
 setup-failed = Nastavenie sa nepodarilo uložiť.
 setup-note = Kalendár sa podľa obvyklého termínu zatiaľ neriadi.
+
+## MDT teams
+
+setup-save-name = Uložiť meno
+setup-teams = Tímy MDT
+setup-teams-note = Prípady tímu vidia len jeho členovia, tí, ktorí sú pri prípade menovaní, koordinátor a správca. Lekár mimo tímu sa k nim dostane len cez prístup s uvedeným dôvodom.
+setup-team-members = Členovia
+setup-team-members-count = členov: { $n }
+setup-team-add = Pridať tím
+setup-team-remove = Odobrať tím
+setup-mdt-name-example = napríklad Pľúcne MDT
+setup-unfiled = Prípady bez tímu: { $n }. Kým ich nezaradíte (v hlavičke pacienta), vidia ich lekári podľa oddelenia.

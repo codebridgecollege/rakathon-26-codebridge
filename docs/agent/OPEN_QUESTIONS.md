@@ -316,8 +316,7 @@ PACS and the panel on one computer, the note-taker on another. Conflicting saves
 screen does not update by itself. `GET /workflow` writes an access-log row on each read, so polling it would fill the
 log: live updates need a read that logs nothing clinical, such as one that says only whether anything changed.
 
-## Teams inside an org (asked 2026-11-03)
+## Screens that differ per team (asked 2026-11-03)
 
-Soňa wants each MDT (lung, breast, ENT) to see only its own patients, and screens that differ per team (spirometry for
-lung). Access today is per case (`case_members`); there is no team above the case. Open: whether a team is an org or a
-new level inside one, and who assigns people to it.
+Teams exist (`AUTH.md`, "Teams"). Open: what each team's screen holds, such as spirometry for a lung MDT. Spirometry is
+only in the documents' text today, with no lab series of its own to show.

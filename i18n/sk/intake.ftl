@@ -150,3 +150,9 @@ phone-expired = Platnosť kódu skončila.
 phone-new-code = Nový kód
 phone-received = Prijaté z telefónu ({ $n })
 phone-waiting = Čakám na súbory z telefónu…
+
+## MDT teams
+
+intake-field-team = Tím MDT
+intake-team-choose = Vyberte tím
+intake-team-required = Vyberte tím MDT, do ktorého pacient patrí.

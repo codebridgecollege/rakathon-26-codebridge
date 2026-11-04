@@ -12,6 +12,7 @@ export type StaffDirectory = {
   coord: StaffPerson | null;
   admin: StaffPerson | null;
   roles: Record<string, Role>;
+  teams: { id: string; name: string; weekday: number | null; time: string | null; members: string[] }[];
 };
 
 export type CaseFilter = { q?: string; status?: string; dept?: string; from?: string; to?: string; page: number; pageSize: number };

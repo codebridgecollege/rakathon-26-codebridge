@@ -145,3 +145,9 @@ phone-expired = The code has expired.
 phone-new-code = New code
 phone-received = Received from phone ({ $n })
 phone-waiting = Waiting for files from the phone…
+
+## MDT teams
+
+intake-field-team = MDT team
+intake-team-choose = Choose a team
+intake-team-required = Choose the MDT team this patient belongs to.

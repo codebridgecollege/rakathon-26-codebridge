@@ -202,6 +202,7 @@ describe("staff edits", () => {
   const dir: StaffDirectory = {
     depts: [{ id: "d4", name: "Radiologie", people: [{ id: "d4p1", pre: "MUDr.", sur: "Šimek", post: "", fn: "" }, { id: "d4p2", pre: "MUDr.", sur: "Veselá", post: "", fn: "" }] }],
     coord: { id: "coord", pre: "Bc.", sur: "Marková", post: "", fn: "koordinátorka MDT" },
+    teams: [],
     admin: { id: "admin", pre: "Ing.", sur: "Kovář", post: "", fn: "" },
     roles: {},
   };

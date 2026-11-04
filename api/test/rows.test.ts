@@ -3,7 +3,8 @@ import { identitySource, patientRow, staffName, type CaseJoinRow } from "../src/
 import { canReadCaseHeader, canReadClinical, clinicalAccessOf, redactsListFor, type Viewer } from "@codebridge/domain/access";
 
 const base: CaseJoinRow = {
-  id: "NO-A", source_file: "A_pacient.pdf", status: "new", processing_level: "partial", question_text: null, question_explicit: 0,
+  id: "NO-A", team_id: null,
+  source_file: "A_pacient.pdf", status: "new", processing_level: "partial", question_text: null, question_explicit: 0,
   question_purpose: "Účel", question_draft: null, question_kind: null, question_basis_json: '[{"quote":"q"}]', diagnosis_text: "Dg",
   diagnosis_note: null, mkn10: "C64", summary_one_line: "S", page_count: 2, referrer_name: null, referring_dept: "X",
   referring_dept_is_example: 1, owner_name: "MUDr. Svobodová", owner_is_example: 1, submitted_on: "2026-10-14", submitted_is_example: 1,

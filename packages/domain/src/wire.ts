@@ -74,6 +74,7 @@ export type DemoPicker = {
   orgs: (OrgRef & { people: { id: string; user_id: string; name: string; role: Role; fn: string; administers: boolean; dept: string | null }[] })[];
 };
 
+export type Team = { id: string; name: string; weekday: number | null; time: string | null; members: string[] };
 export type StaffPerson = { id: string; pre: string; sur: string; post: string; fn: string };
 // GET /staff: departments with their people, the coordinator, the administrator and each person's role.
 export type StaffDirectory = {
@@ -81,6 +82,8 @@ export type StaffDirectory = {
   coord: StaffPerson | null;
   admin: StaffPerson | null;
   roles: Record<string, Role>;
+  // The org's MDT teams; members are person IDs. A person may sit in several.
+  teams: Team[];
   seq?: number;
   source?: string;
 };
@@ -92,6 +95,8 @@ export type StatusHistItem = { from: string; to: string; by: string; when: strin
 // may hold names, so nothing here is ever logged.
 export type PatientRow = {
   file: string;
+  // The MDT team the case belongs to; null for a case without one.
+  teamId: string | null;
   id: string;
   name: string;
   nameAsWritten: string | null;

@@ -31,6 +31,7 @@ const cs = makeBundle("cs");
 const fmt = (id: string, args: Record<string, string | number> = {}) => cs.formatPattern(cs.getMessage(id)!.value!, args);
 
 const staff = {
+  teams: [],
   depts: [{ id: "d2", name: "Klinická onkologie", people: [{ id: "d2p1", pre: "MUDr.", sur: "Svobodová", post: "", fn: "" }, { id: "d2p2", pre: "MUDr.", sur: "Malá", post: "", fn: "" }] }],
   coord: { id: "coord", pre: "Bc.", sur: "Marková", post: "", fn: "koordinátorka MDT" },
   admin: { id: "admin", pre: "Ing.", sur: "Kovář", post: "", fn: "" },

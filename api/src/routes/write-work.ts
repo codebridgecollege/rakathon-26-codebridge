@@ -22,6 +22,7 @@ import { actorOf, answer, caseFor, isoNow, label, newId, now, orgQuery, statesFo
 import { bodySha, replayIdempotent, todayPrague } from "./write-cases";
 import { hooks } from "./hooks";
 import { orgById } from "../store/people";
+import { MEMBER } from "../store/d1";
 
 // The cases a viewer may read: every case for the coordinator and the administrator; the team's cases and the cases
 // with a valid break-the-glass grant for a doctor.
@@ -32,8 +33,7 @@ async function visibleCaseIds(c: import("hono").Context<AppEnv>): Promise<string
     const r = await orgQuery(c, "SELECT id FROM cases WHERE org_id = ?org AND intake_open = 0 ORDER BY list_order").all<{ id: string }>();
     return r.results.map((x) => x.id);
   }
-  const r = await orgQuery(c, `SELECT c.id FROM cases c WHERE c.org_id = ?org AND c.intake_open = 0 AND (EXISTS (SELECT 1 FROM case_members m WHERE m.org_id = ?org AND m.case_id = c.id AND (m.user_id = ?1
-       OR m.dept_id IN (SELECT dm.dept_id FROM dept_members dm WHERE dm.org_id = ?org AND dm.user_id = ?1)))
+  const r = await orgQuery(c, `SELECT c.id FROM cases c WHERE c.org_id = ?org AND c.intake_open = 0 AND (${MEMBER}
      OR EXISTS (SELECT 1 FROM case_access_grants g WHERE g.org_id = ?org AND g.case_id = c.id AND g.user_id = ?1 AND g.expires_at > ?2)
      ) ORDER BY c.list_order`, v.id, now().toISOString())
     .all<{ id: string }>();
@@ -289,6 +289,13 @@ export const writeWork = new Hono<AppEnv>()
     const owner = ref.owner || v.name;
     const staff = await work(c).staff();
     const data = { case_id: id, file, intake };
+    // A hospital that has teams files every new case under one: the one asked for, or the creator's only team. Without
+    // this the departments would open it to everyone in the hospital.
+    const teams = (await orgQuery(c, "SELECT t.id, EXISTS (SELECT 1 FROM team_members tm WHERE tm.org_id = ?org AND tm.team_id = t.id AND tm.user_id = ?1) AS mine FROM teams t WHERE t.org_id = ?org", v.id).all<{ id: string; mine: number }>()).results;
+    const mine = teams.filter((x) => x.mine === 1);
+    const teamId = typeof b.team_id === "string" && b.team_id ? b.team_id : mine.length === 1 ? mine[0]!.id : null;
+    // Asked-for teams are checked in every org: cases.team_id cannot name the org, so this keeps another org's team out.
+    if (teamId ? !teams.some((x) => x.id === teamId) : teams.length > 0) throw D.invalidInput();
     const t = tx(c);
     t.idempotency(key, "create_case", sha, data, 200, at);
     // A second record for a known birth number only with the override; re-checked inside the batch.
@@ -307,13 +314,13 @@ export const writeWork = new Hono<AppEnv>()
     t.run(
       `INSERT INTO cases (org_id, id, case_no, patient_id, source_file, list_order, status, processing_level, question_text, question_explicit, question_purpose,
          diagnosis_text, summary_one_line, owner_user_id, owner_name, referring_dept, submitted_on, updated_on, duplicate_override_reason, created_by, created_at,
-         intake_open, referral_sha256, created_by_actor)
-       VALUES (?org, ?1, ?17, ?2, ?3, ?4, 'new', 'none', ?5, ?6, NULL, ?7, NULL, ?8, ?9, ?10, ?11, ?11, ?12, ?13, ?14, ?15, ?16, ?18)`,
+         intake_open, referral_sha256, created_by_actor, team_id)
+       VALUES (?org, ?1, ?17, ?2, ?3, ?4, 'new', 'none', ?5, ?6, NULL, ?7, NULL, ?8, ?9, ?10, ?11, ?11, ?12, ?13, ?14, ?15, ?16, ?18, ?19)`,
       id, `pt-${id}`, file, lastOrder + 1, ref.question, ref.question ? 1 : 0,
       // The documents decide the diagnosis; until a doctor reviews them the list says so instead of guessing.
-      "Čeká na kontrolu lékařem", staff.idByName.get(owner) ?? null, owner, ref.dept, day, override?.reason ?? null, v.id, at, intake ? 1 : 0, referralSha, caseNo, v.actor?.id ?? null,
+      "Čeká na kontrolu lékařem", staff.idByName.get(owner) ?? null, owner, ref.dept, day, override?.reason ?? null, v.id, at, intake ? 1 : 0, referralSha, caseNo, v.actor?.id ?? null, teamId,
     );
-    if (NEW_CASE_MEMBERS === "all_mdt_departments")
+    if (NEW_CASE_MEMBERS === "all_mdt_departments" && !teamId)
       t.run("INSERT INTO case_members (org_id, case_id, dept_id, reason, added_by, added_at) SELECT ?org, ?1, id, 'nový případ: oddělení MDT', ?2, ?3 FROM departments WHERE org_id = ?org", id, v.id, at);
     t.run("INSERT INTO case_members (org_id, case_id, user_id, reason, added_by, added_at) VALUES (?org, ?1, ?2, 'založil(a) případ', ?2, ?3)", id, v.id, at);
     const ownerId = staff.idByName.get(owner);

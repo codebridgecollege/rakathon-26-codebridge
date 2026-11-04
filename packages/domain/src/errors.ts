@@ -109,6 +109,8 @@ export const D = {
   staffNameTaken: (name: string) => new DomainError(409, "staff_name_taken", `${name} už v seznamu je`),
   surnameRequired: err(422, "surname_required", "Příjmení nelze smazat; osobu odeberte tlačítkem ✕"),
   deptNameRequired: err(422, "invalid_input", "Vyplňte název pracoviště"),
+  teamNameTaken: (name: string) => new DomainError(409, "team_name_taken", `Tým ${name} už v seznamu je`),
+  teamInUse: err(409, "team_in_use", "Tým má své případy, proto ho nelze odebrat."),
   deptNameTaken: (name: string) => new DomainError(409, "dept_name_taken", `Pracoviště ${name} už v seznamu je`),
   deptNotEmpty: err(409, "dept_not_empty", "Pracoviště má osoby; nejdřív je odeberte."),
   cannotRemoveSelf: err(409, "cannot_remove_self", "Sebe ze seznamu odebrat nelze."),

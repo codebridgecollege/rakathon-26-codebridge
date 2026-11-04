@@ -341,7 +341,6 @@ patients-subtitle-unnamed = Patients referred for discussion at the MDT
 patients-setup-missing = Finish setting up your team: the MDT's name and usual time.
 patients-setup-open = Open settings
 setup-title = Team settings
-setup-intro = Your name shows at the top right, the MDT's name above the patient list.
 setup-pre = Title before the name
 setup-sur = Surname
 setup-post = Title after the name
@@ -360,3 +359,15 @@ setup-save = Save
 setup-saved = Settings saved.
 setup-failed = The settings could not be saved.
 setup-note = The calendar does not follow the usual time yet.
+
+## MDT teams
+
+setup-save-name = Save name
+setup-teams = MDT teams
+setup-teams-note = A team's cases are seen only by its members, those named on the case, the coordinator and the administrator. A doctor outside the team reaches them only through access with a stated reason.
+setup-team-members = Members
+setup-team-members-count = members: { $n }
+setup-team-add = Add team
+setup-team-remove = Remove team
+setup-mdt-name-example = for example Lung MDT
+setup-unfiled = Cases without a team: { $n }. Until you file them (in the patient header), doctors see them by department.

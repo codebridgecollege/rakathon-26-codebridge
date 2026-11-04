@@ -904,3 +904,13 @@ h3 { letter-spacing: -.02em; }
 .setupform input, .setupform select { font-weight: 400; min-width: 0; width: 100%; }
 .setupactions { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
 .setuperr { grid-column: 1 / -1; margin: 0; color: var(--missing); }
+.setupform + .setupform, details + .setupform { margin-top: 12px; }
+.setuphead { margin: 20px 0 4px; font-size: 15px; }
+.setupteam { border-top: 1px solid var(--line-strong); padding: 10px 0; }
+.setupteam summary { cursor: pointer; }
+.setupteam .setupform { margin-top: 10px; }
+.setupmembers { grid-column: 1 / -1; border: 0; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 4px 12px; }
+.setupmembers legend { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+.setupmembers label { display: flex; gap: 6px; align-items: center; font-weight: 400; }
+.setupmembers input { width: auto; }
+.teamfact { display: inline-flex; gap: 6px; align-items: center; }

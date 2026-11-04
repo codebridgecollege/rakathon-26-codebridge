@@ -21,9 +21,11 @@ import type {
   UserRow,
 } from "./types";
 
-// Membership of a case's team: the user directly, or any department the user belongs to, in this org. ?1 is the user.
-export const MEMBER = `EXISTS (SELECT 1 FROM case_members m WHERE m.org_id = ?org AND m.case_id = c.id AND (m.user_id = ?1
-  OR m.dept_id IN (SELECT dm.dept_id FROM dept_members dm WHERE dm.org_id = ?org AND dm.user_id = ?1)))`;
+// Who a case is open to: someone named on it, a member of its MDT team, or (a case without a team has these rows, a
+// team's case does not) a member of one of its departments, in this org. ?1 is the user.
+export const MEMBER = `(EXISTS (SELECT 1 FROM case_members m WHERE m.org_id = ?org AND m.case_id = c.id AND (m.user_id = ?1
+  OR m.dept_id IN (SELECT dm.dept_id FROM dept_members dm WHERE dm.org_id = ?org AND dm.user_id = ?1)))
+  OR EXISTS (SELECT 1 FROM team_members tm WHERE tm.org_id = ?org AND tm.team_id = c.team_id AND tm.user_id = ?1))`;
 
 const CASE_SELECT = `SELECT c.*, p.full_name, p.name_as_written, p.birth_number, p.birth_as_written, p.age_as_written,
   p.identity_warning, p.name_note_cs, p.name_note_source_json, p.identity_source_json, p.data_origin, s.day AS slot_day, s.time AS slot_time
@@ -62,7 +64,7 @@ export class D1Directory extends OrgBound implements DirectoryStore {
   }
 
   async staff(): Promise<StaffDirectory> {
-    const [depts, people, users] = await this.db.batch([
+    const [depts, people, users, teams, teamMembers] = await this.db.batch([
       this.q("SELECT id, name FROM departments WHERE org_id = ?org ORDER BY sort, id"),
       this.q(
         `SELECT dm.dept_id, u.id, u.pre, u.sur, u.post, m.fn FROM dept_members dm
@@ -70,6 +72,11 @@ export class D1Directory extends OrgBound implements DirectoryStore {
          WHERE dm.org_id = ?org AND u.active = 1 AND m.active_until IS NULL ORDER BY dm.position, u.id`,
       ),
       this.q(`${ORG_USER} WHERE m.org_id = ?org AND u.active = 1 AND m.active_until IS NULL ORDER BY u.id`),
+      this.q("SELECT id, name, weekday, time FROM teams WHERE org_id = ?org ORDER BY name, id"),
+      this.q(
+        `SELECT tm.team_id, tm.user_id FROM team_members tm JOIN memberships m ON m.org_id = tm.org_id AND m.user_id = tm.user_id
+         JOIN users u ON u.id = tm.user_id WHERE tm.org_id = ?org AND u.active = 1 AND m.active_until IS NULL ORDER BY tm.user_id`,
+      ),
     ]);
     const person = (u: Record<string, unknown>) => ({
       id: u.id as string,
@@ -89,6 +96,10 @@ export class D1Directory extends OrgBound implements DirectoryStore {
       // The org's administrator: the administrator role, or else a doctor who administers the org (memberships.administers).
       admin: ((u) => (u ? person(u) : null))(us.find((u) => u.role_id === "admin") ?? us.find((u) => u.administers === 1)),
       roles: Object.fromEntries(us.map((u) => [u.id, u.role_id])),
+      teams: (teams!.results as { id: string; name: string; weekday: number | null; time: string | null }[]).map((t) => ({
+        ...t,
+        members: (teamMembers!.results as { team_id: string; user_id: string }[]).filter((m) => m.team_id === t.id).map((m) => m.user_id),
+      })),
     };
   }
 }

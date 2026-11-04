@@ -91,7 +91,7 @@ describe("/api/patients", () => {
     expect(Object.keys(body.patients[0]!).sort()).toEqual(
       ["age", "basis", "birth", "dept", "deptExample", "diagnosis", "diagnosisNote", "draft", "explicit", "file", "full", "id", "mkn10",
         "name", "nameAsWritten", "nameNote", "owner", "ownerExample", "pages", "processing", "purpose", "qkind", "question", "rc",
-        "referrer", "slot", "status", "statusHist", "submitted", "submittedExample", "summary", "synthetic", "updated", "warn"].sort(),
+        "referrer", "slot", "status", "statusHist", "submitted", "submittedExample", "summary", "synthetic", "teamId", "updated", "warn"].sort(),
     );
     expect(body.patients[0]).toMatchObject({ id: "NO-A", full: true, slot: { day: "2026-10-22", time: "14:00" }, synthetic: true });
     const log = await accessLog();

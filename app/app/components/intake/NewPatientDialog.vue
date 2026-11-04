@@ -7,6 +7,7 @@ import { useFluent } from "fluent-vue";
 import { surnameFirst } from "@codebridge/domain/names";
 import { useIntakeStore, type FieldId } from "../../stores/intake";
 import { usePhoneStore } from "../../stores/phone";
+import { useStaffStore } from "../../stores/staff";
 import { useDialogFocus } from "../../lib/dialog";
 import { sizeMsg } from "../../lib/format";
 import { useMsg } from "../../lib/msg";
@@ -18,6 +19,7 @@ import type { UploadListItem } from "../uploads/types";
 const { $t } = useFluent();
 const fmt = useMsg();
 const s = useIntakeStore();
+const teams = computed(() => useStaffStore().directory?.teams ?? []);
 const phone = usePhoneStore();
 const lang = () => document.documentElement.lang || "cs";
 
@@ -154,6 +156,12 @@ onBeforeUnmount(() => document.removeEventListener("keydown", onEscape));
                   <button type="button" class="btn small" @click="s.confirmDuplicate()">{{ $t("intake-duplicate-override") }}</button>
                 </template>
               </i18n>
+            </label>
+            <label v-if="teams.length" class="full">{{ $t("intake-field-team") }} *
+              <select v-model="s.teamId" class="input" required>
+                <option value="">{{ $t("intake-team-choose") }}</option>
+                <option v-for="t in teams" :key="t.id" :value="t.id">{{ t.name }}</option>
+              </select>
             </label>
             <label class="full">{{ $t("intake-field-anamnesis") }} <span class="fhint">{{ $t("intake-field-anamnesis-hint") }}</span><textarea id="nfa" v-model="s.form.nfa" class="input" autocomplete="off" /></label>
             <label class="full">{{ $t("intake-field-question") }} <span class="fhint">{{ $t("intake-field-question-hint") }}</span><textarea id="nfq" v-model="s.form.nfq" class="input" autocomplete="off" style="min-height:60px" /></label>

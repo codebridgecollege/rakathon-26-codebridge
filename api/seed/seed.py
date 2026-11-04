@@ -57,7 +57,7 @@ MAX_STATEMENT = 90_000  # D1 refuses SQL statements over 100 KB; keep a margin.
 # memberships, roles and user_identities are not in it: orgs, people and memberships are upserted, never deleted (AUTH.md,
 # "Demo reset is per org"; a membership outside the seed is ended), and each org keeps its data epoch across a reseed.
 TABLES = [
-    "departments", "dept_members", "patients", "patient_nis_links", "cases", "case_members", "status_history",
+    "departments", "dept_members", "teams", "team_members", "patients", "patient_nis_links", "cases", "case_members", "status_history",
     "slots", "sessions", "attendance", "protocols", "decisions", "task_suggestions", "tasks",
     "question_confirmations", "fact_edits", "edit_log", "extraction_runs", "alerts", "alert_events_v1", "alert_identities", "alert_events",
     "fact_ids", "fact_confirmations",
@@ -69,7 +69,7 @@ TABLES = [
 # from the R2 object seed/reset.json, which this script writes (a section per demo org); the other tables change only
 # through this script. users and memberships are upserted there, never deleted.
 MUTABLE = [
-    "users", "memberships", "departments", "dept_members", "cases", "case_members", "status_history", "slots", "sessions",
+    "users", "memberships", "departments", "dept_members", "teams", "team_members", "cases", "case_members", "status_history", "slots", "sessions",
     "attendance", "attendance_sets", "protocols", "decisions", "task_suggestions", "tasks", "question_confirmations",
     "fact_edits", "edit_log", "alert_events", "notifications", "case_access_grants", "idempotency_keys", "write_guards",
     "recordings", "jobs", "transcript_passes", "transcript_lines", "transcript_summaries", "audio_uploads", "audio_parts",

@@ -32,21 +32,77 @@ function dropFromAttendance(t: Tx, userId: string, by: string, at: string) {
   t.run("DELETE FROM attendance WHERE org_id = ?org AND user_id = ?1", userId);
 }
 
+const TEAM_HERE = "EXISTS (SELECT 1 FROM teams WHERE org_id = ?org AND id = ?)";
+
+function teamFields(b: Record<string, unknown>) {
+  const name = typeof b.name === "string" ? b.name.trim().slice(0, 120) : "";
+  const weekday = b.weekday ?? null;
+  const time = b.time ?? null;
+  const dayOk = weekday === null || (typeof weekday === "number" && Number.isInteger(weekday) && weekday >= 1 && weekday <= 7);
+  const timeOk = time === null || (typeof time === "string" && /^([01]\d|2[0-3]):[0-5]\d$/.test(time));
+  if (!name || !dayOk || !timeOk) throw D.invalidInput();
+  return { name, weekday: weekday as number | null, time: time as string | null };
+}
+
 export const writeStaff = new Hono<AppEnv>()
-  // The team's MDT (Administrace, migration 0021): its name and when it usually meets.
-  .patch("/staff/mdt", async (c) => {
-    label(c, "personál: nastavení MDT");
+  // MDT teams (AUTH.md, "Teams"): set up in Administrace by whoever may edit the staff list.
+  .post("/staff/teams", async (c) => {
+    label(c, "personál: nový tým MDT");
     assertCan(actorOf(c), "staff.write");
-    const b = c.var.body;
-    const name = typeof b.name === "string" ? b.name.trim().slice(0, 120) : "";
-    const weekday: unknown = b.weekday ?? null;
-    const time: unknown = b.time ?? null;
-    if (!name || (weekday !== null && !(Number.isInteger(weekday) && (weekday as number) >= 1 && (weekday as number) <= 7)) || (time !== null && !(typeof time === "string" && /^([01]\d|2[0-3]):[0-5]\d$/.test(time)))) throw D.invalidInput();
+    const f = teamFields(c.var.body);
     const t = tx(c);
-    t.run("UPDATE orgs SET mdt_name = ?1, mdt_weekday = ?2, mdt_time = ?3 WHERE id = ?org", name, weekday, time);
-    t.audit({ action: "staff.mdt_edit", what_cs: `nastavil(a) MDT: ${name}` });
+    t.guard("name_free", "NOT EXISTS (SELECT 1 FROM teams WHERE org_id = ?org AND lower(name) = lower(?))", [f.name], () => D.teamNameTaken(f.name));
+    t.run("INSERT INTO teams (id, org_id, name, weekday, time) VALUES (?1, ?org, ?2, ?3, ?4)", `t${shortId()}`, f.name, f.weekday, f.time);
+    t.audit({ action: "staff.team_add", what_cs: `přidal(a) tým MDT: ${f.name}` });
     await t.commit();
-    return answer(c, {});
+    return answer(c, {}, await staffState(c));
+  })
+  .patch("/staff/teams/:id", async (c) => {
+    label(c, "personál: úprava týmu MDT");
+    assertCan(actorOf(c), "staff.write");
+    const id = c.req.param("id");
+    const f = teamFields(c.var.body);
+    const t = tx(c);
+    t.guard("exists", TEAM_HERE, [id], () => D.conflict());
+    t.guard("name_free", "NOT EXISTS (SELECT 1 FROM teams WHERE org_id = ?org AND lower(name) = lower(?) AND id <> ?)", [f.name, id], () => D.teamNameTaken(f.name));
+    t.run("UPDATE teams SET name = ?1, weekday = ?2, time = ?3 WHERE org_id = ?org AND id = ?4", f.name, f.weekday, f.time, id);
+    t.audit({ action: "staff.team_edit", what_cs: `upravil(a) tým MDT: ${f.name}`, target_type: "team", target_id: id });
+    await t.commit();
+    return answer(c, {}, await staffState(c));
+  })
+  // The whole member list at once: who is in a team decides who reads its cases, so the log names each change.
+  .put("/staff/teams/:id/members", async (c) => {
+    label(c, "personál: členové týmu MDT");
+    assertCan(actorOf(c), "staff.write");
+    const id = c.req.param("id");
+    const ids: unknown = c.var.body.user_ids;
+    if (!Array.isArray(ids) || ids.length > 500 || ids.some((x) => typeof x !== "string")) throw D.invalidInput();
+    const wanted = [...new Set(ids as string[])];
+    const staff = await work(c).staff();
+    // Only someone active in this org; an ID from another org reads as a bad request and adds nobody.
+    if (wanted.some((u) => !staff.users.some((x) => x.id === u && x.active === 1))) throw D.invalidInput();
+    const t = tx(c);
+    t.guard("exists", TEAM_HERE, [id], () => D.conflict());
+    t.run("DELETE FROM team_members WHERE org_id = ?org AND team_id = ?1", id);
+    for (const u of wanted) t.run("INSERT INTO team_members (org_id, team_id, user_id) VALUES (?org, ?1, ?2)", id, u);
+    t.audit({ action: "staff.team_members", what_cs: `nastavil(a) členy týmu MDT: ${wanted.map((u) => staffName(staff.users.find((x) => x.id === u)!)).join(", ") || "nikdo"}`, target_type: "team", target_id: id });
+    await t.commit();
+    return answer(c, {}, await staffState(c));
+  })
+  // A team that holds cases stays: its cases have no department rows, so they would close to everyone but those named.
+  .delete("/staff/teams/:id", async (c) => {
+    label(c, "personál: odebrání týmu MDT");
+    assertCan(actorOf(c), "staff.write");
+    const id = c.req.param("id");
+    const name = (await orgQuery(c, "SELECT name FROM teams WHERE org_id = ?org AND id = ?1", id).first<{ name: string }>())?.name;
+    const t = tx(c);
+    t.guard("exists", TEAM_HERE, [id], () => D.conflict());
+    t.guard("empty", "NOT EXISTS (SELECT 1 FROM cases WHERE org_id = ?org AND team_id = ?)", [id], () => D.teamInUse());
+    t.run("DELETE FROM team_members WHERE org_id = ?org AND team_id = ?1", id);
+    t.run("DELETE FROM teams WHERE org_id = ?org AND id = ?1", id);
+    t.audit({ action: "staff.team_remove", what_cs: `odebral(a) tým MDT: ${name ?? id}`, target_type: "team", target_id: id });
+    await t.commit();
+    return answer(c, {}, await staffState(c));
   })
   .post("/staff/departments", async (c) => {
     label(c, "personál: nové pracoviště");
@@ -171,6 +227,7 @@ export const writeStaff = new Hono<AppEnv>()
     // The membership ends; the person stays (they may belong to another org) and history keeps pointing at them.
     t.run("UPDATE memberships SET active_until = ?1 WHERE org_id = ?org AND user_id = ?2 AND active_until IS NULL", at, id);
     t.run("DELETE FROM dept_members WHERE org_id = ?org AND user_id = ?1", id);
+    t.run("DELETE FROM team_members WHERE org_id = ?org AND user_id = ?1", id);
     dropFromAttendance(t, id, c.var.viewer.id, at);
     t.audit({ action: "staff.person_remove", what_cs: `odebral(a) z personálu: ${dept}, ${staffName(u)}`, target_type: "user", target_id: id });
     await t.commit();
@@ -196,6 +253,7 @@ export const writeStaff = new Hono<AppEnv>()
     for (const u of extra) {
       t.run("UPDATE memberships SET active_until = ?1 WHERE org_id = ?org AND user_id = ?2 AND active_until IS NULL", at, u.id);
       t.run("DELETE FROM dept_members WHERE org_id = ?org AND user_id = ?1", u.id);
+      t.run("DELETE FROM team_members WHERE org_id = ?org AND user_id = ?1", u.id);
       dropFromAttendance(t, u.id, c.var.viewer.id, at);
     }
     // A few statements whatever the list's size (json_each), so the batch stays small. Every upsert updates a row only

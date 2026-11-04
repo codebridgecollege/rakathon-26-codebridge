@@ -48,6 +48,36 @@ export async function bodySha(body: unknown) {
 
 export const writeCases = new Hono<AppEnv>()
   // ---------- status, close, reopen ----------
+  // Puts a case into an MDT team (AUTH.md, "Teams"): the team now opens it and the departments no longer do. Whoever is
+  // named on the case keeps it, and a doctor who moves it stays on it, so nobody locks themselves out mid-work. Not under
+  // break-the-glass: a temporary grant reads a case, it must not open it to a whole team or leave lasting access. The
+  // answer holds no case state, because the administrator may move a case without being allowed to read it.
+  .post("/cases/:id/team", async (c) => {
+    const id = c.req.param("id");
+    label(c, "zařazení případu do týmu MDT", id);
+    const { breakGlass } = await caseFor(c, id, "case.team");
+    if (breakGlass) throw D.notMember();
+    const teamId: unknown = c.var.body.team_id;
+    if (typeof teamId !== "string" || !teamId) throw D.invalidInput();
+    const v = c.var.viewer;
+    const found = await orgQuery(c, "SELECT team_id AS current, (SELECT name FROM teams WHERE org_id = ?org AND id = ?2) AS name FROM cases WHERE org_id = ?org AND id = ?1", id, teamId).first<{ current: string | null; name: string | null }>();
+    if (!found?.name) throw D.invalidInput();
+    // Asking for the team it is already in changes nothing, so it cannot renew anyone's place on the case.
+    if (found.current === teamId) return answer(c, {});
+    const t = tx(c);
+    // Only a team of this org; another org's team reads as a bad request, the same as one that does not exist.
+    t.guard("team", "EXISTS (SELECT 1 FROM teams WHERE org_id = ?org AND id = ?)", [teamId], () => D.invalidInput());
+    t.run("UPDATE cases SET team_id = ?1 WHERE org_id = ?org AND id = ?2", teamId, id);
+    t.run("DELETE FROM case_members WHERE org_id = ?org AND case_id = ?1 AND dept_id IS NOT NULL", id);
+    if (v.role === "doctor")
+      t.run(
+        "INSERT INTO case_members (org_id, case_id, user_id, reason, added_by, added_at) SELECT ?org, ?1, ?2, 'zařadil(a) případ do týmu', ?2, ?3 WHERE NOT EXISTS (SELECT 1 FROM case_members WHERE org_id = ?org AND case_id = ?1 AND user_id = ?2)",
+        id, v.id, isoNow(),
+      );
+    t.audit({ action: "case.team", what_cs: `zařadil(a) případ do týmu MDT: ${found.name}`, case_id: id });
+    await t.commit();
+    return answer(c, {});
+  })
   .post("/cases/:id/status", async (c) => {
     const id = c.req.param("id");
     label(c, "změna stavu případu", id);

@@ -2,7 +2,8 @@
 // The case header. It renders from the list row, so the doctor
 // sees whose case it is while the data loads or after it failed. A missing birth number or age is a gap dash, never a
 // guess; a real identity doubt is shown, never merged away silently.
-import { computed } from "vue";
+import { computed, ref } from "vue";
+import { ApiError } from "@codebridge/api-client";
 import { useRouter } from "vue-router";
 import { useFluent } from "fluent-vue";
 import { usePatient } from "../../composables/usePatient";
@@ -10,6 +11,9 @@ import { useOverlayStore } from "../../stores/overlay";
 import { useWorkflowStore } from "../../stores/workflow";
 import { useListViewStore } from "../../stores/listView";
 import { useSessionStore } from "../../stores/session";
+import { useStaffStore } from "../../stores/staff";
+import { useApi } from "../../lib/api";
+import { toast } from "../../lib/toast";
 import { useCurrentUser } from "../../composables/useCurrentUser";
 import { slotText } from "../../lib/dates";
 import { ageNum, surnameFirst } from "../../lib/patientRow";
@@ -49,6 +53,30 @@ function startMdt() {
 // the button does not exist, so the demo shows nothing that cannot work.
 const session = useSessionStore();
 const { showsSyntheticTag } = useCurrentUser();
+const staffStore = useStaffStore();
+const teams = computed(() => staffStore.directory?.teams ?? []);
+const teamBusy = ref(false);
+// Moving a case into a team closes it to the departments, so the list and this view read from the server again.
+async function setTeam(ev: Event) {
+  const sel = ev.target as HTMLSelectElement;
+  if (!sel.value) return;
+  // It closes the case to the departments and cannot be undone here, so a slip of the mouse must not do it.
+  if (!window.confirm($t("patient-header-team-confirm", { name: sel.selectedOptions[0]?.text ?? "" }))) {
+    sel.value = c.p.value.teamId ?? "";
+    return;
+  }
+  teamBusy.value = true;
+  try {
+    await useApi().setCaseTeam(c.p.value.id, sel.value);
+    await session.loadFromApi();
+    toast($t("patient-header-team-set"));
+  } catch (e) {
+    sel.value = c.p.value.teamId ?? "";
+    toast(e instanceof ApiError && e.message_cs ? e.message_cs : $t("patient-header-team-failed"));
+  } finally {
+    teamBusy.value = false;
+  }
+}
 const canNis = computed(() => !!session.me?.nis && (session.me.user.role === "doctor" || session.me.user.role === "coordinator"));
 function nis() {
   overlay.open({ kind: "nis", caseId: p.value.id });
@@ -72,6 +100,12 @@ function report() {
         <div v-if="p.warn" class="question missing" style="margin:8px 0 0;padding:6px 10px"><b>{{ $t("patient-header-verify-identity") }}</b> <span lang="cs">{{ p.warn }}</span></div>
         <div v-if="p.nameNote" class="muted small namenote">{{ $t("patient-header-name-note") }} <span lang="cs">{{ p.nameNote.text }}</span> <SrcLinks v-if="p.nameNote.src" :refs="[p.nameNote.src as never]" /></div>
         <div class="facts">
+          <label v-if="teams.length" class="teamfact">{{ $t("patient-header-team") }}
+            <select :value="p.teamId ?? ''" :disabled="teamBusy" @change="setTeam">
+              <option v-if="!p.teamId" value="">{{ $t("patient-header-team-none") }}</option>
+              <option v-for="t in teams" :key="t.id" :value="t.id">{{ t.name }}</option>
+            </select>
+          </label>
           <span>{{ $t("patient-header-owner") }} <b lang="cs">{{ p.owner }}</b></span><span>{{ $t("patient-header-dept") }} <b><span v-if="p.dept" lang="cs">{{ p.dept }}</span><Gap v-else /></b></span><span>{{ $t("patient-header-next-mdt") }} <b>{{ slotText($t, p.slot) }}</b></span>
         </div>
       </div>

@@ -22,6 +22,7 @@ export type CaseJoinRow = {
   referring_dept: string | null;
   referring_dept_is_example: number;
   owner_name: string;
+  team_id: string | null;
   owner_is_example: number;
   submitted_on: string | null;
   submitted_is_example: number;
@@ -87,6 +88,7 @@ export function patientRow(r: CaseJoinRow, statusHist: StatusHistItem[] = [], re
     dept: r.referring_dept,
     deptExample: r.referring_dept_is_example === 1,
     owner: r.owner_name,
+    teamId: r.team_id ?? null,
     ownerExample: r.owner_is_example === 1,
     submitted: r.submitted_on,
     submittedExample: r.submitted_is_example === 1,

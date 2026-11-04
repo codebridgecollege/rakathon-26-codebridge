@@ -36,7 +36,7 @@ export function numberPlain(cond: string, from: number, orgAt: number): string {
 // Tables that hold org data: every statement on them names org_id (checked as a reminder by test/org-sql.test.ts,
 // which scans the source; joins and subqueries can escape that scan, so the isolation tests are the proof).
 export const ORG_TABLES = [
-  "memberships", "departments", "dept_members", "patients", "cases", "case_members", "case_access_grants", "status_history",
+  "memberships", "departments", "dept_members", "teams", "team_members", "patients", "cases", "case_members", "case_access_grants", "status_history",
   "slots", "sessions", "attendance", "attendance_sets", "protocols", "decisions", "task_suggestions", "tasks",
   "question_confirmations", "fact_edits", "edit_log", "extraction_runs", "alerts", "alert_events", "alert_events_v1", "alert_identities",
   "fact_ids", "fact_confirmations", "documents",

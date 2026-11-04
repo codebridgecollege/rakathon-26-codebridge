@@ -1031,3 +1031,11 @@ mdt-panel-more-alerts = { $n } more alerts are on the Alerts tab.
 patient-empty-title = The documents are not processed yet
 patient-empty-text = The summary, disease course and other tabs appear once they are processed. Until then, this page shows what was filled in when the patient was created.
 patient-empty-upload = Upload a document
+
+## MDT teams
+
+patient-header-team = Team:
+patient-header-team-none = No team
+patient-header-team-set = The case is now in the team.
+patient-header-team-failed = The case could not be moved into the team.
+patient-header-team-confirm = File this case under { $name }? Doctors from departments who are not in the team will stop seeing it.

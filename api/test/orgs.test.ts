@@ -395,7 +395,7 @@ describe("every route, acting in org B with org A's IDs", () => {
     const covered = new Set([
       ...PROBES.map((p) => `${p.method} ${p.name.replace(/^\w+ /, "").replace(/ \(.*\)$/, "").replace(/\?.*$/, "")}`),
       "GET /patients", "GET /tasks", "GET /calendar", "GET /workflow", "GET /staff", "GET /admin/access-log", "GET /me", "GET /demo/memberships", "GET /",
-      "PATCH /staff/mdt", "POST /sessions", "DELETE /sessions/:day", "PUT /attendance/:key", "POST /recordings", "POST /notifications/digest", "POST /staff/departments",
+      "POST /staff/teams", "PATCH /staff/teams/:id", "PUT /staff/teams/:id/members", "DELETE /staff/teams/:id", "POST /cases/:id/team", "POST /sessions", "DELETE /sessions/:day", "PUT /attendance/:key", "POST /recordings", "POST /notifications/digest", "POST /staff/departments",
       "POST /cases", "POST /fhir/referral", "POST /admin/pipeline/warm", "POST /staff/reset", "POST /admin/reset-demo",
       // The phone's two routes take a session token, which names its org; the upload-sessions tests cover them.
       "GET /upload-sessions/current", "POST /upload-sessions/current/files",
@@ -639,15 +639,82 @@ describe("staff and demo resets", () => {
     expect((await one("SELECT active_until FROM memberships WHERE id = 'b-doc'")).active_until).toBeNull();
   });
 
-  it("org B's administrator sets org B's MDT only; a doctor may not, and a bad time is refused", async () => {
-    const body = { name: "Plicní MDT", weekday: 2, time: "15:30" };
-    const orgA = await get("/me", "coord");
-    expect((await w("PATCH", "/staff/mdt", body, "b-doc")).body.error?.code).toBe("role_forbidden");
-    expect((await w("PATCH", "/staff/mdt", { ...body, time: "25:00" }, "b-admin")).status).toBe(422);
-    expect((await w("PATCH", "/staff/mdt", { ...body, name: " " }, "b-admin")).status).toBe(422);
-    expect((await w("PATCH", "/staff/mdt", body, "b-admin")).status).toBe(200);
-    expect((await get("/me", "b-coord")).body.mdt).toEqual({ name: "Plicní MDT", weekday: 2, time: "15:30" });
-    expect((await get("/me", "coord")).body.mdt).toEqual(orgA.body.mdt);
+  it("a team opens its case to its members only, and org A cannot touch org B's teams", async () => {
+    const teamBody = { name: "Plicní MDT", weekday: 2, time: "15:30" };
+    expect((await w("POST", "/staff/teams", teamBody, "b-doc")).body.error?.code).toBe("role_forbidden");
+    expect((await w("POST", "/staff/teams", { ...teamBody, time: "25:00" }, "b-admin")).status).toBe(422);
+    const made = await w("POST", "/staff/teams", teamBody, "b-admin");
+    expect(made.status).toBe(200);
+    const team = (made.body.state as { staff: { teams: { id: string; name: string; members: string[] }[] } }).staff.teams[0]!;
+    expect(team).toMatchObject({ name: "Plicní MDT", weekday: 2, time: "15:30", members: [] });
+    expect((await w("POST", "/staff/teams", teamBody, "b-admin")).body.error?.code).toBe("team_name_taken");
+    // Org A sees none of it, and its people and IDs do not work on it.
+    expect((await get("/staff", "coord")).text).not.toContain("Plicní MDT");
+    expect((await w("PATCH", `/staff/teams/${team.id}`, teamBody, "coord")).status).toBe(409);
+    expect((await w("PUT", `/staff/teams/${team.id}/members`, { user_ids: [] }, "coord")).status).toBe(409);
+    expect((await w("PUT", `/staff/teams/${team.id}/members`, { user_ids: ["d2p1"] }, "b-admin")).status).toBe(422);
+    expect((await w("POST", "/cases/NO-A/team", { team_id: team.id }, "d2p1")).status).toBe(422);
+
+    // The fixture's org B doctor reads the case through a department; another doctor joins org B's that department.
+    await env.DB.batch([
+      env.DB.prepare("INSERT INTO users (id, pre, sur) VALUES ('b-doc2', 'MUDr.', 'Béčková')"),
+      env.DB.prepare("INSERT INTO memberships (id, org_id, user_id, role_id, active_from) VALUES ('b-doc2', 'demo-b', 'b-doc2', 'doctor', '2026-01-01T00:00:00.000Z')"),
+      env.DB.prepare("INSERT INTO dept_members (org_id, dept_id, user_id, position) VALUES ('demo-b', 'b-d1', 'b-doc2', 1)"),
+    ]);
+    const open = async (user: string) => (await get("/patients", user)).body.patients.map((p: { id: string }) => p.id);
+    const caseId = (await open("b-doc"))[0] as string;
+    expect(await open("b-doc2")).toContain(caseId);
+    expect((await w("POST", `/cases/${caseId}/team`, { team_id: team.id }, "b-admin")).status).toBe(200);
+    // Out of the department's reach: the list, the case and the workflow all refuse the doctor outside the team.
+    expect(await open("b-doc2")).not.toContain(caseId);
+    expect((await get(`/cases/${caseId}`, "b-doc2")).body.error?.code).toBe("not_member");
+    expect(await open("b-admin")).toContain(caseId);
+    expect((await w("PUT", `/staff/teams/${team.id}/members`, { user_ids: ["b-doc2"] }, "b-coord")).status).toBe(200);
+    expect(await open("b-doc2")).toContain(caseId);
+    expect((await get("/patients", "b-doc2")).body.patients[0].teamId).toBe(team.id);
+    expect((await w("DELETE", `/staff/teams/${team.id}`, {}, "b-admin")).body.error?.code).toBe("team_in_use");
+    // Leaving the staff list ends the team seat too.
+    expect((await w("DELETE", "/staff/people/b-doc2", {}, "b-coord")).status).toBe(200);
+    expect((await q("SELECT 1 FROM team_members WHERE user_id = 'b-doc2'")).length).toBe(0);
+  });
+
+  it("moving a case into a team gives no case content, no lasting access under a grant, and nothing on a repeat", async () => {
+    const team = ((await w("POST", "/staff/teams", { name: "Plicní MDT", weekday: null, time: null }, "b-admin")).body.state as { staff: { teams: { id: string }[] } }).staff.teams[0]!;
+    const caseId = ((await get("/patients", "b-doc")).body.patients[0] as { id: string }).id;
+    const moved = await w("POST", `/cases/${caseId}/team`, { team_id: team.id }, "b-admin");
+    expect(moved.status).toBe(200);
+    expect(moved.body.state).toEqual({});
+    // A member who repeats the move gains no row that would outlast their seat.
+    await w("PUT", `/staff/teams/${team.id}/members`, { user_ids: ["b-doc"] }, "b-admin");
+    const rows = async () => (await q("SELECT 1 FROM case_members WHERE case_id = ?1 AND user_id = 'b-doc'", caseId)).length;
+    const before = await rows();
+    expect((await w("POST", `/cases/${caseId}/team`, { team_id: team.id }, "b-doc")).status).toBe(200);
+    expect(await rows()).toBe(before);
+    // Under a break-the-glass grant the case can be read, not refiled.
+    await w("PUT", `/staff/teams/${team.id}/members`, { user_ids: [] }, "b-admin");
+    await env.DB.prepare("DELETE FROM case_members WHERE case_id = ?1 AND user_id = 'b-doc'").bind(caseId).run();
+    await env.DB.prepare("INSERT INTO case_access_grants (org_id, id, case_id, user_id, reason, granted_at, expires_at) VALUES ('demo-b', 'g-t', ?1, 'b-doc', 'důvod pro test', '2026-01-01T00:00:00.000Z', '2999-01-01T00:00:00.000Z')").bind(caseId).run();
+    expect((await w("POST", `/cases/${caseId}/team`, { team_id: team.id }, "b-doc")).body.error?.code).toBe("not_member");
+    expect(await rows()).toBe(0);
+  });
+
+  it("another org's team is refused for a new case, also in an org with no teams", async () => {
+    const team = ((await w("POST", "/staff/teams", { name: "Plicní MDT", weekday: null, time: null }, "b-admin")).body.state as { staff: { teams: { id: string }[] } }).staff.teams[0]!;
+    expect((await w("POST", "/cases", form("736028/5163", { team_id: team.id }), "d2p1", key(92))).status).toBe(422);
+    expect((await w("POST", "/cases", form("736028/5163", { team_id: "nope" }), "b-doc", key(93))).status).toBe(422);
+  });
+
+  it("a new case in a hospital with teams goes to the team and not to the departments", async () => {
+    await w("POST", "/staff/teams", { name: "Prsní MDT", weekday: null, time: null }, "b-admin");
+    const team = (await get("/staff", "b-admin")).body.teams[0] as { id: string };
+    await w("POST", "/staff/teams", { name: "ORL MDT", weekday: null, time: null }, "b-admin");
+    // Two teams and no choice by someone in neither: refused rather than opened to every department.
+    expect((await w("POST", "/cases", form("736028/5163"), "b-doc", key(90))).status).toBe(422);
+    const r = await w("POST", "/cases", form("736028/5163", { team_id: team.id }), "b-doc", key(91));
+    expect(r.status).toBe(200);
+    const id = r.body.data!.case_id as string;
+    expect((await q("SELECT dept_id FROM case_members WHERE case_id = ?1 AND dept_id IS NOT NULL", id)).length).toBe(0);
+    expect((await one("SELECT team_id FROM cases WHERE id = ?1", id)).team_id).toBe(team.id);
   });
 
   it("org B renaming a person who is also in org A renames the person (names are the person's, AUTH.md)", async () => {

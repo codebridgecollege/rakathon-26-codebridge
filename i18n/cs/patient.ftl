@@ -1037,3 +1037,11 @@ mdt-panel-more-alerts = Další upozornění: { $n }. Najdete je v záložce Upo
 patient-empty-title = Dokumentace zatím není zpracovaná
 patient-empty-text = Souhrn, průběh onemocnění a další záložky se ukážou, až bude zpracovaná. Do té doby tu je to, co bylo vyplněno při založení pacienta.
 patient-empty-upload = Nahrát dokument
+
+## MDT teams
+
+patient-header-team = Tým:
+patient-header-team-none = Bez týmu
+patient-header-team-set = Případ je zařazený do týmu.
+patient-header-team-failed = Případ se nepodařilo zařadit do týmu.
+patient-header-team-confirm = Zařadit případ do týmu { $name }? Lékaři z oddělení, kteří v týmu nejsou, ho přestanou vidět.

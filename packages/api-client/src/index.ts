@@ -32,6 +32,7 @@ import type { Status } from "@codebridge/domain/status";
 import type { Step } from "@codebridge/domain/protocol";
 import { ApiError, createTransport, type ClientOptions, type RequestOptions, type Transport } from "./core";
 
+export type { Team } from "@codebridge/domain/wire";
 export { ApiError, CLIENT_ERROR_IDS, createTransport } from "./core";
 export type { ClientErrorCode, ClientOptions, RequestOptions, Transport } from "./core";
 export type * from "@codebridge/domain/wire";
@@ -82,7 +83,9 @@ export type ApiClient = ReturnType<typeof createApiClient>;
 
 // POST /cases from the referral form. The override confirms a second record for a birth number already in the database;
 // it holds only for the number it was given.
+export type TeamBody = { name: string; weekday: number | null; time: string | null };
 export type NewCaseBody = {
+  team_id?: string | null;
   first_name: string;
   last_name: string;
   birth_number: string;
@@ -275,7 +278,11 @@ export function createApiClient(opts: ClientOptions = {}) {
     deleteDepartment: (id: string) => w("DELETE", `/staff/departments/${enc(id)}`, {}),
     addPerson: (deptId: string, body: Loose) => w("POST", `/staff/departments/${enc(deptId)}/people`, body),
     patchPerson: (id: string, body: Loose) => w("PATCH", `/staff/people/${enc(id)}`, body),
-    patchMdt: (body: { name: string; weekday: number | null; time: string | null }) => w("PATCH", "/staff/mdt", body),
+    addTeam: (body: TeamBody) => w("POST", "/staff/teams", body),
+    patchTeam: (id: string, body: TeamBody) => w("PATCH", `/staff/teams/${enc(id)}`, body),
+    setTeamMembers: (id: string, user_ids: string[]) => w("PUT", `/staff/teams/${enc(id)}/members`, { user_ids }),
+    deleteTeam: (id: string) => w("DELETE", `/staff/teams/${enc(id)}`, {}),
+    setCaseTeam: (caseId: string, team_id: string) => w("POST", `/cases/${enc(caseId)}/team`, { team_id }),
     deletePerson: (id: string) => w("DELETE", `/staff/people/${enc(id)}`, {}),
     resetStaff: () => w("POST", "/staff/reset", {}),
     resetDemo: (body: { confirm: string }) => w("POST", "/admin/reset-demo", body),

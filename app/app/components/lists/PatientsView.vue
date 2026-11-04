@@ -24,6 +24,7 @@ import { STATUS_CLASS, caseRoute } from "../../lib/lists";
 import { useListText } from "../../composables/useListText";
 import { useCurrentUser } from "../../composables/useCurrentUser";
 import { useSessionStore } from "../../stores/session";
+import { useStaffStore } from "../../stores/staff";
 import { usePatientsStore } from "../../stores/patients";
 import { useListViewStore } from "../../stores/listView";
 import ColumnFilter from "./ColumnFilter.vue";
@@ -32,9 +33,12 @@ const emit = defineEmits<{ openNewPatient: [] }>();
 const { $t } = useFluent();
 const { showsSyntheticTag, isAdmin } = useCurrentUser();
 const session = useSessionStore();
-// The team's MDT names the list; an administrator of a team that has not set it up is asked to.
-const mdtName = computed(() => session.me?.mdt?.name ?? null);
-const setupMissing = computed(() => isAdmin.value && !mdtName.value);
+// The viewer's MDT teams name the list, or the org's one MDT where it has no teams; an administrator of a hospital with
+// neither is asked to set one up.
+const staffStore = useStaffStore();
+const teams = computed(() => staffStore.directory?.teams ?? []);
+const mdtName = computed(() => teams.value.filter((t) => t.members.includes(session.me?.user.id ?? "")).map((t) => t.name).join(", ") || (teams.value.length ? null : session.me?.mdt?.name) || null);
+const setupMissing = computed(() => isAdmin.value && !teams.value.length && !session.me?.mdt?.name);
 const router = useRouter();
 const patients = usePatientsStore();
 const v = useListViewStore();

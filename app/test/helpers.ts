@@ -37,6 +37,7 @@ export function deferred<T>() {
 
 export const row = (n: number, extra: Partial<PatientRow> = {}): PatientRow => ({
   file: `${n}_pacient.pdf`,
+  teamId: null,
   id: `NO-${String(n).padStart(3, "0")}`,
   name: `Pacient ${n}`,
   nameAsWritten: null,

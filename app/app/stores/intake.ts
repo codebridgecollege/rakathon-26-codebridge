@@ -19,6 +19,7 @@ import { refused } from "../lib/refused";
 import type { IntakeDemo, IntakeHint } from "../lib/intake-demo";
 import { usePatientsStore } from "./patients";
 import { useSessionStore } from "./session";
+import { useStaffStore } from "./staff";
 import { useToastStore } from "./toast";
 import { usePhoneStore } from "./phone";
 
@@ -51,6 +52,8 @@ export const useIntakeStore = defineStore("intake", () => {
   const isOpen = ref(false);
   const step = ref<0 | 1 | 2>(0);
   const form = reactive<IntakeForm>(emptyForm());
+  // The MDT team the new case goes to, where the hospital has teams (the server refuses a case without one there).
+  const teamId = ref("");
   const errs = ref<Partial<Record<FieldId, Msg>>>({});
   // A birth number already in the database: the existing row's file (a case this user sees) or only its case id
   // (the server found one this user may not see).
@@ -103,6 +106,9 @@ export const useIntakeStore = defineStore("intake", () => {
     if (isOpen.value) return true;
     gen++;
     Object.assign(form, emptyForm());
+    // The creator's only team is the likely one; with several, nothing is preselected, so no case lands in a wrong team.
+    const mine = (useStaffStore().directory?.teams ?? []).filter((t) => t.members.includes(useSessionStore().me?.user.id ?? ""));
+    teamId.value = mine.length === 1 ? mine[0]!.id : "";
     errs.value = {};
     dup.value = dupId.value = null;
     override = null;
@@ -212,6 +218,11 @@ export const useIntakeStore = defineStore("intake", () => {
       dup.value = dupId.value = null;
       return NF_FIELD[problems[0]![0]]!;
     }
+    // A hospital with teams files every case under one; the server refuses it otherwise, with a less helpful message.
+    if (useStaffStore().directory?.teams?.length && !teamId.value) {
+      useToastStore().show(msgId("intake-team-required"));
+      return null;
+    }
     const rc = rcKey(form.nf2);
     const d = duplicateOf(form.nf2, usePatientsStore().rows);
     if (d && dupOk !== rc) {
@@ -232,6 +243,7 @@ export const useIntakeStore = defineStore("intake", () => {
       last_name: form.nf1,
       birth_number: form.nf2,
       consent: !!form.nfg,
+      ...(teamId.value ? { team_id: teamId.value } : {}),
       ...(form.nfq ? { question: form.nfq } : {}),
       ...(form.nf4 ? { owner: form.nf4 } : {}),
       ...(form.nf5 ? { dept: form.nf5 } : {}),
@@ -457,6 +469,7 @@ export const useIntakeStore = defineStore("intake", () => {
   }
 
   return {
+    teamId,
     isOpen, step, form, errs, dup, dupId, dupRow, fhirOpen, fhirText, fhirMsg, caseId, files, verdict, progress, busy, completed, hint, done, prepared,
     open, close, closeForUserSwitch, setNavigation, setFhirOpen, fhirSample, fhirImport, next, back, confirmDuplicate, openDuplicate,
     addFiles, removeFile, addPhoneDocs, complete,
