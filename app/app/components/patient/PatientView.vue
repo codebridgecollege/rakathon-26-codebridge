@@ -30,6 +30,7 @@ import TabDev from "./TabDev.vue";
 import TabPrognosis from "./TabPrognosis.vue";
 import AlertSignal from "./AlertSignal.vue";
 import OverlayHost from "./OverlayHost.vue";
+import PatientErase from "./PatientErase.vue";
 import SessionBar from "../discussion/SessionBar.vue";
 import MdtPanel from "../discussion/MdtPanel.vue";
 import DiscussionCard from "../discussion/DiscussionCard.vue";
@@ -143,6 +144,7 @@ function retry() {
       <TabDev v-else-if="current === 'dev'" />
       <TabPrognosis v-else />
     </template>
+    <PatientErase v-if="state === 'ready' || state === 'error'" />
     <OverlayHost />
   </div>
 </template>

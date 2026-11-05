@@ -49,14 +49,14 @@ describe("case header", () => {
     expect(w.findAll("h1 .gapq").map((g) => g.attributes("title"))).toEqual(["neuvedeno v dostupné dokumentaci", "neuvedeno v dostupné dokumentaci"]);
     expect(w.text()).toContain("Vlastník: MUDr. Svobodová");
     expect(w.text()).toContain("Příští MDT: Čt 22. 10. 2026 · 14:00-14:10");
-    expect(w.findAll("button.btn").map((b) => b.text())).toEqual(["Změnit termín", "Zahájit MDT", "Export FHIR", "Stáhnout report (PDF)", "Smazat pacienta"]);
+    expect(w.findAll("button.btn").map((b) => b.text())).toEqual(["Změnit termín", "Zahájit MDT", "Export FHIR", "Stáhnout report (PDF)"]);
   });
 
   it("offers FHIR export only when the case has finding groups, and no report while loading", () => {
     // S01's run has no record, so no finding groups.
     const s = setupPatient({ extraction: runOf("NO-S01"), documents: docsOf("NO-S01") });
     const w = mountInCase(PatientHeader, s, { withReport: false });
-    expect(w.findAll("button.btn").map((b) => b.text())).toEqual(["Naplánovat", "Smazat pacienta"]);
+    expect(w.findAll("button.btn").map((b) => b.text())).toEqual(["Naplánovat"]);
     expect(w.text()).toContain("Příští MDT: nenaplánováno");
   });
 

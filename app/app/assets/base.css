@@ -914,3 +914,6 @@ h3 { letter-spacing: -.02em; }
 .setupmembers label { display: flex; gap: 6px; align-items: center; font-weight: 400; }
 .setupmembers input { width: auto; }
 .teamfact { display: inline-flex; gap: 6px; align-items: center; }
+
+/* "Smazat pacienta" closes the patient view, set apart from the page's work. */
+.patient-erase { margin-top: 32px; padding-top: 16px; border-top: 1px solid var(--line-strong); }
