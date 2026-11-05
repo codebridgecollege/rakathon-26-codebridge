@@ -710,3 +710,7 @@ Team decision 2026-10-17: the patient view adds a Prognóza tab beside proposed 
 ### Passive deviations for case 10
 
 The synthetic Poláček case has four curated observations: undocumented HBV assessment/prophylaxis, recorded BP above the general guideline target with individual-target caveats, two documented induction cycles with toxicity, and an undocumented NCH seminar result. Each row references the existing documentation and guideline passages. Potential consequences are labeled as assistant observations, not outcomes already experienced. Severity is not inferred. Other historical comparisons remain in a collapsed read-only table.
+
+### Patient cards without processed data
+
+All eight patient tabs remain visible in a fixed order, including for an unprocessed case. Cards without processed data say that data is unavailable, rather than implying a negative finding. Overview retains both the oncology summary and current-state cards; a missing timeline is also shown explicitly.

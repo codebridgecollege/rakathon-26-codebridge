@@ -601,8 +601,9 @@ patient-dev-open-pdf-page = otvoriť PDF vydania { $year }, { $page }
 patient-pg-title = Prognóza
 patient-pg-subtitle = Výsledky štúdií pre podobné skupiny pacientov · rešerš asistenta
 patient-pg-as-of = K dátumu MDT { $date }
+patient-pg-as-of-today = K dnešnému dátumu { $date }
 patient-pg-intro = Porovnanie výsledkov jednotlivých štúdií. Uvedené percentá opisujú skúmané skupiny; individuálnu prognózu posudzuje lekár.
-patient-pg-no-slot = Pacient nemá termín MDT. Na vyhľadávanie najprv vyberte deň v kalendári.
+patient-pg-no-slot = Pacient nemá termín MDT. Rešerš používa dnešný dátum a nevyžaduje naplánovanie.
 patient-pg-schedule = Naplánovať MDT
 patient-pg-loading-profile = Načítavanie profilu a nastavení…
 patient-pg-retry = Skúsiť pripojenie znova
@@ -641,7 +642,7 @@ patient-pg-found-cached = {" "}· z vyrovnávacej pamäte
 
 ## Errors the client raises itself (the prognosis server is a separate local server)
 
-patient-pg-error-no-server = Vyhľadávanie vyžaduje spustený lokálny server Prognózy (python3 prognosis/serve.py).
+patient-pg-error-no-server = Toto nasadenie neposkytuje službu na nové vyhľadávanie štúdií. Uložené rešerše zostávajú dostupné.
 patient-pg-error-timeout = Vypršal časový limit. Ďalšie vyhľadávanie sa nespustí automaticky.
 patient-pg-error-request-failed = Požiadavku sa nepodarilo dokončiť.
 
@@ -1073,3 +1074,5 @@ patient-erase-prompt = Natrvalo vymazať tento záznam pacienta { $name } a vše
 patient-erased = Pacient je vymazaný.
 patient-erased-files-left = Pacient je vymazaný, ale niektoré súbory sa nepodarilo odstrániť. Povedzte to správcovi.
 patient-erase-failed = Pacienta sa nepodarilo vymazať.
+
+patient-section-unavailable = Pre túto kartu zatiaľ nie sú dostupné spracované dáta. Chýbajúce údaje neznamenajú negatívny nález.

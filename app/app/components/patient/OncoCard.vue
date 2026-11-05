@@ -15,6 +15,7 @@ import Marks from "./Marks.vue";
 import SrcWrap from "./SrcWrap.vue";
 import SrcList from "./SrcList.vue";
 import CatIcon from "./CatIcon.vue";
+import MissingSection from "./MissingSection.vue";
 import ConfirmMark from "./ConfirmMark.vue";
 
 const { $t } = useFluent();
@@ -66,7 +67,8 @@ const sources = computed(() => {
 </script>
 
 <template>
-  <section class="card onco">
+  <MissingSection v-if="!d && !compact" :title="$t('patient-onco-title')" />
+  <section v-else class="card onco">
     <div class="head"><h2>{{ $t("patient-onco-title") }} <button class="info" :title="$t('patient-onco-pin-help')" :aria-label="$t('patient-onco-pin-help')">i</button></h2></div>
     <div class="ocbody" tabindex="0" role="region" :aria-label="$t('patient-onco-region')">
       <template v-if="d">

@@ -14,6 +14,7 @@ import Marks from "./Marks.vue";
 import RefMark from "./RefMark.vue";
 import SrcList from "./SrcList.vue";
 import Gap from "./Gap.vue";
+import MissingSection from "./MissingSection.vue";
 import CheckNote from "./CheckNote.vue";
 
 const { $t } = useFluent();
@@ -75,4 +76,5 @@ const objective = computed(() => [...(brain.value ? [brain.value] : []), ...rest
     <div class="head"><h2>{{ $t("patient-state-title") }}</h2></div>
     <p><CheckNote :check="check" /></p>
   </section>
+  <MissingSection v-else :title="$t('patient-state-title')" />
 </template>

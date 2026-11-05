@@ -1,9 +1,13 @@
 // The patient header, status menu, MDT question, brief, alerts, timeline and overview cards (screen S-3), mounted with
 // the real Czech catalog against synthetic cases. Synthetic values only.
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { flushPromises } from "@vue/test-utils";
+import { createFluentVue } from "fluent-vue";
+import { bundlesFor } from "../app/lib/i18n";
+import { mount, flushPromises } from "@vue/test-utils";
 import { createRouter, createMemoryHistory } from "vue-router";
 import { defineComponent, h } from "vue";
+import PatientView from "../app/components/patient/PatientView.vue";
+import TabOverview from "../app/components/patient/TabOverview.vue";
 import PatientHeader from "../app/components/patient/PatientHeader.vue";
 import StatusMenu from "../app/components/patient/StatusMenu.vue";
 import QuestionBox from "../app/components/patient/QuestionBox.vue";
@@ -75,6 +79,60 @@ describe("case header", () => {
 });
 
 describe("a case with nothing processed", () => {
+  it("keeps both overview cards with explicit missing data", () => {
+    const w = mountInCase(TabOverview, setupPatient({ extraction: null }));
+    expect(w.findAll(".missing-section")).toHaveLength(2);
+    expect(w.text()).toContain("Onkologický souhrn");
+    expect(w.text()).toContain("Aktuální stav pacienta");
+    expect(w.text()).toContain("nejsou dostupná zpracovaná data");
+  });
+
+  it.each(["overview", "anamnesis", "labs", "alerts", "next", "dev"])("keeps every tab and explains missing data on %s", (tab) => {
+    const s = setupPatient({ extraction: null });
+    const { w } = withRouter(s, PatientView, { file: s.p.file, tab });
+    expect(w.findAll('[role="tab"]')).toHaveLength(8);
+    expect(w.findAll('[role="tab"][aria-selected="true"]')).toHaveLength(1);
+    expect(w.text()).toContain("Pro tuto kartu zatím nejsou dostupná zpracovaná data.");
+    expect(w.text()).not.toContain("Neznámá adresa API.");
+    w.unmount();
+  });
+
+  it("starts prognosis from the overview without booking a slot", async () => {
+    const s = setupPatient({ extraction: null, routes: {
+      "/cases/NO-010/prognosis": { saved: [] },
+      "/prognosis/config": { configured: true },
+      "/prognosis/profile": { profile: { available: true, facts: [] } },
+      "/prognosis": { rows: [], models: [] },
+    } });
+    const router = createRouter({ history: createMemoryHistory(), routes: [{ path: "/patient/:nr/:tab?", name: "patient", component: { render: () => null } }] });
+    // Mount the real root: it provides its own context, without an ancestor patient provider.
+    const w = mount(PatientView, { props: { file: s.p.file, tab: "overview" }, global: { plugins: [s.pinia, createFluentVue({ bundles: bundlesFor("cs") }), router] } });
+    await flushPromises();
+    expect(s.calls.filter((x) => x.url === "/api/prognosis")).toHaveLength(1);
+    expect(s.p.slot).toBeFalsy();
+    expect(w.findAll('[role="tab"][aria-selected="true"]')[0]!.text()).toBe("Přehled");
+    w.unmount();
+  });
+
+  it("keeps a doctor's proposal available before extraction", () => {
+    const s = setupPatient({ extraction: null, wf: { edits: { proposal: edit("Doplnit vyšetření.", "MUDr. A", { id: 1, when: "t" }) } } });
+    const { w } = withRouter(s, PatientView, { file: s.p.file, tab: "next" });
+    expect(w.text()).toContain("Doplnit vyšetření.");
+    expect(w.find('[data-edit]').exists()).toBe(true);
+    w.unmount();
+  });
+
+  it("keeps tabs on a denied case without requesting prognosis", async () => {
+    const s = setupPatient({ extraction: null });
+    Object.assign(useCasesStore().caseOf(s.p.file), { state: "error", error: { code: "not_member", message_cs: "Přístup odepřen." } });
+    const { w } = withRouter(s, PatientView, { file: s.p.file, tab: "prognosis" });
+    await flushPromises();
+    expect(w.findAll('[role="tab"]')).toHaveLength(8);
+    expect(w.text()).toContain("Přístup odepřen.");
+    expect(s.calls.some((x) => x.url.includes("/prognosis"))).toBe(false);
+    w.unmount();
+  });
+
   it("says the documents are not processed and offers an upload instead of an empty page", () => {
     const s = setupPatient({});
     const w = mountInCase(BriefBlock, s);

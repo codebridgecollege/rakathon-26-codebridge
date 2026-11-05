@@ -1,17 +1,16 @@
 <script setup lang="ts">
 // The Prognóza tab: outcomes of study populations similar to the patient,
-// as of the scheduled MDT day, from the search the server recorded or a new search on the local prognosis server.
+// as of the MDT day or today before booking, from a saved search or a configured search service.
 // The values describe study groups; the doctor judges the individual prognosis, so the tab shows sources, model
 // attribution and missing values as missing, and computes nothing itself.
 import { computed, watch } from "vue";
-import { useRouter } from "vue-router";
 import { useFluent } from "fluent-vue";
 import { pgLayout, PG_ENDPOINTS, type PgRow } from "@codebridge/domain/prognosis";
+import { usePatientPrognosis } from "../../composables/usePatientPrognosis";
 import { usePatient } from "../../composables/usePatient";
 import { useApi } from "../../lib/api";
 import { fmtDate } from "../../lib/dates";
 import { useOverlayStore } from "../../stores/overlay";
-import { useListViewStore } from "../../stores/listView";
 import { ENDPOINT_IDS, errText, OS_HEADER_IDS, usePrognosisStore } from "../../stores/prognosis";
 import PgStudyRow from "./PgStudyRow.vue";
 
@@ -19,15 +18,8 @@ const { $t } = useFluent();
 const { p } = usePatient();
 const pg = usePrognosisStore();
 const overlay = useOverlayStore();
-const router = useRouter();
 
-const c = computed(() => ({ file: p.value.file, id: p.value.id, day: p.value.slot?.day }));
-// Each patient and day has its own entry; a new day asks for its own saved search and profile.
-watch(
-  () => [c.value.file, c.value.id, c.value.day],
-  () => pg.load(c.value),
-  { immediate: true },
-);
+const c = usePatientPrognosis();
 
 const state = computed(() => pg.entryAt(c.value));
 const result = computed(() => state.value.result);
@@ -97,11 +89,6 @@ function openPanel(i: number) {
     .auditEvent({ code: "prognosis_source_opened", case_id: p.value.id })
     .catch(() => {});
 }
-function schedule() {
-  // The calendar opens with this case picked for booking.
-  useListViewStore().schedPick = p.value.file;
-  void router.push("/calendar");
-}
 </script>
 
 <template>
@@ -111,13 +98,10 @@ function schedule() {
         <h2 id="pg-title">{{ $t("patient-pg-title") }}</h2>
         <div class="muted small">{{ $t("patient-pg-subtitle") }}</div>
       </div>
-      <span v-if="day" class="chip plain">{{ $t("patient-pg-as-of", { date: fmtDate($t, day) }) }}</span>
+      <span class="chip plain">{{ $t(p.slot?.day ? "patient-pg-as-of" : "patient-pg-as-of-today", { date: fmtDate($t, day) }) }}</span>
     </div>
     <p>{{ $t("patient-pg-intro") }}</p>
-    <template v-if="!day">
-      <p class="pg-warning">{{ $t("patient-pg-no-slot") }}</p>
-      <button class="btn" @click="schedule">{{ $t("patient-pg-schedule") }}</button>
-    </template>
+    <p v-if="!p.slot?.day" class="muted small">{{ $t("patient-pg-no-slot") }}</p>
     <div v-if="pg.configPending || state.profilePending" class="muted small" role="status">{{ $t("patient-pg-loading-profile") }}</div>
     <div v-if="showConnError" role="alert">
       <p class="pg-warning">{{ connError }}</p>

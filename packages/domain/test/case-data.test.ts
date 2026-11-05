@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { docTitle, fromExtraction, nrOf, sectionsOf, tabsFor, unprocessedCase } from "../src/case-data";
+import { docTitle, fromExtraction, nrOf, sectionsOf, tabsFor, TABS, unprocessedCase } from "../src/case-data";
 import type { ExtractionRun } from "../src/extraction/types";
 import run10 from "../../../fixtures/data/runs/NO-010.json";
 import runS01 from "../../../fixtures/data/runs/NO-S01.json";
@@ -30,13 +30,13 @@ describe("case data", () => {
     const cd = fromExtraction("2_pacient.pdf", "NO-002", null);
     expect(cd).toEqual(unprocessedCase("2_pacient.pdf", "NO-002"));
     expect(sectionsOf(cd).alerts).toBe(false);
-    expect(tabsFor(sectionsOf(cd))).toEqual(["prognosis"]);
+    expect(tabsFor(sectionsOf(cd))).toEqual([...TABS]);
   });
 
-  it("shows the tabs the data supports, in the fixed order", () => {
+  it("keeps every tab for full, partial and unprocessed cases", () => {
     expect(tabsFor(sectionsOf(full()))).toEqual(["overview", "anamnesis", "documents", "labs", "alerts", "next", "dev", "prognosis"]);
     const syn = fromExtraction("S01_pacient.pdf", "NO-S01", runS01 as unknown as ExtractionRun);
-    expect(tabsFor(sectionsOf(syn))).toEqual(["documents", "labs", "alerts", "prognosis"]);
+    expect(tabsFor(sectionsOf(syn))).toEqual([...TABS]);
   });
 
   it("names a reference by the document holding its page, else by its file", () => {

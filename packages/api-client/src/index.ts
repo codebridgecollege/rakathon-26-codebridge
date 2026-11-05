@@ -72,7 +72,10 @@ async function prognosisCall<T>(call: () => Promise<T>): Promise<T> {
   try {
     return await call();
   } catch (e) {
-    if (!(e instanceof ApiError) || e.message_cs) throw e;
+    if (!(e instanceof ApiError)) throw e;
+    // The Worker answers an absent route with JSON, unlike the local server's plain 404.
+    if (e.status === 404 && e.code === "not_found") throw new ApiError("no_api", 404, null, PROGNOSIS_ERROR_IDS.no_api);
+    if (e.message_cs) throw e;
     const id =
       e.code === "no_api" ? PROGNOSIS_ERROR_IDS.no_api : e.code === "timeout" ? PROGNOSIS_ERROR_IDS.timeout : e.code === "network" ? e.message_id : PROGNOSIS_ERROR_IDS.fallback;
     throw new ApiError(e.code, e.status, null, id, e.current, e.fields);

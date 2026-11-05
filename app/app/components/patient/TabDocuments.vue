@@ -12,6 +12,7 @@ import { useSessionStore } from "../../stores/session";
 import { useOverlayStore } from "../../stores/overlay";
 import DocColFilter, { type ColValue } from "./DocColFilter.vue";
 import DocPipeline from "./DocPipeline.vue";
+import MissingSection from "./MissingSection.vue";
 import Gap from "./Gap.vue";
 
 const { $t } = useFluent();
@@ -116,6 +117,7 @@ const openUpload = () => overlay.open({ kind: "upload", file: c.p.value.file });
 <template>
   <section class="card">
     <div class="head"><h2>{{ docs.length === all.length ? $t("patient-docs-title", { n: all.length }) : $t("patient-docs-title-filtered", { shown: docs.length, n: all.length }) }}</h2><span class="row"><span class="muted small">{{ $t("patient-docs-source") }}<template v-if="uploaded">{{ $t("patient-docs-source-uploaded", { n: all.length }) }}</template><span v-else lang="cs">{{ dd.file }}</span><template v-if="dd.pages != null">{{ $t("patient-docs-source-pages", { n: dd.pages }) }}</template><template v-else>{{ $t("patient-docs-source-pages-none") }}<Gap />{{ $t("patient-docs-source-pages-none-unit") }}</template></span><button class="btn primary small" @click="openUpload">{{ $t("patient-docs-upload") }}</button></span></div>
+    <MissingSection v-if="!c.sec.value.documents" :title="$t('patient-tab-documents')" />
     <div v-if="dd.note" class="question missing" style="margin-bottom:10px"><span class="label">{{ $t("patient-docs-missing-originals") }}</span><p style="font-size:14px" lang="cs">{{ dd.note }}</p></div>
     <div class="toolbar" style="margin-bottom:10px"><input id="dq" v-model="view.docQuery" class="search" :placeholder="$t('patient-docs-search')" :aria-label="$t('patient-docs-search')"><button v-if="active" class="linkbtn small" @click="clearFilters">{{ $t("patient-docs-clear-filters", { n: active }) }}</button></div>
     <div class="scroll" :style="`min-height:${colOpen && colOpen in COLS ? 300 : 0}px`">

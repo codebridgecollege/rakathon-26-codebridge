@@ -98,19 +98,52 @@ describe("Prognóza tab", () => {
     expect(s.calls.filter((c) => c.url.includes("/cases/NO-010/prognosis"))).toHaveLength(1);
   });
 
-  it("without an MDT day warns, offers the calendar and asks the server for nothing about the case", async () => {
-    const s = setupPatient({ routes: caseRoutes({ saved: [savedFor(DAY)] }) });
+  it("uses today's local date without booking and explains an unavailable search service", async () => {
+    vi.setSystemTime(new Date(2026, 10, 5, 12));
+    const s = setupPatient({ routes: caseRoutes({ saved: [] }) });
     const w = mountInCase(TabPrognosis, s);
     await vi.advanceTimersByTimeAsync(2000);
-    expect(w.text()).not.toContain("K datu MDT");
-    expect(w.get(".pg-warning").text()).toBe("Pacient nemá termín MDT. Pro vyhledání nejprve vyberte den v kalendáři.");
-    const btn = w.findAll("button").find((b) => b.text() === "Naplánovat MDT")!;
-    await btn.trigger("click");
-    expect(push).toHaveBeenCalledWith("/calendar");
-    expect(s.calls.some((c) => c.url.includes("/cases/"))).toBe(false);
-    // Without a saved search the missing server is reported, with a retry.
-    expect(w.get("[role=alert]").text()).toContain("Neznámá adresa API.");
-    expect(w.get("tbody td.pg-empty").text()).toBe("Studie se zobrazí po spuštění vyhledávání.");
+    expect(w.text()).toContain("K dnešnímu datu 5. 11. 2026");
+    expect(w.text()).toContain("nevyžaduje naplánování");
+    expect(w.text()).not.toContain("Naplánovat MDT");
+    expect(w.get("[role=alert]").text()).toContain("Toto nasazení nenabízí službu");
+    expect(s.calls.some((c) => c.url.includes("scheduled_date=2026-11-05"))).toBe(true);
+    expect(s.calls.some((c) => c.url === "/api/prognosis")).toBe(false);
+  });
+
+  it("automatically searches once without a slot, and does not retry a failed search", async () => {
+    vi.setSystemTime(new Date(2026, 10, 5, 12));
+    const s = setupPatient({ routes: {
+      ...caseRoutes({ saved: [] }),
+      "/prognosis/config": { configured: true },
+      "/prognosis/profile": { profile: { available: true, facts: [] } },
+      "/prognosis": [503, { error: { code: "unavailable", message_cs: "Služba není dostupná." } }],
+    } });
+    const w = mountInCase(TabPrognosis, s);
+    await vi.advanceTimersByTimeAsync(2000);
+    const searches = () => s.calls.filter((c) => c.url === "/api/prognosis");
+    expect(searches()).toHaveLength(1);
+    expect(JSON.parse(String(searches()[0]!.init.body))).toEqual({ patient_id: "10_pacient.pdf", scheduled_date: "2026-11-05", refresh: false });
+    expect(w.text()).toContain("Služba není dostupná.");
+    await vi.advanceTimersByTimeAsync(10000);
+    expect(searches()).toHaveLength(1);
+    expect(s.p.slot).toBeFalsy();
+  });
+
+  it("waits for a saved search before considering automatic live search", async () => {
+    const s = setupPatient({ p: { slot: SLOT }, routes: {
+      ...caseRoutes({ saved: [savedFor(DAY)] }),
+      "/prognosis/config": { configured: true },
+      "/prognosis/profile": { profile: { available: true, facts: [] } },
+      "/prognosis": { rows: [] },
+    } });
+    const w = mountInCase(TabPrognosis, s);
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(w.text()).toContain("Načítání uložené rešerše");
+    expect(s.calls.some((c) => c.url === "/api/prognosis")).toBe(false);
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(w.text()).toContain("uložená rešerše");
+    expect(s.calls.some((c) => c.url === "/api/prognosis")).toBe(false);
   });
 
   it("shows a missing value as a dash with the gap wording, never a number", async () => {
