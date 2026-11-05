@@ -109,7 +109,7 @@ describe("Prognóza tab", () => {
     expect(push).toHaveBeenCalledWith("/calendar");
     expect(s.calls.some((c) => c.url.includes("/cases/"))).toBe(false);
     // Without a saved search the missing server is reported, with a retry.
-    expect(w.get("[role=alert]").text()).toContain("Neznámá adresa API.");
+    expect(w.get("[role=alert]").text()).toContain("Vyhledávání studií zatím není na tomto serveru zapnuté");
     expect(w.get("tbody td.pg-empty").text()).toBe("Studie se zobrazí po spuštění vyhledávání.");
   });
 

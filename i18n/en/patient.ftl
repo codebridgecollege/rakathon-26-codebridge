@@ -623,7 +623,7 @@ patient-pg-found-cached = {" "}· from cache
 
 ## Errors the client raises itself (the prognosis server is a separate local server)
 
-patient-pg-error-no-server = The search needs the local Prognosis server running (python3 prognosis/serve.py).
+patient-pg-error-no-server = The study search is not switched on on this server yet. It runs only on the local prognosis server.
 patient-pg-error-timeout = The request timed out. Another search will not start automatically.
 patient-pg-error-request-failed = The request could not be completed.
 
@@ -1047,3 +1047,16 @@ patient-erase-prompt = Permanently delete this record of { $name } and all its d
 patient-erased = The patient is deleted.
 patient-erased-files-left = The patient is deleted, but some files could not be removed. Tell the administrator.
 patient-erase-failed = The patient could not be deleted.
+
+## A tab with no data yet
+
+patient-nodata-title = Not enough data
+patient-nodata-note = Nothing is guessed or filled in. The tab fills in once the assistant has processed the patient's documents.
+patient-nodata-overview = The overview cannot be built: there is no processed summary, oncology summary or current status.
+patient-nodata-anamnesis = The history cannot be built: the documents are not processed, or hold no history.
+patient-nodata-documents = No documents are stored for this patient yet.
+patient-nodata-labs = Lab values cannot be shown: they are not processed, or not in the documents.
+patient-nodata-alerts = Alerts cannot be worked out: the missing-documents check has not run.
+patient-nodata-next = The proposed management cannot be shown: there are no processed documents to base it on.
+patient-nodata-dev = Retrospective deviations cannot be shown: there are no processed documents of earlier decisions.
+patient-nodata-prognosis = The prognosis cannot be shown.

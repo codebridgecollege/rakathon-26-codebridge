@@ -140,6 +140,8 @@ const TAB_SHOWN: Record<Tab, (s: Sections) => boolean> = {
   prognosis: () => true,
 };
 export const tabsFor = (s: Sections): Tab[] => TABS.filter((t) => TAB_SHOWN[t](s));
+// The patient view shows every tab; one without data says "Nedostatek údajů" instead of hiding (Soňa, 2026-11-06).
+export const tabHasData = (s: Sections, t: Tab): boolean => TAB_SHOWN[t](s);
 export const isTab = (x: unknown): x is Tab => typeof x === "string" && (TABS as readonly string[]).includes(x);
 
 // The i-th indexed source of a case.

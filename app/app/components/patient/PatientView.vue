@@ -6,7 +6,7 @@
 import { computed, onBeforeUnmount, watch } from "vue";
 import { useRouter } from "vue-router";
 import { useFluent } from "fluent-vue";
-import { nrOf, tabsFor, type Tab } from "@codebridge/domain/case-data";
+import { nrOf, tabHasData, TABS, type Tab } from "@codebridge/domain/case-data";
 import { inSession, runningSession } from "@codebridge/domain/discussion";
 import { providePatient } from "../../composables/usePatient";
 import { useTabAddress } from "../../composables/useTabAddress";
@@ -28,6 +28,7 @@ import TabAlerts from "./TabAlerts.vue";
 import TabNext from "./TabNext.vue";
 import TabDev from "./TabDev.vue";
 import TabPrognosis from "./TabPrognosis.vue";
+import TabNoData from "./TabNoData.vue";
 import AlertSignal from "./AlertSignal.vue";
 import OverlayHost from "./OverlayHost.vue";
 import PatientErase from "./PatientErase.vue";
@@ -62,8 +63,11 @@ const workflow = useWorkflowStore();
 const mdtPanel = useMdtPanelStore();
 // The side panel comes with a running MDT, for a case on its agenda, unless this computer chose the whole window.
 const panelShown = computed(() => mdtPanel.open && inSession(c.p.value, runningSession(workflow.sessions)));
-const tabs = computed(() => tabsFor(c.sec.value));
-const current = computed<Tab>(() => (tabs.value.find((t) => t === props.tab) ?? tabs.value[0] ?? "prognosis") as Tab);
+// Every tab is listed; one without data says "Nedostatek údajů". Uploaded files count as data of the Dokumenty tab.
+const tabs = TABS;
+const hasData = (t: Tab) => tabHasData(c.sec.value, t) || (t === "documents" && c.uploaded.value.length > 0);
+// A tab the address names stays; without one, the first tab that has data, and the first tab when none has.
+const current = computed<Tab>(() => (tabs.find((t) => t === props.tab) ?? tabs.find(hasData) ?? tabs[0]) as Tab);
 
 // The case on screen is never evicted from the cache, and its own timeline filter starts fresh.
 view.enterCase(props.file);
@@ -135,7 +139,8 @@ function retry() {
       <div class="tabs" role="tablist">
         <button v-for="t in tabs" :key="t" class="tab" role="tab" :aria-selected="current === t" @click="openTab(t)">{{ $t(TAB_ID[t]) }}</button>
       </div>
-      <TabOverview v-if="current === 'overview'" />
+      <TabNoData v-if="!hasData(current)" :tab="current" />
+      <TabOverview v-else-if="current === 'overview'" />
       <TabAnamnesis v-else-if="current === 'anamnesis'" />
       <TabDocuments v-else-if="current === 'documents'" />
       <TabLabs v-else-if="current === 'labs'" />

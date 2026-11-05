@@ -3,7 +3,7 @@
 // the current user may do. PatientView provides it once; the cards inject it, so no card picks a case on its own.
 import { computed, inject, provide, type ComputedRef, type InjectionKey } from "vue";
 import type { CaseState, FactConfirmation, PatientRow } from "@codebridge/api-client";
-import { fromExtraction, sectionsOf, docTitle as docTitleOf, type CaseData, type Sections, type SourceRef } from "@codebridge/domain/case-data";
+import { fromExtraction, sectionsOf, docTitle as docTitleOf, type CaseData, type DocumentInfo, type Sections, type SourceRef } from "@codebridge/domain/case-data";
 import { orphansOf, type AlertEvent, type Edit, type Orphan } from "@codebridge/domain/case-view";
 import { confirmationState, type ConfirmState } from "@codebridge/domain/confirmations";
 import { useFactHashes } from "../lib/confirm";
@@ -20,6 +20,8 @@ export type PatientCtx = {
   entry: ComputedRef<CaseEntry>;
   cd: ComputedRef<CaseData | null>;
   sec: ComputedRef<Sections>;
+  // The files stored for a case nothing has processed, listed by name, so the Dokumenty tab shows what was uploaded.
+  uploaded: ComputedRef<DocumentInfo[]>;
   wf: ComputedRef<Partial<CaseState>>;
   // Edits by key, with their time formatted for display (the server sends ISO).
   edits: ComputedRef<Record<string, Edit>>;
@@ -57,6 +59,11 @@ export function providePatient(file: ComputedRef<string>, t: T): PatientCtx {
     return e.state === "ready" && e.data ? fromExtraction(e.data.file, e.data.id, e.data.extraction, e.data.documents) : null;
   });
   const sec = computed(() => sectionsOf(cd.value));
+  const uploaded = computed<DocumentInfo[]>(() => {
+    const e = entry.value;
+    if (e.state !== "ready" || !e.data || cd.value?.documents) return [];
+    return e.data.documents.map((d) => ({ title_cs: d.file, file: d.file, pages: Array.from({ length: d.page_count ?? 0 }, (_, i) => i + 1) }));
+  });
   const wf = computed<Partial<CaseState>>(() => workflow.cases[p.value?.id ?? ""] ?? {});
   const edits = computed(() => {
     const out: Record<string, Edit> = {};
@@ -85,6 +92,7 @@ export function providePatient(file: ComputedRef<string>, t: T): PatientCtx {
     entry,
     cd,
     sec,
+    uploaded,
     wf,
     edits,
     alertHist,

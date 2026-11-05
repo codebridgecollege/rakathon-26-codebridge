@@ -22,7 +22,7 @@ const overlay = useOverlayStore();
 
 const dd = computed(() => {
   const d = c.cd.value?.documents;
-  return { file: c.cd.value?.file ?? c.p.value.file, documents: d?.documents ?? [], pages: d?.pages ?? null, note: d?.note ?? null };
+  return { file: c.cd.value?.file ?? c.p.value.file, documents: d?.documents ?? c.uploaded.value, pages: d?.pages ?? null, note: d?.note ?? null };
 });
 const all = computed<DocumentInfo[]>(() => dd.value.documents);
 

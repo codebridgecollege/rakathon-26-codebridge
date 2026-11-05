@@ -242,10 +242,10 @@ describe("prognosis search", () => {
     expect(await api.prognosisSearch({ patient_id: "x", scheduled_date: "d", refresh: false }).catch((x) => x)).toMatchObject({ message_id: PROGNOSIS_ERROR_IDS.no_api });
   });
 
-  it("passes the Worker's Czech message through, and a refusal without one gets the prognosis fallback", async () => {
+  it("says the search is not on this host for the Worker's unknown address, and a refusal without a message gets the prognosis fallback", async () => {
     const m = mockFetch([404, { error: { code: "not_found", message_cs: "Neznámá adresa API." } }], [500, {}]);
     const api = createApiClient({ fetch: m.fn });
-    expect(await api.prognosisConfig().catch((x) => x)).toMatchObject({ code: "not_found", message_cs: "Neznámá adresa API.", message_id: null });
+    expect(await api.prognosisConfig().catch((x) => x)).toMatchObject({ code: "not_found", message_cs: null, message_id: PROGNOSIS_ERROR_IDS.no_api });
     expect(await api.prognosisProfile({ patient_id: "x", scheduled_date: "d" }).catch((x) => x)).toMatchObject({
       status: 500,
       message_cs: null,

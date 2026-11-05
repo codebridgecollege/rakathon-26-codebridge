@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { docTitle, fromExtraction, nrOf, sectionsOf, tabsFor, unprocessedCase } from "../src/case-data";
+import { docTitle, fromExtraction, nrOf, sectionsOf, tabHasData, tabsFor, TABS, unprocessedCase } from "../src/case-data";
 import type { ExtractionRun } from "../src/extraction/types";
 import run10 from "../../../fixtures/data/runs/NO-010.json";
 import runS01 from "../../../fixtures/data/runs/NO-S01.json";
@@ -51,5 +51,13 @@ describe("case data", () => {
   it("derives the link number of a case", () => {
     expect(nrOf("10_pacient.pdf")).toBe("10");
     expect(nrOf("S01_pacient.pdf")).toBe("S01");
+  });
+});
+
+describe("tab data", () => {
+  it("says which tabs have data: only the prognosis tab for an unprocessed case, and the same set tabsFor lists", () => {
+    const sec = sectionsOf(unprocessedCase("f.pdf", "NO-1"));
+    expect(TABS.filter((t) => tabHasData(sec, t))).toEqual(["prognosis"]);
+    expect(TABS.filter((t) => tabHasData(sectionsOf(full()), t))).toEqual(tabsFor(sectionsOf(full())));
   });
 });

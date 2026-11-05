@@ -72,6 +72,9 @@ async function prognosisCall<T>(call: () => Promise<T>): Promise<T> {
   try {
     return await call();
   } catch (e) {
+    // The Worker answers an unknown address with a JSON 404; for the prognosis routes that means the search is not on this
+    // host, which the tab says in its own words instead of "Neznámá adresa API".
+    if (e instanceof ApiError && e.status === 404 && e.code === "not_found") throw new ApiError(e.code, e.status, null, PROGNOSIS_ERROR_IDS.no_api, e.current, e.fields);
     if (!(e instanceof ApiError) || e.message_cs) throw e;
     const id =
       e.code === "no_api" ? PROGNOSIS_ERROR_IDS.no_api : e.code === "timeout" ? PROGNOSIS_ERROR_IDS.timeout : e.code === "network" ? e.message_id : PROGNOSIS_ERROR_IDS.fallback;

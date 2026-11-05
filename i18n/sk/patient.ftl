@@ -641,7 +641,7 @@ patient-pg-found-cached = {" "}· z vyrovnávacej pamäte
 
 ## Errors the client raises itself (the prognosis server is a separate local server)
 
-patient-pg-error-no-server = Vyhľadávanie vyžaduje spustený lokálny server Prognózy (python3 prognosis/serve.py).
+patient-pg-error-no-server = Vyhľadávanie štúdií zatiaľ nie je na tomto serveri zapnuté. Beží len na lokálnom serveri Prognózy.
 patient-pg-error-timeout = Vypršal časový limit. Ďalšie vyhľadávanie sa nespustí automaticky.
 patient-pg-error-request-failed = Požiadavku sa nepodarilo dokončiť.
 
@@ -1073,3 +1073,16 @@ patient-erase-prompt = Natrvalo vymazať tento záznam pacienta { $name } a vše
 patient-erased = Pacient je vymazaný.
 patient-erased-files-left = Pacient je vymazaný, ale niektoré súbory sa nepodarilo odstrániť. Povedzte to správcovi.
 patient-erase-failed = Pacienta sa nepodarilo vymazať.
+
+## A tab with no data yet
+
+patient-nodata-title = Nedostatok údajov
+patient-nodata-note = Nič sa nedomýšľa ani nehádá. Záložka sa vyplní, keď asistent spracuje dokumentáciu pacienta.
+patient-nodata-overview = Prehľad sa nedá zostaviť: chýba spracovaný súhrn, onkologický súhrn aj aktuálny stav pacienta.
+patient-nodata-anamnesis = Anamnézu sa nedá zostaviť: dokumentácia nie je spracovaná, alebo anamnéza v nej nie je.
+patient-nodata-documents = K pacientovi zatiaľ nie sú uložené žiadne dokumenty.
+patient-nodata-labs = Laboratórne hodnoty sa nedajú ukázať: nie sú spracované, alebo v dokumentoch nie sú.
+patient-nodata-alerts = Upozornenia sa nedajú vyhodnotiť: kontrola chýbajúcich podkladov zatiaľ neprebehla.
+patient-nodata-next = Navrhovaný postup sa nedá ukázať: chýba spracovaná dokumentácia a pravidlá sa nemajú o čo oprieť.
+patient-nodata-dev = Retrospektívne odchýlky sa nedajú ukázať: chýba spracovaná dokumentácia predchádzajúcich rozhodnutí.
+patient-nodata-prognosis = Prognózu sa nedá ukázať.
