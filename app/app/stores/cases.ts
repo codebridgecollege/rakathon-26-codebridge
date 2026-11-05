@@ -78,7 +78,15 @@ export const useCasesStore = defineStore("cases", () => {
     if (e.state !== "absent") return;
     if (p.processing === "none") {
       setReady(p.file, unprocessed(p));
-      return;
+      // Ready at once, with no run; the files uploaded to it are read from the server too, so the Dokumenty tab lists them
+      // (before, a patient nothing had processed never showed what was uploaded).
+      return useApi()
+        .extraction(p.id)
+        .then((ex) => {
+          const cur = entries.get(p.file);
+          if (cur && cur.state === "ready" && cur.data && cur.data.extraction === null && Array.isArray(ex.documents)) cur.data = { ...cur.data, documents: ex.documents };
+        })
+        .catch(() => {});
     }
     return loadCase(p);
   }

@@ -38,13 +38,24 @@ describe("case cache", () => {
     expect(s.readyData(p.file)).toEqual({ file: p.file, id: "NO-001", extraction: run("NO-001"), documents: docs });
   });
 
-  it("marks a case the server lists as unprocessed ready without a request", () => {
+  it("marks an unprocessed case ready at once, then lists the files uploaded to it", async () => {
+    const m = mockApi({ "/cases/NO-002/extraction": { case_id: "NO-002", processing: "none", run: null, data: null, documents: docs } });
+    setApi(m.api);
+    const s = useCasesStore();
+    const done = s.ensureCase(row(2, { processing: "none" }));
+    expect(s.readyData("2_pacient.pdf")).toEqual({ file: "2_pacient.pdf", id: "NO-002", extraction: null, documents: [] });
+    await done;
+    expect(s.readyData("2_pacient.pdf")).toEqual({ file: "2_pacient.pdf", id: "NO-002", extraction: null, documents: docs });
+    expect(m.calls).toHaveLength(1);
+  });
+
+  it("keeps an unprocessed case ready when the server cannot be asked", async () => {
     const m = mockApi({});
     setApi(m.api);
     const s = useCasesStore();
-    s.ensureCase(row(2, { processing: "none" }));
-    expect(s.readyData("2_pacient.pdf")).toEqual({ file: "2_pacient.pdf", id: "NO-002", extraction: null, documents: [] });
-    expect(m.calls).toHaveLength(0);
+    await s.ensureCase(row(2, { processing: "none" }));
+    expect(s.caseOf("2_pacient.pdf").state).toBe("ready");
+    expect(s.readyData("2_pacient.pdf")?.documents).toEqual([]);
   });
 
   it("keeps a refusal on the case with the server's message, and does not retry by itself", async () => {
