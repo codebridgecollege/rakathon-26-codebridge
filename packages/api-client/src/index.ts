@@ -32,7 +32,7 @@ import type { Status } from "@codebridge/domain/status";
 import type { Step } from "@codebridge/domain/protocol";
 import { ApiError, createTransport, type ClientOptions, type RequestOptions, type Transport } from "./core";
 
-export type { Team } from "@codebridge/domain/wire";
+export type { RoleSwitchEntry, Team } from "@codebridge/domain/wire";
 export { ApiError, CLIENT_ERROR_IDS, createTransport } from "./core";
 export type { ClientErrorCode, ClientOptions, RequestOptions, Transport } from "./core";
 export type * from "@codebridge/domain/wire";

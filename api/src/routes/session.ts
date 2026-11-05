@@ -64,7 +64,7 @@ export const session = new Hono<AppEnv>()
     await rotated(c, old, { org: target.org_id, membershipId: target.id, actingMembershipId: null });
     return c.json({ ok: true });
   })
-  // "Přepnout roli" (demo orgs only): act as one of the org's demo accounts, or back as oneself. The access log keeps
+  // "Přepnout roli" (demo orgs only): act as anyone in the org who can act, or back as oneself. The access log keeps
   // the real person on every row from here on.
   .post("/session/role", async (c) => {
     const u = sessionUser(c);

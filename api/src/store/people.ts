@@ -143,13 +143,13 @@ export function linkIdentity(db: D1Database, issuer: string, subject: string, us
     .run();
 }
 
-// "Přepnout roli" in a demo org (AUTH.md): the org's demo accounts, which are the memberships whose person has an
-// e-mail (the seed gives one to each demo account and to nobody else), doctors first.
+// "Přepnout roli" in a demo org (AUTH.md): everyone in the org who can act, doctors first, also people added there
+// without a login of their own. Only a demo org switches, and the access log records the person logged in.
 export async function roleSwitchMemberships(db: D1Database, org: string): Promise<MemberRow[]> {
   const r = await db
     .prepare(
-      `${MEMBER_SELECT} WHERE m.org_id = ?1 AND u.email IS NOT NULL AND u.active = 1 AND m.active_until IS NULL AND m.role_id <> 'staff'
-       ORDER BY CASE m.role_id WHEN 'doctor' THEN 0 WHEN 'coordinator' THEN 1 ELSE 2 END, u.email`,
+      `${MEMBER_SELECT} WHERE m.org_id = ?1 AND u.active = 1 AND m.active_until IS NULL AND m.role_id <> 'staff'
+       ORDER BY CASE m.role_id WHEN 'doctor' THEN 0 WHEN 'coordinator' THEN 1 ELSE 2 END, u.sur, m.id`,
     )
     .bind(org)
     .all<MemberRow>();

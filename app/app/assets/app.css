@@ -20,6 +20,12 @@ table { line-height: normal; }
 
 /* The account menu (with a login) opens under its button at the right end of the header, like the status menu. */
 .acctwrap { position: relative; }
-.acctpop { right: 0; top: 100%; min-width: 260px; max-width: min(340px, calc(100vw - 32px)); white-space: normal; }
+.acctpop { right: 0; top: 100%; min-width: 300px; max-width: min(420px, calc(100vw - 32px)); max-height: calc(100vh - 80px); white-space: normal; }
 .acctpop .btn { text-align: left; white-space: normal; }
 .acctpop .btn[aria-pressed="true"] { border-color: var(--accent); color: var(--accent-ink); }
+/* The people in the account menu: a person's button and their rename button side by side, and the short name forms. */
+.acctperson { display: flex; gap: 4px; align-items: stretch; }
+.acctperson .btn:first-child { flex: 1; }
+.acctform { display: grid; gap: 6px; padding: 6px 0; }
+.acctform label { display: grid; gap: 2px; font-size: 12.5px; font-weight: 600; }
+.acctform input, .acctform select { font-weight: 400; width: 100%; min-width: 0; }

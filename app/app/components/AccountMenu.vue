@@ -7,6 +7,7 @@ import { useRouter } from "vue-router";
 import { useFluent } from "fluent-vue";
 import type { Role } from "@codebridge/domain/access";
 import { useSessionStore } from "../stores/session";
+import AccountPeople from "./AccountPeople.vue";
 
 const { $t } = useFluent();
 const session = useSessionStore();
@@ -39,8 +40,8 @@ const logout = () => act(() => session.logout());
 
 function onDocClick(e: MouseEvent) {
   if (!open.value) return;
-  const t = e.target as Element | null;
-  if (t?.closest?.(".acctwrap")) return;
+  // The path as it was at the click: a button inside the menu may already have left the page (Upravit swaps to a form).
+  if (e.composedPath().some((el) => (el as Element).classList?.contains("acctwrap"))) return;
   open.value = false;
 }
 function onKey(e: KeyboardEvent) {
@@ -69,20 +70,7 @@ onBeforeUnmount(() => {
         <span class="label">{{ $t("account-switch-org") }}</span>
         <button v-for="m in otherOrgs" :key="m.id" class="btn small" :disabled="busy" @click="toOrg(m.org.id)">{{ m.org.name }}</button>
       </template>
-      <template v-if="roles">
-        <span class="label">{{ $t("account-switch-role") }}</span>
-        <button
-          v-for="r in roles"
-          :key="r.membership_id"
-          class="btn small"
-          :disabled="busy"
-          :aria-pressed="r.membership_id === me.membership_id"
-          @click="r.membership_id !== me.membership_id && toRole(r.membership_id)"
-        >
-          {{ $t("account-role-entry", { name: r.name, role: roleText(r.role, r.administers) }) }}
-        </button>
-        <span class="muted small">{{ $t("account-switch-role-help") }}</span>
-      </template>
+      <AccountPeople v-if="roles" :busy="busy" :role-text="(e) => roleText(e.role, e.administers)" @pick="toRole" />
       <button class="btn small" :disabled="busy" @click="logout">{{ $t("account-logout") }}</button>
     </div>
   </span>

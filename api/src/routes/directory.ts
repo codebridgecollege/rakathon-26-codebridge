@@ -25,6 +25,10 @@ export const directory = new Hono<AppEnv>()
       u.mode === "oidc" && org.is_demo === 1
         ? (await roleSwitchMemberships(c.env.DB, org.id)).map((m) => ({
             membership_id: m.id,
+            user_id: m.user_id,
+            pre: m.pre,
+            sur: m.sur,
+            post: m.post,
             name: staffName(m),
             role: m.role_id as Role,
             fn: m.fn,

@@ -30,6 +30,7 @@ export const D = {
   taskNotFound: err(404, "task_not_found", "Úloha nebyla nalezena."),
   suggestionNotFound: err(404, "suggestion_not_found", "Návrh úlohy nebyl nalezen."),
   alertNotFound: err(404, "alert_not_found", "Upozornění nebylo nalezeno."),
+  personInHospital: err(409, "person_in_hospital", "Tuto osobu nelze přejmenovat z ukázkové organizace, protože je také v nemocnici."),
   personNotFound: err(404, "person_not_found", "Osoba nebyla nalezena."),
   deptNotFound: err(404, "dept_not_found", "Pracoviště nebylo nalezeno."),
   sessionNotFound: err(404, "session_not_found", "Na tento den neprobíhá žádné MDT."),

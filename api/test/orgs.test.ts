@@ -774,6 +774,16 @@ describe("staff and demo resets", () => {
     expect((await one("SELECT team_id FROM cases WHERE id = ?1", id)).team_id).toBe(team.id);
   });
 
+  it("a demo org cannot rename someone a hospital also lists, though it can still set their function here", async () => {
+    await env.DB.batch([
+      env.DB.prepare("INSERT INTO orgs (id, name, short_name, is_demo, case_id_prefix) VALUES ('hosp', 'Nemocnice H', 'H', 0, 'H-')"),
+      env.DB.prepare("INSERT INTO memberships (id, org_id, user_id, role_id, active_from) VALUES ('h-d1p1', 'hosp', 'd1p1', 'doctor', '2026-01-01T00:00:00.000Z')"),
+    ]);
+    expect((await w("PATCH", "/staff/people/d1p1", { field: "sur", value: "Jiný", expected: "Novák" }, "coord")).body.error?.code).toBe("person_in_hospital");
+    expect((await one("SELECT sur FROM users WHERE id = 'd1p1'")).sur).toBe("Novák");
+    expect((await w("PATCH", "/staff/people/d1p1", { field: "fn", value: "primář", expected: "" }, "coord")).status).toBe(200);
+  });
+
   it("org B renaming a person who is also in org A renames the person (names are the person's, AUTH.md)", async () => {
     await d1p1InB();
     const r = await w("PATCH", "/staff/people/d1p1", { field: "sur", value: "Přejmenovaný", expected: "Novák" }, "b-coord");
