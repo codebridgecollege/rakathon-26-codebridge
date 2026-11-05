@@ -117,12 +117,20 @@ the patient stays visible at a glance. A running MDT opens a side panel beside t
 computer can choose "Celé okno" instead; the choice stays in that browser. Next to the PACS viewer on one computer, a
 narrow window shows only the panel.
 
-- **What it shows:** age, PS, the MDT question, contraindications stated in the documents, comorbidities, allergies,
+- **What it shows:** age, PS, the summary, the MDT question, contraindications stated in the documents, comorbidities, allergies,
   treatment (with what is planned, marked), examinations (newest first, five with "Zobrazit vše"), up to three of the
   assistant's open alerts with a count of the rest. Each item opens its source and keeps its certainty mark and negation.
   A part the extraction does not hold shows "-" with the gap wording; a case not loaded or not processed says that instead.
-- **No treatment hints:** the panel does not say which comorbidity bears on which treatment. Matching on wording misread
-  negations, and such a rule needs a named guideline, so it belongs in the guideline layer (F-27) if the team wants it.
+- **Order and modality check (Soňa, 2026-11-05):** the summary leads, then the MDT question, then "Léčebné modality".
+  For immunotherapy, chemotherapy, radiotherapy and surgery it lists the documented facts that bear on each (an
+  autoimmune disease or interstitial lung disease for immunotherapy; a low EF, kidney, liver or blood count for
+  chemotherapy; FEV1 or DLCO under 60 % for surgery and radiotherapy; anticoagulants; PS 2 or worse), each with its
+  source and certainty mark, labelled as the assistant's observation. It never ranks or recommends a treatment, shows
+  nothing for a modality without a hit (and says that is no all-clear), skips negated facts, and lists the data it
+  needs but the documents lack (EF, spirometry, kidney function) with the gap wording. The rules and their rough
+  cut-offs are in `packages/domain/src/modality-checks.ts`; they are common clinical limits, not a named guideline, and
+  a doctor should confirm them before the check goes beyond the demo (the guideline layer, F-27, is the place for
+  quoted guideline statements).
 - **PACS is a labelled stub:** "Otevřít v PACS (ukázka)" says that PACS is not connected. See
   [`OPEN_QUESTIONS.md`](../agent/OPEN_QUESTIONS.md).
 

@@ -1062,3 +1062,19 @@ patient-nodata-alerts = Alerts cannot be worked out: the missing-documents check
 patient-nodata-next = The proposed management cannot be shown: there are no processed documents to base it on.
 patient-nodata-dev = Retrospective deviations cannot be shown: there are no processed documents of earlier decisions.
 patient-nodata-prognosis = The prognosis cannot be shown.
+
+## Treatment modalities check in the side panel
+
+mdt-panel-modalities = Treatment modalities
+mdt-panel-modalities-note = The assistant's observation from the documents, not a recommendation. The doctor decides.
+mdt-panel-mod-immuno = Immunotherapy
+mdt-panel-mod-chemo = Chemotherapy
+mdt-panel-mod-radio = Radiotherapy
+mdt-panel-mod-surgery = Surgery
+mdt-panel-mod-nothing = Nothing found (no guarantee).
+mdt-panel-mod-limited = The assistant checks only a limited list of facts; an empty result does not mean nothing limits the modality.
+mdt-panel-missing = Data missing for the check: { $what } ({ -gap-not-stated }).
+mdt-panel-missing-ef = EF
+mdt-panel-missing-spirometry = spirometry, DLCO
+mdt-panel-missing-kidney = kidney function
+mdt-panel-brief = Summary

@@ -1068,3 +1068,19 @@ patient-nodata-alerts = Upozornění nelze vyhodnotit: kontrola chybějících p
 patient-nodata-next = Navrhovaný postup nelze ukázat: chybí zpracovaná dokumentace a pravidla se nemají z čeho opřít.
 patient-nodata-dev = Retrospektivní odchylky nelze ukázat: chybí zpracovaná dokumentace předchozích rozhodnutí.
 patient-nodata-prognosis = Prognózu nelze ukázat.
+
+## Treatment modalities check in the side panel
+
+mdt-panel-modalities = Léčebné modality
+mdt-panel-modalities-note = Pozorování asistenta z dokumentace, ne doporučení. Rozhoduje lékař.
+mdt-panel-mod-immuno = Imunoterapie
+mdt-panel-mod-chemo = Chemoterapie
+mdt-panel-mod-radio = Radioterapie
+mdt-panel-mod-surgery = Operace
+mdt-panel-mod-nothing = Nic nenalezeno (není to záruka).
+mdt-panel-mod-limited = Asistent kontroluje jen omezený seznam faktů; prázdný výsledek neznamená, že modalitu nic neomezuje.
+mdt-panel-missing = Chybí údaje ke kontrole: { $what } ({ -gap-not-stated }).
+mdt-panel-missing-ef = EF
+mdt-panel-missing-spirometry = spirometrie, DLCO
+mdt-panel-missing-kidney = funkce ledvin
+mdt-panel-brief = Souhrn

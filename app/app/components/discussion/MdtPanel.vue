@@ -7,7 +7,7 @@ import { useRouter, useRoute } from "vue-router";
 import { useFluent } from "fluent-vue";
 import { dayAgenda, DEMO_TODAY } from "@codebridge/domain/calendar";
 import { nrOf } from "@codebridge/domain/case-data";
-import { topAlerts } from "@codebridge/domain/case-view";
+import { linkProse, topAlerts } from "@codebridge/domain/case-view";
 import { runningSession } from "@codebridge/domain/discussion";
 import { mdtPanelOf, type PanelEvent, type PanelFact } from "@codebridge/domain/mdt-panel";
 import { surnameFirst } from "@codebridge/domain/names";
@@ -23,6 +23,8 @@ import Gap from "../patient/Gap.vue";
 import Marks from "../patient/Marks.vue";
 import QuestionBox from "../patient/QuestionBox.vue";
 import MdtSource from "./MdtSource.vue";
+import ModalityChecks from "./ModalityChecks.vue";
+import Prose from "../patient/Prose.vue";
 
 const SHORT_LIST = 5;
 const SHORT_ALERTS = 3;
@@ -41,6 +43,8 @@ const processed = computed(() => state.value === "ready" && !!c.cd.value?.record
 const panel = computed(() => mdtPanelOf(c.cd.value));
 const factText = (f: PanelFact) => (f.negated ? $t("patient-fact-negated", { text: f.text }) : f.text);
 const eventText = (e: PanelEvent) => (e.negated ? $t("patient-fact-negated", { text: e.title }) : e.title);
+// The extracted summary leads the panel, then the question (Soňa, 2026-11-05); a case without a brief shows no summary.
+const prose = computed(() => linkProse(c.cd.value?.brief?.text_cs, c.cd.value?.brief?.refs));
 const age = computed(() => ageOf(c.p.value, DEMO_TODAY));
 // The alerts for the MDT question first, then the other open ones, so the count below covers every open alert.
 const alerts = computed(() => {
@@ -104,7 +108,12 @@ onBeforeUnmount(() => document.body.classList.remove("mdtp-docked"));
         <button class="btn small" @click="pacsStub">{{ $t("mdt-panel-pacs") }}</button>
       </div>
       <div ref="bodyEl" class="mdtp-body">
+        <section v-if="state === 'ready' && prose.parts.length" class="mdtp-sec">
+          <h3>{{ $t("mdt-panel-brief") }}</h3>
+          <p class="prose" style="margin:0"><Prose :parts="prose.parts" breaks /></p>
+        </section>
         <QuestionBox />
+        <ModalityChecks v-if="processed" />
 
         <!-- Not loaded or not processed says so: a "-" here would read as "not in the documentation" (CLAUDE.md). -->
         <p v-if="state === 'error'" class="question missing" role="alert">{{ $t("patient-load-failed") }}</p>
