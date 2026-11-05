@@ -211,6 +211,14 @@ MESSAGES: dict[str, dict[str, str]] = {
     },
 }
 
+# Messages the case merge writes at run time (the NIS import, issue #22), not the converter; kept here so the generated
+# catalog keeps them. Verbatim, since they are multi-line.
+FTL_EXTRA = {
+    'cs': "\n# The NIS import withdrew a document it had brought (issue #22). $nis_document: the document's ID in the NIS; $reason: why.\nalert-nis-document-withdrawn = { $reason ->\n        [nis_voided] Dokument z NIS byl odebrán z případu, protože ho NIS zneplatnil: { $nis_document }\n        [nis_unlinked] Dokument z NIS byl odebrán z případu, protože pacient byl odpojen od záznamu v NIS: { $nis_document }\n        [nis_removed] Dokument z NIS byl odebrán z případu, protože už v NIS není: { $nis_document }\n       *[other] Dokument z NIS byl odebrán z případu, protože už v NIS není: { $nis_document }\n    }\n",
+    'sk': '\n# The NIS import withdrew a document it had brought (issue #22). See the Czech file.\nalert-nis-document-withdrawn = { $reason ->\n        [nis_voided] Dokument z NIS bol odobratý z prípadu, pretože ho NIS zneplatnil: { $nis_document }\n        [nis_unlinked] Dokument z NIS bol odobratý z prípadu, pretože pacient bol odpojený od záznamu v NIS: { $nis_document }\n        [nis_removed] Dokument z NIS bol odobratý z prípadu, pretože už v NIS nie je: { $nis_document }\n       *[other] Dokument z NIS bol odobratý z prípadu, pretože už v NIS nie je: { $nis_document }\n    }\n',
+    'en': '\n# The NIS import withdrew a document it had brought (issue #22). See the Czech file.\nalert-nis-document-withdrawn = { $reason ->\n        [nis_voided] A document from the NIS was taken out of the case because the NIS voided it: { $nis_document }\n        [nis_unlinked] A document from the NIS was taken out of the case because the patient was unlinked from the NIS record: { $nis_document }\n        [nis_removed] A document from the NIS was taken out of the case because the NIS no longer holds it: { $nis_document }\n       *[other] A document from the NIS was taken out of the case because the NIS no longer holds it: { $nis_document }\n    }\n',
+}
+
 FTL_HEADER = {
     "cs": "# Czech, the alerts of an extraction run (codebridge.extraction/2, alerts[].message). One message per alert rule,\n",
     "sk": "# Slovak, the alerts of an extraction run (codebridge.extraction/2, alerts[].message). One message per alert rule,\n",
@@ -228,6 +236,7 @@ def ftl_text(locale: str) -> str:
     out = [FTL_HEADER[locale] + FTL_BODY]
     for mid, by_locale in MESSAGES.items():
         out.append(f"\n{mid} = {by_locale[locale]}\n")
+    out.append(FTL_EXTRA[locale])
     return "".join(out)
 
 
