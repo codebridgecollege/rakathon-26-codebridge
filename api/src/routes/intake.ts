@@ -255,7 +255,7 @@ export const intake = new Hono<AppEnv>()
       throw e;
     }
     // The intake's uploads waited for this point; those the prepared data did not cover are read now where the pipeline
-    // runs for the org (never in demo org A).
+    // runs for the org (PIPELINE_ORGS).
     await autoStart(c, docs.map((d) => d.id), null);
     const row = await c.var.stores.cases.caseById(id);
     return answer(

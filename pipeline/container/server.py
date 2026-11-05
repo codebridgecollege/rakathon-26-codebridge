@@ -140,7 +140,7 @@ sys.path.insert(0, str(_here if (_here / "page_reader").is_dir() else _here.pare
 import fitz  # noqa: E402  PyMuPDF
 from PIL import Image  # noqa: E402
 
-from page_reader import (VERSION, convert, identity, labs, layer, ocr, page_index, parts, readability,  # noqa: E402
+from page_reader import (VERSION, convert, docx_pdf, identity, labs, layer, ocr, page_index, parts, readability,  # noqa: E402
                          redact, render)
 
 MAX_BODY = 20 * 1024 * 1024  # the upload limit of step 6, so anything larger never came from our Worker
@@ -353,6 +353,14 @@ def redact_(body: bytes, _query) -> tuple[dict, int]:
 
 def convert_(body: bytes, _query) -> tuple[dict, int]:
     with WORK:  # Pillow and PyMuPDF work, one request at a time like the other PDF endpoints
+        if body[:4] == b"PK\x03\x04":
+            # A Word document, told from a photo by its bytes, never by a header.
+            try:
+                return {"pdf_b64": base64.b64encode(docx_pdf.docx_to_pdf(body)).decode("ascii"), "width": 0, "height": 0}, 1
+            except docx_pdf.TooLarge:
+                raise ApiError(422, "document_too_large", f"Dokument má příliš mnoho stran (nejvýš {MAX_PAGES}).") from None
+            except docx_pdf.NotDocument:
+                raise ApiError(422, "not_document", "Soubor není čitelný dokument Word (.docx).") from None
         try:
             pdf, (w, h) = convert.image_to_pdf(body)
         except convert.TooLarge:

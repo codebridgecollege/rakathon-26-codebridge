@@ -2,7 +2,6 @@
 // compared with the case's patient, and the Czech labels of a document's state. Pure: the route reads the body, the
 // registry and the case, and passes them in.
 import { DomainError, type DomainStatus } from "@codebridge/domain/errors";
-import { LEGACY_ORG } from "./orgs";
 
 // The shared demo stores the content of known synthetic files only (decision 2026-10-17): any other file would be data
 // without clearance in a database everyone can read. Such a file is still accepted and listed, by its name, size,
@@ -12,12 +11,12 @@ import { LEGACY_ORG } from "./orgs";
 // Per org: UPLOAD_STORE_ORGS lists the orgs (comma-separated ids) whose uploads keep their content whatever
 // UPLOAD_POLICY says. It is the team's switch for demo org B, where the team tests the pipeline on its own synthetic
 // files; it stays empty on the deployed host until the team turns it on, because anyone with a demo account can act
-// in org B and its demo reset wipes it. Demo org A is never listed: its demo shows unknown files as listed only.
+// in org B and its demo reset wipes it. Demo org A may be listed too (Soňa, 2026-11-05: she wants the reading on in both);
+// its prepared runs stay as they are, because the case merge leaves a case whose run came from a fixture alone.
 export type UploadPolicy = "fixtures_only" | "store_unprocessed";
 export const uploadPolicy = (v: string | undefined, org?: string, storeOrgs?: string): UploadPolicy => {
   const listed = String(storeOrgs ?? "").split(",").map((s) => s.trim()).filter(Boolean);
-  // Demo org A is never switched on here, so one typo in the list cannot bring stored content into the live demo.
-  if (org && org !== LEGACY_ORG && listed.includes(org)) return "store_unprocessed";
+  if (org && listed.includes(org)) return "store_unprocessed";
   return v === "store_unprocessed" ? "store_unprocessed" : "fixtures_only";
 };
 
@@ -40,18 +39,27 @@ export const UP = {
   badName: u(422, "invalid_input", "Chybí název souboru (X-File-Name)."),
 };
 
-// Whether the bytes are kept: a registered fixture always, an unknown PDF or a JPEG/PNG image (a phone photo of a
-// page) only under store_unprocessed, anything else never. Office files (Word, ODT) stay listed only: converting them
-// needs LibreOffice, which would make the page reader image several hundred MB larger; the doctor uploads a PDF
-// instead. HEIC photos are not read either (PyMuPDF and Pillow cannot decode them without another library); phones
+// Whether the bytes are kept: a registered fixture always, an unknown PDF, a JPEG/PNG image (a phone photo of a
+// page) or a Word document (.docx) only under store_unprocessed, anything else never. The page reader turns a Word
+// document into a PDF of its text (not its layout: LibreOffice would make the image several hundred MB larger). Other
+// Office files (.doc, ODT, Excel) stay listed only; the doctor uploads a PDF instead. HEIC photos are not read either (PyMuPDF and Pillow cannot decode them without another library); phones
 // send JPEG from a browser's file picker. A file that is not kept leaves only its listing row.
 export function keepsContent(policy: UploadPolicy, kind: FileKind | null, fixture: { kind: string } | null): boolean {
   if (kind === "pdf" && fixture) return fixture.kind !== "referral";
-  if (kind === "pdf" || kind === "image") return policy === "store_unprocessed";
+  if (kind === "pdf" || kind === "image" || kind === "docx") return policy === "store_unprocessed";
   return false;
 }
 
-export type FileKind = "pdf" | "image" | "zip" | "other";
+export type FileKind = "pdf" | "image" | "docx" | "zip" | "other";
+
+export const DOCX_TYPE = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+
+// A Word document is a zip holding word/document.xml; entry names are stored plainly in the zip's local headers and
+// its directory at the end, so the file is judged by those, not by its name or declared type.
+export function isDocx(bytes: Uint8Array): boolean {
+  const latin = (b: Uint8Array) => new TextDecoder("latin1").decode(b);
+  return latin(bytes.subarray(0, 4)) === "PK\u0003\u0004" && (latin(bytes.subarray(-262144)).includes("word/document.xml") || latin(bytes.subarray(0, 65536)).includes("word/document.xml"));
+}
 
 // The media type a listed file declared, as display data; anything malformed is stored as the generic type.
 export const mediaTypeOf = (header: string | undefined) => {

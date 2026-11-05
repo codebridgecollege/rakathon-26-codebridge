@@ -9,7 +9,7 @@ FROM --platform=linux/amd64 python:3.12-slim-bookworm@sha256:34386ef0cb081344d7e
 # Pinned so OCR output, and with it every "ověřit" mark, stays the same between builds. Locally the tests ran
 # with Homebrew Tesseract 5.5.3, so word confidences may differ slightly from the container.
 RUN apt-get update && apt-get install -y --no-install-recommends \
-      tesseract-ocr=5.3.0-2 tesseract-ocr-ces=1:4.1.0-2 \
+      tesseract-ocr=5.3.0-2 tesseract-ocr-ces=1:4.1.0-2 fonts-dejavu-core \
     && rm -rf /var/lib/apt/lists/*
 
 COPY pipeline/requirements.lock /app/requirements.lock

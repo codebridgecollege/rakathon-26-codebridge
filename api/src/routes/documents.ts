@@ -15,6 +15,8 @@ import {
   compareIdentity,
   fileKind,
   imageType,
+  DOCX_TYPE,
+  isDocx,
   fileNameOf,
   keepsContent,
   listedLine,
@@ -158,12 +160,12 @@ export async function storeFile(
 ) {
   const db = c.env.DB;
   const { bytes, declared, name } = f;
-  const kind = bytes ? fileKind(bytes) : null;
+  const kind = bytes ? (isDocx(bytes) ? "docx" as const : fileKind(bytes)) : null;
   // Only a PDF can be a fixture; matching is by the bytes, so a renamed copy matches and an edited file does not.
   const sha0 = bytes && kind === "pdf" ? hex(await crypto.subtle.digest("SHA-256", bytes)) : null;
   const fx0 = sha0 ? await fixtureByHash(db, sha0) : null;
   const keep = keepsContent(uploadPolicy(c.env.UPLOAD_POLICY, c.var.viewer.org, c.env.UPLOAD_STORE_ORGS), kind, fx0);
-  const image = kind === "image" && bytes ? imageType(bytes) : null;
+  const image = kind === "image" && bytes ? imageType(bytes) : kind === "docx" ? { mediaType: DOCX_TYPE, ext: ".docx" } : null;
   // Nothing derived from a file that is not kept stays on the server, not even its hash.
   const sha = keep ? (sha0 ?? (bytes ? hex(await crypto.subtle.digest("SHA-256", bytes)) : null)) : null;
   const fx = keep ? fx0 : null;
@@ -218,7 +220,7 @@ export async function storeFile(
     throw e;
   }
   // A kept file is read at once where the pipeline runs for this org (team decision: process on upload, the list shows
-  // "zpracovává se"); never in demo org A (PIPELINE_ORGS), and an open intake waits for its end.
+  // "zpracovává se"); where PIPELINE_ORGS lists the org, and an open intake waits for its end.
   if (key) await autoStart(c, [docId], breakGlass);
   const row = await documentRow(db, c.var.viewer.org, docId);
   return { document: docOut(row!), status: 201 as const, docId, repeat: false };

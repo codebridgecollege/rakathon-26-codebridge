@@ -48,10 +48,10 @@ describe("/api/me and /api/staff", () => {
     const deployed = testEnv({ PIPELINE_ORGS: "demo-b" });
     expect(((await (await call("/api/me", as("d2p1"), deployed)).json()) as any).features).toMatchObject({ pipeline: false });
     expect(((await (await call("/api/me", as("b-doc"), deployed)).json()) as any).features).toMatchObject({ pipeline: true });
-    // Whether uploads keep their content follows UPLOAD_STORE_ORGS, never for demo org A.
+    // Whether uploads keep their content follows UPLOAD_STORE_ORGS.
     const store = testEnv({ PIPELINE_ORGS: "demo-b", UPLOAD_STORE_ORGS: "demo-b,demo-a" });
     expect(((await (await call("/api/me", as("b-doc"), store)).json()) as any).features).toEqual({ pipeline: true, keeps_uploads: true });
-    expect(((await (await call("/api/me", as("d2p1"), store)).json()) as any).features).toEqual({ pipeline: false, keeps_uploads: false });
+    expect(((await (await call("/api/me", as("d2p1"), store)).json()) as any).features).toEqual({ pipeline: false, keeps_uploads: true });
     // No page reader at all: off everywhere, whatever the list says.
     expect(((await (await call("/api/me", as("b-doc"), testEnv({ PIPELINE_ORGS: "*", PAGE_READER_URL: "" }))).json()) as any).features).toMatchObject({ pipeline: false });
   });

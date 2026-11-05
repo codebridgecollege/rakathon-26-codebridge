@@ -1049,3 +1049,16 @@ patient-erase-failed = The patient could not be deleted.
 patient-pg-empty-no-data = Not enough data: the study search cannot be started.
 patient-pg-as-of-today = As of today
 patient-pg-cost-note = The search calls an outside AI with web search and costs tokens, so it starts only from the button. It sends the clinical profile without name or birth number, which you see below.
+
+## A tab with no data yet
+
+patient-nodata-title = Not enough data
+patient-nodata-note = Nothing is guessed or filled in. The tab fills in once the assistant has processed the patient's documents.
+patient-nodata-overview = The overview cannot be built: there is no processed summary, oncology summary or current status.
+patient-nodata-anamnesis = The history cannot be built: the documents are not processed, or hold no history.
+patient-nodata-documents = No documents are stored for this patient yet.
+patient-nodata-labs = Lab values cannot be shown: they are not processed, or not in the documents.
+patient-nodata-alerts = Alerts cannot be worked out: the missing-documents check has not run.
+patient-nodata-next = The proposed management cannot be shown: there are no processed documents to base it on.
+patient-nodata-dev = Retrospective deviations cannot be shown: there are no processed documents of earlier decisions.
+patient-nodata-prognosis = The prognosis cannot be shown.

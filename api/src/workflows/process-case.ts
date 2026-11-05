@@ -22,7 +22,6 @@ import { composeBrief } from "../domain/brief";
 import { forStep, MODEL_STEP } from "../services/model";
 import { pipelineListed } from "../services/page-reader";
 import { modelOn } from "./extract-document";
-import { LEGACY_ORG } from "../domain/orgs";
 
 export type ProcessCaseParams = { org: string; caseId: string; by: string; byActor: string | null };
 
@@ -63,7 +62,7 @@ export class ProcessCaseWorkflow extends WorkflowEntrypoint<Env, ProcessCasePara
           if ("result" in c) return { result: c.result, documents: 0, facts: 0, brief: false, run: null };
           await env.DOCS.put(draftKey, JSON.stringify(c), { httpMetadata: { contentType: "application/json" } });
           // Decided here, in a step, so a replay after a redeploy that changed MODEL_ORGS keeps the same course.
-          const brief = p.org !== LEGACY_ORG && modelOn(env, p.org);
+          const brief = modelOn(env, p.org);
           return { result: "composed", documents: c.run.documents.length, facts: c.run.facts.length, brief, run: c.run.run.id };
         } catch (e) {
           if (e instanceof RunInvalid) return { ...invalid(e), brief: false, run: null };
@@ -72,7 +71,7 @@ export class ProcessCaseWorkflow extends WorkflowEntrypoint<Env, ProcessCasePara
       });
       if (composed.result !== "composed") return { result: composed.result, documents: composed.documents, facts: composed.facts };
 
-      // The brief, only where the model runs for the org (MODEL_ORGS) and never in demo org A. A refusal the model
+      // The brief, only where the model runs for the org (MODEL_ORGS). A refusal the model
       // cannot change gives a run without a brief (composeBrief); a failure after the step's retries stores the run
       // without it too: the documents' facts, alerts and views matter more than the brief.
       let questionFromBrief = false;

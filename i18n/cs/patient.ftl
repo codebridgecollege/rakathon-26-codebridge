@@ -1055,3 +1055,16 @@ patient-erase-failed = Pacienta se nepodařilo smazat.
 patient-pg-empty-no-data = Nedostatek údajů: hledání studií nelze spustit.
 patient-pg-as-of-today = Ke dnešnímu dni
 patient-pg-cost-note = Hledání volá externí AI s vyhledáváním na webu a stojí tokeny, proto se spouští jen tlačítkem. Posílá se klinický profil bez jména a rodného čísla, který vidíte níže.
+
+## A tab with no data yet
+
+patient-nodata-title = Nedostatek údajů
+patient-nodata-note = Nic se nedomýšlí ani nehádá. Záložka se vyplní, až asistent zpracuje dokumentaci pacienta.
+patient-nodata-overview = Přehled nelze sestavit: chybí zpracovaný souhrn, onkologický souhrn i aktuální stav pacienta.
+patient-nodata-anamnesis = Anamnézu nelze sestavit: dokumentace není zpracovaná, nebo anamnéza v ní není.
+patient-nodata-documents = K pacientovi zatím nejsou uložené žádné dokumenty.
+patient-nodata-labs = Laboratorní hodnoty nelze ukázat: nejsou zpracované, nebo v dokumentech nejsou.
+patient-nodata-alerts = Upozornění nelze vyhodnotit: kontrola chybějících podkladů zatím neproběhla.
+patient-nodata-next = Navrhovaný postup nelze ukázat: chybí zpracovaná dokumentace a pravidla se nemají z čeho opřít.
+patient-nodata-dev = Retrospektivní odchylky nelze ukázat: chybí zpracovaná dokumentace předchozích rozhodnutí.
+patient-nodata-prognosis = Prognózu nelze ukázat.

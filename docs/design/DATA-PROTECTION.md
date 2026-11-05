@@ -324,9 +324,14 @@ OpenID Connect (OIDC, the standard login protocol); design and details in
   travels in the `X-File-Name` header, so check that Workers Logs do not
   record request headers, as for the Access header in `api/AGENTS.md`).
   Other policies are for team staging and local work only, and
-  `UPLOAD_STORE_ORGS` keeps content per org: the team's switch for demo
-  org B, empty on the deployed host, since anyone with a demo account can
-  act in org B. A kept photo is stored as uploaded, EXIF (including a
+  `UPLOAD_STORE_ORGS` keeps content per org. Since 2026-11-05 (Soňa's
+  decision) it lists both demo orgs on the deployed host, together with
+  `PIPELINE_ORGS` and `MODEL_ORGS`: uploaded files are kept, read, and
+  sent to the AI model, so the demo orgs must hold synthetic files only
+  (anyone with a demo account can act in them). This trades privacy for
+  a working app; real patients wait for FNO's clearance. A Word document
+  is read for its text only (`page_reader/docx_pdf.py` builds a new PDF, so
+  its metadata does not travel on). A kept photo is stored as uploaded, EXIF (including a
   location) and all; the pipeline reads only the PDF it converts it to,
   which drops that metadata (step-6.md, "Keeping uploads per org").
 - **Stored uploads** live in the EU bucket under `uploads/<case>/`, with

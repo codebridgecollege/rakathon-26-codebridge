@@ -17,7 +17,7 @@ import { orgStmt } from "../store/sql";
 import { LEGACY_ORG } from "../domain/orgs";
 import { auditStatement } from "../store/write";
 import { documentAlerts, partRows, type PagePart } from "../domain/document-checks";
-import type { Identity } from "../domain/documents";
+import { DOCX_TYPE, type Identity } from "../domain/documents";
 import { diffLabs, pipelineErrorCs, PIPELINE_BATCH, READABILITY_CS, type PreparedPoint } from "../domain/pipeline";
 import { pipelineFragment, type ParsedLabs } from "@codebridge/domain/fragments";
 import { startCaseMerge } from "./process-case";
@@ -59,7 +59,8 @@ async function originalOf(env: Env, org: string, run: RunRow): Promise<{ bytes: 
   return { bytes: await o.arrayBuffer(), mediaType: d.media_type };
 }
 
-const isImage = (mediaType: string) => mediaType.startsWith("image/");
+// A photo or a Word document is turned into a PDF by the page reader first; a PDF is read as it is.
+const isImage = (mediaType: string) => mediaType.startsWith("image/") || mediaType === DOCX_TYPE;
 const convertedKey = (run: RunRow) => `${run.output_prefix}converted.pdf`;
 
 // The PDF the pages are read from: the upload itself, or for a photo the PDF the convert step made from it (the row
@@ -307,7 +308,7 @@ export class ProcessDocumentWorkflow extends WorkflowEntrypoint<Env, ProcessDocu
       });
       // The document's share of the case run (packages/domain/src/fragments.ts): its lab values with their passages,
       // readability and identity per page, written next to the run's other outputs, so a withdraw deletes it too.
-      // Only for orgs the case merge runs for (never demo org A). A failure here never marks the read document as
+      // Only for orgs the case merge runs for (PIPELINE_ORGS). A failure here never marks the read document as
       // failed: the document is processed; it only stays out of the case run until a later run writes its fragment.
       const frag = pipelineListed(this.env, p.org)
         ? await step.do("fragment", STEP, async () => {
@@ -333,10 +334,9 @@ export class ProcessDocumentWorkflow extends WorkflowEntrypoint<Env, ProcessDocu
       // it ends by starting the case merge again with its own fragment. It fails closed on identity: a document D1
       // marks as another patient's, or one whose pages were not checked (no identity.json: a registered fixture, an
       // identity check that failed), never goes to a model, since the pseudonymizer knows only this case's patient.
-      // Never in demo org A. A start that fails changes nothing for the document; the code goes to the log.
+      // A start that fails changes nothing for the document; the code goes to the log.
       if (frag.fragment)
         await step.do("start extraction", STEP, async () => {
-          if (p.org === LEGACY_ORG) return { started: false, reason: "org" };
           const run = await runOf(this.env, p.org, p.runId);
           const d = await orgStmt(this.env.DB, p.org, "SELECT identity FROM documents WHERE org_id = ?org AND id = ?1", p.docId).first<{ identity: string | null }>();
           if (d?.identity === "conflicts") return { started: false, reason: "identity" };

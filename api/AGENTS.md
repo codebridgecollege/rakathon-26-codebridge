@@ -235,10 +235,11 @@ Design and contract: `docs/research/backend-steps/step-6.md`, section "As implem
   this path only). Every file is accepted, never refused for its type, size or origin (user decision 2026-10-18).
   `UPLOAD_POLICY=fixtures_only` stores the bytes of registered synthetic fixtures only (`fixture_files` by SHA-256); any
   other file gets a listing row (name, size, media type, uploader, time; `original_r2_key`, `sha256`, `fixture_id` NULL,
-  `content_stored: false` in the answer) and nothing in R2. `UPLOAD_STORE_ORGS` (the team's switch, empty when deployed;
-  set to `demo-b` to test on the team's synthetic files, never `demo-a`) keeps unknown PDFs and JPEG/PNG photos for the
-  listed orgs; a photo is stored as it came (`.jpg`/`.png`, its own media type), and the pipeline converts it to a PDF
-  first (`/v1/convert`). Office files and HEIC stay listed only. A repeat (same bytes or same name) answers 200 with the
+  `content_stored: false` in the answer) and nothing in R2. `UPLOAD_STORE_ORGS` (the team's switch; deployed: `demo-a,demo-b`, Soňa's
+  decision 2026-11-05) keeps unknown PDFs, JPEG/PNG photos and Word `.docx` files for the listed orgs; a photo is stored as it came (`.jpg`/`.png`, its own media type), and the pipeline converts it to a PDF
+  first (`/v1/convert`). A `.docx` (a zip with `word/document.xml`, judged by its entry names in `isDocx`) is stored as `.docx` and
+  the page reader turns its text (paragraphs, table rows; not the layout) into a PDF with `page_reader/docx_pdf.py`, using the DejaVu Sans font the image
+  installs; old `.doc`, ODT, Excel and HEIC stay listed only. A repeat (same bytes or same name) answers 200 with the
   document already there. Files live under R2 `org/<org>/uploads/<case>/`, which reset-demo and the intake
   discard delete. Rules in `src/domain/documents.ts`; the fixture's patient (`fixture_patients`, D1 only) is compared
   with the case's patient and only the result (`matches`, `conflicts`, `cannot_verify`) leaves the server.
@@ -275,7 +276,7 @@ Design and contract: `docs/research/backend-steps/step-6.md`, section "As implem
   with neither the pipeline answers 503 `pipeline_off`. The class `PageReader` (`src/services/page-reader-container.ts`)
   lives in its own Worker `codebridge-page-reader` (`page-reader.wrangler.jsonc`, `src/page-reader-worker.ts`), which
   holds the `containers` entry (EU jurisdiction); this Worker binds it by `script_name`, so it keeps its preview alias.
-  `PIPELINE_ORGS` lists the orgs the pipeline runs for (deployed: `demo-b`, so demo org A looks as before); `/api/me`
+  `PIPELINE_ORGS` lists the orgs the pipeline runs for (deployed: `demo-a,demo-b`; a case in demo org A whose run came from a prepared fixture is left alone by the merge); `/api/me`
   reports it as `features.pipeline`. Instances are a pool of three named by case (`poolInstance`). The image is built
   only in CI: the `main` deploy job runs `wrangler deploy -c page-reader.wrangler.jsonc` before the D1 migration (the
   token needs "Containers: Edit"), and `.github/workflows/pipeline.yml` builds it on every change to `pipeline/` and runs

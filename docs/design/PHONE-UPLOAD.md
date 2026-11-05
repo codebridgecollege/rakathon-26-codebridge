@@ -109,9 +109,8 @@ itself (same role and case-state rules as today's upload, `canUpload`).
   shared Wi-Fi needed.
 - For the S02 intake, put the seven PDFs from `samples/S02_pacient/upload/`
   on the phone first (for example unpack `S02-dokumenty.zip` into Files);
-  a photo taken with the camera simply shows as uploaded. In demo org A a
-  photo is only listed; in an org whose uploads keep their content
-  (`UPLOAD_STORE_ORGS`, the team's switch for demo org B) it is stored, and
+  a photo taken with the camera simply shows as uploaded. In an org whose uploads keep their content
+  (`UPLOAD_STORE_ORGS`, deployed for demo orgs A and B) it is stored, and in any other a photo is only listed; and
   where the pipeline runs (`PIPELINE_ORGS`) it is converted to a PDF and
   read like a scan (step-6.md, "Keeping uploads per org, photos").
 

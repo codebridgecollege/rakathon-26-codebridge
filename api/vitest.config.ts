@@ -77,6 +77,9 @@ export default defineConfig(async () => {
             PAGE_READER_CONTAINER: "off",
             // Workflows run with these bindings: the case merge runs for demo org B, as on the deployed host.
             PIPELINE_ORGS: "demo-b",
+            // The deployed MODEL_ORGS and UPLOAD_STORE_ORGS name both demo orgs; the tests set what they need themselves.
+            MODEL_ORGS: "",
+            UPLOAD_STORE_ORGS: "",
           },
           // The PAGE_READER binding names the class in another Worker (codebridge-page-reader); workerd refuses to start
           // when that Worker is missing, so the tests get an empty stand-in. Nothing calls it (PAGE_READER_CONTAINER off).
