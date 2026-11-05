@@ -71,7 +71,8 @@ const processed = computed(() => {
       <p v-if="c.p.value.summary" class="prose" lang="cs">{{ c.p.value.summary }}</p>
       <div v-if="!c.cd.value?.record" class="question" role="status">
         <b>{{ $t("patient-empty-title") }}</b>
-        <p style="margin:6px 0 10px">{{ $t("patient-empty-text") }}</p>
+        <p style="margin:6px 0 6px">{{ $t("patient-empty-text") }}</p>
+        <p class="muted small" style="margin:0 0 10px">{{ $t("patient-empty-expect") }}</p>
         <button v-if="c.canSetStatus.value" class="btn" @click="openUpload">{{ $t("patient-empty-upload") }}</button>
       </div>
       <p class="muted small" style="margin:0"><span v-if="c.cd.value?.note_cs" lang="cs">{{ c.cd.value.note_cs }}</span><template v-else>{{ $t("patient-brief-from-list") }}</template> {{ $t("patient-brief-source", { file: c.p.value.file, pages: c.p.value.pages || "?" }) }}</p>

@@ -229,12 +229,13 @@ export const finite = (v: unknown): v is number => typeof v === "number" && Numb
 // A full ISO day can be formatted; a partial or other date is shown as the source gives it.
 export const isIsoDay = (v: unknown): v is string => typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v);
 
-// The saved search of a patient for a day (SAVED_PROGNOSIS matched by patient file and scheduled day); one with no
-// rows is no saved search.
+// The saved search of a patient for a day (matched by patient file and scheduled day); without a day, the latest one the
+// patient has. A search that found no rows is still a search: it says so (and a model error shows), it is not hidden.
 export type PgSaved = { patient_id?: string; scheduled_date?: string; result?: { rows?: unknown[]; profile?: { facts?: unknown } & Record<string, unknown> } & Record<string, unknown> };
 export function findSaved<S extends PgSaved>(saved: S[] | null | undefined, file: string, day: string | null | undefined): S | null {
-  const hit = (saved || []).find((s) => s?.patient_id === file && s?.scheduled_date === day);
-  return hit?.result?.rows?.length ? hit : null;
+  const mine = (saved || []).filter((s) => s?.patient_id === file && s?.result);
+  if (day) return mine.find((s) => s.scheduled_date === day) ?? null;
+  return mine.reduce<S | null>((best, s) => (!best || String(s.scheduled_date ?? "") > String(best.scheduled_date ?? "") ? s : best), null);
 }
 
 // Whether the saved search rests on other facts than the profile at hand (saved_data_changed): compared as the

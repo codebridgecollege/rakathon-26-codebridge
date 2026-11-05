@@ -22,6 +22,7 @@ export type Action =
   | "session.write" // start and end an MDT, attendance
   | "case.create"
   | "case.team" // put a case into an MDT team, which closes it to the departments
+  | "prognosis.run" // start the study search for the Prognóza tab (sends a de-identified profile out)
   | "case.erase" // erase a patient and everything held on them, for good (Soňa's decision 2026-11-05)
   | "digest.send"
   | "staff.write"
@@ -37,7 +38,7 @@ export type Action =
 const CASE_SCOPED: ReadonlySet<Action> = new Set([
   "status.move", "slot.write", "protocol.edit", "decision.approve", "decision.new_version", "question.confirm",
   "fact.edit", "fact.confirm", "suggestion.decide", "task.done", "alert.act", "transcript.write", "document.upload", "document.process",
-  "nis.link", "case.team", "case.erase",
+  "nis.link", "case.team", "case.erase", "prognosis.run",
 ]);
 
 // The permission matrix. A row missing for a role means "no". Clinical confirmations are doctors' only.
@@ -58,6 +59,8 @@ const MATRIX: Record<Action, ReadonlySet<Role>> = {
   // The administrator sets teams up, so also sorts existing cases into them; the route answers with no case content.
   "case.team": new Set(["doctor", "coordinator", "admin"]),
   "case.erase": new Set(["doctor", "coordinator", "admin"]),
+  // Who brings documents to a case may also start its study search; the administrator reads no clinical content.
+  "prognosis.run": new Set(["doctor", "coordinator"]),
   "digest.send": new Set(["doctor", "coordinator"]),
   "staff.write": new Set(["coordinator", "admin"]),
   "break_glass": new Set(["doctor"]),

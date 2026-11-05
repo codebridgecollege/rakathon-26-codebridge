@@ -56,6 +56,9 @@ export default defineConfig(async () => {
             }),
             ELEVENLABS_API_KEY: "test-el",
             AZURE_OPENAI_KEY: "test-az",
+            // The study search's Workflow reads these from the Worker's bindings; the model's host is a stub in the tests.
+            OPENROUTER_API_KEY: "test-secret",
+            OPENROUTER_MODEL_ASTRA: "m",
             AI_GATEWAY_TOKEN: "",
             AI_GATEWAY_BASE: "",
             ELEVENLABS_API_BASE: "https://elevenlabs.test",

@@ -113,7 +113,7 @@ export const writeCases = new Hono<AppEnv>()
       const bucket = c.env.DOCS;
       for (const u of openAudio.results) await bucket.resumeMultipartUpload(u.r2_key, u.r2_upload_id).abort().catch(() => {});
       if (named.results.length) await bucket.delete(named.results.map((x) => x.k));
-      for (const area of ["uploads", "runs", "audio", "nis", "jobs", "cache/summary"]) {
+      for (const area of ["uploads", "runs", "audio", "nis", "jobs", "cache/summary", "prognosis-runs"]) {
         await deletePrefix(bucket, orgKey(org, `${area}/${id}/`));
         if (org === LEGACY_ORG) await deletePrefix(bucket, `${area}/${id}/`);
       }

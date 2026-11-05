@@ -181,8 +181,8 @@ Design and the exact contract: `docs/research/backend-steps/step-4.md`, section 
 
 ## AI recording and the speaker pass (step 5)
 
-Design and contract: `docs/research/backend-steps/step-5.md`, section "As implemented". Part (b), prognosis, is not
-built.
+Design and contract: `docs/research/backend-steps/step-5.md`, section "As implemented". Part (b), prognosis, is built
+as `PrognosisWorkflow` (below).
 
 - Routes in `src/routes/transcript.ts`: recordings, live lines, audio parts (raw PCM, `application/octet-stream`; the
   write middleware exempts that one route from the JSON check), the stored transcript, jobs and retry. Rules in
@@ -659,3 +659,19 @@ structured data comes next. Test server and test data: [`fhir/nis/README.md`](..
   test Bundles (no PDF bytes); `test/nis-map.test.ts` pulls S01, S02, case 10 and F01-F04 and checks the runs, with
   S01's and S02's lab values against their prepared fixtures; `test/nis-merge.test.ts` imports, refreshes and unlinks through the case merge; `test/orgs.test.ts` probes the NIS
   routes from org B.
+
+## Prognosis study search (the Prognóza tab)
+
+- **What it is.** `POST /api/prognosis` (a click) checks the role (doctor or coordinator on the case, `prognosis.run`),
+  builds the case's de-identified profile (`packages/domain/src/prognosis-profile.ts`), puts it in R2
+  (`jobs/<case>/prognosis-<job>.json`), inserts a `jobs` row (`kind = 'prognosis'`, one running job per case and
+  `PROGNOSIS_DAILY_MAX` a day per org, both guarded in the same batch) and starts `PrognosisWorkflow`. The Workflow makes
+  one OpenRouter call with web search (`src/services/prognosis-search.ts`, a port of `prognosis/service.py` with its
+  tests), stores the checked result at `prognosis-runs/<case>/saved-<day>.json` and closes the job. No retry. The tab polls
+  `GET /api/cases/:id/prognosis` (`saved` and the latest `run`); a job untouched for 12 minutes is closed as `stalled`.
+- **Switches.** Off until both are set: `PROGNOSIS_ORGS` in `wrangler.jsonc` (orgs, or `"*"`) and the secret
+  `OPENROUTER_API_KEY` (`npx wrangler secret put OPENROUTER_API_KEY`, in the account that owns the Worker). The model ID is
+  `OPENROUTER_MODEL_ASTRA` and is checked against OpenRouter's catalog at each search; locally put the key in `.dev.vars`.
+  `GET /api/prognosis/config` says which switch is missing.
+- **Tests.** `test/prognosis-routes.test.ts` runs the whole way with a stubbed OpenRouter; `test/prognosis-search.test.ts`
+  holds the ported checks. The test pool pins a dummy key (`vitest.config.ts`), and nothing reaches the network.

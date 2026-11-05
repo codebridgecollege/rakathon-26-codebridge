@@ -54,6 +54,8 @@ export type PrognosisResult = {
   warnings?: string[];
 } & Loose;
 export type SavedPrognosis = { patient_id?: string; scheduled_date?: string; result?: PrognosisResult } & Loose;
+// The latest search job of a case on the Worker: the search outlives a browser request, so the tab starts it and polls.
+export type PrognosisRun = { id: string; state: "queued" | "running" | "done" | "error"; phase: string | null; error_code: string | null; message_cs: string | null; updated_at: string };
 
 // Catalog IDs (i18n/cs/patient.ftl) of the errors the prognosis calls raise themselves (the
 // routes live on the local prognosis server, so a host without them says so, and a search
@@ -165,15 +167,16 @@ export function createApiClient(opts: ClientOptions = {}) {
     history: (caseId: string) => t.get<Loose>(`/cases/${enc(caseId)}/history`),
     guidance: (caseId: string) => t.get<Loose>(`/cases/${enc(caseId)}/guidance`),
     // The saved study searches of a case, for every day; the server writes a "prognosis.view" access-log row.
-    prognosis: (caseId: string) => t.get<{ saved: SavedPrognosis[] }>(`/cases/${enc(caseId)}/prognosis`),
+    prognosis: (caseId: string) => t.get<{ saved: SavedPrognosis[]; run?: PrognosisRun | null }>(`/cases/${enc(caseId)}/prognosis`),
     // The local prognosis server's routes (prognosis/serve.py). The Worker has none of them, so there they fail and the
     // tab shows the saved search only.
     prognosisConfig: () => prognosisCall(() => t.get<PrognosisConfig>("/prognosis/config", { timeout: PROGNOSIS_TIMEOUTS.get })),
-    prognosisProfile: (q: { patient_id: string; scheduled_date: string }) =>
+    prognosisProfile: (q: { patient_id: string; scheduled_date?: string }) =>
       prognosisCall(() => t.get<{ profile?: PrognosisProfile } & Loose>("/prognosis/profile", { query: q, timeout: PROGNOSIS_TIMEOUTS.get })),
     // One search per click; refresh asks the server not to answer from its cache.
-    prognosisSearch: (body: { patient_id: string; scheduled_date: string; refresh: boolean }) =>
-      prognosisCall(() => t.write<PrognosisResult>("POST", "/prognosis", body, { timeout: PROGNOSIS_TIMEOUTS.search })),
+    // The Worker answers with the job (the result then arrives through prognosis()); the local server with the result.
+    prognosisSearch: (body: { patient_id: string; scheduled_date?: string; refresh: boolean }) =>
+      prognosisCall(() => t.write<PrognosisResult & { job?: { id: string; state: string } }>("POST", "/prognosis", body, { timeout: PROGNOSIS_TIMEOUTS.search })),
     documents: (caseId: string) => t.get<CaseDocuments>(`/cases/${enc(caseId)}/documents`),
     // Fetched for every view, never cached: each view of a page is an access the server records.
     page: (docId: string, n: number) => t.get<Loose>(`/documents/${enc(docId)}/pages/${enc(n)}`),

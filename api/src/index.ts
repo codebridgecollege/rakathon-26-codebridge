@@ -22,6 +22,7 @@ import { documents } from "./routes/documents";
 import { intake } from "./routes/intake";
 import { pipeline } from "./routes/pipeline";
 import { nis } from "./routes/nis";
+import { prognosis } from "./routes/prognosis";
 import { phoneUpload, uploadSessions } from "./routes/upload-sessions";
 import { sweep } from "./scheduled";
 import { authRoutes } from "./routes/auth";
@@ -31,6 +32,7 @@ export { SpeakerPassWorkflow } from "./workflows/speaker-pass";
 export { ProcessDocumentWorkflow } from "./workflows/process-document";
 export { ExtractDocumentWorkflow } from "./workflows/extract-document";
 export { ProcessCaseWorkflow } from "./workflows/process-case";
+export { PrognosisWorkflow } from "./workflows/prognosis";
 
 // The data routes (step 2) resolve the person from the directory first; listed by path so an unknown /api path
 // still answers the plain JSON 404 instead of touching the database.
@@ -38,7 +40,7 @@ export { ProcessCaseWorkflow } from "./workflows/process-case";
 const DATA_PATHS = [
   "/me", "/staff/*", "/patients", "/cases/*", "/documents/*", "/tasks/*", "/calendar", "/admin/*",
   "/workflow", "/audit/*", "/suggestions/*", "/notifications/*", "/sessions/*", "/attendance/*", "/recordings/*", "/jobs/*", "/fhir/*",
-  "/upload-sessions/*", "/demo/*",
+  "/upload-sessions/*", "/demo/*", "/prognosis/*",
 ];
 
 // Static files (the built app) are served by the assets binding before this code runs; only /api/* and /auth/* reach it
@@ -80,6 +82,7 @@ app.route("/", documents);
 app.route("/", intake);
 app.route("/", pipeline);
 app.route("/", nis);
+app.route("/", prognosis);
 app.route("/", uploadSessions);
 app.notFound(notFound);
 app.onError(onError);

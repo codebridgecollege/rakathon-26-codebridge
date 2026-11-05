@@ -1,17 +1,16 @@
 <script setup lang="ts">
 // The Prognóza tab: outcomes of study populations similar to the patient,
-// as of the scheduled MDT day, from the search the server recorded or a new search on the local prognosis server.
+// as of the scheduled MDT day (today when there is none), from the search the server recorded or a new one started by the
+// button: it calls an outside AI with web search and costs tokens, so it never starts by itself.
 // The values describe study groups; the doctor judges the individual prognosis, so the tab shows sources, model
 // attribution and missing values as missing, and computes nothing itself.
 import { computed, watch } from "vue";
-import { useRouter } from "vue-router";
 import { useFluent } from "fluent-vue";
 import { pgLayout, PG_ENDPOINTS, type PgRow } from "@codebridge/domain/prognosis";
 import { usePatient } from "../../composables/usePatient";
 import { useApi } from "../../lib/api";
 import { fmtDate } from "../../lib/dates";
 import { useOverlayStore } from "../../stores/overlay";
-import { useListViewStore } from "../../stores/listView";
 import { ENDPOINT_IDS, errText, OS_HEADER_IDS, usePrognosisStore } from "../../stores/prognosis";
 import PgStudyRow from "./PgStudyRow.vue";
 
@@ -19,7 +18,6 @@ const { $t } = useFluent();
 const { p } = usePatient();
 const pg = usePrognosisStore();
 const overlay = useOverlayStore();
-const router = useRouter();
 
 const c = computed(() => ({ file: p.value.file, id: p.value.id, day: p.value.slot?.day }));
 // Each patient and day has its own entry; a new day asks for its own saved search and profile.
@@ -67,6 +65,8 @@ const foundText = computed(() => {
   const how = r.saved ? $t("patient-pg-found-saved") : r.cache_hit ? $t("patient-pg-found-cached") : "";
   return `${$t("patient-pg-found", { n: r.rows?.length || 0 })}${r.searched_at || ""}${how}`;
 });
+// "Not started yet" is the normal state; "not enough data" only when the search cannot run.
+const unavailable = computed(() => state.value.profile?.available === false);
 const emptyText = computed(() =>
   state.value.savedPending
     ? $t("patient-pg-loading-saved")
@@ -74,7 +74,9 @@ const emptyText = computed(() =>
       ? $t("patient-pg-empty-pending")
       : result.value
         ? $t("patient-pg-empty-no-rows")
-        : $t("patient-pg-empty-start"),
+        : unavailable.value
+          ? $t("patient-pg-empty-no-data")
+          : $t("patient-pg-empty-start"),
 );
 const facts = computed(() => (state.value.profile?.facts || []) as (string | { text?: string; text_cs?: string; date?: string; source?: unknown })[]);
 const factText = (f: (typeof facts.value)[number]) => (typeof f === "string" ? f : f?.text || f?.text_cs || "");
@@ -97,11 +99,6 @@ function openPanel(i: number) {
     .auditEvent({ code: "prognosis_source_opened", case_id: p.value.id })
     .catch(() => {});
 }
-function schedule() {
-  // The calendar opens with this case picked for booking.
-  useListViewStore().schedPick = p.value.file;
-  void router.push("/calendar");
-}
 </script>
 
 <template>
@@ -112,12 +109,9 @@ function schedule() {
         <div class="muted small">{{ $t("patient-pg-subtitle") }}</div>
       </div>
       <span v-if="day" class="chip plain">{{ $t("patient-pg-as-of", { date: fmtDate($t, day) }) }}</span>
+      <span v-else class="chip plain">{{ $t("patient-pg-as-of-today") }}</span>
     </div>
     <p>{{ $t("patient-pg-intro") }}</p>
-    <template v-if="!day">
-      <p class="pg-warning">{{ $t("patient-pg-no-slot") }}</p>
-      <button class="btn" @click="schedule">{{ $t("patient-pg-schedule") }}</button>
-    </template>
     <div v-if="pg.configPending || state.profilePending" class="muted small" role="status">{{ $t("patient-pg-loading-profile") }}</div>
     <div v-if="showConnError" role="alert">
       <p class="pg-warning">{{ connError }}</p>
@@ -138,6 +132,7 @@ function schedule() {
       <p v-for="(w, i) in state.profile.warnings || []" :key="i" class="pg-warning small" lang="cs">{{ w }}</p>
     </details>
 
+    <p v-if="config?.configured" class="muted small">{{ $t("patient-pg-cost-note") }}</p>
     <div class="pg-controls">
       <button class="btn primary" :disabled="!canSearch" @click="pg.search(c)">{{ searchLabel }}</button><button v-if="result" class="btn" :disabled="!canSearch" @click="pg.search(c, true)">{{ $t("patient-pg-refresh") }}</button><span class="muted small">{{ $t("patient-pg-abbreviations") }}</span>
     </div>

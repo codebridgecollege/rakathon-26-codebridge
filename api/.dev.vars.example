@@ -12,3 +12,6 @@ OIDC_CLIENT_SECRET=
 SESSION_KEY=
 # The NIS over FHIR (api/AGENTS.md, "NIS over FHIR"): an org with auth mode backend_services names its private key's
 # secret in NIS_CONFIG, for example NIS_FNO_KEY (a PKCS#8 PEM). Not needed for the local test server (auth mode none).
+# The Prognóza study search (api/AGENTS.md, "Prognosis study search"): with PROGNOSIS_ORGS set in wrangler.jsonc, the key
+# of OpenRouter. Never commit it; on the deployed Worker it is a secret (wrangler secret put OPENROUTER_API_KEY).
+OPENROUTER_API_KEY=

@@ -4,7 +4,7 @@
 // here too, so the drawers read the same numbers the tab shows.
 import { defineStore } from "pinia";
 import { reactive, shallowRef } from "vue";
-import { ApiError, type PrognosisConfig, type PrognosisProfile, type PrognosisResult, type SavedPrognosis } from "@codebridge/api-client";
+import { ApiError, type PrognosisConfig, type PrognosisProfile, type PrognosisResult, type PrognosisRun, type SavedPrognosis } from "@codebridge/api-client";
 import {
   factsDiffer,
   findSaved,
@@ -113,6 +113,11 @@ export type PgEntry = {
   savedPending: boolean;
 };
 
+// A search on the Worker runs as a job: the tab asks for its state this often and gives up after this long (the job's own
+// limit is 8 minutes).
+export const POLL_MS = 4000;
+export const POLL_MAX_MS = 9 * 60_000;
+
 // A saved search is shown after this delay ("Načítání uložené rešerše…"), so the tab reads the same as a
 // recorded search coming in; counted from the request, so a slow server adds no extra wait.
 export const SAVED_DELAY_MS = 2000;
@@ -144,24 +149,31 @@ export const usePrognosisStore = defineStore("prognosis", () => {
   const EMPTY = blank();
   const entryAt = (c: Case): PgEntry => entries.get(pgKey(c.file, c.day)) ?? EMPTY;
 
-  // The saved search recorded for this patient and day, read once per entry. Without a day nothing can match, so the
-  // server is not asked and no access is logged for a view that shows nothing.
+  // The saved search recorded for this patient and day (the latest one when the case has no MDT day), read once per entry.
   async function loadSaved(c: Case) {
     const state = entryOf(c);
     if (state.savedChecked || state.result) return;
     state.savedChecked = true;
-    if (!c.day) return;
     const started = Date.now();
     state.savedChecking = true;
     let saved: SavedPrognosis | null = null;
+    let run: PrognosisRun | null = null;
     try {
-      saved = findSaved((await useApi().prognosis(c.id)).saved, c.file, c.day);
+      const r = await useApi().prognosis(c.id);
+      saved = findSaved(r.saved, c.file, c.day);
+      run = r.run ?? null;
     } catch {
       // No saved search to show now; the tab reports the state of the live search, and "Zkusit připojení znovu"
       // asks for the saved search again.
       state.savedChecked = false;
     }
     state.savedChecking = false;
+    // A search started before the page was opened or reloaded is still running: wait for it here.
+    if (run && (run.state === "queued" || run.state === "running") && !state.pending) {
+      state.pending = true;
+      void waitForJob(c, state).finally(() => (state.pending = false));
+      return;
+    }
     if (!saved) return;
     state.savedPending = true;
     await new Promise((r) => setTimeout(r, Math.max(0, SAVED_DELAY_MS - (Date.now() - started))));
@@ -188,10 +200,10 @@ export const usePrognosisStore = defineStore("prognosis", () => {
         .finally(() => (configPending.value = false));
     }
     const state = entryOf(c);
-    if (!c.day || state.profile || state.profilePending || state.profileError) return;
+    if (state.profile || state.profilePending || state.profileError) return;
     state.profilePending = true;
     useApi()
-      .prognosisProfile({ patient_id: c.file, scheduled_date: c.day })
+      .prognosisProfile({ patient_id: c.file, scheduled_date: c.day || undefined })
       .then((d) => {
         // A saved search keeps its own profile; a newer profile only marks it as resting on older facts.
         if (state.result?.saved) state.result.saved_data_changed = factsDiffer(d.profile?.facts, state.result.profile?.facts);
@@ -203,8 +215,37 @@ export const usePrognosisStore = defineStore("prognosis", () => {
 
   const canSearch = (c: Case) => {
     const state = entryAt(c);
-    return !!c.day && !state.pending && !state.savedPending && !state.savedChecking && !!state.profile && state.profile.available !== false && !!config.value?.configured;
+    return !state.pending && !state.savedPending && !state.savedChecking && !!state.profile && state.profile.available !== false && !!config.value?.configured;
   };
+
+  // Waits for the search job of a case and puts its result (or the reason it failed) into the entry. A lost connection
+  // for a moment is no failure: the next ask goes on.
+  async function waitForJob(c: Case, state: PgEntry) {
+    const until = Date.now() + POLL_MAX_MS;
+    while (Date.now() < until) {
+      await new Promise((r) => setTimeout(r, POLL_MS));
+      let r: { saved: SavedPrognosis[]; run?: PrognosisRun | null };
+      try {
+        r = await useApi().prognosis(c.id);
+      } catch {
+        continue;
+      }
+      const run = r.run;
+      if (!run || run.state === "queued" || run.state === "running") continue;
+      if (run.state === "error") {
+        state.error = { message_cs: run.message_cs, message_id: run.message_cs ? null : "patient-pg-error-request-failed" };
+        return;
+      }
+      const saved = findSaved(r.saved, c.file, c.day);
+      if (saved?.result) {
+        const result = JSON.parse(JSON.stringify(saved.result)) as PgResult;
+        state.result = result;
+        if (result.profile) state.profile = result.profile;
+      }
+      return;
+    }
+    state.error = { message_cs: null, message_id: "patient-pg-error-timeout" };
+  }
 
   // One search request (pgSearch()); without refresh, a result already on screen is shown again instead.
   async function search(c: Case, refresh = false) {
@@ -217,9 +258,13 @@ export const usePrognosisStore = defineStore("prognosis", () => {
     state.pending = true;
     state.error = null;
     try {
-      const r = await useApi().prognosisSearch({ patient_id: c.file, scheduled_date: c.day!, refresh });
-      state.result = r;
-      if (r.profile) state.profile = r.profile;
+      const r = await useApi().prognosisSearch({ patient_id: c.file, scheduled_date: c.day || undefined, refresh });
+      // The Worker answers with a job to wait for; the local server with the result itself.
+      if (r.job) await waitForJob(c, state);
+      else {
+        state.result = r;
+        if (r.profile) state.profile = r.profile;
+      }
     } catch (e) {
       state.error = asError(e);
     } finally {

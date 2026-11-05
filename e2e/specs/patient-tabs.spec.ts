@@ -25,14 +25,9 @@ test("case 10 shows all eight tabs and a click selects one", async ({ app }) => 
   await expect(app.page).toHaveURL(/^[^#]*\/patient\/10\/anamnesis$/);
 });
 
-test("the synthetic patient lists every tab, and one its data does not support says there is not enough data", async ({ app }) => {
+test("the synthetic patient shows only the tabs its data supports", async ({ app }) => {
   await openCase(app, "S01", "documents", /Křemínek Radovan/);
-  await expect(app.main.getByRole("tablist").getByRole("tab")).toHaveCount(8);
-  await app.openTab("Přehled");
-  await expect(app.main.getByRole("heading", { level: 2, name: "Nedostatek údajů" })).toBeVisible();
-  await expect(app.main.getByText("Přehled nelze sestavit")).toBeVisible();
-  await app.openTab("Laboratoř");
-  await expect(app.main.getByRole("heading", { level: 2, name: "Nedostatek údajů" })).toHaveCount(0);
+  await expect(app.main.getByRole("tablist").getByRole("tab")).toHaveText(["Dokumenty", "Laboratoř", "Upozornění", "Prognóza"]);
 });
 
 test("Anamnéza lists the personal history with edit buttons", async ({ app }) => {

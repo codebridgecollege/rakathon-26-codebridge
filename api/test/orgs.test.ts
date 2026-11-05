@@ -394,6 +394,8 @@ describe("every route, acting in org B with org A's IDs", () => {
     // routes tested elsewhere in this file (the org-less ones and the org B writes).
     const covered = new Set([
       ...PROBES.map((p) => `${p.method} ${p.name.replace(/^\w+ /, "").replace(/ \(.*\)$/, "").replace(/\?.*$/, "")}`),
+      // The study search: its cross-org and role cases are in test/prognosis-routes.test.ts.
+      "GET /prognosis/config", "GET /prognosis/profile", "POST /prognosis",
       "GET /patients", "GET /tasks", "GET /calendar", "GET /workflow", "GET /staff", "GET /admin/access-log", "GET /me", "GET /demo/memberships", "GET /",
       "POST /staff/teams", "PATCH /staff/teams/:id", "PUT /staff/teams/:id/members", "DELETE /staff/teams/:id", "POST /cases/:id/team", "DELETE /cases/:id", "POST /sessions", "DELETE /sessions/:day", "PUT /attendance/:key", "POST /recordings", "POST /notifications/digest", "POST /staff/departments",
       "POST /cases", "POST /fhir/referral", "POST /admin/pipeline/warm", "POST /staff/reset", "POST /admin/reset-demo",
@@ -721,7 +723,7 @@ describe("staff and demo resets", () => {
     // A seeded patient stays, because the demo reset rebuilds the case on that row; below the patient counts as not seeded.
     expect((await w("DELETE", "/cases/NO-A", { confirm: "SMAZAT" }, "d2p1")).body.error?.code).toBe("erase_seeded");
     await env.DOCS.delete("seed/reset.json");
-    const files = ["org/demo-a/cache/model/no-a/x/y.json", "org/demo-a/uploads/NO-A/f.pdf", "org/demo-a/runs/NO-A/r.json"];
+    const files = ["org/demo-a/cache/model/no-a/x/y.json", "org/demo-a/uploads/NO-A/f.pdf", "org/demo-a/runs/NO-A/r.json", "org/demo-a/prognosis-runs/NO-A/saved-2026-11-05.json"];
     for (const f of files) await env.DOCS.put(f, "x");
     await env.DOCS.put("org/demo-b/uploads/NO-A/f.pdf", "keep");
     expect((await w("DELETE", "/cases/NO-A", { confirm: "ano" }, "d2p1")).body.error?.code).toBe("erase_confirm");

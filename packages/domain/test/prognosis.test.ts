@@ -91,11 +91,13 @@ describe("saved searches", () => {
     { patient_id: "10_pacient.pdf", scheduled_date: "2026-10-22", result: { rows: [{}], profile: { facts: [1] } } },
     { patient_id: "10_pacient.pdf", scheduled_date: "2026-10-29", result: { rows: [] } },
   ];
-  it("matches patient and day, and a search with no rows is none", () => {
+  it("matches patient and day, shows a search with no rows as such, and takes the latest without a day", () => {
     expect(findSaved(saved, "10_pacient.pdf", "2026-10-22")).toBe(saved[0]);
-    expect(findSaved(saved, "10_pacient.pdf", "2026-10-29")).toBeNull();
-    expect(findSaved(saved, "10_pacient.pdf", undefined)).toBeNull();
+    expect(findSaved(saved, "10_pacient.pdf", "2026-10-29")).toBe(saved[1]);
+    expect(findSaved(saved, "10_pacient.pdf", "2026-11-05")).toBeNull();
+    expect(findSaved(saved, "10_pacient.pdf", undefined)).toBe(saved[1]);
     expect(findSaved(saved, "11_pacient.pdf", "2026-10-22")).toBeNull();
+    expect(findSaved(saved, "11_pacient.pdf", undefined)).toBeNull();
   });
   it("compares facts as sent", () => {
     expect(factsDiffer([{ a: 1 }], [{ a: 1 }])).toBe(false);

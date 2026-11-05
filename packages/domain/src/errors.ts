@@ -1,7 +1,7 @@
 // Refusals of the domain rules, with the HTTP status and the Czech message the page shows as is. Pure: the HTTP layer
 // (src/http/errors.ts) only copies status, code and message into the response.
 
-export type DomainStatus = 403 | 404 | 409 | 411 | 413 | 415 | 422 | 503;
+export type DomainStatus = 403 | 404 | 409 | 411 | 413 | 415 | 422 | 503 | 429;
 
 export class DomainError extends Error {
   constructor(
@@ -110,6 +110,9 @@ export const D = {
   staffNameTaken: (name: string) => new DomainError(409, "staff_name_taken", `${name} už v seznamu je`),
   surnameRequired: err(422, "surname_required", "Příjmení nelze smazat; osobu odeberte tlačítkem ✕"),
   deptNameRequired: err(422, "invalid_input", "Vyplňte název pracoviště"),
+  prognosisOff: err(503, "prognosis_off", "Vyhledávání studií není pro tuto organizaci zapnuté."),
+  prognosisBusy: err(409, "prognosis_busy", "Hledání pro tento případ už běží. Vyčkejte na výsledek."),
+  prognosisCap: err(429, "prognosis_cap", "Dnešní limit hledání studií je vyčerpán. Zkuste to zítra, nebo ho zvyšte v nastavení serveru."),
   eraseConfirm: err(422, "erase_confirm", "Pro smazání napište SMAZAT."),
   eraseSeeded: err(409, "erase_seeded", "Ukázkového pacienta nelze smazat, protože ho obnovuje tlačítko Obnovit ukázková data."),
   eraseBusy: err(409, "erase_busy", "Pacienta teď nelze smazat: právě probíhá jeho MDT nebo zpracování dokumentu."),

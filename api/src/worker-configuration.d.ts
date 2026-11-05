@@ -23,6 +23,11 @@ interface __BaseEnv_Env {
 	LLM_RETRY_BASE_MS: string;
 	SUMMARY_MAX_CHARS: string;
 	MODEL_ORGS: string;
+	PROGNOSIS_ORGS: string;
+	PROGNOSIS_DAILY_MAX: string;
+	OPENROUTER_MODEL_ASTRA: string;
+	OPENROUTER_REASONING_EFFORT: string;
+	OPENROUTER_API_KEY?: string;
 	MODEL_PROVIDER: string;
 	MODEL_BASE: string;
 	MODEL_NAME: string;
@@ -64,6 +69,7 @@ interface __BaseEnv_Env {
 	PROCESS_DOCUMENT: Workflow<Parameters<import("./index").ProcessDocumentWorkflow['run']>[0]['payload']>;
 	EXTRACT_DOCUMENT: Workflow<Parameters<import("./index").ExtractDocumentWorkflow['run']>[0]['payload']>;
 	PROCESS_CASE: Workflow<Parameters<import("./index").ProcessCaseWorkflow['run']>[0]['payload']>;
+	PROGNOSIS: Workflow<Parameters<import("./index").PrognosisWorkflow['run']>[0]['payload']>;
 }
 declare namespace Cloudflare {
 	interface GlobalProps {

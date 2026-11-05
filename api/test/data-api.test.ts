@@ -275,7 +275,7 @@ describe("case reads", () => {
     expect(await (await call("/api/cases/NO-B/guidance")).json()).toEqual({
       guidelines: [], statements: [], pages: [], literature: [], queries: [], not_retrieved: [], prior_assessments: {},
     });
-    expect(await (await call("/api/cases/NO-A/prognosis")).json()).toEqual({ saved: [{ patient_id: "A_pacient.pdf" }] });
+    expect(await (await call("/api/cases/NO-A/prognosis")).json()).toEqual({ saved: [{ patient_id: "A_pacient.pdf" }], run: null });
     expect((await accessLog()).map((l) => l.action)).toEqual([
       "case.documents", "case.history", "case.history", "guidance.load", "guidance.load", "prognosis.view",
     ]);

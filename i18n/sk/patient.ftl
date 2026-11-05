@@ -602,11 +602,9 @@ patient-pg-title = Prognóza
 patient-pg-subtitle = Výsledky štúdií pre podobné skupiny pacientov · rešerš asistenta
 patient-pg-as-of = K dátumu MDT { $date }
 patient-pg-intro = Porovnanie výsledkov jednotlivých štúdií. Uvedené percentá opisujú skúmané skupiny; individuálnu prognózu posudzuje lekár.
-patient-pg-no-slot = Pacient nemá termín MDT. Na vyhľadávanie najprv vyberte deň v kalendári.
-patient-pg-schedule = Naplánovať MDT
 patient-pg-loading-profile = Načítavanie profilu a nastavení…
 patient-pg-retry = Skúsiť pripojenie znova
-patient-pg-not-configured = Vyhľadávanie nie je nakonfigurované. Doplňte API kľúč a model Astra v serverovom .env.
+patient-pg-not-configured = Vyhľadávanie štúdií nie je na tomto serveri zapnuté.
 patient-pg-profile-unavailable = Pre tento prípad nie sú k dátumu MDT dostupné dostatočné štruktúrované podklady.
 
 ## The search profile (the structured facts the search was given)
@@ -624,7 +622,7 @@ patient-pg-profile-note = Pôvodné štruktúrované syntetické podklady k dát
 patient-pg-loading-saved = Načítavanie uloženej rešerše…
 patient-pg-search-pending = Prebieha rešerš…
 patient-pg-show-saved = Zobraziť uloženú rešerš
-patient-pg-search = Vyhľadať štúdie · Astra
+patient-pg-search = Spustiť hľadanie štúdií
 patient-pg-refresh = Nové vyhľadávanie · 1 požiadavka
 patient-pg-abbreviations = OS = celkové prežívanie · PFS = prežívanie bez progresie · ORR = miera objektívnej odpovede
 patient-pg-busy = Astra vyhľadáva štúdie a ich výsledky. Vyhľadávanie môže trvať niekoľko minút.
@@ -668,7 +666,7 @@ patient-pg-ep-toxicity = Závažná toxicita a ukončenie liečby
 patient-pg-ep-burden = Záťaž liečby
 patient-pg-empty-pending = Čakáme na výsledky Astry.
 patient-pg-empty-no-rows = Astra nevrátila použiteľné výsledky. Skontrolujte stav rešerše a zdroje.
-patient-pg-empty-start = Štúdie sa zobrazia po spustení vyhľadávania.
+patient-pg-empty-start = Hľadanie zatiaľ nebolo spustené. Spustite ho tlačidlom.
 patient-pg-footnotes-label = Poznámky k rešerši
 patient-pg-footnote = Každý riadok zachováva populáciu, liečbu a začiatok sledovania zdroja. Chýbajúce hodnoty sa nedopočítavajú. Rešerš nezaručuje úplnosť dostupnej literatúry. Podobnosť je orientačná zhoda populácie, nie pravdepodobnosť prežitia. Extrahované údaje vyžadujú kontrolu v zdroji.
 
@@ -1057,6 +1055,7 @@ mdt-panel-more-alerts = Ďalšie upozornenia: { $n }. Nájdete ich v záložke U
 patient-empty-title = Dokumentácia zatiaľ nie je spracovaná
 patient-empty-text = Súhrn, priebeh ochorenia a ďalšie záložky sa ukážu, keď bude spracovaná. Dovtedy je tu to, čo bolo vyplnené pri založení pacienta.
 patient-empty-upload = Nahrať dokument
+patient-empty-expect = Po spracovaní dokumentov sa objavia ďalšie záložky: Prehľad, Anamnéza, Laboratórium, Upozornenia, Navrhovaný postup a Retrospektívne odchýlky.
 
 ## MDT teams
 
@@ -1073,16 +1072,6 @@ patient-erase-prompt = Natrvalo vymazať tento záznam pacienta { $name } a vše
 patient-erased = Pacient je vymazaný.
 patient-erased-files-left = Pacient je vymazaný, ale niektoré súbory sa nepodarilo odstrániť. Povedzte to správcovi.
 patient-erase-failed = Pacienta sa nepodarilo vymazať.
-
-## A tab with no data yet
-
-patient-nodata-title = Nedostatok údajov
-patient-nodata-note = Nič sa nedomýšľa ani nehádá. Záložka sa vyplní, keď asistent spracuje dokumentáciu pacienta.
-patient-nodata-overview = Prehľad sa nedá zostaviť: chýba spracovaný súhrn, onkologický súhrn aj aktuálny stav pacienta.
-patient-nodata-anamnesis = Anamnézu sa nedá zostaviť: dokumentácia nie je spracovaná, alebo anamnéza v nej nie je.
-patient-nodata-documents = K pacientovi zatiaľ nie sú uložené žiadne dokumenty.
-patient-nodata-labs = Laboratórne hodnoty sa nedajú ukázať: nie sú spracované, alebo v dokumentoch nie sú.
-patient-nodata-alerts = Upozornenia sa nedajú vyhodnotiť: kontrola chýbajúcich podkladov zatiaľ neprebehla.
-patient-nodata-next = Navrhovaný postup sa nedá ukázať: chýba spracovaná dokumentácia a pravidlá sa nemajú o čo oprieť.
-patient-nodata-dev = Retrospektívne odchýlky sa nedajú ukázať: chýba spracovaná dokumentácia predchádzajúcich rozhodnutí.
-patient-nodata-prognosis = Prognózu sa nedá ukázať.
+patient-pg-empty-no-data = Nedostatok údajov: hľadanie štúdií sa nedá spustiť.
+patient-pg-as-of-today = K dnešnému dňu
+patient-pg-cost-note = Hľadanie volá externú AI s vyhľadávaním na webe a stojí tokeny, preto sa spúšťa len tlačidlom. Posiela sa klinický profil bez mena a rodného čísla, ktorý vidíte nižšie.

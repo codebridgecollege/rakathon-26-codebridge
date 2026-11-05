@@ -2,9 +2,10 @@
 
 Run `python3 prognosis/serve.py` (from any directory). The standard-library server
 serves the API below on `127.0.0.1:8766`, bound only to loopback, and accepts only
-same-origin local requests; it serves no page. The app on the Worker shows the saved
-searches only (the Worker has no search route), so nothing in the demo calls this
-server today. No browser receives the OpenRouter key.
+same-origin local requests; it serves no page. The Worker has its own search now
+(`api/src/routes/prognosis.ts`, a TypeScript port of this service's checks), so the app
+does not call this server; it stays for local work on the prompt and the checks. No
+browser receives the OpenRouter key.
 
 Copy missing settings from `.env.example` into the gitignored `.env`. Existing
 process environment variables take precedence. The explicit GPT Astra model ID is

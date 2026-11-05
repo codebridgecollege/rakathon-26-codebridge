@@ -98,19 +98,85 @@ describe("Prognóza tab", () => {
     expect(s.calls.filter((c) => c.url.includes("/cases/NO-010/prognosis"))).toHaveLength(1);
   });
 
-  it("without an MDT day warns, offers the calendar and asks the server for nothing about the case", async () => {
+  it("without an MDT day needs no calendar: as of today, the latest saved search shows", async () => {
     const s = setupPatient({ routes: caseRoutes({ saved: [savedFor(DAY)] }) });
     const w = mountInCase(TabPrognosis, s);
     await vi.advanceTimersByTimeAsync(2000);
+    expect(w.text()).toContain("Ke dnešnímu dni");
     expect(w.text()).not.toContain("K datu MDT");
-    expect(w.get(".pg-warning").text()).toBe("Pacient nemá termín MDT. Pro vyhledání nejprve vyberte den v kalendáři.");
-    const btn = w.findAll("button").find((b) => b.text() === "Naplánovat MDT")!;
-    await btn.trigger("click");
-    expect(push).toHaveBeenCalledWith("/calendar");
-    expect(s.calls.some((c) => c.url.includes("/cases/"))).toBe(false);
-    // Without a saved search the missing server is reported, with a retry.
+    expect(w.text()).not.toContain("Naplánovat MDT");
+    expect(w.text()).toContain("uložená rešerše");
+  });
+
+  it("says the search has not been started, and reports a server without it", async () => {
+    const w = mountInCase(TabPrognosis, setupPatient({ routes: caseRoutes({ saved: [] }) }));
+    await vi.advanceTimersByTimeAsync(2000);
     expect(w.get("[role=alert]").text()).toContain("Vyhledávání studií zatím není na tomto serveru zapnuté");
-    expect(w.get("tbody td.pg-empty").text()).toBe("Studie se zobrazí po spuštění vyhledávání.");
+    expect(w.get("tbody td.pg-empty").text()).toBe("Hledání zatím nebylo spuštěno. Spusťte ho tlačítkem.");
+  });
+
+  it("says there is not enough data only when the search cannot start", async () => {
+    const routes = { ...caseRoutes({ saved: [] }), "/prognosis/config": { configured: true, models: [{ id: "m", label: "Astra" }] }, "/prognosis/profile": { profile: { available: false, reason: "Nedostatek údajů: případ zatím není zpracovaný, klinický profil nelze sestavit." } } };
+    const w = mountInCase(TabPrognosis, setupPatient({ routes }));
+    await vi.advanceTimersByTimeAsync(2000);
+    expect(w.get("tbody td.pg-empty").text()).toBe("Nedostatek údajů: hledání studií nelze spustit.");
+    expect(w.text()).toContain("Nedostatek údajů: případ zatím není zpracovaný");
+    expect(w.get(".pg-controls .btn.primary").attributes("disabled")).toBeDefined();
+  });
+
+  it("starts the search from the button, waits for the job and shows its result", async () => {
+    let asked = 0;
+    const routes = {
+      "/cases/NO-010/prognosis": () => {
+        asked++;
+        // 1: opening the tab, nothing yet. 2: the job runs. 3: it is done and the result is saved.
+        if (asked === 1) return { saved: [], run: null };
+        if (asked === 2) return { saved: [], run: { id: "pg-1", state: "running", phase: "search", error_code: null, message_cs: null, updated_at: "x" } };
+        return { saved: [savedFor("2026-11-05")], run: { id: "pg-1", state: "done", phase: null, error_code: null, message_cs: null, updated_at: "x" } };
+      },
+      "/audit/events": { data: {}, state: {} },
+      "/prognosis/config": { configured: true, models: [{ id: "m", label: "Astra" }] },
+      "/prognosis/profile": { profile: { available: true, facts: [{ text: "Diagnóza RCC (C64)", date: "4/2022", source: "s. 1" }], warnings: [] } },
+      "/prognosis": [202, { job: { id: "pg-1", state: "queued" }, scheduled_date: "2026-11-05" }],
+    };
+    const s = setupPatient({ routes });
+    const w = mountInCase(TabPrognosis, s);
+    await vi.advanceTimersByTimeAsync(2000);
+    expect(w.get("tbody td.pg-empty").text()).toBe("Hledání zatím nebylo spuštěno. Spusťte ho tlačítkem.");
+    expect(w.text()).toContain("stojí tokeny");
+    const btn = w.get(".pg-controls .btn.primary");
+    expect(btn.text()).toBe("Spustit hledání studií");
+    await btn.trigger("click");
+    await vi.advanceTimersByTimeAsync(0);
+    // It runs for a while: busy, and no second request is started by the button.
+    expect(w.get(".pg-busy").text()).toContain("Hledání může trvat několik minut");
+    expect(w.get(".pg-controls .btn.primary").attributes("disabled")).toBeDefined();
+    await vi.advanceTimersByTimeAsync(4000);
+    expect(w.find(".pg-busy").exists()).toBe(true);
+    await vi.advanceTimersByTimeAsync(4000);
+    expect(w.find(".pg-busy").exists()).toBe(false);
+    expect(w.text()).toContain("Nalezeny 2 populace / ramena");
+    const post = s.calls.filter((c) => c.url === "/api/prognosis" && c.init.method === "POST");
+    expect(post).toHaveLength(1);
+    // No day, so no date is sent: the server searches as of today.
+    expect(JSON.parse(String(post[0]!.init.body))).toEqual({ patient_id: "10_pacient.pdf", refresh: false });
+  });
+
+  it("shows why a search failed, in the server's words", async () => {
+    let asked = 0;
+    const routes = {
+      "/cases/NO-010/prognosis": () => (++asked === 1 ? { saved: [], run: null } : { saved: [], run: { id: "pg-1", state: "error", phase: null, error_code: "missing_key", message_cs: "Na serveru chybí klíč OpenRouter.", updated_at: "x" } }),
+      "/audit/events": { data: {}, state: {} },
+      "/prognosis/config": { configured: true, models: [{ id: "m", label: "Astra" }] },
+      "/prognosis/profile": { profile: { available: true, facts: [], warnings: [] } },
+      "/prognosis": [202, { job: { id: "pg-1", state: "queued" } }],
+    };
+    const w = mountInCase(TabPrognosis, setupPatient({ routes }));
+    await vi.advanceTimersByTimeAsync(2000);
+    await w.get(".pg-controls .btn.primary").trigger("click");
+    await vi.advanceTimersByTimeAsync(4000);
+    expect(w.get("[role=alert]").text()).toBe("Na serveru chybí klíč OpenRouter.");
+    expect(w.find(".pg-busy").exists()).toBe(false);
   });
 
   it("shows a missing value as a dash with the gap wording, never a number", async () => {
@@ -181,7 +247,7 @@ describe("Prognóza tab", () => {
     expect(w.text()).toContain("K datu MDT 29. 10. 2026");
     expect(w.text()).not.toContain("uložená rešerše");
     expect(w.find("button.ref").exists()).toBe(false);
-    expect(w.get("tbody td.pg-empty").text()).toBe("Studie se zobrazí po spuštění vyhledávání.");
+    expect(w.get("tbody td.pg-empty").text()).toBe("Hledání zatím nebylo spuštěno. Spusťte ho tlačítkem.");
     // The late reply landed in its own day: back on 22. 10. its search is there, without a new request.
     usePatientsStore().replace([row(10, { slot: SLOT })], 1);
     await vi.advanceTimersByTimeAsync(0);

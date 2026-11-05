@@ -25,7 +25,7 @@
   // Page JSON and images, extraction JSON, guidance. Private: read only through the Worker after the access check.
   "r2_buckets": [{ "binding": "DOCS", "bucket_name": "codebridge-mdt", "jurisdiction": "eu" }],
   // The login pages' text comes from the shared Fluent catalogs (i18n/<lang>/auth.ftl), imported as text.
-  "rules": [{ "type": "Text", "globs": ["**/*.ftl"], "fallthrough": true }],
+  "rules": [{ "type": "Text", "globs": ["**/*.ftl", "**/*.txt"], "fallthrough": true }],
   "vars": {
     // "oidc": the login at the IdP (the deployed hosts). "demo": the user picker without a login; `npm run dev`, the
     // tests and the browser suite set it. Any other value fails closed (src/auth/middleware.ts).
@@ -53,6 +53,15 @@
     // The orgs whose documents the AI extraction reads ("*": all). Empty: off everywhere; real patients need FNO's
     // clearance for any cloud model first (DATA-PROTECTION.md).
     "MODEL_ORGS": "",
+    // The Prognóza tab's study search sends a clinical profile (no name or birth number) to OpenRouter, with web search,
+    // on a click. The orgs it may run for ("*": all); empty: off everywhere. It also needs the OPENROUTER_API_KEY secret
+    // (wrangler secret put OPENROUTER_API_KEY). Real patients need FNO's clearance for any cloud model first.
+    "PROGNOSIS_ORGS": "",
+    // At most this many searches a day per org, a guard on the account's tokens.
+    "PROGNOSIS_DAILY_MAX": "20",
+    // The model's exact ID on OpenRouter, checked against its catalog at each search; no other model is substituted.
+    "OPENROUTER_MODEL_ASTRA": "openai/gpt-6-astra",
+    "OPENROUTER_REASONING_EFFORT": "low",
     "MODEL_PROVIDER": "azure-openai",
     "MODEL_BASE": "https://apim-rakathon-q7146n.azure-api.net/openai/v1",
     "MODEL_NAME": "gpt-6-luna-dz-eu",
@@ -126,7 +135,9 @@
     // case merge. Only for orgs in MODEL_ORGS.
     { "name": "codebridge-extract-document", "binding": "EXTRACT_DOCUMENT", "class_name": "ExtractDocumentWorkflow" },
     // Issue #18: a case's run composed from its documents' fragments (store/case-merge.ts), after every document run.
-    { "name": "codebridge-process-case", "binding": "PROCESS_CASE", "class_name": "ProcessCaseWorkflow" }
+    { "name": "codebridge-process-case", "binding": "PROCESS_CASE", "class_name": "ProcessCaseWorkflow" },
+    // The Prognóza tab's study search: one model call with web search per click (src/workflows/prognosis.ts).
+    { "name": "codebridge-prognosis", "binding": "PROGNOSIS", "class_name": "PrognosisWorkflow" }
   ],
   // The audio sweep (src/scheduled.ts): deletes audio every other path should already have deleted.
   "triggers": { "crons": ["*/15 * * * *"] },

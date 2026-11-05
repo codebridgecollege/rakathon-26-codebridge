@@ -327,3 +327,15 @@ Every doctor who can open a case (its whole team or department), the coordinator
 decisions included (`DATABASE.md`, "Erasing a patient"); the last two can do so without reading it. That suits a
 prototype with synthetic data. Open before real use: what Czech medical-record retention rules require FNO to keep,
 whether erasing should need a second person, a stated reason or an export first, and the gaps `DATABASE.md` lists.
+
+## The study search on the Worker (asked 2026-11-06)
+
+Built and off: it needs the team to set `PROGNOSIS_ORGS` and the `OPENROUTER_API_KEY` secret (`api/AGENTS.md`). Open:
+- **Data policy.** Sending a de-identified clinical profile to OpenRouter is a new outbound flow; FNO must confirm it for
+  anything but synthetic data (`DATA-PROTECTION.md`).
+- **Dating.** The profile keeps only dated facts. A processed case's comorbidities, medication and performance status
+  carry no date in the case view, so they are left out (counted as undated) and the similarity cannot use them. Dating them
+  by the document that states them is possible and would make the profile fuller.
+- **Uploaded patients.** They have facts only once the AI extraction has read their documents (`MODEL_ORGS`, also off);
+  without it the tab says "Nedostatek údajů".
+- **Model.** `OPENROUTER_MODEL_ASTRA` is the ID from `.env.example`; it is not verified against the live catalog.

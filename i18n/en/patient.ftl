@@ -588,11 +588,9 @@ patient-pg-title = Prognosis
 patient-pg-subtitle = Study results for similar patient groups · assistant's literature search
 patient-pg-as-of = As of the MDT date { $date }
 patient-pg-intro = A comparison of results from individual studies. The percentages describe the study groups; the individual prognosis is for the doctor to assess.
-patient-pg-no-slot = The patient has no MDT slot. To search, first pick a day in the calendar.
-patient-pg-schedule = Schedule MDT
 patient-pg-loading-profile = Loading the profile and settings…
 patient-pg-retry = Retry connection
-patient-pg-not-configured = The search is not configured. Add the API key and the Astra model to the server .env.
+patient-pg-not-configured = The study search is not switched on on this server.
 patient-pg-profile-unavailable = Not enough structured data is available for this case as of the MDT date.
 
 ## The search profile (the structured facts the search was given)
@@ -608,7 +606,7 @@ patient-pg-profile-note = The original structured synthetic data as of the MDT d
 patient-pg-loading-saved = Loading the saved search…
 patient-pg-search-pending = Search in progress…
 patient-pg-show-saved = Show saved search
-patient-pg-search = Search studies · Astra
+patient-pg-search = Start the study search
 patient-pg-refresh = New search · 1 request
 patient-pg-abbreviations = OS = overall survival · PFS = progression-free survival · ORR = objective response rate
 patient-pg-busy = Astra is searching for studies and their results. The search may take several minutes.
@@ -650,7 +648,7 @@ patient-pg-ep-toxicity = Severe toxicity and treatment discontinuation
 patient-pg-ep-burden = Treatment burden
 patient-pg-empty-pending = Waiting for results from Astra.
 patient-pg-empty-no-rows = Astra returned no usable results. Check the search status and the sources.
-patient-pg-empty-start = Studies appear once a search is run.
+patient-pg-empty-start = The search has not been started yet. Start it with the button.
 patient-pg-footnotes-label = Notes on the search
 patient-pg-footnote = Each row keeps the source's population, treatment and start of follow-up. Missing values are not computed. The search does not guarantee that the available literature is complete. Similarity is an approximate match of the population, not a probability of survival. Extracted data need checking in the source.
 
@@ -1031,6 +1029,7 @@ mdt-panel-more-alerts = { $n } more alerts are on the Alerts tab.
 patient-empty-title = The documents are not processed yet
 patient-empty-text = The summary, disease course and other tabs appear once they are processed. Until then, this page shows what was filled in when the patient was created.
 patient-empty-upload = Upload a document
+patient-empty-expect = Once the documents are processed, more tabs appear: Overview, History, Labs, Alerts, Proposed management and Retrospective deviations.
 
 ## MDT teams
 
@@ -1047,16 +1046,6 @@ patient-erase-prompt = Permanently delete this record of { $name } and all its d
 patient-erased = The patient is deleted.
 patient-erased-files-left = The patient is deleted, but some files could not be removed. Tell the administrator.
 patient-erase-failed = The patient could not be deleted.
-
-## A tab with no data yet
-
-patient-nodata-title = Not enough data
-patient-nodata-note = Nothing is guessed or filled in. The tab fills in once the assistant has processed the patient's documents.
-patient-nodata-overview = The overview cannot be built: there is no processed summary, oncology summary or current status.
-patient-nodata-anamnesis = The history cannot be built: the documents are not processed, or hold no history.
-patient-nodata-documents = No documents are stored for this patient yet.
-patient-nodata-labs = Lab values cannot be shown: they are not processed, or not in the documents.
-patient-nodata-alerts = Alerts cannot be worked out: the missing-documents check has not run.
-patient-nodata-next = The proposed management cannot be shown: there are no processed documents to base it on.
-patient-nodata-dev = Retrospective deviations cannot be shown: there are no processed documents of earlier decisions.
-patient-nodata-prognosis = The prognosis cannot be shown.
+patient-pg-empty-no-data = Not enough data: the study search cannot be started.
+patient-pg-as-of-today = As of today
+patient-pg-cost-note = The search calls an outside AI with web search and costs tokens, so it starts only from the button. It sends the clinical profile without name or birth number, which you see below.

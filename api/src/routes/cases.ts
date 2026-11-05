@@ -12,6 +12,9 @@ import { D } from "@codebridge/domain/errors";
 import { orgQuery } from "./write-context";
 import { withoutDocuments, withoutNis, withoutQuarantined } from "../store/runs";
 import { linkOfCase } from "../store/nis";
+import { orgKey } from "../store/sql";
+import { LEGACY_ORG } from "../domain/orgs";
+import { PROGNOSIS_STALE_MS, prognosisMessage } from "../domain/prognosis";
 
 const EMPTY_GUIDANCE = { guidelines: [], statements: [], pages: [], literature: [], queries: [], not_retrieved: [], prior_assessments: {} };
 
@@ -39,6 +42,29 @@ async function withoutUnlinkedNis(c: Context<AppEnv>, id: string, runId: string,
   ]);
   const current = !!link && !!row?.nis && row.nis === `${link.nis_patient_id}|${link.at}`;
   return current ? run : withoutNis(run);
+}
+
+// The case's current run as the page may read it, with the stored documents. Shared by the extraction route and the
+// prognosis profile, which must see exactly what the doctor sees.
+export async function extractionOf(c: Context<AppEnv>, id: string, row: { processing_level: string }): Promise<Extraction> {
+  const run = await c.var.stores.cases.currentRun(id);
+  // The stored documents with their parts (titles, types, pages, readability) come with the run: the run names parts
+  // by ID only, and one request per case load keeps one "case.data" row in the access log.
+  const documents: ExtractionDocument[] = (await c.var.stores.cases.documents(id)).map((d) => ({ id: d.id, file: d.file_name, page_count: d.page_count, note_cs: d.note_cs, parts: d.parts }));
+  // A case without a run is not an error: the page already says "nezpracováno".
+  if (!run) return { case_id: id, processing: row.processing_level, run: null, data: null, documents };
+  const info = { id: run.id, producer: run.producer as Producer, created_at: run.created_at };
+  // A run in the old format /1 has no fact or alert IDs to attach confirmations to; the case shows as not processed
+  // until it is reseeded or processed again.
+  if (run.schema !== EXTRACTION_SCHEMA) return { case_id: id, processing: row.processing_level, run: info, data: null, documents };
+  // The run holds no patient identity (EXTRACTION-FORMAT.md). It goes out minus its quarantined content: a fact from a
+  // page that shows another patient, and a source only such facts cite, never reach the browser; the identity alert
+  // stays and names document and page. So the payload is not a whole run for validateRun. Its alerts are part of it.
+  const stored = await c.var.stores.blobs.getJson<ExtractionRun>(run.r2_key);
+  if (!stored) throw E.dataUnavailable();
+  // A document that left the case (withdrawn as another patient's) is gone from the view at once, before any newer
+  // run exists.
+  return { case_id: id, processing: row.processing_level, run: info, data: withoutQuarantined(await withoutUnlinkedNis(c, id, run.id, withoutDocuments(stored, await retiredOf(c, id)))), documents };
 }
 
 export const cases = new Hono<AppEnv>()
@@ -90,24 +116,7 @@ export const cases = new Hono<AppEnv>()
     const id = c.req.param("id");
     const row = await openCase(c, id, "clinical");
     await audit(c, { action: "case.data", case_id: id, what_cs: "načetl(a) zpracovaná data případu" });
-    const run = await c.var.stores.cases.currentRun(id);
-    // The stored documents with their parts (titles, types, pages, readability) come with the run: the run names parts
-    // by ID only, and one request per case load keeps one "case.data" row in the access log.
-    const documents: ExtractionDocument[] = (await c.var.stores.cases.documents(id)).map((d) => ({ id: d.id, file: d.file_name, page_count: d.page_count, note_cs: d.note_cs, parts: d.parts }));
-    // A case without a run is not an error: the page already says "nezpracováno".
-    if (!run) return c.json<Extraction>({ case_id: id, processing: row.processing_level, run: null, data: null, documents });
-    const info = { id: run.id, producer: run.producer as Producer, created_at: run.created_at };
-    // A run in the old format /1 has no fact or alert IDs to attach confirmations to; the case shows as not processed
-    // until it is reseeded or processed again.
-    if (run.schema !== EXTRACTION_SCHEMA) return c.json<Extraction>({ case_id: id, processing: row.processing_level, run: info, data: null, documents });
-    // The run holds no patient identity (EXTRACTION-FORMAT.md). It goes out minus its quarantined content: a fact from a
-    // page that shows another patient, and a source only such facts cite, never reach the browser; the identity alert
-    // stays and names document and page. So the payload is not a whole run for validateRun. Its alerts are part of it.
-    const stored = await c.var.stores.blobs.getJson<ExtractionRun>(run.r2_key);
-    if (!stored) throw E.dataUnavailable();
-    // A document that left the case (withdrawn as another patient's) is gone from the view at once, before any newer
-    // run exists.
-    return c.json<Extraction>({ case_id: id, processing: row.processing_level, run: info, data: withoutQuarantined(await withoutUnlinkedNis(c, id, run.id, withoutDocuments(stored, await retiredOf(c, id)))), documents });
+    return c.json(await extractionOf(c, id, row));
   })
   // One fact as an earlier run of the case stated it: the value a doctor confirmed, shown next to the current one when
   // a later run gives the same fact ID another value (EXTRACTION-FORMAT.md, "Doctor confirmations and edits"). Only a
@@ -172,7 +181,19 @@ export const cases = new Hono<AppEnv>()
     await openCase(c, id, "clinical");
     await audit(c, { action: "prognosis.view", case_id: id, what_cs: "zobrazil(a) uloženou prognózu" });
     const blobs = c.var.stores.blobs;
-    const keys = (await blobs.listKeys(`prognosis/${id}/`)).sort();
+    // The seeded replay sits under the old key, which only demo org A has; searches run here sit under the org's own prefix.
+    const keys = [...(c.var.viewer.org === LEGACY_ORG ? await blobs.listKeys(`prognosis/${id}/`) : []), ...(await blobs.listKeys(orgKey(c.var.viewer.org, `prognosis-runs/${id}/`)))].sort();
     const saved = (await Promise.all(keys.map((k) => blobs.getJson(k)))).filter((x) => x != null);
-    return c.json({ saved });
+    // The latest search job, so the tab can show "running" and the reason a search failed. A job nobody has touched for
+    // minutes is dead: it is closed here, so the button comes back.
+    const at = new Date().toISOString();
+    const before = new Date(Date.now() - PROGNOSIS_STALE_MS).toISOString();
+    const dead = (await orgQuery(c, "SELECT id FROM jobs WHERE org_id = ?org AND case_id = ?1 AND kind = 'prognosis' AND state IN ('queued','running') AND updated_at < ?2", id, before).all<{ id: string }>()).results;
+    if (dead.length) {
+      await orgQuery(c, "UPDATE jobs SET state = 'error', phase = NULL, error_code = 'stalled', updated_at = ?2 WHERE org_id = ?org AND case_id = ?1 AND kind = 'prognosis' AND state IN ('queued','running') AND updated_at < ?3", id, at, before).run();
+      // The profile a dead job left in R2 goes with it: it is clinical text nobody will read.
+      await c.env.DOCS.delete(dead.map((j) => orgKey(c.var.viewer.org, `jobs/${id}/prognosis-${j.id}.json`)));
+    }
+    const job = await orgQuery(c, "SELECT id, state, phase, error_code, updated_at FROM jobs WHERE org_id = ?org AND case_id = ?1 AND kind = 'prognosis' ORDER BY created_at DESC, id DESC LIMIT 1", id).first<{ id: string; state: string; phase: string | null; error_code: string | null; updated_at: string }>();
+    return c.json({ saved, run: job ? { ...job, message_cs: prognosisMessage(job.state === "error" ? job.error_code : null) } : null });
   });
