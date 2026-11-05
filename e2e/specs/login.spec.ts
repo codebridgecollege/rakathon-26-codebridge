@@ -81,65 +81,69 @@ test("logout ends the session here and at the IdP", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "Mock IdP: přihlášení" })).toBeVisible();
 });
 
-test("an administrator adds a doctor from the account menu and removes them, and cannot remove the coordinator", async ({ page }) => {
-  await page.goto("patients");
-  await logInAtIdp(page, ADMIN_A);
-  await account(page, "Ing. Kovář").click();
-  await expect(menu(page).getByRole("button", { name: "Odebrat: Bc. Marková" })).toHaveCount(0);
-  await expect(menu(page).getByRole("button", { name: "Odebrat: Ing. Kovář" })).toHaveCount(0);
-  await menu(page).getByRole("button", { name: "+ Přidat lékaře" }).click();
-  await menu(page).getByLabel("Titul před jménem").fill("MUDr.");
-  await menu(page).getByLabel("Příjmení").fill("Zkušební");
-  await menu(page).getByRole("button", { name: "Uložit" }).click();
-  const remove = menu(page).getByRole("button", { name: "Odebrat: MUDr. Zkušební" });
-  await expect(remove).toBeVisible();
-  page.once("dialog", (d) => void d.dismiss());
-  await remove.click();
-  await expect(remove).toBeVisible();
-  page.once("dialog", (d) => void d.accept());
-  await remove.click();
-  await expect(menu(page).getByRole("button", { name: /Zkušební/ })).toHaveCount(0);
-});
-
-test("a person can keep a function and lose the name, and get the name back", async ({ page }) => {
-  await page.goto("patients");
-  await logInAtIdp(page, ADMIN_A);
-  await account(page, "Ing. Kovář").click();
-  await menu(page).getByRole("button", { name: "Upravit jméno: Bc. Marková" }).click();
-  await menu(page).getByLabel("Bez jména (ukáže se jen funkce)").check();
-  await menu(page).getByRole("button", { name: "Uložit" }).click();
-  // Only the function shows, once, and the surname is gone from the list.
-  await expect(menu(page).getByRole("button", { name: "koordinátorka MDT", exact: true })).toBeVisible();
-  await expect(menu(page).getByText("Marková")).toHaveCount(0);
-  // Back: the name fields open empty, and a surname is needed.
-  await menu(page).getByRole("button", { name: "Upravit jméno: koordinátorka MDT" }).click();
-  await menu(page).getByLabel("Bez jména (ukáže se jen funkce)").uncheck();
-  await menu(page).getByRole("button", { name: "Uložit" }).click();
-  await expect(menu(page).getByRole("alert")).toContainText("Zadejte příjmení");
-  await menu(page).getByLabel("Titul před jménem").fill("Bc.");
-  await menu(page).getByLabel("Příjmení").fill("Marková");
-  await menu(page).getByRole("button", { name: "Uložit" }).click();
-  await expect(menu(page).getByRole("button", { name: "Upravit jméno: Bc. Marková" })).toBeVisible();
-});
-
-test("an administrator renames a person from the account menu, and a doctor is not offered that", async ({ page }) => {
-  await page.goto("patients");
-  await logInAtIdp(page, ADMIN_A);
-  await account(page, "Ing. Kovář").click();
-  const rename = async (from: string, to: string) => {
-    await menu(page).getByRole("button", { name: `Upravit jméno: ${from}` }).click();
-    await menu(page).getByLabel("Příjmení").fill(to);
+// These change the people of the one OIDC Worker that every test of this file shares, and two of them rename the same
+// person, so they run one after another and each puts back what it changed.
+test.describe.serial("people in the account menu", () => {
+  test("an administrator adds a doctor from the account menu and removes them, and cannot remove the coordinator", async ({ page }) => {
+    await page.goto("patients");
+    await logInAtIdp(page, ADMIN_A);
+    await account(page, "Ing. Kovář").click();
+    await expect(menu(page).getByRole("button", { name: "Odebrat: Bc. Marková" })).toHaveCount(0);
+    await expect(menu(page).getByRole("button", { name: "Odebrat: Ing. Kovář" })).toHaveCount(0);
+    await menu(page).getByRole("button", { name: "+ Přidat lékaře" }).click();
+    await menu(page).getByLabel("Titul před jménem").fill("MUDr.");
+    await menu(page).getByLabel("Příjmení").fill("Zkušební");
     await menu(page).getByRole("button", { name: "Uložit" }).click();
-    await expect(menu(page).getByRole("button", { name: `Upravit jméno: Bc. ${to}` })).toBeVisible();
-  };
-  await rename("Bc. Marková", "Přejmenovaná");
-  await rename("Bc. Přejmenovaná", "Marková");
-  await menu(page).getByRole("button", { name: "MUDr. Svobodová (lékař)" }).click();
-  await account(page, "MUDr. Svobodová").click();
-  await expect(menu(page).getByRole("button", { name: /^Upravit jméno/ })).toHaveCount(0);
-  await expect(menu(page).getByRole("button", { name: "+ Přidat lékaře" })).toHaveCount(0);
-  await menu(page).getByRole("button", { name: "Ing. Kovář (správce systému)" }).click();
-  await expect(account(page, "Ing. Kovář")).toBeVisible();
+    const remove = menu(page).getByRole("button", { name: "Odebrat: MUDr. Zkušební" });
+    await expect(remove).toBeVisible();
+    page.once("dialog", (d) => void d.dismiss());
+    await remove.click();
+    await expect(remove).toBeVisible();
+    page.once("dialog", (d) => void d.accept());
+    await remove.click();
+    await expect(menu(page).getByRole("button", { name: /Zkušební/ })).toHaveCount(0);
+  });
+
+  test("a person can keep a function and lose the name, and get the name back", async ({ page }) => {
+    await page.goto("patients");
+    await logInAtIdp(page, ADMIN_A);
+    await account(page, "Ing. Kovář").click();
+    await menu(page).getByRole("button", { name: "Upravit jméno: Bc. Marková" }).click();
+    await menu(page).getByLabel("Bez jména (ukáže se jen funkce)").check();
+    await menu(page).getByRole("button", { name: "Uložit" }).click();
+    // Only the function shows, once, and the surname is gone from the list.
+    await expect(menu(page).getByRole("button", { name: "koordinátorka MDT", exact: true })).toBeVisible();
+    await expect(menu(page).getByText("Marková")).toHaveCount(0);
+    // Back: the name fields open empty, and a surname is needed.
+    await menu(page).getByRole("button", { name: "Upravit jméno: koordinátorka MDT" }).click();
+    await menu(page).getByLabel("Bez jména (ukáže se jen funkce)").uncheck();
+    await menu(page).getByRole("button", { name: "Uložit" }).click();
+    await expect(menu(page).getByRole("alert")).toContainText("Zadejte příjmení");
+    await menu(page).getByLabel("Titul před jménem").fill("Bc.");
+    await menu(page).getByLabel("Příjmení").fill("Marková");
+    await menu(page).getByRole("button", { name: "Uložit" }).click();
+    await expect(menu(page).getByRole("button", { name: "Upravit jméno: Bc. Marková" })).toBeVisible();
+  });
+
+  test("an administrator renames a person from the account menu, and a doctor is not offered that", async ({ page }) => {
+    await page.goto("patients");
+    await logInAtIdp(page, ADMIN_A);
+    await account(page, "Ing. Kovář").click();
+    const rename = async (from: string, to: string) => {
+      await menu(page).getByRole("button", { name: `Upravit jméno: ${from}` }).click();
+      await menu(page).getByLabel("Příjmení").fill(to);
+      await menu(page).getByRole("button", { name: "Uložit" }).click();
+      await expect(menu(page).getByRole("button", { name: `Upravit jméno: Bc. ${to}` })).toBeVisible();
+    };
+    await rename("Bc. Marková", "Přejmenovaná");
+    await rename("Bc. Přejmenovaná", "Marková");
+    await menu(page).getByRole("button", { name: "MUDr. Svobodová (lékař)" }).click();
+    await account(page, "MUDr. Svobodová").click();
+    await expect(menu(page).getByRole("button", { name: /^Upravit jméno/ })).toHaveCount(0);
+    await expect(menu(page).getByRole("button", { name: "+ Přidat lékaře" })).toHaveCount(0);
+    await menu(page).getByRole("button", { name: "Ing. Kovář (správce systému)" }).click();
+    await expect(account(page, "Ing. Kovář")).toBeVisible();
+  });
 });
 
 test("the role switch of a demo org acts as another demo account and the access log names the real person", async ({ app, page }) => {
