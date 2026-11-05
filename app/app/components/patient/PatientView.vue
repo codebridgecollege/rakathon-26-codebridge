@@ -8,6 +8,7 @@ import { useRouter } from "vue-router";
 import { useFluent } from "fluent-vue";
 import { nrOf, tabsFor, type Tab } from "@codebridge/domain/case-data";
 import { inSession, runningSession } from "@codebridge/domain/discussion";
+import { usePatientPrognosis } from "../../composables/usePatientPrognosis";
 import { providePatient } from "../../composables/usePatient";
 import { useTabAddress } from "../../composables/useTabAddress";
 import { useCasesStore } from "../../stores/cases";
@@ -16,6 +17,7 @@ import { usePatientsStore } from "../../stores/patients";
 import { useOverlayStore } from "../../stores/overlay";
 import { useWorkflowStore } from "../../stores/workflow";
 import { useMdtPanelStore } from "../../stores/mdtPanel";
+import MissingSection from "./MissingSection.vue";
 import PatientHeader from "./PatientHeader.vue";
 import BriefBlock from "./BriefBlock.vue";
 import OrphanList from "./OrphanList.vue";
@@ -58,11 +60,17 @@ const TAB_ID: Record<Tab, string> = {
   prognosis: "patient-tab-prognosis",
 };
 const state = computed(() => c.entry.value.state);
+usePatientPrognosis(computed(() => state.value === "ready"), c);
 const workflow = useWorkflowStore();
 const mdtPanel = useMdtPanelStore();
 // The side panel comes with a running MDT, for a case on its agenda, unless this computer chose the whole window.
 const panelShown = computed(() => mdtPanel.open && inSession(c.p.value, runningSession(workflow.sessions)));
 const tabs = computed(() => tabsFor(c.sec.value));
+const hasData = computed(() => ({
+  overview: true, anamnesis: c.sec.value.anamnesis, documents: true,
+  labs: c.sec.value.labs, alerts: c.sec.value.alerts,
+  next: true, dev: c.sec.value.guidance, prognosis: true,
+}));
 const current = computed<Tab>(() => (tabs.value.find((t) => t === props.tab) ?? tabs.value[0] ?? "prognosis") as Tab);
 
 // The case on screen is never evicted from the cache, and its own timeline filter starts fresh.
@@ -125,8 +133,10 @@ function retry() {
         <ConclusionBox />
         <DiscussionCard />
       </section>
-      <div class="tabs" role="tablist"><button class="tab" role="tab" aria-selected="true">{{ $t("patient-tab-prognosis") }}</button></div>
-      <TabPrognosis />
+      <div class="tabs" role="tablist">
+        <button v-for="t in tabs" :key="t" class="tab" role="tab" :aria-selected="current === t" @click="openTab(t)">{{ $t(TAB_ID[t]) }}</button>
+      </div>
+      <MissingSection :title="$t(TAB_ID[current])" />
     </template>
     <template v-else>
       <PatientHeader :with-question="!c.sec.value.brief" />
@@ -135,7 +145,8 @@ function retry() {
       <div class="tabs" role="tablist">
         <button v-for="t in tabs" :key="t" class="tab" role="tab" :aria-selected="current === t" @click="openTab(t)">{{ $t(TAB_ID[t]) }}</button>
       </div>
-      <TabOverview v-if="current === 'overview'" />
+      <MissingSection v-if="!hasData[current]" :title="$t(TAB_ID[current])" />
+      <TabOverview v-else-if="current === 'overview'" />
       <TabAnamnesis v-else-if="current === 'anamnesis'" />
       <TabDocuments v-else-if="current === 'documents'" />
       <TabLabs v-else-if="current === 'labs'" />

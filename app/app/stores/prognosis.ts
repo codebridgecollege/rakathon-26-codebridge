@@ -100,6 +100,7 @@ export type PgError = { message_cs: string | null; message_id: string | null };
 export type PgResult = PrognosisResult & { saved?: boolean; saved_data_changed?: boolean };
 
 export type PgEntry = {
+  autoAttempted: boolean;
   profile: PrognosisProfile | null;
   profilePending: boolean;
   profileError: PgError | null;
@@ -133,7 +134,7 @@ export const usePrognosisStore = defineStore("prognosis", () => {
   const refs = shallowRef<PgRef[]>([]);
   const panels = shallowRef<PgPanel[]>([]);
 
-  const blank = (): PgEntry => ({ profile: null, profilePending: false, profileError: null, pending: false, result: null, error: null, savedChecked: false, savedChecking: false, savedPending: false });
+  const blank = (): PgEntry => ({ autoAttempted: false, profile: null, profilePending: false, profileError: null, pending: false, result: null, error: null, savedChecked: false, savedChecking: false, savedPending: false });
   // Creates the entry; called by the actions, never while rendering.
   function entryOf(c: Case): PgEntry {
     const key = pgKey(c.file, c.day);
@@ -227,6 +228,14 @@ export const usePrognosisStore = defineStore("prognosis", () => {
     }
   }
 
+  // Automatic work runs once per patient and cutoff, after saved results have been checked.
+  async function autoSearch(c: Case) {
+    const state = entryOf(c);
+    if (state.autoAttempted || state.result || !canSearch(c)) return;
+    state.autoAttempted = true;
+    await search(c);
+  }
+
   // "Zkusit připojení znovu": forget the failed config and profile, so opening the tab asks again.
   function retry(c: Case) {
     configError.value = null;
@@ -242,5 +251,5 @@ export const usePrognosisStore = defineStore("prognosis", () => {
     panels.value = p;
   }
 
-  return { config, configError, configPending, entries, refs, panels, entryOf, entryAt, load, canSearch, search, retry, setView };
+  return { config, configError, configPending, entries, refs, panels, entryOf, entryAt, load, canSearch, search, autoSearch, retry, setView };
 });

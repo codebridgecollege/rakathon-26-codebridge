@@ -126,20 +126,11 @@ export function sectionsOf(cd: CaseData | null | undefined): Sections {
   };
 }
 
-// The patient tabs in their fixed order; each shows when the case data holds its part. Labels live in the catalog.
+// The patient tabs in their fixed order; all remain visible even before processing. Labels live in the catalog.
 export const TABS = ["overview", "anamnesis", "documents", "labs", "alerts", "next", "dev", "prognosis"] as const;
 export type Tab = (typeof TABS)[number];
-const TAB_SHOWN: Record<Tab, (s: Sections) => boolean> = {
-  overview: (s) => s.onco || s.status,
-  anamnesis: (s) => s.anamnesis,
-  documents: (s) => s.documents,
-  labs: (s) => s.labs,
-  alerts: (s) => s.alerts,
-  next: (s) => s.guidance,
-  dev: (s) => s.guidance,
-  prognosis: () => true,
-};
-export const tabsFor = (s: Sections): Tab[] => TABS.filter((t) => TAB_SHOWN[t](s));
+// Missing data changes the card content, never the available navigation.
+export const tabsFor = (_s: Sections): Tab[] => [...TABS];
 export const isTab = (x: unknown): x is Tab => typeof x === "string" && (TABS as readonly string[]).includes(x);
 
 // The i-th indexed source of a case.

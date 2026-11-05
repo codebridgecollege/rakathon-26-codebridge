@@ -7,8 +7,11 @@ feature does not choose treatment or create an MDT conclusion.
 
 ## Patient and date
 
-The patient's calendar slot supplies the MDT date. An unscheduled patient must be
-scheduled before searching. Moving a slot changes the result key; a late response
+The patient's calendar slot supplies the MDT date. Before booking, the view uses
+today's local date as an explicitly labelled clinical cutoff; it creates no slot.
+Opening the patient starts one search when the configured service has an available
+profile and no saved result. A failed search is never retried automatically.
+Moving a slot changes the result key; a late response
 for another patient or date cannot replace the displayed search.
 
 The local server constructs the outgoing clinical profile from the supported
@@ -70,7 +73,9 @@ nor an individual probability of survival.
 `python3 prognosis/serve.py` runs the local prognosis API on port 8766 (loopback
 only); it owns the API key and serves no page. The app on the Worker shows the
 saved searches only: the Worker has no search route, so a new search there reports
-that the host does not offer it, and no page currently calls the local API. See
+that the host does not offer it. Removing the scheduling requirement does not add
+this missing production service. No uploaded patient text is sent to the
+fixture-only local service. See
 `prognosis/README.md` for the API, configuration, retention and verification limits.
 
 Run the Python prognosis tests (`prognosis/tests/`) and the app's prognosis tests

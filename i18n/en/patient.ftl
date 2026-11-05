@@ -587,8 +587,9 @@ patient-dev-open-pdf-page = open PDF of edition { $year }, { $page }
 patient-pg-title = Prognosis
 patient-pg-subtitle = Study results for similar patient groups · assistant's literature search
 patient-pg-as-of = As of the MDT date { $date }
+patient-pg-as-of-today = As of today, { $date }
 patient-pg-intro = A comparison of results from individual studies. The percentages describe the study groups; the individual prognosis is for the doctor to assess.
-patient-pg-no-slot = The patient has no MDT slot. To search, first pick a day in the calendar.
+patient-pg-no-slot = The patient has no MDT slot. The search uses today’s date and does not require booking.
 patient-pg-schedule = Schedule MDT
 patient-pg-loading-profile = Loading the profile and settings…
 patient-pg-retry = Retry connection
@@ -623,7 +624,7 @@ patient-pg-found-cached = {" "}· from cache
 
 ## Errors the client raises itself (the prognosis server is a separate local server)
 
-patient-pg-error-no-server = The search needs the local Prognosis server running (python3 prognosis/serve.py).
+patient-pg-error-no-server = This deployment does not provide a new study search service. Saved searches remain available.
 patient-pg-error-timeout = The request timed out. Another search will not start automatically.
 patient-pg-error-request-failed = The request could not be completed.
 
@@ -1047,3 +1048,5 @@ patient-erase-prompt = Permanently delete this record of { $name } and all its d
 patient-erased = The patient is deleted.
 patient-erased-files-left = The patient is deleted, but some files could not be removed. Tell the administrator.
 patient-erase-failed = The patient could not be deleted.
+
+patient-section-unavailable = Processed data is not yet available for this card. Missing information does not mean a negative finding.

@@ -14,6 +14,7 @@ import SrcList from "./SrcList.vue";
 import AlertSignal from "./AlertSignal.vue";
 import GapsBox from "./GapsBox.vue";
 import QuestionBox from "./QuestionBox.vue";
+import MissingSection from "./MissingSection.vue";
 import TimelineCard from "./TimelineCard.vue";
 import ConclusionBox from "./ConclusionBox.vue";
 import IdentityBanner from "../discussion/IdentityBanner.vue";
@@ -77,6 +78,7 @@ const processed = computed(() => {
       <p class="muted small" style="margin:0"><span v-if="c.cd.value?.note_cs" lang="cs">{{ c.cd.value.note_cs }}</span><template v-else>{{ $t("patient-brief-from-list") }}</template> {{ $t("patient-brief-source", { file: c.p.value.file, pages: c.p.value.pages || "?" }) }}</p>
     </template>
     <TimelineCard v-if="c.sec.value.timeline" inline />
+    <MissingSection v-else :title="$t('patient-tl-title')" />
     <SrcList :list="sources" />
     <ConclusionBox />
     <DiscussionCard />
