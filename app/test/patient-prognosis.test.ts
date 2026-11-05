@@ -80,6 +80,7 @@ describe("Prognóza tab", () => {
     // The missing prognosis server is expected while a saved search is on its way: no error.
     expect(w.find("[role=alert]").exists()).toBe(false);
     await vi.advanceTimersByTimeAsync(1999);
+    // While the saved search loads the table is there, empty.
     expect(w.find("tbody tr td.pg-empty").exists()).toBe(true);
     await vi.advanceTimersByTimeAsync(1);
     const status = w.findAll("[role=status]").find((x) => x.text().startsWith("Nalezeny 2 populace / ramena"));
@@ -112,14 +113,16 @@ describe("Prognóza tab", () => {
     const w = mountInCase(TabPrognosis, setupPatient({ routes: caseRoutes({ saved: [] }) }));
     await vi.advanceTimersByTimeAsync(2000);
     expect(w.get("[role=alert]").text()).toContain("Vyhledávání studií zatím není na tomto serveru zapnuté");
-    expect(w.get("tbody td.pg-empty").text()).toBe("Hledání zatím nebylo spuštěno. Spusťte ho tlačítkem.");
+    expect(w.get("p.pg-empty").text()).toBe("Hledání zatím nebylo spuštěno. Spusťte ho tlačítkem.");
+    expect(w.find("table").exists()).toBe(false);
   });
 
   it("says there is not enough data only when the search cannot start", async () => {
     const routes = { ...caseRoutes({ saved: [] }), "/prognosis/config": { configured: true, models: [{ id: "m", label: "Astra" }] }, "/prognosis/profile": { profile: { available: false, reason: "Nedostatek údajů: případ zatím není zpracovaný, klinický profil nelze sestavit." } } };
     const w = mountInCase(TabPrognosis, setupPatient({ routes }));
     await vi.advanceTimersByTimeAsync(2000);
-    expect(w.get("tbody td.pg-empty").text()).toBe("Nedostatek údajů: hledání studií nelze spustit.");
+    expect(w.get("p.pg-empty").text()).toBe("Nedostatek údajů: hledání studií nelze spustit.");
+    expect(w.find("table").exists()).toBe(false);
     expect(w.text()).toContain("Nedostatek údajů: případ zatím není zpracovaný");
     expect(w.get(".pg-controls .btn.primary").attributes("disabled")).toBeDefined();
   });
@@ -142,7 +145,8 @@ describe("Prognóza tab", () => {
     const s = setupPatient({ routes });
     const w = mountInCase(TabPrognosis, s);
     await vi.advanceTimersByTimeAsync(2000);
-    expect(w.get("tbody td.pg-empty").text()).toBe("Hledání zatím nebylo spuštěno. Spusťte ho tlačítkem.");
+    expect(w.get("p.pg-empty").text()).toBe("Hledání zatím nebylo spuštěno. Spusťte ho tlačítkem.");
+    expect(w.find("table").exists()).toBe(false);
     expect(w.text()).toContain("stojí tokeny");
     const btn = w.get(".pg-controls .btn.primary");
     expect(btn.text()).toBe("Spustit hledání studií");
@@ -247,7 +251,8 @@ describe("Prognóza tab", () => {
     expect(w.text()).toContain("K datu MDT 29. 10. 2026");
     expect(w.text()).not.toContain("uložená rešerše");
     expect(w.find("button.ref").exists()).toBe(false);
-    expect(w.get("tbody td.pg-empty").text()).toBe("Hledání zatím nebylo spuštěno. Spusťte ho tlačítkem.");
+    expect(w.get("p.pg-empty").text()).toBe("Hledání zatím nebylo spuštěno. Spusťte ho tlačítkem.");
+    expect(w.find("table").exists()).toBe(false);
     // The late reply landed in its own day: back on 22. 10. its search is there, without a new request.
     usePatientsStore().replace([row(10, { slot: SLOT })], 1);
     await vi.advanceTimersByTimeAsync(0);

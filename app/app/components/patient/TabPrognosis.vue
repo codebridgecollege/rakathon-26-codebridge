@@ -34,6 +34,9 @@ const day = computed(() => c.value.day);
 const models = computed(() => result.value?.models || config.value?.models || []);
 const rows = computed(() => (result.value?.rows || []) as PgRow[]);
 const canSearch = computed(() => pg.canSearch(c.value));
+// The table with its legend and footnotes appears with a search (running, loading or done); before that one short line
+// says where things stand, so the tab is not a grid of empty columns (Soňa, 2026-11-06).
+const showTable = computed(() => !!result.value || state.value.pending || state.value.savedPending);
 // The reference numbers and panels come from the rows in reading order; the drawers read the same lists.
 const layout = computed(() => pgLayout(rows.value));
 watch(
@@ -134,14 +137,15 @@ function openPanel(i: number) {
 
     <p v-if="config?.configured" class="muted small">{{ $t("patient-pg-cost-note") }}</p>
     <div class="pg-controls">
-      <button class="btn primary" :disabled="!canSearch" @click="pg.search(c)">{{ searchLabel }}</button><button v-if="result" class="btn" :disabled="!canSearch" @click="pg.search(c, true)">{{ $t("patient-pg-refresh") }}</button><span class="muted small">{{ $t("patient-pg-abbreviations") }}</span>
+      <button class="btn primary" :disabled="!canSearch" @click="pg.search(c)">{{ searchLabel }}</button><button v-if="result" class="btn" :disabled="!canSearch" @click="pg.search(c, true)">{{ $t("patient-pg-refresh") }}</button><span v-if="showTable" class="muted small">{{ $t("patient-pg-abbreviations") }}</span>
     </div>
     <div v-if="state.savedPending" class="pg-busy" role="status">{{ $t("patient-pg-loading-saved") }}</div>
     <div v-if="state.pending" class="pg-busy" role="status">{{ $t("patient-pg-busy") }}</div>
     <p v-if="state.error" class="pg-warning" role="alert">{{ errText($t, state.error) }}</p>
     <p v-if="result?.saved_data_changed" class="pg-warning">{{ $t("patient-pg-saved-stale") }}</p>
     <div v-if="result" class="muted small" role="status">{{ foundText }}</div>
-    <div class="scroll" tabindex="0" role="region" :aria-label="$t('patient-pg-table-label')">
+    <p v-if="!showTable" class="muted pg-empty" role="status">{{ emptyText }}</p>
+    <div v-if="showTable" class="scroll" tabindex="0" role="region" :aria-label="$t('patient-pg-table-label')">
       <table class="tbl pg-table">
         <colgroup>
           <col class="pg-col-study" />
@@ -176,7 +180,7 @@ function openPanel(i: number) {
       </table>
     </div>
     <p v-for="(m, i) in models.filter((x) => x.error)" :key="i" class="pg-warning" role="alert" lang="cs">{{ m.error }}</p>
-    <aside class="pg-footnotes" :aria-label="$t('patient-pg-footnotes-label')">
+    <aside v-if="showTable" class="pg-footnotes" :aria-label="$t('patient-pg-footnotes-label')">
       <p v-for="(w, i) in footWarnings" :key="i" lang="cs">{{ w }}</p>
       <p>{{ $t("patient-pg-footnote") }}</p>
     </aside>
