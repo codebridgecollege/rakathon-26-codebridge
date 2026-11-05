@@ -1045,3 +1045,11 @@ patient-header-team-none = Bez týmu
 patient-header-team-set = Případ je zařazený do týmu.
 patient-header-team-failed = Případ se nepodařilo zařadit do týmu.
 patient-header-team-confirm = Zařadit případ do týmu { $name }? Lékaři z oddělení, kteří v týmu nejsou, ho přestanou vidět.
+
+## Erasing a patient
+
+patient-erase = Smazat pacienta
+patient-erase-prompt = Trvale smazat tento záznam pacienta { $name } a všechny jeho dokumenty, závěry MDT a historii? Nelze to vrátit. Napište SMAZAT.
+patient-erased = Pacient je smazaný.
+patient-erased-files-left = Pacient je smazaný, ale některé soubory se nepodařilo odstranit. Řekněte to správci.
+patient-erase-failed = Pacienta se nepodařilo smazat.

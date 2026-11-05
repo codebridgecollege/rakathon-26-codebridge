@@ -1039,3 +1039,11 @@ patient-header-team-none = No team
 patient-header-team-set = The case is now in the team.
 patient-header-team-failed = The case could not be moved into the team.
 patient-header-team-confirm = File this case under { $name }? Doctors from departments who are not in the team will stop seeing it.
+
+## Erasing a patient
+
+patient-erase = Delete patient
+patient-erase-prompt = Permanently delete this record of { $name } and all its documents, MDT conclusions and history? This cannot be undone. Type SMAZAT.
+patient-erased = The patient is deleted.
+patient-erased-files-left = The patient is deleted, but some files could not be removed. Tell the administrator.
+patient-erase-failed = The patient could not be deleted.

@@ -12,6 +12,7 @@ import { useWorkflowStore } from "../../stores/workflow";
 import { useListViewStore } from "../../stores/listView";
 import { useSessionStore } from "../../stores/session";
 import { useStaffStore } from "../../stores/staff";
+import { useCasesStore } from "../../stores/cases";
 import { useApi } from "../../lib/api";
 import { toast } from "../../lib/toast";
 import { useCurrentUser } from "../../composables/useCurrentUser";
@@ -56,6 +57,23 @@ const { showsSyntheticTag } = useCurrentUser();
 const staffStore = useStaffStore();
 const teams = computed(() => staffStore.directory?.teams ?? []);
 const teamBusy = ref(false);
+// Erasing cannot be undone, so the person types the word; the server checks it again. The list goes first, because the
+// patient view reads this row until it closes.
+async function erase() {
+  if (window.prompt($t("patient-erase-prompt", { name: surnameFirst(c.p.value) })) !== "SMAZAT") return;
+  const id = c.p.value.id;
+  try {
+    const r = await useApi().eraseCase(id, "SMAZAT");
+    toast($t(r.data?.files_left ? "patient-erased-files-left" : "patient-erased"));
+    await router.push("/patients");
+    useCasesStore().reset();
+    // The erasure is done; a list that fails to reload is not a failed erasure, and the next load corrects it.
+    await session.loadFromApi().catch(() => {});
+    return;
+  } catch (e) {
+    toast(e instanceof ApiError && e.message_cs ? e.message_cs : $t("patient-erase-failed"));
+  }
+}
 // Moving a case into a team closes it to the departments, so the list and this view read from the server again.
 async function setTeam(ev: Event) {
   const sel = ev.target as HTMLSelectElement;
@@ -115,6 +133,7 @@ function report() {
         <button v-if="canNis" class="btn" @click="nis">{{ $t("patient-action-nis") }}</button>
         <button v-if="c.cd.value?.record?.sections" class="btn" @click="openFhirExport(c, $t)">{{ $t("patient-action-fhir") }}</button>
         <button v-if="props.withReport" class="btn primary" @click="report">{{ $t("patient-action-report") }}</button>
+        <button class="btn" @click="erase">{{ $t("patient-erase") }}</button>
       </div>
     </div>
     <QuestionBox v-if="props.withQuestion" />

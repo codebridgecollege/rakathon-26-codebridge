@@ -395,7 +395,7 @@ describe("every route, acting in org B with org A's IDs", () => {
     const covered = new Set([
       ...PROBES.map((p) => `${p.method} ${p.name.replace(/^\w+ /, "").replace(/ \(.*\)$/, "").replace(/\?.*$/, "")}`),
       "GET /patients", "GET /tasks", "GET /calendar", "GET /workflow", "GET /staff", "GET /admin/access-log", "GET /me", "GET /demo/memberships", "GET /",
-      "POST /staff/teams", "PATCH /staff/teams/:id", "PUT /staff/teams/:id/members", "DELETE /staff/teams/:id", "POST /cases/:id/team", "POST /sessions", "DELETE /sessions/:day", "PUT /attendance/:key", "POST /recordings", "POST /notifications/digest", "POST /staff/departments",
+      "POST /staff/teams", "PATCH /staff/teams/:id", "PUT /staff/teams/:id/members", "DELETE /staff/teams/:id", "POST /cases/:id/team", "DELETE /cases/:id", "POST /sessions", "DELETE /sessions/:day", "PUT /attendance/:key", "POST /recordings", "POST /notifications/digest", "POST /staff/departments",
       "POST /cases", "POST /fhir/referral", "POST /admin/pipeline/warm", "POST /staff/reset", "POST /admin/reset-demo",
       // The phone's two routes take a session token, which names its org; the upload-sessions tests cover them.
       "GET /upload-sessions/current", "POST /upload-sessions/current/files",
@@ -702,6 +702,63 @@ describe("staff and demo resets", () => {
     const team = ((await w("POST", "/staff/teams", { name: "Plicní MDT", weekday: null, time: null }, "b-admin")).body.state as { staff: { teams: { id: string }[] } }).staff.teams[0]!;
     expect((await w("POST", "/cases", form("736028/5163", { team_id: team.id }), "d2p1", key(92))).status).toBe(422);
     expect((await w("POST", "/cases", form("736028/5163", { team_id: "nope" }), "b-doc", key(93))).status).toBe(422);
+  });
+
+  it("erasing a patient removes everything on the case, keeps the log, and touches nothing else", async () => {
+    // Read from the schema, so a table added later is checked even if nobody adds it to the erasure.
+    const tables = (await q<{ name: string; sql: string }>("SELECT name, sql FROM sqlite_master WHERE type = 'table' AND sql LIKE '%case_id%'"))
+      .filter((t) => /^\s*case_id\s/m.test(t.sql) && !["access_log", "upload_sessions", "case_erasures", "model_calls"].includes(t.name))
+      .map((t) => t.name);
+    expect(tables.length).toBeGreaterThan(20);
+    const count = async (t: string) => (await one<{ n: number }>(`SELECT COUNT(*) AS n FROM ${t} WHERE case_id = 'NO-A'`)).n;
+    // A decision and a status change, so the append-only history is really there.
+    await w("PUT", "/cases/NO-A/protocol", { version: 0, concl: "Kontrolní MR za 3 měsíce." }, "d2p1");
+    expect((await w("POST", "/cases/NO-A/decisions", decisionsBody(), "d2p1", key(95))).status).toBe(200);
+    expect(await count("decisions")).toBeGreaterThan(0);
+    expect(await count("status_history")).toBeGreaterThan(0);
+    const patient = (await one<{ patient_id: string }>("SELECT patient_id FROM cases WHERE id = 'NO-A'")).patient_id;
+
+    // A seeded patient stays, because the demo reset rebuilds the case on that row; below the patient counts as not seeded.
+    expect((await w("DELETE", "/cases/NO-A", { confirm: "SMAZAT" }, "d2p1")).body.error?.code).toBe("erase_seeded");
+    await env.DOCS.delete("seed/reset.json");
+    const files = ["org/demo-a/cache/model/no-a/x/y.json", "org/demo-a/uploads/NO-A/f.pdf", "org/demo-a/runs/NO-A/r.json"];
+    for (const f of files) await env.DOCS.put(f, "x");
+    await env.DOCS.put("org/demo-b/uploads/NO-A/f.pdf", "keep");
+    expect((await w("DELETE", "/cases/NO-A", { confirm: "ano" }, "d2p1")).body.error?.code).toBe("erase_confirm");
+    expect((await w("DELETE", "/cases/NO-A", { confirm: "SMAZAT" }, "b-doc")).status).toBe(404);
+    // History stays append-only outside an erasure.
+    await expect(env.DB.prepare("DELETE FROM status_history WHERE case_id = 'NO-A'").run()).rejects.toThrow(/append-only/);
+
+    const r = await w("DELETE", "/cases/NO-A", { confirm: "SMAZAT" }, "d2p1");
+    expect(r.status).toBe(200);
+    expect(r.body.data).toEqual({ files_left: false });
+    for (const f of files) expect(await env.DOCS.head(f)).toBeNull();
+    expect(await env.DOCS.head("org/demo-b/uploads/NO-A/f.pdf")).not.toBeNull();
+    for (const t of tables) expect([t, await count(t)]).toEqual([t, 0]);
+    expect(await q("SELECT id FROM patients WHERE id = ?1", patient)).toEqual([]);
+    expect((await get("/cases/NO-A", "d2p1")).status).toBe(404);
+    expect(((await get("/patients", "d2p1")).body.patients as { id: string }[]).map((p) => p.id)).not.toContain("NO-A");
+    // The log keeps who erased which ID, and no name; the number is not given out again.
+    const row = await one<{ what_cs: string; actor_user_id: string }>("SELECT what_cs, actor_user_id FROM access_log WHERE case_id = 'NO-A' AND action = 'case.erase'");
+    expect(row.actor_user_id).toBe("d2p1");
+    expect(row.what_cs).not.toContain(FAKE_NAME);
+    expect((await one<{ case_no: string }>("SELECT case_no FROM case_erasures WHERE case_id = 'NO-A'")).case_no).toBeTruthy();
+    // Org B's look-alike case of the same number is untouched.
+    expect((await get("/patients", "b-doc")).body.patients.length).toBeGreaterThan(0);
+  });
+
+  it("erasing is refused under break-the-glass and during the case's running MDT", async () => {
+    await env.DB.batch([
+      env.DB.prepare("INSERT INTO users (id, pre, sur) VALUES ('a-out', 'MUDr.', 'Mimo')"),
+      env.DB.prepare("INSERT INTO memberships (id, org_id, user_id, role_id, active_from) VALUES ('a-out', 'demo-a', 'a-out', 'doctor', '2026-01-01T00:00:00.000Z')"),
+      env.DB.prepare("INSERT INTO case_access_grants (org_id, id, case_id, user_id, reason, granted_at, expires_at) VALUES ('demo-a', 'g-e', 'NO-A', 'a-out', 'důvod pro test', '2026-01-01T00:00:00.000Z', '2999-01-01T00:00:00.000Z')"),
+    ]);
+    await env.DOCS.delete("seed/reset.json");
+    expect((await w("DELETE", "/cases/NO-A", { confirm: "SMAZAT" }, "a-out")).body.error?.code).toBe("not_member");
+    const slot = await one<{ day: string }>("SELECT day FROM slots WHERE case_id = 'NO-A'");
+    await env.DB.prepare("INSERT INTO sessions (org_id, day, started_by, started_by_name, started_at) VALUES ('demo-a', ?1, 'd2p1', 'x', '2026-01-01T00:00:00.000Z')").bind(slot.day).run();
+    expect((await w("DELETE", "/cases/NO-A", { confirm: "SMAZAT" }, "d2p1")).body.error?.code).toBe("erase_busy");
+    expect((await q("SELECT id FROM cases WHERE id = 'NO-A'")).length).toBe(1);
   });
 
   it("a new case in a hospital with teams goes to the team and not to the departments", async () => {

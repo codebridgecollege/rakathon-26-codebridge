@@ -194,6 +194,8 @@ built on a D1 batch, with it.
   - login sessions for 30 days after they expire;
   - document copies for the life of the case plus a period FNO sets;
   - the access log of a hospital org as FNO's record-keeping rules say.
+- **Erasing a patient** (`DELETE /cases/:id`, Soňa's decision 2026-11-05): a doctor on the case, the coordinator or the administrator types SMAZAT, and every row on the case goes in one batch, MDT decisions and history included, then its files. The append-only triggers let this through only for a case that has a row in `case_erasures`, written first in that batch (migration 0023). What stays: the access log, which keeps who erased which case ID; `model_calls`, which holds hashes and counts and records what went to a provider; and the `case_erasures` row, which holds no identity and keeps the case number out of reuse. Refused for a demo org's seeded patient (the demo reset rebuilds the case on that row), under break-the-glass, and while the case's MDT, a job or a document's processing runs.
+  - **What this does not reach:** D1 Time Travel can restore recent database states; copies at outside services (LLM, OCR) follow their own retention; `audit-archive/` keeps edit-log rows from earlier demo resets for 30 days. An access-log break-the-glass reason is free text and may name someone. A Workflow started just before the erasure and not tracked by those checks, or an upload in flight, may still write a file, and nothing sweeps such a file yet. So this is not yet a complete erasure for real patients (`OPEN_QUESTIONS.md`).
 - **Deleting an org** is its own audited maintenance task, not the demo reset:
   1. archive the org's access log for its retention period;
   2. delete the org's rows in dependency order;

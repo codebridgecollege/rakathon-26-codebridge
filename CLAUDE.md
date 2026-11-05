@@ -225,7 +225,9 @@ data (slide 21 notes).
 - **MDT decisions are an append-only history.** A new decision supersedes
   an earlier one and never erases or edits it; the same patient can come
   to the MDT many times. Each decision records which doctor confirmed it
-  and when.
+  and when. The one exception is erasing a whole patient (Soňa's decision
+  2026-11-05, [`docs/design/DATABASE.md`](docs/design/DATABASE.md)): the
+  decisions go with the patient, and the access log records the erasure.
 - **Czech clinical text is the input.** Expect Czech, Latin terms,
   abbreviations, typos, scans, and inconsistent date formats. Test with
   such text, not with clean English examples.

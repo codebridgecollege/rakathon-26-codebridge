@@ -275,8 +275,10 @@ export const writeWork = new Hono<AppEnv>()
       c,
       "SELECT MAX(CAST(substr(case_no, 4) AS INTEGER)) AS n, MAX(list_order) AS o FROM cases WHERE org_id = ?org AND case_no GLOB 'NO-[0-9]*'",
     ).first<{ n: number | null; o: number | null }>();
+    // An erased case's number stays out of use: the access log still names it (migration 0023).
+    const erased = await orgQuery(c, "SELECT MAX(CAST(substr(case_no, 4) AS INTEGER)) AS n FROM case_erasures WHERE org_id = ?org AND case_no GLOB 'NO-[0-9]*'").first<{ n: number | null }>();
     const lastOrder = (await orgQuery(c, "SELECT MAX(list_order) AS o FROM cases WHERE org_id = ?org").first<{ o: number | null }>())?.o ?? 0;
-    const n = Math.max(100, (max?.n ?? 0) + 1);
+    const n = Math.max(100, (max?.n ?? 0) + 1, (erased?.n ?? 0) + 1);
     // An org without its row would fall back to org A's empty prefix and could take org A's IDs; refuse instead.
     const org = await orgById(c.env.DB, c.var.viewer.org);
     if (!org) throw E.notConfigured();

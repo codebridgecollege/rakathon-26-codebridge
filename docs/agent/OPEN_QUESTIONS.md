@@ -320,3 +320,10 @@ log: live updates need a read that logs nothing clinical, such as one that says 
 
 Teams exist (`AUTH.md`, "Teams"). Open: what each team's screen holds, such as spirometry for a lung MDT. Spirometry is
 only in the documents' text today, with no lab series of its own to show.
+
+## Erasing patients in a real hospital (asked 2026-11-05)
+
+Every doctor who can open a case (its whole team or department), the coordinator and the administrator can erase it,
+decisions included (`DATABASE.md`, "Erasing a patient"); the last two can do so without reading it. That suits a
+prototype with synthetic data. Open before real use: what Czech medical-record retention rules require FNO to keep,
+whether erasing should need a second person, a stated reason or an export first, and the gaps `DATABASE.md` lists.

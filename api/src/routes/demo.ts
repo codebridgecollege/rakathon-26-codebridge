@@ -21,7 +21,7 @@ const MUTABLE_DELETE_ORDER = [
   "access_log", "audio_segments", "audio_parts", "audio_uploads", "transcript_summaries", "transcript_lines",
   "transcript_passes", "jobs", "recordings", "write_guards", "idempotency_keys", "case_access_grants",
   "notifications", "alert_events", "alert_events_v1", "fact_confirmations", "edit_log", "fact_edits", "question_confirmations", "tasks", "task_suggestions", "decisions",
-  "protocols", "attendance_sets", "attendance", "sessions", "slots", "status_history", "case_members", "cases", "team_members", "teams", "dept_members",
+  "protocols", "attendance_sets", "attendance", "sessions", "slots", "status_history", "case_members", "cases", "case_erasures", "team_members", "teams", "dept_members",
   "departments",
 ] as const;
 // The append-only history archived before the reset (synthetic data only).

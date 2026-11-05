@@ -3,7 +3,7 @@
 import type { LoadedPrompt } from "../prompts";
 import { orgKey } from "../store/sql";
 
-const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9._@-]+/g, "_").slice(0, 80);
+export const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9._@-]+/g, "_").slice(0, 80);
 
 // The cache folder of the documents a call read: the document's own folder when the call read one document, so
 // withdrawing it (another patient's document) deletes its answers with it; a call over several documents goes under

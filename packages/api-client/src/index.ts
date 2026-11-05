@@ -282,6 +282,7 @@ export function createApiClient(opts: ClientOptions = {}) {
     patchTeam: (id: string, body: TeamBody) => w("PATCH", `/staff/teams/${enc(id)}`, body),
     setTeamMembers: (id: string, user_ids: string[]) => w("PUT", `/staff/teams/${enc(id)}/members`, { user_ids }),
     deleteTeam: (id: string) => w("DELETE", `/staff/teams/${enc(id)}`, {}),
+    eraseCase: (caseId: string, confirm: string) => w<{ files_left: boolean }>("DELETE", `/cases/${enc(caseId)}`, { confirm }),
     setCaseTeam: (caseId: string, team_id: string) => w("POST", `/cases/${enc(caseId)}/team`, { team_id }),
     deletePerson: (id: string) => w("DELETE", `/staff/people/${enc(id)}`, {}),
     resetStaff: () => w("POST", "/staff/reset", {}),

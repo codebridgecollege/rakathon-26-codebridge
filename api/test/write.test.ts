@@ -531,7 +531,7 @@ describe("reset-demo", () => {
     const r = await w("POST", "/admin/reset-demo", { confirm: "OBNOVIT" }, "admin");
     expect(r.status).toBe(200);
     expect(r.body.data).toMatchObject({ data_epoch: 2, seed_version: "test", r2_left: 0 });
-    expect(r.body.data!.statements as number).toBeLessThan(50);
+    expect(r.body.data!.statements as number).toBeLessThan(60);
     expect(await snapshot()).toEqual(before);
     expect((await log()).map((l) => l.what_cs)).toEqual(["obnovil(a) ukázková data (seed test)"]);
     // The archive is the org's own.

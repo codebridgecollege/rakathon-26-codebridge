@@ -14,6 +14,10 @@ import { FACT_ID_RE, factIdOfKey, lineIdOfKey, saveEdit, revertEdit } from "@cod
 import { confirmTransition, confirmationState, confirmedContent, type ConfirmAction } from "@codebridge/domain/confirmations";
 import { ALERT_ACT_CS, ALERT_ID, ALERT_KIND_CS, alertState, transition, type AlertAction } from "../domain/alerts";
 import { currentRun } from "../store/runs";
+import { deletePrefix } from "../store/intake";
+import { slug } from "../services/model-cache";
+import { orgKey } from "../store/sql";
+import { LEGACY_ORG } from "../domain/orgs";
 import { grant } from "../domain/breakglass";
 import { PROTOCOL_AUDIT_WINDOW_MIN } from "@codebridge/domain/config";
 import { pragueDay } from "@codebridge/domain/time";
@@ -48,6 +52,78 @@ export async function bodySha(body: unknown) {
 
 export const writeCases = new Hono<AppEnv>()
   // ---------- status, close, reopen ----------
+  // Erases a patient for good (DATABASE.md, "Erasing a patient"): every row held on the case, and its files after the
+  // commit. Only the access log and a row without identity stay. Not under break-the-glass: a temporary grant to read a
+  // case must not end it. Not while its MDT or a document's processing runs, which would write to a case that is gone.
+  .delete("/cases/:id", async (c) => {
+    const id = c.req.param("id");
+    label(c, "trvalé smazání pacienta", id);
+    const { breakGlass } = await caseFor(c, id, "case.erase");
+    if (breakGlass) throw D.notMember();
+    if (c.var.body.confirm !== "SMAZAT") throw D.eraseConfirm();
+    const row = await orgQuery(c, "SELECT case_no, patient_id FROM cases WHERE org_id = ?org AND id = ?1", id).first<{ case_no: string; patient_id: string }>();
+    if (!row) throw D.caseNotFound();
+    const org = c.var.viewer.org;
+    // A demo org's seeded patient stays: the demo reset keeps those rows and rebuilds the case on them, and fails without.
+    const seed = await (await c.env.DOCS.get("seed/reset.json"))?.json<{ orgs?: Record<string, { patient_ids?: string[] }> }>();
+    if (seed?.orgs?.[org]?.patient_ids?.includes(row.patient_id)) throw D.eraseSeeded();
+    // Open multipart uploads are not listed as objects, so they are aborted by name. A failure is left to the R2
+    // lifecycle rule, which aborts incomplete uploads under audio/ after a day.
+    const openAudio = await orgQuery(c, "SELECT r2_key, r2_upload_id FROM audio_uploads WHERE org_id = ?org AND case_id = ?1 AND state = 'open' AND r2_upload_id IS NOT NULL", id).all<{ r2_key: string; r2_upload_id: string }>();
+    // The files named by rows go too.
+    const named = await orgQuery(
+      c,
+      `SELECT original_r2_key AS k FROM documents WHERE org_id = ?org AND case_id = ?1 AND original_r2_key IS NOT NULL
+       UNION ALL SELECT r2_key FROM extraction_runs WHERE org_id = ?org AND case_id = ?1
+       UNION ALL SELECT r2_key FROM audio_uploads WHERE org_id = ?org AND case_id = ?1`,
+      id,
+    ).all<{ k: string }>();
+    const t = tx(c);
+    t.guard("no_running_mdt", "NOT EXISTS (SELECT 1 FROM slots s JOIN sessions x ON x.org_id = s.org_id AND x.day = s.day WHERE s.org_id = ?org AND s.case_id = ? AND x.ended_at IS NULL)", [id], () => D.eraseBusy());
+    t.guard("no_running_pipeline", "NOT EXISTS (SELECT 1 FROM pipeline_runs WHERE org_id = ?org AND case_id = ? AND state IN ('queued','running'))", [id], () => D.eraseBusy());
+    t.guard("no_running_job", "NOT EXISTS (SELECT 1 FROM jobs WHERE org_id = ?org AND case_id = ? AND state IN ('queued','running'))", [id], () => D.eraseBusy());
+    t.guard("no_processing_document", "NOT EXISTS (SELECT 1 FROM documents WHERE org_id = ?org AND case_id = ? AND state IN ('queued','processing'))", [id], () => D.eraseBusy());
+    // First in the batch: this row is what lets the append-only triggers pass for this case alone.
+    t.run("INSERT OR REPLACE INTO case_erasures (org_id, case_id, case_no, erased_at) VALUES (?org, ?1, ?2, ?3)", id, row.case_no, isoNow());
+    t.run("DELETE FROM audio_parts WHERE org_id = ?org AND upload_id IN (SELECT id FROM audio_uploads WHERE org_id = ?org AND case_id = ?1)", id);
+    t.run("DELETE FROM audio_segments WHERE org_id = ?org AND upload_id IN (SELECT id FROM audio_uploads WHERE org_id = ?org AND case_id = ?1)", id);
+    t.run("DELETE FROM alert_events_v1 WHERE org_id = ?org AND alert_id IN (SELECT id FROM alerts WHERE org_id = ?org AND case_id = ?1)", id);
+    t.run("DELETE FROM pages WHERE org_id = ?org AND document_id IN (SELECT id FROM documents WHERE org_id = ?org AND case_id = ?1)", id);
+    t.run("DELETE FROM document_parts WHERE org_id = ?org AND document_id IN (SELECT id FROM documents WHERE org_id = ?org AND case_id = ?1)", id);
+    t.run("DELETE FROM attendance WHERE org_id = ?org AND set_key = ?1", `case:${id}`);
+    t.run("DELETE FROM attendance_sets WHERE org_id = ?org AND set_key = ?1", `case:${id}`);
+    // Children before parents, so every foreign key holds at each step. model_calls stays: it holds hashes and counts
+    // with no patient text, and it is the record of what went to a provider, which the org's budget also reads.
+    for (const table of [
+      "audio_uploads", "transcript_lines", "transcript_summaries", "transcript_passes", "jobs", "alert_events", "fact_confirmations", "fact_edits", "edit_log",
+      "question_confirmations", "tasks", "task_suggestions", "decisions", "protocols", "status_history", "slots", "case_access_grants", "case_members",
+      "document_alerts", "nis_documents", "pipeline_runs", "documents", "alerts", "alert_identities", "fact_ids", "extraction_runs", "notifications",
+    ])
+      t.run(`DELETE FROM ${table} WHERE org_id = ?org AND case_id = ?1`, id);
+    // A phone still holding this case's QR code must not reach it.
+    t.run("UPDATE upload_sessions SET closed_at = ?2 WHERE org_id = ?org AND case_id = ?1 AND closed_at IS NULL", id, isoNow());
+    t.run("DELETE FROM cases WHERE org_id = ?org AND id = ?1", id);
+    t.run("DELETE FROM patient_nis_links WHERE org_id = ?org AND patient_id = ?1", row.patient_id);
+    t.run("DELETE FROM patients WHERE org_id = ?org AND id = ?1 AND NOT EXISTS (SELECT 1 FROM cases WHERE org_id = ?org AND patient_id = ?1)", row.patient_id);
+    t.audit({ action: "case.erase", what_cs: "trvale smazal(a) pacienta a všechny jeho údaje", case_id: id });
+    await t.commit();
+    // The rows are gone; a file that fails to go is reported, not retried under a case that no longer exists.
+    let filesLeft = false;
+    try {
+      const bucket = c.env.DOCS;
+      for (const u of openAudio.results) await bucket.resumeMultipartUpload(u.r2_key, u.r2_upload_id).abort().catch(() => {});
+      if (named.results.length) await bucket.delete(named.results.map((x) => x.k));
+      for (const area of ["uploads", "runs", "audio", "nis", "jobs", "cache/summary"]) {
+        await deletePrefix(bucket, orgKey(org, `${area}/${id}/`));
+        if (org === LEGACY_ORG) await deletePrefix(bucket, `${area}/${id}/`);
+      }
+      // The model cache keys its folders by the case ID's slug (services/model-cache.ts).
+      await deletePrefix(bucket, orgKey(org, `cache/model/${slug(id)}/`));
+    } catch {
+      filesLeft = true;
+    }
+    return answer(c, { files_left: filesLeft });
+  })
   // Puts a case into an MDT team (AUTH.md, "Teams"): the team now opens it and the departments no longer do. Whoever is
   // named on the case keeps it, and a doctor who moves it stays on it, so nobody locks themselves out mid-work. Not under
   // break-the-glass: a temporary grant reads a case, it must not open it to a whole team or leave lasting access. The
