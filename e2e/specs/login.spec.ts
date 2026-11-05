@@ -81,6 +81,26 @@ test("logout ends the session here and at the IdP", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "Mock IdP: přihlášení" })).toBeVisible();
 });
 
+test("an administrator renames a person from the account menu, and a doctor is not offered that", async ({ page }) => {
+  await page.goto("patients");
+  await logInAtIdp(page, ADMIN_A);
+  await account(page, "Ing. Kovář").click();
+  const rename = async (from: string, to: string) => {
+    await menu(page).getByRole("button", { name: `Upravit jméno: ${from}` }).click();
+    await menu(page).getByLabel("Příjmení").fill(to);
+    await menu(page).getByRole("button", { name: "Uložit" }).click();
+    await expect(menu(page).getByRole("button", { name: `Upravit jméno: Bc. ${to}` })).toBeVisible();
+  };
+  await rename("Bc. Marková", "Přejmenovaná");
+  await rename("Bc. Přejmenovaná", "Marková");
+  await menu(page).getByRole("button", { name: "MUDr. Svobodová (lékař)" }).click();
+  await account(page, "MUDr. Svobodová").click();
+  await expect(menu(page).getByRole("button", { name: /^Upravit jméno/ })).toHaveCount(0);
+  await expect(menu(page).getByRole("button", { name: "+ Přidat lékaře" })).toHaveCount(0);
+  await menu(page).getByRole("button", { name: "Ing. Kovář (správce systému)" }).click();
+  await expect(account(page, "Ing. Kovář")).toBeVisible();
+});
+
 test("the role switch of a demo org acts as another demo account and the access log names the real person", async ({ app, page }) => {
   await page.goto("patients");
   await logInAtIdp(page, ADMIN_A);

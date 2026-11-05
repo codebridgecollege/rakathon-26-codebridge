@@ -88,3 +88,18 @@ dev-patient-count = { $n ->
     [one] { $n } patient from the server
    *[other] { $n } patients from the server
 }
+
+## The people in the account menu (a demo org)
+
+account-people-edit = Edit
+account-people-rename = Edit the name: { $name }
+account-people-add = + Add a doctor
+account-people-add-note = This adds a doctor with no password. Put them in an MDT team in Administrace.
+account-people-pre = Title before the name
+account-people-sur = Surname
+account-people-post = Title after the name
+account-people-dept = Department
+account-people-save = Save
+account-people-cancel = Cancel
+account-people-saved = Saved.
+account-people-failed = Could not save.

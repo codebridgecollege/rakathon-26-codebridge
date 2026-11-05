@@ -128,7 +128,7 @@ entries.
 
 - **One active org per session.** A person with one membership lands in it. A person with several picks one, and can switch in the account menu (`POST /api/session/org`, which issues a new session ID).
 - **Role switching in demo orgs.**
-  - After one real login, the account menu of a demo org offers "Přepnout roli": a list of that org's demo memberships (doctor 1, doctor 2, coordinator, administrator).
+  - After one real login, the account menu of a demo org offers "Přepnout roli": everyone in that org who can act, also people with no login of their own. While acting as an administrator, the same menu renames people and adds a doctor to a department, with no password (Soňa's request 2026-11-05: real names before real accounts exist). Privacy trade-off, for synthetic demo data only: any login in a demo org can act as any listed doctor, reach what that doctor reaches and confirm under that doctor's name; only the access log shows who really did it. Names are per person, so a demo org refuses to rename someone a hospital org also lists. The staff screen's default-list reset ends added doctors and restores the default names.
   - A switch changes the acting membership in the session. Every access-log row then records the real person and the membership acted as (`impersonating = 1`; the column exists and is always 0 today).
   - The switch runs today's switch protocol (`session.ts`): unsaved drafts are saved, and the recording stops.
   - Hospital orgs have no role switcher.
@@ -145,7 +145,7 @@ entries.
 
 **People and memberships:**
 - **`users`** stays the person: name, title fields, e-mail (already unique), active. Role, function, department and per-org active move out of it into `memberships`.
-- **`memberships`:** org, person, role, function, department, active from/until. A person without an identity is a staff entry.
+- **`memberships`:** org, person, role, function, department, active from/until. A person without an identity has no login of their own: a staff entry, or in a demo org someone others can act as.
 - **`user_identities`:** issuer + subject for a person. There can be two during a move from one IdP to another.
 - **`auth_sessions`:** session hash, person, active org, acting membership, ID token for logout, created, last used, expires.
 - **`orgs`:** id, name, short name, demo flag, session idle limit; later the org's own IdP settings.
@@ -467,8 +467,8 @@ The runbook is in `api/AGENTS.md`, section "Login".
   deletes rows 30 days after expiry.
 - **Switches.** `POST /api/session/org {org_id}` (only into an active
   membership of the person) and `POST /api/session/role {membership_id}`
-  (demo orgs only: the org's demo accounts, which are its memberships
-  whose person has an e-mail, or back to oneself). Both write the new
+  (demo orgs only: any membership of the org that can act, or back to
+  oneself). Both write the new
   session row and delete the old one in one D1 batch, keep `created_at`
   and `expires_at`, set a new cookie, and write an access-log row
   (`session.org`, `session.role`).

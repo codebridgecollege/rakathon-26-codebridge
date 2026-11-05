@@ -177,6 +177,15 @@ export const writeStaff = new Hono<AppEnv>()
     const t = tx(c);
     const at = isoNow();
     t.guard("member", MEMBER_HERE, [id], () => D.staffChanged());
+    // A name is the person's, in every org they are in. In a demo org anyone can act as the administrator, so its people
+    // must not rename someone a hospital also lists; that hospital would show a name it never logged.
+    if (f !== "fn")
+      t.guard(
+        "not_in_hospital",
+        "(SELECT is_demo FROM orgs WHERE id = ?org) = 0 OR NOT EXISTS (SELECT 1 FROM memberships m JOIN orgs o ON o.id = m.org_id WHERE m.user_id = ? AND o.is_demo = 0 AND m.active_until IS NULL)",
+        [id],
+        () => D.personInHospital(),
+    );
     if (f === "fn") {
       // The function is the membership's: the same person may have another one in another org.
       t.guard("unchanged", "(SELECT fn FROM memberships WHERE org_id = ?org AND user_id = ?) = ?", [id, u.fn], () => D.staffChanged());

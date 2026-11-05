@@ -295,7 +295,7 @@ OpenID Connect (OIDC, the standard login protocol); design and details in
   short code (`no_person`, `nonce`, `jwks`), never a token, e-mail or
   subject.
 - **Role switch in a demo org.** A presenter logged in once acts as
-  another demo account of the same demo org. Every access-log row then
+  anyone in the same demo org, also someone with no login of their own. Every access-log row then
   names the real person, the membership acted as and `impersonating = 1`;
   Administrace shows "Ing. Kovář (jako MUDr. Svobodová)". Hospital orgs
   have no role switch. This trades the audit's simplicity for a demo

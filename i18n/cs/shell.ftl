@@ -83,3 +83,18 @@ dev-patient-count = { $n ->
     [many] { $n } pacienta ze serveru
    *[other] { $n } pacientů ze serveru
 }
+
+## The people in the account menu (a demo org)
+
+account-people-edit = Upravit
+account-people-rename = Upravit jméno: { $name }
+account-people-add = + Přidat lékaře
+account-people-add-note = Přidáte lékaře bez hesla. Do týmu MDT ho zařadíte v Administraci.
+account-people-pre = Titul před jménem
+account-people-sur = Příjmení
+account-people-post = Titul za jménem
+account-people-dept = Pracoviště
+account-people-save = Uložit
+account-people-cancel = Zrušit
+account-people-saved = Uloženo.
+account-people-failed = Nepodařilo se uložit.

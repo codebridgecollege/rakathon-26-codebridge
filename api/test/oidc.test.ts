@@ -602,14 +602,17 @@ describe("org and role switch", () => {
     expect(await (await me(back)).json()).toMatchObject({ user: { id: "admin" }, impersonating: false, real_user: null });
   });
 
-  it("refuses a role switch to another org's membership, to a membership without a demo account, and in a hospital org", async () => {
+  it("offers someone with no login of their own in a demo org, and refuses another org's membership and a hospital org", async () => {
     const { sid } = await login({ sub: "sub-admin", email: "admin.a@codebridge.demo" });
     for (const membership_id of ["b-doc", "gone", "nobody"]) expect((await post("/api/session/role", sid, { membership_id })).status).toBe(404);
-    await env.DB.prepare("UPDATE users SET email = NULL WHERE id = 'd1p1'").run();
-    expect((await post("/api/session/role", sid, { membership_id: "d1p1" })).status).toBe(404);
     const h = cookieValue(await post("/api/session/org", (await login()).sid, { org_id: "hosp" }), "__Host-cb_session");
     expect((await post("/api/session/role", h, { membership_id: "h-d2p1" })).status).toBe(403);
     expect((await sessions()).filter((s) => s.acting_membership_id)).toEqual([]);
+    // Added on the staff list, so without an e-mail: still someone to act as in a demo org, under the real person's name.
+    await env.DB.prepare("UPDATE users SET email = NULL WHERE id = 'd1p1'").run();
+    const offered = (await (await me(sid)).json<{ role_switch: { membership_id: string }[] }>()).role_switch!;
+    expect(offered.map((m) => m.membership_id)).toContain("d1p1");
+    expect((await post("/api/session/role", sid, { membership_id: "d1p1" })).status).toBe(200);
   });
 
   it("drops the role switch when the org stops being a demo org", async () => {
