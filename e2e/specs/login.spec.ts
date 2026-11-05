@@ -101,6 +101,27 @@ test("an administrator adds a doctor from the account menu and removes them, and
   await expect(menu(page).getByRole("button", { name: /Zkušební/ })).toHaveCount(0);
 });
 
+test("a person can keep a function and lose the name, and get the name back", async ({ page }) => {
+  await page.goto("patients");
+  await logInAtIdp(page, ADMIN_A);
+  await account(page, "Ing. Kovář").click();
+  await menu(page).getByRole("button", { name: "Upravit jméno: Bc. Marková" }).click();
+  await menu(page).getByLabel("Bez jména (ukáže se jen funkce)").check();
+  await menu(page).getByRole("button", { name: "Uložit" }).click();
+  // Only the function shows, once, and the surname is gone from the list.
+  await expect(menu(page).getByRole("button", { name: "koordinátorka MDT", exact: true })).toBeVisible();
+  await expect(menu(page).getByText("Marková")).toHaveCount(0);
+  // Back: the name fields open empty, and a surname is needed.
+  await menu(page).getByRole("button", { name: "Upravit jméno: koordinátorka MDT" }).click();
+  await menu(page).getByLabel("Bez jména (ukáže se jen funkce)").uncheck();
+  await menu(page).getByRole("button", { name: "Uložit" }).click();
+  await expect(menu(page).getByRole("alert")).toContainText("Zadejte příjmení");
+  await menu(page).getByLabel("Titul před jménem").fill("Bc.");
+  await menu(page).getByLabel("Příjmení").fill("Marková");
+  await menu(page).getByRole("button", { name: "Uložit" }).click();
+  await expect(menu(page).getByRole("button", { name: "Upravit jméno: Bc. Marková" })).toBeVisible();
+});
+
 test("an administrator renames a person from the account menu, and a doctor is not offered that", async ({ page }) => {
   await page.goto("patients");
   await logInAtIdp(page, ADMIN_A);

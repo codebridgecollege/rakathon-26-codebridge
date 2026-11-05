@@ -31,7 +31,9 @@ const userId = computed(() => session.me?.membership_id ?? session.me?.user.id ?
 // brackets (the browser suite selects them by that label). A doctor who also administers the org shows their function
 // too, so the picker tells them apart from the other doctors.
 const optText = (p: { role: string; name: string; fn: string; administers?: boolean }) =>
-  p.role === "coordinator"
+  p.fn && p.name === p.fn
+    ? p.name
+    : p.role === "coordinator"
     ? $t("user-picker-with-function", { name: p.name, fn: p.fn || $t("user-coordinator-function-default") })
     : p.role === "admin"
       ? $t("user-picker-with-function", { name: p.name, fn: $t("user-admin-function") })

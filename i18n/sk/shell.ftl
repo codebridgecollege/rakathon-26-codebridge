@@ -109,3 +109,7 @@ account-people-failed = Nepodarilo sa uložiť.
 account-people-remove-short = Odobrať
 account-people-remove = Odobrať: { $name }
 account-people-remove-confirm = Odobrať { $name } z nemocnice? Prestane sa môcť prihlásiť a zmizne z tímov. Jeho meno v histórii prípadov zostane.
+account-people-fn = Funkcia
+account-people-nameless = Bez mena (ukáže sa len funkcia)
+account-people-fn-required = Zadajte funkciu, ktorá sa ukáže namiesto mena.
+account-people-sur-required = Zadajte priezvisko, alebo zvoľte Bez mena.

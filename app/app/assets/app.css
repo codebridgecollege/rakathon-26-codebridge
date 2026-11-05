@@ -29,3 +29,5 @@ table { line-height: normal; }
 .acctform { display: grid; gap: 6px; padding: 6px 0; }
 .acctform label { display: grid; gap: 2px; font-size: 12.5px; font-weight: 600; }
 .acctform input, .acctform select { font-weight: 400; width: 100%; min-width: 0; }
+.acctform .acctcheck { display: flex; gap: 6px; align-items: center; font-weight: 400; }
+.acctform .acctcheck input { width: auto; }

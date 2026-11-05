@@ -106,3 +106,7 @@ account-people-failed = Could not save.
 account-people-remove-short = Remove
 account-people-remove = Remove: { $name }
 account-people-remove-confirm = Remove { $name } from the hospital? They can no longer log in and leave their teams. Their name stays in case history.
+account-people-fn = Function
+account-people-nameless = No name (show only the function)
+account-people-fn-required = Enter the function to show in place of a name.
+account-people-sur-required = Enter a surname, or choose No name.
