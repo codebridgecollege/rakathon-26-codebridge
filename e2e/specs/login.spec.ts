@@ -81,6 +81,26 @@ test("logout ends the session here and at the IdP", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "Mock IdP: přihlášení" })).toBeVisible();
 });
 
+test("an administrator adds a doctor from the account menu and removes them, and cannot remove the coordinator", async ({ page }) => {
+  await page.goto("patients");
+  await logInAtIdp(page, ADMIN_A);
+  await account(page, "Ing. Kovář").click();
+  await expect(menu(page).getByRole("button", { name: "Odebrat: Bc. Marková" })).toHaveCount(0);
+  await expect(menu(page).getByRole("button", { name: "Odebrat: Ing. Kovář" })).toHaveCount(0);
+  await menu(page).getByRole("button", { name: "+ Přidat lékaře" }).click();
+  await menu(page).getByLabel("Titul před jménem").fill("MUDr.");
+  await menu(page).getByLabel("Příjmení").fill("Zkušební");
+  await menu(page).getByRole("button", { name: "Uložit" }).click();
+  const remove = menu(page).getByRole("button", { name: "Odebrat: MUDr. Zkušební" });
+  await expect(remove).toBeVisible();
+  page.once("dialog", (d) => void d.dismiss());
+  await remove.click();
+  await expect(remove).toBeVisible();
+  page.once("dialog", (d) => void d.accept());
+  await remove.click();
+  await expect(menu(page).getByRole("button", { name: /Zkušební/ })).toHaveCount(0);
+});
+
 test("an administrator renames a person from the account menu, and a doctor is not offered that", async ({ page }) => {
   await page.goto("patients");
   await logInAtIdp(page, ADMIN_A);

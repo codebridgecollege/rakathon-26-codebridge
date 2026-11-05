@@ -1,6 +1,6 @@
 <script setup lang="ts">
-// The account menu's people in a demo org: choose whom to act as, and, while acting as an administrator, rename people or
-// add a doctor. No passwords: a person added here has no login of their own, someone logged in acts as them, and the access
+// The account menu's people in a demo org: choose whom to act as, and, while acting as an administrator, rename people,
+// add a doctor or remove one. No passwords: a person added here has no login of their own, someone logged in acts as them, and the access
 // log records the person logged in (AUTH.md, "Organizations and roles"). Names go through the staff list's own checks.
 import { computed, reactive, ref } from "vue";
 import { useFluent } from "fluent-vue";
@@ -58,6 +58,13 @@ function saveEdit(p: RoleSwitchEntry) {
     }
   }, () => (editing.value = null));
 }
+// The staff list's rule: the coordinator, the administrator and whoever is acting stay, so the org keeps its roles and
+// nobody removes themselves mid-session. Leaving ends the membership; the person's name stays in the case history.
+const canRemove = (p: RoleSwitchEntry) => p.role === "doctor" && !p.administers && p.user_id !== me.value?.user.id;
+function remove(p: RoleSwitchEntry) {
+  if (!window.confirm($t("account-people-remove-confirm", { name: p.name }))) return;
+  void save(() => useApi().deletePerson(p.user_id), () => {});
+}
 function startAdd() {
   editing.value = null;
   adding.value = true;
@@ -94,6 +101,7 @@ function saveAdd() {
         {{ $t("account-role-entry", { name: p.name, role: props.roleText(p) }) }}
       </button>
       <button v-if="canEdit" class="btn small" :disabled="props.busy || saving" :aria-label="$t('account-people-rename', { name: p.name })" @click="startEdit(p)">{{ $t("account-people-edit") }}</button>
+      <button v-if="canEdit && canRemove(p)" class="btn small" :disabled="props.busy || saving" :aria-label="$t('account-people-remove', { name: p.name })" @click="remove(p)">{{ $t("account-people-remove-short") }}</button>
     </span>
   </template>
   <template v-if="canEdit">

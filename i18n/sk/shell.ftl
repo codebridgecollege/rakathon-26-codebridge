@@ -106,3 +106,6 @@ account-people-save = Uložiť
 account-people-cancel = Zrušiť
 account-people-saved = Uložené.
 account-people-failed = Nepodarilo sa uložiť.
+account-people-remove-short = Odobrať
+account-people-remove = Odobrať: { $name }
+account-people-remove-confirm = Odobrať { $name } z nemocnice? Prestane sa môcť prihlásiť a zmizne z tímov. Jeho meno v histórii prípadov zostane.

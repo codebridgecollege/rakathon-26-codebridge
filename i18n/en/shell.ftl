@@ -103,3 +103,6 @@ account-people-save = Save
 account-people-cancel = Cancel
 account-people-saved = Saved.
 account-people-failed = Could not save.
+account-people-remove-short = Remove
+account-people-remove = Remove: { $name }
+account-people-remove-confirm = Remove { $name } from the hospital? They can no longer log in and leave their teams. Their name stays in case history.
