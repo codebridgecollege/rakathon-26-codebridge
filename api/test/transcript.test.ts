@@ -569,18 +569,17 @@ describe("SpeakerPassWorkflow", () => {
     expect(await q("SELECT * FROM jobs")).toEqual([]);
   });
 
-  it("sends the transcript through the model interface: name pseudonymized, the send logged, the name back in the summary", async () => {
+  it("sends the transcript through the model interface: name pseudonymized, the send logged, no placeholder or value restored", async () => {
     const { full_name } = (await one("SELECT p.full_name FROM cases c JOIN patients p ON p.id = c.patient_id AND p.org_id = c.org_id WHERE c.id = 'NO-A'")) as { full_name: string };
     const names = full_name.split(" ");
     await recordCase(2, [`pacient ${full_name} po resekci`, "kontrolní CT za tři měsíce", "souhlasím"]);
-    const { wf, inst } = await runPass({ eleven: [() => elevenWords([])], llm: [() => llmAnswer("[PACIENT]: kontrolní CT za tři měsíce.")] });
+    const { wf, inst } = await runPass({ eleven: [() => elevenWords([])], llm: [() => llmAnswer("[PACIENT] [PACIENT]: kontrolní CT za tři měsíce, kontakt [TELEFON], volá [LEKAR_1].")] });
     await using _ = wf;
     await inst.waitForStatus("complete");
     expect(modelBodies.join("")).toContain("kontrolní CT");
     for (const name of names) expect(modelBodies.join("")).not.toContain(name);
     const { text } = (await one("SELECT text FROM transcript_summaries")) as { text: string };
-    expect(names.some((name) => text.includes(name))).toBe(true);
-    expect(text).not.toContain("[PACIENT]");
+    expect(text).toBe("pacient: kontrolní CT za tři měsíce, kontakt údaj skrytý, volá lékař.");
     expect(await one("SELECT COUNT(*) AS n FROM access_log WHERE action = 'model.call'")).toEqual({ n: 1 });
   });
 

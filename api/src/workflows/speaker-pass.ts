@@ -14,7 +14,6 @@ import { loadCaseIdentity } from "../store/identity";
 import { modelOn } from "./extract-document";
 import { PROMPT, PROMPT_VERSION } from "../prompts/summarize-cs";
 import { actorFor, concatObjects, deleteForPass, finalizeForPass, joinedAudio } from "../store/audio";
-import type { Pseudonymized } from "../domain/pseudonymize";
 import { Tx } from "../store/write";
 import { sha256Hex } from "../store/work";
 import { orgKey, orgStmt } from "../store/sql";
@@ -53,8 +52,11 @@ async function jobOf(env: Env, p: SpeakerPassParams): Promise<JobRow> {
   return j;
 }
 
-// The doctors read names, not placeholders. A placeholder with no original stays as it is, so nothing is guessed.
-const withOriginals = (text: string, p: Pseudonymized) => text.replace(/\[[A-Z]+(?:_[A-Z0-9]+)*\]/g, (ph) => p.originals(ph)[0] ?? ph);
+// A placeholder the model copied anyway is never turned back into a value: several originals can sit behind one, so the
+// doctor could read the wrong person's name or the wrong number. A neutral word says less and cannot be wrong.
+const PLACEHOLDERS = /\[[A-Z]+(?:_[A-Z0-9]+)*\](?:[ \t]+\[[A-Z]+(?:_[A-Z0-9]+)*\])*/g;
+const withoutPlaceholders = (text: string) =>
+  text.replace(PLACEHOLDERS, (ph) => (ph.startsWith("[PACIENT") ? "pacient" : /^\[(LEKAR|PERSONAL)/.test(ph) ? "lékař" : "údaj skrytý"));
 
 async function actor(env: Env, p: SpeakerPassParams) {
   const j = await jobOf(env, p);
@@ -230,17 +232,21 @@ async function summarize(env: Env, p: SpeakerPassParams, basis: "speaker_pass" |
   if (cached && typeof cached.summary === "string") summary = cached.summary;
   else {
     // The same switch as the document pipeline: an org not cleared for the model sends no transcript either.
-    if (!modelOn(env, p.org)) throw new NonRetryableError("model:503");
+    if (!modelOn(env, p.org)) {
+      await row("skipped").run();
+      return { summaryId, state: "skipped" };
+    }
     try {
       // Through the one model interface: spoken names are pseudonymized, identifiers left in the text refuse the call,
       // and the access log has the send before the first attempt. A transcript has no document, so the pass stands in.
       const r = await callModel(env, { org: p.org, caseId: p.caseId, actor: await actor(env, p), purpose: "summarize", prompt: "summarize-cs", identity: await loadCaseIdentity(env.DB, p.org, p.caseId), text: [{ ref: { docId: `transcript-${p.passId}`, page: null }, text }], maxOutputTokens: SUMMARY_TOKENS });
-      summary = withOriginals(r.output.trim(), r.pseudonymized[0]!);
+      summary = withoutPlaceholders(r.output.trim());
     } catch (e) {
       if (!(e instanceof ModelError)) throw e;
       const st = e.upstream;
-      if (e.retryable) throw new Error(`model:${st ?? 503}:0`);
-      throw new NonRetryableError(`model:${typeof st === "number" ? st : 400}`);
+      // A blank or unfinished 200 is a provider failure, not a refusal of our request.
+      if (e.retryable) throw new Error(`model:${st === "network" || st === 429 || (typeof st === "number" && st >= 500) ? st : 503}:0`);
+      throw new NonRetryableError(`model:${typeof st === "number" && st >= 400 ? st : 400}`);
     }
     await env.DOCS.put(key, JSON.stringify({ summary, model, prompt_version: PROMPT_VERSION, created_at: at }), { httpMetadata: { contentType: "application/json" } });
   }

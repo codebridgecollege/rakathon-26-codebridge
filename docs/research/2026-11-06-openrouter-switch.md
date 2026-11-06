@@ -61,8 +61,16 @@ S04 mammography date and the case 10 sentence are read correctly. OpenRouter did
 
 1. **False "original report missing" alerts.** S02 in the run above: the facts of the original report carry no date, and an
    undated exam is never matched on purpose. It errs towards a warning and moved between cases across runs.
-2. **Smaller:** old `azure_*` codes would show raw (production has no such rows on 2026-11-06); 402, 403 and 408 mapping;
-   `require_parameters`; no pin check for `openai-compatible` pointed at OpenRouter; a page whose extraction failed still
-   appears under "Nečitelné strany".
+2. **Smaller:** old `azure_*` codes would show raw (production had no such rows on 2026-11-06); 402, 403 and 408 mapping;
+   `require_parameters`; no pin check for `openai-compatible` pointed at OpenRouter; a part whose extraction failed still
+   lists its pages under "Nečitelné strany", and a partial failure stays "nothing found"; after a reload a failed search
+   loses its message; the evaluation harness names the main model for readings; the summary token cap of 2000 is not
+   measured on a long transcript; budget rows from before the fix count for 24 hours.
 
-After a deploy, documents left unread during the outage need reprocessing by hand (`POST /documents/:id/process`).
+After deploying the two models, reprocess by hand (`POST /documents/:id/process`) the documents left unread during the
+outage and those Luna read, which keep its misreadings in `p<n>.vision.json`:
+
+```sql
+SELECT DISTINCT case_id, document_id FROM access_log
+WHERE action = 'model.call' AND what_cs LIKE '%gpt-6-luna%read_page%'
+```

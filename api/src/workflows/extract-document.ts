@@ -220,7 +220,7 @@ export class ExtractDocumentWorkflow extends WorkflowEntrypoint<Env, ExtractDocu
         // A page sent to the vision model because its text is doubtful, whose reading then failed, keeps that doubtful
         // text: every fact from it needs checking, or a garbled layer would come out as clear.
         const failedRead = unread[`p${n}`] !== undefined;
-        pages.push({ page: n, text: reading.text, quoteText: reading.quoteText, engine: reading.engine, words: f.rec.words, readability: f.level, verify: failedRead ? [[0, Math.max(reading.text.length, reading.quoteText?.length ?? 0)]] : reading.verify, identity: pageIdentity.get(n) ?? "cannot_verify" });
+        pages.push({ page: n, text: reading.text, quoteText: reading.quoteText, engine: reading.engine, words: f.rec.words, readability: f.level, verify: failedRead ? [[0, reading.text.length]] : reading.verify, identity: pageIdentity.get(n) ?? "cannot_verify" });
       }
       const calls: CallAnswer[] = [];
       const unreadPages: number[] = [];

@@ -38,7 +38,7 @@ source.
 |---|---|---|---|---|
 | PyMuPDF 1.24.10 | used | Render each PDF page to an image (150 dpi for display, 300 dpi for OCR); inspect fonts and images | Renders exactly what a viewer shows, fast, no external service | Local |
 | Tesseract 5 with the Czech model (`ces`) | used | Local OCR of the rendered page; per-word confidence and position | Free, runs on the hospital's own server, gives confidences and boxes for "verify" marks and for highlighting the quote on the page image | Local |
-| Vision LLM | used (Claude Haiku 5.5 through OpenRouter, EU endpoint) | Primary transcription of the rendered page: Czech medical print, tables kept as tables, stamps and blacked-out areas marked | It was correct at every problem spot in the evaluation, including the iRECIST table | Cloud unless run locally; see [data protection](DATA-PROTECTION.md) |
+| Vision LLM | used (Claude Haiku 5.5 through OpenRouter; the development evaluation used Claude Sonnet) | Primary transcription of the rendered page: Czech medical print, tables kept as tables, stamps and blacked-out areas marked | It was correct at every problem spot in the evaluation, including the iRECIST table | Cloud unless run locally; see [data protection](DATA-PROTECTION.md) |
 | pypdf 5.1.0 | used, superseded for reading | First text extraction for the fixture data (`fixtures/data/ocr.json`); still useful for metadata | | Local |
 | `scripts/ocr_pages.py` | used | Our pipeline: render, OCR with Tesseract, write images, text, and word boxes to `data/derived/pages/` | | Local |
 | `scripts/build_page_index.py` | used | Merge the vision text, Tesseract words, and disagreements into `data/derived/page-index.json` for the app | | Local |
@@ -78,7 +78,7 @@ read it and whether it was redacted. Evidence:
 | Technology | Status | What we use it for | Notes |
 |---|---|---|---|
 | LLM for extraction | used (GPT-6 Luna through OpenRouter) | Turn page text into structured facts (diagnosis, stage, treatment lines, labs, dates), each with its source quote and page | Model, endpoint, and key from configuration (`CLAUDE.md`, "Calling LLMs") |
-| Pseudonymization step | planned | Replace name, birth number, and other direct identifiers with the case ID before any text or image leaves the hospital | See [data protection](DATA-PROTECTION.md) |
+| Pseudonymization step | used | Replace name, birth number, and other direct identifiers with the case ID before any text or image leaves the hospital | See [data protection](DATA-PROTECTION.md) |
 | Rules and checklists | planned | Missing documents, contradictions (like with like), readability | Deterministic code, not the LLM, wherever a rule can decide |
 
 The demo's patient data was extracted by Claude sub-agents during

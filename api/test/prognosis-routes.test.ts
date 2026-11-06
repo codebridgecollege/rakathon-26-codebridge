@@ -204,6 +204,14 @@ describe("the job", () => {
     expect(await env.DOCS.head("org/demo-a/jobs/NO-A/prognosis-pg-x.json")).toBeNull();
   });
 
+  it("keeps a good saved search when a later one finds nothing, and says another try will not help", async () => {
+    await env.DOCS.put(prognosisSavedKey("demo-a", "NO-A", "2026-10-22"), JSON.stringify({ result: { rows: [{ study_title: "Dobrá" }] } }));
+    openrouter(() => Response.json({ usage: { server_tool_use_details: { web_search_requests: 1 } }, choices: [{ finish_reason: "stop", message: { content: JSON.stringify({ rows: [] }), annotations: [] } }] }));
+    await job();
+    await draft();
+    expect((await runPrognosisJob({ ...env, ...ON } as Env, params)).code).toBe("search_empty");
+  });
+
   it("does not let a failed search hide demo org A's seeded replay", async () => {
     await env.DOCS.put("prognosis/NO-A/saved.json", JSON.stringify({ result: { rows: [{ study_title: "Uložená" }] } }));
     openrouter(() => new Response("provider failed", { status: 500 }));

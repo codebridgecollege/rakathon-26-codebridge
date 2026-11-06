@@ -105,7 +105,7 @@ export function modelAvailable(env: Env): boolean {
   }
 }
 
-// docId is the `documents.id` of the case's document (never a file name, fixture or part ID): the cache folder and the
+// docId is the `documents.id` of the case's document, or transcript-<pass> for a discussion (never a file name, fixture or part ID): the cache folder and the
 // purge on withdraw (model-cache.ts) go by it.
 export type PageRef = { docId: string; page: number | null };
 

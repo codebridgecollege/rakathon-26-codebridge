@@ -294,7 +294,7 @@ Design and contract: `docs/research/backend-steps/step-6.md`, section "As implem
 
 ## Model interface (issue #20, stream D phase 1)
 
-Every call that sends case content to an external model goes through `callModel` in `src/services/model.ts`; the
+Every call that sends case text or page images to an external model goes through `callModel` (the Prognóza search sends its profile itself) in `src/services/model.ts`; the
 privacy side is in `docs/design/DATA-PROTECTION.md`, "Text sent to a model", and the measurements behind the models in
 `docs/research/2026-11-06-openrouter-switch.md`.
 

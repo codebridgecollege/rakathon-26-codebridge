@@ -84,7 +84,8 @@
     "MODEL_BUDGET_WINDOW_HOURS": "24",
     "MODEL_BUDGET_PAGES_PER_ORG": "600",
     "MODEL_BUDGET_PAGES_PER_CASE": "80",
-    "MODEL_BUDGET_CALLS_PER_PAGE": "4",
+    // A page can take four read attempts and four extraction attempts, so a failed read still leaves room to extract.
+    "MODEL_BUDGET_CALLS_PER_PAGE": "8",
     "ELEVENLABS_API_BASE": "https://api.elevenlabs.io",
     "STT_REALTIME_MODEL": "scribe_v2_realtime",
     "STT_BATCH_MODEL": "scribe_v2",

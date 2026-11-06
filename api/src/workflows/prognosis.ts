@@ -61,9 +61,10 @@ export async function runPrognosisJob(env: Env, p: PrognosisParams, fetchFn?: ty
   }
   await setJob(env, p, "running", "normalize", null);
   // A search that found nothing goes in too, so the tab can say why, unless the case already has saved rows: a failed
-  // search must not replace or hide a good result. The job's error tells the doctor instead.
-  const rows = (result as { rows?: unknown[] }).rows;
-  if (!rows?.length && (await hasSavedRows(env, p))) return fail("search_failed");
+  // search must not replace or hide a good result. The job's error tells the doctor instead, and says whether another
+  // try makes sense, because each search costs money.
+  const { rows, models } = result as { rows?: unknown[]; models?: { status?: string }[] };
+  if (!rows?.length && (await hasSavedRows(env, p))) return fail(models?.[0]?.status === "error" ? "search_failed" : "search_empty");
   const key = prognosisSavedKey(p.org, p.caseId, p.scheduledDate);
   await env.DOCS.put(key, JSON.stringify({ patient_id: p.file, scheduled_date: p.scheduledDate, result }), { httpMetadata: { contentType: "application/json" } });
   await env.DOCS.delete(draftKey);
