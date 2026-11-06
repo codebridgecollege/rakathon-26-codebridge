@@ -73,6 +73,12 @@ describe("panel flags", () => {
     expect(rules(cd(fact("medication", { drug: "Eliquis", strength: "5 mg" })))).toEqual(["anticoagulant"]);
   });
 
+  it("names a lab plainly, and leaves a misread unit out of the chip", () => {
+    const f = (name_as_written: string, unit: string | null) => fact("lab_result", { name_as_written, value_as_written: "148", unit, unit_as_written: "10“9/|", out_of_range: "low" });
+    expect(labels(cd(f("B PLT", null)))).toEqual(["Trombocyty 148"]);
+    expect(labels(cd(f("PT(KIDN) EGFRCKDE", "ml/s")))).toEqual(["eGFR 148 ml/s"]);
+  });
+
   it("uses the document's own flag for the newest lab, and shortens only the unit", () => {
     const low = fact("lab_result", { name_as_written: "eGFR CKD-EPI", value_as_written: "1,01", unit: "ml/s/1,73 m2", out_of_range: "low" }, dated("1.1.2026", "2026-01-01"));
     expect(labels(cd(low))).toEqual(["eGFR 1,01 ml/s"]);

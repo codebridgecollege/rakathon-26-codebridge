@@ -84,12 +84,12 @@ const MEASURES: Measure[] = [
 ];
 
 // A lab the document itself marks out of its reference range, so no limit of ours is applied.
-type LabRule = { id: string; name: RegExp; dir: "high" | "low"; modalities: Modality[]; why_cs: string };
+type LabRule = { id: string; label: string; name: RegExp; dir: "high" | "low"; modalities: Modality[]; why_cs: string };
 const LABS: LabRule[] = [
-  { id: "kidney-lab", name: /egfr|clearance|glomerul/, dir: "low", modalities: ["chemo"], why_cs: "Snížená funkce ledvin bývá důvodem upravit dávku nebo volbu léku." },
-  { id: "liver-lab", name: /bilirubin|bili/, dir: "high", modalities: ["chemo"], why_cs: "Zvýšený bilirubin bývá důvodem upravit dávku léků odbourávaných v játrech." },
-  { id: "neutrophils", name: /neutrofil|neut/, dir: "low", modalities: ["chemo"], why_cs: "Nízké neutrofily omezují myelosupresivní léčbu." },
-  { id: "platelets", name: /trombocyt|plt/, dir: "low", modalities: ["chemo"], why_cs: "Nízké trombocyty omezují myelosupresivní léčbu." },
+  { id: "kidney-lab", label: "eGFR", name: /egfr|clearance|glomerul/, dir: "low", modalities: ["chemo"], why_cs: "Snížená funkce ledvin bývá důvodem upravit dávku nebo volbu léku." },
+  { id: "liver-lab", label: "Bilirubin", name: /bilirubin|bili/, dir: "high", modalities: ["chemo"], why_cs: "Zvýšený bilirubin bývá důvodem upravit dávku léků odbourávaných v játrech." },
+  { id: "neutrophils", label: "Neutrofily", name: /neutrofil|neut/, dir: "low", modalities: ["chemo"], why_cs: "Nízké neutrofily omezují myelosupresivní léčbu." },
+  { id: "platelets", label: "Trombocyty", name: /trombocyt|plt/, dir: "low", modalities: ["chemo"], why_cs: "Nízké trombocyty omezují myelosupresivní léčbu." },
 ];
 
 // Word rules read what the documents state about the patient's conditions, not free findings, where chance words abound.
@@ -210,7 +210,9 @@ export function panelFlagsOf(cd: CaseData | null | undefined): PanelFlags {
     const latest = labs.find((f) => r.name.test(fold(String(f.value.name_as_written ?? ""))));
     if (latest && latest.value.out_of_range === r.dir) {
       const v = latest.value;
-      flags.push(flagOf(latest, r.id, `${firstClause(String(v.name_as_written)).replace(/\s+CKD-EPI.*$/i, "")} ${v.value_as_written} ${shortUnit(v.unit ?? v.unit_as_written)}`.trim(), r.modalities, r.why_cs, 0, true));
+      // The chip says the test's plain name and only a unit the reading confirmed: a printed code ("PT(KIDN) EGFRCKDE") or a
+      // misread unit ("10“9/|") stays in the tooltip's fact, as written.
+      flags.push(flagOf(latest, r.id, `${r.label} ${v.value_as_written} ${shortUnit(v.unit)}`.trim(), r.modalities, r.why_cs, 0, true));
     }
   }
 
