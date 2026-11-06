@@ -225,8 +225,7 @@ Declare this list to the jury and mentors.
   Logs), hosting the API Worker `codebridge-mdt` in `api/`, which serves
   the demo (the Nuxt app at `/` and the API under `/api`), with Hono
   4.13.13, `jose` 6.2.12, Wrangler 4.147.0, TypeScript 5.9.3, and Vitest
-  4.1.11 with `@cloudflare/vitest-plugin` 1.3.6. Cloudflare AI Gateway is
-  wired as an option but off.
+  4.1.11 with `@cloudflare/vitest-plugin` 1.3.6.
 - JSON Schema libraries for the extraction format (written during the
   event): ts-json-schema-generator 2.9.0 (generates the schema from the
   TypeScript types), `@cfworker/json-schema` 4.1.1 (validates in the
