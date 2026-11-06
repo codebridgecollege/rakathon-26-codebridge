@@ -42,7 +42,7 @@ describe("permission matrix", () => {
 
   it("refuses a doctor outside the team on case actions, unless a grant exists", () => {
     for (const [action, d] of MATRIX) {
-      if (!d || ["session.write", "case.create", "digest.send", "break_glass"].includes(action)) continue;
+      if (!d || ["session.write", "case.create", "digest.send", "break_glass", "staff.write"].includes(action)) continue;
       expect(() => assertCan(doctor, action, outsider)).toThrow(expect.objectContaining({ code: "not_member" }));
       expect(allowed(doctor, action, granted)).toBe(true);
     }

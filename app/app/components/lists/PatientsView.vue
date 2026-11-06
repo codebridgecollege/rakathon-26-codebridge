@@ -3,6 +3,7 @@
 // filters, column resize, pages of 20, booking from the list and opening a case. Same markup and classes as the old
 // page, so the copied CSS styles it unchanged.
 import { useTeamRows } from "../../composables/useTeamRows";
+import { teamColor } from "../../lib/teamColor";
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useRouter } from "vue-router";
 import { useFluent } from "fluent-vue";
@@ -229,7 +230,7 @@ const age = (p: PatientRow) => ageOf(p, DEMO_TODAY);
               </td>
               <td class="num" :class="{ muted: !p.rc }" :title="p.rc ? '' : $t('patients-rc-missing')">{{ p.rc || "-" }}</td>
               <td class="num" :class="{ muted: !age(p) }" :title="age(p)?.computed ? $t('patients-age-computed') : undefined">{{ age(p)?.n ?? "-" }}</td>
-              <td v-if="showTeam">{{ teamName(p.teamId) }}</td>
+              <td v-if="showTeam"><span v-if="p.teamId" class="teamdot" :style="{ '--team': teamColor(teams, p.teamId) }" />{{ teamName(p.teamId) }}</td>
               <td><b style="font-weight:600">{{ p.diagnosis ?? "" }}</b></td>
               <td>{{ p.owner }}</td>
               <td><template v-if="p.dept">{{ p.dept }}</template><span v-else class="gapq" :title="$t('lists-gap-not-stated')">-</span></td>

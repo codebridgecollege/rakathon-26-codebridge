@@ -253,7 +253,6 @@ staff-subtitle = Lékaři podle pracovišť pro docházku na MDT a výběr uživ
 staff-reset = Obnovit výchozí (smyšlená jména)
 staff-reset-done = Obnoven výchozí personál (smyšlená jména)
 staff-edit-note = Odebraná osoba zůstává v historii: v dřívějších závěrech, docházce a záznamu přístupů se jméno nemění. Přejmenování se promítne do otevřených úloh, vlastníků případů a docházky, kterou ještě neuzamklo schválení závěru.
-staff-read-note = Seznam upravuje koordinátorka MDT nebo správce systému; lékař ho jen čte.
 staff-coordinator-title = Koordinátorka onkologických MDT
 staff-col-shown = Zobrazí se
 staff-field-pre = Titul před
@@ -379,6 +378,7 @@ calendar-list-count = { $n ->
    *[other] { $n } pacientů
 }
 lists-team-some = { $n ->
+    [one] { $n } tým
     [few] { $n } týmy
     [many] { $n } týmu
    *[other] { $n } týmů

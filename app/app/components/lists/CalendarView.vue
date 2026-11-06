@@ -4,6 +4,7 @@
 // buttons (pick a patient, then a free slot), by drag and drop, and from the card; a double click on a booked slot
 // opens the case. Slots a conclusion was approved on are locked.
 import { useTeamRows } from "../../composables/useTeamRows";
+import { teamColor } from "../../lib/teamColor";
 import { computed, onBeforeUnmount, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useFluent } from "fluent-vue";
@@ -14,6 +15,7 @@ import {
   bookedMeetings,
   inSeminar,
   seminarsOn,
+  type NamedPlan,
   type SeminarPlans,
   isIsoDayShape,
   mondayOf,
@@ -118,8 +120,24 @@ const openMeeting = (m: { day: string }) => {
   v.calView = "week";
   goWeek(mondayOf(m.day), m.day.slice(0, 7));
 };
-const seminarText = (d: string) => {
-  return seminarsOn(d, plan.value).map((s) => $t("calendar-seminar-hours", { name: s.name || session.me?.mdt?.name || $t("calendar-seminar-default"), from: s.from, to: s.to })).join(" · ");
+// A day's seminars with their team colours; the grid's cells and booked slots carry the same colour.
+const teamVar = (id: string | null | undefined) => {
+  const color = teamColor(teams.value, id);
+  return color ? { "--team": color } : undefined;
+};
+const namedPlans = computed(() => (Array.isArray(plan.value) ? (plan.value as NamedPlan[]) : []));
+const seminarLines = (d: string) =>
+  seminarsOn(d, plan.value)
+    .slice()
+    .sort((a, b) => a.from.localeCompare(b.from))
+    .map((s) => ({
+      text: $t("calendar-seminar-hours", { name: s.name || session.me?.mdt?.name || $t("calendar-seminar-default"), from: s.from, to: s.to }),
+      style: teamVar(namedPlans.value.find((pl) => pl.name === s.name)?.id),
+    }));
+// The colour of the team whose seminar a free or booked cell falls in.
+const cellTeam = (d: string, t: string) => {
+  for (const pl of namedPlans.value) if (inSeminar(d, t, [pl])) return teamVar(pl.id);
+  return undefined;
 };
 const rangeText = computed(() => {
   const a = new Date(`${v.week}T12:00:00Z`);
@@ -307,7 +325,7 @@ const startDay = ref<string | null>(null);
         <p v-if="!part.ms.length" class="muted small">{{ $t("calendar-list-none") }}</p>
         <button v-for="m in part.ms" :key="`${m.day}-${m.teamId}`" class="callist-row" @click="openMeeting(m)">
           <span>{{ text.dayLabel(m.day) }}</span><span>{{ m.time }}</span>
-          <span><b>{{ meetingName(m.teamId) }}</b><br><span class="muted small">{{ m.patients.length ? m.patients.map((p) => surnameFirst(p)).join(", ") : $t("calendar-list-empty") }}</span></span>
+          <span><b><span v-if="teamVar(m.teamId)" class="teamdot" :style="teamVar(m.teamId)" />{{ meetingName(m.teamId) }}</b><br><span class="muted small">{{ m.patients.length ? m.patients.map((p) => surnameFirst(p)).join(", ") : $t("calendar-list-empty") }}</span></span>
           <span class="muted small">{{ $t("calendar-list-count", { n: m.patients.length }) }}</span>
         </button>
       </section>
@@ -318,17 +336,19 @@ const startDay = ref<string | null>(null);
           <div class="cal">
             <div />
             <div v-for="d in days" :key="d" class="dh" :class="{ today: d === DEMO_TODAY }">
-              {{ text.dayLabel(d) }}{{ d === DEMO_TODAY ? $t("calendar-today-suffix") : "" }}<small>{{ seminarText(d) || " " }}</small>
+              {{ text.dayLabel(d) }}{{ d === DEMO_TODAY ? $t("calendar-today-suffix") : "" }}<small><span v-for="l in seminarLines(d)" :key="l.text" class="semline"><span v-if="l.style" class="teamdot" :style="l.style" />{{ l.text }}</span><template v-if="!seminarLines(d).length">{{ " " }}</template></small>
               <button v-if="dayAgenda(rows, d).length" class="btn small primary startmdt" @click="startDay = d">{{ $t("calendar-start-mdt") }}</button>
             </div>
             <template v-for="t in grid.times" :key="t">
               <div class="tm" :class="{ hr: t.endsWith(':00') }">{{ t }}</div>
-              <div v-for="d in days" :key="`${d} ${t}`" class="cell" :class="{ sem: inSeminar(d, t, plan), oot: !inSeminar(d, t, plan) && outOfHours(d, t, plan), today: d === DEMO_TODAY }">
+              <div v-for="d in days" :key="`${d} ${t}`" class="cell" :class="{ sem: inSeminar(d, t, plan), oot: !inSeminar(d, t, plan) && outOfHours(d, t, plan), today: d === DEMO_TODAY, teamed: !!cellTeam(d, t) }" :style="cellTeam(d, t)">
                 <template v-if="bySlot.get(`${d} ${t}`)">
                   <button
                     v-for="p in [bySlot.get(`${d} ${t}`)!]"
                     :key="p.file"
                     class="slotbtn taken"
+                    :class="{ teamslot: !!teamVar(p.teamId) }"
+                    :style="teamVar(p.teamId)"
                     :draggable="locked(p) ? 'false' : 'true'"
                     :title="$t('calendar-slot-title', { name: surnameFirst(p), rc: p.rc || $t('lists-gap-not-stated') })"
                     :aria-label="$t('calendar-slot-label', { name: surnameFirst(p), rc: p.rc || $t('lists-gap-not-stated'), time: t })"

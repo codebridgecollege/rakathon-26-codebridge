@@ -131,7 +131,6 @@ const deptInput = () => document.getElementById("newdept")?.focus();
       <button v-if="edit" class="btn" @click="resetStaff">{{ $t("staff-reset") }}</button>
     </div>
     <p v-if="edit" class="muted small">{{ $t("staff-edit-note") }}</p>
-    <p v-else class="muted small">{{ $t("staff-read-note") }}</p>
     <section class="card staffdept">
       <div class="head"><h2>{{ $t("staff-coordinator-title") }}</h2></div>
       <template v-if="dir?.coord">

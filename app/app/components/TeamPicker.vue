@@ -5,6 +5,7 @@ import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import { useFluent } from "fluent-vue";
 import { useListViewStore } from "../stores/listView";
 import { useStaffStore } from "../stores/staff";
+import { teamColor } from "../lib/teamColor";
 
 const { $t } = useFluent();
 const v = useListViewStore();
@@ -48,7 +49,7 @@ onBeforeUnmount(() => {
     <button class="btn small" :aria-expanded="open" :aria-label="`${$t('lists-team-filter')}: ${label}`" @click="open = !open">{{ label }} ▾</button>
     <div v-if="open" class="teampop" role="group" :aria-label="$t('lists-team-filter')">
       <button class="linkbtn small" :disabled="!v.teamFilter.length" @click="clear">{{ $t("lists-team-all") }}</button>
-      <label v-for="t in teams" :key="t.id"><input type="checkbox" :checked="v.teamFilter.includes(t.id)" @change="toggle(t.id, ($event.target as HTMLInputElement).checked)"> {{ t.name }}</label>
+      <label v-for="t in teams" :key="t.id"><input type="checkbox" :checked="v.teamFilter.includes(t.id)" @change="toggle(t.id, ($event.target as HTMLInputElement).checked)"> <span class="teamdot" :style="{ '--team': teamColor(teams, t.id) }" />{{ t.name }}</label>
     </div>
   </div>
 </template>

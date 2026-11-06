@@ -6,13 +6,11 @@ import { test, expect } from "../fixtures";
 const COORD = "Bc. Marková (koordinátorka MDT)";
 const ADMIN = "Ing. Kovář (správce systému)";
 
-test("a doctor reads the staff list but cannot change it", async ({ app }) => {
+test("a doctor may edit the staff list", async ({ app }) => {
   await app.open();
   await app.nav("Personál").click();
   await expect(app.main.getByRole("heading", { level: 1, name: "Personál pracoviště" })).toBeVisible();
-  await expect(app.main.getByText("lékař ho jen čte", { exact: false })).toBeVisible();
-  await expect(app.main.getByRole("button", { name: "+ Přidat" })).toHaveCount(0);
-  await expect(app.main.getByRole("button", { name: "Obnovit výchozí (smyšlená jména)" })).toHaveCount(0);
+  await expect(app.main.getByRole("button", { name: "+ Přidat" }).first()).toBeVisible();
 });
 
 test("the coordinator adds a person, who appears in the user picker and survives a reload", async ({ app, page }) => {

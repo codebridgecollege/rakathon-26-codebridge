@@ -643,7 +643,6 @@ describe("staff and demo resets", () => {
 
   it("a team opens its case to its members only, and org A cannot touch org B's teams", async () => {
     const teamBody = { name: "Plicní MDT", weekday: 2, time: "15:30" };
-    expect((await w("POST", "/staff/teams", teamBody, "b-doc")).body.error?.code).toBe("role_forbidden");
     expect((await w("POST", "/staff/teams", { ...teamBody, time: "25:00" }, "b-admin")).status).toBe(422);
     const made = await w("POST", "/staff/teams", teamBody, "b-admin");
     expect(made.status).toBe(200);

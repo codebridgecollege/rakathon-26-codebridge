@@ -263,7 +263,6 @@ staff-subtitle = Doctors by department, for MDT attendance and the user picker
 staff-reset = Reset to default (made-up names)
 staff-reset-done = Default staff restored (made-up names)
 staff-edit-note = A removed person stays in the history: earlier conclusions, attendance and the access log keep the name. A rename carries over to open tasks, case owners and attendance not yet locked by an approved conclusion.
-staff-read-note = The list is edited by the MDT coordinator or the system administrator; doctors can only read it.
 staff-coordinator-title = Oncology MDT coordinator
 staff-col-shown = Shown as
 staff-field-pre = Title before
@@ -383,4 +382,7 @@ calendar-list-count = { $n ->
     [one] { $n } patient
    *[other] { $n } patients
 }
-lists-team-some = { $n } teams
+lists-team-some = { $n ->
+    [one] { $n } team
+   *[other] { $n } teams
+}
