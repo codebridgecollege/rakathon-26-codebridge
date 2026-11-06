@@ -26,6 +26,7 @@ import Marks from "../patient/Marks.vue";
 import QuestionBox from "../patient/QuestionBox.vue";
 import MdtSource from "./MdtSource.vue";
 import PanelFlags from "./PanelFlags.vue";
+import PanelViewIcon from "./PanelViewIcon.vue";
 import Prose from "../patient/Prose.vue";
 
 // Rows of the course without "Zobrazit vše", and the summary length past which it folds to a few lines, so the panel fits a screen.
@@ -107,10 +108,10 @@ onBeforeUnmount(() => document.body.classList.remove("mdtp-docked"));
           <button class="btn small" :disabled="!next" :aria-label="$t('discussion-session-next')" @click="next && go(next.file)">›</button>
           <span class="mdtp-gap" />
           <button class="btn small" @click="pacsStub">{{ $t("mdt-panel-pacs") }}</button>
-          <button class="btn small" @click="store.choose('full')">{{ $t("mdt-panel-whole-window") }}</button>
+          <button class="btn small iconbtn" :aria-label="$t('mdt-panel-whole-window')" :title="$t('mdt-panel-whole-window')" @click="store.choose('full')"><PanelViewIcon kind="expand" /></button>
         </div>
-        <h2 class="mdtp-name">{{ surnameFirst(c.p.value) }} <span class="mdtp-age">{{ $t("mdt-panel-age") }}: <b v-if="age">{{ age.n }}</b><Gap v-else /></span></h2>
-        <PanelFlags v-if="processed" />
+        <PanelFlags v-if="processed"><h2 class="mdtp-name">{{ surnameFirst(c.p.value) }} <span class="mdtp-age">{{ $t("mdt-panel-age") }}: <b v-if="age">{{ age.n }}</b><Gap v-else /></span></h2></PanelFlags>
+        <h2 v-else class="mdtp-name">{{ surnameFirst(c.p.value) }} <span class="mdtp-age">{{ $t("mdt-panel-age") }}: <b v-if="age">{{ age.n }}</b><Gap v-else /></span></h2>
       </div>
       <div ref="bodyEl" class="mdtp-body">
         <!-- The radiologist shows PACS and nobody scrolls here: the summary, question and course fit the screen, the rest is one click away. -->

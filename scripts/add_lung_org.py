@@ -118,6 +118,8 @@ def build(admin_user: str) -> tuple[list[str], list[dict]]:
     sql.append(member(cid, cid, "coordinator", fn))
     # The existing login gets a membership here, so C appears under the account menu's org switch; no new account.
     sql.append(member("c-admin", admin_user, "doctor", "správce systému", 1))
+    # Demo org A's administrator login too, since the presenter may be signed in with that one.
+    sql.append(member("c-admin-a", "admin", "doctor", "správce systému", 1))
 
     objects, runs = [], []
     for i, p in enumerate(PATIENTS, 1):
@@ -138,6 +140,7 @@ def build(admin_user: str) -> tuple[list[str], list[dict]]:
         # case_members has no natural key, so a rerun adds them only to a case that has none yet.
         none_yet = f"NOT EXISTS (SELECT 1 FROM case_members WHERE org_id = {lit(ORG)} AND case_id = {lit(case)})"
         sql.append(f"INSERT INTO case_members (org_id, case_id, user_id, reason, added_by, added_at) SELECT {lit(ORG)}, {lit(case)}, {lit(admin_user)}, 'založil(a) případ', {lit(admin_user)}, {lit(AT)} WHERE {none_yet};")
+        sql.append(f"INSERT INTO case_members (org_id, case_id, user_id, reason, added_by, added_at) SELECT {lit(ORG)}, {lit(case)}, 'admin', 'správce systému', {lit(admin_user)}, {lit(AT)} WHERE NOT EXISTS (SELECT 1 FROM case_members WHERE org_id = {lit(ORG)} AND case_id = {lit(case)} AND user_id = 'admin');")
         sql.append(f"INSERT INTO case_members (org_id, case_id, dept_id, reason, added_by, added_at) SELECT {lit(ORG)}, {lit(case)}, id, 'nový případ: oddělení MDT', {lit(admin_user)}, {lit(AT)} FROM departments WHERE org_id = {lit(ORG)} AND NOT EXISTS (SELECT 1 FROM case_members WHERE org_id = {lit(ORG)} AND case_id = {lit(case)} AND dept_id IS NOT NULL);")
         sql.append(insert("slots", {"org_id": ORG, "day": DAY, "time": p["slot"], "case_id": case, "booked_by": admin_user, "booked_at": AT}))
         sql.append(insert("documents", {"id": doc, "org_id": ORG, "case_id": case, "file_name": name, "media_type": "application/pdf", "page_count": 0, "original_r2_key": key, "sha256": sha,

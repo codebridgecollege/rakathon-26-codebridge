@@ -223,7 +223,8 @@ export function panelFlagsOf(cd: CaseData | null | undefined): PanelFlags {
       const m = r.re.exec(folded);
       return !!m && !denied(folded, m.index);
     }).sort(newestFirst);
-    if (hits[0]) flags.push(flagOf(hits[0], r.id, conditionLabel(hits[0]), r.modalities, r.why_cs, hits.length - 1));
+    // The one disease name short enough in its common form to save a row; the tooltip keeps the fact as written.
+    if (hits[0]) flags.push(flagOf(hits[0], r.id, r.id === "copd" ? "CHOPN" : conditionLabel(hits[0]), r.modalities, r.why_cs, hits.length - 1));
   }
 
   // A low eGFR and a stated kidney disease are one thing to count with: the value stays, the words go in its tooltip's

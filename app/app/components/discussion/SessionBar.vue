@@ -2,6 +2,7 @@
 // The running MDT's session bar (screen S-4). While an MDT runs, the only thing that
 // changes in the patient view is this bar: the day's cases in order, so the team moves between them without leaving
 // the case they look at. A pill opens that case on the same tab; approved cases are ticked.
+import PanelViewIcon from "./PanelViewIcon.vue";
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useRouter } from "vue-router";
 import { useFluent } from "fluent-vue";
@@ -108,7 +109,7 @@ onBeforeUnmount(() => window.removeEventListener("resize", measureTop));
       </button>
     </div>
     <button class="btn small" :disabled="!next" :aria-label="$t('discussion-session-next')" @click="next && go(next.file)">›</button>
-    <button v-if="!mdtPanel.open" class="btn small" @click="mdtPanel.choose('panel')">{{ $t("mdt-panel-show") }}</button>
+    <button v-if="!mdtPanel.open" class="btn small iconbtn" :aria-label="$t('mdt-panel-show')" :title="$t('mdt-panel-show')" @click="mdtPanel.choose('panel')"><PanelViewIcon kind="collapse" /></button>
     <button class="btn small" @click="attendance">{{ $t("discussion-session-present", { n: present }) }}</button>
     <button class="btn small" @click="end">{{ $t("discussion-session-end") }}</button>
   </div>

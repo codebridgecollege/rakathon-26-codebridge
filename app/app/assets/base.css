@@ -917,9 +917,15 @@ h3 { letter-spacing: -.02em; }
 .patient-erase { margin-top: 32px; padding-top: 16px; border-top: 1px solid var(--line-strong); }
 .mdtp-age { font-size: 13px; font-weight: 400; color: var(--muted); margin-left: 6px; white-space: nowrap; }
 .mdtp-flags { display: flex; flex-wrap: wrap; gap: 4px 6px; align-items: center; width: 100%; }
-.mdtp-ps { font-size: 15px; font-weight: 700; white-space: nowrap; }
-.mdtp-ps .linkbtn { font-weight: 700; }
-.mdtp-ps.low .linkbtn { color: var(--conflict); }
+.mdtp-right { display: grid; gap: 3px; min-width: 0; }
+.mdtp-top { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 8px; align-items: start; width: 100%; }
+.mdtp-ps { display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 58px; min-height: 58px; padding: 4px 8px; border: 0; border-radius: 6px; background: var(--accent); color: #fff; font: inherit; cursor: pointer; line-height: 1.1; }
+.mdtp-ps .scale { font-size: 11px; font-weight: 600; letter-spacing: 0.06em; }
+.mdtp-ps b { font-size: 28px; font-weight: 800; }
+.mdtp-ps b.long { font-size: 13px; font-weight: 700; max-width: 96px; white-space: normal; }
+.mdtp-ps.low { background: var(--conflict); }
+.mdtp-ps.none { background: transparent; color: var(--muted); border: 1px dashed var(--line-strong); cursor: default; }
+.iconbtn { display: inline-flex; align-items: center; justify-content: center; padding: 4px 7px !important; }
 .mdtp-flag { border: 1px solid var(--conflict); background: var(--conflict); color: #fff; border-radius: 3px; padding: 0 6px; font: inherit; font-size: 12px; font-weight: 600; line-height: 1.5; cursor: pointer; }
 .mdtp-flag:hover { filter: brightness(0.9); }
 .mdtp-flag.gap { background: transparent; border: 1px dashed var(--line-strong); color: var(--muted); font-weight: 400; cursor: default; }
