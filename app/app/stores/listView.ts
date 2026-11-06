@@ -19,7 +19,11 @@ export const useListViewStore = defineStore("listView", () => {
   // Column widths in px after the first resize; null keeps the browser's automatic layout.
   const colWidths = ref<number[] | null>(null);
 
+  // The MDT team the patient list and the calendar show; "" for all.
+  const teamFilter = ref("");
+
   // Calendar (S-2).
+  const calView = ref<"week" | "list">("week");
   const week = ref(DEFAULT_WEEK);
   const miniMonth = ref(monthOfWeek(DEFAULT_WEEK));
   const fullDay = ref(false);
@@ -31,5 +35,5 @@ export const useListViewStore = defineStore("listView", () => {
   const taskScope = ref<TaskScope>("mine");
   const doneOpen = ref(false);
 
-  return { q, filters, subFrom, subTo, page, showAll, colWidths, week, miniMonth, fullDay, schedPick, calPop, taskScope, doneOpen };
+  return { teamFilter, calView, q, filters, subFrom, subTo, page, showAll, colWidths, week, miniMonth, fullDay, schedPick, calPop, taskScope, doneOpen };
 });

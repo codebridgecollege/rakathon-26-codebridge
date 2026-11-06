@@ -371,3 +371,16 @@ setup-team-add = Add team
 setup-team-remove = Remove team
 setup-mdt-name-example = for example Lung MDT
 setup-unfiled = Cases without a team: { $n }. Until you file them (in the patient header), doctors see them by department.
+calendar-upcoming = Next meetings
+lists-team-filter = MDT team
+lists-team-all = All teams
+calendar-view-list = List
+calendar-view-week = Week
+calendar-list-upcoming = Upcoming ({ $n })
+calendar-list-past = Past ({ $n })
+calendar-list-none = No meetings.
+calendar-list-empty = No patients yet
+calendar-list-count = { $n ->
+    [one] { $n } patient
+   *[other] { $n } patients
+}

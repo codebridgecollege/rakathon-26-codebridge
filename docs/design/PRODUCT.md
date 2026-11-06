@@ -115,7 +115,7 @@ All made by the team on 2026-10-16.
 Soňa's request (2026-11-03): while the radiologist shows images in PACS it is easy to lose focus in a long meeting, so
 the patient stays visible at a glance. A running MDT opens a side panel beside the patient view on a wide window. A
 computer can choose "Celé okno" instead; the choice stays in that browser. Next to the PACS viewer on one computer, a
-narrow window shows only the panel.
+narrow window shows only the panel. The calendar lists the nearest meetings, each MDT team on its own line with its count.
 
 - **It fits one screen (Soňa, 2026-11-05):** while the radiologist shows PACS nobody scrolls the panel, so at 1440 x 800 a
   long case like Poláček fits without scrolling: name and age; PS (or KPS, as the document writes it, never converted)
@@ -126,6 +126,9 @@ narrow window shows only the panel.
   An alert that a page shows another patient stays open. The assistant's other open alerts with their count and "Další údaje" (contraindications, comorbidities, allergies, all
   exams) open below. Each item opens its source and keeps its certainty mark and negation. A part the extraction does
   not hold shows "-" with the gap wording; a case not loaded or not processed says that instead.
+- **Header (Soňa, 2026-11-06):** name, age and diagnosis (code, histology, grade, stage) on the left; on the right two
+  outlined tiles, PS and C/P (curative or palliative). C/P shows only what a treatment fact's own words say, and "-" when
+  none does; it is never derived from the stage or the line of treatment.
 - **Value chips, not verdicts:** doctors sometimes discuss the guideline option without factoring in, say, autoimmune
   cholangitis or EF 30 %. A red chip beside PS names the value ("EF 30 %", "HBsAg pozitivní"), never "surgery
   contraindicated"; the doctors know what follows. The modality it usually bears on and why are in the chip's tooltip,

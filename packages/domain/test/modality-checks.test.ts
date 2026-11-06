@@ -135,8 +135,17 @@ describe("panel flags", () => {
     expect(both).toMatchObject({ label: "PS 2", low: true });
   });
 
+  it("shows the intent only as a treatment fact says it, newest first, never from the stage", () => {
+    const intent = (...f: ReturnType<typeof fact>[]) => panelFlagsOf(cd(...f)).intent?.code ?? null;
+    expect(intent(fact("systemic_therapy", { text: "3. paliativní linie everolimus" }))).toBe("P");
+    expect(intent(fact("procedure", { text: "Adjuvantní chemoterapie" }))).toBe("C");
+    expect(intent(fact("systemic_therapy", { text: "Adjuvantní léčba" }, dated("1/2024", "2024-01")), fact("decision", { text: "paliativní léčba" }, dated("1/2026", "2026-01")))).toBe("P");
+    expect(intent(fact("diagnosis", { text: "Stadium IV" }), fact("systemic_therapy", { regimen: "everolimus" }))).toBeNull();
+    expect(intent(fact("comorbidity", { text: "paliativní péče o matku" }))).toBeNull();
+  });
+
   it("gives nothing for a case without a run", () => {
-    expect(panelFlagsOf(unprocessedCase("f.pdf", "X"))).toEqual({ performance: null, flags: [], missing: [] });
+    expect(panelFlagsOf(unprocessedCase("f.pdf", "X"))).toEqual({ performance: null, intent: null, flags: [], missing: [] });
   });
 });
 

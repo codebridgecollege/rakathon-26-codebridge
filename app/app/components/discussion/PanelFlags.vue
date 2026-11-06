@@ -34,14 +34,20 @@ const open = (f: PanelFlag) => f.source && c.openSource(f.source);
 
 <template>
   <div class="mdtp-top">
-    <!-- PS is the first thing a doctor looks for: a tile, red at PS 2 or KPS 60 and worse. -->
-    <button v-if="result.performance" class="mdtp-ps" :class="{ low: result.performance.low }" lang="cs" :aria-label="result.performance.label" :title="result.performance.label" @click="result.performance?.source && c.openSource(result.performance.source)">
-      <span class="scale">{{ tile.scale }}</span><b :class="{ long: tile.value.length > 5 }">{{ tile.value }}</b>
-    </button>
-    <span v-else class="mdtp-ps none" :title="$t('patient-gap-not-stated')"><span class="scale">{{ $t("mdt-panel-ps") }}</span><b>-</b></span>
-    <div class="mdtp-right">
-    <slot />
-    <div class="mdtp-flags">
+    <div class="mdtp-who"><slot /></div>
+    <div class="mdtp-tiles">
+      <!-- The two things a doctor looks for first. PS turns red at 2 or KPS 60 and worse. -->
+      <button v-if="result.performance" class="mdtp-tile" :class="{ low: result.performance.low }" lang="cs" :aria-label="result.performance.label" :title="result.performance.label" @click="result.performance?.source && c.openSource(result.performance.source)">
+        <span class="scale">{{ tile.scale }}</span><b :class="{ long: tile.value.length > 5 }">{{ tile.value }}</b>
+      </button>
+      <span v-else class="mdtp-tile none" :title="$t('patient-gap-not-stated')"><span class="scale">{{ $t("mdt-panel-ps") }}</span><b>-</b></span>
+      <button v-if="result.intent" class="mdtp-tile" :aria-label="$t(`mdt-panel-intent-${result.intent.code}`)" :title="$t(`mdt-panel-intent-${result.intent.code}`)" @click="result.intent?.source && c.openSource(result.intent.source)">
+        <span class="scale">{{ $t("mdt-panel-intent") }}</span><b>{{ result.intent.code }}</b><span class="sub">{{ $t(`mdt-panel-intent-${result.intent.code}`) }}</span>
+      </button>
+      <span v-else class="mdtp-tile none" :title="$t('patient-gap-not-stated')"><span class="scale">{{ $t("mdt-panel-intent") }}</span><b>-</b></span>
+    </div>
+  </div>
+  <div class="mdtp-flags">
     <button v-for="f in result.flags" :key="f.rule" class="mdtp-flag" lang="cs" :title="tip(f)" @click="open(f)">{{ f.label }}<template v-if="f.dated && f.date"> · {{ f.date }}</template><Marks :f="f.item" /></button>
     <span v-for="m in result.missing" :key="m" class="mdtp-flag gap" :title="$t('mdt-panel-missing-title')">{{ $t(`mdt-panel-missing-${m}`) }} -</span>
     <!-- Missing-document alerts are always signalled (CLAUDE.md), whatever is folded below; never as "nothing missing". -->
@@ -49,8 +55,6 @@ const open = (f: PanelFlag) => f.source && c.openSource(f.source);
     <span v-else-if="docs === 'unchecked'" class="mdtp-flag gap" role="status">{{ $t("patient-missing-unchecked") }}</span>
     <span v-else-if="docsMissing" class="mdtp-flag docs" role="status">{{ $t("patient-gaps-toggle-missing") }}</span>
     <Marks v-if="result.performance" :f="result.performance.item" />
-    </div>
-    </div>
   </div>
   <p class="muted mdtp-flags-note">{{ $t("mdt-panel-flags-note") }}</p>
 </template>

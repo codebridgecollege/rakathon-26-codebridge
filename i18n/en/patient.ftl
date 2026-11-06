@@ -1092,3 +1092,6 @@ patient-anam-group-metabolic = Metabolism and minerals
 patient-anam-group-kidney_liver = Kidneys and liver
 patient-anam-group-nervous = Nervous system
 patient-anam-group-other = Other
+mdt-panel-intent = C/P
+mdt-panel-intent-C = curative
+mdt-panel-intent-P = palliative

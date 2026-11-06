@@ -33,18 +33,63 @@ export const weekdayOf = (iso: string) => new Date(`${iso}T12:00:00Z`).getUTCDay
 export const mondayOf = (iso: string) => addDays(iso, -((weekdayOf(iso) + 6) % 7));
 export const isIsoDayShape = (s: string) => /^\d{4}-\d\d-\d\d$/.test(s);
 
-// The seminar of a day, by the org's schedule; the calendar labels it with the MDT's name.
+// The seminars of a day: one plan (an org with one MDT; none set means the example schedule) or one per MDT team (an empty
+// list means no seminars).
 export type Seminar = { from: string; to: string };
-export function seminarOn(day: string, plan?: SeminarSchedule): Seminar | null {
-  const h = seminarHours(day, plan);
-  return h ? { from: h[0], to: h[1] } : null;
+export type NamedPlan = NonNullable<SeminarSchedule> & { id?: string; name?: string | null };
+export type SeminarPlans = SeminarSchedule | NamedPlan[];
+const plansOf = (p: SeminarPlans): SeminarSchedule[] => (Array.isArray(p) ? p : [p]);
+export function seminarsOn(day: string, plans?: SeminarPlans): (Seminar & { name: string | null })[] {
+  return plansOf(plans).flatMap((pl) => {
+    const h = seminarHours(day, pl);
+    return h ? [{ from: h[0], to: h[1], name: (pl as NamedPlan | null | undefined)?.name ?? null }] : [];
+  });
 }
-export const inSeminar = (day: string, t: string, plan?: SeminarSchedule) => {
-  const s = seminarOn(day, plan);
-  return !!s && t >= s.from && t < s.to;
-};
+export function seminarOn(day: string, plans?: SeminarPlans): Seminar | null {
+  const s = seminarsOn(day, plans)[0];
+  return s ? { from: s.from, to: s.to } : null;
+}
+export const inSeminar = (day: string, t: string, plans?: SeminarPlans) => seminarsOn(day, plans).some((s) => t >= s.from && t < s.to);
 // On a seminar day every slot outside the seminar hours can be booked too (sessions may run longer).
-export const outOfHours = (day: string, t: string, plan?: SeminarSchedule) => !!seminarOn(day, plan) && !inSeminar(day, t, plan);
+export const outOfHours = (day: string, t: string, plans?: SeminarPlans) => seminarsOn(day, plans).length > 0 && !inSeminar(day, t, plans);
+
+// The meetings with bookings: one per day and team, each with its booked cases.
+type Booked = { teamId?: string | null; slot?: { day: string; time: string } | null };
+export type Meeting<T> = { day: string; time: string; teamId: string | null; patients: T[] };
+export function bookedMeetings<T extends Booked>(rows: T[]): Meeting<T>[] {
+  const out = new Map<string, Meeting<T>>();
+  for (const r of rows) {
+    if (!r.slot) continue;
+    const key = `${r.slot.day}|${r.teamId ?? ""}`;
+    const m = out.get(key);
+    if (m) {
+      m.patients.push(r);
+      if (r.slot.time < m.time) m.time = r.slot.time;
+    } else out.set(key, { day: r.slot.day, time: r.slot.time, teamId: r.teamId ?? null, patients: [r] });
+  }
+  return [...out.values()].sort(byDayAndTime);
+}
+const byDayAndTime = <T>(a: Meeting<T>, b: Meeting<T>) => a.day.localeCompare(b.day) || a.time.localeCompare(b.time);
+
+// The nearest meetings, each team on its own line (Soňa, 2026-11-06): what is booked, and each schedule's next dates even
+// with nothing booked yet.
+export function upcomingMeetings<T extends Booked>(rows: T[], today: string, plans?: SeminarPlans, { limit = 6, dates = 2 }: { limit?: number; dates?: number } = {}): Meeting<T>[] {
+  const out = new Map(bookedMeetings(rows).filter((m) => m.day >= today).map((m) => [`${m.day}|${m.teamId ?? ""}`, m]));
+  for (const pl of plansOf(plans)) {
+    const teamId = (pl as NamedPlan | null | undefined)?.id ?? null;
+    let found = 0;
+    for (let i = 0; i < 28 && found < dates; i++) {
+      const day = addDays(today, i);
+      const h = seminarHours(day, pl);
+      if (!h) continue;
+      found += 1;
+      const m = out.get(`${day}|${teamId ?? ""}`);
+      if (m) m.time = h[0];
+      else out.set(`${day}|${teamId ?? ""}`, { day, time: h[0], teamId, patients: [] });
+    }
+  }
+  return [...out.values()].sort(byDayAndTime).slice(0, limit);
+}
 
 export const weekDays = (week: string) => [0, 1, 2, 3, 4].map((i) => addDays(week, i));
 
@@ -67,8 +112,8 @@ export const monthOfWeek = (week: string) => addDays(week, 3).slice(0, 7);
 // Which rows the grid shows. By default, the seminar hours from 30 minutes before to an hour after, so the first
 // seminar row is in view and an overrun has room; the whole day when asked, when the week has no seminar, or when a
 // booking lies outside that range, so no booked slot is ever hidden.
-export function visibleTimes(days: string[], booked: (day: string, t: string) => boolean, fullDay: boolean, plan?: SeminarSchedule) {
-  const sems = days.map((d) => seminarOn(d, plan)).filter((s): s is Seminar => !!s);
+export function visibleTimes(days: string[], booked: (day: string, t: string) => boolean, fullDay: boolean, plans?: SeminarPlans) {
+  const sems: Seminar[] = days.flatMap((d) => seminarsOn(d, plans));
   const from = sems.length ? shiftTime(sems.map((s) => s.from).sort()[0]!, -30) : null;
   const to = sems.length ? shiftTime(sems.map((s) => s.to).sort().at(-1)!, 60) : null;
   const outside = !!from && days.some((d) => GRID_TIMES.some((t) => booked(d, t) && (t < from || t >= to!)));

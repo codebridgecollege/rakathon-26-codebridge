@@ -1098,3 +1098,6 @@ patient-anam-group-metabolic = Metabolismus a minerály
 patient-anam-group-kidney_liver = Ledviny a játra
 patient-anam-group-nervous = Nervový systém
 patient-anam-group-other = Ostatní
+mdt-panel-intent = C/P
+mdt-panel-intent-C = kurativní
+mdt-panel-intent-P = paliativní

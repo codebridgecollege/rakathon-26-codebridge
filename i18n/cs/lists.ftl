@@ -364,3 +364,18 @@ setup-team-add = Přidat tým
 setup-team-remove = Odebrat tým
 setup-mdt-name-example = například Plicní MDT
 setup-unfiled = Případy bez týmu: { $n }. Dokud je nezařadíte (v hlavičce pacienta), vidí je lékaři podle oddělení.
+calendar-upcoming = Nejbližší zasedání
+lists-team-filter = MDT tým
+lists-team-all = Všechny týmy
+calendar-view-list = Seznam
+calendar-view-week = Týden
+calendar-list-upcoming = Nadcházející ({ $n })
+calendar-list-past = Minulá ({ $n })
+calendar-list-none = Žádná zasedání.
+calendar-list-empty = Zatím bez pacientů
+calendar-list-count = { $n ->
+    [one] { $n } pacient
+    [few] { $n } pacienti
+    [many] { $n } pacienta
+   *[other] { $n } pacientů
+}

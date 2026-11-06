@@ -10,7 +10,10 @@ import type { PatientRow } from "@codebridge/api-client";
 import {
   DEMO_TODAY,
   dayAgenda,
+  bookedMeetings,
   inSeminar,
+  seminarsOn,
+  type SeminarPlans,
   isIsoDayShape,
   mondayOf,
   monthOfWeek,
@@ -21,6 +24,7 @@ import {
   stepWeek,
   unscheduledOf,
   visibleTimes,
+  upcomingMeetings,
   weekDays,
 } from "@codebridge/domain/calendar";
 import { addDays } from "@codebridge/domain/time";
@@ -35,6 +39,7 @@ import { usePatientsStore } from "../../stores/patients";
 import { useWorkflowStore } from "../../stores/workflow";
 import { useListViewStore } from "../../stores/listView";
 import { useSessionStore } from "../../stores/session";
+import { useStaffStore } from "../../stores/staff";
 import CalendarCard from "./CalendarCard.vue";
 import MiniMonth from "./MiniMonth.vue";
 import StartMdtDialog from "./StartMdtDialog.vue";
@@ -49,8 +54,14 @@ const patients = usePatientsStore();
 const workflow = useWorkflowStore();
 const v = useListViewStore();
 const session = useSessionStore();
-// The org's own MDT day, time and name (Administrace); the grid and the booking warning follow them.
-const plan = computed(() => session.me?.mdt ?? null);
+// Each team's day and time, or the org's one MDT (Administrace); the grid and the booking warning follow them. The team
+// filter narrows both the plans and the patients shown.
+const staffStore = useStaffStore();
+const teams = computed(() => staffStore.directory?.teams ?? []);
+const plan = computed<SeminarPlans>(() =>
+  teams.value.length ? teams.value.filter((t) => t.weekday && (!v.teamFilter || t.id === v.teamFilter)) : (session.me?.mdt ?? null),
+);
+const rows = computed(() => (v.teamFilter ? patients.rows.filter((p) => p.teamId === v.teamFilter) : patients.rows));
 
 // The week lives in the address (/calendar/<Monday>), so the browser's back button moves between weeks. A link to
 // any day opens its week; the mini month then shows that day's month.
@@ -89,17 +100,26 @@ const days = computed(() => weekDays(v.week));
 const weekEnd = computed(() => addDays(v.week, 4));
 const bySlot = computed(() => {
   const m = new Map<string, PatientRow>();
-  for (const p of patients.rows) if (p.slot) m.set(`${p.slot.day} ${p.slot.time}`, p);
+  for (const p of rows.value) if (p.slot) m.set(`${p.slot.day} ${p.slot.time}`, p);
   return m;
 });
 const grid = computed(() => visibleTimes(days.value, (d, t) => bySlot.value.has(`${d} ${t}`), v.fullDay, plan.value));
-const unscheduled = computed(() => unscheduledOf(patients.rows, v.schedPick));
+const unscheduled = computed(() => unscheduledOf(rows.value, v.schedPick));
 const pop = computed(() => (v.calPop ? patients.byFile(v.calPop) ?? null : null));
 const picked = computed(() => (v.schedPick ? patients.byFile(v.schedPick) ?? null : null));
 const locked = (p: PatientRow) => isSlotLocked(workflow.cases, p);
+// The nearest meetings across the org's MDT teams; a case without a team is the org's one MDT.
+const upcoming = computed(() => upcomingMeetings(rows.value, DEMO_TODAY, plan.value, { limit: 12, dates: 1 }));
+const allUpcoming = computed(() => upcomingMeetings(rows.value, DEMO_TODAY, plan.value, { limit: 60, dates: 3 }));
+const pastMeetings = computed(() => bookedMeetings(rows.value).filter((m) => m.day < DEMO_TODAY).reverse());
+const meetingName = (teamId: string | null) =>
+  (teamId && teams.value.find((t) => t.id === teamId)?.name) || session.me?.mdt?.name || $t("calendar-seminar-default");
+const openMeeting = (m: { day: string }) => {
+  v.calView = "week";
+  goWeek(mondayOf(m.day), m.day.slice(0, 7));
+};
 const seminarText = (d: string) => {
-  const s = seminarOn(d, plan.value);
-  return s ? $t("calendar-seminar-hours", { name: plan.value?.name || $t("calendar-seminar-default"), from: s.from, to: s.to }) : "";
+  return seminarsOn(d, plan.value).map((s) => $t("calendar-seminar-hours", { name: s.name || session.me?.mdt?.name || $t("calendar-seminar-default"), from: s.from, to: s.to })).join(" · ");
 };
 const rangeText = computed(() => {
   const a = new Date(`${v.week}T12:00:00Z`);
@@ -275,12 +295,27 @@ const startDay = ref<string | null>(null);
     <div class="pagehead">
       <div><h1>{{ $t("calendar-title") }}</h1><div class="muted small">{{ rangeText }}</div></div>
       <div class="row">
-        <button class="btn small" @click="stepW(-1)">{{ $t("calendar-week-prev") }}</button>
-        <button class="btn small" @click="today">{{ $t("calendar-today") }}</button>
-        <button class="btn small" @click="stepW(1)">{{ $t("calendar-week-next") }}</button>
+        <label v-if="teams.length" class="small muted row" style="gap:6px">{{ $t("lists-team-filter") }}
+          <select v-model="v.teamFilter" class="input"><option value="">{{ $t("lists-team-all") }}</option><option v-for="t in teams" :key="t.id" :value="t.id">{{ t.name }}</option></select>
+        </label>
+        <button class="btn small" :aria-pressed="v.calView === 'list'" @click="v.calView = v.calView === 'list' ? 'week' : 'list'">{{ v.calView === "list" ? $t("calendar-view-week") : $t("calendar-view-list") }}</button>
+        <button v-if="v.calView === 'week'" class="btn small" @click="stepW(-1)">{{ $t("calendar-week-prev") }}</button>
+        <button v-if="v.calView === 'week'" class="btn small" @click="today">{{ $t("calendar-today") }}</button>
+        <button v-if="v.calView === 'week'" class="btn small" @click="stepW(1)">{{ $t("calendar-week-next") }}</button>
       </div>
     </div>
-    <div class="calwrap3">
+    <div v-if="v.calView === 'list'" class="stack">
+      <section v-for="part in [{ h: 'calendar-list-upcoming', ms: allUpcoming }, { h: 'calendar-list-past', ms: pastMeetings }]" :key="part.h">
+        <h2>{{ $t(part.h, { n: part.ms.length }) }}</h2>
+        <p v-if="!part.ms.length" class="muted small">{{ $t("calendar-list-none") }}</p>
+        <button v-for="m in part.ms" :key="`${m.day}-${m.teamId}`" class="callist-row" @click="openMeeting(m)">
+          <span>{{ text.dayLabel(m.day) }}</span><span>{{ m.time }}</span>
+          <span><b>{{ meetingName(m.teamId) }}</b><br><span class="muted small">{{ m.patients.length ? m.patients.map((p) => surnameFirst(p)).join(", ") : $t("calendar-list-empty") }}</span></span>
+          <span class="muted small">{{ $t("calendar-list-count", { n: m.patients.length }) }}</span>
+        </button>
+      </section>
+    </div>
+    <div v-else class="calwrap3">
       <div class="stack" style="gap:8px">
         <div class="scroll calscroll">
           <div class="cal">
@@ -346,6 +381,13 @@ const startDay = ref<string | null>(null);
       </div>
       <div class="stack">
         <MiniMonth :month="v.miniMonth" :week="v.week" @step="stepM" @year="pickYear" @jump="jump" />
+        <div v-if="upcoming.length">
+          <div class="head" style="margin:0"><h2>{{ $t("calendar-upcoming") }}</h2></div>
+          <template v-for="(m, i) in upcoming" :key="`${m.day}-${m.teamId}`">
+            <div v-if="i === 0 || upcoming[i - 1]!.day !== m.day" class="calup-day">{{ text.dayLabel(m.day) }}</div>
+            <button class="calup-row" @click="goWeek(mondayOf(m.day), m.day.slice(0, 7))"><span>{{ m.time }}</span><span class="calup-name">{{ meetingName(m.teamId) }}</span><b>{{ m.patients.length }}</b></button>
+          </template>
+        </div>
         <div
           class="card unschedzone"
           :class="{ drop: dropKey === 'zone' }"

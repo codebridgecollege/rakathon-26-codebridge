@@ -37,7 +37,14 @@ export type PanelFlag = {
 };
 export type PanelPerformance = { label: string; low: boolean; source: SourceRef | undefined; item: Item };
 export type MissingValue = "ef" | "lung" | "kidney";
-export type PanelFlags = { performance: PanelPerformance | null; flags: PanelFlag[]; missing: MissingValue[] };
+// Curative or palliative, only as a treatment fact's own words say it; null when none does (shown as a gap, never derived
+// from the stage or the line of treatment).
+export type PanelIntent = { code: "C" | "P"; source: SourceRef | undefined; item: Item };
+export type PanelFlags = { performance: PanelPerformance | null; intent: PanelIntent | null; flags: PanelFlag[]; missing: MissingValue[] };
+
+const TREATMENT_KINDS = new Set(["systemic_therapy", "radiotherapy", "procedure", "decision", "plan"]);
+const INTENT_P = /paliativ/;
+const INTENT_C = /kurativ|neoadjuvant|adjuvant|radikaln/;
 
 export const EF_BELOW = 50;
 export const LUNG_FUNCTION_BELOW = 60;
@@ -162,7 +169,7 @@ function performanceOf(cd: CaseData, facts: Fact[], sourceOf: (f: Fact) => Sourc
 
 export function panelFlagsOf(cd: CaseData | null | undefined): PanelFlags {
   const run = cd?.run;
-  if (!cd || !run) return { performance: null, flags: [], missing: [] };
+  if (!cd || !run) return { performance: null, intent: null, flags: [], missing: [] };
   const sourceOf = (f: Fact): SourceRef | undefined => refAt(cd, run.source_index[f.sources[0] ?? ""]);
   const flagOf = (f: Fact, rule: string, label: string, modalities: Modality[], why_cs: string, more = 0, dated = false): PanelFlag => ({
     rule,
@@ -241,10 +248,17 @@ export function panelFlagsOf(cd: CaseData | null | undefined): PanelFlags {
   for (const f of facts.filter((x) => x.kind === "allergy")) flags.push(flagOf(f, `allergy-${f.id}`, `Alergie: ${firstClause(factText(f))}`, [], "Dokumentace uvádí alergii."));
 
   const performance = performanceOf(cd, facts, sourceOf);
+  // The newest treatment fact that names its intent, planned ones included: a plan says where the treatment is heading.
+  const stated = Object.values(run.facts)
+    .filter((f) => f.subject === "patient" && !f.negated && f.origin !== "assistant" && TREATMENT_KINDS.has(f.kind))
+    .map((f) => ({ f, t: fold(factText(f)) }))
+    .filter((x) => INTENT_P.test(x.t) || INTENT_C.test(x.t))
+    .sort((a, b) => newestFirst(a.f, b.f))[0];
+  const intent: PanelIntent | null = stated ? { code: INTENT_P.test(stated.t) ? "P" : "C", source: sourceOf(stated.f), item: marksFrom([stated.f]) } : null;
 
   const missing: MissingValue[] = [];
   if (!seenValue.ef) missing.push("ef");
   if (!seenValue.lung) missing.push("lung");
   if (!kidneySeen) missing.push("kidney");
-  return { performance, flags, missing };
+  return { performance, intent, flags, missing };
 }

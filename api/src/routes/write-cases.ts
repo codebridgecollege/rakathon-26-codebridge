@@ -2,6 +2,7 @@
 // question, fact edits, alert events and break-the-glass. Each route: role and membership, the domain rule, one
 // guarded D1 batch with its audit rows, then the case's fresh workflow state (step-4.md "As implemented").
 import { Hono } from "hono";
+import type { Context } from "hono";
 import type { AppEnv } from "../types";
 import { E } from "../http/errors";
 import { D, DomainError } from "@codebridge/domain/errors";
@@ -49,6 +50,12 @@ const SLOT_UNIQUE = /UNIQUE constraint failed: slots\.org_id, slots\.day, slots\
 
 export async function bodySha(body: unknown) {
   return sha256Hex(JSON.stringify(body));
+}
+
+// The seminar a booking is checked against: the case's team's, or the org's one MDT.
+async function scheduleOfCase(c: Context<AppEnv>, id: string) {
+  const team = await orgQuery(c, "SELECT t.weekday, t.time FROM cases k JOIN teams t ON t.id = k.team_id AND t.org_id = k.org_id WHERE k.org_id = ?org AND k.id = ?1", id).first<{ weekday: number | null; time: string | null }>();
+  return team ?? (await mdtOfOrg(c.env.DB, c.var.viewer.org));
 }
 
 export const writeCases = new Hono<AppEnv>()
@@ -190,7 +197,7 @@ export const writeCases = new Hono<AppEnv>()
     const next = validateSlot(b.day, b.time);
     const cur = slotOf(core);
     if (cur && cur.day === next.day && cur.time === next.time) return answer(c, { warning_cs: null }, { cases: await statesFor(c, [id]) });
-    const r = schedule({ status: core.status, slot: cur }, next, await work(c).decisions(id), await mdtOfOrg(c.env.DB, c.var.viewer.org));
+    const r = schedule({ status: core.status, slot: cur }, next, await work(c).decisions(id), await scheduleOfCase(c, id));
     const t = tx(c, breakGlass).onConstraint(SLOT_UNIQUE, () => D.slotTaken());
     t.guard("status", "(SELECT status FROM cases WHERE org_id = ?org AND id = ?) = ?", [id, core.status], () => D.statusChanged());
     if (cur) {

@@ -72,7 +72,8 @@ const choices = computed(() =>
   ) as Record<FilterColumn, { code: string; label: string }[]>,
 );
 
-const filtered = computed(() => filterPatients(patients.rows, { q: v.q, filters: v.filters, from: v.subFrom, to: v.subTo }));
+const teamRows = computed(() => (v.teamFilter ? patients.rows.filter((p) => p.teamId === v.teamFilter) : patients.rows));
+const filtered = computed(() => filterPatients(teamRows.value, { q: v.q, filters: v.filters, from: v.subFrom, to: v.subTo }));
 const range = computed(() => pageRange(filtered.value.length, v.page, v.showAll));
 const shown = computed(() => filtered.value.slice(range.value.start, range.value.end));
 const active = computed(() => activeFilterCount(v.filters));
@@ -177,6 +178,9 @@ const age = (p: PatientRow) => ageOf(p, DEMO_TODAY);
     </div>
     <div class="toolbar">
       <input id="q" v-model="v.q" class="search" :placeholder="$t('patients-search-placeholder')" :aria-label="$t('patients-search-label')">
+      <label v-if="teams.length" class="small muted row" style="gap:6px">{{ $t("lists-team-filter") }}
+        <select v-model="v.teamFilter" class="input" @change="v.page = 0"><option value="">{{ $t("lists-team-all") }}</option><option v-for="t in teams" :key="t.id" :value="t.id">{{ t.name }}</option></select>
+      </label>
       <label class="small muted row" style="gap:6px">{{ $t("patients-submitted-from") }} <input id="subfrom" class="input" type="date" :value="v.subFrom" style="width:auto" @change="onDate('from', $event)"></label>
       <label class="small muted row" style="gap:6px">{{ $t("patients-submitted-to") }} <input id="subto" class="input" type="date" :value="v.subTo" style="width:auto" @change="onDate('to', $event)"></label>
       <span class="muted small">{{ $t("patients-count", { shown: filtered.length, total: patients.rows.length }) }}</span>

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { outOfHours, inSeminar, seminarOn } from "../src/calendar";
+import { bookedMeetings, outOfHours, inSeminar, seminarOn, seminarsOn, upcomingMeetings } from "../src/calendar";
 import { seminarWarning } from "../src/slots";
 
 // 2026-10-20 is a Tuesday, 2026-10-22 a Thursday.
@@ -20,5 +20,32 @@ describe("the seminar follows the org's schedule", () => {
   it("warns outside the org's seminar, not inside", () => {
     expect(seminarWarning({ day: "2026-10-20", time: "14:10" }, TUE)).toBeNull();
     expect(seminarWarning({ day: "2026-10-22", time: "14:10" }, TUE)).toBe("mimo čas semináře");
+  });
+});
+
+describe("the nearest meetings", () => {
+  const slot = (day: string, time: string) => ({ day, time });
+  const short = (ms: { day: string; time: string; teamId: string | null; patients: unknown[] }[]) => ms.map((m) => [m.day, m.time, m.teamId, m.patients.length]);
+  it("lists each team on its own line with its count, from today on", () => {
+    const rows = [
+      { teamId: "lung", slot: slot("2026-10-21", "14:10") },
+      { teamId: "lung", slot: slot("2026-10-21", "14:00") },
+      { teamId: "breast", slot: slot("2026-10-21", "14:00") },
+      { teamId: "lung", slot: slot("2026-10-01", "14:00") },
+      { teamId: "lung", slot: null },
+    ];
+    expect(short(upcomingMeetings(rows, "2026-10-16", []))).toEqual([["2026-10-21", "14:00", "lung", 2], ["2026-10-21", "14:00", "breast", 1]]);
+    expect(short(bookedMeetings(rows)).map((m) => m[0])).toContain("2026-10-01");
+  });
+  it("shows an org with one MDT its next dates, also with nothing booked", () => {
+    expect(short(upcomingMeetings([{ teamId: null, slot: slot("2026-10-20", "14:10") }], "2026-10-16", TUE))).toEqual([["2026-10-20", "14:00", null, 1], ["2026-10-27", "14:00", null, 0]]);
+  });
+  it("gives each team its own schedule, with their seminars side by side", () => {
+    const plans = [{ id: "lung", name: "Plicní", weekday: 2, time: "14:00" }, { id: "skin", name: "Kožní", weekday: 2, time: "12:00" }];
+    expect(short(upcomingMeetings([], "2026-10-16", plans, { dates: 1 }))).toEqual([["2026-10-20", "12:00", "skin", 0], ["2026-10-20", "14:00", "lung", 0]]);
+    expect(seminarsOn("2026-10-20", plans).map((s) => s.name)).toEqual(["Plicní", "Kožní"]);
+    expect(inSeminar("2026-10-20", "12:30", plans)).toBe(true);
+    expect(inSeminar("2026-10-22", "14:00", plans)).toBe(false);
+    expect(seminarsOn("2026-10-22", [])).toEqual([]);
   });
 });

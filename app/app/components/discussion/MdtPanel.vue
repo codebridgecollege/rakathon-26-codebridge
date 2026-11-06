@@ -60,6 +60,13 @@ const shownBrief = computed(() => {
   const parts = prose.value.parts.filter((x) => x.text.trim());
   return longBrief.value && !wholeBrief.value ? [parts[0]!, { text: " … " }, parts.at(-2)!, { text: " " }, parts.at(-1)!] : prose.value.parts;
 });
+// The diagnosis in the header: its code and histology, grade and stage as the extraction holds them.
+const dx = computed(() => {
+  const h = c.cd.value?.brief?.dx_headline ?? null;
+  const code = (h?.mkn_cs ? String(h.mkn_cs).split(" ")[0] : c.p.value.mkn10) ?? "";
+  const text = h ? [h.histology_cs, h.grade_cs, h.tnm_cs].filter(Boolean).join(", ") : String(c.p.value.diagnosis ?? "");
+  return { code, text: abbreviateCs(text) };
+});
 const age = computed(() => ageOf(c.p.value, DEMO_TODAY));
 // The alerts for the MDT question first, then the other open ones, so the count below covers every open alert.
 const alerts = computed(() => {
@@ -110,7 +117,10 @@ onBeforeUnmount(() => document.body.classList.remove("mdtp-docked"));
           <button class="btn small" @click="pacsStub">{{ $t("mdt-panel-pacs") }}</button>
           <button class="btn small iconbtn" :aria-label="$t('mdt-panel-whole-window')" :title="$t('mdt-panel-whole-window')" @click="store.choose('full')"><PanelViewIcon kind="expand" /></button>
         </div>
-        <PanelFlags v-if="processed"><h2 class="mdtp-name">{{ surnameFirst(c.p.value) }} <span class="mdtp-age">{{ $t("mdt-panel-age") }}: <b v-if="age">{{ age.n }}</b><Gap v-else /></span></h2></PanelFlags>
+        <PanelFlags v-if="processed">
+          <h2 class="mdtp-name">{{ surnameFirst(c.p.value) }} <span class="mdtp-age">{{ $t("mdt-panel-age") }}: <b v-if="age">{{ age.n }}</b><Gap v-else /></span></h2>
+          <div v-if="dx.text || dx.code" class="mdtp-dx" lang="cs" :title="dx.text"><b v-if="dx.code">{{ dx.code }}</b> {{ dx.text }}</div>
+        </PanelFlags>
         <h2 v-else class="mdtp-name">{{ surnameFirst(c.p.value) }} <span class="mdtp-age">{{ $t("mdt-panel-age") }}: <b v-if="age">{{ age.n }}</b><Gap v-else /></span></h2>
       </div>
       <div ref="bodyEl" class="mdtp-body">
