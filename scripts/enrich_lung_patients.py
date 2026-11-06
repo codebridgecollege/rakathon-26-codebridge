@@ -6,9 +6,11 @@ documents go through the real pipeline and the AI model; each patient's older on
     python scripts/enrich_lung_patients.py --print-only      # write the PDFs and the SQL, change nothing
     python scripts/enrich_lung_patients.py --only NO-101     # one patient
     python scripts/enrich_lung_patients.py                   # all
+    python scripts/enrich_lung_patients.py --rerun r2        # read the current documents again
 """
 
 import argparse
+from datetime import datetime, timedelta, timezone
 import hashlib
 import json
 import subprocess
@@ -79,11 +81,42 @@ def build(only: str | None):
     return sql, objects, runs
 
 
+def rerun(tag: str) -> None:
+    """Reads the current documents of the lung patients again, for example after the model changed. Their rows stay."""
+    api = ROOT / "api"
+    query = "SELECT p.id, p.document_id, p.case_id FROM pipeline_runs p JOIN documents d ON d.id = p.document_id AND d.org_id = p.org_id WHERE p.org_id = 'demo-a' AND p.id LIKE 'pl-b-%' AND p.id NOT LIKE '%-r%' AND d.lifecycle = 'current'"
+    out = subprocess.run(["npx", "wrangler", "d1", "execute", "codebridge-mdt", "--remote", "--json", "--command", query], cwd=api, check=True, capture_output=True, text=True).stdout
+    rows = json.loads(out)[0]["results"]
+    # A run counts only when no finished run of its document is newer, so it must sort after every earlier one, whatever
+    # time those were stamped with.
+    last = subprocess.run(["npx", "wrangler", "d1", "execute", "codebridge-mdt", "--remote", "--json", "--command", "SELECT MAX(created_at) m FROM pipeline_runs WHERE org_id = 'demo-a' AND id LIKE 'pl-b-%'"], cwd=api, check=True, capture_output=True, text=True).stdout
+    newest = datetime.fromisoformat(json.loads(last)[0]["results"][0]["m"].replace("Z", "+00:00"))
+    at = (max(newest, datetime.now(timezone.utc)) + timedelta(seconds=1)).strftime("%Y-%m-%dT%H:%M:%S.000Z")
+    sql = []
+    for r in rows:
+        run = f"{r['id']}-{tag}"
+        sql.append(f"INSERT OR IGNORE INTO pipeline_runs (org_id, id, document_id, case_id, state, pipeline_version, input_sha256, output_prefix, created_by, created_by_name, created_at, updated_at) SELECT org_id, {lit(run)}, document_id, case_id, 'queued', 'enrich_lung_rerun', input_sha256, {lit(f'org/{ORG}/uploads/{r['case_id']}/{r['document_id']}/{run}/')}, created_by, created_by_name, {lit(at)}, {lit(at)} FROM pipeline_runs WHERE id = {lit(r['id'])};")
+        sql.append(f"UPDATE documents SET state = 'queued', state_detail_cs = NULL WHERE org_id = {lit(ORG)} AND id = {lit(r['document_id'])};")
+    OUT.mkdir(parents=True, exist_ok=True)
+    (OUT / "rerun.sql").write_text("\n".join(sql) + "\n", encoding="utf-8")
+    subprocess.run(["npx", "wrangler", "d1", "execute", "codebridge-mdt", "--remote", "--yes", "--file", str(OUT / "rerun.sql")], cwd=api, check=True, capture_output=True, text=True)
+    started = 0
+    for r in rows:
+        run = f"{r['id']}-{tag}"
+        done = subprocess.run(["npx", "wrangler", "workflows", "trigger", "codebridge-process-document", json.dumps({"org": ORG, "runId": run, "docId": r["document_id"], "caseId": r["case_id"]}), "--id", run], cwd=api, capture_output=True, text=True)
+        started += done.returncode == 0
+    print(f"started {started} of {len(rows)}")
+
+
 def main() -> None:
     a = argparse.ArgumentParser()
     a.add_argument("--print-only", action="store_true")
     a.add_argument("--only")
+    a.add_argument("--rerun", help="read the current documents again, under this run suffix, for example r2")
     args = a.parse_args()
+    if args.rerun:
+        rerun(args.rerun)
+        return
     sql, objects, runs = build(args.only)
     OUT.mkdir(parents=True, exist_ok=True)
     (OUT / "lung-a.sql").write_text("\n".join(sql) + "\n", encoding="utf-8")
