@@ -108,3 +108,19 @@ both into a JSON the page embeds. Design what a real upload takes.
 - Done when: a design note in `docs/research/` (flow, components,
   storage, job pipeline, privacy and retention) and, if time allows, a
   thin working upload path in the demo.
+
+## 5. Finish the model switch
+
+The Worker moved to OpenRouter on 2026-11-06 with three models: Claude Haiku 5.5 reads page images, GPT-6 Luna does
+extraction, the brief and discussion summaries, Claude Opus 5.5 runs the Prognóza search. These are left over; the
+measurements are in [the switch](../research/2026-11-06-openrouter-switch.md).
+
+- **False "original report missing" alerts.** The facts of an original report can come without a date, and an undated
+  exam is never matched on purpose. Done when S02 passes `S02-resection-histology-not-missing` on repeated runs and a
+  genuinely missing report still raises the alert.
+- **"Nečitelné strany" on legible pages.** A part whose extraction failed lists its pages as unreadable, and a partial
+  failure stays "nothing found". Done when a failed part shows as not checked, separate from pages that cannot be read.
+- **A failed search loses its message after a reload.** Done when the Prognóza tab still says the last search failed.
+- **Smaller items.** Status mapping for 402, 403 and 408; `require_parameters` on the route; a pin check for
+  `openai-compatible` pointed at OpenRouter; the evaluation harness naming the model that made each reading; measuring
+  the summary token cap on a long transcript.
