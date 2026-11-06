@@ -448,7 +448,7 @@ function anamnesis(x: Ctx): Record<string, Item[]> {
     // A comorbidity the documents deny is listed with its negation, never dropped into silence.
     OA: all.filter((f) => f.kind === "comorbidity").map((f) => item(f, factText(f))),
     RA: all.filter((f) => f.kind === "family_history").map((f) => item(f, factText(f))),
-    PA: [],
+    PA: risk(["work"]).map((f) => item(f, factText(f))),
     SA: risk(["social"]).map((f) => item(f, factText(f))),
     // Current medication: a stopped or interrupted drug is history, shown in the timeline, not in the list. The list
     // also shows the anticancer therapies quoted from the list itself (listTherapies), in document order with the drugs.
@@ -490,7 +490,7 @@ function anamnesis(x: Ctx): Record<string, Item[]> {
     AA: all.filter((f) => f.kind === "allergy").map((f) => item(f, factText(f))),
     abusus: risk(["smoking", "alcohol"]).map((f) => ({ ...item(f, factText(f)), pack_years_cs: f.kind === "risk_factor" && f.value.pack_years != null ? String(f.value.pack_years) : null })),
     EA: risk(["epidemiology"]).map((f) => item(f, factText(f))),
-    preventive: [],
+    preventive: risk(["preventive"]).map((f) => item(f, factText(f))),
   };
 }
 

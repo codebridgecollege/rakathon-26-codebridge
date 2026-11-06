@@ -66,11 +66,15 @@ def birth_number(birth: str, sex: str, n: int) -> str:
 
 
 def render(p: dict, rc: str) -> bytes:
-    """The report on A4 pages, in a font with Czech letters."""
+    """The one-page report of a patient."""
+    return render_text(f"Plicní ambulance - pneumoonkologie, Ukázková nemocnice C\n\nAmbulantní vyšetření\n\n{p['last']} {p['first']}, "
+                       f"nar. {p['birth']}, r.č. {rc}, poj. 111\nDatum vyšetření: 12.10.2026\nOdesílá: {p['dept']}\n\n{p['body']}\n"
+                       f"Otázka pro MDT: {p['question']}\n")
+
+
+def render_text(text: str) -> bytes:
+    """Text on A4 pages, in a font with Czech letters."""
     font = fitz.Font(fontfile=FONT)
-    text = (f"Plicní ambulance - pneumoonkologie, Ukázková nemocnice C\n\nAmbulantní vyšetření\n\n{p['last']} {p['first']}, "
-            f"nar. {p['birth']}, r.č. {rc}, poj. 111\nDatum vyšetření: 12.10.2026\nOdesílá: {p['dept']}\n\n{p['body']}\n"
-            f"Otázka pro MDT: {p['question']}\n")
     doc = fitz.open()
     page, y = None, 0.0
     size, leading, margin, width = 10.5, 15.0, 56.0, 595.28 - 112.0

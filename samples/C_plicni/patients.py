@@ -140,3 +140,57 @@ Medikace: Prestarium 5 mg 1-0-0.
 Stav: ECOG PS 0. Laboratoř 30.9.2026: eGFR 1,4 ml/s, bilirubin 11 umol/l.
 """),
 ]
+
+
+# The rest of each patient's documentation: the anamnesis sections, the examination, and what a lab sheet shows differently
+# from LAB_BASE, as (earlier draw, latest draw). All invented.
+LAB_BASE = [
+    ("Krevní obraz", [("B_LKC", "10^9/l", "4", "10", "7,2", "7,4"), ("B_NEUT", "10^9/l", "2", "7", "4,5", "4,6"), ("B_HB", "g/l", "120", "175", "138", "136"), ("B_PLT", "10^9/l", "150", "400", "262", "255")]),
+    ("Sérum, plazma - dusík. metab.", [("S_UREA", "mmol/l", "2.9", "8.2", "5,6", "5,8"), ("S_CREAE", "µmol/l", "49", "104", "82", "84"), ("PT(KIDN)_EGFRCKDE", "ml/s", "1", "2", "1,35", "1,31")]),
+    ("Sérum - játra", [("S_BILT", "µmol/l", "2", "21", "12", "13"), ("S_ALT", "µkat/l", "0.1", "0.8", "0,42", "0,44"), ("S_AST", "µkat/l", "0.1", "0.7", "0,38", "0,40")]),
+    ("Krev - minerály", [("S_NA", "mmol/l", "136", "145", "140", "139"), ("S_K", "mmol/l", "3.5", "5.1", "4,3", "4,4"), ("S_CA", "mmol/l", "2.1", "2.55", "2,31", "2,33")]),
+    ("Nádorové markery a zánět", [("S_HSCRP", "mg/l", "0", "5", "3,8", "4,6"), ("S_CEA", "µg/l", "0", "5", "4,1", "4,9")]),
+]
+
+EXTRA = {
+    "C01": dict(draws=("24.8.2026 07:30", "21.9.2026 07:40"), labs={"S_CEA": ("6,2", "7,8"), "S_HSCRP": ("8,1", "10,4")},
+        ra="Otec: karcinom plic v 70 letech. Matka: arteriální hypertenze.", pa="Důchodce, dříve horník 25 let, expozice prachu.", sa="Ženatý, žije s manželkou, soběstačný.",
+        aa="Penicilin: kopřivka.", abusus="Kuřák, 40 balíčkoroků, nekouří od 8/2026. Alkohol příležitostně.", ea="Očkován proti chřipce a pneumokokům. Bez kontaktu s tuberkulózou.", prev="Screening karcinomu plic neabsolvoval, kolonoskopie 2021 bez nálezu.",
+        obj="Výška 174 cm, hmotnost 71 kg. TK 138/82, pulz 76/min, SpO2 94 %. Poslechově oslabené dýchání vpravo nahoře, bez vedlejších fenoménů."),
+    "C02": dict(draws=("7.9.2026 08:00", "6.10.2026 07:50"), labs={"S_ALT": ("0,92", "1,14"), "S_AST": ("0,81", "0,97"), "S_CEA": ("14,2", "23,7")},
+        ra="Matka: revmatoidní artritida. Sestra: karcinom prsu ve 52 letech.", pa="Účetní, stále pracuje.", sa="Vdaná, dvě dospělé děti.",
+        aa="Alergie neguje.", abusus="Nekuřačka. Alkohol neguje.", ea="Očkována proti chřipce. HBsAg negativní, anti-HCV negativní.", prev="Mamografie 3/2026 bez nálezu, gynekologická prohlídka 2/2026 bez nálezu.",
+        obj="Výška 165 cm, hmotnost 62 kg. TK 124/76, pulz 82/min, SpO2 96 %. Játra 2 cm pod obloukem, sklerální ikterus není."),
+    "C03": dict(draws=("24.8.2026 07:20", "27.9.2026 07:30"), labs={"S_CREAE": ("108", "112"), "PT(KIDN)_EGFRCKDE": ("1,12", "1,08")},
+        ra="Bratr: infarkt myokardu v 58 letech.", pa="Důchodce, dříve zámečník, expozice azbestu 10 let.", sa="Vdovec, žije sám, dochází pečovatelka.",
+        aa="Kontrastní látka: kopřivka po CT v roce 2019, premedikace.", abusus="Bývalý kuřák, 35 balíčkoroků, nekouří od 2023.", ea="Očkován proti chřipce a covid-19.", prev="Kardiologické kontroly po 6 měsících, kolonoskopie neprovedena.",
+        obj="Výška 178 cm, hmotnost 84 kg. TK 112/70, pulz 88/min, SpO2 93 %. Otoky dolních končetin do poloviny bérců."),
+    "C04": dict(draws=("11.9.2026 07:40", "9.10.2026 07:35"), labs={"S_CREAE": ("126", "128"), "PT(KIDN)_EGFRCKDE": ("0,72", "0,68"), "S_NA": ("131", "129"), "B_HB": ("118", "114")},
+        ra="Otec: diabetes mellitus 2. typu.", pa="Důchodkyně, dříve prodavačka.", sa="Vdaná, žije s manželem.",
+        aa="Sulfonamidy: exantém.", abusus="Kuřačka, 30 balíčkoroků, stále kouří 10 cigaret denně.", ea="Očkována proti chřipce.", prev="Mamografie 2025 bez nálezu.",
+        obj="Výška 160 cm, hmotnost 58 kg. TK 146/84, pulz 90/min, SpO2 95 %. Snížené čití na akrech dolních končetin."),
+    "C05": dict(draws=("31.8.2026 07:30", "29.9.2026 07:25"), labs={"S_CEA": ("31,0", "48,5"), "S_HSCRP": ("11,2", "16,4")},
+        ra="Rodinná anamnéza onkologicky bez pozoruhodností.", pa="Učitel, kancelářská práce, bez expozice.", sa="Ženatý, dvě nezletilé děti.",
+        aa="Alergie neguje.", abusus="Nekuřák. Alkohol příležitostně.", ea="Pobyt v jihovýchodní Asii 2019. Bez kontaktu s tuberkulózou.", prev="Preventivní prohlídka u praktického lékaře 1/2026 bez nálezu.",
+        obj="Výška 182 cm, hmotnost 79 kg. TK 128/78, pulz 74/min, SpO2 93 %. Bazálně oboustranně krepitus."),
+    "C06": dict(draws=("4.9.2026 08:10", "2.10.2026 08:00"), labs={"S_CREAE": ("118", "124"), "PT(KIDN)_EGFRCKDE": ("0,94", "0,90"), "B_HB": ("110", "102"), "S_CA": ("2,62", "2,71")},
+        ra="Sestra: karcinom tlustého střeva.", pa="Důchodkyně, dříve švadlena.", sa="Vdova, žije v domově pro seniory, chodí s chodítkem.",
+        aa="Alergie neguje.", abusus="Nikdy nekouřila.", ea="Očkována proti chřipce a pneumokokům.", prev="Bez pravidelných preventivních prohlídek.",
+        obj="Výška 155 cm, hmotnost 49 kg. TK 118/68, pulz 96/min nepravidelný, SpO2 91 %. Oslabené dýchání vlevo bazálně, poklep ztemnělý."),
+    "C07": dict(draws=("3.9.2026 07:30", "1.10.2026 07:30"), labs={},
+        ra="Otec: revmatoidní artritida. Matka: srdeční selhání.", pa="Řidič autobusu.", sa="Ženatý, žije s rodinou.",
+        aa="Alergie neguje.", abusus="Bývalý kuřák, 15 balíčkoroků, nekouří od 2018.", ea="Očkován proti chřipce. Bez kontaktu s tuberkulózou, Quantiferon negativní 9/2026.", prev="Pravidelné řidičské prohlídky, kolonoskopie 2024 bez nálezu.",
+        obj="Výška 180 cm, hmotnost 88 kg. TK 132/84, pulz 70/min, SpO2 98 %. Poslechový nález bez patologie."),
+    "C08": dict(draws=("18.8.2026 07:40", "15.9.2026 07:30"), labs={"S_CEA": ("9,4", "12,8")},
+        ra="Rodinná anamnéza neguje nádorová onemocnění.", pa="Lékárnice.", sa="Rozvedená, jedno dítě.",
+        aa="Jód: kožní reakce, kontrastní vyšetření s premedikací.", abusus="Nekuřačka. Alkohol neguje.", ea="Očkována proti chřipce a klíšťové encefalitidě.", prev="Gynekologická prohlídka 5/2026 bez nálezu, mamografie 2025 bez nálezu.",
+        obj="Výška 168 cm, hmotnost 60 kg. TK 122/74, pulz 78/min, SpO2 97 %. Neurologicky bez ložiskového nálezu, stoj a chůze bez potíží."),
+    "C09": dict(draws=("3.9.2026 07:40", "1.10.2026 07:35"), labs={"B_PLT": ("138", "148"), "B_NEUT": ("1,6", "1,9"), "S_CREAE": ("104", "102"), "PT(KIDN)_EGFRCKDE": ("1,02", "1,00"), "S_ALT": ("0,66", "0,71")},
+        ra="Bratr: hepatitida B, cirhóza jater.", pa="Důchodce, dříve zedník.", sa="Ženatý, soběstačný s dopomocí.",
+        aa="Alergie neguje.", abusus="Kuřák, 45 balíčkoroků, nekouří od 5/2026. Alkohol denně pivo.", ea="HBsAg pozitivní, HBV DNA nedetekovatelná, anti-HCV negativní. Očkován proti chřipce.", prev="Hepatologické kontroly po 6 měsících, ultrazvuk jater 8/2026 bez ložiska.",
+        obj="Výška 172 cm, hmotnost 66 kg. TK 136/80, pulz 72/min stimulovaný, SpO2 92 %. Kardiostimulátor vlevo podklíčkově, dýchání oslabené."),
+    "C10": dict(draws=("2.9.2026 07:40", "30.9.2026 07:35"), labs={},
+        ra="Matka: arteriální hypertenze. Nádorová onemocnění v rodině neguje.", pa="Ředitelka školy, pracuje.", sa="Vdaná, žije s manželem.",
+        aa="Alergie neguje.", abusus="Bývalá kuřačka, 10 balíčkoroků, nekouří od 2015.", ea="Očkována proti chřipce a covid-19.", prev="Mamografie 4/2026 bez nálezu, gynekologická prohlídka 4/2026 bez nálezu.",
+        obj="Výška 170 cm, hmotnost 68 kg. TK 128/80, pulz 74/min, SpO2 96 %. Jizva po torakotomii vpravo klidná."),
+}

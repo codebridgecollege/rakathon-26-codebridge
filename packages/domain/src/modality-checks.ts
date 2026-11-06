@@ -87,9 +87,9 @@ const MEASURES: Measure[] = [
 type LabRule = { id: string; name: RegExp; dir: "high" | "low"; modalities: Modality[]; why_cs: string };
 const LABS: LabRule[] = [
   { id: "kidney-lab", name: /egfr|clearance|glomerul/, dir: "low", modalities: ["chemo"], why_cs: "Snížená funkce ledvin bývá důvodem upravit dávku nebo volbu léku." },
-  { id: "liver-lab", name: /bilirubin/, dir: "high", modalities: ["chemo"], why_cs: "Zvýšený bilirubin bývá důvodem upravit dávku léků odbourávaných v játrech." },
-  { id: "neutrophils", name: /neutrofil/, dir: "low", modalities: ["chemo"], why_cs: "Nízké neutrofily omezují myelosupresivní léčbu." },
-  { id: "platelets", name: /trombocyt|\bplt\b/, dir: "low", modalities: ["chemo"], why_cs: "Nízké trombocyty omezují myelosupresivní léčbu." },
+  { id: "liver-lab", name: /bilirubin|bili/, dir: "high", modalities: ["chemo"], why_cs: "Zvýšený bilirubin bývá důvodem upravit dávku léků odbourávaných v játrech." },
+  { id: "neutrophils", name: /neutrofil|neut/, dir: "low", modalities: ["chemo"], why_cs: "Nízké neutrofily omezují myelosupresivní léčbu." },
+  { id: "platelets", name: /trombocyt|plt/, dir: "low", modalities: ["chemo"], why_cs: "Nízké trombocyty omezují myelosupresivní léčbu." },
 ];
 
 // Word rules read what the documents state about the patient's conditions, not free findings, where chance words abound.

@@ -65,7 +65,7 @@ export type ModelFact = {
   scale: string | null;
   value_as_written: string | null;
   reaction: string | null;
-  risk_type: "smoking" | "alcohol" | "social" | "epidemiology" | null;
+  risk_type: "smoking" | "alcohol" | "social" | "epidemiology" | "work" | "preventive" | null;
   pack_years: number | null;
   strength: string | null;
   dosing: string | null;
@@ -113,7 +113,7 @@ const FACT_PROPS: Record<keyof ModelFact, Record<string, unknown>> = {
   scale: str,
   value_as_written: str,
   reaction: str,
-  risk_type: en(["smoking", "alcohol", "social", "epidemiology"]),
+  risk_type: en(["smoking", "alcohol", "social", "epidemiology", "work", "preventive"]),
   pack_years: { type: ["number", "null"] },
   strength: str,
   dosing: str,

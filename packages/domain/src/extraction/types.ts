@@ -371,7 +371,7 @@ export interface PrognosticScoreValue {
 }
 
 export interface RiskFactorValue {
-  type: "smoking" | "alcohol" | "social" | "epidemiology";
+  type: "smoking" | "alcohol" | "social" | "epidemiology" | "work" | "preventive";
   text: string;
   pack_years: number | null;
 }
