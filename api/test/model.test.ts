@@ -48,14 +48,14 @@ describe("callModel", () => {
     const sent = await up.text();
     for (const secret of ["Testová", "Pacientk", "645312", "Novák"]) expect(sent).not.toContain(secret);
     const body = JSON.parse(sent);
-    expect(body.model).toBe("test-model");
+    expect(body.model).toBe("test-read-model");
     expect(body.reasoning_effort).toBe("low");
-    expect(body.provider).toEqual({ only: ["test/eu"], allow_fallbacks: false, data_collection: "deny", zdr: true });
+    expect(body.provider).toEqual({ only: ["test/eu-read"], allow_fallbacks: false, data_collection: "deny", zdr: true });
     expect(body.messages[0]).toEqual({ role: "system", content: PROMPTS["read-page-cs"].text });
     expect(body.messages[1].content[0].text).toBe("[Část 1]\nPaní [PACIENT] [PACIENT], r.č. [RC]\nKontrola u MUDr. [PERSONAL_3]. CRP 12 mg/l."); // staff numbered in membership order: admin, coord, d1p1
     // Nothing about the document leaves except its text: no document ID or file name.
     expect(sent).not.toContain("A_pacient");
-    expect(r.meta).toMatchObject({ provider: "openrouter", model: "test-model", prompt: "read-page-cs@1", temperature: null, cached: false });
+    expect(r.meta).toMatchObject({ provider: "openrouter", model: "test-read-model", prompt: "read-page-cs@1", temperature: null, cached: false });
     expect(r.pseudonymized[0]!.originals("[RC]")).toEqual([BN]);
   });
 
@@ -93,7 +93,7 @@ describe("callModel", () => {
     for (const row of rows) {
       expect(row.case_id).toBe("NO-A");
       expect(row.actor_user_id).toBe("d2p1");
-      expect(row.what_cs).toBe("Odesláno jazykovému modelu (openrouter, test-model): read_page, read-page-cs@1");
+      expect(row.what_cs).toBe("Odesláno jazykovému modelu (openrouter, test-read-model): read_page, read-page-cs@1");
       const all = JSON.stringify(row);
       for (const secret of ["Testová", "Pacientka", "645312", "Novák", "CRP", "metastáz"]) expect(all).not.toContain(secret);
     }
@@ -143,7 +143,7 @@ describe("callModel", () => {
     expect(again.meta.input_sha256).toBe(first.meta.input_sha256);
     expect(await modelLog()).toHaveLength(1);
     const prompt = await loadPrompt("read-page-cs");
-    const key = cacheKey("demo-a", "NO-A", cacheScope(["A_pacient"]), "test-model", prompt, first.meta.input_sha256);
+    const key = cacheKey("demo-a", "NO-A", cacheScope(["A_pacient"]), "test-read-model", prompt, first.meta.input_sha256);
     const stored = await (await env.DOCS.get(key))!.text();
     expect(stored).not.toContain("Testová");
   });
@@ -183,6 +183,42 @@ describe("callModel", () => {
     expect(e3).toMatchObject({ code: "budget_org" });
     expect(calls).toHaveLength(1);
     expect(await modelLog()).toHaveLength(1);
+  });
+
+  it("sends a text prompt to the main model on its own endpoint", async () => {
+    const { calls } = mockFetch(answer("Shrnutí."));
+    const r = await callModel(testEnv(), await request({ purpose: "summarize", prompt: "summarize-cs" }));
+    expect(r.meta.model).toBe("test-model");
+    const body = JSON.parse(await calls[0]!.text());
+    expect(body.model).toBe("test-model");
+    expect(body.provider.only).toEqual(["test/eu"]);
+  });
+
+  it("falls back to the main model without a reading model, and refuses one with no endpoint", async () => {
+    const { calls } = mockFetch(answer());
+    await callModel(testEnv({ MODEL_READ_NAME: "", MODEL_READ_ROUTE_ONLY: "" }), await request());
+    const body = JSON.parse(await calls[0]!.text());
+    expect([body.model, body.provider.only[0]]).toEqual(["test-model", "test/eu"]);
+    await expect(callModel(testEnv({ MODEL_READ_ROUTE_ONLY: "" }), await request())).rejects.toMatchObject({ code: "misconfigured" });
+  });
+
+  it("refuses an unfinished or blank answer as retryable and caches nothing", async () => {
+    const env = testEnv({ MODEL_BUDGET_CALLS_PER_PAGE: "20" });
+    for (const [content, finish] of [["", "stop"], ["   ", "stop"], ["Část přep", "error"], ["Část přep", null]] as const) {
+      mockFetch(() => Response.json({ choices: [{ message: { content }, finish_reason: finish }] }));
+      await expect(callModel(env, await request())).rejects.toMatchObject({ code: "bad_output", retryable: true });
+    }
+    // A provider failure OpenRouter reports inside a 200 has no choices at all.
+    mockFetch(() => Response.json({ error: { code: 502, message: "provider failed" } }));
+    await expect(callModel(env, await request())).rejects.toMatchObject({ code: "bad_output", retryable: true });
+    const { calls } = mockFetch(answer("Přepis."));
+    expect((await callModel(env, await request())).output).toBe("Přepis.");
+    expect(calls).toHaveLength(1);
+  });
+
+  it("does not retry a cut-off answer: a longer limit is a configuration change", async () => {
+    mockFetch(answer("Část přep", "length"));
+    await expect(callModel(testEnv(), await request())).rejects.toMatchObject({ code: "bad_output", retryable: false });
   });
 
   it("is off without a key, and refuses a misconfigured provider, sending nothing", async () => {

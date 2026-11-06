@@ -125,6 +125,9 @@ async function main() {
   const base = wranglerVar("MODEL_BASE");
   const model = wranglerVar("MODEL_NAME");
   const routing = pinnedRoute(wranglerVar("MODEL_ROUTE_ONLY"));
+  // As the Worker does: page images go to the reading model.
+  const readModel = wranglerVar("MODEL_READ_NAME");
+  const readRouting = pinnedRoute(wranglerVar("MODEL_READ_ROUTE_ONLY"));
   // --effort overrides the configured reasoning effort, to measure whether "low" holds quality.
   const effort = (args.includes("--effort") ? args[args.indexOf("--effort") + 1] : wranglerVar("MODEL_REASONING_EFFORT")) || null;
   // Page by page by default: on case 10 one call over the whole document returned 21 to 49 facts depending on the run,
@@ -152,7 +155,7 @@ async function main() {
     let seconds = 0;
     // One model call, cached by prompt and payload. "filtered" when the content filter refuses it; null on a failure.
     const ask = async (p: LoadedPrompt, text: { ref: number; text: string }[], images: string[], label: string) => {
-      const { body, parts } = buildPayload({ prompt: p, text, imagesBase64: images, identity, model, routing, maxOutputTokens: MAX_OUTPUT_TOKENS, reasoningEffort: effort, maxInputChars: 200000, purpose: label });
+      const { body, parts } = buildPayload({ prompt: p, text, imagesBase64: images, identity, model: images.length ? readModel : model, routing: images.length ? readRouting : routing, maxOutputTokens: MAX_OUTPUT_TOKENS, reasoningEffort: effort, maxInputChars: 200000, purpose: label });
       const payload = JSON.stringify(body);
       const inputSha = await sha256Hex(payload);
       const cacheFile = join(cacheDir, `${p.ref}-${p.sha256.slice(0, 12)}-${inputSha}.json`);

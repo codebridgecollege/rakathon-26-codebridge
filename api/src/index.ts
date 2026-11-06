@@ -4,7 +4,6 @@ import { onError, notFound } from "./http/errors";
 import { sameOrigin } from "./http/origin";
 import { auth } from "./auth/middleware";
 import { health } from "./routes/health";
-import { summarize } from "./routes/summarize";
 import { stt } from "./routes/stt";
 import { viewer } from "./middleware/viewer";
 import { directory } from "./routes/directory";
@@ -63,7 +62,6 @@ app.use("*", auth()); // everything below needs a user (demo: anonymous demo use
 app.use("*", sameOrigin()); // non-GET from another origin is refused (CSRF and quota abuse)
 // The org and role switches of a login session (OIDC mode); they act on the session, not on case data.
 app.route("/", session);
-app.route("/summarize", summarize);
 app.route("/stt", stt);
 for (const p of DATA_PATHS) app.use(p, viewer());
 // Step 4: every data write (POST, PUT, PATCH, DELETE) checks JSON, size and the demo's data epoch, and logs refusals.

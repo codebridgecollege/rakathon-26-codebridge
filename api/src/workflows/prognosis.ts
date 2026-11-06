@@ -8,6 +8,7 @@
 import { WorkflowEntrypoint, type WorkflowEvent, type WorkflowStep } from "cloudflare:workers";
 import type { Profile } from "@codebridge/domain/prognosis-profile";
 import { prognosisConfig, PrognosisProblem, searchStudies } from "../services/prognosis-search";
+import { LEGACY_ORG } from "../domain/orgs";
 import { orgKey, orgStmt } from "../store/sql";
 
 export type PrognosisParams = { org: string; caseId: string; jobId: string; file: string; scheduledDate: string };
@@ -22,6 +23,18 @@ const setJob = (env: Env, p: PrognosisParams, state: "running" | "done" | "error
     "UPDATE jobs SET state = ?1, phase = ?2, error_code = ?3, result_ref = COALESCE(?4, result_ref), updated_at = ?5 WHERE org_id = ?org AND id = ?6 AND kind = 'prognosis'",
     state, phase, code, ref, new Date().toISOString(), p.jobId,
   ).run();
+
+// Whether any saved search of the case holds rows: the org's own, or demo org A's seeded replay under the old key.
+async function hasSavedRows(env: Env, p: PrognosisParams): Promise<boolean> {
+  const prefixes = [orgKey(p.org, `prognosis-runs/${p.caseId}/`), ...(p.org === LEGACY_ORG ? [`prognosis/${p.caseId}/`] : [])];
+  for (const prefix of prefixes) {
+    for (const { key } of (await env.DOCS.list({ prefix })).objects) {
+      const saved = await (await env.DOCS.get(key))?.json<{ result?: { rows?: unknown[] } }>().catch(() => null);
+      if (saved?.result?.rows?.length) return true;
+    }
+  }
+  return false;
+}
 
 // The whole job, outside the Workflow class so a test can run it with a stubbed fetch. Returns the outcome as a code.
 export async function runPrognosisJob(env: Env, p: PrognosisParams, fetchFn?: typeof fetch): Promise<{ state: "done" | "error"; code: string | null }> {
@@ -47,8 +60,10 @@ export async function runPrognosisJob(env: Env, p: PrognosisParams, fetchFn?: ty
     return fail(e instanceof PrognosisProblem ? e.code : "search_failed");
   }
   await setJob(env, p, "running", "normalize", null);
-  // The result always goes in, also one with a model error or no rows, so the tab can show what the search found or why
-  // it found nothing.
+  // A search that found nothing goes in too, so the tab can say why, unless the case already has saved rows: a failed
+  // search must not replace or hide a good result. The job's error tells the doctor instead.
+  const rows = (result as { rows?: unknown[] }).rows;
+  if (!rows?.length && (await hasSavedRows(env, p))) return fail("search_failed");
   const key = prognosisSavedKey(p.org, p.caseId, p.scheduledDate);
   await env.DOCS.put(key, JSON.stringify({ patient_id: p.file, scheduled_date: p.scheduledDate, result }), { httpMetadata: { contentType: "application/json" } });
   await env.DOCS.delete(draftKey);

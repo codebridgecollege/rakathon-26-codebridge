@@ -2,7 +2,7 @@
 // page text: what is kept, what is "verify", what is dropped, and how sources are anchored.
 import { describe, expect, it } from "vitest";
 import { validateRun } from "@codebridge/domain/extraction/validate";
-import { buildFromAnswer, findQuote, normalizeTnm, type PageReading } from "../src/domain/extract/build";
+import { aiFragmentIds, buildFromAnswer, draftDocument, findQuote, normalizeTnm, type PageReading } from "../src/domain/extract/build";
 import { parseDate } from "../src/domain/extract/dates";
 import { pageIdentity } from "../src/domain/extract/identity";
 import type { ModelFact } from "../src/domain/extract/schema";
@@ -87,6 +87,12 @@ async function build(facts: ModelFact[], pages: PageReading[] = [page(1, P1)]) {
 }
 
 describe("fact extraction checks", () => {
+  it("says not checked, never nothing found, when no call read the document", async () => {
+    const d = await draftDocument({ doc: { documentId: "D", part: null, pages: [page(1, P1)] }, calls: [], ids: aiFragmentIds("D") });
+    expect(d.checks.length).toBeGreaterThan(0);
+    for (const c of d.checks) expect(c).toMatchObject({ result: "not_run", covered: [], unreadable: [] });
+  });
+
   it("keeps a fact whose quote is in the page, maps placeholders back and anchors the source", async () => {
     const r = await build([fact({ kind: "diagnosis", quote: "C20 Zhoubný novotvar konečníku", text: "Zhoubný novotvar konečníku", code: "C20", primary: true })]);
     expect(r.facts).toHaveLength(1);

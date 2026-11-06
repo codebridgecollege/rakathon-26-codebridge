@@ -530,12 +530,6 @@ proves who someone is, and orgs, memberships and roles stay in D1.
 - **Removing someone.** Ending the membership on the staff screen stops their session at the next request. Disabling
   the account in Zitadel takes effect at their next login (up to 12 hours; AUTH.md, "Session rules").
 
-## AI Gateway (off)
-
-Before setting `AI_GATEWAY_BASE`, check on a scratch gateway that (a) it
-accepts the APIM host and the `/openai/v1/chat/completions` path, (b)
-whether it retries 429 itself (then lower `LLM_MAX_ATTEMPTS`), and (c) its
-logging is off.
 
 ## NIS over FHIR (issue #22, phase 1)
 

@@ -9,11 +9,12 @@ import { WorkflowEntrypoint, type WorkflowEvent, type WorkflowStep } from "cloud
 import { NonRetryableError } from "cloudflare:workflows";
 import { PCM_BYTES_PER_SECOND, coveredIntervals, keepsAudioAfter, safeCode, transcriptText, wordsToLines, type PassErrorCode } from "../domain/transcript";
 import { diarizeUpstream } from "../services/elevenlabs";
-import { modelAvailable } from "../services/model";
-import { summarizeTranscript } from "../services/summarize-transcript";
+import { callModel, ModelError } from "../services/model";
+import { loadCaseIdentity } from "../store/identity";
+import { modelOn } from "./extract-document";
 import { PROMPT, PROMPT_VERSION } from "../prompts/summarize-cs";
-import { ApiError } from "../http/errors";
 import { actorFor, concatObjects, deleteForPass, finalizeForPass, joinedAudio } from "../store/audio";
+import type { Pseudonymized } from "../domain/pseudonymize";
 import { Tx } from "../store/write";
 import { sha256Hex } from "../store/work";
 import { orgKey, orgStmt } from "../store/sql";
@@ -37,6 +38,8 @@ export const providerDelay = ({ ctx, error }: { ctx: { attempt: number }; error:
 // backoff "constant": the delay function already computes the whole wait; with the default (exponential) the engine
 // multiplies its result by 2^(attempt-1) again (miniflare's calcRetryDuration), which stretches six attempts to hours.
 const DIARIZE = { retries: { limit: 6, delay: providerDelay, backoff: "constant" }, timeout: "20 minutes" } as const;
+// Reasoning tokens count against this limit, so it sits far above what the one or two sentences need.
+const SUMMARY_TOKENS = 2000;
 const SUMMARY = { retries: { limit: 6, delay: providerDelay, backoff: "constant" }, timeout: "3 minutes" } as const;
 
 const iso = () => new Date().toISOString();
@@ -49,6 +52,9 @@ async function jobOf(env: Env, p: SpeakerPassParams): Promise<JobRow> {
   if (!j) throw new NonRetryableError("internal");
   return j;
 }
+
+// The doctors read names, not placeholders. A placeholder with no original stays as it is, so nothing is guessed.
+const withOriginals = (text: string, p: Pseudonymized) => text.replace(/\[[A-Z]+(?:_[A-Z0-9]+)*\]/g, (ph) => p.originals(ph)[0] ?? ph);
 
 async function actor(env: Env, p: SpeakerPassParams) {
   const j = await jobOf(env, p);
@@ -223,13 +229,17 @@ async function summarize(env: Env, p: SpeakerPassParams, basis: "speaker_pass" |
   let summary: string;
   if (cached && typeof cached.summary === "string") summary = cached.summary;
   else {
-    if (!modelAvailable(env)) throw new NonRetryableError("model:503");
+    // The same switch as the document pipeline: an org not cleared for the model sends no transcript either.
+    if (!modelOn(env, p.org)) throw new NonRetryableError("model:503");
     try {
-      // One call per attempt: the step's retry policy is the backoff.
-      summary = await summarizeTranscript(env, text, { attempts: 1 });
+      // Through the one model interface: spoken names are pseudonymized, identifiers left in the text refuse the call,
+      // and the access log has the send before the first attempt. A transcript has no document, so the pass stands in.
+      const r = await callModel(env, { org: p.org, caseId: p.caseId, actor: await actor(env, p), purpose: "summarize", prompt: "summarize-cs", identity: await loadCaseIdentity(env.DB, p.org, p.caseId), text: [{ ref: { docId: `transcript-${p.passId}`, page: null }, text }], maxOutputTokens: SUMMARY_TOKENS });
+      summary = withOriginals(r.output.trim(), r.pseudonymized[0]!);
     } catch (e) {
-      const st = e instanceof ApiError ? e.upstream : undefined;
-      if (st === "network" || st === 429 || (typeof st === "number" && st >= 500)) throw new Error(`model:${st}:0`);
+      if (!(e instanceof ModelError)) throw e;
+      const st = e.upstream;
+      if (e.retryable) throw new Error(`model:${st ?? 503}:0`);
       throw new NonRetryableError(`model:${typeof st === "number" ? st : 400}`);
     }
     await env.DOCS.put(key, JSON.stringify({ summary, model, prompt_version: PROMPT_VERSION, created_at: at }), { httpMetadata: { contentType: "application/json" } });
