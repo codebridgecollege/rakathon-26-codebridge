@@ -42,7 +42,7 @@ test("header shows the case ID, status, owner, slot and the case actions", async
 test("brief shows the summary, the current state and the missing-documents warning", async ({ app }) => {
   await openCase(app);
   await expect(app.main.getByRole("heading", { level: 2, name: "Stručný souhrn" })).toBeVisible();
-  await expect(app.main.getByRole("button", { name: /^Pacient s metastatickým světlobuněčným renálním karcinomem/ })).toBeVisible();
+  await expect(app.main.getByRole("button", { name: /^Pacient s meta světlobuněčným renálním ca/ })).toBeVisible();
   await expect(app.main.getByRole("heading", { level: 2, name: /^Aktuální stav pacienta/ })).toBeVisible();
   await expect(app.main.getByRole("heading", { level: 2, name: /^Onkologický souhrn/ })).toBeVisible();
   // Missing-document alerts are always signalled on the brief; the list sits one click away.

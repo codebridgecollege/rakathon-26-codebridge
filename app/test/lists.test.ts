@@ -11,7 +11,7 @@ import { createFluentVue } from "fluent-vue";
 import type { CaseState } from "@codebridge/api-client";
 import { bundlesFor, makeBundle } from "../app/lib/i18n";
 import { fmtDateTime, fmtDay, fmtDayMonth, fmtMonthName } from "../app/lib/format";
-import { MINI_WEEKDAY_IDS, SEMINAR_LABEL_IDS, STATUS_LABEL_IDS, WEEKDAY_IDS, caseRoute, isSlotLocked } from "../app/lib/lists";
+import { MINI_WEEKDAY_IDS, STATUS_LABEL_IDS, WEEKDAY_IDS, caseRoute, isSlotLocked } from "../app/lib/lists";
 import { briefOf, dxLine, questionOf } from "../app/lib/case-brief";
 import { setApi } from "../app/lib/api";
 import { useSessionStore } from "../app/stores/session";
@@ -83,7 +83,7 @@ describe("formatting", () => {
 
 describe("list catalog", () => {
   it("has every message picked by a code or filled through <i18n>", () => {
-    const ids = [...Object.values(STATUS_LABEL_IDS), ...WEEKDAY_IDS, ...MINI_WEEKDAY_IDS, ...Object.values(SEMINAR_LABEL_IDS)];
+    const ids = [...Object.values(STATUS_LABEL_IDS), ...WEEKDAY_IDS, ...MINI_WEEKDAY_IDS];
     const dir = path.join(import.meta.dirname, "../app/components/lists");
     for (const f of readdirSync(dir)) for (const m of readFileSync(path.join(dir, f), "utf8").matchAll(/path="([a-z0-9-]+)"/g)) ids.push(m[1]!);
     expect(ids.filter((id) => !cs.hasMessage(id))).toEqual([]);

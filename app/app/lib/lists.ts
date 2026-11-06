@@ -26,7 +26,6 @@ export const STATUS_DOT: Record<string, string> = { new: "muted", scheduled: "ch
 export const WEEKDAY_IDS = ["lists-weekday-sun", "lists-weekday-mon", "lists-weekday-tue", "lists-weekday-wed", "lists-weekday-thu", "lists-weekday-fri", "lists-weekday-sat"] as const;
 // The mini month's header row starts on Monday.
 export const MINI_WEEKDAY_IDS = [1, 2, 3, 4, 5, 6, 0].map((i) => WEEKDAY_IDS[i]!);
-export const SEMINAR_LABEL_IDS: Record<string, string> = { neuro: "calendar-seminar-neuro" };
 
 // The patient view's route. Kept in one place, so the patient screens (ported separately) can change it in one line.
 // The case number is the file's number (/patient/10/overview).

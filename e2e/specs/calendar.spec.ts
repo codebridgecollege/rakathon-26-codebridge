@@ -24,7 +24,7 @@ test.beforeEach(async ({ app }) => {
 
 test("shows the seminar week with booked and free slots", async ({ app }) => {
   await expect(app.main.getByText("19. 10. až 23. 10. 2026")).toBeVisible();
-  await expect(app.main.getByText("Neuroonkologický seminář 14:00-16:00")).toBeVisible();
+  await expect(app.main.getByText("Neuroonkologické MDT 14:00-16:00")).toBeVisible();
   await expect(slot(app, "Poláček Daniel", "14:00")).toBeVisible();
   await expect(slot(app, "Palajová Martina", "15:00")).toBeVisible();
   await expect(freeSlot(app, "15:10")).toBeVisible();

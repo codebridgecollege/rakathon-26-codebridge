@@ -117,21 +117,29 @@ the patient stays visible at a glance. A running MDT opens a side panel beside t
 computer can choose "Celé okno" instead; the choice stays in that browser. Next to the PACS viewer on one computer, a
 narrow window shows only the panel.
 
-- **What it shows:** age, PS, the summary, the MDT question, contraindications stated in the documents, comorbidities, allergies,
-  treatment (with what is planned, marked), examinations (newest first, five with "Zobrazit vše"), up to three of the
-  assistant's open alerts with a count of the rest. Each item opens its source and keeps its certainty mark and negation.
-  A part the extraction does not hold shows "-" with the gap wording; a case not loaded or not processed says that instead.
-- **Order and modality check (Soňa, 2026-11-05):** the summary leads, then the MDT question, then "Léčebné modality".
-  For immunotherapy, chemotherapy, radiotherapy and surgery it lists the documented facts that bear on each (an
-  autoimmune disease or interstitial lung disease for immunotherapy; a low EF, kidney, liver or blood count for
-  chemotherapy; FEV1 or DLCO under 60 % for surgery and radiotherapy; anticoagulants; PS 2 or worse), each with its
-  source and certainty mark, labelled as the assistant's observation. It never ranks or recommends a treatment, shows
-  nothing for a modality without a hit (and says that is no all-clear), skips negated facts, and lists the data it
-  needs but the documents lack (EF, spirometry, kidney function) with the gap wording. The rules and their rough
-  cut-offs are in `packages/domain/src/modality-checks.ts`; they are common clinical limits, not a named guideline, and
-  a doctor should confirm them before the check goes beyond the demo (the guideline layer, F-27, is the place for
-  quoted guideline statements).
-- **PACS is a labelled stub:** "Otevřít v PACS (ukázka)" says that PACS is not connected. See
+- **It fits one screen (Soňa, 2026-11-05):** while the radiologist shows PACS nobody scrolls the panel, so at 1440 x 800 a
+  long case like Poláček fits without scrolling: name and age; PS (or KPS, as the document writes it, never converted)
+  with the value chips and the always-on missing-document signal beside it; the summary (common abbreviations, folded to
+  its first and last two sentences with "Celý souhrn"); the MDT
+  question; the course (treatment, histology, MDT decisions and the three newest scans, what is planned first, four rows
+  with "Zobrazit vše").
+  An alert that a page shows another patient stays open. The assistant's other open alerts with their count and "Další údaje" (contraindications, comorbidities, allergies, all
+  exams) open below. Each item opens its source and keeps its certainty mark and negation. A part the extraction does
+  not hold shows "-" with the gap wording; a case not loaded or not processed says that instead.
+- **Value chips, not verdicts:** doctors sometimes discuss the guideline option without factoring in, say, autoimmune
+  cholangitis or EF 30 %. A red chip beside PS names the value ("EF 30 %", "HBsAg pozitivní"), never "surgery
+  contraindicated"; the doctors know what follows. The modality it usually bears on and why are in the chip's tooltip,
+  and one line labels the chips as the assistant's observation. The rules read the run's facts: one chip per rule, the
+  newest dated measurement decides and an undated one counts too, negated facts, relatives, plans and the assistant's
+  own inferences never match, a suspicion is labelled as one, and a value the rules need but the
+  documents lack (EF, FEV1 and DLCO, eGFR) is a grey chip. The rules and their rough cut-offs (EF under 50 %, FEV1 and
+  DLCO under 60 %, PS 2 or KPS 60) are in `packages/domain/src/modality-checks.ts`; they are common limits, not a named
+  guideline, and a doctor should confirm them before this goes beyond the demo. Quoted guideline statements belong in
+  the guideline layer (F-27).
+- **Abbreviations:** the brief and the course show common Czech abbreviations for reading only
+  (`packages/domain/src/abbreviate.ts`: st.p., LU, meta, ca, hist., susp., l. dx., l. sin., CHT, RT, th., dg.). The
+  stored text, the edit dialog and the report keep the full wording. Names of other diseases stay written out (row 13 below).
+- **PACS is a labelled stub:** "PACS (ukázka)" says that PACS is not connected. See
   [`OPEN_QUESTIONS.md`](../agent/OPEN_QUESTIONS.md).
 
 ### After the MDT: report and tasks

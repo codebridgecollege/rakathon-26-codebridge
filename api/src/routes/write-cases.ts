@@ -6,6 +6,7 @@ import type { AppEnv } from "../types";
 import { E } from "../http/errors";
 import { D, DomainError } from "@codebridge/domain/errors";
 import { moveStatus, statusLine, autoOnNewVersion, type StatusChange } from "@codebridge/domain/status";
+import { mdtOfOrg } from "../store/people";
 import { releasesOnClose, schedule, slotText, unschedule, validateSlot, type Slot } from "@codebridge/domain/slots";
 import { newDraft, patchProtocol } from "@codebridge/domain/protocol";
 import { approve } from "@codebridge/domain/approve";
@@ -189,7 +190,7 @@ export const writeCases = new Hono<AppEnv>()
     const next = validateSlot(b.day, b.time);
     const cur = slotOf(core);
     if (cur && cur.day === next.day && cur.time === next.time) return answer(c, { warning_cs: null }, { cases: await statesFor(c, [id]) });
-    const r = schedule({ status: core.status, slot: cur }, next, await work(c).decisions(id));
+    const r = schedule({ status: core.status, slot: cur }, next, await work(c).decisions(id), await mdtOfOrg(c.env.DB, c.var.viewer.org));
     const t = tx(c, breakGlass).onConstraint(SLOT_UNIQUE, () => D.slotTaken());
     t.guard("status", "(SELECT status FROM cases WHERE org_id = ?org AND id = ?) = ?", [id, core.status], () => D.statusChanged());
     if (cur) {

@@ -11,19 +11,26 @@ test("a running MDT opens the side panel, and the whole window can be chosen ins
 
   const panel = page.getByRole("complementary", { name: "Přehled pacienta pro MDT" });
   await expect(panel.getByRole("heading", { level: 2, name: "Poláček Daniel" })).toBeVisible();
-  await expect(panel.getByRole("heading", { level: 3, name: "Léčba" })).toBeVisible();
+  await expect(panel.getByRole("heading", { level: 3, name: "Průběh" })).toBeVisible();
+  // The values to count with stand beside PS, each opening its source.
+  await expect(panel.getByRole("button", { name: "PS 1", exact: true })).toBeVisible();
   await expect(panel.getByRole("button", { name: "ACE inhibitory při léčbě everolimem" })).toBeVisible();
+  await expect(panel.getByRole("button", { name: "HBsAg pozitivní" })).toBeVisible();
+  await expect(panel.getByRole("button", { name: /^eGFR 1,01 ml\/s/ })).toBeVisible();
 
-  // The summary leads, then the question, then the treatment modalities with the facts that bear on them.
+  // The missing-document signal stays visible, whatever is folded; the summary leads, then the question.
+  await expect(panel.getByText("chybí podklady")).toBeVisible();
   const order = await panel.locator("h3, .question").evaluateAll((els) => els.map((e) => e.textContent?.trim().slice(0, 14)));
   expect(order.indexOf("Souhrn")).toBe(0);
-  const mods = panel.locator('[data-test="modality-checks"]');
-  await expect(mods.getByRole("heading", { level: 3, name: "Léčebné modality" })).toBeVisible();
-  await expect(mods.getByText("Pozorování asistenta z dokumentace, ne doporučení")).toBeVisible();
-  await expect(mods.getByText("Imunoterapie", { exact: true })).toBeVisible();
-  await expect(mods.getByText("Operace", { exact: true })).toBeVisible();
+  // The radiologist shows PACS and nobody scrolls the panel: on a common laptop screen everything open fits.
+  await page.setViewportSize({ width: 1440, height: 800 });
+  const fits = await panel.locator("details").first().evaluate((d) => {
+    const body = d.parentElement!;
+    return body.scrollHeight <= body.clientHeight;
+  });
+  expect(fits).toBe(true);
 
-  await panel.getByRole("button", { name: "Otevřít v PACS (ukázka)" }).click();
+  await panel.getByRole("button", { name: "PACS (ukázka)" }).click();
   await expect(page.getByText("PACS zatím není propojený.")).toBeVisible();
 
   await panel.getByRole("button", { name: "Celé okno" }).click();

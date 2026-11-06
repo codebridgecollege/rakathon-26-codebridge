@@ -7,8 +7,17 @@ const caseWith = (record: Partial<NonNullable<CaseData["record"]>>): CaseData =>
 
 describe("MDT side panel", () => {
   it("has nothing to show for an unprocessed case: every part is missing, never empty", () => {
-    expect(mdtPanelOf(unprocessedCase("f.pdf", "NO-1"))).toEqual({ ps: null, exams: null, treatments: null, contraindications: null, comorbidities: null, allergies: null });
+    expect(mdtPanelOf(unprocessedCase("f.pdf", "NO-1"))).toEqual({ ps: null, exams: null, treatments: null, course: null, contraindications: null, comorbidities: null, allergies: null });
     expect(mdtPanelOf(null).ps).toBeNull();
+  });
+
+  it("builds the course: what is planned first, treatment and histology, only the newest scans", () => {
+    const scan = (m: number) => ({ date: `${m}/2026`, date_sort: `2026-0${m}`, category: "imaging", title_cs: `CT ${m}`, text_cs: "" });
+    const p = mdtPanelOf(caseWith({ timeline: [scan(1), scan(2), scan(3), scan(4),
+      { date: "1/2020", date_sort: "2020-01", category: "surgery", title_cs: "Operace", text_cs: "" },
+      { date: null, date_sort: null, category: "mdt", title_cs: "Seminář", text_cs: "", status: "planned" },
+      { date: "1/2026", date_sort: "2026-01", category: "clinical", title_cs: "Kontrola", text_cs: "" }] as never }));
+    expect(p.course?.map((e) => e.title)).toEqual(["Seminář", "CT 4", "CT 3", "CT 2", "Operace"]);
   });
 
   it("splits the timeline into exams and treatment, newest first, undated last, and keeps partial dates", () => {

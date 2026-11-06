@@ -1010,19 +1010,16 @@ mdt-panel-whole-window = Whole window
 mdt-panel-show = Side panel
 mdt-panel-age = Age
 mdt-panel-ps = PS
-mdt-panel-pacs = Open in PACS (demo)
+mdt-panel-pacs = PACS (demo)
 mdt-panel-pacs-stub = Demo: this is where the patient's images open in the hospital's PACS. PACS is not connected yet.
 mdt-panel-unprocessed = This patient's documents are not processed yet, so the overview has nothing to show.
-mdt-panel-risks = What the documents state
 mdt-panel-comorbidities = Comorbidities
 mdt-panel-allergies = Allergies
-mdt-panel-treatment = Treatment
 mdt-panel-contraindications = Contraindications in the documents
 mdt-panel-exams = Examinations
 mdt-panel-alerts = Assistant's alerts
 mdt-panel-show-all = Show all ({ $n })
 mdt-panel-show-fewer = Show fewer
-mdt-panel-more-alerts = { $n } more alerts are on the Alerts tab.
 
 ## A case with nothing processed
 
@@ -1063,18 +1060,22 @@ patient-nodata-next = The proposed management cannot be shown: there are no proc
 patient-nodata-dev = Retrospective deviations cannot be shown: there are no processed documents of earlier decisions.
 patient-nodata-prognosis = The prognosis cannot be shown.
 
-## Treatment modalities check in the side panel
+## Value chips and compact parts of the side panel
 
-mdt-panel-modalities = Treatment modalities
-mdt-panel-modalities-note = The assistant's observation from the documents, not a recommendation. The doctor decides.
+mdt-panel-flags-note = The assistant's observation; the check is not complete. The doctor decides.
+mdt-panel-flag-bears = Bears on
+mdt-panel-flag-more = More entries: { $n }
 mdt-panel-mod-immuno = Immunotherapy
 mdt-panel-mod-chemo = Chemotherapy
 mdt-panel-mod-radio = Radiotherapy
 mdt-panel-mod-surgery = Surgery
-mdt-panel-mod-nothing = Nothing found (no guarantee).
-mdt-panel-mod-limited = The assistant checks only a limited list of facts; an empty result does not mean nothing limits the modality.
-mdt-panel-missing = Data missing for the check: { $what } ({ -gap-not-stated }).
+mdt-panel-missing-title = Missing: { -gap-not-stated }
 mdt-panel-missing-ef = EF
-mdt-panel-missing-spirometry = spirometry, DLCO
-mdt-panel-missing-kidney = kidney function
+mdt-panel-missing-lung = FEV1, DLCO
+mdt-panel-missing-kidney = eGFR
 mdt-panel-brief = Summary
+mdt-panel-brief-more = Whole summary
+mdt-panel-brief-less = Shorten summary
+mdt-panel-course = Course
+mdt-panel-details = More details
+mdt-panel-planned = planned

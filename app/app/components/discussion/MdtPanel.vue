@@ -1,10 +1,12 @@
 <script setup lang="ts">
 // The side panel of a running MDT: the patient at a glance while the radiologist shows images in PACS, so a long meeting
-// stays easy to follow. It shows age, PS, the question, exams, treatment and what may bear on treatment, each from the
-// extraction with its source. A part the extraction does not hold shows "-" with the gap wording, never "none".
+// stays easy to follow. It fits one screen: age, PS with the values to count with, the summary, the question and the
+// course, each from the extraction with its source; the rest opens below. A part the extraction does not hold shows "-"
+// with the gap wording, never "none".
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { useFluent } from "fluent-vue";
+import { abbreviateCs } from "@codebridge/domain/abbreviate";
 import { dayAgenda, DEMO_TODAY } from "@codebridge/domain/calendar";
 import { nrOf } from "@codebridge/domain/case-data";
 import { linkProse, topAlerts } from "@codebridge/domain/case-view";
@@ -23,11 +25,12 @@ import Gap from "../patient/Gap.vue";
 import Marks from "../patient/Marks.vue";
 import QuestionBox from "../patient/QuestionBox.vue";
 import MdtSource from "./MdtSource.vue";
-import ModalityChecks from "./ModalityChecks.vue";
+import PanelFlags from "./PanelFlags.vue";
 import Prose from "../patient/Prose.vue";
 
-const SHORT_LIST = 5;
-const SHORT_ALERTS = 3;
+// Rows of the course without "Zobrazit vše", and the summary length past which it folds to a few lines, so the panel fits a screen.
+const SHORT_COURSE = 4;
+const LONG_BRIEF = 380;
 
 const { $t } = useFluent();
 const router = useRouter();
@@ -44,16 +47,27 @@ const panel = computed(() => mdtPanelOf(c.cd.value));
 const factText = (f: PanelFact) => (f.negated ? $t("patient-fact-negated", { text: f.text }) : f.text);
 const eventText = (e: PanelEvent) => (e.negated ? $t("patient-fact-negated", { text: e.title }) : e.title);
 // The extracted summary leads the panel, then the question (Soňa, 2026-11-05); a case without a brief shows no summary.
-const prose = computed(() => linkProse(c.cd.value?.brief?.text_cs, c.cd.value?.brief?.refs));
+const prose = computed(() => {
+  const p = linkProse(c.cd.value?.brief?.text_cs, c.cd.value?.brief?.refs);
+  return { ...p, parts: p.parts.map((x) => ({ ...x, text: abbreviateCs(x.text) })) };
+});
+const longBrief = computed(() => prose.value.parts.length > 3 && prose.value.parts.reduce((n, x) => n + x.text.length, 0) > LONG_BRIEF);
+const wholeBrief = ref(false);
+// Folded, the summary keeps what the diagnosis is and where things stand now: its first and last two sentences. The middle
+// is the history, which the course below shows; "…" says something is left out.
+const shownBrief = computed(() => {
+  const parts = prose.value.parts.filter((x) => x.text.trim());
+  return longBrief.value && !wholeBrief.value ? [parts[0]!, { text: " … " }, parts.at(-2)!, { text: " " }, parts.at(-1)!] : prose.value.parts;
+});
 const age = computed(() => ageOf(c.p.value, DEMO_TODAY));
 // The alerts for the MDT question first, then the other open ones, so the count below covers every open alert.
 const alerts = computed(() => {
   const t = topAlerts(c.cd.value?.alerts ?? null, c.alertHist.value);
   return [...t.top, ...t.open.filter((f) => !f.relevant)];
 });
-// The panel is for a glance: the rest of the alerts stay one click away on the patient view's "Upozornění" tab.
-const shownAlerts = computed(() => alerts.value.slice(0, SHORT_ALERTS));
-const moreAlerts = computed(() => alerts.value.length - shownAlerts.value.length);
+// A page of another patient is never folded away; the other alerts open below, with their count.
+const identityAlerts = computed(() => alerts.value.filter((f) => f.kind === "identity"));
+const otherAlerts = computed(() => alerts.value.filter((f) => f.kind !== "identity"));
 
 const session = computed(() => runningSession(workflow.sessions));
 const agenda = computed(() => (session.value ? dayAgenda(patients.rows, session.value.day) : []));
@@ -65,14 +79,11 @@ function go(file: string) {
   void router.push({ name: "patient", params: { nr: nrOf(file), tab: route.params.tab ? String(route.params.tab) : undefined } });
 }
 
-const allExams = ref(false);
-const allTreatments = ref(false);
-const shortList = (list: PanelEvent[] | null, all: boolean) => (list ? (all ? list : list.slice(0, SHORT_LIST)) : null);
-const exams = computed(() => shortList(panel.value.exams, allExams.value));
-const treatments = computed(() => shortList(panel.value.treatments, allTreatments.value));
+const allCourse = ref(false);
+const course = computed(() => (allCourse.value ? panel.value.course : (panel.value.course?.slice(0, SHORT_COURSE) ?? null)));
 watch(() => c.p.value.file, async () => {
-  allExams.value = false;
-  allTreatments.value = false;
+  allCourse.value = false;
+  wholeBrief.value = false;
   await nextTick();
   bodyEl.value?.scrollTo(0, 0);
 });
@@ -95,25 +106,21 @@ onBeforeUnmount(() => document.body.classList.remove("mdtp-docked"));
           <span class="muted small">{{ at >= 0 ? $t("mdt-panel-position", { n: at + 1, total: agenda.length }) : "" }}</span>
           <button class="btn small" :disabled="!next" :aria-label="$t('discussion-session-next')" @click="next && go(next.file)">›</button>
           <span class="mdtp-gap" />
+          <button class="btn small" @click="pacsStub">{{ $t("mdt-panel-pacs") }}</button>
           <button class="btn small" @click="store.choose('full')">{{ $t("mdt-panel-whole-window") }}</button>
         </div>
-        <h2 class="mdtp-name">{{ surnameFirst(c.p.value) }}</h2>
-        <div class="mdtp-meta">
-          <span>{{ $t("mdt-panel-age") }}: <b v-if="age">{{ age.n }}</b><Gap v-else /></span>
-          <span v-if="processed">{{ $t("mdt-panel-ps") }}:
-            <template v-if="panel.ps"><MdtSource :source="panel.ps.source" :text="panel.ps.text" /> <Marks :f="panel.ps.item" /></template>
-            <Gap v-else />
-          </span>
-        </div>
-        <button class="btn small" @click="pacsStub">{{ $t("mdt-panel-pacs") }}</button>
+        <h2 class="mdtp-name">{{ surnameFirst(c.p.value) }} <span class="mdtp-age">{{ $t("mdt-panel-age") }}: <b v-if="age">{{ age.n }}</b><Gap v-else /></span></h2>
+        <PanelFlags v-if="processed" />
       </div>
       <div ref="bodyEl" class="mdtp-body">
+        <!-- The radiologist shows PACS and nobody scrolls here: the summary, question and course fit the screen, the rest is one click away. -->
+        <div v-if="identityAlerts.length" role="list"><AlertRow v-for="f in identityAlerts" :key="f.i" :f="f" compact /></div>
         <section v-if="state === 'ready' && prose.parts.length" class="mdtp-sec">
           <h3>{{ $t("mdt-panel-brief") }}</h3>
-          <p class="prose" style="margin:0"><Prose :parts="prose.parts" breaks /></p>
+          <p class="prose mdtp-brief"><Prose :parts="shownBrief" breaks /></p>
+          <button v-if="longBrief" class="linkbtn small" @click="wholeBrief = !wholeBrief">{{ wholeBrief ? $t("mdt-panel-brief-less") : $t("mdt-panel-brief-more") }}</button>
         </section>
         <QuestionBox />
-        <ModalityChecks v-if="processed" />
 
         <!-- Not loaded or not processed says so: a "-" here would read as "not in the documentation" (CLAUDE.md). -->
         <p v-if="state === 'error'" class="question missing" role="alert">{{ $t("patient-load-failed") }}</p>
@@ -121,7 +128,27 @@ onBeforeUnmount(() => document.body.classList.remove("mdtp-docked"));
         <p v-else-if="!processed" class="muted small">{{ $t("mdt-panel-unprocessed") }}</p>
         <template v-else>
           <section class="mdtp-sec">
-            <h3>{{ $t("mdt-panel-risks") }}</h3>
+            <h3>{{ $t("mdt-panel-course") }}</h3>
+            <ul v-if="course?.length" class="mdtp-list mdtp-events">
+              <li v-for="e in course" :key="e.key" class="mdtp-row" :title="eventText(e)">
+                <span class="muted small" lang="cs">{{ e.date || (e.planned ? "" : $t("patient-tl-undated")) }}<template v-if="e.planned">{{ e.date ? $t("patient-tl-planned") : $t("mdt-panel-planned") }}</template></span>
+                <span class="mdtp-two"><MdtSource :source="e.source" :text="abbreviateCs(eventText(e))" /></span>
+                <span><Marks :f="e.item" /></span>
+              </li>
+            </ul>
+            <Gap v-else />
+            <button v-if="(panel.course?.length ?? 0) > SHORT_COURSE" class="linkbtn small" @click="allCourse = !allCourse">
+              {{ allCourse ? $t("mdt-panel-show-fewer") : $t("mdt-panel-show-all", { n: panel.course?.length ?? 0 }) }}
+            </button>
+          </section>
+
+          <details v-if="otherAlerts.length" class="mdtp-more">
+            <summary>{{ $t("mdt-panel-alerts") }} ({{ otherAlerts.length }})</summary>
+            <div role="list"><AlertRow v-for="f in otherAlerts" :key="f.i" :f="f" compact /></div>
+          </details>
+
+          <details class="mdtp-more">
+            <summary>{{ $t("mdt-panel-details") }}</summary>
             <div class="mdtp-sub">{{ $t("mdt-panel-contraindications") }}</div>
             <ul v-if="panel.contraindications?.length" class="mdtp-list">
               <li v-for="(f, i) in panel.contraindications" :key="i">
@@ -146,41 +173,15 @@ onBeforeUnmount(() => document.body.classList.remove("mdtp-docked"));
               </li>
             </ul>
             <Gap v-else />
-          </section>
-
-          <section class="mdtp-sec">
-            <h3>{{ $t("mdt-panel-treatment") }}</h3>
-            <ul v-if="treatments?.length" class="mdtp-list mdtp-events">
-              <li v-for="e in treatments" :key="e.key">
+            <div class="mdtp-sub">{{ $t("mdt-panel-exams") }}</div>
+            <ul v-if="panel.exams?.length" class="mdtp-list mdtp-events">
+              <li v-for="e in panel.exams" :key="e.key">
                 <span class="muted small" lang="cs">{{ e.date || $t("patient-tl-undated") }}<template v-if="e.planned">{{ $t("patient-tl-planned") }}</template></span>
                 <span><MdtSource :source="e.source" :text="eventText(e)" /> <Marks :f="e.item" /></span>
               </li>
             </ul>
             <Gap v-else />
-            <button v-if="(panel.treatments?.length ?? 0) > SHORT_LIST" class="linkbtn small" @click="allTreatments = !allTreatments">
-              {{ allTreatments ? $t("mdt-panel-show-fewer") : $t("mdt-panel-show-all", { n: panel.treatments?.length ?? 0 }) }}
-            </button>
-          </section>
-
-          <section class="mdtp-sec">
-            <h3>{{ $t("mdt-panel-exams") }}</h3>
-            <ul v-if="exams?.length" class="mdtp-list mdtp-events">
-              <li v-for="e in exams" :key="e.key">
-                <span class="muted small" lang="cs">{{ e.date || $t("patient-tl-undated") }}<template v-if="e.planned">{{ $t("patient-tl-planned") }}</template></span>
-                <span><MdtSource :source="e.source" :text="eventText(e)" /> <Marks :f="e.item" /></span>
-              </li>
-            </ul>
-            <Gap v-else />
-            <button v-if="(panel.exams?.length ?? 0) > SHORT_LIST" class="linkbtn small" @click="allExams = !allExams">
-              {{ allExams ? $t("mdt-panel-show-fewer") : $t("mdt-panel-show-all", { n: panel.exams?.length ?? 0 }) }}
-            </button>
-          </section>
-
-          <section v-if="alerts.length" class="mdtp-sec">
-            <h3>{{ $t("mdt-panel-alerts") }}</h3>
-            <div role="list"><AlertRow v-for="f in shownAlerts" :key="f.i" :f="f" compact /></div>
-            <p v-if="moreAlerts" class="muted small">{{ $t("mdt-panel-more-alerts", { n: moreAlerts }) }}</p>
-          </section>
+          </details>
         </template>
       </div>
     </aside>

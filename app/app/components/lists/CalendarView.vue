@@ -26,7 +26,7 @@ import {
 import { addDays } from "@codebridge/domain/time";
 import { surnameFirst } from "@codebridge/domain/names";
 import { useApi } from "../../lib/api";
-import { SEMINAR_LABEL_IDS, STATUS_DOT, caseRoute, isSlotLocked } from "../../lib/lists";
+import { STATUS_DOT, caseRoute, isSlotLocked } from "../../lib/lists";
 import { toast } from "../../lib/toast";
 import { useCurrentUser } from "../../composables/useCurrentUser";
 import { useListText } from "../../composables/useListText";
@@ -34,6 +34,7 @@ import { useWrite } from "../../composables/useWrite";
 import { usePatientsStore } from "../../stores/patients";
 import { useWorkflowStore } from "../../stores/workflow";
 import { useListViewStore } from "../../stores/listView";
+import { useSessionStore } from "../../stores/session";
 import CalendarCard from "./CalendarCard.vue";
 import MiniMonth from "./MiniMonth.vue";
 import StartMdtDialog from "./StartMdtDialog.vue";
@@ -47,6 +48,9 @@ const { run, refreshPatients } = useWrite();
 const patients = usePatientsStore();
 const workflow = useWorkflowStore();
 const v = useListViewStore();
+const session = useSessionStore();
+// The org's own MDT day, time and name (Administrace); the grid and the booking warning follow them.
+const plan = computed(() => session.me?.mdt ?? null);
 
 // The week lives in the address (/calendar/<Monday>), so the browser's back button moves between weeks. A link to
 // any day opens its week; the mini month then shows that day's month.
@@ -88,14 +92,14 @@ const bySlot = computed(() => {
   for (const p of patients.rows) if (p.slot) m.set(`${p.slot.day} ${p.slot.time}`, p);
   return m;
 });
-const grid = computed(() => visibleTimes(days.value, (d, t) => bySlot.value.has(`${d} ${t}`), v.fullDay));
+const grid = computed(() => visibleTimes(days.value, (d, t) => bySlot.value.has(`${d} ${t}`), v.fullDay, plan.value));
 const unscheduled = computed(() => unscheduledOf(patients.rows, v.schedPick));
 const pop = computed(() => (v.calPop ? patients.byFile(v.calPop) ?? null : null));
 const picked = computed(() => (v.schedPick ? patients.byFile(v.schedPick) ?? null : null));
 const locked = (p: PatientRow) => isSlotLocked(workflow.cases, p);
 const seminarText = (d: string) => {
-  const s = seminarOn(d);
-  return s ? $t("calendar-seminar-hours", { name: $t(SEMINAR_LABEL_IDS[s.kind]!), from: s.from, to: s.to }) : "";
+  const s = seminarOn(d, plan.value);
+  return s ? $t("calendar-seminar-hours", { name: plan.value?.name || $t("calendar-seminar-default"), from: s.from, to: s.to }) : "";
 };
 const rangeText = computed(() => {
   const a = new Date(`${v.week}T12:00:00Z`);
@@ -141,7 +145,7 @@ async function scheduleAt(file: string, day: string, time: string) {
   await run(() => useApi().putSlot(p.id, { day, time }), {
     busy: "slot",
     onOk: (r) => {
-      const warn = r.data?.warning_cs || (outOfHours(day, time) ? $t("calendar-out-of-hours") : "");
+      const warn = r.data?.warning_cs || (outOfHours(day, time, plan.value) ? $t("calendar-out-of-hours") : "");
       toast(warn ? $t("calendar-booked-warn", { name: surnameFirst(p), slot: text.slotText(p.slot), warn }) : $t("calendar-booked", { name: surnameFirst(p), slot: text.slotText(p.slot) }));
       v.schedPick = null;
       v.calPop = p.file;
@@ -287,7 +291,7 @@ const startDay = ref<string | null>(null);
             </div>
             <template v-for="t in grid.times" :key="t">
               <div class="tm" :class="{ hr: t.endsWith(':00') }">{{ t }}</div>
-              <div v-for="d in days" :key="`${d} ${t}`" class="cell" :class="{ sem: inSeminar(d, t), oot: !inSeminar(d, t) && outOfHours(d, t), today: d === DEMO_TODAY }">
+              <div v-for="d in days" :key="`${d} ${t}`" class="cell" :class="{ sem: inSeminar(d, t, plan), oot: !inSeminar(d, t, plan) && outOfHours(d, t, plan), today: d === DEMO_TODAY }">
                 <template v-if="bySlot.get(`${d} ${t}`)">
                   <button
                     v-for="p in [bySlot.get(`${d} ${t}`)!]"
@@ -302,11 +306,11 @@ const startDay = ref<string | null>(null);
                     @dragstart="!locked(p) && onDragStart($event, p.file)"
                     @dragend="onDragEnd"
                   >
-                    <span class="dot" :style="{ background: `var(--${STATUS_DOT[p.status] ?? 'muted'})` }" /><span v-if="outOfHours(d, t)" class="ootm" :title="$t('calendar-out-of-hours-title')" :aria-label="$t('calendar-out-of-hours')">{{ $t("calendar-out-of-hours-mark") }}</span><span class="cid">{{ surnameFirst(p) }}</span><span v-if="p.rc" class="nm">{{ $t("calendar-slot-rc", { rc: p.rc }) }}</span>
+                    <span class="dot" :style="{ background: `var(--${STATUS_DOT[p.status] ?? 'muted'})` }" /><span v-if="outOfHours(d, t, plan)" class="ootm" :title="$t('calendar-out-of-hours-title')" :aria-label="$t('calendar-out-of-hours')">{{ $t("calendar-out-of-hours-mark") }}</span><span class="cid">{{ surnameFirst(p) }}</span><span v-if="p.rc" class="nm">{{ $t("calendar-slot-rc", { rc: p.rc }) }}</span>
                   </button>
                 </template>
                 <button
-                  v-else-if="inSeminar(d, t)"
+                  v-else-if="inSeminar(d, t, plan)"
                   class="slotbtn free"
                   :class="{ target: !!v.schedPick, drop: dropKey === `${d} ${t}` }"
                   :aria-label="$t('calendar-free-slot', { time: t })"
@@ -318,7 +322,7 @@ const startDay = ref<string | null>(null);
                   <span class="tt2">{{ v.schedPick ? t : `${t}-${slotEnd(t)}` }}</span><span v-if="v.schedPick" class="nm">{{ $t("calendar-book-here") }}</span>
                 </button>
                 <button
-                  v-else-if="outOfHours(d, t)"
+                  v-else-if="outOfHours(d, t, plan)"
                   class="slotbtn free oot"
                   :class="{ target: !!v.schedPick, drop: dropKey === `${d} ${t}` }"
                   :title="$t('calendar-out-of-hours-title')"

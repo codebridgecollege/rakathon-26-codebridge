@@ -66,8 +66,9 @@ test("only the administrator sees Administrace with the access log", async ({ ap
 test("the administrator resets the demo data from Administrace", async ({ app, page }) => {
   // Change something visible first: book a patient.
   await app.open();
-  await app.nav("Kalendář MDT").click();
-  await app.main.getByText(/Zápotocký Luděk/).first().dragTo(app.main.getByRole("button", { name: "Volný termín 15:10", exact: true }));
+  await app.nav("Databáze pacientů").click();
+  await app.patientRow("Zápotocký Luděk").getByRole("button", { name: "Naplánovat" }).click();
+  await app.main.getByRole("button", { name: "Volný termín 15:10", exact: true }).click();
   await expect(app.main.getByRole("heading", { level: 2, name: "Nenaplánovaní (3)" })).toBeVisible();
 
   await app.loginAs(ADMIN);

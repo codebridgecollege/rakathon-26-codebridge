@@ -2,7 +2,7 @@
 // five working days, 10-minute slots from 8:00 to 18:00, the weekly seminar, and the month grid used to jump to a week.
 // Dates are ISO day strings handled at noon UTC, so no time zone can shift a day.
 import { addDays } from "./time";
-import { seminarHours } from "./slots";
+import { seminarHours, type SeminarSchedule } from "./slots";
 
 // The demo's fixed "today": the calendar and report specs depend on it while the app runs on
 // the demo seed (e2e/README.md, "How the suite gates the port").
@@ -33,18 +33,18 @@ export const weekdayOf = (iso: string) => new Date(`${iso}T12:00:00Z`).getUTCDay
 export const mondayOf = (iso: string) => addDays(iso, -((weekdayOf(iso) + 6) % 7));
 export const isIsoDayShape = (s: string) => /^\d{4}-\d\d-\d\d$/.test(s);
 
-// The seminar of a day; kind names the seminar for its label (one neuro-oncology MDT a week in the example schedule).
-export type Seminar = { from: string; to: string; kind: "neuro" };
-export function seminarOn(day: string): Seminar | null {
-  const h = seminarHours(day);
-  return h ? { from: h[0], to: h[1], kind: "neuro" } : null;
+// The seminar of a day, by the org's schedule; the calendar labels it with the MDT's name.
+export type Seminar = { from: string; to: string };
+export function seminarOn(day: string, plan?: SeminarSchedule): Seminar | null {
+  const h = seminarHours(day, plan);
+  return h ? { from: h[0], to: h[1] } : null;
 }
-export const inSeminar = (day: string, t: string) => {
-  const s = seminarOn(day);
+export const inSeminar = (day: string, t: string, plan?: SeminarSchedule) => {
+  const s = seminarOn(day, plan);
   return !!s && t >= s.from && t < s.to;
 };
 // On a seminar day every slot outside the seminar hours can be booked too (sessions may run longer).
-export const outOfHours = (day: string, t: string) => !!seminarOn(day) && !inSeminar(day, t);
+export const outOfHours = (day: string, t: string, plan?: SeminarSchedule) => !!seminarOn(day, plan) && !inSeminar(day, t, plan);
 
 export const weekDays = (week: string) => [0, 1, 2, 3, 4].map((i) => addDays(week, i));
 
@@ -67,8 +67,8 @@ export const monthOfWeek = (week: string) => addDays(week, 3).slice(0, 7);
 // Which rows the grid shows. By default, the seminar hours from 30 minutes before to an hour after, so the first
 // seminar row is in view and an overrun has room; the whole day when asked, when the week has no seminar, or when a
 // booking lies outside that range, so no booked slot is ever hidden.
-export function visibleTimes(days: string[], booked: (day: string, t: string) => boolean, fullDay: boolean) {
-  const sems = days.map(seminarOn).filter((s): s is Seminar => !!s);
+export function visibleTimes(days: string[], booked: (day: string, t: string) => boolean, fullDay: boolean, plan?: SeminarSchedule) {
+  const sems = days.map((d) => seminarOn(d, plan)).filter((s): s is Seminar => !!s);
   const from = sems.length ? shiftTime(sems.map((s) => s.from).sort()[0]!, -30) : null;
   const to = sems.length ? shiftTime(sems.map((s) => s.to).sort().at(-1)!, 60) : null;
   const outside = !!from && days.some((d) => GRID_TIMES.some((t) => booked(d, t) && (t < from || t >= to!)));

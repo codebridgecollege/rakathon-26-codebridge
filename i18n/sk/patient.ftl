@@ -1036,19 +1036,16 @@ mdt-panel-whole-window = Celé okno
 mdt-panel-show = Bočný panel
 mdt-panel-age = Vek
 mdt-panel-ps = PS
-mdt-panel-pacs = Otvoriť v PACS (ukážka)
+mdt-panel-pacs = PACS (ukážka)
 mdt-panel-pacs-stub = Ukážka: tu sa otvoria snímky pacienta v PACS nemocnice. PACS zatiaľ nie je prepojený.
 mdt-panel-unprocessed = Dokumentácia tohto pacienta zatiaľ nie je spracovaná, prehľad preto nemá čo ukázať.
-mdt-panel-risks = Čo uvádza dokumentácia
 mdt-panel-comorbidities = Komorbidity
 mdt-panel-allergies = Alergie
-mdt-panel-treatment = Liečba
 mdt-panel-contraindications = Kontraindikácie v dokumentácii
 mdt-panel-exams = Vyšetrenia
 mdt-panel-alerts = Upozornenia asistenta
 mdt-panel-show-all = Zobraziť všetko ({ $n })
 mdt-panel-show-fewer = Zobraziť menej
-mdt-panel-more-alerts = Ďalšie upozornenia: { $n }. Nájdete ich v záložke Upozornenia.
 
 ## A case with nothing processed
 
@@ -1089,18 +1086,22 @@ patient-nodata-next = Navrhovaný postup sa nedá ukázať: chýba spracovaná d
 patient-nodata-dev = Retrospektívne odchýlky sa nedajú ukázať: chýba spracovaná dokumentácia predchádzajúcich rozhodnutí.
 patient-nodata-prognosis = Prognózu sa nedá ukázať.
 
-## Treatment modalities check in the side panel
+## Value chips and compact parts of the side panel
 
-mdt-panel-modalities = Liečebné modality
-mdt-panel-modalities-note = Pozorovanie asistenta z dokumentácie, nie odporúčanie. Rozhoduje lekár.
+mdt-panel-flags-note = Pozorovanie asistenta, kontrola nie je úplná. Rozhoduje lekár.
+mdt-panel-flag-bears = Týka sa
+mdt-panel-flag-more = Ďalšie záznamy: { $n }
 mdt-panel-mod-immuno = Imunoterapia
 mdt-panel-mod-chemo = Chemoterapia
 mdt-panel-mod-radio = Rádioterapia
 mdt-panel-mod-surgery = Operácia
-mdt-panel-mod-nothing = Nič nenájdené (nie je to záruka).
-mdt-panel-mod-limited = Asistent kontroluje len obmedzený zoznam faktov; prázdny výsledok neznamená, že modalitu nič neobmedzuje.
-mdt-panel-missing = Chýbajú údaje na kontrolu: { $what } ({ -gap-not-stated }).
+mdt-panel-missing-title = Chýba: { -gap-not-stated }
 mdt-panel-missing-ef = EF
-mdt-panel-missing-spirometry = spirometria, DLCO
-mdt-panel-missing-kidney = funkcia obličiek
+mdt-panel-missing-lung = FEV1, DLCO
+mdt-panel-missing-kidney = eGFR
 mdt-panel-brief = Súhrn
+mdt-panel-brief-more = Celý súhrn
+mdt-panel-brief-less = Skrátiť súhrn
+mdt-panel-course = Priebeh
+mdt-panel-details = Ďalšie údaje
+mdt-panel-planned = plán

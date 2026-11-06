@@ -105,7 +105,7 @@ calendar-today = Today
 calendar-today-suffix = { " · today" }
 # "Neuro-oncology meeting 14:00-16:00"
 calendar-seminar-hours = { $name } { $from }-{ $to }
-calendar-seminar-neuro = Neuro-oncology meeting
+calendar-seminar-default = MDT
 calendar-start-mdt = Start MDT ▸
 calendar-slot-title = { $name }, birth no. { $rc }. Double-click opens the case
 # A booked slot's accessible name: name, birth number (or the gap wording) and time.

@@ -883,18 +883,16 @@ h3 { letter-spacing: -.02em; }
 
 /* The side panel of a running MDT: beside the patient view on a wide window; the whole window when narrow (next to PACS). */
 .mdtpanel { position: fixed; top: 0; right: 0; bottom: 0; width: 400px; z-index: 20; display: flex; flex-direction: column; background: var(--surface); border-left: 1px solid var(--line-strong); }
-.mdtp-head { padding: 12px 16px; border-bottom: 1px solid var(--line-strong); display: grid; gap: 8px; justify-items: start; }
+.mdtp-head { padding: 6px 16px; border-bottom: 1px solid var(--line-strong); display: grid; gap: 4px; justify-items: start; }
 .mdtp-head .row { width: 100%; align-items: center; gap: 6px; flex-wrap: wrap; }
 .mdtp-gap { flex: 1; }
-.mdtp-name { margin: 0; font-size: 20px; }
-.mdtp-meta { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 14px; }
-.mdtp-body { flex: 1; overflow: auto; padding: 12px 16px 24px; display: grid; gap: 16px; align-content: start; }
-.mdtp-sec h3 { margin: 0 0 6px; font-size: 14px; }
+.mdtp-name { margin: 0; font-size: 18px; }
+.mdtp-body { flex: 1; overflow: auto; padding: 6px 16px 6px; display: grid; gap: 7px; align-content: start; }
+.mdtp-sec h3 { margin: 0 0 3px; font-size: 13.5px; }
 .mdtp-sub { margin-top: 8px; font-size: 12.5px; font-weight: 600; color: var(--muted); }
-.mdtp-note { margin: 0 0 6px; }
-.mdtp-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; font-size: 14px; }
+.mdtp-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 3px; font-size: 13.5px; }
 .mdtp-list .linkbtn { text-align: left; white-space: normal; }
-.mdtp-events li { display: grid; grid-template-columns: 88px 1fr; gap: 8px; align-items: baseline; }
+.mdtp-events li { display: grid; grid-template-columns: 74px minmax(0, 1fr); gap: 6px; align-items: baseline; }
 @media (min-width: 900px) { body.mdtp-docked { padding-right: 400px; } }
 @media (max-width: 899px) { .mdtpanel { width: 100%; border-left: 0; } }
 
@@ -917,4 +915,21 @@ h3 { letter-spacing: -.02em; }
 
 /* "Smazat pacienta" closes the patient view, set apart from the page's work. */
 .patient-erase { margin-top: 32px; padding-top: 16px; border-top: 1px solid var(--line-strong); }
-.mdtp-mod { margin-bottom: 6px; }
+.mdtp-age { font-size: 13px; font-weight: 400; color: var(--muted); margin-left: 6px; white-space: nowrap; }
+.mdtp-flags { display: flex; flex-wrap: wrap; gap: 4px 6px; align-items: center; width: 100%; }
+.mdtp-ps { font-size: 15px; font-weight: 700; white-space: nowrap; }
+.mdtp-ps .linkbtn { font-weight: 700; }
+.mdtp-ps.low .linkbtn { color: var(--conflict); }
+.mdtp-flag { border: 1px solid var(--conflict); background: var(--conflict); color: #fff; border-radius: 3px; padding: 0 6px; font: inherit; font-size: 12px; font-weight: 600; line-height: 1.5; cursor: pointer; }
+.mdtp-flag:hover { filter: brightness(0.9); }
+.mdtp-flag.gap { background: transparent; border: 1px dashed var(--line-strong); color: var(--muted); font-weight: 400; cursor: default; }
+.mdtp-flags-note { margin: 0; font-size: 11.5px; }
+.mdtp-brief { margin: 0; font-size: 13.5px; line-height: 1.4; }
+.mdtp-events li.mdtp-row { grid-template-columns: 74px minmax(0, 1fr) auto; }
+.mdtp-two { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
+.mdtp-flag.docs { background: var(--missing); border-color: var(--missing); cursor: default; }
+.mdtpanel .question { padding: 5px 10px; }
+.mdtpanel .question .btn { margin-top: 3px !important; }
+.mdtp-head .btn.small { padding: 2px 8px; }
+.mdtpanel .question p { font-size: 13.5px; line-height: 1.35; }
+.mdtp-more summary { cursor: pointer; font-size: 13.5px; font-weight: 600; }

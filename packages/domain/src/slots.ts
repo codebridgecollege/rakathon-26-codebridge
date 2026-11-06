@@ -20,12 +20,23 @@ export function validateSlot(day: unknown, time: unknown): Slot {
   return { day, time };
 }
 
-// Seminars repeat weekly (example schedule: Thursday 14:00-16:00). Booking outside is allowed, with a warning.
-const SEMINAR_BY_WEEKDAY: Record<number, [string, string]> = { 4: ["14:00", "16:00"] };
+// Seminars repeat weekly, on the day and at the time the org's Administrace sets (orgs.mdt_weekday, 1 = Monday, and
+// mdt_time). An org that has not set them keeps the example schedule, Thursday at 14:00. Each lasts two hours; booking
+// outside is allowed, with a warning.
+export type SeminarSchedule = { weekday?: number | null; time?: string | null } | null | undefined;
+const DEFAULT_WEEKDAY = 4;
+const DEFAULT_TIME = "14:00";
+const SEMINAR_HOURS = 2;
 // The seminar hours of a day ([from, to), "HH:MM"), or null on a day without a seminar; the calendar grid reads it too.
-export const seminarHours = (day: string): [string, string] | null => SEMINAR_BY_WEEKDAY[new Date(`${day}T12:00:00Z`).getUTCDay()] ?? null;
-export function seminarWarning(s: Slot): string | null {
-  const sem = seminarHours(s.day);
+export function seminarHours(day: string, plan?: SeminarSchedule): [string, string] | null {
+  const js = new Date(`${day}T12:00:00Z`).getUTCDay();
+  if ((js === 0 ? 7 : js) !== (plan?.weekday ?? DEFAULT_WEEKDAY)) return null;
+  const from = plan?.time ?? DEFAULT_TIME;
+  const h = Number(from.slice(0, 2)) + SEMINAR_HOURS;
+  return [from, `${String(h).padStart(2, "0")}${from.slice(2)}`];
+}
+export function seminarWarning(s: Slot, plan?: SeminarSchedule): string | null {
+  const sem = seminarHours(s.day, plan);
   return !sem || s.time < sem[0] || s.time >= sem[1] ? "mimo čas semináře" : null;
 }
 
@@ -41,10 +52,10 @@ export function slotText(s: Slot): string {
 
 export type ScheduleCase = { status: Status; slot: Slot | null };
 
-export function schedule(c: ScheduleCase, next: Slot, decisions: DecisionSlot[]): { status: StatusChange | null; warning: string | null } {
+export function schedule(c: ScheduleCase, next: Slot, decisions: DecisionSlot[], plan?: SeminarSchedule): { status: StatusChange | null; warning: string | null } {
   if (c.status === "closed" && !CLOSED_CASE_BOOKABLE) throw D.caseClosedBooking();
   if (slotLocked(c.slot, decisions)) throw D.slotLocked();
-  return { status: autoOnSchedule(c.status), warning: seminarWarning(next) };
+  return { status: autoOnSchedule(c.status), warning: seminarWarning(next, plan) };
 }
 
 export function unschedule(c: ScheduleCase, decisions: DecisionSlot[]): { status: StatusChange | null; was: Slot } {

@@ -51,7 +51,7 @@ describe("calendar grid", () => {
     expect(GRID_TIMES.at(-1)).toBe("17:50");
     expect(GRID_TIMES).toHaveLength(60);
     expect(slotEnd("14:50")).toBe("15:00");
-    expect(seminarOn("2026-10-22")).toEqual({ from: "14:00", to: "16:00", kind: "neuro" });
+    expect(seminarOn("2026-10-22")).toEqual({ from: "14:00", to: "16:00" });
     expect(seminarOn("2026-10-21")).toBeNull();
     expect(inSeminar("2026-10-22", "15:50")).toBe(true);
     expect(inSeminar("2026-10-22", "16:00")).toBe(false);

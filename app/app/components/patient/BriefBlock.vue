@@ -4,6 +4,7 @@
 // brief shows the list row's one-line summary, said to be that, with what the assistant processed.
 import { computed } from "vue";
 import { useFluent } from "fluent-vue";
+import { abbreviateCs } from "@codebridge/domain/abbreviate";
 import { linkProse, stripMarkers } from "@codebridge/domain/case-view";
 import { usePatient } from "../../composables/usePatient";
 import { usePatientViewStore } from "../../stores/patientView";
@@ -28,6 +29,8 @@ const openUpload = () => overlay.open({ kind: "upload", file: c.p.value.file });
 
 const brief = computed(() => c.cd.value?.brief ?? null);
 const prose = computed(() => linkProse(brief.value?.text_cs, brief.value?.refs));
+// Common abbreviations for reading only; the stored text, the edit dialog and the report keep the full wording.
+const shortParts = computed(() => prose.value.parts.map((x) => ({ ...x, text: abbreviateCs(x.text) })));
 // Sources are registered only while the doctor's edit does not replace the brief.
 const sources = computed(() => {
   if (c.edOf("brief")) return [];
@@ -64,7 +67,7 @@ const processed = computed(() => {
     </div>
     <GapsBox v-if="view.gapsOpen && c.sec.value.alerts" />
     <template v-if="c.sec.value.brief">
-      <p class="prose"><Ed k="brief" :orig="stripMarkers(brief?.text_cs)"><Prose :parts="prose.parts" breaks /></Ed></p>
+      <p class="prose"><Ed k="brief" :orig="stripMarkers(brief?.text_cs)"><Prose :parts="shortParts" breaks /></Ed></p>
       <QuestionBox in-brief />
     </template>
     <template v-else>

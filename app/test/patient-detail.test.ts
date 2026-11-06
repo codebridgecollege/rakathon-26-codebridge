@@ -1,5 +1,6 @@
 // The patient header, status menu, MDT question, brief, alerts, timeline and overview cards (screen S-3), mounted with
 // the real Czech catalog against synthetic cases. Synthetic values only.
+import { abbreviateCs } from "@codebridge/domain/abbreviate";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { flushPromises } from "@vue/test-utils";
 import { createRouter, createMemoryHistory } from "vue-router";
@@ -221,8 +222,10 @@ describe("brief", () => {
     expect(w.get("h2").text()).toBe("Stručný souhrn");
     // One link per brief sentence of the run, each opening the passages of the facts it rests on.
     const links = w.findAll(".prose .srcl");
-    expect(links.map((l) => l.text())).toEqual(runOf("NO-010").brief!.sentences.map((x) => x.text));
-    expect(links[0]!.text()).toMatch(/^Pacient s metastatickým světlobuněčným renálním karcinomem G2/);
+    // The display abbreviates common words; the stored sentences keep the full wording.
+    expect(links.map((l) => l.text())).toEqual(runOf("NO-010").brief!.sentences.map((x) => abbreviateCs(x.text)));
+    expect(links[0]!.text()).toMatch(/^Pacient s meta světlobuněčným renálním ca G2/);
+    expect(runOf("NO-010").brief!.sentences[0]!.text).toMatch(/^Pacient s metastatickým světlobuněčným renálním karcinomem G2/);
     expect(w.get("details.srcs summary").text()).toBe("Zdroje (18)");
   });
 

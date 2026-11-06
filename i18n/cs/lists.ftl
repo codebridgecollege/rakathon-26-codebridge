@@ -86,7 +86,7 @@ calendar-today = Dnes
 calendar-today-suffix = { " · dnes" }
 # "Neuroonkologický seminář 14:00-16:00"
 calendar-seminar-hours = { $name } { $from }-{ $to }
-calendar-seminar-neuro = Neuroonkologický seminář
+calendar-seminar-default = MDT
 calendar-start-mdt = Zahájit MDT ▸
 calendar-slot-title = { $name }, RČ { $rc }. Dvojklik otevře případ
 # A booked slot's accessible name: name, birth number (or the gap wording) and time.
