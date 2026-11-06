@@ -21,16 +21,17 @@ This version supports case 10 and S01. Other cases show the tab and explain that
 they lack a safely dated profile. Browser edits and uploaded content are not
 silently sent to an external service.
 
-## Astra search
+## Study search
 
-One user action sends one OpenRouter request to GPT Astra. The exact model ID is
-pinned in the server's gitignored configuration and displayed with the result.
+One user action sends one OpenRouter request to the configured model, Claude Opus
+5.5 on the Worker (GPT Astra in the local prototype in `prognosis/`). The exact
+model ID is pinned in the server's configuration and displayed with the result.
 The public model catalog is checked before execution. Web search runs inside the
 request. The catalog lookup and internal search requests are additional to the
 single model API request. A fresh search explicitly bypasses the memory cache;
 a repeated lookup reuses it. There are no automatic paid retries.
 
-Astra receives the minimized profile and checked-in prompt. Sources must have
+The model receives the minimized profile and checked-in prompt. Sources must have
 been published by the earlier of the MDT date and the search date. The search
 targets primary studies, trial registries, regulatory assessments and authoritative
 cancer registries. It does not establish an exhaustive systematic review.
@@ -80,7 +81,7 @@ Run the Python prognosis tests (`prognosis/tests/`) and the app's prognosis test
 ## Saved results for the demo
 
 The user requested persistent playback for synthetic patient Poláček (case 10).
-The six saved Astra result rows come from `fixtures/data/prognosis-case-10.json`,
+The six saved result rows, made with GPT Astra, come from `fixtures/data/prognosis-case-10.json`,
 which the seed stores on the server (`GET /api/cases/{id}/prognosis`), and
 appear automatically after 2000 ms when the Prognóza tab is first opened. Playback
 requires the same patient file and MDT date, 2026-10-22. It sends no model request.

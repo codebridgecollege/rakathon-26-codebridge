@@ -10,7 +10,7 @@ import { resetCatalogCache } from "../src/services/prognosis-search";
 import { prognosisSavedKey, runPrognosisJob } from "../src/workflows/prognosis";
 
 type Body = { job?: { id: string; state: string }; error?: { code: string; message_cs: string }; profile?: Record<string, any>; saved?: any[]; run?: Record<string, any> | null; [k: string]: any };
-const ON = { PROGNOSIS_ORGS: "demo-a", OPENROUTER_API_KEY: "test-secret", OPENROUTER_MODEL_ASTRA: "m" };
+const ON = { PROGNOSIS_ORGS: "demo-a", OPENROUTER_API_KEY: "test-secret", PROGNOSIS_MODEL: "m", PROGNOSIS_MODEL_LABEL: "Test model", PROGNOSIS_ROUTE_ONLY: "test/eu" };
 
 async function api(method: string, path: string, user = "d2p1", body: unknown = {}, e: Env = testEnv(ON)) {
   const init: RequestInit =
@@ -180,7 +180,7 @@ describe("the job", () => {
   it("ends as an error with a fixed code when the key is missing, and removes the draft", async () => {
     await job();
     await draft();
-    const out = await runPrognosisJob({ ...env, OPENROUTER_API_KEY: "", OPENROUTER_MODEL_ASTRA: "m" } as Env, params);
+    const out = await runPrognosisJob({ ...env, OPENROUTER_API_KEY: "", PROGNOSIS_MODEL: "m", PROGNOSIS_MODEL_LABEL: "Test model", PROGNOSIS_ROUTE_ONLY: "test/eu" } as Env, params);
     expect(out).toEqual({ state: "error", code: "missing_key" });
     expect((await q("SELECT state, error_code FROM jobs WHERE id = 'pg-x'"))[0]).toEqual({ state: "error", error_code: "missing_key" });
     expect(await env.DOCS.head("org/demo-a/jobs/NO-A/prognosis-pg-x.json")).toBeNull();

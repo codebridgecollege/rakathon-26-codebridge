@@ -34,7 +34,7 @@ possible, which consumer products do not:
 
 - a data processing agreement with the hospital;
 - processing and storage in the EU (for example Azure OpenAI deployments
-  in EU regions, which the hackathon's endpoint offers);
+  in EU regions);
 - no training on customer data;
 - no retention of prompts and outputs, where the provider offers it (some
   require an application, for example turning off abuse-monitoring
@@ -416,9 +416,21 @@ interface in the Worker (`api/src/services/model.ts`). Nothing is built on
 it yet that sends real documents; the extraction prompts come in phase 2.
 
 - **Configuration only.** Provider, endpoint, model and key come from
-  `MODEL_*` vars and a secret. Today that is the hackathon Azure gateway in
-  Sweden Central ([gateway check](../research/2026-10-19-azure-gateway-check.md));
-  another EU model is a configuration change.
+  `MODEL_*` vars and a secret. Today that is `openai/gpt-6-luna` through
+  OpenRouter, pinned to the endpoint `azure/eu`
+  ([the switch](../research/2026-11-06-openrouter-switch.md)); another EU
+  model is a configuration change.
+- **OpenRouter route.** Every OpenRouter request names one endpoint and
+  forbids a fallback, providers that collect data, and providers without
+  zero data retention (`api/src/services/openrouter-route.ts`). With no
+  endpoint configured the Worker sends nothing. Privacy trade-off, accepted
+  for synthetic demo data only: the model runs in the EU, but the request
+  passes through OpenRouter, a further processor, and on our plan it does
+  not get OpenRouter's in-region routing (Business and Enterprise plans).
+  OpenRouter does not state an endpoint's region in its answer, so "EU"
+  rests on OpenRouter's endpoint tag. Real patients need a direct EU
+  deployment or in-region routing, a data processing agreement, and FNO's
+  clearance.
 - **Pseudonymized text.** Before a call, the Worker replaces in every text
   part: the case patient's name in its Czech declensions ("Lipenské",
   "VĚROU"), also without diacritics as OCR writes it, and double surnames
@@ -567,10 +579,10 @@ Two backends exist. The local prognosis API (`prognosis/serve.py`) accepts only 
 
 **On the Worker (Soňa's request 2026-11-06).** The same search runs for any processed case as a Workflow (`src/workflows/prognosis.ts`), so a patient the team uploaded can be searched too. What changes for data protection:
 - **Off by default.** It runs only for an org listed in `PROGNOSIS_ORGS` and only when the `OPENROUTER_API_KEY` secret is set; both are the team's explicit switches, and real patients need FNO's clearance for any cloud model first (see "Text sent to a model").
-- **What leaves.** One request to OpenRouter per click, with web search: the clinical profile built from what the doctor sees of the case (`packages/domain/src/prognosis-profile.ts`). It holds dated clinical facts with their source page and quote, and no name, birth number, author, contact or file name; the patient's, owner's and referrer's names are scrubbed from the text, and a fact with no date, or dated after the evidence cutoff, is left out. Nothing else of the case is sent.
+- **What leaves.** One request to OpenRouter per click, pinned to an EU endpoint (see "OpenRouter route" under "Text sent to a model"), with web search: the clinical profile built from what the doctor sees of the case (`packages/domain/src/prognosis-profile.ts`). It holds dated clinical facts with their source page and quote, and no name, birth number, author, contact or file name; the patient's, owner's and referrer's names are scrubbed from the text, and a fact with no date, or dated after the evidence cutoff, is left out. Nothing else of the case is sent.
 - **Never automatic.** The search starts only from the button, once per click, and is not retried. Per case one search runs at a time, and an org is held to `PROGNOSIS_DAILY_MAX` searches a day (default 20), a guard on the account's tokens.
 - **Logged.** Each start is an access-log row (`prognosis.search`) naming who started it. The profile waits between the click and the run in R2 (`jobs/<case>/prognosis-<job>.json`, removed after the run); the Workflow's parameters hold ids and codes only; prompts and provider answers are never logged, and an error keeps a fixed code, never provider text.
-- **Kept.** The checked result is stored in R2 (`prognosis-runs/<case>/saved-<day>.json`) with the case, goes with the case when it is erased and is emptied by a demo reset. The provider's own retention is outside this system.
+- **Kept.** The checked result is stored in R2 (`prognosis-runs/<case>/saved-<day>.json`) with the case, goes with the case when it is erased and is emptied by a demo reset. The provider's own retention is outside this system. OpenRouter's web search runs on its search provider, which sees the search terms the model writes; those are clinical terms from the profile, and they stay outside the EU pin.
 - **Reading it.** Every row is still `model_extracted_unverified`: a source URL the provider cited, an exact quote from that excerpt and a number found in its quote are required, or the value is hidden.
 
 

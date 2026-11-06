@@ -22,7 +22,7 @@ describe("GET /api/health", () => {
   });
 
   it("reports a feature off when its secret is missing", async () => {
-    const res = await call("/api/health", {}, testEnv({ ELEVENLABS_API_KEY: "", AZURE_OPENAI_KEY: undefined, DATA_API: "off" }));
+    const res = await call("/api/health", {}, testEnv({ ELEVENLABS_API_KEY: "", OPENROUTER_API_KEY: undefined, DATA_API: "off" }));
     const body = await res.json<{ features: Record<string, boolean> }>();
     expect(body.features).toEqual({ stt: false, summarize: false, data: false, transcripts: false, pipeline: false });
   });

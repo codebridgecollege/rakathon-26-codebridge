@@ -44,17 +44,18 @@ describe("callModel", () => {
     expect(calls).toHaveLength(1);
     const up = calls[0]!;
     expect(up.url).toBe("https://model.test/openai/v1/chat/completions");
-    expect(up.headers.get("api-key")).toBe("test-az");
+    expect(up.headers.get("authorization")).toBe("Bearer test-secret");
     const sent = await up.text();
     for (const secret of ["Testová", "Pacientk", "645312", "Novák"]) expect(sent).not.toContain(secret);
     const body = JSON.parse(sent);
     expect(body.model).toBe("test-model");
     expect(body.reasoning_effort).toBe("low");
+    expect(body.provider).toEqual({ only: ["test/eu"], allow_fallbacks: false, data_collection: "deny", zdr: true });
     expect(body.messages[0]).toEqual({ role: "system", content: PROMPTS["read-page-cs"].text });
     expect(body.messages[1].content[0].text).toBe("[Část 1]\nPaní [PACIENT] [PACIENT], r.č. [RC]\nKontrola u MUDr. [PERSONAL_3]. CRP 12 mg/l."); // staff numbered in membership order: admin, coord, d1p1
     // Nothing about the document leaves except its text: no document ID or file name.
     expect(sent).not.toContain("A_pacient");
-    expect(r.meta).toMatchObject({ provider: "azure-openai", model: "test-model", prompt: "read-page-cs@1", temperature: null, cached: false });
+    expect(r.meta).toMatchObject({ provider: "openrouter", model: "test-model", prompt: "read-page-cs@1", temperature: null, cached: false });
     expect(r.pseudonymized[0]!.originals("[RC]")).toEqual([BN]);
   });
 
@@ -92,7 +93,7 @@ describe("callModel", () => {
     for (const row of rows) {
       expect(row.case_id).toBe("NO-A");
       expect(row.actor_user_id).toBe("d2p1");
-      expect(row.what_cs).toBe("Odesláno jazykovému modelu (azure-openai, test-model): read_page, read-page-cs@1");
+      expect(row.what_cs).toBe("Odesláno jazykovému modelu (openrouter, test-model): read_page, read-page-cs@1");
       const all = JSON.stringify(row);
       for (const secret of ["Testová", "Pacientka", "645312", "Novák", "CRP", "metastáz"]) expect(all).not.toContain(secret);
     }
@@ -186,13 +187,14 @@ describe("callModel", () => {
 
   it("is off without a key, and refuses a misconfigured provider, sending nothing", async () => {
     const { calls } = mockFetch(answer());
-    await expect(callModel(testEnv({ AZURE_OPENAI_KEY: "" }), await request())).rejects.toMatchObject({ code: "model_off" });
+    await expect(callModel(testEnv({ OPENROUTER_API_KEY: "" }), await request())).rejects.toMatchObject({ code: "model_off" });
     await expect(callModel(testEnv({ MODEL_PROVIDER: "elsewhere" }), await request())).rejects.toMatchObject({ code: "misconfigured" });
+    await expect(callModel(testEnv({ MODEL_ROUTE_ONLY: "" }), await request())).rejects.toMatchObject({ code: "misconfigured" });
     const other = testEnv({ MODEL_PROVIDER: "openai-compatible", MODEL_API_KEY: "test-eu" });
     await callModel(other, await request());
     expect(calls).toHaveLength(1);
     expect(calls[0]!.headers.get("authorization")).toBe("Bearer test-eu");
-    expect(calls[0]!.headers.get("api-key")).toBeNull();
+    expect(JSON.parse(await calls[0]!.text()).provider).toBeUndefined();
   });
 
   it("refuses a truncated or filtered answer and a too large input", async () => {

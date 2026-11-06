@@ -130,7 +130,7 @@ describe("composeBrief", () => {
 
   it("leaves the brief empty, never guessed, when no model is configured", async () => {
     const { calls } = mockFetch(reply({ sentences: [], question: null }));
-    const out = await composeBrief(testEnv({ AZURE_OPENAI_KEY: "" }), await request(), run());
+    const out = await composeBrief(testEnv({ OPENROUTER_API_KEY: "" }), await request(), run());
     expect(calls).toHaveLength(0);
     expect(out).toMatchObject({ skipped: "model_off", run: { brief: null, question_draft: null } });
     expect(out.run.alerts.some((a) => a.rule === "brief_unverified_withheld")).toBe(false);

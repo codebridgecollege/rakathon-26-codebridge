@@ -9,7 +9,8 @@ import { WorkflowEntrypoint, type WorkflowEvent, type WorkflowStep } from "cloud
 import { NonRetryableError } from "cloudflare:workflows";
 import { PCM_BYTES_PER_SECOND, coveredIntervals, keepsAudioAfter, safeCode, transcriptText, wordsToLines, type PassErrorCode } from "../domain/transcript";
 import { diarizeUpstream } from "../services/elevenlabs";
-import { summarizeTranscript } from "../services/azure-openai";
+import { modelAvailable } from "../services/model";
+import { summarizeTranscript } from "../services/summarize-transcript";
 import { PROMPT, PROMPT_VERSION } from "../prompts/summarize-cs";
 import { ApiError } from "../http/errors";
 import { actorFor, concatObjects, deleteForPass, finalizeForPass, joinedAudio } from "../store/audio";
@@ -25,8 +26,8 @@ export type SpeakerPassParams = { org: string; caseId: string; passId: string; j
 const FAST = { retries: { limit: 3, delay: "2 seconds", backoff: "exponential" }, timeout: "1 minute" } as const;
 const DELETE = { retries: { limit: 10, delay: "5 seconds", backoff: "exponential" }, timeout: "1 minute" } as const;
 
-// "eleven:429:30" or "azure:503": honour Retry-After, else exponential from 10 s, capped at 5 minutes. Six attempts span
-// about ten minutes, enough for the shared hackathon endpoint's short 429 bursts (CLAUDE.md, calling LLMs).
+// "eleven:429:30" or "model:503": honour Retry-After, else exponential from 10 s, capped at 5 minutes. Six attempts span
+// about ten minutes, enough for a provider's short 429 bursts (CLAUDE.md, calling LLMs).
 export const providerDelay = ({ ctx, error }: { ctx: { attempt: number }; error: Error }) => {
   const m = /:(\d{3}|network):(\d+)$/.exec(error?.message ?? "");
   const after = m?.[2] ? Number(m[2]) : 0;
@@ -201,7 +202,7 @@ async function summarize(env: Env, p: SpeakerPassParams, basis: "speaker_pass" |
           .all<{ speaker: number | null; text: string }>()
       ).results;
   const at = iso();
-  const model = env.AZURE_OPENAI_MODEL;
+  const model = env.MODEL_NAME;
   const row = (state: string, o: { text?: string | null; error_code?: string | null; input_sha?: string | null; cache_hit?: boolean } = {}) =>
     orgStmt(db, p.org, `INSERT OR REPLACE INTO transcript_summaries (org_id, id, case_id, pass_id, state, basis, text, error_code, model, prompt_version, input_sha, cache_hit, created_at)
          VALUES (?org, ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)`, summaryId, p.caseId, p.passId, state, basis, o.text ?? null, o.error_code ?? null, model, PROMPT_VERSION, o.input_sha ?? null, o.cache_hit ? 1 : 0, at);
@@ -222,14 +223,14 @@ async function summarize(env: Env, p: SpeakerPassParams, basis: "speaker_pass" |
   let summary: string;
   if (cached && typeof cached.summary === "string") summary = cached.summary;
   else {
-    if (!env.AZURE_OPENAI_KEY) throw new NonRetryableError("azure:503");
+    if (!modelAvailable(env)) throw new NonRetryableError("model:503");
     try {
       // One call per attempt: the step's retry policy is the backoff.
       summary = await summarizeTranscript(env, text, { attempts: 1 });
     } catch (e) {
       const st = e instanceof ApiError ? e.upstream : undefined;
-      if (st === "network" || st === 429 || (typeof st === "number" && st >= 500)) throw new Error(`azure:${st}:0`);
-      throw new NonRetryableError(`azure:${typeof st === "number" ? st : 400}`);
+      if (st === "network" || st === 429 || (typeof st === "number" && st >= 500)) throw new Error(`model:${st}:0`);
+      throw new NonRetryableError(`model:${typeof st === "number" ? st : 400}`);
     }
     await env.DOCS.put(key, JSON.stringify({ summary, model, prompt_version: PROMPT_VERSION, created_at: at }), { httpMetadata: { contentType: "application/json" } });
   }
@@ -246,7 +247,7 @@ async function summarize(env: Env, p: SpeakerPassParams, basis: "speaker_pass" |
 
 async function summaryError(env: Env, p: SpeakerPassParams, basis: string, summaryId: string, code: PassErrorCode) {
   await orgStmt(env.DB, p.org, `INSERT OR REPLACE INTO transcript_summaries (org_id, id, case_id, pass_id, state, basis, error_code, model, prompt_version, created_at)
-     VALUES (?org, ?1, ?2, ?3, 'error', ?4, ?5, ?6, ?7, ?8)`, summaryId, p.caseId, p.passId, basis, code, env.AZURE_OPENAI_MODEL, PROMPT_VERSION, iso())
+     VALUES (?org, ?1, ?2, ?3, 'error', ?4, ?5, ?6, ?7, ?8)`, summaryId, p.caseId, p.passId, basis, code, env.MODEL_NAME, PROMPT_VERSION, iso())
     .run();
   return { code };
 }

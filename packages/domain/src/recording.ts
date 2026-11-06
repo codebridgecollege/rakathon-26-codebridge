@@ -275,9 +275,9 @@ const REC_ERR_CODES = [
   "workflow_terminated",
   "workflow_incomplete",
   "transcript_too_long",
-  "azure_429",
-  "azure_5xx",
-  "azure_4xx",
+  "model_429",
+  "model_5xx",
+  "model_4xx",
   "internal",
 ] as const;
 export const REC_ERR_IDS: Readonly<Record<string, string>> = Object.fromEntries(REC_ERR_CODES.map((c) => [c, `discussion-rec-err-${c.replace(/_/g, "-")}`]));

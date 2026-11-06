@@ -208,6 +208,10 @@ Declare this list to the jury and mentors.
   live "AI záznam" demo, with fictitious speech only.
 - The hackathon's Azure OpenAI gateway (`gpt-6-luna-dz-eu`), for the
   one-sentence summary of a recorded MDT discussion.
+- OpenRouter, from 2026-11-06 (after the event), for the Worker's language
+  model (`openai/gpt-6-luna`, EU endpoint) and the Prognóza study search
+  (Claude Opus 5.5, EU endpoint), because the hackathon gateway stopped
+  accepting our key.
 - Cloudflare Pages, which during the event hosted mock v3 (the
   single-file HTML page the demo started as) at
   https://codebridge-mdt.pages.dev, with Pages Functions for the speech

@@ -32,7 +32,7 @@ export type PageReading = {
   /** The reading the model read and quotes are verbatim against. */
   text: string;
   quoteText: QuoteText;
-  /** The engine of that reading, for the anchor ("tesseract 5.3.0 ces", "vision gpt-6-luna-dz-eu read-page-cs@1"). */
+  /** The engine of that reading, for the anchor ("tesseract 5.3.0 ces", "vision openai/gpt-6-luna read-page-cs@1"). */
   engine: string;
   /** Tesseract's word boxes of the page, for highlighting; null when none are stored. */
   words: Word[] | null;

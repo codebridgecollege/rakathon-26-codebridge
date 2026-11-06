@@ -37,10 +37,10 @@ export async function runPrognosisJob(env: Env, p: PrognosisParams, fetchFn?: ty
   const profile = (await draft.json()) as Profile;
   const cfg = prognosisConfig(env);
   const model = cfg.models[0];
-  if (!env.OPENROUTER_API_KEY || !model?.id) return fail(!env.OPENROUTER_API_KEY ? "missing_key" : "models_not_configured");
+  if (!env.OPENROUTER_API_KEY || !cfg.configured || !model?.id) return fail(!env.OPENROUTER_API_KEY ? "missing_key" : "models_not_configured");
   let result: Record<string, unknown>;
   try {
-    result = await searchStudies({ profile, apiKey: env.OPENROUTER_API_KEY, model: model.id, modelLabel: model.label, reasoningEffort: env.OPENROUTER_REASONING_EFFORT || undefined, fetchFn });
+    result = await searchStudies({ profile, apiKey: env.OPENROUTER_API_KEY, model: model.id, modelLabel: model.label, routeOnly: env.PROGNOSIS_ROUTE_ONLY, reasoningEffort: env.OPENROUTER_REASONING_EFFORT || undefined, fetchFn });
   } catch (e) {
     // The type and a fixed code only: the message may echo the request.
     console.error(JSON.stringify({ job: "prognosis_failed", error: e instanceof Error ? e.name : "Error" }));

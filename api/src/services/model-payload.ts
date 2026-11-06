@@ -38,6 +38,8 @@ export type PayloadInput<R> = {
   imagesBase64: string[];
   identity: CaseIdentity;
   model: string;
+  // OpenRouter's `provider` block (openrouter-route.ts); null for a provider that has no routing.
+  routing?: Record<string, unknown> | null;
   maxOutputTokens: number;
   reasoningEffort: string | null;
   maxInputChars: number;
@@ -70,6 +72,7 @@ export function buildPayload<R>(o: PayloadInput<R>): { body: Record<string, unkn
     ],
     max_completion_tokens: o.maxOutputTokens,
   };
+  if (o.routing) body.provider = o.routing;
   if (o.reasoningEffort) body.reasoning_effort = o.reasoningEffort;
   if (o.prompt.schema) body.response_format = { type: "json_schema", json_schema: { name: o.prompt.schema.name, strict: true, schema: o.prompt.schema.schema } };
 

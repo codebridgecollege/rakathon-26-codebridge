@@ -298,10 +298,11 @@ Every call that sends case content to an external model goes through `callModel`
 privacy side is in `docs/design/DATA-PROTECTION.md`, "Text sent to a model", and the gateway's measured behaviour in
 `docs/research/2026-10-19-azure-gateway-check.md`.
 
-- **Configuration:** `MODEL_PROVIDER` (`azure-openai` reads the `AZURE_OPENAI_KEY` secret, `openai-compatible` reads
-  `MODEL_API_KEY`), `MODEL_BASE`, `MODEL_NAME`, `MODEL_REASONING_EFFORT`, timeouts, input caps and the `MODEL_BUDGET_*`
-  values in `wrangler.jsonc`. No key: `model_off`. The summary route (`/api/summarize`) still uses its own
-  `AZURE_OPENAI_*` vars.
+- **Configuration:** `MODEL_PROVIDER` (`openrouter` reads the `OPENROUTER_API_KEY` secret and requires `MODEL_ROUTE_ONLY`,
+  the one endpoint it may use; `openai-compatible` reads `MODEL_API_KEY`), `MODEL_BASE`, `MODEL_NAME`,
+  `MODEL_REASONING_EFFORT`, timeouts, input caps and the `MODEL_BUDGET_*` values in `wrangler.jsonc`. No key: `model_off`.
+  Provider without its endpoint: `misconfigured`. The summary route (`/api/summarize`) and the speaker pass use the same
+  configuration (`src/services/summarize-transcript.ts`); `modelAvailable` says whether the model can be called.
 - **Prompts** live in `src/prompts/`, registered by ID with a version in `src/prompts/index.ts`; bump the version on
   any change of text or schema. The prompt's SHA-256 is in the cache key and the call's metadata anyway.
 - **Inside a Workflow step:** run the call under `MODEL_STEP` and rethrow `forStep(e)`, which makes a final error a
@@ -341,7 +342,7 @@ the same everywhere. No Workflow calls it yet.
 - **Measure every prompt or check change** with the offline harness and the evaluation (synthetic data only):
 
   ```
-  cd api && npm run extract:eval -- --out /tmp/runs-ai --dev-vars <path to a .dev.vars with AZURE_OPENAI_KEY>
+  cd api && npm run extract:eval -- --out /tmp/runs-ai --dev-vars <path to a .dev.vars with OPENROUTER_API_KEY>
   cd pipeline && uv run python eval.py --ai-runs /tmp/runs-ai
   ```
   With `--vision auto` (default) the harness reads every page not judged good, or without a text layer, with the vision model from its redacted image (`pipeline/harness_tools.py` runs the container's redaction and comparison locally; `/v1/compare` is the container's endpoint for the Workflow later); `--vision off` uses the text layer or Tesseract, `--stored-vision` the committed `p<n>.vision.md` (for S01, S02, S04 the sample's own source text). The harness calls the model page by page (`--whole` for one call per document) and caches answers in
@@ -465,7 +466,7 @@ Design: `docs/design/AUTH.md` and `docs/design/DATABASE.md`, each with a section
 
 - Vars (endpoints, models, language, limits, `AUTH_MODE`) in `wrangler.jsonc`.
 - Keys only as secrets: `npx wrangler secret put ELEVENLABS_API_KEY`,
-  `AZURE_OPENAI_KEY`, `OIDC_CLIENT_SECRET`, `SESSION_KEY`, optionally
+  `OPENROUTER_API_KEY`, `OIDC_CLIENT_SECRET`, `SESSION_KEY`, optionally
   `AI_GATEWAY_TOKEN`. Locally in `.dev.vars`.
   Never in code, CI, logs or git.
 - `.dev.vars.example` lists the secret names; `src/worker-configuration.d.ts`
@@ -671,8 +672,10 @@ structured data comes next. Test server and test data: [`fhir/nis/README.md`](..
   tests), stores the checked result at `prognosis-runs/<case>/saved-<day>.json` and closes the job. No retry. The tab polls
   `GET /api/cases/:id/prognosis` (`saved` and the latest `run`); a job untouched for 12 minutes is closed as `stalled`.
 - **Switches.** Off until both are set: `PROGNOSIS_ORGS` in `wrangler.jsonc` (orgs, or `"*"`) and the secret
-  `OPENROUTER_API_KEY` (`npx wrangler secret put OPENROUTER_API_KEY`, in the account that owns the Worker). The model ID is
-  `OPENROUTER_MODEL_ASTRA` and is checked against OpenRouter's catalog at each search; locally put the key in `.dev.vars`.
+  `OPENROUTER_API_KEY` (`npx wrangler secret put OPENROUTER_API_KEY`, in the account that owns the Worker). The model is
+  `PROGNOSIS_MODEL` (shown as `PROGNOSIS_MODEL_LABEL`), checked against OpenRouter's catalog at each search, on the endpoint
+  `PROGNOSIS_ROUTE_ONLY`, which must run OpenRouter's web search: without a search the answer is refused as
+  `ungrounded_response`. `OPENROUTER_REASONING_EFFORT` sets the effort. Locally put the key in `.dev.vars`.
   `GET /api/prognosis/config` says which switch is missing.
 - **Tests.** `test/prognosis-routes.test.ts` runs the whole way with a stubbed OpenRouter; `test/prognosis-search.test.ts`
   holds the ported checks. The test pool pins a dummy key (`vitest.config.ts`), and nothing reaches the network.

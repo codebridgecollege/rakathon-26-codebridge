@@ -609,7 +609,7 @@ patient-pg-show-saved = Show saved search
 patient-pg-search = Start the study search
 patient-pg-refresh = New search · 1 request
 patient-pg-abbreviations = OS = overall survival · PFS = progression-free survival · ORR = objective response rate
-patient-pg-busy = Astra is searching for studies and their results. The search may take several minutes.
+patient-pg-busy = AI is searching for studies and their results. The search may take several minutes.
 patient-pg-saved-stale = The saved search is based on older data. Run a new search for the current profile.
 # Followed by the time of the search as the server sends it.
 patient-pg-found = { $n ->
@@ -646,8 +646,8 @@ patient-pg-ep-pfs = Median PFS
 patient-pg-ep-response = Response and duration of response
 patient-pg-ep-toxicity = Severe toxicity and treatment discontinuation
 patient-pg-ep-burden = Treatment burden
-patient-pg-empty-pending = Waiting for results from Astra.
-patient-pg-empty-no-rows = Astra returned no usable results. Check the search status and the sources.
+patient-pg-empty-pending = Waiting for results from AI.
+patient-pg-empty-no-rows = AI returned no usable results. Check the search status and the sources.
 patient-pg-empty-start = The search has not been started yet. Start it with the button.
 patient-pg-footnotes-label = Notes on the search
 patient-pg-footnote = Each row keeps the source's population, treatment and start of follow-up. Missing values are not computed. The search does not guarantee that the available literature is complete. Similarity is an approximate match of the population, not a probability of survival. Extracted data need checking in the source.

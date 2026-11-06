@@ -170,9 +170,9 @@ discussion-rec-err-workflow-errored = zpracování selhalo
 discussion-rec-err-workflow-terminated = zpracování bylo ukončeno
 discussion-rec-err-workflow-incomplete = zpracování nedoběhlo
 discussion-rec-err-transcript-too-long = přepis je příliš dlouhý ke shrnutí
-discussion-rec-err-azure-429 = jazykový model je přetížený
-discussion-rec-err-azure-5xx = chyba jazykového modelu
-discussion-rec-err-azure-4xx = jazykový model požadavek odmítl
+discussion-rec-err-model-429 = jazykový model je přetížený
+discussion-rec-err-model-5xx = chyba jazykového modelu
+discussion-rec-err-model-4xx = jazykový model požadavek odmítl
 discussion-rec-err-internal = vnitřní chyba
 discussion-rec-err-unknown = neznámá chyba
 

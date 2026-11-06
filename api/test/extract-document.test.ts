@@ -232,6 +232,6 @@ describe("ExtractDocumentWorkflow", () => {
     expect(modelOn(testEnv({ MODEL_ORGS: "" }), "demo-a")).toBe(false);
     expect(modelOn(testEnv({ MODEL_ORGS: "demo-b" }), "demo-a")).toBe(false);
     expect(modelOn(testEnv({ MODEL_ORGS: "*" }), "demo-a")).toBe(true);
-    expect(modelOn(testEnv({ MODEL_ORGS: "*", AZURE_OPENAI_KEY: "" }), "demo-a")).toBe(false);
+    expect(modelOn(testEnv({ MODEL_ORGS: "*", OPENROUTER_API_KEY: "" }), "demo-a")).toBe(false);
   });
 });
