@@ -43,7 +43,7 @@ const label = computed(() => (editOnly.value ? $t("start-mdt-dialog-attendance")
 const n = computed(() => att.present(props.day).length);
 
 async function start() {
-  if (!me.canRunCases.value) {
+  if (!me.canRunSession.value) {
     toast($t("start-mdt-refused"));
     return;
   }

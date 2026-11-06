@@ -35,7 +35,7 @@ import {
   TX_MAX_AGE_S,
   txCookieName,
 } from "../auth/session";
-import { actsInApp, activeMembershipsOfUser, hasOtherIdentity, linkIdentity, personOfEmail, personOfIdentity } from "../store/people";
+import { actsInApp, activeMembershipsOfUser, hasOtherIdentity, linkIdentity, personOfEmail, personOfIdentity, presenterDefault } from "../store/people";
 import { logSessionEvent } from "../auth/events";
 
 const redirect = (location: string, cookies: string[] = [], status: 302 | 303 = 302) => {
@@ -143,7 +143,8 @@ export const authRoutes = new Hono<AppEnv>()
       const prev = await sessionOf(db, getCookie(c, SESSION_COOKIE));
       if (prev) await deleteSession(db, prev.id_hash);
       // A person with several memberships lands in the first org and switches in the account menu.
-      const sid = await createSession(db, { userId, org: first.org_id, membershipId: first.id, idToken: tokens.idToken }, now);
+      const actingMembershipId = await presenterDefault(db, first.org_id, first.role_id);
+      const sid = await createSession(db, { userId, org: first.org_id, membershipId: first.id, idToken: tokens.idToken, actingMembershipId }, now);
       await logSessionEvent(c.env, first, null, "session.login", "přihlásil(a) se", c.req.header("cf-ray") ?? null);
       const cookies = [...drop, cookie(SESSION_COOKIE, sid, SESSION_MAX_MS / 1000)];
       if (tx.popup) return page("done", locale, null, cookies);

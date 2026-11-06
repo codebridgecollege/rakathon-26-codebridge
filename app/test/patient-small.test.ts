@@ -28,9 +28,12 @@ describe("doctor edits", () => {
     expect(coord.find("button.edbtn").exists()).toBe(false);
   });
 
-  it("shows the doctor's text marked as edited, with who, when and the original in the tooltip", () => {
-    const s = setupPatient({ wf: { edits: { dx: edit("Opraveno", "MUDr. Novák", { when: "not-a-date" }) } } });
-    const w = mountInCase(Ed, s, { k: "dx", orig: "" });
+  it("shows a doctor the edited text with no mark; the mark with who, when and the original is the administrator's", () => {
+    const edits = { edits: { dx: edit("Opraveno", "MUDr. Novák", { when: "not-a-date" }) } };
+    const doctor = mountInCase(Ed, setupPatient({ wf: edits }), { k: "dx", orig: "" });
+    expect(doctor.text()).toContain("Opraveno");
+    expect(doctor.find(".edtag").exists()).toBe(false);
+    const w = mountInCase(Ed, setupPatient({ role: "admin", wf: edits }), { k: "dx", orig: "" });
     expect(w.get(".edited").text()).toBe("Opraveno");
     expect(w.get(".edtag").text()).toBe("upraveno");
     // An empty original is the gap wording, never an empty string.

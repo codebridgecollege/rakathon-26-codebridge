@@ -64,7 +64,7 @@ test("a click on a booked slot opens its card, Otevřít případ opens the case
 test("the card labels an assistant's drafted MDT question as a draft", async ({ app }) => {
   await slot(app, "Poláček Daniel", "14:00").click();
   const card = app.page.getByRole("region", { name: "Poláček Daniel" });
-  await expect(card.getByText(/^Jaký postup doporučuje neurochirurgický seminář/)).toBeVisible();
+  await expect(card.getByText(/^Dle NCH doporučujete verifikaci ložiska/)).toBeVisible();
   await expect(card.getByText("Návrh asistenta", { exact: true })).toBeVisible();
 });
 

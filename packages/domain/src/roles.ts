@@ -54,7 +54,7 @@ const MATRIX: Record<Action, ReadonlySet<Role>> = {
   "suggestion.decide": new Set(["doctor"]),
   "task.done": new Set(["doctor", "coordinator"]),
   "alert.act": new Set(COORDINATOR_ACTS_ON_ALERTS ? ["doctor", "coordinator"] : ["doctor"]),
-  "session.write": new Set(["doctor", "coordinator"]),
+  "session.write": new Set(["doctor", "coordinator", "admin"]),
   "case.create": new Set(["doctor", "coordinator"]),
   // The administrator sets teams up, so also sorts existing cases into them; the route answers with no case content.
   "case.team": new Set(["doctor", "coordinator", "admin"]),

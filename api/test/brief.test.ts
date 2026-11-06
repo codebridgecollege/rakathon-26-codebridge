@@ -71,8 +71,8 @@ describe("composeBrief", () => {
       { sentence: 5, reasons: ["drug"] },
     ]);
     expect(out.run.question_draft).toEqual({ text: "Jaký postup doporučuje neurochirurgický seminář?", question_kind: "document_purpose", basis: [{ role: "purpose", facts: ["f-3c90de"] }] });
-    expect(out.run.brief!.made_by).toEqual({ model: "test-model", prompt: "compose-brief-cs@2" });
-    expect(out.run.run.stages.at(-1)).toMatchObject({ name: "compose_brief", prompt: "compose-brief-cs@2" });
+    expect(out.run.brief!.made_by).toEqual({ model: "test-model", prompt: "compose-brief-cs@3" });
+    expect(out.run.run.stages.at(-1)).toMatchObject({ name: "compose_brief", prompt: "compose-brief-cs@3" });
     expect(validateRun(out.run).issues).toEqual([]);
     // The stage read with "MO" is left out as unverified, and an alert says the brief leaves it out.
     expect(out.run.alerts.find((a) => a.rule === "brief_unverified_withheld")).toMatchObject({ kind: "unclear", facts: ["f-0b19e4"], message: { id: "alert-brief-unverified-withheld", args: { count: 1 } } });

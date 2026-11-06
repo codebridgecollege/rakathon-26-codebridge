@@ -145,6 +145,14 @@ export function linkIdentity(db: D1Database, issuer: string, subject: string, us
 
 // "Přepnout roli" in a demo org (AUTH.md): everyone in the org who can act, doctors first, also people added there
 // without a login of their own. Only a demo org switches, and the access log records the person logged in.
+// A presenter who logs in as a demo org's administrator starts as one of its doctors, the role the demo is shown in (Soňa,
+// 2026-11-06); the account menu switches back, and the access log records the real person either way. Only in a demo org:
+// a hospital's administrator never acts as a doctor by default.
+export async function presenterDefault(db: D1Database, org: string, role: string): Promise<string | null> {
+  if (role !== "admin" || (await orgById(db, org))?.is_demo !== 1) return null;
+  return (await roleSwitchMemberships(db, org)).find((m) => m.role_id === "doctor")?.id ?? null;
+}
+
 export async function roleSwitchMemberships(db: D1Database, org: string): Promise<MemberRow[]> {
   const r = await db
     .prepare(

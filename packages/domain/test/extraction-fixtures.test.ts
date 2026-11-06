@@ -116,7 +116,7 @@ describe("case 10", () => {
   });
 
   it("points the brief and the drafted question at existing facts", () => {
-    expect(run.brief!.sentences).toHaveLength(7);
+    expect(run.brief!.sentences).toHaveLength(6);
     for (const s of run.brief!.sentences) for (const id of s.facts) expect(byId.has(id), id).toBe(true);
     expect(run.question_draft!.basis.find((b) => b.role === "purpose")!.facts.map((id) => byId.get(id)!.kind)).toEqual(["request"]);
   });

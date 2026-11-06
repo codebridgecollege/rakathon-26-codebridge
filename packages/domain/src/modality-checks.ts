@@ -8,6 +8,7 @@
 // fact never matches, and for a measurement only the newest value counts. No chip is no all-clear: a value the rules need
 // and the documents lack is listed as missing. The numeric limits are rough common cut-offs, not a named guideline; a
 // doctor should confirm them before this goes beyond the demo.
+import { abbreviateCs } from "./abbreviate";
 import { refAt, type CaseData, type Item, type SourceRef } from "./case-data";
 import { vitalsOf } from "./case-view";
 import type { Fact } from "./extraction/types";
@@ -93,7 +94,7 @@ const TEXTS: TextRule[] = [
   { id: "autoimmune", modalities: ["immuno"], why_cs: "Autoimunitní onemocnění je u imunoterapie uváděno jako riziko zhoršení nemoci.",
     re: /autoimun|primarni (?:biliarni|sklerozujici) cholan|\bpbc\b|\bpsc\b|ulcerozni kolitid|crohn|revmatoid|lupus(?! (?:pernio|antikoag))|sklerodermi|myasteni|thyreoiditid|hashimoto|sarkoidoz|vaskulitid|roztrousen\w* skleroz|psoriaz/ },
   { id: "ild", modalities: ["immuno", "radio"], why_cs: "Intersticiální plicní postižení nebo pneumonitida zvyšuje riziko plicní toxicity.", re: /intersticialni plicni|plicni intersticial|intersticialni pneumon|\bipp\b|pneumonitid|plicni fibroz/ },
-  { id: "viral-hepatitis", modalities: ["immuno", "chemo"], why_cs: "Virová hepatitida nebo pozitivní HBsAg se před systémovou léčbou posuzuje (riziko reaktivace).",
+  { id: "viral-hepatitis", modalities: ["immuno", "chemo"], why_cs: "Virová hepatitida nebo pozitivní HBsAg (povrchový antigen viru: infekce nebo nosičství, ne očkování, to ukazuje anti-HBs) se před systémovou léčbou posuzuje pro riziko reaktivace.",
     re: /hbsag\s*:?\s*(?:pozit|\+)|\bhbv\b|\bhcv\b|hepatitid\w* [bc]\b/ },
   { id: "transplant", modalities: ["immuno"], kinds: CONDITION_OR_PROCEDURE, why_cs: "Po transplantaci nebo při imunosupresi může imunoterapie vyvolat rejekci nebo mít menší účinek.", re: /transplantac|imunosupres/ },
   { id: "steroids", kinds: CURRENT_DRUG, modalities: ["immuno"], why_cs: "Trvalá systémová kortikoterapie může oslabit účinek imunoterapie.", re: /prednis|dexamet|dexamed/ },
@@ -122,7 +123,7 @@ function denied(folded: string, at: number): boolean {
 
 // A comma inside a number ("Eliquis 2,5 mg") does not end a clause.
 const firstClause = (s: string) => {
-  const c = s.split(/[;(]|,(?!\d)/)[0]!.trim() || s.trim();
+  const c = abbreviateCs(s.split(/[;(]|,(?!\d)/)[0]!.trim() || s.trim());
   return c.length > LABEL_MAX ? `${c.slice(0, LABEL_MAX - 1).trimEnd()}…` : c;
 };
 // A suspicion is labelled as one: the chip must not state it as a diagnosis, wherever the fact says so.
@@ -223,8 +224,7 @@ export function panelFlagsOf(cd: CaseData | null | undefined): PanelFlags {
       const m = r.re.exec(folded);
       return !!m && !denied(folded, m.index);
     }).sort(newestFirst);
-    // The one disease name short enough in its common form to save a row; the tooltip keeps the fact as written.
-    if (hits[0]) flags.push(flagOf(hits[0], r.id, r.id === "copd" ? "CHOPN" : conditionLabel(hits[0]), r.modalities, r.why_cs, hits.length - 1));
+    if (hits[0]) flags.push(flagOf(hits[0], r.id, conditionLabel(hits[0]), r.modalities, r.why_cs, hits.length - 1));
   }
 
   // A low eGFR and a stated kidney disease are one thing to count with: the value stays, the words go in its tooltip's

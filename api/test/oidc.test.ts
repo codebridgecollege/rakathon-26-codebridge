@@ -602,12 +602,20 @@ describe("org and role switch", () => {
     expect(await (await me(back)).json()).toMatchObject({ user: { id: "admin" }, impersonating: false, real_user: null });
   });
 
+  it("starts a demo org's administrator as a doctor, and any other login as themselves", async () => {
+    const { sid } = await login({ sub: "sub-admin", email: "admin.a@codebridge.demo" });
+    expect(await (await me(sid)).json()).toMatchObject({ user: { role: "doctor" }, impersonating: true, real_user: { id: "admin" } });
+    const doc = await login();
+    expect(await (await me(doc.sid)).json()).toMatchObject({ impersonating: false });
+  });
+
   it("offers someone with no login of their own in a demo org, and refuses another org's membership and a hospital org", async () => {
     const { sid } = await login({ sub: "sub-admin", email: "admin.a@codebridge.demo" });
     for (const membership_id of ["b-doc", "gone", "nobody"]) expect((await post("/api/session/role", sid, { membership_id })).status).toBe(404);
     const h = cookieValue(await post("/api/session/org", (await login()).sid, { org_id: "hosp" }), "__Host-cb_session");
     expect((await post("/api/session/role", h, { membership_id: "h-d2p1" })).status).toBe(403);
-    expect((await sessions()).filter((s) => s.acting_membership_id)).toEqual([]);
+    // Only the default a demo administrator logs in with; none of the refused switches took.
+    expect((await sessions()).filter((s) => s.acting_membership_id).map((s) => s.user_id)).toEqual(["admin"]);
     // Added on the staff list, so without an e-mail: still someone to act as in a demo org, under the real person's name.
     await env.DB.prepare("UPDATE users SET email = NULL WHERE id = 'd1p1'").run();
     const offered = (await (await me(sid)).json<{ role_switch: { membership_id: string }[] }>()).role_switch!;
@@ -647,7 +655,9 @@ describe("org and role switch", () => {
   });
 
   it("refuses a tab that still shows another identity after a switch in a second tab (409 session_changed)", async () => {
-    const { sid } = await login({ sub: "sub-admin", email: "admin.a@codebridge.demo" });
+    const { sid: first } = await login({ sub: "sub-admin", email: "admin.a@codebridge.demo" });
+    // A demo administrator starts as a doctor; back as oneself for what this test checks.
+    const sid = cookieValue(await post("/api/session/role", first, { membership_id: "admin" }), "__Host-cb_session");
     const shows = (sid2: string | null, who: string) => call("/api/patients", withSession(sid2, { headers: { "x-acting-as": who } }), E());
     expect((await shows(sid, "admin:admin")).status).toBe(200);
     const next = cookieValue(await post("/api/session/role", sid, { membership_id: "d2p1" }), "__Host-cb_session");

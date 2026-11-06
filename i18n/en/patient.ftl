@@ -1079,3 +1079,16 @@ mdt-panel-brief-less = Shorten summary
 mdt-panel-course = Course
 mdt-panel-details = More details
 mdt-panel-planned = planned
+
+## Anamnéza: groups of the personal history, and several dosings of one drug
+
+patient-anam-dose-or = or
+patient-anam-dose-differs = the documents state different dosings
+patient-anam-group-surgery = Surgery
+patient-anam-group-injury = Injuries
+patient-anam-group-heart = Heart and vessels
+patient-anam-group-lung = Lungs
+patient-anam-group-metabolic = Metabolism and minerals
+patient-anam-group-kidney_liver = Kidneys and liver
+patient-anam-group-nervous = Nervous system
+patient-anam-group-other = Other

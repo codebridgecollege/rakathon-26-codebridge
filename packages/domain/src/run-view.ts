@@ -69,8 +69,20 @@ const str = (x: unknown): string | null => (typeof x === "string" && x.trim() ? 
 // negation label in the view (negation_label), so "plicní embolie" recorded as absent never reads as present.
 export const negationShown = (text: string | null | undefined) => negationCues(String(text || "")).size > 0;
 
+// Doctors say "kuřák" (Soňa, design-5 row 10; 2026-11-06: never "fumátor"). The view says so whatever a document or a model
+// wrote; the source passage keeps the document's word, as every quote does.
+export const plainSmoker = (s: string) =>
+  s
+    .replace(/fum[aá]tor(ka)?\s*\((?:kuř[aá]k|kuřačka)\)/gi, (_m, f) => (f ? "kuřačka" : "kuřák"))
+    .replace(/ex-?\s?fum[aá]tor(ka)?/gi, (_m, f) => (f ? "bývalá kuřačka" : "bývalý kuřák"))
+    .replace(/fum[aá]tor(ka)?/gi, (_m, f) => (f ? "kuřačka" : "kuřák"));
+
 /** The fact as one line of text in the content language, from its own fields; a verbatim text field wins. */
 export function factText(f: Fact | { kind: string; value: unknown }): string {
+  return plainSmoker(rawFactText(f));
+}
+
+function rawFactText(f: Fact | { kind: string; value: unknown }): string {
   const v = (f.value || {}) as Record<string, unknown>;
   const join = (...xs: unknown[]) => xs.map(str).filter(Boolean).join(" ");
   switch (f.kind) {

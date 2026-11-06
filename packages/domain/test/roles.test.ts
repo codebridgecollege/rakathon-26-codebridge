@@ -25,7 +25,7 @@ const MATRIX: [Action, boolean, boolean, boolean][] = [
   ["suggestion.decide", true, false, false],
   ["task.done", true, true, false],
   ["alert.act", true, COORDINATOR_ACTS_ON_ALERTS, false],
-  ["session.write", true, true, false],
+  ["session.write", true, true, true],
   ["case.create", true, true, false],
   ["digest.send", true, true, false],
   ["staff.write", false, true, true],

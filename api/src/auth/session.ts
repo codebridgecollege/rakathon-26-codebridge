@@ -89,7 +89,7 @@ export type SessionRow = {
 // A new session: the ID goes to the cookie, its hash to D1. Returns the ID.
 export async function createSession(
   db: D1Database,
-  s: { userId: string; org: string; membershipId: string; idToken: string | null },
+  s: { userId: string; org: string; membershipId: string; idToken: string | null; actingMembershipId?: string | null },
   now = Date.now(),
 ): Promise<string> {
   const id = randomToken();
@@ -97,13 +97,14 @@ export async function createSession(
     db,
     s.org,
     `INSERT INTO auth_sessions (id_hash, user_id, org_id, membership_id, acting_membership_id, id_token, created_at, last_used_at, expires_at)
-     VALUES (?1, ?2, ?org, ?3, NULL, ?4, ?5, ?5, ?6)`,
+     VALUES (?1, ?2, ?org, ?3, ?7, ?4, ?5, ?5, ?6)`,
     await sha256hex(id),
     s.userId,
     s.membershipId,
     s.idToken,
     isoAt(now),
     isoAt(now + SESSION_MAX_MS),
+    s.actingMembershipId ?? null,
   ).run();
   return id;
 }

@@ -1105,3 +1105,16 @@ mdt-panel-brief-less = Skrátiť súhrn
 mdt-panel-course = Priebeh
 mdt-panel-details = Ďalšie údaje
 mdt-panel-planned = plán
+
+## Anamnéza: groups of the personal history, and several dosings of one drug
+
+patient-anam-dose-or = alebo
+patient-anam-dose-differs = dávkovanie sa v dokumentoch líši
+patient-anam-group-surgery = Operácie
+patient-anam-group-injury = Úrazy
+patient-anam-group-heart = Srdce a cievy
+patient-anam-group-lung = Pľúca
+patient-anam-group-metabolic = Metabolizmus a minerály
+patient-anam-group-kidney_liver = Obličky a pečeň
+patient-anam-group-nervous = Nervový systém
+patient-anam-group-other = Ostatné

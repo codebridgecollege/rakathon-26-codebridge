@@ -7,6 +7,7 @@
 import { computed } from "vue";
 import { useFluent } from "fluent-vue";
 import { refAt, type Item, type SourceRef } from "@codebridge/domain/case-data";
+import { drugRows, groupHistory } from "@codebridge/domain/anamnesis-view";
 import { refList } from "@codebridge/domain/case-view";
 import { usePatient } from "../../composables/usePatient";
 import Ed from "./Ed.vue";
@@ -57,11 +58,19 @@ const sources = computed<SourceRef[]>(() => {
         <div>
           <template v-if="k === 'FA' && list('FA').length">
             <ul>
-              <li v-for="m in list('FA')" :key="m.key">
-                <b><Ed :k="`${m.key}:line`" :orig="drugLine(m)" /></b>
-                <template v-if="drugNote(m) || c.isDoctor.value">{{ " " }}<span class="muted"><Ed :k="`${m.key}:note`" :orig="drugNote(m)" /></span></template>
-                <Marks :f="m" />
-              </li>
+              <template v-for="r in drugRows(list('FA'))" :key="r.key">
+                <li v-if="r.doses.length === 1">
+                  <b><Ed :k="`${r.doses[0]!.item.key}:line`" :orig="drugLine(r.doses[0]!.item)" /></b>
+                  <template v-if="drugNote(r.doses[0]!.item) || c.isDoctor.value">{{ " " }}<span class="muted"><Ed :k="`${r.doses[0]!.item.key}:note`" :orig="drugNote(r.doses[0]!.item)" /></span></template>
+                  <Marks :f="r.doses[0]!.item" />
+                  <div v-if="r.hint_cs" class="muted small" lang="cs">{{ r.hint_cs }}</div>
+                </li>
+                <!-- Several dosings of one drug stay on one line, each its own fact with its own edit, source note and marks. -->
+                <li v-else>
+                  <b lang="cs">{{ r.name }}</b>{{ " " }}<template v-for="(d, i) in r.doses" :key="d.item.key"><template v-if="i"> {{ $t("patient-anam-dose-or") }} </template><b><Ed :k="`${d.item.key}:line`" :orig="drugLine(d.item)">{{ d.dose }}</Ed></b><template v-if="drugNote(d.item)">{{ " " }}<span class="muted">(<Ed :k="`${d.item.key}:note`" :orig="drugNote(d.item)" />)</span></template><Marks :f="d.item" /></template>
+                  {{ " " }}<span class="muted small">{{ $t("patient-anam-dose-differs") }}</span>
+                </li>
+              </template>
             </ul>
             <div v-if="list('FA_warnings').length" style="margin-top:8px">
               <div v-for="f in list('FA_warnings')" :key="f.key" class="small">
@@ -70,7 +79,15 @@ const sources = computed<SourceRef[]>(() => {
             </div>
           </template>
           <template v-else>
-            <ul v-if="list(k).length">
+            <template v-if="k === 'OA' && list(k).length">
+              <template v-for="g in groupHistory(list(k))" :key="g.group">
+                <div class="anam-group">{{ $t(`patient-anam-group-${g.group}`) }}</div>
+                <ul>
+                  <li v-for="f in g.items" :key="f.key"><b v-if="f.term_cs"><Ed :k="`${f.key}:t`" :orig="f.term_cs">{{ term(f) }}</Ed></b><template v-if="f.comment_cs"><template v-if="f.term_cs">, </template><Ed :k="`${f.key}:c`" :orig="f.comment_cs" /></template><Marks :f="f" /></li>
+                </ul>
+              </template>
+            </template>
+            <ul v-else-if="list(k).length">
               <li v-for="f in list(k)" :key="f.key"><b v-if="f.term_cs"><Ed :k="`${f.key}:t`" :orig="f.term_cs">{{ term(f) }}</Ed></b><template v-if="f.comment_cs"><template v-if="f.term_cs">, </template><Ed :k="`${f.key}:c`" :orig="f.comment_cs" /></template><Marks :f="f" /></li>
             </ul>
             <CheckNote v-else :check="check(k)" />

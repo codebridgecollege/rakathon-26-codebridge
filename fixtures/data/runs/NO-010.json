@@ -9826,12 +9826,6 @@
      "f-f824c844",
      "f-39129d76"
     ]
-   },
-   {
-    "text": "Nález MR zadán ošetřujícím lékařem k projednání na neurochirurgickém semináři.",
-    "facts": [
-     "f-e7f16bae"
-    ]
    }
   ],
   "made_by": {
@@ -9840,7 +9834,7 @@
   }
  },
  "question_draft": {
-  "text": "Jaký postup doporučuje neurochirurgický seminář u solitárního sytícího se ložiska pravé mozečkové hemisféry do 3 mm, suspektního z metastázy (MR mozku 14.9.2026), při probíhající léčbě everolimem?",
+  "text": "Dle NCH doporučujete verifikaci ložiska, extirpaci, nebo další vyšetření? Solitární sytící se ložisko pravé mozečkové hemisféry do 3 mm, suspektní z metastázy (MR mozku 14.9.2026), při léčbě everolimem.",
   "question_kind": "document_purpose",
   "basis": [
    {

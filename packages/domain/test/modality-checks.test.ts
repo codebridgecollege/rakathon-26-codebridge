@@ -141,6 +141,14 @@ describe("panel flags", () => {
 });
 
 describe("abbreviations", () => {
+  it("says the common names short, and keeps the suspicion", () => {
+    expect(abbreviateCs("Chronická obstrukční plicní nemoc")).toBe("CHOPN");
+    expect(abbreviateCs("Podezření na intersticiální plicní postižení")).toBe("susp. IPP");
+    expect(abbreviateCs("ACE inhibitory při léčbě everolimem")).toBe("ACEi při th. everolimem");
+  });
+  it("writes nodes as pN1 (3/5)", () => {
+    expect(abbreviateCs("(pT2a pN1, 3 z 5 lymfatických uzlin pozitivní, M0)")).toBe("(pT2a pN1 (3/5), M0)");
+  });
   it("does not touch longer words, other wordings or a number after ca", () => {
     expect(abbreviateCs("ústavu po výkonu; stav počáteční; zhoršení stavu po léčení; adenokarcinom; Reziduum karcinomu 12 mm")).toBe("ústavu po výkonu; stav počáteční; zhoršení stavu po léčení; adenokarcinom; Reziduum karcinomu 12 mm");
   });
@@ -149,7 +157,7 @@ describe("abbreviations", () => {
     const out = abbreviateCs(s);
     expect(out).toBe("St.p. nefrektomii 6/2022, 3 z 5 LU pozitivní; ložisko l. sin., susp. z meta; bez meta, neguje závratě; CHT od 1.1.2026, FEV1 52 %.");
   });
-  it("leaves diagnoses written out, and words that only contain an entry", () => {
-    expect(abbreviateCs("Hypertenzní nemoc, Chronická obstrukční plicní nemoc, zleva, vlevo-")).toBe("Hypertenzní nemoc, Chronická obstrukční plicní nemoc, zleva, l. sin.-");
+  it("leaves other diseases written out, and words that only contain an entry", () => {
+    expect(abbreviateCs("Hypertenzní nemoc, zleva, vlevo-")).toBe("Hypertenzní nemoc, zleva, l. sin.-");
   });
 });

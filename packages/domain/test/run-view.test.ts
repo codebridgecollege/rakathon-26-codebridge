@@ -127,7 +127,7 @@ describe("case 10: the same view as before, from facts", () => {
     expect(b.FA!.some((m) => /prednison/i.test(m.drug_cs))).toBe(false);
     expect(b.FA_warnings!.map(line)).toEqual(["ACE inhibitory při léčbě everolimem, pro zvýšené riziko anafylaxe"]);
     expect(b.EA!.map(line)).toEqual(a.EA!.map(line));
-    expect(b.abusus!.map(line)).toEqual(["fumátor (kuřák)"]);
+    expect(b.abusus!.map(line)).toEqual(["kuřák"]);
     expect(b.abusus![0]!.pack_years_cs).toBeNull();
     // preventive: no fact kind holds a preventive exam, so the section is not checked (it was the colonoscopy plan).
     expect(b.preventive).toEqual([]);

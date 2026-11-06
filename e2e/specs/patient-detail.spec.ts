@@ -5,7 +5,7 @@ import type { Locator } from "@playwright/test";
 // doctor edits, alerts and the status menu. Patient NO-010 (Poláček Daniel) is the fully processed demo case.
 
 const PATIENT = "Poláček Daniel";
-const QUESTION = /^Jaký postup doporučuje neurochirurgický seminář u solitárního sytícího se ložiska/;
+const QUESTION = /^Dle NCH doporučujete verifikaci ložiska/;
 // The label of an MDT question the assistant drafted, shown until a doctor confirms or edits it (app only).
 const DRAFT_LABEL = "Návrh asistenta";
 
@@ -122,7 +122,8 @@ test("a doctor edits a fact in the oncology summary and reverts it", async ({ ap
   await dlg.getByRole("button", { name: "Uložit" }).click();
   const edited = app.main.getByRole("button", { name: /^3\. paliativní linie everolimus 10 mg denně \(upřesněno\)/ });
   await expect(edited).toBeVisible();
-  await expect(edited).toContainText("upraveno");
+  // A doctor sees the corrected text with no mark; the mark is the administrator's.
+  await expect(edited).not.toContainText("upraveno");
   await page.reload();
   await expect(edited).toBeVisible();
   await pencil(edited).click();

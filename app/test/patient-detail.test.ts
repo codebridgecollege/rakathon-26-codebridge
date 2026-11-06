@@ -224,9 +224,9 @@ describe("brief", () => {
     const links = w.findAll(".prose .srcl");
     // The display abbreviates common words; the stored sentences keep the full wording.
     expect(links.map((l) => l.text())).toEqual(runOf("NO-010").brief!.sentences.map((x) => abbreviateCs(x.text)));
-    expect(links[0]!.text()).toMatch(/^Pacient s meta světlobuněčným renálním ca G2/);
+    expect(links[0]!.text()).toMatch(/^Pacient s meta světlobuněčným renálním ca G2.*pN1 \(3\/5\)/);
     expect(runOf("NO-010").brief!.sentences[0]!.text).toMatch(/^Pacient s metastatickým světlobuněčným renálním karcinomem G2/);
-    expect(w.get("details.srcs summary").text()).toBe("Zdroje (18)");
+    expect(w.get("details.srcs summary").text()).toBe("Zdroje (17)");
   });
 
   it("says a case without a brief shows the list's summary, with what was processed", () => {

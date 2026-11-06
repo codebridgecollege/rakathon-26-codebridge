@@ -431,7 +431,6 @@ describe("sessions and attendance", () => {
     expect(s.body.state!.sessions).toMatchObject([{ day: "2026-10-22", ended_at: null }]);
     expect((await w("POST", "/sessions", { day: "2026-10-22" }, "coord")).body.error?.code).toBe("session_running");
     expect((await w("DELETE", "/sessions/2026-10-22", {}, "coord")).body.state!.sessions[0].ended_at).toBeTruthy();
-    expect((await w("POST", "/sessions", { day: "2026-10-22" }, "admin")).status).toBe(403);
   });
 
   it("sets attendance with a version, staff of their department only", async () => {
@@ -611,9 +610,8 @@ describe("review findings (step 4)", () => {
 
   it("writes one refusal row per refusal, also on /cases and /sessions and for view events", async () => {
     await w("POST", "/cases", { first_name: "A", last_name: "B", birth_number: "700101/1234", consent: true }, "admin", k(9));
-    await w("POST", "/sessions", { day: "2026-10-22" }, "admin");
     await w("POST", "/audit/events", { case_id: "NO-A", code: "source_viewed" }, "d1p1");
-    expect((await log()).map((l) => l.what_cs)).toEqual(["odmítnuto: založení případu", "odmítnuto: zahájení MDT", "odmítnuto: záznam zobrazení"]);
+    expect((await log()).map((l) => l.what_cs)).toEqual(["odmítnuto: založení případu", "odmítnuto: záznam zobrazení"]);
   });
 
   it("keeps typed text out of the log: unknown edit keys and attendance keys are refused before logging", async () => {

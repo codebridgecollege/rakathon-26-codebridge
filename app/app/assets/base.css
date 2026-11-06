@@ -939,3 +939,5 @@ h3 { letter-spacing: -.02em; }
 .mdtp-head .btn.small { padding: 2px 8px; }
 .mdtpanel .question p { font-size: 13.5px; line-height: 1.35; }
 .mdtp-more summary { cursor: pointer; font-size: 13.5px; font-weight: 600; }
+.anam-group { margin-top: 8px; font-size: 12.5px; font-weight: 600; color: var(--muted); }
+.anam-group:first-child { margin-top: 0; }

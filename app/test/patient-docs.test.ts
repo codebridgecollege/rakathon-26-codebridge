@@ -194,20 +194,23 @@ describe("Anamnéza", () => {
     const w = mountInCase(TabAnamnesis, setup());
     const cells = w.findAll(".anam3 > div");
     const section = (label: string) => cells[cells.findIndex((c) => c.text() === label) + 1]!;
-    // Case 10's 12 comorbidities, in the documents' order, one with an OCR doubt.
+    // Case 10's 12 comorbidities under their headings, one with an OCR doubt.
     const oa = section("Osobní anamnéza").findAll("li");
     expect(oa).toHaveLength(12);
-    expect(oa.slice(0, 2).map((l) => l.find("b [lang=cs]").text())).toEqual(["Hypertenzní nemoc", "Chronická obstrukční plicní nemoc"]);
+    expect(oa[0]!.find("b [lang=cs]").text()).toBe("Hypertenzní nemoc");
+    expect(section("Osobní anamnéza").findAll(".anam-group").map((g) => g.text())).toEqual(expect.arrayContaining(["Srdce a cévy", "Plíce", "Metabolismus a minerály", "Ledviny a játra"]));
     const dyspnoea = oa.find((l) => l.text().startsWith("Dušnost k vyloučení kardiální etiologie"))!;
     expect(dyspnoea.get(".mk.ocr").attributes("title")).toBe("Ověřit čtení: V OCR „dekorigované HT“, pravděpodobně dekompenzované, ověřit.");
     // The family-history check found nothing: the gap dash with its wording.
     expect(section("Rodinná anamnéza").get(".gapq").attributes("title")).toBe("neuvedeno v dostupné dokumentaci");
     const fa = section("Farmakologická anamnéza").findAll("li");
-    expect(fa[0]!.get("b").text()).toContain("Everolimus Sandoz 5 mg 1-0-0");
-    expect(fa[1]!.get("b").text()).toContain("Everolimus Sandoz 5 mg 2-0-0");
-    expect(fa[1]!.get(".muted").text()).toContain("navýšení z 1-0-0 na 2-0-0 (10 mg denně) od 19.9.2026");
+    // Both documented dosings of one drug stay on one line, never resolved to one.
+    expect(fa[0]!.text()).toContain("Everolimus Sandoz 5 mg");
+    expect(fa[0]!.text()).toMatch(/1-0-0.*nebo.*2-0-0/);
+    expect(fa[0]!.text()).toContain("dávkování se v dokumentech liší");
+    expect(fa[0]!.text()).toContain("navýšení z 1-0-0 na 2-0-0 (10 mg denně) od 19.9.2026");
     expect(section("Farmakologická anamnéza").get(".chip").text()).toBe("Pozor");
-    expect(section("Farmakologická anamnéza").get(".small").text()).toContain("ACE inhibitory při léčbě everolimem");
+    expect(section("Farmakologická anamnéza").text()).toContain("ACE inhibitory při léčbě everolimem");
     // No pack years in the documents: a gap, never a computed number.
     expect(section("Abúzus").get(".small").text()).toBe("Balíčkoroky: -");
     // No check looked for preventive examinations: "not checked", not a gap.

@@ -139,6 +139,16 @@ narrow window shows only the panel.
 - **Abbreviations:** the brief and the course show common Czech abbreviations for reading only
   (`packages/domain/src/abbreviate.ts`: st.p., LU, meta, ca, hist., susp., l. dx., l. sin., CHT, RT, th., dg.). The
   stored text, the edit dialog and the report keep the full wording. Names of other diseases stay written out (row 13 below).
+- **Anamnéza (Soňa, 2026-11-06):** the personal history stands under headings (operations, injuries, heart and vessels,
+  lungs, metabolism, kidneys and liver, nervous system, other). Drugs are ordered by class with no heading, and several
+  dosings of one drug share a line that says they differ; none is chosen. An unreadable strength stays "[nečitelné]", with
+  the assistant's labelled pointer to the register where one is known. A lookup in the SÚKL database is not built.
+- **Edits are quiet (Soňa, 2026-11-06):** while the team is still learning, the "upraveno" mark with who, when and the
+  original shows only to the administrator; everyone else sees the corrected text. The trade-off: a doctor cannot tell at
+  a glance that a value was edited, only by opening its source. The PDF report keeps its "[upraveno lékařem]", and a source
+  that changed under an edit is still shown to everyone.
+- **Who starts the MDT:** a doctor, the coordinator or the administrator. A demo org's administrator logs in acting as one
+  of its doctors and switches back in the account menu; the access log records the real person.
 - **PACS is a labelled stub:** "PACS (ukázka)" says that PACS is not connected. See
   [`OPEN_QUESTIONS.md`](../agent/OPEN_QUESTIONS.md).
 

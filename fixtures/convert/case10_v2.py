@@ -387,7 +387,6 @@ BRIEF_FACTS = [
     ["t_evero"],
     ["i_mr", "m_cereb", "m_intracran_neg"],
     ["perf_ecog", "m_brain_clin_neg", "sym_vertigo_neg", "sym_scotoma"],
-    ["req_nch"],
 ]
 
 # Today's composed lines with the facts each states, in today's order and wording (views.onco_lines, views.timeline,

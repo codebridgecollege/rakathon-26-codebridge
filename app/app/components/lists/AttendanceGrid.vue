@@ -20,22 +20,22 @@ const present = computed(() => att.present(props.day));
 const tip = (fn: string, dept: string) => [fn, dept].filter(Boolean).join(", ");
 
 function onPick(dept: string, k: number, ev: Event) {
-  if (!me.canRunCases.value) return;
+  if (!me.canRunSession.value) return;
   att.setRow(props.day, dept, k, (ev.target as HTMLSelectElement).value);
   att.changed(props.day, refused);
 }
 function add(dept: string) {
-  if (!me.canRunCases.value) return;
+  if (!me.canRunSession.value) return;
   att.addRow(props.day, dept);
 }
 function remove(dept: string, k: number) {
-  if (!me.canRunCases.value) return;
+  if (!me.canRunSession.value) return;
   if (att.removeRow(props.day, dept, k)) att.changed(props.day, refused);
 }
 </script>
 
 <template>
-  <p v-if="!me.canRunCases.value" style="margin:4px 0 0">{{ present.join(", ") || $t("calendar-attendance-none") }}</p>
+  <p v-if="!me.canRunSession.value" style="margin:4px 0 0">{{ present.join(", ") || $t("calendar-attendance-none") }}</p>
   <div v-else class="att">
     <template v-for="d in staff.depts" :key="d.id">
       <template v-for="(val, k) in rows[d.name] ?? ['']" :key="`${d.id}-${k}`">

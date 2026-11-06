@@ -14,7 +14,7 @@ test("a running MDT opens the side panel, and the whole window can be chosen ins
   await expect(panel.getByRole("heading", { level: 3, name: "Průběh" })).toBeVisible();
   // The values to count with stand beside PS, each opening its source.
   await expect(panel.getByRole("button", { name: "PS 1", exact: true })).toBeVisible();
-  await expect(panel.getByRole("button", { name: "ACE inhibitory při léčbě everolimem" })).toBeVisible();
+  await expect(panel.getByRole("button", { name: /^ACEi při th. everolimem/ })).toBeVisible();
   await expect(panel.getByRole("button", { name: "HBsAg pozitivní" })).toBeVisible();
   await expect(panel.getByRole("button", { name: /^eGFR 1,01 ml\/s/ })).toBeVisible();
 

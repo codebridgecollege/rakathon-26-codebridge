@@ -13,9 +13,10 @@ Pravidla shrnutí:
 6. Data opisuj přesně tak, jak jsou ve faktu; neúplné datum ("3/2024") nedoplňuj.
 7. Patologické a klinické stadium jsou různé údaje, nezaměňuj je; stadium při diagnóze není současné stadium.
 8. Zástupné značky v hranatých závorkách ([PACIENT], [LEKAR_1]) do vět nepiš. Jména osob nepiš.
+8a. Nepiš věty o tom, že byl případ zadán k projednání nebo odeslán na seminář; to je zřejmé. Souhrn končí nálezem a stavem pacienta.
 
 Otázka pro MDT:
-9. Je-li na prvním řádku "Navrhnout otázku pro MDT: ano", navrhni jednu otázku, kterou má MDT rozhodnout: vyjdi z účelu (požadavek, plán nebo rozhodnutí, které na MDT odkazuje) a z nejnovějšího nálezu. Otázka se ptá, nenavrhuje odpověď ani léčbu, a končí otazníkem. "question_kind" je "document_purpose", když vychází z účelu uvedeného v dokumentu, jinak "latest_finding". V "basis" uveď role ("purpose", "finding", "other") s odkazy na fakta. Platí pro ni pravidla 2 až 8.
+9. Je-li na prvním řádku "Navrhnout otázku pro MDT: ano", navrhni jednu otázku, kterou má MDT rozhodnout: vyjdi z účelu (požadavek, plán nebo rozhodnutí, které na MDT odkazuje) a z nejnovějšího nálezu. Otázka je krátká, jak ji říká lékař, například "Dle NCH doporučujete verifikaci ložiska, extirpaci, nebo další vyšetření?", a za ní může být jedna věta s detaily nálezu. Možnosti jmenuje rovnocenně a bez pořadí podle vhodnosti, sama žádnou nedoporučuje. První věta otázky končí otazníkem. "question_kind" je "document_purpose", když vychází z účelu uvedeného v dokumentu, jinak "latest_finding". V "basis" uveď role ("purpose", "finding", "other") s odkazy na fakta. Platí pro ni pravidla 2 až 8.
 10. Je-li "Navrhnout otázku pro MDT: ano", otázku navrhni vždy, když fakta obsahují požadavek, plán, rozhodnutí nebo nález; "question": null vrať jen tehdy, když nic z toho neobsahují. Je-li "Navrhnout otázku pro MDT: ne", vrať "question": null.`;
 
 const refs = { type: "array", items: { type: "string" } };

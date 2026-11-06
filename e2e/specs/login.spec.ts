@@ -41,6 +41,13 @@ test.skip(!OIDC, "needs the login Worker and the mock IdP that run-parallel.mjs 
 
 const DOCTOR_A = "lekar1.a@codebridge.demo";
 const ADMIN_A = "admin.a@codebridge.demo";
+// A demo org's administrator logs in acting as a doctor; these tests are about the administrator's own rights, so back.
+async function logInAsAdminA(page: Page) {
+  await logInAtIdp(page, ADMIN_A);
+  await account(page, "MUDr.").click();
+  await menu(page).getByRole("button", { name: "Ing. Kovář (správce systému)" }).click();
+  await expect(account(page, "Ing. Kovář")).toBeVisible();
+}
 const DOCTOR_B = "lekar1.b@codebridge.demo";
 
 async function logInAtIdp(page: Page, email: string) {
@@ -86,7 +93,7 @@ test("logout ends the session here and at the IdP", async ({ page }) => {
 test.describe.serial("people in the account menu", () => {
   test("an administrator adds a doctor from the account menu and removes them, and cannot remove the coordinator", async ({ page }) => {
     await page.goto("patients");
-    await logInAtIdp(page, ADMIN_A);
+    await logInAsAdminA(page);
     await account(page, "Ing. Kovář").click();
     await expect(menu(page).getByRole("button", { name: "Odebrat: Bc. Marková" })).toHaveCount(0);
     await expect(menu(page).getByRole("button", { name: "Odebrat: Ing. Kovář" })).toHaveCount(0);
@@ -106,7 +113,7 @@ test.describe.serial("people in the account menu", () => {
 
   test("a person can keep a function and lose the name, and get the name back", async ({ page }) => {
     await page.goto("patients");
-    await logInAtIdp(page, ADMIN_A);
+    await logInAsAdminA(page);
     await account(page, "Ing. Kovář").click();
     await menu(page).getByRole("button", { name: "Upravit jméno: Bc. Marková" }).click();
     await menu(page).getByLabel("Bez jména (ukáže se jen funkce)").check();
@@ -127,7 +134,7 @@ test.describe.serial("people in the account menu", () => {
 
   test("an administrator renames a person from the account menu, and a doctor is not offered that", async ({ page }) => {
     await page.goto("patients");
-    await logInAtIdp(page, ADMIN_A);
+    await logInAsAdminA(page);
     await account(page, "Ing. Kovář").click();
     const rename = async (from: string, to: string) => {
       await menu(page).getByRole("button", { name: `Upravit jméno: ${from}` }).click();
@@ -148,7 +155,7 @@ test.describe.serial("people in the account menu", () => {
 
 test("the role switch of a demo org acts as another demo account and the access log names the real person", async ({ app, page }) => {
   await page.goto("patients");
-  await logInAtIdp(page, ADMIN_A);
+  await logInAsAdminA(page);
   await expect(app.nav("Administrace")).toBeVisible();
   await account(page, "Ing. Kovář").click();
   await expect(menu(page).getByRole("button", { name: "Ing. Kovář (správce systému)" })).toHaveAttribute("aria-pressed", "true");

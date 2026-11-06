@@ -5,6 +5,7 @@
 // its own; e2e/README.md lists the gap). The question is shown, not edited, here: the edit dialog belongs to
 // the patient screens. A drafted question carries the same
 // "Návrh asistenta" label as on the patient screen.
+import { useCurrentUser } from "../../composables/useCurrentUser";
 import { computed } from "vue";
 import { useFluent } from "fluent-vue";
 import type { PatientRow } from "@codebridge/api-client";
@@ -21,6 +22,7 @@ const props = defineProps<{ patient: PatientRow }>();
 const emit = defineEmits<{ open: []; pick: []; unschedule: []; close: [] }>();
 const { $t } = useFluent();
 const text = useListText();
+const me = useCurrentUser();
 const workflow = useWorkflowStore();
 const cases = useCasesStore();
 
@@ -36,7 +38,7 @@ const brief = computed(() => briefOf(cs.value, cd.value));
 const dxText = computed(() =>
   [
     dx.value.text,
-    dx.value.edited ? $t("calendar-card-edited-suffix") : "",
+    dx.value.edited && me.isAdmin.value ? $t("calendar-card-edited-suffix") : "",
     dx.value.context ? $t("calendar-card-dx-context", { context: dx.value.context }) : "",
     dx.value.verify ? $t("calendar-card-verify-suffix") : "",
   ].join(""),
