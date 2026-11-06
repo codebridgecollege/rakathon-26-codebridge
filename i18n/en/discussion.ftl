@@ -173,9 +173,9 @@ discussion-rec-err-workflow-errored = processing failed
 discussion-rec-err-workflow-terminated = processing was terminated
 discussion-rec-err-workflow-incomplete = processing did not finish
 discussion-rec-err-transcript-too-long = the transcript is too long to summarize
-discussion-rec-err-azure-429 = the language model is overloaded
-discussion-rec-err-azure-5xx = language model error
-discussion-rec-err-azure-4xx = the language model rejected the request
+discussion-rec-err-model-429 = the language model is overloaded
+discussion-rec-err-model-5xx = language model error
+discussion-rec-err-model-4xx = the language model rejected the request
 discussion-rec-err-internal = internal error
 discussion-rec-err-unknown = unknown error
 

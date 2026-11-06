@@ -625,7 +625,7 @@ patient-pg-show-saved = Zobraziť uloženú rešerš
 patient-pg-search = Spustiť hľadanie štúdií
 patient-pg-refresh = Nové vyhľadávanie · 1 požiadavka
 patient-pg-abbreviations = OS = celkové prežívanie · PFS = prežívanie bez progresie · ORR = miera objektívnej odpovede
-patient-pg-busy = Astra vyhľadáva štúdie a ich výsledky. Vyhľadávanie môže trvať niekoľko minút.
+patient-pg-busy = AI vyhľadáva štúdie a ich výsledky. Vyhľadávanie môže trvať niekoľko minút.
 patient-pg-saved-stale = Uložená rešerš vychádza zo starších podkladov. Pre aktuálny profil spustite nové vyhľadávanie.
 # Followed by the time of the search as the server sends it.
 patient-pg-found = { $n ->
@@ -664,8 +664,8 @@ patient-pg-ep-pfs = Medián PFS
 patient-pg-ep-response = Odpoveď a trvanie odpovede
 patient-pg-ep-toxicity = Závažná toxicita a ukončenie liečby
 patient-pg-ep-burden = Záťaž liečby
-patient-pg-empty-pending = Čakáme na výsledky Astry.
-patient-pg-empty-no-rows = Astra nevrátila použiteľné výsledky. Skontrolujte stav rešerše a zdroje.
+patient-pg-empty-pending = Čakáme na výsledky AI.
+patient-pg-empty-no-rows = AI nevrátila použiteľné výsledky. Skontrolujte stav rešerše a zdroje.
 patient-pg-empty-start = Hľadanie zatiaľ nebolo spustené. Spustite ho tlačidlom.
 patient-pg-footnotes-label = Poznámky k rešerši
 patient-pg-footnote = Každý riadok zachováva populáciu, liečbu a začiatok sledovania zdroja. Chýbajúce hodnoty sa nedopočítavajú. Rešerš nezaručuje úplnosť dostupnej literatúry. Podobnosť je orientačná zhoda populácie, nie pravdepodobnosť prežitia. Extrahované údaje vyžadujú kontrolu v zdroji.

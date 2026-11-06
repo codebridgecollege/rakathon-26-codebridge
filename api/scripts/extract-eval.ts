@@ -27,6 +27,7 @@ import type { CaseIdentity } from "../src/domain/pseudonymize";
 import { loadPrompt, type LoadedPrompt } from "../src/prompts";
 import { imageIdentity } from "../src/services/redaction";
 import { buildPayload } from "../src/services/model-payload";
+import { pinnedRoute } from "../src/services/openrouter-route";
 import { fetchWithRetry } from "../src/services/retry";
 
 const API = resolve(dirname(fileURLToPath(import.meta.url)), "..");
@@ -120,9 +121,10 @@ async function main() {
 
   // --dev-vars names another .dev.vars (a git worktree has none of its own); the key is read, never printed.
   const devVars = args.includes("--dev-vars") ? resolve(args[args.indexOf("--dev-vars") + 1]!) : join(API, ".dev.vars");
-  const key = readVar(devVars, "AZURE_OPENAI_KEY");
+  const key = readVar(devVars, "OPENROUTER_API_KEY");
   const base = wranglerVar("MODEL_BASE");
   const model = wranglerVar("MODEL_NAME");
+  const routing = pinnedRoute(wranglerVar("MODEL_ROUTE_ONLY"));
   // --effort overrides the configured reasoning effort, to measure whether "low" holds quality.
   const effort = (args.includes("--effort") ? args[args.indexOf("--effort") + 1] : wranglerVar("MODEL_REASONING_EFFORT")) || null;
   // Page by page by default: on case 10 one call over the whole document returned 21 to 49 facts depending on the run,
@@ -150,7 +152,7 @@ async function main() {
     let seconds = 0;
     // One model call, cached by prompt and payload. "filtered" when the content filter refuses it; null on a failure.
     const ask = async (p: LoadedPrompt, text: { ref: number; text: string }[], images: string[], label: string) => {
-      const { body, parts } = buildPayload({ prompt: p, text, imagesBase64: images, identity, model, maxOutputTokens: MAX_OUTPUT_TOKENS, reasoningEffort: effort, maxInputChars: 200000, purpose: label });
+      const { body, parts } = buildPayload({ prompt: p, text, imagesBase64: images, identity, model, routing, maxOutputTokens: MAX_OUTPUT_TOKENS, reasoningEffort: effort, maxInputChars: 200000, purpose: label });
       const payload = JSON.stringify(body);
       const inputSha = await sha256Hex(payload);
       const cacheFile = join(cacheDir, `${p.ref}-${p.sha256.slice(0, 12)}-${inputSha}.json`);
@@ -164,7 +166,7 @@ async function main() {
         return null;
       } else {
         const t0 = Date.now();
-        const { res, attempts } = await fetchWithRetry(`${base.replace(/\/+$/, "")}/chat/completions`, { method: "POST", headers: { "api-key": key, "content-type": "application/json" }, body: payload }, { attempts: 4, baseMs: 2000, maxDelayMs: 20000, timeoutMs: 300000, deadlineMs: 600000 });
+        const { res, attempts } = await fetchWithRetry(`${base.replace(/\/+$/, "")}/chat/completions`, { method: "POST", headers: { authorization: `Bearer ${key}`, "content-type": "application/json" }, body: payload }, { attempts: 4, baseMs: 2000, maxDelayMs: 20000, timeoutMs: 300000, deadlineMs: 600000 });
         seconds += (Date.now() - t0) / 1000;
         const d = (await res.json().catch(() => null)) as { choices?: { message?: { content?: string }; finish_reason?: string }[]; usage?: unknown } | null;
         const choice = d?.choices?.[0];
@@ -287,12 +289,12 @@ async function main() {
       const draftQuestion = !c.explicitQuestion;
       const { parts: bparts, refs } = briefPrompt(facts, run.sources, draftQuestion);
       const bprompt = await loadPrompt("compose-brief-cs");
-      const { body } = buildPayload({ prompt: bprompt, text: bparts.map((p) => ({ ref: p.documentId, text: p.text })), imagesBase64: [], identity, model, maxOutputTokens: 8000, reasoningEffort: effort, maxInputChars: 200000, purpose: "compose_brief" });
+      const { body } = buildPayload({ prompt: bprompt, text: bparts.map((p) => ({ ref: p.documentId, text: p.text })), imagesBase64: [], identity, model, routing, maxOutputTokens: 8000, reasoningEffort: effort, maxInputChars: 200000, purpose: "compose_brief" });
       const payload = JSON.stringify(body);
       const cacheFile = join(cacheDir, `${bprompt.ref}-${bprompt.sha256.slice(0, 12)}-${await sha256Hex(payload)}.json`);
       let output: string | null = existsSync(cacheFile) ? JSON.parse(readFileSync(cacheFile, "utf8")).output : null;
       if (!output && !cacheOnly && key) {
-        const { res } = await fetchWithRetry(`${base.replace(/\/+$/, "")}/chat/completions`, { method: "POST", headers: { "api-key": key, "content-type": "application/json" }, body: payload }, { attempts: 4, baseMs: 2000, maxDelayMs: 20000, timeoutMs: 300000, deadlineMs: 600000 });
+        const { res } = await fetchWithRetry(`${base.replace(/\/+$/, "")}/chat/completions`, { method: "POST", headers: { authorization: `Bearer ${key}`, "content-type": "application/json" }, body: payload }, { attempts: 4, baseMs: 2000, maxDelayMs: 20000, timeoutMs: 300000, deadlineMs: 600000 });
         const d = (await res.json().catch(() => null)) as { choices?: { message?: { content?: string }; finish_reason?: string }[] } | null;
         if (res.ok && d?.choices?.[0]?.finish_reason === "stop") {
           output = d.choices[0].message?.content ?? null;

@@ -9,12 +9,15 @@
 import type { Profile } from "@codebridge/domain/prognosis-profile";
 import { dateEnd } from "@codebridge/domain/prognosis-profile";
 import PROMPT from "../prompts/prognosis.txt";
+import { pinnedRoute } from "./openrouter-route";
 
 export type SearchOptions = {
   profile: Profile;
   apiKey: string;
   model: string;
   modelLabel?: string;
+  // The OpenRouter endpoint the search must run on (openrouter-route.ts). Not every endpoint of a model runs the web search.
+  routeOnly?: string;
   reasoningEffort?: string;
   fetchFn?: typeof fetch;
   now?: Date;
@@ -613,8 +616,8 @@ export async function searchStudies(o: SearchOptions): Promise<Record<string, un
   // Evidence published after the earlier of the MDT date and today is never used.
   const profile: CheckedProfile & Profile = { ...o.profile, evidence_cutoff: today < scheduled ? today : scheduled };
   if (!o.apiKey) throw new PrognosisProblem("missing_key", "Na serveru chybí klíč OpenRouter.", 503);
-  const label = o.modelLabel ?? "GPT Astra";
-  if (!o.model) throw new PrognosisProblem("models_not_configured", "Doplňte přesné ID modelu GPT Astra do serverového .env.", 503);
+  const label = o.modelLabel ?? o.model;
+  if (!o.model || !o.routeOnly) throw new PrognosisProblem("models_not_configured", "Doplňte přesné ID modelu a jeho koncový bod do konfigurace serveru.", 503);
   const entry = await catalogModel(fetchFn, o.model);
   const model = { id: o.model, label, catalog_name: isStr(entry.name) ? entry.name : o.model };
   const effort = o.reasoningEffort ?? "";
@@ -630,7 +633,7 @@ export async function searchStudies(o: SearchOptions): Promise<Record<string, un
     max_tokens: 14000,
     max_tool_calls: 4,
     response_format: { type: "json_object" },
-    provider: { allow_fallbacks: false, data_collection: "deny" },
+    provider: pinnedRoute(o.routeOnly),
   };
   const supported: unknown[] = Array.isArray(entry.supported_parameters) ? entry.supported_parameters : [];
   if (supported.includes("temperature")) payload.temperature = 0;
@@ -708,10 +711,10 @@ export async function searchStudies(o: SearchOptions): Promise<Record<string, un
   };
 }
 
-export function prognosisConfig(env: { OPENROUTER_API_KEY?: string; OPENROUTER_MODEL_ASTRA?: string }): { configured: boolean; available: boolean; models: { id: string; label: string }[] } {
+export function prognosisConfig(env: { OPENROUTER_API_KEY?: string; PROGNOSIS_MODEL?: string; PROGNOSIS_MODEL_LABEL?: string; PROGNOSIS_ROUTE_ONLY?: string }): { configured: boolean; available: boolean; models: { id: string; label: string }[] } {
   return {
-    configured: !!env.OPENROUTER_API_KEY && !!env.OPENROUTER_MODEL_ASTRA,
+    configured: !!env.OPENROUTER_API_KEY && !!env.PROGNOSIS_MODEL && !!env.PROGNOSIS_ROUTE_ONLY,
     available: !!env.OPENROUTER_API_KEY,
-    models: [{ id: env.OPENROUTER_MODEL_ASTRA ?? "", label: "GPT Astra" }],
+    models: [{ id: env.PROGNOSIS_MODEL ?? "", label: env.PROGNOSIS_MODEL_LABEL || env.PROGNOSIS_MODEL || "" }],
   };
 }

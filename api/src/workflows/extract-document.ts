@@ -28,7 +28,7 @@ import { aiFragmentIds, draftDocument, type CallAnswer, type PageReading } from 
 import { needsVision, readingFor, shortReading, type PageFacts } from "../domain/extract/plan";
 import type { ModelAnswer } from "../domain/extract/schema";
 import { loadPrompt } from "../prompts";
-import { callModel, forStep, MODEL_STEP, ModelError, modelConfig } from "../services/model";
+import { callModel, forStep, MODEL_STEP, ModelError, modelAvailable, modelConfig } from "../services/model";
 import { pseudonymizeParts } from "../services/model-payload";
 import { pageReader, poolInstance, type PageRecord, type RawPage, type Readability } from "../services/page-reader";
 import { redactPages } from "../services/redaction";
@@ -46,11 +46,7 @@ const READ_TOKENS = 8000;
 
 /** Whether the AI extraction runs for an org: the model configured, and the org listed in MODEL_ORGS ("*": all). */
 export function modelOn(env: Env, org: string): boolean {
-  try {
-    modelConfig(env);
-  } catch {
-    return false;
-  }
+  if (!modelAvailable(env)) return false;
   const list = String((env as unknown as Record<string, string | undefined>).MODEL_ORGS ?? "").split(",").map((s) => s.trim()).filter(Boolean);
   return list.includes("*") || list.includes(org);
 }

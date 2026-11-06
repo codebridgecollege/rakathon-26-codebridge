@@ -3,7 +3,8 @@ import { bodyLimit } from "hono/body-limit";
 import type { AppEnv } from "../types";
 import { E, numVar } from "../http/errors";
 import { rateLimit } from "../http/rate-limit";
-import { summarizeTranscript } from "../services/azure-openai";
+import { modelAvailable } from "../services/model";
+import { summarizeTranscript } from "../services/summarize-transcript";
 import { PROMPT_VERSION } from "../prompts/summarize-cs";
 
 export const summarize = new Hono<AppEnv>().post(
@@ -30,8 +31,8 @@ export const summarize = new Hono<AppEnv>().post(
     if (typeof transcript !== "string" || !transcript.trim()) throw E.badRequest();
     // Refused rather than cut silently: a summary of half a discussion would look complete.
     if (transcript.length > numVar(c.env.SUMMARY_MAX_CHARS)) throw E.transcriptTooLarge();
-    if (!c.env.AZURE_OPENAI_KEY) throw E.notConfigured();
+    if (!modelAvailable(c.env)) throw E.notConfigured();
     const summary = await summarizeTranscript(c.env, transcript);
-    return c.json({ summary, model: c.env.AZURE_OPENAI_MODEL, prompt_version: PROMPT_VERSION });
+    return c.json({ summary, model: c.env.MODEL_NAME, prompt_version: PROMPT_VERSION });
   },
 );

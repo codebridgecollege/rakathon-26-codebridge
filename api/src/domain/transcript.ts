@@ -212,17 +212,17 @@ export const FAILURES_WITHOUT_AUDIO: readonly PassErrorCode[] = ["audio_missing"
 export const keepsAudioAfter = (code: PassErrorCode): boolean => !FAILURES_WITHOUT_AUDIO.includes(code);
 
 // The fixed codes a failed step may show. Provider text never reaches the database, the page or the logs.
-export const PASS_ERROR_CODES = ["eleven_429", "eleven_5xx", "eleven_4xx", "network", "audio_missing", "audio_purged", "transcript_too_long", "azure_429", "azure_5xx", "azure_4xx", "internal"] as const;
+export const PASS_ERROR_CODES = ["eleven_429", "eleven_5xx", "eleven_4xx", "network", "audio_missing", "audio_purged", "transcript_too_long", "model_429", "model_5xx", "model_4xx", "internal"] as const;
 export type PassErrorCode = (typeof PASS_ERROR_CODES)[number];
 
 // Messages are built as "<provider>:<status>[:<retry-after s>]" or a bare code, so they carry no request data.
 export function safeCode(err: unknown): PassErrorCode {
   const msg = err instanceof Error ? err.message : String(err ?? "");
-  const m = /(eleven|azure):(\d{3}|network)/.exec(msg);
+  const m = /(eleven|model):(\d{3}|network)/.exec(msg);
   if (m) {
     if (m[2] === "network") return "network";
     const st = Number(m[2]);
-    const p = m[1] as "eleven" | "azure";
+    const p = m[1] as "eleven" | "model";
     return st === 429 ? `${p}_429` : st >= 500 ? `${p}_5xx` : `${p}_4xx`;
   }
   const bare = (PASS_ERROR_CODES as readonly string[]).find((c) => msg.includes(c));

@@ -1,5 +1,5 @@
 // Step 5 (a): the AI recording on the server. Route tests (recordings, live lines, audio parts, purge, cron) and the
-// SpeakerPassWorkflow with ElevenLabs and Azure mocked at fetch. Transcripts are synthetic Czech with typos and Latin.
+// SpeakerPassWorkflow with ElevenLabs and the model mocked at fetch. Transcripts are synthetic Czech with typos and Latin.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { env } from "cloudflare:workers";
 import { introspectWorkflow } from "cloudflare:test";
@@ -76,7 +76,7 @@ async function approve(user = "d2p1", e: Env = testEnv()) {
 // ElevenLabs answers with two speakers whose words start at the given seconds of the joined audio.
 const elevenWords = (words: [string, number, string][]) =>
   Response.json({ language_code: "ces", text: "ignored", words: words.flatMap(([t, s, sp]) => [{ text: t, type: "word", start: s, end: s + 0.3, speaker_id: sp }, { text: " ", type: "spacing", start: s + 0.3, end: s + 0.31 }]) });
-const azure = (text: string) => Response.json({ choices: [{ message: { content: text } }] });
+const llmAnswer = (text: string) => Response.json({ choices: [{ message: { content: text } }] });
 
 // Tests that approve only to reach a later state still start a pass; it runs to its end inside the test, so it never
 // writes into the next test's database.
@@ -313,7 +313,7 @@ describe("pure rules", () => {
   it("maps errors to fixed codes without provider text, and parts to a contiguous prefix", () => {
     expect(safeCode(new Error("eleven:429:30"))).toBe("eleven_429");
     expect(safeCode(new Error("eleven:401"))).toBe("eleven_4xx");
-    expect(safeCode(new Error("azure:503:0"))).toBe("azure_5xx");
+    expect(safeCode(new Error("model:503:0"))).toBe("model_5xx");
     expect(safeCode(new Error("pacientka Testová řekla"))).toBe("internal");
     expect(partsToComplete([{ part_number: 1, bytes: PART }, { part_number: 3, bytes: 10 }], PART)).toHaveLength(1);
     expect(partsToComplete([{ part_number: 2, bytes: 10 }, { part_number: 1, bytes: PART }], PART)).toHaveLength(2);
@@ -325,7 +325,7 @@ describe("pure rules", () => {
 
 // ---------- the Workflow ----------
 
-type Mock = { eleven: (() => Response)[]; azure: (() => Response)[] };
+type Mock = { eleven: (() => Response)[]; llm: (() => Response)[] };
 // The Workflow runs in its own Durable Object, so request bodies are read inside the handler, not later in the test.
 const forms: string[] = [];
 function providers(m: Mock) {
@@ -337,7 +337,7 @@ function providers(m: Mock) {
       forms.push(await req.text());
       return m.eleven[Math.min(e++, m.eleven.length - 1)]!();
     }
-    if (u.hostname === "azure.test") return m.azure[Math.min(a++, m.azure.length - 1)]!();
+    if (u.hostname === "model.test") return m.llm[Math.min(a++, m.llm.length - 1)]!();
     return new Response("unexpected", { status: 599 });
   });
 }
@@ -368,7 +368,7 @@ describe("SpeakerPassWorkflow", () => {
     const { t } = await recordCase();
     const { wf, inst, jobId, calls } = await runPass({
       eleven: [() => elevenWords([["pacientka", 0.1, "s1"], ["po", 0.4, "s1"], ["resekci", 0.7, "s1"], ["CT", 1.2, "s2"], ["za", 1.4, "s2"], ["tři", 1.6, "s2"], ["měsíce", 1.8, "s2"]])],
-      azure: [() => azure("Kontrolní CT hrudníku za 3 měsíce.")],
+      llm: [() => llmAnswer("Kontrolní CT hrudníku za 3 měsíce.")],
     });
     await using _ = wf;
     await inst.waitForStatus("complete");
@@ -402,21 +402,21 @@ describe("SpeakerPassWorkflow", () => {
     expect(JSON.stringify(await log())).not.toContain("resekci");
   });
 
-  it("retries ElevenLabs 429 and Azure 429, then completes", async () => {
+  it("retries ElevenLabs 429 and model 429, then completes", async () => {
     await recordCase();
     const busy = () => new Response("busy", { status: 429, headers: { "retry-after": "1" } });
-    const { wf, inst, calls } = await runPass({ eleven: [busy, busy, () => elevenWords([["ano", 0.1, "a"]])], azure: [busy, () => azure("Shrnutí.")] });
+    const { wf, inst, calls } = await runPass({ eleven: [busy, busy, () => elevenWords([["ano", 0.1, "a"]])], llm: [busy, () => llmAnswer("Shrnutí.")] });
     await using _ = wf;
     await inst.waitForStatus("complete");
     expect(calls.filter((c) => c.url.includes("elevenlabs.test"))).toHaveLength(3);
-    expect(calls.filter((c) => c.url.includes("azure.test"))).toHaveLength(2);
+    expect(calls.filter((c) => c.url.includes("model.test"))).toHaveLength(2);
     expect((await one("SELECT state FROM transcript_passes")).state).toBe("done");
     expect((await one("SELECT state FROM transcript_summaries")).state).toBe("done");
   });
 
   it("a failed pass: a 401 is not retried, the audio stays for Zkusit znovu, the summary uses the live lines", async () => {
     await recordCase();
-    const { wf, inst, jobId, calls } = await runPass({ eleven: [() => new Response('{"detail":"Testová Pacientka invalid"}', { status: 401 })], azure: [() => azure("Ze živého přepisu.")] });
+    const { wf, inst, jobId, calls } = await runPass({ eleven: [() => new Response('{"detail":"Testová Pacientka invalid"}', { status: 401 })], llm: [() => llmAnswer("Ze živého přepisu.")] });
     await using _ = wf;
     await inst.waitForStatus("complete");
     expect(calls.filter((c) => c.url.includes("elevenlabs.test"))).toHaveLength(1);
@@ -432,7 +432,7 @@ describe("SpeakerPassWorkflow", () => {
 
     // Zkusit znovu: a new instance on the kept audio.
     vi.restoreAllMocks();
-    providers({ eleven: [() => elevenWords([["CT", 0.1, "x"], ["hrudníku", 0.3, "x"]])], azure: [() => azure("Po opakování.")] });
+    providers({ eleven: [() => elevenWords([["CT", 0.1, "x"], ["hrudníku", 0.3, "x"]])], llm: [() => llmAnswer("Po opakování.")] });
     // A double click starts one run.
     const [ra, rb] = await Promise.all([w("POST", `/jobs/${jobId}/retry`, {}), w("POST", `/jobs/${jobId}/retry`, {})]);
     const r = ra.status === 200 ? ra : rb;
@@ -451,7 +451,7 @@ describe("SpeakerPassWorkflow", () => {
 
   it("a retry after the kept audio vanished from R2 runs nothing: the audio is marked gone, the live summary stays", async () => {
     await recordCase();
-    const { wf, inst, jobId, calls } = await runPass({ eleven: [() => new Response("x", { status: 400 })], azure: [() => azure("Ze živého přepisu.")] });
+    const { wf, inst, jobId, calls } = await runPass({ eleven: [() => new Response("x", { status: 400 })], llm: [() => llmAnswer("Ze živého přepisu.")] });
     await using _ = wf;
     await inst.waitForStatus("complete");
     expect((await get("/cases/NO-A/transcript")).body.passes[0]).toMatchObject({ state: "error", audio_kept: true });
@@ -472,7 +472,7 @@ describe("SpeakerPassWorkflow", () => {
     await recordCase();
     const wf = await introspectWorkflow(env.SPEAKER_PASS);
     await using _ = wf;
-    providers({ eleven: [() => elevenWords([["x", 0.1, "a"]])], azure: [() => azure("Ze živého přepisu.")] });
+    providers({ eleven: [() => elevenWords([["x", 0.1, "a"]])], llm: [() => llmAnswer("Ze živého přepisu.")] });
     // The part object disappears between the recording and the pass (finalize completes it, diarize finds it gone).
     const head = vi.spyOn(env.DOCS, "head").mockResolvedValue(null);
     await approve();
@@ -489,7 +489,7 @@ describe("SpeakerPassWorkflow", () => {
     const wf = await introspectWorkflow(env.SPEAKER_PASS);
     await using _ = wf;
     // The job exists but the instance starts only after the close (as if the engine queued it).
-    const f = providers({ eleven: [() => elevenWords([["x", 0.1, "a"]])], azure: [() => azure("Shrnutí.")] });
+    const f = providers({ eleven: [() => elevenWords([["x", 0.1, "a"]])], llm: [() => llmAnswer("Shrnutí.")] });
     const create = vi.spyOn(env.SPEAKER_PASS, "create").mockRejectedValueOnce(new Error("engine down"));
     const a = await approve();
     create.mockRestore();
@@ -506,7 +506,7 @@ describe("SpeakerPassWorkflow", () => {
     expect((await one("SELECT state FROM transcript_passes")).state).toBe("purged");
     expect((await get("/cases/NO-A/transcript")).body.lines.map((l: any) => l.text)).toEqual(LINES);
     // A closed case's discussion is not sent to the model.
-    expect(f.calls.filter((c) => c.url.includes("azure.test"))).toHaveLength(0);
+    expect(f.calls.filter((c) => c.url.includes("model.test"))).toHaveLength(0);
     expect((await one("SELECT state FROM transcript_summaries")).state).toBe("skipped");
   });
 
@@ -520,7 +520,7 @@ describe("SpeakerPassWorkflow", () => {
       { id: lid(2), at: t + 30_000, text: "závěr: kontrolní CT hrudníku" },
       { id: lid(3), at: t + 40_000, text: "adjuvance neindikována" },
     ]));
-    const { wf, inst } = await runPass({ eleven: [() => elevenWords([["pacientka", 0.2, "a"], ["po", 0.5, "a"], ["resekci", 0.8, "a"]])], azure: [() => azure("S.")] });
+    const { wf, inst } = await runPass({ eleven: [() => elevenWords([["pacientka", 0.2, "a"], ["po", 0.5, "a"], ["resekci", 0.8, "a"]])], llm: [() => llmAnswer("S.")] });
     await using _ = wf;
     await inst.waitForStatus("complete");
     const tr = await get("/cases/NO-A/transcript");
@@ -537,7 +537,7 @@ describe("SpeakerPassWorkflow", () => {
 
   it("kept audio of a failed pass outlives the seminar end and the six-hour limit, and goes after seven days or with the case", async () => {
     await recordCase();
-    const { wf, inst } = await runPass({ eleven: [() => new Response("x", { status: 400 })], azure: [() => azure("S.")] });
+    const { wf, inst } = await runPass({ eleven: [() => new Response("x", { status: 400 })], llm: [() => llmAnswer("S.")] });
     await using _ = wf;
     await inst.waitForStatus("complete");
     expect((await one("SELECT state FROM audio_uploads")).state).toBe("completed");
@@ -567,14 +567,14 @@ describe("SpeakerPassWorkflow", () => {
   it("serves a known transcript from the R2 cache without calling the model", async () => {
     await recordCase();
     const text = transcriptText(LINES.map((t) => ({ speaker: null, text: t })));
-    const sha = await sha256Hex(`gpt-6-luna-dz-eu\n${PROMPT_VERSION}\n${await sha256Hex(PROMPT)}\n${text}`);
+    const sha = await sha256Hex(`${env.MODEL_NAME}\n${PROMPT_VERSION}\n${await sha256Hex(PROMPT)}\n${text}`);
     await env.DOCS.put(`org/demo-a/cache/summary/NO-A/${sha}.json`, JSON.stringify({ summary: "Z mezipaměti." }));
     // Silence from ElevenLabs: no words, so the live lines stay (never replaced by nothing) and are summarized.
-    const { wf, inst, calls } = await runPass({ eleven: [() => elevenWords([])], azure: [() => azure("nemá se volat")] });
+    const { wf, inst, calls } = await runPass({ eleven: [() => elevenWords([])], llm: [() => llmAnswer("nemá se volat")] });
     await using _ = wf;
     await inst.waitForStatus("complete");
     expect((await one("SELECT state FROM transcript_passes")).state).toBe("empty");
-    expect(calls.filter((c) => c.url.includes("azure.test"))).toHaveLength(0);
+    expect(calls.filter((c) => c.url.includes("model.test"))).toHaveLength(0);
     expect(await one("SELECT text, cache_hit, basis FROM transcript_summaries")).toEqual({ text: "Z mezipaměti.", cache_hit: 1, basis: "live_only" });
   });
 
@@ -583,16 +583,16 @@ describe("SpeakerPassWorkflow", () => {
     const t = Date.now() - 20_000;
     const long = Array.from({ length: 9 }, (_, i) => ({ id: lid(i), at: t + i, text: "pacient s karcinomem ".repeat(240).slice(0, 5000) }));
     await w("POST", "/cases/NO-A/transcript/lines", lineBody(rec, long));
-    const { wf, inst, calls } = await runPass({ eleven: [() => elevenWords([])], azure: [() => azure("x")] });
+    const { wf, inst, calls } = await runPass({ eleven: [() => elevenWords([])], llm: [() => llmAnswer("x")] });
     await using _ = wf;
     await inst.waitForStatus("complete");
-    expect(calls.filter((c) => c.url.includes("azure.test"))).toHaveLength(0);
+    expect(calls.filter((c) => c.url.includes("model.test"))).toHaveLength(0);
     expect(await one("SELECT state, error_code FROM transcript_summaries")).toEqual({ state: "error", error_code: "transcript_too_long" });
   });
 
   it("GET /jobs checks membership and reconciles a dead instance without its message", async () => {
     await recordCase();
-    const { wf, inst, jobId } = await runPass({ eleven: [() => elevenWords([["ano", 0.1, "a"]])], azure: [() => azure("S.")] });
+    const { wf, inst, jobId } = await runPass({ eleven: [() => elevenWords([["ano", 0.1, "a"]])], llm: [() => llmAnswer("S.")] });
     await using _ = wf;
     await inst.waitForStatus("complete");
     expect((await get(`/jobs/${jobId}`, "d1p1")).status).toBe(403);

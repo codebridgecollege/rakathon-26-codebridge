@@ -41,30 +41,34 @@
     // "true" lets the administrator restore the shared demo to its seed (POST /api/admin/reset-demo). Absent or any
     // other value in a pilot, where the data is not synthetic.
     "DEMO_RESET_ENABLED": "true",
-    "AZURE_OPENAI_BASE": "https://apim-rakathon-q7146n.azure-api.net/openai/v1",
-    "AZURE_OPENAI_MODEL": "gpt-6-luna-dz-eu",
     "AI_GATEWAY_BASE": "",
     "LLM_MAX_ATTEMPTS": "4",
     "LLM_RETRY_BASE_MS": "1000",
     "SUMMARY_MAX_CHARS": "40000",
     // Issue #20: the model the document pipeline sends pseudonymized text and redacted page images to
-    // (src/services/model.ts). Provider "azure-openai" reads the AZURE_OPENAI_KEY secret; "openai-compatible" reads
-    // MODEL_API_KEY. Without the key the model is off. Checked 2026-10-19: docs/research/2026-10-19-azure-gateway-check.md.
+    // and the summary of a recorded discussion (src/services/model.ts). Provider "openrouter" reads the
+    // OPENROUTER_API_KEY secret and must name the endpoint in MODEL_ROUTE_ONLY; "openai-compatible" reads MODEL_API_KEY.
+    // Without the key the model is off.
     // The orgs whose documents the AI extraction reads ("*": all). Empty: off everywhere; real patients need FNO's
     // clearance for any cloud model first (DATA-PROTECTION.md).
     "MODEL_ORGS": "demo-a,demo-b,demo-c",
     // The Prognóza tab's study search sends a clinical profile (no name or birth number) to OpenRouter, with web search,
     // on a click. The orgs it may run for ("*": all); empty: off everywhere. It also needs the OPENROUTER_API_KEY secret
     // (wrangler secret put OPENROUTER_API_KEY). Real patients need FNO's clearance for any cloud model first.
-    "PROGNOSIS_ORGS": "",
+    "PROGNOSIS_ORGS": "demo-a,demo-b,demo-c",
     // At most this many searches a day per org, a guard on the account's tokens.
     "PROGNOSIS_DAILY_MAX": "20",
     // The model's exact ID on OpenRouter, checked against its catalog at each search; no other model is substituted.
-    "OPENROUTER_MODEL_ASTRA": "openai/gpt-6-astra",
-    "OPENROUTER_REASONING_EFFORT": "low",
-    "MODEL_PROVIDER": "azure-openai",
-    "MODEL_BASE": "https://apim-rakathon-q7146n.azure-api.net/openai/v1",
-    "MODEL_NAME": "gpt-6-luna-dz-eu",
+    "PROGNOSIS_MODEL": "anthropic/claude-opus-5.5",
+    "PROGNOSIS_MODEL_LABEL": "Claude Opus 5.5",
+    // The endpoint must run OpenRouter's web search: amazon-bedrock/eu-west-1 answered without searching (2026-11-06).
+    "PROGNOSIS_ROUTE_ONLY": "google-vertex/europe",
+    // Medium: "low" returned 2 rows from one study on a synthetic profile, "medium" 8 rows (2026-11-06).
+    "OPENROUTER_REASONING_EFFORT": "medium",
+    "MODEL_PROVIDER": "openrouter",
+    "MODEL_BASE": "https://openrouter.ai/api/v1",
+    "MODEL_NAME": "openai/gpt-6-luna",
+    "MODEL_ROUTE_ONLY": "azure/eu",
     "MODEL_REASONING_EFFORT": "low",
     "MODEL_TIMEOUT_MS": "120000",
     // In-process retries stop here, below the 5-minute step timeout (MODEL_STEP); the step retries after that.

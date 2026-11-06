@@ -3,7 +3,7 @@
 //
 // What every call goes through, in this order:
 // 1. Configuration only: provider, endpoint, model and key come from vars and secrets (MODEL_*), never from code, so
-//    moving from the hackathon Azure gateway to another EU model is a configuration change.
+//    moving to another EU model is a configuration change.
 // 2. The prompt by ID from the repository (src/prompts), with its version and SHA-256.
 // 3. Pseudonymization of every text part (domain/pseudonymize.ts) with the case's identity and the org's staff; the
 //    mapping stays in this isolate's memory and is returned to the caller, never sent, stored or logged.
@@ -29,6 +29,7 @@ import { cacheKey, cacheScope } from "./model-cache";
 import { sha256Hex } from "../store/work";
 import { Tx } from "../store/write";
 import { RedactedPage, toBase64 } from "./redaction";
+import { pinnedRoute } from "./openrouter-route";
 import { fetchWithRetry } from "./retry";
 
 export { ModelError, type ModelErrorCode } from "./model-payload";
@@ -44,10 +45,11 @@ export function forStep(e: unknown): Error {
 export const MODEL_STEP = { retries: { limit: 3, delay: "30 seconds", backoff: "exponential" }, timeout: "5 minutes" } as const;
 
 type Provider = { secret: keyof Env | "MODEL_API_KEY"; headers: (key: string) => Record<string, string> };
-// Each provider names its secret and how the key is sent. A new EU provider with an OpenAI-compatible API needs only
-// MODEL_PROVIDER=openai-compatible, MODEL_BASE, MODEL_NAME and the MODEL_API_KEY secret.
+// Each provider names its secret and how the key is sent. OpenRouter must also name the endpoint (MODEL_ROUTE_ONLY). A
+// model we run ourselves or an EU provider with an OpenAI-compatible API needs only MODEL_PROVIDER=openai-compatible,
+// MODEL_BASE, MODEL_NAME and the MODEL_API_KEY secret.
 const PROVIDERS: Record<string, Provider> = {
-  "azure-openai": { secret: "AZURE_OPENAI_KEY", headers: (k) => ({ "api-key": k }) },
+  openrouter: { secret: "OPENROUTER_API_KEY", headers: (k) => ({ authorization: `Bearer ${k}` }) },
   "openai-compatible": { secret: "MODEL_API_KEY", headers: (k) => ({ authorization: `Bearer ${k}` }) },
 };
 
@@ -61,6 +63,8 @@ export function modelConfig(env: Env) {
   const v = env as unknown as Vars;
   const provider = PROVIDERS[v.MODEL_PROVIDER ?? ""];
   if (!provider || !v.MODEL_BASE || !v.MODEL_NAME) throw new ModelError("misconfigured", false);
+  // Refused rather than sent unpinned: OpenRouter would then choose where the case text goes.
+  if (v.MODEL_PROVIDER === "openrouter" && !v.MODEL_ROUTE_ONLY) throw new ModelError("misconfigured", false);
   const key = v[provider.secret as string];
   // No key: the model is off for this deployment, which is a state, not a failure to retry.
   if (!key) throw new ModelError("model_off", false);
@@ -68,6 +72,7 @@ export function modelConfig(env: Env) {
     provider: v.MODEL_PROVIDER!,
     url: `${v.MODEL_BASE.replace(/\/+$/, "")}/chat/completions`,
     model: v.MODEL_NAME,
+    routing: v.MODEL_PROVIDER === "openrouter" ? pinnedRoute(v.MODEL_ROUTE_ONLY!) : null,
     headers: { ...provider.headers(key), "content-type": "application/json" },
     reasoningEffort: v.MODEL_REASONING_EFFORT || null,
     attempts: num(v.LLM_MAX_ATTEMPTS, 4),
@@ -85,6 +90,16 @@ export function modelConfig(env: Env) {
       callsPerPage: num(v.MODEL_BUDGET_CALLS_PER_PAGE, 4),
     },
   };
+}
+
+/** Whether this deployment can call the model at all: fully configured, with its key. */
+export function modelAvailable(env: Env): boolean {
+  try {
+    modelConfig(env);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 // docId is the `documents.id` of the case's document (never a file name, fixture or part ID): the cache folder and the
@@ -111,7 +126,7 @@ export type ModelMeta = {
   model: string;
   prompt: string; // "read-page-cs@1"
   prompt_sha256: string;
-  temperature: null; // the gateway's model accepts only its default (docs/research/2026-10-19-azure-gateway-check.md)
+  temperature: null; // the model does not take a temperature: it is not in OpenRouter's supported parameters for it
   input_sha256: string;
   cached: boolean;
   call_id: string | null;
@@ -148,6 +163,7 @@ export async function callModel(env: Env, req: ModelRequest): Promise<ModelResul
     imagesBase64: images.map((im) => toBase64(im.png)),
     identity: req.identity,
     model: cfg.model,
+    routing: cfg.routing,
     maxOutputTokens: req.maxOutputTokens ?? cfg.maxOutputTokens,
     reasoningEffort: cfg.reasoningEffort,
     maxInputChars: cfg.maxInputChars,

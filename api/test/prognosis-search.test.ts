@@ -67,7 +67,7 @@ function server(chat: () => Response | Promise<Response>, catalog: Record<string
   return { fetchFn, calls, chatCalls: () => calls.filter((c) => c.url.endsWith("/chat/completions")) };
 }
 const run = (fetchFn: typeof fetch, over: Record<string, unknown> = {}) =>
-  searchStudies({ profile: PROFILE, apiKey: "test-secret", model: "a", fetchFn, now: NOW, ...over });
+  searchStudies({ profile: PROFILE, apiKey: "test-secret", model: "a", modelLabel: "Test model", routeOnly: "test/eu", fetchFn, now: NOW, ...over });
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const modelOf = (r: Record<string, unknown>): any => (r.models as unknown[])[0];
 
@@ -253,7 +253,7 @@ describe("searchStudies", () => {
     expect(Object.keys(r)).toEqual(["profile", "models", "rows", "searched_at", "scheduled_date", "cache_hit", "warnings"]);
     expect(r).toMatchObject({ cache_hit: false, scheduled_date: "2026-10-17", searched_at: "2026-10-17T10:00:00+00:00" });
     expect((r.profile as CheckedProfile).evidence_cutoff).toBe("2026-10-17");
-    expect(modelOf(r)).toMatchObject({ id: "a", label: "GPT Astra", catalog_name: "Astra", status: "success", error: null, finish_reason: "stop", row_count: 1, web_search_requests: 1, warnings: ["Jedna studie."] });
+    expect(modelOf(r)).toMatchObject({ id: "a", label: "Test model", catalog_name: "Astra", status: "success", error: null, finish_reason: "stop", row_count: 1, web_search_requests: 1, warnings: ["Jedna studie."] });
     expect(Object.keys(modelOf(r))).toEqual(["id", "label", "catalog_name", "status", "error", "error_code", "finish_reason", "output_chars", "parse_error", "row_count", "web_search_requests", "warnings"]);
     const rows = r.rows as { endpoints: { os_12: { value: number } } }[];
     expect(rows).toHaveLength(1);
@@ -274,7 +274,7 @@ describe("searchStudies", () => {
       max_tokens: 14000,
       max_tool_calls: 4,
       response_format: { type: "json_object" },
-      provider: { allow_fallbacks: false, data_collection: "deny" },
+      provider: { only: ["test/eu"], allow_fallbacks: false, data_collection: "deny", zdr: true },
     });
     expect(body.messages[0]).toEqual({ role: "system", content: PROMPT_PY });
     expect(JSON.parse(body.messages[1].content)).toMatchObject({ scheduled_date: "2026-10-17", evidence_cutoff: "2026-10-17" });
@@ -443,10 +443,12 @@ describe("searchStudies", () => {
 
 describe("prognosisConfig and PrognosisProblem", () => {
   it("reports presence of the key and model, never the key", () => {
-    expect(prognosisConfig({})).toEqual({ configured: false, available: false, models: [{ id: "", label: "GPT Astra" }] });
+    expect(prognosisConfig({})).toEqual({ configured: false, available: false, models: [{ id: "", label: "" }] });
     expect(prognosisConfig({ OPENROUTER_API_KEY: "k" })).toMatchObject({ configured: false, available: true });
-    const c = prognosisConfig({ OPENROUTER_API_KEY: "k", OPENROUTER_MODEL_ASTRA: "m" });
-    expect(c).toEqual({ configured: true, available: true, models: [{ id: "m", label: "GPT Astra" }] });
+    // No endpoint means no search: OpenRouter would otherwise choose where the clinical profile goes.
+    expect(prognosisConfig({ OPENROUTER_API_KEY: "k", PROGNOSIS_MODEL: "m" })).toMatchObject({ configured: false, available: true });
+    const c = prognosisConfig({ OPENROUTER_API_KEY: "k", PROGNOSIS_MODEL: "m", PROGNOSIS_MODEL_LABEL: "Test model", PROGNOSIS_ROUTE_ONLY: "test/eu" });
+    expect(c).toEqual({ configured: true, available: true, models: [{ id: "m", label: "Test model" }] });
     expect(JSON.stringify(c)).not.toContain('"k"');
     expect(new PrognosisProblem("x", "y", 502)).toMatchObject({ code: "x", status: 502, message: "y" });
   });

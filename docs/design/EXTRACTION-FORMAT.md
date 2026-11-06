@@ -82,7 +82,7 @@ run, and one that cannot follow is shown, never dropped.
   "created_at": "2026-10-19T10:04:11Z",
   "stages": [
     { "name": "ocr", "engine": "tesseract 5.3.0 ces 4.1.0" },
-    { "name": "extract_facts", "model": "gpt-6-luna-dz-eu", "prompt": "extract-facts@3", "prompt_sha256": "…", "temperature": null },
+    { "name": "extract_facts", "model": "openai/gpt-6-luna", "prompt": "extract-facts@3", "prompt_sha256": "…", "temperature": null },
     { "name": "rules", "engine": "codebridge rules@12" }
   ],
   "supersedes": "run-2026-10-18T16:20:03Z-9f8e"
@@ -467,7 +467,7 @@ The view numbers the references `[1]`, `[2]` when it renders them.
       "facts": ["f-1a77e0", "f-62b0d1", "f-62b0d2"]
     }
   ],
-  "made_by": { "model": "gpt-6-luna-dz-eu", "prompt": "brief@2" }
+  "made_by": { "model": "openai/gpt-6-luna", "prompt": "brief@2" }
 }
 ```
 

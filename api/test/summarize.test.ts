@@ -22,19 +22,37 @@ describe("POST /api/summarize", () => {
     expect(res.headers.get("cache-control")).toBe("no-store");
     expect(await res.json()).toEqual({
       summary: "Indikována chemoterapie.",
-      model: "gpt-6-luna-dz-eu",
+      model: "test-model",
       prompt_version: PROMPT_VERSION,
     });
     expect(calls).toHaveLength(1);
     const up = calls[0]!;
-    expect(up.url).toBe("https://apim-rakathon-q7146n.azure-api.net/openai/v1/chat/completions");
-    expect(up.headers.get("api-key")).toBe("test-az");
-    const sent = await up.json<{ model: string; messages: { role: string; content: string }[] }>();
-    expect(sent.model).toBe("gpt-6-luna-dz-eu");
+    expect(up.url).toBe("https://model.test/openai/v1/chat/completions");
+    expect(up.headers.get("authorization")).toBe("Bearer test-secret");
+    const sent = await up.json<{ model: string; provider: unknown; reasoning_effort: string; messages: { role: string; content: string }[] }>();
+    expect(sent.model).toBe("test-model");
+    expect(sent.reasoning_effort).toBe("low");
+    // The transcript holds what doctors said about a patient, so it stays on the pinned endpoint like the case text.
+    expect(sent.provider).toEqual({ only: ["test/eu"], allow_fallbacks: false, data_collection: "deny", zdr: true });
     expect(sent.messages).toEqual([
       { role: "system", content: PROMPT },
       { role: "user", content: "Lékař: navrhujeme chemoterapii." },
     ]);
+  });
+
+  it("refuses an empty answer and a cut-off summary instead of showing them as finished", async () => {
+    for (const body of [{ error: { code: 502, message: "provider failed" } }, { choices: [{ finish_reason: "length", message: { content: "Indikována" } }] }]) {
+      mockFetch(() => Response.json(body));
+      const res = await call("/api/summarize", post({ transcript: "x" }));
+      expect(res.status).toBe(502);
+    }
+  });
+
+  it("is not configured when OpenRouter has no endpoint to stay on, and sends nothing", async () => {
+    const { calls } = mockFetch(ok);
+    const res = await call("/api/summarize", post({ transcript: "x" }), testEnv({ MODEL_ROUTE_ONLY: "" }));
+    expect(res.status).toBe(503);
+    expect(calls).toHaveLength(0);
   });
 
   it("retries on 429 and succeeds", async () => {
@@ -101,7 +119,7 @@ describe("POST /api/summarize", () => {
   });
 
   it("answers not_configured without the key", async () => {
-    const res = await call("/api/summarize", post({ transcript: "x" }), testEnv({ AZURE_OPENAI_KEY: "" }));
+    const res = await call("/api/summarize", post({ transcript: "x" }), testEnv({ OPENROUTER_API_KEY: "" }));
     expect(res.status).toBe(503);
     expect((await res.json<{ error: { code: string } }>()).error.code).toBe("not_configured");
   });
