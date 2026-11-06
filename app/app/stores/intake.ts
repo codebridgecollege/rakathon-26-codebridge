@@ -9,6 +9,7 @@
 //   the closing sentence, and "Přidat do databáze" completes the intake.
 // Closing the dialog, going back to the referral, navigating away or switching the user discards the open intake and
 // its files on the server.
+import { useListViewStore } from "./listView";
 import { defineStore } from "pinia";
 import { computed, reactive, ref, shallowRef } from "vue";
 import { ApiError, type IntakeStatus, type NewCaseBody, type UploadDoc } from "@codebridge/api-client";
@@ -108,7 +109,8 @@ export const useIntakeStore = defineStore("intake", () => {
     Object.assign(form, emptyForm());
     // The creator's only team is the likely one; with several, nothing is preselected, so no case lands in a wrong team.
     const mine = (useStaffStore().directory?.teams ?? []).filter((t) => t.members.includes(useSessionStore().me?.user.id ?? ""));
-    teamId.value = mine.length === 1 ? mine[0]!.id : "";
+    // The team chosen in the top bar is where the user is working, so a new patient goes there.
+    teamId.value = useListViewStore().teamFilter || (mine.length === 1 ? mine[0]!.id : "");
     errs.value = {};
     dup.value = dupId.value = null;
     override = null;

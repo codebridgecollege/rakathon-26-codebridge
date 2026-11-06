@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 """Hospital A as the one hospital with many MDT teams (Soňa, 2026-11-06): adds the teams with a weekly schedule, files its
 existing patients under the neuro-oncology team, adds the lung specialists and ten fictional lung patients under the lung
-team, and starts the reading pipeline on their reports. Additive and repeatable: nothing is deleted, hospitals B and C stay.
+team, and starts the reading pipeline on their reports. Hospitals B and C leave the account menu: their memberships end, so
+nobody lands there, and their rows stay as they are, so this can be undone by clearing active_until. B's one patient gets a
+copy here; her Word file was only ever listed, so it has no content to copy. Repeatable.
 
 The schedule is a starting point for the teams to change in Administrace: no two teams overlap, each meeting is two hours.
 Every doctor of the hospital starts in every team, so nobody loses a patient; narrowing that is part of customizing a team.
@@ -28,6 +30,7 @@ ORG = "demo-a"
 DAY = "2026-10-20"  # the Tuesday of the week the calendar opens on
 OUT = ROOT / "api/seed/out/teams-a"
 ADMIN_USER = "b-admin"  # the login that also administers org B
+AT_END = "2026-11-06T12:00:00.000Z"
 # id suffix, name, weekday (1 = Monday), time
 TEAMS = [
     ("git", "GIT tým", 1, "12:00"),
@@ -38,7 +41,6 @@ TEAMS = [
     ("mama", "Mamární tým", 3, "14:00"),
     ("orl", "ORL tým", 4, "12:00"),
     ("neuro", "Neuroonkologický tým", 4, "14:00"),
-    ("hemato", "Hematoonkologický tým", 5, "10:00"),
     ("sarkom", "Sarkomový tým", 5, "12:00"),
     ("mtb", "Molekulární tumor board", 5, "14:00"),
 ]
@@ -58,8 +60,19 @@ def build() -> tuple[list[str], list[dict], list[dict]]:
             sql.append(insert("memberships", {"id": f"a-{uid}", "org_id": ORG, "user_id": uid, "role_id": "doctor", "fn": "", "active_from": AT, "administers": 0}))
             sql.append(insert("dept_members", {"org_id": ORG, "dept_id": dept, "user_id": uid, "position": j}))
     sql.append(f"INSERT OR IGNORE INTO team_members (org_id, team_id, user_id) SELECT {lit(ORG)}, t.id, m.user_id FROM teams t JOIN memberships m ON m.org_id = t.org_id WHERE t.org_id = {lit(ORG)} AND m.role_id = 'doctor' AND m.active_until IS NULL;")
+    # Tesla Drugová from hospital B, under the ORL team (the file she came with is "ORL oddelenie.docx"). A copy, with the listing.
+    sql.append(f"""INSERT OR IGNORE INTO patients (id, org_id, full_name, name_as_written, birth_number, data_origin, created_at)
+      SELECT 'pt-NO-100', {lit(ORG)}, full_name, name_as_written, birth_number, data_origin, created_at FROM patients WHERE org_id = 'demo-b' AND id = (SELECT patient_id FROM cases WHERE id = 'B-NO-100');""")
+    sql.append(f"""INSERT OR IGNORE INTO cases (id, org_id, case_no, patient_id, source_file, list_order, status, processing_level, question_text, question_explicit, diagnosis_text, referring_dept, referring_dept_is_example, owner_user_id, owner_name, owner_is_example, submitted_on, submitted_is_example, updated_on, created_by, created_at, team_id)
+      SELECT 'NO-100', {lit(ORG)}, 'NO-100', 'pt-NO-100', '100_pacient.pdf', 21, status, processing_level, question_text, question_explicit, diagnosis_text, referring_dept, referring_dept_is_example, NULL, owner_name, owner_is_example, submitted_on, submitted_is_example, updated_on, {lit(ADMIN_USER)}, created_at, 't-a-orl' FROM cases WHERE id = 'B-NO-100';""")
+    sql.append(f"""INSERT OR IGNORE INTO documents (id, org_id, case_id, file_name, media_type, page_count, size_bytes, origin, processing, uploaded_by, created_at, state)
+      SELECT 'up-a-tesla', {lit(ORG)}, 'NO-100', file_name, media_type, page_count, size_bytes, origin, processing, {lit(ADMIN_USER)}, created_at, state FROM documents WHERE org_id = 'demo-b' AND case_id = 'B-NO-100';""")
+    # B and C leave the account menu. A team set up earlier than this list changed goes too, if it has no cases.
+    sql.append(f"UPDATE memberships SET active_until = {lit(AT_END)} WHERE org_id IN ('demo-b', 'demo-c') AND active_until IS NULL AND user_id IN ('admin', {lit(ADMIN_USER)});")
+    sql.append(f"DELETE FROM team_members WHERE org_id = {lit(ORG)} AND team_id = 't-a-hemato' AND NOT EXISTS (SELECT 1 FROM cases WHERE team_id = 't-a-hemato');")
+    sql.append(f"DELETE FROM teams WHERE org_id = {lit(ORG)} AND id = 't-a-hemato' AND NOT EXISTS (SELECT 1 FROM cases WHERE team_id = 't-a-hemato');")
     # What hospital A already holds is its neuro-oncology demo; only cases not yet filed.
-    sql.append(f"UPDATE cases SET team_id = 't-a-neuro' WHERE org_id = {lit(ORG)} AND team_id IS NULL AND case_no NOT LIKE 'NO-1__';")
+    sql.append(f"UPDATE cases SET team_id = 't-a-neuro' WHERE org_id = {lit(ORG)} AND team_id IS NULL;")
 
     objects, runs = [], []
     for i, p in enumerate(PATIENTS, 1):
@@ -110,8 +123,9 @@ def main() -> None:
         run("r2", "object", "put", f"{BUCKET}/{o['key']}", "--file", str(o["file"]), "--content-type", "application/pdf", "--remote", "--jurisdiction", "eu")
     run("d1", "execute", "codebridge-mdt", "--remote", "--yes", "--file", str(OUT / "teams-a.sql"))
     for r in runs:
-        run("workflows", "trigger", "codebridge-process-document", json.dumps(r["params"]), "--id", r["id"])
-        print("started", r["id"])
+        # A rerun: the instance of a run already started exists, and that is fine.
+        done = subprocess.run(["npx", "wrangler", "workflows", "trigger", "codebridge-process-document", json.dumps(r["params"]), "--id", r["id"]], cwd=api, capture_output=True, text=True)
+        print("started" if done.returncode == 0 else "already started or failed:", r["id"])
 
 
 if __name__ == "__main__":

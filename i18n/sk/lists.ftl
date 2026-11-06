@@ -386,7 +386,6 @@ setup-team-add = Pridať tím
 setup-team-remove = Odobrať tím
 setup-mdt-name-example = napríklad Pľúcne MDT
 setup-unfiled = Prípady bez tímu: { $n }. Kým ich nezaradíte (v hlavičke pacienta), vidia ich lekári podľa oddelenia.
-calendar-upcoming = Najbližšie zasadnutia
 lists-team-filter = MDT tím
 lists-team-all = Všetky tímy
 calendar-view-list = Zoznam

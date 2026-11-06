@@ -108,8 +108,7 @@ const unscheduled = computed(() => unscheduledOf(rows.value, v.schedPick));
 const pop = computed(() => (v.calPop ? patients.byFile(v.calPop) ?? null : null));
 const picked = computed(() => (v.schedPick ? patients.byFile(v.schedPick) ?? null : null));
 const locked = (p: PatientRow) => isSlotLocked(workflow.cases, p);
-// The nearest meetings across the org's MDT teams; a case without a team is the org's one MDT.
-const upcoming = computed(() => upcomingMeetings(rows.value, DEMO_TODAY, plan.value, { limit: 12, dates: 1 }));
+// The list view: meetings across the org's MDT teams; a case without a team is the org's one MDT.
 const allUpcoming = computed(() => upcomingMeetings(rows.value, DEMO_TODAY, plan.value, { limit: 60, dates: 3 }));
 const pastMeetings = computed(() => bookedMeetings(rows.value).filter((m) => m.day < DEMO_TODAY).reverse());
 const meetingName = (teamId: string | null) =>
@@ -295,9 +294,6 @@ const startDay = ref<string | null>(null);
     <div class="pagehead">
       <div><h1>{{ $t("calendar-title") }}</h1><div class="muted small">{{ rangeText }}</div></div>
       <div class="row">
-        <label v-if="teams.length" class="small muted row" style="gap:6px">{{ $t("lists-team-filter") }}
-          <select v-model="v.teamFilter" class="input"><option value="">{{ $t("lists-team-all") }}</option><option v-for="t in teams" :key="t.id" :value="t.id">{{ t.name }}</option></select>
-        </label>
         <button class="btn small" :aria-pressed="v.calView === 'list'" @click="v.calView = v.calView === 'list' ? 'week' : 'list'">{{ v.calView === "list" ? $t("calendar-view-week") : $t("calendar-view-list") }}</button>
         <button v-if="v.calView === 'week'" class="btn small" @click="stepW(-1)">{{ $t("calendar-week-prev") }}</button>
         <button v-if="v.calView === 'week'" class="btn small" @click="today">{{ $t("calendar-today") }}</button>
@@ -381,13 +377,6 @@ const startDay = ref<string | null>(null);
       </div>
       <div class="stack">
         <MiniMonth :month="v.miniMonth" :week="v.week" @step="stepM" @year="pickYear" @jump="jump" />
-        <div v-if="upcoming.length">
-          <div class="head" style="margin:0"><h2>{{ $t("calendar-upcoming") }}</h2></div>
-          <template v-for="(m, i) in upcoming" :key="`${m.day}-${m.teamId}`">
-            <div v-if="i === 0 || upcoming[i - 1]!.day !== m.day" class="calup-day">{{ text.dayLabel(m.day) }}</div>
-            <button class="calup-row" @click="goWeek(mondayOf(m.day), m.day.slice(0, 7))"><span>{{ m.time }}</span><span class="calup-name">{{ meetingName(m.teamId) }}</span><b>{{ m.patients.length }}</b></button>
-          </template>
-        </div>
         <div
           class="card unschedzone"
           :class="{ drop: dropKey === 'zone' }"

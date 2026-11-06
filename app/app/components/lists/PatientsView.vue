@@ -2,7 +2,7 @@
 // Screen S-1, Databáze pacientů: search, the submitted-date range, Excel-style column
 // filters, column resize, pages of 20, booking from the list and opening a case. Same markup and classes as the old
 // page, so the copied CSS styles it unchanged.
-import { computed, onBeforeUnmount, onMounted, ref } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useRouter } from "vue-router";
 import { useFluent } from "fluent-vue";
 import type { PatientRow } from "@codebridge/api-client";
@@ -72,6 +72,13 @@ const choices = computed(() =>
   ) as Record<FilterColumn, { code: string; label: string }[]>,
 );
 
+// The team column only when several teams are on screen; choosing one team makes it redundant.
+const showTeam = computed(() => teams.value.length > 0 && !v.teamFilter);
+const teamName = (id: string | null) => teams.value.find((t) => t.id === id)?.name ?? "";
+// Saved widths are per column, so they no longer fit when the column comes or goes.
+watch(showTeam, () => {
+  v.colWidths = null;
+});
 const teamRows = computed(() => (v.teamFilter ? patients.rows.filter((p) => p.teamId === v.teamFilter) : patients.rows));
 const filtered = computed(() => filterPatients(teamRows.value, { q: v.q, filters: v.filters, from: v.subFrom, to: v.subTo }));
 const range = computed(() => pageRange(filtered.value.length, v.page, v.showAll));
@@ -178,9 +185,6 @@ const age = (p: PatientRow) => ageOf(p, DEMO_TODAY);
     </div>
     <div class="toolbar">
       <input id="q" v-model="v.q" class="search" :placeholder="$t('patients-search-placeholder')" :aria-label="$t('patients-search-label')">
-      <label v-if="teams.length" class="small muted row" style="gap:6px">{{ $t("lists-team-filter") }}
-        <select v-model="v.teamFilter" class="input" @change="v.page = 0"><option value="">{{ $t("lists-team-all") }}</option><option v-for="t in teams" :key="t.id" :value="t.id">{{ t.name }}</option></select>
-      </label>
       <label class="small muted row" style="gap:6px">{{ $t("patients-submitted-from") }} <input id="subfrom" class="input" type="date" :value="v.subFrom" style="width:auto" @change="onDate('from', $event)"></label>
       <label class="small muted row" style="gap:6px">{{ $t("patients-submitted-to") }} <input id="subto" class="input" type="date" :value="v.subTo" style="width:auto" @change="onDate('to', $event)"></label>
       <span class="muted small">{{ $t("patients-count", { shown: filtered.length, total: patients.rows.length }) }}</span>
@@ -196,6 +200,7 @@ const age = (p: PatientRow) => ageOf(p, DEMO_TODAY);
               <th>{{ $t("patients-col-patient") }}<span class="colrs" aria-hidden="true" :title="$t('patients-column-resize')" /></th>
               <th>{{ $t("patients-col-rc") }}<span class="colrs" aria-hidden="true" :title="$t('patients-column-resize')" /></th>
               <th>{{ $t("patients-col-age") }}<span class="colrs" aria-hidden="true" :title="$t('patients-column-resize')" /></th>
+              <th v-if="showTeam">{{ $t("lists-team-filter") }}<span class="colrs" aria-hidden="true" :title="$t('patients-column-resize')" /></th>
               <th>{{ $t("patients-col-diagnosis") }}<span class="colrs" aria-hidden="true" :title="$t('patients-column-resize')" /></th>
               <ColumnFilter
                 v-for="k in FILTER_COLUMNS"
@@ -223,6 +228,7 @@ const age = (p: PatientRow) => ageOf(p, DEMO_TODAY);
               </td>
               <td class="num" :class="{ muted: !p.rc }" :title="p.rc ? '' : $t('patients-rc-missing')">{{ p.rc || "-" }}</td>
               <td class="num" :class="{ muted: !age(p) }" :title="age(p)?.computed ? $t('patients-age-computed') : undefined">{{ age(p)?.n ?? "-" }}</td>
+              <td v-if="showTeam">{{ teamName(p.teamId) }}</td>
               <td><b style="font-weight:600">{{ p.diagnosis ?? "" }}</b></td>
               <td>{{ p.owner }}</td>
               <td><template v-if="p.dept">{{ p.dept }}</template><span v-else class="gapq" :title="$t('lists-gap-not-stated')">-</span></td>
@@ -233,7 +239,7 @@ const age = (p: PatientRow) => ageOf(p, DEMO_TODAY);
               <td><span class="chip" :class="STATUS_CLASS[p.status]">{{ text.statusLabel(p.status) }}</span></td>
               <td class="num nw">{{ text.date(p.submitted) }}</td>
             </tr>
-            <tr v-if="!shown.length"><td colspan="12" class="muted">{{ $t(patients.rows.length ? "patients-none" : "patients-empty") }}</td></tr>
+            <tr v-if="!shown.length"><td colspan="13" class="muted">{{ $t(patients.rows.length ? "patients-none" : "patients-empty") }}</td></tr>
           </tbody>
         </table>
       </div>
