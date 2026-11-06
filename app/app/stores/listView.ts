@@ -19,8 +19,8 @@ export const useListViewStore = defineStore("listView", () => {
   // Column widths in px after the first resize; null keeps the browser's automatic layout.
   const colWidths = ref<number[] | null>(null);
 
-  // The MDT team the patient list and the calendar show; "" for all.
-  const teamFilter = ref("");
+  // The MDT teams the patient list and the calendar show; empty for all.
+  const teamFilter = ref<string[]>([]);
 
   // Calendar (S-2).
   const calView = ref<"week" | "list">("week");

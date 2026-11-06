@@ -326,7 +326,7 @@ section "Organizations".
   section per org, and `seed.py` stops if a clinical or case row, or an R2
   object, is seeded into org B.
 - **One hospital with teams (Soňa, 2026-11-06):** hospital A holds all MDT teams, each with its own weekly schedule, and a
-  dropdown in the top bar narrows every screen to one team. `scripts/add_mdt_teams.py` sets this up on the deployed
+  dropdown in the top bar narrows every screen to one or several teams. `scripts/add_mdt_teams.py` sets this up on the deployed
   database and ends the logins' memberships in demo orgs B and C; their rows stay and nothing is deleted. The seed still
   has A without teams, for the browser suite, so "Obnovit ukázková data" in A removes the teams and their patients until
   the saved reset data is updated.

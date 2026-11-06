@@ -12,6 +12,7 @@ import { useWorkflowStore } from "../stores/workflow";
 import { useListViewStore } from "../stores/listView";
 import RecorderPill from "./RecorderPill.vue";
 import AccountMenu from "./AccountMenu.vue";
+import TeamPicker from "./TeamPicker.vue";
 
 const { $t } = useFluent();
 const route = useRoute();
@@ -21,7 +22,6 @@ const staff = useStaffStore();
 const patients = usePatientsStore();
 const workflow = useWorkflowStore();
 const listView = useListViewStore();
-const teams = computed(() => staff.directory?.teams ?? []);
 
 // The area is the first part of the path (/patients, /calendar/2026-10-19, /patient/10/labs).
 const view = computed(() => route.path.split("/")[1] || "patients");
@@ -84,10 +84,7 @@ async function onUser(ev: Event) {
         {{ it.label }}<span v-if="it.count !== undefined" class="count">{{ it.count }}</span>
       </button>
     </nav>
-    <!-- The team the screens show and new patients go to, on every screen; only in a hospital with teams. -->
-    <label v-if="teams.length" class="teampick"><span class="lbl">{{ $t("lists-team-filter") }}</span>
-      <select v-model="listView.teamFilter" :aria-label="$t('lists-team-filter')" @change="listView.page = 0"><option value="">{{ $t("lists-team-all") }}</option><option v-for="t in teams" :key="t.id" :value="t.id">{{ t.name }}</option></select>
-    </label>
+    <TeamPicker />
     <span id="recpill"><RecorderPill /></span>
     <AccountMenu v-if="session.oidc" />
     <span v-else class="who"><span class="lbl">{{ $t("user-picker-label") }}</span>

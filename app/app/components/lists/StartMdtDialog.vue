@@ -2,6 +2,7 @@
 // "Zahájit MDT" from the calendar or a case header: the day's order of cases and
 // who is present. While that day's session already runs, when opened from the discussion card ("Upravit"), or for a
 // case without a slot (key "case:<id>"), the same dialog only edits attendance ("Přítomní").
+import { useTeamRows } from "../../composables/useTeamRows";
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import { useFluent } from "fluent-vue";
@@ -34,7 +35,8 @@ const workflow = useWorkflowStore();
 const att = useAttendanceStore();
 
 const isDay = computed(() => isIsoDayShape(props.day));
-const agenda = computed(() => (isDay.value ? dayAgenda(patients.rows, props.day) : []));
+const rows = useTeamRows();
+const agenda = computed(() => (isDay.value ? dayAgenda(rows.value, props.day) : []));
 // The running seminar is the session that has not ended.
 const running = computed(() => workflow.sessions.filter((s) => !s.ended_at).sort((a, b) => String(a.started_at).localeCompare(String(b.started_at))).at(-1) ?? null);
 const editOnly = computed(() => props.attOnly || !isDay.value || running.value?.day === props.day);

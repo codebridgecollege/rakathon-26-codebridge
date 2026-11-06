@@ -2,13 +2,13 @@
 // The month grid next to the calendar: month arrows, a year picker, and a day button
 // that jumps to its week. Today is marked for screen readers too.
 import { computed } from "vue";
-import { YEARS, miniMonthCells, DEMO_TODAY } from "@codebridge/domain/calendar";
+import { YEARS, miniMonthCells, DEMO_TODAY, type SeminarPlans } from "@codebridge/domain/calendar";
 import { fmtMonthName, uiLocale } from "../../lib/format";
 import { MINI_WEEKDAY_IDS } from "../../lib/lists";
 
-const props = defineProps<{ month: string; week: string }>();
+const props = defineProps<{ month: string; week: string; plan?: SeminarPlans }>();
 const emit = defineEmits<{ step: [n: number]; year: [y: number]; jump: [iso: string] }>();
-const cells = computed(() => miniMonthCells(props.month, props.week, DEMO_TODAY));
+const cells = computed(() => miniMonthCells(props.month, props.week, DEMO_TODAY, props.plan));
 const year = computed(() => Number(props.month.slice(0, 4)));
 const name = computed(() => fmtMonthName(props.month, uiLocale()));
 </script>

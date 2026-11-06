@@ -109,8 +109,9 @@ export const useIntakeStore = defineStore("intake", () => {
     Object.assign(form, emptyForm());
     // The creator's only team is the likely one; with several, nothing is preselected, so no case lands in a wrong team.
     const mine = (useStaffStore().directory?.teams ?? []).filter((t) => t.members.includes(useSessionStore().me?.user.id ?? ""));
-    // The team chosen in the top bar is where the user is working, so a new patient goes there.
-    teamId.value = useListViewStore().teamFilter || (mine.length === 1 ? mine[0]!.id : "");
+    // One team chosen in the top bar is where the user is working, so a new patient goes there; with several, the user picks.
+    const chosen = useListViewStore().teamFilter;
+    teamId.value = chosen.length === 1 ? chosen[0]! : mine.length === 1 ? mine[0]!.id : "";
     errs.value = {};
     dup.value = dupId.value = null;
     override = null;

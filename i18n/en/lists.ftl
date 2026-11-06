@@ -383,3 +383,4 @@ calendar-list-count = { $n ->
     [one] { $n } patient
    *[other] { $n } patients
 }
+lists-team-some = { $n } teams

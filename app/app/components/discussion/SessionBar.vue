@@ -2,6 +2,7 @@
 // The running MDT's session bar (screen S-4). While an MDT runs, the only thing that
 // changes in the patient view is this bar: the day's cases in order, so the team moves between them without leaving
 // the case they look at. A pill opens that case on the same tab; approved cases are ticked.
+import { useTeamRows } from "../../composables/useTeamRows";
 import PanelViewIcon from "./PanelViewIcon.vue";
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useRouter } from "vue-router";
@@ -39,7 +40,8 @@ const mdtPanel = useMdtPanelStore();
 
 const session = computed(() => runningSession(workflow.sessions));
 const shown = computed(() => inSession(c.p.value, session.value));
-const agenda = computed(() => (session.value ? dayAgenda(patients.rows, session.value.day) : []));
+const rows = useTeamRows();
+const agenda = computed(() => (session.value ? dayAgenda(rows.value, session.value.day) : []));
 const at = computed(() => agenda.value.findIndex((a) => a.file === c.p.value.file));
 const prev = computed(() => agenda.value[at.value - 1] ?? null);
 const next = computed(() => agenda.value[at.value + 1] ?? null);

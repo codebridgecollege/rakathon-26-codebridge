@@ -400,3 +400,8 @@ calendar-list-count = { $n ->
     [many] { $n } pacienta
    *[other] { $n } pacientov
 }
+lists-team-some = { $n ->
+    [few] { $n } tímy
+    [many] { $n } tímu
+   *[other] { $n } tímov
+}

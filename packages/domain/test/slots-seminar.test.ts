@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { bookedMeetings, outOfHours, inSeminar, seminarOn, seminarsOn, upcomingMeetings } from "../src/calendar";
+import { bookedMeetings, miniMonthCells, outOfHours, inSeminar, seminarOn, seminarsOn, upcomingMeetings } from "../src/calendar";
 import { seminarWarning } from "../src/slots";
 
 // 2026-10-20 is a Tuesday, 2026-10-22 a Thursday.
@@ -47,5 +47,14 @@ describe("the nearest meetings", () => {
     expect(inSeminar("2026-10-20", "12:30", plans)).toBe(true);
     expect(inSeminar("2026-10-22", "14:00", plans)).toBe(false);
     expect(seminarsOn("2026-10-22", [])).toEqual([]);
+  });
+});
+
+describe("the mini month marks the chosen team's days", () => {
+  it("marks Tuesdays for a Tuesday team, and Thursdays by default", () => {
+    const marked = (plans?: Parameters<typeof miniMonthCells>[3]) => miniMonthCells("2026-10", "2026-10-19", "2026-10-16", plans).filter((c) => c.seminar).map((c) => c.iso);
+    expect(marked([{ id: "lung", weekday: 2, time: "14:00" }])).toContain("2026-10-20");
+    expect(marked([{ id: "lung", weekday: 2, time: "14:00" }])).not.toContain("2026-10-22");
+    expect(marked()).toContain("2026-10-22");
   });
 });

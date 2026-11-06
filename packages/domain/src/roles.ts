@@ -62,7 +62,7 @@ const MATRIX: Record<Action, ReadonlySet<Role>> = {
   // Who brings documents to a case may also start its study search; the administrator reads no clinical content.
   "prognosis.run": new Set(["doctor", "coordinator"]),
   "digest.send": new Set(["doctor", "coordinator"]),
-  "staff.write": new Set(["coordinator", "admin"]),
+  "staff.write": new Set(["doctor", "coordinator", "admin"]),
   "break_glass": new Set(["doctor"]),
   "demo.reset": new Set(["admin"]),
   // Who runs the meeting runs the recorder: the same roles as starting an MDT (session.write).

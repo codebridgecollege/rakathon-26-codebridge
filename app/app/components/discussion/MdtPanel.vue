@@ -3,6 +3,7 @@
 // stays easy to follow. It fits one screen: age, PS with the values to count with, the summary, the question and the
 // course, each from the extraction with its source; the rest opens below. A part the extraction does not hold shows "-"
 // with the gap wording, never "none".
+import { useTeamRows } from "../../composables/useTeamRows";
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { useFluent } from "fluent-vue";
@@ -78,7 +79,8 @@ const identityAlerts = computed(() => alerts.value.filter((f) => f.kind === "ide
 const otherAlerts = computed(() => alerts.value.filter((f) => f.kind !== "identity"));
 
 const session = computed(() => runningSession(workflow.sessions));
-const agenda = computed(() => (session.value ? dayAgenda(patients.rows, session.value.day) : []));
+const rows = useTeamRows();
+const agenda = computed(() => (session.value ? dayAgenda(rows.value, session.value.day) : []));
 const at = computed(() => agenda.value.findIndex((a) => a.file === c.p.value.file));
 const prev = computed(() => agenda.value[at.value - 1] ?? null);
 const next = computed(() => agenda.value[at.value + 1] ?? null);

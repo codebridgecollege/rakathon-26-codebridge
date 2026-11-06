@@ -28,7 +28,7 @@ const MATRIX: [Action, boolean, boolean, boolean][] = [
   ["session.write", true, true, true],
   ["case.create", true, true, false],
   ["digest.send", true, true, false],
-  ["staff.write", false, true, true],
+  ["staff.write", true, true, true],
   ["break_glass", true, false, false],
   ["demo.reset", false, false, true],
 ];

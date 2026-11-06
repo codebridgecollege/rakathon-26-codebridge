@@ -2,6 +2,7 @@
 // Screen S-1, Databáze pacientů: search, the submitted-date range, Excel-style column
 // filters, column resize, pages of 20, booking from the list and opening a case. Same markup and classes as the old
 // page, so the copied CSS styles it unchanged.
+import { useTeamRows } from "../../composables/useTeamRows";
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useRouter } from "vue-router";
 import { useFluent } from "fluent-vue";
@@ -73,13 +74,13 @@ const choices = computed(() =>
 );
 
 // The team column only when several teams are on screen; choosing one team makes it redundant.
-const showTeam = computed(() => teams.value.length > 0 && !v.teamFilter);
+const showTeam = computed(() => teams.value.length > 0 && v.teamFilter.length !== 1);
 const teamName = (id: string | null) => teams.value.find((t) => t.id === id)?.name ?? "";
 // Saved widths are per column, so they no longer fit when the column comes or goes.
 watch(showTeam, () => {
   v.colWidths = null;
 });
-const teamRows = computed(() => (v.teamFilter ? patients.rows.filter((p) => p.teamId === v.teamFilter) : patients.rows));
+const teamRows = useTeamRows();
 const filtered = computed(() => filterPatients(teamRows.value, { q: v.q, filters: v.filters, from: v.subFrom, to: v.subTo }));
 const range = computed(() => pageRange(filtered.value.length, v.page, v.showAll));
 const shown = computed(() => filtered.value.slice(range.value.start, range.value.end));

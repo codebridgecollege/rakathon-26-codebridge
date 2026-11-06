@@ -125,7 +125,7 @@ export function visibleTimes(days: string[], booked: (day: string, t: string) =>
 export type MiniCell = { iso: string; day: number; out: boolean; inWeek: boolean; seminar: boolean; today: boolean };
 
 // The month grid: weeks from the Monday on or before the 1st; a sixth row only when it still holds days of the month.
-export function miniMonthCells(month: string, week: string, today = DEMO_TODAY): MiniCell[] {
+export function miniMonthCells(month: string, week: string, today = DEMO_TODAY, plans?: SeminarPlans): MiniCell[] {
   const m = Number(month.slice(5, 7));
   const start = mondayOf(`${month}-01`);
   const weekEnd = addDays(week, 6);
@@ -134,7 +134,7 @@ export function miniMonthCells(month: string, week: string, today = DEMO_TODAY):
     const iso = addDays(start, i);
     const d = new Date(`${iso}T12:00:00Z`);
     if (i >= 35 && d.getUTCMonth() + 1 !== m) break;
-    out.push({ iso, day: d.getUTCDate(), out: d.getUTCMonth() + 1 !== m, inWeek: iso >= week && iso <= weekEnd, seminar: !!seminarOn(iso), today: iso === today });
+    out.push({ iso, day: d.getUTCDate(), out: d.getUTCMonth() + 1 !== m, inWeek: iso >= week && iso <= weekEnd, seminar: !!seminarOn(iso, plans), today: iso === today });
   }
   return out;
 }

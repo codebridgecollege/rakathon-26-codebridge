@@ -3,6 +3,7 @@
 // the mini month, the patients waiting for a slot, and the card of a booked patient. Booking and freeing go by
 // buttons (pick a patient, then a free slot), by drag and drop, and from the card; a double click on a booked slot
 // opens the case. Slots a conclusion was approved on are locked.
+import { useTeamRows } from "../../composables/useTeamRows";
 import { computed, onBeforeUnmount, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useFluent } from "fluent-vue";
@@ -59,9 +60,9 @@ const session = useSessionStore();
 const staffStore = useStaffStore();
 const teams = computed(() => staffStore.directory?.teams ?? []);
 const plan = computed<SeminarPlans>(() =>
-  teams.value.length ? teams.value.filter((t) => t.weekday && (!v.teamFilter || t.id === v.teamFilter)) : (session.me?.mdt ?? null),
+  teams.value.length ? teams.value.filter((t) => t.weekday && (!v.teamFilter.length || v.teamFilter.includes(t.id))) : (session.me?.mdt ?? null),
 );
-const rows = computed(() => (v.teamFilter ? patients.rows.filter((p) => p.teamId === v.teamFilter) : patients.rows));
+const rows = useTeamRows();
 
 // The week lives in the address (/calendar/<Monday>), so the browser's back button moves between weeks. A link to
 // any day opens its week; the mini month then shows that day's month.
@@ -318,7 +319,7 @@ const startDay = ref<string | null>(null);
             <div />
             <div v-for="d in days" :key="d" class="dh" :class="{ today: d === DEMO_TODAY }">
               {{ text.dayLabel(d) }}{{ d === DEMO_TODAY ? $t("calendar-today-suffix") : "" }}<small>{{ seminarText(d) || " " }}</small>
-              <button v-if="dayAgenda(patients.rows, d).length" class="btn small primary startmdt" @click="startDay = d">{{ $t("calendar-start-mdt") }}</button>
+              <button v-if="dayAgenda(rows, d).length" class="btn small primary startmdt" @click="startDay = d">{{ $t("calendar-start-mdt") }}</button>
             </div>
             <template v-for="t in grid.times" :key="t">
               <div class="tm" :class="{ hr: t.endsWith(':00') }">{{ t }}</div>
@@ -376,7 +377,7 @@ const startDay = ref<string | null>(null);
         <p class="muted small" style="margin:0">{{ $t("calendar-oot-note") }}</p>
       </div>
       <div class="stack">
-        <MiniMonth :month="v.miniMonth" :week="v.week" @step="stepM" @year="pickYear" @jump="jump" />
+        <MiniMonth :month="v.miniMonth" :week="v.week" :plan="plan" @step="stepM" @year="pickYear" @jump="jump" />
         <div
           class="card unschedzone"
           :class="{ drop: dropKey === 'zone' }"
