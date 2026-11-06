@@ -325,6 +325,11 @@ section "Organizations".
   `.b`); org A keeps its other ten demo doctors. `seed/reset.json` has a
   section per org, and `seed.py` stops if a clinical or case row, or an R2
   object, is seeded into org B.
+- **Demo org C** ("Ukázková nemocnice C", `demo-c`, the Plicní MDT on Tuesdays at 14:00) is not in the seed: it is added
+  to the deployed database by `scripts/add_lung_org.py`, which writes only demo-c's rows
+  ([`samples/C_plicni/README.md`](../../samples/C_plicni/README.md)). The team's existing login gets a membership there
+  and reaches it through the account menu's org switch, so it needs no new account. `seed/reset.json` has no section for
+  it, so "Obnovit ukázková data" answers `seed_missing` there and changes nothing.
 - **The org reaches every query.** SQL names the org as `?org`, bound by
   one function (`orgStmt`, `src/store/sql.ts`) that the org-bound stores,
   the write batch (`Tx`) and the route helper `orgQuery` use. Routes take
