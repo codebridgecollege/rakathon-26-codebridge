@@ -9,6 +9,16 @@ const ID: CaseIdentity = {
   staffNames: ["Novák", "Malá", "Černý", "Jana Veselá"],
 };
 
+describe("the gate over pseudonymized text", () => {
+  it("does not refuse its own placeholders on form lines, and still sees a real value", () => {
+    const id = { patientNames: ["Věra Lipenská"], birthNumber: null, birthDate: null, staffNames: [] };
+    for (const line of ["Bydliště: Hlavní 12, Ostrava", "Jméno: Věra Lipenská", "Telefon: 601 111 222", "Adresa: Ostrava"]) {
+      expect(detectIdentifiers(pseudonymize(`Kontrola.\n${line}\nZávěr.`, id).text, id)).toEqual([]);
+    }
+    expect(detectIdentifiers("Bydliště: Hlavní 12", id)).not.toEqual([]);
+  });
+});
+
 describe("nameForms", () => {
   it("declines surnames and first names the way Czech documents write them", () => {
     expect(nameForms("Lipenská")).toEqual(expect.arrayContaining(["lipenska", "lipenske", "lipenskou"]));

@@ -325,7 +325,7 @@ OpenID Connect (OIDC, the standard login protocol); design and details in
   record request headers, as for the Access header in `api/AGENTS.md`).
   Other policies are for team staging and local work only, and
   `UPLOAD_STORE_ORGS` keeps content per org. Since 2026-11-05 (Soňa's
-  decision) it lists both demo orgs on the deployed host, together with
+  decision) it lists the demo orgs on the deployed host, together with
   `PIPELINE_ORGS` and `MODEL_ORGS`: uploaded files are kept, read, and
   sent to the AI model, so the demo orgs must hold synthetic files only
   (anyone with a demo account can act in them). This trades privacy for
@@ -411,24 +411,29 @@ cannot read anything about the patient.
 
 ## Text sent to a model (issue #20)
 
-Every call from the document pipeline to an external model goes through one
-interface in the Worker (`api/src/services/model.ts`). Nothing is built on
-it yet that sends real documents; the extraction prompts come in phase 2.
+Every call that sends case text or page images to an external language model
+goes through one interface in the Worker (`api/src/services/model.ts`): page
+reading, fact extraction, the brief and the discussion summary. The Prognóza
+search is separate: it sends a clinical profile, as described under its own
+heading.
 
 - **Configuration only.** Provider, endpoint, model and key come from
-  `MODEL_*` vars and a secret. Today that is `openai/gpt-6-luna` through
-  OpenRouter, pinned to the endpoint `azure/eu`
-  ([the switch](../research/2026-11-06-openrouter-switch.md)); another EU
-  model is a configuration change.
-- **OpenRouter route.** Every OpenRouter request names one endpoint and
-  forbids a fallback, providers that collect data, and providers without
-  zero data retention (`api/src/services/openrouter-route.ts`). With no
-  endpoint configured the Worker sends nothing. Privacy trade-off, accepted
-  for synthetic demo data only: the model runs in the EU, but the request
-  passes through OpenRouter, a further processor, and on our plan it does
-  not get OpenRouter's in-region routing (Business and Enterprise plans).
-  OpenRouter does not state an endpoint's region in its answer, so "EU"
-  rests on OpenRouter's endpoint tag. Real patients need a direct EU
+  `MODEL_*` vars and a secret. Today that is OpenRouter, a company that
+  resells many models through one API: `openai/gpt-6-luna` on the endpoint
+  `azure/eu`, and `anthropic/claude-haiku-5.5` on `google-vertex/europe` for
+  page images ([the switch](../research/2026-11-06-openrouter-switch.md));
+  another model is a configuration change.
+- **OpenRouter route.** Every request the Worker sends to OpenRouter names
+  one endpoint and forbids a fallback, providers that collect data, and
+  providers without zero data retention
+  (`api/src/services/openrouter-route.ts`). With no endpoint configured the
+  Worker sends nothing. **This is not an EU deployment, so it is for
+  synthetic data only.** The endpoint we name carries a European label, but
+  OpenRouter's answer does not state where the model ran, so that rests on
+  its label. Every request also passes through OpenRouter itself, a further
+  processor whose own handling the two settings above do not cover, and on
+  our plan it gets no in-region routing (Business and Enterprise plans), so
+  we cannot say the data stays in the EU. Real patients need a direct EU
   deployment or in-region routing, a data processing agreement, and FNO's
   clearance.
 - **Pseudonymized text.** Before a call, the Worker replaces in every text
@@ -520,6 +525,14 @@ it yet that sends real documents; the extraction prompts come in phase 2.
 
 ## Meeting audio
 
+The summary of a discussion goes through the model interface like document
+text: for orgs in `MODEL_ORGS` only, with names pseudonymized and the send in
+the access log before the first attempt. The model is told not to repeat
+identifiers, and a placeholder it copies anyway becomes a neutral word, never
+the original value. Only the names the case knows can be
+replaced; a name spoken some other way goes to the model as it was said, which
+is one more reason the demo uses fictitious speech only.
+
 The recording of an MDT discussion is patient data. In the demo, "AI
 záznam" is off until a doctor starts it; the demo assumes the
 participants agreed beforehand, which a pilot must record. Words are filed only under the case the doctor has open, never
@@ -578,8 +591,8 @@ Open points are in [`docs/agent/OPEN_QUESTIONS.md`](../agent/OPEN_QUESTIONS.md).
 Two backends exist. The local prognosis API (`prognosis/serve.py`) accepts only identifiers for two explicitly supported synthetic fixtures. It constructs a dated clinical profile, removes names and birth numbers, and keeps the OpenRouter API key server-side. Searches require an explicit button action. Results and prompts are not logged or saved to disk; normalized results are held in a bounded process-memory cache. Browser edits are excluded. Provider retention remains subject to the provider policies; the request asks for providers with `data_collection:deny`. See [the API notes](../../prognosis/README.md).
 
 **On the Worker (Soňa's request 2026-11-06).** The same search runs for any processed case as a Workflow (`src/workflows/prognosis.ts`), so a patient the team uploaded can be searched too. What changes for data protection:
-- **Off by default.** It runs only for an org listed in `PROGNOSIS_ORGS` and only when the `OPENROUTER_API_KEY` secret is set; both are the team's explicit switches, and real patients need FNO's clearance for any cloud model first (see "Text sent to a model").
-- **What leaves.** One request to OpenRouter per click, pinned to an EU endpoint (see "OpenRouter route" under "Text sent to a model"), with web search: the clinical profile built from what the doctor sees of the case (`packages/domain/src/prognosis-profile.ts`). It holds dated clinical facts with their source page and quote, and no name, birth number, author, contact or file name; the patient's, owner's and referrer's names are scrubbed from the text, and a fact with no date, or dated after the evidence cutoff, is left out. Nothing else of the case is sent.
+- **On for the demo orgs only.** It runs only for an org listed in `PROGNOSIS_ORGS` and only when the `OPENROUTER_API_KEY` secret is set; both are the team's explicit switches, and real patients need FNO's clearance for any cloud model first (see "Text sent to a model").
+- **What leaves.** One request to OpenRouter per click, pinned to one endpoint (see "OpenRouter route" under "Text sent to a model"), with web search: the clinical profile built from what the doctor sees of the case (`packages/domain/src/prognosis-profile.ts`). It holds dated clinical facts with their source page and quote, and no name, birth number, author, contact or file name; the patient's, owner's and referrer's names are scrubbed from the text, and a fact with no date, or dated after the evidence cutoff, is left out. Nothing else of the case is sent.
 - **Never automatic.** The search starts only from the button, once per click, and is not retried. Per case one search runs at a time, and an org is held to `PROGNOSIS_DAILY_MAX` searches a day (default 20), a guard on the account's tokens.
 - **Logged.** Each start is an access-log row (`prognosis.search`) naming who started it. The profile waits between the click and the run in R2 (`jobs/<case>/prognosis-<job>.json`, removed after the run); the Workflow's parameters hold ids and codes only; prompts and provider answers are never logged, and an error keeps a fixed code, never provider text.
 - **Kept.** The checked result is stored in R2 (`prognosis-runs/<case>/saved-<day>.json`) with the case, goes with the case when it is erased and is emptied by a demo reset. The provider's own retention is outside this system. OpenRouter's web search runs on its search provider, which sees the search terms the model writes; those are clinical terms from the profile, and they stay outside the EU pin.

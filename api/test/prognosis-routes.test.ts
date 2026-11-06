@@ -191,6 +191,36 @@ describe("the job", () => {
     expect((await runPrognosisJob({ ...env, ...ON } as Env, params)).code).toBe("draft_missing");
   });
 
+  it("keeps a good saved search when a later one fails, and says so through the job", async () => {
+    const key = prognosisSavedKey("demo-a", "NO-A", "2026-10-22");
+    const good = JSON.stringify({ patient_id: "A_pacient.pdf", scheduled_date: "2026-10-22", result: { rows: [{ study_title: "Dobrá studie" }] } });
+    await env.DOCS.put(key, good);
+    openrouter(() => new Response("provider failed", { status: 500 }));
+    await job();
+    await draft();
+    expect(await runPrognosisJob({ ...env, ...ON } as Env, params)).toEqual({ state: "error", code: "search_failed" });
+    expect(await (await env.DOCS.get(key))!.text()).toBe(good);
+    expect((await q("SELECT state, error_code FROM jobs WHERE id = 'pg-x'"))[0]).toEqual({ state: "error", error_code: "search_failed" });
+    expect(await env.DOCS.head("org/demo-a/jobs/NO-A/prognosis-pg-x.json")).toBeNull();
+  });
+
+  it("keeps a good saved search when a later one finds nothing, and says another try will not help", async () => {
+    await env.DOCS.put(prognosisSavedKey("demo-a", "NO-A", "2026-10-22"), JSON.stringify({ result: { rows: [{ study_title: "Dobrá" }] } }));
+    openrouter(() => Response.json({ usage: { server_tool_use_details: { web_search_requests: 1 } }, choices: [{ finish_reason: "stop", message: { content: JSON.stringify({ rows: [] }), annotations: [] } }] }));
+    await job();
+    await draft();
+    expect((await runPrognosisJob({ ...env, ...ON } as Env, params)).code).toBe("search_empty");
+  });
+
+  it("does not let a failed search hide demo org A's seeded replay", async () => {
+    await env.DOCS.put("prognosis/NO-A/saved.json", JSON.stringify({ result: { rows: [{ study_title: "Uložená" }] } }));
+    openrouter(() => new Response("provider failed", { status: 500 }));
+    await job();
+    await draft();
+    expect((await runPrognosisJob({ ...env, ...ON } as Env, params)).code).toBe("search_failed");
+    expect(await env.DOCS.head(prognosisSavedKey("demo-a", "NO-A", "2026-10-22"))).toBeNull();
+  });
+
   it("stores a provider failure as a result the tab can show, never the provider's text", async () => {
     openrouter(() => new Response("secret provider text with the patient", { status: 500 }));
     await job();

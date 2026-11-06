@@ -64,7 +64,7 @@ export function modelConfig(env: Env) {
   const provider = PROVIDERS[v.MODEL_PROVIDER ?? ""];
   if (!provider || !v.MODEL_BASE || !v.MODEL_NAME) throw new ModelError("misconfigured", false);
   // Refused rather than sent unpinned: OpenRouter would then choose where the case text goes.
-  if (v.MODEL_PROVIDER === "openrouter" && !v.MODEL_ROUTE_ONLY) throw new ModelError("misconfigured", false);
+  if (v.MODEL_PROVIDER === "openrouter" && (!v.MODEL_ROUTE_ONLY || (v.MODEL_READ_NAME && !v.MODEL_READ_ROUTE_ONLY))) throw new ModelError("misconfigured", false);
   const key = v[provider.secret as string];
   // No key: the model is off for this deployment, which is a state, not a failure to retry.
   if (!key) throw new ModelError("model_off", false);
@@ -73,6 +73,9 @@ export function modelConfig(env: Env) {
     url: `${v.MODEL_BASE.replace(/\/+$/, "")}/chat/completions`,
     model: v.MODEL_NAME,
     routing: v.MODEL_PROVIDER === "openrouter" ? pinnedRoute(v.MODEL_ROUTE_ONLY!) : null,
+    // The model for prompts that read page images; without one, those use the main model.
+    readModel: v.MODEL_READ_NAME || v.MODEL_NAME,
+    readRouting: v.MODEL_PROVIDER === "openrouter" ? pinnedRoute(v.MODEL_READ_NAME ? v.MODEL_READ_ROUTE_ONLY! : v.MODEL_ROUTE_ONLY!) : null,
     headers: { ...provider.headers(key), "content-type": "application/json" },
     reasoningEffort: v.MODEL_REASONING_EFFORT || null,
     attempts: num(v.LLM_MAX_ATTEMPTS, 4),
@@ -102,7 +105,7 @@ export function modelAvailable(env: Env): boolean {
   }
 }
 
-// docId is the `documents.id` of the case's document (never a file name, fixture or part ID): the cache folder and the
+// docId is the `documents.id` of the case's document, or transcript-<pass> for a discussion (never a file name, fixture or part ID): the cache folder and the
 // purge on withdraw (model-cache.ts) go by it.
 export type PageRef = { docId: string; page: number | null };
 
@@ -147,8 +150,10 @@ export { cacheKey, cachePrefixesOf, cacheScope } from "./model-cache";
 const iso = () => new Date().toISOString();
 
 export async function callModel(env: Env, req: ModelRequest): Promise<ModelResult> {
-  const cfg = modelConfig(env);
   const prompt = await loadPrompt(req.prompt);
+  const base = modelConfig(env);
+  // Everything below (payload, cache key, audit) names the model that really gets the call.
+  const cfg = prompt.images ? { ...base, model: base.readModel, routing: base.readRouting } : base;
   const images = req.images ?? [];
   if (images.length && !prompt.images) throw new ModelError("image_not_redacted", false);
   for (const im of images) {
@@ -230,7 +235,10 @@ export async function callModel(env: Env, req: ModelRequest): Promise<ModelResul
   // The provider's content filter answers the same way every time: not worth a retry.
   if (choice?.finish_reason === "content_filter") throw await fail("refused", false);
   // A cut-off answer would look complete; it is refused, and a longer limit is a prompt or config change.
-  if (output === null || choice?.finish_reason === "length") throw await fail("bad_output", choice?.finish_reason !== "length");
+  if (choice?.finish_reason === "length") throw await fail("bad_output", false);
+  // Only a finished answer with text counts: OpenRouter can report a provider failure inside a 200, and a blank reading
+  // cached as a success would show its page as "not stated" for good. Anything else may be a one-off, so it is retried.
+  if (choice?.finish_reason !== "stop" || !output?.trim()) throw await fail("bad_output", true);
   const json = parseOutput(output, !!prompt.schema);
   if (json === undefined) throw await fail("bad_output", true);
   await finish(env, req.org, callId, { state: "done", attempts, status: res.status, code: null, ms });

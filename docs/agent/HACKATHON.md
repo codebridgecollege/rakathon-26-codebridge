@@ -209,9 +209,9 @@ Declare this list to the jury and mentors.
 - The hackathon's Azure OpenAI gateway (`gpt-6-luna-dz-eu`), for the
   one-sentence summary of a recorded MDT discussion.
 - OpenRouter, from 2026-11-06 (after the event), for the Worker's language
-  model (`openai/gpt-6-luna`, EU endpoint) and the Prognóza study search
-  (Claude Opus 5.5, EU endpoint), because the hackathon gateway stopped
-  accepting our key.
+  model (`openai/gpt-6-luna`), page reading (Claude Haiku 5.5) and the
+  Prognóza study search (Claude Opus 5.5), because the hackathon gateway
+  stopped accepting our key.
 - Cloudflare Pages, which during the event hosted mock v3 (the
   single-file HTML page the demo started as) at
   https://codebridge-mdt.pages.dev, with Pages Functions for the speech
@@ -225,8 +225,7 @@ Declare this list to the jury and mentors.
   Logs), hosting the API Worker `codebridge-mdt` in `api/`, which serves
   the demo (the Nuxt app at `/` and the API under `/api`), with Hono
   4.13.13, `jose` 6.2.12, Wrangler 4.147.0, TypeScript 5.9.3, and Vitest
-  4.1.11 with `@cloudflare/vitest-plugin` 1.3.6. Cloudflare AI Gateway is
-  wired as an option but off.
+  4.1.11 with `@cloudflare/vitest-plugin` 1.3.6.
 - JSON Schema libraries for the extraction format (written during the
   event): ts-json-schema-generator 2.9.0 (generates the schema from the
   TypeScript types), `@cfworker/json-schema` 4.1.1 (validates in the

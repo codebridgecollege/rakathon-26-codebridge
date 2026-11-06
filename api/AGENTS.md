@@ -294,15 +294,17 @@ Design and contract: `docs/research/backend-steps/step-6.md`, section "As implem
 
 ## Model interface (issue #20, stream D phase 1)
 
-Every call that sends case content to an external model goes through `callModel` in `src/services/model.ts`; the
-privacy side is in `docs/design/DATA-PROTECTION.md`, "Text sent to a model", and the gateway's measured behaviour in
-`docs/research/2026-10-19-azure-gateway-check.md`.
+Every call that sends case text or page images to an external model goes through `callModel` (the Prognóza search sends its profile itself) in `src/services/model.ts`; the
+privacy side is in `docs/design/DATA-PROTECTION.md`, "Text sent to a model", and the measurements behind the models in
+`docs/research/2026-11-06-openrouter-switch.md`.
 
 - **Configuration:** `MODEL_PROVIDER` (`openrouter` reads the `OPENROUTER_API_KEY` secret and requires `MODEL_ROUTE_ONLY`,
   the one endpoint it may use; `openai-compatible` reads `MODEL_API_KEY`), `MODEL_BASE`, `MODEL_NAME`,
   `MODEL_REASONING_EFFORT`, timeouts, input caps and the `MODEL_BUDGET_*` values in `wrangler.jsonc`. No key: `model_off`.
-  Provider without its endpoint: `misconfigured`. The summary route (`/api/summarize`) and the speaker pass use the same
-  configuration (`src/services/summarize-transcript.ts`); `modelAvailable` says whether the model can be called.
+  Provider without its endpoint: `misconfigured`. A prompt that reads page images goes to `MODEL_READ_NAME` on
+  `MODEL_READ_ROUTE_ONLY`; every other prompt goes to the main model. The speaker pass sends its summary through `callModel`
+  too, for orgs in `MODEL_ORGS`. Only `finish_reason: "stop"` with text counts as an answer. `modelAvailable` says whether
+  the model can be called.
 - **Prompts** live in `src/prompts/`, registered by ID with a version in `src/prompts/index.ts`; bump the version on
   any change of text or schema. The prompt's SHA-256 is in the cache key and the call's metadata anyway.
 - **Inside a Workflow step:** run the call under `MODEL_STEP` and rethrow `forStep(e)`, which makes a final error a
@@ -466,8 +468,7 @@ Design: `docs/design/AUTH.md` and `docs/design/DATABASE.md`, each with a section
 
 - Vars (endpoints, models, language, limits, `AUTH_MODE`) in `wrangler.jsonc`.
 - Keys only as secrets: `npx wrangler secret put ELEVENLABS_API_KEY`,
-  `OPENROUTER_API_KEY`, `OIDC_CLIENT_SECRET`, `SESSION_KEY`, optionally
-  `AI_GATEWAY_TOKEN`. Locally in `.dev.vars`.
+  `OPENROUTER_API_KEY`, `OIDC_CLIENT_SECRET`, `SESSION_KEY`. Locally in `.dev.vars`.
   Never in code, CI, logs or git.
 - `.dev.vars.example` lists the secret names; `src/worker-configuration.d.ts`
   is generated from it and `wrangler.jsonc`.
@@ -530,12 +531,6 @@ proves who someone is, and orgs, memberships and roles stay in D1.
 - **Removing someone.** Ending the membership on the staff screen stops their session at the next request. Disabling
   the account in Zitadel takes effect at their next login (up to 12 hours; AUTH.md, "Session rules").
 
-## AI Gateway (off)
-
-Before setting `AI_GATEWAY_BASE`, check on a scratch gateway that (a) it
-accepts the APIM host and the `/openai/v1/chat/completions` path, (b)
-whether it retries 429 itself (then lower `LLM_MAX_ATTEMPTS`), and (c) its
-logging is off.
 
 ## NIS over FHIR (issue #22, phase 1)
 

@@ -60,8 +60,6 @@ export default defineConfig(async () => {
             PROGNOSIS_MODEL: "m",
             PROGNOSIS_MODEL_LABEL: "Test model",
             PROGNOSIS_ROUTE_ONLY: "test/eu",
-            AI_GATEWAY_TOKEN: "",
-            AI_GATEWAY_BASE: "",
             ELEVENLABS_API_BASE: "https://elevenlabs.test",
             MODEL_BASE: "https://model.test/openai/v1",
             MODEL_API_KEY: "",
@@ -77,8 +75,9 @@ export default defineConfig(async () => {
             PAGE_READER_CONTAINER: "off",
             // Workflows run with these bindings: the case merge runs for demo org B, as on the deployed host.
             PIPELINE_ORGS: "demo-b",
-            // The deployed MODEL_ORGS and UPLOAD_STORE_ORGS name both demo orgs; the tests set what they need themselves.
-            MODEL_ORGS: "",
+            // Demo org A only, because the speaker pass's Workflow reads this binding and sends its summary for listed orgs.
+            // The deployed UPLOAD_STORE_ORGS names the demo orgs; the tests set what they need themselves.
+            MODEL_ORGS: "demo-a",
             UPLOAD_STORE_ORGS: "",
           },
           // The PAGE_READER binding names the class in another Worker (codebridge-page-reader); workerd refuses to start

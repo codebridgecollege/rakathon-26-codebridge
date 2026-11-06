@@ -177,11 +177,11 @@ export class ExtractDocumentWorkflow extends WorkflowEntrypoint<Env, ExtractDocu
         let verify = (cmp.pages[0]?.verify ?? []).map((v) => [v.start, v.end] as [number, number]);
         if (shortReading(text, f.rec.words.length)) verify = [[0, text.length]];
         const prompt = await loadPrompt("read-page-cs");
-        const reading: VisionReading = { text, verify, engine: `vision ${modelConfig(env).model} ${prompt.ref}` };
+        const reading: VisionReading = { text, verify, engine: `vision ${modelConfig(env).readModel} ${prompt.ref}` };
         await putJson(env, `${run.output_prefix}p${n}.vision.json`, reading);
         return { n, code: null as string | null, marks: verify.length };
       }, { n, code: "busy", marks: 0 });
-      // A page the model did not read keeps its local reading; it is not "unread" for the extraction.
+      // A page the model did not read keeps its local reading, marked for checking in the fragment step.
       if (r.code) unread[`p${n}`] = r.code;
     }
 
@@ -217,7 +217,10 @@ export class ExtractDocumentWorkflow extends WorkflowEntrypoint<Env, ExtractDocu
       const pages: PageReading[] = [];
       for (let n = 1; n <= plan.pages; n++) {
         const { f, reading } = await readingOf(env, run.output_prefix, n);
-        pages.push({ page: n, text: reading.text, quoteText: reading.quoteText, engine: reading.engine, words: f.rec.words, readability: f.level, verify: reading.verify, identity: pageIdentity.get(n) ?? "cannot_verify" });
+        // A page sent to the vision model because its text is doubtful, whose reading then failed, keeps that doubtful
+        // text: every fact from it needs checking, or a garbled layer would come out as clear.
+        const failedRead = unread[`p${n}`] !== undefined;
+        pages.push({ page: n, text: reading.text, quoteText: reading.quoteText, engine: reading.engine, words: f.rec.words, readability: f.level, verify: failedRead ? [[0, reading.text.length]] : reading.verify, identity: pageIdentity.get(n) ?? "cannot_verify" });
       }
       const calls: CallAnswer[] = [];
       const unreadPages: number[] = [];
@@ -243,9 +246,9 @@ export class ExtractDocumentWorkflow extends WorkflowEntrypoint<Env, ExtractDocu
       const partOf = (i: number) => allParts.find((x) => x.pages.includes(i + 1))?.id ?? null;
       const d = await draftDocument({ doc: { documentId: p.docId, part: null, pages }, calls, unreadPages, ids: aiFragmentIds(p.docId), partOf });
       const [readPrompt, extractPrompt] = await Promise.all([loadPrompt("read-page-cs"), loadPrompt("extract-facts-cs")]);
-      const model = modelConfig(env).model;
+      const { model, readModel } = modelConfig(env);
       const stages = [
-        ...(plan.vision.length ? [{ name: "read_pages", model, prompt: readPrompt.ref, prompt_sha256: readPrompt.sha256, temperature: null }] : []),
+        ...(plan.vision.length ? [{ name: "read_pages", model: readModel, prompt: readPrompt.ref, prompt_sha256: readPrompt.sha256, temperature: null }] : []),
         { name: "extract_facts", model, prompt: extractPrompt.ref, prompt_sha256: extractPrompt.sha256, temperature: null },
       ];
       await putJson(env, `${run.output_prefix}fragment-ai.json`, {

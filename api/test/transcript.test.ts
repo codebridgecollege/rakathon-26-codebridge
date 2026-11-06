@@ -76,7 +76,7 @@ async function approve(user = "d2p1", e: Env = testEnv()) {
 // ElevenLabs answers with two speakers whose words start at the given seconds of the joined audio.
 const elevenWords = (words: [string, number, string][]) =>
   Response.json({ language_code: "ces", text: "ignored", words: words.flatMap(([t, s, sp]) => [{ text: t, type: "word", start: s, end: s + 0.3, speaker_id: sp }, { text: " ", type: "spacing", start: s + 0.3, end: s + 0.31 }]) });
-const llmAnswer = (text: string) => Response.json({ choices: [{ message: { content: text } }] });
+const llmAnswer = (text: string) => Response.json({ choices: [{ message: { content: text }, finish_reason: "stop" }] });
 
 // Tests that approve only to reach a later state still start a pass; it runs to its end inside the test, so it never
 // writes into the next test's database.
@@ -328,24 +328,29 @@ describe("pure rules", () => {
 type Mock = { eleven: (() => Response)[]; llm: (() => Response)[] };
 // The Workflow runs in its own Durable Object, so request bodies are read inside the handler, not later in the test.
 const forms: string[] = [];
+const modelBodies: string[] = [];
 function providers(m: Mock) {
   let e = 0, a = 0;
   forms.length = 0;
+  modelBodies.length = 0;
   return mockFetch(async (req) => {
     const u = new URL(req.url);
     if (u.hostname === "elevenlabs.test") {
       forms.push(await req.text());
       return m.eleven[Math.min(e++, m.eleven.length - 1)]!();
     }
-    if (u.hostname === "model.test") return m.llm[Math.min(a++, m.llm.length - 1)]!();
+    if (u.hostname === "model.test") {
+      modelBodies.push(await req.text());
+      return m.llm[Math.min(a++, m.llm.length - 1)]!();
+    }
     return new Response("unexpected", { status: 599 });
   });
 }
 
-async function recordCase(seconds = 2) {
+async function recordCase(seconds = 2, lines = LINES) {
   const rec = await startRecording();
   const t = Date.now() - 20_000;
-  await w("POST", "/cases/NO-A/transcript/lines", lineBody(rec, LINES.map((text, i) => ({ id: lid(i), at: t + i * 1000, text }))));
+  await w("POST", "/cases/NO-A/transcript/lines", lineBody(rec, lines.map((text, i) => ({ id: lid(i), at: t + i * 1000, text }))));
   await part("NO-A", 1, pcm(seconds), { rec, final: true }, [{ start_sample: 0, wall_ms: t }]);
   return { rec, t };
 }
@@ -562,6 +567,20 @@ describe("SpeakerPassWorkflow", () => {
     const a = await approve();
     expect(a.body.data.speaker_pass_job_id).toBeNull();
     expect(await q("SELECT * FROM jobs")).toEqual([]);
+  });
+
+  it("sends the transcript through the model interface: name pseudonymized, the send logged, no placeholder or value restored", async () => {
+    const { full_name } = (await one("SELECT p.full_name FROM cases c JOIN patients p ON p.id = c.patient_id AND p.org_id = c.org_id WHERE c.id = 'NO-A'")) as { full_name: string };
+    const names = full_name.split(" ");
+    await recordCase(2, [`pacient ${full_name} po resekci`, "kontrolní CT za tři měsíce", "souhlasím"]);
+    const { wf, inst } = await runPass({ eleven: [() => elevenWords([])], llm: [() => llmAnswer("[PACIENT] [PACIENT]: kontrolní CT za tři měsíce, kontakt [TELEFON], volá [LEKAR_1].")] });
+    await using _ = wf;
+    await inst.waitForStatus("complete");
+    expect(modelBodies.join("")).toContain("kontrolní CT");
+    for (const name of names) expect(modelBodies.join("")).not.toContain(name);
+    const { text } = (await one("SELECT text FROM transcript_summaries")) as { text: string };
+    expect(text).toBe("pacient: kontrolní CT za tři měsíce, kontakt údaj skrytý, volá lékař.");
+    expect(await one("SELECT COUNT(*) AS n FROM access_log WHERE action = 'model.call'")).toEqual({ n: 1 });
   });
 
   it("serves a known transcript from the R2 cache without calling the model", async () => {

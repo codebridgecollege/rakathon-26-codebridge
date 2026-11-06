@@ -246,8 +246,7 @@ experience.
 ## Check ourselves (docs and the web)
 
 - [ ] Do presigned R2 URLs work on the EU endpoint? (D1 and R2 residency
-  is answered in `HACKATHON.md`.) Does AI Gateway retry on
-  HTTP 429, and does its Azure provider fit the hackathon APIM host?
+  is answered in `HACKATHON.md`.)
   (`docs/research/2026-10-17-backend-migration.md`)
 
 - [ ] What are the URL of the InterSystems "FHIR AI Hackathon Kit" and the

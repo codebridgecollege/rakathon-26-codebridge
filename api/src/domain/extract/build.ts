@@ -490,15 +490,18 @@ export async function draftDocument(o: {
 
   // A page no call sent, or the model would not read, is listed as not read: its absence of facts is not "nothing found".
   const sent = new Set(o.calls.flatMap((c) => c.pages));
+  // No answer at all means nothing was looked for: the document is "not checked", never "nothing found", and a page no
+  // call tried is not called unreadable.
+  const ran = o.calls.length > 0;
   const unread = new Set(o.unreadPages ?? []);
   // The parts the calls read (each call one part in the Worker), or the document as a whole.
   const parts = [...new Set(o.calls.map((c) => c.part ?? doc.part))];
-  const covered = (parts.length ? parts : [doc.part]).map((part) => ({ document_id: doc.documentId, part }));
+  const covered = ran ? parts.map((part) => ({ document_id: doc.documentId, part })) : [];
   const unreadable = doc.pages
     .map((p, i) => ({ p, i }))
-    .filter(({ p, i }) => p.readability === "empty" || unread.has(i) || !sent.has(i))
+    .filter(({ p, i }) => p.readability === "empty" || unread.has(i) || (ran && !sent.has(i)))
     .map(({ p, i }) => ({ document_id: doc.documentId, part: o.partOf?.(i) ?? doc.part, page: p.page }));
-  const checks: Check[] = EXTRACT_KINDS.map((k) => ({ id: `chk-${k}`, looks_for: k, expected: null, covered, unreadable, result: facts.some((f) => f.kind === k) ? ("found" as const) : ("nothing_found" as const) }));
+  const checks: Check[] = EXTRACT_KINDS.map((k) => ({ id: `chk-${k}`, looks_for: k, expected: null, covered, unreadable, result: !ran ? ("not_run" as const) : facts.some((f) => f.kind === k) ? ("found" as const) : ("nothing_found" as const) }));
   return { sources: [...sources.values()], facts, checks, report };
 }
 

@@ -69,9 +69,8 @@ nor an individual probability of survival.
 ## Running and checking
 
 `python3 prognosis/serve.py` runs the local prognosis API on port 8766 (loopback
-only); it owns the API key and serves no page. The app on the Worker shows the
-saved searches only: the Worker has no search route, so a new search there reports
-that the host does not offer it, and no page currently calls the local API. See
+only); it owns the API key and serves no page. The app on the Worker runs the search itself (`api/AGENTS.md`), and no page calls
+the local API. See
 `prognosis/README.md` for the API, configuration, retention and verification limits.
 
 Run the Python prognosis tests (`prognosis/tests/`) and the app's prognosis tests

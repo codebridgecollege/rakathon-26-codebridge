@@ -12,15 +12,15 @@ import { sha256Hex } from "../store/work";
 export type PromptDef = {
   version: number;
   text: string;
-  // A JSON Schema for structured output (the gateway accepts response_format json_schema with strict: true,
-  // docs/research/2026-10-19-azure-gateway-check.md); absent for plain text answers.
+  // A JSON Schema for structured output (response_format json_schema with strict: true; Anthropic's
+  // models allow 16 nullable fields in one, so extract-facts-cs needs the main model); absent for plain text answers.
   schema?: { name: string; schema: Record<string, unknown> };
   // Whether the prompt takes page images; the model interface refuses images for a prompt that does not.
   images?: boolean;
 };
 
 export const PROMPTS = {
-  "summarize-cs": { version: 1, text: SUMMARIZE_CS },
+  "summarize-cs": { version: 2, text: SUMMARIZE_CS },
   "read-page-cs": { version: 1, text: READ_PAGE_CS, images: true },
   "extract-facts-cs": { version: 9, text: EXTRACT_FACTS_CS, schema: EXTRACT_SCHEMA },
   "compose-brief-cs": { version: 3, text: COMPOSE_BRIEF_CS, schema: BRIEF_SCHEMA },

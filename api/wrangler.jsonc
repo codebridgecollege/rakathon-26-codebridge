@@ -41,7 +41,6 @@
     // "true" lets the administrator restore the shared demo to its seed (POST /api/admin/reset-demo). Absent or any
     // other value in a pilot, where the data is not synthetic.
     "DEMO_RESET_ENABLED": "true",
-    "AI_GATEWAY_BASE": "",
     "LLM_MAX_ATTEMPTS": "4",
     "LLM_RETRY_BASE_MS": "1000",
     "SUMMARY_MAX_CHARS": "40000",
@@ -69,6 +68,10 @@
     "MODEL_BASE": "https://openrouter.ai/api/v1",
     "MODEL_NAME": "openai/gpt-6-luna",
     "MODEL_ROUTE_ONLY": "azure/eu",
+    // Page images go to their own model: GPT-6 Luna dropped characters from clean print at every effort (2026-11-06), and
+    // Haiku cannot take the extraction schema (Anthropic allows 16 nullable fields in a strict schema, ours has 31).
+    "MODEL_READ_NAME": "anthropic/claude-haiku-5.5",
+    "MODEL_READ_ROUTE_ONLY": "google-vertex/europe",
     "MODEL_REASONING_EFFORT": "low",
     "MODEL_TIMEOUT_MS": "120000",
     // In-process retries stop here, below the 5-minute step timeout (MODEL_STEP); the step retries after that.
@@ -81,7 +84,8 @@
     "MODEL_BUDGET_WINDOW_HOURS": "24",
     "MODEL_BUDGET_PAGES_PER_ORG": "600",
     "MODEL_BUDGET_PAGES_PER_CASE": "80",
-    "MODEL_BUDGET_CALLS_PER_PAGE": "4",
+    // A page can take four read attempts and four extraction attempts, so a failed read still leaves room to extract.
+    "MODEL_BUDGET_CALLS_PER_PAGE": "8",
     "ELEVENLABS_API_BASE": "https://api.elevenlabs.io",
     "STT_REALTIME_MODEL": "scribe_v2_realtime",
     "STT_BATCH_MODEL": "scribe_v2",
@@ -123,7 +127,6 @@
   "ratelimits": [
     { "name": "RL_STT_TOKEN", "namespace_id": "26101", "simple": { "limit": 30, "period": 60 } },
     { "name": "RL_STT_BATCH", "namespace_id": "26102", "simple": { "limit": 10, "period": 60 } },
-    { "name": "RL_LLM", "namespace_id": "26103", "simple": { "limit": 20, "period": 60 } },
     // Audio parts: one 5 MiB part is about 2.7 minutes of a case, so 30 a minute is far above a real meeting.
     { "name": "RL_AUDIO", "namespace_id": "26104", "simple": { "limit": 30, "period": 60 } },
     // Uploads: the intake demo is seven files at once, and in demo mode the limit is per IP, so a whole venue on one

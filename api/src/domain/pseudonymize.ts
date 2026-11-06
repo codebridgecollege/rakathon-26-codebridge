@@ -265,6 +265,9 @@ export function detectIdentifiers(text: string, id: CaseIdentity, titled: Titled
   each(FIELD, (m) => {
     const label = m[1]!;
     const value = m[2]!.replace(/\s+$/, "");
+    // A value already replaced: the gate reads the pseudonymized text with these same rules and must not refuse its own
+    // placeholder, or one "Bydliště:" line would cost the whole part.
+    if (/^(?:\[[a-z0-9_]+\][ \t,]*)+$/i.test(value)) return;
     const start = m.index + m[0].indexOf(m[2]!, m[0].indexOf(label) + label.length);
     const kind: IdentifierKind = /bydliste|adresa/.test(label) ? "address" : /mail/.test(label) ? "email" : /tel/.test(label) ? "phone" : "name_field";
     push(start, start + value.length, kind);

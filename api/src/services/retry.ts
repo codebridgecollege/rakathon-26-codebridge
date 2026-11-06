@@ -10,7 +10,7 @@ export type RetryOpts = {
   fetcher?: (url: string, init: RequestInit) => Promise<Response>;
 };
 
-// About 70 teams share the hackathon endpoint (CLAUDE.md): back off exponentially on 429 and 503, honor
+// A provider can refuse short bursts (CLAUDE.md, calling LLMs): back off exponentially on 429 and 503, honor
 // Retry-After, cap the wait. Only for re-sendable bodies (string or ArrayBuffer), never a stream.
 export async function fetchWithRetry(
   url: string,

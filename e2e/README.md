@@ -9,7 +9,7 @@ together, or against several local Workers at once (`npm run test:parallel`). It
 
 - **Allowed:** `getByRole`, `getByLabel`, `getByText`, accessible names, `aria-*` states (`aria-pressed`,
   `aria-expanded`, `aria-current`, `aria-invalid`); downloads and their bytes; file choosers; network stubs
-  (`page.route`, `page.routeWebSocket`) for outside services (ElevenLabs, Azure); holding back (never changing) an
+  (`page.route`, `page.routeWebSocket`) for outside services (ElevenLabs, OpenRouter); holding back (never changing) an
   answer of our own API until a click has happened, to fix an order that timing alone does not (`approve-pending.spec.ts`); `page.waitForResponse` where the page
   gives no visible signal (autosave, the phone upload token, the end of an upload session); properties of a DOM element
   itself (`img.naturalWidth`, `document.documentElement.scrollWidth`).
@@ -201,7 +201,7 @@ Not covered, and why:
 - **Not built in the page:** F-08, F-10, F-13, F-14, F-20, F-26, F-28, F-29, F-30.
 - **No visible UI:** F-37 (pseudonymization happens on the server), F-33 (re-check on upload, server side).
 - **Needs a service the suite does not run:** the document pipeline ("Přečíst bez AI", F-35) needs the page reader
-  (`features.pipeline`); the speaker pass and AI summary after approval need ElevenLabs and Azure (only the live
+  (`features.pipeline`); the speaker pass and AI summary after approval need ElevenLabs and OpenRouter (only the live
   recorder states are covered).
 - **Not reachable from the UI:** break-the-glass ("Otevřít mimo tým"). Every seeded department is a member of every
   case, and a doctor added in a new department sees an empty patient list (the server lists only member cases), so

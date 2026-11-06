@@ -29,5 +29,6 @@ const MESSAGES: Record<string, string> = {
   draft_missing: "Podklady hledání už nejsou k dispozici. Spusťte hledání znovu.",
   stalled: "Hledání se nedokončilo. Spusťte ho znovu.",
   search_failed: "Hledání se nepodařilo dokončit. Spusťte ho znovu.",
+  search_empty: "Hledání nenašlo použitelné výsledky. Uložený výsledek zůstává.",
 };
 export const prognosisMessage = (code: string | null): string | null => (code ? (MESSAGES[code] ?? MESSAGES.search_failed!) : null);
